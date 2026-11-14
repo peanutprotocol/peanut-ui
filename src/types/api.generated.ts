@@ -5970,10 +5970,11 @@ export interface paths {
                                     reason: "payout-failed" | "payout-reversed" | "late-deposit" | "deposit-delivery-failed";
                                     state: "awaiting-key" | "in-progress" | "done";
                                 } | null;
-                                /** @description Bridge’s Pix only: what the provider kept, so amount × marketRate − fee = the reais. Absent on a return, and where Bridge states no fee on a deposit. */
+                                /** @description Bridge’s Pix only: what the provider kept, in reais, so the rows add up with marketRate. Absent on a return, and on a deposit or payout without a recorded market rate. */
                                 providerFee?: {
                                     amount: string;
-                                    currency: "BRL" | "USD";
+                                    /** @enum {string} */
+                                    currency: "BRL";
                                 };
                             } & {
                                 [key: string]: unknown;
@@ -6663,7 +6664,7 @@ export interface paths {
         put?: never;
         /**
          * Save a PIX key to the address book
-         * @description Saves a PIX key as one of the user's bank accounts, named with the label, so it is offered under Send → Bank. The account carries isPixRecipient, so it is never offered as a withdrawal destination. Saving a key the user already has renames it.
+         * @description Saves a PIX key as one of the user's bank accounts, named with the label. The API decides whose key it is, once, with the directory lookup the Pix withdrawal uses, through the user's open Pix withdraw route: the user's own key is saved as a withdrawal destination; any other key, or any key while that route is closed, is saved as a recipient (isPixRecipient) for Send → Bank, never offered as a withdrawal destination. A recipient needs Pix payment eligibility; an own key needs only the open route. Where the open route's provider pays any key (Bridge), that provider saves the key as a payout to it would, with the holder and bank its lookup validated, own key or recipient; the lookup's refusals (those of POST /pix/key) answer instead. Saving a key the user already has renames it.
          */
         post: {
             parameters: {
@@ -6692,6 +6693,78 @@ export interface paths {
                 };
                 /** @description Default Response */
                 400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -7678,7 +7751,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -7690,7 +7766,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -7702,7 +7781,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -7714,7 +7796,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -7726,7 +7811,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -7738,7 +7826,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -7750,7 +7841,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -7762,7 +7856,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -7835,7 +7932,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -7847,7 +7947,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -7859,7 +7962,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -7871,7 +7977,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -7883,7 +7992,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -7895,7 +8007,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -7907,7 +8022,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -7919,7 +8037,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -7995,7 +8116,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8078,7 +8202,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8090,7 +8217,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8102,7 +8232,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8114,7 +8247,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8126,7 +8262,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8138,7 +8277,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8150,7 +8292,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8162,7 +8307,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8225,11 +8373,15 @@ export interface paths {
                             amountBrl: string;
                             /** @description The flat fee in reais, shown as its own line */
                             fixedFeeBrl: string;
+                            /** @description BRL per USDC at the provider’s mid-market rate, where it states one above `rate`: the rate row shows it. Display only. */
+                            marketRate?: string;
                             /** @description The least amountBrl the provider takes for this operation; amount entry shows it */
                             minAmountBrl: string;
                             operation: "deposit" | "withdraw";
                             /** @description The provider the route names, e.g. manteca */
                             provider: string;
+                            /** @description Reais the provider keeps: floor_to_centavo(USDC × marketRate) − amountBrl, never below 0, an estimate like the reais. Holds fixedFeeBrl. Sent with marketRate only. */
+                            providerFeeBrl?: string;
                             /** @description BRL per USDC with the percentage fees inside. Deposit: amountBrl − fixedFeeBrl = usdcAmount × rate. Withdraw: usdcAmount × rate − fixedFeeBrl = amountBrl. To a centavo. */
                             rate: string;
                             /** @description USDC the wallet receives, after the bridge fee (deposit), or that leaves it, the bridge fee included (withdraw) */
@@ -8245,7 +8397,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8257,7 +8412,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8269,7 +8427,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8281,7 +8442,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8293,7 +8457,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8305,7 +8472,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8453,7 +8623,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8465,7 +8638,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8477,7 +8653,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8489,7 +8668,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8501,7 +8683,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8513,7 +8698,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8525,7 +8713,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8537,7 +8728,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8642,7 +8836,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8654,7 +8851,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8666,7 +8866,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8678,7 +8881,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8690,7 +8896,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8702,7 +8911,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8714,7 +8926,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8726,7 +8941,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8843,7 +9061,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8855,7 +9076,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8867,7 +9091,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8879,7 +9106,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8891,7 +9121,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8903,7 +9136,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8915,7 +9151,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8927,7 +9166,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8995,7 +9237,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -9007,7 +9252,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -9019,7 +9267,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -9031,7 +9282,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -9043,7 +9297,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -9055,7 +9312,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -9067,7 +9327,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -9079,7 +9342,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -9148,7 +9414,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -9160,7 +9429,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -9172,7 +9444,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -9184,7 +9459,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -9196,7 +9474,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -9208,7 +9489,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -9220,7 +9504,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -9232,7 +9519,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
