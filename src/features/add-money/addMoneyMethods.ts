@@ -14,6 +14,8 @@ export function resolveAddMoneyMethods(input: {
     firstPaymentAt?: string | null
     /** The Pix deposit route is Avenia's, not refused and not under the Brazil pause (`pixDepositOffered`). */
     pixDepositOffered?: boolean
+    /** The Pix deposit route refuses the residence: a resident of another country on Avenia gets no BRL deposit (ruled 2026-11-14). */
+    pixDepositNotServed?: boolean
 }) {
     const ready = { account: [] as string[], transfer: [] as string[], pix: [] as string[] }
     for (const corridor of DEPOSIT_RAIL_ORDER) {
@@ -38,7 +40,9 @@ export function resolveAddMoneyMethods(input: {
     if (usable && returning) drawerMethods.push('more')
     const pickerMethods: AddMoneyMethod[] = []
     if (input.standingEnabled || ready.account.length) pickerMethods.push('account')
-    pickerMethods.push('transfer', 'pix', 'crypto')
+    pickerMethods.push('transfer')
+    if (!input.pixDepositNotServed) pickerMethods.push('pix')
+    pickerMethods.push('crypto')
     return {
         entry: usable && returning ? ('drawer' as const) : ('picker' as const),
         ready,

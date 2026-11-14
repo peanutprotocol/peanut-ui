@@ -85,7 +85,7 @@ test.describe('Pix on the Avenia route', () => {
 
     // TASK-24947: Avenia pays another person's key, so the key continues as a send to them
     test("another person's key names the holder, bank and masked CPF, and continues as a send", async ({ page }) => {
-        await open(page, `${SEND}&__fixture=pix-withdraw-key-other`)
+        await open(page, `${SEND}&destination=%2B5511987654321&__fixture=pix-withdraw-key-other`)
         const holder = page.getByTestId('pix-key-holder')
         await expect(holder).toBeVisible({ timeout: 60_000 })
         await expect(holder).toContainText('Bruno Lima')
@@ -96,7 +96,10 @@ test.describe('Pix on the Avenia route', () => {
     })
 
     test("the send's form leads with Sending, the holder and the phone key as people write it", async ({ page }) => {
-        await open(page, `${SEND}&step=review&__fixture=pix-send-review`)
+        await open(
+            page,
+            `${SEND}&destination=%2B5511987654321&destinationAmount=100&step=review&__fixture=pix-send-review`
+        )
         await expect(page.getByText('Sending', { exact: true })).toBeVisible({ timeout: 60_000 })
         await expect(page.getByText('Bruno Lima')).toBeVisible()
         await expect(page.getByText(/^11 98765-4321/)).toBeVisible()
@@ -155,7 +158,7 @@ test.describe('Pix on the Avenia route', () => {
 // API-CONTRACT-M3: a resident of another country inside Avenia's gate sends by Pix on Avenia
 test.describe('Pix on the Avenia route, for a resident of another country', () => {
     test('Send to a Pix key reaches the same key step, and the key continues', async ({ page }) => {
-        await open(page, `${SEND}&__fixture=pix-nonresident-send-key`)
+        await open(page, `${SEND}&destination=%2B5511987654321&__fixture=pix-nonresident-send-key`)
         const holder = page.getByTestId('pix-key-holder')
         await expect(holder).toBeVisible({ timeout: 60_000 })
         await expect(holder).toContainText('Bruno Lima')

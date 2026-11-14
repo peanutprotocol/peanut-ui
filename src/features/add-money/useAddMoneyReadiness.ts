@@ -78,6 +78,8 @@ export function useAddMoneyReadiness(cryptoReady: boolean, readAccounts = true) 
         readyTopUps,
         firstPaymentAt: user?.user?.firstPaymentAt,
         pixDepositOffered: pixDepositOffered(pixDepositRoute),
+        pixDepositNotServed:
+            pixDepositRoute?.state === 'refused' && pixDepositRoute.reason?.code === 'residence_not_served',
     })
     const isLoading = !userId || capabilitiesLoading || (readAccounts && standingEnabled && query.isLoading)
     return {

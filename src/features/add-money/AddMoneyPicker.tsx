@@ -45,12 +45,16 @@ export function AddMoneyPicker({ onBack, origin }: { onBack: () => void; origin:
             description: t('oneTimeDetails'),
             icon: <IconBubble {...CONCEPT_ICONS.bank} size="s" />,
         },
-        {
-            key: 'pix',
-            title: t('payPix'),
-            description: t('pixDetails'),
-            icon: <Image src={PIX} alt="" width={32} height={32} />,
-        },
+        ...(readiness.pickerMethods.includes('pix')
+            ? [
+                  {
+                      key: 'pix',
+                      title: t('payPix'),
+                      description: t('pixDetails'),
+                      icon: <Image src={PIX} alt="" width={32} height={32} />,
+                  },
+              ]
+            : []),
         {
             key: 'crypto',
             title: t('crypto'),

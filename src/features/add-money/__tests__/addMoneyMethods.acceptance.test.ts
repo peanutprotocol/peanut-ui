@@ -64,6 +64,11 @@ describe('resolveAddMoneyMethods', () => {
         })
     })
 
+    // TASK-24947: a resident of another country on Avenia gets no BRL deposit (ruled 2026-11-14)
+    it('offers no Pix in the picker where the Pix deposit route refuses the residence', () => {
+        expect(resolve({ pixDepositNotServed: true }).pickerMethods).toEqual(['account', 'transfer', 'crypto'])
+    })
+
     it('deduplicates ready bank transfers and drops unsupported and malformed corridors', () => {
         const result = resolve({
             cryptoReady: false,
