@@ -707,7 +707,7 @@ describe('PixWithdrawFlow refused preview', () => {
         )
         renderAt(REVIEW)
 
-        expect(await screen.findByText('The minimum is R$25.')).toBeInTheDocument()
+        expect(await screen.findByText('Minimum is R$25.')).toBeInTheDocument()
         expect(screen.queryByText(/R\$2\./)).toBeNull()
     })
 

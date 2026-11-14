@@ -147,14 +147,14 @@ describe('PixDepositFlow and the URL', () => {
     it("says the route's minimum under an amount below it", async () => {
         renderAt('', { minAmount: '200' })
         fireEvent.click(screen.getByText('type'))
-        expect(await screen.findByText(/The minimum is R\$200/)).toBeInTheDocument()
+        expect(await screen.findByText(/Minimum is R\$200/)).toBeInTheDocument()
     })
 
     it("shows no minimum line while the amount meets the route's minimum", async () => {
         renderAt('', { minAmount: '1' })
         fireEvent.click(screen.getByText('type'))
         await new Promise((resolve) => setTimeout(resolve, 0))
-        expect(screen.queryByText(/The minimum is/)).toBeNull()
+        expect(screen.queryByText(/Minimum is/)).toBeNull()
     })
 
     it('reads the route again when the provider is paused or dormant (503), and says to try again soon', async () => {

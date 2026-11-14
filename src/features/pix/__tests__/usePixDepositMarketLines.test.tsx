@@ -41,8 +41,8 @@ describe('usePixDepositMarketLines', () => {
 
         await waitFor(() =>
             expect(result.current).toEqual([
-                'The exchange rate is 1 USD = BRL 5.7143.',
-                'The provider fee is 0.57% of each Pix.',
+                'Exchange rate is 1 USD = BRL 5.7143.',
+                'Provider fee is 0.57% per transaction.',
             ])
         )
     })
@@ -52,7 +52,7 @@ describe('usePixDepositMarketLines', () => {
         const messages = await loadMessages('pt-BR')
         const { result } = renderHook(() => usePixDepositMarketLines(true), { wrapper: wrapperFor('pt-BR', messages) })
 
-        await waitFor(() => expect(result.current[1]).toBe('A taxa do provedor é de 0,57% de cada Pix.'))
+        await waitFor(() => expect(result.current[1]).toBe('A taxa do provedor é de 0,57% por transação.'))
     })
 
     // Manteca's route, or Bridge's rates unread within 1.5 s: the rules carry neither field

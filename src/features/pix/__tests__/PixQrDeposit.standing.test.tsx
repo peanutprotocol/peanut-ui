@@ -87,7 +87,7 @@ describe('PixQrDeposit on a standing code', () => {
         expect(screen.getByTestId('qr')).toHaveTextContent('00020126...standing')
         expect(screen.getByText(en.addMoney.pix.scanWithBankApp)).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'copy' })).toBeInTheDocument()
-        expect(screen.getByText('The minimum is R$25.')).toBeInTheDocument()
+        expect(screen.getByText('Minimum is R$25.')).toBeInTheDocument()
         expect(screen.getByText(en.pix.deposit.businessOnly)).toBeInTheDocument()
         expect(screen.getByText('fine print')).toBeInTheDocument()
     })
@@ -95,10 +95,10 @@ describe('PixQrDeposit on a standing code', () => {
     // API-CONTRACT 8.2: Bridge's market rate and its cut of each Pix, in the list under the minimum
     it('lists the market rate and the provider fee right under the minimum', () => {
         read()
-        const marketLines = ['The exchange rate is 1 USD = BRL 5.7143.', 'The provider fee is 0.57% of each Pix.']
+        const marketLines = ['Exchange rate is 1 USD = BRL 5.7143.', 'Provider fee is 0.57% per transaction.']
         renderScreen(marketLines)
         const items = screen.getAllByRole('listitem').map((item) => item.textContent)
-        expect(items.slice(0, 3)).toEqual(['The minimum is R$25.', ...marketLines])
+        expect(items.slice(0, 3)).toEqual(['Minimum is R$25.', ...marketLines])
     })
 
     it('shows no amount, no estimate, no timer and no wait', () => {
