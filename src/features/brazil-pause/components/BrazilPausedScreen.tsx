@@ -24,7 +24,16 @@ export function BrazilPausedScreen({ block }: { block: PixPayBlock }) {
         <PageStack>
             <NavHeader onPrev={back} />
             <PageStack.Center>
-                <CenteredStatusCard tone="warning" title={copy.title} description={copy.body}>
+                <CenteredStatusCard
+                    tone="warning"
+                    title={copy.title}
+                    description={
+                        <>
+                            <p>{copy.body}</p>
+                            {copy.keySend && <p className="mt-2">{copy.keySend}</p>}
+                        </>
+                    }
+                >
                     <Button variant="primary" className="w-full" onClick={back}>
                         {tCommon('gotIt')}
                     </Button>

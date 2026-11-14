@@ -2973,6 +2973,11 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         },
     },
+    'qr-pay-brazil-resident-key-send': {
+        route: PIX_QR_ROUTE,
+        about: 'A Brazilian resident whose Pix payouts on Bridge are ready reaches a Pix deep link: the block adds that a Pix key can still be paid.',
+        responses: bridgePixWithdrawReady(),
+    },
     'qr-pay-kyc-required': {
         route: PIX_QR_ROUTE,
         about: 'A scan the API refuses with MANTECA_KYC_REQUIRED: the error card offers Verify identity.',

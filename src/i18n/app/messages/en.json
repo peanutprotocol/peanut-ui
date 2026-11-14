@@ -2574,6 +2574,7 @@
         "unavailableTitle": "Pix not available",
         "rejected": "Our Pix partner didn't approve your verification, so Pix isn't available for now. Your other Peanut features aren't affected. Message support if you think this is a mistake.",
         "payResidence": "Pix payments are not available where you live yet.",
+        "payResidenceKeySend": "You can still send to a Pix key.",
         "unavailable": "Pix is not available right now. Try again soon.",
         "setup": {
             "reviewing": "Our payment partner is checking your details. We will notify you when Pix is ready.",

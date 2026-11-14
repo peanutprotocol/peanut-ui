@@ -2574,6 +2574,7 @@
         "unavailableTitle": "Pix indisponível",
         "rejected": "Nosso parceiro de Pix não aprovou sua verificação, então o Pix não está disponível por enquanto. O resto do Peanut não é afetado. Fale com o suporte se achar que é um erro.",
         "payResidence": "Os pagamentos Pix ainda não estão disponíveis onde você mora.",
+        "payResidenceKeySend": "Você ainda pode enviar para uma chave Pix.",
         "unavailable": "O Pix não está disponível agora. Tente de novo em breve.",
         "setup": {
             "reviewing": "Nosso parceiro de pagamentos está conferindo os seus dados. Avisaremos quando o Pix estiver pronto.",

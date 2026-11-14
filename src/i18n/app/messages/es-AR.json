@@ -1335,6 +1335,7 @@
     "pix": {
         "residenceNotServed": "Pix no se ofrece donde vivís.",
         "payResidence": "Los pagos con Pix aún no están disponibles donde vivís.",
+        "payResidenceKeySend": "Aún podés enviar a una clave Pix.",
         "unavailable": "Pix no está disponible en este momento. Intentá de nuevo pronto.",
         "setup": {
             "terms": "Al continuar, aceptás los <terms>{termsName}</terms>.",

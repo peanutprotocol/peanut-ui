@@ -1390,6 +1390,33 @@ describe('GROUP 2: Payment Form States', () => {
 
             expect(await screen.findByText(en.pix.payResidence)).toBeInTheDocument()
             expect(screen.queryByText(en.brazilPause.body)).not.toBeInTheDocument()
+            expect(screen.queryByText(en.pix.payResidenceKeySend)).not.toBeInTheDocument()
+            expect(mockMantecaApi.initiateQrPayment).not.toHaveBeenCalled()
+        } finally {
+            setPixBlock(null)
+        }
+    })
+
+    // the merchant code stays closed; a Pix key is paid as a payout (TASK-24910)
+    test('A resident whose Pix payouts are ready reads that a Pix key can still be paid', async () => {
+        setPixBlock('residence')
+        setupMantecaPayment()
+        const gate = mockUseCapabilities()
+        mockUseCapabilities.mockReturnValue({
+            ...gate,
+            capabilities: {
+                ...gate.capabilities,
+                routes: [
+                    { operation: 'withdraw', method: 'PIX_BR', provider: 'bridge', state: 'ready', candidates: [] },
+                ],
+            },
+        })
+
+        try {
+            renderQrPay({ qrCode: 'pix://payment?id=123', type: 'PIX', t: '1' })
+
+            expect(await screen.findByText(en.pix.payResidence)).toBeInTheDocument()
+            expect(screen.getByText(en.pix.payResidenceKeySend)).toBeInTheDocument()
             expect(mockMantecaApi.initiateQrPayment).not.toHaveBeenCalled()
         } finally {
             setPixBlock(null)
