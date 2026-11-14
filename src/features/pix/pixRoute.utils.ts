@@ -97,6 +97,31 @@ export function pixPayBlock(route: CapabilityRoute | undefined): PixPayBlock | n
     return null
 }
 
+/** Avenia's refusals of the user: support's to fix, with no fall-back to another provider (API-CONTRACT-M4 §1). */
+const AVENIA_REFUSALS: ReadonlySet<string> = new Set(['provider_rejected', 'provider_setup_failed'])
+
+/**
+ * Whether a merchant Pix code goes through the neutral pay routes (`/pix/pay/*`): the pay:PIX_BR route
+ * names Avenia (API-CONTRACT-M4 §1), whatever its step. A route Avenia refused names no provider; its
+ * Avenia candidate says why, and the user is sent to support there, never to Manteca. Any other route
+ * keeps Manteca's QR flow as it is.
+ */
+export function pixPaysThroughPayRoutes(
+    route: Pick<CapabilityRoute, 'provider' | 'state' | 'candidates'> | undefined
+): boolean {
+    if (!route) return false
+    if (route.provider === 'avenia') return true
+    return (
+        route.state === 'refused' &&
+        !!route.candidates?.some(
+            (candidate) =>
+                candidate.provider === 'avenia' &&
+                candidate.state === 'refused' &&
+                AVENIA_REFUSALS.has(candidate.reason?.code ?? '')
+        )
+    )
+}
+
 /**
  * How Send pays a Pix key for this user. A withdraw route on Avenia pays any key on a payout
  * (TASK-24947), resident of Brazil or not, so the Pix-key form of /withdraw/pix serves the send
