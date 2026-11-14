@@ -37,10 +37,12 @@ const BANK_ONE_OFF: DrawerOption = {
 }
 
 /**
- * Pix leads the Add drawer for a user whose Pix deposit route is open (Aleks, 2026-11-12): a route
- * the API sent and did not refuse (`pixRouteOpen`), paused included, since the Pix page shows the
- * outage itself. The BRL row then leaves the bank lists (`useBankRows`). The row lands on the Pix
- * page straight away, so its tap is where the Pix arm of `deposit_method_selected` is reported.
+ * Pix leads the Add drawer for a user a provider serves Pix deposits for (Aleks, 2026-11-12 and
+ * 2026-11-14): an open route that names its provider (`pixDepositOffered`), so a resident under the
+ * Brazil pause sees no Pix row, while an outage of the user's own provider keeps it, since the Pix
+ * page shows the outage itself. The BRL row leaves the bank lists for every open route
+ * (`useBankRows`). The row lands on the Pix page straight away, so its tap is where the Pix arm of
+ * `deposit_method_selected` is reported.
  */
 const PIX: DrawerOption = {
     key: 'pix',

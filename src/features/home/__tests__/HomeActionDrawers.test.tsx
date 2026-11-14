@@ -35,9 +35,9 @@ jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({
     useDepositAccountsEnabled: () => depositAccountsEnabled,
 }))
 
-// Pix leads the Add drawer only for a user with an open Pix deposit route
-// (Aleks, 2026-11-12). The route goes through the real hook and rule.
-let pixDepositRoute: { state: string } | undefined
+// Pix leads the Add drawer only for a user a provider serves Pix deposits for
+// (Aleks, 2026-11-12 and 2026-11-14). The route goes through the real hook and rule.
+let pixDepositRoute: { state: string; provider: string | null } | undefined
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({
         capabilities: {
@@ -126,8 +126,8 @@ describe('HomeActionDrawers', () => {
         expect(screen.queryByTestId('home-drawer-add-pix')).not.toBeInTheDocument()
     })
 
-    it('leads with Pix for a user with an open Pix deposit route, bank next, crypto last (Aleks, 2026-11-12)', async () => {
-        pixDepositRoute = { state: 'ready' }
+    it('leads with Pix for a user a provider serves Pix deposits for, bank next, crypto last (Aleks, 2026-11-12)', async () => {
+        pixDepositRoute = { state: 'ready', provider: 'bridge' }
         renderWithUrl('?drawer=add')
 
         const pix = screen.getByTestId('home-drawer-add-pix')
@@ -142,15 +142,24 @@ describe('HomeActionDrawers', () => {
         expect(mockCapture).toHaveBeenCalledWith('deposit_method_selected', { method_type: 'pix', country: 'brazil' })
     })
 
-    it('keeps Pix on offer while its route is paused: the Pix page shows the outage itself', () => {
-        pixDepositRoute = { state: 'paused' }
+    it("keeps Pix on offer through an outage of the user's own provider: the Pix page shows the outage itself", () => {
+        pixDepositRoute = { state: 'paused', provider: 'bridge' }
         renderWithUrl('?drawer=add')
 
         expect(screen.getByTestId('home-drawer-add-pix')).toBeInTheDocument()
     })
 
+    it('offers no Pix row to a resident under the Brazil pause: that route names no provider (Aleks, 2026-11-14)', () => {
+        pixDepositRoute = { state: 'paused', provider: null }
+        renderWithUrl('?drawer=add')
+
+        expect(screen.queryByTestId('home-drawer-add-pix')).not.toBeInTheDocument()
+        expect(screen.getByTestId('home-drawer-add-bank')).toBeInTheDocument()
+        expect(screen.getByTestId('home-drawer-add-crypto')).toBeInTheDocument()
+    })
+
     it('offers no Pix row for a refused Pix route; bank and crypto keep their order', () => {
-        pixDepositRoute = { state: 'refused' }
+        pixDepositRoute = { state: 'refused', provider: null }
         renderWithUrl('?drawer=add')
 
         expect(screen.queryByTestId('home-drawer-add-pix')).not.toBeInTheDocument()

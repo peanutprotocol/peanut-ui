@@ -1,5 +1,6 @@
 import {
     findPixRoute,
+    pixDepositOffered,
     pixPayBlock,
     pixRefusalCopy,
     pixRouteGate,
@@ -56,17 +57,40 @@ describe('pixScreen', () => {
 })
 
 describe('pixRouteOpen', () => {
-    it('offers Pix on Home for a deposit route the API sent and did not refuse, paused included', () => {
+    it('is open for a route the API sent and did not refuse, paused included', () => {
         expect(pixRouteOpen(route())).toBe(true)
         expect(pixRouteOpen(route({ state: 'action_required', action: 'activate' }))).toBe(true)
         expect(pixRouteOpen(route({ state: 'pending' }))).toBe(true)
-        // the Pix page shows the outage itself
         expect(pixRouteOpen(route({ state: 'paused' }))).toBe(true)
+        expect(pixRouteOpen(route({ provider: null, state: 'paused' }))).toBe(true)
+    })
+
+    it('is closed without a route, and for a refused one', () => {
+        expect(pixRouteOpen(undefined)).toBe(false)
+        expect(pixRouteOpen(route({ provider: null, state: 'refused' }))).toBe(false)
+    })
+})
+
+describe('pixDepositOffered', () => {
+    it('offers Pix on Home where a provider serves the user, whatever the step: active, setting up, under review', () => {
+        expect(pixDepositOffered(route({ provider: 'bridge' }))).toBe(true)
+        expect(pixDepositOffered(route({ provider: 'bridge', state: 'action_required', action: 'activate' }))).toBe(
+            true
+        )
+        expect(pixDepositOffered(route({ provider: 'bridge', state: 'pending' }))).toBe(true)
+    })
+
+    it("keeps the row through an outage of the user's own provider: the Pix page shows the outage", () => {
+        expect(pixDepositOffered(route({ provider: 'bridge', state: 'paused' }))).toBe(true)
+    })
+
+    it('offers no Pix to a resident under the Brazil pause: that route is paused and names no provider', () => {
+        expect(pixDepositOffered(route({ provider: null, state: 'paused', candidates: [] }))).toBe(false)
     })
 
     it('offers no Pix without a route, nor for a refused one', () => {
-        expect(pixRouteOpen(undefined)).toBe(false)
-        expect(pixRouteOpen(route({ provider: null, state: 'refused' }))).toBe(false)
+        expect(pixDepositOffered(undefined)).toBe(false)
+        expect(pixDepositOffered(route({ provider: null, state: 'refused' }))).toBe(false)
     })
 })
 

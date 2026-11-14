@@ -60,11 +60,21 @@ export function pixScreen(route: CapabilityRoute | undefined, isLoading: boolean
 }
 
 /**
- * Whether Home's Add money drawer offers Pix: the API sent a Pix deposit route and did not refuse
- * it. A paused route stays on offer, because the Pix page shows the outage itself (`pixScreen`).
+ * Whether the user's Pix route is open: the API sent it and did not refuse it, paused included. The
+ * bank lists and the Brazil region row read it; Home's Add drawer reads the narrower `pixDepositOffered`.
  */
 export function pixRouteOpen(route: Pick<CapabilityRoute, 'state'> | undefined): boolean {
     return !!route && route.state !== 'refused'
+}
+
+/**
+ * Whether Home's Add money drawer offers Pix (Aleks, 2026-11-14): only where a provider serves the
+ * user's Pix deposits, so the open route names its provider. A resident under the Brazil pause gets a
+ * paused route that names none, and sees no row. An outage of the user's own provider keeps the row,
+ * because the Pix page shows the outage itself (`pixScreen`).
+ */
+export function pixDepositOffered(route: Pick<CapabilityRoute, 'state' | 'provider'> | undefined): boolean {
+    return pixRouteOpen(route) && !!route?.provider
 }
 
 /**
