@@ -32,9 +32,18 @@ export function usePixKeySavePrompt(pixKey: string | null, ownerName: string | u
                   account.type === AccountType.MANTECA && account.identifier.toLowerCase() === pixKey.toLowerCase()
           )
         : undefined
+    // An offer stands once made for the key: a Bridge payout writes the key's account when it opens,
+    // and the account list read again before the funding is sent (a passkey sheet refocuses the
+    // window) must not take the card, or the save of the name typed in it, away (TASK-24910).
+    const offerNow = !!pixKey && !!accounts && !savedAccount
+    const [offeredKey, setOfferedKey] = useState<string | null>(null)
+    useEffect(() => {
+        if (offerNow) setOfferedKey(pixKey)
+    }, [offerNow, pixKey])
+    const isOffered = offerNow || (!!pixKey && offeredKey === pixKey)
     // Every saved PIX key carries Brazil, so the country fallback of the shared name is never reached.
-    const savedName = savedAccount ? destinationLabel(accountDestination(savedAccount, { countryName: '' })) : null
-    const isOffered = !!pixKey && !!accounts && !savedAccount
+    const savedName =
+        savedAccount && !isOffered ? destinationLabel(accountDestination(savedAccount, { countryName: '' })) : null
     // Ticked by default only with a name to save under: a blank name would hold
     // Pay for a field the user never asked for when the owner lookup gave none.
     const checked = choice ?? !!ownerName
