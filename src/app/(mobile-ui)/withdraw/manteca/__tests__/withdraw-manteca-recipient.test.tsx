@@ -57,7 +57,7 @@ jest.mock('@/hooks/useIdentityVerification', () => ({
     useIdentityVerification: () => ({ isVerified: true }),
 }))
 jest.mock('@/hooks/useCapabilities', () => ({
-    useCapabilities: () => ({ rails: [], nextActions: [] }),
+    useCapabilities: () => ({ rails: [], nextActions: [], capabilities: { routes: [] } }),
 }))
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: { user: { userId: 'user-1' } }, isAuthed: true, fetchUser: jest.fn() }),
