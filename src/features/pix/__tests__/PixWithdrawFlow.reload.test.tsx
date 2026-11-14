@@ -31,7 +31,8 @@ jest.mock('@/context/ModalsContext', () => ({
     useModalsContextOptional: () => null,
 }))
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn(), useReturnTo: () => jest.fn() }))
-jest.mock('@/hooks/useSendFlowOrigin', () => ({ useSendFlowOrigin: () => ({ isFromSendFlow: false }) }))
+let mockFromSend = false
+jest.mock('@/hooks/useSendFlowOrigin', () => ({ useSendFlowOrigin: () => ({ isFromSendFlow: mockFromSend }) }))
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/SoundPlayer', () => ({ SoundPlayer: () => <div data-testid="success-sound" /> }))
 jest.mock('@/components/Provider/ProviderFinePrint', () => ({ ProviderFinePrint: () => null }))
@@ -157,6 +158,39 @@ const storedForm = (userId = 'u1') => JSON.parse(window.sessionStorage.getItem(D
 beforeEach(() => {
     window.sessionStorage.clear()
     forgetPixWithdrawDraft('u1')
+    mockFromSend = false
+})
+
+// Send and Withdraw fill the same form: a friend's key typed in Send must never wait, Continue
+// enabled, on a screen titled Withdraw, nor the reverse (review finding 2)
+describe('the Pix drafts of Send and Withdraw', () => {
+    const keyField = () => screen.findByRole('textbox', { name: en.withdraw.pixKey.placeholder })
+
+    it("opens Send with an empty key after a withdrawal's draft", async () => {
+        withForm(REVIEW_FORM)
+        mockFromSend = true
+        renderAt('')
+        expect(await keyField()).toHaveValue('')
+    })
+
+    it("opens Withdraw with an empty key after a send's draft", async () => {
+        window.sessionStorage.setItem(
+            'pix-send-draft:u1',
+            JSON.stringify({ destination: KEY, amountUsd: '', amountBrl: '503', spendUsd: '' })
+        )
+        renderAt('')
+        expect(await keyField()).toHaveValue('')
+    })
+
+    it('keeps the key a send typed for the send', async () => {
+        mockFromSend = true
+        window.sessionStorage.setItem(
+            'pix-send-draft:u1',
+            JSON.stringify({ destination: KEY, amountUsd: '', amountBrl: '', spendUsd: '' })
+        )
+        renderAt('')
+        expect(await keyField()).toHaveValue(KEY)
+    })
 })
 
 describe('PixWithdrawFlow after a reload', () => {

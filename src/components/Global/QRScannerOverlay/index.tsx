@@ -251,7 +251,10 @@ export default function QRScannerOverlay() {
 
         // the key goes in the account's draft, never the URL (`pixWithdrawDraft`); a merchant code stays on the pay route
         if (recognized === EQrType.PIX_KEY && pixKeySend.via === 'withdraw') {
-            keepPixWithdrawDraft(user?.user?.userId, { ...EMPTY_PIX_WITHDRAW_DRAFT, destination: scanned.trim() })
+            keepPixWithdrawDraft(user?.user?.userId, 'send', {
+                ...EMPTY_PIX_WITHDRAW_DRAFT,
+                destination: scanned.trim(),
+            })
             setIsQRScannerOpen(false)
             router.push(PIX_SEND_PATH)
             return { success: true }

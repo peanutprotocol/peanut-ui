@@ -1070,7 +1070,9 @@ it("a forward to the Pix withdraw page hands the amount to the account's draft, 
     try {
         render(<AddWithdrawCountriesList flow="withdraw" />)
         expect(mockPush).toHaveBeenCalledWith('/withdraw/pix?sendMethod=bank')
-        expect(JSON.parse(window.sessionStorage.getItem('pix-withdraw-draft:u-pix')!)).toEqual({
+        // a send's amount fills the send's draft, never the withdrawal's
+        expect(window.sessionStorage.getItem('pix-withdraw-draft:u-pix')).toBeNull()
+        expect(JSON.parse(window.sessionStorage.getItem('pix-send-draft:u-pix')!)).toEqual({
             destination: '',
             amountUsd: '50',
             amountBrl: '',

@@ -416,7 +416,9 @@ describe('WithdrawMethodView — destination state and routing (Chip review roun
                 fireEvent.click(screen.getByTestId(`account-${recipientKey.identifier}`))
 
                 expect(mockRouterPush.mock.calls.at(-1)?.[0]).toBe('/withdraw/pix?sendMethod=bank')
-                expect(JSON.parse(window.sessionStorage.getItem('pix-withdraw-draft:u-saved')!)).toMatchObject({
+                // the send's own draft: the key never prefills a withdrawal
+                expect(window.sessionStorage.getItem('pix-withdraw-draft:u-saved')).toBeNull()
+                expect(JSON.parse(window.sessionStorage.getItem('pix-send-draft:u-saved')!)).toMatchObject({
                     destination: recipientKey.identifier,
                 })
             })

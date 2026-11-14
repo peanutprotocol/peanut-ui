@@ -101,7 +101,9 @@ describe.each([
     it('opens the Pix-key form as a send, with the key in the draft and not in the URL', async () => {
         await scan('11144477735')
         expect(mockPush).toHaveBeenCalledWith('/withdraw/pix?sendMethod=bank')
-        expect(JSON.parse(window.sessionStorage.getItem('pix-withdraw-draft:demo-user')!)).toMatchObject({
+        // the send's own draft: the key never prefills a withdrawal
+        expect(window.sessionStorage.getItem('pix-withdraw-draft:demo-user')).toBeNull()
+        expect(JSON.parse(window.sessionStorage.getItem('pix-send-draft:demo-user')!)).toMatchObject({
             destination: '11144477735',
         })
         expect(brazilPausedDrawerBlock()).toBeNull()
@@ -129,5 +131,6 @@ describe('a user on Manteca keeps the QR payment for a key', () => {
         await scan('11144477735')
         expect(mockPush.mock.calls.at(-1)?.[0]).toMatch(/^\/qr-pay\?/)
         expect(window.sessionStorage.getItem('pix-withdraw-draft:demo-user')).toBeNull()
+        expect(window.sessionStorage.getItem('pix-send-draft:demo-user')).toBeNull()
     })
 })

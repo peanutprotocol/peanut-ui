@@ -24,7 +24,12 @@ import type { DepositAccount } from '@/features/deposit-accounts/types'
 import { AVATAR_PICKER_PATH } from '@/components/Avatar/avatar.consts'
 import { PAPERWORK_VERIFICATION_FIXTURES } from './paperwork-verification'
 import { DEMO_ADDRESS, DEMO_PIX_BR_CODE, DEMO_USER } from '@/constants/demo-data'
-import { EMPTY_PIX_WITHDRAW_DRAFT, pixWithdrawDraftKey, type PixWithdrawDraft } from '@/features/pix/pixWithdrawDraft'
+import {
+    EMPTY_PIX_WITHDRAW_DRAFT,
+    pixWithdrawDraftKey,
+    type PixDraftFlow,
+    type PixWithdrawDraft,
+} from '@/features/pix/pixWithdrawDraft'
 
 const ROUTES = {
     bank: '/add-money/germany/bank',
@@ -352,8 +357,8 @@ const AVENIA_OWN_KEY = '09579927189'
 const AVENIA_OTHER_KEY = '+5511987654321'
 const AVENIA_WITHDRAW_ROUTE = '/withdraw/pix'
 /** The Pix withdraw form, which lives in the account's session draft and never in the URL. */
-const pixWithdrawForm = (fields: Partial<PixWithdrawDraft>) => ({
-    [pixWithdrawDraftKey(DEMO_USER.user.userId)]: JSON.stringify({ ...EMPTY_PIX_WITHDRAW_DRAFT, ...fields }),
+const pixWithdrawForm = (fields: Partial<PixWithdrawDraft>, flow: PixDraftFlow = 'withdraw') => ({
+    [pixWithdrawDraftKey(DEMO_USER.user.userId, flow)]: JSON.stringify({ ...EMPTY_PIX_WITHDRAW_DRAFT, ...fields }),
 })
 const AVENIA_OWN_KEY_INFO = {
     provider: 'avenia',
@@ -2257,14 +2262,14 @@ export const FIXTURES: Record<string, Fixture> = {
     // TASK-24947: any key continues; the card says whom the money goes to
     'pix-withdraw-key-other': {
         route: AVENIA_SEND_ROUTE,
-        sessionStorage: pixWithdrawForm({ destination: AVENIA_OTHER_KEY }),
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OTHER_KEY }, 'send'),
         about: "Avenia Pix send: another person's key resolves to the holder, bank and masked CPF; no badge, and Continue is on.",
         waitFor: '[data-testid="pix-key-holder"]',
         responses: aveniaResponses('enabled', { 'POST /pix/key': AVENIA_OTHER_KEY_INFO }),
     },
     'pix-send-review': {
         route: `${AVENIA_SEND_ROUTE}&step=review`,
-        sessionStorage: pixWithdrawForm({ destination: AVENIA_OTHER_KEY, amountBrl: '100' }),
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OTHER_KEY, amountBrl: '100' }, 'send'),
         about: "Avenia Pix send to another person's key: the form leads with Sending, the holder, the phone key punctuated and the bank.",
         responses: aveniaResponses('enabled', { 'POST /pix/withdraw/preview': AVENIA_SEND_PREVIEW }),
     },
@@ -2306,7 +2311,7 @@ export const FIXTURES: Record<string, Fixture> = {
     // API-CONTRACT-M3: a resident of Germany inside Avenia's gate sends and withdraws by Pix on Avenia
     'pix-nonresident-send-key': {
         route: AVENIA_SEND_ROUTE,
-        sessionStorage: pixWithdrawForm({ destination: AVENIA_OTHER_KEY }),
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OTHER_KEY }, 'send'),
         about: 'A non-resident on Avenia: Send to a Pix key reaches the same key step; the holder is named, and Continue is on.',
         waitFor: '[data-testid="pix-key-holder"]',
         responses: aveniaNonResidentResponses('enabled', { 'POST /pix/key': AVENIA_OTHER_KEY_INFO }),
@@ -2341,7 +2346,7 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'pix-nonresident-send-review': {
         route: `${AVENIA_SEND_ROUTE}&step=review`,
-        sessionStorage: pixWithdrawForm({ destination: AVENIA_OTHER_KEY, amountBrl: '100' }),
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OTHER_KEY, amountBrl: '100' }, 'send'),
         about: 'A non-resident on Avenia: the send review, as for a resident.',
         responses: aveniaNonResidentResponses('enabled', { 'POST /pix/withdraw/preview': AVENIA_SEND_PREVIEW }),
     },

@@ -276,7 +276,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, onE
                                 countryPath === 'brazil' && isBankFromSend && pixKeySend.via === 'withdraw'
                             // the Pix key goes in the account's draft, never the URL (`pixWithdrawDraft`)
                             if (ownBrazilWithdrawal || pixFormSend)
-                                keepPixWithdrawDraft(user?.user?.userId, {
+                                keepPixWithdrawDraft(user?.user?.userId, ownBrazilWithdrawal ? 'withdraw' : 'send', {
                                     ...EMPTY_PIX_WITHDRAW_DRAFT,
                                     destination: account.identifier,
                                 })
