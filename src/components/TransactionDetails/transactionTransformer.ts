@@ -7,6 +7,7 @@ import {
 } from '@/components/TransactionDetails/transaction-types'
 import { EHistoryUserRole, type HistoryEntry } from '@/hooks/useTransactionHistory'
 import type { Person } from '@/lib/person/person.types'
+import type { ProviderFeeView } from '@/utils/history.utils'
 import { getInitialsFromName, getChainName, getTokenLogo, getChainLogo } from '@/utils/general.utils'
 import { getExplorerUrl, getTransactionExplorerUrl, getTokenDetails } from '@/utils/token.utils'
 import type { Address } from 'viem'
@@ -437,6 +438,9 @@ export interface TransactionDetails {
         pixCodePayable?: boolean
         /** A deposit the payer sent by Pix (their account is typed `pix`): its `paymentReference` is the Pix end-to-end id. */
         isPixDeposit?: boolean
+        /** Bridge's Pix only: the market rate and the provider's fee (wire `extraData`), read through `receiptProviderFee`. */
+        marketRate?: string
+        providerFee?: ProviderFeeView
         link?: string
         isLinkTransaction?: boolean
         transactionCardType?: TransactionCardType
@@ -847,6 +851,8 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             paymentReference: entry.extraData?.paymentReference?.trim() || undefined,
             isPixDeposit:
                 (direction === 'bank_deposit' && entry.senderAccount?.type?.toLowerCase() === 'pix') || undefined,
+            marketRate: entry.extraData?.marketRate,
+            providerFee: entry.extraData?.providerFee,
             bankInstructionsShared: entry.extraData?.bankInstructionsShared || undefined,
             requestedAmount: entry.extraData?.requestedAmount || undefined,
             requestCurrency: entry.extraData?.requestCurrency || undefined,

@@ -503,6 +503,12 @@ const bridgePixDepositEntry = (status: string, extraData: Record<string, unknown
 })
 
 /**
+ * The mid-market rate recorded when the Pix arrived, and what Bridge kept against it (API-CONTRACT 8.3):
+ * 1.73 USDC at 5.7471 is R$9.94 floored, so R$0.06 of the R$10.00 paid.
+ */
+const BRIDGE_PIX_DEPOSIT_FEE = { marketRate: '5.7471', providerFee: { amount: '0.06', currency: 'BRL' } }
+
+/**
  * A Pix payout through Bridge (API-CONTRACT.md section 6, API head b55f7ece0): any key, the holder and
  * bank Bridge validated, the reais an estimate, the withdrawal named at the open. Documented shapes.
  */
@@ -517,6 +523,11 @@ const bridgePixKeyInfo = (payee: typeof BRIDGE_OWN_PAYEE | typeof BRIDGE_OTHER_P
     ispb: null,
     blocked: false,
 })
+/**
+ * Bridge's mid-market rate on a payout and what Bridge keeps against it (API-CONTRACT 8.1, 8.3): 18.87 USDC at
+ * 5.3305 is R$100.58 floored, so R$0.58 off the R$100.00 of the open, R$0.78 off the R$99.80 Bridge paid.
+ */
+const BRIDGE_PIX_MARKET_RATE = '5.3305'
 const bridgePixPayoutDisplay = (pixKey: string, payee: typeof BRIDGE_OWN_PAYEE | typeof BRIDGE_OTHER_PAYEE) => ({
     amountBrl: '100.00',
     pixKey,
@@ -527,6 +538,8 @@ const bridgePixPayoutDisplay = (pixKey: string, payee: typeof BRIDGE_OWN_PAYEE |
     arrivalEstimateSeconds: 300,
     provider: 'Bridge',
     amountBrlEstimated: true,
+    marketRate: BRIDGE_PIX_MARKET_RATE,
+    providerFeeBrl: '0.58',
 })
 /** A resident of Brazil whose Pix on Bridge is ready both ways, with Bridge's quote for the amount field. */
 const bridgePixWithdrawReady = (overrides: Record<string, unknown> = {}) => ({
@@ -574,6 +587,13 @@ const bridgePixPayoutEntry = (status: string, payee: 'own' | 'other', extra: Rec
         pixPayee: payee,
         usdAmount: '18.87',
         receipt: status === 'PAYMENT_PROCESSED' ? { initial_amount: '18.87', final_amount: '99.80' } : {},
+        // a payout that converted nothing carries no fee rows
+        ...(['RETURNED', 'REFUNDED', 'UNDELIVERABLE', 'ERROR', 'CANCELED'].includes(status)
+            ? {}
+            : {
+                  marketRate: BRIDGE_PIX_MARKET_RATE,
+                  providerFee: { amount: status === 'PAYMENT_PROCESSED' ? '0.78' : '0.58', currency: 'BRL' },
+              }),
         ...extra,
     },
 })
@@ -2538,8 +2558,14 @@ export const FIXTURES: Record<string, Fixture> = {
         route: `/history?tx=${BRIDGE_PIX_DEPOSIT_ID}`,
         about: 'A Pix into the BRL account on Bridge: From the payer, Converted with the rate in reais per dollar.',
         responses: {
-            'GET /users/history': { entries: [bridgePixDepositEntry('PAYMENT_PROCESSED')], hasMore: false },
-            [`GET /history/${BRIDGE_PIX_DEPOSIT_ID}`]: bridgePixDepositEntry('PAYMENT_PROCESSED'),
+            'GET /users/history': {
+                entries: [bridgePixDepositEntry('PAYMENT_PROCESSED', BRIDGE_PIX_DEPOSIT_FEE)],
+                hasMore: false,
+            },
+            [`GET /history/${BRIDGE_PIX_DEPOSIT_ID}`]: bridgePixDepositEntry(
+                'PAYMENT_PROCESSED',
+                BRIDGE_PIX_DEPOSIT_FEE
+            ),
         },
     },
     // ---- TASK-24910 U3: Pix payouts and sends through Bridge (API-CONTRACT.md section 6) ----

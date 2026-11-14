@@ -108,6 +108,13 @@ export type PixPayeeView = NonNullable<
     >['pixPayee']
 >
 
+/** What the provider kept on a Bridge Pix deposit or payout, as `GET /history/:entryId` sends it. */
+export type ProviderFeeView = NonNullable<
+    NonNullable<
+        paths['/history/{entryId}']['get']['responses'][200]['content']['application/json']['extraData']
+    >['providerFee']
+>
+
 /** A Pix deposit's code state as `GET /history/:entryId` sends it, to its owner only. */
 export type PixDepositView = NonNullable<
     NonNullable<
@@ -141,6 +148,11 @@ export interface HistoryEntryExtraData {
     /** On a Pix payout through Bridge only: it paid the user's own key (a withdrawal) or another
      *  person's (a send to them; `recipientAccount.fullName` names them, for the owner only). */
     pixPayee?: PixPayeeView
+    /** Bridge's Pix only, both or neither (API-CONTRACT 8.3): BRL per USD before the provider's fee,
+     *  and what the provider kept, so the receipt's rate and fee rows add up to the reais. Absent on
+     *  a return. Read them through `receiptProviderFee`. */
+    marketRate?: string
+    providerFee?: ProviderFeeView
     /** The intent's own status, which `status` folds into PENDING (a Pix withdrawal is
      *  AWAITING_USER_ACTION until it is signed, PROCESSING after). */
     intentStatus?: HistoryIntentStatus

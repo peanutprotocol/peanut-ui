@@ -9,6 +9,7 @@ import { ReceiptDetailsCard } from '../ReceiptDetailsCard'
 import { useReceiptViewModel } from '../useReceiptViewModel'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import type { TransactionDetails } from '../transactionTransformer'
+import en from '@/i18n/app/messages/en.json'
 
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }))
 jest.mock('@/context/authContext', () => ({ useOptionalAuth: () => null }))
@@ -322,5 +323,100 @@ describe('ReceiptDetailsCard — the account a payout paid', () => {
         renderWithIntl(<Card transaction={payout('MANTECA', 'BANK_CBU', '0000003100010000000001', 'ARS')} />)
         expect(screen.getByText('Account number')).toBeInTheDocument()
         expect(screen.queryByText('Pix key')).not.toBeInTheDocument()
+    })
+})
+
+// TASK-24910, API-CONTRACT 8.3: on Bridge's Pix the rate row is the market rate and a "Provider fee" row
+// says what Bridge kept, so the rows add up to the reais the receipt shows
+describe("ReceiptDetailsCard — the provider fee of Bridge's Pix", () => {
+    const FEE_ROWS = { marketRate: '5.72', providerFee: { amount: '0.63', currency: 'BRL' } }
+    // the work order's example: $20.00 at 5.72 is R$114.40, less R$0.63 is R$113.77
+    const payout = (overrides: Record<string, unknown> = {}, drawer: Record<string, unknown> = FEE_ROWS) =>
+        ({
+            id: 'wd-1',
+            direction: 'bank_withdraw',
+            userName: 'Bank account',
+            fullName: '',
+            initials: 'BA',
+            amount: 20,
+            tokenSymbol: 'USDC',
+            status: 'completed',
+            date: '2026-11-14T10:00:00Z',
+            createdAt: '2026-11-14T10:00:00Z',
+            completedAt: '2026-11-14T10:04:00Z',
+            currency: { code: 'BRL', amount: '113.77' },
+            bankAccountDetails: { identifier: 'ana.souza@example.com', type: 'BANK_PIX' },
+            extraDataForDrawer: {
+                originalType: 'TRANSACTION_INTENT',
+                originalUserRole: EHistoryUserRole.SENDER,
+                kind: 'OFFRAMP',
+                provider: 'BRIDGE',
+                ...drawer,
+            },
+            ...overrides,
+        }) as unknown as TransactionDetails
+
+    it('states the market rate and the provider fee on a paid payout, and they add up to the reais', () => {
+        renderWithIntl(<Card transaction={payout()} />)
+        expect(screen.getByText('20 USD → BRL 113.77')).toBeInTheDocument()
+        expect(screen.getByText('1 USD = BRL 5.72')).toBeInTheDocument()
+        expect(screen.getByText(en.pix.withdraw.fee)).toBeInTheDocument()
+        expect(screen.getByText('BRL 0.63')).toBeInTheDocument()
+        expect(Math.round((20 * 5.72 - 0.63) * 100) / 100).toBe(113.77)
+    })
+
+    // R$10.00 paid, 1.73 USDC received: 1.73 × 5.746 + 0.06 = R$10.00
+    it('states them on a deposit too, the fee added to what arrived', () => {
+        const deposit = vaDeposit(
+            { amount: 1.73, currency: { code: 'BRL', amount: '10.00' } },
+            {
+                receipt: { exchange_rate: '5.780346' },
+                marketRate: '5.7471',
+                providerFee: { amount: '0.06', currency: 'BRL' },
+            }
+        )
+        renderWithIntl(<Card transaction={deposit} />)
+        expect(screen.getByText('1 USD = BRL 5.746')).toBeInTheDocument()
+        expect(screen.getByText('BRL 0.06')).toBeInTheDocument()
+        expect(screen.queryByText('1 USD = BRL 5.7803')).not.toBeInTheDocument()
+    })
+
+    // ruling 14 Nov: a pending Bridge payout's reais are blank, so the rows could not add up on screen
+    it('shows neither row while the receipt shows no reais', () => {
+        renderWithIntl(<Card transaction={payout({ status: 'pending', currency: { code: 'BRL', amount: '' } })} />)
+        expect(screen.queryByText(en.pix.withdraw.fee)).not.toBeInTheDocument()
+        expect(screen.queryByText('1 USD = BRL 5.72')).not.toBeInTheDocument()
+    })
+
+    // a Pix deposit in reais, sent back: the API sends no fee rows for it, and the app shows none either way
+    const returnedDeposit = vaDeposit(
+        {
+            status: 'refunded',
+            actionLabelKey: 'type.returnedToSender',
+            amount: 1.73,
+            currency: { code: 'BRL', amount: '10.00' },
+        },
+        { ...FEE_ROWS, receipt: { exchange_rate: '5.780346' } }
+    )
+
+    it.each([
+        ['a returned deposit', returnedDeposit],
+        ['a returned payout', payout({ status: 'failed' }, { ...FEE_ROWS, wasReturned: true })],
+    ])('shows no provider fee on %s, which converted nothing', (_case, transaction) => {
+        renderWithIntl(<Card transaction={transaction} />)
+        expect(screen.queryByText(en.pix.withdraw.fee)).not.toBeInTheDocument()
+    })
+
+    it('keeps the returned deposit\'s "Exchange rate" row and its own rate', () => {
+        renderWithIntl(<Card transaction={returnedDeposit} />)
+        expect(screen.getAllByText('Exchange rate')).toHaveLength(1)
+        expect(screen.getByText('1 USD = BRL 5.7803')).toBeInTheDocument()
+    })
+
+    // Manteca's route, or a Bridge entry without a recorded rate: the receipt as it is today
+    it('shows no provider fee row without the fields', () => {
+        renderWithIntl(<Card transaction={payout({}, {})} />)
+        expect(screen.getByText('20 USD → BRL 113.77')).toBeInTheDocument()
+        expect(screen.queryByText(en.pix.withdraw.fee)).not.toBeInTheDocument()
     })
 })

@@ -396,6 +396,21 @@ describe('buildReceiptPdfModel — app locales', () => {
         expect(model.rows.at(-1)?.label).toBe(transferLabel)
     })
 
+    // TASK-24910, API-CONTRACT 8.3: the market rate, then what Bridge kept, adding up to the reais
+    test('prints the market rate and the provider fee of a Bridge Pix payout', () => {
+        const model = buildReceiptPdfModel(
+            withOverrides(
+                { amount: 20, currency: { amount: '113.77', code: 'BRL' } },
+                { provider: 'BRIDGE', marketRate: '5.72', providerFee: { amount: '0.63', currency: 'BRL' } }
+            ),
+            t,
+            'en'
+        )
+        expect(row(model, 'common.exchangeRate')).toBe('1 USD = BRL 5.72')
+        expect(row(model, 'pix.withdraw.fee')).toBe('BRL 0.63')
+        expect(labels(model).indexOf('pix.withdraw.fee')).toBe(labels(model).indexOf('common.exchangeRate') + 1)
+    })
+
     // Bridge types the paid account BANK_PIX; Manteca types it BANK_CBU, so its reais tell it apart
     test.each([
         ['en', 'Pix key'],

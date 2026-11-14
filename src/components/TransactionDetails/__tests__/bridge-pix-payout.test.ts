@@ -64,6 +64,22 @@ describe('a Bridge Pix payout in Activity', () => {
         expect(transactionDetails.nameDetail).toBeUndefined()
     })
 
+    // API-CONTRACT 8.3: the receipt reads them through receiptProviderFee
+    it('carries the market rate and the provider fee to the receipt', () => {
+        const entry = payout('own', {
+            currency: { amount: '113.77', code: 'brl' },
+            extraData: {
+                ...payout('own').extraData,
+                marketRate: '5.72',
+                providerFee: { amount: '0.63', currency: 'BRL' },
+            },
+        })
+        expect(details(entry).transactionDetails.extraDataForDrawer).toMatchObject({
+            marketRate: '5.72',
+            providerFee: { amount: '0.63', currency: 'BRL' },
+        })
+    })
+
     it('reads as processing while Bridge pays, and as failed once returned', () => {
         expect(
             details(payout('other', { status: 'PAYMENT_SUBMITTED' as EHistoryStatus })).transactionDetails.status

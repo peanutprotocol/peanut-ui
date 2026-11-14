@@ -1,6 +1,7 @@
 import type { TransactionDetails } from './transactionTransformer'
 import { isFxBearingFlow } from './transaction-predicates'
 import { formatCurrency, isStableCoin } from '@/utils/general.utils'
+import { pixMarketRateShown } from '@/features/pix/pixMarketRate'
 
 /**
  * A token symbol for a receipt or activity line: upper-cased when the record
@@ -34,13 +35,41 @@ export function receiptConvertedAmount(
 }
 
 /** "1 USD = EUR 0.8769" for a fiat-rail or card entry that carries a rate;
- *  undefined for USD / stablecoin legs and cancelled entries. */
+ *  undefined for USD / stablecoin legs and cancelled entries. Beside a
+ *  provider fee row, the market rate (`receiptProviderFee`). */
 export function receiptExchangeRate(transaction: TransactionDetails): string | undefined {
     const code = transaction.currency?.code?.toUpperCase()
     const rate = transaction.extraDataForDrawer?.receipt?.exchange_rate
-    if (!rate || !code || code === 'USD' || isStableCoin(code)) return undefined
+    if (!code || code === 'USD' || isStableCoin(code)) return undefined
     if (!isFxBearingFlow(transaction) || transaction.status === 'cancelled') return undefined
+    const market = receiptProviderFee(transaction)
+    if (market) return market.rateLine
+    if (!rate) return undefined
     return `1 USD = ${code} ${formatCurrency(rate, 4)}`
+}
+
+/**
+ * A Bridge Pix entry's market rate and provider fee (`extraData.marketRate`,
+ * `extraData.providerFee`, API-CONTRACT 8.3) as the receipt prints them: the
+ * rate line ("1 USD = BRL 5.33") and the "Provider fee" row ("BRL 0.78").
+ * Only where the receipt shows the reais (a pending Bridge payout's are blank:
+ * ruling 14 Nov), so the rows add up on screen, for a fee in those reais, and
+ * never on an entry that converted nothing (a return, a failure). The rate is
+ * restated to add up with the dollars, the fee and the reais shown
+ * (`pixMarketRateShown`): taken off a payout, added to a deposit.
+ */
+export function receiptProviderFee(transaction: TransactionDetails): { rateLine: string; fee: string } | undefined {
+    const drawer = transaction.extraDataForDrawer
+    const fee = drawer?.providerFee
+    const code = transaction.currency?.code?.toUpperCase()
+    if (!drawer?.marketRate || !fee || !code || fee.currency !== code) return undefined
+    if (['cancelled', 'failed', 'refunded'].includes(transaction.status ?? '') || drawer.wasReturned) return undefined
+    const reais = Number(transaction.currency?.amount)
+    const usd = Math.round(Math.abs(Number(transaction.amount)) * 100) / 100
+    if (!transaction.currency?.amount || !(reais > 0) || !(usd > 0)) return undefined
+    const direction = transaction.direction === 'bank_deposit' ? 'in' : 'out'
+    const rate = pixMarketRateShown(usd, reais, Number(fee.amount), direction)
+    return { rateLine: `1 USD = ${code} ${formatCurrency(rate, 6)}`, fee: `${code} ${formatCurrency(fee.amount)}` }
 }
 
 /**

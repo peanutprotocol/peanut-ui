@@ -29,6 +29,7 @@ import {
     receiptConversionLine,
     receiptConvertedAmount,
     receiptExchangeRate,
+    receiptProviderFee,
 } from './receipt-conversion.utils'
 import { usesCompletedTimestampLabel } from './transaction-predicates'
 import { CardPaymentRows } from './provider-rows/CardPaymentRows'
@@ -74,6 +75,7 @@ export function ReceiptDetailsCard({
     const t = useAppTranslations('transaction')
     const tCommon = useTranslations('common')
     const tWithdraw = useTranslations('withdraw')
+    const tPix = useTranslations('pix.withdraw')
     const router = useRouter()
     const formatDate = useReceiptDateFormatter()
     const { rowVisibilityConfig, isGuestBankClaim, isPeanutWalletToken, country } = vm
@@ -117,6 +119,8 @@ export function ReceiptDetailsCard({
 
     const convertedAmount = receiptConvertedAmount(transaction)
     const exchangeRate = receiptExchangeRate(transaction)
+    // Bridge's Pix: the rate above is the market rate, and this row all the provider kept
+    const providerFee = receiptProviderFee(transaction)
 
     const feeDisplay = transaction.fee !== undefined ? formatBankAmount(transaction.fee, 'USD') : 'N/A'
 
@@ -210,6 +214,8 @@ export function ReceiptDetailsCard({
                 {rowVisibilityConfig.exchangeRate && exchangeRate && (
                     <DataRow label={tCommon('exchangeRate')} value={exchangeRate} />
                 )}
+
+                {providerFee && <DataRow label={tPix('fee')} value={providerFee.fee} />}
 
                 {rowVisibilityConfig.networkFee && transaction.networkFeeDetails && (
                     <DataRow
