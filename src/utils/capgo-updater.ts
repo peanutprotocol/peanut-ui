@@ -4,6 +4,7 @@
 import type { BundleInfo, CapacitorUpdaterPlugin } from '@capgo/capacitor-updater'
 import { getBinaryInfo } from '@/utils/app-version'
 import { isAndroidNativeBridge } from '@/utils/capacitor'
+import { hasDeepLinkNavigated } from '@/utils/deep-link-state'
 import { isDemoMode } from '@/utils/demo'
 import { isNativePrerelease } from '@/utils/native-prerelease'
 import {
@@ -634,7 +635,8 @@ const LAUNCH_APPLY_KEY = 'capgoLaunchApplyAttempt'
  * Apply a bundle downloaded by an earlier launch while the splash is visible.
  *
  * A bundle downloaded during this launch stays unarmed until a later launch;
- * a background transition never applies it.
+ * a background transition never applies it, and neither does a launch that a
+ * deep link opened.
  *
  * Returns the staged bundle (whether or not it was applied) so the caller can
  * still offer a manual restart, or null when nothing is staged.
@@ -648,6 +650,11 @@ export async function applyStagedBundleOnLaunch(): Promise<BundleInfo | null> {
     // Old Android binaries cannot set() safely. Keep the bundle downloaded
     // until the user explicitly asks to restart.
     if (readStoredValue(LAUNCH_APPLY_KEY) === next.id || !(await canRestartInPlace())) return next
+    // The reload boots at `/`, and a launch URL is dispatched once per process
+    // (useNativeAppLinks), so a link or push tap that opened this launch would
+    // end on Home. Yield like every other boot redirect; a later launch applies.
+    // Read last, after the awaits above, so a link that landed meanwhile wins.
+    if (hasDeepLinkNavigated()) return next
 
     writeStoredValue(LAUNCH_APPLY_KEY, next.id)
     markPendingApply(next.id)
