@@ -1,5 +1,6 @@
 import {
     findPixRoute,
+    pixKeySaveOffered,
     pixPayBlock,
     pixRefusalCopy,
     pixRouteGate,
@@ -124,6 +125,14 @@ describe('pixPayBlock', () => {
     it('reads the pay route, not the deposit or withdraw route', () => {
         const routes = [route({ state: 'paused' }), pay({ state: 'ready' })]
         expect(pixPayBlock(findPixRoute(routes, 'pay'))).toBeNull()
+    })
+})
+
+describe('pixKeySaveOffered', () => {
+    it('offers "Save to favorites" on a Manteca route and on one that names no provider, never on Bridge', () => {
+        expect(pixKeySaveOffered(route({ operation: 'withdraw', provider: 'manteca' }))).toBe(true)
+        expect(pixKeySaveOffered(route({ operation: 'withdraw', provider: null }))).toBe(true)
+        expect(pixKeySaveOffered(route({ operation: 'withdraw', provider: 'bridge' }))).toBe(false)
     })
 })
 

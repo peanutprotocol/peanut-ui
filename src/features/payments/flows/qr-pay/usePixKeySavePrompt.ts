@@ -10,9 +10,10 @@ import { defaultPixKeyNickname } from '@/utils/pix.utils'
  * offer it. The box starts ticked, so a payment saves the key unless the user
  * unticks it. A key the user already saved gets its saved name instead. The
  * name starts as the key owner's name. The key is saved once the payment
- * succeeds, and a failed save never touches the payment.
+ * succeeds, and a failed save never touches the payment. `offerable` false
+ * (a Pix payout that does not run on Manteca) offers nothing and saves nothing.
  */
-export function usePixKeySavePrompt(pixKey: string | null, ownerName: string | undefined) {
+export function usePixKeySavePrompt(pixKey: string | null, ownerName: string | undefined, offerable = true) {
     const { user, fetchUser } = useAuth()
     // null until the user ticks or unticks the box themselves
     const [choice, setChecked] = useState<boolean | null>(null)
@@ -34,7 +35,7 @@ export function usePixKeySavePrompt(pixKey: string | null, ownerName: string | u
         : undefined
     // Every saved PIX key carries Brazil, so the country fallback of the shared name is never reached.
     const savedName = savedAccount ? destinationLabel(accountDestination(savedAccount, { countryName: '' })) : null
-    const isOffered = !!pixKey && !!accounts && !savedAccount
+    const isOffered = offerable && !!pixKey && !!accounts && !savedAccount
     // Ticked by default only with a name to save under: a blank name would hold
     // Pay for a field the user never asked for when the owner lookup gave none.
     const checked = choice ?? !!ownerName

@@ -598,6 +598,51 @@ describe('PixWithdrawFlow form', () => {
         expect(await screen.findByText(en.pix.withdraw.processingTitle)).toBeInTheDocument()
         await waitFor(() => expect(mockSavePixKey).toHaveBeenCalledWith(KEY, 'Ana Souza'))
     })
+
+    // Bridge pays another person's key and stores it as a recipient itself; Manteca's save route is not
+    // its route, and would refuse a resident whose Pix runs on Bridge with no word on screen (TASK-24910)
+    it('on a Bridge route offers no save card and never calls the save, though the funding is sent', async () => {
+        const bridgeDisplay = { ...display, ownAccount: false, provider: 'Bridge', amountBrlEstimated: true as const }
+        mockPreview.mockResolvedValue(bridgeDisplay)
+        mockInit.mockResolvedValue({
+            provider: 'bridge',
+            intentId: 'b1',
+            display: bridgeDisplay,
+            sign: {
+                kind: 'transfer-then-submit',
+                depositAddress: '0x00000000000000000000000000000000000000d3',
+                tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+                payAmount: '92.504310',
+                payAmountUnits: '92504310',
+                priceLockCode: 'b1',
+                quoteExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+            },
+        })
+        mockSignSpend.mockResolvedValue({
+            strategy: 'smart-only',
+            signedUserOp: { signedUserOp: { sender: '0xabc' }, chainId: '42161', entryPointAddress: '0xe' },
+        })
+        mockSubmitTransfer.mockResolvedValue({ provider: 'bridge', intentId: 'b1', status: 'PENDING' })
+        mockEntry.mockReturnValue({ data: undefined, isLoading: true })
+        withForm(REVIEW_FORM)
+        renderAt('?step=review', undefined, false, {
+            ...route,
+            provider: 'bridge',
+            candidates: [{ provider: 'bridge', state: 'ready' }],
+        })
+
+        const confirm = await screen.findByRole('button', { name: en.common.confirm })
+        // the holder is on screen, so the card (named after them) would be too, were it offered
+        expect(await screen.findByText('Ana Souza')).toBeInTheDocument()
+        expect(screen.queryByText(en.global.savedAddresses.savePrompt)).toBeNull()
+        await waitFor(() => expect(confirm).toBeEnabled())
+        fireEvent.click(confirm)
+
+        await waitFor(() => expect(mockSubmitTransfer).toHaveBeenCalledTimes(1))
+        // a Bridge payout takes minutes: the ending is the static one, not the loader
+        expect(await screen.findByRole('button', { name: en.common.done })).toBeInTheDocument()
+        expect(mockSavePixKey).not.toHaveBeenCalled()
+    })
 })
 
 describe('PixWithdrawFlow refused preview', () => {
