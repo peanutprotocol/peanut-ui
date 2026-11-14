@@ -379,6 +379,7 @@ const PIX_SURFACE_DISPLAY: PixWithdrawDisplay = {
     amountBrl: '503.00',
     pixKey: '09579927189',
     ownAccount: true,
+    holderTaxIdMasked: null,
     holderName: 'Ana Souza',
     bankName: 'Banco Inter',
     withdrawUsd: '92.504310',

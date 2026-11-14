@@ -66,6 +66,7 @@ const display = {
     amountBrl: '503.00',
     pixKey: '09579927189',
     ownAccount: true as boolean | null,
+    holderTaxIdMasked: null,
     holderName: 'Ana Souza',
     bankName: 'Banco Inter',
     withdrawUsd: '92.504310',
