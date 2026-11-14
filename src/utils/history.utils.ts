@@ -446,6 +446,15 @@ export function getAvatarUrl(transaction: TransactionDetails): string | undefine
     return undefined
 }
 
+/**
+ * The logo in the leading slot of an Activity row. A Pix payout through Bridge shows the Pix logo,
+ * as a Manteca Pix payment does (TASK-24910). The receipt drawer's header reads `getAvatarUrl`
+ * alone, so it keeps the person or the bank.
+ */
+export function getActivityRowAvatarUrl(transaction: TransactionDetails): string | undefined {
+    return getAvatarUrl(transaction) ?? (transaction.extraDataForDrawer?.isPixPayout ? PIX : undefined)
+}
+
 // Whether each status's amount carries the +/- sign. Sign-less statuses are
 // the ones where the amount didn't (or won't) move AND that carry their own
 // visual treatment in TransactionCard (line-through / de-emphasis) — a sign

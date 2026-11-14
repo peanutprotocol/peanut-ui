@@ -48,6 +48,8 @@ jest.mock('../TransactionDetailsDrawer', () => ({
     TransactionDetailsDrawer: () => null,
 }))
 
+jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '/mercado-pago.svg', PIX: '/pix.svg' }))
+
 jest.mock('next/image', () => ({
     __esModule: true,
     default: (props: Record<string, unknown>) => {
@@ -435,6 +437,49 @@ describe('TransactionCard — a request asked in another currency', () => {
 
 // TASK-22625: the counterparty's picked avatar reaches the feed row. Only the
 // person branch — a merchant logo still wins, and a bank row keeps its icon.
+// TASK-24910: a Pix payout through Bridge leads with the Pix logo, as a Manteca Pix payment does
+describe('TransactionCard — Bridge Pix payout', () => {
+    const renderPayout = (transaction: TransactionDetails, type: 'send' | 'bank_withdraw') =>
+        render(
+            <TransactionCard
+                type={type}
+                name="Bruno Lima"
+                amount={18.87}
+                status="completed"
+                initials="BL"
+                transaction={transaction}
+                isSelected={false}
+                onOpen={openTransactionDetails}
+                onClose={jest.fn()}
+            />
+        )
+    const row = (type: 'send' | 'bank_withdraw', isPixPayout?: boolean) =>
+        ({
+            ...eligibleTx(),
+            isPeerActuallyUser: false,
+            userName: 'Bruno Lima',
+            direction: type,
+            extraDataForDrawer: { transactionCardType: type, isLinkTransaction: false, isPixPayout },
+        }) as unknown as TransactionDetails
+
+    it('shows the Pix logo for a send to another key and for a withdrawal to the own key', () => {
+        for (const type of ['send', 'bank_withdraw'] as const) {
+            const { container, unmount } = renderPayout(row(type, true), type)
+            expect(container.querySelector('img')).toHaveAttribute('src', '/pix.svg')
+            unmount()
+        }
+    })
+
+    it('keeps the initials on a person-to-person send, and the bank bubble on a bank withdrawal', () => {
+        const send = renderPayout(row('send'), 'send')
+        expect(send.container.querySelector('img')).toBeNull()
+        expect(send.container).toHaveTextContent('BL')
+        send.unmount()
+        const bank = renderPayout(row('bank_withdraw'), 'bank_withdraw')
+        expect(bank.container.querySelector('img')).toBeNull()
+    })
+})
+
 describe('TransactionCard — counterparty avatar', () => {
     // The list always passes `transactionDetails.initials`; the person branch
     // of TransactionAvatarBadge is gated on it.

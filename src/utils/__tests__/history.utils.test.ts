@@ -15,11 +15,13 @@
 import {
     completeHistoryEntry,
     dedupeHistoryEntriesByUuid,
+    getActivityRowAvatarUrl,
     getAvatarUrl,
     getReceiptUrl,
     getTransactionSign,
     withPublicReceipt,
 } from '../history.utils'
+import { PIX } from '@/assets/payment-apps'
 import type { HistoryEntry } from '../history.utils'
 import type { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { getCachedCurrencyPrice } from '@/app/actions/currency'
@@ -420,6 +422,27 @@ describe('getAvatarUrl', () => {
 
     it('falls back to undefined (generic avatar) for historical DEPRECATED_SIMPLEFI rows', () => {
         expect(getAvatarUrl(tx('DEPRECATED_SIMPLEFI', 'ARS'))).toBeUndefined()
+    })
+})
+
+// TASK-24910: the Activity row of a Bridge Pix payout leads with the Pix logo; the receipt header does not
+describe('getActivityRowAvatarUrl', () => {
+    const tx = (extraDataForDrawer: Record<string, unknown>, currencyCode?: string) =>
+        ({
+            extraDataForDrawer,
+            currency: currencyCode ? { code: currencyCode, amount: '1' } : undefined,
+        }) as unknown as Parameters<typeof getAvatarUrl>[0]
+
+    it('shows the Pix logo on a Bridge Pix payout, and leaves the receipt header without one', () => {
+        const payout = tx({ isPixPayout: true, provider: 'BRIDGE' }, 'BRL')
+        expect(getActivityRowAvatarUrl(payout)).toBe(PIX)
+        expect(getAvatarUrl(payout)).toBeUndefined()
+    })
+
+    it('keeps the logo of a Manteca QR payment, and shows none on a row that is not a Pix payout', () => {
+        const manteca = tx({ kind: 'QR_PAY', provider: 'MANTECA' }, 'BRL')
+        expect(getActivityRowAvatarUrl(manteca)).toBe(getAvatarUrl(manteca))
+        expect(getActivityRowAvatarUrl(tx({ provider: 'BRIDGE' }, 'EUR'))).toBeUndefined()
     })
 })
 

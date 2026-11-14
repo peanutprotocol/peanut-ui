@@ -53,6 +53,18 @@ describe('a Bridge Pix payout in Activity', () => {
         expect(transactionDetails.nameKey).toBe('name.bankAccount')
     })
 
+    // The Activity row shows the Pix logo for both; a bank withdrawal that is not Pix keeps its flag or bank bubble
+    it('flags a Pix payout, to another key or the own, for the Pix logo in Activity', () => {
+        expect(details(payout('other')).transactionDetails.extraDataForDrawer?.isPixPayout).toBe(true)
+        expect(details(payout('own')).transactionDetails.extraDataForDrawer?.isPixPayout).toBe(true)
+    })
+
+    it('does not flag a Bridge bank withdrawal that is not Pix', () => {
+        const { pixPayee: _pixPayee, payoutRail: _payoutRail, ...extraData } = payout('own').extraData!
+        const entry = payout('own', { extraData })
+        expect(details(entry).transactionDetails.extraDataForDrawer?.isPixPayout).toBeUndefined()
+    })
+
     it('names the masked key alone on a shared receipt, which carries no name', () => {
         const { transactionDetails } = details(
             payout('other', {

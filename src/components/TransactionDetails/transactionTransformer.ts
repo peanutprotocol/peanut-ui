@@ -432,6 +432,8 @@ export interface TransactionDetails {
          *  `hasPublicReceipt`: it is the one gate for the receipt link, its
          *  share and the anonymous PDF. */
         publicReceipt?: boolean
+        /** A Pix payout through Bridge, to the user's own key or another person's (wire `extraData.pixPayee`): the Activity row shows the Pix logo. */
+        isPixPayout?: boolean
         /** A Pix withdrawal whose payout the bank refused: the money waits for another own Pix key. */
         awaitsNewPixKey?: boolean
         /** A Pix deposit whose code can still be paid: the receipt opens it again. */
@@ -827,6 +829,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             provider: entry.extraData?.provider as Provider | undefined,
             bridgeFlow: entry.extraData?.bridgeFlow,
             publicReceipt: entry.extraData?.publicReceipt || undefined,
+            isPixPayout: !!entry.extraData?.pixPayee || undefined,
             awaitsNewPixKey: awaitsNewPixKey(entry.extraData) || undefined,
             pixCodePayable: pixCodePayable(entry.extraData, Date.now()) || undefined,
             link: entry.extraData?.link,
