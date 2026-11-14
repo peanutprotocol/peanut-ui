@@ -6793,7 +6793,7 @@ export interface paths {
         put?: never;
         /**
          * Save a PIX key to the address book
-         * @description Saves a PIX key as one of the user's bank accounts, named with the label, so it is offered under Send → Bank. The account carries isPixRecipient, so it is never offered as a withdrawal destination. Saving a key the user already has renames it.
+         * @description Saves a PIX key as one of the user's bank accounts, named with the label. The API decides whose key it is, once, with the directory lookup the Pix withdrawal uses, through the user's open Pix withdraw route: the user's own key is saved as a withdrawal destination; any other key, or any key while that route is closed, is saved as a recipient (isPixRecipient) for Send → Bank, never offered as a withdrawal destination. A recipient needs Pix payment eligibility; an own key needs only the open route. Saving a key the user already has renames it.
          */
         post: {
             parameters: {
@@ -9847,6 +9847,23 @@ export interface paths {
                     };
                 };
                 /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error?: string;
+                            message?: string;
+                            status?: string;
+                            statusCode?: number;
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Default Response */
                 403: {
                     headers: {
                         [name: string]: unknown;
@@ -11635,6 +11652,14 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            collateralReturn?: {
+                                cardCreditCents: number;
+                                heldCents: number;
+                                remainingCents: number;
+                                retryAfterSec?: number;
+                                returnedCents: number;
+                                state: "nothing" | "returned" | "required" | "waiting" | "failed" | "unknown";
+                            };
                             fundingStop: {
                                 reason: string | null;
                                 state: "pending" | "unavailable" | "not_applicable";
@@ -11676,6 +11701,7 @@ export interface paths {
                         "application/json": {
                             code?: string;
                             error: string;
+                            retryAfterSec?: number;
                         };
                     };
                 };
@@ -11997,6 +12023,14 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            collateralReturn?: {
+                                cardCreditCents: number;
+                                heldCents: number;
+                                remainingCents: number;
+                                retryAfterSec?: number;
+                                returnedCents: number;
+                                state: "nothing" | "returned" | "required" | "waiting" | "failed" | "unknown";
+                            };
                             fundingStop: {
                                 reason: string | null;
                                 state: "pending" | "unavailable" | "not_applicable";
@@ -12038,6 +12072,7 @@ export interface paths {
                         "application/json": {
                             code?: string;
                             error: string;
+                            retryAfterSec?: number;
                         };
                     };
                 };
@@ -14326,8 +14361,8 @@ export interface paths {
                          *     }
                          */
                         "application/json": {
-                            /** @enum {string} */
-                            code?: "PROFILE_NAME_READ_ONLY";
+                            /** @description PROFILE_NAME_READ_ONLY, EMAIL_VERIFICATION_REQUIRED or a validation code */
+                            code?: string;
                             error?: string;
                         };
                     };
@@ -14390,6 +14425,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            /** @enum {string} */
+                            code?: "EMAIL_CHANGE_UNAVAILABLE";
                             error: string;
                         };
                     };
@@ -15570,6 +15607,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            /** @enum {string} */
+                            code?: "EMAIL_CHANGE_UNAVAILABLE";
                             error: string;
                         };
                     };
@@ -18090,6 +18129,7 @@ export interface paths {
                                     key: string;
                                     kind: string;
                                     locked?: boolean;
+                                    minAddressLineLength?: number;
                                     options?: string[];
                                     required: boolean;
                                     value: string | null;
