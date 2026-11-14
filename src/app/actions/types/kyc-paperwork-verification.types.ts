@@ -1,3 +1,8 @@
+import type { paths } from '@/types/api.generated'
+
+type GeneratedQuestionField =
+    paths['/users/kyc/questions']['get']['responses'][200]['content']['application/json']['steps'][number]['fields'][number]
+
 export type PaperworkVerificationStepId =
     | 'purpose'
     | 'work'
@@ -27,7 +32,7 @@ export interface PaperworkVerificationField {
     minAddressLineLength?: number
     options?: string[]
     /** The name to show for each option, where the API names them (Brazil's states: `{ PB: 'Paraíba' }`); the code is what is saved. */
-    optionLabels?: Record<string, string>
+    optionLabels?: GeneratedQuestionField['optionLabels']
     format?: PaperworkVerificationTaxFormat
     /** A tax number's stdnum validators (`de.idnr`), any one of which must accept it; the API runs them too. */
     checks?: string[]

@@ -13515,6 +13515,14 @@
 						"schema": {
 							"type": "string"
 						}
+					},
+					{
+						"in": "header",
+						"name": "x-username-hold",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
 					}
 				],
 				"requestBody": {
@@ -13551,6 +13559,14 @@
 					{
 						"in": "header",
 						"name": "api-key",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "header",
+						"name": "x-username-hold",
 						"required": false,
 						"schema": {
 							"type": "string"
@@ -25539,6 +25555,14 @@
 					},
 					{
 						"in": "header",
+						"name": "x-username-hold",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "header",
 						"name": "api-key",
 						"required": false,
 						"schema": {
@@ -26931,9 +26955,6 @@
 															"effectiveDate": {
 																"type": "string"
 															},
-															"expiresAt": {
-																"type": "string"
-															},
 															"feature": {
 																"anyOf": [
 																	{
@@ -27014,12 +27035,6 @@
 																			"questions"
 																		],
 																		"type": "string"
-																	},
-																	{
-																		"enum": [
-																			"hosted-identity"
-																		],
-																		"type": "string"
 																	}
 																]
 															},
@@ -27076,9 +27091,6 @@
 																"type": "string"
 															},
 															"tosUrl": {
-																"type": "string"
-															},
-															"url": {
 																"type": "string"
 															}
 														},
@@ -27340,9 +27352,6 @@
 																			"effectiveDate": {
 																				"type": "string"
 																			},
-																			"expiresAt": {
-																				"type": "string"
-																			},
 																			"feature": {
 																				"anyOf": [
 																					{
@@ -27423,12 +27432,6 @@
 																							"questions"
 																						],
 																						"type": "string"
-																					},
-																					{
-																						"enum": [
-																							"hosted-identity"
-																						],
-																						"type": "string"
 																					}
 																				]
 																			},
@@ -27485,9 +27488,6 @@
 																				"type": "string"
 																			},
 																			"tosUrl": {
-																				"type": "string"
-																			},
-																			"url": {
 																				"type": "string"
 																			}
 																		},
@@ -29521,9 +29521,6 @@
 												"effectiveDate": {
 													"type": "string"
 												},
-												"expiresAt": {
-													"type": "string"
-												},
 												"feature": {
 													"anyOf": [
 														{
@@ -29604,12 +29601,6 @@
 																"questions"
 															],
 															"type": "string"
-														},
-														{
-															"enum": [
-																"hosted-identity"
-															],
-															"type": "string"
 														}
 													]
 												},
@@ -29666,9 +29657,6 @@
 													"type": "string"
 												},
 												"tosUrl": {
-													"type": "string"
-												},
-												"url": {
 													"type": "string"
 												}
 											},
@@ -31527,7 +31515,7 @@
 							"schema": {
 								"properties": {
 									"key": {
-										"description": "The route’s accept-tos step (capabilities.routes[].action), e.g. accept-tos:avenia",
+										"description": "The route’s accept-tos step (capabilities.routes[].action), e.g. accept-tos:<provider>",
 										"maxLength": 64,
 										"type": "string"
 									}
@@ -33897,6 +33885,12 @@
 																	"manteca.qr"
 																],
 																"type": "string"
+															},
+															{
+																"enum": [
+																	"avenia.pix"
+																],
+																"type": "string"
 															}
 														]
 													},
@@ -33917,6 +33911,12 @@
 															{
 																"enum": [
 																	"MANTECA"
+																],
+																"type": "string"
+															},
+															{
+																"enum": [
+																	"AVENIA"
 																],
 																"type": "string"
 															}
@@ -34165,6 +34165,12 @@
 																		"manteca.qr"
 																	],
 																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"avenia.pix"
+																	],
+																	"type": "string"
 																}
 															]
 														},
@@ -34188,6 +34194,12 @@
 																{
 																	"enum": [
 																		"MANTECA"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"AVENIA"
 																	],
 																	"type": "string"
 																}
@@ -36589,6 +36601,12 @@
 																"minAddressLineLength": {
 																	"type": "number"
 																},
+																"optionLabels": {
+																	"additionalProperties": {
+																		"type": "string"
+																	},
+																	"type": "object"
+																},
 																"options": {
 																	"items": {
 																		"type": "string"
@@ -37385,9 +37403,6 @@
 															"effectiveDate": {
 																"type": "string"
 															},
-															"expiresAt": {
-																"type": "string"
-															},
 															"feature": {
 																"anyOf": [
 																	{
@@ -37468,12 +37483,6 @@
 																			"questions"
 																		],
 																		"type": "string"
-																	},
-																	{
-																		"enum": [
-																			"hosted-identity"
-																		],
-																		"type": "string"
 																	}
 																]
 															},
@@ -37530,9 +37539,6 @@
 																"type": "string"
 															},
 															"tosUrl": {
-																"type": "string"
-															},
-															"url": {
 																"type": "string"
 															}
 														},
@@ -37794,9 +37800,6 @@
 																			"effectiveDate": {
 																				"type": "string"
 																			},
-																			"expiresAt": {
-																				"type": "string"
-																			},
 																			"feature": {
 																				"anyOf": [
 																					{
@@ -37877,12 +37880,6 @@
 																							"questions"
 																						],
 																						"type": "string"
-																					},
-																					{
-																						"enum": [
-																							"hosted-identity"
-																						],
-																						"type": "string"
 																					}
 																				]
 																			},
@@ -37939,9 +37936,6 @@
 																				"type": "string"
 																			},
 																			"tosUrl": {
-																				"type": "string"
-																			},
-																			"url": {
 																				"type": "string"
 																			}
 																		},
@@ -41629,6 +41623,218 @@
 									"required": [
 										"error",
 										"retryAfterSeconds"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				}
+			}
+		},
+		"/users/username/reservations": {
+			"delete": {
+				"parameters": [
+					{
+						"in": "header",
+						"name": "x-username-hold",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"enum": [
+												"HOLD_TOKEN_REQUIRED"
+											],
+											"type": "string"
+										}
+									},
+									"required": [
+										"code"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				}
+			},
+			"post": {
+				"parameters": [
+					{
+						"in": "header",
+						"name": "x-username-hold",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"properties": {
+									"username": {
+										"type": "string"
+									}
+								},
+								"required": [
+									"username"
+								],
+								"type": "object"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"expiresAt": "2026-11-12T18:30:00.000Z",
+									"username": "lucia"
+								},
+								"schema": {
+									"properties": {
+										"expiresAt": {
+											"format": "date-time",
+											"type": "string"
+										},
+										"username": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"username",
+										"expiresAt"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"anyOf": [
+										{
+											"properties": {
+												"code": {
+													"enum": [
+														"HOLD_TOKEN_REQUIRED"
+													],
+													"type": "string"
+												}
+											},
+											"required": [
+												"code"
+											],
+											"type": "object"
+										},
+										{
+											"properties": {
+												"code": {
+													"enum": [
+														"USERNAME_INVALID"
+													],
+													"type": "string"
+												},
+												"reason": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"code",
+												"reason"
+											],
+											"type": "object"
+										},
+										{
+											"properties": {
+												"code": {
+													"enum": [
+														"USERNAME_RESERVED"
+													],
+													"type": "string"
+												},
+												"reason": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"code",
+												"reason"
+											],
+											"type": "object"
+										}
+									]
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"anyOf": [
+												{
+													"enum": [
+														"USERNAME_TAKEN"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USERNAME_RESERVED"
+													],
+													"type": "string"
+												}
+											]
+										}
+									},
+									"required": [
+										"code"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"enum": [
+												"RATE_LIMITED"
+											],
+											"type": "string"
+										}
+									},
+									"required": [
+										"code"
 									],
 									"type": "object"
 								}

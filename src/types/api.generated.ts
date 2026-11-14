@@ -7549,6 +7549,7 @@ export interface paths {
                 query?: never;
                 header?: {
                     "api-key"?: string;
+                    "x-username-hold"?: string;
                 };
                 path?: never;
                 cookie?: never;
@@ -7591,6 +7592,7 @@ export interface paths {
                 query?: never;
                 header?: {
                     "api-key"?: string;
+                    "x-username-hold"?: string;
                     "x-signup-analytics-state"?: "enabled" | "disabled" | "unknown";
                 };
                 path?: never;
@@ -14299,6 +14301,7 @@ export interface paths {
                 query?: never;
                 header: {
                     Authorization: string;
+                    "x-username-hold"?: string;
                     "api-key"?: string;
                     "x-step-up-token"?: string;
                 };
@@ -14792,10 +14795,9 @@ export interface paths {
                                 nextActions: {
                                     currency?: string;
                                     effectiveDate?: string;
-                                    expiresAt?: string;
                                     feature?: "bank" | "card" | "local";
                                     key: string;
-                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions" | "hosted-identity";
+                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions";
                                     levelKey?: string;
                                     purpose: string;
                                     refused?: {
@@ -14804,7 +14806,6 @@ export interface paths {
                                     }[];
                                     requirementKey?: string;
                                     tosUrl?: string;
-                                    url?: string;
                                 }[];
                                 rails: {
                                     blockingActions?: string[];
@@ -14839,10 +14840,9 @@ export interface paths {
                                         nextAction?: {
                                             currency?: string;
                                             effectiveDate?: string;
-                                            expiresAt?: string;
                                             feature?: "bank" | "card" | "local";
                                             key: string;
-                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions" | "hosted-identity";
+                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions";
                                             levelKey?: string;
                                             purpose: string;
                                             refused?: {
@@ -14851,7 +14851,6 @@ export interface paths {
                                             }[];
                                             requirementKey?: string;
                                             tosUrl?: string;
-                                            url?: string;
                                         };
                                         status: "enabled" | "pending" | "fixable" | "blocked";
                                     };
@@ -15423,10 +15422,9 @@ export interface paths {
                             nextAction?: {
                                 currency?: string;
                                 effectiveDate?: string;
-                                expiresAt?: string;
                                 feature?: "bank" | "card" | "local";
                                 key: string;
-                                kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions" | "hosted-identity";
+                                kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions";
                                 levelKey?: string;
                                 purpose: string;
                                 refused?: {
@@ -15435,7 +15433,6 @@ export interface paths {
                                 }[];
                                 requirementKey?: string;
                                 tosUrl?: string;
-                                url?: string;
                             };
                             outcome: "opened" | "endorsement_pending" | "endorsement_required" | "verification_required";
                             requirements?: {
@@ -16204,7 +16201,7 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        /** @description The route’s accept-tos step (capabilities.routes[].action), e.g. accept-tos:avenia */
+                        /** @description The route’s accept-tos step (capabilities.routes[].action), e.g. accept-tos:<provider> */
                         key: string;
                     };
                 };
@@ -17386,8 +17383,8 @@ export interface paths {
                         "application/json": {
                             products: {
                                 available: boolean;
-                                product: "bridge.usd" | "bridge.eur" | "bridge.gbp" | "bridge.mxn" | "bridge.brl" | "rain.card" | "manteca.local" | "manteca.qr";
-                                provider: "BRIDGE" | "RAIN" | "MANTECA";
+                                product: "bridge.usd" | "bridge.eur" | "bridge.gbp" | "bridge.mxn" | "bridge.brl" | "rain.card" | "manteca.local" | "manteca.qr" | "avenia.pix";
+                                provider: "BRIDGE" | "RAIN" | "MANTECA" | "AVENIA";
                                 reason?: string;
                                 rule?: string;
                             }[];
@@ -17395,8 +17392,8 @@ export interface paths {
                                 collect: "before_identity" | "after_identity" | "when_asked";
                                 item: "residential_address" | "phone" | "tax_id" | "country_of_birth" | "city_of_birth" | "nationality" | "account_purpose" | "employment_status" | "occupation" | "source_of_funds" | "expected_monthly_payments" | "acting_as_intermediary" | "card_purpose" | "annual_salary" | "expected_monthly_spend" | "sex" | "marital_status" | "pep" | "fatca" | "fep" | "proof_of_address" | "source_of_funds_document";
                                 kind: "question" | "document";
-                                products: ("bridge.usd" | "bridge.eur" | "bridge.gbp" | "bridge.mxn" | "bridge.brl" | "rain.card" | "manteca.local" | "manteca.qr")[];
-                                requiredBy: ("BRIDGE" | "RAIN" | "MANTECA")[];
+                                products: ("bridge.usd" | "bridge.eur" | "bridge.gbp" | "bridge.mxn" | "bridge.brl" | "rain.card" | "manteca.local" | "manteca.qr" | "avenia.pix")[];
+                                requiredBy: ("BRIDGE" | "RAIN" | "MANTECA" | "AVENIA")[];
                                 rules: string[];
                             }[];
                         };
@@ -18130,6 +18127,9 @@ export interface paths {
                                     kind: string;
                                     locked?: boolean;
                                     minAddressLineLength?: number;
+                                    optionLabels?: {
+                                        [key: string]: string;
+                                    };
                                     options?: string[];
                                     required: boolean;
                                     value: string | null;
@@ -18451,10 +18451,9 @@ export interface paths {
                                 nextActions: {
                                     currency?: string;
                                     effectiveDate?: string;
-                                    expiresAt?: string;
                                     feature?: "bank" | "card" | "local";
                                     key: string;
-                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions" | "hosted-identity";
+                                    kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions";
                                     levelKey?: string;
                                     purpose: string;
                                     refused?: {
@@ -18463,7 +18462,6 @@ export interface paths {
                                     }[];
                                     requirementKey?: string;
                                     tosUrl?: string;
-                                    url?: string;
                                 }[];
                                 rails: {
                                     blockingActions?: string[];
@@ -18498,10 +18496,9 @@ export interface paths {
                                         nextAction?: {
                                             currency?: string;
                                             effectiveDate?: string;
-                                            expiresAt?: string;
                                             feature?: "bank" | "card" | "local";
                                             key: string;
-                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions" | "hosted-identity";
+                                            kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions";
                                             levelKey?: string;
                                             purpose: string;
                                             refused?: {
@@ -18510,7 +18507,6 @@ export interface paths {
                                             }[];
                                             requirementKey?: string;
                                             tosUrl?: string;
-                                            url?: string;
                                         };
                                         status: "enabled" | "pending" | "fixable" | "blocked";
                                     };
@@ -20025,6 +20021,133 @@ export interface paths {
             };
         };
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/username/reservations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "x-username-hold": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        username: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "expiresAt": "2026-11-12T18:30:00.000Z",
+                         *       "username": "lucia"
+                         *     }
+                         */
+                        "application/json": {
+                            /** Format: date-time */
+                            expiresAt: string;
+                            username: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            code: "HOLD_TOKEN_REQUIRED";
+                        } | {
+                            /** @enum {string} */
+                            code: "USERNAME_INVALID";
+                            reason: string;
+                        } | {
+                            /** @enum {string} */
+                            code: "USERNAME_RESERVED";
+                            reason: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code: "USERNAME_TAKEN" | "USERNAME_RESERVED";
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            code: "RATE_LIMITED";
+                        };
+                    };
+                };
+            };
+        };
+        delete: {
+            parameters: {
+                query?: never;
+                header: {
+                    "x-username-hold": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            code: "HOLD_TOKEN_REQUIRED";
+                        };
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
