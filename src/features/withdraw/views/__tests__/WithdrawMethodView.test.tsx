@@ -243,8 +243,18 @@ const BANK_ACCOUNTS = [
     { type: 'iban', identifier: 'DE89370400440532013000', details: { countryName: 'germany' } },
 ]
 let mockUserAccounts: unknown[] = BANK_ACCOUNTS
+// the user's routes, for whether a Pix-key send goes through the withdraw route (`usePixKeySend`)
+let mockRoutes: unknown[] | undefined
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: { accounts: mockUserAccounts, user: { userId: 'u-saved' } } }),
+    useAuth: () => ({
+        user: {
+            accounts: mockUserAccounts,
+            user: { userId: 'u-saved' },
+            ...(mockRoutes
+                ? { capabilities: { rails: [], nextActions: [], restrictions: [], routes: mockRoutes } }
+                : {}),
+        },
+    }),
 }))
 
 const mockSetSelectedBankAccount = jest.fn()
@@ -283,6 +293,7 @@ beforeEach(() => {
     mockIsBankFromSend = false
     mockPixPayBlock = null
     mockUserAccounts = BANK_ACCOUNTS
+    mockRoutes = undefined
     mockSavedAddresses = [mockSavedBaseAddress]
 })
 
@@ -385,6 +396,29 @@ describe('WithdrawMethodView — destination state and routing (Chip review roun
                 fireEvent.click(screen.getByTestId(`account-${BR_PIX_ACCOUNT.identifier}`))
                 expect(mockRouterPush.mock.calls.at(-1)?.[0]).toBe('/withdraw/pix')
                 window.sessionStorage.clear()
+            })
+        })
+
+        // TASK-24947: Avenia pays another person's key on the withdraw route, resident of Brazil or not
+        describe.each([
+            ['a resident of Brazil', 'residence' as const],
+            ['a non-resident', null],
+        ])('for %s whose withdraw route is on Avenia', (_who, block) => {
+            const recipientKey = { ...BR_PIX_ACCOUNT, identifier: '11144477735', isPixRecipient: true }
+            afterEach(() => window.sessionStorage.clear())
+
+            it("in Send, another person's saved key opens the Pix-key form as a send, the key in the draft", () => {
+                mockPixPayBlock = block
+                mockRoutes = [{ operation: 'withdraw', method: 'PIX_BR', provider: 'avenia', state: 'ready' }]
+                mockIsBankFromSend = true
+                mockUserAccounts = [recipientKey]
+                renderView()
+                fireEvent.click(screen.getByTestId(`account-${recipientKey.identifier}`))
+
+                expect(mockRouterPush.mock.calls.at(-1)?.[0]).toBe('/withdraw/pix?sendMethod=bank')
+                expect(JSON.parse(window.sessionStorage.getItem('pix-withdraw-draft:u-saved')!)).toMatchObject({
+                    destination: recipientKey.identifier,
+                })
             })
         })
 

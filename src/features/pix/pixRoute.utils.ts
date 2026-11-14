@@ -98,6 +98,27 @@ export function pixPayBlock(route: CapabilityRoute | undefined): PixPayBlock | n
 }
 
 /**
+ * How Send pays a Pix key for this user. A withdraw route on Avenia pays any key on a payout
+ * (TASK-24947), resident of Brazil or not, so the Pix-key form of /withdraw/pix serves the send
+ * (`via: 'withdraw'`); the pay route's block does not stop it. Everyone else sends through the pay
+ * route (`via: 'pay'`, the QR-payment endpoint) as before, stopped by its block (`pixPayBlock`). A
+ * merchant QR code reads the pay route alone: no withdraw route pays one.
+ */
+export interface PixKeySend {
+    via: 'pay' | 'withdraw'
+    block: PixPayBlock | null
+}
+
+export function pixKeySend(
+    payBlock: PixPayBlock | null,
+    withdrawRoute: Pick<CapabilityRoute, 'state' | 'provider'> | undefined
+): PixKeySend {
+    if (withdrawRoute?.provider === 'avenia' && withdrawRoute.state !== 'refused')
+        return { via: 'withdraw', block: null }
+    return { via: 'pay', block: payBlock }
+}
+
+/**
  * The BRL account as the account screens read it, from the Pix deposit route: Pix comes from the
  * route, whichever provider serves it. A resident of Brazil gets the local feature refused (another
  * entry serves the residence, `LOCAL_SERVED_ELSEWHERE_REASON`) and Pix from Avenia's route, so the

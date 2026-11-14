@@ -1,6 +1,7 @@
 import {
     findPixRoute,
     pixDepositOffered,
+    pixKeySend,
     pixPayBlock,
     pixRefusalCopy,
     pixResidencePaused,
@@ -237,5 +238,26 @@ describe('the BRL account from the Pix route', () => {
         })
         expect(pixRouteGate(route({ state: 'pending' })).kind).toBe('waiting-on-provider')
         expect(pixRouteGate(route({ state: 'refused' })).kind).toBe('blocked-rejection')
+    })
+})
+
+// TASK-24947: a withdraw route on Avenia pays any key, resident of Brazil or not
+describe('pixKeySend', () => {
+    const withdraw = (provider: CapabilityRoute['provider'], state: CapabilityRoute['state']) => ({ provider, state })
+
+    it.each([
+        ['a resident of Brazil, whose pay route refuses the residence', 'residence' as const],
+        ['a non-resident, whose pay route is open', null],
+        ['anyone under the Brazil pause', 'paused' as const],
+    ])('sends through the withdraw route on Avenia for %s', (_who, payBlock) => {
+        expect(pixKeySend(payBlock, withdraw('avenia', 'ready'))).toEqual({ via: 'withdraw', block: null })
+        // still being set up: the Pix page takes the user through it
+        expect(pixKeySend(payBlock, withdraw('avenia', 'action_required'))).toEqual({ via: 'withdraw', block: null })
+    })
+
+    it("keeps the pay route and its block for Manteca's withdraw route, a refused route, or none", () => {
+        expect(pixKeySend(null, withdraw('manteca', 'ready'))).toEqual({ via: 'pay', block: null })
+        expect(pixKeySend('residence', withdraw('avenia', 'refused'))).toEqual({ via: 'pay', block: 'residence' })
+        expect(pixKeySend('paused', undefined)).toEqual({ via: 'pay', block: 'paused' })
     })
 })
