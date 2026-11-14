@@ -296,6 +296,12 @@ describe('ReceiptDetailsCard — the Pix key a payout paid', () => {
         expect(screen.queryByText('Account number')).not.toBeInTheDocument()
     })
 
+    // review finding 8: a payout to another person's key reads as a send and keeps its Transfer ID
+    it("keeps the Transfer ID on a payout to another person's key", () => {
+        renderWithIntl(<Card transaction={{ ...pixPayout('+5511987654321'), direction: 'send' }} />)
+        expect(screen.getByText('Transfer ID')).toBeInTheDocument()
+    })
+
     it.each([
         ['a phone', '+5511987654321', '11 98765-4321'],
         // an email read as an IBAN would come out upper case

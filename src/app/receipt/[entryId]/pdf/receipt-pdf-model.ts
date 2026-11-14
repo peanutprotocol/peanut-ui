@@ -1,6 +1,6 @@
 import { EHistoryUserRole, getTransactionSign } from '@/utils/history.utils'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
-import { isSendLinkEntry } from '@/components/TransactionDetails/transaction-predicates'
+import { isFiatPayout, isSendLinkEntry } from '@/components/TransactionDetails/transaction-predicates'
 import {
     bankAccountLabelKey,
     receiptHeadlineAmount,
@@ -193,11 +193,7 @@ export function buildReceiptPdfModel(
         push(t('transaction.rows.txId'), transaction.txHash)
     }
 
-    if (
-        (transaction.direction === 'bank_withdraw' || transaction.direction === 'bank_claim') &&
-        transaction.id &&
-        !isCancelled
-    ) {
+    if (isFiatPayout(transaction) && transaction.id && !isCancelled) {
         push(t('transaction.rows.transferId'), transaction.id)
     }
 

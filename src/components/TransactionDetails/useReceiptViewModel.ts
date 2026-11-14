@@ -20,6 +20,7 @@ import {
     hasResolvableReceiptDocument,
     isCardPaymentEntry,
     isCardSpend as isCardSpendTransaction,
+    isFiatPayout,
     isMantecaOnrampEntry,
     isOnrampEntry,
     isQRPayment as isQRPaymentTransaction,
@@ -251,11 +252,7 @@ export function useReceiptViewModel(
                 transaction.bankAccountDetails.identifier &&
                 transaction.status !== 'cancelled'
             ),
-            transferId: !!(
-                transaction.id &&
-                (transaction.direction === 'bank_withdraw' || transaction.direction === 'bank_claim') &&
-                transaction.status !== 'cancelled'
-            ),
+            transferId: !!(transaction.id && isFiatPayout(transaction) && transaction.status !== 'cancelled'),
             // The payer's own reference is owner-only. The backend already
             // withholds it from a public receipt, but the public page renders
             // this same component tree, so the gate is repeated here rather
