@@ -3,7 +3,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import Landing from '../Landing'
 
-import { HAS_LOGGED_IN_ON_DEVICE_KEY, markLoggedInOnDevice } from '@/utils/device-login-history'
+import { markLoggedInOnDevice } from '@/utils/device-login-history'
 
 const mockCheck = jest.fn()
 jest.mock('@/utils/landing-passkeys', () => ({
@@ -154,7 +154,7 @@ beforeAll(() => {
 beforeEach(() => {
     jest.useFakeTimers()
     jest.resetAllMocks()
-    localStorage.removeItem(HAS_LOGGED_IN_ON_DEVICE_KEY)
+    localStorage.clear()
     mockCheck.mockImplementation(() => new Promise(() => {}))
     mockNative = {
         isCapacitor: true,
@@ -211,6 +211,13 @@ describe('native landing log in', () => {
         expect(login()).toHaveAttribute('data-control', 'full')
         expect(mockCheck).not.toHaveBeenCalled()
         expectEntryActions()
+    })
+
+    it('treats a device signed out before the history marker as returning', () => {
+        localStorage.setItem('user-123:user-preferences', JSON.stringify({ lastUsedTab: 'home' }))
+        render(<Landing />)
+        expect(login()).toHaveAttribute('data-control', 'full')
+        expect(mockCheck).not.toHaveBeenCalled()
     })
 
     it.each(['available', 'unavailable', 'unknown', 'rejection'])('settles %s immediately', async (outcome) => {

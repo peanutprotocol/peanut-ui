@@ -19,6 +19,10 @@ it.each(['', 'false', '1', 'TRUE', ' true ', '{}', 'null', 'undefined', 'user-12
         expect(hasLoggedInOnDevice()).toBe(false)
     }
 )
+it('recognizes a device signed out before the marker existed by its retained account record', () => {
+    localStorage.setItem('user-123:user-preferences', JSON.stringify({ lastUsedTab: 'home' }))
+    expect(hasLoggedInOnDevice()).toBe(true)
+})
 it('degrades a denied storage read to no history', () => {
     jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
         throw new DOMException('Denied', 'SecurityError')
