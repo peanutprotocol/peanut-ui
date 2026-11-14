@@ -5,6 +5,7 @@ import { NextIntlClientProvider } from 'next-intl'
 import type { ReactNode } from 'react'
 import en from '@/i18n/app/messages/en.json'
 import { loadMessages } from '@/i18n/app/messages'
+import type { AppLocale } from '@/i18n/app/config'
 
 let mockUserId: string | undefined = 'u1'
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ userId: mockUserId }) }))
@@ -16,7 +17,7 @@ import { usePixDepositMarketLines } from '../usePixDepositMarketLines'
 // API-CONTRACT 8.2: Bridge's route adds its mid-market rate and its cut of a deposit to the rules
 const BRIDGE_RULES = { minAmountBrl: '25', blockedBanks: [], marketRate: '5.714286', providerFeePercent: '0.57' }
 
-const wrapperFor = (locale: string, messages: unknown) =>
+const wrapperFor = (locale: AppLocale, messages: unknown) =>
     function Wrapper({ children }: { children: ReactNode }) {
         return (
             <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
