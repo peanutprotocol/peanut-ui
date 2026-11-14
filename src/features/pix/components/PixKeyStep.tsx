@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
-import { Callout } from '@/components/0_Bruddle/Callout'
 import { Field } from '@/components/0_Bruddle/Field'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
@@ -18,7 +17,7 @@ import { brTaxIdKind } from '@/utils/br-tax-id.utils'
 import { isPixEmvcoQr, normalizePixInput } from '@/utils/withdraw.utils'
 
 /**
- * The Pix key of a withdrawal or a send, or the new key for a refused payout. A
+ * The Pix key of a withdrawal or a send. A
  * complete key is resolved to its holder, bank and masked tax id before
  * Continue, so the user sees whom the money goes to. Any key continues, the
  * user's own or another person's (TASK-24947), except a bank the provider does
@@ -28,23 +27,14 @@ import { isPixEmvcoQr, normalizePixInput } from '@/utils/withdraw.utils'
 export function PixKeyStep({
     title,
     initialKey,
-    intro,
     onBack,
     onContinue,
-    isSubmitting = false,
-    refusal,
 }: {
     title: string
     initialKey: string
-    /** A line above the field; none by default, so a withdrawal and a send differ only by their title. */
-    intro?: string
     onBack: () => void
     /** The normalized key and its holder, once it resolved to a key the provider pays. */
     onContinue: (key: string, info: PixKeyInfo) => void
-    /** Continue waits for the caller's answer. */
-    isSubmitting?: boolean
-    /** What the caller's submit refused: under the field when it names this key, else above Continue. */
-    refusal?: { message: string; key: string | null } | null
 }) {
     const t = useTranslations('pix.withdraw')
     const tWithdraw = useTranslations('withdraw')
@@ -58,9 +48,7 @@ export function PixKeyStep({
     const current = result && key && result.key === key && !isChanging ? result : null
     // the provider pays any key, except one at a bank it will not pay
     const canPay = current?.status === 'found' && !current.info.blocked
-    // a refusal for a key the user has since changed says nothing about this one
-    const refusedKey = refusal?.key && refusal.key === key ? refusal.message : undefined
-    const error = isPixEmvcoQr(value.trim()) ? t('notACode') : (keyError(current) ?? refusedKey)
+    const error = isPixEmvcoQr(value.trim()) ? t('notACode') : keyError(current)
 
     function keyError(lookupResult: PixKeyLookup | null): string | undefined {
         if (!lookupResult) return undefined
@@ -74,7 +62,6 @@ export function PixKeyStep({
         <PageStack>
             <NavHeader title={title} onPrev={onBack} />
             <div className="flex flex-col gap-4">
-                {intro && <p className="text-body-s text-foreground-secondary">{intro}</p>}
                 <Field label={tWithdraw('pixKey.placeholder')} error={error}>
                     <ValidatedInput
                         value={value}
@@ -123,12 +110,10 @@ export function PixKeyStep({
                 )}
             </div>
             <PageStack.Footer>
-                {refusal && !refusal.key && <Callout priority="error">{refusal.message}</Callout>}
                 <Button
                     variant="primary"
                     className="w-full"
-                    loading={isSubmitting}
-                    disabled={!canPay || !key || isSubmitting || !!refusedKey}
+                    disabled={!canPay || !key}
                     onClick={() => key && current?.status === 'found' && onContinue(key, current.info)}
                 >
                     {tCommon('continue')}

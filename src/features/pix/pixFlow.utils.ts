@@ -80,7 +80,7 @@ export const PIX_WITHDRAW_STEPS = ['pix-key', 'review', 'success'] as const
 export type PixWithdrawStep = (typeof PIX_WITHDRAW_STEPS)[number]
 
 /**
- * What explains a refused withdrawal preview, init or new key, by wire code: an
+ * What explains a refused withdrawal preview or init, by wire code: an
  * `pix` catalog key, or `pixKeyNotFound` / `providerRejected` / `minimum`,
  * which `usePixRefusalMessage` reads from the shared catalogs.
  */
