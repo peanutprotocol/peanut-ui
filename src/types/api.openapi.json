@@ -10701,6 +10701,10 @@
 													],
 													"description": "The intent’s own status, finer than the entry’s status. On a withdrawal: AWAITING_USER_ACTION is not signed yet, PROCESSING is signed and not confirmed."
 												},
+												"marketRate": {
+													"description": "Bridge’s Pix only: BRL per USD before the provider’s fee, for the rate row. Sent with providerFee. Display only.",
+													"type": "string"
+												},
 												"pixDeposit": {
 													"description": "A Pix deposit, on a Pix deposit only and for its owner only. `codePayable`: the code can still be paid, so the receipt offers to open it again (GET /pix/deposit/:intentId).",
 													"properties": {
@@ -10818,6 +10822,35 @@
 															"type": "null"
 														}
 													]
+												},
+												"providerFee": {
+													"description": "Bridge’s Pix only: what the provider kept, so amount × marketRate − fee = the reais. Absent on a return, and where Bridge states no fee on a deposit.",
+													"properties": {
+														"amount": {
+															"type": "string"
+														},
+														"currency": {
+															"anyOf": [
+																{
+																	"enum": [
+																		"BRL"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"USD"
+																	],
+																	"type": "string"
+																}
+															]
+														}
+													},
+													"required": [
+														"amount",
+														"currency"
+													],
+													"type": "object"
 												}
 											},
 											"type": "object"
@@ -15037,6 +15070,10 @@
 														}
 													]
 												},
+												"marketRate": {
+													"description": "BRL per USDC at the provider’s mid-market rate, where it states one above `rate`: the rate row shows it. Display only.",
+													"type": "string"
+												},
 												"ownAccount": {
 													"anyOf": [
 														{
@@ -15052,6 +15089,10 @@
 												},
 												"provider": {
 													"description": "The payments partner’s name, for the review’s \"processed by\" line",
+													"type": "string"
+												},
+												"providerFeeBrl": {
+													"description": "Reais the provider keeps: floor_to_centavo(USDC × marketRate) − amountBrl, never below 0, an estimate like the reais. Holds fixedFeeBrl. Sent with marketRate only.",
 													"type": "string"
 												},
 												"rate": {
@@ -15472,6 +15513,10 @@
 												}
 											]
 										},
+										"marketRate": {
+											"description": "BRL per USDC at the provider’s mid-market rate, where it states one above `rate`: the rate row shows it. Display only.",
+											"type": "string"
+										},
 										"ownAccount": {
 											"anyOf": [
 												{
@@ -15487,6 +15532,10 @@
 										},
 										"provider": {
 											"description": "The payments partner’s name, for the review’s \"processed by\" line",
+											"type": "string"
+										},
+										"providerFeeBrl": {
+											"description": "Reais the provider keeps: floor_to_centavo(USDC × marketRate) − amountBrl, never below 0, an estimate like the reais. Holds fixedFeeBrl. Sent with marketRate only.",
 											"type": "string"
 										},
 										"rate": {
