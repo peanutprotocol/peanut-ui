@@ -9069,6 +9069,7 @@ export interface paths {
                          *       "amountBrl": "42.50",
                          *       "intentId": "4d2b7c1e-9a3f-4e81-b6d0-5c7e2a9f1b34",
                          *       "merchantName": "PADARIA PAO DOURADO LTDA",
+                         *       "perk": null,
                          *       "provider": "avenia",
                          *       "state": "paid",
                          *       "status": "COMPLETED"
@@ -9078,6 +9079,19 @@ export interface paths {
                             amountBrl: string | null;
                             intentId: string;
                             merchantName: string | null;
+                            /** @description The QR reward the paid payment earned, as Manteca’s QR answers it; null when none (yet) */
+                            perk: {
+                                /** @enum {boolean} */
+                                claimed: false;
+                                discountPercentage: number;
+                                /** @enum {boolean} */
+                                eligible: true;
+                                payoutStatus: "pending" | "completed" | "failed";
+                                reason: string | null;
+                                sponsoredUsd: number;
+                                txHash?: string;
+                                usageId: string;
+                            } | null;
                             /** @description The provider the route names, e.g. avenia. Data only: the app does not branch on it. */
                             provider: string;
                             /** @description Where the payment stands */
@@ -17257,22 +17271,22 @@ export interface paths {
                             features?: {
                                 bank: {
                                     action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain" | "activate";
-                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
+                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable" | "provider_rejected" | "provider_setup_failed";
                                     state: "ready" | "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
                                 };
                                 card: {
                                     action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain" | "activate";
-                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
+                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable" | "provider_rejected" | "provider_setup_failed";
                                     state: "ready" | "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
                                 };
                                 local: {
                                     action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain" | "activate";
-                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
+                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable" | "provider_rejected" | "provider_setup_failed";
                                     state: "ready" | "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
                                 };
                                 qr: {
                                     action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain" | "activate";
-                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
+                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable" | "provider_rejected" | "provider_setup_failed";
                                     state: "ready" | "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
                                 };
                             };
@@ -18205,7 +18219,7 @@ export interface paths {
                          */
                         "application/json": {
                             action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain" | "activate";
-                            reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
+                            reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable" | "provider_rejected" | "provider_setup_failed";
                             state: "ready" | "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
                         };
                     };

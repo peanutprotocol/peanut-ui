@@ -10,6 +10,7 @@ import { PEANUT_API_URL } from '@/constants/general.consts'
 import { parseResidenceRestrictionSets, setServerResidenceRestrictionSets } from '@/utils/residence-restriction-sets'
 import { DEMO_RESIDENCE_RESTRICTIONS } from '@/utils/demo-kyc'
 import { KYC_INTENTS_BY_COUNTRY } from '@/test-utils/kycIntents.fixture'
+import openapi from '@/types/api.openapi.json'
 
 // The web-safe test requires @/utils/demo → general.utils → app/actions/clients, whose
 // module-scope viem clients start 60s RPC-ranking timers (fallback rank) that keep the
@@ -114,6 +115,18 @@ describe('demoRespond — routing', () => {
         const res = await demoRespond(path, { method }, { offline: true, strict: true })
         expect(res.status).toBe(200)
         expect(await res.json()).toMatchObject(expected)
+    })
+
+    // The QR flow reads the payment's reward from this answer; the snapshot makes `perk` required
+    // (null until the reward is issued), so the demo answer carries every field the snapshot names.
+    it('answers the Pix payment read with every field the API snapshot requires', async () => {
+        const schema = openapi.paths['/pix/pay/{intentId}'].get.responses['200'].content['application/json']
+            .schema as unknown as { required: string[] }
+        const res = await demoRespond('/pix/pay/demo-pix-pay', { method: 'GET' }, { offline: true, strict: true })
+        expect(res.status).toBe(200)
+        const data = await res.json()
+        expect(schema.required).toContain('perk')
+        for (const field of schema.required) expect(data).toHaveProperty(field)
     })
 
     it('answers the card markup read with "nothing to compare" in strict capture mode', async () => {

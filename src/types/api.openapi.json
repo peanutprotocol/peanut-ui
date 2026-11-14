@@ -16734,6 +16734,7 @@
 									"amountBrl": "42.50",
 									"intentId": "4d2b7c1e-9a3f-4e81-b6d0-5c7e2a9f1b34",
 									"merchantName": "PADARIA PAO DOURADO LTDA",
+									"perk": null,
 									"provider": "avenia",
 									"state": "paid",
 									"status": "COMPLETED"
@@ -16762,6 +16763,84 @@
 													"type": "null"
 												}
 											]
+										},
+										"perk": {
+											"anyOf": [
+												{
+													"properties": {
+														"claimed": {
+															"enum": [
+																false
+															],
+															"type": "boolean"
+														},
+														"discountPercentage": {
+															"type": "number"
+														},
+														"eligible": {
+															"enum": [
+																true
+															],
+															"type": "boolean"
+														},
+														"payoutStatus": {
+															"anyOf": [
+																{
+																	"enum": [
+																		"pending"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"completed"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"failed"
+																	],
+																	"type": "string"
+																}
+															]
+														},
+														"reason": {
+															"anyOf": [
+																{
+																	"type": "string"
+																},
+																{
+																	"type": "null"
+																}
+															]
+														},
+														"sponsoredUsd": {
+															"type": "number"
+														},
+														"txHash": {
+															"type": "string"
+														},
+														"usageId": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"eligible",
+														"discountPercentage",
+														"claimed",
+														"sponsoredUsd",
+														"reason",
+														"usageId",
+														"payoutStatus"
+													],
+													"type": "object"
+												},
+												{
+													"type": "null"
+												}
+											],
+											"description": "The QR reward the paid payment earned, as Manteca’s QR answers it; null when none (yet)"
 										},
 										"provider": {
 											"description": "The provider the route names, e.g. avenia. Data only: the app does not branch on it.",
@@ -16831,7 +16910,8 @@
 										"state",
 										"status",
 										"amountBrl",
-										"merchantName"
+										"merchantName",
+										"perk"
 									],
 									"type": "object"
 								}
@@ -34372,6 +34452,18 @@
 																		"requirements_uncollectable"
 																	],
 																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"provider_rejected"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"provider_setup_failed"
+																	],
+																	"type": "string"
 																}
 															]
 														},
@@ -34547,6 +34639,18 @@
 																{
 																	"enum": [
 																		"requirements_uncollectable"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"provider_rejected"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"provider_setup_failed"
 																	],
 																	"type": "string"
 																}
@@ -34726,6 +34830,18 @@
 																		"requirements_uncollectable"
 																	],
 																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"provider_rejected"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"provider_setup_failed"
+																	],
+																	"type": "string"
 																}
 															]
 														},
@@ -34901,6 +35017,18 @@
 																{
 																	"enum": [
 																		"requirements_uncollectable"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"provider_rejected"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"provider_setup_failed"
 																	],
 																	"type": "string"
 																}
@@ -36960,6 +37088,18 @@
 												{
 													"enum": [
 														"requirements_uncollectable"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"provider_rejected"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"provider_setup_failed"
 													],
 													"type": "string"
 												}

@@ -1051,6 +1051,7 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
             status: 'COMPLETED',
             amountBrl: '42.50',
             merchantName: 'PADARIA PAO DOURADO LTDA',
+            perk: null,
         }),
     },
 

@@ -728,6 +728,7 @@ const aveniaQrRead = (state: string, status: string) => ({
         status,
         amountBrl: '42.50',
         merchantName: 'PADARIA PAO DOURADO LTDA',
+        perk: null,
     },
 })
 /** The payment's history entry (API-CONTRACT-M4 §5): a QR payment to the merchant, provider Avenia. */
