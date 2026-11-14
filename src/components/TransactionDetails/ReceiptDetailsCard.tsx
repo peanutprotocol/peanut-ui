@@ -24,6 +24,7 @@ import {
     type ReceiptStatusDateKind,
 } from './transaction-details.utils'
 import {
+    isReturnedDeposit,
     isSettledConversion,
     receiptConversionLine,
     receiptConvertedAmount,
@@ -187,7 +188,7 @@ export function ReceiptDetailsCard({
                     convertedAmount &&
                     (isSettledConversion(transaction) ? (
                         <DataRow
-                            label={t('rows.converted')}
+                            label={isReturnedDeposit(transaction) ? tCommon('exchangeRate') : t('rows.converted')}
                             value={
                                 <span className="flex flex-col items-end">
                                     <span>{receiptConversionLine(transaction, getTransactionSign(transaction))}</span>
