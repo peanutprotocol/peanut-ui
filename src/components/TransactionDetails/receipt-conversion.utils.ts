@@ -51,7 +51,9 @@ export function receiptExchangeRate(transaction: TransactionDetails): string | u
 /**
  * A Bridge Pix entry's market rate and provider fee (`extraData.marketRate`,
  * `extraData.providerFee`, API-CONTRACT 8.3) as the receipt prints them: the
- * rate line ("1 USD = BRL 5.33") and the "Provider fee" row ("BRL 0.78").
+ * rate line ("1 USD = BRL 5.33") and the "Provider fee" row ("≈ BRL 0.78"),
+ * marked ≈ as on the review: the API measures it against a market rate read
+ * near, not at, the provider's conversion.
  * Only where the receipt shows the reais (a pending Bridge payout's are blank:
  * ruling 14 Nov), so the rows add up on screen, for a fee in those reais, and
  * never on an entry that converted nothing (a return, a failure). The rate is
@@ -69,7 +71,7 @@ export function receiptProviderFee(transaction: TransactionDetails): { rateLine:
     if (!transaction.currency?.amount || !(reais > 0) || !(usd > 0)) return undefined
     const direction = transaction.direction === 'bank_deposit' ? 'in' : 'out'
     const rate = pixMarketRateShown(usd, reais, Number(fee.amount), direction)
-    return { rateLine: `1 USD = ${code} ${formatCurrency(rate, 6)}`, fee: `${code} ${formatCurrency(fee.amount)}` }
+    return { rateLine: `1 USD = ${code} ${formatCurrency(rate, 6)}`, fee: `≈ ${code} ${formatCurrency(fee.amount)}` }
 }
 
 /**

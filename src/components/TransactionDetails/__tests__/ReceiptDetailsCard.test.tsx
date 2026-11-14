@@ -361,7 +361,7 @@ describe("ReceiptDetailsCard — the provider fee of Bridge's Pix", () => {
         expect(screen.getByText('20 USD → BRL 113.77')).toBeInTheDocument()
         expect(screen.getByText('1 USD = BRL 5.72')).toBeInTheDocument()
         expect(screen.getByText(en.pix.withdraw.fee)).toBeInTheDocument()
-        expect(screen.getByText('BRL 0.63')).toBeInTheDocument()
+        expect(screen.getByText('≈ BRL 0.63')).toBeInTheDocument()
         expect(Math.round((20 * 5.72 - 0.63) * 100) / 100).toBe(113.77)
     })
 
@@ -377,7 +377,7 @@ describe("ReceiptDetailsCard — the provider fee of Bridge's Pix", () => {
         )
         renderWithIntl(<Card transaction={deposit} />)
         expect(screen.getByText('1 USD = BRL 5.746')).toBeInTheDocument()
-        expect(screen.getByText('BRL 0.06')).toBeInTheDocument()
+        expect(screen.getByText('≈ BRL 0.06')).toBeInTheDocument()
         expect(screen.queryByText('1 USD = BRL 5.7803')).not.toBeInTheDocument()
     })
 

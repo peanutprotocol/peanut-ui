@@ -407,7 +407,7 @@ describe('buildReceiptPdfModel — app locales', () => {
             'en'
         )
         expect(row(model, 'common.exchangeRate')).toBe('1 USD = BRL 5.72')
-        expect(row(model, 'pix.withdraw.fee')).toBe('BRL 0.63')
+        expect(row(model, 'pix.withdraw.fee')).toBe('≈ BRL 0.63')
         expect(labels(model).indexOf('pix.withdraw.fee')).toBe(labels(model).indexOf('common.exchangeRate') + 1)
     })
 
