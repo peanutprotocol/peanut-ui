@@ -158,9 +158,14 @@ let mockDegraded = false
 jest.mock('@/hooks/useKycDegraded', () => ({ useKycDegraded: () => mockDegraded }))
 jest.mock('@/hooks/useResidenceRestrictions', () => ({ useResidenceRestrictions: () => ({ banking: false }) }))
 const mockRouter = { push: jest.fn(), replace: jest.fn() }
-jest.mock('next/navigation', () => ({ useRouter: () => mockRouter }))
+jest.mock('next/navigation', () => ({
+    useRouter: () => mockRouter,
+    usePathname: () => '/profile/accounts/additional',
+}))
+// the hosted check's page reads where to go back to; opened here with nowhere named
+jest.mock('nuqs', () => ({ useQueryState: () => [null, jest.fn()] }))
 const mockBack = jest.fn()
-jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => mockBack }))
+jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => mockBack, useReturnTo: () => mockBack }))
 const mockStart = jest.fn()
 jest.mock('@/hooks/useHostedVerification', () => ({
     useHostedVerification: () => ({ start: mockStart, isStarting: false, isSettling: false }),
@@ -175,6 +180,7 @@ jest.mock('@/hooks/useCapabilities', () => ({
 }))
 jest.mock('@/utils/bridge-tasks.utils', () => ({
     selectBridgeTasks: (actions: unknown[]) => actions,
+    selectRouteHostedTask: () => undefined,
     hasNativeBridgeStep: () => false,
 }))
 jest.mock('@/context/authContext', () => ({

@@ -93,6 +93,27 @@ describe('BridgeTosStep', () => {
         ).toBeTruthy()
     })
 
+    // TASK-24910: opened from Pix, the terms name what they turn on there; the bank flows keep their sentence
+    it('names what accepting turns on, as the screen that opened it names it', () => {
+        mockVerifiedResidence = 'BR'
+        render(
+            <IntlWrapper>
+                <BridgeTosStep visible unlocks="Pix transfers" onComplete={jest.fn()} onSkip={jest.fn()} />
+            </IntlWrapper>
+        )
+        expect(screen.getByText("Accept the provider's terms to turn on Pix transfers.")).toBeInTheDocument()
+        // a resident of Brazil contracts with Bridge's rest-of-world entity
+        expect(screen.getByRole('link', { name: 'Bridge user terms' })).toHaveAttribute(
+            'href',
+            'https://www.bridge.xyz/legal/row-user-terms/bridge-building-limited'
+        )
+    })
+
+    it('says bank transfers when the screen that opened it names nothing', () => {
+        renderStep()
+        expect(screen.getByText("Accept the provider's terms to turn on bank transfers.")).toBeInTheDocument()
+    })
+
     it('opens a document in a new tab without starting the acceptance flow', () => {
         renderStep()
 

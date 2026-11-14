@@ -7,7 +7,7 @@ import { KycFeatureActivationGate } from '@/features/paperwork-verification/KycF
 import { countryData } from '@/components/AddMoney/consts'
 import { useKillSwitches } from '@/features/kill-switches/useKillSwitches'
 import { BrazilPausedScreen } from '@/features/brazil-pause/components/BrazilPausedScreen'
-import { usePixPayBlock } from '@/features/pix/usePixPayBlock'
+import { usePixKeySend } from '@/features/pix/usePixKeySend'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { MantecaTransfersMaintenanceView } from '@/components/Global/Banner/MantecaTransfersMaintenanceView'
 import PixKeySendView from '@/features/withdraw/views/PixKeySendView'
@@ -16,7 +16,7 @@ import MantecaBankWithdrawFlow from '@/features/withdraw/views/MantecaBankWithdr
 export default function MantecaWithdrawFlow() {
     const searchParams = useSearchParams()
     const { disabledMantecaCurrencies } = useKillSwitches()
-    const pixBlock = usePixPayBlock()
+    const pixKeySend = usePixKeySend()
     // `method` names the rail on this page (pix, bank-transfer), so only `sendMethod` marks a Send origin
     const { isFromSendFlow } = useSendFlowOrigin()
     // Brazil PIX sends go through the Manteca QR-payment endpoint (send to any
@@ -27,11 +27,13 @@ export default function MantecaWithdrawFlow() {
     // through. All Brazil-PIX entry points funnel here, so this is the single
     // chokepoint that flips the endpoint without touching the AR / bank paths.
     if (searchParams.get('country') === 'brazil' && searchParams.get('method') === 'pix') {
-        // A resident of Brazil cannot send to another person's key, but their own-account Pix is
-        // open on /withdraw/pix. Outside Send they came to withdraw, so the block screen would be
-        // a dead end in front of a flow that works (live test on staging, 2026-11-12).
-        if (pixBlock === 'residence' && !isFromSendFlow) return <RouteAlias to={PIX_WITHDRAW_PATH} />
-        if (pixBlock) return <BrazilPausedScreen block={pixBlock} />
+        // A resident of Brazil whose withdraw route is open sends to any key on /withdraw/pix: its
+        // provider pays another person's key on a payout (`pixKeySend`); the query keeps the Send
+        // origin. Outside Send a resident came to withdraw, so the block screen would be a dead end
+        // in front of a flow that works (live test on staging, 2026-11-12).
+        if (pixKeySend.via === 'withdraw' || (pixKeySend.block === 'residence' && !isFromSendFlow))
+            return <RouteAlias to={PIX_WITHDRAW_PATH} />
+        if (pixKeySend.block) return <BrazilPausedScreen block={pixKeySend.block} />
         return <PixKeySendView destinationParam={searchParams.get('destination')} />
     }
     // A BRL withdrawal to the user's own account lives on /withdraw/pix, where the backend's route

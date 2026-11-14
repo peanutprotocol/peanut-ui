@@ -14,9 +14,9 @@ jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform
 import React from 'react'
 import { withFeatureReport } from '@/test-utils/featureReport.fixture'
 import { railVerdict } from '@/utils/capability-gate'
-import { act, screen, fireEvent, waitFor } from '@testing-library/react'
+import { act, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { renderWithIntl as render } from '@/test-utils/intl'
-import type { NextAction, RailCapability } from '@/types/capabilities'
+import type { CapabilityRoute, NextAction, RailCapability } from '@/types/capabilities'
 import { AdditionalVerificationView } from '../AdditionalVerificationView'
 
 const hostedAction: NextAction = {
@@ -70,13 +70,16 @@ jest.mock(
     { virtual: true }
 )
 const mockRouterReplace = jest.fn()
+let mockSearch = ''
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: jest.fn(), replace: mockRouterReplace, back: jest.fn() }),
     // NavHeader mounts the maintenance Banner, which reads the pathname
     usePathname: () => '/kyc/additional-verification',
 }))
+jest.mock('nuqs', () => ({ useQueryState: (key: string) => [new URLSearchParams(mockSearch).get(key), jest.fn()] }))
 let mockNextActions: NextAction[] = []
 let mockRails: RailCapability[] = []
+let mockRoutes: CapabilityRoute[] | undefined
 let mockCapabilitiesLoading = false
 const mockCapabilityBlock = () => {
     const rails: RailCapability[] = mockRails.length
@@ -97,6 +100,7 @@ const mockCapabilityBlock = () => {
             rails: rails.map((rail) => ({ ...rail, resolved: railVerdict(rail, byKey) })),
             nextActions: mockNextActions,
             restrictions: [],
+            ...(mockRoutes ? { routes: mockRoutes } : {}),
         },
         { identity: { status: 'verified' } }
     )
@@ -440,6 +444,96 @@ describe('AdditionalVerificationView', () => {
         rerender(<AdditionalVerificationView />)
         expect(await screen.findByRole('button', { name: /i have these, start/i })).toBeInTheDocument()
         expect(mockRouterReplace).not.toHaveBeenCalled()
+    })
+
+    // TASK-24910: the feature report reads deposits, so a hosted check only withdrawals wait on is the route's alone
+    describe('a hosted check a Pix route names as its step', () => {
+        const pixRail: RailCapability = {
+            id: 'bridge.pix_br',
+            provider: 'bridge',
+            method: 'PIX_BR',
+            channel: 'bank',
+            country: 'BR',
+            currency: 'BRL',
+            status: 'requires-info',
+            operations: { deposit: 'enabled', withdraw: 'requires-info' },
+            blockingActions: ['bridge-hosted'],
+        }
+        const withdrawRoute: CapabilityRoute = {
+            operation: 'withdraw',
+            method: 'PIX_BR',
+            provider: 'bridge',
+            state: 'action_required',
+            action: 'bridge-hosted',
+            candidates: [],
+        }
+
+        beforeEach(() => {
+            mockNextActions = [{ ...hostedAction, currency: 'BRL' }]
+            mockRails = [pixRail]
+        })
+        afterEach(() => {
+            mockRoutes = undefined
+            mockSearch = ''
+        })
+
+        it('offers the check the route names, which the report does not', () => {
+            mockRoutes = [{ ...withdrawRoute, operation: 'deposit', state: 'ready', action: undefined }, withdrawRoute]
+            render(<AdditionalVerificationView />)
+            expect(screen.getByRole('button', { name: /i have these, start/i })).toBeInTheDocument()
+            expect(screen.queryByTestId('hosted-task-done')).not.toBeInTheDocument()
+        })
+
+        it('sends the user back to the Pix page once the check is done', () => {
+            mockRoutes = [{ ...withdrawRoute, state: 'ready', action: undefined }]
+            mockSearch = 'returnTo=%2Fwithdraw%2Fpix'
+            // the return path is checked against this page's own origin
+            Object.defineProperty(window, 'location', {
+                configurable: true,
+                value: { origin: 'http://localhost', href: 'http://localhost/profile/accounts/additional' },
+            })
+            render(<AdditionalVerificationView />)
+            // the panel does not point at the profile it does not lead to
+            expect(screen.getByTestId('hosted-task-done')).toHaveTextContent(
+                'This verification step is no longer needed.'
+            )
+            expect(screen.getByTestId('hosted-task-done')).not.toHaveTextContent(/on your profile/i)
+            // the button says where it goes: back to Pix, not to the status on the profile
+            fireEvent.click(within(screen.getByTestId('hosted-task-done')).getByRole('button', { name: /^back$/i }))
+            // no Pix page in this tab's history: the origin takes this page's place
+            expect(mockRouterReplace).toHaveBeenCalledWith('/withdraw/pix')
+        })
+
+        // Chip on ui#4094: "Go to profile" led back to the Pix page
+        it('names the way back, not the profile, when the app collects the item and Pix sent the user', () => {
+            // the hosted task stands down beside a Sumsub step, as in the panel's own test above
+            mockNextActions = [
+                { key: 'sumsub:proof_of_address', kind: 'sumsub', purpose: 'unlock-bridge' },
+                hostedAction,
+            ]
+            mockRails = [
+                {
+                    id: 'bridge.sepa_eu',
+                    provider: 'bridge',
+                    method: 'SEPA_EU',
+                    channel: 'bank',
+                    country: 'EU',
+                    currency: 'EUR',
+                    status: 'requires-info',
+                    blockingActions: ['sumsub:proof_of_address'],
+                },
+            ]
+            mockSearch = 'returnTo=%2Fwithdraw%2Fpix'
+            Object.defineProperty(window, 'location', {
+                configurable: true,
+                value: { origin: 'http://localhost', href: 'http://localhost/profile/accounts/additional' },
+            })
+            render(<AdditionalVerificationView />)
+            const panel = screen.getByTestId('hosted-task-native-instead')
+            expect(within(panel).queryByRole('button', { name: /go to profile/i })).not.toBeInTheDocument()
+            fireEvent.click(within(panel).getByRole('button', { name: /^back$/i }))
+            expect(mockRouterReplace).toHaveBeenCalledWith('/withdraw/pix')
+        })
     })
 
     it('an in-flight capability read shows the prep screen, not the done state', () => {

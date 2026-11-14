@@ -34,8 +34,8 @@ import { isDismissibleHomeTask as isDismissibleTask, visibleHomeTasks } from '@/
 // Currencies whose corridor a hosted-verification task can NAME. The backend
 // sets `NextAction.currency` on the bridge-hosted catch-all; anything outside
 // this set falls back to the generic "bank transfers" copy.
-type CorridorCurrency = 'USD' | 'EUR' | 'GBP' | 'MXN'
-const CORRIDOR_CURRENCIES = new Set<string>(['USD', 'EUR', 'GBP', 'MXN'])
+type CorridorCurrency = 'USD' | 'EUR' | 'GBP' | 'MXN' | 'BRL'
+const CORRIDOR_CURRENCIES = new Set<string>(['USD', 'EUR', 'GBP', 'MXN', 'BRL'])
 
 // Advisory ToS and hosted tasks can be dismissed. The document request cannot:
 // it reaches this card only in its final week, and the bank-screen notice sends
@@ -242,6 +242,8 @@ function PendingTasksContent({
                 return t('pendingTasks.corridors.GBP')
             case 'MXN':
                 return t('pendingTasks.corridors.MXN')
+            case 'BRL':
+                return t('pendingTasks.corridors.BRL')
         }
     }
     const taskCopy = (task: NextAction): { title: string; description: string } => {

@@ -23,8 +23,10 @@ import { pixApi } from '@/services/pix'
 import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import type { CapabilityRoute } from '@/types/capabilities'
 import { formatBankAmount } from '@/utils/currency'
-import { pixProviderId } from '@/utils/provider.utils'
 import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
+import { usePixProviderId } from '@/features/pix/usePixProviderId'
+import { usePixStandingPayerLine } from '@/features/pix/usePixStandingPayerLine'
+import { usePixDepositMarketLines } from '@/features/pix/usePixDepositMarketLines'
 
 type PixDepositStep = 'inputAmount' | 'showQR'
 type Denomination = 'USD' | 'BRL'
@@ -40,6 +42,10 @@ type Denomination = 'USD' | 'BRL'
  * whose pending deposit row offers "Show code" and opens this flow with its
  * `?intentId=`, so a reload of the code screen keeps working through the URL.
  * The route's `payableDepositIntentId` is not read here.
+ *
+ * A route whose code is standing (`route.standingCode`, ruling D7) skips the
+ * amount: once ready it opens the same code screen on the user's one code,
+ * which the API answers again on every call, so the URL names no deposit.
  */
 export function PixDepositFlow({ route }: { route: CapabilityRoute }) {
     const t = useTranslations('addMoney')
@@ -64,7 +70,8 @@ export function PixDepositFlow({ route }: { route: CapabilityRoute }) {
     const onBack = useSafeBack(returnTo ?? '/add-money?method=bank')
     const step: PixDepositStep = urlState.step ?? 'inputAmount'
     const ready = route.state === 'ready'
-    const providerId = pixProviderId(route.provider)
+    const standing = ready && route.standingCode === true
+    const providerId = usePixProviderId(route.provider)
     const intentId = urlState.intentId
 
     const [usdAmount, setUsdAmount] = useState('')
@@ -76,7 +83,9 @@ export function PixDepositFlow({ route }: { route: CapabilityRoute }) {
     // The amount step's estimate is the provider's quote for the reais on screen, not the /fx rate.
     // Only the amount step quotes: the setup and the code screen do not.
     const minimumBrl = pixMinimumBrl(route)
-    const currencyData = usePixQuoteCurrency('deposit', brlAmount, minimumBrl, ready && !intentId)
+    const currencyData = usePixQuoteCurrency('deposit', brlAmount, minimumBrl, ready && !standing && !intentId)
+    const payerLine = usePixStandingPayerLine(standing)
+    const marketLines = usePixDepositMarketLines(standing)
     const minimumLine = minimumBrl ? tDeposit('minimum', { amount: formatBankAmount(minimumBrl, 'BRL') }) : null
     const validationError = isUnderPixMinimum(brlAmount, minimumBrl) ? minimumLine : null
 
@@ -101,14 +110,17 @@ export function PixDepositFlow({ route }: { route: CapabilityRoute }) {
         })
         try {
             const created = await pixApi.createDeposit(amountBrl)
+            // a deposit for an amount is an intent of its own; only a standing code has none
+            const createdId = created.intentId
+            if (!createdId) throw new Error('The Pix deposit came back without its intent')
             posthog.capture(ANALYTICS_EVENTS.DEPOSIT_CONFIRMED, {
                 amount_usd: usdAmount,
                 method_type: route.provider,
                 country: 'brazil',
             })
             // the code screen reads this deposit's query; seeding it shows the code at once
-            queryClient.setQueryData(pixDepositQueryKey(created.intentId), created)
-            void setUrlState({ step: 'showQR', intentId: created.intentId })
+            queryClient.setQueryData(pixDepositQueryKey(createdId), created)
+            void setUrlState({ step: 'showQR', intentId: createdId })
         } catch (caught) {
             const code = wireErrorCode(caught)
             posthog.capture(ANALYTICS_EVENTS.DEPOSIT_FAILED, {
@@ -163,6 +175,22 @@ export function PixDepositFlow({ route }: { route: CapabilityRoute }) {
     }
 
     if (!ready) return <PixSetup title={t('title')} onBack={onBack} route={route} />
+
+    // any amount, no timer, and nothing to wait on: each Pix shows in Activity once it lands
+    if (standing) {
+        return (
+            <PixQrDeposit
+                intentId={null}
+                minimumBrl={minimumBrl}
+                marketLines={marketLines}
+                payerLine={payerLine}
+                onBack={onBack}
+                onDone={leaveToHome}
+                onNewDeposit={startNewDeposit}
+                onComplete={() => void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })}
+            />
+        )
+    }
 
     // the code is being made: title only, nothing has moved yet
     if (isCreating) {

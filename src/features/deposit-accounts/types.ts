@@ -165,6 +165,11 @@ export interface DepositRail {
     detailRowCount: number
     /** false where the corridor cannot be held as a reusable account */
     claimable?: false
+    /**
+     * false where an account on the corridor is not one of the user's limited bank accounts: the
+     * Pix account (ruling of 13 Nov, which the API's cap and `accountsHeld` follow)
+     */
+    countsTowardLimit?: false
     /** Where a corridor with no standing account tops up: Argentina, and the one-off Pix code. */
     topUpHref?: string
     /**

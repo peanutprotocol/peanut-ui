@@ -2,6 +2,8 @@ import { EHistoryUserRole, type HistoryEntry } from '@/hooks/useTransactionHisto
 import { personFrom } from '@/lib/person/person'
 import { type TransactionStrategy, type TransactionStrategyOutput } from '../types'
 import { TRANSACTION_NAME_KEYS } from '@/components/TransactionDetails/transaction-name-keys'
+import { normalizeMerchantName } from '@/components/TransactionDetails/transaction-details.utils'
+import { formatBrTaxId } from '@/utils/br-tax-id.utils'
 
 const BANK_CLAIM: TransactionStrategyOutput = {
     direction: 'bank_claim',
@@ -58,6 +60,22 @@ export const fiatOfframp: TransactionStrategy = (entry: HistoryEntry): Transacti
                     : TRANSACTION_NAME_KEYS.bankAccount,
             peer: personFrom(entry.senderAccount),
             isPeerActuallyUser: !!entry.senderAccount?.isUser,
+            isLinkTx: false,
+        }
+    }
+    // A Pix payout to another person's key (Bridge, TASK-24910) is a send to them, as a Pix-key
+    // payment reads (`qrPay`): the holder Bridge validated, owner-only, with the key beside the name.
+    // A shared receipt has neither the name nor the whole key, and names the masked key alone.
+    if (entry.extraData?.pixPayee === 'other') {
+        const key = entry.recipientAccount?.identifier
+        const holder = entry.recipientAccount?.fullName
+        return {
+            direction: 'send',
+            transactionCardType: 'send',
+            nameForDetails: holder ? normalizeMerchantName(holder) : key || 'Recipient',
+            nameKey: holder || key ? undefined : TRANSACTION_NAME_KEYS.recipient,
+            nameDetail: holder && key ? formatBrTaxId(key) : undefined,
+            isPeerActuallyUser: false,
             isLinkTx: false,
         }
     }

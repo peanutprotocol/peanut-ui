@@ -43,8 +43,9 @@ export function useKycIntents(residence: string | null | undefined): {
         queryKey: ['kyc-intents', country],
         queryFn: () => fetchKycIntents(country!),
         enabled: !!country,
-        // the answer depends on the country alone and changes with API deploys
-        staleTime: 60 * 60_000,
+        // The answer depends on the country and on rollout gates (Pix in Brazil opens with Bridge's): the
+        // API caches it 5 minutes, so a gate flip reaches a running session as soon.
+        staleTime: 5 * 60_000,
         retry: 1,
     })
     return { intents: data, settled: !!data || isError }

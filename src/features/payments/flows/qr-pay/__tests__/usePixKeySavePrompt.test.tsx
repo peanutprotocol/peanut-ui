@@ -69,6 +69,21 @@ describe('usePixKeySavePrompt', () => {
         expect(result.current.savedName).toBeNull()
     })
 
+    // a Bridge payout writes the key's account when it opens, before the funding is sent (TASK-24910)
+    it('keeps the card and saves the typed name when the key appears in the account list after the offer', () => {
+        const { result, rerender } = renderHook(() => usePixKeySavePrompt(KEY, 'MARIA DA SILVA'))
+        expect(result.current.isOffered).toBe(true)
+        act(() => result.current.setNickname('Maria'))
+
+        mockAccounts = [{ type: 'manteca', identifier: KEY, label: null, details: { countryName: 'Brazil' } }]
+        rerender()
+
+        expect(result.current.isOffered).toBe(true)
+        expect(result.current.savedName).toBeNull()
+        act(() => result.current.saveAfterPayment())
+        expect(mockSavePixKey).toHaveBeenCalledWith(KEY, 'Maria')
+    })
+
     it('is not offered until the account list has loaded', () => {
         mockAccounts = undefined
         expect(renderHook(() => usePixKeySavePrompt(KEY, 'MARIA DA SILVA')).result.current.isOffered).toBe(false)

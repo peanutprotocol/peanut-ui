@@ -136,6 +136,17 @@ describe('PixWithdrawForm', () => {
         expect(screen.getByRole('button', { name: en.common.confirm })).toBeDisabled()
     })
 
+    // the indicative quote's ratio is a float: the rate row prints it to the review's six decimals, not all its digits
+    it('prints the indicative rate to six decimals before the review answers', () => {
+        renderForm({
+            display: null,
+            total: undefined,
+            canConfirm: false,
+            amount: { ...amount, price: 5.299417064122946 },
+        })
+        expect(screen.getByText('1 USD = 5.299417 BRL')).toBeInTheDocument()
+    })
+
     // the quote of the amount on screen is in flight: the Total row waits for it rather than showing an estimate
     it('waits for the quote on the Total row while it is in flight', () => {
         const { container } = renderForm({ display: null, total: null, canConfirm: false })
@@ -171,5 +182,116 @@ describe('PixWithdrawForm', () => {
         renderForm({ save: { ...save, savedName: 'Inter' } })
         expect(screen.getByTestId('pix-key-saved-as')).toHaveTextContent('Saved as Inter')
         expect(screen.queryByText(en.global.savedAddresses.savePrompt)).toBeNull()
+    })
+
+    // TASK-24910: Bridge pays another person's key; it locks no rate, so the reais are an estimate
+    describe('a payout through Bridge', () => {
+        const bridgeDisplay = {
+            ...display,
+            pixKey: '11144477735',
+            ownAccount: false,
+            holderName: 'BRUNO LIMA',
+            bankName: 'Nu Pagamentos S.A.',
+            amountBrl: '100.00',
+            withdrawUsd: '18.87',
+            fixedFeeBrl: '0',
+            provider: 'Bridge',
+            amountBrlEstimated: true as const,
+        }
+        const bridgeRecipient = {
+            pixKey: '11144477735',
+            holderName: 'BRUNO LIMA',
+            bankName: 'Nu Pagamentos S.A.',
+            taxIdMasked: null,
+        }
+
+        it("reads as a send to another person's key: Sending, the validated holder and bank, the reais marked ≈, Bridge", () => {
+            renderForm({
+                recipient: { ...bridgeRecipient, ownAccount: false },
+                display: bridgeDisplay,
+                payout: '≈ R$100',
+                total: '$18.87',
+                providerId: 'bridge-row',
+            })
+            expect(screen.getByText(en.payment.confirm.sending)).toBeInTheDocument()
+            expect(screen.queryByText(en.pix.withdraw.withdrawing)).toBeNull()
+            expect(screen.getByText('BRUNO LIMA')).toBeInTheDocument()
+            expect(screen.getByText('CPF 111.444.777-35')).toBeInTheDocument()
+            expect(screen.getByText('Nu Pagamentos S.A.')).toBeInTheDocument()
+            expect(screen.getByText(en.withdraw.bank.bankReceives)).toBeInTheDocument()
+            expect(screen.getByText('≈ R$100')).toBeInTheDocument()
+            expect(screen.getByText('$18.87')).toBeInTheDocument()
+            // no fee on the quote: no fee row
+            expect(screen.queryByText(en.pix.withdraw.fee)).toBeNull()
+            expect(screen.getByText(PROVIDERS['bridge-row'].brand)).toBeInTheDocument()
+        })
+
+        it("reads as a withdrawal to the user's own key, with the fee row a receipt fee brings", () => {
+            renderForm({
+                recipient: { ...bridgeRecipient, holderName: 'ANA SOUZA', ownAccount: true },
+                display: { ...bridgeDisplay, ownAccount: true, amountBrl: '97.88', fixedFeeBrl: '2.12' },
+                providerId: 'bridge-row',
+            })
+            expect(screen.getByText(en.pix.withdraw.withdrawing)).toBeInTheDocument()
+            expect(screen.getByText(en.pix.withdraw.fee)).toBeInTheDocument()
+            expect(screen.getByText('R$2.12')).toBeInTheDocument()
+        })
+
+        // API-CONTRACT 8.1, the work order's example: $20.00 at 5.72 is R$114.40, less R$0.63 is R$113.77
+        const marketDisplay = {
+            ...bridgeDisplay,
+            withdrawUsd: '20.00',
+            rate: '5.6885',
+            marketRate: '5.72',
+            amountBrl: '113.77',
+            providerFeeBrl: '0.63',
+        }
+        const labelsInOrder = () =>
+            [en.qrPay.info.exchangeRate, en.pix.withdraw.fee, en.common.peanutFee, en.withdraw.bank.bankReceives].map(
+                (label) => screen.getByText(label)
+            )
+        const inOrder = (nodes: HTMLElement[]) =>
+            nodes.every(
+                (node, i) =>
+                    i === 0 || !!(nodes[i - 1].compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING)
+            )
+
+        it('with the mid-market rate: the market rate, then the provider fee marked ≈, then the Peanut fee, and they add up', () => {
+            renderForm({
+                recipient: { ...bridgeRecipient, ownAccount: false },
+                display: marketDisplay,
+                payout: '≈ R$113.77',
+                total: '$20',
+                providerId: 'bridge-row',
+            })
+            expect(screen.getByText('1 USD = 5.72 BRL')).toBeInTheDocument()
+            expect(screen.getByText('≈ R$0.63')).toBeInTheDocument()
+            expect(screen.getByText('≈ R$113.77')).toBeInTheDocument()
+            expect(screen.getByText(en.common.sponsoredByPeanut)).toBeInTheDocument()
+            expect(inOrder(labelsInOrder())).toBe(true)
+        })
+
+        it('shows one fee row, the provider fee, where Bridge also states a flat fee', () => {
+            renderForm({
+                display: { ...marketDisplay, fixedFeeBrl: '0.20', amountBrl: '113.57', providerFeeBrl: '0.83' },
+                providerId: 'bridge-row',
+            })
+            expect(screen.getAllByText(en.pix.withdraw.fee)).toHaveLength(1)
+            expect(screen.getByText('≈ R$0.83')).toBeInTheDocument()
+            expect(screen.queryByText('R$0.20')).toBeNull()
+            expect(screen.getByText('1 USD = 5.72 BRL')).toBeInTheDocument()
+        })
+    })
+
+    // Manteca's route, or a Bridge quote without a mid-market rate: the rows stay as they are today
+    it('without the mid-market rate keeps the all-in rate, the Peanut fee, then the flat fee', () => {
+        renderForm()
+        const [rate, peanut, fee] = [en.qrPay.info.exchangeRate, en.common.peanutFee, en.pix.withdraw.fee].map(
+            (label) => screen.getByText(label)
+        )
+        expect(rate.compareDocumentPosition(peanut) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(peanut.compareDocumentPosition(fee) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(screen.getByText('R$0.75')).toBeInTheDocument()
+        expect(screen.queryByText('≈ R$0.75')).toBeNull()
     })
 })

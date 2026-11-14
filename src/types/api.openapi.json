@@ -10701,6 +10701,10 @@
 													],
 													"description": "The intent’s own status, finer than the entry’s status. On a withdrawal: AWAITING_USER_ACTION is not signed yet, PROCESSING is signed and not confirmed."
 												},
+												"marketRate": {
+													"description": "Bridge’s Pix only: BRL per USD before the provider’s fee, for the rate row. Sent with providerFee. Display only.",
+													"type": "string"
+												},
 												"pixDeposit": {
 													"description": "A Pix deposit, on a Pix deposit only and for its owner only. `codePayable`: the code can still be paid, so the receipt offers to open it again (GET /pix/deposit/:intentId).",
 													"properties": {
@@ -10723,6 +10727,23 @@
 														"expiresAt"
 													],
 													"type": "object"
+												},
+												"pixPayee": {
+													"anyOf": [
+														{
+															"enum": [
+																"own"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"other"
+															],
+															"type": "string"
+														}
+													],
+													"description": "A Pix payout through Bridge only: `own` paid the user’s own key and reads as a withdrawal; `other` paid another person’s key and reads as a send to them (recipientAccount.fullName names them, for the owner only)."
 												},
 												"pixRecovery": {
 													"anyOf": [
@@ -10801,6 +10822,25 @@
 															"type": "null"
 														}
 													]
+												},
+												"providerFee": {
+													"description": "Bridge’s Pix only: what the provider kept, in reais, so the rows add up with marketRate. Absent on a return, and on a deposit or payout without a recorded market rate.",
+													"properties": {
+														"amount": {
+															"type": "string"
+														},
+														"currency": {
+															"enum": [
+																"BRL"
+															],
+															"type": "string"
+														}
+													},
+													"required": [
+														"amount",
+														"currency"
+													],
+													"type": "object"
 												}
 											},
 											"type": "object"
@@ -11868,7 +11908,7 @@
 		},
 		"/manteca/pix-key/saved": {
 			"post": {
-				"description": "Saves a PIX key as one of the user's bank accounts, named with the label, so it is offered under Send → Bank. The account carries isPixRecipient, so it is never offered as a withdrawal destination. Saving a key the user already has renames it.",
+				"description": "Saves a PIX key as one of the user's bank accounts, named with the label. The API decides whose key it is, once, with the directory lookup the Pix withdrawal uses, through the user's open Pix withdraw route: the user's own key is saved as a withdrawal destination; any other key, or any key while that route is closed, is saved as a recipient (isPixRecipient) for Send → Bank, never offered as a withdrawal destination. A recipient needs Pix payment eligibility; an own key needs only the open route. Where the open route's provider pays any key (Bridge), that provider saves the key as a payout to it would, with the holder and bank its lookup validated, own key or recipient; the lookup's refusals (those of POST /pix/key) answer instead. Saving a key the user already has renames it.",
 				"parameters": [
 					{
 						"in": "header",
@@ -11911,6 +11951,132 @@
 						"description": "Default Response"
 					},
 					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"502": {
 						"content": {
 							"application/json": {
 								"schema": {
@@ -13593,7 +13759,7 @@
 		},
 		"/pix/deposit": {
 			"post": {
-				"description": "Opens a deposit with the provider the deposit route names and returns its Pix code for exactly this amount. The code lives a few minutes (expiresAt); GET /pix/deposit/{intentId} draws it again while codePayable.",
+				"description": "Opens a deposit with the provider the deposit route names and returns its Pix code for exactly this amount. The code lives a few minutes (expiresAt); GET /pix/deposit/{intentId} draws it again while codePayable. A standingCode route takes no amount: the answer is the user’s own standing code (any amount, expiresAt null, intentId null), the same code on every call, and the account behind it opens on the first call.",
 				"parameters": [
 					{
 						"in": "header",
@@ -13610,36 +13776,49 @@
 							"schema": {
 								"properties": {
 									"amountBrl": {
-										"description": "Reais, at most two decimals",
+										"description": "Reais, at most two decimals. Required unless the deposit route is standingCode.",
 										"pattern": "^\\d{1,9}(\\.\\d{1,2})?$",
 										"type": "string"
 									}
 								},
-								"required": [
-									"amountBrl"
-								],
 								"type": "object"
 							}
 						}
-					},
-					"required": true
+					}
 				},
 				"responses": {
 					"200": {
 						"content": {
 							"application/json": {
-								"example": {
-									"amountBrl": "100.00",
-									"brCode": "00020101021226900014br.gov.bcb.pix2568pix.example.com/qr/v2/cobv/9d36b84f5204000053039865406100.005802BR5925PAYMENTS PARTNER LTDA6009SAO PAULO62070503***63041D3A",
-									"codePayable": true,
-									"expiresAt": "2026-11-04T12:10:00.000Z",
-									"fixedFeeBrl": "0.75",
-									"intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
-									"payerCpfMasked": "123.***.***-09",
-									"pixReceived": false,
-									"provider": "manteca",
-									"status": "AWAITING_USER_ACTION",
-									"usdcAmount": "17.920175"
+								"examples": {
+									"example1": {
+										"value": {
+											"amountBrl": "100.00",
+											"brCode": "00020101021226900014br.gov.bcb.pix2568pix.example.com/qr/v2/cobv/9d36b84f5204000053039865406100.005802BR5925PAYMENTS PARTNER LTDA6009SAO PAULO62070503***63041D3A",
+											"codePayable": true,
+											"expiresAt": "2026-11-04T12:10:00.000Z",
+											"fixedFeeBrl": "0.75",
+											"intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
+											"payerCpfMasked": "123.***.***-09",
+											"pixReceived": false,
+											"provider": "manteca",
+											"status": "AWAITING_USER_ACTION",
+											"usdcAmount": "17.920175"
+										}
+									},
+									"example2": {
+										"value": {
+											"amountBrl": null,
+											"brCode": "00020101021226900014br.gov.bcb.pix2568pix.example.com/qr/v2/cobv/9d36b84f5204000053039865406100.005802BR5925PAYMENTS PARTNER LTDA6009SAO PAULO62070503***63041D3A",
+											"codePayable": true,
+											"expiresAt": null,
+											"intentId": null,
+											"pixReceived": false,
+											"provider": "bridge",
+											"status": "AWAITING_USER_ACTION",
+											"usdcAmount": null
+										}
+									}
 								},
 								"schema": {
 									"properties": {
@@ -13654,7 +13833,7 @@
 											]
 										},
 										"brCode": {
-											"description": "The Pix code (copia e cola) for exactly this amount",
+											"description": "The Pix code (copia e cola): for exactly this amount, or any amount when standing",
 											"type": "string"
 										},
 										"codePayable": {
@@ -13676,7 +13855,15 @@
 											"type": "string"
 										},
 										"intentId": {
-											"type": "string"
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											],
+											"description": "The deposit’s intent. Null for a standing code: each Pix it receives is a deposit of its own in the history."
 										},
 										"payerCpfMasked": {
 											"description": "The CPF the Pix must come from, masked, where the provider requires one",
@@ -13691,7 +13878,7 @@
 											"type": "string"
 										},
 										"status": {
-											"description": "The intent’s own status, as stored",
+											"description": "The intent’s own status, as stored. A standing code reads AWAITING_USER_ACTION.",
 											"type": "string"
 										},
 										"usdcAmount": {
@@ -13730,7 +13917,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -13751,7 +13958,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -13772,7 +13999,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -13793,7 +14040,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -13814,7 +14081,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -13835,7 +14122,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -13856,7 +14163,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -13877,7 +14204,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -13951,7 +14298,15 @@
 											},
 											"type": "array"
 										},
+										"marketRate": {
+											"description": "BRL per USD at the provider’s mid-market rate, for the code screen’s rate line. Display only; absent when the provider’s rates cannot be read within 1.5 s.",
+											"type": "string"
+										},
 										"minAmountBrl": {
+											"type": "string"
+										},
+										"providerFeePercent": {
+											"description": "The provider’s cut of a deposit in percent, two decimals, from its mid-market rate against its deposit rate. Sent with marketRate only.",
 											"type": "string"
 										}
 									},
@@ -13973,7 +14328,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -13994,7 +14369,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14015,7 +14410,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14036,7 +14451,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14057,7 +14492,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14078,7 +14533,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14099,7 +14574,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14120,7 +14615,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14166,18 +14681,35 @@
 					"200": {
 						"content": {
 							"application/json": {
-								"example": {
-									"amountBrl": "100.00",
-									"brCode": "00020101021226900014br.gov.bcb.pix2568pix.example.com/qr/v2/cobv/9d36b84f5204000053039865406100.005802BR5925PAYMENTS PARTNER LTDA6009SAO PAULO62070503***63041D3A",
-									"codePayable": true,
-									"expiresAt": "2026-11-04T12:10:00.000Z",
-									"fixedFeeBrl": "0.75",
-									"intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
-									"payerCpfMasked": "123.***.***-09",
-									"pixReceived": false,
-									"provider": "manteca",
-									"status": "AWAITING_USER_ACTION",
-									"usdcAmount": "17.920175"
+								"examples": {
+									"example1": {
+										"value": {
+											"amountBrl": "100.00",
+											"brCode": "00020101021226900014br.gov.bcb.pix2568pix.example.com/qr/v2/cobv/9d36b84f5204000053039865406100.005802BR5925PAYMENTS PARTNER LTDA6009SAO PAULO62070503***63041D3A",
+											"codePayable": true,
+											"expiresAt": "2026-11-04T12:10:00.000Z",
+											"fixedFeeBrl": "0.75",
+											"intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
+											"payerCpfMasked": "123.***.***-09",
+											"pixReceived": false,
+											"provider": "manteca",
+											"status": "AWAITING_USER_ACTION",
+											"usdcAmount": "17.920175"
+										}
+									},
+									"example2": {
+										"value": {
+											"amountBrl": null,
+											"brCode": "00020101021226900014br.gov.bcb.pix2568pix.example.com/qr/v2/cobv/9d36b84f5204000053039865406100.005802BR5925PAYMENTS PARTNER LTDA6009SAO PAULO62070503***63041D3A",
+											"codePayable": true,
+											"expiresAt": null,
+											"intentId": null,
+											"pixReceived": false,
+											"provider": "bridge",
+											"status": "AWAITING_USER_ACTION",
+											"usdcAmount": null
+										}
+									}
 								},
 								"schema": {
 									"properties": {
@@ -14192,7 +14724,7 @@
 											]
 										},
 										"brCode": {
-											"description": "The Pix code (copia e cola) for exactly this amount",
+											"description": "The Pix code (copia e cola): for exactly this amount, or any amount when standing",
 											"type": "string"
 										},
 										"codePayable": {
@@ -14214,7 +14746,15 @@
 											"type": "string"
 										},
 										"intentId": {
-											"type": "string"
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											],
+											"description": "The deposit’s intent. Null for a standing code: each Pix it receives is a deposit of its own in the history."
 										},
 										"payerCpfMasked": {
 											"description": "The CPF the Pix must come from, masked, where the provider requires one",
@@ -14229,7 +14769,7 @@
 											"type": "string"
 										},
 										"status": {
-											"description": "The intent’s own status, as stored",
+											"description": "The intent’s own status, as stored. A standing code reads AWAITING_USER_ACTION.",
 											"type": "string"
 										},
 										"usdcAmount": {
@@ -14268,7 +14808,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14419,7 +14979,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14440,7 +15020,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14461,7 +15061,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14482,7 +15102,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14503,7 +15143,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14524,7 +15184,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14545,7 +15225,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14566,7 +15266,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14672,6 +15392,10 @@
 											"description": "The flat fee in reais, shown as its own line",
 											"type": "string"
 										},
+										"marketRate": {
+											"description": "BRL per USDC at the provider’s mid-market rate, where it states one above `rate`: the rate row shows it. Display only.",
+											"type": "string"
+										},
 										"minAmountBrl": {
 											"description": "The least amountBrl the provider takes for this operation; amount entry shows it",
 											"type": "string"
@@ -14694,6 +15418,10 @@
 										},
 										"provider": {
 											"description": "The provider the route names, e.g. manteca",
+											"type": "string"
+										},
+										"providerFeeBrl": {
+											"description": "Reais the provider keeps: floor_to_centavo(USDC × marketRate) − amountBrl, never below 0, an estimate like the reais. Holds fixedFeeBrl. Sent with marketRate only.",
 											"type": "string"
 										},
 										"rate": {
@@ -14728,7 +15456,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14749,7 +15497,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14770,7 +15538,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14791,7 +15579,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14812,7 +15620,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14833,7 +15661,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14939,6 +15787,13 @@
 													"description": "The headline: reais credited to the account",
 													"type": "string"
 												},
+												"amountBrlEstimated": {
+													"description": "The provider locks no rate: amountBrl is what the rate pays now, and the reais credited can differ if the rate moves before the payout. Absent where the amount is locked.",
+													"enum": [
+														true
+													],
+													"type": "boolean"
+												},
 												"arrivalEstimateSeconds": {
 													"description": "About how long from the signature to the Pix paid",
 													"type": "number"
@@ -14967,6 +15822,10 @@
 														}
 													]
 												},
+												"marketRate": {
+													"description": "BRL per USDC at the provider’s mid-market rate, where it states one above `rate`: the rate row shows it. Display only.",
+													"type": "string"
+												},
 												"ownAccount": {
 													"anyOf": [
 														{
@@ -14982,6 +15841,10 @@
 												},
 												"provider": {
 													"description": "The payments partner’s name, for the review’s \"processed by\" line",
+													"type": "string"
+												},
+												"providerFeeBrl": {
+													"description": "Reais the provider keeps: floor_to_centavo(USDC × marketRate) − amountBrl, never below 0, an estimate like the reais. Holds fixedFeeBrl. Sent with marketRate only.",
 													"type": "string"
 												},
 												"rate": {
@@ -15016,7 +15879,7 @@
 													"type": "null"
 												}
 											],
-											"description": "The withdrawal, when the provider opens it now; a transfer-then-submit one opens at the submit"
+											"description": "The withdrawal, when the provider opens it now; null when it opens only at the submit"
 										},
 										"provider": {
 											"description": "The provider the route names, e.g. manteca. Data only: the app does not branch on it.",
@@ -15130,7 +15993,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15151,7 +16034,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15172,7 +16075,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15193,7 +16116,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15214,7 +16157,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15235,7 +16198,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15256,7 +16239,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15277,7 +16280,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15367,6 +16390,13 @@
 											"description": "The headline: reais credited to the account",
 											"type": "string"
 										},
+										"amountBrlEstimated": {
+											"description": "The provider locks no rate: amountBrl is what the rate pays now, and the reais credited can differ if the rate moves before the payout. Absent where the amount is locked.",
+											"enum": [
+												true
+											],
+											"type": "boolean"
+										},
 										"arrivalEstimateSeconds": {
 											"description": "About how long from the signature to the Pix paid",
 											"type": "number"
@@ -15395,6 +16425,10 @@
 												}
 											]
 										},
+										"marketRate": {
+											"description": "BRL per USDC at the provider’s mid-market rate, where it states one above `rate`: the rate row shows it. Display only.",
+											"type": "string"
+										},
 										"ownAccount": {
 											"anyOf": [
 												{
@@ -15410,6 +16444,10 @@
 										},
 										"provider": {
 											"description": "The payments partner’s name, for the review’s \"processed by\" line",
+											"type": "string"
+										},
+										"providerFeeBrl": {
+											"description": "Reais the provider keeps: floor_to_centavo(USDC × marketRate) − amountBrl, never below 0, an estimate like the reais. Holds fixedFeeBrl. Sent with marketRate only.",
 											"type": "string"
 										},
 										"rate": {
@@ -15447,7 +16485,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15468,7 +16526,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15489,7 +16567,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15510,7 +16608,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15531,7 +16649,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15552,7 +16690,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15573,7 +16731,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15594,7 +16772,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15863,7 +17061,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15884,7 +17102,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15905,7 +17143,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15926,7 +17184,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15947,7 +17225,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15968,7 +17266,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15989,7 +17307,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -16010,7 +17348,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -16101,7 +17459,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -16122,7 +17500,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -16143,7 +17541,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -16164,7 +17582,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -16185,7 +17623,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -16206,7 +17664,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -16227,7 +17705,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -16248,7 +17746,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -16343,7 +17861,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -16364,7 +17902,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -16385,7 +17943,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -16406,7 +17984,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -16427,7 +18025,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -16448,7 +18066,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -16469,7 +18107,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -16490,7 +18148,27 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -27415,6 +29093,13 @@
 																],
 																"type": "object"
 															},
+															"standingCode": {
+																"description": "Deposit routes only: the provider’s Pix code is standing, one code for any amount that never expires. POST /pix/deposit then takes no amount and answers the code with expiresAt null and intentId null; the deposit shows in the history when it lands.",
+																"enum": [
+																	true
+																],
+																"type": "boolean"
+															},
 															"state": {
 																"anyOf": [
 																	{
@@ -30341,6 +32026,166 @@
 																}
 															]
 														},
+														"nextAction": {
+															"properties": {
+																"currency": {
+																	"type": "string"
+																},
+																"effectiveDate": {
+																	"type": "string"
+																},
+																"expiresAt": {
+																	"type": "string"
+																},
+																"feature": {
+																	"anyOf": [
+																		{
+																			"enum": [
+																				"bank"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"card"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"local"
+																			],
+																			"type": "string"
+																		}
+																	]
+																},
+																"key": {
+																	"type": "string"
+																},
+																"kind": {
+																	"anyOf": [
+																		{
+																			"enum": [
+																				"sumsub"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"accept-tos"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"wait"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"contact-support"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"provide-email"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"bridge-hosted"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"rain-hosted"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"restart-identity"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"questions"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"hosted-identity"
+																			],
+																			"type": "string"
+																		}
+																	]
+																},
+																"levelKey": {
+																	"type": "string"
+																},
+																"purpose": {
+																	"type": "string"
+																},
+																"refused": {
+																	"items": {
+																		"properties": {
+																			"provider": {
+																				"anyOf": [
+																					{
+																						"enum": [
+																							"bridge"
+																						],
+																						"type": "string"
+																					},
+																					{
+																						"enum": [
+																							"manteca"
+																						],
+																						"type": "string"
+																					},
+																					{
+																						"enum": [
+																							"rain"
+																						],
+																						"type": "string"
+																					}
+																				]
+																			},
+																			"reason": {
+																				"type": "string"
+																			}
+																		},
+																		"required": [
+																			"provider",
+																			"reason"
+																		],
+																		"type": "object"
+																	},
+																	"type": "array"
+																},
+																"requirementKey": {
+																	"type": "string"
+																},
+																"tosUrl": {
+																	"type": "string"
+																},
+																"url": {
+																	"type": "string"
+																}
+															},
+															"required": [
+																"key",
+																"kind",
+																"purpose"
+															],
+															"type": "object"
+														},
 														"reason": {
 															"anyOf": [
 																{
@@ -30517,6 +32362,166 @@
 																	"type": "string"
 																}
 															]
+														},
+														"nextAction": {
+															"properties": {
+																"currency": {
+																	"type": "string"
+																},
+																"effectiveDate": {
+																	"type": "string"
+																},
+																"expiresAt": {
+																	"type": "string"
+																},
+																"feature": {
+																	"anyOf": [
+																		{
+																			"enum": [
+																				"bank"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"card"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"local"
+																			],
+																			"type": "string"
+																		}
+																	]
+																},
+																"key": {
+																	"type": "string"
+																},
+																"kind": {
+																	"anyOf": [
+																		{
+																			"enum": [
+																				"sumsub"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"accept-tos"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"wait"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"contact-support"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"provide-email"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"bridge-hosted"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"rain-hosted"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"restart-identity"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"questions"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"hosted-identity"
+																			],
+																			"type": "string"
+																		}
+																	]
+																},
+																"levelKey": {
+																	"type": "string"
+																},
+																"purpose": {
+																	"type": "string"
+																},
+																"refused": {
+																	"items": {
+																		"properties": {
+																			"provider": {
+																				"anyOf": [
+																					{
+																						"enum": [
+																							"bridge"
+																						],
+																						"type": "string"
+																					},
+																					{
+																						"enum": [
+																							"manteca"
+																						],
+																						"type": "string"
+																					},
+																					{
+																						"enum": [
+																							"rain"
+																						],
+																						"type": "string"
+																					}
+																				]
+																			},
+																			"reason": {
+																				"type": "string"
+																			}
+																		},
+																		"required": [
+																			"provider",
+																			"reason"
+																		],
+																		"type": "object"
+																	},
+																	"type": "array"
+																},
+																"requirementKey": {
+																	"type": "string"
+																},
+																"tosUrl": {
+																	"type": "string"
+																},
+																"url": {
+																	"type": "string"
+																}
+															},
+															"required": [
+																"key",
+																"kind",
+																"purpose"
+															],
+															"type": "object"
 														},
 														"reason": {
 															"anyOf": [
@@ -30695,6 +32700,166 @@
 																}
 															]
 														},
+														"nextAction": {
+															"properties": {
+																"currency": {
+																	"type": "string"
+																},
+																"effectiveDate": {
+																	"type": "string"
+																},
+																"expiresAt": {
+																	"type": "string"
+																},
+																"feature": {
+																	"anyOf": [
+																		{
+																			"enum": [
+																				"bank"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"card"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"local"
+																			],
+																			"type": "string"
+																		}
+																	]
+																},
+																"key": {
+																	"type": "string"
+																},
+																"kind": {
+																	"anyOf": [
+																		{
+																			"enum": [
+																				"sumsub"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"accept-tos"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"wait"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"contact-support"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"provide-email"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"bridge-hosted"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"rain-hosted"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"restart-identity"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"questions"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"hosted-identity"
+																			],
+																			"type": "string"
+																		}
+																	]
+																},
+																"levelKey": {
+																	"type": "string"
+																},
+																"purpose": {
+																	"type": "string"
+																},
+																"refused": {
+																	"items": {
+																		"properties": {
+																			"provider": {
+																				"anyOf": [
+																					{
+																						"enum": [
+																							"bridge"
+																						],
+																						"type": "string"
+																					},
+																					{
+																						"enum": [
+																							"manteca"
+																						],
+																						"type": "string"
+																					},
+																					{
+																						"enum": [
+																							"rain"
+																						],
+																						"type": "string"
+																					}
+																				]
+																			},
+																			"reason": {
+																				"type": "string"
+																			}
+																		},
+																		"required": [
+																			"provider",
+																			"reason"
+																		],
+																		"type": "object"
+																	},
+																	"type": "array"
+																},
+																"requirementKey": {
+																	"type": "string"
+																},
+																"tosUrl": {
+																	"type": "string"
+																},
+																"url": {
+																	"type": "string"
+																}
+															},
+															"required": [
+																"key",
+																"kind",
+																"purpose"
+															],
+															"type": "object"
+														},
 														"reason": {
 															"anyOf": [
 																{
@@ -30871,6 +33036,166 @@
 																	"type": "string"
 																}
 															]
+														},
+														"nextAction": {
+															"properties": {
+																"currency": {
+																	"type": "string"
+																},
+																"effectiveDate": {
+																	"type": "string"
+																},
+																"expiresAt": {
+																	"type": "string"
+																},
+																"feature": {
+																	"anyOf": [
+																		{
+																			"enum": [
+																				"bank"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"card"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"local"
+																			],
+																			"type": "string"
+																		}
+																	]
+																},
+																"key": {
+																	"type": "string"
+																},
+																"kind": {
+																	"anyOf": [
+																		{
+																			"enum": [
+																				"sumsub"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"accept-tos"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"wait"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"contact-support"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"provide-email"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"bridge-hosted"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"rain-hosted"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"restart-identity"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"questions"
+																			],
+																			"type": "string"
+																		},
+																		{
+																			"enum": [
+																				"hosted-identity"
+																			],
+																			"type": "string"
+																		}
+																	]
+																},
+																"levelKey": {
+																	"type": "string"
+																},
+																"purpose": {
+																	"type": "string"
+																},
+																"refused": {
+																	"items": {
+																		"properties": {
+																			"provider": {
+																				"anyOf": [
+																					{
+																						"enum": [
+																							"bridge"
+																						],
+																						"type": "string"
+																					},
+																					{
+																						"enum": [
+																							"manteca"
+																						],
+																						"type": "string"
+																					},
+																					{
+																						"enum": [
+																							"rain"
+																						],
+																						"type": "string"
+																					}
+																				]
+																			},
+																			"reason": {
+																				"type": "string"
+																			}
+																		},
+																		"required": [
+																			"provider",
+																			"reason"
+																		],
+																		"type": "object"
+																	},
+																	"type": "array"
+																},
+																"requirementKey": {
+																	"type": "string"
+																},
+																"tosUrl": {
+																	"type": "string"
+																},
+																"url": {
+																	"type": "string"
+																}
+															},
+															"required": [
+																"key",
+																"kind",
+																"purpose"
+															],
+															"type": "object"
 														},
 														"reason": {
 															"anyOf": [
@@ -32918,6 +35243,166 @@
 													"type": "string"
 												}
 											]
+										},
+										"nextAction": {
+											"properties": {
+												"currency": {
+													"type": "string"
+												},
+												"effectiveDate": {
+													"type": "string"
+												},
+												"expiresAt": {
+													"type": "string"
+												},
+												"feature": {
+													"anyOf": [
+														{
+															"enum": [
+																"bank"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"card"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"local"
+															],
+															"type": "string"
+														}
+													]
+												},
+												"key": {
+													"type": "string"
+												},
+												"kind": {
+													"anyOf": [
+														{
+															"enum": [
+																"sumsub"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"accept-tos"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"wait"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"contact-support"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"provide-email"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"bridge-hosted"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"rain-hosted"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"restart-identity"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"questions"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"hosted-identity"
+															],
+															"type": "string"
+														}
+													]
+												},
+												"levelKey": {
+													"type": "string"
+												},
+												"purpose": {
+													"type": "string"
+												},
+												"refused": {
+													"items": {
+														"properties": {
+															"provider": {
+																"anyOf": [
+																	{
+																		"enum": [
+																			"bridge"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"manteca"
+																		],
+																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"rain"
+																		],
+																		"type": "string"
+																	}
+																]
+															},
+															"reason": {
+																"type": "string"
+															}
+														},
+														"required": [
+															"provider",
+															"reason"
+														],
+														"type": "object"
+													},
+													"type": "array"
+												},
+												"requirementKey": {
+													"type": "string"
+												},
+												"tosUrl": {
+													"type": "string"
+												},
+												"url": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"key",
+												"kind",
+												"purpose"
+											],
+											"type": "object"
 										},
 										"reason": {
 											"anyOf": [
@@ -37817,6 +40302,13 @@
 																	"userMessage"
 																],
 																"type": "object"
+															},
+															"standingCode": {
+																"description": "Deposit routes only: the provider’s Pix code is standing, one code for any amount that never expires. POST /pix/deposit then takes no amount and answers the code with expiresAt null and intentId null; the deposit shows in the history when it lands.",
+																"enum": [
+																	true
+																],
+																"type": "boolean"
 															},
 															"state": {
 																"anyOf": [

@@ -31,7 +31,8 @@ jest.mock('@/context/ModalsContext', () => ({
     useModalsContextOptional: () => null,
 }))
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn(), useReturnTo: () => jest.fn() }))
-jest.mock('@/hooks/useSendFlowOrigin', () => ({ useSendFlowOrigin: () => ({ isFromSendFlow: false }) }))
+let mockFromSend = false
+jest.mock('@/hooks/useSendFlowOrigin', () => ({ useSendFlowOrigin: () => ({ isFromSendFlow: mockFromSend }) }))
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/SoundPlayer', () => ({ SoundPlayer: () => <div data-testid="success-sound" /> }))
 jest.mock('@/components/Provider/ProviderFinePrint', () => ({ ProviderFinePrint: () => null }))
@@ -598,6 +599,54 @@ describe('PixWithdrawFlow form', () => {
         expect(await screen.findByText(en.pix.withdraw.processingTitle)).toBeInTheDocument()
         await waitFor(() => expect(mockSavePixKey).toHaveBeenCalledWith(KEY, 'Ana Souza'))
     })
+
+    // The save works on Bridge's route too (API-CONTRACT 7.3): the user's own key is saved as a
+    // withdrawal destination, another person's as a recipient, under the name typed here (TASK-24910)
+    it.each([
+        ['their own key', true],
+        ["another person's key", false],
+    ])('on a Bridge route offers to save %s and saves it once the funding is sent', async (_payee, ownAccount) => {
+        const bridgeDisplay = { ...display, ownAccount, provider: 'Bridge', amountBrlEstimated: true as const }
+        mockPreview.mockResolvedValue(bridgeDisplay)
+        mockInit.mockResolvedValue({
+            provider: 'bridge',
+            intentId: 'b1',
+            display: bridgeDisplay,
+            sign: {
+                kind: 'transfer-then-submit',
+                depositAddress: '0x00000000000000000000000000000000000000d3',
+                tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+                payAmount: '92.504310',
+                payAmountUnits: '92504310',
+                priceLockCode: 'b1',
+                quoteExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+            },
+        })
+        mockSignSpend.mockResolvedValue({
+            strategy: 'smart-only',
+            signedUserOp: { signedUserOp: { sender: '0xabc' }, chainId: '42161', entryPointAddress: '0xe' },
+        })
+        mockSubmitTransfer.mockResolvedValue({ provider: 'bridge', intentId: 'b1', status: 'PENDING' })
+        mockEntry.mockReturnValue({ data: undefined, isLoading: true })
+        withForm(REVIEW_FORM)
+        renderAt('?step=review', undefined, false, {
+            ...route,
+            provider: 'bridge',
+            candidates: [{ provider: 'bridge', state: 'ready' }],
+        })
+
+        expect(await screen.findByText(en.global.savedAddresses.savePrompt)).toBeInTheDocument()
+        expect(await screen.findByDisplayValue('Ana Souza')).toBeInTheDocument()
+        const confirm = screen.getByRole('button', { name: en.common.confirm })
+        await waitFor(() => expect(confirm).toBeEnabled())
+        fireEvent.click(confirm)
+
+        await waitFor(() => expect(mockSubmitTransfer).toHaveBeenCalledTimes(1))
+        // a Bridge payout takes minutes: the ending is the static one, not the loader
+        expect(await screen.findByRole('button', { name: en.common.done })).toBeInTheDocument()
+        await waitFor(() => expect(mockSavePixKey).toHaveBeenCalledWith(KEY, 'Ana Souza'))
+        expect(mockSavePixKey).toHaveBeenCalledTimes(1)
+    })
 })
 
 describe('PixWithdrawFlow refused preview', () => {
@@ -645,6 +694,21 @@ describe('PixWithdrawFlow refused preview', () => {
         expect(await screen.findByRole('alert')).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: en.common.retry })).toBeNull()
         expect(screen.getByPlaceholderText('0.00')).toBeEnabled()
+    })
+
+    // API-CONTRACT 7.2: the figure comes from the refusal's fields; its text is never read
+    it('under the minimum: names the figure the refusal states in its fields', async () => {
+        mockPreview.mockRejectedValue(
+            new ApiError('The minimum Pix withdrawal is R$2.', {
+                status: 400,
+                code: 'PIX_MIN_AMOUNT',
+                minimum: { amount: '25', currency: 'BRL' },
+            })
+        )
+        renderAt(REVIEW)
+
+        expect(await screen.findByText('The minimum is R$25.')).toBeInTheDocument()
+        expect(screen.queryByText(/R\$2\./)).toBeNull()
     })
 
     it.each(['PIX_KEY_NOT_OWN', 'PIX_KEY_BLOCKED', 'PIX_KEY_NOT_FOUND'])(
@@ -716,7 +780,23 @@ describe('PixWithdrawFlow form draft', () => {
         view.unmount()
         renderAt('?step=review')
         expect(screen.getByText('R$')).toBeInTheDocument()
-        expect(screen.queryByText(en.pix.withdraw.keyIntro)).toBeNull()
+        expect(screen.queryByLabelText(en.withdraw.pixKey.placeholder)).toBeNull()
+    })
+
+    // the screen's title alone tells them apart (NavHeader, not rendered here)
+    it('shows the same key step for a withdrawal and a send: the field, no line above it', () => {
+        const withdraw = renderAt('')
+        const withdrawText = withdraw.container.textContent
+        withdraw.unmount()
+        mockFromSend = true
+        try {
+            const send = renderAt('?sendMethod=bank')
+            expect(send.container.textContent).toBe(withdrawText)
+            expect(screen.getByLabelText(en.withdraw.pixKey.placeholder)).toBeInTheDocument()
+            expect(screen.queryByText(en.withdraw.pixKey.info)).toBeNull()
+        } finally {
+            mockFromSend = false
+        }
     })
 
     it('reviews the key and amount the draft holds', () => {
@@ -744,7 +824,7 @@ describe('PixWithdrawFlow form draft', () => {
         withForm(REVIEW_FORM, 'someone-else')
         renderAt('?step=review')
 
-        expect(screen.getByText(en.pix.withdraw.keyIntro)).toBeInTheDocument()
+        expect(screen.getByLabelText(en.withdraw.pixKey.placeholder)).toBeInTheDocument()
         expect(mockPreview).not.toHaveBeenCalled()
         expect(storedForm('someone-else').destination).toBe(KEY)
     })

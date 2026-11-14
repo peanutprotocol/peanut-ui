@@ -24,10 +24,12 @@ import {
     type ReceiptStatusDateKind,
 } from './transaction-details.utils'
 import {
+    isReturnedDeposit,
     isSettledConversion,
     receiptConversionLine,
     receiptConvertedAmount,
     receiptExchangeRate,
+    receiptProviderFee,
 } from './receipt-conversion.utils'
 import { usesCompletedTimestampLabel } from './transaction-predicates'
 import { CardPaymentRows } from './provider-rows/CardPaymentRows'
@@ -72,13 +74,19 @@ export function ReceiptDetailsCard({
 }) {
     const t = useAppTranslations('transaction')
     const tCommon = useTranslations('common')
+    const tWithdraw = useTranslations('withdraw')
+    const tPix = useTranslations('pix.withdraw')
     const router = useRouter()
     const formatDate = useReceiptDateFormatter()
     const { rowVisibilityConfig, isGuestBankClaim, isPeanutWalletToken, country } = vm
 
     const bankAccountLabel = (type: string) => {
-        const key = bankAccountLabelKey(type)
+        const key = bankAccountLabelKey(type, {
+            provider: transaction.extraDataForDrawer?.provider,
+            currencyCode: transaction.currency?.code,
+        })
         if (key === 'address') return t('rows.address')
+        if (key === 'pixKey') return tWithdraw('manteca.destinationLabel', { country: 'BR' })
         return BANK_ACCOUNT_SCHEME_LABELS[key] ?? t('rows.accountNumber')
     }
 
@@ -111,6 +119,8 @@ export function ReceiptDetailsCard({
 
     const convertedAmount = receiptConvertedAmount(transaction)
     const exchangeRate = receiptExchangeRate(transaction)
+    // Bridge's Pix: the rate above is the market rate, and this row all the provider kept
+    const providerFee = receiptProviderFee(transaction)
 
     const feeDisplay = transaction.fee !== undefined ? formatBankAmount(transaction.fee, 'USD') : 'N/A'
 
@@ -187,7 +197,7 @@ export function ReceiptDetailsCard({
                     convertedAmount &&
                     (isSettledConversion(transaction) ? (
                         <DataRow
-                            label={t('rows.converted')}
+                            label={isReturnedDeposit(transaction) ? tCommon('exchangeRate') : t('rows.converted')}
                             value={
                                 <span className="flex flex-col items-end">
                                     <span>{receiptConversionLine(transaction, getTransactionSign(transaction))}</span>
@@ -204,6 +214,8 @@ export function ReceiptDetailsCard({
                 {rowVisibilityConfig.exchangeRate && exchangeRate && (
                     <DataRow label={tCommon('exchangeRate')} value={exchangeRate} />
                 )}
+
+                {providerFee && <DataRow label={tPix('fee')} value={providerFee.fee} />}
 
                 {rowVisibilityConfig.networkFee && transaction.networkFeeDetails && (
                     <DataRow
@@ -292,10 +304,14 @@ export function ReceiptDetailsCard({
 
                 {rowVisibilityConfig.cardPayment && <CardPaymentRows transaction={transaction} group="trace" />}
 
-                {/* The reference that left our systems with the payout. */}
+                {/* The reference that left our systems with the payout; on a Pix deposit, the Pix's end-to-end id. */}
                 {rowVisibilityConfig.paymentReference && (
                     <DataRow
-                        label={t('rows.paymentReference')}
+                        label={t(
+                            transaction.extraDataForDrawer!.isPixDeposit
+                                ? 'rows.pixEndToEndId'
+                                : 'rows.paymentReference'
+                        )}
                         value={transaction.extraDataForDrawer!.paymentReference}
                         allowCopy
                         copyValue={transaction.extraDataForDrawer!.paymentReference}

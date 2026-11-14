@@ -545,6 +545,28 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         shotFixture: 'pix-withdraw-unconfirmed',
         expectSelector: '[data-testid="app-page-surface-content"] button',
     },
+    // TASK-24910 ruling D7: a Bridge payout takes minutes, so the ending never holds the user on the loader
+    '94-o-pix-bridge-send-on-its-way': {
+        name: 'Pix send through Bridge — just signed: on its way at once, when it lands, Done',
+        path: 'features/pix/components/PixWithdrawOutcome.tsx',
+        captureState: ['phase=funded', 'entry=FUNDS_RECEIVED', 'quoted arrival=300 s', 'payee=other'],
+        shotFixture: 'pix-bridge-send-on-its-way',
+        expectSelector: '[data-testid="app-page-surface-content"] button',
+    },
+    '94-p-pix-bridge-send-paid': {
+        name: "Pix send through Bridge — paid: Sent, to the person, Bridge's final reais",
+        path: 'features/pix/components/PixWithdrawOutcome.tsx',
+        captureState: ['phase=funded', 'entry=PAYMENT_PROCESSED', 'payee=other'],
+        shotFixture: 'pix-bridge-send-paid',
+        expectSelector: '[data-testid="app-page-surface-content"] button',
+    },
+    '94-q-pix-bridge-withdraw-on-its-way': {
+        name: 'Pix withdrawal through Bridge — just signed, own key: on its way at once, when it lands, Done',
+        path: 'features/pix/components/PixWithdrawOutcome.tsx',
+        captureState: ['phase=funded', 'entry=FUNDS_RECEIVED', 'quoted arrival=300 s', 'payee=own'],
+        shotFixture: 'pix-bridge-send-on-its-way',
+        expectSelector: '[data-testid="app-page-surface-content"] button',
+    },
     '70-d-activationctas-outbound': {
         name: 'First-payment chooser',
         path: 'Home/FirstPaymentChooser.tsx',

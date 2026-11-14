@@ -58,6 +58,8 @@ export const DEPOSIT_RAILS: Record<DepositCorridor, DepositRail> = {
         flagIso2: 'br',
         detailRowCount: 3,
         claimable: false,
+        // the Pix account a standing Pix code opens is not one of the two bank accounts
+        countsTowardLimit: false,
         // The top-up (POST /manteca/deposit) reads no residence: it needs an
         // enabled Manteca rail for BRL and refuses without one (`kyc_required`).
         // The API opens Manteca local accounts only for a residence in
@@ -120,6 +122,15 @@ export function emptyCorridorRecord<T>(): Record<DepositCorridor, T | undefined>
 /** a corridor a user can hold as a reusable account somebody else can pay into */
 export function isClaimable(rail: DepositRail): boolean {
     return rail.claimable !== false
+}
+
+/**
+ * Whether an account on this rail is one of the user's limited bank accounts, counted as the API's
+ * cap counts them: the one rule for every count the app makes from the account list itself.
+ */
+export function countsTowardAccountLimit(railId: string): boolean {
+    const corridor = corridorFromRailId(railId)
+    return !!corridor && DEPOSIT_RAILS[corridor].countsTowardLimit !== false
 }
 
 /**

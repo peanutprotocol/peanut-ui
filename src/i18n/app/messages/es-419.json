@@ -64,7 +64,8 @@
             "mexico": "México",
             "descriptions": {
                 "argentina": "Solo pagos con QR de Mercado Pago",
-                "brazil": "Solo pagos Pix con QR o clave"
+                "brazil": "Solo pagos Pix con QR o clave",
+                "brazilPix": "Solo depósitos, retiros y pagos a claves Pix"
             }
         },
         "tryDifferentCountry": "Prueba con otro país.",
@@ -332,7 +333,8 @@
                 "USD": "transferencias bancarias en dólares estadounidenses",
                 "EUR": "transferencias bancarias en euros",
                 "GBP": "transferencias bancarias en libras esterlinas",
-                "MXN": "transferencias bancarias en pesos mexicanos"
+                "MXN": "transferencias bancarias en pesos mexicanos",
+                "BRL": "transferencias Pix"
             }
         },
         "openProfile": "Abrir perfil",
@@ -2572,9 +2574,11 @@
         "unavailableTitle": "Pix no disponible",
         "rejected": "Nuestro socio de Pix no aprobó tu verificación, así que Pix no está disponible por ahora. El resto de Peanut no se ve afectado. Escríbenos a soporte si crees que es un error.",
         "payResidence": "Los pagos con Pix aún no están disponibles donde vives.",
+        "payResidenceKeySend": "Aún puedes enviar a una clave Pix.",
         "unavailable": "Pix no está disponible en este momento. Intenta de nuevo pronto.",
         "setup": {
-            "reviewing": "Nuestro socio de pagos está revisando tu verificación.",
+            "reviewing": "Nuestro socio de pagos está revisando tus datos. Te avisaremos cuando Pix esté listo.",
+            "reviewingTitle": "Configurando Pix",
             "verifyCta": "Verificar identidad",
             "title": "Configurar Pix",
             "body": "Nuestro socio de pagos ofrece Pix.",
@@ -2601,15 +2605,17 @@
             "youGet": "Recibes ≈ {amount}",
             "codeValidFor": "Código válido por {time}",
             "minimum": "El mínimo es {amount}.",
+            "marketRate": "El tipo de cambio es {rate}.",
+            "providerFee": "La comisión del proveedor es del {percent} de cada Pix.",
             "limitExceeded": "Este depósito supera el límite mensual de Pix.",
             "ownCpf": "Desde una cuenta con tu CPF {cpf}",
             "returnedTitle": "Pix devuelto",
-            "returnedBody": "Paga de nuevo desde una cuenta con tu CPF."
+            "returnedBody": "Paga de nuevo desde una cuenta con tu CPF.",
+            "landsInActivity": "Cada Pix aparece en Actividad cuando llega."
         },
         "withdraw": {
             "stuck": "Este retiro no se completó. Contacta a soporte.",
             "fee": "Comisión del proveedor",
-            "keyIntro": "Ingresa una clave Pix registrada con tu CPF.",
             "notACode": "Ingresa una clave Pix, no un código Pix.",
             "lookupFailed": "No pudimos revisar esta clave. Intenta de nuevo.",
             "keyNotOwn": "Esta clave es de otra persona. Los retiros van solo a cuentas con tu CPF.",
@@ -2635,7 +2641,11 @@
                 "noRecord": "Este navegador no puede guardar el registro de este retiro, así que no se envió. Intenta con otro navegador."
             },
             "changeKey": "Cambiar clave",
-            "withdrawing": "Retirando"
+            "withdrawing": "Retirando",
+            "keyChecking": "Todavía estamos revisando esta clave. Intenta de nuevo en un momento.",
+            "keyNotUsable": "Esta clave ya no puede recibir Pix. Usa otra clave.",
+            "lookupThrottled": "Revisaste muchas claves en poco tiempo. Intenta de nuevo más tarde.",
+            "arrivesIn": "Suele llegar en unos {minutes, plural, one {# minuto} other {# minutos}}."
         },
         "recovery": {
             "actionNeeded": "Acción requerida",
@@ -2782,6 +2792,7 @@
             "transferId": "ID de transferencia",
             "senderNote": "Nota del remitente",
             "paymentReference": "Referencia que enviamos",
+            "pixEndToEndId": "ID E2E",
             "pointsEarned": "Puntos ganados",
             "networkFee": "Comisión de red",
             "attachment": "Adjunto",
@@ -3436,6 +3447,7 @@
         },
         "bridgeTos": {
             "description": "Acepta los términos del proveedor para activar las transferencias bancarias.",
+            "descriptionFor": "Acepta los términos del proveedor para activar las {unlocks}.",
             "lastStepDescription": "Último paso: acepta los términos de servicio para activar las transferencias bancarias en Estados Unidos, Europa y México.",
             "errorTitle": "No se pudieron cargar los términos",
             "loadFailed": "No se pudieron cargar los términos. Puedes aceptarlos más tarde desde tu historial de actividad.",
@@ -3779,7 +3791,8 @@
             "done": {
                 "title": "Aquí ya no queda nada por hacer",
                 "description": "Este paso de verificación ya no es necesario. Tu estado actual está en tu perfil.",
-                "cta": "Ver estado"
+                "cta": "Ver estado",
+                "descriptionBack": "Este paso de verificación ya no es necesario."
             },
             "nativeInstead": {
                 "title": "El documento se carga desde la app",

@@ -16,7 +16,7 @@ export function useRegionLabel() {
     return useCallback(
         (region: Region): { name: string; description?: string } => {
             const nameKey = region.path as Parameters<typeof t>[0]
-            const descriptionKey = `descriptions.${region.path}` as Parameters<typeof t>[0]
+            const descriptionKey = `descriptions.${region.descriptionKey ?? region.path}` as Parameters<typeof t>[0]
             return {
                 name: t.has(nameKey) ? t(nameKey) : region.name,
                 description: t.has(descriptionKey) ? t(descriptionKey) : region.description,

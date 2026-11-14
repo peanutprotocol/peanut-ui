@@ -2,8 +2,8 @@ import type { PixWithdrawDisplay, PixWithdrawSign } from '@/services/pix'
 
 /**
  * The withdrawal Confirm opened: what the wallet signs, and what the review and the last step show.
- * `intentId` is null while nothing is open at the provider: a `transfer-then-submit` withdrawal opens
- * only when its signed transfer is submitted.
+ * `intentId` is null while nothing is open at the provider: a `transfer-then-submit` withdrawal of a
+ * provider that opens the order at the submit (Manteca). One that opens it now (Bridge) names it here.
  */
 export interface OpenedWithdrawal {
     intentId: string | null
@@ -20,7 +20,9 @@ export interface OpenedWithdrawal {
  * - `reconfirm`: the opened quote is worse than the reviewed one; nothing is signed until Confirm.
  * - `opened`: the withdrawal is open and the wallet is not signing: the sign request was
  *   off-contract, the quote expired, or a signature failed. `resignable`: that signature surely
- *   sent nothing and the one re-sign per withdrawal is unused.
+ *   sent nothing and the one re-sign per withdrawal is unused. A `transfer-then-submit` withdrawal
+ *   has no such cap: the API claims its submission before it broadcasts and frees the claim on a
+ *   refusal that sent nothing, so it can be signed again while its window holds.
  * - `signing`: the wallet signs (and, for `transfer-then-submit`, the API opens the order and
  *   broadcasts); `resigned` when this is the one re-sign.
  * - `funded`: the funding is mined, or the API broadcast the submitted transfer. The provider pays
@@ -30,7 +32,9 @@ export interface OpenedWithdrawal {
  * Every state from `reconfirm` on holds the opened withdrawal: once it is open at the provider only
  * it can be signed, because a second withdrawal could pay twice. One that opened nothing at the
  * provider (`intentId` null) goes back to `idle` when it surely sent nothing, so Confirm opens a new
- * one; when it may have sent, it stays held like any other.
+ * one; when it may have sent, it stays held like any other. So does a `transfer-then-submit` one
+ * that can no longer be signed (its window passed): nothing funds it but its own submit, which the
+ * API refuses from then on.
  */
 export type WithdrawSubmitState =
     | { phase: 'idle'; error: string | null }
@@ -48,7 +52,8 @@ export type WithdrawSubmitPhase = WithdrawSubmitState['phase']
  * `opened` the state already holds it.
  *
  * - `SENT_NOTHING`: a dismissed passkey, a reverted transaction, or a submit the API refused before
- *   it broadcast; nothing left the wallet.
+ *   it broadcast; nothing left the wallet. `restart`: the withdrawal can no longer be signed (its
+ *   window passed, the API closed it, or this browser cannot keep its mark): Confirm opens a new one.
  * - `MAYBE_SENT`: any other failure; the funding may have gone out.
  * - `MINED`: the funding transaction is mined. `SUBMITTED`: the API opened the order and broadcast
  *   the signed transfer, and names the withdrawal when it can.
@@ -60,7 +65,7 @@ export type WithdrawSubmitEvent =
     | { type: 'QUOTE_MOVED'; withdrawal: OpenedWithdrawal }
     | { type: 'SIGN_START'; withdrawal: OpenedWithdrawal }
     | { type: 'QUOTE_EXPIRED'; withdrawal: OpenedWithdrawal; error: string }
-    | { type: 'SENT_NOTHING'; error: string }
+    | { type: 'SENT_NOTHING'; error: string; restart?: boolean }
     | { type: 'MAYBE_SENT'; error: string }
     | { type: 'MINED' }
     | { type: 'SUBMITTED'; intentId: string | null }
@@ -68,9 +73,22 @@ export type WithdrawSubmitEvent =
 
 export const INITIAL_WITHDRAW_SUBMIT: WithdrawSubmitState = { phase: 'idle', error: null }
 
+/**
+ * Nothing funds the withdrawal but this page's own signature: it opened nothing at the provider, or
+ * it is funded only through the API's submit (`transfer-then-submit`), which the API claims once.
+ */
+function fundedOnlyBySubmit(withdrawal: OpenedWithdrawal): boolean {
+    return withdrawal.intentId === null || fundsBySubmit(withdrawal)
+}
+
+/** The API broadcasts this withdrawal's funding at its submit, claimed once (`transfer-then-submit`). */
+function fundsBySubmit(withdrawal: OpenedWithdrawal): boolean {
+    return withdrawal.sign?.kind === 'transfer-then-submit'
+}
+
 /** A withdrawal that stopped before it was signed: held when it is open at the provider, else gone. */
 function stopped(withdrawal: OpenedWithdrawal, error: string): WithdrawSubmitState {
-    if (withdrawal.intentId === null) return { phase: 'idle', error }
+    if (fundedOnlyBySubmit(withdrawal)) return { phase: 'idle', error }
     return { phase: 'opened', withdrawal, error, resignable: false, resigned: false }
 }
 
@@ -108,6 +126,7 @@ export function withdrawSubmitReducer(state: WithdrawSubmitState, event: Withdra
                 case 'SIGN_START':
                     return { phase: 'signing', withdrawal: state.withdrawal, resigned: true }
                 case 'QUOTE_EXPIRED':
+                    if (fundedOnlyBySubmit(state.withdrawal)) return { phase: 'idle', error: event.error }
                     return { ...state, error: event.error, resignable: false }
                 default:
                     return state
@@ -115,13 +134,14 @@ export function withdrawSubmitReducer(state: WithdrawSubmitState, event: Withdra
         case 'signing':
             switch (event.type) {
                 case 'SENT_NOTHING':
-                    // nothing open and nothing sent: Confirm opens a new withdrawal
-                    if (state.withdrawal.intentId === null) return { phase: 'idle', error: event.error }
+                    // nothing open and nothing sent, or open but past signing: Confirm opens a new withdrawal
+                    if (state.withdrawal.intentId === null || event.restart)
+                        return { phase: 'idle', error: event.error }
                     return {
                         phase: 'opened',
                         withdrawal: state.withdrawal,
                         error: event.error,
-                        resignable: !state.resigned,
+                        resignable: fundsBySubmit(state.withdrawal) || !state.resigned,
                         resigned: state.resigned,
                     }
                 case 'MAYBE_SENT':

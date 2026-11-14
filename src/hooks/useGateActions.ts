@@ -10,6 +10,7 @@ import type { DepositCorridor } from '@/features/deposit-accounts/types'
 import type { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { gateRemedy, gateSupportCase, type GateState } from '@/utils/capability-gate'
 import { buildSupportCaseMessage, SUPPORT_CASE_MESSAGE_KEYS } from '@/utils/contact-support.utils'
+import { withReturnTo } from '@/utils/return-to.utils'
 import { paperworkVerificationFeaturePath } from '@/features/paperwork-verification/paperworkVerificationEntry'
 
 type GateFlow = Pick<
@@ -23,6 +24,8 @@ export interface GateStart {
     intent?: KYCRegionIntent
     targetCountry?: string
     corridor?: DepositCorridor
+    /** The page the hosted check sends the user back to once it is done; without it, Accounts. */
+    returnTo?: string
 }
 
 /**
@@ -49,7 +52,11 @@ export function useGateActions(flow: GateFlow) {
                     if (gate.kind === 'fixable-rejection') await handleFixableGate(start.provider, gate)
                     return
                 case 'hosted-check':
-                    router.push(ADDITIONAL_VERIFICATION_ROUTE)
+                    router.push(
+                        start.returnTo
+                            ? withReturnTo(ADDITIONAL_VERIFICATION_ROUTE, start.returnTo)
+                            : ADDITIONAL_VERIFICATION_ROUTE
+                    )
                     return
                 case 'questions':
                     if (gate.kind === 'fixable-rejection' && gate.nextAction?.feature)

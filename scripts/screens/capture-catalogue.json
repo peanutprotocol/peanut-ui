@@ -190,6 +190,41 @@
         "route": "/add-money/pix"
     },
     {
+        "id": "fixture-pix-bridge-setup-verify",
+        "flow": "Setup and login",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-bridge-setup-activate",
+        "flow": "Setup and login",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-bridge-setup-activate-legacy",
+        "flow": "Setup and login",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-bridge-setup-reviewing",
+        "flow": "Setup and login",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-bridge-setup-terms",
+        "flow": "Setup and login",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-bridge-setup-hosted-check",
+        "flow": "Setup and login",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-bridge-setup-document",
+        "flow": "Setup and login",
+        "route": "/add-money/pix"
+    },
+    {
         "id": "fixture-profile-accounts-no-residence",
         "flow": "Setup and login",
         "route": "/profile/accounts"
@@ -310,6 +345,11 @@
         "id": "fixture-history",
         "flow": "Home and shared states",
         "route": "/history"
+    },
+    {
+        "id": "fixture-pix-bridge-limits",
+        "flow": "Home and shared states",
+        "route": "/limits"
     },
     {
         "id": "fixture-history-pix-key-owner",
@@ -1115,6 +1155,41 @@
         "route": "/add-money/pix"
     },
     {
+        "id": "fixture-pix-bridge-route-refused",
+        "flow": "Add money",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-bridge-deposit-code",
+        "flow": "Add money",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-bridge-deposit-first-code",
+        "flow": "Add money",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-bridge-deposit-in-flight",
+        "flow": "Add money",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-bridge-deposit-paused",
+        "flow": "Add money",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-history-bridge-pix-deposit-returned",
+        "flow": "Add money",
+        "route": "/history?tx=fixture-bridge-pix-deposit"
+    },
+    {
+        "id": "fixture-history-bridge-pix-deposit",
+        "flow": "Add money",
+        "route": "/history?tx=fixture-bridge-pix-deposit"
+    },
+    {
         "id": "fixture-pix-manteca-deposit-code",
         "flow": "Add money",
         "route": "/add-money/pix?step=showQR&intentId=fixture-pix-manteca-deposit"
@@ -1858,6 +1933,16 @@
         "route": "/dev/surfaces?s=54-d-qrbottomdrawer"
     },
     {
+        "id": "fixture-history-bridge-pix-send-paid",
+        "flow": "Payments",
+        "route": "/history?tx=fixture-bridge-pix-payout"
+    },
+    {
+        "id": "fixture-history-bridge-pix-send-on-its-way",
+        "flow": "Payments",
+        "route": "/history?tx=fixture-bridge-pix-payout"
+    },
+    {
         "id": "fixture-qr-pay-rate-unavailable",
         "flow": "Payments",
         "route": "/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&t=1"
@@ -1889,6 +1974,11 @@
     },
     {
         "id": "fixture-qr-pay-brazil-resident",
+        "flow": "Payments",
+        "route": "/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&t=1"
+    },
+    {
+        "id": "fixture-qr-pay-brazil-resident-key-send",
         "flow": "Payments",
         "route": "/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&t=1"
     },
@@ -2217,6 +2307,76 @@
         "route": "/withdraw/pix"
     },
     {
+        "id": "fixture-pix-bridge-withdraw-document",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix"
+    },
+    {
+        "id": "fixture-pix-bridge-withdraw-hosted-check",
+        "flow": "Withdraw",
+        "route": "/profile/accounts/additional?returnTo=%2Fwithdraw%2Fpix"
+    },
+    {
+        "id": "fixture-pix-bridge-route-paused",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix"
+    },
+    {
+        "id": "fixture-pix-bridge-withdraw-key-own",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix"
+    },
+    {
+        "id": "fixture-pix-bridge-send-key-other",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?sendMethod=bank"
+    },
+    {
+        "id": "fixture-pix-bridge-key-checking",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix"
+    },
+    {
+        "id": "fixture-pix-bridge-key-not-found",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix"
+    },
+    {
+        "id": "fixture-pix-bridge-withdraw-review-own",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?step=review"
+    },
+    {
+        "id": "fixture-pix-bridge-send-review",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?sendMethod=bank&step=review"
+    },
+    {
+        "id": "fixture-pix-bridge-send-on-its-way",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?sendMethod=bank&step=success&intentId=fixture-bridge-pix-payout"
+    },
+    {
+        "id": "fixture-pix-bridge-send-paid",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?sendMethod=bank&step=success&intentId=fixture-bridge-pix-payout"
+    },
+    {
+        "id": "fixture-pix-bridge-withdraw-returned",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?step=success&intentId=fixture-bridge-pix-payout"
+    },
+    {
+        "id": "fixture-history-bridge-pix-withdraw-paid",
+        "flow": "Withdraw",
+        "route": "/history?tx=fixture-bridge-pix-payout"
+    },
+    {
+        "id": "fixture-history-bridge-pix-withdraw-returned",
+        "flow": "Withdraw",
+        "route": "/history?tx=fixture-bridge-pix-payout"
+    },
+    {
         "id": "fixture-pix-withdraw-key-code",
         "flow": "Withdraw",
         "route": "/withdraw/pix"
@@ -2500,6 +2660,24 @@
         "source": "features/pix/components/PixWithdrawOutcome.tsx"
     },
     {
+        "id": "94-o-pix-bridge-send-on-its-way",
+        "flow": "Withdraw",
+        "route": "/dev/surfaces?s=94-o-pix-bridge-send-on-its-way",
+        "source": "features/pix/components/PixWithdrawOutcome.tsx"
+    },
+    {
+        "id": "94-p-pix-bridge-send-paid",
+        "flow": "Withdraw",
+        "route": "/dev/surfaces?s=94-p-pix-bridge-send-paid",
+        "source": "features/pix/components/PixWithdrawOutcome.tsx"
+    },
+    {
+        "id": "94-q-pix-bridge-withdraw-on-its-way",
+        "flow": "Withdraw",
+        "route": "/dev/surfaces?s=94-q-pix-bridge-withdraw-on-its-way",
+        "source": "features/pix/components/PixWithdrawOutcome.tsx"
+    },
+    {
         "id": "fixture-rewards",
         "flow": "Rewards",
         "route": "/rewards"
@@ -2570,6 +2748,21 @@
         "id": "fixture-settings-language",
         "flow": "Profile and settings",
         "route": "/settings/language"
+    },
+    {
+        "id": "fixture-pix-bridge-accounts-brl-held",
+        "flow": "Profile and settings",
+        "route": "/profile/accounts"
+    },
+    {
+        "id": "fixture-pix-bridge-accounts-brl-only",
+        "flow": "Profile and settings",
+        "route": "/profile/accounts"
+    },
+    {
+        "id": "fixture-pix-bridge-accounts-hosted-task",
+        "flow": "Profile and settings",
+        "route": "/profile/accounts"
     },
     {
         "id": "fixture-hugo-long-username",

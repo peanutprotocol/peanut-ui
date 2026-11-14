@@ -38,6 +38,7 @@ export function BrazilPausedDrawer() {
                     <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                         <DrawerTitle>{copy.title}</DrawerTitle>
                         <DrawerDescription>{copy.body}</DrawerDescription>
+                        {copy.keySend && <p className="text-body-s text-foreground-secondary">{copy.keySend}</p>}
                     </DrawerHeader>
                     <Button variant="primary" className="mt-6 w-full" onClick={closeBrazilPausedDrawer}>
                         {tCommon('gotIt')}

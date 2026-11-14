@@ -4,6 +4,8 @@
  */
 export const PIX_ADD_MONEY_PATH = '/add-money/pix'
 export const PIX_WITHDRAW_PATH = '/withdraw/pix'
+/** The Pix-key form as a send, where the withdraw route pays another person's key (`pixKeySend`). */
+export const PIX_SEND_PATH = `${PIX_WITHDRAW_PATH}?sendMethod=bank`
 
 /** The code screen of one deposit: the deposit read redraws its code from the id. */
 export function pixDepositCodeUrl(intentId: string): string {

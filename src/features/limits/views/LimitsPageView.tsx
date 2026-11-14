@@ -35,12 +35,15 @@ const LimitsPageView = () => {
     const tCommon = useTranslations('common')
     const router = useRouter()
     const goBack = useSafeBack('/settings', { replace: true })
-    const { isKycApproved, rails } = useCapabilities()
+    const { isKycApproved, rails, capabilities } = useCapabilities()
     // MIGRATION-REVIEW: finishes the LimitsPageView migration the prior pass deferred
     // (f4eb9f70e left `useIdentityVerification` here for the region lists). unlockedRegions/
     // lockedRegions now derive from the capability rails via deriveRegionAccess — same Region
     // shape, faithful unlock mapping. See deriveRegionAccess for the flagged Sumsub-proxy gaps.
-    const { unlockedRegions, lockedRegions } = useMemo(() => deriveRegionAccess(rails), [rails])
+    const { unlockedRegions, lockedRegions } = useMemo(
+        () => deriveRegionAccess(rails, capabilities.routes),
+        [rails, capabilities.routes]
+    )
     const { hasMantecaLimits } = useLimits()
     const { overview: rainCardOverview } = useRainCardOverview()
     const activeCard = findActiveCard(rainCardOverview)
@@ -170,12 +173,13 @@ const UnlockedRegionsList = ({ regions, hasMantecaKyc }: UnlockedRegionsListProp
                                 />
                             }
                             title={label.name}
-                            onClick={() => {
-                                const route = getProviderRoute(region.path, hasMantecaKyc)
-                                router.push(route)
-                            }}
+                            onClick={
+                                region.noLimitsPage
+                                    ? undefined
+                                    : () => router.push(getProviderRoute(region.path, hasMantecaKyc))
+                            }
                             body={<div className="text-body-xs">{label.description}</div>}
-                            chevron
+                            chevron={!region.noLimitsPage}
                         />
                     )
                 })}

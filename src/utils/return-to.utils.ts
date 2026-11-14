@@ -1,5 +1,5 @@
 import { isSameRoute } from '@/constants/routes'
-import { sanitizeRedirectURL } from './general.utils'
+import { sanitizeRedirectURL } from './cookie-url.utils'
 
 /**
  * `?returnTo=` — the origin a flow root should send the user back to.

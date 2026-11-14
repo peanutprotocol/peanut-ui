@@ -346,6 +346,278 @@ const mantecaPixRouteResponses = (
     },
 })
 
+/** A step of a Pix route, as the router names it: the state, the user's step, the reason. */
+type PixRouteStep = { state: string; action?: string; reason?: { code: string; userMessage: string } }
+/** Peanut's minimums on Bridge's Pix routes (API-CONTRACT.md section 7.1): R$25 to deposit and to withdraw. */
+const BRIDGE_PIX_LIMITS = { deposit: '25', withdraw: '25' } as const
+/** Bridge's Pix rail (Bridge × PIX_BR) in capabilities: deposits on `pix_onramp`, withdrawals on `pix_offramp`. */
+const bridgePixRail = (status: string, extra: Record<string, unknown> = {}) => ({
+    id: 'bridge.pix_br',
+    provider: 'bridge',
+    method: 'PIX_BR',
+    channel: 'bank',
+    country: 'BR',
+    currency: 'BRL',
+    status,
+    ...extra,
+})
+/** A rail of Bridge's that waits on one step of the user's, as the resolver sends it. */
+const bridgePixRailWaitingOn = (action: { key: string }, operations: Record<string, string>) =>
+    bridgePixRail('requires-info', {
+        operations,
+        blockingActions: [action.key],
+        resolved: { status: 'fixable', nextAction: action },
+    })
+/**
+ * A resident of Brazil inside Bridge's Pix rollout (TASK-24910): both Pix routes name Bridge, at one
+ * step of its setup each (the withdrawal at the deposit's unless told), and Pix payments stay refused.
+ * The BRL account is the feature report's own reading of the rail, deposits only.
+ */
+const bridgePixResponses = ({
+    deposit,
+    withdraw = deposit,
+    rails = [],
+    nextActions = [],
+    user = {},
+}: {
+    deposit: PixRouteStep
+    withdraw?: PixRouteStep
+    rails?: unknown[]
+    nextActions?: unknown[]
+    user?: Record<string, unknown>
+}) => ({
+    'GET /users/me': {
+        user: { fullName: 'Ana Souza' },
+        residence: {
+            verified: { country: 'BR', status: 'VERIFIED', updatedAt: null },
+            declared: null,
+            secondaryDeclaredCountry: null,
+        },
+        ...user,
+        capabilities: {
+            rails,
+            nextActions,
+            restrictions: [],
+            routes: [
+                ...(['deposit', 'withdraw'] as const).map((operation) => {
+                    const step = operation === 'deposit' ? deposit : withdraw
+                    const refused = step.state === 'refused'
+                    return {
+                        operation,
+                        method: 'PIX_BR',
+                        // a refused route names no provider: the money routes refuse
+                        provider: refused ? null : 'bridge',
+                        ...step,
+                        ...(refused ? {} : { limits: { minAmount: BRIDGE_PIX_LIMITS[operation], currency: 'BRL' } }),
+                        // one code for any amount, whatever the step (api routing/rank.ts)
+                        ...(operation === 'deposit' && !refused ? { standingCode: true } : {}),
+                        candidates: [{ provider: 'bridge', ...step }],
+                    }
+                }),
+                pixPayRoute('refused'),
+            ],
+        },
+    },
+})
+const BRIDGE_TERMS_ACTION = { key: 'accept-tos', kind: 'accept-tos', purpose: 'accept-bridge-tos' }
+const BRIDGE_HOSTED_ACTION = {
+    key: 'bridge-hosted',
+    kind: 'bridge-hosted',
+    purpose: 'bridge-additional-verification',
+    currency: 'BRL',
+}
+const BRIDGE_TAX_ID_ACTION = {
+    key: 'sumsub:tax_identification_number',
+    kind: 'sumsub',
+    purpose: 'unlock-bridge',
+    levelKey: 'tax_identification_number',
+}
+const BRIDGE_TAX_ID_REASON = {
+    code: 'tax_identification_number',
+    userMessage: 'We need your tax identification number to continue.',
+}
+const FIRST_USE_REASON = { code: 'first_use_required', userMessage: 'Set up this payment method to continue.' }
+
+/** The user's standing Pix code on Bridge, as POST /pix/deposit answers it (API-CONTRACT.md section 5). */
+const BRIDGE_PIX_STANDING_CODE = {
+    provider: 'bridge',
+    intentId: null,
+    status: 'AWAITING_USER_ACTION',
+    codePayable: true,
+    pixReceived: false,
+    brCode: DEMO_PIX_BR_CODE,
+    expiresAt: null,
+    amountBrl: null,
+    usdcAmount: null,
+}
+/** Bridge's BRL account behind the standing code: in the holder's name, from the holder or a business. */
+const BRIDGE_BRL_ACCOUNT = {
+    id: 'fixture-deposit-account-brl',
+    railId: 'bridge.pix_br',
+    country: 'BRA',
+    currency: 'BRL',
+    status: 'active',
+    isPrimary: true,
+    matching: { nameOnAccount: 'user', sender: 'business-only' },
+    rules: { min: { amount: '10', currency: 'BRL' } },
+    instructions: { accountHolderName: 'Ana Souza', brCode: DEMO_PIX_BR_CODE, paymentRails: ['pix'] },
+}
+/** A resident of Brazil whose Pix deposits on Bridge are ready, with the BRL account opened or not. */
+const bridgePixDepositReady = (accounts: { depositAccounts: unknown[]; claimable?: unknown[] }) => ({
+    ...bridgePixResponses({
+        deposit: { state: 'ready' },
+        rails: [bridgePixRail('enabled', { operations: { deposit: 'enabled', withdraw: 'enabled' } })],
+    }),
+    'POST /pix/deposit': BRIDGE_PIX_STANDING_CODE,
+    // Bridge's mid-market rate and its cut of a deposit, for the code screen's list (API-CONTRACT 8.2)
+    'GET /pix/deposit/rules': {
+        minAmountBrl: BRIDGE_PIX_LIMITS.deposit,
+        blockedBanks: [],
+        marketRate: '5.714286',
+        providerFeePercent: '0.57',
+    },
+    'GET /users/deposit-accounts': { claimable: [], ...accounts },
+})
+/**
+ * A Pix into the BRL account in Activity, as peanut-api-ts src/db/history.ts writes it on the API
+ * branch of TASK-24910: the payer's bank as sender, typed by Bridge's rail; the rate in reais per
+ * dollar; the end-to-end id as the payment reference. Documented shape, not an observed event.
+ */
+const BRIDGE_PIX_DEPOSIT_ID = 'fixture-bridge-pix-deposit'
+const bridgePixDepositEntry = (status: string, extraData: Record<string, unknown> = {}) => ({
+    uuid: BRIDGE_PIX_DEPOSIT_ID,
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-11-13T19:08:00.000Z'),
+    amount: '1.73',
+    currency: { amount: '10.00', code: 'BRL' },
+    chainId: 'arbitrum',
+    tokenSymbol: 'USDC',
+    tokenAddress: '',
+    status,
+    userRole: 'RECIPIENT',
+    senderAccount: { identifier: '', type: 'pix', isUser: false, fullName: 'MARIA DA SILVA' },
+    recipientAccount: { identifier: 'demo', type: 'peanut-wallet', isUser: true, username: 'demo' },
+    extraData: {
+        kind: 'ONRAMP',
+        provider: 'BRIDGE',
+        bridgeFlow: 'ONRAMP',
+        fulfillmentType: 'bridge',
+        usdAmount: '1.73',
+        receipt: { initial_amount: '10.00', final_amount: '1.73', exchange_rate: '5.780346820809249' },
+        paymentReference: 'E00416968202611131908aBcD1234567',
+        ...extraData,
+    },
+})
+
+/**
+ * The mid-market rate recorded when the Pix arrived, and what Bridge kept against it (API-CONTRACT 8.3):
+ * 1.73 USDC at 5.7471 is R$9.94 floored, so R$0.06 of the R$10.00 paid.
+ */
+const BRIDGE_PIX_DEPOSIT_FEE = { marketRate: '5.7471', providerFee: { amount: '0.06', currency: 'BRL' } }
+
+/**
+ * A Pix payout through Bridge (API-CONTRACT.md section 6, API head b55f7ece0): any key, the holder and
+ * bank Bridge validated, the reais an estimate, the withdrawal named at the open. Documented shapes.
+ */
+const BRIDGE_OWN_KEY = 'ana.souza@example.com'
+const BRIDGE_OTHER_KEY = '11144477735'
+const BRIDGE_OWN_PAYEE = { holderName: 'ANA SOUZA', bankName: 'Nu Pagamentos S.A.', ownAccount: true }
+const BRIDGE_OTHER_PAYEE = { holderName: 'BRUNO LIMA', bankName: 'Banco Inter S.A.', ownAccount: false }
+const bridgePixKeyInfo = (payee: typeof BRIDGE_OWN_PAYEE | typeof BRIDGE_OTHER_PAYEE) => ({
+    provider: 'bridge',
+    ...payee,
+    holderTaxIdMasked: null,
+    ispb: null,
+    blocked: false,
+})
+/**
+ * Bridge's mid-market rate on a payout and what Bridge keeps against it (API-CONTRACT 8.1, 8.3): 18.87 USDC at
+ * 5.3305 is R$100.58 floored, so R$0.58 off the R$100.00 of the open, R$0.78 off the R$99.80 Bridge paid.
+ */
+const BRIDGE_PIX_MARKET_RATE = '5.3305'
+const bridgePixPayoutDisplay = (pixKey: string, payee: typeof BRIDGE_OWN_PAYEE | typeof BRIDGE_OTHER_PAYEE) => ({
+    amountBrl: '100.00',
+    pixKey,
+    ...payee,
+    withdrawUsd: '18.87',
+    rate: '5.30',
+    fixedFeeBrl: '0',
+    arrivalEstimateSeconds: 300,
+    provider: 'Bridge',
+    amountBrlEstimated: true,
+    marketRate: BRIDGE_PIX_MARKET_RATE,
+    providerFeeBrl: '0.58',
+})
+/** A resident of Brazil whose Pix on Bridge is ready both ways, with Bridge's quote for the amount field. */
+const bridgePixWithdrawReady = (overrides: Record<string, unknown> = {}) => ({
+    ...bridgePixResponses({
+        deposit: { state: 'ready' },
+        rails: [bridgePixRail('enabled', { operations: { deposit: 'enabled', withdraw: 'enabled' } })],
+    }),
+    'GET /pix/quote': {
+        provider: 'bridge',
+        operation: 'withdraw',
+        amountBrl: '100.00',
+        usdcAmount: '18.87',
+        rate: '5.30',
+        fixedFeeBrl: '0',
+        minAmountBrl: BRIDGE_PIX_LIMITS.withdraw,
+    },
+    ...overrides,
+})
+const BRIDGE_PIX_PAYOUT_ID = 'fixture-bridge-pix-payout'
+const BRIDGE_PIX_SEND_ROUTE = `${PIX_WITHDRAW_ROUTE}?sendMethod=bank`
+/** A Pix payout's history entry, as peanut-api-ts src/db/history.ts writes it: Bridge's state, whose key it paid. */
+const bridgePixPayoutEntry = (status: string, payee: 'own' | 'other', extra: Record<string, unknown> = {}) => ({
+    uuid: BRIDGE_PIX_PAYOUT_ID,
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-11-14T10:00:00.000Z'),
+    amount: '18.87',
+    currency: { amount: status === 'PAYMENT_PROCESSED' ? '99.80' : '100.00', code: 'brl' },
+    chainId: 'arbitrum',
+    tokenSymbol: 'USDC',
+    tokenAddress: '',
+    status,
+    userRole: 'SENDER',
+    senderAccount: { identifier: 'demo', type: 'peanut-wallet', isUser: true, username: 'demo' },
+    recipientAccount:
+        payee === 'other'
+            ? { identifier: BRIDGE_OTHER_KEY, type: 'BANK_PIX', isUser: false, fullName: BRIDGE_OTHER_PAYEE.holderName }
+            : { identifier: BRIDGE_OWN_KEY, type: 'BANK_PIX', isUser: false },
+    ...(status === 'PAYMENT_PROCESSED' ? { completedAt: new Date('2026-11-14T10:04:00.000Z') } : {}),
+    extraData: {
+        kind: 'OFFRAMP',
+        provider: 'BRIDGE',
+        bridgeFlow: 'OFFRAMP',
+        fulfillmentType: 'bridge',
+        payoutRail: 'pix',
+        pixPayee: payee,
+        usdAmount: '18.87',
+        receipt: status === 'PAYMENT_PROCESSED' ? { initial_amount: '18.87', final_amount: '99.80' } : {},
+        // a payout that converted nothing carries no fee rows
+        ...(['RETURNED', 'REFUNDED', 'UNDELIVERABLE', 'ERROR', 'CANCELED'].includes(status)
+            ? {}
+            : {
+                  marketRate: BRIDGE_PIX_MARKET_RATE,
+                  providerFee: { amount: status === 'PAYMENT_PROCESSED' ? '0.78' : '0.58', currency: 'BRL' },
+              }),
+        ...extra,
+    },
+})
+const bridgePixPayoutOutcome = (status: string, payee: 'own' | 'other') => ({
+    route: `${payee === 'other' ? BRIDGE_PIX_SEND_ROUTE + '&' : PIX_WITHDRAW_ROUTE + '?'}step=success&intentId=${BRIDGE_PIX_PAYOUT_ID}`,
+    responses: bridgePixWithdrawReady({
+        [`GET /history/${BRIDGE_PIX_PAYOUT_ID}`]: bridgePixPayoutEntry(status, payee),
+    }),
+})
+const bridgePixPayoutReceipt = (status: string, payee: 'own' | 'other') => ({
+    route: `/history?tx=${BRIDGE_PIX_PAYOUT_ID}`,
+    responses: {
+        'GET /users/history': { entries: [bridgePixPayoutEntry(status, payee)], hasMore: false },
+        [`GET /history/${BRIDGE_PIX_PAYOUT_ID}`]: bridgePixPayoutEntry(status, payee),
+    },
+})
+
 /** One Pix withdrawal's history entry on Manteca's route, for the last step read after a reload. */
 const PIX_WITHDRAWAL_ID = 'fixture-pix-withdrawal'
 const pixWithdrawal = (status: string) => ({
@@ -1980,8 +2252,7 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'pix-setup-reviewing': {
         route: '/add-money/pix',
-        about: 'Pix while the provider reviews the shared verification: the wait.',
-        isLoadingState: true,
+        about: 'Pix while the provider reviews the shared verification: the static wait, Done to Home.',
         responses: mantecaPixRouteResponses(
             {
                 state: 'pending',
@@ -2055,6 +2326,345 @@ export const FIXTURES: Record<string, Fixture> = {
             provider: null,
             state: 'refused',
             reason: { code: 'method_not_served', userMessage: 'This is not available.' },
+        }),
+    },
+    // ---- the Pix setup on Bridge's route, for a resident of Brazil (TASK-24910) ----
+    'pix-bridge-setup-verify': {
+        route: '/add-money/pix',
+        about: 'Pix on Bridge before our identity check: our Verify first, as for every provider.',
+        responses: bridgePixResponses({
+            deposit: {
+                state: 'action_required',
+                action: 'verify',
+                reason: { code: 'identity_required', userMessage: 'Verify your identity first.' },
+            },
+            user: { identityVerification: { status: 'not_started' } },
+        }),
+    },
+    'pix-bridge-setup-activate': {
+        route: '/add-money/pix',
+        about: 'Pix on Bridge, first use after a paperwork verification: the local feature activation opens it.',
+        responses: bridgePixResponses({
+            deposit: { state: 'action_required', action: 'activate', reason: FIRST_USE_REASON },
+            user: { identityVerification: { status: 'verified', oneShot: true } },
+        }),
+    },
+    // API-CONTRACT.md 4a: one first-use call for every user; a legacy approval is answered with its corridor step
+    'pix-bridge-setup-activate-legacy': {
+        route: '/add-money/pix',
+        about: "Pix on Bridge, first use after a legacy approval: the same activation, answered with the corridor's verification.",
+        responses: {
+            ...bridgePixResponses({
+                deposit: { state: 'action_required', action: 'activate', reason: FIRST_USE_REASON },
+                user: { identityVerification: { status: 'verified', oneShot: false } },
+            }),
+            'POST /users/kyc/features/local/activate': {
+                state: 'action_required',
+                nextAction: {
+                    key: 'verify-corridor:pix_br',
+                    kind: 'sumsub',
+                    purpose: 'unlock-corridor-pix_br',
+                    levelKey: 'bridge',
+                    currency: 'BRL',
+                },
+            },
+        },
+    },
+    'pix-bridge-setup-reviewing': {
+        route: '/add-money/pix',
+        about: 'Pix on Bridge while Bridge creates the customer or reviews the Pix ask: the static wait, Done to Home.',
+        responses: bridgePixResponses({
+            deposit: {
+                state: 'pending',
+                reason: { code: 'provider_reviewing', userMessage: 'Our payments partner is reviewing your details.' },
+            },
+            rails: [bridgePixRail('pending', { operations: { deposit: 'pending', withdraw: 'pending' } })],
+        }),
+    },
+    'pix-bridge-setup-terms': {
+        route: '/add-money/pix',
+        about: "Pix on Bridge, Bridge's terms owed: the bank rails' terms step opens over the Pix setup.",
+        responses: bridgePixResponses({
+            deposit: {
+                state: 'action_required',
+                action: BRIDGE_TERMS_ACTION.key,
+                reason: { code: 'bridge_tos_required', userMessage: 'Accept the Bridge terms of service to continue.' },
+            },
+            rails: [
+                bridgePixRailWaitingOn(BRIDGE_TERMS_ACTION, { deposit: 'requires-info', withdraw: 'requires-info' }),
+            ],
+            nextActions: [BRIDGE_TERMS_ACTION],
+        }),
+    },
+    'pix-bridge-setup-hosted-check': {
+        route: '/add-money/pix',
+        about: "Pix on Bridge, an item only Bridge's own page collects: the bank rails' hosted check step.",
+        responses: bridgePixResponses({
+            deposit: { state: 'action_required', action: BRIDGE_HOSTED_ACTION.key, reason: FIRST_USE_REASON },
+            rails: [
+                bridgePixRailWaitingOn(BRIDGE_HOSTED_ACTION, { deposit: 'requires-info', withdraw: 'requires-info' }),
+            ],
+            nextActions: [BRIDGE_HOSTED_ACTION],
+        }),
+    },
+    'pix-bridge-setup-document': {
+        route: '/add-money/pix',
+        about: 'Pix on Bridge, the CPF owed for deposits: the Sumsub step the bank rails ask the same way.',
+        responses: bridgePixResponses({
+            deposit: { state: 'action_required', action: BRIDGE_TAX_ID_ACTION.key, reason: BRIDGE_TAX_ID_REASON },
+            rails: [
+                bridgePixRailWaitingOn(BRIDGE_TAX_ID_ACTION, { deposit: 'requires-info', withdraw: 'requires-info' }),
+            ],
+            nextActions: [BRIDGE_TAX_ID_ACTION],
+        }),
+    },
+    'pix-bridge-withdraw-document': {
+        route: PIX_WITHDRAW_ROUTE,
+        about: 'Pix on Bridge, deposits ready and payouts owing the CPF: the withdrawal names its own step.',
+        responses: bridgePixResponses({
+            deposit: { state: 'ready' },
+            withdraw: { state: 'action_required', action: BRIDGE_TAX_ID_ACTION.key, reason: BRIDGE_TAX_ID_REASON },
+            rails: [bridgePixRailWaitingOn(BRIDGE_TAX_ID_ACTION, { deposit: 'enabled', withdraw: 'requires-info' })],
+            nextActions: [BRIDGE_TAX_ID_ACTION],
+        }),
+    },
+    // the feature report reads deposits only: the withdrawal's hosted check is the route's alone
+    'pix-bridge-withdraw-hosted-check': {
+        route: `/profile/accounts/additional?returnTo=${encodeURIComponent(PIX_WITHDRAW_ROUTE)}`,
+        about: "The hosted check a Pix withdrawal waits on, opened from the Pix setup: Bridge's prep page, not done.",
+        responses: bridgePixResponses({
+            deposit: { state: 'ready' },
+            withdraw: { state: 'action_required', action: BRIDGE_HOSTED_ACTION.key, reason: FIRST_USE_REASON },
+            rails: [bridgePixRailWaitingOn(BRIDGE_HOSTED_ACTION, { deposit: 'enabled', withdraw: 'requires-info' })],
+            nextActions: [BRIDGE_HOSTED_ACTION],
+        }),
+    },
+    'pix-bridge-route-refused': {
+        route: '/add-money/pix',
+        about: 'Pix on Bridge refused (Bridge rejected the customer): not available, with support.',
+        responses: bridgePixResponses({
+            deposit: {
+                state: 'refused',
+                reason: {
+                    code: 'provider_rejected',
+                    userMessage:
+                        'Our payments partner could not verify your identity. Message support if you think this is a mistake.',
+                },
+            },
+            rails: [bridgePixRail('blocked', { operations: { deposit: 'blocked', withdraw: 'blocked' } })],
+        }),
+    },
+    'pix-bridge-route-paused': {
+        route: PIX_WITHDRAW_ROUTE,
+        about: "Pix on Bridge paused by Bridge's kill switch: the provider-outage screen.",
+        responses: bridgePixResponses({
+            deposit: {
+                state: 'paused',
+                reason: { code: 'provider_paused', userMessage: 'This is paused for a moment. Try again soon.' },
+            },
+            rails: [bridgePixRail('enabled', { operations: { deposit: 'enabled', withdraw: 'enabled' } })],
+        }),
+    },
+    // the pay route refuses a resident's Pix QR: the Brazil row says what the Pix routes serve instead
+    'pix-bridge-limits': {
+        route: '/limits',
+        about: 'Limits for a resident of Brazil on Bridge: the Brazil row says Pix deposits and withdrawals, no QR.',
+        responses: bridgePixResponses({
+            deposit: { state: 'ready' },
+            rails: [bridgePixRail('enabled', { operations: { deposit: 'enabled', withdraw: 'enabled' } })],
+        }),
+    },
+    // ruling D7: one code for any amount, no amount step, no timer and no wait
+    'pix-bridge-deposit-code': {
+        route: '/add-money/pix',
+        about: 'Pix on Bridge, deposits ready: the standing code, its minimum, who may pay in, and Activity.',
+        responses: bridgePixDepositReady({ depositAccounts: [BRIDGE_BRL_ACCOUNT] }),
+    },
+    'pix-bridge-deposit-first-code': {
+        route: '/add-money/pix',
+        about: 'Pix on Bridge, the first Add money: the call opens the BRL account and draws its code.',
+        responses: bridgePixDepositReady({
+            depositAccounts: [],
+            claimable: [
+                {
+                    railId: 'bridge.pix_br',
+                    method: 'PIX_BR',
+                    country: 'BRA',
+                    currency: 'BRL',
+                    matching: { sender: 'business-only' },
+                    rules: BRIDGE_BRL_ACCOUNT.rules,
+                    preview: true,
+                },
+            ],
+        }),
+    },
+    'pix-bridge-deposit-in-flight': {
+        route: '/add-money/pix',
+        about: 'Pix on Bridge, another open of the account still running after a few tries: try again.',
+        waitFor: '[data-testid="pix-code-retry"]',
+        responses: bridgePixDepositReady({ depositAccounts: [] }),
+        rejects: {
+            'POST /pix/deposit': {
+                status: 409,
+                body: { code: 'DEPOSIT_ACCOUNT_CLAIM_IN_FLIGHT', error: 'A claim is already in progress' },
+            },
+        },
+    },
+    'pix-bridge-deposit-paused': {
+        route: '/add-money/pix',
+        about: 'Pix on Bridge, the code refused while the provider is paused (503): the outage screen.',
+        responses: bridgePixDepositReady({ depositAccounts: [] }),
+        rejects: {
+            'POST /pix/deposit': {
+                status: 503,
+                body: { code: 'PROVIDER_UNAVAILABLE', error: 'Pix is not available right now. Try again soon.' },
+            },
+        },
+    },
+    // ruling 12 Nov: while a Pix route is open the BRL row is not on Accounts; ruling 13 Nov: the cap leaves it out
+    'pix-bridge-accounts-brl-held': {
+        route: '/profile/accounts',
+        about: 'Accounts for a resident of Brazil holding the BRL and EUR accounts: BRL is not listed, and the counter reads 1 of 2.',
+        responses: {
+            ...bridgePixDepositReady({ depositAccounts: [DEPOSIT_ACCOUNT_EUR, BRIDGE_BRL_ACCOUNT] }),
+            'GET /users/deposit-accounts': {
+                depositAccounts: [DEPOSIT_ACCOUNT_EUR, BRIDGE_BRL_ACCOUNT],
+                claimable: [],
+                accountLimit: 2,
+                accountsHeld: 1,
+            },
+        },
+    },
+    'pix-bridge-accounts-brl-only': {
+        route: '/profile/accounts',
+        about: 'Accounts for a resident of Brazil holding only the BRL account: nothing is listed as held, and no counter shows.',
+        responses: {
+            ...bridgePixDepositReady({ depositAccounts: [BRIDGE_BRL_ACCOUNT] }),
+            'GET /users/deposit-accounts': {
+                depositAccounts: [BRIDGE_BRL_ACCOUNT],
+                claimable: [],
+                accountLimit: 2,
+                accountsHeld: 0,
+            },
+        },
+    },
+    'history-bridge-pix-deposit-returned': {
+        route: `/history?tx=${BRIDGE_PIX_DEPOSIT_ID}`,
+        about: 'A Pix from a third person that Bridge sent back: Returned, the reason, and the rate, never Converted.',
+        responses: {
+            'GET /users/history': {
+                entries: [bridgePixDepositEntry('REFUNDED', { returnReason: { code: 'third_party' } })],
+                hasMore: false,
+            },
+            [`GET /history/${BRIDGE_PIX_DEPOSIT_ID}`]: bridgePixDepositEntry('REFUNDED', {
+                returnReason: { code: 'third_party' },
+            }),
+        },
+    },
+    'history-bridge-pix-deposit': {
+        route: `/history?tx=${BRIDGE_PIX_DEPOSIT_ID}`,
+        about: 'A Pix into the BRL account on Bridge: From the payer, Converted with the rate in reais per dollar.',
+        responses: {
+            'GET /users/history': {
+                entries: [bridgePixDepositEntry('PAYMENT_PROCESSED', BRIDGE_PIX_DEPOSIT_FEE)],
+                hasMore: false,
+            },
+            [`GET /history/${BRIDGE_PIX_DEPOSIT_ID}`]: bridgePixDepositEntry(
+                'PAYMENT_PROCESSED',
+                BRIDGE_PIX_DEPOSIT_FEE
+            ),
+        },
+    },
+    // ---- TASK-24910 U3: Pix payouts and sends through Bridge (API-CONTRACT.md section 6) ----
+    'pix-bridge-withdraw-key-own': {
+        route: PIX_WITHDRAW_ROUTE,
+        sessionStorage: pixWithdrawForm({ destination: BRIDGE_OWN_KEY }),
+        about: "Withdraw by Pix on Bridge: the user's own email key, named and banked as Bridge validated it.",
+        waitFor: '[data-testid="pix-key-holder"]',
+        responses: bridgePixWithdrawReady({ 'POST /pix/key': bridgePixKeyInfo(BRIDGE_OWN_PAYEE) }),
+    },
+    'pix-bridge-send-key-other': {
+        route: BRIDGE_PIX_SEND_ROUTE,
+        sessionStorage: pixWithdrawForm({ destination: BRIDGE_OTHER_KEY }),
+        about: "Send → Pix key for a resident of Brazil: another person's key, named as Bridge validated it, continues.",
+        waitFor: '[data-testid="pix-key-holder"]',
+        responses: bridgePixWithdrawReady({ 'POST /pix/key': bridgePixKeyInfo(BRIDGE_OTHER_PAYEE) }),
+    },
+    'pix-bridge-key-checking': {
+        route: PIX_WITHDRAW_ROUTE,
+        sessionStorage: pixWithdrawForm({ destination: BRIDGE_OTHER_KEY }),
+        about: 'Bridge still checks a new key after the retries: the line says so, no holder is guessed, Try again.',
+        waitFor: '[data-testid="pix-key-retry"]',
+        responses: bridgePixWithdrawReady(),
+        rejects: {
+            'POST /pix/key': {
+                status: 409,
+                body: { code: 'PIX_KEY_CHECK_PENDING', error: 'We are still checking this Pix key.' },
+            },
+        },
+    },
+    'pix-bridge-key-not-found': {
+        route: PIX_WITHDRAW_ROUTE,
+        sessionStorage: pixWithdrawForm({ destination: BRIDGE_OTHER_KEY }),
+        about: 'A key Bridge finds no holder for: the field says so, and Continue stays off.',
+        responses: bridgePixWithdrawReady(),
+        rejects: {
+            'POST /pix/key': { status: 404, body: { code: 'PIX_KEY_NOT_FOUND', error: 'This Pix key was not found.' } },
+        },
+    },
+    'pix-bridge-withdraw-review-own': {
+        route: `${PIX_WITHDRAW_ROUTE}?step=review`,
+        sessionStorage: pixWithdrawForm({ destination: BRIDGE_OWN_KEY, amountBrl: '100' }),
+        about: 'The Pix-key form on Bridge, own key: Withdrawing, the reais marked approximate, the rate, Bridge.',
+        responses: bridgePixWithdrawReady({
+            'POST /pix/withdraw/preview': bridgePixPayoutDisplay(BRIDGE_OWN_KEY, BRIDGE_OWN_PAYEE),
+        }),
+    },
+    'pix-bridge-send-review': {
+        route: `${BRIDGE_PIX_SEND_ROUTE}&step=review`,
+        sessionStorage: pixWithdrawForm({ destination: BRIDGE_OTHER_KEY, amountBrl: '100' }),
+        about: 'The Pix-key form as a send: Sending to the person Bridge validated, the reais approximate, Bridge.',
+        responses: bridgePixWithdrawReady({
+            'POST /pix/withdraw/preview': bridgePixPayoutDisplay(BRIDGE_OTHER_KEY, BRIDGE_OTHER_PAYEE),
+        }),
+    },
+    'pix-bridge-send-on-its-way': {
+        ...bridgePixPayoutOutcome('FUNDS_RECEIVED', 'other'),
+        about: 'A send through Bridge after a reload, Bridge holding the funding: on its way at once, no loader, Done.',
+    },
+    'pix-bridge-send-paid': {
+        ...bridgePixPayoutOutcome('PAYMENT_PROCESSED', 'other'),
+        about: "A send through Bridge once paid: Sent, to the person, with Bridge's final reais.",
+    },
+    'pix-bridge-withdraw-returned': {
+        ...bridgePixPayoutOutcome('RETURNED', 'own'),
+        about: 'A withdrawal Bridge returned: the money is back in the balance.',
+    },
+    'history-bridge-pix-send-paid': {
+        ...bridgePixPayoutReceipt('PAYMENT_PROCESSED', 'other'),
+        about: 'The receipt of a Pix send through Bridge: Sent to the person, the key beside the name.',
+    },
+    'history-bridge-pix-send-on-its-way': {
+        ...bridgePixPayoutReceipt('PAYMENT_SUBMITTED', 'other'),
+        about: 'The receipt of a Pix send while Bridge pays: Sending to the person, processing.',
+    },
+    'history-bridge-pix-withdraw-paid': {
+        ...bridgePixPayoutReceipt('PAYMENT_PROCESSED', 'own'),
+        about: 'The receipt of a Pix withdrawal to the own key through Bridge: Withdrawn to the bank account.',
+    },
+    'history-bridge-pix-withdraw-returned': {
+        ...bridgePixPayoutReceipt('RETURNED', 'own'),
+        about: 'The receipt of a Pix withdrawal Bridge returned: failed, the money back.',
+    },
+    'pix-bridge-accounts-hosted-task': {
+        route: '/profile/accounts',
+        about: "Accounts for a resident of Brazil whose Pix on Bridge waits on Bridge's hosted check: the task names Pix.",
+        responses: bridgePixResponses({
+            deposit: { state: 'action_required', action: BRIDGE_HOSTED_ACTION.key, reason: FIRST_USE_REASON },
+            rails: [
+                bridgePixRailWaitingOn(BRIDGE_HOSTED_ACTION, { deposit: 'requires-info', withdraw: 'requires-info' }),
+            ],
+            nextActions: [BRIDGE_HOSTED_ACTION],
         }),
     },
     'pix-withdraw-key-code': {
@@ -2395,6 +3005,11 @@ export const FIXTURES: Record<string, Fixture> = {
                 capabilities: { routes: [pixPayRoute('refused')] },
             },
         },
+    },
+    'qr-pay-brazil-resident-key-send': {
+        route: PIX_QR_ROUTE,
+        about: 'A Brazilian resident whose Pix payouts on Bridge are ready reaches a Pix deep link: the block adds that a Pix key can still be paid.',
+        responses: bridgePixWithdrawReady(),
     },
     'qr-pay-kyc-required': {
         route: PIX_QR_ROUTE,

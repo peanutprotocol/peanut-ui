@@ -5956,16 +5956,26 @@ export interface paths {
                             extraData?: {
                                 /** @description The intent’s own status, finer than the entry’s status. On a withdrawal: AWAITING_USER_ACTION is not signed yet, PROCESSING is signed and not confirmed. */
                                 intentStatus?: "PENDING" | "AWAITING_USER_ACTION" | "AWAITING_SETTLEMENT" | "PROCESSING" | "COMPLETED" | "FAILED" | "CANCELLED" | "REFUNDED";
+                                /** @description Bridge’s Pix only: BRL per USD before the provider’s fee, for the rate row. Sent with providerFee. Display only. */
+                                marketRate?: string;
                                 /** @description A Pix deposit, on a Pix deposit only and for its owner only. `codePayable`: the code can still be paid, so the receipt offers to open it again (GET /pix/deposit/:intentId). */
                                 pixDeposit?: {
                                     codePayable: boolean;
                                     expiresAt: string | null;
                                 };
+                                /** @description A Pix payout through Bridge only: `own` paid the user’s own key and reads as a withdrawal; `other` paid another person’s key and reads as a send to them (recipientAccount.fullName names them, for the owner only). */
+                                pixPayee?: "own" | "other";
                                 pixRecovery?: {
                                     failureCode: string | null;
                                     reason: "payout-failed" | "payout-reversed" | "late-deposit" | "deposit-delivery-failed";
                                     state: "awaiting-key" | "in-progress" | "done";
                                 } | null;
+                                /** @description Bridge’s Pix only: what the provider kept, in reais, so the rows add up with marketRate. Absent on a return, and on a deposit or payout without a recorded market rate. */
+                                providerFee?: {
+                                    amount: string;
+                                    /** @enum {string} */
+                                    currency: "BRL";
+                                };
                             } & {
                                 [key: string]: unknown;
                             };
@@ -6654,7 +6664,7 @@ export interface paths {
         put?: never;
         /**
          * Save a PIX key to the address book
-         * @description Saves a PIX key as one of the user's bank accounts, named with the label, so it is offered under Send → Bank. The account carries isPixRecipient, so it is never offered as a withdrawal destination. Saving a key the user already has renames it.
+         * @description Saves a PIX key as one of the user's bank accounts, named with the label. The API decides whose key it is, once, with the directory lookup the Pix withdrawal uses, through the user's open Pix withdraw route: the user's own key is saved as a withdrawal destination; any other key, or any key while that route is closed, is saved as a recipient (isPixRecipient) for Send → Bank, never offered as a withdrawal destination. A recipient needs Pix payment eligibility; an own key needs only the open route. Where the open route's provider pays any key (Bridge), that provider saves the key as a payout to it would, with the holder and bank its lookup validated, own key or recipient; the lookup's refusals (those of POST /pix/key) answer instead. Saving a key the user already has renames it.
          */
         post: {
             parameters: {
@@ -6683,6 +6693,78 @@ export interface paths {
                 };
                 /** @description Default Response */
                 400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -7611,7 +7693,7 @@ export interface paths {
         put?: never;
         /**
          * Create a Pix deposit (BRL → USDC)
-         * @description Opens a deposit with the provider the deposit route names and returns its Pix code for exactly this amount. The code lives a few minutes (expiresAt); GET /pix/deposit/{intentId} draws it again while codePayable.
+         * @description Opens a deposit with the provider the deposit route names and returns its Pix code for exactly this amount. The code lives a few minutes (expiresAt); GET /pix/deposit/{intentId} draws it again while codePayable. A standingCode route takes no amount: the answer is the user’s own standing code (any amount, expiresAt null, intentId null), the same code on every call, and the account behind it opens on the first call.
          */
         post: {
             parameters: {
@@ -7622,11 +7704,11 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody: {
+            requestBody?: {
                 content: {
                     "application/json": {
-                        /** @description Reais, at most two decimals */
-                        amountBrl: string;
+                        /** @description Reais, at most two decimals. Required unless the deposit route is standingCode. */
+                        amountBrl?: string;
                     };
                 };
             };
@@ -7637,38 +7719,24 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        /**
-                         * @example {
-                         *       "amountBrl": "100.00",
-                         *       "brCode": "00020101021226900014br.gov.bcb.pix2568pix.example.com/qr/v2/cobv/9d36b84f5204000053039865406100.005802BR5925PAYMENTS PARTNER LTDA6009SAO PAULO62070503***63041D3A",
-                         *       "codePayable": true,
-                         *       "expiresAt": "2026-11-04T12:10:00.000Z",
-                         *       "fixedFeeBrl": "0.75",
-                         *       "intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
-                         *       "payerCpfMasked": "123.***.***-09",
-                         *       "pixReceived": false,
-                         *       "provider": "manteca",
-                         *       "status": "AWAITING_USER_ACTION",
-                         *       "usdcAmount": "17.920175"
-                         *     }
-                         */
                         "application/json": {
                             amountBrl: string | null;
-                            /** @description The Pix code (copia e cola) for exactly this amount */
+                            /** @description The Pix code (copia e cola): for exactly this amount, or any amount when standing */
                             brCode?: string;
                             /** @description The code can still be paid: brCode and payerCpfMasked are sent only then. */
                             codePayable: boolean;
                             expiresAt: string | null;
                             /** @description The flat fee in reais, where the provider charges one */
                             fixedFeeBrl?: string;
-                            intentId: string;
+                            /** @description The deposit’s intent. Null for a standing code: each Pix it receives is a deposit of its own in the history. */
+                            intentId: string | null;
                             /** @description The CPF the Pix must come from, masked, where the provider requires one */
                             payerCpfMasked?: string;
                             /** @description The provider received the Pix; the USDC is on its way to the wallet */
                             pixReceived: boolean;
                             /** @description The provider the route names, e.g. manteca. Data only: the app does not branch on it. */
                             provider: string;
-                            /** @description The intent’s own status, as stored */
+                            /** @description The intent’s own status, as stored. A standing code reads AWAITING_USER_ACTION. */
                             status: string;
                             /** @description USDC the wallet receives, after every fee */
                             usdcAmount: string | null;
@@ -7683,7 +7751,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -7695,7 +7766,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -7707,7 +7781,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -7719,7 +7796,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -7731,7 +7811,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -7743,7 +7826,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -7755,7 +7841,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -7767,7 +7856,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -7824,7 +7916,11 @@ export interface paths {
                                 ispb: string;
                                 name: string | null;
                             }[];
+                            /** @description BRL per USD at the provider’s mid-market rate, for the code screen’s rate line. Display only; absent when the provider’s rates cannot be read within 1.5 s. */
+                            marketRate?: string;
                             minAmountBrl: string;
+                            /** @description The provider’s cut of a deposit in percent, two decimals, from its mid-market rate against its deposit rate. Sent with marketRate only. */
+                            providerFeePercent?: string;
                         };
                     };
                 };
@@ -7836,7 +7932,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -7848,7 +7947,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -7860,7 +7962,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -7872,7 +7977,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -7884,7 +7992,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -7896,7 +8007,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -7908,7 +8022,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -7920,7 +8037,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -7964,38 +8084,24 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        /**
-                         * @example {
-                         *       "amountBrl": "100.00",
-                         *       "brCode": "00020101021226900014br.gov.bcb.pix2568pix.example.com/qr/v2/cobv/9d36b84f5204000053039865406100.005802BR5925PAYMENTS PARTNER LTDA6009SAO PAULO62070503***63041D3A",
-                         *       "codePayable": true,
-                         *       "expiresAt": "2026-11-04T12:10:00.000Z",
-                         *       "fixedFeeBrl": "0.75",
-                         *       "intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
-                         *       "payerCpfMasked": "123.***.***-09",
-                         *       "pixReceived": false,
-                         *       "provider": "manteca",
-                         *       "status": "AWAITING_USER_ACTION",
-                         *       "usdcAmount": "17.920175"
-                         *     }
-                         */
                         "application/json": {
                             amountBrl: string | null;
-                            /** @description The Pix code (copia e cola) for exactly this amount */
+                            /** @description The Pix code (copia e cola): for exactly this amount, or any amount when standing */
                             brCode?: string;
                             /** @description The code can still be paid: brCode and payerCpfMasked are sent only then. */
                             codePayable: boolean;
                             expiresAt: string | null;
                             /** @description The flat fee in reais, where the provider charges one */
                             fixedFeeBrl?: string;
-                            intentId: string;
+                            /** @description The deposit’s intent. Null for a standing code: each Pix it receives is a deposit of its own in the history. */
+                            intentId: string | null;
                             /** @description The CPF the Pix must come from, masked, where the provider requires one */
                             payerCpfMasked?: string;
                             /** @description The provider received the Pix; the USDC is on its way to the wallet */
                             pixReceived: boolean;
                             /** @description The provider the route names, e.g. manteca. Data only: the app does not branch on it. */
                             provider: string;
-                            /** @description The intent’s own status, as stored */
+                            /** @description The intent’s own status, as stored. A standing code reads AWAITING_USER_ACTION. */
                             status: string;
                             /** @description USDC the wallet receives, after every fee */
                             usdcAmount: string | null;
@@ -8010,7 +8116,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8093,7 +8202,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8105,7 +8217,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8117,7 +8232,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8129,7 +8247,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8141,7 +8262,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8153,7 +8277,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8165,7 +8292,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8177,7 +8307,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8240,11 +8373,15 @@ export interface paths {
                             amountBrl: string;
                             /** @description The flat fee in reais, shown as its own line */
                             fixedFeeBrl: string;
+                            /** @description BRL per USDC at the provider’s mid-market rate, where it states one above `rate`: the rate row shows it. Display only. */
+                            marketRate?: string;
                             /** @description The least amountBrl the provider takes for this operation; amount entry shows it */
                             minAmountBrl: string;
                             operation: "deposit" | "withdraw";
                             /** @description The provider the route names, e.g. manteca */
                             provider: string;
+                            /** @description Reais the provider keeps: floor_to_centavo(USDC × marketRate) − amountBrl, never below 0, an estimate like the reais. Holds fixedFeeBrl. Sent with marketRate only. */
+                            providerFeeBrl?: string;
                             /** @description BRL per USDC with the percentage fees inside. Deposit: amountBrl − fixedFeeBrl = usdcAmount × rate. Withdraw: usdcAmount × rate − fixedFeeBrl = amountBrl. To a centavo. */
                             rate: string;
                             /** @description USDC the wallet receives, after the bridge fee (deposit), or that leaves it, the bridge fee included (withdraw) */
@@ -8260,7 +8397,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8272,7 +8412,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8284,7 +8427,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8296,7 +8442,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8308,7 +8457,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8320,7 +8472,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8408,22 +8563,31 @@ export interface paths {
                             display: {
                                 /** @description The headline: reais credited to the account */
                                 amountBrl: string;
+                                /**
+                                 * @description The provider locks no rate: amountBrl is what the rate pays now, and the reais credited can differ if the rate moves before the payout. Absent where the amount is locked.
+                                 * @enum {boolean}
+                                 */
+                                amountBrlEstimated?: true;
                                 /** @description About how long from the signature to the Pix paid */
                                 arrivalEstimateSeconds: number;
                                 bankName: string | null;
                                 /** @description The flat fee in reais, shown as its own line */
                                 fixedFeeBrl: string;
                                 holderName: string | null;
+                                /** @description BRL per USDC at the provider’s mid-market rate, where it states one above `rate`: the rate row shows it. Display only. */
+                                marketRate?: string;
                                 ownAccount: boolean | null;
                                 pixKey: string;
                                 /** @description The payments partner’s name, for the review’s "processed by" line */
                                 provider: string;
+                                /** @description Reais the provider keeps: floor_to_centavo(USDC × marketRate) − amountBrl, never below 0, an estimate like the reais. Holds fixedFeeBrl. Sent with marketRate only. */
+                                providerFeeBrl?: string;
                                 /** @description BRL per USDC that leaves the wallet, with the percentage fees inside: withdrawUsd × rate − fixedFeeBrl = amountBrl, to a centavo */
                                 rate: string;
                                 /** @description USDC that leaves the wallet */
                                 withdrawUsd: string;
                             };
-                            /** @description The withdrawal, when the provider opens it now; a transfer-then-submit one opens at the submit */
+                            /** @description The withdrawal, when the provider opens it now; null when it opens only at the submit */
                             intentId: string | null;
                             /** @description The provider the route names, e.g. manteca. Data only: the app does not branch on it. */
                             provider: string;
@@ -8459,7 +8623,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8471,7 +8638,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8483,7 +8653,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8495,7 +8668,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8507,7 +8683,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8519,7 +8698,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8531,7 +8713,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8543,7 +8728,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8614,16 +8802,25 @@ export interface paths {
                         "application/json": {
                             /** @description The headline: reais credited to the account */
                             amountBrl: string;
+                            /**
+                             * @description The provider locks no rate: amountBrl is what the rate pays now, and the reais credited can differ if the rate moves before the payout. Absent where the amount is locked.
+                             * @enum {boolean}
+                             */
+                            amountBrlEstimated?: true;
                             /** @description About how long from the signature to the Pix paid */
                             arrivalEstimateSeconds: number;
                             bankName: string | null;
                             /** @description The flat fee in reais, shown as its own line */
                             fixedFeeBrl: string;
                             holderName: string | null;
+                            /** @description BRL per USDC at the provider’s mid-market rate, where it states one above `rate`: the rate row shows it. Display only. */
+                            marketRate?: string;
                             ownAccount: boolean | null;
                             pixKey: string;
                             /** @description The payments partner’s name, for the review’s "processed by" line */
                             provider: string;
+                            /** @description Reais the provider keeps: floor_to_centavo(USDC × marketRate) − amountBrl, never below 0, an estimate like the reais. Holds fixedFeeBrl. Sent with marketRate only. */
+                            providerFeeBrl?: string;
                             /** @description BRL per USDC that leaves the wallet, with the percentage fees inside: withdrawUsd × rate − fixedFeeBrl = amountBrl, to a centavo */
                             rate: string;
                             /** @description USDC that leaves the wallet */
@@ -8639,7 +8836,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8651,7 +8851,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8663,7 +8866,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8675,7 +8881,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8687,7 +8896,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8699,7 +8911,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8711,7 +8926,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8723,7 +8941,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8840,7 +9061,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8852,7 +9076,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8864,7 +9091,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8876,7 +9106,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8888,7 +9121,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8900,7 +9136,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8912,7 +9151,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8924,7 +9166,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -8992,7 +9237,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -9004,7 +9252,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -9016,7 +9267,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -9028,7 +9282,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -9040,7 +9297,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -9052,7 +9312,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -9064,7 +9327,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -9076,7 +9342,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -9145,7 +9414,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -9157,7 +9429,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -9169,7 +9444,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -9181,7 +9459,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -9193,7 +9474,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -9205,7 +9489,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -9217,7 +9504,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -9229,7 +9519,10 @@ export interface paths {
                     content: {
                         "application/json": {
                             code?: string;
+                            currency?: "BRL" | "USDC";
                             error: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
                         };
                     };
                 };
@@ -14721,6 +15014,11 @@ export interface paths {
                                         details?: string;
                                         userMessage: string;
                                     };
+                                    /**
+                                     * @description Deposit routes only: the provider’s Pix code is standing, one code for any amount that never expires. POST /pix/deposit then takes no amount and answers the code with expiresAt null and intentId null; the deposit shows in the history when it lands.
+                                     * @enum {boolean}
+                                     */
+                                    standingCode?: true;
                                     state: "ready" | "action_required" | "pending" | "paused" | "refused";
                                 }[];
                             };
@@ -15940,21 +16238,89 @@ export interface paths {
                             features?: {
                                 bank: {
                                     action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain" | "activate";
+                                    nextAction?: {
+                                        currency?: string;
+                                        effectiveDate?: string;
+                                        expiresAt?: string;
+                                        feature?: "bank" | "card" | "local";
+                                        key: string;
+                                        kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions" | "hosted-identity";
+                                        levelKey?: string;
+                                        purpose: string;
+                                        refused?: {
+                                            provider: "bridge" | "manteca" | "rain";
+                                            reason: string;
+                                        }[];
+                                        requirementKey?: string;
+                                        tosUrl?: string;
+                                        url?: string;
+                                    };
                                     reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
                                     state: "ready" | "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
                                 };
                                 card: {
                                     action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain" | "activate";
+                                    nextAction?: {
+                                        currency?: string;
+                                        effectiveDate?: string;
+                                        expiresAt?: string;
+                                        feature?: "bank" | "card" | "local";
+                                        key: string;
+                                        kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions" | "hosted-identity";
+                                        levelKey?: string;
+                                        purpose: string;
+                                        refused?: {
+                                            provider: "bridge" | "manteca" | "rain";
+                                            reason: string;
+                                        }[];
+                                        requirementKey?: string;
+                                        tosUrl?: string;
+                                        url?: string;
+                                    };
                                     reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
                                     state: "ready" | "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
                                 };
                                 local: {
                                     action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain" | "activate";
+                                    nextAction?: {
+                                        currency?: string;
+                                        effectiveDate?: string;
+                                        expiresAt?: string;
+                                        feature?: "bank" | "card" | "local";
+                                        key: string;
+                                        kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions" | "hosted-identity";
+                                        levelKey?: string;
+                                        purpose: string;
+                                        refused?: {
+                                            provider: "bridge" | "manteca" | "rain";
+                                            reason: string;
+                                        }[];
+                                        requirementKey?: string;
+                                        tosUrl?: string;
+                                        url?: string;
+                                    };
                                     reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
                                     state: "ready" | "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
                                 };
                                 qr: {
                                     action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain" | "activate";
+                                    nextAction?: {
+                                        currency?: string;
+                                        effectiveDate?: string;
+                                        expiresAt?: string;
+                                        feature?: "bank" | "card" | "local";
+                                        key: string;
+                                        kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions" | "hosted-identity";
+                                        levelKey?: string;
+                                        purpose: string;
+                                        refused?: {
+                                            provider: "bridge" | "manteca" | "rain";
+                                            reason: string;
+                                        }[];
+                                        requirementKey?: string;
+                                        tosUrl?: string;
+                                        url?: string;
+                                    };
                                     reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
                                     state: "ready" | "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
                                 };
@@ -16888,6 +17254,23 @@ export interface paths {
                          */
                         "application/json": {
                             action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain" | "activate";
+                            nextAction?: {
+                                currency?: string;
+                                effectiveDate?: string;
+                                expiresAt?: string;
+                                feature?: "bank" | "card" | "local";
+                                key: string;
+                                kind: "sumsub" | "accept-tos" | "wait" | "contact-support" | "provide-email" | "bridge-hosted" | "rain-hosted" | "restart-identity" | "questions" | "hosted-identity";
+                                levelKey?: string;
+                                purpose: string;
+                                refused?: {
+                                    provider: "bridge" | "manteca" | "rain";
+                                    reason: string;
+                                }[];
+                                requirementKey?: string;
+                                tosUrl?: string;
+                                url?: string;
+                            };
                             reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
                             state: "ready" | "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
                         };
@@ -18377,6 +18760,11 @@ export interface paths {
                                         details?: string;
                                         userMessage: string;
                                     };
+                                    /**
+                                     * @description Deposit routes only: the provider’s Pix code is standing, one code for any amount that never expires. POST /pix/deposit then takes no amount and answers the code with expiresAt null and intentId null; the deposit shows in the history when it lands.
+                                     * @enum {boolean}
+                                     */
+                                    standingCode?: true;
                                     state: "ready" | "action_required" | "pending" | "paused" | "refused";
                                 }[];
                             };

@@ -82,6 +82,8 @@ export const API_ERROR_CODES = {
     BELOW_MIN_BRIDGE_AMOUNT: 'BELOW_MIN_BRIDGE_AMOUNT',
     XCHAIN_WITHDRAW_LIMIT_REACHED: 'XCHAIN_WITHDRAW_LIMIT_REACHED',
     DEPOSIT_ACCOUNTS_NOT_AVAILABLE: 'DEPOSIT_ACCOUNTS_NOT_AVAILABLE',
+    /** Another claim of the same account is still running (409). It clears in a moment: try again. */
+    DEPOSIT_ACCOUNT_CLAIM_IN_FLIGHT: 'DEPOSIT_ACCOUNT_CLAIM_IN_FLIGHT',
     XCHAIN_WITHDRAW_DISABLED: 'XCHAIN_WITHDRAW_DISABLED',
     /** POST /charges on a request that is no longer OPEN. Sent with 409. */
     REQUEST_CLOSED: 'REQUEST_CLOSED',
@@ -103,6 +105,8 @@ export const API_ERROR_CODES = {
     PIX_KEY_LOOKUP_THROTTLED: 'PIX_KEY_LOOKUP_THROTTLED',
     /** The Pix directory has no such key. Sent with 422 by the withdraw routes, 404 by the key lookup. */
     PIX_KEY_NOT_FOUND: 'PIX_KEY_NOT_FOUND',
+    /** The provider is still checking a new Pix key (409). Nothing moved; ask again. */
+    PIX_KEY_CHECK_PENDING: 'PIX_KEY_CHECK_PENDING',
     /** A withdrawal sized by the balance would now take more than that balance. Sent with 409; quote again. */
     PIX_QUOTE_CHANGED: 'PIX_QUOTE_CHANGED',
     /** Another Pix withdrawal is still waiting for its signature. */
@@ -128,10 +132,19 @@ export class ApiError extends Error {
     readonly retryAfterSec: number | undefined
     /** The backend's machine `reason` beside `code`, when it sent one (e.g. a send-gate refusal). */
     readonly reason: string | undefined
+    /** The least amount a refusal names (`minAmount` and `currency` beside `code`), when it names one. */
+    readonly minimum: { amount: string; currency: string } | undefined
 
     constructor(
         message: string,
-        opts: { status: number; code?: string; retryAfterSec?: number; reason?: string; cause?: unknown }
+        opts: {
+            status: number
+            code?: string
+            retryAfterSec?: number
+            reason?: string
+            minimum?: { amount: string; currency: string }
+            cause?: unknown
+        }
     ) {
         super(message, { cause: opts.cause })
         this.name = 'ApiError'
@@ -139,6 +152,7 @@ export class ApiError extends Error {
         this.code = opts.code
         this.retryAfterSec = opts.retryAfterSec
         this.reason = opts.reason
+        this.minimum = opts.minimum
     }
 }
 
@@ -182,6 +196,7 @@ export async function apiErrorFromResponse(response: Response, fallbackMessage: 
     let message = fallbackMessage
     let code: string | undefined
     let retryAfterSec: number | undefined
+    let minimum: { amount: string; currency: string } | undefined
     try {
         const body = await response.text()
         const parsed = JSON.parse(body) as {
@@ -190,6 +205,8 @@ export async function apiErrorFromResponse(response: Response, fallbackMessage: 
             error?: unknown
             code?: unknown
             retryAfterSec?: unknown
+            minAmount?: unknown
+            currency?: unknown
         }
         // `userMessage` is the copy written for users (the residence refusals,
         // api#1738), so it wins over the developer-facing fields.
@@ -206,8 +223,12 @@ export async function apiErrorFromResponse(response: Response, fallbackMessage: 
         ) {
             retryAfterSec = parsed.retryAfterSec
         }
+        // a minimum refusal names its figure as fields (the Pix routes' PIX_MIN_AMOUNT)
+        if (typeof parsed.minAmount === 'string' && parsed.minAmount && typeof parsed.currency === 'string') {
+            minimum = { amount: parsed.minAmount, currency: parsed.currency }
+        }
     } catch {
         // unreadable or non-JSON body — keep the fallback message
     }
-    return new ApiError(message, { status: response.status, code, retryAfterSec })
+    return new ApiError(message, { status: response.status, code, retryAfterSec, minimum })
 }

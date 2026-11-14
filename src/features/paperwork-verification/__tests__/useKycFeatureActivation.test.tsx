@@ -137,9 +137,38 @@ it('card waits for its explicit action and deduplicates simultaneous callers', a
     expect(result.current.allowed).toBe(true)
 })
 
+// TASK-24910: Bridge's Pix answers a step of its own with no action; the Pix route names it
+it('local continues to its own screen for a step the activation names no action for', async () => {
+    const fetchUser = jest.fn(() => Promise.resolve(null))
+    jest.mocked(useAuth).mockReturnValue({
+        user: { user: { userId: 'a' }, identityVerification: { oneShot: true } },
+        fetchUser,
+    } as unknown as ReturnType<typeof useAuth>)
+    jest.mocked(activateKycFeature).mockResolvedValue(report('action_required'))
+    const { result } = renderActivation(() => useKycFeatureActivation('local'))
+    await flush()
+    expect(result.current.allowed).toBe(true)
+    // the refreshed capabilities carry the route's step
+    expect(fetchUser).toHaveBeenCalledWith({ throwOnError: true })
+})
+
+// TASK-24910, API-CONTRACT.md 4a: the Pix setup asks the API for every user, and a legacy approval gets its step
+it.each([false, undefined])('everyUser activates a legacy oneShot=%s approval too', async (oneShot) => {
+    auth('a', oneShot)
+    const corridorStep = { key: 'verify-corridor:pix_br', kind: 'sumsub', purpose: 'x', levelKey: 'bridge' }
+    jest.mocked(activateKycFeature).mockResolvedValue({
+        kind: 'report',
+        report: { state: 'action_required', nextAction: corridorStep },
+    } as Reply)
+    const { result } = renderActivation(() => useKycFeatureActivation('local', { everyUser: true }))
+    await flush()
+    expect(activateKycFeature).toHaveBeenCalledWith('local')
+    // the step the answer names is the caller's to start: nothing passes through
+    expect(result.current.allowed).toBe(false)
+})
+
 it.each([
     ['bank', undefined],
-    ['local', undefined],
     ['qr', undefined],
     ['bank', 'activate'],
     ['card', 'supplement:rain'],

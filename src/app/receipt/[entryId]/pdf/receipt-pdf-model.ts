@@ -11,6 +11,7 @@ import {
     isSettledConversion,
     receiptConvertedAmount,
     receiptExchangeRate,
+    receiptProviderFee,
 } from '@/components/TransactionDetails/receipt-conversion.utils'
 import { maskAccountIdentifier } from '@/utils/account-mask.utils'
 import { printableAddress } from '@/utils/general.utils'
@@ -148,11 +149,16 @@ export function buildReceiptPdfModel(
     // and shareable, so the unmasked guest-claim exception the in-app receipt
     // makes does not apply.
     if (transaction.bankAccountDetails?.identifier && !isCancelled) {
-        const labelKey = bankAccountLabelKey(transaction.bankAccountDetails.type)
+        const labelKey = bankAccountLabelKey(transaction.bankAccountDetails.type, {
+            provider: transaction.extraDataForDrawer?.provider,
+            currencyCode: transaction.currency?.code,
+        })
         const label =
             labelKey === 'address'
                 ? t('transaction.rows.address')
-                : (BANK_ACCOUNT_SCHEME_LABELS[labelKey] ?? t('transaction.rows.accountNumber'))
+                : labelKey === 'pixKey'
+                  ? t('withdraw.manteca.destinationLabel', { country: 'BR' })
+                  : (BANK_ACCOUNT_SCHEME_LABELS[labelKey] ?? t('transaction.rows.accountNumber'))
         push(
             label,
             maskAccountIdentifier(transaction.bankAccountDetails.identifier, transaction.bankAccountDetails.type)
@@ -161,6 +167,8 @@ export function buildReceiptPdfModel(
 
     // Money, the provider last (receipt-rows ruling)
     push(t('common.exchangeRate'), receiptExchangeRate(transaction))
+    // Bridge's Pix: the rate above is the market rate, and this row all the provider kept
+    push(t('pix.withdraw.fee'), receiptProviderFee(transaction)?.fee)
 
     // The network fee a crypto withdrawal settled, and what arrived. Only a
     // charged fee is printed: the document records what happened, and a

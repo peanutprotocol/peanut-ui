@@ -60,6 +60,9 @@ jest.mock('@/components/Common/CountryList', () => ({
 let mockExtraCurrencies: unknown[] = []
 let mockPixPayBlock: 'paused' | 'residence' | null = null
 jest.mock('@/features/pix/usePixPayBlock', () => ({ usePixPayBlock: () => mockPixPayBlock }))
+// the user's Pix routes: none unless a test sets the withdraw route (TASK-24910, a Bridge send)
+let mockRoutes: Array<{ operation: string; method: string; state: string }> = []
+jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ capabilities: { routes: mockRoutes } }) }))
 jest.mock('../withdraw-currencies', () => {
     const actual = jest.requireActual('../withdraw-currencies')
     return {
@@ -98,6 +101,7 @@ beforeEach(() => {
     mockLocale = 'en'
     mockExtraCurrencies = []
     mockPixPayBlock = null
+    mockRoutes = []
 })
 
 describe('WithdrawCurrencyList — currency-first with country as fallback', () => {
@@ -285,6 +289,15 @@ describe('WithdrawCurrencyList — send-to-bank keeps the country gate', () => {
             renderList()
             fireEvent.click(screen.getByTestId('withdraw-currency-BRL'))
             expect(onCountryClick).toHaveBeenCalledWith(expect.objectContaining({ path: 'brazil' }))
+        })
+
+        // TASK-24910: Bridge pays another person's key on the withdraw route
+        it('send-to-bank offers the BRL row where their withdraw route is open', () => {
+            mockRoutes = [{ operation: 'withdraw', method: 'PIX_BR', state: 'ready' }]
+            renderList({ enforceSupportedCountries: true })
+            expect(currencyRows()).toContain('BRL')
+            fireEvent.click(screen.getByTestId('withdraw-other-countries-toggle'))
+            expect(screen.getByTestId('country-list-all')).not.toHaveAttribute('data-pix-pay-block', 'residence')
         })
     })
 })

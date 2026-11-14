@@ -8,7 +8,7 @@ import { formatUnits } from 'viem'
 import { useRouter } from 'next/navigation'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { PIX_WITHDRAW_STEPS, pixWithdrawAmount, completePixKey } from '@/features/pix/pixFlow.utils'
+import { PIX_WITHDRAW_STEPS, pixWithdrawAmount, completePixKey, pixPayoutShown } from '@/features/pix/pixFlow.utils'
 import { PixKeyStep } from '@/features/pix/components/PixKeyStep'
 import { PixSetup } from '@/features/pix/components/PixSetup'
 import { PixWithdrawForm, type PixWithdrawAmountSeed } from '@/features/pix/components/PixWithdrawForm'
@@ -35,7 +35,7 @@ import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import type { CapabilityRoute } from '@/types/capabilities'
 import { isAmountWithinBalance } from '@/utils/balance.utils'
 import { formatBankAmount } from '@/utils/currency'
-import { pixProviderId } from '@/utils/provider.utils'
+import { usePixProviderId } from '@/features/pix/usePixProviderId'
 
 /**
  * Withdraw by Pix, for whichever provider the withdraw route names: the own
@@ -60,7 +60,7 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
     const backToWithdraw = useSafeBack(WITHDRAW_BACK_FALLBACK_URL)
     const { fetchUser } = useAuth()
     // the provider the route names, for the provider row and its sheet
-    const providerId = pixProviderId(route.provider)
+    const providerId = usePixProviderId(route.provider)
     const leaveFlow = () => (isFromSendFlow ? router.replace('/send') : backToWithdraw())
 
     // set once Confirm opened the withdrawal: from then on the URL shows its outcome, never the form again
@@ -248,7 +248,7 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
         return (
             <PixWithdrawOutcome
                 title={title}
-                intentId={submit.opened?.intentId ?? (intentId || null)}
+                intentId={submit.opened?.intentId ?? (intentId || pending?.intentId || null)}
                 providerId={providerId}
                 // nothing left the wallet: a new withdrawal, from its key (the draft went when it opened)
                 onStartAgain={() => {
@@ -277,7 +277,10 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
             <PixKeyStep
                 title={title}
                 initialKey={destination}
+                // a provider that tells whose key it is pays another person's too: a send to them (TASK-24910)
+                paysOthersKeys
                 onBack={leaveFlow}
+                onRouteRefused={() => void fetchUser().catch(() => undefined)}
                 onContinue={(key, info) => {
                     setKeyInfo(info)
                     updateDraft({ destination: key })
@@ -306,6 +309,7 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
             case API_ERROR_CODES.PIX_KEY_NOT_OWN:
             case API_ERROR_CODES.PIX_KEY_BLOCKED:
             case API_ERROR_CODES.PIX_KEY_NOT_FOUND:
+            case API_ERROR_CODES.BANK_ACCOUNT_NOT_USABLE:
                 return { label: t('changeKey'), onClick: () => void stepper.goTo('pix-key') }
             default:
                 return { label: tCommon('retry'), onClick: () => void preview.refetch() }
@@ -345,6 +349,7 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
                 holderName,
                 bankName: named?.bankName ?? keyInfo?.bankName ?? null,
                 taxIdMasked: keyInfo?.holderTaxIdMasked ?? null,
+                ownAccount: named?.ownAccount ?? keyInfo?.ownAccount ?? null,
             }}
             save={pixKeySave}
             amount={{
@@ -366,12 +371,13 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
                 onAmountTyped: (symbol) => setEnteredIn(symbol.toUpperCase() === 'USD' ? 'usd' : 'local'),
             }}
             display={display}
-            // the exact reais where the user typed USD or tapped the balance (typed reais are credited as typed), and the exact
-            // wallet debit; each waits for the quote of the amount on screen, and neither shows for an amount the form refuses
+            // the exact reais where the user typed USD or tapped the balance (typed reais are credited as typed, unless
+            // the provider locks no rate: then they are an estimate, marked ≈), and the exact wallet debit; each waits for
+            // the quote of the amount on screen, and neither shows for an amount the form refuses
             payout={
-                quoting && enteredIn !== 'local'
+                quoting && (enteredIn !== 'local' || display?.amountBrlEstimated)
                     ? display
-                        ? formatBankAmount(display.amountBrl, 'BRL')
+                        ? pixPayoutShown(display)
                         : null
                     : undefined
             }

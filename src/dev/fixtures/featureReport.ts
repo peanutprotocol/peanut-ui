@@ -18,6 +18,7 @@ import type {
     UserCapabilities,
 } from '@/types/capabilities'
 import type { IUserProfile } from '@/interfaces/interfaces'
+import { PIX_METHOD } from '@/features/pix/pixRoute.utils'
 
 type KycIntent = keyof FeatureReport
 const IDENTITY_REGION_RESTRICTED_CODE = 'identity_region_restricted'
@@ -120,7 +121,9 @@ export function featureReport(input: FeatureReportInput): FeatureReport {
         input.rails.filter((rail) => rail.provider === provider && filter(rail))
     const identity = identityEntry(input)
 
-    const bridge = scope('bridge')
+    // A Bridge rail a Pix route serves is Bridge's Pix, the local account of a resident of Brazil (TASK-24910).
+    const bridgeLocal = scope('bridge', (rail) => rail.method === PIX_METHOD)
+    const bridge = scope('bridge', (rail) => !bridgeLocal.includes(rail))
     const bankCurrencies = [...new Set([...Object.keys(BANK_ACCOUNT_PRODUCTS), ...bridge.map((rail) => rail.currency)])]
     const bankAccounts = Object.fromEntries(
         bankCurrencies.map((currency) => [
@@ -144,13 +147,13 @@ export function featureReport(input: FeatureReportInput): FeatureReport {
         refusal: bankRefusal(input) ?? (residenceRefusesBank ? { reason: providerReason(firstAccount.reason) } : null),
     })
 
-    const mantecaBank = scope('manteca', (rail) => rail.channel === 'bank')
+    const localBank = [...scope('manteca', (rail) => rail.channel === 'bank'), ...bridgeLocal]
     const localAccounts = Object.fromEntries(
         Object.entries(LOCAL_ACCOUNT_COUNTRIES).map(([currency, country]) => [
             currency,
             entryFor(input, actions, identity, {
                 feature: 'local',
-                rails: mantecaBank.filter((rail) => rail.country === country),
+                rails: localBank.filter((rail) => rail.country === country),
                 op: 'deposit',
                 refusal: input.mantecaClosedCountries?.has(country)
                     ? { reason: MANTECA_ACCOUNT_REJECTED }
@@ -160,7 +163,7 @@ export function featureReport(input: FeatureReportInput): FeatureReport {
     )
     const local = entryFor(input, actions, identity, {
         feature: 'local',
-        rails: mantecaBank.filter((rail) => Object.values(LOCAL_ACCOUNT_COUNTRIES).includes(rail.country)),
+        rails: localBank.filter((rail) => Object.values(LOCAL_ACCOUNT_COUNTRIES).includes(rail.country)),
         op: 'deposit',
         refusal: featureRefusal(input, 'local') ?? everyAccountRefusal(Object.values(localAccounts)),
     })

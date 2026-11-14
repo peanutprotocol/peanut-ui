@@ -341,10 +341,18 @@ describe('PendingVerificationTasks', () => {
         expect(screen.getByText('Finish verifying to keep Mexican peso bank transfers available.')).toBeInTheDocument()
     })
 
-    it('an unknown currency falls back to the generic copy', () => {
-        // Manteca-only corridors (e.g. BRL) never scope a Bridge hosted task; if
-        // one ever arrives, degrade to the generic copy rather than show nothing.
+    // TASK-24910: Bridge's Pix rail scopes its hosted check to BRL
+    it('a hosted task on the Pix rail names Pix transfers', () => {
         mockNextActions = [{ ...hostedAction, currency: 'BRL' }]
+        render(<PendingVerificationTasks />)
+        expect(screen.getByText('Verify to unlock Pix transfers')).toBeInTheDocument()
+        expect(screen.getByText('Finish verifying to unlock Pix transfers.')).toBeInTheDocument()
+    })
+
+    it('an unknown currency falls back to the generic copy', () => {
+        // A Manteca-only corridor (ARS) never scopes a Bridge hosted task; if
+        // one ever arrives, degrade to the generic copy rather than show nothing.
+        mockNextActions = [{ ...hostedAction, currency: 'ARS' }]
         render(<PendingVerificationTasks />)
         expect(screen.getByText('Additional verification needed')).toBeInTheDocument()
     })

@@ -1,4 +1,4 @@
-import type { FeatureReport, FeatureReportEntry, NextAction } from '@/types/capabilities'
+import type { CapabilityRoute, FeatureReport, FeatureReportEntry, NextAction } from '@/types/capabilities'
 import type { ProviderIdRequestReason } from '@/constants/kyc.consts'
 
 /**
@@ -206,6 +206,19 @@ export function selectBridgeTasks(
         )
     if (!hasNativeBridgeStep(nextActions, report)) return tasks
     return tasks.filter((action) => action.kind !== 'bridge-hosted' || !!action.effectiveDate)
+}
+
+/**
+ * The hosted check a capabilities route names as the user's step (Pix on Bridge, TASK-24910). The
+ * feature report reads a route's rail for deposits only, so it names no task when deposits already
+ * work and only withdrawals wait on the check.
+ */
+export function selectRouteHostedTask(
+    routes: readonly Pick<CapabilityRoute, 'state' | 'action'>[] | undefined,
+    nextActions: readonly NextAction[]
+): NextAction | undefined {
+    const steps = new Set((routes ?? []).filter((route) => route.state === 'action_required').map((r) => r.action))
+    return nextActions.find((action) => action.kind === 'bridge-hosted' && steps.has(action.key))
 }
 
 /** The bank feature's step is a Sumsub document the app runs itself. */

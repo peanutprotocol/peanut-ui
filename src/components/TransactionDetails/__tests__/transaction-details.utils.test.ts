@@ -96,6 +96,16 @@ describe('bankAccountLabelKey', () => {
         expect(bankAccountLabelKey('BANK_CLABE')).toBe('clabe')
         expect(bankAccountLabelKey('us')).toBe('accountNumber')
     })
+    test("a Pix payout's account is the Pix key it paid, Bridge's and Manteca's", () => {
+        expect(bankAccountLabelKey('BANK_PIX', { provider: 'BRIDGE', currencyCode: 'brl' })).toBe('pixKey')
+        expect(bankAccountLabelKey('pix')).toBe('pixKey')
+        // Manteca types every payout account as a CBU: its payouts in reais pay a Pix key
+        expect(bankAccountLabelKey('BANK_CBU', { provider: 'MANTECA', currencyCode: 'BRL' })).toBe('pixKey')
+    })
+    test('an account that is no Pix key keeps its label', () => {
+        expect(bankAccountLabelKey('BANK_CBU', { provider: 'MANTECA', currencyCode: 'ARS' })).toBe('accountNumber')
+        expect(bankAccountLabelKey('BANK_ACH', { provider: 'BRIDGE', currencyCode: 'BRL' })).toBe('accountNumber')
+    })
 })
 
 describe('receiptStatusDate', () => {

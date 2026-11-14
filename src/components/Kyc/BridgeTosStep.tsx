@@ -19,6 +19,8 @@ import { useKycControl } from '@/features/paperwork-verification/analytics'
 interface BridgeTosStepProps {
     visible: boolean
     country?: string
+    /** What accepting turns on, as the screen that opened it names it ("Pix transfers"); bank transfers otherwise. */
+    unlocks?: string
     onComplete: () => void
     onSkip: () => void
 }
@@ -28,7 +30,7 @@ interface BridgeTosStepProps {
 // opens the bridge ToS iframe. The prompt accepts nothing: the user accepts on
 // Bridge's page. The `tos_acceptance_link` endpoint serves the terms the
 // customer still owes (base or SEPA v2), so the prompt is the same for both.
-export const BridgeTosStep = ({ visible, country, onComplete, onSkip }: BridgeTosStepProps) => {
+export const BridgeTosStep = ({ visible, country, unlocks, onComplete, onSkip }: BridgeTosStepProps) => {
     const { track } = useKycControl('tos', 'kyc_legacy')
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
@@ -148,7 +150,9 @@ export const BridgeTosStep = ({ visible, country, onComplete, onSkip }: BridgeTo
                 tone={error ? 'error' : 'info'}
                 icon={error ? ('alert' as IconName) : ('badge' as IconName)}
                 title={error ? t('bridgeTos.errorTitle') : t('bridgeTos.title')}
-                description={error || t('bridgeTos.description')}
+                description={
+                    error || (unlocks ? t('bridgeTos.descriptionFor', { unlocks }) : t('bridgeTos.description'))
+                }
                 content={error ? undefined : <BridgeTermsCard providerId={providerId} />}
                 ctas={[
                     {

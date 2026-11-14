@@ -14,10 +14,9 @@ import { AmountCard } from '@/features/payments/shared/components/AmountCard'
 import { PaymentDetailsCard } from '@/features/payments/shared/components/PaymentDetailsCard'
 import { RecipientCard } from '@/features/payments/shared/components/RecipientCard'
 import { SaveRecipientCard, type SaveRecipientState } from '@/features/payments/shared/components/SaveRecipientCard'
-import { pixShownRate } from '@/features/pix/pixFlow.utils'
+import { pixShownFee, pixShownRate } from '@/features/pix/pixFlow.utils'
 import type { PixWithdrawDisplay } from '@/services/pix'
 import type { ProviderId } from '@/types/provider.types'
-import { formatBankAmount } from '@/utils/currency'
 import { pixKeyOwnerDetails } from '@/utils/pix.utils'
 
 /** How the form's amount field starts: the amount already typed, in the denomination it was typed in. */
@@ -29,10 +28,12 @@ export interface PixWithdrawAmountSeed {
 /**
  * The one form of a Pix withdrawal, after the key resolved: the Pix-key
  * payment form with "Withdrawing" as its lead word and Confirm as its button
- * (ruling 2026-11-12, providers are cattle). The recipient card, the save
+ * (ruling 2026-11-12, providers are cattle). Where the provider says the key is
+ * another person's (`ownAccount` false), the same form is a send to them, and
+ * leads with "Sending" (TASK-24910). The recipient card, the save
  * card, the amount card and the details card are the payment form's own
- * parts; the details card adds the provider's flat fee where the quote
- * carries one, and the exact reais and wallet debit the quote names. Dumb
+ * parts; the details card adds the provider's fee where the quote carries
+ * one (`pixShownFee`), and the exact reais and wallet debit the quote names. Dumb
  * view: the flow owns the quote, the preview, the draft and the confirm.
  *
  * The save card stores the key through POST /manteca/pix-key/saved; an own key
@@ -56,8 +57,14 @@ export function PixWithdrawForm({
 }: {
     title: string
     onBack: () => void
-    /** The resolved key: its holder and bank from the lookup, or from the quote after a reload. */
-    recipient: { pixKey: string; holderName: string | null; bankName: string | null; taxIdMasked: string | null }
+    /** The resolved key: its holder and bank from the lookup, or from the quote after a reload; whose key it is, where the provider tells. */
+    recipient: {
+        pixKey: string
+        holderName: string | null
+        bankName: string | null
+        taxIdMasked: string | null
+        ownAccount?: boolean | null
+    }
     save: SaveRecipientState
     amount: {
         /** Read once, when the form mounts: the field is never re-seeded while the user types. */
@@ -94,25 +101,28 @@ export function PixWithdrawForm({
 }) {
     const t = useTranslations('pix.withdraw')
     const tCommon = useTranslations('common')
+    const tPayment = useTranslations('payment')
     // the seed the flow hands over at mount; later renders carry the live typed values, which the field already shows
     const [seed] = useState(amount.seed)
     // as the payment form: the holder's name leads, the key and tax ID under it; an unnamed holder leaves the key as the heading
     const details = recipient.holderName ? pixKeyOwnerDetails(recipient.pixKey, recipient.taxIdMasked) : null
-    // the preview's all-in rate agrees with the fee row and the USD to the centavo; before it, the quote the field converts with
+    // the preview's all-in rate agrees with the fee row and the USD to the centavo; before it, the quote the field converts
+    // with, to the review's six decimals (the field itself keeps the exact ratio)
     const rate = display
         ? { price: Number(pixShownRate(display)), code: 'BRL' }
         : amount.price !== null
-          ? { price: amount.price, code: 'BRL' }
+          ? { price: Number(amount.price.toFixed(6)), code: 'BRL' }
           : null
-    // the rate holds the percentage fees; a flat fee is its own line, and a provider that charges none shows no line
-    const providerFee = display && Number(display.fixedFeeBrl) > 0 ? formatBankAmount(display.fixedFeeBrl, 'BRL') : null
+    // the rate holds the percentage fees and a flat fee is its own line; where the provider states its mid-market
+    // rate, the rate is that one and the line is all the provider keeps (`pixShownFee`)
+    const providerFee = display ? pixShownFee(display) : null
 
     return (
         <PageStack>
             <NavHeader title={title} onPrev={onBack} />
             <PageStack.Center className="gap-4">
                 <RecipientCard
-                    lead={t('withdrawing')}
+                    lead={recipient.ownAccount === false ? tPayment('confirm.sending') : t('withdrawing')}
                     icon={PIX}
                     name={recipient.holderName ?? recipient.pixKey}
                     maskName
@@ -156,7 +166,8 @@ export function PixWithdrawForm({
 
                 <PaymentDetailsCard
                     rate={rate}
-                    providerFee={providerFee}
+                    providerFee={providerFee?.fee}
+                    providerFeeFollowsRate={providerFee?.followsRate}
                     payout={payout}
                     total={total}
                     providerId={providerId}

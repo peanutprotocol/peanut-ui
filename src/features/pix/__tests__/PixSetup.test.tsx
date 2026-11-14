@@ -5,7 +5,8 @@ import en from '@/i18n/app/messages/en.json'
 import type { CapabilityRoute, NextAction } from '@/types/capabilities'
 
 const mockPush = jest.fn()
-jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))
+const mockReplace = jest.fn()
+jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush, replace: mockReplace }) }))
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Provider/ProviderFinePrint', () => ({ ProviderFinePrint: () => null }))
 const mockFetchUser = jest.fn(() => Promise.resolve(null))
@@ -31,11 +32,13 @@ const mockTermsHook = jest.fn((key: string | undefined) => ({
 jest.mock('@/hooks/useRouteTermsAcceptance', () => ({
     useRouteTermsAcceptance: (key: string | undefined) => mockTermsHook(key),
 }))
-const mockGate = jest.fn()
-jest.mock('@/features/paperwork-verification/KycFeatureActivationGate', () => ({
-    KycFeatureActivationGate: (props: { feature: string; scope: unknown }) => {
-        mockGate(props.feature, props.scope)
-        return <div>activation gate</div>
+jest.mock('@/features/pix/components/PixFirstUse', () => ({ PixFirstUse: () => <div>first use</div> }))
+
+const mockRailStep = jest.fn()
+jest.mock('@/features/pix/components/PixRailStep', () => ({
+    PixRailStep: (props: { route: CapabilityRoute; providerId: string | null }) => {
+        mockRailStep(props.route, props.providerId)
+        return <div>rail step</div>
     },
 }))
 
@@ -57,10 +60,23 @@ describe('PixSetup', () => {
         mockNextActions = []
     })
 
-    it('waits while the provider reviews, with the reason as user text', () => {
+    // Aleks, 13 Nov: the wait is a static screen on every provider's route, Manteca's included (this route's)
+    it('waits on a static screen while the provider reviews: no loader, Done leaves to Home', () => {
         renderSetup(route({ state: 'pending', reason: { code: 'provider_reviewing', userMessage: '' } }))
+        expect(screen.getByText(en.pix.setup.reviewingTitle)).toBeInTheDocument()
         expect(screen.getByText(en.pix.setup.reviewing)).toBeInTheDocument()
+        // the loader it replaced said "Checking verification"
+        expect(screen.queryByText(en.loadingStates.gettingKycStatus)).toBeNull()
         expect(screen.queryByRole('button', { name: en.common.continue })).toBeNull()
+        fireEvent.click(screen.getByRole('button', { name: en.common.done }))
+        expect(mockReplace).toHaveBeenCalledWith('/home')
+    })
+
+    it('reads the route again when the user comes back to the wait', () => {
+        renderSetup(route({ state: 'pending', reason: { code: 'provider_reviewing', userMessage: '' } }))
+        expect(mockFetchUser).not.toHaveBeenCalled()
+        fireEvent(window, new Event('focus'))
+        expect(mockFetchUser).toHaveBeenCalledTimes(1)
     })
 
     it('sends a user whose identity is not verified to the identity check first', () => {
@@ -70,17 +86,35 @@ describe('PixSetup', () => {
         expect(mockTermsHook).toHaveBeenCalledWith(undefined)
     })
 
-    // the first use opens the provider's account (route action `activate`): the activation gate opens it,
-    // and the route turns ready once it is open
-    it('opens the account the first use needs through the activation gate', () => {
+    // the first use opens the provider's account (route action `activate`), and the route turns ready once it is open
+    it('opens the account the first use needs through the first use', () => {
         renderSetup(route({ action: 'activate' }))
-        expect(screen.getByText('activation gate')).toBeInTheDocument()
-        expect(mockGate).toHaveBeenCalledWith('local', { channel: 'bank', country: 'BR' })
+        expect(screen.getByText('first use')).toBeInTheDocument()
+        expect(mockTermsHook).toHaveBeenCalledWith(undefined)
+    })
+
+    // TASK-24910: Bridge's rail asks, on the Pix route, for the steps it asks on the bank rails
+    it.each([
+        { key: 'accept-tos', kind: 'accept-tos', purpose: 'accept-bridge-tos' },
+        { key: 'sumsub:tax_identification_number', kind: 'sumsub', purpose: 'unlock-bridge' },
+        { key: 'bridge-hosted', kind: 'bridge-hosted', purpose: 'bridge-additional-verification', currency: 'BRL' },
+    ] as NextAction[])("hands a rail's $kind step to the bank rails' screens", (action) => {
+        mockNextActions = [action]
+        renderSetup(route({ provider: 'bridge', action: action.key }))
+        expect(screen.getByText('rail step')).toBeInTheDocument()
+        expect(mockRailStep).toHaveBeenCalledWith(expect.objectContaining({ action: action.key }), 'bridge')
         expect(mockTermsHook).toHaveBeenCalledWith(undefined)
     })
 
     it('sends a terms step whose provider this build has no record of to support, never an unnamed consent', () => {
-        mockNextActions = [{ key: 'accept-tos:newpix', kind: 'accept-tos', purpose: 'unlock-newpix' }]
+        mockNextActions = [
+            {
+                key: 'accept-tos:newpix',
+                kind: 'accept-tos',
+                purpose: 'unlock-newpix',
+                tosUrl: 'https://example.com/terms',
+            },
+        ]
         renderSetup(
             route({
                 // a code no registry entry answers for

@@ -1,0 +1,101 @@
+/** @jest-environment jsdom */
+import { NuqsTestingAdapter, type UrlUpdateEvent } from 'nuqs/adapters/testing'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { screen } from '@testing-library/react'
+import { renderWithIntl } from '@/test-utils/intl'
+import type { CapabilityRoute } from '@/types/capabilities'
+
+jest.mock('posthog-js', () => ({ capture: jest.fn() }))
+jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn(), useReturnTo: () => jest.fn() }))
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ fetchUser: jest.fn(), userId: undefined }) }))
+const mockQuote = jest.fn((..._args: unknown[]) => ({ code: 'BRL', price: { sell: 5.4, buy: 5.5 } }))
+jest.mock('@/features/pix/usePixQuoteCurrency', () => ({
+    usePixQuoteCurrency: (...args: unknown[]) => mockQuote(...args),
+}))
+jest.mock('@/features/pix/usePixStandingPayerLine', () => ({
+    usePixStandingPayerLine: () => 'Only you or a business can pay in.',
+}))
+// the rules' market lines are read for the standing code only
+jest.mock('@/features/pix/usePixDepositMarketLines', () => ({
+    usePixDepositMarketLines: (enabled: boolean) => (enabled ? ['The provider fee is 0.57% of each Pix.'] : []),
+}))
+jest.mock('@/components/AddMoney/components/InputAmountStep', () => ({
+    __esModule: true,
+    default: () => <div data-testid="amount-step" />,
+}))
+jest.mock('@/features/pix/components/PixSetup', () => ({ PixSetup: () => <div data-testid="setup" /> }))
+jest.mock('@/features/pix/components/PixQrDeposit', () => ({
+    PixQrDeposit: ({
+        intentId,
+        minimumBrl,
+        marketLines = [],
+        payerLine,
+    }: {
+        intentId: string | null
+        minimumBrl?: string | null
+        marketLines?: string[]
+        payerLine?: string
+    }) => (
+        <div data-testid="code-step">
+            {intentId === null ? 'standing' : intentId} {minimumBrl} {marketLines.join(' ')} {payerLine}
+        </div>
+    ),
+}))
+jest.mock('@/services/pix', () => ({ pixApi: { createDeposit: jest.fn() } }))
+
+import { PixDepositFlow } from '../components/PixDepositFlow'
+
+const bridgeRoute = (state: CapabilityRoute['state']): CapabilityRoute => ({
+    operation: 'deposit',
+    method: 'PIX_BR',
+    provider: 'bridge',
+    state,
+    limits: { minAmount: '25', currency: 'BRL' },
+    standingCode: true,
+    candidates: [{ provider: 'bridge', state }],
+})
+
+const renderAt = (route: CapabilityRoute, searchParams = '', onUrlUpdate?: (event: UrlUpdateEvent) => void) =>
+    renderWithIntl(
+        <QueryClientProvider client={new QueryClient()}>
+            <NuqsTestingAdapter searchParams={searchParams} onUrlUpdate={onUrlUpdate}>
+                <PixDepositFlow route={route} />
+            </NuqsTestingAdapter>
+        </QueryClientProvider>
+    )
+
+// ruling D7: a standing code skips the amount and the wait
+describe('PixDepositFlow on a standing-code route', () => {
+    beforeEach(() => jest.clearAllMocks())
+
+    it('opens the code screen on the standing code, with the minimum and who may pay', () => {
+        renderAt(bridgeRoute('ready'))
+        expect(screen.getByTestId('code-step')).toHaveTextContent(
+            'standing 25 The provider fee is 0.57% of each Pix. Only you or a business can pay in.'
+        )
+        expect(screen.queryByTestId('amount-step')).toBeNull()
+    })
+
+    it('asks for no quote: there is no amount to quote', () => {
+        renderAt(bridgeRoute('ready'))
+        expect(mockQuote).toHaveBeenCalled()
+        for (const call of mockQuote.mock.calls) expect(call[3]).toBe(false)
+    })
+
+    it('writes nothing to the URL, so a reload asks for the same code again', () => {
+        const urls: string[] = []
+        renderAt(bridgeRoute('ready'), '', (event) => urls.push(event.queryString))
+        expect(urls).toEqual([])
+    })
+
+    it('ignores an amount left in the URL', () => {
+        renderAt(bridgeRoute('ready'), '?amount=100&currency=BRL')
+        expect(screen.getByTestId('code-step')).toHaveTextContent('standing')
+    })
+
+    it('keeps the setup while the route is not ready', () => {
+        renderAt(bridgeRoute('pending'))
+        expect(screen.getByTestId('setup')).toBeInTheDocument()
+        expect(screen.queryByTestId('code-step')).toBeNull()
+    })
+})

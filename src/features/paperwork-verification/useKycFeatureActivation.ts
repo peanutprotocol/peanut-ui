@@ -15,18 +15,42 @@ import { paperworkVerificationFeaturePath } from './paperworkVerificationEntry'
 
 export const KYC_ACTIVATION_POLL_MS = 15_000
 
+/**
+ * A step the activation names no action for is the provider's own: the card application's, or the
+ * one Bridge's Pix rail asks for (TASK-24910). The refreshed capabilities carry it, and the screen
+ * behind the gate shows it.
+ */
+const STEP_ON_OWN_SCREEN: ReadonlySet<KycActivationFeature> = new Set(['card', 'local'])
+
 function canContinue(feature: KycActivationFeature, result: KycFeatureActivationResult | null): boolean {
     if (result?.kind !== 'report') return false
     return (
         result.report.state === 'on' ||
         result.report.state === 'ready' ||
-        (feature === 'card' && result.report.state === 'action_required' && !result.report.action)
+        (STEP_ON_OWN_SCREEN.has(feature) &&
+            result.report.state === 'action_required' &&
+            !result.report.action &&
+            !result.report.nextAction)
     )
 }
 
 export function useKycFeatureActivation(
     feature: KycActivationFeature,
-    { scope: reportScope, enabled = true }: { automatic?: boolean; scope?: ReportScope; enabled?: boolean } = {}
+    {
+        scope: reportScope,
+        enabled = true,
+        everyUser = false,
+    }: {
+        automatic?: boolean
+        scope?: ReportScope
+        enabled?: boolean
+        /**
+         * The first use asks the API for every user, whatever verified them: the API answers a legacy
+         * approval with its own step (the Pix setup, API-CONTRACT.md 4a). Otherwise a legacy approval
+         * passes, because its approval already enrolled it.
+         */
+        everyUser?: boolean
+    } = {}
 ) {
     const { user, fetchUser } = useAuth()
     const fetchUserRef = useRef(fetchUser)
@@ -78,7 +102,9 @@ export function useKycFeatureActivation(
         : saved?.scope === scope
           ? saved.result
           : null
-    const allowed = !!userId && (!oneShot || alreadyOn || canContinue(feature, result))
+    // a legacy approval passes unless the caller asks the API for every user
+    const passesUnasked = !oneShot && !everyUser
+    const allowed = !!userId && (passesUnasked || alreadyOn || canContinue(feature, result))
 
     useEffect(() => {
         mounted.current = true
@@ -92,7 +118,7 @@ export function useKycFeatureActivation(
     const activate = useCallback(
         (options?: { beforeRedirect?: () => Promise<void> }): Promise<boolean> => {
             if (!mounted.current || currentScope.current !== scope || !userId || !enabled) return Promise.resolve(false)
-            if (!oneShot || alreadyOn) return Promise.resolve(true)
+            if (passesUnasked || alreadyOn) return Promise.resolve(true)
             if (arsProvisioning) return Promise.resolve(false)
             if (inFlight.current?.scope === scope) return inFlight.current.promise
             setLoadingScope(scope)
@@ -144,7 +170,7 @@ export function useKycFeatureActivation(
             inFlight.current = { scope, token, promise }
             return promise
         },
-        [scope, userId, oneShot, feature, alreadyOn, arsProvisioning, enabled, identityStatus]
+        [scope, userId, passesUnasked, feature, alreadyOn, arsProvisioning, enabled, identityStatus]
     )
 
     useEffect(() => {

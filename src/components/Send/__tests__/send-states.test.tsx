@@ -244,12 +244,16 @@ function applyDefaults() {
 
 let mockPixBlock: 'paused' | 'residence' | null = null
 jest.mock('@/features/pix/usePixPayBlock', () => ({ usePixPayBlock: () => mockPixBlock }))
+// the user's Pix routes: none unless a test sets the withdraw route (TASK-24910, a Bridge send)
+let mockRoutes: Array<{ operation: string; method: string; state: string }> = []
+jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ capabilities: { routes: mockRoutes } }) }))
 let mockResidenceIso2s: string[] = []
 jest.mock('@/features/deposit-accounts/useResidenceIso2s', () => ({ useResidenceIso2s: () => mockResidenceIso2s }))
 
 beforeEach(() => {
     jest.clearAllMocks()
     mockPixBlock = null
+    mockRoutes = []
     mockResidenceIso2s = []
     closeBrazilPausedDrawer()
     mockSearchParams.clear()
@@ -460,6 +464,20 @@ describe('GROUP 4: Method Selection', () => {
         fireEvent.click(screen.getByTestId('action-card-Pix'))
         expect(brazilPausedDrawerBlock()).toBe('residence')
         expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+
+    // TASK-24910: Bridge pays another person's key on the withdraw route: the resident sends on the Pix-key form
+    test('Pix opens the Pix-key form as a send for a resident whose withdraw route is open', () => {
+        mockPixBlock = 'residence'
+        mockRoutes = [{ operation: 'withdraw', method: 'PIX_BR', state: 'ready' }]
+        mockUseGeoFilteredPaymentOptions.mockReturnValue({
+            filteredMethods: [{ id: 'pix', title: 'Pix', description: '', icons: [], soon: false }],
+        })
+        renderSend()
+
+        fireEvent.click(screen.getByTestId('action-card-Pix'))
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/pix?sendMethod=bank')
+        expect(brazilPausedDrawerBlock()).toBeNull()
     })
 
     test('Clicking Peanut user navigates to /send?view=contacts', () => {

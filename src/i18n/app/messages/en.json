@@ -64,7 +64,8 @@
             "mexico": "Mexico",
             "descriptions": {
                 "argentina": "Only Mercado Pago QR payments",
-                "brazil": "Only Pix QR and Pix key payments"
+                "brazil": "Only Pix QR and Pix key payments",
+                "brazilPix": "Only Pix deposits, withdrawals and Pix key payments"
             }
         },
         "tryDifferentCountry": "Please try a different country.",
@@ -332,7 +333,8 @@
                 "USD": "US dollar bank transfers",
                 "EUR": "Euro bank transfers",
                 "GBP": "British pound bank transfers",
-                "MXN": "Mexican peso bank transfers"
+                "MXN": "Mexican peso bank transfers",
+                "BRL": "Pix transfers"
             }
         },
         "openProfile": "Open profile",
@@ -2572,9 +2574,11 @@
         "unavailableTitle": "Pix not available",
         "rejected": "Our Pix partner didn't approve your verification, so Pix isn't available for now. Your other Peanut features aren't affected. Message support if you think this is a mistake.",
         "payResidence": "Pix payments are not available where you live yet.",
+        "payResidenceKeySend": "You can still send to a Pix key.",
         "unavailable": "Pix is not available right now. Try again soon.",
         "setup": {
-            "reviewing": "Our payment partner is checking your verification.",
+            "reviewing": "Our payment partner is checking your details. We will notify you when Pix is ready.",
+            "reviewingTitle": "Setting up Pix",
             "verifyCta": "Verify identity",
             "title": "Set up Pix",
             "body": "Our payment partner provides Pix.",
@@ -2601,15 +2605,17 @@
             "youGet": "You get ≈ {amount}",
             "codeValidFor": "Code valid for {time}",
             "minimum": "The minimum is {amount}.",
+            "marketRate": "The exchange rate is {rate}.",
+            "providerFee": "The provider fee is {percent} of each Pix.",
             "limitExceeded": "This deposit is over the monthly Pix limit.",
             "ownCpf": "From an account under your CPF {cpf}",
             "returnedTitle": "Pix returned",
-            "returnedBody": "Pay again from an account under your CPF."
+            "returnedBody": "Pay again from an account under your CPF.",
+            "landsInActivity": "Each Pix shows in Activity when it arrives."
         },
         "withdraw": {
             "stuck": "This withdrawal did not finish. Contact support.",
             "fee": "Provider fee",
-            "keyIntro": "Enter a Pix key registered to your CPF.",
             "notACode": "Enter a Pix key, not a Pix code.",
             "lookupFailed": "This key could not be checked. Try again.",
             "keyNotOwn": "This key belongs to someone else. Withdrawals go only to accounts under your CPF.",
@@ -2635,7 +2641,11 @@
                 "noRecord": "This browser cannot keep a record of this withdrawal, so it was not sent. Try another browser."
             },
             "changeKey": "Change key",
-            "withdrawing": "Withdrawing"
+            "withdrawing": "Withdrawing",
+            "keyChecking": "We are still checking this key. Try again in a moment.",
+            "keyNotUsable": "This key can no longer receive Pix. Use another key.",
+            "lookupThrottled": "You checked many keys in a short time. Try again later.",
+            "arrivesIn": "Usually arrives in about {minutes, plural, one {# minute} other {# minutes}}."
         },
         "recovery": {
             "actionNeeded": "Action needed",
@@ -2782,6 +2792,7 @@
             "transferId": "Transfer ID",
             "senderNote": "Sender's note",
             "paymentReference": "Reference we sent",
+            "pixEndToEndId": "E2E ID",
             "pointsEarned": "Points earned",
             "networkFee": "Network fee",
             "attachment": "Attachment",
@@ -3437,6 +3448,7 @@
         "bridgeTos": {
             "title": "Accept terms",
             "description": "Accept the provider's terms to turn on bank transfers.",
+            "descriptionFor": "Accept the provider's terms to turn on {unlocks}.",
             "lastStepDescription": "Last step: accept terms of service to unlock bank transfers in the US, Europe, and Mexico.",
             "errorTitle": "Could not load terms",
             "loadFailed": "Could not load terms. You can accept them later from your activity feed.",
@@ -3779,7 +3791,8 @@
             "done": {
                 "title": "Nothing left to do here",
                 "description": "This verification step is no longer needed. Your current status is on your profile.",
-                "cta": "See status"
+                "cta": "See status",
+                "descriptionBack": "This verification step is no longer needed."
             },
             "nativeInstead": {
                 "title": "Upload the document in the app instead",

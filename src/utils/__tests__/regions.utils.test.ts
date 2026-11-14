@@ -1,5 +1,6 @@
 import { RESIDENCE_RESTRICTION_SETS } from '@/test-utils/residenceRestrictions.fixture'
 import {
+    deriveRegionAccess,
     getBankRegionIntent,
     getRegionIntent,
     isVerifiedForCountry,
@@ -7,7 +8,7 @@ import {
     providerForRegionIntent,
     regionIntentForResidence,
 } from '../regions.utils'
-import { type RailCapability } from '@/types/capabilities'
+import { type CapabilityRoute, type RailCapability } from '@/types/capabilities'
 
 describe('getRegionIntent', () => {
     it('maps each picker path to its 4-bucket intent', () => {
@@ -185,5 +186,59 @@ describe('isVerifiedForCountry reads the operation the flow runs', () => {
 
     it("another country's rail never answers for this one", () => {
         expect(isVerifiedForCountry(fullTier, 'AR', 'withdraw')).toBe(false)
+    })
+})
+
+const bridgeRail: RailCapability = {
+    id: 'bridge.ach_us',
+    provider: 'bridge',
+    method: 'ACH_US',
+    channel: 'bank',
+    country: 'US',
+    currency: 'USD',
+    status: 'enabled',
+}
+const pixRoute = (operation: CapabilityRoute['operation'], state: CapabilityRoute['state']): CapabilityRoute => ({
+    operation,
+    method: 'PIX_BR',
+    provider: state === 'refused' ? null : 'bridge',
+    state,
+    candidates: [],
+})
+const brazil = (routes?: CapabilityRoute[]) =>
+    deriveRegionAccess([bridgeRail], routes).unlockedRegions.find((region) => region.path === 'brazil')
+
+// A Bridge user with no Manteca rail sees Argentina and Brazil as QR-only regions on the Limits page.
+describe('deriveRegionAccess, the Brazil row', () => {
+    it('says Pix QR and Pix key payments where the pay route serves them, or no routes came', () => {
+        expect(brazil()?.description).toBe('Only Pix QR and Pix key payments')
+        // a user who lives outside Brazil: Manteca pays the code
+        expect(brazil([pixRoute('pay', 'ready')])?.descriptionKey).toBeUndefined()
+    })
+
+    // TASK-24910: a resident of Brazil pays no Pix QR, and moves money by Pix on the deposit and withdraw
+    // routes; the withdraw route also pays another person's key
+    it('says Pix deposits, withdrawals and key payments for a user the pay route refuses and the Pix routes serve', () => {
+        const row = brazil([pixRoute('pay', 'refused'), pixRoute('deposit', 'ready'), pixRoute('withdraw', 'pending')])
+        expect(row).toMatchObject({
+            description: 'Only Pix deposits, withdrawals and Pix key payments',
+            descriptionKey: 'brazilPix',
+        })
+    })
+
+    // no limits page states the limits of that Pix: the Brazil one states Pix QR limits
+    it('links the Pix row to no limits page, and the QR row still to its own', () => {
+        const pixRow = brazil([pixRoute('pay', 'refused'), pixRoute('deposit', 'ready')])
+        expect(pixRow?.noLimitsPage).toBe(true)
+        expect(brazil()?.noLimitsPage).toBeUndefined()
+        expect(brazil([pixRoute('pay', 'ready')])?.noLimitsPage).toBeUndefined()
+    })
+
+    it('lists no Brazil row where no Pix route is open either', () => {
+        expect(brazil([pixRoute('pay', 'refused'), pixRoute('deposit', 'refused')])).toBeUndefined()
+        const argentina = deriveRegionAccess([bridgeRail], [pixRoute('pay', 'refused')]).unlockedRegions.find(
+            (region) => region.path === 'argentina'
+        )
+        expect(argentina?.description).toBe('Only Mercado Pago QR payments')
     })
 })
