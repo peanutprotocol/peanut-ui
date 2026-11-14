@@ -29,11 +29,13 @@ export function resolveAddMoneyMethods(input: {
     }
     if (input.pixDepositOffered && !input.brazilPaused && !ready.pix.includes('BRL')) ready.pix.push('BRL')
     const drawerMethods: AddMoneyMethod[] = []
-    // Pix leads for a user on a route on Avenia (Aleks, 2026-11-12 and 2026-11-14). Any other route
-    // keeps the bank lists' BRL row instead (`useBankRows`), so Pix is never offered twice.
+    // Pix leads for a user on a route on Avenia (Aleks, 2026-11-12 and 2026-11-14). On any other route
+    // a Pix top-up that is already ready stays on the drawer, as before Avenia, after the bank methods:
+    // it can be the user's only ready fiat method.
     if (input.pixDepositOffered && ready.pix.length) drawerMethods.push('pix')
     if (ready.account.length) drawerMethods.push('account')
     if (ready.transfer.length) drawerMethods.push('transfer')
+    if (!input.pixDepositOffered && ready.pix.length) drawerMethods.push('pix')
     if (input.cryptoReady) drawerMethods.push('crypto')
     const usable = drawerMethods.length > 0
     const returning = !!input.firstPaymentAt || !!(ready.account.length || ready.transfer.length || ready.pix.length)

@@ -110,11 +110,14 @@ describe('resolveAddMoneyMethods', () => {
         expect(resolve({ residenceIso2s: ['BR'], pixDepositOffered: true, brazilPaused: true }).ready.pix).toEqual([])
     })
 
-    // Aleks, 2026-11-14: on any other route the bank lists keep the BRL row, so Home offers no Pix row
-    it('offers no Pix row on Home off a route on Avenia, even with a ready Pix top-up', () => {
+    // review finding 6: Pix leads only on Avenia, and a ready Pix top-up on another route (Manteca)
+    // stays on the drawer as before Avenia: it can be the user's only ready fiat method
+    it('keeps a ready Pix top-up off a route on Avenia on the drawer, after the bank methods', () => {
         const result = resolve({ residenceIso2s: ['BR'], readyTopUps: ['BRL'] })
         expect(result.ready.pix).toEqual(['BRL'])
-        expect(result.drawerMethods).toEqual(['crypto', 'more'])
+        expect(result.drawerMethods).toEqual(['pix', 'crypto', 'more'])
+        const withBank = resolve({ residenceIso2s: ['BR', 'US'], readyTopUps: ['BRL', 'USD'] })
+        expect(withBank.drawerMethods).toEqual(['transfer', 'pix', 'crypto', 'more'])
     })
 
     it('drops ready Pix when Brazil is paused without hiding an unrelated ready transfer', () => {
