@@ -73,13 +73,18 @@ export function ReceiptDetailsCard({
 }) {
     const t = useAppTranslations('transaction')
     const tCommon = useTranslations('common')
+    const tWithdraw = useTranslations('withdraw')
     const router = useRouter()
     const formatDate = useReceiptDateFormatter()
     const { rowVisibilityConfig, isGuestBankClaim, isPeanutWalletToken, country } = vm
 
     const bankAccountLabel = (type: string) => {
-        const key = bankAccountLabelKey(type)
+        const key = bankAccountLabelKey(type, {
+            provider: transaction.extraDataForDrawer?.provider,
+            currencyCode: transaction.currency?.code,
+        })
         if (key === 'address') return t('rows.address')
+        if (key === 'pixKey') return tWithdraw('manteca.destinationLabel', { country: 'BR' })
         return BANK_ACCOUNT_SCHEME_LABELS[key] ?? t('rows.accountNumber')
     }
 

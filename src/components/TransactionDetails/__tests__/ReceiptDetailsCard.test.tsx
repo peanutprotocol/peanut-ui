@@ -280,3 +280,47 @@ describe('ReceiptDetailsCard — network fee (TASK-23487)', () => {
         ).toBeTruthy()
     })
 })
+
+describe('ReceiptDetailsCard — the account a payout paid', () => {
+    const payout = (provider: string, type: string, identifier: string, currency: string) =>
+        ({
+            id: 'wd-1',
+            direction: 'bank_withdraw',
+            userName: 'Bank account',
+            fullName: '',
+            initials: 'BA',
+            amount: 18.87,
+            tokenSymbol: 'USDC',
+            status: 'completed',
+            date: '2026-11-14T10:00:00Z',
+            createdAt: '2026-11-14T10:00:00Z',
+            completedAt: '2026-11-14T10:04:00Z',
+            currency: { code: currency, amount: '100.00' },
+            bankAccountDetails: { identifier, type },
+            extraDataForDrawer: {
+                originalType: 'TRANSACTION_INTENT',
+                originalUserRole: EHistoryUserRole.SENDER,
+                kind: 'OFFRAMP',
+                provider,
+            },
+        }) as unknown as TransactionDetails
+
+    it('names a Pix key a Pix key on a Bridge payout', () => {
+        renderWithIntl(<Card transaction={payout('BRIDGE', 'BANK_PIX', 'ana.souza@example.com', 'brl')} />)
+        expect(screen.getByText('Pix key')).toBeInTheDocument()
+        expect(screen.getByText('ana.souza@example.com')).toBeInTheDocument()
+        expect(screen.queryByText('Account number')).not.toBeInTheDocument()
+    })
+
+    it('names a Pix key a Pix key on a Manteca payout in reais, whose account reads as a CBU', () => {
+        renderWithIntl(<Card transaction={payout('MANTECA', 'BANK_CBU', '+5511912345678', 'BRL')} />)
+        expect(screen.getByText('Pix key')).toBeInTheDocument()
+        expect(screen.queryByText('Account number')).not.toBeInTheDocument()
+    })
+
+    it('keeps Account number on a Manteca payout in pesos', () => {
+        renderWithIntl(<Card transaction={payout('MANTECA', 'BANK_CBU', '0000003100010000000001', 'ARS')} />)
+        expect(screen.getByText('Account number')).toBeInTheDocument()
+        expect(screen.queryByText('Pix key')).not.toBeInTheDocument()
+    })
+})

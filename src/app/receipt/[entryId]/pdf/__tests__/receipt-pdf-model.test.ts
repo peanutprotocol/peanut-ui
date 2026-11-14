@@ -395,6 +395,36 @@ describe('buildReceiptPdfModel — app locales', () => {
         expect(model.rows[0].label).toBe(dateLabel)
         expect(model.rows.at(-1)?.label).toBe(transferLabel)
     })
+
+    // Bridge types the paid account BANK_PIX; Manteca types it BANK_CBU, so its reais tell it apart
+    test.each([
+        ['en', 'Pix key'],
+        ['es-419', 'Clave Pix'],
+        ['es-AR', 'Clave Pix'],
+        ['pt-BR', 'Chave Pix'],
+    ] as const)('labels the Pix key a Pix payout paid in %s', async (locale, label) => {
+        const messages = await loadMessages(locale)
+        const translate = createTranslator({ locale, messages }) as PdfTranslate
+        const bridge = withOverrides(
+            {
+                bankAccountDetails: { identifier: 'ana.souza@example.com', type: 'BANK_PIX' },
+                currency: { amount: '100.00', code: 'brl' },
+            },
+            { provider: 'BRIDGE' }
+        )
+        const manteca = withOverrides(
+            {
+                bankAccountDetails: { identifier: '+5511912345678', type: 'BANK_CBU' },
+                currency: { amount: '100.00', code: 'BRL' },
+            },
+            { provider: 'MANTECA' }
+        )
+        for (const payout of [bridge, manteca]) {
+            const labels = buildReceiptPdfModel(payout, translate, locale).rows.map((r) => r.label)
+            expect(labels).toContain(label)
+            expect(labels).not.toContain(translate('transaction.rows.accountNumber'))
+        }
+    })
 })
 
 // representative coverage for the authenticated all-kinds pdf that #3159

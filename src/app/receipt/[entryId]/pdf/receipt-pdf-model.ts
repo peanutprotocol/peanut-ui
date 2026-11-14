@@ -148,11 +148,16 @@ export function buildReceiptPdfModel(
     // and shareable, so the unmasked guest-claim exception the in-app receipt
     // makes does not apply.
     if (transaction.bankAccountDetails?.identifier && !isCancelled) {
-        const labelKey = bankAccountLabelKey(transaction.bankAccountDetails.type)
+        const labelKey = bankAccountLabelKey(transaction.bankAccountDetails.type, {
+            provider: transaction.extraDataForDrawer?.provider,
+            currencyCode: transaction.currency?.code,
+        })
         const label =
             labelKey === 'address'
                 ? t('transaction.rows.address')
-                : (BANK_ACCOUNT_SCHEME_LABELS[labelKey] ?? t('transaction.rows.accountNumber'))
+                : labelKey === 'pixKey'
+                  ? t('withdraw.manteca.destinationLabel', { country: 'BR' })
+                  : (BANK_ACCOUNT_SCHEME_LABELS[labelKey] ?? t('transaction.rows.accountNumber'))
         push(
             label,
             maskAccountIdentifier(transaction.bankAccountDetails.identifier, transaction.bankAccountDetails.type)

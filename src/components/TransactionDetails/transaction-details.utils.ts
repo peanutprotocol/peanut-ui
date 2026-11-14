@@ -177,18 +177,27 @@ export const senderNoteText = (raw: string | null | undefined): string | undefin
 
 /** Which label a bank-account row carries. Callers map it to display text —
  *  this module stays copy-free. */
-export type BankAccountLabelKey = 'iban' | 'clabe' | 'accountNumber' | 'address'
+export type BankAccountLabelKey = 'iban' | 'clabe' | 'accountNumber' | 'address' | 'pixKey'
 
 /**
  * BE sends Prisma `AccountType` enum values like `BANK_IBAN` / `BANK_CLABE`
  * (not raw `'iban'`). Match by suffix so `BANK_IBAN` → `'iban'` without a
  * separate normalisation layer at every call site.
+ *
+ * A Pix payout's account is the Pix key it paid. Bridge types it `BANK_PIX`;
+ * Manteca types every payout account `BANK_CBU` (api `manteca/history.ts`),
+ * so a Manteca payout in reais is told by its currency (`payout`).
  */
-export const bankAccountLabelKey = (type: string): BankAccountLabelKey => {
+export const bankAccountLabelKey = (
+    type: string,
+    payout?: { provider?: string; currencyCode?: string }
+): BankAccountLabelKey => {
     const t = type.toLowerCase()
     if (isCryptoAddressType(type)) return 'address'
     if (t.endsWith('iban')) return 'iban'
     if (t.endsWith('clabe')) return 'clabe'
+    if (t.endsWith('pix') || (payout?.provider === 'MANTECA' && payout.currencyCode?.toUpperCase() === 'BRL'))
+        return 'pixKey'
     return 'accountNumber'
 }
 
