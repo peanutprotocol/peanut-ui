@@ -16,9 +16,14 @@ import {
     type KycReplacementChoices,
 } from './types/kyc-workflow.types'
 
-async function readResponse<T>(path: string, options?: RequestInit): Promise<T> {
+type GuardedRequest = RequestInit & { beforeDispatch?: () => boolean }
+
+async function readResponse<T>(path: string, options?: GuardedRequest): Promise<T> {
     const response = await serverFetch(path, {
         ...options,
+        ...(options?.signal && {
+            beforeDispatch: () => !options.signal!.aborted && (options.beforeDispatch?.() ?? true),
+        }),
         headers: { ...kycClientHeaders(), ...(options?.headers as Record<string, string> | undefined) },
         cache: 'no-store',
         redactTelemetry: true,
@@ -47,10 +52,11 @@ async function readResponse<T>(path: string, options?: RequestInit): Promise<T> 
     }
     return body as T
 }
-async function read<T>(path: string, options?: RequestInit): Promise<T> {
+async function read<T>(path: string, options?: GuardedRequest): Promise<T> {
     try {
         return await readResponse<T>(path, options)
     } catch (error) {
+        if (options?.signal?.aborted) throw error
         const failure = error as { status?: number; code?: string }
         if (
             path !== '/users/kyc/identity/refresh' &&
@@ -87,8 +93,8 @@ const KNOWN_STATUSES = new Set([
     'FAILED',
 ])
 
-export async function getKycDocumentPlan(restart = false): Promise<KycDocumentPlan> {
-    const plan = await read<KycDocumentPlan>(`/users/kyc/plan${restart ? '?restart=true' : ''}`)
+export async function getKycDocumentPlan(restart = false, signal?: AbortSignal): Promise<KycDocumentPlan> {
+    const plan = await read<KycDocumentPlan>(`/users/kyc/plan${restart ? '?restart=true' : ''}`, { signal })
     if (typeof plan.available !== 'boolean' || !Array.isArray(plan.routes))
         throw contractError('/users/kyc/plan', 'GET', 200, 'invalid_plan')
     return plan
@@ -128,11 +134,16 @@ export class KycPlanUnavailableError extends Error {
  * a legacy applicant for a Smart Paperwork Verification user, and that applicant
  * shuts them out of the new flow for good.
  */
-export async function findKycDocumentPlan(source?: KycPlanReadSource): Promise<KycDocumentPlan | null> {
+export async function findKycDocumentPlan(
+    source?: KycPlanReadSource,
+    signal?: AbortSignal
+): Promise<KycDocumentPlan | null> {
     for (let attempt = 1; ; attempt++) {
+        if (signal?.aborted) throw signal.reason
         try {
-            return await getKycDocumentPlan()
+            return await getKycDocumentPlan(false, signal)
         } catch (error) {
+            if (signal?.aborted) throw signal.reason
             const { status, code } = error as { status?: number; code?: string }
             if (code === API_CONTRACT_ERROR) {
                 if (!isTestApiBuild()) return null
@@ -191,11 +202,18 @@ export async function startKycDocumentReplacement(replacement: KycReplacementCho
         return { kind: 'failed', code: 'invalid_response' }
     }
 }
-export async function resumeKycDocumentAttempt(attemptId: string) {
+export async function resumeKycDocumentAttempt(
+    attemptId: string,
+    beforeDispatch?: () => boolean,
+    signal?: AbortSignal
+) {
     let status: number | undefined
     try {
         const response = await serverFetch(`/users/kyc/attempts/${encodeURIComponent(attemptId)}/token`, {
             method: 'POST',
+            ...(signal
+                ? { signal, beforeDispatch: () => !signal.aborted && (beforeDispatch?.() ?? true) }
+                : beforeDispatch && { beforeDispatch }),
             body: '{}',
             headers: kycClientHeaders(),
             cache: 'no-store',
@@ -222,7 +240,12 @@ export async function resumeKycDocumentAttempt(attemptId: string) {
         // Conflicts carry a stable `code`; older bodies name it only in `error`.
         if (response.status === 409 && [body?.code, body?.error].includes('replacement_reset_required'))
             return validSession(
-                await read<KycAttemptSession>('/users/identity/restart', { method: 'POST', body: '{}' })
+                await read<KycAttemptSession>('/users/identity/restart', {
+                    method: 'POST',
+                    body: '{}',
+                    ...(signal && { signal }),
+                    ...(beforeDispatch && { beforeDispatch }),
+                })
             )
         throw Object.assign(new Error('KYC request failed'), {
             code: body?.code ?? body?.error,
@@ -230,6 +253,7 @@ export async function resumeKycDocumentAttempt(attemptId: string) {
             userMessage: typeof body?.userMessage === 'string' ? body.userMessage : undefined,
         })
     } catch (error) {
+        if (signal?.aborted) throw error
         if (
             (error as { code?: string })?.code !== API_CONTRACT_ERROR &&
             !(status !== undefined && status >= 200 && status < 500)
@@ -239,8 +263,8 @@ export async function resumeKycDocumentAttempt(attemptId: string) {
     }
 }
 /** Read-only fallback for a missed identity websocket event; never opens or refreshes an applicant. */
-export async function getKycDocumentStatus(): Promise<SumsubKycStatus | undefined> {
-    const profile = await read<{ identity: { canonicalStatus: string } | null }>('/users/kyc/profile')
+export async function getKycDocumentStatus(signal?: AbortSignal): Promise<SumsubKycStatus | undefined> {
+    const profile = await read<{ identity: { canonicalStatus: string } | null }>('/users/kyc/profile', { signal })
     const status = profile.identity?.canonicalStatus
     if (profile.identity !== null && (typeof status !== 'string' || !KNOWN_STATUSES.has(status)))
         throw contractError('/users/kyc/profile', 'GET', 200, 'invalid_status')

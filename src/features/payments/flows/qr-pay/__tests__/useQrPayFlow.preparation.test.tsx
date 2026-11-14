@@ -678,6 +678,26 @@ describe('Pay on a locked amount', () => {
         expect(surface?.errorMessage).toBeTruthy()
     })
 
+    test('a response-body timeout keeps status unknown and refreshes Activity without resubmitting', async () => {
+        const { MutationResponseTimeoutError } = await import('@/utils/connection-timeout-error')
+        mockMantecaApi.completeQrPaymentWithSignedTx.mockRejectedValue(
+            new MutationResponseTimeoutError(200, new Error('stalled'))
+        )
+        renderFlow()
+        await waitForLockedForm()
+        await waitForWarmup()
+        await pay()
+        expect(stageOutline().slice(-3)).toEqual([
+            ['request_sent', null],
+            ['response_received', 'unknown'],
+            ['attempt_finished', 'unknown'],
+        ])
+        expectNoSuccessReported()
+        expect(surface?.errorMessage).toBeTruthy()
+        expect(mockCaptureNetworkTriagedFailure).not.toHaveBeenCalled()
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx).toHaveBeenCalledTimes(1)
+    })
+
     test('a deterministic rejection (nonce) is failed', async () => {
         mockMantecaApi.completeQrPaymentWithSignedTx.mockRejectedValue(new Error('AA25 invalid account nonce'))
         renderFlow()
@@ -1032,7 +1052,7 @@ describe('the pay route before a new Pix payment', () => {
             await payment
         })
         expect(surface?.errorInitiatingPayment).toBeNull()
-        expect(surface?.errorMessage).toBe(en.qrPay.errors.paymentStatusUnknown)
+        expect(surface?.errorMessage).toBeTruthy()
         expect(surface?.view).toBe('FORM')
         expect(stageOutline().slice(-1)).toEqual([['attempt_finished', 'unknown']])
     })

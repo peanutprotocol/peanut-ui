@@ -38,40 +38,45 @@ export async function nativeHttpRequest(
     timeoutMs: number,
     beforeDispatch?: () => boolean
 ): Promise<Response> {
-    const { CapacitorHttp } = await import('@capacitor/core')
-
-    if (options.signal?.aborted || (beforeDispatch && !beforeDispatch()))
-        throw Object.assign(new Error('The request was cancelled'), { name: 'AbortError' })
-
-    const method = (options.method || 'GET').toUpperCase()
-    const headers = Object.fromEntries(new Headers(options.headers as HeadersInit | undefined).entries())
-    let data = typeof options.body === 'string' ? options.body : undefined
-    // Android's HttpURLConnection labels a bodyless POST/PUT/PATCH/DELETE as a
-    // form, which the API answers with 415 (PEANUT-UI-TCY). An empty JSON body
-    // is a 400 there, so send an empty object instead.
-    if (data === undefined && method !== 'GET' && method !== 'HEAD' && !('content-type' in headers)) {
-        headers['content-type'] = 'application/json'
-        data = '{}'
-    }
-
+    const deadline = Date.now() + timeoutMs
     let expire: ReturnType<typeof setTimeout> | undefined
+    let expired = false
     const response = await Promise.race([
-        CapacitorHttp.request({
-            url,
-            method,
-            headers,
-            data,
-            connectTimeout: timeoutMs,
-            readTimeout: timeoutMs,
-            responseType: 'text',
-        }),
+        (async () => {
+            const { CapacitorHttp } = await import('@capacitor/core')
+
+            if (options.signal?.aborted || (beforeDispatch && !beforeDispatch()))
+                throw Object.assign(new Error('The request was cancelled'), { name: 'AbortError' })
+
+            const method = (options.method || 'GET').toUpperCase()
+            const headers = Object.fromEntries(new Headers(options.headers as HeadersInit | undefined).entries())
+            let data = typeof options.body === 'string' ? options.body : undefined
+            // Android's HttpURLConnection labels a bodyless POST/PUT/PATCH/DELETE as a
+            // form, which the API answers with 415 (PEANUT-UI-TCY). An empty JSON body
+            // is a 400 there, so send an empty object instead.
+            if (data === undefined && method !== 'GET' && method !== 'HEAD' && !('content-type' in headers)) {
+                headers['content-type'] = 'application/json'
+                data = '{}'
+            }
+
+            if (expired || Date.now() >= deadline)
+                throw Object.assign(new Error('native http timed out'), { name: 'AbortError' })
+            return CapacitorHttp.request({
+                url,
+                method,
+                headers,
+                data,
+                connectTimeout: timeoutMs,
+                readTimeout: timeoutMs,
+                responseType: 'text',
+            })
+        })(),
         new Promise<never>((_, reject) => {
-            expire = setTimeout(
-                // AbortError so fetchWithSentry classifies this as the timeout
-                // it is, rather than as an opaque transport rejection.
-                () => reject(Object.assign(new Error('native http timed out'), { name: 'AbortError' })),
-                timeoutMs
-            )
+            expire = setTimeout(() => {
+                expired = true
+                // AbortError keeps fetchWithSentry's timeout classification.
+                reject(Object.assign(new Error('native http timed out'), { name: 'AbortError' }))
+            }, timeoutMs)
         }),
     ]).finally(() => clearTimeout(expire))
 

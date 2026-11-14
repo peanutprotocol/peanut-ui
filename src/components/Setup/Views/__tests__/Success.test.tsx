@@ -3,6 +3,8 @@ import { act, screen } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import SuccessStep from '../Success'
 import { disableDemoMode, enableDemoMode } from '@/utils/demo'
+import posthog from 'posthog-js'
+import { onSignupScreen, signupControls } from '@/test-utils/signup-controls'
 
 let mockCompleted = false
 const mockRedirect = jest.fn()
@@ -14,8 +16,10 @@ const mockConfetti = jest.fn()
 jest.mock('@/utils/confetti', () => ({ confettiPresets: { success: () => mockConfetti() } }))
 jest.mock('@/utils/haptics', () => ({ notifyHaptic: (...args: unknown[]) => mockHaptic(...args) }))
 jest.mock('@/features/setup/SetupFlowContext', () => ({
+    useOptionalSetupFlow: () => null,
     useSetupFlowContext: () => ({ signupCompleted: mockCompleted }),
 }))
+jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 jest.mock('@/hooks/useAccountSetup', () => ({ useAccountSetup: () => ({ handleRedirect: mockRedirect }) }))
 jest.mock('@/components/Global/PeanutMascot', () => ({
     __esModule: true,
@@ -70,4 +74,12 @@ it('sends a demo celebration to home instead of consuming a signup deep link', (
     expect(mockReplace).toHaveBeenCalledTimes(1)
     expect(mockReplace).toHaveBeenCalledWith('/home')
     expect(mockRedirect).not.toHaveBeenCalled()
+})
+
+it('reports the celebration once in Strict Mode on the merged final step', () => {
+    mockCompleted = true
+    const tree = <StrictMode>{onSignupScreen('advantage-control', <SuccessStep />)}</StrictMode>
+    const view = renderWithIntl(tree)
+    view.rerender(tree)
+    expect(signupControls(posthog.capture as jest.Mock)).toEqual(['celebration:open'])
 })

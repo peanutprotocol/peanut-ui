@@ -59,7 +59,12 @@ jest.mock('@/components/Common/CountryList', () => ({
             <button
                 data-testid="country-germany"
                 data-supported={String(props.isCountrySupported({ type: 'country', iso2: 'DE', currency: 'EUR' }))}
-                onClick={() => props.onCountryClick({ type: 'country', iso2: 'DE', currency: 'EUR', path: 'germany' })}
+                onClick={() => {
+                    const country = { type: 'country', iso2: 'DE', currency: 'EUR', path: 'germany' }
+                    const supported = props.isCountrySupported(country)
+                    props.onCountrySelect?.(country, supported ? 'route' : 'waitlist')
+                    if (supported) props.onCountryClick(country)
+                }}
             >
                 Germany
             </button>
@@ -189,8 +194,11 @@ const list = (
         unavailable?: Partial<Record<DepositCorridor, UnavailableCorridor>>
         slotsHeld?: number
         accountLimit?: number
+        presentation?: 'add-money' | 'bank-account'
+        onBack?: () => void
         onOpen?: (corridor: DepositCorridor) => void
         onRetry?: () => void
+        strictMode?: boolean
         /** the hub reads `?method=` to decide whether crypto is still a question */
         searchParams?: string
     } = {}
@@ -199,6 +207,7 @@ const list = (
         <NextIntlClientProvider locale="en" messages={messages}>
             <NuqsTestingAdapter searchParams={opts.searchParams ?? ''}>
                 <DepositAccountsListScreen
+                    presentation={opts.presentation}
                     corridors={opts.corridors ?? DEPOSIT_RAIL_ORDER}
                     accounts={opts.accounts ?? NONE}
                     claimable={{ ...emptyCorridorRecord<ClaimableCorridor>(), ...opts.claimable }}
@@ -208,12 +217,13 @@ const list = (
                     gates={opts.gates ?? allGates()}
                     isLoading={isLoading}
                     isError={opts.isError ?? false}
-                    onBack={() => {}}
+                    onBack={opts.onBack ?? (() => {})}
                     onOpen={opts.onOpen ?? (() => {})}
                     onRetry={opts.onRetry ?? (() => {})}
                 />
             </NuqsTestingAdapter>
-        </NextIntlClientProvider>
+        </NextIntlClientProvider>,
+        { reactStrictMode: opts.strictMode }
     )
 
 /** a corridor the backend withholds from this user, and why */
@@ -1237,6 +1247,94 @@ describe('crypto and the countries', () => {
     })
 })
 
+describe('Add Money analytics', () => {
+    const capture = (jest.requireMock('posthog-js') as { default: { capture: jest.Mock } }).default.capture
+    const capturedNames = () => capture.mock.calls.map(([name]) => name)
+    const pickGermany = () => fireEvent.click(screen.getByTestId('country-germany'))
+    const openSource = (source: 'all_countries' | 'search' | 'none') => {
+        if (source === 'all_countries') fireEvent.click(countriesTrigger())
+        if (source === 'search') search('Germ')
+    }
+
+    it('captures one view per visit under Strict Mode and across rerenders', () => {
+        const view = list(false, { strictMode: true })
+        search('Germ')
+        search('')
+        expect(capturedNames().filter((name) => name === 'add_money_viewed')).toHaveLength(1)
+        view.unmount()
+        list(false, { strictMode: true })
+        expect(capturedNames().filter((name) => name === 'add_money_viewed')).toHaveLength(2)
+        expect(capturedNames()).not.toContain('add_money_back_tapped')
+    })
+
+    it('reports explicit accordion toggles and leaves search out of the toggle count', () => {
+        list(false)
+        fireEvent.click(countriesTrigger())
+        fireEvent.click(countriesTrigger())
+        search('Germ')
+        search('')
+        fireEvent.click(countriesTrigger())
+        expect(capturedNames().filter((name) => name.startsWith('add_money_country_list_'))).toEqual([
+            'add_money_country_list_opened',
+            'add_money_country_list_closed',
+            'add_money_country_list_opened',
+        ])
+        expect(JSON.stringify(capture.mock.calls)).not.toContain('Germ')
+    })
+
+    it.each([
+        ['all_countries', 'route'],
+        ['all_countries', 'waitlist'],
+        ['search', 'route'],
+        ['search', 'waitlist'],
+    ] as const)('records the %s country selection and its %s outcome', (source, outcome) => {
+        mockIsCountrySupported.mockReturnValue(outcome === 'route')
+        list(false)
+        openSource(source)
+        pickGermany()
+
+        expect(capture).toHaveBeenCalledWith('add_money_country_selected', { country: 'germany', source, outcome })
+        expect(JSON.stringify(capture.mock.calls)).not.toContain('Germ')
+        expect(mockOpenCountry).toHaveBeenCalledTimes(outcome === 'route' ? 1 : 0)
+    })
+
+    it.each(['all_countries', 'search', 'none'] as const)('reports a Back tap with %s as context', (source) => {
+        const onBack = jest.fn()
+        list(false, { onBack })
+        openSource(source)
+        fireEvent.click(screen.getByTestId('nav-back'))
+
+        expect(capture).toHaveBeenCalledWith('add_money_back_tapped', { country_list_source: source })
+        expect(onBack).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not mix the Bank account presentation into the Add Money funnel', () => {
+        const onBack = jest.fn()
+        list(false, { presentation: 'bank-account', onBack })
+        fireEvent.click(screen.getByTestId('nav-back'))
+
+        expect(onBack).toHaveBeenCalledTimes(1)
+        expect(capturedNames().filter((name) => name.startsWith('add_money_'))).toEqual([])
+    })
+
+    it('preserves country navigation and Back when capture throws', () => {
+        const onBack = jest.fn()
+        capture.mockImplementation(() => {
+            throw new Error('PostHog unavailable')
+        })
+        try {
+            list(false, { onBack })
+            openSource('all_countries')
+            pickGermany()
+            fireEvent.click(screen.getByTestId('nav-back'))
+            expect(mockOpenCountry).toHaveBeenCalledTimes(1)
+            expect(onBack).toHaveBeenCalledTimes(1)
+        } finally {
+            capture.mockReset()
+        }
+    })
+})
+
 describe('the account counter', () => {
     const counter = (used: number, cap: number) =>
         LIST.accountCounter.replace('{used}', String(used)).replace('{cap}', String(cap))
@@ -1469,7 +1567,7 @@ describe('the hub copy exists in every catalog', () => {
         'badgeLimitReached',
         'notOfferedBody',
         'countriesTitle',
-        'countriesPitch',
+        'badgeNotOffered',
     ]
 
     it('es-419 and pt-BR carry every key the hub reads', () => {

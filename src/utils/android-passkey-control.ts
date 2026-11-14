@@ -8,6 +8,7 @@ import { sanitizePasskeyDiagnostics } from './android-passkey-diagnostics'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { assertPasskeyRegistrationCompatible } from './passkey-registration-compatibility'
 import { nativePasskeyFailure } from './native-passkey-errors'
+import { timingForCredentialOptions } from './webauthn-ceremony-telemetry'
 
 interface Controls {
     cancelRequest(options: { requestId: string }): Promise<AndroidPasskeyCancelAck>
@@ -139,24 +140,31 @@ export function installAndroidPasskeyControl(plugin: CapacitorPasskeyPlugin): vo
             if (scope?.expired) return Promise.reject(expired())
             const started = Date.now()
             const operation = method === 'getCredential' ? 'get' : 'create'
+            let attemptId: string | undefined
+            try {
+                attemptId = timingForCredentialOptions?.(options)?.id
+            } catch {}
             let invoked = false
             return controller
-                .run<Awaited<ReturnType<typeof invoke>>>((requestId, { contended }) => {
-                    // The flow may have expired while this call waited for an abandoned request's grace.
-                    if (scope?.expired) throw expired()
-                    invoked = true
-                    if (scope) scope.cancel = () => controller.cancelRequest(requestId)
-                    // The pinned plugin patch forwards this control ID outside WebAuthn JSON.
-                    return Promise.resolve(invoke({ ...options, requestId } as never)).catch((cause: unknown) => {
-                        if (!contended || isAndroidNativePendingError(cause) || !isUnnamedNativeFailure(cause))
-                            throw cause
-                        lifecycle({ phase: 'contended_failure' })
-                        throw Object.assign(new Error('The previous passkey request is still closing'), {
-                            name: 'PasskeyRequestSettlingError',
-                            cause,
+                .run<Awaited<ReturnType<typeof invoke>>>(
+                    (requestId, { contended }) => {
+                        // The flow may have expired while this call waited for an abandoned request's grace.
+                        if (scope?.expired) throw expired()
+                        invoked = true
+                        if (scope) scope.cancel = () => controller.cancelRequest(requestId)
+                        // The pinned plugin patch forwards this control ID outside WebAuthn JSON.
+                        return Promise.resolve(invoke({ ...options, requestId } as never)).catch((cause: unknown) => {
+                            if (!contended || isAndroidNativePendingError(cause) || !isUnnamedNativeFailure(cause))
+                                throw cause
+                            lifecycle({ phase: 'contended_failure' })
+                            throw Object.assign(new Error('The previous passkey request is still closing'), {
+                                name: 'PasskeyRequestSettlingError',
+                                cause,
+                            })
                         })
-                    })
-                })
+                    },
+                    { attemptId }
+                )
                 .then((result) => {
                     // Reject before the shim lets the SDK submit register/verify and reserve the username.
                     if (method === 'createCredential') assertPasskeyRegistrationCompatible(result)

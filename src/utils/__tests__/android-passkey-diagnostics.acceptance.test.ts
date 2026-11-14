@@ -1,6 +1,17 @@
 import { sanitizePasskeyDiagnostics } from '@/utils/android-passkey-diagnostics'
 
 describe('passkey diagnostic privacy boundary', () => {
+    it('allows generated attempt correlation only on a known late settlement', () => {
+        const facts = { phase: 'late_settlement', attempt_id: 'mwdhx1c0abc123-1', native_settled_after_timeout: true }
+        expect(sanitizePasskeyDiagnostics(facts)).toEqual(facts)
+        for (const attempt_id of ['', 'user@example.org', 'https://origin.test', 'a'.repeat(65), {}, 123]) {
+            expect(sanitizePasskeyDiagnostics({ ...facts, attempt_id })).toEqual({ phase: 'late_settlement' })
+        }
+        expect(sanitizePasskeyDiagnostics({ ...facts, phase: 'abandoned' })).toEqual({ phase: 'abandoned' })
+        expect(sanitizePasskeyDiagnostics({ ...facts, native_settled_after_timeout: false })).toEqual({
+            phase: 'late_settlement',
+        })
+    })
     it('preserves the explicitly allowed, valid non-secret facts', () => {
         const facts = {
             androidSdk: 35,

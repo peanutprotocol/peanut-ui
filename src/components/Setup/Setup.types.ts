@@ -14,6 +14,7 @@ export type ScreenId =
     | 'welcome'
     | 'invite'
     | 'signup'
+    | 'passkey'
     | 'advantage-card'
     | 'advantage-bank'
     | 'advantage-fees'
@@ -36,6 +37,7 @@ export type ScreenProps = {
     landing: undefined
     welcome: undefined
     signup: undefined
+    passkey: undefined
     'advantage-card': undefined
     'advantage-bank': undefined
     'advantage-fees': undefined

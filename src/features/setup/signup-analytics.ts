@@ -4,7 +4,7 @@ import type { StoredRedirect } from '@/utils/general.utils'
 import { isReturningDevice } from '@/utils/returning-device'
 import posthog from 'posthog-js'
 
-export const SIGNUP_FLOW_VERSION = 1
+export const SIGNUP_FLOW_VERSION = 2
 
 export type SignupEntryFlow = 'default' | 'add-money' | 'identity-verification' | 'card' | 'claim' | 'other'
 export type SignupAnalyticsScreenId = ScreenId | 'account-ready' | 'setup-error' | 'unsupported-browser'

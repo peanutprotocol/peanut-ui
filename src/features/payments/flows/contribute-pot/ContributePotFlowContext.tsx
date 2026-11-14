@@ -98,6 +98,8 @@ interface ContributePotFlowContextValue {
     setPayment: (payment: PaymentCreationResponse | null) => void
     txHash: Hash | null
     setTxHash: (hash: Hash | null) => void
+    isPaymentStatusUnknown: boolean
+    setIsPaymentStatusUnknown: (unknown: boolean) => void
     isExternalWalletPayment: boolean
     setIsExternalWalletPayment: (isExternalWalletPayment: boolean) => void
 
@@ -153,6 +155,7 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
     const [charge, setCharge] = useState<TRequestChargeResponse | null>(null)
     const [payment, setPayment] = useState<PaymentCreationResponse | null>(null)
     const [txHash, setTxHash] = useState<Hash | null>(null)
+    const [isPaymentStatusUnknown, setIsPaymentStatusUnknown] = useState(false)
     const [isExternalWalletPayment, setIsExternalWalletPayment] = useState(false)
 
     // ui state
@@ -214,6 +217,7 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
         setError({ showError: false, errorMessage: '' })
         setIsLoading(false)
         setIsSuccess(false)
+        setIsPaymentStatusUnknown(false)
         setIsExternalWalletPayment(false)
     }, [])
 
@@ -248,6 +252,8 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
             totalCollected,
             contributors,
             resetContributePotFlow,
+            isPaymentStatusUnknown,
+            setIsPaymentStatusUnknown,
             isExternalWalletPayment,
             setIsExternalWalletPayment,
         }),
@@ -270,6 +276,7 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
             totalCollected,
             contributors,
             resetContributePotFlow,
+            isPaymentStatusUnknown,
             isExternalWalletPayment,
             setIsExternalWalletPayment,
         ]

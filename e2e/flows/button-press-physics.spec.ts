@@ -19,6 +19,11 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 import { KEEP_WEB_COOKIE, KEEP_WEB_TOKEN } from '../../src/constants/migration.consts'
 
+// The app writes this cookie with saveToCookie (JSON, then URI-encoded) and
+// reads it back with JSON.parse; a raw token fails that parse and leaves web
+// signup closed.
+const KEEP_WEB_COOKIE_VALUE = encodeURIComponent(JSON.stringify(KEEP_WEB_TOKEN))
+
 // a Button in shadow mode. Raw `btn btn-primary` markup on marketing pages
 // carries the look but not the press classes, so it is not this contract.
 const pressable = (page: Page, variant: string) => page.locator(`.${variant}[class*="active:translate-x-1"]`).first()
@@ -128,17 +133,24 @@ test.describe('Button press physics', () => {
     // navigation row, and its circles were the last call site still drawing a
     // secondary button with the shadow stripped — a white chip on the #90a8ed
     // hero, which is the state the board does not have (kush QA 2026-09-21).
-    // The username step's back circle renders that row with no backend and no
+    // The first onboarding step's back circle renders that row with no backend and no
     // login. (/setup/finish used to, through a log-out circle that moved under
     // its primary in the Release 164 smoke-test fixes.)
     test('the setup nav circle is a ring on the hero, not a white chip', async ({ page, baseURL }) => {
         // web signup is app-only; the support keep-web cookie reopens it in this browser
-        await page.context().addCookies([{ name: KEEP_WEB_COOKIE, value: KEEP_WEB_TOKEN, url: baseURL! }])
+        await page.context().addCookies([{ name: KEEP_WEB_COOKIE, value: KEEP_WEB_COOKIE_VALUE, url: baseURL! }])
+        // Same-origin only. A country from ipapi.co, with no API to say what that
+        // country is offered, hides both sell screens, so the step after Welcome
+        // would depend on the runner's IP and ipapi's rate limit.
+        await page.route('**/*', (route) => {
+            const { hostname } = new URL(route.request().url())
+            return hostname === '127.0.0.1' || hostname === 'localhost' ? route.continue() : route.abort()
+        })
         await page.goto('/setup', { waitUntil: 'domcontentloaded' })
         const signUp = page.getByRole('button', { name: 'Sign up' })
         await expect(signUp).toBeVisible({ timeout: 60_000 })
         await signUp.click()
-        await expect(page).toHaveURL(/screen=signup/)
+        await expect(page).toHaveURL(/screen=advantage-fees/)
 
         const circle = page.getByRole('button', { name: 'Go back' })
         await expect(circle).toBeVisible()

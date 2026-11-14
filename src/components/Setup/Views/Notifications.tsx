@@ -26,6 +26,7 @@ import {
     trackPromptAnswer,
 } from '@/features/setup/notificationsExperiment'
 import NotificationsControl from './NotificationsControl'
+import { useSignupControl } from '@/features/setup/useSignupControl'
 import NotificationsStepLayout from '../components/NotificationsStepLayout'
 import { useSessionFence, type SessionFence } from '@/hooks/useSessionFence'
 import {
@@ -60,7 +61,7 @@ const DEFAULTS_ON: NotificationChoices = {
  * user changes one, and Offers and perks still starts off.
  * Continue asks the OS when a push switch is on and saves what its answer allows.
  */
-function NotificationSwitches({ variant }: { variant: SwitchesVariant }) {
+export function NotificationSwitches({ variant }: { variant: SwitchesVariant }) {
     const t = useTranslations('setup.notifications')
     const tSetup = useTranslations('setup')
     const {
@@ -79,9 +80,13 @@ function NotificationSwitches({ variant }: { variant: SwitchesVariant }) {
     const permissionRef = useRef<PushPermission>()
     const captureSession = useSessionFence()
     const { push, marketingPush, emailUpdates } = notificationChoices
+    const { track, trackError } = useSignupControl()
     const anyOn = push || marketingPush || emailUpdates
 
     const onToggle = (key: Switch, on: boolean) => {
+        const control = { push: 'push', marketingPush: 'marketing_push', emailUpdates: 'email_updates' }[key]
+        track(control, 'toggle', on ? 'on' : 'off')
+        trackError('notification_preferences', null)
         setError(undefined)
         const cascade = key === 'push' && on && !notificationChoices.cascaded
         setNotificationChoices({
@@ -93,6 +98,7 @@ function NotificationSwitches({ variant }: { variant: SwitchesVariant }) {
 
     const askPermission = async (session: SessionFence): Promise<PushPermission> => {
         if (permissionRef.current) return permissionRef.current
+        trackError('push_permission', null)
         try {
             const permission = toPushPermission(await requestPermission())
             if (!session.current()) return 'dismissed'
@@ -100,9 +106,13 @@ function NotificationSwitches({ variant }: { variant: SwitchesVariant }) {
             if (!session.current()) return 'dismissed'
             permissionRef.current = permission
             trackPromptAnswer(variant, permission)
+            trackError('push_permission', permission === 'granted' ? null : permission)
             return permission
         } catch {
-            if (session.current()) trackPromptAnswer(variant, 'dismissed')
+            if (session.current()) {
+                trackPromptAnswer(variant, 'dismissed')
+                trackError('push_permission', 'dismissed')
+            }
             return 'dismissed'
         }
     }
@@ -111,6 +121,8 @@ function NotificationSwitches({ variant }: { variant: SwitchesVariant }) {
         if (savingRef.current) return
         const session = captureSession()
         if (!session.current()) return
+        track(skip ? 'not_now' : 'continue', 'tap')
+        trackError('notification_preferences', null)
         savingRef.current = true
         setSaving(true)
         setSetupLoading(true)
@@ -141,6 +153,7 @@ function NotificationSwitches({ variant }: { variant: SwitchesVariant }) {
             // A skip needs acknowledgement too: the API stores only opt-outs, so unsaved Email updates stays on.
             if (!ok) {
                 setError(t('saveFailed'))
+                trackError('notification_preferences', 'save_failed')
                 return
             }
             setNotificationChoices(saved)
@@ -164,7 +177,10 @@ function NotificationSwitches({ variant }: { variant: SwitchesVariant }) {
     return (
         // Balanced, so the two-line title breaks after "notifications" instead of leaving the last words alone.
         <NotificationsStepLayout title={tSetup('steps.notification-permission.title')} titleClassName="text-balance">
-            <div className="flex flex-1 flex-col justify-center gap-3">
+            <div
+                className="flex min-h-0 flex-1 flex-col justify-center-safe gap-3 overflow-y-auto overscroll-contain"
+                data-testid="setup-notification-choices"
+            >
                 {/* A toggle row sets a preference, so its bubble is blue (design.md icon bubble ruling). */}
                 <ListGroup>
                     {SWITCHES.map(({ key, icon, label }) => (

@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
+import { USER } from '@/constants/query.consts'
 import {
     ENDORSEMENT_POLL_MS,
     MAX_PROVISIONING_POLLS,
@@ -681,6 +682,51 @@ describe('deposit-account cache isolation', () => {
         await waitFor(() => expect(onVerificationRequired).toHaveBeenCalledWith('BANK_TRANSFER_CO'))
         expect(result.current.claimError).toBeUndefined()
     })
+
+    it('passes the explicit SEPA identity restart through even when capabilities are stale', async () => {
+        resolveAccounts([])
+        gatesByRailId = { 'bridge.sepa_eu': { kind: 'ready' } }
+        const nextAction = {
+            key: 'restart-identity',
+            kind: 'restart-identity',
+            purpose: 'identity_document_insufficient',
+        }
+        claimDepositAccount.mockResolvedValue({ outcome: 'verification_required', nextAction })
+        const onVerificationRequired = jest.fn()
+
+        const { result } = renderHook(() => useDepositAccounts({ onVerificationRequired }), { wrapper })
+        await waitFor(() => expect(result.current.isLoading).toBe(false))
+        act(() => result.current.claim('SEPA_EU'))
+
+        await waitFor(() => expect(onVerificationRequired).toHaveBeenCalledWith('SEPA_EU', nextAction))
+        expect(result.current.claimError).toBeUndefined()
+    })
+
+    it('does not forward a late SEPA restart after the signed-in user changes', async () => {
+        resolveAccounts([])
+        let resolveClaim!: (value: unknown) => void
+        claimDepositAccount.mockImplementation(() => new Promise((resolve) => (resolveClaim = resolve)))
+        const onVerificationRequired = jest.fn()
+        const { result, rerender } = renderHook(() => useDepositAccounts({ onVerificationRequired }), { wrapper })
+        await waitFor(() => expect(result.current.isLoading).toBe(false))
+        act(() => result.current.claim('SEPA_EU'))
+        await waitFor(() => expect(claimDepositAccount).toHaveBeenCalledTimes(1))
+
+        mockUserId = 'user-b'
+        rerender()
+        await act(async () => {
+            resolveClaim({
+                outcome: 'verification_required',
+                nextAction: {
+                    key: 'restart-identity',
+                    kind: 'restart-identity',
+                    purpose: 'identity_document_insufficient',
+                },
+            })
+        })
+        await waitFor(() => expect(result.current.claimingCorridor).toBeUndefined())
+        expect(onVerificationRequired).not.toHaveBeenCalled()
+    })
 })
 
 /*
@@ -700,6 +746,80 @@ describe('useDepositAccounts while the user own review is under way', () => {
         reason: 'not-offered',
         cause: 'review-pending',
     }
+
+    it('holds a stale SEPA claim, keeps Bridge terms actionable, and releases only when SEPA is offered', async () => {
+        gatesByRailId = { 'bridge.ach_us': { kind: 'ready' }, 'bridge.sepa_eu': { kind: 'ready' } }
+        const sepa = { ...underReview, railId: 'bridge.sepa_eu', method: 'SEPA_EU', country: 'EU', currency: 'EUR' }
+        const read = { accounts: [], claimable: [CLAIMABLE_USD_PREVIEW], unavailable: [sepa] }
+        fetchDepositAccounts.mockResolvedValue(read)
+
+        const { result, rerender } = renderHook(() => useDepositAccounts(), { wrapper })
+        await waitFor(() => expect(result.current.unavailable.SEPA_EU?.cause).toBe('review-pending'))
+        expect(result.current.gates.SEPA_EU.kind).toBe('pending')
+        expect(result.current.gates.ACH_US.kind).toBe('ready')
+
+        gatesByRailId['bridge.sepa_eu'] = { kind: 'accept-tos', userMessage: null }
+        rerender()
+        expect(result.current.gates.SEPA_EU.kind).toBe('accept-tos')
+
+        gatesByRailId['bridge.sepa_eu'] = { kind: 'ready' }
+        fetchDepositAccounts.mockResolvedValue({
+            accounts: [],
+            claimable: [
+                ...read.claimable,
+                { ...CLAIMABLE_USD_PREVIEW, railId: sepa.railId, method: sepa.method, country: 'EU', currency: 'EUR' },
+            ],
+            unavailable: [],
+        })
+        await act(async () => {
+            jest.advanceTimersByTime(ENDORSEMENT_POLL_MS)
+        })
+        await waitFor(() => expect(result.current.claimable.SEPA_EU).toBeDefined())
+        expect(result.current.gates.SEPA_EU.kind).toBe('ready')
+        expect(claimDepositAccount).not.toHaveBeenCalled()
+    })
+
+    it('routes a closed SEPA review to support even if the cached capability is ready', async () => {
+        gatesByRailId = { 'bridge.sepa_eu': { kind: 'ready' } }
+        fetchDepositAccounts.mockResolvedValue({
+            accounts: [],
+            claimable: [],
+            unavailable: [
+                {
+                    ...underReview,
+                    railId: 'bridge.sepa_eu',
+                    method: 'SEPA_EU',
+                    country: 'EU',
+                    currency: 'EUR',
+                    reason: 'support-required',
+                    cause: 'review-closed',
+                },
+            ],
+        })
+
+        const { result } = renderHook(() => useDepositAccounts(), { wrapper })
+        await waitFor(() => expect(result.current.gates.SEPA_EU.kind).toBe('blocked-rejection'))
+        expect(claimDepositAccount).not.toHaveBeenCalled()
+    })
+
+    it('refreshes stale capabilities when a SEPA review needs action, without a claim tap', async () => {
+        gatesByRailId = { 'bridge.sepa_eu': { kind: 'ready' } }
+        fetchDepositAccounts.mockResolvedValue({
+            accounts: [],
+            claimable: [],
+            unavailable: [{ ...underReview, railId: 'bridge.sepa_eu', method: 'SEPA_EU', cause: 'review-action' }],
+        })
+        const client = new QueryClient()
+        const invalidate = jest.spyOn(client, 'invalidateQueries')
+        const { rerender } = renderHook(() => useDepositAccounts(), {
+            wrapper: ({ children }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>,
+        })
+
+        await waitFor(() => expect(invalidate).toHaveBeenCalledWith({ queryKey: [USER] }))
+        rerender()
+        expect(invalidate).toHaveBeenCalledTimes(1)
+        expect(claimDepositAccount).not.toHaveBeenCalled()
+    })
 
     it('re-reads the accounts until the review answers', async () => {
         fetchDepositAccounts.mockResolvedValue({ accounts: [], claimable: [], unavailable: [underReview] })

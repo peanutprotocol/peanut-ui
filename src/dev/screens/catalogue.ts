@@ -1,7 +1,7 @@
 import { FIXTURES } from '../fixtures/registry'
 import { DOWNLOAD_PROMPT_FIXTURE } from '../fixtures/active'
 import { SURFACE_META } from '../surfaces/list'
-import { PAGE_CAPTURES, type PageCapture } from './pages'
+import { HOME_ADD_DRAWER_CHECKPOINT, PAGE_CAPTURES, type PageCapture } from './pages'
 import { FLAG_VARIANTS } from './flag-variants'
 
 export type Screen = {
@@ -62,6 +62,21 @@ const readiness: Record<string, string> = {
     '89-f-withdraw-review-insufficient': 'Not enough balance. Add funds to continue.',
 }
 const fixtureCapture: Record<string, Pick<Screen, 'actions' | 'expectSelector'>> = {
+    'setup-signup-reserved': {
+        actions: [
+            { fill: { selector: '[data-username-field] input', value: 'kimchi' } },
+            { clickSelector: '[data-setup-footer] > div:first-child > div:last-child > button' },
+        ],
+        expectSelector: 'p[role="alert"]',
+    },
+    'setup-passkey-username-taken': {
+        actions: [{ clickSelector: '[data-setup-footer] button:enabled' }],
+        expectSelector: '[role="alert"]:not(#__next-route-announcer__)',
+    },
+    'profile-accounts-card-state-blocked': {
+        expectSelector: '[role="dialog"][data-state="open"][data-testid="closed-row-drawer"]',
+    },
+    'add-money-picker-first-time': { expectSelector: '[data-testid="add-money-method-crypto"]' },
     'add-money-argentina-deposit-pending': { actions: [{ click: 'Continue' }] },
     'add-money-argentina-deposit-expired': { actions: [{ click: 'Continue' }] },
     'paperwork-verification-bridge-postal-correction': {
@@ -108,7 +123,7 @@ const routeOverrides: Record<
     '57-d-raincooldownintromodal': { route: '/home', fixture: 'home', event: 'rain:cooldown' },
     '58-d-stalecardapprovalreenablemodal': { route: '/home', fixture: 'home', event: 'rain:stale-card-approval' },
     '18-a-reconsentmodal': { route: '/home', fixture: 'reconsent' },
-    '51-d-homeactiondrawers': { route: '/home?drawer=add', fixture: 'home' },
+    '51-d-homeactiondrawers': { route: '/home?drawer=add', fixture: 'home-add-drawer' },
 
     '66-e-avatarpicker': { route: FIXTURES['avatar-picker'].route, fixture: 'avatar-picker' },
 }
@@ -261,6 +276,8 @@ const definitions: Screen[] = [
             '94-g-pix-withdraw-on-its-way',
             'deposit-address-launch-loading',
             'card-address-launch-loading',
+            // an approved card still issuing: the spinner is the screen
+            '82-e-card-creating',
         ].includes(id),
         event: routeOverrides[id]?.event,
         storage: routeOverrides[id]?.storage,
@@ -280,24 +297,25 @@ const flowOrder = [
 ]
 const setupJourney: Record<string, { journey: string; step: number }> = {
     '01-a-landing': { journey: 'Account setup', step: 10 },
-    '06-b-invite': { journey: 'Account setup', step: 20 },
-    '06-a-signup': { journey: 'Account setup', step: 30 },
-    '08-a-passkeysetuphelpmodal': { journey: 'Account setup', step: 31 },
-    '09-a-passkeyinfomodal': { journey: 'Account setup', step: 32 },
+    '04-b-advantage-fees': { journey: 'Account setup', step: 20 },
+    '02-b-advantage-card': { journey: 'Account setup', step: 30 },
     '03-a-residence-select': { journey: 'Account setup', step: 40 },
-    '03-b-residence-compare': { journey: 'Account setup', step: 41 },
-    '04-b-advantage-fees': { journey: 'Account setup', step: 42 },
-    '02-b-advantage-card': { journey: 'Account setup', step: 44 },
-    '03-c-residence-congrats': { journey: 'Account setup', step: 46 },
-    '03-h-funding-methods': { journey: 'Account setup', step: 47 },
-    '03-i-payment-methods': { journey: 'Account setup', step: 48 },
-    '07-c-notification-email': { journey: 'Account setup', step: 53 },
-    '07-d-notification-settings': { journey: 'Account setup', step: 54 },
-    '07-b-advantage-control': { journey: 'Account setup', step: 55 },
-    '05-a-signtesttransaction': { journey: 'Account setup', step: 60 },
-    '05-b-signtesttransaction-network-busy': { journey: 'Account setup', step: 61 },
-    '07-e-setup-celebration': { journey: 'Account setup', step: 65 },
-    '20-a-setupnotificationsmodal': { journey: 'Account setup', step: 70 },
+    '03-b-residence-compare': { journey: 'Account setup', step: 50 },
+    '03-c-residence-congrats': { journey: 'Account setup', step: 60 },
+    '03-h-funding-methods': { journey: 'Account setup', step: 70 },
+    '03-i-payment-methods': { journey: 'Account setup', step: 80 },
+    '06-a-signup': { journey: 'Account setup', step: 90 },
+    '06-b-invite': { journey: 'Account setup', step: 100 },
+    '06-c-passkey': { journey: 'Account setup', step: 110 },
+    '08-a-passkeysetuphelpmodal': { journey: 'Account setup', step: 120 },
+    '09-a-passkeyinfomodal': { journey: 'Account setup', step: 130 },
+    '07-c-notification-email': { journey: 'Account setup', step: 140 },
+    '07-d-notification-settings': { journey: 'Account setup', step: 150 },
+    '07-b-advantage-control': { journey: 'Account setup', step: 160 },
+    '05-a-signtesttransaction': { journey: 'Account setup', step: 170 },
+    '05-b-signtesttransaction-network-busy': { journey: 'Account setup', step: 180 },
+    '07-e-setup-celebration': { journey: 'Account setup', step: 190 },
+    '20-a-setupnotificationsmodal': { journey: 'Account setup', step: 200 },
     'fixture-guest-invite': { journey: 'Invite entry', step: 210 },
     'p68-invite': { journey: 'Invite entry', step: 220 },
     '10-a-confirminvitemodal': { journey: 'Invite entry', step: 230 },
@@ -326,6 +344,7 @@ const BASE_SCREENS = orderedDefinitions.map((screen) => ({
     expectText: screen.id === 'qr-camera-permission' ? 'Camera access needed' : readiness[screen.id],
     expectSelector:
         screen.expectSelector ??
+        (screen.fixture === 'home-add-drawer' ? HOME_ADD_DRAWER_CHECKPOINT : undefined) ??
         // The QR drawer intentionally rests at a small peek snap. Its visible
         // title proves it is open without requiring half its full-height box.
         (screen.id === '54-d-qrbottomdrawer' ? '[role="dialog"][data-state="open"] h2' : undefined) ??

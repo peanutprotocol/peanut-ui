@@ -85,3 +85,24 @@ export const resilientWebStorage: WebStorageLike = {
     setItem: writeStoredValue,
     removeItem: removeStoredValue,
 }
+
+/** Session-only storage with the same restricted-browser fallback as local storage. */
+export const resilientSessionStorage: WebStorageLike = {
+    getItem(key) {
+        try {
+            return webStorage(globalThis, 'sessionStorage')?.getItem(key) ?? null
+        } catch {
+            return null
+        }
+    },
+    setItem(key, value) {
+        try {
+            webStorage(globalThis, 'sessionStorage')?.setItem(key, value)
+        } catch {}
+    },
+    removeItem(key) {
+        try {
+            webStorage(globalThis, 'sessionStorage')?.removeItem(key)
+        } catch {}
+    },
+}

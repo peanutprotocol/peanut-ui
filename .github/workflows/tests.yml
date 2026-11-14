@@ -295,6 +295,8 @@ jobs:
 
             - name: Build the static export
               env:
+                  # Node 20's ~2 GiB default heap ran out on this webpack build (Nov 2026), as on ds-shots (#3900).
+                  NODE_OPTIONS: --max-old-space-size=6144
                   # Fonts from the repo, not Google Fonts: see scripts/next-font-google/mock.cjs.
                   NEXT_FONT_GOOGLE_MOCKED_RESPONSES: ${{ github.workspace }}/scripts/next-font-google/mock.cjs
                   # Dev leads the production API between releases and this job ships nothing: API skew warns only.

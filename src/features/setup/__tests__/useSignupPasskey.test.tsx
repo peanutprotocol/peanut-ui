@@ -2,9 +2,10 @@
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { useSignupPasskey } from '../useSignupPasskey'
+import { onSignupScreen, signupControls } from '@/test-utils/signup-controls'
 
 // A fresh mock per test: a ceremony left running by an earlier test keeps its own
 // reference, so it can never add calls to the next test's count.
@@ -15,6 +16,12 @@ const mockSupport = jest.fn(async () => ({ isSupported: true }) as { isSupported
 let mockAddress: string | undefined
 let mockIsRegistering = false
 const mockSetNoBackLock = jest.fn()
+const mockSetScreenId = jest.fn()
+const mockSetRegistrationInProgress = jest.fn()
+const mockSetInviterAccepted = jest.fn()
+const mockBindSignupDraft = jest.fn(async (..._args: unknown[]) => {})
+const mockSaveSignupDraft = jest.fn()
+const mockFetchUser = jest.fn(async () => null)
 const mockNext = jest.fn()
 let mockHandleNext = mockNext
 let mockDeviceType = 'android'
@@ -22,28 +29,59 @@ let mockIOSNativeBridge = false
 let mockAndroidNativeBridge = false
 // The OS sheet's own duration for the attempt, as the telemetry wrapper records it.
 let mockCeremony: { durationMs: number } | undefined
+let mockUseRealTelemetry = false
 
 jest.mock('@/hooks/useZeroDev', () => ({
     useZeroDev: () => ({ handleRegister: mockHandleRegister, address: mockAddress, isRegistering: mockIsRegistering }),
 }))
 jest.mock('@/hooks/useLogin', () => ({ useLogin: () => ({ handleLoginClick: mockLogin, isLoggingIn: false }) }))
 jest.mock('@/hooks/useSetupFlow', () => ({
-    postRegistrationScreen: () => 'residence',
-    useSetupFlow: () => ({ isLoading: false, handleNext: mockHandleNext }),
+    postRegistrationScreen: () => 'notification-email',
+    useSetupFlow: () => ({ isLoading: false, handleNext: mockHandleNext, setScreenId: mockSetScreenId }),
 }))
 jest.mock('@/hooks/useGetDeviceType', () => ({ useDeviceType: () => ({ deviceType: mockDeviceType }) }))
 jest.mock('@/utils/capacitor', () => ({
     ...jest.requireActual('@/utils/capacitor'),
+    isCapacitor: jest.fn(jest.requireActual('@/utils/capacitor').isCapacitor),
     isIOSNativeBridge: () => mockIOSNativeBridge,
     isAndroidNativeBridge: () => mockAndroidNativeBridge,
 }))
 jest.mock('@/features/setup/SetupFlowContext', () => ({
-    useSetupFlowContext: () => ({ setNoBackLockScreenId: mockSetNoBackLock, steps: [] }),
+    useOptionalSetupFlow: () => null,
+    useSetupFlowContext: () => ({
+        setNoBackLockScreenId: mockSetNoBackLock,
+        registrationInProgress: false,
+        setRegistrationInProgress: mockSetRegistrationInProgress,
+        setInviterAccepted: mockSetInviterAccepted,
+        steps: [],
+        inviteSelection: '',
+        residenceCountry: 'BR',
+        nationalityCountry: '',
+        fundingChannel: 'bank',
+        paymentChannel: 'card',
+        notificationChoices: null,
+        inviterAccepted: false,
+        sellScreensCountry: 'BR',
+    }),
 }))
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ user: { user: { userId: 'new-user', username: 'kimi' } }, fetchUser: mockFetchUser }),
+}))
+jest.mock('@/features/setup/signup-draft', () => ({
+    bindSignupDraft: (...args: unknown[]) => mockBindSignupDraft(...args),
+    saveSignupDraft: (...args: unknown[]) => mockSaveSignupDraft(...args),
+}))
+jest.mock('@/services/pending-invite-attribution', () => ({ settlePendingInviteAttribution: jest.fn() }))
 jest.mock('@/utils/api-fetch', () => ({ apiFetch: (...args: unknown[]) => mockApiFetch(...args) }))
 jest.mock('@/utils/passkeyPreflight', () => ({ checkPasskeySupport: () => mockSupport() }))
 jest.mock('@/utils/passkeyDebug', () => ({ capturePasskeyDebugInfo: jest.fn() }))
-jest.mock('@/utils/webauthn-ceremony-telemetry', () => ({ latestCeremony: () => mockCeremony }))
+jest.mock('@/utils/webauthn-ceremony-telemetry', () => ({
+    ...jest.requireActual('@/utils/webauthn-ceremony-telemetry'),
+    latestCeremony: (...args: unknown[]) =>
+        mockUseRealTelemetry
+            ? jest.requireActual('@/utils/webauthn-ceremony-telemetry').latestCeremony(...args)
+            : mockCeremony,
+}))
 jest.mock('@sentry/nextjs', () => ({
     captureException: jest.fn(),
     captureMessage: jest.fn(),
@@ -51,9 +89,12 @@ jest.mock('@sentry/nextjs', () => ({
 }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
-/** The username step's use of the hook, without the form: Claim, the messages, Log in, the help drawer state. */
-function Harness() {
-    const passkey = useSignupPasskey('kim')
+/** The passkey screen's ceremony, recovery, and completion state. */
+function Harness({ username = 'kimi' }: { username?: string }) {
+    return onSignupScreen('passkey', <PasskeyHarness username={username} />)
+}
+function PasskeyHarness({ username }: { username: string }) {
+    const passkey = useSignupPasskey(username)
     return (
         <div>
             <button disabled={passkey.isClaiming} onClick={() => void passkey.claim()}>
@@ -82,6 +123,60 @@ const claim = () => fireEvent.click(screen.getByRole('button', { name: 'Claim' }
 const failedEvents = () =>
     (posthog.capture as jest.Mock).mock.calls.filter(([event]) => event === ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED)
 
+describe('passkey error control contract', () => {
+    it.each([
+        ['NotAllowedError', 'LOGIN_CANCELED'],
+        ['CeremonyTimeoutError', 'CEREMONY_TIMEOUT'],
+        ['PasskeyServerError', 'NETWORK'],
+        ['PasskeyProviderUnsupportedError', 'PASSKEY_PROVIDER_UNSUPPORTED'],
+        ['UnknownPrivateErrorName', 'LOGIN_ERROR'],
+    ])('reports %s as a bounded category and reports a deliberate retry again', async (name, category) => {
+        mockHandleRegister.mockRejectedValue(Object.assign(new Error('private typed payload'), { name }))
+        renderWithIntl(<Harness />)
+        claim()
+        await waitFor(() =>
+            expect(signupControls(posthog.capture as jest.Mock)).toContain(`create_passkey:error:${category}`)
+        )
+        expect(JSON.stringify(signupControls(posthog.capture as jest.Mock))).not.toMatch(
+            /private|UnknownPrivateErrorName/
+        )
+        expect(mockNext).not.toHaveBeenCalled()
+        if (screen.queryByRole('button', { name: 'Retry' }))
+            fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+        else claim()
+        await waitFor(() =>
+            expect(
+                signupControls(posthog.capture as jest.Mock).filter(
+                    (event) => event === `create_passkey:error:${category}`
+                )
+            ).toHaveLength(2)
+        )
+    })
+
+    it('reports a visible preflight warning once across rerenders', async () => {
+        mockSupport.mockResolvedValue({ isSupported: false, warning: 'private localized warning' })
+        const view = renderWithIntl(<Harness />)
+        await screen.findByTestId('preflight')
+        view.rerender(<Harness />)
+        expect(signupControls(posthog.capture as jest.Mock)).toEqual(['create_passkey:error:PASSKEY_UNSUPPORTED'])
+    })
+
+    it('reports taken usernames and Log in failure without sending the exception text', async () => {
+        mockApiFetch.mockResolvedValue({ status: 200 })
+        mockLogin.mockRejectedValueOnce(
+            Object.assign(new Error('private login diagnostic'), { name: 'PasskeyError', code: 'ACCOUNT_DELETED' })
+        )
+        renderWithIntl(<Harness />)
+        claim()
+        fireEvent.click(await screen.findByRole('button', { name: 'Log in' }))
+        await waitFor(() =>
+            expect(signupControls(posthog.capture as jest.Mock)).toContain('log_in:error:ACCOUNT_DELETED')
+        )
+        expect(signupControls(posthog.capture as jest.Mock)).toContain('username:error:taken')
+        expect(JSON.stringify(signupControls(posthog.capture as jest.Mock))).not.toMatch(/private|kimi/)
+    })
+})
+
 beforeEach(() => {
     jest.clearAllMocks()
     mockAddress = undefined
@@ -91,13 +186,130 @@ beforeEach(() => {
     mockIOSNativeBridge = false
     mockAndroidNativeBridge = false
     mockCeremony = undefined
+    mockUseRealTelemetry = false
     mockSupport.mockImplementation(async () => ({ isSupported: true }))
     // 404 = username free, so the handler proceeds to registration
     mockApiFetch.mockResolvedValue({ status: 404 })
     mockHandleRegister = jest.fn(() => new Promise(() => {}))
 })
 
+describe('signup failures before the OS sheet with real telemetry', () => {
+    const credential = jest.fn()
+    const optionsFetch = jest.fn()
+    let telemetry: typeof import('@/utils/webauthn-ceremony-telemetry')
+    let guard: typeof import('@/utils/passkeyCeremony.utils').guardPasskeyCeremony
+    let originalCredentials: PropertyDescriptor | undefined
+    let originalFetch: typeof window.fetch
+    let originalShimInstalled: unknown
+
+    beforeAll(() => {
+        originalCredentials = Object.getOwnPropertyDescriptor(navigator, 'credentials')
+        originalFetch = window.fetch
+        originalShimInstalled = (globalThis as Record<string, unknown>).__capgoPasskeyShimInstalled
+        Object.defineProperty(navigator, 'credentials', {
+            configurable: true,
+            value: { create: credential, get: credential },
+        })
+        ;(globalThis as Record<string, unknown>).__capgoPasskeyShimInstalled = true
+        window.fetch = optionsFetch
+        telemetry = jest.requireActual('@/utils/webauthn-ceremony-telemetry')
+        guard = require('@/utils/passkeyCeremony.utils').guardPasskeyCeremony
+        telemetry.installCeremonyTelemetry()
+        require('@/utils/passkey-auth-capture').installPasskeyVerifyCapture()
+    })
+
+    beforeEach(() => {
+        jest.useFakeTimers()
+        jest.setSystemTime(new Date('2026-11-12T12:00:00Z'))
+        mockUseRealTelemetry = true
+        jest.requireMock('@/utils/capacitor').isCapacitor.mockReturnValue(true)
+        credential.mockReset()
+        optionsFetch.mockReset()
+        telemetry.clearCeremonyLog()
+        mockHandleRegister.mockImplementation(() =>
+            telemetry.withCeremonyPurpose('registration', () =>
+                guard(async () => {
+                    await window.fetch('https://api.test/passkeys/register/options')
+                    return navigator.credentials.create({})
+                })
+            )
+        )
+    })
+
+    afterEach(() => {
+        jest.clearAllTimers()
+        jest.useRealTimers()
+        mockUseRealTelemetry = false
+        jest.requireMock('@/utils/capacitor').isCapacitor.mockImplementation(
+            jest.requireActual('@/utils/capacitor').isCapacitor
+        )
+    })
+
+    afterAll(() => {
+        window.fetch = originalFetch
+        if (originalCredentials) Object.defineProperty(navigator, 'credentials', originalCredentials)
+        else Reflect.deleteProperty(navigator, 'credentials')
+        ;(globalThis as Record<string, unknown>).__capgoPasskeyShimInstalled = originalShimInstalled
+    })
+
+    it.each(['rejection', 'timeout'] as const)('omits signup ceremony_ms after an options %s', async (outcome) => {
+        const duration = outcome === 'rejection' ? 4_321 : 60_000
+        optionsFetch.mockImplementation(() =>
+            outcome === 'timeout'
+                ? new Promise(() => {})
+                : new Promise((_, reject) =>
+                      setTimeout(
+                          () => reject(Object.assign(new Error('options unavailable'), { name: 'PasskeyServerError' })),
+                          duration
+                      )
+                  )
+        )
+        renderWithIntl(<Harness />)
+        claim()
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(0)
+        })
+        expect(mockHandleRegister).toHaveBeenCalledTimes(1)
+        expect(optionsFetch).toHaveBeenCalledTimes(1)
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(duration)
+        })
+        expect(credential).not.toHaveBeenCalled()
+        expect(failedEvents()).toHaveLength(1)
+        const [[, failure]] = failedEvents()
+        expect(failure.error_name).toBe(outcome === 'timeout' ? 'CeremonyTimeoutError' : 'PasskeyServerError')
+        expect(failure.ceremony_ms == null).toBe(true)
+        const ceremonies = (posthog.capture as jest.Mock).mock.calls
+            .filter(([event]) => event === 'webauthn_ceremony')
+            .map(([, properties]) => properties)
+        expect(ceremonies).toEqual([
+            expect.objectContaining({
+                purpose: 'registration',
+                outcome: 'error',
+                total_ms: duration,
+                options_ms: duration,
+            }),
+        ])
+        if (outcome === 'timeout') expect(ceremonies[0]).toHaveProperty('timeout_phase', 'options')
+        else expect(ceremonies[0]).not.toHaveProperty('timeout_phase')
+        expect(screen.getByRole('button', { name: 'Claim' })).toBeEnabled()
+        expect(mockNext).not.toHaveBeenCalled()
+    })
+})
+
 describe('useSignupPasskey — one tap, one ceremony', () => {
+    it.each(['', 'kim', '1234', 'waytoolongname', 'has.dot'])(
+        'returns invalid draft username %s to Claim without a ceremony',
+        async (username) => {
+            renderWithIntl(<Harness username={username} />)
+            claim()
+            await waitFor(() => expect(mockSetScreenId).toHaveBeenCalledWith('signup'))
+            expect(mockHandleRegister).not.toHaveBeenCalled()
+            expect(mockApiFetch).not.toHaveBeenCalled()
+            expect(mockBindSignupDraft).not.toHaveBeenCalled()
+        }
+    )
+
     /*
      * PEANUT-UI-T09: `isRegistering` only goes true once handleRegister runs,
      * and two awaits precede it (support re-check + username lookup). Every
@@ -118,7 +330,7 @@ describe('useSignupPasskey — one tap, one ceremony', () => {
         claim()
         await waitFor(() => expect(screen.getByRole('button', { name: 'Claim' })).toBeDisabled())
         await waitFor(() => expect(mockHandleRegister).toHaveBeenCalledTimes(1))
-        expect(mockHandleRegister).toHaveBeenCalledWith('kim')
+        expect(mockHandleRegister).toHaveBeenCalledWith('kimi')
         expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_PASSKEY_STARTED, {
             device_type: 'android',
         })
@@ -132,7 +344,7 @@ describe('useSignupPasskey — one tap, one ceremony', () => {
 })
 
 describe('registration success', () => {
-    it('advances exactly once, to residence, and locks the way back when the address appears', async () => {
+    it('advances exactly once to notification-email, binds the draft, and locks the way back after registration', async () => {
         mockHandleRegister.mockResolvedValue(undefined)
         const view = renderWithIntl(<Harness />)
         claim()
@@ -141,7 +353,16 @@ describe('registration success', () => {
         mockAddress = '0x1234'
         view.rerender(<Harness />)
         await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
-        expect(mockSetNoBackLock).toHaveBeenCalledWith('residence')
+        expect(mockSetNoBackLock).toHaveBeenCalledWith('notification-email')
+        expect(mockBindSignupDraft).toHaveBeenCalledWith(
+            'new-user',
+            expect.objectContaining({
+                screenId: 'passkey',
+                answers: expect.objectContaining({ username: 'kimi', residenceCountry: 'BR' }),
+            })
+        )
+        expect(mockSetRegistrationInProgress).toHaveBeenCalledWith(true)
+        expect(mockSetRegistrationInProgress).toHaveBeenLastCalledWith(false)
         expect(mockSetNoBackLock.mock.invocationCallOrder[0]).toBeLessThan(mockNext.mock.invocationCallOrder[0])
         expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_PASSKEY_SUCCEEDED, {
             device_type: 'android',
@@ -174,7 +395,7 @@ describe('registration success', () => {
     })
 })
 
-describe('failures keep the user on the username step', () => {
+describe('passkey failures and collision recovery', () => {
     it('shows the preflight warning on mount', async () => {
         mockSupport.mockImplementation(async () => ({ isSupported: false, warning: 'Passkeys are off here.' }))
         renderWithIntl(<Harness />)
@@ -221,6 +442,7 @@ describe('failures keep the user on the username step', () => {
         mockHandleRegister.mockRejectedValue(
             Object.assign(new Error('Username already taken'), { name: 'UsernameTaken' })
         )
+        mockApiFetch.mockResolvedValueOnce({ status: 404 }).mockResolvedValueOnce({ status: 200 })
         renderWithIntl(<Harness />)
         claim()
         fireEvent.click(await screen.findByRole('button', { name: 'Log in' }))
@@ -230,6 +452,17 @@ describe('failures keep the user on the username step', () => {
         expect(failedEvents()).toEqual([
             [ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED, expect.objectContaining({ error_code: 'USERNAME_TAKEN' })],
         ])
+    })
+
+    it('returns to Claim when registration reports a collision but the public lookup is unregistered', async () => {
+        mockHandleRegister.mockRejectedValue(Object.assign(new Error('Username reserved'), { name: 'UsernameTaken' }))
+        renderWithIntl(<Harness />)
+        claim()
+        await waitFor(() => expect(mockSetScreenId).toHaveBeenCalledWith('signup'))
+        expect(screen.queryByRole('button', { name: 'Log in' })).not.toBeInTheDocument()
+        expect(mockHandleRegister).toHaveBeenCalledTimes(1)
+        expect(mockSetNoBackLock).not.toHaveBeenCalled()
+        expect(mockBindSignupDraft).not.toHaveBeenCalled()
     })
 
     it('shows a curated message when Log in itself fails', async () => {
@@ -250,6 +483,7 @@ describe('failures keep the user on the username step', () => {
         mockLogin.mockRejectedValueOnce(
             Object.assign(new Error('curated'), { name: 'PasskeyError', code: 'ACCOUNT_DELETED' })
         )
+        mockApiFetch.mockResolvedValueOnce({ status: 404 }).mockResolvedValueOnce({ status: 200 })
         renderWithIntl(<Harness />)
         claim()
         fireEvent.click(await screen.findByRole('button', { name: 'Log in' }))
@@ -725,4 +959,40 @@ it('asks for a short wait when the previous passkey request is still closing', a
         'The last passkey prompt is still closing. Wait a few seconds and try again.'
     )
     expect(mockNext).not.toHaveBeenCalled()
+})
+
+it('protects navigation before asynchronous preflight settles and releases it on refusal', async () => {
+    let resolve!: (value: { isSupported: boolean; warning?: string }) => void
+    mockSupport.mockReturnValue(
+        new Promise((done) => {
+            resolve = done
+        })
+    )
+    renderWithIntl(<Harness />)
+    claim()
+    expect(mockSetRegistrationInProgress).toHaveBeenCalledWith(true)
+    resolve({ isSupported: false })
+    await waitFor(() => expect(mockSetRegistrationInProgress).toHaveBeenLastCalledWith(false))
+    expect(mockHandleRegister).not.toHaveBeenCalled()
+})
+
+it('does not call an unknown collision lookup an available username', async () => {
+    mockApiFetch.mockResolvedValueOnce({ status: 404 }).mockResolvedValue({ status: 503 })
+    mockHandleRegister.mockRejectedValue(Object.assign(new Error('taken'), { name: 'UsernameTaken' }))
+    renderWithIntl(<Harness />)
+    claim()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Couldn’t reach Peanut’s servers')
+    expect(mockSetScreenId).not.toHaveBeenCalled()
+    expect(mockHandleRegister).toHaveBeenCalledTimes(1)
+})
+
+it('does not repeat an uncertain registration while the reconciliation lookup is unavailable', async () => {
+    mockApiFetch.mockResolvedValueOnce({ status: 404 }).mockResolvedValue({ status: 503 })
+    mockHandleRegister.mockRejectedValue(new Error('Session hydration failed'))
+    renderWithIntl(<Harness />)
+    claim()
+    await screen.findByRole('dialog')
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Couldn’t reach Peanut’s servers')
+    expect(mockHandleRegister).toHaveBeenCalledTimes(1)
 })

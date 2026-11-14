@@ -12,19 +12,29 @@ import { DeviceType, useDeviceType } from '@/hooks/useGetDeviceType'
 import { usePullToRefresh, useShouldPullToRefresh } from '@/hooks/usePullToRefresh'
 import { isCapacitor } from '@/utils/capacitor'
 import { useResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
-import { filterSetupStepsForCountry, filterSetupStepsForInvite } from '@/features/setup/filterSetupSteps'
+import {
+    filterSetupStepsForCountry,
+    filterSetupStepsForInvite,
+    SETUP_FEATURE_SCREENS,
+} from '@/features/setup/filterSetupSteps'
 import { setupCountrySuggestion } from '@/features/setup/country-signals'
 import { useSetupCountrySignals } from '@/features/setup/useSetupCountrySignals'
 import { useAuth } from '@/context/authContext'
-import { readInviteIntent } from '@/utils/invite-stash'
+import { readInviteCode, readInviteIntent, subscribeInviteStash } from '@/utils/invite-stash'
+import { readSignupDraft } from '@/features/setup/signup-draft'
 
 function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
-    const { setSteps, sellScreensCountry, inviterAccepted } = useSetupFlowContext()
+    const { setSteps, sellScreensCountry, inviterAccepted, featureScreenIds, registrationInProgress } =
+        useSetupFlowContext()
     const residenceRestrictions = useResidenceRestrictionSets()
     const { user } = useAuth()
     const invitedBy = user?.invitedBy
-    // The sell screens come before residence: they follow the signals' suggestion until
-    // the account exists, then the country the page fixed at that point.
+    const [inviteCode, setInviteCode] = useState('')
+    useEffect(() => {
+        const update = () => setInviteCode(readInviteCode())
+        update()
+        return subscribeInviteStash(update)
+    }, [])
     const suggestedCountry = setupCountrySuggestion(useSetupCountrySignals())?.country ?? null
     const sellCountry = sellScreensCountry === undefined ? suggestedCountry : sellScreensCountry
     const { deviceType } = useDeviceType()
@@ -65,9 +75,30 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
     // settles it, and fixing the sell-screen country on the first step after
     // registration rebuilds the list before the person can leave that step.
     useEffect(() => {
-        const steps = filterSetupStepsForCountry(setupSteps, residenceRestrictions, sellCountry)
+        const countrySteps =
+            featureScreenIds === null
+                ? filterSetupStepsForCountry(setupSteps, residenceRestrictions, sellCountry)
+                : setupSteps.filter(
+                      (step) =>
+                          !SETUP_FEATURE_SCREENS.includes(step.screenId) || featureScreenIds.includes(step.screenId)
+                  )
+        const registeredRecovery =
+            !!user?.user?.username && !registrationInProgress && readSignupDraft()?.userId !== user.user.userId
+        const steps = registeredRecovery
+            ? countrySteps.filter((step) => !['signup', 'invite', 'passkey'].includes(step.screenId))
+            : countrySteps
         setSteps(filterSetupStepsForInvite(steps, inviterAccepted || !!invitedBy || readInviteIntent() === 'explicit'))
-    }, [setSteps, residenceRestrictions, sellCountry, invitedBy, inviterAccepted])
+    }, [
+        setSteps,
+        residenceRestrictions,
+        sellCountry,
+        invitedBy,
+        inviteCode,
+        inviterAccepted,
+        featureScreenIds,
+        user,
+        registrationInProgress,
+    ])
 
     usePullToRefresh({ shouldPullToRefresh: useShouldPullToRefresh() })
 

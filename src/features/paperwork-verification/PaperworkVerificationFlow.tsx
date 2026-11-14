@@ -383,6 +383,7 @@ function PaperworkVerificationSteps({
     const locale = useLocale()
     const router = useRouter()
     const { user, fetchUser } = useAuth()
+    const modals = useModalsContextOptional()
     // What a feature still waits on once the identity is verified: steps of the verified timeline.
     const tRoot = useTranslations()
     const { nextActions, capabilities } = useCapabilities()
@@ -1072,6 +1073,8 @@ function PaperworkVerificationSteps({
                     declaredSecond={user?.residence?.secondaryDeclaredCountry}
                     verified={user?.residence?.verified?.country ?? null}
                     pending={pendingResidenceCountry(user?.residence)}
+                    pendingStatus={user?.residence?.declared?.status}
+                    onContactSupport={modals ? () => modals.setIsSupportModalOpen(true) : undefined}
                     onSaved={async () => {
                         // The questions follow the residence: the server rebuilds them for the new country.
                         queueGeneration.current += 1

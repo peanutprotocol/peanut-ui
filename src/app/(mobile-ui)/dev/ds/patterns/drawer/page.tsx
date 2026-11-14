@@ -244,7 +244,7 @@ export default function DrawerPage() {
                                     />
                                     <ListItem
                                         position="bottom"
-                                        leading={<IconBubble icon="coins" size="s" color="blue" />}
+                                        leading={<IconBubble icon="coins" size="s" color="yellow" />}
                                         title="Crypto"
                                         body="Deposit USDC from a wallet or an exchange"
                                         bodyWrap

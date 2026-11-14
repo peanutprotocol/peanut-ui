@@ -4,7 +4,7 @@ export const FLAG_RECORDER_MARKER = '/* screen-capture-flags-v1 */'
 const HOOK = `(globalThis as unknown as { __screenCaptureFlag?: (key: string, value: unknown) => unknown }).__screenCaptureFlag`
 
 /**
- * Every PostHog read the app makes goes through one of these two functions. Each is renamed and wrapped so
+ * Every PostHog read the app makes goes through one of these functions. Each is renamed and wrapped so
  * a capture can record the value the screen read and substitute another; outside capture the hook is absent.
  */
 export const FLAG_READERS = [
@@ -31,6 +31,19 @@ export function readNotificationsVariant(): NotificationsVariant {
     const value = readNotificationsVariantLive()
     const capture = ${HOOK}
     return capture ? (capture(NOTIFICATIONS_EXPERIMENT_FLAG, value) as NotificationsVariant) : value
+}
+`,
+    },
+    {
+        path: 'src/features/setup/welcomeHeadlineExperiment.ts',
+        anchor: 'export function readWelcomeHeadlineVariant(eligible: boolean): WelcomeHeadlineVariant {',
+        live: 'function readWelcomeHeadlineVariantLive(eligible: boolean): WelcomeHeadlineVariant {',
+        wrapper: `
+${FLAG_RECORDER_MARKER}
+export function readWelcomeHeadlineVariant(eligible: boolean): WelcomeHeadlineVariant {
+    const value = readWelcomeHeadlineVariantLive(eligible)
+    const capture = ${HOOK}
+    return capture ? (capture(WELCOME_HEADLINE_EXPERIMENT_FLAG, value) as WelcomeHeadlineVariant) : value
 }
 `,
     },

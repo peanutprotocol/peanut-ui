@@ -47,10 +47,12 @@ export function entryFeature({
 export async function paperworkVerificationRoute(
     plan: KycDocumentPlan | null,
     feature: PaperworkVerificationFeature | null,
-    report?: FeatureReport
+    report?: FeatureReport,
+    signal?: AbortSignal
 ): Promise<string | null> {
     if (plan?.flow !== PAPERWORK_VERIFICATION_FLOW) return null
-    const status = await getKycDocumentStatus().catch(() => undefined)
+    const status = await getKycDocumentStatus(signal).catch(() => undefined)
+    if (signal?.aborted) throw signal.reason
     if (!status || !APPROVED_STATUSES.has(status)) return '/verify'
     if (!feature) return null
     const state = report?.[feature].state

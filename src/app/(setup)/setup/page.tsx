@@ -11,6 +11,7 @@ import { dispatchBackPress } from '@/utils/back-handler'
 import { isUntouchedNotificationChoices, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import {
     POST_REGISTRATION_SCREENS,
+    REGISTERED_PROGRESS_SCREENS,
     readSignupProgress,
     resumeScreen,
     saveSignupProgress,
@@ -23,6 +24,7 @@ import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 
 import { useSetupStepCopy } from '@/components/Setup/useSetupStepCopy'
 import { hasKnownDeviceCredentials, resolveSetupEntryStep } from '@/components/Setup/setup-entry'
 import { isCapacitor } from '@/utils/capacitor'
+import { mayHoldSession } from '@/utils/auth-token'
 import { hasKeepWebCookie, isKeepWebLink } from '@/utils/migration.utils'
 import { KEEP_WEB_COOKIE } from '@/constants/migration.consts'
 import { getStoredRedirect, getValidRedirectUrl, toInviteCode } from '@/utils/general.utils'
@@ -44,9 +46,19 @@ import {
 } from '@/components/Invites/badge-campaign-context'
 import { claimAndSettlePendingBadgeCampaigns } from '@/services/badge-campaigns'
 import { getDeepLinkGeneration, getDeepLinkTarget, subscribeToDeepLinkGeneration } from '@/utils/deep-link-state'
-import { resolveSignupEntryFlow } from '@/features/setup/signup-analytics'
+import { captureSignupStepViewed, resolveSignupEntryFlow } from '@/features/setup/signup-analytics'
 import { isDemoMode } from '@/utils/demo'
 import { unfinishedSignupRoute } from '@/features/setup/unfinished-signup'
+import {
+    bindSignupDraft,
+    discardSignupDraft,
+    readSignupDraft,
+    restoreSignupDraft,
+    saveSignupDraft,
+    type SignupDraft,
+} from '@/features/setup/signup-draft'
+import { flushPendingSignupAnswers } from '@/features/setup/saveSignupAnswers'
+import { SETUP_FEATURE_SCREENS } from '@/features/setup/filterSetupSteps'
 
 function setupTargetMatchesSearchParams(target: string | null, searchParamsString: string): boolean {
     if (!target) return false
@@ -91,6 +103,14 @@ function SetupPageContent() {
         setNotificationChoices,
         inviterAccepted,
         setInviterAccepted,
+        username,
+        setUsername,
+        inviteSelection,
+        setInviteSelection,
+        featureScreenIds,
+        setFeatureScreenIds,
+        registrationInProgress,
+        resetSetupFlow,
     } = useSetupFlowContext()
     const {
         step,
@@ -108,7 +128,7 @@ function SetupPageContent() {
         }
     }, [steps, currentStepIndex])
     const stepCopy = useSetupStepCopy(step)
-    const { user, isFetchingUser, fetchUser } = useAuth()
+    const { user, isFetchingUser, userFetchError, fetchUser } = useAuth()
     const router = useRouter()
     const signedInUserId = user?.user?.userId
     // The entry effect must run once per steps-identity, never per step change:
@@ -130,6 +150,67 @@ function SetupPageContent() {
     userIdRef.current = signedInUserId
     const progressRestored = useRef(false)
     const progressOwned = useRef(false)
+    const handledIdentity = useRef(signedInUserId)
+    const registrationIdentity = useRef<string | undefined>(undefined)
+    const restoredDraft = useRef<SignupDraft | null>(null)
+    const [draftReady, setDraftReady] = useState(false)
+    const hasUser = !!user
+    const legacyRecoveryBoundary = useRef<ScreenId | null>(null)
+    useEffect(() => {
+        let cancelled = false
+        void restoreSignupDraft()
+            .then((draft) => {
+                if (cancelled) return
+                if (draft?.userId && (isFetchingUser || (!hasUser && userFetchError && mayHoldSession()))) {
+                    setDraftReady(true)
+                    return
+                }
+                if (draft?.userId && draft.userId !== userIdRef.current) {
+                    void discardSignupDraft()
+                    draft = null
+                }
+                restoredDraft.current = draft
+                if (draft && (draft.userId ? draft.userId === userIdRef.current : !userIdRef.current)) {
+                    const { answers } = draft
+                    setUsername(answers.username)
+                    setInviteSelection(answers.inviteSelection)
+                    setResidenceCountry(answers.residenceCountry)
+                    setNationalityCountry(answers.nationalityCountry)
+                    setFundingChannel(answers.fundingChannel)
+                    setPaymentChannel(answers.paymentChannel)
+                    if (answers.notificationChoices) setNotificationChoices(answers.notificationChoices)
+                    setInviterAccepted(answers.inviterAccepted)
+                    setSellScreensCountry(answers.sellScreensCountry)
+                    if (draft.featureScreenIds) setFeatureScreenIds(draft.featureScreenIds)
+                }
+                setDraftReady(true)
+            })
+            .catch(() => {
+                if (!cancelled) setDraftReady(true)
+            })
+        return () => {
+            cancelled = true
+        }
+    }, [
+        isFetchingUser,
+        hasUser,
+        userFetchError,
+        setFeatureScreenIds,
+        setFundingChannel,
+        setInviteSelection,
+        setInviterAccepted,
+        setNationalityCountry,
+        setNotificationChoices,
+        setPaymentChannel,
+        setResidenceCountry,
+        setSellScreensCountry,
+        setUsername,
+    ])
+    useEffect(() => {
+        if (!signupCompleted) return
+        void discardSignupDraft()
+        restoredDraft.current = null
+    }, [signupCompleted])
     /*
      * Where a reloaded or restarted signup continues: the step saved on this
      * device, with the answers given before it, so a person who reached the
@@ -137,7 +218,17 @@ function SetupPageContent() {
      */
     const resumeTarget = (): ScreenId => {
         const userId = userIdRef.current
-        const progress = userId ? readSignupProgress(userId) : null
+        const ownedDraft = restoredDraft.current?.userId === userId ? restoredDraft.current : null
+        const progress =
+            (userId ? readSignupProgress(userId) : null) ??
+            (ownedDraft
+                ? {
+                      screenId: POST_REGISTRATION_SCREENS.includes(ownedDraft.screenId)
+                          ? ownedDraft.screenId
+                          : ('notification-email' as ScreenId),
+                      answers: ownedDraft.answers,
+                  }
+                : null)
         const restore = !progressRestored.current
         progressRestored.current = true
         if (progress && restore) {
@@ -150,16 +241,20 @@ function SetupPageContent() {
             if (answers.inviterAccepted) setInviterAccepted(true)
             if (answers.sellScreensCountry !== undefined) setSellScreensCountry(answers.sellScreensCountry)
         }
-        return resumeScreen(
+        const target = resumeScreen(
             progress,
             stepsRef.current.map((entry) => entry.screenId),
             masterScreenIds
         )
+        if (!ownedDraft) legacyRecoveryBoundary.current = target
+        setNoBackLockScreenId(target)
+        return target
     }
     const resumeTargetRef = useRef(resumeTarget)
     resumeTargetRef.current = resumeTarget
     const [isLoading, setIsLoading] = useState(true)
     const [initializationError, setInitializationError] = useState<string | null>(null)
+    const [initializationAttempt, setInitializationAttempt] = useState(0)
     const initializationExpired = useRef(false)
     // Warm the geo cache at entry, not when the residence step mounts: the
     // lookup is a network round trip, and asking for it three steps early is
@@ -219,9 +314,31 @@ function SetupPageContent() {
         }
     }, [])
 
-    const recoveryReason = isLeavingForHome
-        ? null
-        : (initializationError ?? (!isLoading && sessionChecked && !step ? 'missing_step' : null))
+    // A failed profile read leaves the account unknown only when a session can
+    // exist. A signed-out web visitor whose /users/me never reached the API
+    // (offline, API down) is still signed out, and gets Welcome, not recovery.
+    const profileFetchFailed = !!userFetchError && !user && mayHoldSession()
+    useEffect(() => {
+        if (profileFetchFailed) setSessionChecked(false)
+    }, [profileFetchFailed])
+
+    const pendingRecoveryReason = profileFetchFailed
+        ? 'profile_fetch_failed'
+        : isLeavingForHome
+          ? null
+          : (initializationError ?? (!isLoading && sessionChecked && !step ? 'missing_step' : null))
+    const retryingInitialization =
+        !!pendingRecoveryReason && pendingRecoveryReason !== 'profile_fetch_failed' && initializationAttempt === 0
+    const recoveryReason = retryingInitialization ? null : pendingRecoveryReason
+
+    useEffect(() => {
+        if (!retryingInitialization) return
+        initializationExpired.current = false
+        resolvedEntry.current = null
+        setInitializationError(null)
+        setIsLoading(true)
+        setInitializationAttempt(1)
+    }, [retryingInitialization])
 
     useEffect(() => {
         if (!recoveryReason) return
@@ -241,29 +358,49 @@ function SetupPageContent() {
     }, [recoveryReason])
 
     useEffect(() => {
-        if ((!isLoading && sessionChecked) || initializationError || isLeavingForHome) return
+        if ((!isLoading && sessionChecked) || initializationError || isLeavingForHome || profileFetchFailed) return
         const timeout = setTimeout(() => {
             initializationExpired.current = true
             setInitializationError('initialization_timeout')
         }, 15000)
         return () => clearTimeout(timeout)
-    }, [isLoading, sessionChecked, initializationError, isLeavingForHome])
+    }, [isLoading, sessionChecked, initializationError, isLeavingForHome, profileFetchFailed, initializationAttempt])
 
     // Only count steps that actually render, not while the entry step is being determined.
     const stepRendered = !!step && !recoveryReason && !isLoading && sessionChecked
 
-    // Registration happens on the username step and is irreversible: every
-    // later step locks the way back at the first step after it, while the steps
-    // after that stay revisitable. This also restores the boundary for a resumed
-    // later step, and follows the list when it changes. The sell screens' country
-    // is fixed here too, so they do not change under the person.
+    useLayoutEffect(() => {
+        if (!stepRendered || !step || step.screenId === 'landing' || featureScreenIds !== null) return
+        setFeatureScreenIds(
+            steps.filter((entry) => SETUP_FEATURE_SCREENS.includes(entry.screenId)).map((entry) => entry.screenId)
+        )
+        if (sellScreensCountry === undefined)
+            setSellScreensCountry(setupCountrySuggestion(countrySignals)?.country ?? null)
+    }, [
+        stepRendered,
+        step,
+        steps,
+        featureScreenIds,
+        setFeatureScreenIds,
+        sellScreensCountry,
+        setSellScreensCountry,
+        countrySignals,
+    ])
+
+    // Legacy recovery stays revisitable until Email becomes the registration boundary.
     useEffect(() => {
-        if (stepRendered && !signupCompleted && step && POST_REGISTRATION_SCREENS.includes(step.screenId)) {
+        if (
+            stepRendered &&
+            !signupCompleted &&
+            step &&
+            user?.user?.username &&
+            (resumeSignup.current || POST_REGISTRATION_SCREENS.includes(step.screenId))
+        ) {
             shownPostRegistration.current = true
-            setNoBackLockScreenId(postRegistrationScreen(steps.map((entry) => entry.screenId)))
-            if (sellScreensCountry === undefined) {
-                setSellScreensCountry(setupCountrySuggestion(countrySignals)?.country ?? null)
-            }
+            const boundary = POST_REGISTRATION_SCREENS.includes(step.screenId)
+                ? postRegistrationScreen(steps.map((entry) => entry.screenId))
+                : legacyRecoveryBoundary.current
+            if (boundary) setNoBackLockScreenId(boundary)
         }
     }, [
         stepRendered,
@@ -274,10 +411,46 @@ function SetupPageContent() {
         sellScreensCountry,
         setSellScreensCountry,
         countrySignals,
+        user,
+    ])
+    useEffect(() => {
+        if (!draftReady || !stepRendered || signupCompleted || !step || signedInUserId) return
+        saveSignupDraft({
+            screenId: step.screenId,
+            answers: {
+                username,
+                inviteSelection,
+                residenceCountry,
+                nationalityCountry,
+                fundingChannel,
+                paymentChannel,
+                notificationChoices: isUntouchedNotificationChoices(notificationChoices) ? null : notificationChoices,
+                inviterAccepted,
+                sellScreensCountry,
+            },
+            ...(featureScreenIds === null ? {} : { featureScreenIds }),
+        })
+    }, [
+        draftReady,
+        stepRendered,
+        signupCompleted,
+        step,
+        signedInUserId,
+        username,
+        inviteSelection,
+        residenceCountry,
+        nationalityCountry,
+        fundingChannel,
+        paymentChannel,
+        notificationChoices,
+        inviterAccepted,
+        sellScreensCountry,
+        featureScreenIds,
     ])
     useEffect(() => {
         if (!stepRendered || signupCompleted || !step || !signedInUserId) return
-        if (!POST_REGISTRATION_SCREENS.includes(step.screenId)) return
+        if (!registrationInProgress && !resumeSignup.current && readSignupDraft()?.userId !== signedInUserId) return
+        if (!REGISTERED_PROGRESS_SCREENS.includes(step.screenId) || step.screenId === 'invite') return
         // Never overwrite saved answers before this mount has restored them.
         if (!progressOwned.current) {
             if (!progressRestored.current && readSignupProgress(signedInUserId)) return
@@ -307,18 +480,72 @@ function SetupPageContent() {
         notificationChoices,
         inviterAccepted,
         sellScreensCountry,
+        registrationInProgress,
     ])
     const showBackButton =
-        !!step?.showBackButton && step.screenId !== noBackLockScreenId && !signupCompleted && !flowLoading
+        !!step?.showBackButton &&
+        step.screenId !== noBackLockScreenId &&
+        !signupCompleted &&
+        !flowLoading &&
+        !registrationInProgress
 
     useSetupStepAnalytics({
-        enabled: stepRendered,
+        enabled:
+            stepRendered &&
+            !isLeavingForHome &&
+            !isSettlingNativeBadgeCampaigns &&
+            !retryingInitialization &&
+            !isFetchingUser,
         step,
         steps,
         signupEntryFlow,
     })
     useSetupBackHandler({ step, canStepBack: stepRendered && showBackButton, onBack: handleBack })
-    const { track: trackErrorScreen } = useSignupControl('setup-error')
+    const { track: trackErrorScreen, trackError: trackSetupError } = useSignupControl('setup-error')
+    const recoveryViewed = useRef(false)
+    useEffect(() => {
+        trackSetupError('setup', recoveryReason)
+        if (!recoveryReason) {
+            recoveryViewed.current = false
+            return
+        }
+        if (recoveryViewed.current) return
+        recoveryViewed.current = true
+        captureSignupStepViewed({
+            screenId: 'setup-error',
+            stepIndex: 1,
+            totalSteps: 1,
+            navType: 'initial',
+            signupEntryFlow,
+        })
+    }, [recoveryReason, signupEntryFlow, trackSetupError])
+
+    useEffect(() => {
+        if (!draftReady || isFetchingUser || isDemoMode()) return
+        if (registrationInProgress) {
+            if (signedInUserId) registrationIdentity.current = signedInUserId
+            return
+        }
+        if (handledIdentity.current === signedInUserId) return
+        handledIdentity.current = signedInUserId
+        if (
+            !signedInUserId ||
+            registrationIdentity.current === signedInUserId ||
+            readSignupDraft()?.userId === signedInUserId
+        )
+            return
+        discardSignupDraft()
+        restoredDraft.current = null
+        resetSetupFlow()
+        resolvedEntry.current = null
+        shownPostRegistration.current = false
+        progressRestored.current = false
+        progressOwned.current = false
+        resumeSignup.current = false
+        legacyRecoveryBoundary.current = null
+        setSessionChecked(false)
+        setIsLoading(true)
+    }, [draftReady, isFetchingUser, registrationInProgress, signedInUserId, resetSetupFlow])
 
     /*
      * A device can arrive at /setup already authenticated: a half-completed
@@ -330,7 +557,7 @@ function SetupPageContent() {
      * separately so repeated invites cannot strand the loader.
      */
     useEffect(() => {
-        if (isFetchingUser) return
+        if (isFetchingUser || profileFetchFailed || !draftReady) return
         const isInitialSessionCheck = !sessionChecked
         const isNewSetupDeepLink =
             !isInitialSessionCheck &&
@@ -350,6 +577,17 @@ function SetupPageContent() {
                 : getPendingBadgeCampaigns()
 
         if (user?.user?.username) {
+            if (!registrationInProgress) {
+                const draft = readSignupDraft()
+                if (draft && draft.userId !== signedInUserId) {
+                    discardSignupDraft()
+                    restoredDraft.current = null
+                    resetSetupFlow()
+                } else if (draft?.userId === signedInUserId && signedInUserId) {
+                    bindSignupDraft(signedInUserId)
+                }
+                if (signedInUserId) void flushPendingSignupAnswers(signedInUserId)
+            }
             // Signup is open to every authenticated account. A stale legacy
             // hasAppAccess=false profile must not resurrect the retired
             // waitlist or offer to replace an already-created account.
@@ -372,6 +610,10 @@ function SetupPageContent() {
              * else at the first step after registration.
              */
             const resume = !isDemoMode() && unfinishedSignupRoute(user) === '/setup'
+            if (!resume) {
+                void discardSignupDraft()
+                restoredDraft.current = null
+            }
             if (resume) resumeSignup.current = true
             const exitSignedIn = () => {
                 if (!resume) {
@@ -453,18 +695,24 @@ function SetupPageContent() {
     }, [
         sessionChecked,
         isFetchingUser,
+        profileFetchFailed,
         user,
         router,
         fetchUser,
         urlBadgeCampaigns,
         deepLinkGeneration,
         searchParamsString,
+        draftReady,
+        registrationInProgress,
+        signedInUserId,
+        resetSetupFlow,
     ])
 
     useEffect(() => {
         let cancelled = false
         const isObsolete = () => cancelled || initializationExpired.current
         const determineInitialStep = async () => {
+            if (profileFetchFailed) return
             const entryKey = JSON.stringify([inviteCodeParam, legacyStepParam])
             if (isObsolete() || resolvedEntry.current === entryKey) return
             // wait for layout to populate steps after logout/mount
@@ -473,6 +721,7 @@ function SetupPageContent() {
                 setIsLoading(true)
                 return
             }
+            if (!draftReady) return
 
             setIsLoading(true)
             await new Promise((resolve) => setTimeout(resolve, 100)) // ensure other initializations can complete
@@ -483,6 +732,7 @@ function SetupPageContent() {
                 if (shownPostRegistration.current && current) return current
                 return resumeTargetRef.current()
             }
+            const draft = restoredDraft.current
 
             // The entry-step rules (invite code / ?step=signup opening the form
             // directly, ?step=login, a known device going to Log In) live in
@@ -521,6 +771,7 @@ function SetupPageContent() {
                 stepParam: legacyStepParam,
                 webSignupClosed,
                 knownDevice: hasKnownDeviceCredentials(),
+                screenIds: steps.map((entry) => entry.screenId),
             }
 
             // Web signup is a product-access decision, not a capability check:
@@ -528,7 +779,17 @@ function SetupPageContent() {
             // handles passkeys itself. replace, not push: the entry step overwrites
             // any stale ?screen= from a reload or shared link — the URL is only the
             // source of truth for IN-FLOW navigation (TASK-21460)
-            const targetStep = entryScreen(resolveSetupEntryStep(entryInput))
+            const anonymousTarget =
+                draft &&
+                !draft.userId &&
+                !signedInUserId &&
+                !entryInput.webSignupClosed &&
+                !entryInput.knownDevice &&
+                legacyStepParam !== 'login' &&
+                steps.some((entry) => entry.screenId === draft.screenId)
+                    ? draft.screenId
+                    : resolveSetupEntryStep(entryInput)
+            const targetStep = entryScreen(anonymousTarget)
             if (!steps.some((s) => s.screenId === targetStep)) throw new Error('Setup entry step is missing')
             resolvedEntry.current = entryKey
             setScreenIdRef.current(targetStep, { history: 'replace' })
@@ -544,7 +805,18 @@ function SetupPageContent() {
         return () => {
             cancelled = true
         }
-    }, [steps, inviteCodeParam, inviteTypeParam, acquisitionInviteParam, legacyStepParam, keepWebParam])
+    }, [
+        steps,
+        inviteCodeParam,
+        inviteTypeParam,
+        acquisitionInviteParam,
+        legacyStepParam,
+        keepWebParam,
+        profileFetchFailed,
+        initializationAttempt,
+        draftReady,
+        signedInUserId,
+    ])
 
     if (recoveryReason) {
         return (
@@ -555,8 +827,13 @@ function SetupPageContent() {
                     <Button
                         onClick={() => {
                             trackErrorScreen('try_again', 'tap', recoveryReason)
+                            if (profileFetchFailed) {
+                                void fetchUser().catch(() => {})
+                                return
+                            }
                             window.location.reload()
                         }}
+                        disabled={isFetchingUser}
                     >
                         {tCommon('tryAgain')}
                     </Button>
@@ -574,7 +851,14 @@ function SetupPageContent() {
         )
     }
 
-    if (isLoading || !sessionChecked || isLeavingForHome || isSettlingNativeBadgeCampaigns)
+    if (
+        isLoading ||
+        !sessionChecked ||
+        isLeavingForHome ||
+        isSettlingNativeBadgeCampaigns ||
+        retryingInitialization ||
+        isFetchingUser
+    )
         return (
             <div className="flex h-dvh w-full flex-col items-center justify-center">
                 <Loading variant="mascot" />

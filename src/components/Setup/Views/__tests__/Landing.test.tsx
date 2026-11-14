@@ -11,6 +11,9 @@ import LandingStep from '../Landing'
 
 const mockLogin = jest.fn()
 const mockNext = jest.fn()
+const mockResetSetupFlow = jest.fn()
+const mockDiscardDraft = jest.fn()
+let mockSignupDraft: { userId?: string } | null = null
 const mockToastError = jest.fn()
 let mockNative = true
 let mockAndroidNative = false
@@ -27,11 +30,15 @@ jest.mock('@/utils/capacitor', () => ({
 }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: mockToastError }) }))
 jest.mock('@/hooks/useSetupFlow', () => ({ useSetupFlow: () => ({ handleNext: mockNext }) }))
-jest.mock('@/hooks/useLogin', () => ({ useLogin: () => ({ handleLoginClick: mockLogin, isLoggingIn: false }) }))
-jest.mock('@/utils/landing-passkeys', () => ({
-    checkAndroidLandingPasskey: async () => 'available',
-    supportsIOSImmediateLogin: async () => false,
+jest.mock('@/features/setup/SetupFlowContext', () => ({
+    ...jest.requireActual('@/features/setup/SetupFlowContext'),
+    useOptionalSetupFlow: () => ({ resetSetupFlow: mockResetSetupFlow, signupEntryFlow: 'default' }),
 }))
+jest.mock('@/features/setup/signup-draft', () => ({
+    readSignupDraft: () => mockSignupDraft,
+    discardSignupDraft: () => mockDiscardDraft(),
+}))
+jest.mock('@/hooks/useLogin', () => ({ useLogin: () => ({ handleLoginClick: mockLogin, isLoggingIn: false }) }))
 jest.mock('@/hooks/useGetDeviceType', () => ({
     DeviceType: { IOS: 'ios', ANDROID: 'android', WEB: 'web' },
     useDeviceType: () => ({ deviceType: mockDeviceType }),
@@ -62,11 +69,6 @@ jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn()
 /** The curated error useZeroDev.handleLogin throws. */
 const passkeyError = (code: string) => Object.assign(new Error('curated'), { name: 'PasskeyError', code })
 const logIn = async () => {
-    if (!screen.queryByRole('button', { name: /log in/i })) {
-        await act(async () => {
-            jest.advanceTimersByTime(5000)
-        })
-    }
     // Use the real clock for the recovery drawer's focus and dismissal transitions.
     jest.useRealTimers()
     await act(async () => {
@@ -85,8 +87,72 @@ beforeEach(() => {
     mockAndroidNative = false
     mockTestBuild = false
     mockDeviceType = 'ios'
+    mockSignupDraft = null
 })
 afterEach(() => jest.useRealTimers())
+
+describe('Landing — the account recovery link appears only after a failed login', () => {
+    const recoveryLink = () => screen.queryByText('Need to recover a Peanut account?')
+
+    it('is hidden on the first screen', () => {
+        renderWithIntl(<LandingStep />)
+        expect(recoveryLink()).not.toBeInTheDocument()
+    })
+
+    it('appears after a login fails', async () => {
+        mockLogin.mockRejectedValue(passkeyError('LOGIN_ERROR'))
+        renderWithIntl(<LandingStep />)
+        await logIn()
+        await waitFor(() => expect(recoveryLink()).toBeInTheDocument())
+    })
+
+    it('stays hidden after one dismissal of the passkey sheet and appears on the second', async () => {
+        mockLogin.mockRejectedValue(passkeyError('LOGIN_CANCELED'))
+        renderWithIntl(<LandingStep />)
+        await logIn()
+        await waitFor(() => expect(mockToastError).toHaveBeenCalledTimes(1))
+        expect(recoveryLink()).not.toBeInTheDocument()
+        await logIn()
+        await waitFor(() => expect(recoveryLink()).toBeInTheDocument())
+    })
+})
+
+describe('Landing — draft ownership', () => {
+    it('clears a previous registrant before starting another signup', () => {
+        mockSignupDraft = { userId: 'previous-account' }
+        renderWithIntl(<LandingStep />)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Sign up' }))
+
+        expect(mockDiscardDraft).toHaveBeenCalledTimes(1)
+        expect(mockResetSetupFlow).toHaveBeenCalledTimes(1)
+        expect(mockDiscardDraft.mock.invocationCallOrder[0]).toBeLessThan(mockNext.mock.invocationCallOrder[0])
+        expect(mockResetSetupFlow.mock.invocationCallOrder[0]).toBeLessThan(mockNext.mock.invocationCallOrder[0])
+    })
+
+    it('keeps an anonymous draft when continuing signup', () => {
+        mockSignupDraft = {}
+        renderWithIntl(<LandingStep />)
+
+        fireEvent.click(screen.getByRole('button', { name: 'Sign up' }))
+
+        expect(mockDiscardDraft).not.toHaveBeenCalled()
+        expect(mockResetSetupFlow).not.toHaveBeenCalled()
+        expect(mockNext).toHaveBeenCalledTimes(1)
+    })
+
+    it('keeps the registrant draft available for login recovery', async () => {
+        mockSignupDraft = { userId: 'previous-account' }
+        mockLogin.mockResolvedValue(undefined)
+        renderWithIntl(<LandingStep />)
+
+        await logIn()
+
+        expect(mockLogin).toHaveBeenCalledTimes(1)
+        expect(mockDiscardDraft).not.toHaveBeenCalled()
+        expect(mockResetSetupFlow).not.toHaveBeenCalled()
+    })
+})
 
 describe('Landing — recovery after a failed login (TASK-24017)', () => {
     it('opens the recovery drawer at once when the phone holds no Peanut passkey', async () => {
@@ -158,7 +224,7 @@ describe('Landing — recovery after a failed login (TASK-24017)', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'I’m new, create an account' }))
         expect(mockNext).toHaveBeenCalledTimes(1)
-        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_CLICKED)
+        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_CLICKED, { welcome_variant: 'control' })
         expect(recoveryActions()).toEqual(['retry', 'signup'])
     })
 
@@ -195,7 +261,7 @@ describe('Landing — test-build web sign-up', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Sign up on web' }))
 
         expect(mockNext).toHaveBeenCalledTimes(1)
-        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_CLICKED)
+        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_CLICKED, { welcome_variant: 'control' })
     })
 
     it('keeps the normal sign-up in the native app, with no test row', () => {
@@ -265,7 +331,7 @@ describe('Landing — control analytics', () => {
         await logIn()
         await waitFor(() => expect(mockLogin).toHaveBeenCalledTimes(1))
         expect(controls()).toEqual(['sign_up:tap', 'log_in:tap'])
-        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_CLICKED)
+        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_CLICKED, { welcome_variant: 'control' })
     })
 
     it('reports each recovery drawer action and a dismissal', async () => {
@@ -277,7 +343,15 @@ describe('Landing — control analytics', () => {
         await waitFor(() => expect(mockLogin).toHaveBeenCalledTimes(2))
         fireEvent.keyDown(await screen.findByRole('dialog'), { key: 'Escape' })
         await waitFor(() => expect(recoveryActions()).toEqual(['retry', 'dismiss']))
-        expect(controls()).toEqual(['log_in:tap', 'recovery_retry:tap', 'login_recovery:dismiss'])
+        expect(controls()).toEqual([
+            'log_in:tap',
+            'log_in:error:PASSKEY_NOT_FOUND',
+            'login_recovery:open',
+            'recovery_retry:tap',
+            'log_in:error:PASSKEY_NOT_FOUND',
+            'login_recovery:open',
+            'login_recovery:dismiss',
+        ])
     })
 
     it('reports the store button on the web app-only layout', () => {

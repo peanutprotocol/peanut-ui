@@ -18,6 +18,9 @@ import { parseUnits, type Address, type Hash } from 'viem'
 import { useSemanticRequestFlowContext } from './SemanticRequestFlowContext'
 import { useChargeManager } from '@/features/payments/shared/hooks/useChargeManager'
 import { readChargeUntilFinal } from '@/features/payments/shared/utils/charge-receipt.utils'
+import { MutationResponseTimeoutError } from '@/utils/connection-timeout-error'
+import { usePaymentStatusRecovery } from '@/features/payments/shared/hooks/usePaymentStatusRecovery'
+import { type TRequestChargeResponse } from '@/services/services.types'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
 import { useCrossChainTransfer } from '@/features/payments/shared/hooks/useCrossChainTransfer'
 import { isQuoteNearExpiry } from '@/services/rhino-bridge'
@@ -68,6 +71,8 @@ export function useSemanticRequestFlow() {
         isSuccess,
         setIsSuccess,
         resetSemanticRequestFlow,
+        isPaymentStatusUnknown,
+        setIsPaymentStatusUnknown,
         isExternalWalletPayment,
         setIsExternalWalletPayment,
     } = useSemanticRequestFlowContext()
@@ -76,6 +81,15 @@ export function useSemanticRequestFlow() {
     const queryClient = useQueryClient()
     const { createCharge, fetchCharge, isCreating: isCreatingCharge, isFetching: isFetchingCharge } = useChargeManager()
     const { recordPayment, isRecording } = usePaymentRecorder()
+    const recoverPaymentStatus = usePaymentStatusRecovery({
+        fetchCharge,
+        setCharge,
+        setIsSuccess,
+        setIsPaymentStatusUnknown,
+        setCurrentView,
+        setError,
+        failureMessage: t('errors.externalPaymentNotConfirmed'),
+    })
     const {
         transactions: routeTransactions,
         estimatedGasCostUsd: calculatedGasCost,
@@ -245,6 +259,7 @@ export function useSemanticRequestFlow() {
             setIsLoading(true)
             clearError()
 
+            let recordingCharge: TRequestChargeResponse | null = null
             try {
                 // step 1: use existing charge if available (from url), otherwise create new one
                 let chargeResult = charge // use existing charge if loaded from chargeIdFromUrl
@@ -322,6 +337,7 @@ export function useSemanticRequestFlow() {
                     setTxHash(hash)
 
                     // record payment
+                    recordingCharge = chargeResult
                     const paymentResult = await recordPayment({
                         chargeId: chargeResult.uuid,
                         chainId: PEANUT_WALLET_CHAIN.id.toString(),
@@ -351,6 +367,12 @@ export function useSemanticRequestFlow() {
                 setIsLoading(false)
                 return { success: true }
             } catch (err) {
+                if (err instanceof MutationResponseTimeoutError && recordingCharge) {
+                    const outcome = await recoverPaymentStatus(recordingCharge.uuid)
+                    setIsLoading(false)
+                    return { success: outcome === 'completed' }
+                }
+
                 // Card re-approval dismissed, or the screen left, before
                 // anything was prepared or signed — control flow, not a failed
                 // payment. The charge stays open for another attempt.
@@ -377,6 +399,7 @@ export function useSemanticRequestFlow() {
             validateUsernameRecipient,
             createCharge,
             sendMoney,
+            recoverPaymentStatus,
             recordPayment,
             queryClient,
             updateUrlWithChargeId,
@@ -516,6 +539,7 @@ export function useSemanticRequestFlow() {
         setIsLoading(true)
         clearError()
 
+        let recordingPayment = false
         try {
             let hash: Hash
 
@@ -575,6 +599,7 @@ export function useSemanticRequestFlow() {
             // for charge completion — this recordPayment writes the optimistic row
             // so UI + history update immediately. Cross-chain
             // path uses the SDA-address + bridgeId correlation in the backend.
+            recordingPayment = true
             const paymentResult = await recordPayment({
                 chargeId: charge.uuid,
                 chainId: PEANUT_WALLET_CHAIN.id.toString(),
@@ -599,6 +624,11 @@ export function useSemanticRequestFlow() {
             })
             queryClient.invalidateQueries({ queryKey: ['balance'] })
         } catch (err) {
+            if (err instanceof MutationResponseTimeoutError && recordingPayment) {
+                await recoverPaymentStatus(charge.uuid)
+                return
+            }
+
             // Card re-approval dismissed, or the screen left, before anything
             // was prepared or signed — control flow, not a failed payment.
             if (err instanceof SpendRecoveryAbortedError) return
@@ -622,6 +652,7 @@ export function useSemanticRequestFlow() {
         selectedTokenAddress,
         sendMoney,
         sendTransactions,
+        recoverPaymentStatus,
         recordPayment,
         queryClient,
         setTxHash,
@@ -702,6 +733,7 @@ export function useSemanticRequestFlow() {
         isLoading: isLoading || isCreatingCharge || isFetchingCharge || isRecording || isCalculatingRoute,
         isSuccess,
         isFetchingCharge,
+        isPaymentStatusUnknown,
         isExternalWalletPayment,
 
         // route calculation state (for confirm view)

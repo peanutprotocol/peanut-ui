@@ -251,7 +251,7 @@ describe('SignTestTransaction — setup completion', () => {
         expect(screen.queryByText(/works right now/i)).not.toBeInTheDocument()
         expect(posthog.capture).toHaveBeenCalledWith(
             ANALYTICS_EVENTS.SIGNUP_COMPLETED,
-            expect.objectContaining({ flow_version: 1, signup_entry_flow: 'default' })
+            expect.objectContaining({ flow_version: 2, signup_entry_flow: 'default' })
         )
         expect(mockRouterPush).not.toHaveBeenCalled()
     })
@@ -783,4 +783,16 @@ it('reports the passkey explainer, its Got it and dismissal, Log out and Confirm
         'log_out:tap',
         'finish:tap',
     ])
+})
+
+it('reports final confirmation errors by category without the raw failure text', async () => {
+    mockSendUserOp.mockRejectedValue(new Error('private provider diagnostic'))
+    renderWithIntl(onSignupScreen('advantage-control', <SignTestTransaction merged onComplete={jest.fn()} />))
+    fireEvent.click(screen.getByRole('button', { name: en.setup.cta.finish }))
+    await waitFor(() =>
+        expect(signupControls(posthog.capture as jest.Mock)).toContain(
+            'finish:error:testTransaction.errors.supportNeeded'
+        )
+    )
+    expect(JSON.stringify(signupControls(posthog.capture as jest.Mock))).not.toContain('private')
 })
