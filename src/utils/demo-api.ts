@@ -75,6 +75,47 @@ const demoPixWithdrawDisplay = () => ({
     provider: 'Avenia',
 })
 
+/** A Pix BR Code's own amount (EMV tag 54), or null for a code that leaves the amount to the payer. */
+function brCodeAmount(brCode: string): string | null {
+    for (let at = 0; at + 4 <= brCode.length; ) {
+        const tag = brCode.slice(at, at + 2)
+        const length = Number(brCode.slice(at + 2, at + 4))
+        if (!Number.isInteger(length)) return null
+        if (tag === '54') return brCode.slice(at + 4, at + 4 + length)
+        at += 4 + length
+    }
+    return null
+}
+
+/**
+ * The review of a merchant Pix code on the neutral pay routes, as the API answers it: the code's
+ * own amount, or the reais sent for a code without one (API-CONTRACT-M4 §2.1).
+ */
+const demoPixPayDisplay = (amountBrl: string, amountFixed: boolean) => {
+    const rate = 5.364547
+    const fixedFeeBrl = 0.75
+    return {
+        amountBrl: Number(amountBrl).toFixed(2),
+        amountFixed,
+        merchantName: 'PADARIA PAO DOURADO LTDA',
+        merchantTaxIdMasked: '12.345.678/0001-95',
+        bankName: 'Banco Inter S.A.',
+        withdrawUsd: ((Number(amountBrl) + fixedFeeBrl) / rate).toFixed(6),
+        rate: String(rate),
+        fixedFeeBrl: fixedFeeBrl.toFixed(2),
+        arrivalEstimateSeconds: 60,
+        provider: 'Avenia',
+    }
+}
+
+/** A code without an amount of its own is reviewed only with the reais the payer typed. */
+function demoPixPayReview(body: { brCode?: string; amountBrl?: string }) {
+    const own = brCodeAmount(body.brCode ?? '')
+    if (own) return demoPixPayDisplay(own, true)
+    if (body.amountBrl) return demoPixPayDisplay(body.amountBrl, false)
+    return json({ error: 'This Pix code has no amount', code: 'PAYMENT_DESTINATION_MISSING_AMOUNT' }, 400)
+}
+
 function json(data: unknown, status = 200): Response {
     return new Response(JSON.stringify(data ?? {}), {
         status,
@@ -970,6 +1011,48 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         }),
     },
     { method: 'POST', pattern: '/pix/withdraw/:intentId/funded', handler: () => ({ status: 'PROCESSING' }) },
+    // a merchant Pix code on the neutral pay routes (API-CONTRACT-M4)
+    {
+        method: 'POST',
+        pattern: '/pix/pay/preview',
+        handler: ({ options }) => demoPixPayReview(parseBody(options) as { brCode?: string; amountBrl?: string }),
+    },
+    {
+        method: 'POST',
+        pattern: '/pix/pay',
+        handler: ({ options }) => {
+            const display = demoPixPayReview(parseBody(options) as { brCode?: string; amountBrl?: string })
+            if (display instanceof Response) return display
+            return {
+                provider: 'avenia',
+                intentId: 'demo-pix-pay',
+                display,
+                sign: {
+                    kind: 'deposit-with-id',
+                    contractAddress: DEMO_ADDRESS,
+                    tokenAddress: PEANUT_WALLET_TOKEN,
+                    payAmount: display.withdrawUsd,
+                    payAmountUnits: String(Math.round(Number(display.withdrawUsd) * 1e6)),
+                    commitmentId: '6aeb17ea29f84d1e9b0c3a5d7e2f1c08',
+                    quoteExpiresAt: soon(),
+                    ticketExpiresAt: new Date(Date.now() + 600_000).toISOString(),
+                },
+            }
+        },
+    },
+    { method: 'POST', pattern: '/pix/pay/:intentId/funded', handler: () => ({ status: 'PROCESSING' }) },
+    {
+        method: 'GET',
+        pattern: '/pix/pay/:intentId',
+        handler: ({ params }) => ({
+            provider: 'avenia',
+            intentId: params.intentId,
+            state: 'paid',
+            status: 'COMPLETED',
+            amountBrl: '42.50',
+            merchantName: 'PADARIA PAO DOURADO LTDA',
+        }),
+    },
 
     // points / perks / rewards
     {

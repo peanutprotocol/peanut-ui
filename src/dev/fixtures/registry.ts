@@ -673,6 +673,80 @@ const aveniaPayableDeposit = {
     },
 }
 
+/** Merchant Pix codes (valid EMV and CRC): one that leaves the amount to the payer, one with R$42.50, one with R$3. */
+const PIX_QR_OPEN_AMOUNT =
+    '00020101021226680014br.gov.bcb.pix2546pix.example.com/qr/v2/cobv/padaria-pao-dourado5204000053039865802BR5924PADARIA PAO DOURADO LTDA6009SAO PAULO62070503***630409BC'
+const PIX_QR_FIXED_AMOUNT =
+    '00020101021226680014br.gov.bcb.pix2546pix.example.com/qr/v2/cobv/padaria-pao-dourado520400005303986540542.505802BR5924PADARIA PAO DOURADO LTDA6009SAO PAULO62070503***63043A47'
+const PIX_QR_SMALL_AMOUNT =
+    '00020101021226680014br.gov.bcb.pix2546pix.example.com/qr/v2/cobv/padaria-pao-dourado52040000530398654043.005802BR5924PADARIA PAO DOURADO LTDA6009SAO PAULO62070503***63044A84'
+const AVENIA_QR_PAYMENT_ID = 'fixture-qr-avenia'
+/** /qr-pay for a scanned Pix code, as the scanner opens it; `intentId` once a payment is open. */
+const qrPayRoute = (code: string, intentId?: string) =>
+    `/qr-pay?qrCode=${encodeURIComponent(code)}&type=PIX&t=1${intentId ? `&intentId=${intentId}` : ''}`
+
+/**
+ * A resident of Brazil inside the merchant QR gate (API-CONTRACT-M4 §1): the pay route names Avenia,
+ * with the R$5 floor the app checks before it calls (Aleks, 2026-11-14). Manteca's candidate moved.
+ */
+const aveniaPayRoute = (step: Record<string, unknown>) => ({
+    operation: 'pay',
+    method: 'PIX_BR',
+    provider: 'avenia',
+    ...step,
+    limits: { minAmount: '5', currency: 'BRL' },
+    candidates: [
+        { provider: 'avenia', ...step },
+        {
+            provider: 'manteca',
+            state: 'refused',
+            reason: { code: 'provider_moved', userMessage: 'Pix moved to another partner.' },
+        },
+    ],
+})
+const aveniaQrResponses = (
+    step: Record<string, unknown> = { state: 'ready' },
+    overrides: Record<string, unknown> = {}
+) => {
+    const base = aveniaResponses('enabled')
+    const me = base['GET /users/me']
+    return {
+        ...base,
+        'GET /users/me': {
+            ...me,
+            capabilities: { ...me.capabilities, routes: [...aveniaRoutes('enabled'), aveniaPayRoute(step)] },
+        },
+        ...overrides,
+    }
+}
+/** GET /pix/pay/:intentId of the open payment, in one of its states. */
+const aveniaQrRead = (state: string, status: string) => ({
+    [`GET /pix/pay/${AVENIA_QR_PAYMENT_ID}`]: {
+        provider: 'avenia',
+        intentId: AVENIA_QR_PAYMENT_ID,
+        state,
+        status,
+        amountBrl: '42.50',
+        merchantName: 'PADARIA PAO DOURADO LTDA',
+    },
+})
+/** The payment's history entry (API-CONTRACT-M4 §5): a QR payment to the merchant, provider Avenia. */
+const aveniaQrEntry = (status: string) => ({
+    uuid: AVENIA_QR_PAYMENT_ID,
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-11-15T12:00:00.000Z'),
+    amount: '8.062211',
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    status,
+    userRole: 'SENDER',
+    senderAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
+    recipientAccount: { identifier: 'PADARIA PAO DOURADO LTDA', type: 'BANK_CBU', isUser: false },
+    currency: { amount: '42.50', code: 'BRL' },
+    extraData: { kind: 'QR_PAY', provider: 'AVENIA', usdAmount: '8.062211' },
+})
+
 const PIX_FAVORITE = {
     id: 'fixture-pix-favorite-1',
     userId: 'demo-user',
@@ -2792,6 +2866,91 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Withdraw amount step with its inline error — the amount is below the minimum.',
         waitFor: 'p[role="alert"]',
         responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...NAMED_BANK_ACCOUNTS] } },
+    },
+    // ---- merchant Pix QR on Avenia, through the neutral pay routes (TASK-24947 M4) ----
+    'qr-pay-avenia-form': {
+        route: qrPayRoute(PIX_QR_FIXED_AMOUNT),
+        about: "A Pix code with its own amount on Avenia's pay route: the merchant, bank and CNPJ, the code's reais, the rate, the provider fee and Avenia.",
+        responses: aveniaQrResponses(),
+    },
+    'qr-pay-avenia-open-amount': {
+        route: qrPayRoute(PIX_QR_OPEN_AMOUNT),
+        about: 'A Pix code without an amount on Avenia: the payer types the reais, and the review names the merchant once it answers.',
+        responses: aveniaQrResponses(),
+    },
+    'qr-pay-avenia-minimum': {
+        route: qrPayRoute(PIX_QR_SMALL_AMOUNT),
+        about: 'A Pix code of R$3 on Avenia: under the R$5 the route states, the minimum line, and Pay stays off.',
+        responses: aveniaQrResponses(),
+    },
+    'qr-pay-avenia-processing': {
+        route: qrPayRoute(PIX_QR_FIXED_AMOUNT, AVENIA_QR_PAYMENT_ID),
+        about: 'An Avenia QR payment whose USDC left the wallet: the processing screen while Avenia pays the merchant.',
+        isLoadingState: true,
+        responses: aveniaQrResponses({ state: 'ready' }, aveniaQrRead('processing', 'PROCESSING')),
+    },
+    'qr-pay-avenia-paid': {
+        route: qrPayRoute(PIX_QR_FIXED_AMOUNT, AVENIA_QR_PAYMENT_ID),
+        about: 'An Avenia QR payment the merchant received: the QR success screen, the reais and the USD that left.',
+        responses: aveniaQrResponses(
+            { state: 'ready' },
+            {
+                ...aveniaQrRead('paid', 'COMPLETED'),
+                [`GET /history/${AVENIA_QR_PAYMENT_ID}`]: aveniaQrEntry('COMPLETED'),
+            }
+        ),
+    },
+    'qr-pay-avenia-refunded': {
+        route: qrPayRoute(PIX_QR_FIXED_AMOUNT, AVENIA_QR_PAYMENT_ID),
+        about: "An Avenia QR payment that failed after the USDC left: it came back, the QR flow's refunded status.",
+        responses: aveniaQrResponses({ state: 'ready' }, aveniaQrRead('refunded', 'REFUNDED')),
+    },
+    'qr-pay-avenia-needs-support': {
+        route: qrPayRoute(PIX_QR_FIXED_AMOUNT, AVENIA_QR_PAYMENT_ID),
+        about: 'An Avenia QR payment a person at Peanut is looking at: the status, and support as the way on.',
+        responses: aveniaQrResponses({ state: 'ready' }, aveniaQrRead('needs_support', 'FAILED')),
+    },
+    'qr-pay-avenia-refused': {
+        route: qrPayRoute(PIX_QR_FIXED_AMOUNT),
+        about: "A user Avenia refused: the pay route's refusal and support, no fall-back to another provider.",
+        responses: aveniaQrResponses({
+            state: 'refused',
+            reason: {
+                code: 'provider_rejected',
+                userMessage:
+                    'Our payments partner could not verify your identity. Message support if you think this is a mistake.',
+            },
+        }),
+    },
+    'qr-pay-avenia-merchant-blocked': {
+        route: qrPayRoute(PIX_QR_FIXED_AMOUNT),
+        about: "A Pix code Avenia does not pay (its bank or holder): the QR flow's card for a merchant it cannot pay.",
+        responses: aveniaQrResponses(),
+        rejects: { 'POST /pix/pay/preview': { status: 422, body: { code: 'PIX_KEY_BLOCKED', error: 'Blocked' } } },
+    },
+    'qr-pay-avenia-first-use': {
+        route: qrPayRoute(PIX_QR_FIXED_AMOUNT),
+        about: 'Inside the QR gate with no Avenia account yet: the same no-tap opening as the other Pix pages.',
+        isLoadingState: true,
+        responses: aveniaQrResponses(
+            {
+                state: 'action_required',
+                action: 'activate',
+                reason: { code: 'first_use_required', userMessage: 'Set up this payment method to continue.' },
+            },
+            { [ACTIVATE_PIX]: { state: 'setting_up' } }
+        ),
+    },
+    'qr-pay-avenia-receipt': {
+        route: `/history?tx=${AVENIA_QR_PAYMENT_ID}`,
+        about: "An Avenia QR payment's receipt: a QR payment to the merchant, the reais, and Avenia on the provider row.",
+        responses: {
+            'GET /users/history': {
+                entries: [aveniaQrEntry('COMPLETED'), { ...aveniaQrEntry('REFUNDED'), uuid: 'fixture-qr-avenia-2' }],
+                hasMore: false,
+            },
+            [`GET /history/${AVENIA_QR_PAYMENT_ID}`]: aveniaQrEntry('COMPLETED'),
+        },
     },
     'qr-pay-rate-unavailable': {
         route: '/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&t=1',
