@@ -287,6 +287,9 @@ jobs:
                   ANDROID_VERSION_NAME: ${{ steps.version.outputs.name }}
                   KEEP_LOTTIE_PROFILE: ${{ steps.version.outputs.profile == 'true' && 'true' || 'false' }}
                   WEBVIEW_DEBUG: ${{ steps.version.outputs.profile == 'true' && 'true' || 'false' }}
+                  # native:release runs the same web build as tests.yml's native-export, which outgrew Node's
+                  # default heap (Nov 2026).
+                  NODE_OPTIONS: --max-old-space-size=6144
               run: |
                   # versionCode must increase in UPLOAD order, which is not run
                   # order: GitHub preserves run_number when you re-run an older
