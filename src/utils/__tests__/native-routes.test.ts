@@ -159,6 +159,9 @@ describe('native-routes', () => {
             it('should not rewrite /add-money/crypto or /add-money/us (static routes)', () => {
                 expect(rewriteMethodPath('/add-money/crypto')).toBe('/add-money/crypto')
                 expect(rewriteMethodPath('/add-money/us')).toBe('/add-money/us')
+                expect(rewriteMethodPath('/add-money/options?method=transfer', 'ready=1')).toBe(
+                    '/add-money/options?method=transfer&ready=1'
+                )
             })
 
             it('should not rewrite the neutral Pix pages or the new-key page (static routes)', () => {

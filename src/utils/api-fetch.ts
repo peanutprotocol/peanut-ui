@@ -22,6 +22,8 @@ import {
 
 type FetchOptions = RequestInit & {
     timeoutMs?: number
+    /** See `FetchWithSentryOptions.drainResponseBody`. */
+    drainResponseBody?: boolean
     /** Recheck a captured session immediately before an optional guarded request is dispatched. */
     beforeDispatch?: () => boolean
     /** Public endpoints can opt out of sending the web bearer token. */
@@ -34,6 +36,21 @@ type FetchOptions = RequestInit & {
     redactTelemetry?: boolean
     /** See `FetchWithSentryOptions.idempotent`. Rides through on the spread. */
     idempotent?: boolean
+}
+
+const cancelError = (signal: AbortSignal): unknown =>
+    signal.reason ?? Object.assign(new Error('The request was cancelled'), { name: 'AbortError' })
+
+function waitForReadiness<T>(readiness: Promise<T>, signal?: AbortSignal | null): Promise<T> {
+    if (!signal) return readiness
+
+    let onAbort = () => {}
+    const cancelled = new Promise<never>((_, reject) => {
+        onAbort = () => reject(cancelError(signal))
+        if (signal.aborted) onAbort()
+        else signal.addEventListener('abort', onAbort, { once: true })
+    })
+    return Promise.race([readiness, cancelled]).finally(() => signal.removeEventListener('abort', onAbort))
 }
 
 async function callApi(path: string, options?: FetchOptions): Promise<Response> {
@@ -52,6 +69,8 @@ async function callApi(path: string, options?: FetchOptions): Promise<Response> 
     }
 
     const { timeoutMs, includeAuth = true, beforeDispatch, ...fetchOptions } = options ?? {}
+    const signal = fetchOptions.signal
+    if (signal?.aborted) throw cancelError(signal)
     const startedAt = globalThis.performance?.now?.() ?? Date.now()
     let authWaitMs = 0
 
@@ -60,7 +79,7 @@ async function callApi(path: string, options?: FetchOptions): Promise<Response> 
     // unauthenticated read skips it — a public rate must not queue behind auth
     // hydration, and it would send no token either way.
     if (includeAuth) {
-        await authReady()
+        await waitForReadiness(authReady(), signal)
         authWaitMs = (globalThis.performance?.now?.() ?? Date.now()) - startedAt
     }
 
@@ -82,7 +101,7 @@ async function callApi(path: string, options?: FetchOptions): Promise<Response> 
     Object.assign(headers, includeAuth ? getAuthHeaders(callerHeaders) : callerHeaders)
 
     if (isCapacitor() && !Object.keys(callerHeaders).some((k) => k.toLowerCase() === 'x-app-binary-version')) {
-        const version = await getCachedBinaryVersion()
+        const version = await waitForReadiness(getCachedBinaryVersion(), signal)
         if (version) headers['x-app-binary-version'] = version
     }
 
@@ -112,6 +131,7 @@ async function callApi(path: string, options?: FetchOptions): Promise<Response> 
     const route = apiRouteTemplate(path)
 
     try {
+        if (signal?.aborted) throw cancelError(signal)
         const response = await fetchWithSentry(...args)
         captureApiTiming({
             route,
@@ -157,14 +177,26 @@ function captureApiTiming({ route, method, startedAt, authWaitMs, response, erro
 
     const finishedAt = globalThis.performance?.now?.() ?? Date.now()
     const durationMs = Math.max(0, finishedAt - startedAt)
-    const statusCode = typeof response?.status === 'number' ? response.status : undefined
+    const responseTimeout = error instanceof Error && error.name === 'MutationResponseTimeoutError'
+    const statusCode =
+        typeof response?.status === 'number'
+            ? response.status
+            : responseTimeout
+              ? (error as Error & { status: number }).status
+              : undefined
     // fetchWithSentry converts its internal AbortError to this stable public
     // error name. Keep AbortError too for alternate/native transports.
     const errorName = error instanceof Error ? error.name : undefined
     const timedOut = errorName === 'ConnectionTimeoutError' || errorName === 'AbortError'
     const interrupted = timedOut && (error as { interrupted?: unknown }).interrupted === true
-    const failureKind = interrupted ? 'interrupted' : timedOut ? 'timeout' : 'network_error'
-    const outcome = error ? failureKind : response?.ok ? 'success' : 'http_error'
+    const failureKind = responseTimeout
+        ? 'response_body_timeout'
+        : interrupted
+          ? 'interrupted'
+          : timedOut
+            ? 'timeout'
+            : 'network_error'
+    const outcome = responseTimeout ? 'unknown' : error ? failureKind : response?.ok ? 'success' : 'http_error'
     const serverDurationMs = parseServerTiming(response?.headers?.get?.('server-timing') ?? null)
     const properties = {
         route,
@@ -184,6 +216,7 @@ function captureApiTiming({ route, method, startedAt, authWaitMs, response, erro
                   status_class: `${Math.floor(statusCode / 100)}xx`,
               }),
         outcome,
+        ...(responseTimeout ? { response_received: true } : {}),
     }
 
     if (shouldSampleApiRequest()) {

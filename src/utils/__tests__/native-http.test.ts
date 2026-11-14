@@ -53,6 +53,23 @@ describe('nativeHttpRequest', () => {
         jest.clearAllMocks()
     })
 
+    it('does not dispatch after setup has consumed the wall-clock budget', async () => {
+        jest.useFakeTimers()
+        mockRequest.mockResolvedValue({ status: 200, data: '{}', headers: {} })
+        const startedAt = Date.now()
+        try {
+            await expect(
+                nativeHttpRequest('https://api.test.com/healthz', {}, 5_000, () => {
+                    jest.setSystemTime(startedAt + 5_001)
+                    return true
+                })
+            ).rejects.toMatchObject({ name: 'AbortError' })
+            expect(mockRequest).not.toHaveBeenCalled()
+        } finally {
+            jest.useRealTimers()
+        }
+    })
+
     it('maps a text response onto a standard Response', async () => {
         mockRequest.mockResolvedValue({
             status: 200,

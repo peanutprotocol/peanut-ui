@@ -2,7 +2,7 @@ import type { ISetupStep, ScreenId } from '@/components/Setup/Setup.types'
 import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
 import type { ResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
 
-/** Sell screens after the inviter question and before residence: accounts, then the card. */
+/** Sell screens between Welcome and residence: accounts, then the card. */
 export const SETUP_FEATURE_SCREENS: readonly ScreenId[] = ['advantage-fees', 'advantage-card']
 
 /**

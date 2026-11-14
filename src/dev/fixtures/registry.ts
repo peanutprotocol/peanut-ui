@@ -1592,6 +1592,55 @@ const cardStopFunding = (cause: 'card_locked' | 'card_canceled', state: 'pending
 }
 
 export const FIXTURES: Record<string, Fixture> = {
+    'setup-signup-reserved': {
+        route: '/dev/surfaces?s=06-a-signup',
+        about: 'Claim username — reserved-name error returned by the server.',
+        rejects: {
+            'HEAD /users/username/kimchi': { status: 404, body: {} },
+            'POST /users/username/reservations': { status: 400, body: { code: 'USERNAME_RESERVED' } },
+        },
+    },
+    'setup-passkey-username-taken': {
+        route: '/dev/surfaces?s=06-c-passkey',
+        about: 'Create passkey — username taken error with Log in offered.',
+        responses: {
+            'POST /users/username/reservations': { username: 'kimchi', expiresAt: '2030-01-01T00:00:00.000Z' },
+            'HEAD /users/username/kimchi': {},
+            'GET /config/residence-restrictions': DEMO_RESIDENCE_RESTRICTIONS,
+        },
+    },
+    'profile-accounts-card-state-blocked': {
+        route: '/dev/surfaces?s=deposit-card-state-blocked',
+        about: 'Closed card row drawer — card unavailable in a US resident’s state.',
+        responses: {
+            'GET /users/me': {
+                residence: {
+                    declared: { country: 'US', status: 'UNVERIFIED', updatedAt: null, secondCountry: null },
+                    verified: { country: 'US', status: 'VERIFIED', updatedAt: null },
+                },
+                capabilities: { features: { card: { state: 'refused', reason: 'geo-blocked' } } },
+            },
+            'GET /users/me/verified-address': {
+                streetLine1: '350 5th Ave',
+                city: 'New York',
+                postalCode: '10118',
+                subdivisionCode: 'NY',
+                countryCode: 'US',
+            },
+        },
+    },
+    'setup-passkey': {
+        route: '/dev/surfaces?s=06-c-passkey',
+        about: 'Create a passkey after choosing kimchi, a Portuguese residence and a bank/card payment plan.',
+        // /dev/surfaces is a protected (mobile-ui) route: a null /users/me sends the
+        // page to /setup before the step renders. The step reads its username from
+        // the setup context and reserves without auth, so the default session is
+        // enough, as for every other setup surface.
+        responses: {
+            'POST /users/username/reservations': { username: 'kimchi', expiresAt: '2030-01-01T00:00:00.000Z' },
+            'GET /config/residence-restrictions': DEMO_RESIDENCE_RESTRICTIONS,
+        },
+    },
     'setup-payment-plan': {
         route: '/dev/surfaces?s=03-c-residence-congrats',
         about: 'Signup funding and payment choices with settled residence eligibility.',
@@ -3985,7 +4034,29 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'home-add-drawer': {
         route: '/home?drawer=add',
-        about: 'The Add drawer — where bank transfer now leads to the standing account.',
+        about: 'Returning user with a usable EUR account and a completed peer payment.',
+        responses: {
+            ...PROFILE_ACCOUNTS_MIX,
+            'GET /users/me': {
+                ...PROFILE_ACCOUNTS_MIX['GET /users/me'],
+                user: { firstPaymentAt: '2026-09-15T00:00:00Z' },
+            },
+        },
+    },
+    'add-money-picker-first-time': {
+        route: '/add-money',
+        balance: '0',
+        about: 'First-time Add money picker, with Crypto available before identity verification.',
+        responses: {
+            'GET /users/me': {
+                user: { activationMilestone: 'registered', isActivated: false, firstPaymentAt: null },
+                identityVerification: { status: 'not_started' },
+                capabilities: BLOCKED_BANK_CAPABILITIES,
+                depositAccounts: { enabled: true },
+                residence: { declared: { country: 'PT' }, verified: null },
+            },
+            'GET /users/deposit-accounts': { depositAccounts: [], claimable: [] },
+        },
     },
     'home-add-drawer-pix': {
         route: '/home?drawer=add',

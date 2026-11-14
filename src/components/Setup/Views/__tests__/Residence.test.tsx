@@ -540,7 +540,29 @@ describe('ResidenceStep', () => {
                 'nationality_country:open',
                 'nationality_country:select:same',
                 'continue:tap',
+                'residence_compare:open',
                 'compare_choice:tap:nationality',
+            ])
+        })
+
+        it('reports a refused ID issuer warning once and a comparison dismissed by Back', () => {
+            mockRestrictionSets = {
+                ...jest.requireActual('@/test-utils/residenceRestrictions.fixture').RESIDENCE_RESTRICTION_SETS,
+                refusedIdIssuers: new Set(['PT']),
+            }
+            mockSetupState = { residenceCountry: 'DE', nationalityCountry: 'PT' }
+            const view = render(onSignupScreen('residence', <ResidenceStep />))
+            view.rerender(onSignupScreen('residence', <ResidenceStep />))
+            expect(controls()).toEqual(['nationality_country:error:refused_issuer'])
+            fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
+            act(() => {
+                dispatchBackPress()
+            })
+            expect(controls()).toEqual([
+                'nationality_country:error:refused_issuer',
+                'continue:tap',
+                'residence_compare:open',
+                'residence_compare:dismiss',
             ])
         })
     })

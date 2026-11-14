@@ -512,7 +512,10 @@
             "bankNotAvailableNote": "Las transferencias bancarias y la emisión de tarjetas no están disponibles para residentes de tu país.",
             "bankOnlyNotAvailableNote": "Las transferencias bancarias no están disponibles para residentes de tu país.",
             "cardNotAvailableNote": "La Peanut Card no está disponible para residentes de tu país.",
+            "cardNotAvailableStateNote": "La Peanut Card no está disponible en tu estado.",
             "changeModal": {
+                "reviewTitle": "En revisión",
+                "reviewBody": "Estamos revisando tus documentos de residencia.",
                 "title": "Cambiar residencia",
                 "description": "Elige el país donde vives legalmente: el que muestran tus documentos.",
                 "countryPlaceholder": "Selecciona el país",
@@ -909,11 +912,29 @@
         "steps": {
             "landing": {
                 "title": "Cobra desde cualquier lugar. Gasta en todo el mundo.",
-                "description": "Recibe pagos en USD o EUR con datos bancarios. Gástalos con tarjeta o QR, estés donde estés."
+                "description": "Recibe pagos en USD o EUR con datos bancarios. Gástalos con tarjeta o QR, estés donde estés.",
+                "variants": {
+                    "every_border": {
+                        "title": "Una cuenta. Todas las fronteras.",
+                        "description": "Recibe, envía y gasta a nivel internacional, sin pagar por la distancia."
+                    },
+                    "whole_world": {
+                        "title": "El mundo entero en una cuenta.",
+                        "description": "Cobra en otras monedas, paga a quien quieras en el exterior y gasta en tu país. Sin comisiones por transferencia."
+                    },
+                    "travels_free": {
+                        "title": "Dinero que viaja gratis.",
+                        "description": "Una cuenta que envía, recibe y gasta entre países sin costo."
+                    }
+                }
             },
             "signup": {
                 "title": "Reclamar usuario",
                 "description": "Te encuentran y te pagan con tu usuario."
+            },
+            "passkey": {
+                "title": "Crea una passkey",
+                "description": "Te permite iniciar sesión y aprobar pagos. Sin contraseñas que recordar."
             },
             "advantage-payments": {
                 "title": "Paga a quien quieras con un toque.",
@@ -1020,8 +1041,8 @@
         },
         "signupStep": {
             "usernameLabel": "Usuario",
-            "usernamePlaceholder": "batman",
-            "usernameRules": "De 4 a 12 caracteres. Empieza con una letra. Solo letras y números.",
+            "usernamePlaceholder": "Usuario",
+            "usernameRules": "De 4 a 12 caracteres. Empieza con una letra. Solo letras y números. No puede incluir “peanut” ni ser un nombre reservado.",
             "inviterUsernameLabel": "Usuario de quien te invitó",
             "inviterUsernamePlaceholder": "Usuario de quien invita",
             "inviterNotFound": "No encontramos a este usuario.",
@@ -1034,6 +1055,7 @@
                 "invalidFormat": "Empieza con una letra. Usa solo letras y números.",
                 "taken": "Ese nombre de usuario ya está en uso",
                 "invalid": "El nombre de usuario no es válido, usa uno diferente",
+                "reserved": "Este nombre de usuario está reservado. Prueba con otro.",
                 "checkFailed": "No pudimos verificar la disponibilidad del usuario. Inténtalo de nuevo.",
                 "checkFailedSupport": "No pudimos verificar la disponibilidad del usuario. Inténtalo de nuevo o contacta a soporte."
             },
@@ -1117,6 +1139,21 @@
             "continue": "Continuar"
         },
         "passkey": {
+            "create": "Crear passkey",
+            "points": {
+                "unlock": {
+                    "title": "Cara o huella",
+                    "description": "Desbloquea con lo que ya usas en tu teléfono."
+                },
+                "control": {
+                    "title": "Totalmente privada",
+                    "description": "Peanut nunca la ve ni la guarda."
+                },
+                "backup": {
+                    "title": "Lista en un teléfono nuevo",
+                    "description": "Se sincroniza con el gestor de contraseñas de tu teléfono."
+                }
+            },
             "notAvailable": "Las passkeys aún no están disponibles en este dispositivo. Inténtalo de nuevo.",
             "cancelled": "La configuración de la passkey fue cancelada. Inténtalo de nuevo cuando quieras.",
             "tookTooLong": "Esto está tardando más de lo esperado. Inténtalo de nuevo.",
@@ -1128,7 +1165,7 @@
             "serverUnreachable": "No pudimos conectar con los servidores de Peanut. Revisa tu conexión e inténtalo de nuevo.",
             "accountDeleted": "Esta cuenta fue eliminada. Regístrate para crear una nueva.",
             "accountDeletedChooseUsername": "Esta cuenta fue eliminada. Elige otro nombre de usuario para crear una nueva.",
-            "usernameTaken": "Este nombre de usuario ya está registrado, posiblemente por un intento anterior en este dispositivo. Si fuiste tú, tu passkey está lista: solo inicia sesión.",
+            "usernameTaken": "Este nombre de usuario no está disponible ahora. Si ya te registraste con él en este dispositivo, tu passkey está lista: solo inicia sesión.",
             "learnMore": "Aprende más sobre las passkeys",
             "help": {
                 "titles": {
@@ -1906,8 +1943,11 @@
         },
         "status": {
             "mascotAlt": "Peanutman llorando",
+            "stillCreatingTitle": "Seguimos creando tu tarjeta…",
+            "creatingCardTitle": "Creando tu tarjeta…",
+            "creatingCardBody": "Esto suele tardar unos segundos.",
             "pendingTitle": "Preparando la tarjeta…",
-            "pendingBody": "Espera un momento mientras terminamos de preparar tu tarjeta. Normalmente toma unos segundos.",
+            "pendingBody": "Estamos preparando tu tarjeta. Suele tardar unos minutos y te avisaremos cuando esté lista.",
             "manualReviewTitle": "Se necesita una revisión manual",
             "manualReviewBody": "Tenemos que revisar tu solicitud manualmente. Normalmente toma 1-2 días y te avisamos cuando esté lista.",
             "requiresInfoTitle": "Necesitamos más información",
@@ -2203,6 +2243,14 @@
         "eurAccountsOnlyDescription": "Solo funcionan cuentas en EUR con IBAN para agregar dinero. Puede que tu cuenta en moneda local no funcione.",
         "chainTokenOnly": "{chain} · solo {tokens}",
         "methods": {
+            "moreWays": "Más formas de agregar dinero",
+            "accountDetails": "Datos bancarios reutilizables",
+            "oneTimeDetails": "Datos para una transferencia",
+            "pixDetails": "Escanea o copia el código",
+            "cryptoDetails": "Desde billeteras o exchanges",
+            "openAccount": "Abrir una cuenta bancaria",
+            "oneTimeTransfer": "Transferencia bancaria única",
+            "payPix": "Pagar con Pix",
             "crypto": "Cripto",
             "cryptoDescription": "Deposita desde una billetera o exchange",
             "bankTransfer": "Transferencia bancaria",
@@ -4078,6 +4126,7 @@
                 },
                 "replace": "Cambiar el número"
             },
+            "addressMinimum": "La calle y el número juntos deben tener al menos {count} caracteres.",
             "errors": {
                 "required": "Responde esto para continuar.",
                 "invalidOption": "Elige una de las opciones.",
@@ -4344,6 +4393,7 @@
             "region_block": "La Peanut Card todavía no está disponible en tu región.",
             "compliance_block": "No pudimos aprobar tu solicitud de tarjeta después de una revisión de cumplimiento.",
             "card_rejected": "No se pudo aprobar tu solicitud de tarjeta. Escríbele a soporte si crees que es un error.",
+            "verified-name-missing": "No pudimos confirmar tu nombre completo para la tarjeta. Contacta a soporte.",
             "card_needs_review": "Nuestro socio de tarjetas necesita revisar algunos detalles más.",
             "manteca_us_nationality": "Los pagos desde este país no están disponibles para ciudadanos de EE. UU. por el momento.",
             "country_not_supported": "Este medio de pago requiere un documento de un país compatible. Puedes verificarte con otro documento.",
@@ -5151,7 +5201,7 @@
             "otherWaysBody": "También sirven para agregar y retirar dinero. No son cuentas a tu nombre.",
             "badgeLimitReached": "Límite alcanzado",
             "notOfferedBody": "No podemos abrirte cuentas en {currency}. Soporte puede revisar por qué.",
-            "notOfferedHereBody": "No está disponible donde vives, o todavía no. Si te mudaste, actualiza tu residencia. Soporte puede revisar por qué.",
+            "notOfferedHereBody": "Es posible que esta cuenta no esté disponible donde vives. Soporte puede revisarlo.",
             "residenceRestrictedBody": "Las cuentas en {currency} no están disponibles para residentes de tu país.",
             "notOpenBody": "Las cuentas en {currency} todavía no están abiertas para ti.",
             "residenceMissingBody": "Las cuentas en {currency} dependen de dónde vives. Indica tu residencia para comprobarlo.",

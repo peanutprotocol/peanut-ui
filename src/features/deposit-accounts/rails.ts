@@ -1,6 +1,6 @@
 import type { RailCapability } from '@/types/capabilities'
 import { PIX_ADD_MONEY_PATH } from '@/features/pix/pix.routes'
-import type { DepositAccountView, DepositCorridor, DepositRail, SenderPolicy } from './types'
+import type { DepositAccountView, DepositCorridor, DepositInstructions, DepositRail, SenderPolicy } from './types'
 
 /**
  * How each corridor PRESENTS: flag, currency, arrival, row count. It never
@@ -221,4 +221,26 @@ export function corridorsFromRails(
         if (corridor) held.add(corridor)
     }
     return DEPOSIT_RAIL_ORDER.filter((corridor) => held.has(corridor))
+}
+
+/** Whether the account contains the transfer coordinates required for its corridor. */
+export function hasCompleteDepositInstructions(
+    corridor: DepositCorridor | undefined,
+    instructions: DepositInstructions | undefined
+): boolean {
+    if (!instructions) return false
+    switch (corridor) {
+        case 'SEPA_EU':
+            return !!instructions.iban
+        case 'FASTER_PAYMENTS_GB':
+            return !!instructions.accountNumber && !!instructions.sortCode
+        case 'ACH_US':
+            return !!instructions.accountNumber && !!instructions.routingNumber
+        case 'SPEI_MX':
+            return !!instructions.clabe
+        case 'BANK_TRANSFER_CO':
+            return !!instructions.breBKey && !!instructions.depositMessage
+        default:
+            return false
+    }
 }

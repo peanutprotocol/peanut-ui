@@ -21,7 +21,16 @@ jest.mock('@/utils/capacitor', () => ({
 // and the point of no return after a no-back step renders.
 
 const STEPS = setupSteps.filter((s) =>
-    ['landing', 'welcome', 'signup', 'residence', 'notification-permission', 'advantage-control'].includes(s.screenId)
+    [
+        'landing',
+        'welcome',
+        'residence',
+        'signup',
+        'passkey',
+        'notification-email',
+        'notification-permission',
+        'advantage-control',
+    ].includes(s.screenId)
 )
 
 const wrapperFor = (searchParams: Record<string, string>) =>
@@ -58,8 +67,8 @@ describe('useSetupFlow (URL stepper)', () => {
         ['IN', ['advantage-fees']],
         ['JP', ['advantage-card']],
         ['RU', []],
-    ])('walks the sell screens offered between the inviter and residence for %s', async (country, features) => {
-        const { result } = renderFlow({ screen: 'invite' })
+    ])('walks the sell screens offered between Welcome and residence for %s', async (country, features) => {
+        const { result } = renderFlow({ screen: 'landing' })
         const restrictions = {
             full: new Set(['RU']),
             bankingOnly: new Set(['JP']),
@@ -83,7 +92,7 @@ describe('useSetupFlow (URL stepper)', () => {
             expect(result.current.flow.step?.screenId).toBe(expected)
         }
         await act(async () => result.current.flow.handleBack())
-        expect(result.current.flow.step?.screenId).toBe('invite')
+        expect(result.current.flow.step?.screenId).toBe('landing')
     })
 
     it('uses the registry-derived master order until runtime-filtered steps arrive', () => {
@@ -98,7 +107,7 @@ describe('useSetupFlow (URL stepper)', () => {
         const { result } = renderFlow({ screen: 'signup' })
         await seedSteps(result)
         expect(result.current.flow.step?.screenId).toBe('signup')
-        expect(result.current.flow.currentIndex).toBe(1)
+        expect(result.current.flow.currentIndex).toBe(2)
     })
 
     it('an unknown screen id falls back to the first step instead of a dead screen', async () => {
@@ -142,12 +151,12 @@ describe('useSetupFlow (URL stepper)', () => {
     })
 
     it('handleBack walks backward and sets the back direction', async () => {
-        const { result } = renderFlow({ screen: 'residence' })
+        const { result } = renderFlow({ screen: 'signup' })
         await seedSteps(result)
         await act(async () => {
             result.current.flow.handleBack()
         })
-        expect(result.current.flow.step?.screenId).toBe('signup')
+        expect(result.current.flow.step?.screenId).toBe('residence')
         expect(result.current.context.direction).toBe(-1)
     })
 
@@ -166,21 +175,13 @@ describe('useSetupFlow (URL stepper)', () => {
         expect(result.current.flow.step?.screenId).toBe('advantage-control')
     })
 
-    it('walks every post-registration screen backward to the inviter without reopening the username', async () => {
+    it('walks post-registration screens backward to Email without reopening account creation', async () => {
         const { result } = renderFlow({ screen: 'advantage-control' })
         await seedSteps(result, setupSteps)
         await act(async () => {
             result.current.context.setNoBackLockScreenId(postRegistrationScreen(setupScreenIds))
         })
-        for (const expected of [
-            'notification-permission',
-            'notification-email',
-            'payment-plan',
-            'residence',
-            'advantage-card',
-            'advantage-fees',
-            'invite',
-        ]) {
+        for (const expected of ['notification-permission', 'notification-email']) {
             await act(async () => {
                 result.current.flow.handleBack()
             })
@@ -190,24 +191,19 @@ describe('useSetupFlow (URL stepper)', () => {
         await act(async () => {
             result.current.flow.handleBack()
         })
-        expect(result.current.flow.step?.screenId).toBe('invite')
+        expect(result.current.flow.step?.screenId).toBe('notification-email')
         for (const target of ['signup', 'landing'] as const) {
             await act(async () => {
                 result.current.flow.setScreenId(target)
             })
-            expect(result.current.flow.step?.screenId).toBe('invite')
+            expect(result.current.flow.step?.screenId).toBe('notification-email')
         }
     })
 
     it.each([
-        ['the inviter question', false, 'PT', 'invite'],
-        [
-            'the first sell screen when the signup has an invite or the inviter was just accepted',
-            true,
-            'PT',
-            'advantage-fees',
-        ],
-        ['residence when nothing else is offered', true, 'RU', 'residence'],
+        ['Email without an invite', false, 'PT', 'notification-email'],
+        ['Email when the signup has an invite', true, 'PT', 'notification-email'],
+        ['Email when nothing else is offered', true, 'RU', 'notification-email'],
     ])('locks the way back at %s', (_label, hasInvite, country, expected) => {
         const restrictions = {
             full: new Set(['RU']),
@@ -226,7 +222,7 @@ describe('useSetupFlow (URL stepper)', () => {
     it('an accepted inviter cannot be reopened by Back, a URL move or a history pop', async () => {
         let navigate!: (screen: string) => void
         function Wrapper({ children }: { children: ReactNode }) {
-            const [screen, setScreen] = useState('invite')
+            const [screen, setScreen] = useState('notification-email')
             navigate = setScreen
             return (
                 <NuqsTestingAdapter hasMemory searchParams={{ screen }}>
@@ -252,27 +248,24 @@ describe('useSetupFlow (URL stepper)', () => {
             })
         }
         await armLock(setupSteps)
-        await act(async () => {
-            await result.current.flow.handleNext()
-        })
-        expect(result.current.flow.step?.screenId).toBe('advantage-fees')
+        expect(result.current.flow.step?.screenId).toBe('notification-email')
 
         // The layout drops the step once the inviter is accepted.
         await armLock(filterSetupStepsForInvite(setupSteps, true))
-        expect(result.current.flow.step?.screenId).toBe('advantage-fees')
+        expect(result.current.flow.step?.screenId).toBe('notification-email')
         await act(async () => result.current.flow.handleBack())
-        expect(result.current.flow.step?.screenId).toBe('advantage-fees')
+        expect(result.current.flow.step?.screenId).toBe('notification-email')
         await act(async () => {
             result.current.flow.setScreenId('invite')
         })
-        expect(result.current.flow.step?.screenId).toBe('advantage-fees')
+        expect(result.current.flow.step?.screenId).toBe('notification-email')
         // The browser still holds ?screen=invite: popping to it lands on the lock, and the
         // first screen is never shown on the way.
         rendered.length = 0
         await act(async () => {
             navigate('invite')
         })
-        expect(result.current.flow.step?.screenId).toBe('advantage-fees')
+        expect(result.current.flow.step?.screenId).toBe('notification-email')
         expect(rendered).not.toContain('landing')
     })
 
@@ -346,16 +339,17 @@ describe('useSetupFlow (URL stepper)', () => {
         expect(result.current.flow.step?.screenId).toBe(SETUP_DEFAULT_SCREEN)
     })
 
-    it('creates the account on the username step, then inviter, sell screens, residence, plan, contact and finish', () => {
-        expect(postRegistrationScreen(setupScreenIds)).toBe('invite')
+    it('creates the account on Passkey after sell screens, residence, plan, Claim and Invite', () => {
+        expect(postRegistrationScreen(setupScreenIds)).toBe('notification-email')
         expect(setupScreenIds).toEqual([
             'landing',
-            'signup',
-            'invite',
             'advantage-fees',
             'advantage-card',
             'residence',
             'payment-plan',
+            'signup',
+            'invite',
+            'passkey',
             'notification-email',
             'notification-permission',
             'advantage-control',
@@ -423,7 +417,7 @@ describe('useSetupFlow — history mode per platform', () => {
             await new Promise((resolve) => setTimeout(resolve, 0))
         })
         const update = onUrlUpdate.mock.calls.at(-1)?.[0]
-        expect(update?.searchParams.get('screen')).toBe('residence')
+        expect(update?.searchParams.get('screen')).toBe('passkey')
         expect(update?.options.history).toBe('push')
     })
 
@@ -438,7 +432,36 @@ describe('useSetupFlow — history mode per platform', () => {
             await new Promise((resolve) => setTimeout(resolve, 0))
         })
         const update = onUrlUpdate.mock.calls.at(-1)?.[0]
-        expect(update?.searchParams.get('screen')).toBe('residence')
+        expect(update?.searchParams.get('screen')).toBe('passkey')
         expect(update?.options.history).toBe('replace')
     })
+})
+
+it('keeps every cursor on Passkey during registration, then yields to the permanent Email lock', async () => {
+    const { result } = renderFlow({ screen: 'passkey' })
+    await seedSteps(result, setupSteps)
+    await act(async () => result.current.context.setRegistrationInProgress(true))
+    await act(async () => result.current.flow.handleBack())
+    expect(result.current.flow.step?.screenId).toBe('passkey')
+    for (const target of ['landing', 'signup', 'invite', 'notification-email', 'advantage-control'] as const) {
+        await act(async () => result.current.flow.setScreenId(target))
+        expect(result.current.flow.step?.screenId).toBe('passkey')
+    }
+    await act(async () => {
+        result.current.context.setNoBackLockScreenId('notification-email')
+        result.current.context.setRegistrationInProgress(false)
+    })
+    await act(async () => result.current.flow.setScreenId('notification-email'))
+    expect(result.current.flow.step?.screenId).toBe('notification-email')
+    await act(async () => result.current.flow.handleBack())
+    expect(result.current.flow.step?.screenId).toBe('notification-email')
+})
+
+it('releases the temporary Passkey guard after a failed attempt so Back works again', async () => {
+    const { result } = renderFlow({ screen: 'passkey' })
+    await seedSteps(result, setupSteps)
+    await act(async () => result.current.context.setRegistrationInProgress(true))
+    await act(async () => result.current.context.setRegistrationInProgress(false))
+    await act(async () => result.current.flow.handleBack())
+    expect(result.current.flow.step?.screenId).toBe('invite')
 })

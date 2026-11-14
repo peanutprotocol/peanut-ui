@@ -103,7 +103,7 @@ const UserCard = ({
                     <UserAvatar person={person} size="s" decorative />
                 ) : (
                     <AvatarWithBadge
-                        // an address is the crypto concept (coins on blue)
+                        // an address is the crypto concept (yellow coins)
                         icon={CONCEPT_ICONS.crypto.icon}
                         inlineStyle={{
                             backgroundColor: `var(--color-background-icon-bubble-${CONCEPT_ICONS.crypto.color})`,
