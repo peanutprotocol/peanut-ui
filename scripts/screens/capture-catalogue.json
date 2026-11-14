@@ -2356,6 +2356,11 @@
         "route": "/withdraw/pix?sendMethod=bank"
     },
     {
+        "id": "fixture-pix-nonresident-address",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?sendMethod=bank"
+    },
+    {
         "id": "fixture-pix-nonresident-send-review",
         "flow": "Withdraw",
         "route": "/withdraw/pix?sendMethod=bank&step=review"
