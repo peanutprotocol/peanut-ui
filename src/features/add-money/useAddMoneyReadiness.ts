@@ -1,7 +1,6 @@
 'use client'
 
 import { useAuth } from '@/context/authContext'
-import { useBrazilServicesPaused } from '@/features/brazil-pause/useBrazilServicesPaused'
 import { applyDepositPreviewGate } from '@/features/deposit-accounts/depositGate'
 import {
     hasCompleteDepositInstructions,
@@ -26,7 +25,6 @@ export function useAddMoneyReadiness(cryptoReady: boolean, readAccounts = true) 
     const { user, userId } = useAuth()
     const { gateFor, capabilities, isLoading: capabilitiesLoading } = useCapabilities()
     const standingEnabled = useDepositAccountsEnabled()
-    const brazilPaused = useBrazilServicesPaused()
     const residenceIso2s = useResidenceIso2s()
     const query = useQuery({
         queryKey: [...DEPOSIT_ACCOUNTS_QUERY_KEY, userId],
@@ -68,6 +66,8 @@ export function useAddMoneyReadiness(cryptoReady: boolean, readAccounts = true) 
     const readyTopUps = DEPOSIT_RAIL_ORDER.flatMap((corridor) => {
         return topUpGates[corridor].kind === 'ready' ? [DEPOSIT_RAILS[corridor].currency] : []
     })
+    const pixDepositRoute = findPixRoute(capabilities.routes, 'deposit')
+    const brazilPaused = pixDepositRoute?.state === 'paused'
     const resolved = resolveAddMoneyMethods({
         cryptoReady,
         standingEnabled,
@@ -76,7 +76,7 @@ export function useAddMoneyReadiness(cryptoReady: boolean, readAccounts = true) 
         activeAccounts,
         readyTopUps,
         firstPaymentAt: user?.user?.firstPaymentAt,
-        pixRouteOpen: pixRouteOpen(findPixRoute(capabilities.routes, 'deposit')),
+        pixRouteOpen: pixRouteOpen(pixDepositRoute),
     })
     const isLoading = !userId || capabilitiesLoading || (readAccounts && standingEnabled && query.isLoading)
     return {

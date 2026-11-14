@@ -35,6 +35,7 @@ it('reports the standalone recovery step once per visit, including in Strict Mod
         nav_type: 'initial',
         flow_version: 2,
         signup_entry_flow: 'card',
+        returning_device: false,
     })
     view.unmount()
     renderWithIntl(tree)
