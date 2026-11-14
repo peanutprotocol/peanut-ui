@@ -7819,7 +7819,11 @@ export interface paths {
                                 ispb: string;
                                 name: string | null;
                             }[];
+                            /** @description BRL per USD at the provider’s mid-market rate, for the code screen’s rate line. Display only; absent when the provider’s rates cannot be read within 1.5 s. */
+                            marketRate?: string;
                             minAmountBrl: string;
+                            /** @description The provider’s cut of a deposit in percent, two decimals, from its mid-market rate against its deposit rate. Sent with marketRate only. */
+                            providerFeePercent?: string;
                         };
                     };
                 };
