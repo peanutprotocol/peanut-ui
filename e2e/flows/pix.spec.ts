@@ -1,8 +1,9 @@
 /**
  * The one Pix flow, on the route of either provider: the first use and what it still asks, the
- * deposit amount's minimum from the route, the own-key rule on the withdrawal
- * key, the form's rows, and the new key for a payout the bank refused; then
- * the same screens on Manteca's route, where the answers differ. UI state only:
+ * deposit amount's minimum from the route, the withdrawal key and a send to another person's key
+ * (TASK-24947: any key is paid), the form's rows, the send's ending and receipt, and a resident
+ * of another country on Avenia; then the same screens on Manteca's route, where the answers
+ * differ. UI state only:
  * every API answer comes from a fixture (`?__fixture=pix-*`,
  * src/dev/fixtures/registry.ts), so nothing here reaches a provider or a chain.
  * Backend truth (tickets, the bridge join, the payout) belongs to the API's
@@ -15,7 +16,7 @@ import { dismissModals } from '../utils/dismiss-modals'
 test.use({ viewport: { width: 375, height: 667 } })
 
 const WITHDRAW = '/withdraw/pix'
-const NEW_KEY = '/withdraw/new-pix-key?intentId=fixture-pix-refused-withdrawal'
+const SEND = '/withdraw/pix?sendMethod=bank'
 
 async function open(page: Page, url: string) {
     await page.goto(url, { waitUntil: 'domcontentloaded' })
@@ -82,13 +83,50 @@ test.describe('Pix on the Avenia route', () => {
         await expect(page.getByRole('button', { name: 'Continue' })).toBeEnabled()
     })
 
-    test("someone else's key shows as such, with the field error, and cannot continue", async ({ page }) => {
-        await open(page, `${WITHDRAW}?destination=%2B5511987654321&__fixture=pix-withdraw-key-other`)
+    // TASK-24947: Avenia pays another person's key, so the key continues as a send to them
+    test("another person's key names the holder, bank and masked CPF, and continues as a send", async ({ page }) => {
+        await open(page, `${SEND}&__fixture=pix-withdraw-key-other`)
         const holder = page.getByTestId('pix-key-holder')
         await expect(holder).toBeVisible({ timeout: 60_000 })
-        await expect(holder).toContainText("Someone else's")
-        await expect(page.getByRole('alert').filter({ hasText: 'This key belongs to someone else.' })).toBeVisible()
-        await expect(page.getByRole('button', { name: 'Continue' })).toBeDisabled()
+        await expect(holder).toContainText('Bruno Lima')
+        await expect(holder).toContainText('Nubank · CPF ***.456.789-**')
+        await expect(holder).not.toContainText('Own account')
+        await expect(page.getByRole('alert')).toHaveCount(0)
+        await expect(page.getByRole('button', { name: 'Continue' })).toBeEnabled()
+    })
+
+    test("the send's form leads with Sending, the holder and the phone key as people write it", async ({ page }) => {
+        await open(page, `${SEND}&step=review&__fixture=pix-send-review`)
+        await expect(page.getByText('Sending', { exact: true })).toBeVisible({ timeout: 60_000 })
+        await expect(page.getByText('Bruno Lima')).toBeVisible()
+        await expect(page.getByText(/^11 98765-4321/)).toBeVisible()
+        await expect(page.getByText('Nubank')).toBeVisible()
+        await expect(page.getByRole('button', { name: 'Confirm' })).toBeEnabled()
+    })
+
+    test('a paid send ends as Sent, to the holder by name', async ({ page }) => {
+        await open(
+            page,
+            '/withdraw/pix?step=success&intentId=fixture-pix-send&sendMethod=bank&__fixture=pix-send-arrived'
+        )
+        await expect(page.getByText('Sent', { exact: true })).toBeVisible({ timeout: 60_000 })
+        await expect(page.getByText('to Bruno Lima')).toBeVisible()
+    })
+
+    test("the send's receipt names the holder and the Pix key, punctuated", async ({ page }) => {
+        await open(page, '/history?tx=fixture-pix-send&__fixture=pix-receipt-send')
+        await expect(page.getByText('Pix key', { exact: true })).toBeVisible({ timeout: 60_000 })
+        await expect(page.getByText('11 98765-4321').first()).toBeVisible()
+        await expect(page.getByText('Bruno Lima').first()).toBeVisible()
+    })
+
+    // a refused payout returns the money (API-CONTRACT-M3 §6): an old new-key link opens its outcome
+    test('the retired new-key link opens the withdrawal, whose money came back', async ({ page }) => {
+        await open(page, '/withdraw/new-pix-key?intentId=fixture-pix-withdrawal&__fixture=pix-withdraw-refunded')
+        await expect(page.getByText('The bank refused this payout. The money is back in your balance.')).toBeVisible({
+            timeout: 60_000,
+        })
+        await expect(page).toHaveURL(/\/withdraw\/pix\?intentId=fixture-pix-withdrawal/)
     })
 
     // the Pix-key payment form, with Withdrawing and Confirm (ruling 2026-11-12)
@@ -112,34 +150,16 @@ test.describe('Pix on the Avenia route', () => {
         await expect(page.getByText('Save vs card')).toHaveCount(0)
         await expect(page.getByRole('button', { name: 'Confirm' })).toBeEnabled()
     })
+})
 
-    test("a refused payout's receipt asks for another key and opens the new-key screen", async ({ page }) => {
-        await open(page, '/history?tx=fixture-pix-refused-withdrawal&__fixture=pix-receipt-new-key')
-        const notice = page.getByTestId('pix-new-key-notice')
-        await expect(notice).toBeVisible({ timeout: 60_000 })
-        await expect(notice).toContainText('The bank refused this payout.')
-        await notice.getByRole('button', { name: 'Add Pix key' }).click()
-        await expect(page).toHaveURL(/\/withdraw\/new-pix-key\?intentId=fixture-pix-refused-withdrawal/)
-    })
-
-    test('a new own key for a refused payout is saved and says where the money goes', async ({ page }) => {
-        await open(page, `${NEW_KEY}&destination=09579927189&__fixture=pix-new-key`)
-        await expect(page.getByText('The bank refused the payout to the previous key.')).toBeVisible({
-            timeout: 60_000,
-        })
-        await expect(page.getByTestId('pix-key-holder')).toContainText('Own account')
-        await page.getByRole('button', { name: 'Continue' }).click()
-        await expect(page.getByText('Pix key saved')).toBeVisible()
-        await expect(page.getByText('The money will be sent to Banco Inter · Ana Souza.')).toBeVisible()
-    })
-
-    test('the new-key link of a withdrawal that no longer waits shows its current state', async ({ page }) => {
-        await open(page, `${NEW_KEY}&__fixture=pix-new-key-not-waiting`)
-        const state = page.getByTestId('pix-new-key-not-waiting')
-        await expect(state).toBeVisible({ timeout: 60_000 })
-        await expect(state).toContainText('This withdrawal is no longer waiting for a new Pix key.')
-        await expect(state).toContainText('Completed')
-        await expect(page.getByRole('button', { name: 'Continue' })).toHaveCount(0)
+// API-CONTRACT-M3: a resident of another country inside Avenia's gate sends by Pix on Avenia
+test.describe('Pix on the Avenia route, for a resident of another country', () => {
+    test('Send to a Pix key reaches the same key step, and the key continues', async ({ page }) => {
+        await open(page, `${SEND}&__fixture=pix-nonresident-send-key`)
+        const holder = page.getByTestId('pix-key-holder')
+        await expect(holder).toBeVisible({ timeout: 60_000 })
+        await expect(holder).toContainText('Bruno Lima')
+        await expect(page.getByRole('button', { name: 'Continue' })).toBeEnabled()
     })
 })
 

@@ -384,7 +384,7 @@
         "route": "/history"
     },
     {
-        "id": "fixture-pix-activity-new-key",
+        "id": "fixture-pix-activity-payouts",
         "flow": "Home and shared states",
         "route": "/history"
     },
@@ -1987,6 +1987,16 @@
         "route": "/dev/surfaces?s=54-d-qrbottomdrawer"
     },
     {
+        "id": "fixture-pix-receipt-send",
+        "flow": "Payments",
+        "route": "/history?tx=fixture-pix-send"
+    },
+    {
+        "id": "fixture-pix-receipt-send-returned",
+        "flow": "Payments",
+        "route": "/history?tx=fixture-pix-send"
+    },
+    {
         "id": "fixture-qr-pay-rate-unavailable",
         "flow": "Payments",
         "route": "/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&t=1"
@@ -2328,22 +2338,32 @@
     {
         "id": "fixture-pix-withdraw-key-other",
         "flow": "Withdraw",
-        "route": "/withdraw/pix"
+        "route": "/withdraw/pix?sendMethod=bank"
+    },
+    {
+        "id": "fixture-pix-send-review",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?sendMethod=bank&step=review"
+    },
+    {
+        "id": "fixture-pix-send-arrived",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?step=success&intentId=fixture-pix-send&sendMethod=bank"
+    },
+    {
+        "id": "fixture-pix-nonresident-send-key",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?sendMethod=bank"
+    },
+    {
+        "id": "fixture-pix-nonresident-send-review",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?sendMethod=bank&step=review"
     },
     {
         "id": "fixture-pix-withdraw-review",
         "flow": "Withdraw",
         "route": "/withdraw/pix?step=review"
-    },
-    {
-        "id": "fixture-pix-new-key",
-        "flow": "Withdraw",
-        "route": "/withdraw/new-pix-key?intentId=fixture-pix-refused-withdrawal&destination=09579927189"
-    },
-    {
-        "id": "fixture-pix-new-key-not-waiting",
-        "flow": "Withdraw",
-        "route": "/withdraw/new-pix-key?intentId=fixture-pix-refused-withdrawal"
     },
     {
         "id": "fixture-pix-withdraw-form",
@@ -2391,11 +2411,6 @@
         "route": "/withdraw/pix?step=review"
     },
     {
-        "id": "fixture-pix-withdraw-review-key-not-own",
-        "flow": "Withdraw",
-        "route": "/withdraw/pix?step=review"
-    },
-    {
         "id": "fixture-pix-withdraw-review-in-progress",
         "flow": "Withdraw",
         "route": "/withdraw/pix?step=review"
@@ -2434,21 +2449,6 @@
         "id": "fixture-pix-withdraw-not-signed",
         "flow": "Withdraw",
         "route": "/withdraw/pix?step=success&intentId=fixture-pix-withdrawal"
-    },
-    {
-        "id": "fixture-pix-withdraw-needs-key",
-        "flow": "Withdraw",
-        "route": "/withdraw/pix?step=success&intentId=fixture-pix-refused-withdrawal"
-    },
-    {
-        "id": "fixture-pix-new-key-unnamed",
-        "flow": "Withdraw",
-        "route": "/withdraw/new-pix-key?intentId=fixture-pix-refused-withdrawal&destination=09579927189"
-    },
-    {
-        "id": "fixture-pix-receipt-new-key",
-        "flow": "Withdraw",
-        "route": "/history?tx=fixture-pix-refused-withdrawal"
     },
     {
         "id": "fixture-pix-manteca-withdraw-key",
@@ -2564,16 +2564,6 @@
         "id": "p74-network-selector-drawer",
         "flow": "Withdraw",
         "route": "/withdraw/crypto"
-    },
-    {
-        "id": "p82-pix-new-key-saved",
-        "flow": "Withdraw",
-        "route": "/withdraw/new-pix-key?intentId=fixture-pix-refused-withdrawal&destination=09579927189"
-    },
-    {
-        "id": "p83-pix-new-key-saved-unnamed",
-        "flow": "Withdraw",
-        "route": "/withdraw/new-pix-key?intentId=fixture-pix-refused-withdrawal&destination=09579927189"
     },
     {
         "id": "p84-pix-provider-sheet",

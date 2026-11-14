@@ -228,6 +228,30 @@ describe('PixWithdrawOutcome once the Pix landed', () => {
         expect(screen.getByText('to Bruno Lima')).toBeInTheDocument()
     })
 
+    // API-CONTRACT-M3 §8: after a reload the entry's payout says whom it paid
+    it("after a reload, ends a payout to another person's key as Sent, by the entry's payout", () => {
+        const paid = entry('COMPLETED')
+        mockEntry.mockReturnValue({
+            ...paid,
+            data: {
+                ...paid.data,
+                extraData: {
+                    ...paid.data.extraData,
+                    pixPayout: {
+                        pixKey: '+5511987654321',
+                        holderName: 'Bruno Lima',
+                        bankName: 'Nubank',
+                        ownAccount: false,
+                    },
+                },
+            },
+        })
+        renderOutcome(null)
+
+        expect(screen.getByText(en.payment.success.justSent)).toBeInTheDocument()
+        expect(screen.getByText('to Bruno Lima')).toBeInTheDocument()
+    })
+
     // after a reload the entry is all the screen has: its reais, its USD, its key, and no bank
     it('after a reload, reads the amounts and the key from the history entry', () => {
         mockEntry.mockReturnValue(entry('COMPLETED'))

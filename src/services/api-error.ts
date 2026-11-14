@@ -95,8 +95,6 @@ export const API_ERROR_CODES = {
     PIX_LIMIT_EXCEEDED: 'PIX_LIMIT_EXCEEDED',
     /** The withdrawal's quote had too little time left for the signature. Nothing moved; try again. */
     PIX_QUOTE_EXPIRED: 'PIX_QUOTE_EXPIRED',
-    /** The Pix key belongs to someone else, and the provider pays only the user's own CPF. */
-    PIX_KEY_NOT_OWN: 'PIX_KEY_NOT_OWN',
     /** The key's bank is on the provider's payout deny-list. */
     PIX_KEY_BLOCKED: 'PIX_KEY_BLOCKED',
     /** One Pix key lookup per second per user. */

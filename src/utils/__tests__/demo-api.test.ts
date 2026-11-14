@@ -110,7 +110,6 @@ describe('demoRespond — routing', () => {
         ['GET', '/pix/deposit/demo-pix-deposit', { status: 'AWAITING_USER_ACTION', pixReceived: false }],
         ['POST', '/pix/key', { ownAccount: true, blocked: false }],
         ['POST', '/pix/withdraw/preview', { provider: 'Avenia', ownAccount: true }],
-        ['POST', '/pix/withdraw/demo-pix-withdraw/recovery-key', { accepted: true }],
     ])('answers %s %s in strict capture mode', async (method, path, expected) => {
         const res = await demoRespond(path, { method }, { offline: true, strict: true })
         expect(res.status).toBe(200)

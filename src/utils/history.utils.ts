@@ -88,13 +88,6 @@ export type HistoryEntryType = 'TRANSACTION_INTENT'
 export type HistoryUserRole = `${EHistoryUserRole}`
 export type HistoryStatus = `${EHistoryStatus}`
 
-/** A Pix withdrawal's recovery as `GET /history/:entryId` sends it (api `PixRecoveryView`). */
-export type PixRecoveryView = NonNullable<
-    NonNullable<
-        paths['/history/{entryId}']['get']['responses'][200]['content']['application/json']['extraData']
-    >['pixRecovery']
->
-
 /** The intent's own status as `GET /history/:entryId` sends it, before `status` folds it into PENDING. */
 export type HistoryIntentStatus = NonNullable<
     NonNullable<
@@ -127,11 +120,17 @@ export type PixDepositView = NonNullable<
  * reading one on the FE, remove it here.
  */
 export interface HistoryEntryExtraData {
-    /** On a Pix withdrawal only: its recovery after the payout failed or came back, null when it has none.
-     *  The shape is the API's (`GET /history/:entryId`); read it through `awaitsNewPixKey`. */
-    pixRecovery?: PixRecoveryView | null
     /** On a Pix deposit only: whether its code can still be paid. Read it through `pixCodePayable`. */
     pixDeposit?: PixDepositView
+    /** On an Avenia Pix withdrawal only, to its owner (API-CONTRACT-M3 §8): the raw key it paid and who
+     *  was paid, from the lookup at the review. `ownAccount` false: a send to another person. A
+     *  withdrawal opened before M3 has the holder, bank and `ownAccount` null. */
+    pixPayout?: {
+        pixKey: string
+        holderName: string | null
+        bankName: string | null
+        ownAccount: boolean | null
+    }
     /** The intent's own status, which `status` folds into PENDING (a Pix withdrawal is
      *  AWAITING_USER_ACTION until it is signed, PROCESSING after). */
     intentStatus?: HistoryIntentStatus

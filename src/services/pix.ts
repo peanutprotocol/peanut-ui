@@ -84,15 +84,4 @@ export const pixApi = {
             post({ txHash }),
             'Could not report the withdrawal'
         ),
-
-    /**
-     * Another own Pix key for a withdrawal whose payout the bank refused for its key or account. The
-     * provider then pays the waiting money there. 409: the withdrawal is not waiting for a key (any more).
-     */
-    setRecoveryKey: (intentId: string, pixKey: string) =>
-        call<{ accepted: true }>(
-            `/pix/withdraw/${encodeURIComponent(intentId)}/recovery-key`,
-            post({ pixKey }),
-            'Could not save the Pix key'
-        ),
 }

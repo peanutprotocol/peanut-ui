@@ -200,7 +200,7 @@ describe('usePixWithdrawSubmit', () => {
     })
 
     it("reports an init that failed without the API's refusal code, and not a refusal", async () => {
-        mockInit.mockRejectedValueOnce(new ApiError('refused', { status: 422, code: 'PIX_KEY_NOT_OWN' }))
+        mockInit.mockRejectedValueOnce(new ApiError('refused', { status: 422, code: 'PIX_KEY_BLOCKED' }))
         const { result } = renderHook(() => usePixWithdrawSubmit(), { wrapper })
         await act(async () => {
             await result.current.submit(REQUEST, display)
@@ -233,7 +233,7 @@ describe('usePixWithdrawSubmit', () => {
         ['PIX_LIMIT_EXCEEDED', 'withdraw.errors.limitExceeded'],
         ['WITHDRAWAL_IN_PROGRESS', 'withdraw.errors.inProgress'],
         ['PIX_QUOTE_EXPIRED', 'withdraw.errors.quoteExpired'],
-        ['PIX_KEY_NOT_OWN', 'withdraw.keyNotOwn'],
+        ['PIX_KEY_BLOCKED', 'withdraw.keyBlocked'],
         ['PROVIDER_REJECTED', 'providerRejected'],
         ['PROVIDER_UNAVAILABLE', 'unavailable'],
     ])('names a refused init (%s) and allows another try', async (code, message) => {

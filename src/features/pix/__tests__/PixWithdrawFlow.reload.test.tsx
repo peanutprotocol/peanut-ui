@@ -737,7 +737,7 @@ describe('PixWithdrawFlow refused preview', () => {
         expect(await screen.findByText(en.pix.deposit.minimum.replace('{amount}', 'R$25'))).toBeInTheDocument()
     })
 
-    it.each(['PIX_KEY_NOT_OWN', 'PIX_KEY_BLOCKED', 'PIX_KEY_NOT_FOUND'])(
+    it.each(['PIX_KEY_BLOCKED', 'PIX_KEY_NOT_FOUND'])(
         'the key was refused (%s): Change key opens the key step with the key kept to edit',
         async (code) => {
             refuse(422, code)

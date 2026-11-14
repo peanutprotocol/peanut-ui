@@ -10,7 +10,6 @@ import {
     maskedTaxIdKind,
     toApiDecimal,
 } from '../pixFlow.utils'
-import { awaitsNewPixKey, pixNewKeyUrl } from '../pixRecovery'
 import { pixOpensWithoutTap, pixSetupState } from '../pixRouteStep'
 import { DEMO_PIX_BR_CODE } from '@/constants/demo-data'
 import type { HistoryIntentStatus } from '@/utils/history.utils'
@@ -145,7 +144,6 @@ describe('pixWithdrawRefusalKey', () => {
         expect(pixWithdrawRefusalKey('PIX_LIMIT_EXCEEDED')).toBe('withdraw.errors.limitExceeded')
         expect(pixWithdrawRefusalKey('WITHDRAWAL_IN_PROGRESS')).toBe('withdraw.errors.inProgress')
         expect(pixWithdrawRefusalKey('PIX_QUOTE_EXPIRED')).toBe('withdraw.errors.quoteExpired')
-        expect(pixWithdrawRefusalKey('PIX_KEY_NOT_OWN')).toBe('withdraw.keyNotOwn')
         expect(pixWithdrawRefusalKey('PIX_KEY_BLOCKED')).toBe('withdraw.keyBlocked')
         expect(pixWithdrawRefusalKey('PIX_KEY_NOT_FOUND')).toBe('pixKeyNotFound')
         expect(pixWithdrawRefusalKey('PIX_QUOTE_CHANGED')).toBe('withdraw.errors.quoteChanged')
@@ -181,29 +179,8 @@ describe('signMatchesDisplay', () => {
     })
 })
 
-describe('awaitsNewPixKey', () => {
-    // the extraData of GET /history/:entryId for an Avenia withdrawal, as PR B sends it
-    const recovery = (state: 'awaiting-key' | 'in-progress' | 'done') => ({
-        kind: 'OFFRAMP',
-        provider: 'AVENIA',
-        pixRecovery: { state, reason: 'payout-failed' as const, failureCode: 'RECEIVER_PIX_KEY_INVALID' },
-    })
-
-    it('reads the recovery state of the history entry', () => {
-        expect(awaitsNewPixKey(recovery('awaiting-key'))).toBe(true)
-        expect(awaitsNewPixKey(recovery('in-progress'))).toBe(false)
-        expect(awaitsNewPixKey(recovery('done'))).toBe(false)
-        expect(awaitsNewPixKey({ kind: 'OFFRAMP', provider: 'AVENIA', pixRecovery: null })).toBe(false)
-        expect(awaitsNewPixKey(undefined)).toBe(false)
-    })
-
-    it('opens the new-key screen with the withdrawal in the URL', () => {
-        expect(pixNewKeyUrl('0b9e3c1d-7a2f')).toBe('/withdraw/new-pix-key?intentId=0b9e3c1d-7a2f')
-    })
-})
-
 describe('pixWithdrawOutcome', () => {
-    const entry = (status: string, state?: 'awaiting-key' | 'in-progress' | 'done') => ({
+    const entry = (status: string, state?: 'in-progress' | 'done') => ({
         status: status as never,
         extraData: {
             kind: 'OFFRAMP',
@@ -220,8 +197,8 @@ describe('pixWithdrawOutcome', () => {
         expect(pixWithdrawOutcome('funded', entry('COMPLETED'))).toBe('arrived')
     })
 
-    it('asks for another key when the bank refused the payout, and says when the money came back', () => {
-        expect(pixWithdrawOutcome('funded', entry('PENDING', 'awaiting-key'))).toBe('needs-key')
+    // TASK-24947: a payout Avenia refuses returns the money; no withdrawal waits for another key
+    it('stays on its way while the money comes back, and says when it came back', () => {
         expect(pixWithdrawOutcome('funded', entry('PENDING', 'in-progress'))).toBe('on-its-way')
         expect(pixWithdrawOutcome('funded', entry('REFUNDED', 'done'))).toBe('refunded')
     })

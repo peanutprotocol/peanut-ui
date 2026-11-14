@@ -365,36 +365,6 @@ const AVENIA_OWN_KEY_INFO = {
     blocked: false,
 }
 
-/** An Avenia Pix withdrawal whose payout the bank refused; `awaitingKey` while the money waits for another own key. */
-const AVENIA_REFUSED_WITHDRAWAL_ID = 'fixture-pix-refused-withdrawal'
-const aveniaRefusedWithdrawal = (awaitingKey: boolean) => ({
-    uuid: AVENIA_REFUSED_WITHDRAWAL_ID,
-    type: 'TRANSACTION_INTENT',
-    timestamp: new Date('2026-11-05T10:00:00.000Z'),
-    amount: '92.50431',
-    chainId: '42161',
-    tokenSymbol: 'USDC',
-    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
-    // the new key paid it, once it is no longer waiting
-    status: awaitingKey ? 'PENDING' : 'COMPLETED',
-    userRole: 'SENDER',
-    senderAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
-    recipientAccount: { identifier: '+5511912345678', fullName: 'ANA SOUZA', type: 'PIX', isUser: false },
-    currency: { amount: '503.00', code: 'BRL' },
-    extraData: {
-        kind: 'OFFRAMP',
-        provider: 'AVENIA',
-        usdAmount: '92.50431',
-        // GET /history/:entryId as the API sends it: the bank closed the account the old key pointed to
-        pixRecovery: {
-            state: awaitingKey ? 'awaiting-key' : 'done',
-            reason: 'payout-failed',
-            failureCode: 'RECEIVER_ACCOUNT_CLOSED',
-        },
-    },
-})
-const AVENIA_NEW_KEY_ROUTE = `/withdraw/new-pix-key?intentId=${AVENIA_REFUSED_WITHDRAWAL_ID}`
-
 /** A Brazilian resident whose Pix routes are in one step: no ready Avenia rail, the route says why. */
 const AVENIA_BR_USER = {
     user: { fullName: 'Ana Souza' },
@@ -521,13 +491,143 @@ const aveniaPending = (code: string) =>
         aveniaPendingRail(code),
     ])
 
-/** One Avenia Pix withdrawal's history entry, for the last step read after a reload. */
+/** One Avenia Pix withdrawal's history entry as its owner reads it, for the last step after a reload. */
 const AVENIA_WITHDRAWAL_ID = 'fixture-pix-withdrawal'
 const aveniaWithdrawal = (status: string) => ({
-    ...aveniaRefusedWithdrawal(false),
     uuid: AVENIA_WITHDRAWAL_ID,
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-11-05T10:00:00.000Z'),
+    amount: '92.50431',
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
     status,
+    userRole: 'SENDER',
+    senderAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
+    recipientAccount: { identifier: '+5511912345678', fullName: 'ANA SOUZA', type: 'PIX', isUser: false },
+    currency: { amount: '503.00', code: 'BRL' },
     extraData: { kind: 'OFFRAMP', provider: 'AVENIA', usdAmount: '92.50431', pixRecovery: null },
+})
+/**
+ * An Avenia Pix payout to another person's key (TASK-24947): the owner's entry names whom it paid
+ * (`extraData.pixPayout`, API-CONTRACT-M3 §8), so it reads as a send to them.
+ */
+const AVENIA_SEND_ID = 'fixture-pix-send'
+const aveniaSend = (status: string) => ({
+    ...aveniaWithdrawal(status),
+    uuid: AVENIA_SEND_ID,
+    timestamp: new Date('2026-11-06T10:00:00.000Z'),
+    amount: '18.87',
+    recipientAccount: { identifier: AVENIA_OTHER_KEY, fullName: 'BRUNO LIMA', type: 'PIX', isUser: false },
+    currency: { amount: '100.00', code: 'BRL' },
+    extraData: {
+        kind: 'OFFRAMP',
+        provider: 'AVENIA',
+        usdAmount: '18.87',
+        pixRecovery: null,
+        pixPayout: { pixKey: AVENIA_OTHER_KEY, holderName: 'Bruno Lima', bankName: 'Nubank', ownAccount: false },
+    },
+})
+/** Another person's key as Avenia's lookup names it; a foreign holder's payouts are always third-party. */
+const AVENIA_OTHER_KEY_INFO = {
+    provider: 'avenia',
+    holderName: 'Bruno Lima',
+    holderTaxIdMasked: '***.456.789-**',
+    bankName: 'Nubank',
+    ispb: '18236120',
+    ownAccount: false,
+    blocked: false,
+}
+/** The quote of a send of R$100 to that key: the review of a payout to another person. */
+const AVENIA_SEND_PREVIEW = {
+    amountBrl: '100.00',
+    pixKey: AVENIA_OTHER_KEY,
+    ownAccount: false,
+    holderName: 'Bruno Lima',
+    holderTaxIdMasked: '***.456.789-**',
+    bankName: 'Nubank',
+    withdrawUsd: '18.870000',
+    rate: '5.339163',
+    fixedFeeBrl: '0.75',
+    arrivalEstimateSeconds: 60,
+    provider: 'Avenia',
+}
+/** The Pix-key form as a send (`PIX_SEND_PATH`). */
+const AVENIA_SEND_ROUTE = `${AVENIA_WITHDRAW_ROUTE}?sendMethod=bank`
+
+/**
+ * A resident of Germany inside Avenia's rollout gate (API-CONTRACT-M3 §1): Pix sends and withdrawals
+ * on Avenia, no BRL deposit (ruled), merchant QR on Manteca as before. The withdraw route reads the
+ * resident's steps: the account opens at the first send.
+ */
+const aveniaNonResidentRoutes = (stage: 'enabled' | 'first-use') => {
+    const withdraw = aveniaRoutes(stage).find((route) => route.operation === 'withdraw')!
+    const notServed = { code: 'residence_not_served', userMessage: 'Pix deposits are not offered where you live.' }
+    return [
+        {
+            operation: 'deposit',
+            method: 'PIX_BR',
+            provider: null,
+            state: 'refused',
+            reason: notServed,
+            candidates: [
+                { provider: 'avenia', state: 'refused', reason: notServed },
+                {
+                    provider: 'manteca',
+                    state: 'refused',
+                    reason: { code: 'provider_moved', userMessage: 'Pix moved to another partner.' },
+                },
+            ],
+        },
+        withdraw,
+        {
+            operation: 'pay',
+            method: 'PIX_BR',
+            provider: 'manteca',
+            state: 'ready',
+            candidates: [{ provider: 'manteca', state: 'ready' }],
+        },
+    ]
+}
+const aveniaNonResidentResponses = (stage: 'enabled' | 'first-use', overrides: Record<string, unknown> = {}) => ({
+    'GET /users/me': {
+        user: { fullName: 'Lena Fischer' },
+        residence: {
+            verified: { country: 'DE', status: 'VERIFIED', updatedAt: null },
+            declared: null,
+            secondaryDeclaredCountry: null,
+        },
+        capabilities: {
+            rails:
+                stage === 'enabled'
+                    ? [
+                          {
+                              id: 'avenia.pix_br',
+                              provider: 'avenia',
+                              method: 'PIX_BR',
+                              channel: 'bank',
+                              country: 'BR',
+                              currency: 'BRL',
+                              status: 'enabled',
+                              operations: { withdraw: 'enabled' },
+                          },
+                      ]
+                    : [],
+            nextActions: [],
+            restrictions: [],
+            routes: aveniaNonResidentRoutes(stage),
+        },
+    },
+    'GET /pix/quote': {
+        provider: 'avenia',
+        operation: 'withdraw',
+        amountBrl: '100.00',
+        usdcAmount: '18.870000',
+        rate: '5.339163',
+        fixedFeeBrl: '0.75',
+        minAmountBrl: '20',
+    },
+    ...overrides,
 })
 const aveniaOutcomeRoute = (intentId: string) => `${AVENIA_WITHDRAW_ROUTE}?step=success&intentId=${intentId}`
 
@@ -2154,21 +2254,68 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         }),
     },
+    // TASK-24947: any key continues; the card says whom the money goes to
     'pix-withdraw-key-other': {
-        route: AVENIA_WITHDRAW_ROUTE,
+        route: AVENIA_SEND_ROUTE,
         sessionStorage: pixWithdrawForm({ destination: AVENIA_OTHER_KEY }),
-        about: "Avenia Pix withdrawal: someone else's key, so the field error shows and Continue stays off.",
+        about: "Avenia Pix send: another person's key resolves to the holder, bank and masked CPF; no badge, and Continue is on.",
         waitFor: '[data-testid="pix-key-holder"]',
-        responses: aveniaResponses('enabled', {
-            'POST /pix/key': {
-                holderName: 'Maria Silva',
-                holderTaxIdMasked: '123.***.***-45',
-                bankName: 'Nubank',
-                ispb: '18236120',
-                ownAccount: false,
-                blocked: false,
+        responses: aveniaResponses('enabled', { 'POST /pix/key': AVENIA_OTHER_KEY_INFO }),
+    },
+    'pix-send-review': {
+        route: `${AVENIA_SEND_ROUTE}&step=review`,
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OTHER_KEY, amountBrl: '100' }),
+        about: "Avenia Pix send to another person's key: the form leads with Sending, the holder, the phone key punctuated and the bank.",
+        responses: aveniaResponses('enabled', { 'POST /pix/withdraw/preview': AVENIA_SEND_PREVIEW }),
+    },
+    'pix-send-arrived': {
+        route: `${aveniaOutcomeRoute(AVENIA_SEND_ID)}&sendMethod=bank`,
+        about: 'The last step of a Pix send after a reload, once Avenia paid it: Sent, to the holder by name.',
+        responses: aveniaResponses('enabled', { [`GET /history/${AVENIA_SEND_ID}`]: aveniaSend('COMPLETED') }),
+    },
+    'pix-receipt-send': {
+        route: `/history?tx=${AVENIA_SEND_ID}`,
+        about: "The receipt of a Pix send to another person's key: the holder by name, the Pix key row punctuated, the raw key copied.",
+        responses: {
+            'GET /users/history': { entries: [aveniaSend('COMPLETED')], hasMore: false },
+            [`GET /history/${AVENIA_SEND_ID}`]: aveniaSend('COMPLETED'),
+        },
+    },
+    'pix-receipt-send-returned': {
+        route: `/history?tx=${AVENIA_SEND_ID}`,
+        about: 'The receipt of a Pix send Avenia refused: the money came back to the wallet.',
+        responses: {
+            'GET /users/history': { entries: [aveniaSend('REFUNDED')], hasMore: false },
+            [`GET /history/${AVENIA_SEND_ID}`]: aveniaSend('REFUNDED'),
+        },
+    },
+    'pix-activity-payouts': {
+        route: '/history',
+        about: 'Activity rows of Pix payouts: a send to another person, a withdrawal to the own key and a returned send, each with the Pix logo.',
+        responses: {
+            'GET /users/history': {
+                entries: [
+                    aveniaSend('COMPLETED'),
+                    aveniaWithdrawal('COMPLETED'),
+                    { ...aveniaSend('REFUNDED'), uuid: 'fixture-pix-send-returned' },
+                ],
+                hasMore: false,
             },
-        }),
+        },
+    },
+    // API-CONTRACT-M3: a resident of Germany inside Avenia's gate sends and withdraws by Pix on Avenia
+    'pix-nonresident-send-key': {
+        route: AVENIA_SEND_ROUTE,
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OTHER_KEY }),
+        about: 'A non-resident on Avenia: Send to a Pix key reaches the same key step; the holder is named, and Continue is on.',
+        waitFor: '[data-testid="pix-key-holder"]',
+        responses: aveniaNonResidentResponses('enabled', { 'POST /pix/key': AVENIA_OTHER_KEY_INFO }),
+    },
+    'pix-nonresident-send-review': {
+        route: `${AVENIA_SEND_ROUTE}&step=review`,
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OTHER_KEY, amountBrl: '100' }),
+        about: 'A non-resident on Avenia: the send review, as for a resident.',
+        responses: aveniaNonResidentResponses('enabled', { 'POST /pix/withdraw/preview': AVENIA_SEND_PREVIEW }),
     },
     'pix-withdraw-review': {
         route: `${AVENIA_WITHDRAW_ROUTE}?step=review`,
@@ -2187,24 +2334,6 @@ export const FIXTURES: Record<string, Fixture> = {
                 arrivalEstimateSeconds: 60,
                 provider: 'Avenia',
             },
-        }),
-    },
-    'pix-new-key': {
-        // the key arrives as an old link carries it: the screen fills the field and drops it from the URL
-        route: `${AVENIA_NEW_KEY_ROUTE}&destination=${AVENIA_OWN_KEY}`,
-        about: 'A refused Pix payout: the money waits with Avenia, and another own key resolves to its holder.',
-        waitFor: '[data-testid="pix-key-holder"]',
-        responses: aveniaResponses('enabled', {
-            [`GET /history/${AVENIA_REFUSED_WITHDRAWAL_ID}`]: aveniaRefusedWithdrawal(true),
-            'POST /pix/key': AVENIA_OWN_KEY_INFO,
-        }),
-    },
-    'pix-new-key-not-waiting': {
-        route: AVENIA_NEW_KEY_ROUTE,
-        about: 'The new-key link of a withdrawal that no longer waits for a key: its current state instead.',
-        waitFor: '[data-testid="pix-new-key-not-waiting"]',
-        responses: aveniaResponses('enabled', {
-            [`GET /history/${AVENIA_REFUSED_WITHDRAWAL_ID}`]: aveniaRefusedWithdrawal(false),
         }),
     },
     // ---- the Avenia states the Screen Library must show (every changed copy line) ----
@@ -2419,18 +2548,6 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         },
     },
-    'pix-withdraw-review-key-not-own': {
-        route: `${AVENIA_WITHDRAW_ROUTE}?step=review`,
-        sessionStorage: pixWithdrawForm({ destination: AVENIA_OWN_KEY, amountBrl: '503' }),
-        about: "The preview refuses a key that is not the user's: the review offers Change key, not Retry.",
-        responses: aveniaResponses('enabled'),
-        rejects: {
-            'POST /pix/withdraw/preview': {
-                status: 422,
-                body: { code: 'PIX_KEY_NOT_OWN', error: 'This key belongs to someone else' },
-            },
-        },
-    },
     'pix-withdraw-review-in-progress': {
         route: `${AVENIA_WITHDRAW_ROUTE}?step=review`,
         sessionStorage: pixWithdrawForm({ destination: AVENIA_OWN_KEY, amountBrl: '503' }),
@@ -2504,31 +2621,6 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         }),
     },
-    'pix-withdraw-needs-key': {
-        route: aveniaOutcomeRoute(AVENIA_REFUSED_WITHDRAWAL_ID),
-        about: 'The last step of a withdrawal whose payout the bank refused: it asks for another own key.',
-        responses: aveniaResponses('enabled', {
-            [`GET /history/${AVENIA_REFUSED_WITHDRAWAL_ID}`]: aveniaRefusedWithdrawal(true),
-        }),
-    },
-    'pix-new-key-unnamed': {
-        route: `${AVENIA_NEW_KEY_ROUTE}&destination=${AVENIA_OWN_KEY}`,
-        about: 'A new own key whose holder the Pix directory does not name.',
-        waitFor: '[data-testid="pix-key-holder"]',
-        responses: aveniaResponses('enabled', {
-            [`GET /history/${AVENIA_REFUSED_WITHDRAWAL_ID}`]: aveniaRefusedWithdrawal(true),
-            'POST /pix/key': { ...AVENIA_OWN_KEY_INFO, holderName: null, bankName: null },
-        }),
-    },
-    'pix-receipt-new-key': {
-        route: `/history?tx=${AVENIA_REFUSED_WITHDRAWAL_ID}`,
-        about: 'The receipt of a refused Pix payout asks for another own key.',
-        waitFor: '[data-testid="pix-new-key-notice"]',
-        responses: {
-            'GET /users/history': { entries: [aveniaRefusedWithdrawal(true)], hasMore: false },
-            [`GET /history/${AVENIA_REFUSED_WITHDRAWAL_ID}`]: aveniaRefusedWithdrawal(true),
-        },
-    },
     // ---- The same Pix flow on Manteca's route (a resident outside Brazil): the answers differ ----
     'pix-manteca-deposit-code': {
         route: `/add-money/pix?step=showQR&intentId=${MANTECA_PIX_DEPOSIT_ID}`,
@@ -2584,12 +2676,6 @@ export const FIXTURES: Record<string, Fixture> = {
                 provider: 'Manteca',
             },
         }),
-    },
-    // design.md, rows the user cannot act on: the row names the action and opens the new-key step
-    'pix-activity-new-key': {
-        route: '/history',
-        about: 'Activity row of a refused Pix payout: "Action needed", and the tap opens the new-key step.',
-        responses: { 'GET /users/history': { entries: [aveniaRefusedWithdrawal(true)], hasMore: false } },
     },
     // ?step=form names the screen; the amount is collected after it now.
     'withdraw-bank-form': {

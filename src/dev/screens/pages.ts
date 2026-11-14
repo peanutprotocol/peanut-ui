@@ -301,20 +301,6 @@ PAGE_CAPTURES.push(
         expectSelector: '[role="alert"]',
     },
     {
-        id: 'p82-pix-new-key-saved',
-        name: 'New Pix key saved — where the money goes',
-        route: '/withdraw/new-pix-key?intentId=fixture-pix-refused-withdrawal&destination=09579927189',
-        fixture: 'pix-new-key',
-        clicks: ['Continue'],
-    },
-    {
-        id: 'p83-pix-new-key-saved-unnamed',
-        name: 'New Pix key saved — no holder named',
-        route: '/withdraw/new-pix-key?intentId=fixture-pix-refused-withdrawal&destination=09579927189',
-        fixture: 'pix-new-key-unnamed',
-        clicks: ['Continue'],
-    },
-    {
         id: 'p84-pix-provider-sheet',
         name: "Pix review — the provider's legal details",
         // the key and amount come from the fixture's session draft, never the URL

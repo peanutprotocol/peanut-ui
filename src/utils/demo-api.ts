@@ -970,7 +970,6 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         }),
     },
     { method: 'POST', pattern: '/pix/withdraw/:intentId/funded', handler: () => ({ status: 'PROCESSING' }) },
-    { method: 'POST', pattern: '/pix/withdraw/:intentId/recovery-key', handler: () => ({ accepted: true }) },
 
     // points / perks / rewards
     {

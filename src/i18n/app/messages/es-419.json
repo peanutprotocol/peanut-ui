@@ -2641,7 +2641,6 @@
             "fee": "Comisión del proveedor",
             "notACode": "Ingresa una clave Pix, no un código Pix.",
             "lookupFailed": "No pudimos revisar esta clave. Intenta de nuevo.",
-            "keyNotOwn": "Esta clave es de otra persona. Los retiros van solo a cuentas con tu CPF.",
             "keyBlocked": "Los retiros por Pix a este banco no están disponibles.",
             "unknownHolder": "Nombre no visible",
             "ownAccount": "Cuenta propia",
@@ -2664,17 +2663,6 @@
             },
             "changeKey": "Cambiar clave",
             "withdrawing": "Retirando"
-        },
-        "recovery": {
-            "actionNeeded": "Acción requerida",
-            "intro": "El banco rechazó el pago a la clave anterior. Tu dinero está esperando. Ingresa una clave Pix de otra cuenta con tu CPF.",
-            "notice": "El banco rechazó este pago. El dinero espera otra clave con tu CPF.",
-            "addKey": "Agregar clave Pix",
-            "savedTitle": "Clave Pix guardada",
-            "savedTo": "El dinero se enviará a {destination}.",
-            "saved": "El dinero se enviará a la nueva clave.",
-            "notWaitingTitle": "No hace falta otra clave",
-            "notWaiting": "Este retiro ya no está esperando una nueva clave Pix."
         }
     },
     "transaction": {

@@ -303,7 +303,6 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
             case API_ERROR_CODES.PROVIDER_REJECTED:
                 return undefined
             // the key itself was refused: back to the key step, the key kept in the field to edit
-            case API_ERROR_CODES.PIX_KEY_NOT_OWN:
             case API_ERROR_CODES.PIX_KEY_BLOCKED:
             case API_ERROR_CODES.PIX_KEY_NOT_FOUND:
                 return { label: t('changeKey'), onClick: () => void stepper.goTo('pix-key') }

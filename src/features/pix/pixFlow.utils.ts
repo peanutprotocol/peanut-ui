@@ -2,7 +2,6 @@ import { parseUnits } from 'viem'
 import { isPixEmvcoQr, normalizePixInput, validatePixKey } from '@/utils/withdraw.utils'
 import type { PixDeposit, PixWithdrawDisplay } from '@/services/pix'
 import { API_ERROR_CODES } from '@/services/api-error'
-import { awaitsNewPixKey } from '@/features/pix/pixRecovery'
 import type { HistoryEntry } from '@/utils/history.utils'
 
 export type PixDepositPhase = 'pending' | 'processing' | 'completed' | 'returned' | 'expired'
@@ -95,7 +94,6 @@ export type PixWithdrawRefusal =
     | 'withdraw.errors.inProgress'
     | 'withdraw.errors.quoteExpired'
     | 'withdraw.errors.quoteChanged'
-    | 'withdraw.keyNotOwn'
     | 'withdraw.keyBlocked'
     | 'pixKeyNotFound'
     | 'minimum'
@@ -112,8 +110,6 @@ export function pixWithdrawRefusalKey(code: string | undefined): PixWithdrawRefu
             return 'withdraw.errors.quoteExpired'
         case API_ERROR_CODES.PIX_QUOTE_CHANGED:
             return 'withdraw.errors.quoteChanged'
-        case API_ERROR_CODES.PIX_KEY_NOT_OWN:
-            return 'withdraw.keyNotOwn'
         case API_ERROR_CODES.PIX_KEY_BLOCKED:
             return 'withdraw.keyBlocked'
         case API_ERROR_CODES.PIX_KEY_NOT_FOUND:
@@ -180,14 +176,7 @@ export function quoteMovedAgainstUser(
  * still holds for its signature (AWAITING_USER_ACTION) is not sent: this page
  * lost the signature request, so it starts again.
  */
-export type PixWithdrawOutcomeKind =
-    | 'on-its-way'
-    | 'unconfirmed'
-    | 'arrived'
-    | 'needs-key'
-    | 'refunded'
-    | 'not-sent'
-    | 'stuck'
+export type PixWithdrawOutcomeKind = 'on-its-way' | 'unconfirmed' | 'arrived' | 'refunded' | 'not-sent' | 'stuck'
 
 /** How the API ends a withdrawal whose deposit never left the wallet. */
 const ENDED_UNFUNDED = ['FAILED', 'CANCELLED', 'EXPIRED']
@@ -197,7 +186,6 @@ export function pixWithdrawOutcome(
     entry: Pick<HistoryEntry, 'status' | 'extraData'> | undefined
 ): PixWithdrawOutcomeKind {
     if (entry?.status === 'COMPLETED') return 'arrived'
-    if (awaitsNewPixKey(entry?.extraData)) return 'needs-key'
     if (entry?.status === 'REFUNDED') return 'refunded'
     if (entry?.status && entry.status !== 'PENDING') {
         if (phase !== 'funded' && ENDED_UNFUNDED.includes(entry.status)) return 'not-sent'
