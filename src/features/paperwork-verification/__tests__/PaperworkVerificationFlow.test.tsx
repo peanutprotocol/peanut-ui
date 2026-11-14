@@ -844,7 +844,7 @@ describe('PaperworkVerificationFlow', () => {
             { key: 'taxId', kind: 'taxId', required: true, format: null, checks: ['de.idnr'], value: null },
         ]
         mockQuestions.mockResolvedValue({ ...questions, residence: 'DE' })
-        const warning = 'We couldn’t verify this tax number. Are you sure it’s correct?'
+        const warning = 'We couldn’t verify this number. Is it correct?'
         const wrong = 'Check the number. It doesn’t look right.'
         await startFlow()
         const input = await screen.findByTestId('verify-input-taxId')

@@ -5,7 +5,7 @@ import { API_ERROR_CODES } from '@/services/api-error'
 import { awaitsNewPixKey } from '@/features/pix/pixRecovery'
 import type { HistoryEntry } from '@/utils/history.utils'
 
-/** The pending route's one reason that waits on a fix, not a retry: the Avenia park code `TAX_ID_MISSING`, lower case (api `avenia/enrolment.ts`, `kyc/capabilities/resolver.ts`). */
+/** The pending route's one reason that waits on a fix, not a retry: a routed provider's park code `TAX_ID_MISSING`, lower case (api `kyc/capabilities/resolver.ts`). */
 const TAX_ID_MISSING_REASON = 'tax_id_missing'
 
 /** Why the route waits: the provider reviews, or has no CPF for the verification. */
@@ -13,11 +13,6 @@ export type PixPendingReason = 'reviewing' | 'cpf-missing'
 
 export function pixPendingReason(code: string | undefined): PixPendingReason {
     return code === TAX_ID_MISSING_REASON ? 'cpf-missing' : 'reviewing'
-}
-
-/** The API's arrival estimate in whole minutes, at least one, for the Arrives row. */
-export function arrivalMinutes(seconds: number): number {
-    return Math.max(1, Math.round(seconds / 60))
 }
 
 export type PixDepositPhase = 'pending' | 'processing' | 'completed' | 'returned' | 'expired'
@@ -102,8 +97,12 @@ export function maskedTaxIdKind(masked: string): 'CPF' | 'CNPJ' {
     return masked.replace(/[^\d*]/g, '').length === 14 ? 'CNPJ' : 'CPF'
 }
 
-/** The steps of a Pix withdrawal: the key first. */
-export const PIX_WITHDRAW_STEPS = ['pix-key', 'amount', 'review', 'success'] as const
+/**
+ * The steps of a Pix withdrawal: the key first, then the one form (the amount and its quote, as the
+ * Pix-key payment form shows them; ruling 2026-11-12). The form keeps the `review` step name, so
+ * the links the review step had still open it; an old `amount` link falls back to the key step.
+ */
+export const PIX_WITHDRAW_STEPS = ['pix-key', 'review', 'success'] as const
 export type PixWithdrawStep = (typeof PIX_WITHDRAW_STEPS)[number]
 
 /**

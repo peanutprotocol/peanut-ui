@@ -2,7 +2,7 @@ import { Button, type ButtonProps } from '@/components/0_Bruddle/Button'
 import Checkbox from '@/components/0_Bruddle/Checkbox'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { IconBubble, type IconBubbleColor } from '@/components/0_Bruddle/IconBubble'
-import { CONCEPT_ICONS, type Concept } from '@/components/0_Bruddle/conceptIcons'
+import { CONCEPT_ICONS, type IconConcept } from '@/components/0_Bruddle/conceptIcons'
 import { type IconProps as GlobalIconProps, Icon, type IconName } from '@/components/Global/Icons/Icon'
 import Loading from '@/components/Global/Loading'
 import BaseModal from '@/components/Global/Modal'
@@ -66,7 +66,7 @@ type ActionModalIconProps =
       }
     | {
           /** A product concept's bubble (CONCEPT_ICONS): its icon and color, as on every other surface. */
-          concept: Concept
+          concept: IconConcept
           tone?: undefined
           icon?: undefined
           isLoadingIcon?: false

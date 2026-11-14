@@ -36,7 +36,7 @@ const ResidenceStep = () => {
     const countrySignals = useSetupCountrySignals()
     const { sets: restrictionSets } = useResidenceRestrictionSetsWithStatus()
     const [view, setView] = useState<'question' | 'compare'>('question')
-    const { track } = useSignupControl()
+    const { track, trackError } = useSignupControl()
 
     /*
      * The confirmed residence. The payment plan right after this step reads it
@@ -79,7 +79,12 @@ const ResidenceStep = () => {
         restrictionSets.refusedIdIssuers.has(nationality) &&
         !restrictionSets.refusedIdIssuers.has(residence)
 
+    useEffect(() => {
+        trackError('nationality_country', refusedPassport ? 'refused_issuer' : null)
+    }, [refusedPassport, trackError])
+
     useBackHandler(() => {
+        track('residence_compare', 'dismiss')
         setView('question')
         return true
     }, view === 'compare')
@@ -128,8 +133,10 @@ const ResidenceStep = () => {
     const onContinue = () => {
         if (!residence) return
         track('continue', 'tap')
-        if (nationality) setView('compare')
-        else continueWith(residence)
+        if (nationality) {
+            track('residence_compare', 'open')
+            setView('compare')
+        } else continueWith(residence)
     }
 
     // Picking the nationality country sets Peanut up there; the nationality answer stays.

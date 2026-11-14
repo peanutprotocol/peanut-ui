@@ -79,13 +79,13 @@ describe('bank rows render the report account entries', () => {
     })
 })
 
-// The API refuses the local feature to a resident of Brazil (`local_residence_unsupported`) and serves
-// their Pix through the route (Avenia): the BRL row reads the route, never the refused local account.
+// The API can refuse the local feature to a resident (`local_residence_unsupported`) and serve their Pix
+// through the route: the BRL row reads the route, never the refused local account.
 describe('the BRL row reads the Pix route', () => {
     const pixRoute = (step: Partial<CapabilityRoute>): CapabilityRoute => ({
         operation: 'deposit',
         method: 'PIX_BR',
-        provider: 'avenia',
+        provider: 'manteca',
         state: 'ready',
         candidates: [],
         ...step,
@@ -122,7 +122,7 @@ describe('the BRL row reads the Pix route', () => {
         expect(renderHook(() => useBankRows()).result.current.accountChip).toBe('active')
     })
 
-    // the API's answer for a resident of Brazil: another entry, the Pix route, serves the residence
+    // another entry, the Pix route, serves the residence
     it('reads a local refusal because another entry serves the residence like the residence one', () => {
         brazilResident(LOCAL_SERVED_ELSEWHERE_REASON)
         expect(brl()).toMatchObject({ chip: 'notAvailable', unavailableBecause: 'residence' })
@@ -132,35 +132,14 @@ describe('the BRL row reads the Pix route', () => {
     })
 
     it.each<[string, Partial<CapabilityRoute>]>([
-        ['the provider terms', { state: 'action_required', action: 'accept-tos:avenia' }],
-        ["the provider's own identity check", { state: 'action_required', action: 'avenia-hosted' }],
         ['our identity check', { state: 'action_required', action: 'verify' }],
         ['the provider review', { state: 'pending', reason: { code: 'provider_reviewing', userMessage: '' } }],
-        // the Pix page explains the pause
-        ['a pause', { state: 'paused', reason: { code: 'residence_paused', userMessage: '' } }],
+        // the Pix page explains the pause; the Brazil pause names no provider (TASK-24910, D9)
+        ['a pause', { provider: null, state: 'paused', reason: { code: 'residence_paused', userMessage: '' } }],
     ])('drops the row on %s too: the route is open, so the drawer has Pix', (_name, step) => {
         brazilResident()
         mockCapabilities.routes = [pixRoute(step)]
         expect(brl()).toBeUndefined()
-    })
-
-    // the provider takes no shared verification: its own check, on its page, is a set-up step like its terms
-    it("reads the provider's own identity check as the BRL entry's Set up", () => {
-        brazilResident()
-        mockCapabilities.nextActions = [
-            {
-                key: 'avenia-hosted',
-                kind: 'hosted-identity',
-                purpose: 'unlock-avenia',
-                url: 'https://avenia.example/identity/u1',
-                expiresAt: '2099-01-01T00:00:00.000Z',
-            },
-        ]
-        mockCapabilities.routes = [pixRoute({ state: 'action_required', action: 'avenia-hosted' })]
-        expect(renderHook(() => useBankEntryFor()).result.current('brl')).toEqual({
-            state: 'ready',
-            action: 'avenia-hosted',
-        })
     })
 
     it('keeps the report for the other rows, and for BRL when the API sends no Pix route', () => {

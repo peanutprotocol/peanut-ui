@@ -135,6 +135,11 @@ export const ANALYTICS_EVENTS = {
     CLAIM_RECIPIENT_SELECTED: 'claim_recipient_selected',
 
     // ── Deposit / Onramp ──
+    ADD_MONEY_VIEWED: 'add_money_viewed',
+    ADD_MONEY_COUNTRY_LIST_OPENED: 'add_money_country_list_opened',
+    ADD_MONEY_COUNTRY_LIST_CLOSED: 'add_money_country_list_closed',
+    ADD_MONEY_COUNTRY_SELECTED: 'add_money_country_selected',
+    ADD_MONEY_BACK_TAPPED: 'add_money_back_tapped',
     DEPOSIT_METHOD_SELECTED: 'deposit_method_selected',
     DEPOSIT_AMOUNT_ENTERED: 'deposit_amount_entered',
     DEPOSIT_CONFIRMED: 'deposit_confirmed',

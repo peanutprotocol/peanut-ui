@@ -7,6 +7,7 @@
 import {
     readStoredValue,
     removeStoredValue,
+    resilientSessionStorage,
     resilientWebStorage,
     storedKeysWithPrefix,
     webStorage,
@@ -98,4 +99,49 @@ it('survives storage methods that throw once reached', () => {
     expect(resilientWebStorage.getItem('k')).toBeNull()
     expect(() => resilientWebStorage.setItem('k', 'v')).not.toThrow()
     expect(() => resilientWebStorage.removeItem('k')).not.toThrow()
+})
+
+it('reads, writes and removes session data without using localStorage', () => {
+    localStorage.removeItem('session-k')
+    resilientSessionStorage.setItem('session-k', 'v')
+    expect(resilientSessionStorage.getItem('session-k')).toBe('v')
+    expect(localStorage.getItem('session-k')).toBeNull()
+    resilientSessionStorage.removeItem('session-k')
+    expect(resilientSessionStorage.getItem('session-k')).toBeNull()
+})
+
+it('survives a sessionStorage property getter that throws SecurityError', () => {
+    const hostile = {
+        get sessionStorage(): Storage {
+            throw new DOMException('The operation is insecure.', 'SecurityError')
+        },
+    }
+    expect(webStorage(hostile, 'sessionStorage')).toBeNull()
+})
+
+it('survives unavailable and throwing session storage', () => {
+    const descriptor = Object.getOwnPropertyDescriptor(window, 'sessionStorage')!
+    try {
+        for (const storage of [
+            null,
+            {
+                getItem: () => {
+                    throw new Error('denied')
+                },
+                setItem: () => {
+                    throw new Error('quota')
+                },
+                removeItem: () => {
+                    throw new Error('denied')
+                },
+            },
+        ]) {
+            Object.defineProperty(window, 'sessionStorage', { configurable: true, get: () => storage })
+            expect(resilientSessionStorage.getItem('k')).toBeNull()
+            expect(() => resilientSessionStorage.setItem('k', 'v')).not.toThrow()
+            expect(() => resilientSessionStorage.removeItem('k')).not.toThrow()
+        }
+    } finally {
+        Object.defineProperty(window, 'sessionStorage', descriptor)
+    }
 })

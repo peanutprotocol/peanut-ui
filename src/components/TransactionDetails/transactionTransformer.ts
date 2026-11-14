@@ -40,8 +40,8 @@ function isDisputeStatus(value: unknown): value is DisputeStatus {
     return typeof value === 'string' && DISPUTE_STATUSES.has(value)
 }
 
-// peanut-api-ts `enum TransactionProvider`, as a history row names it (BRIDGE, MANTECA, AVENIA,
-// RAIN, ...). The history schema types `extraData.provider` as a plain string, so the app reads a
+// peanut-api-ts `enum TransactionProvider`, as a history row names it (BRIDGE, MANTECA, RAIN, ...).
+// The history schema types `extraData.provider` as a plain string, so the app reads a
 // string too: a new provider needs no change here, and its legal record comes from the registry
 // (`providerIdFor` in provider.utils). Receipts that branch on a provider compare this value for
 // positive identity rather than infer it from the absence of other fields.

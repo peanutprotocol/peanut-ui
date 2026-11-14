@@ -20,6 +20,8 @@ export type PageCapture = {
     defaultScreen?: boolean
 }
 
+export const HOME_ADD_DRAWER_CHECKPOINT = '[role="dialog"][data-state="open"] [data-testid="home-drawer-add-more"]'
+
 export const PAGE_CAPTURES: PageCapture[] = [
     // The page you flagged, then each of its three inline FAQ sheets.
     { id: 'p01-backup', name: 'Backup', route: '/profile/backup' },
@@ -68,6 +70,41 @@ export const PAGE_CAPTURES: PageCapture[] = [
     { id: 'p15-withdraw-crypto', name: 'Withdraw — crypto', route: '/withdraw/crypto?amount=50' },
     { id: 'p16-withdraw-manteca', name: 'Withdraw — Manteca', route: '/withdraw/manteca?country=argentina&amount=50' },
     { id: 'p17-add-money', name: 'Add money', route: '/add-money?method=bank' },
+    {
+        id: 'add-money-method-picker',
+        name: 'Add money — method picker',
+        route: '/add-money',
+        entryRoute: '/home',
+        fixture: 'add-money-picker-first-time',
+        // Home's Add action, not the checklist row: capture shows the demo wallet
+        // balance whatever the fixture's `balance` says, so the row reads "Money
+        // received", is done and does not open anything. For a first-time user the
+        // Add action links straight to this picker.
+        actions: [{ clickSelector: '[data-testid="home-submenu-add"]' }],
+        expectSelector: '[data-testid="add-money-method-crypto"]',
+        defaultScreen: true,
+    },
+    {
+        id: 'add-money-account-currencies',
+        name: 'Add money — bank account currencies',
+        route: '/add-money/options?method=account',
+        fixture: 'add-money-picker-first-time',
+        expectSelector: '[data-testid="deposit-account-SEPA_EU"]',
+    },
+    {
+        id: 'add-money-transfer-currencies',
+        name: 'Add money — one-time transfer currencies',
+        route: '/add-money/options?method=transfer',
+        fixture: 'add-money-picker-first-time',
+        expectSelector: '[data-testid="add-money-option-GBP"]',
+    },
+    {
+        id: 'add-money-pix-currency',
+        name: 'Add money — Pix currency',
+        route: '/add-money/options?method=pix',
+        fixture: 'add-money-picker-first-time',
+        expectSelector: '[data-testid="add-money-option-BRL"]',
+    },
     { id: 'p18-add-money-crypto', name: 'Add money — crypto', route: '/add-money/crypto' },
     {
         id: 'add-money-crypto-euro-token-network',
@@ -123,7 +160,13 @@ export const PAGE_CAPTURES: PageCapture[] = [
     },
     { id: 'p39-language', name: 'Language', route: '/settings/language', fixture: 'settings-language' },
     { id: 'p40-withdraw', name: 'Withdraw — saved accounts', route: '/withdraw', fixture: 'withdraw' },
-    { id: 'p41-home-add-drawer', name: 'Home — Add money drawer', route: '/home?drawer=add' },
+    {
+        id: 'p41-home-add-drawer',
+        name: 'Home — Add money drawer',
+        route: '/home?drawer=add',
+        fixture: 'home-add-drawer',
+        expectSelector: HOME_ADD_DRAWER_CHECKPOINT,
+    },
     { id: 'p42-home-send-drawer', name: 'Home — Send drawer (no mark)', route: '/home?drawer=send' },
 ]
 
@@ -250,44 +293,12 @@ PAGE_CAPTURES.push(
     },
     // Pix states that follow a tap; the fixture answers the call the tap makes.
     {
-        id: 'p80-pix-terms-not-saved',
-        name: 'Pix terms — the acceptance was not saved',
-        route: '/add-money/pix',
-        fixture: 'pix-first-use',
-        clicks: ['Continue'],
-        expectSelector: '[role="alert"]',
-    },
-    {
         id: 'p81-pix-deposit-limit',
         name: 'Pix deposit — over the monthly limit',
         route: '/add-money/pix?amount=100&currency=BRL',
         fixture: 'pix-deposit-amount',
         clicks: ['Continue'],
         expectSelector: '[role="alert"]',
-    },
-    {
-        id: 'p82-pix-new-key-saved',
-        name: 'New Pix key saved — where the money goes',
-        route: '/withdraw/new-pix-key?intentId=fixture-pix-refused-withdrawal&destination=09579927189',
-        fixture: 'pix-new-key',
-        clicks: ['Continue'],
-    },
-    {
-        id: 'p83-pix-new-key-saved-unnamed',
-        name: 'New Pix key saved — no holder named',
-        route: '/withdraw/new-pix-key?intentId=fixture-pix-refused-withdrawal&destination=09579927189',
-        fixture: 'pix-new-key-unnamed',
-        clicks: ['Continue'],
-    },
-    {
-        id: 'p84-pix-provider-sheet',
-        name: "Pix review — the provider's legal details",
-        // the key and amount come from the fixture's session draft, never the URL
-        route: '/withdraw/pix?step=review',
-        fixture: 'pix-withdraw-review',
-        // the (?) is an icon: "About Avenia" is its aria-label, not text a click by text finds
-        actions: [{ clickSelector: '[data-testid="provider-help"]' }],
-        expectSelector: '[role="dialog"][data-state="open"]',
     },
     // Manteca's two entities, as the statement's provider page names them: Argentina's money, and Pix
     // for users who do not live in Brazil
@@ -306,14 +317,5 @@ PAGE_CAPTURES.push(
         fixture: 'pix-manteca-withdraw-review',
         actions: [{ clickSelector: '[data-testid="provider-help"]' }],
         expectSelector: '[role="dialog"][data-state="open"]',
-    },
-    // TASK-24841: a Pix plan before our own check: Verify identity opens the Pix setup, Avenia's terms first
-    {
-        id: 'p87-pix-plan-verify-opens-pix',
-        name: 'Home — Set up Pix opens the Pix setup before our own check',
-        route: '/home',
-        fixture: 'home-pix-plan-before-verification',
-        clicks: ['Set up Pix'],
-        expectSelector: 'a[href="https://app.avenia.io/Avenia-TC.pdf"]',
     }
 )

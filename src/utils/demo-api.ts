@@ -47,32 +47,30 @@ const EMPTY_GRAPH = {
 
 const soon = () => new Date(Date.now() + 120_000).toISOString()
 
-/** One demo Pix deposit whose code can be paid for `msLeft` more. */
-const demoPixDeposit = (msLeft: number) => ({
-    provider: 'avenia',
+/** One demo Pix deposit whose code can be paid; Manteca's code has no expiry. */
+const demoPixDeposit = () => ({
+    provider: 'manteca',
     intentId: 'demo-pix-deposit',
     status: 'AWAITING_USER_ACTION',
     codePayable: true,
     pixReceived: false,
-    expiresAt: new Date(Date.now() + msLeft).toISOString(),
+    expiresAt: null,
     amountBrl: '100.00',
-    usdcAmount: '17.940500',
-    fixedFeeBrl: '0.75',
+    usdcAmount: '18.390000',
     brCode: DEMO_PIX_BR_CODE,
-    payerCpfMasked: '123.***.***-09',
 })
 
 const demoPixWithdrawDisplay = () => ({
     amountBrl: '106.75',
     pixKey: '12345678909',
-    ownAccount: true,
+    ownAccount: null,
     holderName: 'DEMO RECIPIENT',
-    bankName: 'Demo Bank',
-    withdrawUsd: '20.020325',
-    rate: '5.369543',
-    fixedFeeBrl: '0.75',
-    arrivalEstimateSeconds: 60,
-    provider: 'Avenia',
+    bankName: null,
+    withdrawUsd: '19.630000',
+    rate: '5.438237',
+    fixedFeeBrl: '0',
+    arrivalEstimateSeconds: 300,
+    provider: 'Manteca',
 })
 
 function json(data: unknown, status = 200): Response {
@@ -914,65 +912,61 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         }),
     },
 
-    // avenia (Brazil Pix for residents). 200s, so a fixture can override any field.
-    // a route's provider terms step (accept-tos:avenia): the consent is recorded
-    { method: 'POST', pattern: '/users/kyc/accept-terms', handler: () => ({ accepted: true }) },
+    // the provider-neutral Pix routes. The demo user's Pix routes name Manteca (DEMO_PIX_ROUTES), so
+    // these answer as Manteca does. 200s, so a fixture can override any field.
     {
         method: 'GET',
         pattern: '/pix/quote',
         handler: () => ({
-            provider: 'avenia',
+            provider: 'manteca',
             operation: 'deposit',
             amountBrl: '100.00',
-            usdcAmount: '18.237000',
-            rate: '5.442342',
-            fixedFeeBrl: '0.75',
-            minAmountBrl: '20',
+            usdcAmount: '18.390000',
+            rate: '5.437738',
+            fixedFeeBrl: '0',
+            minAmountBrl: '1',
         }),
     },
-    // the demo user's Pix routes name Avenia (DEMO_PIX_ROUTES), so these answer as Avenia does
-    {
-        method: 'GET',
-        pattern: '/pix/deposit/rules',
-        handler: () => ({ minAmountBrl: '20', blockedBanks: [] }),
-    },
-    { method: 'POST', pattern: '/pix/deposit', handler: () => demoPixDeposit(600_000) },
-    { method: 'GET', pattern: '/pix/deposit/:intentId', handler: () => demoPixDeposit(120_000) },
+    { method: 'POST', pattern: '/pix/deposit', handler: () => demoPixDeposit() },
+    { method: 'GET', pattern: '/pix/deposit/:intentId', handler: () => demoPixDeposit() },
     {
         method: 'POST',
         pattern: '/pix/key',
         handler: () => ({
-            provider: 'avenia',
+            provider: 'manteca',
             holderName: 'DEMO RECIPIENT',
             holderTaxIdMasked: '***.456.789-**',
-            bankName: 'Demo Bank',
-            ispb: '00000000',
-            ownAccount: true,
+            bankName: null,
+            ispb: null,
+            ownAccount: null,
             blocked: false,
         }),
     },
     { method: 'POST', pattern: '/pix/withdraw/preview', handler: () => demoPixWithdrawDisplay() },
+    // Manteca's withdrawal opens at the submit: the wallet signs a transfer to the deposit address first
     {
         method: 'POST',
         pattern: '/pix/withdraw',
         handler: () => ({
-            provider: 'avenia',
-            intentId: 'demo-pix-withdraw',
+            provider: 'manteca',
+            intentId: null,
             display: demoPixWithdrawDisplay(),
             sign: {
-                kind: 'deposit-with-id',
-                contractAddress: DEMO_ADDRESS,
+                kind: 'transfer-then-submit',
+                depositAddress: DEMO_ADDRESS,
                 tokenAddress: PEANUT_WALLET_TOKEN,
-                payAmount: '20.020325',
-                payAmountUnits: '20020325',
-                commitmentId: '6aeb17ea29f84d1e9b0c3a5d7e2f1c08',
+                payAmount: '19.630000',
+                payAmountUnits: '19630000',
+                priceLockCode: 'demo-pix-price-lock',
                 quoteExpiresAt: soon(),
-                ticketExpiresAt: new Date(Date.now() + 600_000).toISOString(),
             },
         }),
     },
-    { method: 'POST', pattern: '/pix/withdraw/:intentId/funded', handler: () => ({ status: 'PROCESSING' }) },
-    { method: 'POST', pattern: '/pix/withdraw/:intentId/recovery-key', handler: () => ({ accepted: true }) },
+    {
+        method: 'POST',
+        pattern: '/pix/withdraw/submit',
+        handler: () => ({ provider: 'manteca', intentId: 'demo-pix-withdraw', status: 'PROCESSING' }),
+    },
 
     // points / perks / rewards
     {

@@ -1,13 +1,13 @@
 import type { ResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
 import { deriveResidenceRestrictionsFrom, isQrResidenceRestricted } from '@/utils/residence-restrictions'
-import type { Concept } from '@/components/0_Bruddle/conceptIcons'
+import type { IconConcept } from '@/components/0_Bruddle/conceptIcons'
 import type { KycFeatures } from '@/app/actions/types/kyc-workflow.types'
 import type { KycIntents } from '@/hooks/useKycIntents'
 import { LOCAL_SERVED_ELSEWHERE_REASON } from '@/features/kyc-features/report'
 export type SetupFundingChannel = 'bank' | 'brlBank' | 'arsBank' | 'crypto' | 'peanut'
 export type SetupPaymentChannel = Exclude<SetupFundingChannel, 'brlBank' | 'arsBank'> | 'card' | 'qr'
 export type SetupChannel = SetupFundingChannel | SetupPaymentChannel
-export const SETUP_CHANNEL_CONCEPTS: Record<SetupChannel, Concept> = {
+export const SETUP_CHANNEL_CONCEPTS: Record<SetupChannel, IconConcept> = {
     bank: 'bank',
     brlBank: 'bank',
     arsBank: 'bank',

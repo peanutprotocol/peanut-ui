@@ -13,6 +13,7 @@ jest.mock('@/utils/landing-passkeys', () => ({
 const mockLogin = jest.fn()
 const mockNext = jest.fn()
 const mockToastError = jest.fn()
+const mockCancelPending = jest.fn()
 let mockIsLoggingIn = false
 let mockKeepWebBypass = true
 const originalCapacitorBuild = process.env.NEXT_PUBLIC_CAPACITOR_BUILD
@@ -30,6 +31,11 @@ jest.mock('@/hooks/useLogin', () => ({
     useLogin: () => ({ handleLoginClick: mockLogin, isLoggingIn: mockIsLoggingIn }),
 }))
 jest.mock('@/hooks/useSetupFlow', () => ({ useSetupFlow: () => ({ handleNext: mockNext }) }))
+jest.mock('@/features/setup/SetupFlowContext', () => ({ useOptionalSetupFlow: () => null }))
+jest.mock('@/features/setup/signup-draft', () => ({ readSignupDraft: () => null, discardSignupDraft: jest.fn() }))
+jest.mock('@/features/setup/WelcomeHeadlineExperimentProvider', () => ({
+    useWelcomeHeadlineExperiment: () => ({ variant: 'control', cancelPending: mockCancelPending }),
+}))
 jest.mock('@/utils/native-platform', () => ({ useNativePlatform: () => mockNative }))
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 jest.mock('@/components/0_Bruddle/Button', () => ({

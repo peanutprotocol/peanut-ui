@@ -18,6 +18,7 @@ import { readSecondResidence, storeDeclaredResidence, storeSecondResidence } fro
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { useKycControl } from '@/features/paperwork-verification/analytics'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 
 const SERVICES = ['card', 'bank', 'local', 'qr'] as const
 type Service = (typeof SERVICES)[number]
@@ -40,6 +41,8 @@ interface ResidenceChangeDrawerProps {
     verified: string | null
     /** Requested country waiting on the separate residence action. */
     pending?: string | null
+    pendingStatus?: string | null
+    onContactSupport?: () => void
     /** refetch the user so active and pending residence stay in sync */
     onSaved: () => Promise<unknown> | void
     /** start the dedicated residence proof action for the pending country */
@@ -61,6 +64,8 @@ const ResidenceChangeDrawer = ({
     declaredSecond,
     verified,
     pending,
+    pendingStatus,
+    onContactSupport,
     onSaved,
     onReverify,
 }: ResidenceChangeDrawerProps) => {
@@ -90,6 +95,7 @@ const ResidenceChangeDrawer = ({
         ? deriveResidenceRestrictionsFrom(restrictionSets, selected || null)
         : null
     const differsFromVerified = !!verified && !!selected && selected !== verified
+    const selectedUnderReview = pendingStatus === 'REVIEW_PENDING' && !!pending && selected === pending
     // Slava, 2026-10-27: an approved move into a country that restricts a service closes it,
     // so a verified user is told what they lose before confirming.
     const { intents: verifiedIntents } = useKycIntents(verified)
@@ -100,7 +106,7 @@ const ResidenceChangeDrawer = ({
     )
 
     const save = async (reverifyAfter: boolean) => {
-        if (!userId || !selected || saving.current) return false
+        if (!userId || !selected || saving.current || selectedUnderReview) return false
         saving.current = true
         setIsSaving(true)
         setError(null)
@@ -193,6 +199,11 @@ const ResidenceChangeDrawer = ({
                         {differsFromVerified && (
                             <p className="text-body-xs text-foreground-secondary">{t('verifiedMismatchNote')}</p>
                         )}
+                        {selectedUnderReview && (
+                            <Callout priority="attention" title={t('reviewTitle')}>
+                                {t('reviewBody')}
+                            </Callout>
+                        )}
                         {lost.length > 0 ? (
                             <Callout priority="attention" title={t('lostTitle')} data-testid="residence-change-lost">
                                 {t('lostBody', {
@@ -217,7 +228,7 @@ const ResidenceChangeDrawer = ({
                             variant="primary"
                             shadowSize="4"
                             className="mt-1 w-full justify-center"
-                            disabled={isSaving || !selected || !userId}
+                            disabled={isSaving || !selected || !userId || selectedUnderReview}
                             onClick={() => {
                                 control.track('save', 'tap')
                                 void save(false)
@@ -225,7 +236,7 @@ const ResidenceChangeDrawer = ({
                         >
                             {isSaving ? tCommon('loading') : lost.length > 0 ? t('saveAnyway') : t('save')}
                         </Button>
-                        {differsFromVerified && (
+                        {differsFromVerified && !selectedUnderReview && (
                             <Button
                                 variant="secondary"
                                 className="w-full justify-center"
@@ -237,6 +248,9 @@ const ResidenceChangeDrawer = ({
                             >
                                 {t('saveAndReverify')}
                             </Button>
+                        )}
+                        {selectedUnderReview && onContactSupport && (
+                            <LinkButton onClick={onContactSupport}>{tCommon('contactSupport')}</LinkButton>
                         )}
                     </div>
                 </div>

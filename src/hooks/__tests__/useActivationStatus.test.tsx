@@ -267,46 +267,4 @@ describe('useActivationStatus', () => {
         expect(result.current.isOnboardingComplete).toBe(false)
         expect(result.current.isLoading).toBe(true)
     })
-
-    // TASK-24841 (Aleks, 2026-11-12): once the provider has a Pix plan, Home asks for no ID check
-    describe('a plan that adds money by Pix', () => {
-        const pixPlan = (route: Partial<CapabilityRoute>) => {
-            mockRoutes = [
-                {
-                    operation: 'deposit',
-                    method: 'PIX_BR',
-                    provider: 'avenia',
-                    candidates: [],
-                    ...route,
-                } as CapabilityRoute,
-            ]
-            mockUseAuth.mockReturnValue({
-                user: {
-                    user: { userId: 'u1', isActivated: false, activationMilestone: 'registered' },
-                    signupPreferences: { fundingChannel: 'brlBank', paymentChannel: 'card' },
-                },
-            })
-            return renderHook(() => useActivationStatus()).result.current.onboarding
-        }
-
-        it.each(['pending', 'ready'] as const)('counts the ID step done once the route is %s', (state) => {
-            const onboarding = pixPlan({ state })
-            expect(onboarding.verify).toBe('done')
-            expect(onboarding.step).toBe('add_money')
-        })
-
-        it("leaves the step open while the route asks for the provider's terms", () => {
-            mockNextActions = [{ key: 'accept-tos:avenia', kind: 'accept-tos', purpose: 'unlock-avenia' }]
-            const onboarding = pixPlan({ state: 'action_required', action: 'accept-tos:avenia' })
-            expect(onboarding.verify).toBe('todo')
-            expect(onboarding.step).toBe('verify')
-        })
-
-        it('leaves our check open for another plan on the same route', () => {
-            mockRoutes = [
-                { operation: 'deposit', method: 'PIX_BR', provider: 'avenia', state: 'pending', candidates: [] },
-            ]
-            expect(setup({ activationMilestone: 'registered' }).result.current.onboarding.verify).toBe('todo')
-        })
-    })
 })

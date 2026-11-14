@@ -35,6 +35,8 @@ describe('brTaxIdKind', () => {
         ['a full CNPJ', '11222333000181', 'CNPJ'],
         ['a masked CPF (11 characters)', '12*******90', 'CPF'],
         ['a masked CNPJ (14 characters)', '11**********81', 'CNPJ'],
+        ['a masked CPF as the Pix directory punctuates it', '095.***.***-89', 'CPF'],
+        ['a masked CNPJ as the Pix directory punctuates it', '11.***.***/****-81', 'CNPJ'],
         ['an 11-digit number that fails the CPF check', '12345678900', null],
         ['a mask of another length', '20********87', null],
         ['an email key', 'maria@silva.com.br', null],

@@ -65,14 +65,14 @@ import { PixWithdrawOutcome } from '../components/PixWithdrawOutcome'
 const display = {
     amountBrl: '503.00',
     pixKey: '09579927189',
-    ownAccount: true as const,
+    ownAccount: null,
     holderName: 'Ana Souza',
     bankName: 'Banco Inter',
     withdrawUsd: '92.504310',
     rate: '5.445692',
     fixedFeeBrl: '0.75',
     arrivalEstimateSeconds: 60,
-    provider: 'Avenia' as const,
+    provider: 'Manteca' as const,
 }
 // GET /history/:id for the withdrawal, as the API sends it
 const entry = (status: string, intentStatus?: string) => ({
@@ -89,7 +89,7 @@ const entry = (status: string, intentStatus?: string) => ({
         senderAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
         recipientAccount: { identifier: '+5511912345678', fullName: 'ANA SOUZA', type: 'PIX', isUser: false },
         currency: { amount: '503.00', code: 'BRL' },
-        extraData: { kind: 'OFFRAMP', provider: 'AVENIA', usdAmount: '92.50431', pixRecovery: null, intentStatus },
+        extraData: { kind: 'OFFRAMP', provider: 'MANTECA', usdAmount: '92.50431', pixRecovery: null, intentStatus },
     },
     isLoading: false,
 })
@@ -101,7 +101,7 @@ const renderOutcome = (sent: Parameters<typeof PixWithdrawOutcome>[0]['sent']) =
             <PixWithdrawOutcome
                 title="Withdraw"
                 intentId="w1"
-                providerId="avenia-br"
+                providerId="manteca-br"
                 sent={sent}
                 onStartAgain={jest.fn()}
                 onDone={jest.fn()}
@@ -167,7 +167,7 @@ describe('PixWithdrawOutcome while the provider pays', () => {
                 <PixWithdrawOutcome
                     title="Withdraw"
                     intentId="w1"
-                    providerId="avenia-br"
+                    providerId="manteca-br"
                     sent={funded}
                     onStartAgain={jest.fn()}
                     onDone={jest.fn()}
@@ -194,7 +194,7 @@ describe('PixWithdrawOutcome once the Pix landed', () => {
         expect(screen.getAllByTestId('success-sound')).toHaveLength(1)
         expect(screen.getByRole('button', { name: en.payment.success.backToHome })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: en.payment.success.seeReceipt })).toBeInTheDocument()
-        expect(screen.getByText('provider avenia-br')).toBeInTheDocument()
+        expect(screen.getByText('provider manteca-br')).toBeInTheDocument()
         expect(
             screen.queryByText(en.pix.withdraw.sentTo.replace('{destination}', 'Banco Inter · Ana Souza'))
         ).toBeNull()

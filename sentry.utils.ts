@@ -87,7 +87,12 @@ const IGNORED_ERRORS = {
     // for a plain user cancel), then throws a curated user-facing wrapper. Call
     // sites that re-report that wrapper add a second, context-free event and
     // undo the deliberate silence around LOGIN_CANCELED.
-    alreadyReported: ['ServiceUnavailableError', 'ConnectionTimeoutError', 'PasskeyError'],
+    alreadyReported: [
+        'ServiceUnavailableError',
+        'ConnectionTimeoutError',
+        'MutationResponseTimeoutError',
+        'PasskeyError',
+    ],
 
     // Third-party SDK internal errors (not actionable)
     thirdPartySdkErrors: [
@@ -196,7 +201,7 @@ function collapseNoisyFingerprint(event: ErrorEvent): void {
     }
 }
 
-const FETCH_SITE_FINGERPRINTS = ['network-error', 'timeout']
+const FETCH_SITE_FINGERPRINTS = ['network-error', 'timeout', 'mutation-response-timeout']
 const MUTATING_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE']
 
 /*

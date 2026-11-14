@@ -6,16 +6,14 @@ import ProgressBar from '@/components/0_Bruddle/ProgressBar'
 import { Section } from '@/components/0_Bruddle/Section'
 import Card from '@/components/Global/Card'
 import PeanutMascot from '@/components/Global/PeanutMascot'
-import { IconBubble, type IconBubbleColor } from '@/components/0_Bruddle/IconBubble'
-import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { CONCEPT_ICONS, type ConceptIcon } from '@/components/0_Bruddle/conceptIcons'
 import Badge from '@/components/Global/Badges/Badge'
-import { type IconName } from '@/components/Global/Icons/Icon'
 import FirstPaymentChooser from '@/components/Home/FirstPaymentChooser'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
-import { useHomeDrawer } from '@/features/home/useHomeDrawer'
 import { checklistProgress, type OnboardingState } from '@/utils/activation-step.utils'
 import type { PixPlanSetUp } from '@/features/pix/pixRoute.utils'
 import { KycStatusDrawer } from '@/components/Kyc/KycStatusDrawer'
@@ -32,7 +30,7 @@ type ChecklistItemId = 'create-account' | 'verify-identity' | 'add-money' | 'fir
 interface ChecklistItem {
     id: ChecklistItemId
     /** a product concept's item spreads CONCEPT_ICONS; the account step is Peanut's own (yellow) */
-    bubble: { icon: IconName | React.ReactElement; color: IconBubbleColor }
+    bubble: ConceptIcon
     label: string
     /** always one line (copy sized for 320px), in every state, so every row is the same height */
     sub: string | null
@@ -118,7 +116,6 @@ const GettingStartedChecklist = ({
     const t = useTranslations('home.gettingStarted')
     const tKyc = useTranslations('kyc')
     const router = useRouter()
-    const [, setHomeDrawer] = useHomeDrawer()
     const { setIsQRScannerOpen } = useModalsContext()
     const restrictions = useResidenceRestrictions()
     const depositAccountsEnabled = useDepositAccountsEnabled()
@@ -199,7 +196,7 @@ const GettingStartedChecklist = ({
                         ? t('addMoneyStandingAccounts')
                         : t('addMoneyRoutes'),
                 done: addMoneyDone,
-                onTap: tap('add-money', () => void setHomeDrawer('add')),
+                onTap: tap('add-money', () => router.push('/add-money')),
             },
         ]
         if (firstPaymentRoute === 'pending') {
@@ -237,7 +234,6 @@ const GettingStartedChecklist = ({
         onStartIdentityCheck,
         signupPaymentChannel,
         router,
-        setHomeDrawer,
         setIsQRScannerOpen,
         t,
         tKyc,

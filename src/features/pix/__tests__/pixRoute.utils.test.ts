@@ -1,7 +1,6 @@
 import {
     findPixRoute,
     pixPayBlock,
-    pixPlanSetUp,
     pixRefusalCopy,
     pixRouteGate,
     pixRouteOpen,
@@ -10,34 +9,17 @@ import {
     withPixRoute,
 } from '../pixRoute.utils'
 import { pixDepositCodeUrl } from '../pix.routes'
-import type { CapabilityRoute, NextAction } from '@/types/capabilities'
+import type { CapabilityRoute } from '@/types/capabilities'
 import { LOCAL_SERVED_ELSEWHERE_REASON } from '@/features/kyc-features/report'
 import { DEMO_USER } from '@/constants/demo-data'
 
 const route = (overrides: Partial<CapabilityRoute> = {}): CapabilityRoute => ({
     operation: 'deposit',
     method: 'PIX_BR',
-    provider: 'avenia',
+    provider: 'manteca',
     state: 'ready',
-    candidates: [{ provider: 'avenia', state: 'ready' }],
+    candidates: [{ provider: 'manteca', state: 'ready' }],
     ...overrides,
-})
-
-// the provider takes no shared verification: its own identity check on its page, named like its terms
-describe("the provider's own identity check", () => {
-    it('reads as a set-up step on the Accounts row and its gate, like the terms', () => {
-        const hostedStep = route({
-            state: 'action_required',
-            action: 'avenia-hosted',
-            reason: { code: 'identity_hosted_pending', userMessage: '' },
-        })
-        expect(pixRouteReportEntry(hostedStep)).toEqual({
-            state: 'ready',
-            action: 'avenia-hosted',
-            reason: 'identity_hosted_pending',
-        })
-        expect(pixRouteGate(hostedStep)).toEqual({ kind: 'needs-enrollment' })
-    })
 })
 
 describe('findPixRoute', () => {
@@ -52,14 +34,17 @@ describe('pixScreen', () => {
     it("mounts the one Pix flow for whichever provider the route names, whatever the user's step", () => {
         expect(pixScreen(route(), false)).toBe('flow')
         expect(pixScreen(route({ state: 'action_required', action: 'activate' }), false)).toBe('flow')
-        expect(pixScreen(route({ provider: 'manteca', candidates: [] }), false)).toBe('flow')
+        expect(pixScreen(route({ candidates: [] }), false)).toBe('flow')
     })
 
     it("shows a refused route as not available, never its candidates' screens", () => {
-        const refused = (provider: 'avenia' | 'manteca') =>
-            route({ provider: null, state: 'refused', candidates: [{ provider, state: 'refused' }] })
-        expect(pixScreen(refused('avenia'), false)).toBe('unavailable')
-        expect(pixScreen(refused('manteca'), false)).toBe('unavailable')
+        const refused = route({
+            provider: null,
+            state: 'refused',
+            candidates: [{ provider: 'manteca', state: 'refused' }],
+        })
+        expect(pixScreen(refused, false)).toBe('unavailable')
+        expect(pixScreen(route({ provider: null, state: 'refused', candidates: [] }), false)).toBe('unavailable')
     })
 
     it('shows the outage screen for a paused route, and waits while capabilities load', () => {
@@ -107,7 +92,7 @@ describe('pixRefusalCopy', () => {
 })
 
 describe('demo mode', () => {
-    it('reaches the Avenia Pix screens for both operations', () => {
+    it('reaches the Pix screens for both operations', () => {
         for (const operation of ['deposit', 'withdraw'] as const) {
             expect(pixScreen(findPixRoute(DEMO_USER.capabilities?.routes, operation), false)).toBe('flow')
         }
@@ -178,7 +163,7 @@ describe('the BRL account from the Pix route', () => {
         expect(withPixRoute(report, undefined)).toBe(report)
     })
 
-    // the API's answer for a resident of Brazil: the local feature refused because the Pix route serves them
+    // the local feature refused because another entry serves the residence's Pix
     it('reads the BRL account from the route whichever residence answer refused the local feature', () => {
         const servedElsewhere = {
             ...report,
@@ -190,49 +175,17 @@ describe('the BRL account from the Pix route', () => {
         }
         expect(withPixRoute(servedElsewhere, [route()]).local.accounts.BRL).toEqual({ state: 'on' })
         expect(
-            withPixRoute(servedElsewhere, [route({ state: 'action_required', action: 'accept-tos:avenia' })]).local
-                .accounts.BRL
-        ).toMatchObject({ state: 'ready', action: 'accept-tos:avenia' })
+            withPixRoute(servedElsewhere, [route({ state: 'action_required', action: 'activate' })]).local.accounts.BRL
+        ).toMatchObject({ state: 'ready', action: 'activate' })
     })
 
     it('gates the Pix corridor by the route', () => {
         expect(pixRouteGate(route())).toEqual({ kind: 'ready' })
         expect(pixRouteGate(route({ state: 'action_required', action: 'verify' }))).toEqual({ kind: 'needs-identity' })
-        expect(pixRouteGate(route({ state: 'action_required', action: 'accept-tos:avenia' }))).toEqual({
+        expect(pixRouteGate(route({ state: 'action_required', action: 'activate' }))).toEqual({
             kind: 'needs-enrollment',
         })
         expect(pixRouteGate(route({ state: 'pending' })).kind).toBe('waiting-on-provider')
         expect(pixRouteGate(route({ state: 'refused' })).kind).toBe('blocked-rejection')
-    })
-})
-
-// TASK-24841: a plan that adds money by Pix sets up with the provider, and Home follows it
-describe("a Pix plan's set-up with the provider", () => {
-    const TERMS: NextAction = { key: 'accept-tos:avenia', kind: 'accept-tos', purpose: 'unlock-avenia' }
-    const HOSTED: NextAction = { key: 'avenia-hosted', kind: 'hosted-identity', purpose: 'unlock-avenia' }
-    const step = (action: string) => route({ state: 'action_required', action })
-
-    it.each([
-        ['the terms', 'accept-tos:avenia'],
-        ["the provider's own check", 'avenia-hosted'],
-    ])('is the provider step on %s', (_name, action) => {
-        expect(pixPlanSetUp('brlBank', false, step(action), [TERMS, HOSTED])).toBe('provider-step')
-    })
-
-    it.each(['pending', 'ready'] as const)('is done once the route is %s', (state) => {
-        expect(pixPlanSetUp('brlBank', false, route({ state }), [])).toBe('done')
-    })
-
-    it('leaves our check to Home where the route asks for it, or names a step this build does not know', () => {
-        expect(pixPlanSetUp('brlBank', false, step('verify'), [TERMS])).toBeNull()
-        expect(pixPlanSetUp('brlBank', false, step('accept-tos:avenia'), [])).toBeNull()
-        expect(pixPlanSetUp('brlBank', false, route({ state: 'refused' }), [])).toBeNull()
-        expect(pixPlanSetUp('brlBank', false, undefined, [])).toBeNull()
-    })
-
-    it('is none of Home for another plan or a user our check verified', () => {
-        expect(pixPlanSetUp('bank', false, step('accept-tos:avenia'), [TERMS])).toBeNull()
-        expect(pixPlanSetUp(undefined, false, route({ state: 'pending' }), [])).toBeNull()
-        expect(pixPlanSetUp('brlBank', true, step('accept-tos:avenia'), [TERMS])).toBeNull()
     })
 })

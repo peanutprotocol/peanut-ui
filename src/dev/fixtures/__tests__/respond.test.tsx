@@ -148,8 +148,20 @@ describe('fixtureRespond capability report', () => {
                     residence: 'BR',
                 })
             )
-            // the router pauses the pay route; the app reads the route, not the switch
-            expect(body.capabilities.routes).toEqual([expect.objectContaining({ operation: 'pay', state: 'paused' })])
+            // the router pauses every Pix route, with no provider for the residence; the app reads the route, not the switch
+            expect(body.capabilities.routes).toEqual(
+                (['deposit', 'withdraw', 'pay'] as const).map((operation) =>
+                    expect.objectContaining({
+                        operation,
+                        state: 'paused',
+                        reason: expect.objectContaining({ code: 'residence_paused' }),
+                    })
+                )
+            )
+            expect(body.capabilities.routes.slice(0, 2).map((route: { provider: unknown }) => route.provider)).toEqual([
+                null,
+                null,
+            ])
         }
     )
 
@@ -260,9 +272,9 @@ describe('fixtureRespond capability report', () => {
         const manteca = (await (await fixtureRespond('/users/me')).json()) as { capabilities: UserCapabilities }
         expect(manteca.capabilities.routes?.map((route) => route.provider)).toEqual(['manteca', 'manteca', 'manteca'])
 
-        activateFixture('pix-deposit-amount')
-        const avenia = (await (await fixtureRespond('/users/me')).json()) as { capabilities: UserCapabilities }
-        expect(avenia.capabilities.routes?.[0]).toMatchObject({ provider: 'avenia', limits: { minAmount: '20' } })
+        activateFixture('pix-route-residence-paused')
+        const paused = (await (await fixtureRespond('/users/me')).json()) as { capabilities: UserCapabilities }
+        expect(paused.capabilities.routes?.[0]).toMatchObject({ provider: null, state: 'paused' })
     })
 
     it('answers a signed-out fixture with its null user instead of building a report', async () => {

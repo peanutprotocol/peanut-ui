@@ -148,6 +148,7 @@ jest.mock('@/features/withdraw/views/ConfirmWithdrawView', () => ({
         showHighFeeWarning?: boolean
         belowMinimumMessage?: string | null
         alreadySpent?: boolean
+        isProcessing?: boolean
     }) => (
         <>
             <button data-testid="back-review" onClick={props.onBack}>
@@ -161,6 +162,7 @@ jest.mock('@/features/withdraw/views/ConfirmWithdrawView', () => ({
             <span data-testid="high-fee-warning">{String(!!props.showHighFeeWarning)}</span>
             <span data-testid="below-minimum">{String(props.belowMinimumMessage)}</span>
             <span data-testid="already-spent">{String(!!props.alreadySpent)}</span>
+            <span data-testid="confirm-processing">{String(!!props.isProcessing)}</span>
         </>
     ),
 }))
@@ -189,6 +191,7 @@ jest.mock('@/features/withdraw/views/ScannedDestinationPayView', () => ({
         onBack: () => void
         addressFamily: string
         amountError?: string
+        continueDisabled: boolean
         error: { errorMessage: string }
     }) => (
         <>
@@ -198,7 +201,11 @@ jest.mock('@/features/withdraw/views/ScannedDestinationPayView', () => ({
             <button data-testid="pay-back" onClick={props.onBack}>
                 Back
             </button>
-            <button data-testid="pay-cta" onClick={() => props.onContinue({ ...withdrawData })}>
+            <button
+                data-testid="pay-cta"
+                data-continue-disabled={String(props.continueDisabled)}
+                onClick={() => props.onContinue({ ...withdrawData })}
+            >
                 Send with Peanut
             </button>
         </>
@@ -210,6 +217,7 @@ jest.mock('@/features/withdraw/views/WithdrawAmountView', () => ({
         walletBalance: string
         onContinue: () => void
         onBack: () => void
+        continueDisabled: boolean
         error: { errorMessage: string }
     }) => (
         <>
@@ -218,7 +226,11 @@ jest.mock('@/features/withdraw/views/WithdrawAmountView', () => ({
             <button data-testid="back-amount" onClick={props.onBack}>
                 Back
             </button>
-            <button data-testid="review-cta" onClick={props.onContinue}>
+            <button
+                data-testid="review-cta"
+                data-continue-disabled={String(props.continueDisabled)}
+                onClick={props.onContinue}
+            >
                 Review
             </button>
         </>
@@ -1830,5 +1842,198 @@ describe('crypto withdraw — a scanned destination opens the pay screen', () =>
     it('the scan is forgotten when the page unmounts, with the rest of the transient state', () => {
         render(<WithdrawCryptoPage />).unmount()
         expect(mockSetScannedRecipient).toHaveBeenCalledWith(null)
+    })
+})
+
+// TASK-23878: the route minimum is checked as the amount changes, so Continue
+// is disabled and the message shows under the input before any tap.
+describe('crypto withdraw — the network minimum is checked live', () => {
+    const TRON_USDT = { address: 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t', symbol: 'USDT', decimals: 6 }
+    const TRON = { chainId: 'tron', networkName: 'Tron' }
+    const original = { token: withdrawData.token, chain: withdrawData.chain }
+
+    afterEach(() => {
+        Object.assign(withdrawData, original)
+    })
+
+    const openAmountStep = () => {
+        mockStepper.step = 'recipient'
+        render(<WithdrawCryptoPage />)
+        fireEvent.click(screen.getByTestId('destination-cta'))
+    }
+
+    it('disables Continue and shows the minimum while the amount is below it', () => {
+        Object.assign(withdrawData, { token: TRON_USDT, chain: TRON })
+        mockUrlAmount = '5'
+        openAmountStep()
+
+        expect(screen.getByRole('alert')).toHaveTextContent('Minimum withdrawal is $10.10.')
+        expect(screen.getByTestId('review-cta')).toHaveAttribute('data-continue-disabled', 'true')
+    })
+
+    it('still blocks a tap below the minimum before any request or charge exists', async () => {
+        Object.assign(withdrawData, { token: TRON_USDT, chain: TRON })
+        mockUrlAmount = '5'
+        openAmountStep()
+        fireEvent.click(screen.getByTestId('review-cta'))
+
+        await waitFor(() => expect(mockSetPaymentError).toHaveBeenCalledWith('Minimum withdrawal is $10.10.'))
+        expect(chargesApi.create).not.toHaveBeenCalled()
+    })
+
+    it('enables Continue at the minimum', () => {
+        Object.assign(withdrawData, { token: TRON_USDT, chain: TRON })
+        mockUrlAmount = '10.1'
+        openAmountStep()
+
+        expect(screen.queryByRole('alert')).toBeNull()
+        expect(screen.getByTestId('review-cta')).toHaveAttribute('data-continue-disabled', 'false')
+    })
+
+    it('keeps same-chain USDC exempt: no minimum', () => {
+        mockUrlAmount = '0.1'
+        openAmountStep()
+
+        expect(screen.queryByRole('alert')).toBeNull()
+        expect(screen.getByTestId('review-cta')).toHaveAttribute('data-continue-disabled', 'false')
+    })
+
+    describe('on the scanned pay screen, the minimum follows the network picker', () => {
+        beforeEach(() => {
+            mockWithdrawFlow.scannedRecipient = { addressFamily: 'evm' }
+            mockStepper.step = 'recipient'
+        })
+
+        const renderPayScreen = (selectedChainID: string, selectedTokenAddress: string) =>
+            render(
+                <tokenSelectorContext.Provider
+                    value={{ resetTokenContextProvider: jest.fn(), selectedChainID, selectedTokenAddress } as never}
+                >
+                    <WithdrawCryptoPage />
+                </tokenSelectorContext.Provider>
+            )
+
+        it('disables Continue below the picked network minimum', () => {
+            mockUrlAmount = '3'
+            renderPayScreen('1', '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48')
+
+            expect(screen.getByRole('alert')).toHaveTextContent('Minimum withdrawal is $5.05.')
+            expect(screen.getByTestId('pay-cta')).toHaveAttribute('data-continue-disabled', 'true')
+        })
+
+        it('has no minimum for USDC on the wallet chain', () => {
+            mockUrlAmount = '0.1'
+            renderPayScreen('42161', withdrawData.token.address)
+
+            expect(screen.queryByRole('alert')).toBeNull()
+            expect(screen.getByTestId('pay-cta')).toHaveAttribute('data-continue-disabled', 'false')
+        })
+    })
+})
+
+jest.mock('@/features/payments/shared/components/PaymentConfirmingView', () => ({
+    __esModule: true,
+    default: () => <div data-testid="payment-confirming">Confirming payment</div>,
+    PaymentConfirmingView: () => <div data-testid="payment-confirming">Confirming payment</div>,
+}))
+
+import { MutationResponseTimeoutError } from '@/utils/connection-timeout-error'
+
+describe('crypto withdraw — unknown payment-recording outcome', () => {
+    const recordingTimeout = () =>
+        Object.assign(Object.create(MutationResponseTimeoutError.prototype), {
+            name: 'MutationResponseTimeoutError',
+            message: 'Response body timed out',
+            responseReceived: true,
+            outcomeUnknown: true,
+            status: 201,
+        }) as Error
+    const expectSingleSpendAndRecord = () => {
+        expect(mockSendMoney).toHaveBeenCalledTimes(1)
+        expect(mockSendTransactions).not.toHaveBeenCalled()
+        expect(mockRecordPayment).toHaveBeenCalledTimes(1)
+        expect(mockRecordPayment).toHaveBeenCalledWith(expect.objectContaining({ chargeId: CHARGE_UUID }))
+        expect(mockSetWithdrawError).not.toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
+        expect(mockPosthogCapture).not.toHaveBeenCalledWith('withdraw_failed', expect.anything())
+    }
+    beforeEach(() => {
+        jest.useFakeTimers()
+        mockSetTransactionHash.mockImplementation((hash: string | null) => {
+            mockWithdrawFlow.transactionHash = hash
+        })
+    })
+    afterEach(() => {
+        jest.clearAllTimers()
+        jest.useRealTimers()
+        mockSetTransactionHash.mockReset()
+        mockWithdrawFlow.transactionHash = null
+    })
+
+    it('re-reads a collateral-routed recording timeout before showing authoritative success', async () => {
+        mockSendMoney.mockResolvedValue({
+            txHash: '0xbetx',
+            receipt: null,
+            strategy: 'collateral-only',
+            intentId: CHARGE_UUID,
+        })
+        mockRecordPayment.mockRejectedValueOnce(recordingTimeout())
+        let resolveRead!: (value: typeof chargeDetails & { status: string }) => void
+        jest.mocked(chargesApi.get).mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    resolveRead = resolve as typeof resolveRead
+                })
+        )
+        await confirm()
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(0)
+        })
+
+        expectSingleSpendAndRecord()
+        expect(chargesApi.get).toHaveBeenCalledWith(CHARGE_UUID)
+        expect(screen.getByTestId('confirm-processing')).toHaveTextContent('true')
+        expect(mockStepperGoTo).not.toHaveBeenCalledWith('success')
+        expect(mockSetTransactionHash).toHaveBeenCalledWith('0xbetx')
+
+        const completed = { ...chargeDetails, status: 'COMPLETED' }
+        await act(async () => {
+            resolveRead(completed)
+            await jest.advanceTimersByTimeAsync(0)
+        })
+        expect(mockStepperGoTo).toHaveBeenCalledWith('success')
+        expect(mockWithdrawFlow.setChargeDetails).toHaveBeenCalledWith(completed)
+        expectSingleSpendAndRecord()
+    })
+
+    it('shows confirming after smart-only read-back exhausts while retaining execution proof', async () => {
+        mockSendMoney.mockResolvedValue({
+            userOpHash: '0xuserop',
+            receipt: { transactionHash: '0xmined', status: 'success' },
+            strategy: 'smart-only',
+        })
+        mockRecordPayment.mockRejectedValueOnce(recordingTimeout())
+        jest.mocked(chargesApi.get).mockResolvedValue({ ...chargeDetails, status: 'PROCESSING' } as never)
+        const view = render(<WithdrawCryptoPage />)
+        fireEvent.click(screen.getByTestId('confirm-withdraw'))
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(65_000)
+        })
+
+        expectSingleSpendAndRecord()
+        expect(chargesApi.get).toHaveBeenCalledWith(CHARGE_UUID)
+        expect(jest.mocked(chargesApi.get).mock.calls.length).toBeLessThanOrEqual(61)
+        expect(jest.mocked(chargesApi.get).mock.calls.every(([chargeId]) => chargeId === CHARGE_UUID)).toBe(true)
+        expect(mockStepperGoTo).toHaveBeenCalledWith('success')
+        expect(mockSetTransactionHash).toHaveBeenCalledWith('0xmined')
+        expect(mockWithdrawFlow.transactionHash).toBe('0xmined')
+        view.rerender(<WithdrawCryptoPage />)
+        const guards = mockStepperOptions.mock.calls.at(-1)?.[0]?.guards as Record<string, { ok: boolean }>
+        expect(guards.success.ok).toBe(true)
+
+        mockStepper.step = 'success'
+        view.rerender(<WithdrawCryptoPage />)
+        expect(screen.getByTestId('payment-confirming')).toBeInTheDocument()
+        expect(screen.queryByTestId('payment-success')).toBeNull()
+        expectSingleSpendAndRecord()
     })
 })

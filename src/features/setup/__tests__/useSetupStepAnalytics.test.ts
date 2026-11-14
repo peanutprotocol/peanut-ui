@@ -31,6 +31,7 @@ const render = (initial: { enabled: boolean; step: ISetupStep | undefined }) =>
 
 beforeEach(() => {
     jest.clearAllMocks()
+    localStorage.clear()
 })
 
 describe('useSetupStepAnalytics', () => {
@@ -47,8 +48,23 @@ describe('useSetupStepAnalytics', () => {
             step_index: 1,
             total_steps: steps.length,
             nav_type: 'initial',
+            flow_version: 2,
+            signup_entry_flow: 'card',
+            returning_device: false,
+        })
+    })
+
+    it('captures a returning device when landing renders', () => {
+        localStorage.setItem('peanut-device-had-account', '1')
+        render({ enabled: true, step: stepById('landing') })
+        expect(mockedCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_STEP_VIEWED, {
+            screen_id: 'landing',
+            step_index: 1,
+            total_steps: steps.length,
+            nav_type: 'initial',
             flow_version: 1,
             signup_entry_flow: 'card',
+            returning_device: true,
         })
     })
 
@@ -60,8 +76,9 @@ describe('useSetupStepAnalytics', () => {
             step_index: 2,
             total_steps: steps.length,
             nav_type: 'forward',
-            flow_version: 1,
+            flow_version: 2,
             signup_entry_flow: 'card',
+            returning_device: false,
         })
     })
 
@@ -73,8 +90,9 @@ describe('useSetupStepAnalytics', () => {
             step_index: 2,
             total_steps: steps.length,
             nav_type: 'back',
-            flow_version: 1,
+            flow_version: 2,
             signup_entry_flow: 'card',
+            returning_device: false,
         })
     })
 
@@ -86,8 +104,9 @@ describe('useSetupStepAnalytics', () => {
             step_index: 3,
             total_steps: steps.length,
             nav_type: 'jump',
-            flow_version: 1,
+            flow_version: 2,
             signup_entry_flow: 'card',
+            returning_device: false,
         })
     })
 

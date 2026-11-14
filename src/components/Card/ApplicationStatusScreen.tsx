@@ -13,6 +13,7 @@ import { useKycControl } from '@/features/paperwork-verification/analytics'
 
 type Variant =
     | 'pending'
+    | 'creating-card'
     | 'pending-identity'
     | 'manual-review'
     | 'requires-info'
@@ -53,6 +54,7 @@ interface Props {
 // is terminal and regulatory (nothing support can do), so it carries the same
 // reassurance and no support CTA.
 const COPY_KEYS = {
+    'creating-card': { title: 'status.creatingCardTitle', body: 'status.creatingCardBody' },
     pending: { title: 'status.pendingTitle', body: 'status.pendingBody' },
     'pending-identity': { title: 'status.pendingTitle', body: 'status.pendingIdentityBody' },
     'manual-review': { title: 'status.manualReviewTitle', body: 'status.manualReviewBody' },
@@ -186,9 +188,11 @@ const ApplicationStatusScreen: FC<Props> = ({
     return (
         <PageStack>
             <NavHeader title={t('navAddCard')} onPrev={handleBack} />
-            {['pending', 'pending-identity', 'manual-review'].includes(variant) ? (
+            {['pending', 'pending-identity', 'manual-review', 'creating-card'].includes(variant) ? (
                 <div className="my-auto flex flex-col items-center gap-6 text-center">
-                    {(variant === 'pending' || variant === 'pending-identity') && <Loading />}
+                    {(variant === 'pending' || variant === 'pending-identity' || variant === 'creating-card') && (
+                        <Loading />
+                    )}
                     <div className="flex flex-col gap-3">
                         <h1 className="text-heading-s text-foreground-primary">{t(copyKeys.title)}</h1>
                         {reasonText && <p className="text-foreground-secondary">{reasonText}</p>}

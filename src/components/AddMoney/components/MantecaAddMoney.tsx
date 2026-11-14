@@ -10,10 +10,12 @@ export default function MantecaAddMoney() {
     const searchParams = useSearchParams()
     // path params (web) or query params (native static export), as the route page reads them
     const country = (params.country as string) || searchParams.get('country') || ''
+    const selectedCountry = countryData.find((item) => item.type === 'country' && item.path === country)
     return (
         <KycFeatureActivationGate
             feature="local"
-            scope={{ channel: 'bank', country: countryData.find((c) => c.path === country)?.id }}
+            selectedCurrency={selectedCountry?.currency}
+            scope={{ channel: 'bank', country: selectedCountry?.id }}
         >
             <MantecaAddMoneyFlow searchParams={searchParams} />
         </KycFeatureActivationGate>

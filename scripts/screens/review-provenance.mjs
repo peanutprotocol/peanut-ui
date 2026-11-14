@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs'
 
 const validSha = (value) => /^[a-f0-9]{40}$/.test(value ?? '') && value !== '0'.repeat(40)
 
-export function eligibleReviewBranches(headRef, baseRef) {
-    return baseRef === 'dev' || (baseRef === 'main' && headRef === 'dev')
+export function eligibleReviewBranches(_headRef, baseRef) {
+    return baseRef === 'dev' || baseRef === 'main'
 }
 
 /** Bind an Actions run to one live same-repository PR, even when GitHub omits its PR list. */
@@ -16,7 +16,7 @@ export function reviewProvenance(repository, run, candidates, git) {
     if (!pr) return null // closed, superseded, or no longer bound to this run
     const snapshot = run.pull_requests?.[0]
     const head = reviewHeadRevision(run)
-    // Releases compare the current main tip captured by the event, even when it diverges from dev.
+    // Main reviews compare the exact main tip captured by the event, even when the head diverges.
     // Feature reviews keep the merge base of the original event's base and head.
     const base = snapshot?.base.sha ?? pr.base.sha
     if (!validSha(base)) throw new Error('Invalid PR revision')
@@ -57,11 +57,11 @@ export function reviewHeadRevision(run) {
 }
 
 // Actions can omit its PR snapshot. The original workflow_call event still
-// establishes the release PR number and immutable revision pair.
+// establishes the PR number and immutable revision pair.
 export function bindReleaseReviewEvent(repository, run, eventPath = process.env.GITHUB_EVENT_PATH) {
     if (run.event !== 'pull_request' || !eventPath) return run
     const { pull_request: eventPr } = JSON.parse(readFileSync(eventPath, 'utf8'))
-    if (eventPr?.base?.ref !== 'main') return run
+    if (!eligibleReviewBranches(eventPr?.head?.ref, eventPr?.base?.ref)) return run
     const { number, head, base, draft } = eventPr
     const snapshots = run.pull_requests ?? []
     const snapshot = snapshots[0]
@@ -76,12 +76,9 @@ export function bindReleaseReviewEvent(repository, run, eventPath = process.env.
         !validSha(head.sha) ||
         !validSha(base.sha) ||
         snapshots.length > 1 ||
+        // The run's PR association is live data: its SHAs can already show a newer push or base.
         (snapshot
-            ? snapshot.number !== number ||
-              snapshot.head?.ref !== head.ref ||
-              snapshot.head?.sha !== head.sha ||
-              snapshot.base?.ref !== base.ref ||
-              snapshot.base?.sha !== base.sha
+            ? snapshot.number !== number || snapshot.head?.ref !== head.ref || snapshot.base?.ref !== base.ref
             : run.head_sha !== head.sha)
     )
         throw new Error('Release pull request event does not match the triggering run')

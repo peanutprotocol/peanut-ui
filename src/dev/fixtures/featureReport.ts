@@ -479,7 +479,7 @@ function supportCaseOf(value: string | null | undefined): string | undefined {
 }
 
 /**
- * The baseline's routes are the demo user's, a resident of Brazil (Avenia's Pix, Pix payments
+ * The baseline's routes are the demo user's, a resident of Brazil (Manteca's Pix, Pix payments
  * refused). A fixture that writes its own capability block describes another user: it states its
  * routes, or it has none, so the demo's Brazil routes never close its Pix payments or answer for its
  * BRL account.

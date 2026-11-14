@@ -272,7 +272,7 @@ test('a fixture with its own capability block gets no demo routes in the capture
  const routes=async (fixture)=>((await (await answer(fixture,'/users/me','GET')).json()).capabilities.routes??null);
  console.log('RESULT:'+JSON.stringify({
  accounts: await routes('profile-accounts'),
- avenia: (await routes('pix-deposit-amount')).map((route)=>route.provider),
+ brazil: (await routes('pix-route-residence')).map((route)=>route.provider),
  manteca: (await routes('pix-manteca-withdraw-review')).map((route)=>route.provider),
  }));
  `,
@@ -282,6 +282,17 @@ test('a fixture with its own capability block gets no demo routes in the capture
     const result = JSON.parse(output.split('RESULT:')[1])
     // a Portuguese resident: the demo's Brazil routes must not close its Pix-key sending or open its BRL row
     assert.deepEqual(result.accounts, [])
-    assert.deepEqual(result.avenia, ['avenia', 'avenia'])
+    assert.deepEqual(result.brazil, [null, null, null])
     assert.deepEqual(result.manteca, ['manteca', 'manteca', 'manteca'])
+})
+
+test('the passkey fixture reserves its claimed username before the API schema catches up', () => {
+    const result = probeWithSpec('setup-passkey', [['POST', '/users/username/reservations']], {})
+    assert.equal(result.networkRequests, 0)
+    assert.deepEqual(result.values, [
+        { status: 200, body: { username: 'kimchi', expiresAt: '2030-01-01T00:00:00.000Z' } },
+    ])
+    const unrelated = probeWithSpec('home', [['POST', '/users/username/reservations']], {})
+    assert.equal(unrelated.networkRequests, 0)
+    assert.match(unrelated.values[0].error, /Unmapped capture API/)
 })

@@ -37,6 +37,14 @@ export const INVITE_TYPE_PARAM = 'invite_type'
 export const INVITE_STASH_TTL_MS = 24 * 60 * 60 * 1000
 
 const DAY_MS = 24 * 60 * 60 * 1000
+const listeners = new Set<() => void>()
+
+export function subscribeInviteStash(listener: () => void): () => void {
+    listeners.add(listener)
+    return () => {
+        listeners.delete(listener)
+    }
+}
 
 interface InviteStash {
     code: string
@@ -92,6 +100,7 @@ function writeStash(stash: InviteStash | null): void {
         // Storage unavailable (private mode, sandboxed document): the referral
         // is lost, but signup must never fail because of it.
     }
+    listeners.forEach((listener) => listener())
 }
 
 export function stashInvite(code: string, type: EInviteType): void {

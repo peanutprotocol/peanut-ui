@@ -106,11 +106,11 @@ describe('demoRespond — routing', () => {
     // The Pix screens call these; the screen-capture harness runs strict, so an
     // unmapped route would fail the pix-* fixtures on the dev Screen library run.
     it.each([
-        ['GET', '/pix/deposit/rules', { minAmountBrl: '20', blockedBanks: [] }],
         ['GET', '/pix/deposit/demo-pix-deposit', { status: 'AWAITING_USER_ACTION', pixReceived: false }],
-        ['POST', '/pix/key', { ownAccount: true, blocked: false }],
-        ['POST', '/pix/withdraw/preview', { provider: 'Avenia', ownAccount: true }],
-        ['POST', '/pix/withdraw/demo-pix-withdraw/recovery-key', { accepted: true }],
+        ['POST', '/pix/key', { ownAccount: null, blocked: false }],
+        ['POST', '/pix/withdraw/preview', { provider: 'Manteca', ownAccount: null }],
+        ['POST', '/pix/withdraw', { intentId: null, sign: { kind: 'transfer-then-submit' } }],
+        ['POST', '/pix/withdraw/submit', { intentId: 'demo-pix-withdraw' }],
     ])('answers %s %s in strict capture mode', async (method, path, expected) => {
         const res = await demoRespond(path, { method }, { offline: true, strict: true })
         expect(res.status).toBe(200)

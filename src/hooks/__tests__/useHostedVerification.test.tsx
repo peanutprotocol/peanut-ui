@@ -214,7 +214,7 @@ describe('useHostedVerification (native)', () => {
     it('reports a carried link the in-app browser could not open, and stops starting', async () => {
         mockOpenExternalUrl.mockRejectedValueOnce(new Error('Browser unavailable'))
         const hook = renderHook(() =>
-            useHostedVerification('hosted-identity', { url: 'https://avenia.example/identity/u1' })
+            useHostedVerification('hosted-identity', { url: 'https://provider.example/identity/u1' })
         )
         await act(async () => {
             await hook.result.current.start()

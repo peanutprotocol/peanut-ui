@@ -93,10 +93,10 @@ test.beforeEach(async ({ page }) => {
     })
 })
 
-test('Profile lists Statements right under Language, and the row opens the page', async ({ page }) => {
-    await open(page, `/profile?__fixture=${FIXTURE}`)
+test('Settings lists Statements immediately before Exchange rates, and the row opens the page', async ({ page }) => {
+    await open(page, `/settings?__fixture=${FIXTURE}`)
 
-    const row = page.locator('a[href="/settings/language"] + a[href="/profile/statements"]')
+    const row = page.locator('a[href="/profile/statements"]:has(+ a[href="/profile/exchange-rate"])')
     await expect(row).toHaveText('Statements')
     await row.click()
 

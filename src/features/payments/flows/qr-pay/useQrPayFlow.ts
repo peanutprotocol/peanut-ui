@@ -1,5 +1,6 @@
 'use client'
 
+import { MutationResponseTimeoutError } from '@/utils/connection-timeout-error'
 import { pixQrHost } from '@/utils/pix-qr-host'
 
 import { isPixKeyNotFound, recipientBankNameOf, verifiedPixKeyLabel } from '@/utils/pix.utils'
@@ -655,6 +656,9 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     }, [paymentLock, pixKeyLabel, pixKeyOwner])
 
     const recipientBankName = recipientBankNameOf(paymentLock)
+    // The provider's flat fee, for the form's "Provider fee" row (shared with the Pix withdrawal,
+    // where the quote can carry one). The Manteca lock carries none (`QrPaymentLock`), so no row.
+    const providerFee: string | null = null
 
     /*
      * Controller-rotation handoff. Nothing moved and no provider order exists
@@ -1100,6 +1104,14 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                 flow: 'sign-only',
             })
         } catch (error) {
+            if (error instanceof MutationResponseTimeoutError) {
+                telemetry.stage('response_received', { outcome: 'unknown' })
+                void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+                setErrorMessage(t('errors.paymentStatusUnknown'))
+                setIsSuccess(false)
+                finishAttempt('unknown')
+                return
+            }
             // `response_received` is HTTP-level: an error response is still a
             // response. A transport failure (timeout, offline) received
             // nothing, so that stage is not reported at all. The money
@@ -1403,6 +1415,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         usdAmount,
         merchantName,
         recipientBankName,
+        providerFee,
         pixKeyLabel,
         pixKeyOwner,
         isAwaitingPixKeyOwner,
