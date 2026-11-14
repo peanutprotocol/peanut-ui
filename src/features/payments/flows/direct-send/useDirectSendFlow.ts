@@ -16,6 +16,9 @@ import { useCallback, useContext, useMemo } from 'react'
 import { type Address } from 'viem'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { useDirectSendFlowContext } from './DirectSendFlowContext'
+import { MutationResponseTimeoutError } from '@/utils/connection-timeout-error'
+import { chargesApi } from '@/services/charges'
+import { usePaymentStatusRecovery } from '@/features/payments/shared/hooks/usePaymentStatusRecovery'
 import { useChargeManager } from '@/features/payments/shared/hooks/useChargeManager'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -68,6 +71,14 @@ export function useDirectSendFlow() {
     const { setLoadingState } = useContext(loadingStateContext)
     const { createCharge, isCreating: isCreatingCharge } = useChargeManager()
     const { recordPayment, isRecording } = usePaymentRecorder()
+    const recoverPaymentStatus = usePaymentStatusRecovery({
+        fetchCharge: chargesApi.get,
+        setCharge,
+        setIsSuccess,
+        setCurrentView,
+        setError,
+        failureMessage: t('errors.externalPaymentNotConfirmed'),
+    })
     const {
         isConnected,
         address: walletAddress,
@@ -207,6 +218,10 @@ export function useDirectSendFlow() {
                 // analytics only — never user-visible
             }
         } catch (err) {
+            if (err instanceof MutationResponseTimeoutError && failedStep === 'record-payment' && chargeId) {
+                await recoverPaymentStatus(chargeId)
+                return
+            }
             // The card re-approval prompt was dismissed, or the screen was left,
             // before anything was prepared or signed: no charge was paid and
             // nothing is in flight. Control flow, not a failed send — no error
@@ -254,6 +269,7 @@ export function useDirectSendFlow() {
         walletAddress,
         createCharge,
         sendMoney,
+        recoverPaymentStatus,
         recordPayment,
         setCharge,
         setTxHash,

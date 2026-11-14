@@ -8,7 +8,13 @@ import SetupLayout from '../layout'
 const mockSetSteps = jest.fn<void, [ISetupStep[]]>()
 jest.mock('@/features/setup/SetupFlowContext', () => ({
     SetupFlowProvider: ({ children }: { children: React.ReactNode }) => children,
-    useSetupFlowContext: () => ({ setSteps: mockSetSteps, sellScreensCountry: null, inviterAccepted: false }),
+    useSetupFlowContext: () => ({
+        setSteps: mockSetSteps,
+        sellScreensCountry: null,
+        inviterAccepted: false,
+        featureScreenIds: null,
+        registrationInProgress: false,
+    }),
 }))
 jest.mock('@/components/Global/AppShell', () => ({
     AppShell: ({ children }: { children: React.ReactNode }) => children,

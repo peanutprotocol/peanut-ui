@@ -24,6 +24,7 @@ export interface PaperworkVerificationField {
     key: string
     kind: PaperworkVerificationFieldKind
     required: boolean
+    minAddressLineLength?: number
     options?: string[]
     /** The name to show for each option, where the API names them (Brazil's states: `{ PB: 'Paraíba' }`); the code is what is saved. */
     optionLabels?: Record<string, string>

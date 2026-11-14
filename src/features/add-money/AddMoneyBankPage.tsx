@@ -1,7 +1,7 @@
 'use client'
 
 import Loading from '@/components/Global/Loading'
-import { railJurisdictionForBank } from '@/utils/bridge.utils'
+import { getCurrencyConfig, railJurisdictionForBank } from '@/utils/bridge.utils'
 import { KycFeatureActivationGate } from '@/features/paperwork-verification/KycFeatureActivationGate'
 import { useMantecaBankRedirect } from './useMantecaBankRedirect'
 import { BridgeBankOnrampView } from './views/BridgeBankOnrampView'
@@ -19,6 +19,9 @@ export function AddMoneyBankPage() {
     return (
         <KycFeatureActivationGate
             feature="bank"
+            selectedCurrency={
+                selectedCountry ? getCurrencyConfig(selectedCountry.id, 'onramp').currency.toUpperCase() : undefined
+            }
             scope={{ channel: 'bank', country: railJurisdictionForBank(selectedCountry?.id) }}
         >
             <BridgeBankOnrampView />

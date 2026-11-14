@@ -87,6 +87,8 @@ interface SemanticRequestFlowContextValue {
     setIsLoading: (loading: boolean) => void
     isSuccess: boolean
     setIsSuccess: (success: boolean) => void
+    isPaymentStatusUnknown: boolean
+    setIsPaymentStatusUnknown: (unknown: boolean) => void
     isExternalWalletPayment: boolean
     setIsExternalWalletPayment: (isExternalWalletPayment: boolean) => void
 
@@ -143,6 +145,7 @@ export function SemanticRequestFlowProvider({
     const [error, setError] = useState<SemanticRequestError>({ showError: false, errorMessage: '' })
     const [isLoading, setIsLoading] = useState(false)
     const [isSuccess, setIsSuccess] = useState(false)
+    const [isPaymentStatusUnknown, setIsPaymentStatusUnknown] = useState(false)
     const [isExternalWalletPayment, setIsExternalWalletPayment] = useState(false)
 
     // derive recipient from parsed url OR charge
@@ -179,6 +182,7 @@ export function SemanticRequestFlowProvider({
         setError({ showError: false, errorMessage: '' })
         setIsLoading(false)
         setIsSuccess(false)
+        setIsPaymentStatusUnknown(false)
         setIsExternalWalletPayment(false)
     }, [initialParsedUrl.amount])
 
@@ -212,6 +216,8 @@ export function SemanticRequestFlowProvider({
             isSuccess,
             setIsSuccess,
             resetSemanticRequestFlow,
+            isPaymentStatusUnknown,
+            setIsPaymentStatusUnknown,
             isExternalWalletPayment,
             setIsExternalWalletPayment,
         }),
@@ -233,6 +239,7 @@ export function SemanticRequestFlowProvider({
             isLoading,
             isSuccess,
             resetSemanticRequestFlow,
+            isPaymentStatusUnknown,
             isExternalWalletPayment,
         ]
     )

@@ -10,7 +10,8 @@ import {
     type KycActivationFeature,
     type KycFeatureActivationResult,
 } from '@/app/actions/kyc-feature-activation'
-import { reportEntry, type ReportScope } from '@/features/kyc-features/report'
+import { entryAction, reportEntry, type ReportScope } from '@/features/kyc-features/report'
+import type { FeatureReportEntry } from '@/types/capabilities'
 import { paperworkVerificationFeaturePath } from './paperworkVerificationEntry'
 
 export const KYC_ACTIVATION_POLL_MS = 15_000
@@ -30,6 +31,7 @@ export function useKycFeatureActivation(
         scope: reportScope,
         enabled = true,
         automatic = false,
+        selectedCurrency,
     }: {
         /**
          * Activate on mount, with no tap: a provider whose use needs no consent of the user's (Avenia,
@@ -39,6 +41,7 @@ export function useKycFeatureActivation(
         automatic?: boolean
         scope?: ReportScope
         enabled?: boolean
+        selectedCurrency?: string
     } = {}
 ) {
     const { user, fetchUser } = useAuth()
@@ -56,8 +59,36 @@ export function useKycFeatureActivation(
             ? reportEntry(features, 'deposit', reportScope, user?.capabilities?.rails)
             : features[feature]
         : undefined
-    const alreadyOn = existing?.state === 'on'
+    const selected =
+        selectedCurrency && (feature === 'bank' || feature === 'local')
+            ? features?.[feature].accounts[selectedCurrency]
+            : undefined
+    const selectedAction = selected && entryAction(selected, user?.capabilities?.nextActions ?? [])
+    const selectedActionKind = selectedAction?.kind
+    // Keep the deposit screens' existing scoped actions and local-account refusal UI.
+    const handledByDepositFlow =
+        selectedActionKind === 'restart-identity' ||
+        (feature === 'local' && selected?.state === 'refused') ||
+        (selected?.state === 'action_required' &&
+            (selectedActionKind === 'sumsub' ||
+                (feature === 'bank' &&
+                    (selectedActionKind === 'bridge-hosted' ||
+                        selectedActionKind === 'questions' ||
+                        selectedActionKind === 'provide-email' ||
+                        selectedActionKind === 'accept-tos'))))
+    const selectedWaiting =
+        selected?.state === 'pending' || selected?.state === 'setting_up' || selectedActionKind === 'wait'
+    const selectedStatus: FeatureReportEntry | undefined =
+        !handledByDepositFlow && selected
+            ? selectedWaiting
+                ? { ...selected, state: 'setting_up' }
+                : selected.state === 'refused' || selectedActionKind === 'contact-support'
+                  ? { ...selected, state: 'refused' }
+                  : undefined
+            : undefined
+    const alreadyOn = selectedCurrency ? selected?.state === 'on' || handledByDepositFlow : existing?.state === 'on'
     const ars =
+        !selectedCurrency &&
         feature === 'local' &&
         reportScope?.channel === 'bank' &&
         identityStatus === 'verified' &&
@@ -73,10 +104,20 @@ export function useKycFeatureActivation(
         reportScope?.country,
         reportScope?.method,
         reportScope?.railId,
+        selectedCurrency,
     ])
     const recovery = useRef({ key: consentKey, waiting: false })
     if (recovery.current.key !== consentKey) recovery.current = { key: consentKey, waiting: false }
-    const scopeKey = `${consentKey}:${identityStatus ?? ''}:${enabled}:${arsProvisioning}`
+    const scopeKey = JSON.stringify([
+        consentKey,
+        identityStatus,
+        enabled,
+        arsProvisioning,
+        selected?.state,
+        selected?.reason,
+        selectedActionKind,
+        selected?.action,
+    ])
     const generation = useRef({ key: scopeKey, value: 0 })
     if (generation.current.key !== scopeKey) generation.current = { key: scopeKey, value: generation.current.value + 1 }
     const scope = `${scopeKey}:${generation.current.value}`
@@ -93,7 +134,8 @@ export function useKycFeatureActivation(
           : null
     // An automatic activation serves an identity of the older flow too: the API opens its account the same way.
     const gated = oneShot || automatic
-    const allowed = !!userId && (!gated || alreadyOn || canContinue(feature, result))
+    const hasSelectedStatus = !!selectedStatus
+    const allowed = !!userId && !hasSelectedStatus && (!gated || alreadyOn || canContinue(feature, result))
 
     useEffect(() => {
         mounted.current = true
@@ -107,8 +149,8 @@ export function useKycFeatureActivation(
     const activate = useCallback(
         (options?: { beforeRedirect?: () => Promise<void> }): Promise<boolean> => {
             if (!mounted.current || currentScope.current !== scope || !userId || !enabled) return Promise.resolve(false)
+            if (arsProvisioning || hasSelectedStatus) return Promise.resolve(false)
             if (!gated || alreadyOn) return Promise.resolve(true)
-            if (arsProvisioning) return Promise.resolve(false)
             if (inFlight.current?.scope === scope) return inFlight.current.promise
             setLoadingScope(scope)
             const token = {}
@@ -141,13 +183,14 @@ export function useKycFeatureActivation(
                     // /verify is the identity's status screen; a failed check is decided, so nothing waits on it.
                     recovery.current.waiting = identityStatus !== 'failed'
                     await options?.beforeRedirect?.()
-                    routerRef.current.push('/verify')
+                    if (mounted.current && currentScope.current === scope) routerRef.current.push('/verify')
                 } else {
                     recovery.current.waiting = false
                 }
                 if (next.kind === 'conflict' && next.code === 'questions_missing' && feature !== 'qr' && !automatic) {
                     await options?.beforeRedirect?.()
-                    routerRef.current.push(paperworkVerificationFeaturePath(feature))
+                    if (mounted.current && currentScope.current === scope)
+                        routerRef.current.push(paperworkVerificationFeaturePath(feature))
                 }
                 return canContinue(feature, next)
             })().finally(() => {
@@ -159,7 +202,18 @@ export function useKycFeatureActivation(
             inFlight.current = { scope, token, promise }
             return promise
         },
-        [scope, userId, gated, feature, alreadyOn, arsProvisioning, enabled, identityStatus, automatic]
+        [
+            scope,
+            userId,
+            gated,
+            feature,
+            alreadyOn,
+            arsProvisioning,
+            hasSelectedStatus,
+            enabled,
+            identityStatus,
+            automatic,
+        ]
     )
 
     // once per scope: a failure or a missing answer stays on screen until the user acts
@@ -177,17 +231,42 @@ export function useKycFeatureActivation(
         }
     }, [enabled, identityStatus, activate])
 
-    const waiting = result?.kind === 'report' && ['setting_up', 'pending'].includes(result.report.state)
+    const waiting = selectedStatus
+        ? selectedStatus.state === 'setting_up'
+        : result?.kind === 'report' && (result.report.state === 'setting_up' || result.report.state === 'pending')
+    const refreshing = useRef(false)
     useEffect(() => {
         if (!waiting || alreadyOn || arsProvisioning || !enabled) return
-        const poll = () => void activate()
+        const poll = async () => {
+            if (!selectedCurrency) {
+                void activate()
+                return
+            }
+            if (refreshing.current || currentScope.current !== scope) return
+            refreshing.current = true
+            try {
+                await fetchUserRef.current?.()
+            } catch {
+                // Keep the last known setup status until the next profile read.
+            } finally {
+                refreshing.current = false
+            }
+        }
         const timer = setInterval(poll, KYC_ACTIVATION_POLL_MS)
         window.addEventListener('focus', poll)
         return () => {
             clearInterval(timer)
             window.removeEventListener('focus', poll)
         }
-    }, [waiting, alreadyOn, arsProvisioning, enabled, activate])
+    }, [waiting, alreadyOn, arsProvisioning, enabled, activate, selectedCurrency, scope])
 
-    return { allowed, userReady: !!userId, result, arsProvisioning, isLoading: loadingScope === scope, activate }
+    return {
+        allowed,
+        userReady: !!userId,
+        result,
+        selectedStatus,
+        arsProvisioning,
+        isLoading: loadingScope === scope,
+        activate,
+    }
 }

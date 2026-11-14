@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { withNuqsTestingAdapter, type UrlUpdateEvent } from 'nuqs/adapters/testing'
+import { resolveAddMoneyMethods } from '@/features/add-money/addMoneyMethods'
 import { HomeActionDrawers } from '../components/HomeActionDrawers'
 import { resetBottomNavVisibilityForTests, useBottomNavHidden } from '@/utils/bottom-nav-visibility'
 
@@ -10,8 +11,9 @@ const NavProbe = () => <span data-testid="nav-hidden">{String(useBottomNavHidden
 // ?drawer= URL contract was asserted nowhere.
 
 const mockPush = jest.fn()
+const mockReplace = jest.fn()
 jest.mock('next/navigation', () => ({
-    useRouter: () => ({ push: mockPush }),
+    useRouter: () => ({ push: mockPush, replace: mockReplace }),
 }))
 
 jest.mock('next-intl', () => ({
@@ -35,23 +37,6 @@ jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({
     useDepositAccountsEnabled: () => depositAccountsEnabled,
 }))
 
-// Pix leads the Add drawer only for a user whose Pix deposit route is Avenia's
-// (Aleks, 2026-11-12 and 2026-11-14). The route goes through the real hook and rule.
-let pixDepositRoute:
-    | { state: string; provider: string | null; reason?: { code: string; userMessage: string } }
-    | undefined
-jest.mock('@/hooks/useCapabilities', () => ({
-    useCapabilities: () => ({
-        capabilities: {
-            rails: [],
-            nextActions: [],
-            restrictions: [],
-            routes: pixDepositRoute ? [{ operation: 'deposit', method: 'PIX_BR', ...pixDepositRoute }] : [],
-        },
-        isLoading: false,
-    }),
-}))
-
 beforeAll(() => {
     window.matchMedia =
         window.matchMedia ||
@@ -72,11 +57,26 @@ beforeEach(() => {
     jest.clearAllMocks()
     resetBottomNavVisibilityForTests()
     depositAccountsEnabled = true
-    pixDepositRoute = undefined
 })
 
-const renderWithUrl = (search: string, onUrlUpdate?: (e: UrlUpdateEvent) => void) =>
-    render(<HomeActionDrawers />, {
+const returning = resolveAddMoneyMethods({
+    cryptoReady: true,
+    standingEnabled: true,
+    brazilPaused: false,
+    residenceIso2s: ['PT'],
+    activeAccounts: ['EUR'],
+    readyTopUps: [],
+})
+const firstTime = resolveAddMoneyMethods({
+    cryptoReady: true,
+    standingEnabled: true,
+    brazilPaused: false,
+    residenceIso2s: ['PT'],
+    activeAccounts: [],
+    readyTopUps: [],
+})
+const renderWithUrl = (search: string, onUrlUpdate?: (e: UrlUpdateEvent) => void, addMoney = returning) =>
+    render(<HomeActionDrawers addMoney={{ ...addMoney, isLoading: false }} />, {
         wrapper: withNuqsTestingAdapter({ searchParams: search, onUrlUpdate }),
     })
 
@@ -103,113 +103,66 @@ describe('HomeActionDrawers', () => {
         expect(urlUpdates.at(-1)?.searchParams.get('drawer')).toBeNull()
     })
 
-    it('opens the add drawer with bank and crypto options only', async () => {
+    it('offers only ready methods and opens the ready-only currency list', async () => {
         renderWithUrl('?drawer=add')
 
-        // Both bank rows lead to the country selector — the single entry to
-        // every bank route, standing account and one-off top-up alike.
-        fireEvent.click(screen.getByTestId('home-drawer-add-bank'))
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money?method=bank'))
-
-        fireEvent.click(screen.getByTestId('home-drawer-add-crypto'))
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/crypto'))
-
-        // withdraw is reachable via the SEND drawer only (product ruling)
-        expect(screen.queryByTestId('home-drawer-add-withdraw')).not.toBeInTheDocument()
-    })
-
-    it('lists bank before crypto without a Pix route (2026-09-18 decision: bank leads the add drawer)', () => {
-        renderWithUrl('?drawer=add')
-
-        const bank = screen.getByTestId('home-drawer-add-bank')
-        const crypto = screen.getByTestId('home-drawer-add-crypto')
-        // Node.DOCUMENT_POSITION_FOLLOWING: bank comes before crypto in the DOM
-        expect(bank.compareDocumentPosition(crypto) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(screen.getByTestId('home-drawer-add-account')).toBeInTheDocument()
+        expect(screen.getByTestId('home-drawer-add-crypto')).toBeInTheDocument()
+        expect(screen.getByTestId('home-drawer-add-more')).toBeInTheDocument()
+        expect(screen.queryByTestId('home-drawer-add-transfer')).not.toBeInTheDocument()
         expect(screen.queryByTestId('home-drawer-add-pix')).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByTestId('home-drawer-add-account'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/options?method=account&ready=1'))
+        expect(mockCapture).not.toHaveBeenCalled()
     })
 
-    it('leads with Pix for a user whose Pix deposit route is Avenia, bank next, crypto last (Aleks, 2026-11-12)', async () => {
-        pixDepositRoute = { state: 'ready', provider: 'avenia' }
-        renderWithUrl('?drawer=add')
+    // Which Pix deposit routes offer the row: useAddMoneyReadiness.test.ts
+    it('leads with Pix on a route on Avenia and opens the ready-only Pix list (Aleks, 2026-11-12 and 2026-11-14)', async () => {
+        const onAvenia = resolveAddMoneyMethods({
+            cryptoReady: true,
+            standingEnabled: true,
+            brazilPaused: false,
+            residenceIso2s: ['BR'],
+            activeAccounts: [],
+            readyTopUps: [],
+            pixDepositOffered: true,
+        })
+        renderWithUrl('?drawer=add', undefined, onAvenia)
 
         const pix = screen.getByTestId('home-drawer-add-pix')
-        const bank = screen.getByTestId('home-drawer-add-bank')
         const crypto = screen.getByTestId('home-drawer-add-crypto')
-        expect(pix.compareDocumentPosition(bank) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-        expect(bank.compareDocumentPosition(crypto) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(pix.compareDocumentPosition(crypto) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 
         fireEvent.click(pix)
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/pix'))
-        // the row lands on the Pix page straight away, so its tap reports the Pix arm
-        expect(mockCapture).toHaveBeenCalledWith('deposit_method_selected', { method_type: 'pix', country: 'brazil' })
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/options?method=pix&ready=1'))
     })
 
-    it('keeps Pix on offer while Avenia is setting up or reviewing: the first tap is the setup', () => {
-        pixDepositRoute = { state: 'action_required', provider: 'avenia' }
-        renderWithUrl('?drawer=add')
-
-        expect(screen.getByTestId('home-drawer-add-pix')).toBeInTheDocument()
+    it('opens the full method picker from More ways and clears the drawer', async () => {
+        const urlUpdates: UrlUpdateEvent[] = []
+        renderWithUrl('?drawer=add', (event) => urlUpdates.push(event))
+        fireEvent.click(screen.getByTestId('home-drawer-add-more'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money'))
+        expect(urlUpdates.at(-1)?.searchParams.get('drawer')).toBeNull()
     })
 
-    it('keeps Pix on offer through an outage of Avenia: the Pix page shows the outage itself', () => {
-        pixDepositRoute = {
-            state: 'paused',
-            provider: 'avenia',
-            reason: { code: 'provider_paused', userMessage: 'This is paused for a moment. Try again soon.' },
-        }
-        renderWithUrl('?drawer=add')
-
-        expect(screen.getByTestId('home-drawer-add-pix')).toBeInTheDocument()
+    it('does not redirect or show stale rows while an old Add link checks readiness', () => {
+        render(<HomeActionDrawers addMoney={{ ...firstTime, isLoading: true }} />, {
+            wrapper: withNuqsTestingAdapter({ searchParams: '?drawer=add' }),
+        })
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        expect(mockReplace).not.toHaveBeenCalled()
     })
 
-    // The pause names no provider outside a provider's rollout, and the provider inside it for a resident not on its allowed list
-    it.each([null, 'avenia'])(
-        'offers no Pix row to a resident under the Brazil pause, route provider %s (Aleks, 2026-11-14)',
-        (provider) => {
-            pixDepositRoute = {
-                state: 'paused',
-                provider,
-                reason: {
-                    code: 'residence_paused',
-                    userMessage: 'Deposits and withdrawals are paused where you live.',
-                },
-            }
-            renderWithUrl('?drawer=add')
-
-            expect(screen.queryByTestId('home-drawer-add-pix')).not.toBeInTheDocument()
-            expect(screen.getByTestId('home-drawer-add-bank')).toBeInTheDocument()
-            expect(screen.getByTestId('home-drawer-add-crypto')).toBeInTheDocument()
-        }
-    )
-
-    // Aleks, 2026-11-14: every user outside Brazil has a Manteca Pix route; they find BRL in the bank list
-    it('offers no Pix row on a Manteca route: bank and crypto only, in their order', () => {
-        pixDepositRoute = { state: 'action_required', provider: 'manteca' }
-        renderWithUrl('?drawer=add')
-
-        expect(screen.queryByTestId('home-drawer-add-pix')).not.toBeInTheDocument()
-        const bank = screen.getByTestId('home-drawer-add-bank')
-        const crypto = screen.getByTestId('home-drawer-add-crypto')
-        expect(bank.compareDocumentPosition(crypto) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    it('routes an old Add drawer link to the full picker for a first-time user', async () => {
+        const origin = '/profile/exchange-rate?from=USD&to=EUR'
+        renderWithUrl(`?drawer=add&returnTo=${encodeURIComponent(origin)}`, undefined, firstTime)
+        await waitFor(() =>
+            expect(mockReplace).toHaveBeenCalledWith(`/add-money?returnTo=${encodeURIComponent(origin)}`)
+        )
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
 
-    it('offers no Pix row for a refused Pix route; bank and crypto keep their order', () => {
-        pixDepositRoute = { state: 'refused', provider: null }
-        renderWithUrl('?drawer=add')
-
-        expect(screen.queryByTestId('home-drawer-add-pix')).not.toBeInTheDocument()
-        const bank = screen.getByTestId('home-drawer-add-bank')
-        const crypto = screen.getByTestId('home-drawer-add-crypto')
-        expect(bank.compareDocumentPosition(crypto) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    })
-
-    /*
-     * The middle link of the returnTo chain (chip P23): bare /add-money
-     * redirects to /home?drawer=add&returnTo=X, and choosing an option must
-     * carry X onto the destination while CLEARING it from home's own history
-     * entry — a stale origin left behind would be forwarded into an
-     * unrelated flow on a later Add open.
-     */
     it('carries returnTo onto the crypto destination and clears it from home', async () => {
         const urlUpdates: UrlUpdateEvent[] = []
         const origin = '/profile/exchange-rate?from=USD&to=EUR'
@@ -222,28 +175,6 @@ describe('HomeActionDrawers', () => {
         const last = urlUpdates[urlUpdates.length - 1]
         expect(last.searchParams.get('drawer')).toBeNull()
         expect(last.searchParams.get('returnTo')).toBeNull()
-    })
-
-    it('sends the bank row to the country list while get-paid is off', async () => {
-        depositAccountsEnabled = false
-        renderWithUrl('?drawer=add')
-
-        fireEvent.click(screen.getByTestId('home-drawer-add-bank'))
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money?method=bank'))
-    })
-
-    /*
-     * Both bank rows land on the country list, so the country click is the one
-     * place the bank arm of deposit_method_selected is reported. A capture
-     * here too counted the same user twice as soon as the flag went on.
-     */
-    it.each([true, false])('leaves the bank funnel event to the country click (get-paid on: %s)', async (enabled) => {
-        depositAccountsEnabled = enabled
-        renderWithUrl('?drawer=add')
-
-        fireEvent.click(screen.getByTestId('home-drawer-add-bank'))
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money?method=bank'))
-        expect(mockCapture).not.toHaveBeenCalled()
     })
 
     it('opens the request drawer with both share actions and routes each on click', async () => {
@@ -275,16 +206,18 @@ describe('HomeActionDrawers', () => {
         expect(screen.queryByTestId('home-drawer-request-share-bank')).not.toBeInTheDocument()
     })
 
-    it('carries a query-bearing returnTo onto the bank destination', async () => {
+    it('carries a query-bearing returnTo onto the ready bank-account chooser', async () => {
         // The origin holds its own query string, so the value has to survive
         // encoding whole — an unencoded `&to=EUR` would arrive as a separate
         // param and the back button would land on half a URL.
         const origin = '/profile/exchange-rate?from=USD&to=EUR'
         renderWithUrl(`?drawer=add&returnTo=${encodeURIComponent(origin)}`)
 
-        fireEvent.click(screen.getByTestId('home-drawer-add-bank'))
+        fireEvent.click(screen.getByTestId('home-drawer-add-account'))
         await waitFor(() =>
-            expect(mockPush).toHaveBeenCalledWith(`/add-money?method=bank&returnTo=${encodeURIComponent(origin)}`)
+            expect(mockPush).toHaveBeenCalledWith(
+                `/add-money/options?method=account&ready=1&returnTo=${encodeURIComponent(origin)}`
+            )
         )
     })
 
@@ -292,7 +225,7 @@ describe('HomeActionDrawers', () => {
         render(
             <>
                 <NavProbe />
-                <HomeActionDrawers />
+                <HomeActionDrawers addMoney={{ ...returning, isLoading: false }} />
             </>,
             { wrapper: withNuqsTestingAdapter({ searchParams: '?drawer=send' }) }
         )
@@ -308,7 +241,7 @@ describe('HomeActionDrawers', () => {
         render(
             <>
                 <NavProbe />
-                <HomeActionDrawers />
+                <HomeActionDrawers addMoney={{ ...returning, isLoading: false }} />
             </>,
             { wrapper: withNuqsTestingAdapter({ searchParams: '' }) }
         )

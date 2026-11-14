@@ -141,7 +141,8 @@ export const initiateSumsubKyc = async (
         targetCountry?: string
         correctSession?: boolean
     },
-    entryUserId?: string
+    entryUserId?: string,
+    signal?: AbortSignal
 ): Promise<{
     data?: InitiateSumsubKycResponse
     error?: string
@@ -161,6 +162,7 @@ export const initiateSumsubKyc = async (
     try {
         const response = await serverFetch('/users/identity', {
             method: 'POST',
+            ...(signal && { signal, beforeDispatch: () => !signal.aborted }),
             // lets the API refuse today's start to a user it put on Smart Paperwork Verification
             headers: {
                 'x-residence-format': 'compact',
@@ -220,8 +222,12 @@ export const initiateSumsubKyc = async (
             },
         }
     } catch (e: unknown) {
+        // A cancelled connection says nothing about whether the API committed.
+        // Keep that outcome distinct so the entry flow reconciles before retry.
+        if (signal?.aborted) throw signal.reason
         if (!(status !== undefined && status >= 400 && status < 500))
             Sentry.captureException(e, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'identity_session' } })
+        if (signal) throw e
         return caughtError(e)
     }
 }
@@ -266,7 +272,8 @@ const RESTART_REGION_INTENTS: ReadonlySet<string> = new Set(['LATAM', 'ROW', 'EU
 
 export const restartIdentityVerification = async (
     regionIntent?: KYCRegionIntent,
-    replacement?: KycReplacementChoices
+    replacement?: KycReplacementChoices,
+    beforeDispatch?: () => boolean
 ): Promise<{
     data?: RestartIdentityResponse
     error?: string
@@ -279,6 +286,7 @@ export const restartIdentityVerification = async (
         const intent = regionIntent && RESTART_REGION_INTENTS.has(regionIntent) ? regionIntent : undefined
         const response = await serverFetch('/users/identity/restart', {
             method: 'POST',
+            ...(beforeDispatch && { beforeDispatch }),
             headers: { 'Content-Type': 'application/json', 'x-residence-format': 'compact', ...kycClientHeaders() },
             body: JSON.stringify({ ...(intent && { regionIntent: intent }), ...(replacement && { replacement }) }),
         })
@@ -374,6 +382,9 @@ export const startResidenceChangeVerification = async (
         status = response.status
         const responseJson = await response.json()
         if (!response.ok) {
+            if (responseJson.code === 'RESIDENCE_ACTION_REVIEW_PENDING') {
+                return { error: 'Residence verification is under review', code: responseJson.code }
+            }
             if (response.status >= 500)
                 Sentry.captureException(new Error('KYC request failed'), {
                     tags: { ...criticalFlowTags('kyc'), kyc_step: 'residence_session' },
@@ -615,12 +626,14 @@ export const startKycAction = async (
 }
 
 export async function refreshVerificationSession(
-    session: Pick<VerificationActionSession, 'id' | 'generation'>
+    session: Pick<VerificationActionSession, 'id' | 'generation'>,
+    signal?: AbortSignal
 ): Promise<string> {
     let status: number | undefined
     try {
         const response = await serverFetch('/users/identity/session-token', {
             method: 'POST',
+            ...(signal && { signal, beforeDispatch: () => !signal.aborted }),
             headers: kycClientHeaders(),
             body: JSON.stringify({ sessionId: session.id, generation: session.generation }),
         })
@@ -629,17 +642,22 @@ export async function refreshVerificationSession(
         if (!response.ok || !data.token) throw new Error('Verification session changed. Please reopen verification.')
         return data.token
     } catch (error) {
+        if (signal?.aborted) throw error
         if (!(status !== undefined && status >= 400 && status < 500))
             Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'identity_session' } })
         throw error
     }
 }
 
-export async function getVerificationSession(id: string): Promise<VerificationActionSession | null> {
+export async function getVerificationSession(
+    id: string,
+    signal?: AbortSignal
+): Promise<VerificationActionSession | null> {
     let status: number | undefined
     try {
         const response = await serverFetch(`/users/identity/sessions/${encodeURIComponent(id)}`, {
             method: 'GET',
+            ...(signal && { signal, beforeDispatch: () => !signal.aborted }),
             headers: kycClientHeaders(),
             cache: 'no-store',
         })
@@ -651,6 +669,7 @@ export async function getVerificationSession(id: string): Promise<VerificationAc
         if (!response.ok) return null
         return (await response.json()).session ?? null
     } catch (error) {
+        if (signal?.aborted) throw error
         if (!(status !== undefined && status >= 400 && status < 500))
             Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'session_read' } })
         throw error

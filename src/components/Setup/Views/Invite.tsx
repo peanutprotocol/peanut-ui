@@ -14,32 +14,22 @@ import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { useSignupControl } from '@/features/setup/useSignupControl'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { invitesApi } from '@/services/invites'
-import { settlePendingInviteAttribution } from '@/services/pending-invite-attribution'
-import { EInviteType } from '@/services/services.types'
 import { toInviteCode } from '@/utils/invite-code.utils'
-import { clearInvite, readInviteIntent, stashInvite } from '@/utils/invite-stash'
 
-/**
- * Invited by a friend? An optional step after registration, shown only when the
- * signup has no invite. The person already owns a username here, so the field
- * reads as someone else's, and a verified inviter is accepted on the spot through
- * the same hand-off registration uses for an invite link.
- */
 export default function InviteStep() {
     const t = useTranslations('setup')
-    const { username, setInviterAccepted } = useSetupFlowContext()
-    const { user, fetchUser } = useAuth()
+    const { username, inviteSelection, setInviteSelection } = useSetupFlowContext()
+    const { user } = useAuth()
     const { handleNext, isLoading } = useSetupFlow()
-    const [draft, setDraft] = useState('')
+    const [draft, setDraft] = useState(inviteSelection)
     const [isValid, setIsValid] = useState(false)
     const [isChanging, setIsChanging] = useState(false)
-    const [isAccepting, setIsAccepting] = useState(false)
     const [error, setError] = useState('')
-    const valueRef = useRef('')
+    const valueRef = useRef(inviteSelection)
     const { track, trackOnce, trackError } = useSignupControl()
 
     const ownUsername = toInviteCode(user?.user.username ?? username)
-    const busy = isLoading || isAccepting
+    const busy = isLoading
 
     const validate = async (value: string): Promise<boolean> => {
         setError('')
@@ -61,37 +51,15 @@ export default function InviteStep() {
 
     const onContinue = async () => {
         const code = toInviteCode(draft)
-        const userId = user?.user.userId
-        if (!isValid || isChanging || busy || !code || !userId) return
+        if (!isValid || isChanging || busy || !code) return
         track('continue', 'tap')
-        setIsAccepting(true)
-        try {
-            stashInvite(code, EInviteType.DIRECT)
-            const outcome = await settlePendingInviteAttribution(userId, 'setup_invite_step')
-            if (outcome.status === 'attributed') {
-                posthog.capture(ANALYTICS_EVENTS.SIGNUP_INVITER_ADDED)
-                // The inviter is final. The cursor moves first, then the step leaves the
-                // list, so Back cannot reopen it and offer a second inviter. The profile
-                // refresh brings the server's inviter in, which also hides the step after
-                // a reload.
-                await handleNext()
-                setInviterAccepted(true)
-                void fetchUser().catch(() => {})
-                return
-            }
-            // A transient failure keeps the stash for the next app start; Skip clears it.
-            setError(t(outcome.status === 'retryable' ? 'signupStep.inviterCheckFailed' : 'signupStep.inviterNotFound'))
-            trackError('inviter_username', outcome.status === 'retryable' ? 'accept_failed' : 'not_found')
-        } finally {
-            setIsAccepting(false)
-        }
+        setInviteSelection(code)
+        await handleNext()
     }
 
     const onSkip = () => {
         track('skip', 'tap')
-        // Drops only a username typed on this step. A passive tracked-link inviter whose
-        // accept failed transiently stays for the next app start: Skip never unpicks a link.
-        if (readInviteIntent() === 'explicit') clearInvite()
+        setInviteSelection('')
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_INVITE_SKIPPED)
         void handleNext()
     }
@@ -112,7 +80,10 @@ export default function InviteStep() {
                         setDraft(value)
                         setIsValid(isValid)
                         setIsChanging(isChanging)
-                        if (isChanging) setError('')
+                        if (isChanging) {
+                            setError('')
+                            trackError('inviter_username', null)
+                        }
                     }}
                     isSetupFlow
                     isInputChanging={isChanging}

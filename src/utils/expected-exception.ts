@@ -1,6 +1,11 @@
 // Shared leaf predicate: importing it from PostHog startup must not load Sentry.
 type Exception = { type?: string; value?: string }
-const REPORTED_WRAPPERS = new Set(['ServiceUnavailableError', 'ConnectionTimeoutError', 'PasskeyError'])
+const REPORTED_WRAPPERS = new Set([
+    'ServiceUnavailableError',
+    'ConnectionTimeoutError',
+    'MutationResponseTimeoutError',
+    'PasskeyError',
+])
 
 export function isExpectedCancellation(value: string | undefined): boolean {
     return (

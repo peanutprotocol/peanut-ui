@@ -123,6 +123,7 @@ export async function prepareStatement(options: {
             method: 'GET',
             cache: 'no-store',
             timeoutMs: 60_000,
+            drainResponseBody: false,
             redactTelemetry: true,
         })
         if (!response.ok) {

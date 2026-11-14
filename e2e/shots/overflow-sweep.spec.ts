@@ -25,6 +25,11 @@ import ptBR from '../../src/i18n/app/messages/pt-BR.json'
 import { findOverflows } from './overflow-check'
 import { EXTRA_APP_ROUTES, LANDING_TARGETS, MARKETING_TARGETS, OVERLAY_TARGETS } from './sweep-targets'
 import { KEEP_WEB_COOKIE, KEEP_WEB_TOKEN } from '../../src/constants/migration.consts'
+
+// The app writes this cookie with saveToCookie (JSON, then URI-encoded) and
+// reads it back with JSON.parse; a raw token fails that parse and leaves web
+// signup closed.
+const KEEP_WEB_COOKIE_VALUE = encodeURIComponent(JSON.stringify(KEEP_WEB_TOKEN))
 import { freezeDate } from '../../scripts/screens/freeze-date.mjs'
 import { blockExternal } from './fixture-page'
 
@@ -282,13 +287,16 @@ for (const locale of APP_LOCALES_SWEEP) {
                 })
                 await blockExternal(page)
                 await page.addInitScript(freezeDate, FROZEN_NOW.getTime())
-                // web signup is app-only; the support keep-web cookie reopens the form for this sweep
+                // The support cookie permits the first onboarding screen on web.
                 if (route.includes('step=signup'))
-                    await page.context().addCookies([{ name: KEEP_WEB_COOKIE, value: KEEP_WEB_TOKEN, url: baseURL! }])
+                    await page
+                        .context()
+                        .addCookies([{ name: KEEP_WEB_COOKIE, value: KEEP_WEB_COOKIE_VALUE, url: baseURL! }])
                 await page.goto(route, { waitUntil: 'domcontentloaded' })
                 await settle(page)
                 if (route.includes('step=signup')) {
-                    await expect(page.locator('input:visible').first()).toBeVisible()
+                    await expect(page).toHaveURL(/screen=(advantage-fees|advantage-card|residence)/)
+                    await expect(page.locator('[data-setup-hero]')).toBeVisible()
                 }
                 await expect
                     .poll(() => page.evaluate(() => document.documentElement.lang), {

@@ -45,6 +45,11 @@ export async function answer(
     if (state.fails?.includes(key)) return Response.json({ error: 'Synthetic failure' }, { status: 500 })
     const rejection = state.rejects?.[key]
     if (rejection) return Response.json(rejection.body, { status: rejection.status })
+    if (
+        (key === 'POST /users/username/reservations' || key.startsWith('HEAD /users/username/')) &&
+        state.responses?.[key] !== undefined
+    )
+        return Response.json(state.responses?.[key])
     const activationFixtureRoute =
         /^POST \/users\/kyc\/features\/(qr|bank|local|card)\/activate$/.test(key) ||
         key === 'GET /users/kyc/questions' ||
