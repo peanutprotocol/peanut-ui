@@ -2,7 +2,7 @@
 import { act, renderHook } from '@testing-library/react'
 import { activateKycFeature } from '@/app/actions/kyc-feature-activation'
 import { useAuth } from '@/context/authContext'
-import { useKycFeatureActivation } from '../useKycFeatureActivation'
+import { KYC_ACTIVATION_POLL_MS, useKycFeatureActivation } from '../useKycFeatureActivation'
 
 const mockPush = jest.fn()
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))
@@ -69,6 +69,25 @@ it('keeps an identity not approved for the caller and never redirects to /verify
     await flush()
     expect(result.current.result).toEqual({ kind: 'conflict', code: 'identity_not_approved' })
     expect(mockPush).not.toHaveBeenCalled()
+})
+
+// review finding 4: the one refetch after "on" can still read the route as action_required
+it('reads the user again while the account is open and the caller still waits on the route', async () => {
+    jest.useFakeTimers()
+    try {
+        jest.mocked(activateKycFeature).mockResolvedValue({ kind: 'report', report: { state: 'on' } } as Reply)
+        const { result } = renderHook(() => useKycFeatureActivation('pix', { automatic: true }))
+        await flush()
+        expect(result.current.allowed).toBe(true)
+        expect(mockFetchUser).toHaveBeenCalledTimes(1)
+        await act(async () => {
+            jest.advanceTimersByTime(KYC_ACTIVATION_POLL_MS)
+        })
+        expect(mockFetchUser).toHaveBeenCalledTimes(2)
+        expect(activateKycFeature).toHaveBeenCalledTimes(1)
+    } finally {
+        jest.useRealTimers()
+    }
 })
 
 // the API opens the account for an identity of the older flow the same way (contract of 14 Nov)

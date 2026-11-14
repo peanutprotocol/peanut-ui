@@ -246,11 +246,14 @@ export function useKycFeatureActivation(
     const waiting = selectedStatus
         ? selectedStatus.state === 'setting_up'
         : result?.kind === 'report' && (result.report.state === 'setting_up' || result.report.state === 'pending')
+    // The automatic activation says the account is open, yet its caller still shows: the route it
+    // reads lags behind, so the user is read again until it catches up.
+    const openedAhead = automatic && canContinue(feature, result)
     const refreshing = useRef(false)
     useEffect(() => {
-        if (!waiting || alreadyOn || arsProvisioning || !enabled) return
+        if ((!waiting && !openedAhead) || alreadyOn || arsProvisioning || !enabled) return
         const poll = async () => {
-            if (!selectedCurrency) {
+            if (!selectedCurrency && !openedAhead) {
                 void activate()
                 return
             }
@@ -270,7 +273,7 @@ export function useKycFeatureActivation(
             clearInterval(timer)
             window.removeEventListener('focus', poll)
         }
-    }, [waiting, alreadyOn, arsProvisioning, enabled, activate, selectedCurrency, scope])
+    }, [waiting, openedAhead, alreadyOn, arsProvisioning, enabled, activate, selectedCurrency, scope])
 
     return {
         allowed,
