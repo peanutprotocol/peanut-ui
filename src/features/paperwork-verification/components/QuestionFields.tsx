@@ -258,7 +258,7 @@ function TypedFields({
                 <option value="">{t('choose')}</option>
                 {(field.options ?? []).map((option) => (
                     <option key={option} value={option}>
-                        {optionLabel(field.key, option)}
+                        {field.optionLabels?.[option] ?? optionLabel(field.key, option)}
                     </option>
                 ))}
             </select>

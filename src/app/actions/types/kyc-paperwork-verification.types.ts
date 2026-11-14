@@ -25,6 +25,8 @@ export interface PaperworkVerificationField {
     kind: PaperworkVerificationFieldKind
     required: boolean
     options?: string[]
+    /** The name to show for each option, where the API names them (Brazil's states: `{ PB: 'Paraíba' }`); the code is what is saved. */
+    optionLabels?: Record<string, string>
     format?: PaperworkVerificationTaxFormat
     /** A tax number's stdnum validators (`de.idnr`), any one of which must accept it; the API runs them too. */
     checks?: string[]
