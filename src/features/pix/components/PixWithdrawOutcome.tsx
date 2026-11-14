@@ -22,6 +22,7 @@ import type { PixWithdrawDisplay } from '@/services/pix'
 import type { ProviderId } from '@/types/provider.types'
 import { formatBankAmount } from '@/utils/currency'
 import { formatPixKey } from '@/utils/pix-key-format.utils'
+import { pixProviderId } from '@/utils/provider.utils'
 
 /** How long the payout may stay open before the loader gives way, when no quote states an arrival time (a reload). */
 const FALLBACK_ARRIVAL_SECONDS = 90
@@ -51,7 +52,7 @@ export function PixWithdrawOutcome({
     title: string
     /** Null when the submit could not name the withdrawal: the screen then shows what was signed. */
     intentId: string | null
-    /** The provider the route names, for its row and sheet; null shows no row. */
+    /** The provider the route names now: only for a withdrawal this session signed, until its entry names its own. */
     providerId: ProviderId | null
     sent: { phase: 'funded' | 'unconfirmed'; display: PixWithdrawDisplay } | null
     /** Nothing left the wallet: a new withdrawal. */
@@ -68,6 +69,9 @@ export function PixWithdrawOutcome({
     }
     const { setIsSupportModalOpen } = useModalsContext()
     const entry = useHistoryEntry(intentId, 'OFFRAMP')
+    // The provider that opened this withdrawal, from its entry: the route can name another one by now
+    // (a gate or route change), and it decides only a new withdrawal. Null shows no provider row.
+    const openedBy = pixProviderId(entry.data?.extraData?.provider) ?? (sent ? providerId : null)
     const outcome = pixWithdrawOutcome(
         sent?.phase ?? (intentId && depositMaybeSent(intentId) ? 'unconfirmed' : 'unsigned'),
         entry.data
@@ -135,7 +139,7 @@ export function PixWithdrawOutcome({
                           : undefined
                 }
                 transactionDetails={receipt}
-                providerId={providerId ?? undefined}
+                providerId={openedBy ?? undefined}
                 onComplete={onDone}
             />
         )
@@ -182,7 +186,7 @@ export function PixWithdrawOutcome({
                         {tCommon('done')}
                     </Button>
                 )}
-                {providerId && <ProviderFinePrint providerId={providerId} />}
+                {openedBy && <ProviderFinePrint providerId={openedBy} />}
             </PageStack.Center>
         </PageStack>
     )

@@ -96,13 +96,16 @@ const entry = (status: string, intentStatus?: string) => ({
 })
 const CAPTIONS = PAYMENT_LOADING_WORD_KEYS.map((key) => `${en.paymentLoading[key]}...`)
 
-const renderOutcome = (sent: Parameters<typeof PixWithdrawOutcome>[0]['sent']) =>
+const renderOutcome = (
+    sent: Parameters<typeof PixWithdrawOutcome>[0]['sent'],
+    providerId: Parameters<typeof PixWithdrawOutcome>[0]['providerId'] = 'avenia-br'
+) =>
     renderWithIntl(
         <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
             <PixWithdrawOutcome
                 title="Withdraw"
                 intentId="w1"
-                providerId="avenia-br"
+                providerId={providerId}
                 sent={sent}
                 onStartAgain={jest.fn()}
                 onDone={jest.fn()}
@@ -276,5 +279,25 @@ describe('PixWithdrawOutcome failure endings', () => {
         expect(screen.getByRole('button', { name: en.common.done })).toBeInTheDocument()
         expect(screen.queryByText(en.payment.success.withdrew)).toBeNull()
         expect(screen.queryByTestId('success-sound')).toBeNull()
+    })
+
+    // Chip: the route can name another provider by the time an ?intentId= link opens; the entry is the truth
+    it('names the provider that opened the withdrawal, not the one the route names now', () => {
+        mockEntry.mockReturnValue(entry('REFUNDED'))
+        renderOutcome(null, 'manteca-br')
+
+        expect(screen.getByText('provider avenia-br')).toBeInTheDocument()
+        expect(screen.queryByText('provider manteca-br')).toBeNull()
+    })
+
+    it('shows no provider row after a reload when the entry names none', () => {
+        const unnamed = entry('REFUNDED')
+        mockEntry.mockReturnValue({
+            ...unnamed,
+            data: { ...unnamed.data, extraData: { ...unnamed.data.extraData, provider: undefined } },
+        })
+        renderOutcome(null, 'manteca-br')
+
+        expect(screen.queryByText(/^provider /)).toBeNull()
     })
 })
