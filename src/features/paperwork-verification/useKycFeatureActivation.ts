@@ -54,10 +54,14 @@ export function useKycFeatureActivation(
     const oneShot = user?.identityVerification?.oneShot === true
     const identityStatus = user?.identityVerification?.status
     const features = user?.capabilities?.features
+    // The report has no `pix` entry, and a resident abroad may hold Manteca's BRL account: only the
+    // activation itself says whether their Avenia account is open.
     const existing = features
         ? reportScope
             ? reportEntry(features, 'deposit', reportScope, user?.capabilities?.rails)
-            : features[feature]
+            : feature === 'pix'
+              ? undefined
+              : features[feature]
         : undefined
     const selected =
         selectedCurrency && (feature === 'bank' || feature === 'local')
@@ -187,7 +191,13 @@ export function useKycFeatureActivation(
                 } else {
                     recovery.current.waiting = false
                 }
-                if (next.kind === 'conflict' && next.code === 'questions_missing' && feature !== 'qr' && !automatic) {
+                if (
+                    next.kind === 'conflict' &&
+                    next.code === 'questions_missing' &&
+                    feature !== 'qr' &&
+                    feature !== 'pix' &&
+                    !automatic
+                ) {
                     await options?.beforeRedirect?.()
                     if (mounted.current && currentScope.current === scope)
                         routerRef.current.push(paperworkVerificationFeaturePath(feature))

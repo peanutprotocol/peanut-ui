@@ -44,13 +44,10 @@ describe('PixAccountOpening', () => {
         mockDegraded = false
     })
 
-    it('activates the local feature for Brazil with no tap', () => {
+    // API-CONTRACT-M3 section 3: one activation for every residence, with no report scope to read
+    it('activates the pix feature with no tap', () => {
         renderOpening()
-        expect(mockHook).toHaveBeenCalledWith('local', {
-            scope: { channel: 'bank', country: 'BR' },
-            enabled: true,
-            automatic: true,
-        })
+        expect(mockHook).toHaveBeenCalledWith('pix', { enabled: true, automatic: true })
     })
 
     it.each([
@@ -78,7 +75,7 @@ describe('PixAccountOpening', () => {
     it.each(['address', 'tax'])('asks the missing %s step in place, then activates again', (step) => {
         mockActivation = { result: { kind: 'conflict', code: 'questions_missing', step } }
         renderOpening()
-        fireEvent.click(screen.getByRole('button', { name: `questions local ${step}` }))
+        fireEvent.click(screen.getByRole('button', { name: `questions pix ${step}` }))
         expect(mockActivate).toHaveBeenCalledTimes(1)
     })
 
@@ -95,6 +92,6 @@ describe('PixAccountOpening', () => {
         mockDegraded = true
         renderOpening()
         expect(screen.getByText('verification outage')).toBeInTheDocument()
-        expect(mockHook).toHaveBeenCalledWith('local', expect.objectContaining({ enabled: false }))
+        expect(mockHook).toHaveBeenCalledWith('pix', expect.objectContaining({ enabled: false }))
     })
 })

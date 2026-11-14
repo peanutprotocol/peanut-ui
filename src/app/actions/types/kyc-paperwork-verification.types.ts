@@ -13,6 +13,11 @@ export type PaperworkVerificationStepId =
     | 'declarations'
     | 'tax'
 export type PaperworkVerificationFeature = 'bank' | 'card' | 'local'
+/**
+ * The feature a question read or save names (`?feature=`). `pix` asks what Avenia's Pix account
+ * still needs (API-CONTRACT-M3 section 4): it opens at the first Pix send and is no plan feature.
+ */
+export type PaperworkQuestionsFeature = PaperworkVerificationFeature | 'pix'
 export type PaperworkVerificationFieldKind =
     | 'choice'
     | 'select'

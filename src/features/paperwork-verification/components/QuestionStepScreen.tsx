@@ -9,7 +9,7 @@ import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
 import { Icon } from '@/components/Global/Icons/Icon'
 import SetupTitleBlock from '@/components/Setup/components/SetupTitleBlock'
 import type {
-    PaperworkVerificationFeature,
+    PaperworkQuestionsFeature,
     PaperworkVerificationStep,
     PaperworkVerificationStepId,
 } from '@/app/actions/types/kyc-paperwork-verification.types'
@@ -188,7 +188,7 @@ export function QuestionStepScreen({
 }: {
     steps: PaperworkVerificationStep[]
     residence: string | null
-    feature?: PaperworkVerificationFeature
+    feature?: PaperworkQuestionsFeature
     progress?: { current: number; total: number; pages?: number }
     startAtStep?: PaperworkVerificationStepId | null
     startFromEnd?: boolean

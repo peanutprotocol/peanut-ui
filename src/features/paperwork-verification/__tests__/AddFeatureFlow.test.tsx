@@ -205,6 +205,34 @@ describe('AddFeatureQuestions', () => {
         expect(mockSaveFeatures).toHaveBeenCalledWith({ ...features, card: true }, features)
     })
 
+    // API-CONTRACT-M3 section 4: Avenia's Pix account asks its own step and joins no plan
+    it('pix saves its answers with feature=pix and ends without adding a plan feature', async () => {
+        mockQuestions.mockResolvedValue({
+            available: true,
+            attemptId: null,
+            residence: 'DE',
+            steps: [
+                {
+                    id: 'phone',
+                    features: ['pix'] as never,
+                    answered: false,
+                    fields: [{ key: 'phone', kind: 'phone', required: true, value: null }],
+                },
+            ],
+            firstUnanswered: 'phone',
+            progress: { done: 0, total: 1 },
+        })
+        mockSave.mockResolvedValue({ kind: 'saved', next: null })
+        const onDone = jest.fn()
+        renderWithIntl(<AddFeatureQuestions feature="pix" onBack={jest.fn()} onDone={onDone} />)
+        fireEvent.change(await screen.findByTestId('verify-input-phone'), { target: { value: '+49 151 2345 6789' } })
+        fireEvent.click(screen.getByTestId('verify-continue'))
+        await waitFor(() => expect(onDone).toHaveBeenCalled())
+        expect(mockQuestions).toHaveBeenCalledWith('pix')
+        expect(mockSave.mock.calls[0][2]).toBe('pix')
+        expect(mockSaveFeatures).not.toHaveBeenCalled()
+    })
+
     it('a card that owes only its application opens the card application', async () => {
         const answered = cardQuestions()
         answered.steps = answered.steps.map((s) => ({ ...s, answered: true }))

@@ -426,7 +426,7 @@ const BR_STATES: Record<string, string> = {
     SE: 'Sergipe',
     TO: 'Tocantins',
 }
-const ACTIVATE_LOCAL = 'POST /users/kyc/features/local/activate'
+const ACTIVATE_PIX = 'POST /users/kyc/features/pix/activate'
 /** The one step Avenia still needs from a verified resident of Brazil (TASK-24947): the address or the CPF. */
 const AVENIA_MISSING_STEPS = {
     address: {
@@ -472,7 +472,7 @@ const aveniaMissingResponses = (step: keyof typeof AVENIA_MISSING_STEPS) => ({
             progress: { done: 0, total: 1 },
         },
     },
-    rejects: { [ACTIVATE_LOCAL]: { status: 409, body: { code: 'questions_missing', step } } },
+    rejects: { [ACTIVATE_PIX]: { status: 409, body: { code: 'questions_missing', step } } },
 })
 
 /** The Avenia rail while Avenia reviews the shared verification, with the route's reason. */
@@ -2227,7 +2227,7 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/add-money/pix',
         about: "Avenia's first use (TASK-24947): no tap and no terms, the account opens as the page loads.",
         isLoadingState: true,
-        responses: aveniaResponses('first-use', { [ACTIVATE_LOCAL]: { state: 'setting_up' } }),
+        responses: aveniaResponses('first-use', { [ACTIVATE_PIX]: { state: 'setting_up' } }),
     },
     'pix-deposit-amount': {
         route: '/add-money/pix',
@@ -2310,6 +2310,34 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'A non-resident on Avenia: Send to a Pix key reaches the same key step; the holder is named, and Continue is on.',
         waitFor: '[data-testid="pix-key-holder"]',
         responses: aveniaNonResidentResponses('enabled', { 'POST /pix/key': AVENIA_OTHER_KEY_INFO }),
+    },
+    'pix-nonresident-address': {
+        route: AVENIA_SEND_ROUTE,
+        about: "A non-resident's first Pix send: Avenia needs an address, asked on the Pix page; no state field outside the countries with clear states.",
+        responses: aveniaNonResidentResponses('first-use', {
+            'GET /users/kyc/questions': {
+                available: true,
+                attemptId: null,
+                residence: 'DE',
+                steps: [
+                    {
+                        id: 'address',
+                        features: ['pix'],
+                        answered: false,
+                        fields: [
+                            { key: 'street', kind: 'text', required: true, value: null },
+                            { key: 'buildingNumber', kind: 'text', required: false, value: null },
+                            { key: 'town', kind: 'text', required: true, value: null },
+                            { key: 'postCode', kind: 'text', required: true, value: null },
+                            { key: 'country', kind: 'country', required: true, locked: true, value: 'DE' },
+                        ],
+                    },
+                ],
+                firstUnanswered: 'address',
+                progress: { done: 0, total: 1 },
+            },
+        }),
+        rejects: { [ACTIVATE_PIX]: { status: 409, body: { code: 'questions_missing', step: 'address' } } },
     },
     'pix-nonresident-send-review': {
         route: `${AVENIA_SEND_ROUTE}&step=review`,
@@ -2455,7 +2483,7 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/add-money/pix',
         about: 'The first use could not reach the API: the activation says so and offers to try again.',
         responses: aveniaResponses('first-use'),
-        fails: [ACTIVATE_LOCAL],
+        fails: [ACTIVATE_PIX],
     },
     'pix-route-setup-failed': {
         route: '/withdraw/pix',

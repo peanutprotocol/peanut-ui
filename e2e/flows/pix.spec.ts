@@ -38,7 +38,7 @@ test.describe('Pix on the Avenia route', () => {
             .poll(() =>
                 page.evaluate(() => (window as Window & { __fixtureRequests?: string[] }).__fixtureRequests ?? [])
             )
-            .toContain('POST /users/kyc/features/local/activate')
+            .toContain('POST /users/kyc/features/pix/activate')
         await expect(page.getByRole('button', { name: 'Continue' })).toHaveCount(0)
         await expect(page.getByRole('link', { name: 'Avenia terms and conditions' })).toHaveCount(0)
     })

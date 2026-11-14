@@ -5,7 +5,8 @@ import { serverFetch } from '@/utils/api-fetch'
 import { kycClientHeaders } from '@/utils/kyc-client-headers'
 
 type Activation = paths['/users/kyc/features/{feature}/activate']['post']
-export type KycActivationFeature = Activation['parameters']['path']['feature']
+// `pix` (API-CONTRACT-M3 section 3) is typed here until the API snapshot carries it: drop it then
+export type KycActivationFeature = Activation['parameters']['path']['feature'] | 'pix'
 export type KycActivationReport = Activation['responses'][200]['content']['application/json']
 type Conflict = Activation['responses'][409]['content']['application/json']
 export type KycFeatureActivationResult =
@@ -13,7 +14,7 @@ export type KycFeatureActivationResult =
     | ({ kind: 'conflict' } & Conflict)
     | { kind: 'failed' }
 
-const FEATURES: ReadonlySet<string> = new Set<KycActivationFeature>(['qr', 'bank', 'local', 'card'])
+const FEATURES: ReadonlySet<string> = new Set<KycActivationFeature>(['qr', 'bank', 'local', 'card', 'pix'])
 const STATES: ReadonlySet<string> = new Set<KycActivationReport['state']>([
     'ready',
     'on',
