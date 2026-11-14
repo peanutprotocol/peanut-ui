@@ -26,6 +26,7 @@ import { formatBankAmount } from '@/utils/currency'
 import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
 import { usePixProviderId } from '@/features/pix/usePixProviderId'
 import { usePixStandingPayerLine } from '@/features/pix/usePixStandingPayerLine'
+import { usePixDepositMarketLines } from '@/features/pix/usePixDepositMarketLines'
 
 type PixDepositStep = 'inputAmount' | 'showQR'
 type Denomination = 'USD' | 'BRL'
@@ -84,6 +85,7 @@ export function PixDepositFlow({ route }: { route: CapabilityRoute }) {
     const minimumBrl = pixMinimumBrl(route)
     const currencyData = usePixQuoteCurrency('deposit', brlAmount, minimumBrl, ready && !standing && !intentId)
     const payerLine = usePixStandingPayerLine(standing)
+    const marketLines = usePixDepositMarketLines(standing)
     const minimumLine = minimumBrl ? tDeposit('minimum', { amount: formatBankAmount(minimumBrl, 'BRL') }) : null
     const validationError = isUnderPixMinimum(brlAmount, minimumBrl) ? minimumLine : null
 
@@ -180,6 +182,7 @@ export function PixDepositFlow({ route }: { route: CapabilityRoute }) {
             <PixQrDeposit
                 intentId={null}
                 minimumBrl={minimumBrl}
+                marketLines={marketLines}
                 payerLine={payerLine}
                 onBack={onBack}
                 onDone={leaveToHome}

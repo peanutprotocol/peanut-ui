@@ -20,6 +20,8 @@ export type PixQuote = Json<QuoteOperation['responses'][200]>
 /** One deposit, as POST /pix/deposit opens it and GET /pix/deposit/:intentId reads it. */
 export type PixDeposit = Json<paths['/pix/deposit/{intentId}']['get']['responses'][200]>
 export type PixKeyInfo = Json<paths['/pix/key']['post']['responses'][200]>
+/** The deposit route's rules; on Bridge's route also its mid-market rate and its cut of a deposit. */
+export type PixDepositRules = Json<paths['/pix/deposit/rules']['get']['responses'][200]>
 export type PixWithdrawDisplay = Json<paths['/pix/withdraw/preview']['post']['responses'][200]>
 export type PixWithdrawOpened = Json<paths['/pix/withdraw']['post']['responses'][200]>
 /** How the wallet funds the withdrawal; `kind` says which calls it signs. */
@@ -59,6 +61,8 @@ export const pixApi = {
 
     readDeposit: (intentId: string) =>
         call<PixDeposit>(`/pix/deposit/${encodeURIComponent(intentId)}`, GET, 'Could not read the deposit'),
+
+    depositRules: () => call<PixDepositRules>('/pix/deposit/rules', GET, 'Could not read the deposit rules'),
 
     /** A new key's check can take the provider up to about 18 seconds, past the default timeout; a retry is safe. */
     lookupKey: (pixKey: string) =>

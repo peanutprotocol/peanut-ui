@@ -15,6 +15,10 @@ jest.mock('@/features/pix/usePixQuoteCurrency', () => ({
 jest.mock('@/features/pix/usePixStandingPayerLine', () => ({
     usePixStandingPayerLine: () => 'Only you or a business can pay in.',
 }))
+// the rules' market lines are read for the standing code only
+jest.mock('@/features/pix/usePixDepositMarketLines', () => ({
+    usePixDepositMarketLines: (enabled: boolean) => (enabled ? ['The provider fee is 0.57% of each Pix.'] : []),
+}))
 jest.mock('@/components/AddMoney/components/InputAmountStep', () => ({
     __esModule: true,
     default: () => <div data-testid="amount-step" />,
@@ -24,14 +28,16 @@ jest.mock('@/features/pix/components/PixQrDeposit', () => ({
     PixQrDeposit: ({
         intentId,
         minimumBrl,
+        marketLines = [],
         payerLine,
     }: {
         intentId: string | null
         minimumBrl?: string | null
+        marketLines?: string[]
         payerLine?: string
     }) => (
         <div data-testid="code-step">
-            {intentId === null ? 'standing' : intentId} {minimumBrl} {payerLine}
+            {intentId === null ? 'standing' : intentId} {minimumBrl} {marketLines.join(' ')} {payerLine}
         </div>
     ),
 }))
@@ -64,7 +70,9 @@ describe('PixDepositFlow on a standing-code route', () => {
 
     it('opens the code screen on the standing code, with the minimum and who may pay', () => {
         renderAt(bridgeRoute('ready'))
-        expect(screen.getByTestId('code-step')).toHaveTextContent('standing 25 Only you or a business can pay in.')
+        expect(screen.getByTestId('code-step')).toHaveTextContent(
+            'standing 25 The provider fee is 0.57% of each Pix. Only you or a business can pay in.'
+        )
         expect(screen.queryByTestId('amount-step')).toBeNull()
     })
 

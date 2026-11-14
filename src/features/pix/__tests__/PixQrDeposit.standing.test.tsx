@@ -57,11 +57,12 @@ const read = (overrides: Partial<Read> = {}) =>
         ...overrides,
     })
 const refusedWith = (refusal: PixStandingRefusal) => read({ deposit: undefined, isError: true, refusal })
-const renderScreen = () =>
+const renderScreen = (marketLines?: string[]) =>
     renderWithIntl(
         <PixQrDeposit
             intentId={null}
             minimumBrl="25"
+            marketLines={marketLines}
             payerLine={en.depositAccounts.senderLimit.businessOnly.line}
             onBack={jest.fn()}
             onDone={jest.fn()}
@@ -90,6 +91,15 @@ describe('PixQrDeposit on a standing code', () => {
         expect(screen.getByText(en.depositAccounts.senderLimit.businessOnly.line)).toBeInTheDocument()
         expect(screen.getByText(en.pix.deposit.landsInActivity)).toBeInTheDocument()
         expect(screen.getByText('fine print')).toBeInTheDocument()
+    })
+
+    // API-CONTRACT 8.2: Bridge's market rate and its cut of each Pix, in the list under the minimum
+    it('lists the market rate and the provider fee right under the minimum', () => {
+        read()
+        const marketLines = ['The exchange rate is 1 USD = BRL 5.7143.', 'The provider fee is 0.57% of each Pix.']
+        renderScreen(marketLines)
+        const items = screen.getAllByRole('listitem').map((item) => item.textContent)
+        expect(items.slice(0, 3)).toEqual(['The minimum is R$25.', ...marketLines])
     })
 
     it('shows no amount, no estimate, no timer and no wait', () => {

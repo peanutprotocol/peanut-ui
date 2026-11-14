@@ -42,6 +42,7 @@ import { usePixProviderId } from '@/features/pix/usePixProviderId'
 export function PixQrDeposit({
     intentId,
     minimumBrl,
+    marketLines = [],
     payerLine,
     onBack,
     onDone,
@@ -52,6 +53,8 @@ export function PixQrDeposit({
     intentId: string | null
     /** The route's minimum, stated under a code that takes any amount. */
     minimumBrl?: string | null
+    /** The provider's market rate and its cut of each deposit, under the minimum, where it states them. */
+    marketLines?: string[]
     /** Who may pay into a standing code, where its account limits it. */
     payerLine?: string
     /** Leaves the flow. */
@@ -226,6 +229,7 @@ export function PixQrDeposit({
                             ...(minimumBrl
                                 ? [tDeposit('minimum', { amount: formatBankAmount(minimumBrl, 'BRL') })]
                                 : []),
+                            ...marketLines,
                             ...(payerLine ? [payerLine] : []),
                             tDeposit('landsInActivity'),
                         ]}

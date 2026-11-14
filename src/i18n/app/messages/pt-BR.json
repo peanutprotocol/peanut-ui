@@ -2605,6 +2605,8 @@
             "youGet": "Você recebe ≈ {amount}",
             "codeValidFor": "Código válido por {time}",
             "minimum": "O mínimo é {amount}.",
+            "marketRate": "A taxa de câmbio é {rate}.",
+            "providerFee": "A taxa do provedor é de {percent} de cada Pix.",
             "limitExceeded": "Este depósito passa do limite mensal do Pix.",
             "ownCpf": "De uma conta no seu CPF {cpf}",
             "returnedTitle": "Pix devolvido",

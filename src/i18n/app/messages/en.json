@@ -2605,6 +2605,8 @@
             "youGet": "You get ≈ {amount}",
             "codeValidFor": "Code valid for {time}",
             "minimum": "The minimum is {amount}.",
+            "marketRate": "The exchange rate is {rate}.",
+            "providerFee": "The provider fee is {percent} of each Pix.",
             "limitExceeded": "This deposit is over the monthly Pix limit.",
             "ownCpf": "From an account under your CPF {cpf}",
             "returnedTitle": "Pix returned",

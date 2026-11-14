@@ -469,6 +469,13 @@ const bridgePixDepositReady = (accounts: { depositAccounts: unknown[]; claimable
         rails: [bridgePixRail('enabled', { operations: { deposit: 'enabled', withdraw: 'enabled' } })],
     }),
     'POST /pix/deposit': BRIDGE_PIX_STANDING_CODE,
+    // Bridge's mid-market rate and its cut of a deposit, for the code screen's list (API-CONTRACT 8.2)
+    'GET /pix/deposit/rules': {
+        minAmountBrl: BRIDGE_PIX_LIMITS.deposit,
+        blockedBanks: [],
+        marketRate: '5.714286',
+        providerFeePercent: '0.57',
+    },
     'GET /users/deposit-accounts': { claimable: [], ...accounts },
 })
 /**
