@@ -5956,6 +5956,8 @@ export interface paths {
                             extraData?: {
                                 /** @description The intent’s own status, finer than the entry’s status. On a withdrawal: AWAITING_USER_ACTION is not signed yet, PROCESSING is signed and not confirmed. */
                                 intentStatus?: "PENDING" | "AWAITING_USER_ACTION" | "AWAITING_SETTLEMENT" | "PROCESSING" | "COMPLETED" | "FAILED" | "CANCELLED" | "REFUNDED";
+                                /** @description Bridge’s Pix only: BRL per USD before the provider’s fee, for the rate row. Sent with providerFee. Display only. */
+                                marketRate?: string;
                                 /** @description A Pix deposit, on a Pix deposit only and for its owner only. `codePayable`: the code can still be paid, so the receipt offers to open it again (GET /pix/deposit/:intentId). */
                                 pixDeposit?: {
                                     codePayable: boolean;
@@ -5968,6 +5970,11 @@ export interface paths {
                                     reason: "payout-failed" | "payout-reversed" | "late-deposit" | "deposit-delivery-failed";
                                     state: "awaiting-key" | "in-progress" | "done";
                                 } | null;
+                                /** @description Bridge’s Pix only: what the provider kept, so amount × marketRate − fee = the reais. Absent on a return, and where Bridge states no fee on a deposit. */
+                                providerFee?: {
+                                    amount: string;
+                                    currency: "BRL" | "USD";
+                                };
                             } & {
                                 [key: string]: unknown;
                             };
@@ -8393,10 +8400,14 @@ export interface paths {
                                 /** @description The flat fee in reais, shown as its own line */
                                 fixedFeeBrl: string;
                                 holderName: string | null;
+                                /** @description BRL per USDC at the provider’s mid-market rate, where it states one above `rate`: the rate row shows it. Display only. */
+                                marketRate?: string;
                                 ownAccount: boolean | null;
                                 pixKey: string;
                                 /** @description The payments partner’s name, for the review’s "processed by" line */
                                 provider: string;
+                                /** @description Reais the provider keeps: floor_to_centavo(USDC × marketRate) − amountBrl, never below 0, an estimate like the reais. Holds fixedFeeBrl. Sent with marketRate only. */
+                                providerFeeBrl?: string;
                                 /** @description BRL per USDC that leaves the wallet, with the percentage fees inside: withdrawUsd × rate − fixedFeeBrl = amountBrl, to a centavo */
                                 rate: string;
                                 /** @description USDC that leaves the wallet */
@@ -8604,10 +8615,14 @@ export interface paths {
                             /** @description The flat fee in reais, shown as its own line */
                             fixedFeeBrl: string;
                             holderName: string | null;
+                            /** @description BRL per USDC at the provider’s mid-market rate, where it states one above `rate`: the rate row shows it. Display only. */
+                            marketRate?: string;
                             ownAccount: boolean | null;
                             pixKey: string;
                             /** @description The payments partner’s name, for the review’s "processed by" line */
                             provider: string;
+                            /** @description Reais the provider keeps: floor_to_centavo(USDC × marketRate) − amountBrl, never below 0, an estimate like the reais. Holds fixedFeeBrl. Sent with marketRate only. */
+                            providerFeeBrl?: string;
                             /** @description BRL per USDC that leaves the wallet, with the percentage fees inside: withdrawUsd × rate − fixedFeeBrl = amountBrl, to a centavo */
                             rate: string;
                             /** @description USDC that leaves the wallet */
