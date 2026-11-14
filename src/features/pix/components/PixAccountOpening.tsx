@@ -8,6 +8,7 @@ import ProcessingScreen from '@/components/Global/ProcessingScreen'
 import { AddFeatureQuestions } from '@/features/paperwork-verification/AddFeatureFlow'
 import { KycFeatureActivationStatus } from '@/features/paperwork-verification/KycFeatureActivationStatus'
 import { VerificationOutage } from '@/features/paperwork-verification/components/LoadScreens'
+import { PixVerifyScreen } from '@/features/pix/components/PixVerifyScreen'
 import { useKycFeatureActivation } from '@/features/paperwork-verification/useKycFeatureActivation'
 import { useKycDegraded } from '@/hooks/useKycDegraded'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
@@ -22,7 +23,9 @@ const WAITING = new Set(['setting_up', 'pending'])
  * for a resident) is asked here, on the verify flow's own question step (`feature=pix`), and the
  * activation runs again once it is saved; Back from the questions leaves Pix. A further missing step is
  * asked the same way; the step just answered asked again shows the failure screen, since an answer
- * cannot change after approval and asking it again would loop. A failure or a refusal
+ * cannot change after approval and asking it again would loop. An identity the API does not count
+ * as approved gets Pix's own verify screen, not a redirect: Back from /verify would land here and be
+ * sent straight back. A failure or a refusal
  * shows the activation's own status screen, in local's words. The route turns ready once the
  * account is open, and the flow under the setup renders.
  */
@@ -57,6 +60,8 @@ export function PixAccountOpening({ title, onBack }: { title: string; onBack: ()
                 />
             </div>
         )
+    if (result?.kind === 'conflict' && result.code === 'identity_not_approved' && !activation.isLoading)
+        return <PixVerifyScreen title={title} onBack={onBack} />
     if (!result || activation.isLoading || activation.allowed || waiting)
         return (
             <PageStack>

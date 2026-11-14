@@ -1,17 +1,13 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import { useRouter } from 'next/navigation'
-import { Button } from '@/components/0_Bruddle/Button'
-import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
-import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
-import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
 import ProcessingScreen from '@/components/Global/ProcessingScreen'
 import { PixAccountOpening } from '@/features/pix/components/PixAccountOpening'
 import { PixUnavailableScreen } from '@/features/pix/components/PixUnavailableScreen'
+import { PixVerifyScreen } from '@/features/pix/components/PixVerifyScreen'
 import { pixOpensWithoutTap, pixSetupState } from '@/features/pix/pixRouteStep'
 import { KycFeatureActivationGate } from '@/features/paperwork-verification/KycFeatureActivationGate'
 import type { CapabilityRoute } from '@/types/capabilities'
@@ -34,7 +30,6 @@ export function PixSetup({
 }) {
     const t = useTranslations('pix.setup')
     const tLoading = useTranslations('loadingStates')
-    const router = useRouter()
     const state = pixSetupState(route)
 
     if (state === 'support')
@@ -51,22 +46,7 @@ export function PixSetup({
         )
     }
 
-    if (state === 'verify') {
-        return (
-            <PageStack>
-                <NavHeader title={title} onPrev={onBack} />
-                <PageStack.Center>
-                    <div className="flex flex-col items-center gap-4 text-center">
-                        <IconBubble {...CONCEPT_ICONS.verification} size="l" />
-                        <TitleBlock align="center" title={t('title')} />
-                    </div>
-                    <Button variant="primary" className="w-full" onClick={() => router.push('/verify')}>
-                        {t('verifyCta')}
-                    </Button>
-                </PageStack.Center>
-            </PageStack>
-        )
-    }
+    if (state === 'verify') return <PixVerifyScreen title={title} onBack={onBack} />
 
     // pending, and ready for the moment before the flow under it renders
     return (

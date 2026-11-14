@@ -35,8 +35,8 @@ export function useKycFeatureActivation(
     }: {
         /**
          * Activate on mount, with no tap: a provider whose use needs no consent of the user's (Avenia,
-         * Aleks 2026-11-14). A missing answer then stays in `result` for the caller to ask in place,
-         * because a redirect would send Back from the questions straight into them again.
+         * Aleks 2026-11-14). A missing answer or an identity not approved then stays in `result` for
+         * the caller to show in place, because a redirect would send Back straight into it again.
          */
         automatic?: boolean
         scope?: ReportScope
@@ -186,8 +186,10 @@ export function useKycFeatureActivation(
                 if (next.kind === 'conflict' && next.code === 'identity_not_approved') {
                     // /verify is the identity's status screen; a failed check is decided, so nothing waits on it.
                     recovery.current.waiting = identityStatus !== 'failed'
-                    await options?.beforeRedirect?.()
-                    if (mounted.current && currentScope.current === scope) routerRef.current.push('/verify')
+                    if (!automatic) {
+                        await options?.beforeRedirect?.()
+                        if (mounted.current && currentScope.current === scope) routerRef.current.push('/verify')
+                    }
                 } else {
                     recovery.current.waiting = false
                 }

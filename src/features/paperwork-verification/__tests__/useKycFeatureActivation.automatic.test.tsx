@@ -62,6 +62,15 @@ it('keeps a missing answer for the caller and never redirects to the questions',
     expect(mockFetchUser).toHaveBeenCalledWith({ throwOnError: true })
 })
 
+// review finding 3: Back from /verify returns to the Pix page, which would redirect again
+it('keeps an identity not approved for the caller and never redirects to /verify', async () => {
+    jest.mocked(activateKycFeature).mockResolvedValue({ kind: 'conflict', code: 'identity_not_approved' } as Reply)
+    const { result } = renderHook(() => useKycFeatureActivation('pix', { automatic: true }))
+    await flush()
+    expect(result.current.result).toEqual({ kind: 'conflict', code: 'identity_not_approved' })
+    expect(mockPush).not.toHaveBeenCalled()
+})
+
 // the API opens the account for an identity of the older flow the same way (contract of 14 Nov)
 it('activates an identity of the older flow too', async () => {
     auth(false)

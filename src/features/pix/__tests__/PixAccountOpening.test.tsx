@@ -5,6 +5,8 @@ import { renderWithIntl } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
 
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
+const mockPush = jest.fn()
+jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))
 let mockDegraded = false
 jest.mock('@/hooks/useKycDegraded', () => ({ useKycDegraded: () => mockDegraded }))
 const mockMarkSubmitted = jest.fn()
@@ -114,6 +116,15 @@ describe('PixAccountOpening', () => {
         rerender(<PixAccountOpening title="Add money" onBack={jest.fn()} />)
         expect(screen.getByText('activation status failed')).toBeInTheDocument()
         expect(screen.queryByText('saving answers')).toBeNull()
+    })
+
+    // review finding 3: a redirect would send Back from /verify straight into /verify again
+    it("shows Pix's verify screen for an identity not approved, and opens /verify only on a tap", () => {
+        mockActivation = { result: { kind: 'conflict', code: 'identity_not_approved' } }
+        renderOpening()
+        expect(mockPush).not.toHaveBeenCalled()
+        fireEvent.click(screen.getByRole('button', { name: en.pix.setup.verifyCta }))
+        expect(mockPush).toHaveBeenCalledWith('/verify')
     })
 
     it.each([
