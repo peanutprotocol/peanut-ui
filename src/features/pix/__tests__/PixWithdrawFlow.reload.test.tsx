@@ -534,6 +534,25 @@ describe('PixWithdrawFlow form', () => {
         expect(refetch).toHaveBeenCalledTimes(1)
     })
 
+    // API-CONTRACT-M3 section 6: the review names whom a send pays, after a reload too
+    it("reads a send to another person's key from the quote: Sending, the holder, the punctuated key and masked CPF", async () => {
+        mockPreview.mockResolvedValue({
+            ...display,
+            pixKey: '+5511987654321',
+            ownAccount: false,
+            holderName: 'Bruno Lima',
+            holderTaxIdMasked: '***.456.789-**',
+            bankName: 'Nubank',
+        })
+        withForm({ destination: '+5511987654321', amountBrl: '503' })
+        renderAt('?step=review')
+
+        expect(await screen.findByText('Bruno Lima')).toBeInTheDocument()
+        expect(screen.getByText(en.payment.confirm.sending)).toBeInTheDocument()
+        expect(screen.getByText(/^11 98765-4321 ·$/)).toBeInTheDocument()
+        expect(screen.getByText('CPF ***.456.789-**')).toBeInTheDocument()
+    })
+
     // the Pix-key payment form, with Withdrawing and Confirm (ruling 2026-11-12, providers are cattle)
     it('is the payment form: Withdrawing, the holder and bank, the rate, the sponsored Peanut fee, the provider fee apart, no savings row', async () => {
         mockPreview.mockResolvedValue(display)

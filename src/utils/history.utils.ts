@@ -95,6 +95,13 @@ export type HistoryIntentStatus = NonNullable<
     >['intentStatus']
 >
 
+/** Who a Pix payout paid, as `GET /history/:entryId` sends it, to its owner only (API-CONTRACT-M3 section 8). */
+export type PixPayoutView = NonNullable<
+    NonNullable<
+        paths['/history/{entryId}']['get']['responses'][200]['content']['application/json']['extraData']
+    >['pixPayout']
+>
+
 /** A Pix deposit's code state as `GET /history/:entryId` sends it, to its owner only. */
 export type PixDepositView = NonNullable<
     NonNullable<
@@ -122,15 +129,9 @@ export type PixDepositView = NonNullable<
 export interface HistoryEntryExtraData {
     /** On a Pix deposit only: whether its code can still be paid. Read it through `pixCodePayable`. */
     pixDeposit?: PixDepositView
-    /** On an Avenia Pix withdrawal only, to its owner (API-CONTRACT-M3 §8): the raw key it paid and who
-     *  was paid, from the lookup at the review. `ownAccount` false: a send to another person. A
-     *  withdrawal opened before M3 has the holder, bank and `ownAccount` null. */
-    pixPayout?: {
-        pixKey: string
-        holderName: string | null
-        bankName: string | null
-        ownAccount: boolean | null
-    }
+    /** On an Avenia Pix withdrawal only, to its owner: the raw key it paid and who was paid.
+     *  `ownAccount` false: a send to another person. */
+    pixPayout?: PixPayoutView
     /** The intent's own status, which `status` folds into PENDING (a Pix withdrawal is
      *  AWAITING_USER_ACTION until it is signed, PROCESSING after). */
     intentStatus?: HistoryIntentStatus

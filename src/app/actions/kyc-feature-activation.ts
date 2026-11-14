@@ -5,8 +5,7 @@ import { serverFetch } from '@/utils/api-fetch'
 import { kycClientHeaders } from '@/utils/kyc-client-headers'
 
 type Activation = paths['/users/kyc/features/{feature}/activate']['post']
-// `pix` (API-CONTRACT-M3 section 3) is typed here until the API snapshot carries it: drop it then
-export type KycActivationFeature = Activation['parameters']['path']['feature'] | 'pix'
+export type KycActivationFeature = Activation['parameters']['path']['feature']
 export type KycActivationReport = Activation['responses'][200]['content']['application/json']
 type Conflict = Activation['responses'][409]['content']['application/json']
 export type KycFeatureActivationResult =

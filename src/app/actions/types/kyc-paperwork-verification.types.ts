@@ -17,7 +17,9 @@ export type PaperworkVerificationFeature = 'bank' | 'card' | 'local'
  * The feature a question read or save names (`?feature=`). `pix` asks what Avenia's Pix account
  * still needs (API-CONTRACT-M3 section 4): it opens at the first Pix send and is no plan feature.
  */
-export type PaperworkQuestionsFeature = PaperworkVerificationFeature | 'pix'
+export type PaperworkQuestionsFeature = NonNullable<
+    NonNullable<paths['/users/kyc/questions']['get']['parameters']['query']>['feature']
+>
 export type PaperworkVerificationFieldKind =
     | 'choice'
     | 'select'
