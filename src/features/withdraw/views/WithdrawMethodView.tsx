@@ -270,10 +270,11 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, onE
                             // Manteca saved accounts skip the shared amount step — the
                             // manteca flow collects the amount in the local currency.
                             // preserve method param if coming from send flow
-                            const ownBrazilWithdrawal = countryPath === 'brazil' && !isBankFromSend
+                            // a key saved through Bridge names its country 'Brazil', through Manteca 'brazil'
+                            const isBrazil = countryPath.toLowerCase() === 'brazil'
+                            const ownBrazilWithdrawal = isBrazil && !isBankFromSend
                             // a resident of Brazil sends to a saved key on the same Pix-key form
-                            const pixFormSend =
-                                countryPath === 'brazil' && isBankFromSend && pixKeySend.via === 'withdraw'
+                            const pixFormSend = isBrazil && isBankFromSend && pixKeySend.via === 'withdraw'
                             // the Pix key goes in the account's draft, never the URL (`pixWithdrawDraft`)
                             if (ownBrazilWithdrawal || pixFormSend)
                                 keepPixWithdrawDraft(user?.user?.userId, {
@@ -291,7 +292,7 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, onE
                                             country: countryPath,
                                             destination: account.identifier,
                                             isSavedAccount: 'true',
-                                            method: isBankFromSend && countryPath === 'brazil' ? 'pix' : undefined,
+                                            method: isBankFromSend && isBrazil ? 'pix' : undefined,
                                             sendMethod: isBankFromSend ? (methodParam ?? undefined) : undefined,
                                         })
                             )

@@ -243,8 +243,18 @@ const BANK_ACCOUNTS = [
     { type: 'iban', identifier: 'DE89370400440532013000', details: { countryName: 'germany' } },
 ]
 let mockUserAccounts: unknown[] = BANK_ACCOUNTS
+// the user's routes, for whether a Pix-key send goes through the withdraw route (`usePixKeySend`)
+let mockRoutes: unknown[] | undefined
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: { accounts: mockUserAccounts, user: { userId: 'u-saved' } } }),
+    useAuth: () => ({
+        user: {
+            accounts: mockUserAccounts,
+            user: { userId: 'u-saved' },
+            ...(mockRoutes
+                ? { capabilities: { rails: [], nextActions: [], restrictions: [], routes: mockRoutes } }
+                : {}),
+        },
+    }),
 }))
 
 const mockSetSelectedBankAccount = jest.fn()
@@ -283,6 +293,7 @@ beforeEach(() => {
     mockIsBankFromSend = false
     mockPixPayBlock = null
     mockUserAccounts = BANK_ACCOUNTS
+    mockRoutes = undefined
     mockSavedAddresses = [mockSavedBaseAddress]
 })
 
@@ -385,6 +396,41 @@ describe('WithdrawMethodView — destination state and routing (Chip review roun
                 fireEvent.click(screen.getByTestId(`account-${BR_PIX_ACCOUNT.identifier}`))
                 expect(mockRouterPush.mock.calls.at(-1)?.[0]).toBe('/withdraw/pix')
                 window.sessionStorage.clear()
+            })
+        })
+
+        // A Bridge payout or save writes the key's country as 'Brazil' (Manteca writes 'brazil'), TASK-24910
+        describe('saved through Bridge', () => {
+            const BRIDGE_OWN_KEY = {
+                type: 'manteca',
+                identifier: 'ana.souza@example.com',
+                details: { countryName: 'Brazil', countryCode: 'BR' },
+            }
+            const BRIDGE_OTHER_KEY = { ...BRIDGE_OWN_KEY, identifier: '11144477735', isPixRecipient: true }
+            afterEach(() => window.sessionStorage.clear())
+
+            it('in a withdrawal, the own key opens the Pix withdraw page', () => {
+                mockUserAccounts = [BRIDGE_OWN_KEY]
+                renderView()
+                fireEvent.click(screen.getByTestId(`account-${BRIDGE_OWN_KEY.identifier}`))
+
+                expect(mockRouterPush.mock.calls.at(-1)?.[0]).toBe('/withdraw/pix')
+            })
+
+            it("in Send, another person's key opens the Pix-key form as a send", () => {
+                mockPixPayBlock = 'residence'
+                mockRoutes = [
+                    { operation: 'withdraw', method: 'PIX_BR', provider: 'bridge', state: 'ready', candidates: [] },
+                ]
+                mockIsBankFromSend = true
+                mockUserAccounts = [BRIDGE_OTHER_KEY]
+                renderView()
+                fireEvent.click(screen.getByTestId(`account-${BRIDGE_OTHER_KEY.identifier}`))
+
+                expect(mockRouterPush.mock.calls.at(-1)?.[0]).toBe('/withdraw/pix?sendMethod=bank')
+                expect(JSON.parse(window.sessionStorage.getItem('pix-withdraw-draft:u-saved')!)).toMatchObject({
+                    destination: BRIDGE_OTHER_KEY.identifier,
+                })
             })
         })
 
