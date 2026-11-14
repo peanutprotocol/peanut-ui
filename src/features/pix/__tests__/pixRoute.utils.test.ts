@@ -3,6 +3,7 @@ import {
     pixDepositOffered,
     pixPayBlock,
     pixRefusalCopy,
+    pixResidencePaused,
     pixRouteGate,
     pixRouteOpen,
     pixRouteReportEntry,
@@ -72,25 +73,53 @@ describe('pixRouteOpen', () => {
 })
 
 describe('pixDepositOffered', () => {
-    it('offers Pix on Home where a provider serves the user, whatever the step: active, setting up, under review', () => {
+    const residencePaused = { code: 'residence_paused', userMessage: '' }
+
+    it('offers Pix on Home on a route on Bridge, whatever the step: active, setting up, under review', () => {
         expect(pixDepositOffered(route({ provider: 'bridge' }))).toBe(true)
+        expect(pixDepositOffered(route({ provider: 'bridge', state: 'action_required', action: 'verify' }))).toBe(true)
         expect(pixDepositOffered(route({ provider: 'bridge', state: 'action_required', action: 'activate' }))).toBe(
             true
         )
         expect(pixDepositOffered(route({ provider: 'bridge', state: 'pending' }))).toBe(true)
     })
 
-    it("keeps the row through an outage of the user's own provider: the Pix page shows the outage", () => {
-        expect(pixDepositOffered(route({ provider: 'bridge', state: 'paused' }))).toBe(true)
+    it('keeps the row through an outage of Bridge: the Pix page shows the outage', () => {
+        const outage = { code: 'provider_paused', userMessage: '' }
+        expect(pixDepositOffered(route({ provider: 'bridge', state: 'paused', reason: outage }))).toBe(true)
     })
 
-    it('offers no Pix to a resident under the Brazil pause: that route is paused and names no provider', () => {
-        expect(pixDepositOffered(route({ provider: null, state: 'paused', candidates: [] }))).toBe(false)
+    // Aleks, 2026-11-14: every user outside Brazil has a Manteca route; Pix on Home is for Bridge's residents
+    it('offers no Pix on a Manteca route, whatever its step', () => {
+        expect(pixDepositOffered(route())).toBe(false)
+        expect(pixDepositOffered(route({ state: 'action_required', action: 'activate' }))).toBe(false)
+        expect(pixDepositOffered(route({ state: 'pending' }))).toBe(false)
+        expect(pixDepositOffered(route({ state: 'paused' }))).toBe(false)
+    })
+
+    it('offers no Pix under the Brazil pause, with no provider or with Bridge inside its rollout', () => {
+        expect(pixDepositOffered(route({ provider: null, state: 'paused', reason: residencePaused }))).toBe(false)
+        expect(pixDepositOffered(route({ provider: 'bridge', state: 'paused', reason: residencePaused }))).toBe(false)
     })
 
     it('offers no Pix without a route, nor for a refused one', () => {
         expect(pixDepositOffered(undefined)).toBe(false)
         expect(pixDepositOffered(route({ provider: null, state: 'refused' }))).toBe(false)
+    })
+})
+
+describe('pixResidencePaused', () => {
+    it('reads the Brazil pause by its reason, whatever provider the route names', () => {
+        const reason = { code: 'residence_paused', userMessage: '' }
+        expect(pixResidencePaused(route({ provider: null, state: 'paused', reason }))).toBe(true)
+        expect(pixResidencePaused(route({ provider: 'bridge', state: 'paused', reason }))).toBe(true)
+    })
+
+    it("is not a provider's outage, nor any route that is not paused", () => {
+        const outage = { code: 'provider_paused', userMessage: '' }
+        expect(pixResidencePaused(route({ provider: 'bridge', state: 'paused', reason: outage }))).toBe(false)
+        expect(pixResidencePaused(route())).toBe(false)
+        expect(pixResidencePaused(undefined)).toBe(false)
     })
 })
 

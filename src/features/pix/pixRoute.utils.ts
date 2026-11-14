@@ -21,8 +21,8 @@ export function findPixRoute(
  * plan, for a user our check verified, and where the route asks for our check: Home then shows our
  * check as usual.
  *
- * Home follows the signup plan. The bank lists' BRL row follows the route and leaves for any open
- * one, Pix then leading Home's Add money drawer (`useBankRows`, Aleks 2026-11-12).
+ * Home follows the signup plan. The bank lists' BRL row follows the route: it leaves where Pix leads
+ * Home's Add money drawer (a route on Bridge) and under the Brazil pause (`useBankRows`).
  */
 export type PixPlanSetUp = 'provider-step' | 'done' | null
 
@@ -61,20 +61,31 @@ export function pixScreen(route: CapabilityRoute | undefined, isLoading: boolean
 
 /**
  * Whether the user's Pix route is open: the API sent it and did not refuse it, paused included. The
- * bank lists and the Brazil region row read it; Home's Add drawer reads the narrower `pixDepositOffered`.
+ * Brazil region row reads it; Home's Add drawer reads the narrower `pixDepositOffered`.
  */
 export function pixRouteOpen(route: Pick<CapabilityRoute, 'state'> | undefined): boolean {
     return !!route && route.state !== 'refused'
 }
 
 /**
- * Whether Home's Add money drawer offers Pix (Aleks, 2026-11-14): only where a provider serves the
- * user's Pix deposits, so the open route names its provider. A resident under the Brazil pause gets a
- * paused route that names none, and sees no row. An outage of the user's own provider keeps the row,
- * because the Pix page shows the outage itself (`pixScreen`).
+ * Whether the route reads the Brazil pause (`residence_paused`), not a provider's outage. It names no
+ * provider outside a provider's rollout, and the provider inside it for a user not on its allowed
+ * list (api routing/rank.ts, residence-pause.test.ts).
  */
-export function pixDepositOffered(route: Pick<CapabilityRoute, 'state' | 'provider'> | undefined): boolean {
-    return pixRouteOpen(route) && !!route?.provider
+export function pixResidencePaused(route: Pick<CapabilityRoute, 'state' | 'reason'> | undefined): boolean {
+    return route?.state === 'paused' && route.reason?.code === 'residence_paused'
+}
+
+/**
+ * Whether Home's Add money drawer offers Pix: the deposit route is Bridge's and not refused (Aleks,
+ * 2026-11-14: "only visible for BR residents with active Pix with bridge"). Bridge serves residents
+ * of Brazil alone, so a Manteca route, which every user outside Brazil gets, shows no row; they keep
+ * the bank lists' BRL row (`useBankRows`). A user still setting up or under review keeps the row:
+ * the first tap starts the setup. An outage of Bridge keeps it too, because the Pix page shows the
+ * outage itself (`pixScreen`). The Brazil pause shows no row, whatever provider the route names.
+ */
+export function pixDepositOffered(route: Pick<CapabilityRoute, 'state' | 'provider' | 'reason'> | undefined): boolean {
+    return pixRouteOpen(route) && route?.provider === 'bridge' && !pixResidencePaused(route)
 }
 
 /**

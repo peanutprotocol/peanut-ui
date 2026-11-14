@@ -8,7 +8,7 @@ import {
     isLocalResidenceRefusal,
     UNKNOWN_REPORT,
 } from '@/features/kyc-features/report'
-import { findPixRoute, pixRouteOpen, withPixRoute } from '@/features/pix/pixRoute.utils'
+import { findPixRoute, pixDepositOffered, pixResidencePaused, withPixRoute } from '@/features/pix/pixRoute.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import type { FeatureReport, FeatureReportEntry } from '@/types/capabilities'
 import { readDeclaredResidence, readSecondResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
@@ -87,12 +87,14 @@ export function useBankRows() {
     const { nextActions, capabilities } = useCapabilities()
     const report = useAccountsReport()
     const entryFor = useBankEntryFor()
-    // The BRL row reads the Pix deposit route. An open route (sent and not refused, `pixRouteOpen`) takes
-    // the row out of the bank lists: Pix then leads Home's Add money drawer and must not repeat here
-    // (Aleks, 2026-11-12). A refused route keeps the row, closed for the route's own reason, never a
-    // residence rule, so the refusal has a place; without a route the row keeps the report's rule.
+    // The BRL row reads the Pix deposit route. It leaves the bank lists where Pix leads Home's Add money
+    // drawer (`pixDepositOffered`, a route on Bridge), so Pix is not offered twice (Aleks, 2026-11-12),
+    // and under the Brazil pause. A Manteca route keeps the row as it was before the drawer row: on
+    // Add money its tap opens the Pix page (Aleks, 2026-11-14). A refused route keeps the row, closed
+    // for the route's own reason, never a residence rule, so the refusal has a place; without a route
+    // the row keeps the report's rule.
     const pixRoute = findPixRoute(capabilities.routes, 'deposit')
-    const pixOpen = pixRouteOpen(pixRoute)
+    const brlLeaves = pixDepositOffered(pixRoute) || pixResidencePaused(pixRoute)
     const pixRouteRefused = pixRoute?.state === 'refused'
 
     // Server copy first; the localStorage mirror of the signup answer covers
@@ -144,8 +146,8 @@ export function useBankRows() {
         }
     }, [entryFor, nextActions, pixRouteRefused, residenceIso2, secondResidenceIso2])
     const rows = useMemo(
-        () => buildBankRows(input).filter((row) => row.labelKey !== 'brl' || !pixOpen),
-        [input, pixOpen]
+        () => buildBankRows(input).filter((row) => row.labelKey !== 'brl' || !brlLeaves),
+        [input, brlLeaves]
     )
     // The one bank account row: the bank and local features, each as the API states it, and Pix as its route does.
     const accountChip = bestChip([

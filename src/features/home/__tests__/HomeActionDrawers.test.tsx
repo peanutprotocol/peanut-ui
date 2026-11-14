@@ -35,9 +35,11 @@ jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({
     useDepositAccountsEnabled: () => depositAccountsEnabled,
 }))
 
-// Pix leads the Add drawer only for a user a provider serves Pix deposits for
+// Pix leads the Add drawer only for a user whose Pix deposit route is Bridge's
 // (Aleks, 2026-11-12 and 2026-11-14). The route goes through the real hook and rule.
-let pixDepositRoute: { state: string; provider: string | null } | undefined
+let pixDepositRoute:
+    | { state: string; provider: string | null; reason?: { code: string; userMessage: string } }
+    | undefined
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({
         capabilities: {
@@ -126,7 +128,7 @@ describe('HomeActionDrawers', () => {
         expect(screen.queryByTestId('home-drawer-add-pix')).not.toBeInTheDocument()
     })
 
-    it('leads with Pix for a user a provider serves Pix deposits for, bank next, crypto last (Aleks, 2026-11-12)', async () => {
+    it('leads with Pix for a user whose Pix deposit route is Bridge, bank next, crypto last (Aleks, 2026-11-12)', async () => {
         pixDepositRoute = { state: 'ready', provider: 'bridge' }
         renderWithUrl('?drawer=add')
 
@@ -142,20 +144,46 @@ describe('HomeActionDrawers', () => {
         expect(mockCapture).toHaveBeenCalledWith('deposit_method_selected', { method_type: 'pix', country: 'brazil' })
     })
 
-    it("keeps Pix on offer through an outage of the user's own provider: the Pix page shows the outage itself", () => {
-        pixDepositRoute = { state: 'paused', provider: 'bridge' }
+    it('keeps Pix on offer through an outage of Bridge: the Pix page shows the outage itself', () => {
+        pixDepositRoute = {
+            state: 'paused',
+            provider: 'bridge',
+            reason: { code: 'provider_paused', userMessage: 'This is paused for a moment. Try again soon.' },
+        }
         renderWithUrl('?drawer=add')
 
         expect(screen.getByTestId('home-drawer-add-pix')).toBeInTheDocument()
     })
 
-    it('offers no Pix row to a resident under the Brazil pause: that route names no provider (Aleks, 2026-11-14)', () => {
-        pixDepositRoute = { state: 'paused', provider: null }
+    // The pause names no provider outside Bridge's rollout, and Bridge inside it for a resident not on its allowed list
+    it.each([null, 'bridge'])(
+        'offers no Pix row to a resident under the Brazil pause, route provider %s (Aleks, 2026-11-14)',
+        (provider) => {
+            pixDepositRoute = {
+                state: 'paused',
+                provider,
+                reason: {
+                    code: 'residence_paused',
+                    userMessage: 'Deposits and withdrawals are paused where you live.',
+                },
+            }
+            renderWithUrl('?drawer=add')
+
+            expect(screen.queryByTestId('home-drawer-add-pix')).not.toBeInTheDocument()
+            expect(screen.getByTestId('home-drawer-add-bank')).toBeInTheDocument()
+            expect(screen.getByTestId('home-drawer-add-crypto')).toBeInTheDocument()
+        }
+    )
+
+    // Aleks, 2026-11-14: every user outside Brazil has a Manteca Pix route; they find BRL in the bank list
+    it('offers no Pix row on a Manteca route: bank and crypto only, in their order', () => {
+        pixDepositRoute = { state: 'action_required', provider: 'manteca' }
         renderWithUrl('?drawer=add')
 
         expect(screen.queryByTestId('home-drawer-add-pix')).not.toBeInTheDocument()
-        expect(screen.getByTestId('home-drawer-add-bank')).toBeInTheDocument()
-        expect(screen.getByTestId('home-drawer-add-crypto')).toBeInTheDocument()
+        const bank = screen.getByTestId('home-drawer-add-bank')
+        const crypto = screen.getByTestId('home-drawer-add-crypto')
+        expect(bank.compareDocumentPosition(crypto) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
 
     it('offers no Pix row for a refused Pix route; bank and crypto keep their order', () => {

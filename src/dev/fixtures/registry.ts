@@ -2521,7 +2521,7 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         },
     },
-    // ruling 12 Nov: while a Pix route is open the BRL row is not on Accounts; ruling 13 Nov: the cap leaves it out
+    // ruling 12 Nov: while the Pix route is Bridge's the BRL row is not on Accounts; ruling 13 Nov: the cap leaves it out
     'pix-bridge-accounts-brl-held': {
         route: '/profile/accounts',
         about: 'Accounts for a resident of Brazil holding the BRL and EUR accounts: BRL is not listed, and the counter reads 1 of 2.',
@@ -4604,8 +4604,8 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'home-add-drawer-pix': {
         route: '/home?drawer=add',
-        about: 'The Add drawer for a user with a Pix deposit route: Pix leads, bank transfer next, crypto last (Aleks, 2026-11-12).',
-        responses: mantecaPixResponses(),
+        about: 'The Add drawer for a resident of Brazil on Bridge: Pix leads, bank transfer next, crypto last (Aleks, 2026-11-12 and 2026-11-14).',
+        responses: bridgePixDepositReady({ depositAccounts: [BRIDGE_BRL_ACCOUNT] }),
     },
     'home-request-drawer': {
         route: '/home?drawer=request',
