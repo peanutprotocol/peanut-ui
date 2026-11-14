@@ -53,10 +53,10 @@ import { PixDepositFlow } from '../components/PixDepositFlow'
 const route = (payableDepositIntentId?: string, minAmount = '20'): CapabilityRoute => ({
     operation: 'deposit',
     method: 'PIX_BR',
-    provider: 'manteca',
+    provider: 'avenia',
     state: 'ready',
     limits: { minAmount, currency: 'BRL' },
-    candidates: [{ provider: 'manteca', state: 'ready' }],
+    candidates: [{ provider: 'avenia', state: 'ready' }],
     ...(payableDepositIntentId ? { payableDepositIntentId } : {}),
 })
 
@@ -95,15 +95,17 @@ describe('PixDepositFlow and the URL', () => {
 
     it('seeds the new deposit for the code screen and writes its id to the URL', async () => {
         const created = {
-            provider: 'manteca',
+            provider: 'avenia',
             intentId: 'd2',
             status: 'AWAITING_USER_ACTION',
             codePayable: true,
             pixReceived: false,
             brCode: 'code-d2',
             amountBrl: '100.00',
-            usdcAmount: '18.39',
+            usdcAmount: '17.94',
+            fixedFeeBrl: '0.75',
             expiresAt: null,
+            payerCpfMasked: '095.***.***-89',
         }
         mockCreate.mockResolvedValue(created)
         const urls: string[] = []

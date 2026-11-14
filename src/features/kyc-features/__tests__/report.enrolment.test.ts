@@ -39,11 +39,11 @@ describe.each(['on', 'ready'] as const)('aggregate bank %s', (state) => {
 })
 
 describe('a Brazil scope read off its first bank rail', () => {
-    it('reads a Manteca Pix rail as the local BRL account', () => {
+    it("reads an Avenia rail as the local BRL account, as Manteca's is", () => {
         const rails: RailCapability[] = [
             {
-                id: 'manteca.pix_br',
-                provider: 'manteca',
+                id: 'avenia.pix_br',
+                provider: 'avenia',
                 method: 'PIX_BR',
                 channel: 'bank',
                 country: 'BR',

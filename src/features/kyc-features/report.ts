@@ -120,7 +120,8 @@ export function reportEntry(
         (method ? METHOD_ACCOUNTS[method] : undefined) ??
         (railAccount
             ? {
-                  feature: railAccount.provider === 'manteca' ? 'local' : 'bank',
+                  // Brazil's Pix account is the local one on either provider
+                  feature: railAccount.provider === 'manteca' || railAccount.provider === 'avenia' ? 'local' : 'bank',
                   currency: railAccount.currency,
               }
             : undefined) ??
