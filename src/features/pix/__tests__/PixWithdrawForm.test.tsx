@@ -136,6 +136,17 @@ describe('PixWithdrawForm', () => {
         expect(screen.getByRole('button', { name: en.common.confirm })).toBeDisabled()
     })
 
+    // the indicative quote's ratio is a float: the rate row prints it to the review's six decimals, not all its digits
+    it('prints the indicative rate to six decimals before the review answers', () => {
+        renderForm({
+            display: null,
+            total: undefined,
+            canConfirm: false,
+            amount: { ...amount, price: 5.299417064122946 },
+        })
+        expect(screen.getByText('1 USD = 5.299417 BRL')).toBeInTheDocument()
+    })
+
     // the quote of the amount on screen is in flight: the Total row waits for it rather than showing an estimate
     it('waits for the quote on the Total row while it is in flight', () => {
         const { container } = renderForm({ display: null, total: null, canConfirm: false })

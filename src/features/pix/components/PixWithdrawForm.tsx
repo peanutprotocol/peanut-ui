@@ -106,11 +106,12 @@ export function PixWithdrawForm({
     const [seed] = useState(amount.seed)
     // as the payment form: the holder's name leads, the key and tax ID under it; an unnamed holder leaves the key as the heading
     const details = recipient.holderName ? pixKeyOwnerDetails(recipient.pixKey, recipient.taxIdMasked) : null
-    // the preview's all-in rate agrees with the fee row and the USD to the centavo; before it, the quote the field converts with
+    // the preview's all-in rate agrees with the fee row and the USD to the centavo; before it, the quote the field converts
+    // with, to the review's six decimals (the field itself keeps the exact ratio)
     const rate = display
         ? { price: Number(pixShownRate(display)), code: 'BRL' }
         : amount.price !== null
-          ? { price: amount.price, code: 'BRL' }
+          ? { price: Number(amount.price.toFixed(6)), code: 'BRL' }
           : null
     // the rate holds the percentage fees and a flat fee is its own line; where the provider states its mid-market
     // rate, the rate is that one and the line is all the provider keeps (`pixShownFee`)
