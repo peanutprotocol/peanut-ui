@@ -1522,7 +1522,7 @@ describe('MoneySettings', () => {
         const assertNoPixSend = () => {
             expect(screen.queryByText('Send to any Pix key')).not.toBeInTheDocument()
             expect(document.querySelector('a[href="/withdraw/manteca?method=pix&country=brazil"]')).toBeNull()
-            expect(mockPush).not.toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
+            expect(mockPush).not.toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil&sendMethod=bank')
         }
 
         beforeEach(() => {
@@ -1638,7 +1638,7 @@ describe('MoneySettings', () => {
                 within(screen.getByText('BRL').closest('.border') as HTMLElement).getByText('Send to any Pix key')
             ).toBeInTheDocument()
             fireEvent.click(screen.getByText('BRL'))
-            expect(mockPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
+            expect(mockPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil&sendMethod=bank')
             expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
         })
 
@@ -1649,7 +1649,7 @@ describe('MoneySettings', () => {
             const drawer = openBrlDrawer()
             expect(drawer.getByRole('link', { name: 'Send to any Pix key' })).toHaveAttribute(
                 'href',
-                '/withdraw/manteca?method=pix&country=brazil'
+                '/withdraw/manteca?method=pix&country=brazil&sendMethod=bank'
             )
             expect(drawer.getByText('Add and withdraw Brazilian reais with Pix.')).toBeInTheDocument()
 
@@ -1682,7 +1682,7 @@ describe('MoneySettings', () => {
                 const drawer = openBrlDrawer()
                 expect(drawer.getByRole('link', { name: 'Send to any Pix key' })).toHaveAttribute(
                     'href',
-                    '/withdraw/manteca?method=pix&country=brazil'
+                    '/withdraw/manteca?method=pix&country=brazil&sendMethod=bank'
                 )
                 expect(drawer.getByText('Add and withdraw Brazilian reais with Pix.')).toBeInTheDocument()
 
@@ -1919,7 +1919,7 @@ describe('a resident of neither country is not offered the Manteca bank rows', (
 
         expect(badgeFor('BRL').getByText('Active')).toBeInTheDocument()
         fireEvent.click(screen.getByText('BRL'))
-        expect(mockPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
+        expect(mockPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil&sendMethod=bank')
     })
 
     // Chip review on ui#3400, kept when the Pix key row left Payments
@@ -2111,7 +2111,7 @@ describe('MoneySettings — the BRL row and the Pix deposit route', () => {
         const drawer = within(screen.getByRole('dialog'))
         expect(drawer.getByRole('link', { name: 'Send to any Pix key' })).toHaveAttribute(
             'href',
-            '/withdraw/manteca?method=pix&country=brazil'
+            '/withdraw/manteca?method=pix&country=brazil&sendMethod=bank'
         )
         // the user's own BRL rail, with its own status, under the send
         expect(drawer.getByText('Add and withdraw Brazilian reais with Pix.')).toBeInTheDocument()
