@@ -41,18 +41,18 @@ describe('usePixKeyLookup', () => {
             await result.current.lookup('09579927189')
         })
 
-        expect(first).toMatchObject({ status: 'found', verdict: 'own' })
-        expect(result.current.result).toMatchObject({ key: '09579927189', status: 'found', verdict: 'own' })
+        expect(first).toMatchObject({ status: 'found', info: { ownAccount: true } })
+        expect(result.current.result).toMatchObject({ key: '09579927189', status: 'found' })
         expect(mockPixKeyInfo).toHaveBeenCalledTimes(1)
     })
 
-    it("tells someone else's key and a blocked bank apart from the own one", async () => {
+    it('carries whose key it is and whether its bank is paid, as the API tells', async () => {
         mockPixKeyInfo.mockResolvedValueOnce(info({ ownAccount: false })).mockResolvedValueOnce(info({ blocked: true }))
         const { result } = renderHook(() => usePixKeyLookup(), { wrapper })
 
         await act(async () => {
-            expect(await result.current.lookup('+5511987654321')).toMatchObject({ verdict: 'not-own' })
-            expect(await result.current.lookup('ana@example.com')).toMatchObject({ verdict: 'blocked' })
+            expect(await result.current.lookup('+5511987654321')).toMatchObject({ info: { ownAccount: false } })
+            expect(await result.current.lookup('ana@example.com')).toMatchObject({ info: { blocked: true } })
         })
     })
 
@@ -83,6 +83,6 @@ describe('usePixKeyLookup', () => {
         })
 
         expect(mockPixKeyInfo).toHaveBeenCalledTimes(2)
-        expect(outcome).toMatchObject({ status: 'found', verdict: 'own' })
+        expect(outcome).toMatchObject({ status: 'found' })
     })
 })

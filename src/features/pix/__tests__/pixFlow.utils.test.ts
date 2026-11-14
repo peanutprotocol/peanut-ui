@@ -8,7 +8,6 @@ import {
     signMatchesDisplay,
     completePixKey,
     maskedTaxIdKind,
-    pixKeyVerdict,
     toApiDecimal,
 } from '../pixFlow.utils'
 import { awaitsNewPixKey, pixNewKeyUrl } from '../pixRecovery'
@@ -97,29 +96,6 @@ describe('completePixKey', () => {
         expect(completePixKey('ana@')).toBeNull()
         expect(completePixKey('')).toBeNull()
         expect(completePixKey(DEMO_PIX_BR_CODE)).toBeNull()
-    })
-})
-
-describe('pixKeyVerdict', () => {
-    const info = (ownAccount: boolean | null, blocked: boolean) => ({
-        provider: 'avenia',
-        holderName: 'Ana',
-        holderTaxIdMasked: null,
-        bankName: null,
-        ispb: null,
-        ownAccount,
-        blocked,
-    })
-
-    it('allows only the own account at a bank the provider pays', () => {
-        expect(pixKeyVerdict(info(true, false))).toBe('own')
-        expect(pixKeyVerdict(info(false, false))).toBe('not-own')
-        expect(pixKeyVerdict(info(true, true))).toBe('blocked')
-    })
-
-    it('leaves the holder unchecked when the provider cannot tell, and still refuses a blocked bank', () => {
-        expect(pixKeyVerdict(info(null, false))).toBe('unchecked')
-        expect(pixKeyVerdict(info(null, true))).toBe('blocked')
     })
 })
 

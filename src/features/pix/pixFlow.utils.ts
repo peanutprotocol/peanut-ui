@@ -1,6 +1,6 @@
 import { parseUnits } from 'viem'
 import { isPixEmvcoQr, normalizePixInput, validatePixKey } from '@/utils/withdraw.utils'
-import type { PixDeposit, PixKeyInfo, PixWithdrawDisplay } from '@/services/pix'
+import type { PixDeposit, PixWithdrawDisplay } from '@/services/pix'
 import { API_ERROR_CODES } from '@/services/api-error'
 import { awaitsNewPixKey } from '@/features/pix/pixRecovery'
 import type { HistoryEntry } from '@/utils/history.utils'
@@ -38,16 +38,6 @@ export function completePixKey(input: string): string | null {
     const key = normalizePixInput(input)
     if (!key || isPixEmvcoQr(key)) return null
     return validatePixKey(key).valid ? key : null
-}
-
-/** `unchecked`: the provider cannot tell whose key it is (`ownAccount` null), and it pays any key. */
-export type PixKeyVerdict = 'own' | 'not-own' | 'blocked' | 'unchecked'
-
-/** A provider that checks the holder pays only the user's own CPF; none pays a bank on its deny-list. */
-export function pixKeyVerdict(info: PixKeyInfo): PixKeyVerdict {
-    if (info.blocked) return 'blocked'
-    if (info.ownAccount === null) return 'unchecked'
-    return info.ownAccount ? 'own' : 'not-own'
 }
 
 /**

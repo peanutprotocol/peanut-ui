@@ -345,6 +345,7 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
                 holderName,
                 bankName: named?.bankName ?? keyInfo?.bankName ?? null,
                 taxIdMasked: keyInfo?.holderTaxIdMasked ?? null,
+                ownAccount: named?.ownAccount ?? keyInfo?.ownAccount ?? null,
             }}
             save={pixKeySave}
             amount={{

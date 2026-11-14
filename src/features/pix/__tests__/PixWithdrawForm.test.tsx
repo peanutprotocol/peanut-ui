@@ -44,7 +44,13 @@ const renderForm = (props: Partial<Parameters<typeof PixWithdrawForm>[0]> = {}) 
         <PixWithdrawForm
             title="Withdraw"
             onBack={noop}
-            recipient={{ pixKey: display.pixKey, holderName: 'Ana Souza', bankName: 'Banco Inter', taxIdMasked: null }}
+            recipient={{
+                pixKey: display.pixKey,
+                holderName: 'Ana Souza',
+                bankName: 'Banco Inter',
+                taxIdMasked: null,
+                ownAccount: true,
+            }}
             save={save}
             amount={amount}
             display={display}
@@ -85,17 +91,37 @@ describe('PixWithdrawForm', () => {
         expect(screen.getByRole('button', { name: en.common.confirm })).toBeEnabled()
     })
 
-    it('shows a phone key with the masked CPF the directory names under the holder', () => {
+    // TASK-24947: the phone key reads as people write it (Aleks, 2026-11-14)
+    it('shows a phone key, punctuated, with the masked CPF the directory names under the holder', () => {
         renderForm({
             recipient: {
                 pixKey: '+5511912345678',
                 holderName: 'Ana Souza',
                 bankName: null,
                 taxIdMasked: '095.***.***-89',
+                ownAccount: true,
             },
         })
-        expect(screen.getByText(/^\+5511912345678 ·$/)).toBeInTheDocument()
+        expect(screen.getByText(/^11 91234-5678 ·$/)).toBeInTheDocument()
         expect(screen.getByText('CPF 095.***.***-89')).toBeInTheDocument()
+    })
+
+    // TASK-24947: another person's key is a send to them
+    it("leads with Sending for another person's key, and with Withdrawing where the provider cannot tell", () => {
+        const other = {
+            pixKey: '+5511987654321',
+            holderName: 'Bruno Lima',
+            bankName: 'Nubank',
+            taxIdMasked: '***.456.789-**',
+        }
+        const view = renderForm({ recipient: { ...other, ownAccount: false } })
+        expect(screen.getByText(en.payment.confirm.sending)).toBeInTheDocument()
+        expect(screen.queryByText(en.pix.withdraw.withdrawing)).toBeNull()
+        expect(screen.getByText('Bruno Lima')).toBeInTheDocument()
+        view.unmount()
+
+        renderForm({ recipient: { ...other, ownAccount: null } })
+        expect(screen.getByText(en.pix.withdraw.withdrawing)).toBeInTheDocument()
     })
 
     // a provider whose fees all sit in the rate sends a zero flat fee: no fee line, the same rate rule

@@ -23,6 +23,7 @@ import { useReturnTo } from '@/hooks/useSafeBack'
 import type { PixWithdrawDisplay } from '@/services/pix'
 import type { ProviderId } from '@/types/provider.types'
 import { formatBankAmount } from '@/utils/currency'
+import { formatPixKey } from '@/utils/pix-key-format.utils'
 
 /** How long the payout may stay open before the loader gives way, when no quote states an arrival time (a reload). */
 const FALLBACK_ARRIVAL_SECONDS = 90
@@ -37,7 +38,9 @@ const FALLBACK_ARRIVAL_SECONDS = 90
  * It ends like every other withdrawal (ruling 2026-11-12): the shared payment
  * loader while the provider pays, the shared success view once the Pix landed.
  * The loader lasts at most the quoted arrival time ("About 1 minute" on the
- * review); a payout still open after it reads as on its way, with Done.
+ * review); a payout still open after it reads as on its way, with Done. A
+ * payout to another person's key (the quote's `ownAccount` false) reads as a
+ * send to them, by the name the provider looked up (TASK-24947).
  */
 export function PixWithdrawOutcome({
     title,
@@ -82,6 +85,9 @@ export function PixWithdrawOutcome({
         return () => clearTimeout(timer)
     }, [outcome, arrivalMs])
 
+    // another person's key: a send to them
+    const toOtherPerson = sent?.display.ownAccount === false
+
     // the receipt behind "See receipt": the landed withdrawal's entry, mapped the way Activity maps it
     const receipt = useMemo(
         () => (outcome === 'arrived' && entry.data ? mapTransactionDataForDrawer(entry.data).transactionDetails : null),
@@ -103,7 +109,9 @@ export function PixWithdrawOutcome({
     }
 
     if (outcome === 'arrived') {
-        const pixKey = sent?.display.pixKey ?? entry.data?.recipientAccount?.identifier
+        const rawKey = sent?.display.pixKey ?? entry.data?.recipientAccount?.identifier
+        const pixKey = rawKey && formatPixKey(rawKey)
+        const holder = sent?.display.holderName ?? entry.data?.recipientAccount?.fullName
         // the entry names no bank: after a reload the line carries the key alone
         const bank = sent?.display.bankName
         const amountUsd = sent?.display.withdrawUsd ?? entry.data?.amount
@@ -115,15 +123,19 @@ export function PixWithdrawOutcome({
                 type="SEND"
                 headerTitle={title}
                 isWithdrawFlow
+                // a send to another person reads "Sent", to them by name
+                isFromSendFlow={toOtherPerson}
                 currencyAmount={amountBrl ? formatBankAmount(amountBrl, 'BRL') : undefined}
                 secondaryAmount={amountUsd ? formatBankAmount(amountUsd, 'USD') : undefined}
                 // the view prefixes it with "to" (payment.success.toPrefix), as for every withdrawal
                 message={
-                    pixKey
-                        ? bank
-                            ? t('withdrawnTo', { key: pixKey, bank })
-                            : t('withdrawnToKey', { key: pixKey })
-                        : undefined
+                    toOtherPerson
+                        ? (holder ?? pixKey)
+                        : pixKey
+                          ? bank
+                              ? t('withdrawnTo', { key: pixKey, bank })
+                              : t('withdrawnToKey', { key: pixKey })
+                          : undefined
                 }
                 transactionDetails={receipt}
                 providerId={providerId ?? undefined}

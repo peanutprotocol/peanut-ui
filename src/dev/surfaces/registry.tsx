@@ -433,6 +433,7 @@ function PixWithdrawFormSurface({ variant }: { variant: 'quote-moved' | 'after-i
                     holderName: PIX_SURFACE_DISPLAY.holderName,
                     bankName: PIX_SURFACE_DISPLAY.bankName,
                     taxIdMasked: null,
+                    ownAccount: PIX_SURFACE_DISPLAY.ownAccount,
                 }}
                 save={{
                     savedName: null,

@@ -65,7 +65,7 @@ import { PixWithdrawOutcome } from '../components/PixWithdrawOutcome'
 const display = {
     amountBrl: '503.00',
     pixKey: '09579927189',
-    ownAccount: true as const,
+    ownAccount: true as boolean | null,
     holderName: 'Ana Souza',
     bankName: 'Banco Inter',
     withdrawUsd: '92.504310',
@@ -190,7 +190,7 @@ describe('PixWithdrawOutcome once the Pix landed', () => {
         expect(screen.getByText(en.payment.success.withdrew)).toBeInTheDocument()
         expect(screen.getByText('R$503')).toBeInTheDocument()
         expect(screen.getByText('$92.50')).toBeInTheDocument()
-        expect(screen.getByText('to your Pix key 09579927189 at Banco Inter')).toBeInTheDocument()
+        expect(screen.getByText('to your Pix key 095.799.271-89 at Banco Inter')).toBeInTheDocument()
         expect(screen.getAllByTestId('success-sound')).toHaveLength(1)
         expect(screen.getByRole('button', { name: en.payment.success.backToHome })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: en.payment.success.seeReceipt })).toBeInTheDocument()
@@ -215,7 +215,17 @@ describe('PixWithdrawOutcome once the Pix landed', () => {
         mockEntry.mockReturnValue(entry('COMPLETED'))
         renderOutcome({ phase: 'funded', display: { ...display, bankName: null, holderName: null } })
 
-        expect(screen.getByText('to your Pix key 09579927189')).toBeInTheDocument()
+        expect(screen.getByText('to your Pix key 095.799.271-89')).toBeInTheDocument()
+    })
+
+    // TASK-24947: a payout to another person's key ends as a send to them
+    it("ends a payout to another person's key as Sent, to the holder by name", () => {
+        mockEntry.mockReturnValue(entry('COMPLETED'))
+        renderOutcome({ phase: 'funded', display: { ...display, ownAccount: false, holderName: 'Bruno Lima' } })
+
+        expect(screen.getByText(en.payment.success.justSent)).toBeInTheDocument()
+        expect(screen.queryByText(en.payment.success.withdrew)).toBeNull()
+        expect(screen.getByText('to Bruno Lima')).toBeInTheDocument()
     })
 
     // after a reload the entry is all the screen has: its reais, its USD, its key, and no bank
@@ -226,7 +236,7 @@ describe('PixWithdrawOutcome once the Pix landed', () => {
         expect(screen.getByText(en.payment.success.withdrew)).toBeInTheDocument()
         expect(screen.getByText('R$503')).toBeInTheDocument()
         expect(screen.getByText('$92.50')).toBeInTheDocument()
-        expect(screen.getByText('to your Pix key +5511912345678')).toBeInTheDocument()
+        expect(screen.getByText('to your Pix key 11 91234-5678')).toBeInTheDocument()
     })
 })
 

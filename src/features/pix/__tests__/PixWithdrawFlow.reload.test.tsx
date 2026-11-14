@@ -184,7 +184,7 @@ describe('PixWithdrawFlow after a reload', () => {
 
         await waitFor(() => expect(urls.at(-1)).not.toContain('intentId'))
         // the first step is the key, so the URL is empty again
-        expect(await screen.findByText(en.pix.withdraw.keyIntro)).toBeInTheDocument()
+        expect(await screen.findByRole('textbox', { name: en.withdraw.pixKey.placeholder })).toBeInTheDocument()
         expect(mockInit).not.toHaveBeenCalled()
     })
 
@@ -212,7 +212,7 @@ describe('PixWithdrawFlow after a reload', () => {
         renderAt('?step=success&intentId=w1')
 
         expect(screen.getByTestId('payment-success')).toHaveTextContent(
-            `withdraw R$503 $92.50 ${en.pix.withdraw.withdrawnToKey.replace('{key}', '+5511912345678')}`
+            `withdraw R$503 $92.50 ${en.pix.withdraw.withdrawnToKey.replace('{key}', '11 91234-5678')}`
         )
         // the success view plays the sound; the outcome screen adds none
         expect(screen.queryByTestId('success-sound')).toBeNull()
@@ -792,7 +792,7 @@ describe('PixWithdrawFlow form draft', () => {
         view.unmount()
         renderAt('?step=review')
         expect(screen.getByText('R$')).toBeInTheDocument()
-        expect(screen.queryByText(en.pix.withdraw.keyIntro)).toBeNull()
+        expect(screen.queryByRole('textbox', { name: en.withdraw.pixKey.placeholder })).toBeNull()
     })
 
     it('reviews the key and amount the draft holds', () => {
@@ -820,7 +820,7 @@ describe('PixWithdrawFlow form draft', () => {
         withForm(REVIEW_FORM, 'someone-else')
         renderAt('?step=review')
 
-        expect(screen.getByText(en.pix.withdraw.keyIntro)).toBeInTheDocument()
+        expect(screen.getByRole('textbox', { name: en.withdraw.pixKey.placeholder })).toBeInTheDocument()
         expect(mockPreview).not.toHaveBeenCalled()
         expect(storedForm('someone-else').destination).toBe(KEY)
     })
