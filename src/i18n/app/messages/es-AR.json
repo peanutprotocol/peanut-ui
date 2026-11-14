@@ -1355,7 +1355,8 @@
         "deposit": {
             "youGet": "Recibís ≈ {amount}",
             "returnedBody": "Pagá de nuevo desde una cuenta con tu CPF.",
-            "codeValidFor": "Código válido por {time}"
+            "codeValidFor": "Código válido por {time}",
+            "businessOnly": "Solo vos o una empresa (CNPJ) pueden pagar a esta cuenta. Otras transferencias se devuelven."
         },
         "withdraw": {
             "stuck": "Este retiro no se completó. Contactá a soporte.",

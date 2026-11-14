@@ -222,7 +222,7 @@ export function PixQrDeposit({
                     <CopyToClipboard textToCopy={deposit.brCode} type="button" className="w-full" />
                 </div>
 
-                {/* a standing code takes any amount: the rules a payer meets, and where each Pix shows */}
+                {/* a standing code takes any amount: the rules a payer meets */}
                 {deposit.intentId === null && (
                     <BulletList
                         items={[
@@ -231,7 +231,6 @@ export function PixQrDeposit({
                                 : []),
                             ...marketLines,
                             ...(payerLine ? [payerLine] : []),
-                            tDeposit('landsInActivity'),
                         ]}
                     />
                 )}

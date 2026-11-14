@@ -63,7 +63,7 @@ const renderScreen = (marketLines?: string[]) =>
             intentId={null}
             minimumBrl="25"
             marketLines={marketLines}
-            payerLine={en.depositAccounts.senderLimit.businessOnly.line}
+            payerLine={en.pix.deposit.businessOnly}
             onBack={jest.fn()}
             onDone={jest.fn()}
             onNewDeposit={jest.fn()}
@@ -81,15 +81,14 @@ describe('PixQrDeposit on a standing code', () => {
         expect(mockDeposit).toHaveBeenCalledWith(null)
     })
 
-    it('draws the code with the minimum, who may pay, where each Pix shows, and the provider', () => {
+    it('draws the code with the minimum, who may pay, and the provider', () => {
         read()
         renderScreen()
         expect(screen.getByTestId('qr')).toHaveTextContent('00020126...standing')
         expect(screen.getByText(en.addMoney.pix.scanWithBankApp)).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'copy' })).toBeInTheDocument()
         expect(screen.getByText('The minimum is R$25.')).toBeInTheDocument()
-        expect(screen.getByText(en.depositAccounts.senderLimit.businessOnly.line)).toBeInTheDocument()
-        expect(screen.getByText(en.pix.deposit.landsInActivity)).toBeInTheDocument()
+        expect(screen.getByText(en.pix.deposit.businessOnly)).toBeInTheDocument()
         expect(screen.getByText('fine print')).toBeInTheDocument()
     })
 

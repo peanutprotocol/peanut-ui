@@ -2611,7 +2611,7 @@
             "ownCpf": "Desde una cuenta con tu CPF {cpf}",
             "returnedTitle": "Pix devuelto",
             "returnedBody": "Paga de nuevo desde una cuenta con tu CPF.",
-            "landsInActivity": "Cada Pix aparece en Actividad cuando llega."
+            "businessOnly": "Solo tú o una empresa (CNPJ) pueden pagar a esta cuenta. Otras transferencias se devuelven."
         },
         "withdraw": {
             "stuck": "Este retiro no se completó. Contacta a soporte.",

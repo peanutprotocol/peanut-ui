@@ -2611,7 +2611,7 @@
             "ownCpf": "From an account under your CPF {cpf}",
             "returnedTitle": "Pix returned",
             "returnedBody": "Pay again from an account under your CPF.",
-            "landsInActivity": "Each Pix shows in Activity when it arrives."
+            "businessOnly": "Only you or a business (CNPJ) can pay in. Other transfers are returned."
         },
         "withdraw": {
             "stuck": "This withdrawal did not finish. Contact support.",

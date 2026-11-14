@@ -19,6 +19,7 @@ import { fetchDepositAccounts } from '@/services/deposit-accounts'
  */
 export function usePixStandingPayerLine(enabled: boolean): string | undefined {
     const t = useTranslations('depositAccounts')
+    const tDeposit = useTranslations('pix.deposit')
     const { userId } = useAuth()
     // the account lists' own read, so they share one answer
     const { data } = useQuery({
@@ -31,5 +32,7 @@ export function usePixStandingPayerLine(enabled: boolean): string | undefined {
         data?.accounts.find((account) => isPix(account.railId) && holdsSlot(account))?.matching ??
         data?.claimable.find((corridor) => isPix(corridor.railId))?.matching
     const key = matching ? senderLimitKey(matching) : undefined
-    return key ? t(`senderLimit.${key}.line`) : undefined
+    if (!key) return undefined
+    // CNPJ is Brazil's company id: only this screen names it, the shared line serves every currency
+    return key === 'businessOnly' ? tDeposit('businessOnly') : t(`senderLimit.${key}.line`)
 }

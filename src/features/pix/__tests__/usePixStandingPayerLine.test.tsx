@@ -42,7 +42,13 @@ describe('usePixStandingPayerLine', () => {
     it("says who may pay from the BRL account's own terms", async () => {
         mockFetch.mockResolvedValue(snapshot([brlAccount('business-only')]))
         const { result } = renderHook(() => usePixStandingPayerLine(true), { wrapper })
-        await waitFor(() => expect(result.current).toBe(en.depositAccounts.senderLimit.businessOnly.line))
+        await waitFor(() => expect(result.current).toBe(en.pix.deposit.businessOnly))
+    })
+
+    // CNPJ is the Brazilian company id: the shared sentence of the other currencies does not carry it
+    it('names the CNPJ, which the shared business-only line of other currencies does not', () => {
+        expect(en.pix.deposit.businessOnly).toContain('(CNPJ)')
+        expect(en.depositAccounts.senderLimit.businessOnly.line).not.toContain('CNPJ')
     })
 
     it('reads the terms the account would carry before the first code opens it', async () => {
@@ -50,7 +56,7 @@ describe('usePixStandingPayerLine', () => {
             snapshot([], [{ railId: 'bridge.pix_br', currency: 'BRL', matching: { sender: 'business-only' } }])
         )
         const { result } = renderHook(() => usePixStandingPayerLine(true), { wrapper })
-        await waitFor(() => expect(result.current).toBe(en.depositAccounts.senderLimit.businessOnly.line))
+        await waitFor(() => expect(result.current).toBe(en.pix.deposit.businessOnly))
     })
 
     it('reads no other account, and none that is closed', async () => {

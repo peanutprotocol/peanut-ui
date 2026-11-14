@@ -13,7 +13,7 @@ jest.mock('@/features/pix/usePixQuoteCurrency', () => ({
     usePixQuoteCurrency: (...args: unknown[]) => mockQuote(...args),
 }))
 jest.mock('@/features/pix/usePixStandingPayerLine', () => ({
-    usePixStandingPayerLine: () => 'Only you or a business can pay in.',
+    usePixStandingPayerLine: () => 'Only you or a business (CNPJ) can pay in.',
 }))
 // the rules' market lines are read for the standing code only
 jest.mock('@/features/pix/usePixDepositMarketLines', () => ({
@@ -71,7 +71,7 @@ describe('PixDepositFlow on a standing-code route', () => {
     it('opens the code screen on the standing code, with the minimum and who may pay', () => {
         renderAt(bridgeRoute('ready'))
         expect(screen.getByTestId('code-step')).toHaveTextContent(
-            'standing 25 The provider fee is 0.57% of each Pix. Only you or a business can pay in.'
+            'standing 25 The provider fee is 0.57% of each Pix. Only you or a business (CNPJ) can pay in.'
         )
         expect(screen.queryByTestId('amount-step')).toBeNull()
     })
