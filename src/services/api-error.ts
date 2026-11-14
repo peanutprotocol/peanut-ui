@@ -105,6 +105,10 @@ export const API_ERROR_CODES = {
     PIX_QUOTE_CHANGED: 'PIX_QUOTE_CHANGED',
     /** Another Pix withdrawal is still waiting for its signature. */
     WITHDRAWAL_IN_PROGRESS: 'WITHDRAWAL_IN_PROGRESS',
+    /** A merchant QR code with its own amount was sent another amount. Sent with 400; review the code's amount. */
+    PIX_QR_AMOUNT_FIXED: 'PIX_QR_AMOUNT_FIXED',
+    /** A retried QR payment is past its signature: read the payment the refusal names (`intentId`). Sent with 409. */
+    PIX_PAYMENT_EXISTS: 'PIX_PAYMENT_EXISTS',
 } as const
 
 export type ApiErrorCode = (typeof API_ERROR_CODES)[keyof typeof API_ERROR_CODES]
@@ -128,6 +132,8 @@ export class ApiError extends Error {
     readonly reason: string | undefined
     /** The least amount a refusal names (`minAmount` and `currency` beside `code`), when it names one. */
     readonly minimum: { amount: string; currency: string } | undefined
+    /** The payment a refusal names (`PIX_PAYMENT_EXISTS`), to read instead of opening another. */
+    readonly intentId: string | undefined
 
     constructor(
         message: string,
@@ -137,6 +143,7 @@ export class ApiError extends Error {
             retryAfterSec?: number
             reason?: string
             minimum?: { amount: string; currency: string }
+            intentId?: string
             cause?: unknown
         }
     ) {
@@ -147,6 +154,7 @@ export class ApiError extends Error {
         this.retryAfterSec = opts.retryAfterSec
         this.reason = opts.reason
         this.minimum = opts.minimum
+        this.intentId = opts.intentId
     }
 }
 
@@ -191,6 +199,7 @@ export async function apiErrorFromResponse(response: Response, fallbackMessage: 
     let code: string | undefined
     let retryAfterSec: number | undefined
     let minimum: { amount: string; currency: string } | undefined
+    let intentId: string | undefined
     try {
         const body = await response.text()
         const parsed = JSON.parse(body) as {
@@ -201,6 +210,7 @@ export async function apiErrorFromResponse(response: Response, fallbackMessage: 
             retryAfterSec?: unknown
             minAmount?: unknown
             currency?: unknown
+            intentId?: unknown
         }
         // `userMessage` is the copy written for users (the residence refusals,
         // api#1738), so it wins over the developer-facing fields.
@@ -221,8 +231,9 @@ export async function apiErrorFromResponse(response: Response, fallbackMessage: 
         if (typeof parsed.minAmount === 'string' && parsed.minAmount && typeof parsed.currency === 'string') {
             minimum = { amount: parsed.minAmount, currency: parsed.currency }
         }
+        if (typeof parsed.intentId === 'string' && parsed.intentId) intentId = parsed.intentId
     } catch {
         // unreadable or non-JSON body — keep the fallback message
     }
-    return new ApiError(message, { status: response.status, code, retryAfterSec, minimum })
+    return new ApiError(message, { status: response.status, code, retryAfterSec, minimum, intentId })
 }

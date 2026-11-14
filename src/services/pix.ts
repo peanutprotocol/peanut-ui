@@ -27,6 +27,14 @@ export type PixWithdrawSign = PixWithdrawOpened['sign']
 export type PixWithdrawSubmitRequest = Json<paths['/pix/withdraw/submit']['post']['requestBody']>
 export type PixWithdrawSubmitted = Json<paths['/pix/withdraw/submit']['post']['responses'][200]>
 
+/** A merchant QR payment (a Pix BR Code) on the neutral pay routes: its review, the payment it opens, and its read. */
+export type PixPayPreviewRequest = Json<paths['/pix/pay/preview']['post']['requestBody']>
+export type PixPayDisplay = Json<paths['/pix/pay/preview']['post']['responses'][200]>
+export type PixPayRequest = Json<paths['/pix/pay']['post']['requestBody']>
+export type PixPayOpened = Json<paths['/pix/pay']['post']['responses'][200]>
+export type PixPayment = Json<paths['/pix/pay/{intentId}']['get']['responses'][200]>
+export type PixPayState = PixPayment['state']
+
 /** One amount: reais to credit, USDC to convert, or USDC to leave the wallet with every fee (`spendUsd`, "Use balance"). */
 export type PixWithdrawRequest = { pixKey: string } & (
     | { amountBrl: string }
@@ -84,4 +92,23 @@ export const pixApi = {
             post({ txHash }),
             'Could not report the withdrawal'
         ),
+
+    /** The review of a merchant QR code: who is paid, the reais, the USDC that leaves and the fee. Opens nothing. */
+    previewPayment: (request: PixPayPreviewRequest) =>
+        call<PixPayDisplay>('/pix/pay/preview', post(request), 'Could not read the Pix code'),
+
+    /** Opens the payment and says what the wallet signs. One `idempotencyKey` opens one payment. */
+    openPayment: (request: PixPayRequest) =>
+        call<PixPayOpened>('/pix/pay', post(request), 'Could not start the payment'),
+
+    /** The mined transaction that funds the payment. Optional for the money; the API's retry guard reads it. */
+    reportPaymentFunding: (intentId: string, txHash: string) =>
+        call<{ status: string }>(
+            `/pix/pay/${encodeURIComponent(intentId)}/funded`,
+            post({ txHash }),
+            'Could not report the payment'
+        ),
+
+    readPayment: (intentId: string) =>
+        call<PixPayment>(`/pix/pay/${encodeURIComponent(intentId)}`, GET, 'Could not read the payment'),
 }
