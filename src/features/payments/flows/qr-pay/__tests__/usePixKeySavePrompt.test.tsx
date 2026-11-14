@@ -30,16 +30,6 @@ describe('usePixKeySavePrompt', () => {
         expect(result.current.savedName).toBeNull()
     })
 
-    it("offers nothing and saves nothing where the payout is not Manteca's (offerable false)", async () => {
-        const { result } = renderHook(() => usePixKeySavePrompt(KEY, 'MARIA DA SILVA', false))
-
-        expect(result.current.isOffered).toBe(false)
-        expect(result.current.blocksPay).toBe(false)
-        act(() => result.current.saveAfterPayment())
-        await Promise.resolve()
-        expect(mockSavePixKey).not.toHaveBeenCalled()
-    })
-
     it('starts unticked when the owner lookup gave no name, so Pay is not held for one', () => {
         const { result } = renderHook(() => usePixKeySavePrompt(KEY, undefined))
 

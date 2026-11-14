@@ -39,8 +39,7 @@ export interface PixWithdrawAmountSeed {
  *
  * The save card stores the key through POST /manteca/pix-key/saved; an own key
  * lands under Withdraw once api#2129 is deployed (before it, the save stores a
- * recipient, as today). The flow offers it on Manteca's route only
- * (`pixKeySaveOffered`); `save.isOffered` false leaves the card out.
+ * recipient, as today).
  */
 export function PixWithdrawForm({
     title,

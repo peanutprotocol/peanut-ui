@@ -38,16 +38,6 @@ export function pixPlanSetUp(
     return step === 'pending' || step === 'ready' ? 'done' : null
 }
 
-/**
- * Whether the Pix-key form offers "Save to favorites" on this withdraw route. The save is Manteca's
- * route (POST /manteca/pix-key/saved) and checks Manteca's payment gate, which a resident whose Pix
- * runs on Bridge can fail, with no word in the app. A Bridge payout already stores the paid key as a
- * recipient itself, so only the nickname is not kept there (TASK-24910).
- */
-export function pixKeySaveOffered(route: Pick<CapabilityRoute, 'provider'>): boolean {
-    return route.provider?.toUpperCase() !== 'BRIDGE'
-}
-
 /** The least reais the route's provider takes for the operation (`route.limits`), or null where it states none. */
 export function pixMinimumBrl(route: CapabilityRoute | undefined): string | null {
     return route?.limits?.currency === 'BRL' ? route.limits.minAmount : null

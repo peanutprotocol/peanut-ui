@@ -21,7 +21,7 @@ import { usePixPendingTransfer } from '@/features/pix/usePixPendingTransfer'
 import { usePixWithdrawDraft } from '@/features/pix/usePixWithdrawDraft'
 import { usePixKeySavePrompt } from '@/features/payments/flows/qr-pay/usePixKeySavePrompt'
 import { isUnderPixMinimum, pixQuotePrice } from '@/features/pix/pixQuote.utils'
-import { pixKeySaveOffered, pixMinimumBrl } from '@/features/pix/pixRoute.utils'
+import { pixMinimumBrl } from '@/features/pix/pixRoute.utils'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import { useSafeBack } from '@/hooks/useSafeBack'
@@ -224,13 +224,8 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
     const named = submit.opened?.display ?? preview.data ?? null
     const holderName = named?.holderName ?? keyInfo?.holderName ?? null
     // "Save to favorites", as the Pix-key payment offers it: the key the withdrawal pays (the draft
-    // goes when the withdrawal opens), named after its holder, saved once the funding is sent; not on
-    // a route whose provider saves the key itself (`pixKeySaveOffered`)
-    const pixKeySave = usePixKeySavePrompt(
-        submit.opened?.display.pixKey ?? pixKey,
-        holderName ?? undefined,
-        pixKeySaveOffered(route)
-    )
+    // goes when the withdrawal opens), named after its holder, saved once the funding is sent
+    const pixKeySave = usePixKeySavePrompt(submit.opened?.display.pixKey ?? pixKey, holderName ?? undefined)
     const { saveAfterPayment: saveKey } = pixKeySave
     useEffect(() => {
         if (isSent) saveKey()

@@ -600,10 +600,13 @@ describe('PixWithdrawFlow form', () => {
         await waitFor(() => expect(mockSavePixKey).toHaveBeenCalledWith(KEY, 'Ana Souza'))
     })
 
-    // Bridge pays another person's key and stores it as a recipient itself; Manteca's save route is not
-    // its route, and would refuse a resident whose Pix runs on Bridge with no word on screen (TASK-24910)
-    it('on a Bridge route offers no save card and never calls the save, though the funding is sent', async () => {
-        const bridgeDisplay = { ...display, ownAccount: false, provider: 'Bridge', amountBrlEstimated: true as const }
+    // The save works on Bridge's route too (API-CONTRACT 7.3): the user's own key is saved as a
+    // withdrawal destination, another person's as a recipient, under the name typed here (TASK-24910)
+    it.each([
+        ['their own key', true],
+        ["another person's key", false],
+    ])('on a Bridge route offers to save %s and saves it once the funding is sent', async (_payee, ownAccount) => {
+        const bridgeDisplay = { ...display, ownAccount, provider: 'Bridge', amountBrlEstimated: true as const }
         mockPreview.mockResolvedValue(bridgeDisplay)
         mockInit.mockResolvedValue({
             provider: 'bridge',
@@ -632,17 +635,17 @@ describe('PixWithdrawFlow form', () => {
             candidates: [{ provider: 'bridge', state: 'ready' }],
         })
 
-        const confirm = await screen.findByRole('button', { name: en.common.confirm })
-        // the holder is on screen, so the card (named after them) would be too, were it offered
-        expect(await screen.findByText('Ana Souza')).toBeInTheDocument()
-        expect(screen.queryByText(en.global.savedAddresses.savePrompt)).toBeNull()
+        expect(await screen.findByText(en.global.savedAddresses.savePrompt)).toBeInTheDocument()
+        expect(await screen.findByDisplayValue('Ana Souza')).toBeInTheDocument()
+        const confirm = screen.getByRole('button', { name: en.common.confirm })
         await waitFor(() => expect(confirm).toBeEnabled())
         fireEvent.click(confirm)
 
         await waitFor(() => expect(mockSubmitTransfer).toHaveBeenCalledTimes(1))
         // a Bridge payout takes minutes: the ending is the static one, not the loader
         expect(await screen.findByRole('button', { name: en.common.done })).toBeInTheDocument()
-        expect(mockSavePixKey).not.toHaveBeenCalled()
+        await waitFor(() => expect(mockSavePixKey).toHaveBeenCalledWith(KEY, 'Ana Souza'))
+        expect(mockSavePixKey).toHaveBeenCalledTimes(1)
     })
 })
 
