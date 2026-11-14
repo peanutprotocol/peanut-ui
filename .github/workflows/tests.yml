@@ -301,6 +301,9 @@ jobs:
                   NEXT_FONT_GOOGLE_MOCKED_RESPONSES: ${{ github.workspace }}/scripts/next-font-google/mock.cjs
                   # Dev leads the production API between releases and this job ships nothing: API skew warns only.
                   NATIVE_EXPORT_COMPILE_CHECK_ONLY: '1'
+                  # The webpack build outgrew Node's default heap (about 2 GB here): it died out of memory on 3 of 4
+                  # runs of ui#4094 (Nov 2026). Same value as the other build jobs of this file.
+                  NODE_OPTIONS: --max-old-space-size=6144
               run: node scripts/native-build.js
 
             - name: Verify export output
