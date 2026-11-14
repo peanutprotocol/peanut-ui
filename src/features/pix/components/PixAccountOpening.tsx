@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import NavHeader from '@/components/Global/NavHeader'
@@ -20,7 +20,9 @@ const WAITING = new Set(['setting_up', 'pending'])
  * the page loads, for a resident of Brazil and for everyone else (API-CONTRACT-M3 section 3), and
  * the wait looks like the provider's review. An answer the provider still needs (the address, a CPF
  * for a resident) is asked here, on the verify flow's own question step (`feature=pix`), and the
- * activation runs again once it is saved; Back from the questions leaves Pix. A failure or a refusal
+ * activation runs again once it is saved; Back from the questions leaves Pix. A further missing step is
+ * asked the same way; the step just answered asked again shows the failure screen, since an answer
+ * cannot change after approval and asking it again would loop. A failure or a refusal
  * shows the activation's own status screen, in local's words. The route turns ready once the
  * account is open, and the flow under the setup renders.
  */
@@ -31,20 +33,27 @@ export function PixAccountOpening({ title, onBack }: { title: string; onBack: ()
     const activation = useKycFeatureActivation('pix', { enabled: !degraded, automatic: true })
     const result = activation.result
     const waiting = result?.kind === 'report' && WAITING.has(result.report.state)
+    // the step the user last answered, and how many times they answered: each answer asks afresh
+    const [answered, setAnswered] = useState<{ step: string | null | undefined; round: number } | null>(null)
+    const missing = result?.kind === 'conflict' && result.code === 'questions_missing' ? result : null
     // the user poller reads the capabilities every few seconds, so the route moves on to its review
     useEffect(() => {
         if (waiting) markSubmitted()
     }, [waiting])
 
     if (degraded) return <VerificationOutage onBack={onBack} />
-    if (result?.kind === 'conflict' && result.code === 'questions_missing')
+    if (missing && !activation.isLoading && !(answered && answered.step === missing.step))
         return (
             <div className="fixed inset-0 z-30 overflow-y-auto bg-white pt-safe-top pb-safe-bottom">
                 <AddFeatureQuestions
+                    key={answered?.round ?? 0}
                     feature="pix"
-                    requiredStep={result.step}
+                    requiredStep={missing.step}
                     onBack={onBack}
-                    onDone={() => void activation.activate()}
+                    onDone={() => {
+                        setAnswered({ step: missing.step, round: (answered?.round ?? 0) + 1 })
+                        void activation.activate()
+                    }}
                 />
             </div>
         )
@@ -60,7 +69,7 @@ export function PixAccountOpening({ title, onBack }: { title: string; onBack: ()
     return (
         <KycFeatureActivationStatus
             feature="local"
-            result={result}
+            result={missing ? { kind: 'failed' } : result}
             isLoading={activation.isLoading}
             onRetry={() => void activation.activate()}
             onBack={onBack}

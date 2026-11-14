@@ -1,4 +1,5 @@
 /** @jest-environment jsdom */
+import { useState } from 'react'
 import { fireEvent, screen } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
@@ -17,11 +18,25 @@ jest.mock('@/features/paperwork-verification/useKycFeatureActivation', () => ({
         return { activate: mockActivate, isLoading: false, allowed: false, result: null, ...mockActivation }
     },
 }))
+// as the real step: the step it was opened for, read once, and its loader once the answers are saved
+function MockQuestions(props: { feature: string; requiredStep?: string; onDone: () => void }) {
+    const [step] = useState(props.requiredStep)
+    const [saved, setSaved] = useState(false)
+    if (saved) return <div>saving answers</div>
+    return (
+        <button
+            onClick={() => {
+                setSaved(true)
+                props.onDone()
+            }}
+        >
+            questions {props.feature} {step}
+        </button>
+    )
+}
 jest.mock('@/features/paperwork-verification/AddFeatureFlow', () => ({
     AddFeatureQuestions: (props: { feature: string; requiredStep?: string; onDone: () => void }) => (
-        <button onClick={props.onDone}>
-            questions {props.feature} {props.requiredStep}
-        </button>
+        <MockQuestions {...props} />
     ),
 }))
 jest.mock('@/features/paperwork-verification/KycFeatureActivationStatus', () => ({
@@ -36,6 +51,7 @@ jest.mock('@/features/paperwork-verification/components/LoadScreens', () => ({
 import { PixAccountOpening } from '../components/PixAccountOpening'
 
 const renderOpening = () => renderWithIntl(<PixAccountOpening title="Add money" onBack={jest.fn()} />)
+const missingStep = (step: string) => ({ result: { kind: 'conflict', code: 'questions_missing', step } })
 
 describe('PixAccountOpening', () => {
     beforeEach(() => {
@@ -77,6 +93,27 @@ describe('PixAccountOpening', () => {
         renderOpening()
         fireEvent.click(screen.getByRole('button', { name: `questions pix ${step}` }))
         expect(mockActivate).toHaveBeenCalledTimes(1)
+    })
+
+    // review finding 1: the API can ask again, first for the feature's step, then for Avenia's own
+    it('asks the next missing step afresh after an answer, never leaving the saved step on its loader', () => {
+        mockActivation = missingStep('address')
+        const { rerender } = renderOpening()
+        fireEvent.click(screen.getByRole('button', { name: 'questions pix address' }))
+        mockActivation = missingStep('tax')
+        rerender(<PixAccountOpening title="Add money" onBack={jest.fn()} />)
+        expect(screen.getByRole('button', { name: 'questions pix tax' })).toBeInTheDocument()
+        expect(screen.queryByText('saving answers')).toBeNull()
+    })
+
+    // an answer cannot change after approval, so asking the same step again would loop
+    it('shows the failure screen when the step just answered is asked again', () => {
+        mockActivation = missingStep('address')
+        const { rerender } = renderOpening()
+        fireEvent.click(screen.getByRole('button', { name: 'questions pix address' }))
+        rerender(<PixAccountOpening title="Add money" onBack={jest.fn()} />)
+        expect(screen.getByText('activation status failed')).toBeInTheDocument()
+        expect(screen.queryByText('saving answers')).toBeNull()
     })
 
     it.each([
