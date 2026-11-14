@@ -36,13 +36,14 @@ export function QrPayFormView() {
     const tNav = useTranslations('navigation')
     const tLoading = useTranslations('loadingStates')
     const {
-        paymentProcessor,
-        targetMantecaCountry,
-        paymentLock,
         qrPayment,
         merchantName,
+        merchantTaxId,
         recipientBankName,
         providerFee,
+        providerId,
+        amountFixed,
+        shownRate,
         pixKeyLabel,
         pixKeyOwner,
         isAwaitingPixKeyOwner,
@@ -98,14 +99,6 @@ export function QrPayFormView() {
     // always set here — the guard only carries that fact to the type level.
     if (!currency) return null
 
-    // the manteca entity behind the rail, for the provider row (TASK-23295)
-    const providerId =
-        paymentProcessor === 'MANTECA' && targetMantecaCountry
-            ? targetMantecaCountry === 'BR'
-                ? 'manteca-br'
-                : 'manteca-ar'
-            : null
-
     // the USD a foreign card would have cost on top, when the comparison holds for this currency
     const savingsInCents = hasCardMarkupComparison(currency.code)
         ? calculateSavingsInCents(usdAmount, cardMarkup?.rate)
@@ -151,7 +144,7 @@ export function QrPayFormView() {
                         name={merchantName ?? ''}
                         maskName={!!pixKeyLabel}
                         pixKey={ownerDetails?.pixKey}
-                        taxId={ownerDetails?.taxId}
+                        taxId={ownerDetails?.taxId ?? merchantTaxId}
                         bankName={recipientBankName}
                     />
 
@@ -172,9 +165,7 @@ export function QrPayFormView() {
                             decimals: 2,
                         }}
                         setSecondaryAmount={setAmount}
-                        disabled={
-                            !!qrPayment || isLoading || (paymentProcessor === 'MANTECA' && paymentLock?.code !== '')
-                        }
+                        disabled={!!qrPayment || isLoading || amountFixed}
                         walletBalance={balance ? formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS) : undefined}
                         hideBalance
                         // only show balance error if limits blocking card is not displayed (warnings can coexist)
@@ -195,7 +186,7 @@ export function QrPayFormView() {
                     )}
 
                     <PaymentDetailsCard
-                        rate={{ price: currency.price, code: currency.code }}
+                        rate={{ price: shownRate ?? currency.price, code: currency.code }}
                         savings={savings}
                         providerFee={providerFee}
                         providerId={providerId}

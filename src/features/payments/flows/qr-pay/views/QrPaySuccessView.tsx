@@ -41,10 +41,17 @@ export function QrPaySuccessView() {
     // earlier entries, so back from home re-entered the flow
     const leaveToHome = useReturnTo('/home')
     const { user } = useAuth()
-    const { qrPayment, setQrPayment, paymentLock, currency, usdAmount, pointsData, pointsDivRef, pixKeyOwner } =
-        useQrPayFlow()
-    // A looked-up PIX key names its owner, as the payment screen did.
-    const paidTo = pixKeyOwner?.name ?? qrPayment?.details.merchant.name ?? paymentLock?.paymentRecipientName ?? ''
+    const {
+        qrPayment,
+        setQrPayment,
+        currency,
+        usdAmount,
+        pointsData,
+        pointsDivRef,
+        pixKeyOwner,
+        paidTo,
+        paidLocalAmount,
+    } = useQrPayFlow()
     const { rewardOffered, perkClaimed, holdProgress, isShaking, shakeIntensity, startHold, cancelHold } =
         usePerkHoldToClaim(qrPayment, setQrPayment)
     const { openTransactionDetails, isTransactionSelected, closeTransactionDetails } = useTransactionDetailsDrawer()
@@ -61,7 +68,7 @@ export function QrPaySuccessView() {
 
     // The payment settled but the response has not landed yet — one render at
     // most; the old page returned null from the same race.
-    if (!qrPayment || !currency) return null
+    if (!paidLocalAmount || !currency) return null
 
     // Show "saved $X vs card" only for currencies with a meaningful
     // card-vs-local-rail gap (ARS, BRL — see CARD_FX_MARKUP_BY_CURRENCY).
@@ -102,10 +109,7 @@ export function QrPaySuccessView() {
                                 {t('success.youPaid', { merchant: paidTo })}
                             </h1>
                             <div className="text-heading-s">
-                                {currency.symbol}{' '}
-                                {formatCurrency(
-                                    qrPayment?.details.paymentAssetAmount ?? paymentLock?.paymentAssetAmount
-                                )}
+                                {currency.symbol} {formatCurrency(paidLocalAmount)}
                             </div>
                             <div className="text-heading-card">≈ {formatCurrency(usdAmount ?? undefined)} USD</div>
                             {/* Savings Message (Argentina Manteca only) */}

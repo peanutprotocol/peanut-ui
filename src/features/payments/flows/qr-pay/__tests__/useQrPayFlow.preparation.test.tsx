@@ -19,6 +19,7 @@ import React from 'react'
 import posthog from 'posthog-js'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { IntlWrapper } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
 
@@ -308,17 +309,19 @@ function renderFlow(
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
     const tree = () => (
         <IntlWrapper>
-            <QueryClientProvider client={queryClient}>
-                <LoadingStateContextProvider>
-                    {options.page ? (
-                        <QrPayPage {...scan} />
-                    ) : (
-                        <QrPayFlowProvider {...scan}>
-                            <Probe />
-                        </QrPayFlowProvider>
-                    )}
-                </LoadingStateContextProvider>
-            </QueryClientProvider>
+            <NuqsTestingAdapter>
+                <QueryClientProvider client={queryClient}>
+                    <LoadingStateContextProvider>
+                        {options.page ? (
+                            <QrPayPage {...scan} />
+                        ) : (
+                            <QrPayFlowProvider {...scan}>
+                                <Probe />
+                            </QrPayFlowProvider>
+                        )}
+                    </LoadingStateContextProvider>
+                </QueryClientProvider>
+            </NuqsTestingAdapter>
         </IntlWrapper>
     )
     const renderTree = () => (options.strict ? <React.StrictMode>{tree()}</React.StrictMode> : tree())
