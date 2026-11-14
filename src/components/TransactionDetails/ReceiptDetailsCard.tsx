@@ -19,6 +19,7 @@ import { useReceiptDateFormatter } from '@/components/TransactionDetails/useRece
 import {
     bankAccountLabelKey,
     getAccountCopyValue,
+    isPixAccountType,
     receiptStatusDate,
     type BankAccountLabelKey,
     type ReceiptStatusDateKind,
@@ -37,6 +38,7 @@ import { BridgeDepositInstructions } from './provider-rows/BridgeDepositInstruct
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { getTransactionSign } from '@/utils/history.utils'
 import { maskAccountIdentifier } from '@/utils/account-mask.utils'
+import { formatPixKey } from '@/utils/pix-key-format.utils'
 import { formatBankAmount } from '@/utils/currency'
 import { formatPoints } from '@/utils/format.utils'
 import { printableAddress, shortenAddress, shortenStringLong } from '@/utils/general.utils'
@@ -73,6 +75,7 @@ export function ReceiptDetailsCard({
 }) {
     const t = useAppTranslations('transaction')
     const tCommon = useTranslations('common')
+    const tWithdraw = useTranslations('withdraw')
     const router = useRouter()
     const formatDate = useReceiptDateFormatter()
     const { rowVisibilityConfig, isGuestBankClaim, isPeanutWalletToken, country } = vm
@@ -80,6 +83,7 @@ export function ReceiptDetailsCard({
     const bankAccountLabel = (type: string) => {
         const key = bankAccountLabelKey(type)
         if (key === 'address') return t('rows.address')
+        if (key === 'pixKey') return tWithdraw('pixKey.placeholder')
         return BANK_ACCOUNT_SCHEME_LABELS[key] ?? t('rows.accountNumber')
     }
 
@@ -160,7 +164,10 @@ export function ReceiptDetailsCard({
                             isGuestBankClaim
                                 ? transaction.bankAccountDetails.identifier
                                 : maskAccountIdentifier(
-                                      transaction.bankAccountDetails.identifier,
+                                      // a CPF, CNPJ or phone key reads punctuated; the copy keeps the key itself
+                                      isPixAccountType(transaction.bankAccountDetails.type)
+                                          ? formatPixKey(transaction.bankAccountDetails.identifier)
+                                          : transaction.bankAccountDetails.identifier,
                                       transaction.bankAccountDetails.type
                                   )
                         }

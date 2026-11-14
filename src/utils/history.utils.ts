@@ -17,6 +17,7 @@ import {
     type TransactionDirection,
 } from '@/components/TransactionDetails/transaction-types'
 import { hasPublicReceipt } from '@/components/TransactionDetails/transaction-predicates'
+import { isPixAccountType } from '@/components/TransactionDetails/transaction-details.utils'
 
 export enum EHistoryUserRole {
     SENDER = 'SENDER',
@@ -422,6 +423,16 @@ export function getAvatarUrl(transaction: TransactionDetails): string | undefine
     // Historical QR_PAY rows from removed providers (e.g. DEPRECATED_SIMPLEFI)
     // fall through to undefined → the generic default avatar.
     return undefined
+}
+
+/**
+ * The logo in the leading slot of an Activity row. A payout to a Pix key shows the Pix logo, as a
+ * Manteca Pix payment does. The receipt drawer's header reads `getAvatarUrl` alone, so it keeps the
+ * person or the bank.
+ */
+export function getActivityRowAvatarUrl(transaction: TransactionDetails): string | undefined {
+    const account = transaction.bankAccountDetails
+    return getAvatarUrl(transaction) ?? (account && isPixAccountType(account.type) ? PIX : undefined)
 }
 
 // Whether each status's amount carries the +/- sign. Sign-less statuses are

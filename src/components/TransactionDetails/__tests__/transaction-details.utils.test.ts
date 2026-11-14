@@ -53,6 +53,11 @@ describe('getAccountCopyValue — copy path', () => {
         expect(getAccountCopyValue(evm, 'evm-address')).toBe(evm)
     })
 
+    test('a Pix key copies VERBATIM: an email key read as an IBAN would come out upper case', () => {
+        expect(getAccountCopyValue('ana.souza@example.com', 'pix')).toBe('ana.souza@example.com')
+        expect(getAccountCopyValue('+5511987654321', 'BANK_PIX')).toBe('+5511987654321')
+    })
+
     test('IBAN rail keeps the formatted copy shape (uppercased, chunked by 4)', () => {
         expect(getAccountCopyValue('de89370400440532013000', 'iban')).toBe('DE89 3704 0044 0532 0130 00')
     })
@@ -95,6 +100,10 @@ describe('bankAccountLabelKey', () => {
         expect(bankAccountLabelKey('BANK_IBAN')).toBe('iban')
         expect(bankAccountLabelKey('BANK_CLABE')).toBe('clabe')
         expect(bankAccountLabelKey('us')).toBe('accountNumber')
+    })
+    test("a Pix payout's account is the Pix key it paid", () => {
+        expect(bankAccountLabelKey('pix')).toBe('pixKey')
+        expect(bankAccountLabelKey('BANK_PIX')).toBe('pixKey')
     })
 })
 

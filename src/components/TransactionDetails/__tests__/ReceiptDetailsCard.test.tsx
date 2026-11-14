@@ -1,7 +1,7 @@
 // What the details card prints for the rows the view model turns on — the
 // labels and values a user reads, after consolidation.
 import React from 'react'
-import { screen } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import { ToastProvider } from '@/components/0_Bruddle/Toast'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -14,6 +14,8 @@ jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }))
 jest.mock('@/context/authContext', () => ({ useOptionalAuth: () => null }))
 jest.mock('@/assets', () => ({}))
 jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '' }))
+const mockCopy = jest.fn(async (_text: string) => true)
+jest.mock('@/utils/clipboard.utils', () => ({ copyTextToClipboard: (text: string) => mockCopy(text) }))
 
 // rendered without a parent drawer, as on a receipt page
 function Card({ transaction, isPublic = false }: { transaction: TransactionDetails; isPublic?: boolean }) {
@@ -253,5 +255,55 @@ describe('ReceiptDetailsCard — network fee (TASK-23487)', () => {
         expect(
             fee.compareDocumentPosition(screen.getByText('Recipient receives')) & Node.DOCUMENT_POSITION_FOLLOWING
         ).toBeTruthy()
+    })
+})
+
+// Aleks, 2026-11-14 (TASK-24947): a Pix payout names its account "Pix key", prints a CPF, CNPJ or
+// phone key punctuated, and the copy button copies the key itself
+describe('ReceiptDetailsCard — the Pix key a payout paid', () => {
+    const pixPayout = (identifier: string, type = 'pix') =>
+        ({
+            id: 'wd-1',
+            direction: 'bank_withdraw',
+            userName: 'Bank account',
+            fullName: '',
+            initials: 'BA',
+            amount: 18.87,
+            tokenSymbol: 'USDC',
+            status: 'completed',
+            date: '2026-11-14T10:00:00Z',
+            createdAt: '2026-11-14T10:00:00Z',
+            completedAt: '2026-11-14T10:04:00Z',
+            currency: { code: 'BRL', amount: '100.00' },
+            bankAccountDetails: { identifier, type },
+            extraDataForDrawer: {
+                originalType: 'TRANSACTION_INTENT',
+                originalUserRole: EHistoryUserRole.SENDER,
+                kind: 'OFFRAMP',
+                provider: 'AVENIA',
+            },
+        }) as unknown as TransactionDetails
+
+    it.each([
+        ['a CPF', '11144477735', '111.444.777-35'],
+        ['a phone', '+5511987654321', '11 98765-4321'],
+        ['a CNPJ', '12345678000195', '12.345.678/0001-95'],
+        ['an email', 'ana.souza@example.com', 'ana.souza@example.com'],
+    ])('labels %s key "Pix key" and prints it as %s', (_kind, key, shown) => {
+        renderWithIntl(<Card transaction={pixPayout(key)} />)
+        expect(screen.getByText('Pix key')).toBeInTheDocument()
+        expect(screen.getByText(shown)).toBeInTheDocument()
+        expect(screen.queryByText('Account number')).not.toBeInTheDocument()
+    })
+
+    it.each([
+        ['a phone', '+5511987654321', '11 98765-4321'],
+        // an email read as an IBAN would come out upper case
+        ['an email', 'ana.souza@example.com', 'ana.souza@example.com'],
+    ])('copies %s key itself, never the printed form', async (_kind, key, shown) => {
+        renderWithIntl(<Card transaction={pixPayout(key, 'BANK_PIX')} />)
+        const row = screen.getByText(shown).parentElement!
+        fireEvent.click(row.querySelector('button')!)
+        await waitFor(() => expect(mockCopy).toHaveBeenCalledWith(key))
     })
 })
