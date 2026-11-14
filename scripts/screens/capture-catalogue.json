@@ -175,27 +175,22 @@
         "route": "/add-money/pix"
     },
     {
-        "id": "fixture-pix-setup-terms-before-verification",
-        "flow": "Setup and login",
-        "route": "/add-money/pix"
-    },
-    {
-        "id": "fixture-pix-setup-hosted-verify",
-        "flow": "Setup and login",
-        "route": "/add-money/pix"
-    },
-    {
-        "id": "fixture-pix-setup-hosted-expired",
-        "flow": "Setup and login",
-        "route": "/add-money/pix"
-    },
-    {
         "id": "fixture-pix-setup-reviewing",
         "flow": "Setup and login",
         "route": "/add-money/pix"
     },
     {
+        "id": "fixture-pix-setup-address-missing",
+        "flow": "Setup and login",
+        "route": "/add-money/pix"
+    },
+    {
         "id": "fixture-pix-setup-cpf-missing",
+        "flow": "Setup and login",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-setup-open-failed",
         "flow": "Setup and login",
         "route": "/add-money/pix"
     },
@@ -408,16 +403,6 @@
     },
     {
         "id": "fixture-home-new-user",
-        "flow": "Home and shared states",
-        "route": "/home"
-    },
-    {
-        "id": "fixture-home-pix-plan-before-verification",
-        "flow": "Home and shared states",
-        "route": "/home"
-    },
-    {
-        "id": "fixture-home-pix-plan-provider-reviewing",
         "flow": "Home and shared states",
         "route": "/home"
     },
@@ -695,11 +680,6 @@
         "id": "p79-notifications",
         "flow": "Home and shared states",
         "route": "/settings/notifications"
-    },
-    {
-        "id": "p87-pix-plan-verify-opens-pix",
-        "flow": "Home and shared states",
-        "route": "/home"
     },
     {
         "id": "api-ribbon-loading",
@@ -1453,11 +1433,6 @@
         "id": "p69-regional-deposit",
         "flow": "Add money",
         "route": "/add-money/argentina/manteca"
-    },
-    {
-        "id": "p80-pix-terms-not-saved",
-        "flow": "Add money",
-        "route": "/add-money/pix"
     },
     {
         "id": "p81-pix-deposit-limit",
