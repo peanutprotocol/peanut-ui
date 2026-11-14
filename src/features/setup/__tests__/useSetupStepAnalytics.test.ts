@@ -62,7 +62,7 @@ describe('useSetupStepAnalytics', () => {
             step_index: 1,
             total_steps: steps.length,
             nav_type: 'initial',
-            flow_version: 1,
+            flow_version: 2,
             signup_entry_flow: 'card',
             returning_device: true,
         })

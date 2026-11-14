@@ -69,6 +69,7 @@ const event = (control: string, action: string, value?: string) => ({
     setup_host: 'signup',
     flow_version: 2,
     signup_entry_flow: 'default',
+    returning_device: false,
     control,
     action,
     ...(value === undefined ? {} : { value }),

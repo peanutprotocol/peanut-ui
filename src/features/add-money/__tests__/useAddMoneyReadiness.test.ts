@@ -1,10 +1,11 @@
 import { renderHook } from '@testing-library/react'
-import type { FeatureReport } from '@/types/capabilities'
+import type { CapabilityRoute, FeatureReport } from '@/types/capabilities'
 import { useAddMoneyReadiness } from '../useAddMoneyReadiness'
 
 const mockGateFor = jest.fn()
 const mockQuery = jest.fn()
 let mockReport: FeatureReport | undefined
+let mockRoutes: CapabilityRoute[] | undefined
 let mockUserId: string | undefined
 let mockOneShot: boolean
 let mockStandingEnabled: boolean
@@ -16,9 +17,12 @@ jest.mock('@/context/authContext', () => ({
     }),
 }))
 jest.mock('@/hooks/useCapabilities', () => ({
-    useCapabilities: () => ({ gateFor: mockGateFor, capabilities: { features: mockReport }, isLoading: false }),
+    useCapabilities: () => ({
+        gateFor: mockGateFor,
+        capabilities: { features: mockReport, routes: mockRoutes },
+        isLoading: false,
+    }),
 }))
-jest.mock('@/features/brazil-pause/useBrazilServicesPaused', () => ({ useBrazilServicesPaused: () => false }))
 jest.mock('@/features/deposit-accounts/useResidenceIso2s', () => ({ useResidenceIso2s: () => ['PT'] }))
 jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({
     useDepositAccountsEnabled: () => mockStandingEnabled,
@@ -30,6 +34,7 @@ beforeEach(() => {
     mockUserId = 'current-owner'
     mockOneShot = false
     mockReport = undefined
+    mockRoutes = undefined
     mockGateFor.mockReset().mockReturnValue({ kind: 'not-offered' })
     mockQuery.mockReset().mockReturnValue({ data: { accounts: [], unavailable: [] }, isLoading: false, isError: false })
 })
@@ -156,4 +161,18 @@ it('does not read or use cached standing accounts when disabled', () => {
     expect(mockQuery).toHaveBeenCalledWith(expect.objectContaining({ enabled: false, staleTime: 300000 }))
     expect(result.current.ready.account).toEqual([])
     expect(result.current.isLoading).toBe(false)
+})
+
+it('reads the Brazil pause from the Pix deposit route and keeps Pix off the drawer while it is paused', () => {
+    const pixDeposit = (state: CapabilityRoute['state']) =>
+        [{ operation: 'deposit', method: 'PIX_BR', state }] as unknown as CapabilityRoute[]
+    mockRoutes = pixDeposit('paused')
+    const { result, rerender } = renderHook(() => useAddMoneyReadiness(true))
+    expect(result.current.brazilPaused).toBe(true)
+    expect(result.current.ready.pix).toEqual([])
+
+    mockRoutes = pixDeposit('ready')
+    rerender()
+    expect(result.current.brazilPaused).toBe(false)
+    expect(result.current.drawerMethods[0]).toBe('pix')
 })

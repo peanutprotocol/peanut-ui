@@ -251,9 +251,7 @@ export function DepositAccountsListScreen({
                     bankRows={bankRows}
                     onBankRowClick={openTopUp}
                     onVerifyPix={
-                        bankAccount && gates.PIX_BR?.kind === 'needs-identity' && !brazilPaused
-                            ? () => onOpen('PIX_BR')
-                            : undefined
+                        bankAccount && gates.PIX_BR?.kind === 'needs-identity' ? () => onOpen('PIX_BR') : undefined
                     }
                     onChangeResidence={openResidenceSettings}
                     searchTerm={term}

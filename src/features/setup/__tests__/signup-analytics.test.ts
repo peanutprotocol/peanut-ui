@@ -83,7 +83,7 @@ describe('returning device signup context', () => {
 
         expect(localStorage.getItem(markerKey)).toBeNull()
         expect(signupAnalyticsContext('default')).toEqual({
-            flow_version: 1,
+            flow_version: 2,
             signup_entry_flow: 'default',
             returning_device: true,
         })
@@ -93,13 +93,13 @@ describe('returning device signup context', () => {
         'evaluates context for %s at each invocation',
         (entryFlow) => {
             expect(signupAnalyticsContext(entryFlow)).toEqual({
-                flow_version: 1,
+                flow_version: 2,
                 signup_entry_flow: entryFlow,
                 returning_device: false,
             })
             localStorage.setItem(markerKey, '1')
             expect(signupAnalyticsContext(entryFlow)).toEqual({
-                flow_version: 1,
+                flow_version: 2,
                 signup_entry_flow: entryFlow,
                 returning_device: true,
             })
@@ -122,7 +122,7 @@ describe('returning device signup context', () => {
             step_index: 1,
             total_steps: 3,
             nav_type: 'forward',
-            flow_version: 1,
+            flow_version: 2,
             signup_entry_flow: 'default',
             returning_device: false,
         })
@@ -131,7 +131,7 @@ describe('returning device signup context', () => {
             step_index: 1,
             total_steps: 3,
             nav_type: 'forward',
-            flow_version: 1,
+            flow_version: 2,
             signup_entry_flow: 'default',
             returning_device: true,
         })
@@ -153,7 +153,7 @@ describe('returning device signup context', () => {
             action: 'tap',
             value: 'chosen',
             setup_host: host,
-            flow_version: 1,
+            flow_version: 2,
             signup_entry_flow: 'card',
             returning_device: false,
         })
@@ -173,7 +173,7 @@ describe('returning device signup context', () => {
             control: 'continue',
             action: 'tap',
             setup_host: 'signup',
-            flow_version: 1,
+            flow_version: 2,
             signup_entry_flow: 'other',
             returning_device: false,
         })
@@ -196,7 +196,7 @@ describe('returning device signup context', () => {
             control: 'continue',
             action: 'tap',
             setup_host: 'signup',
-            flow_version: 1,
+            flow_version: 2,
             signup_entry_flow: 'default',
             returning_device: false,
         })
@@ -206,7 +206,7 @@ describe('returning device signup context', () => {
             control: 'continue',
             action: 'tap',
             setup_host: 'signup',
-            flow_version: 1,
+            flow_version: 2,
             signup_entry_flow: 'default',
             returning_device: true,
         })

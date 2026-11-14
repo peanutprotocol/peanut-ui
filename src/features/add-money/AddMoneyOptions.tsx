@@ -240,7 +240,7 @@ export function AddMoneyOptions() {
                                     )}
                                     chevron
                                     onClick={() => {
-                                        if (paused) return openBrazilPausedDrawer()
+                                        if (paused) return openBrazilPausedDrawer('paused')
                                         if (
                                             residenceRestricted &&
                                             (corridor === 'PIX_BR' || corridor === 'BANK_TRANSFER_AR')
