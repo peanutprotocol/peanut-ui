@@ -11,9 +11,10 @@ import Badge from '@/components/Global/Badges/Badge'
 import NavHeader from '@/components/Global/NavHeader'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
-import { completePixKey, maskedTaxIdKind } from '@/features/pix/pixFlow.utils'
+import { completePixKey } from '@/features/pix/pixFlow.utils'
 import { usePixKeyLookup, type PixKeyLookup } from '@/features/pix/usePixKeyLookup'
 import type { PixKeyInfo } from '@/services/pix'
+import { brTaxIdKind } from '@/utils/br-tax-id.utils'
 import { isPixEmvcoQr, normalizePixInput } from '@/utils/withdraw.utils'
 
 /**
@@ -104,7 +105,9 @@ export function PixKeyStep({
                         body={[
                             current.info.bankName,
                             current.info.holderTaxIdMasked &&
-                                `${maskedTaxIdKind(current.info.holderTaxIdMasked)} ${current.info.holderTaxIdMasked}`,
+                                [brTaxIdKind(current.info.holderTaxIdMasked), current.info.holderTaxIdMasked]
+                                    .filter(Boolean)
+                                    .join(' '),
                         ]
                             .filter(Boolean)
                             .join(' · ')}

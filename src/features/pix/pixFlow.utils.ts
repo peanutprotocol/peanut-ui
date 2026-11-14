@@ -71,11 +71,6 @@ export function toApiDecimal(value: string, decimals: number): string | null {
     return Number(result) > 0 ? result : null
 }
 
-/** "CPF" or "CNPJ" for a masked Brazilian tax id ("***.456.789-**" has 11 positions, a CNPJ 14). */
-export function maskedTaxIdKind(masked: string): 'CPF' | 'CNPJ' {
-    return masked.replace(/[^\d*]/g, '').length === 14 ? 'CNPJ' : 'CPF'
-}
-
 /**
  * The steps of a Pix withdrawal: the key first, then the one form (the amount and its quote, as the
  * Pix-key payment form shows them; ruling 2026-11-12). The form keeps the `review` step name, so

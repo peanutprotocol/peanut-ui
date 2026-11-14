@@ -7,7 +7,6 @@ import {
     quoteMovedAgainstUser,
     signMatchesDisplay,
     completePixKey,
-    maskedTaxIdKind,
     toApiDecimal,
 } from '../pixFlow.utils'
 import { pixOpensWithoutTap, pixSetupState } from '../pixRouteStep'
@@ -129,13 +128,6 @@ describe('toApiDecimal', () => {
         expect(toApiDecimal('abc', 2)).toBeNull()
         expect(toApiDecimal('-5', 2)).toBeNull()
         expect(toApiDecimal('0.001', 2)).toBeNull()
-    })
-})
-
-describe('maskedTaxIdKind', () => {
-    it('tells a CPF from a CNPJ by the masked positions', () => {
-        expect(maskedTaxIdKind('***.456.789-**')).toBe('CPF')
-        expect(maskedTaxIdKind('12.***.***/0001-**')).toBe('CNPJ')
     })
 })
 

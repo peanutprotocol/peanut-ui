@@ -14,7 +14,7 @@ import { AmountCard } from '@/features/payments/shared/components/AmountCard'
 import { PaymentDetailsCard } from '@/features/payments/shared/components/PaymentDetailsCard'
 import { RecipientCard } from '@/features/payments/shared/components/RecipientCard'
 import { SaveRecipientCard, type SaveRecipientState } from '@/features/payments/shared/components/SaveRecipientCard'
-import { maskedTaxIdKind, pixShownRate } from '@/features/pix/pixFlow.utils'
+import { pixShownRate } from '@/features/pix/pixFlow.utils'
 import type { PixWithdrawDisplay } from '@/services/pix'
 import type { ProviderId } from '@/types/provider.types'
 import { formatBankAmount } from '@/utils/currency'
@@ -108,12 +108,6 @@ export function PixWithdrawForm({
     const [seed] = useState(amount.seed)
     // as the payment form: the holder's name leads, the key and tax ID under it; an unnamed holder leaves the key as the heading
     const details = recipient.holderName ? pixKeyOwnerDetails(recipient.pixKey, recipient.taxIdMasked) : null
-    // Avenia's mask can hide the first digits (`***.456.789-**`), which the shared reading does not
-    // know: the review shows the mask as sent, named by its length, as the key step does
-    const taxId =
-        details && !details.taxId && recipient.taxIdMasked
-            ? { kind: maskedTaxIdKind(recipient.taxIdMasked), value: recipient.taxIdMasked }
-            : details?.taxId
     // the preview's all-in rate agrees with the fee row and the USD to the centavo; before it, the quote the field converts
     // with, to the review's six decimals (the field itself keeps the exact ratio)
     const rate = display
@@ -134,7 +128,7 @@ export function PixWithdrawForm({
                     name={recipient.holderName ?? formatPixKey(recipient.pixKey)}
                     maskName
                     pixKey={details?.pixKey && formatPixKey(details.pixKey)}
-                    taxId={taxId}
+                    taxId={details?.taxId}
                     bankName={recipient.bankName}
                 />
 

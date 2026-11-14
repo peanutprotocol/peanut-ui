@@ -189,6 +189,14 @@ describe('pixKeyOwnerDetails', () => {
         })
     })
 
+    // review finding 9: every caller keeps Avenia's mask, not only the Pix withdraw form
+    it("shows Avenia's mask, which hides the first digits, next to the key", () => {
+        expect(pixKeyOwnerDetails('maria@silva.com.br', '***.456.789-**')).toEqual({
+            pixKey: 'maria@silva.com.br',
+            taxId: { kind: 'CPF', value: '***.456.789-**' },
+        })
+    })
+
     it('shows any other key next to the masked tax ID, labelled by its length', () => {
         expect(pixKeyOwnerDetails('maria@silva.com.br', '04*******80')).toEqual({
             pixKey: 'maria@silva.com.br',
