@@ -723,6 +723,20 @@ describe('PixWithdrawFlow refused preview', () => {
         expect(screen.getByPlaceholderText('0.00')).toBeEnabled()
     })
 
+    // API-CONTRACT-M3 §6: the refusal names the provider's own minimum, which can differ from the route's
+    it('under the minimum: names the reais the refusal states', async () => {
+        mockPreview.mockRejectedValue(
+            new ApiError('The minimum is R$25.', {
+                status: 400,
+                code: 'PIX_MIN_AMOUNT',
+                minimum: { amount: '25', currency: 'BRL' },
+            })
+        )
+        renderAt(REVIEW)
+
+        expect(await screen.findByText(en.pix.deposit.minimum.replace('{amount}', 'R$25'))).toBeInTheDocument()
+    })
+
     it.each(['PIX_KEY_NOT_OWN', 'PIX_KEY_BLOCKED', 'PIX_KEY_NOT_FOUND'])(
         'the key was refused (%s): Change key opens the key step with the key kept to edit',
         async (code) => {
