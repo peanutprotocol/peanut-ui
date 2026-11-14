@@ -1162,6 +1162,11 @@
         "route": "/add-money/pix?amount=10&currency=BRL"
     },
     {
+        "id": "fixture-pix-deposit-code",
+        "flow": "Add money",
+        "route": "/add-money/pix?step=showQR&intentId=fixture-pix-deposit"
+    },
+    {
         "id": "fixture-pix-deposit-expired",
         "flow": "Add money",
         "route": "/add-money/pix?step=showQR&intentId=fixture-pix-deposit"

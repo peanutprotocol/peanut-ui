@@ -2376,6 +2376,20 @@ export const FIXTURES: Record<string, Fixture> = {
         waitFor: '[data-testid="error-alert"]',
         responses: aveniaResponses('enabled'),
     },
+    // the code screen as ruled on 13 Nov: the amount, "You get ≈", the code, the timer badge under it
+    'pix-deposit-code': {
+        route: AVENIA_DEPOSIT_CODE_ROUTE,
+        about: 'A payable Avenia Pix code: the reais, what the balance gets, the code, then a pending badge with the time left; no fee line.',
+        responses: aveniaResponses('enabled', {
+            [`GET /pix/deposit/${AVENIA_DEPOSIT_ID}`]: aveniaDepositRead({
+                codePayable: true,
+                brCode: DEMO_PIX_BR_CODE,
+                // the code lives 10 minutes from when the fixture loads, so the badge always reads a live timer
+                expiresAt: new Date(Date.now() + 10 * 60_000).toISOString(),
+                payerCpfMasked: '095.***.***-89',
+            }),
+        }),
+    },
     'pix-deposit-expired': {
         route: AVENIA_DEPOSIT_CODE_ROUTE,
         about: 'An Avenia Pix code that lapsed: no code is drawn, and a new deposit is offered.',
