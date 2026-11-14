@@ -149,8 +149,6 @@
             "addMoneyRoutesNoBank": "Cripto desde una wallet",
             "verifyIdentity": "Verificar identidad",
             "verifyIdentityNote": "Verificación única",
-            "setUpPix": "Configurar Pix",
-            "setUpPixNote": "Con nuestro socio de Pix",
             "inReview": "En revisión",
             "firstPaymentCardNote": "Pide la tarjeta o paga un QR",
             "firstPaymentQrNote": "Paga un código QR",
@@ -2577,23 +2575,7 @@
             "reviewing": "Nuestro socio de pagos está revisando tu verificación.",
             "verifyCta": "Verificar identidad",
             "title": "Configurar Pix",
-            "body": "Nuestro socio de pagos ofrece Pix.",
-            "bodyBeforeVerification": "{brand}, nuestro nuevo socio de Pix, verifica tu identidad. Las tarjetas u otras cuentas pueden pedirte tus datos de nuevo.",
-            "terms": "Al continuar, aceptas los <terms>{termsName}</terms>.",
-            "cpfRequired": "Pix necesita un CPF que tu verificación no tiene. Contacta a soporte.",
-            "termsNotSaved": "No se guardó tu aceptación de los términos. Intenta de nuevo.",
-            "notAvailable": "No se pudo configurar Pix. Contacta a soporte.",
-            "hosted": {
-                "body": "Verifica con {brand}.",
-                "bodyPartner": "Verifica con nuestro socio de pagos.",
-                "expired": "Este enlace venció.",
-                "newLink": "Pedir un enlace nuevo",
-                "failed": "Falló. Intenta de nuevo.",
-                "back": "¿Volviste de {brand}? Esperamos su respuesta.",
-                "backPartner": "¿Volviste de nuestro socio de pagos? Esperamos su respuesta.",
-                "openAgain": "Abrir {brand} de nuevo",
-                "openAgainPartner": "Abrir la página de nuevo"
-            }
+            "notAvailable": "No se pudo configurar Pix. Contacta a soporte."
         },
         "deposit": {
             "startNew": "Iniciar un nuevo depósito",

@@ -133,8 +133,7 @@ describe('the BRL row reads the Pix route', () => {
     })
 
     it.each<[string, Partial<CapabilityRoute>]>([
-        ['the provider terms', { state: 'action_required', action: 'accept-tos:avenia' }],
-        ["the provider's own identity check", { state: 'action_required', action: 'avenia-hosted' }],
+        ['the account its first use opens', { state: 'action_required', action: 'activate' }],
         ['our identity check', { state: 'action_required', action: 'verify' }],
         ['the provider review', { state: 'pending', reason: { code: 'provider_reviewing', userMessage: '' } }],
         // the Pix page shows the outage itself
@@ -173,22 +172,13 @@ describe('the BRL row reads the Pix route', () => {
         expect(brl()).toMatchObject({ chip: 'active', corridor: 'PIX_BR' })
     })
 
-    // the provider takes no shared verification: its own check, on its page, is a set-up step like its terms
-    it("reads the provider's own identity check as the BRL entry's Set up", () => {
+    // Avenia relies on our verification: the account its first use opens is the BRL entry's Set up
+    it("reads Avenia's first use as the BRL entry's Set up", () => {
         brazilResident()
-        mockCapabilities.nextActions = [
-            {
-                key: 'avenia-hosted',
-                kind: 'hosted-identity',
-                purpose: 'unlock-avenia',
-                url: 'https://avenia.example/identity/u1',
-                expiresAt: '2099-01-01T00:00:00.000Z',
-            },
-        ]
-        mockCapabilities.routes = [pixRoute({ state: 'action_required', action: 'avenia-hosted' })]
+        mockCapabilities.routes = [pixRoute({ state: 'action_required', action: 'activate' })]
         expect(renderHook(() => useBankEntryFor()).result.current('brl')).toEqual({
             state: 'ready',
-            action: 'avenia-hosted',
+            action: 'activate',
         })
     })
 

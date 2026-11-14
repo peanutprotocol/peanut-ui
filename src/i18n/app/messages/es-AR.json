@@ -1337,19 +1337,7 @@
         "payResidence": "Los pagos con Pix aún no están disponibles donde vivís.",
         "unavailable": "Pix no está disponible en este momento. Intentá de nuevo pronto.",
         "setup": {
-            "terms": "Al continuar, aceptás los <terms>{termsName}</terms>.",
-            "cpfRequired": "Pix necesita un CPF que tu verificación no tiene. Contactá a soporte.",
-            "termsNotSaved": "No se guardó tu aceptación de los términos. Intentá de nuevo.",
-            "notAvailable": "No se pudo configurar Pix. Contactá a soporte.",
-            "hosted": {
-                "body": "Verificá con {brand}.",
-                "bodyPartner": "Verificá con nuestro socio de pagos.",
-                "failed": "Falló. Intentá de nuevo.",
-                "back": "¿Volviste de {brand}? Esperamos su respuesta.",
-                "backPartner": "¿Volviste de nuestro socio de pagos? Esperamos su respuesta.",
-                "openAgain": "Abrir {brand} de nuevo",
-                "openAgainPartner": "Abrir la página de nuevo"
-            }
+            "notAvailable": "No se pudo configurar Pix. Contactá a soporte."
         },
         "deposit": {
             "youGet": "Recibís ≈ {amount}",

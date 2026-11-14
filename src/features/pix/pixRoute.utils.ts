@@ -1,6 +1,5 @@
 import { VERIFY_ACTION } from '@/features/kyc-features/report'
-import { isProviderOwnSetUp, pixRouteStep } from '@/features/pix/pixRouteStep'
-import type { CapabilityRoute, FeatureReport, FeatureReportEntry, NextAction } from '@/types/capabilities'
+import type { CapabilityRoute, FeatureReport, FeatureReportEntry } from '@/types/capabilities'
 import type { GateState } from '@/utils/capability-gate'
 
 export const PIX_METHOD = 'PIX_BR'
@@ -10,30 +9,6 @@ export function findPixRoute(
     operation: CapabilityRoute['operation']
 ): CapabilityRoute | undefined {
     return routes?.find((route) => route.operation === operation && route.method === PIX_METHOD)
-}
-
-/**
- * Where a plan that adds money by Pix stands with the Pix provider's own set-up, which Home shows in
- * place of our identity check (TASK-24841): `provider-step` while the deposit route asks for the
- * provider's terms or its own check, `done` once the provider reviews or serves it. Null for any other
- * plan, for a user our check verified, and where the route asks for our check: Home then shows our
- * check as usual.
- *
- * Home follows the signup plan. The bank lists' BRL row follows the route: it leaves where Pix leads
- * Home's Add money drawer (a route on Avenia) and under the Brazil pause (`useBankRows`).
- */
-export type PixPlanSetUp = 'provider-step' | 'done' | null
-
-export function pixPlanSetUp(
-    fundingChannel: string | null | undefined,
-    verifiedByUs: boolean,
-    route: Pick<CapabilityRoute, 'state' | 'action'> | undefined,
-    nextActions: readonly NextAction[]
-): PixPlanSetUp {
-    if (fundingChannel !== 'brlBank' || verifiedByUs) return null
-    const step = pixRouteStep(route, nextActions)
-    if (isProviderOwnSetUp(step)) return 'provider-step'
-    return step === 'pending' || step === 'ready' ? 'done' : null
 }
 
 /** The least reais the route's provider takes for the operation (`route.limits`), or null where it states none. */

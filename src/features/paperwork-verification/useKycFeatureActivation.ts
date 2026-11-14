@@ -26,7 +26,20 @@ function canContinue(feature: KycActivationFeature, result: KycFeatureActivation
 
 export function useKycFeatureActivation(
     feature: KycActivationFeature,
-    { scope: reportScope, enabled = true }: { automatic?: boolean; scope?: ReportScope; enabled?: boolean } = {}
+    {
+        scope: reportScope,
+        enabled = true,
+        automatic = false,
+    }: {
+        /**
+         * Activate on mount, with no tap: a provider whose use needs no consent of the user's (Avenia,
+         * Aleks 2026-11-14). A missing answer then stays in `result` for the caller to ask in place,
+         * because a redirect would send Back from the questions straight into them again.
+         */
+        automatic?: boolean
+        scope?: ReportScope
+        enabled?: boolean
+    } = {}
 ) {
     const { user, fetchUser } = useAuth()
     const fetchUserRef = useRef(fetchUser)
@@ -78,7 +91,9 @@ export function useKycFeatureActivation(
         : saved?.scope === scope
           ? saved.result
           : null
-    const allowed = !!userId && (!oneShot || alreadyOn || canContinue(feature, result))
+    // An automatic activation serves an identity of the older flow too: the API opens its account the same way.
+    const gated = oneShot || automatic
+    const allowed = !!userId && (!gated || alreadyOn || canContinue(feature, result))
 
     useEffect(() => {
         mounted.current = true
@@ -92,7 +107,7 @@ export function useKycFeatureActivation(
     const activate = useCallback(
         (options?: { beforeRedirect?: () => Promise<void> }): Promise<boolean> => {
             if (!mounted.current || currentScope.current !== scope || !userId || !enabled) return Promise.resolve(false)
-            if (!oneShot || alreadyOn) return Promise.resolve(true)
+            if (!gated || alreadyOn) return Promise.resolve(true)
             if (arsProvisioning) return Promise.resolve(false)
             if (inFlight.current?.scope === scope) return inFlight.current.promise
             setLoadingScope(scope)
@@ -130,7 +145,7 @@ export function useKycFeatureActivation(
                 } else {
                     recovery.current.waiting = false
                 }
-                if (next.kind === 'conflict' && next.code === 'questions_missing' && feature !== 'qr') {
+                if (next.kind === 'conflict' && next.code === 'questions_missing' && feature !== 'qr' && !automatic) {
                     await options?.beforeRedirect?.()
                     routerRef.current.push(paperworkVerificationFeaturePath(feature))
                 }
@@ -144,8 +159,16 @@ export function useKycFeatureActivation(
             inFlight.current = { scope, token, promise }
             return promise
         },
-        [scope, userId, oneShot, feature, alreadyOn, arsProvisioning, enabled, identityStatus]
+        [scope, userId, gated, feature, alreadyOn, arsProvisioning, enabled, identityStatus, automatic]
     )
+
+    // once per scope: a failure or a missing answer stays on screen until the user acts
+    const autoStarted = useRef<string | null>(null)
+    useEffect(() => {
+        if (!automatic || !enabled || !userId || autoStarted.current === scope) return
+        autoStarted.current = scope
+        void activate()
+    }, [automatic, enabled, userId, scope, activate])
 
     useEffect(() => {
         if (enabled && identityStatus === 'verified' && recovery.current.waiting) {

@@ -225,10 +225,7 @@ const BRAZIL_PAUSED_RESPONSES = {
     },
 }
 
-/** Avenia's terms step as capabilities name it: a route action and its accept-tos next action. */
-const AVENIA_TERMS_ACTION = 'accept-tos:avenia'
-
-/** The backend's Pix routes for a Brazilian resident on Avenia: ready, or Avenia's terms still to accept. */
+/** The backend's Pix routes for a Brazilian resident on Avenia: ready, its account still to open, or opening. */
 const aveniaRoutes = (stage: 'enabled' | 'first-use' | 'reviewing') =>
     (['deposit', 'withdraw'] as const).map((operation) => {
         const step =
@@ -241,8 +238,8 @@ const aveniaRoutes = (stage: 'enabled' | 'first-use' | 'reviewing') =>
                     }
                   : {
                         state: 'action_required',
-                        action: AVENIA_TERMS_ACTION,
-                        reason: { code: 'terms_required', userMessage: "Accept Avenia's terms to use Pix." },
+                        action: 'activate',
+                        reason: { code: 'first_use_required', userMessage: 'Set up this payment method to continue.' },
                     }
         return {
             operation,
@@ -255,7 +252,7 @@ const aveniaRoutes = (stage: 'enabled' | 'first-use' | 'reviewing') =>
         }
     })
 
-/** A Brazilian resident on Avenia Pix: verified in Brazil; the rail exists once Avenia's terms are accepted. */
+/** A Brazilian resident on Avenia Pix: verified in Brazil; the rail exists once the first use opened the account. */
 const aveniaResponses = (stage: 'enabled' | 'first-use', overrides: Record<string, unknown> = {}) => ({
     'GET /users/me': {
         user: { fullName: 'Ana Souza' },
@@ -280,17 +277,7 @@ const aveniaResponses = (stage: 'enabled' | 'first-use', overrides: Record<strin
                           },
                       ]
                     : [],
-            nextActions:
-                stage === 'enabled'
-                    ? []
-                    : [
-                          {
-                              key: AVENIA_TERMS_ACTION,
-                              kind: 'accept-tos',
-                              purpose: 'unlock-avenia',
-                              tosUrl: 'https://app.avenia.io/Avenia-TC.pdf',
-                          },
-                      ],
+            nextActions: [],
             restrictions: [],
             routes: aveniaRoutes(stage),
         },
@@ -408,28 +395,6 @@ const aveniaRefusedWithdrawal = (awaitingKey: boolean) => ({
 })
 const AVENIA_NEW_KEY_ROUTE = `/withdraw/new-pix-key?intentId=${AVENIA_REFUSED_WITHDRAWAL_ID}`
 
-/**
- * TASK-24841: a resident of Brazil before our own identity check, whose plan adds money by Pix. With the
- * API's flag on, the Pix routes start with Avenia's terms, then its own check, never our verification.
- */
-const aveniaBeforeVerification = (user: Record<string, unknown> = {}, capabilities: Record<string, unknown> = {}) => {
-    const firstUse = aveniaResponses('first-use')
-    return {
-        ...firstUse,
-        'GET /users/me': {
-            ...firstUse['GET /users/me'],
-            user: { ...firstUse['GET /users/me'].user, ...user },
-            capabilities: { ...firstUse['GET /users/me'].capabilities, ...capabilities },
-            residence: {
-                verified: null,
-                declared: { country: 'BR', status: 'UNVERIFIED', updatedAt: null },
-                secondaryDeclaredCountry: null,
-            },
-            identityVerification: { status: 'not_started' },
-            signupPreferences: { fundingChannel: 'brlBank', paymentChannel: 'card' },
-        },
-    }
-}
 /** A Brazilian resident whose Pix routes are in one step: no ready Avenia rail, the route says why. */
 const AVENIA_BR_USER = {
     user: { fullName: 'Ana Souza' },
@@ -461,28 +426,85 @@ const aveniaRouteResponses = (
         },
     },
 })
-/** After Avenia's terms, its own identity check on its page: the link, valid until `expiresAt`. */
-const aveniaHostedResponses = (expiresAt: string) =>
-    aveniaRouteResponses(
-        {
-            state: 'action_required',
-            action: 'avenia-hosted',
-            reason: {
-                code: 'identity_hosted_pending',
-                userMessage: 'Verify your identity with our payments partner to continue.',
-            },
-        },
-        [],
-        [
+/** Brazil's states as the API lists them for Avenia's address step: ISO 3166-2 codes alone, with their names. */
+const BR_STATES: Record<string, string> = {
+    AC: 'Acre',
+    AL: 'Alagoas',
+    AP: 'Amapá',
+    AM: 'Amazonas',
+    BA: 'Bahia',
+    CE: 'Ceará',
+    DF: 'Distrito Federal',
+    ES: 'Espírito Santo',
+    GO: 'Goiás',
+    MA: 'Maranhão',
+    MT: 'Mato Grosso',
+    MS: 'Mato Grosso do Sul',
+    MG: 'Minas Gerais',
+    PA: 'Pará',
+    PB: 'Paraíba',
+    PR: 'Paraná',
+    PE: 'Pernambuco',
+    PI: 'Piauí',
+    RJ: 'Rio de Janeiro',
+    RN: 'Rio Grande do Norte',
+    RS: 'Rio Grande do Sul',
+    RO: 'Rondônia',
+    RR: 'Roraima',
+    SC: 'Santa Catarina',
+    SP: 'São Paulo',
+    SE: 'Sergipe',
+    TO: 'Tocantins',
+}
+const ACTIVATE_LOCAL = 'POST /users/kyc/features/local/activate'
+/** The one step Avenia still needs from a verified resident of Brazil (TASK-24947): the address or the CPF. */
+const AVENIA_MISSING_STEPS = {
+    address: {
+        id: 'address',
+        features: ['local'],
+        answered: false,
+        fields: [
+            { key: 'street', kind: 'text', required: true, value: null },
+            { key: 'buildingNumber', kind: 'text', required: false, value: null },
+            { key: 'town', kind: 'text', required: true, value: null },
             {
-                key: 'avenia-hosted',
-                kind: 'hosted-identity',
-                purpose: 'unlock-avenia',
-                url: 'https://avenia.example/identity/demo',
-                expiresAt,
+                key: 'state',
+                kind: 'choice',
+                required: true,
+                options: Object.keys(BR_STATES),
+                optionLabels: BR_STATES,
+                value: null,
             },
-        ]
-    )
+            { key: 'postCode', kind: 'text', required: true, value: null },
+            { key: 'country', kind: 'country', required: true, locked: true, value: 'BR' },
+        ],
+    },
+    tax: {
+        id: 'tax',
+        features: ['local'],
+        answered: false,
+        fields: [{ key: 'taxId', kind: 'taxId', required: true, format: 'cpf', value: null }],
+    },
+} as const
+/**
+ * Avenia's first use for a verified resident of Brazil whose verification lacks what Avenia needs:
+ * the activation answers 409 with the step, and the Pix page asks it in place.
+ */
+const aveniaMissingResponses = (step: keyof typeof AVENIA_MISSING_STEPS) => ({
+    responses: {
+        ...aveniaResponses('first-use'),
+        'GET /users/kyc/questions': {
+            available: true,
+            attemptId: null,
+            residence: 'BR',
+            steps: [AVENIA_MISSING_STEPS[step]],
+            firstUnanswered: step,
+            progress: { done: 0, total: 1 },
+        },
+    },
+    rejects: { [ACTIVATE_LOCAL]: { status: 409, body: { code: 'questions_missing', step } } },
+})
+
 /** The Avenia rail while Avenia reviews the shared verification, with the route's reason. */
 const aveniaPendingRail = (code: string) => ({
     id: 'avenia.pix_br',
@@ -2054,10 +2076,9 @@ export const FIXTURES: Record<string, Fixture> = {
     // ---- Avenia Pix for Brazilian residents (PR C of the Brazil Avenia work) ----
     'pix-first-use': {
         route: '/add-money/pix',
-        about: "Avenia's terms step: the provider and its terms named and linked before the user accepts them.",
-        responses: aveniaResponses('first-use'),
-        // the page capture that taps Continue shows the acceptance not saved
-        fails: ['POST /users/kyc/accept-terms'],
+        about: "Avenia's first use (TASK-24947): no tap and no terms, the account opens as the page loads.",
+        isLoadingState: true,
+        responses: aveniaResponses('first-use', { [ACTIVATE_LOCAL]: { state: 'setting_up' } }),
     },
     'pix-deposit-amount': {
         route: '/add-money/pix',
@@ -2236,31 +2257,27 @@ export const FIXTURES: Record<string, Fixture> = {
             reason: { code: 'identity_required', userMessage: 'Verify your identity first.' },
         }),
     },
-    'pix-setup-terms-before-verification': {
-        route: '/add-money/pix',
-        about: "Before our own check (TASK-24841): Avenia's terms come first, and the screen says Avenia checks the identity itself.",
-        responses: aveniaBeforeVerification(),
-    },
-    'pix-setup-hosted-verify': {
-        route: '/add-money/pix',
-        about: "Avenia takes no shared verification: after its terms, the identity check opens on Avenia's page.",
-        responses: aveniaHostedResponses('2099-01-01T00:00:00.000Z'),
-    },
-    'pix-setup-hosted-expired': {
-        route: '/add-money/pix',
-        about: "The link to Avenia's identity check has expired: the step offers a new one.",
-        responses: aveniaHostedResponses('2026-01-01T00:00:00.000Z'),
-    },
     'pix-setup-reviewing': {
         route: '/add-money/pix',
-        about: 'Avenia Pix after the terms: the wait while Avenia reviews the shared verification.',
+        about: 'Avenia Pix while the account opens: the wait while Avenia decides on our verification.',
         isLoadingState: true,
         responses: aveniaPending('provider_reviewing'),
     },
+    'pix-setup-address-missing': {
+        route: '/add-money/pix',
+        about: "Avenia needs an address the verification lacks: the verify flow's address step, the state picked from Brazil's list.",
+        ...aveniaMissingResponses('address'),
+    },
     'pix-setup-cpf-missing': {
         route: '/add-money/pix',
-        about: 'The verification has no CPF for Avenia: the step sends the user to support.',
-        responses: aveniaPending('tax_id_missing'),
+        about: "Avenia needs a CPF the verification lacks: the verify flow's tax step, asked on the Pix page.",
+        ...aveniaMissingResponses('tax'),
+    },
+    'pix-setup-open-failed': {
+        route: '/add-money/pix',
+        about: 'The first use could not reach the API: the activation says so and offers to try again.',
+        responses: aveniaResponses('first-use'),
+        fails: [ACTIVATE_LOCAL],
     },
     'pix-route-setup-failed': {
         route: '/withdraw/pix',
@@ -4339,32 +4356,6 @@ export const FIXTURES: Record<string, Fixture> = {
                 identityVerification: { status: 'not_started' },
                 capabilities: BLOCKED_BANK_CAPABILITIES,
             },
-        },
-    },
-    'home-pix-plan-before-verification': {
-        route: '/home',
-        balance: '0',
-        about: 'A Pix plan before our own check (TASK-24841): its Set up Pix row opens the Pix setup, where Avenia comes first.',
-        responses: {
-            ...aveniaBeforeVerification({
-                badges: [],
-                activationMilestone: 'registered',
-                isActivated: false,
-                firstPaymentAt: null,
-            }),
-            'GET /users/history': NO_TIMELINE_EXTRAS['GET /users/history'],
-        },
-    },
-    'home-pix-plan-provider-reviewing': {
-        route: '/home',
-        balance: '0',
-        about: 'A Pix plan Avenia reviews, before our own check (TASK-24841): Home shows no ID step, Add money is next.',
-        responses: {
-            ...aveniaBeforeVerification(
-                { badges: [], activationMilestone: 'registered', isActivated: false, firstPaymentAt: null },
-                { nextActions: [], routes: aveniaRoutes('reviewing') }
-            ),
-            'GET /users/history': NO_TIMELINE_EXTRAS['GET /users/history'],
         },
     },
     'home-verify-processing': {

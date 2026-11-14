@@ -250,14 +250,6 @@ PAGE_CAPTURES.push(
     },
     // Pix states that follow a tap; the fixture answers the call the tap makes.
     {
-        id: 'p80-pix-terms-not-saved',
-        name: 'Pix terms — the acceptance was not saved',
-        route: '/add-money/pix',
-        fixture: 'pix-first-use',
-        clicks: ['Continue'],
-        expectSelector: '[role="alert"]',
-    },
-    {
         id: 'p81-pix-deposit-limit',
         name: 'Pix deposit — over the monthly limit',
         route: '/add-money/pix?amount=100&currency=BRL',
@@ -306,14 +298,5 @@ PAGE_CAPTURES.push(
         fixture: 'pix-manteca-withdraw-review',
         actions: [{ clickSelector: '[data-testid="provider-help"]' }],
         expectSelector: '[role="dialog"][data-state="open"]',
-    },
-    // TASK-24841: a Pix plan before our own check: Verify identity opens the Pix setup, Avenia's terms first
-    {
-        id: 'p87-pix-plan-verify-opens-pix',
-        name: 'Home — Set up Pix opens the Pix setup before our own check',
-        route: '/home',
-        fixture: 'home-pix-plan-before-verification',
-        clicks: ['Set up Pix'],
-        expectSelector: 'a[href="https://app.avenia.io/Avenia-TC.pdf"]',
     }
 )

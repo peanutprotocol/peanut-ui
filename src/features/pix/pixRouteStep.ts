@@ -1,27 +1,21 @@
 import { ACTIVATE_ACTION, VERIFY_ACTION } from '@/features/kyc-features/report'
-import type { CapabilityRoute, NextAction, NextActionKind } from '@/types/capabilities'
+import type { CapabilityRoute } from '@/types/capabilities'
 
 /*
- * The one reading of a Pix route's step, for the Pix setup screen and for the screens that send a
- * user there (Home, the BRL row). Kept free of the flow's heavier imports so the route helpers that
- * many screens load can share it.
+ * The one reading of a Pix route's step, for the Pix setup screen. Kept free of the flow's heavier
+ * imports so the route helpers that many screens load can share it.
  */
 
 /**
- * What the Pix setup step shows for the backend's route: the Peanut identity
- * check first (`verify`), the provider's terms (the route's action is an
- * `accept-tos` next action), the provider's own identity check on its page
- * where it takes no shared verification (`hosted-verify`: a `hosted-identity`
- * next action), the account the first use opens (`activate`), then the wait
- * while the provider reviews the verification. Refused and paused routes never
- * reach it: the Pix pages show those. Anything else is a case support finishes.
+ * What the Pix setup step shows for the backend's route: the Peanut identity check first
+ * (`verify`), then the account the first use opens (`activate`), then the wait while the provider
+ * opens it. Avenia relies on our verification, so it has no step of its own (TASK-24947). Refused
+ * and paused routes never reach it: the Pix pages show those. Anything else is a case support
+ * finishes.
  */
-export type PixSetupState = 'ready' | 'verify' | 'accept-terms' | 'hosted-verify' | 'activate' | 'pending' | 'support'
+export type PixSetupState = 'ready' | 'verify' | 'activate' | 'pending' | 'support'
 
-export function pixSetupState(
-    route: Pick<CapabilityRoute, 'state' | 'action'> | undefined,
-    actionKind: NextActionKind | undefined
-): PixSetupState {
+export function pixSetupState(route: Pick<CapabilityRoute, 'state' | 'action'> | undefined): PixSetupState {
     switch (route?.state) {
         case 'ready':
             return 'ready'
@@ -30,20 +24,16 @@ export function pixSetupState(
         case 'action_required':
             if (route.action === VERIFY_ACTION) return 'verify'
             if (route.action === ACTIVATE_ACTION) return 'activate'
-            if (actionKind === 'hosted-identity') return 'hosted-verify'
-            return actionKind === 'accept-tos' ? 'accept-terms' : 'support'
+            return 'support'
         default:
             return 'support'
     }
 }
 
-/** The step of a route, reading the kind of the next action its step names. */
-export function pixRouteStep(
-    route: Pick<CapabilityRoute, 'state' | 'action'> | undefined,
-    nextActions: readonly NextAction[]
-): PixSetupState {
-    return pixSetupState(route, nextActions.find((action) => action.key === route?.action)?.kind)
-}
-
-/** The provider's own set-up, its terms or its own identity check, which the Pix setup runs and our verification does not. */
-export const isProviderOwnSetUp = (step: PixSetupState): boolean => step === 'accept-terms' || step === 'hosted-verify'
+/**
+ * Whether the account the first use opens needs no tap: Avenia relies on our verification and the
+ * user gives it no consent of their own (Aleks, 2026-11-14), so its account opens as the Pix page
+ * loads. Manteca keeps its first-use consent.
+ */
+export const pixOpensWithoutTap = (route: Pick<CapabilityRoute, 'provider'> | undefined): boolean =>
+    route?.provider === 'avenia'

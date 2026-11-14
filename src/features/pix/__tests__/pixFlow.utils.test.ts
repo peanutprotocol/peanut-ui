@@ -1,6 +1,5 @@
 import {
     pixDepositPhase,
-    pixPendingReason,
     pixWithdrawAmount,
     pixShownRate,
     pixWithdrawOutcome,
@@ -13,7 +12,7 @@ import {
     toApiDecimal,
 } from '../pixFlow.utils'
 import { awaitsNewPixKey, pixNewKeyUrl } from '../pixRecovery'
-import { pixSetupState } from '../pixRouteStep'
+import { pixOpensWithoutTap, pixSetupState } from '../pixRouteStep'
 import { DEMO_PIX_BR_CODE } from '@/constants/demo-data'
 import type { HistoryIntentStatus } from '@/utils/history.utils'
 import type { CapabilityRoute } from '@/types/capabilities'
@@ -24,37 +23,27 @@ const route = (
 ): Pick<CapabilityRoute, 'state' | 'action'> => ({ state, ...extra })
 
 describe('pixSetupState', () => {
-    it("reads the user's step from the backend's route and its next action", () => {
-        expect(pixSetupState(route('ready'), undefined)).toBe('ready')
-        expect(pixSetupState(route('pending'), undefined)).toBe('pending')
-        expect(pixSetupState(route('action_required', { action: 'verify' }), undefined)).toBe('verify')
-        expect(pixSetupState(route('action_required', { action: 'accept-tos:avenia' }), 'accept-tos')).toBe(
-            'accept-terms'
-        )
+    it("reads the user's step from the backend's route", () => {
+        expect(pixSetupState(route('ready'))).toBe('ready')
+        expect(pixSetupState(route('pending'))).toBe('pending')
+        expect(pixSetupState(route('action_required', { action: 'verify' }))).toBe('verify')
+        expect(pixSetupState(route('action_required', { action: 'activate' }))).toBe('activate')
     })
 
-    // the provider takes no shared verification: its own check, on its page, after the terms
-    it("reads a step that names the provider's own check as the hosted step; verify stays the Peanut check", () => {
-        expect(pixSetupState(route('action_required', { action: 'avenia-hosted' }), 'hosted-identity')).toBe(
-            'hosted-verify'
-        )
-        expect(pixSetupState(route('action_required', { action: 'verify' }), undefined)).toBe('verify')
-    })
-
+    // TASK-24947: Avenia relies on our verification, so a terms or hosted step is no step of the Pix setup
     it('leaves any other step to support', () => {
-        expect(pixSetupState(route('action_required', { action: 'contact-support:x' }), 'contact-support')).toBe(
-            'support'
-        )
-        expect(pixSetupState(route('action_required', { action: 'accept-tos:avenia' }), undefined)).toBe('support')
-        expect(pixSetupState(undefined, undefined)).toBe('support')
+        expect(pixSetupState(route('action_required', { action: 'contact-support:x' }))).toBe('support')
+        expect(pixSetupState(route('action_required', { action: 'accept-tos:avenia' }))).toBe('support')
+        expect(pixSetupState(undefined)).toBe('support')
     })
 })
 
-describe('pixPendingReason', () => {
-    it('names why the route waits', () => {
-        expect(pixPendingReason('provider_reviewing')).toBe('reviewing')
-        expect(pixPendingReason('tax_id_missing')).toBe('cpf-missing')
-        expect(pixPendingReason(undefined)).toBe('reviewing')
+describe('pixOpensWithoutTap', () => {
+    it("opens Avenia's account with no tap and keeps Manteca's consent", () => {
+        expect(pixOpensWithoutTap({ provider: 'avenia' })).toBe(true)
+        expect(pixOpensWithoutTap({ provider: 'manteca' })).toBe(false)
+        expect(pixOpensWithoutTap({ provider: null })).toBe(false)
+        expect(pixOpensWithoutTap(undefined)).toBe(false)
     })
 })
 

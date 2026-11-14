@@ -1,5 +1,5 @@
 /**
- * The one Pix flow, on the route of either provider: the first-use step, the
+ * The one Pix flow, on the route of either provider: the first use and what it still asks, the
  * deposit amount's minimum from the route, the own-key rule on the withdrawal
  * key, the form's rows, and the new key for a payout the bank refused; then
  * the same screens on Manteca's route, where the answers differ. UI state only:
@@ -24,14 +24,37 @@ async function open(page: Page, url: string) {
 }
 
 test.describe('Pix on the Avenia route', () => {
-    test("the terms step names and links Avenia's terms before the user accepts them", async ({ page }) => {
+    // TASK-24947: Avenia relies on our verification, so its first use has no tap and no terms
+    test("the first use opens Avenia's account with no tap and no terms", async ({ page }) => {
+        await page.addInitScript(() => {
+            ;(window as Window & { __fixtureRequests?: string[] }).__fixtureRequests = []
+        })
         await open(page, '/add-money/pix?__fixture=pix-first-use')
-        await expect(page.getByText('Set up Pix')).toBeVisible({ timeout: 60_000 })
-        const terms = page.getByRole('link', { name: 'Avenia terms and conditions' })
-        await expect(terms).toHaveAttribute('href', 'https://app.avenia.io/Avenia-TC.pdf')
-        await expect(terms).toHaveAttribute('target', '_blank')
-        await expect(page.getByText('Account provider · Avenia')).toBeVisible()
-        await expect(page.getByRole('button', { name: 'Continue' })).toBeEnabled()
+        await expect(page.getByText('Our payment partner is checking your verification.')).toBeVisible({
+            timeout: 60_000,
+        })
+        await expect
+            .poll(() =>
+                page.evaluate(() => (window as Window & { __fixtureRequests?: string[] }).__fixtureRequests ?? [])
+            )
+            .toContain('POST /users/kyc/features/local/activate')
+        await expect(page.getByRole('button', { name: 'Continue' })).toHaveCount(0)
+        await expect(page.getByRole('link', { name: 'Avenia terms and conditions' })).toHaveCount(0)
+    })
+
+    test("a missing address is asked on the Pix page, with the state picked from Brazil's list", async ({ page }) => {
+        await open(page, '/add-money/pix?__fixture=pix-setup-address-missing')
+        const state = page.getByRole('combobox', { name: 'State or region' })
+        await expect(state).toBeVisible({ timeout: 60_000 })
+        await expect(state.locator('option', { hasText: 'Paraíba' })).toHaveAttribute('value', 'PB')
+        await state.selectOption('PB')
+        await expect(state).toHaveValue('PB')
+        await expect(page.getByRole('textbox', { name: 'State or region' })).toHaveCount(0)
+    })
+
+    test('a missing CPF is asked on the Pix page', async ({ page }) => {
+        await open(page, '/add-money/pix?__fixture=pix-setup-cpf-missing')
+        await expect(page.getByTestId('verify-input-taxId')).toBeVisible({ timeout: 60_000 })
     })
 
     test('a deposit under R$20 says the minimum and cannot continue', async ({ page }) => {

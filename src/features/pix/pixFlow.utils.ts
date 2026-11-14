@@ -5,16 +5,6 @@ import { API_ERROR_CODES } from '@/services/api-error'
 import { awaitsNewPixKey } from '@/features/pix/pixRecovery'
 import type { HistoryEntry } from '@/utils/history.utils'
 
-/** The pending route's one reason that waits on a fix, not a retry: the Avenia park code `TAX_ID_MISSING`, lower case (api `avenia/enrolment.ts`, `kyc/capabilities/resolver.ts`). */
-const TAX_ID_MISSING_REASON = 'tax_id_missing'
-
-/** Why the route waits: the provider reviews, or has no CPF for the verification. */
-export type PixPendingReason = 'reviewing' | 'cpf-missing'
-
-export function pixPendingReason(code: string | undefined): PixPendingReason {
-    return code === TAX_ID_MISSING_REASON ? 'cpf-missing' : 'reviewing'
-}
-
 export type PixDepositPhase = 'pending' | 'processing' | 'completed' | 'returned' | 'expired'
 
 // Intent statuses after which the Pix went back to the payer.
