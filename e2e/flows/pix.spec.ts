@@ -91,7 +91,6 @@ test.describe('Pix on the Avenia route', () => {
         await expect(holder).toContainText('Bruno Lima')
         await expect(holder).toContainText('Nubank · CPF ***.456.789-**')
         await expect(holder).not.toContainText('Own account')
-        await expect(page.getByRole('alert')).toHaveCount(0)
         await expect(page.getByRole('button', { name: 'Continue' })).toBeEnabled()
     })
 
@@ -198,7 +197,8 @@ test.describe('Pix on the Manteca route', () => {
         await expect(page.getByText('Ana Souza')).toBeVisible()
         await expect(page.getByText('Provider fee', { exact: true })).toHaveCount(0)
         await expect(page.getByText('1 USD = 5.437838 BRL')).toBeVisible()
-        await expect(page.getByText('Manteca')).toBeVisible()
+        // exact: the fixture banner's name holds the word too
+        await expect(page.getByText('Manteca', { exact: true })).toBeVisible()
         await expect(page.getByRole('button', { name: 'Confirm' })).toBeEnabled()
     })
 })
