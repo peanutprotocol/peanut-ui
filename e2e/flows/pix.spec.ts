@@ -3,7 +3,7 @@
  * deposit amount's minimum from the route, the withdrawal key and a send to another person's key
  * (TASK-24947: any key is paid), the form's rows, the send's ending and receipt, and a resident
  * of another country on Avenia; then the same screens on Manteca's route, where the answers
- * differ. UI state only:
+ * differ; and a merchant Pix code paid on Avenia's pay route (M4). UI state only:
  * every API answer comes from a fixture (`?__fixture=pix-*`,
  * src/dev/fixtures/registry.ts), so nothing here reaches a provider or a chain.
  * Backend truth (tickets, the bridge join, the payout) belongs to the API's
@@ -200,5 +200,90 @@ test.describe('Pix on the Manteca route', () => {
         // exact: the fixture banner's name holds the word too
         await expect(page.getByText('Manteca', { exact: true })).toBeVisible()
         await expect(page.getByRole('button', { name: 'Confirm' })).toBeEnabled()
+    })
+})
+
+// API-CONTRACT-M4: a merchant Pix code whose pay route names Avenia goes through the neutral pay routes
+test.describe('A merchant Pix code on the Avenia route', () => {
+    const FIXED =
+        '00020101021226680014br.gov.bcb.pix2546pix.example.com/qr/v2/cobv/padaria-pao-dourado520400005303986540542.505802BR5924PADARIA PAO DOURADO LTDA6009SAO PAULO62070503***63043A47'
+    const OPEN =
+        '00020101021226680014br.gov.bcb.pix2546pix.example.com/qr/v2/cobv/padaria-pao-dourado5204000053039865802BR5924PADARIA PAO DOURADO LTDA6009SAO PAULO62070503***630409BC'
+    const SMALL =
+        '00020101021226680014br.gov.bcb.pix2546pix.example.com/qr/v2/cobv/padaria-pao-dourado52040000530398654043.005802BR5924PADARIA PAO DOURADO LTDA6009SAO PAULO62070503***63044A84'
+    const qrPay = (code: string, fixture: string, intentId?: string) =>
+        `/qr-pay?qrCode=${encodeURIComponent(code)}&type=PIX&t=1${intentId ? `&intentId=${intentId}` : ''}&__fixture=${fixture}`
+    const requests = (page: Page) =>
+        page.evaluate(() => (window as Window & { __fixtureRequests?: string[] }).__fixtureRequests ?? [])
+
+    test.beforeEach(async ({ page }) => {
+        await page.addInitScript(() => {
+            ;(window as Window & { __fixtureRequests?: string[] }).__fixtureRequests = []
+        })
+    })
+
+    test('a code with its own amount: the QR form with the merchant, the provider fee and Avenia, and no Manteca call', async ({
+        page,
+    }) => {
+        await open(page, qrPay(FIXED, 'qr-pay-avenia-form'))
+        await expect(page.getByText('PADARIA PAO DOURADO LTDA')).toBeVisible({ timeout: 60_000 })
+        await expect(page.getByText('Paying')).toBeVisible()
+        await expect(page.getByText('Provider fee', { exact: true })).toBeVisible()
+        await expect(page.getByText('R$0.75')).toBeVisible()
+        await expect(page.getByText('Avenia', { exact: true })).toBeVisible()
+        expect(await requests(page)).toContain('POST /pix/pay/preview')
+        expect((await requests(page)).some((call) => call.includes('/manteca/qr-payment'))).toBe(false)
+    })
+
+    test('under the R$5 minimum the minimum line shows, Pay stays off and nothing is opened', async ({ page }) => {
+        await open(page, qrPay(SMALL, 'qr-pay-avenia-minimum'))
+        await expect(page.getByText('The minimum is R$5.')).toBeVisible({ timeout: 60_000 })
+        await expect(page.getByRole('button', { name: 'Pay', exact: true })).toBeDisabled()
+
+        await open(page, qrPay(OPEN, 'qr-pay-avenia-open-amount'))
+        const input = page.locator('input[inputmode="decimal"]').first()
+        await expect(input).toBeVisible({ timeout: 60_000 })
+        await input.fill('4')
+        await expect(page.getByText('The minimum is R$5.')).toBeVisible()
+        await expect(page.getByRole('button', { name: 'Pay', exact: true })).toBeDisabled()
+        await page.waitForTimeout(1_000)
+        // the code is read once without an amount; R$4 is never sent
+        expect((await requests(page)).filter((call) => call === 'POST /pix/pay/preview')).toHaveLength(1)
+        expect(await requests(page)).not.toContain('POST /pix/pay')
+
+        await input.fill('50')
+        await expect(page.getByText('The minimum is R$5.')).toHaveCount(0)
+        await expect(page.getByText('PADARIA PAO DOURADO LTDA')).toBeVisible()
+    })
+
+    test('no Avenia account yet: the account opens with no tap, as on the other Pix pages', async ({ page }) => {
+        await open(page, qrPay(FIXED, 'qr-pay-avenia-first-use'))
+        await expect(page.getByText('Our payment partner is checking your verification.')).toBeVisible({
+            timeout: 60_000,
+        })
+        await expect.poll(() => requests(page)).toContain('POST /users/kyc/features/pix/activate')
+    })
+
+    test('a user Avenia refused is sent to support, never to Manteca', async ({ page }) => {
+        await open(page, qrPay(FIXED, 'qr-pay-avenia-refused'))
+        await expect(page.getByRole('button', { name: 'Contact support' })).toBeVisible({ timeout: 60_000 })
+        expect((await requests(page)).some((call) => call.includes('/manteca/qr-payment'))).toBe(false)
+    })
+
+    test('an opened payment shows how it ended: paid, or refunded', async ({ page }) => {
+        await open(page, qrPay(FIXED, 'qr-pay-avenia-paid', 'fixture-qr-avenia'))
+        await expect(page.getByText('Paid to PADARIA PAO DOURADO LTDA')).toBeVisible({ timeout: 60_000 })
+        await expect(page.getByText('BRL 42.50')).toBeVisible()
+
+        await open(page, qrPay(FIXED, 'qr-pay-avenia-refunded', 'fixture-qr-avenia'))
+        await expect(page.getByText('Payment refunded')).toBeVisible({ timeout: 60_000 })
+    })
+
+    test("the payment's receipt reads as a QR payment to the merchant, with Avenia as the provider", async ({
+        page,
+    }) => {
+        await open(page, '/history?tx=fixture-qr-avenia&__fixture=qr-pay-avenia-receipt')
+        await expect(page.getByText('Paid to Padaria Pao Dourado Ltda')).toBeVisible({ timeout: 60_000 })
+        await expect(page.getByText('Avenia', { exact: true })).toBeVisible()
     })
 })
