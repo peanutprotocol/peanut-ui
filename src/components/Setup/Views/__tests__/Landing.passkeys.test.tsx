@@ -109,7 +109,9 @@ jest.mock('@/components/Setup/components/SetupDocsDrawer', () => ({
 }))
 jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => null }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: mockToastError }) }))
-jest.mock('@/features/setup/useSignupControl', () => ({ useSignupControl: () => ({ track: jest.fn() }) }))
+jest.mock('@/features/setup/useSignupControl', () => ({
+    useSignupControl: () => ({ track: jest.fn(), trackError: jest.fn() }),
+}))
 jest.mock('../LoginRecoveryDrawer', () => ({ LoginRecoveryDrawer: () => null }))
 jest.mock('@/hooks/useKeepWebBypass', () => ({ useKeepWebBypass: () => mockKeepWebBypass }))
 jest.mock('@/hooks/useGetDeviceType', () => ({
@@ -129,7 +131,8 @@ const advance = async (milliseconds: number) => {
 const login = () => screen.queryByRole('button', { name: 'logIn' })
 const expectEntryActions = () => {
     expect(screen.getByRole('button', { name: 'landing.signUp' })).toBeEnabled()
-    expect(screen.getByText('landing.recoverWallet')).toBeInTheDocument()
+    // Recovery shows only after a failed login (3fa5cee30).
+    expect(screen.queryByText('landing.recoverWallet')).not.toBeInTheDocument()
 }
 function ios() {
     mockNative = {
