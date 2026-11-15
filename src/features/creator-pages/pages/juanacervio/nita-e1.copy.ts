@@ -1,21 +1,22 @@
 // Copy for Nita's page, variant E1 (es-AR). Each line carries its English meaning.
-// Copy rules: mono inbox/go-links/creator-pages-spec.md § Pages.
+// Copy rules: mono engineering/ui/creator-pages.md.
+
+import type { E1LetteringText } from './e1/lettering-outlines'
 
 /** One run of the quoted post. `mark` is a highlighter stroke, `link` is the colour X gives a handle. */
 export type NitaE1PostRun = { text: string; style?: 'mark' | 'link' }
 
 export const NITA_E1_COPY = {
-    // "Nita × Peanut · what I get paid with"
-    chip: 'Nita × Peanut · con qué cobro',
-    // "Get paid from / abroad in / USD and EUR" (three poster lines; the second is purple)
-    headline: ['Cobrá de', 'afuera en', 'USD y EUR'],
-    // "Nita" (alt text of the cut-out portrait)
-    portraitAlt: 'Nita',
+    // "Nita × Peanut · for getting paid from abroad" (not first person: only the quoted post is in her voice)
+    chip: 'Nita × Peanut · para cobrar de afuera',
+    // "Get paid from / abroad in / USD and EUR" (three poster lines; the second is purple).
+    // The page draws these lines from outlines: after a change here, run e1/outline-lettering.mjs.
+    headline: ['Cobrá de', 'afuera en', 'USD y EUR'] satisfies E1LetteringText[],
+    // "Portrait of Nita" (alt text of the cut-out portrait)
+    portraitAlt: 'Retrato de Nita',
     post: {
         // Her display name and handle on X, as she writes them
         name: 'Nita • Juana Cervio',
-        // "Verified account"
-        verified: 'Cuenta verificada',
         // "@eudtoxic · Nov 2026"
         meta: '@eudtoxic · nov. 2026',
         // Her real post, quoted exactly; "[…]" marks the cut. "What I'm using now that works for
@@ -32,11 +33,11 @@ export const NITA_E1_COPY = {
             { text: 'pagar por MercadoPago', style: 'mark' },
         ] satisfies NitaE1PostRun[],
     },
-    // "Peanut" (alt text of the mascot sticker and of the logo label)
+    // "Peanut" (alt text of the logo label; the mascot sticker is decoration and has none)
     peanutAlt: 'Peanut',
     cta: {
         // "Open in the App Store"
-        ios: 'Abrir en App Store',
+        ios: 'Abrir en el App Store',
         // "Open in Google Play"
         android: 'Abrir en Google Play',
         // "Download Peanut"
@@ -44,8 +45,9 @@ export const NITA_E1_COPY = {
     },
     // "With Nita's invitation" (not "saved" or "already loaded": no device check backs that claim)
     invite: 'Con la invitación de Nita',
-    // "Nita uses Peanut and recommends it in collaboration with Peanut."
-    disclosure: 'Nita usa Peanut y lo recomienda en colaboración con Peanut.',
+    // "Nita uses Peanut. Page made by Peanut." (the same line on all three of her pages; "recommends" would be
+    // a claim her post does not make)
+    disclosure: 'Nita usa Peanut. Página hecha por Peanut.',
     // "Peanut is not a bank."
     notABank: 'Peanut no es un banco.',
     how: {
@@ -63,20 +65,22 @@ export const NITA_E1_COPY = {
             {
                 // "You verify your identity"
                 title: 'Verificás tu identidad',
-                // "With that you have bank details in USD and EUR."
-                body: 'Con eso tenés datos bancarios en USD y EUR.',
+                // "With that you can open your USD and EUR accounts and see the bank details."
+                // (verifying lets you open the accounts; it does not hand the details over)
+                body: 'Con eso podés abrir tus cuentas en USD y EUR y ver los datos bancarios.',
             },
             {
                 // "You give the details to your client"
                 title: 'Le pasás los datos a tu cliente',
-                // "You get paid from the US and Europe."
-                body: 'Cobrás desde EE. UU. y Europa.',
+                // "You get paid from the US and Europe. Who can pay you depends on the currency: the app
+                // shows you on each account." (not every payer can pay every account)
+                body: 'Cobrás desde EE. UU. y Europa. Quién puede pagarte depende de la moneda: la app te lo muestra en cada cuenta.',
             },
             {
                 // "You spend in Argentina"
                 title: 'Gastás en Argentina',
-                // "You pay a Mercado Pago QR from your balance, or with a card."
-                body: 'Pagás un QR de Mercado Pago desde el saldo, o con tarjeta.',
+                // "You pay a Mercado Pago QR from your balance."
+                body: 'Pagás un QR de Mercado Pago desde el saldo.',
             },
         ],
     },
@@ -90,6 +94,6 @@ export const NITA_E1_COPY = {
     },
     // "Nita · Juana Cervio" (alt text of her wordmark)
     wordmarkAlt: 'Nita · Juana Cervio',
-    // "To spend you have to verify your identity. The card is subject to approval."
-    fine: 'Para gastar tenés que verificar tu identidad. La tarjeta está sujeta a aprobación.',
+    // "To pay by QR you have to verify your identity."
+    fine: 'Para pagar con QR tenés que verificar tu identidad.',
 }

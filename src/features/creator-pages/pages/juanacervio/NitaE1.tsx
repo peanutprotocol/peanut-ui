@@ -1,32 +1,36 @@
 import Image from 'next/image'
-import logoLockup from '@/assets/brand/logo-lockup.svg'
+import { LOGO_LOCKUP } from '@/assets/brand'
 import { CreatorPageCta } from '../../CreatorPageCta'
 import { CreatorPageShell } from '../../CreatorPageShell'
 import type { CreatorPageProps } from '../../types'
+import { E1Lettering } from './e1/E1Lettering'
 import { NITA_E1_COPY as copy } from './nita-e1.copy'
 import styles from './NitaE1.module.css'
 
 const ASSETS = '/creator-pages/juanacervio'
-const CHECK = '✓'
 const STEP_TEARS = [styles.tornStep, styles.tornStep2, styles.tornStep3]
 
 /** Nita's page, variant E1: a poster in her own collage style, with her real post taped on it. */
 export function NitaE1(props: CreatorPageProps) {
+    // Rendered twice: in the pinned strip, and unseen in the poster, which keeps the strip's place free.
+    const dockNote = (
+        <div className={styles.note}>
+            <p className={`${styles.mono} ${styles.invite}`}>{copy.invite}</p>
+            <p className={styles.disclosure}>
+                <span className={styles.sponsor}>{copy.disclosure} </span>
+                <b>{copy.notABank}</b>
+            </p>
+        </div>
+    )
+
     return (
         <CreatorPageShell page={props} lang="es-AR" className={styles.page}>
             <div className={styles.column}>
                 <section className={styles.poster}>
                     <p className={`${styles.mono} ${styles.chip}`}>{copy.chip}</p>
-                    <h1 className={`${styles.cond} ${styles.h1}`}>
-                        {copy.headline.map((line, index) => (
-                            <span key={line} className={`${styles.outlined} ${index === 1 ? styles.purple : ''}`}>
-                                {/* The black outline is a copy behind the fill: paint-order on HTML text is missing in older webviews. */}
-                                <span className={styles.stroke} aria-hidden>
-                                    {line}
-                                </span>
-                                <span className={styles.fill}>{line}</span>
-                            </span>
-                        ))}
+                    <h1 className={styles.h1}>
+                        <span className="sr-only">{copy.headline.join(' ')}</span>
+                        <E1Lettering lines={copy.headline} accentLine={1} />
                     </h1>
 
                     <Image
@@ -35,7 +39,6 @@ export function NitaE1(props: CreatorPageProps) {
                         width={515}
                         height={1010}
                         priority
-                        fetchPriority="high"
                         sizes="(min-width: 480px) 330px, 69vw"
                         className={styles.cut}
                     />
@@ -45,12 +48,7 @@ export function NitaE1(props: CreatorPageProps) {
                         <figcaption className={styles.who}>
                             <Image src={`${ASSETS}/e1-nita-avatar.webp`} alt="" width={96} height={96} />
                             <span>
-                                <b>
-                                    {copy.post.name}
-                                    <span className={styles.ok} role="img" aria-label={copy.post.verified}>
-                                        {CHECK}
-                                    </span>
-                                </b>
+                                <b>{copy.post.name}</b>
                                 <i>{copy.post.meta}</i>
                             </span>
                         </figcaption>
@@ -69,17 +67,25 @@ export function NitaE1(props: CreatorPageProps) {
                         </blockquote>
                     </figure>
 
-                    <Image
-                        src={`${ASSETS}/e1-mascot-sticker.webp`}
-                        alt={copy.peanutAlt}
-                        width={240}
-                        height={343}
-                        sizes="113px"
-                        className={styles.sticker}
-                    />
-                    <span className={`${styles.tapeShape} ${styles.tape} ${styles.tapeSticker}`} aria-hidden />
-                    <div className={styles.guest}>
-                        <Image src={logoLockup} alt={copy.peanutAlt} />
+                    {/* The space the pinned strip covers while the poster is on screen, with the pieces
+                        that stand on the strip's edge. */}
+                    <div className={styles.stand}>
+                        <Image
+                            src={`${ASSETS}/e1-mascot-sticker.webp`}
+                            alt=""
+                            width={240}
+                            height={343}
+                            sizes="113px"
+                            className={styles.sticker}
+                        />
+                        <span className={`${styles.tapeShape} ${styles.tape} ${styles.tapeSticker}`} aria-hidden />
+                        <div className={styles.guest}>
+                            <Image src={LOGO_LOCKUP} alt={copy.peanutAlt} />
+                        </div>
+                        <div className={`${styles.dockIn} ${styles.placeholder}`} aria-hidden>
+                            <div className={styles.cta} />
+                            {dockNote}
+                        </div>
                     </div>
                 </section>
 
@@ -131,6 +137,9 @@ export function NitaE1(props: CreatorPageProps) {
                         sizes="185px"
                         className={styles.wordmark}
                     />
+                    <p className={styles.fine}>
+                        {copy.disclosure} <b>{copy.notABank}</b>
+                    </p>
                     <p className={styles.fine}>{copy.fine}</p>
                 </footer>
 
@@ -147,12 +156,7 @@ export function NitaE1(props: CreatorPageProps) {
                             showStoreIcon
                             position="sticky"
                         />
-                        <p className={`${styles.mono} ${styles.invite}`}>
-                            {copy.invite} {CHECK}
-                        </p>
-                        <p className={styles.disclosure}>
-                            {copy.disclosure} <b>{copy.notABank}</b>
-                        </p>
+                        {dockNote}
                     </div>
                 </div>
             </div>

@@ -1,15 +1,10 @@
 /* Nita's poster. A one-off look in her collage style (design.md allows one-offs on
    creative marketing surfaces), so the palette and the type treatment are local.
-   Every length is a multiple of --u, 1/390 of the column width: the poster keeps
-   its proportions from 320 to 480 px. */
-
-/* Ubuntu Sans Mono (Ubuntu Font Licence 1.0), one weight, Latin subset. */
-@font-face {
-    font-family: 'NitaE1Mono';
-    src: url('/creator-pages/juanacervio/e1-ubuntu-sans-mono.woff2') format('woff2');
-    font-weight: 600 700;
-    font-display: swap;
-}
+   Box lengths are multiples of --u, 1/390 of the column width: the poster keeps
+   its proportions from 320 to 480 px.
+   Type is the exception. An Android webview multiplies every font size by the system
+   font scale, and the boxes do not follow, so nothing here depends on a line of text
+   keeping its width or height: text wraps, sits in the flow, and pushes what is below it. */
 
 .page {
     --ink: #0b0a10;
@@ -18,8 +13,6 @@
     --mint: #8ff0cf;
     --paper: #eee9de;
     --u: calc(min(100vw, 480px) / 390);
-    /* Height of the pinned paper strip, from its torn edge down. The collage pieces sit on that edge. */
-    --dock-h: calc(162 * var(--u) + env(safe-area-inset-bottom, 0px));
     /* Screen height beyond the shortest poster that fits everything; the portrait grows into it. */
     --spare: clamp(0px, (100vh - 700 * var(--u)) * 0.3, 60 * var(--u));
     /* The mascot shrinks on a short screen, where it would cover her face. */
@@ -57,8 +50,9 @@
     text-transform: uppercase;
 }
 
+/* The device's own monospace: the labels are small marks, and a webfont for them is not worth its bytes. */
 .mono {
-    font-family: 'NitaE1Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    font-family: ui-monospace, 'SF Mono', Menlo, 'Roboto Mono', monospace;
     font-weight: 600;
     letter-spacing: 0.14em;
     text-transform: uppercase;
@@ -68,7 +62,8 @@
     position: relative;
     z-index: 0;
     display: block;
-    width: max-content;
+    width: fit-content;
+    max-width: 100%;
 }
 .stroke {
     position: absolute;
@@ -86,12 +81,17 @@
 
 /* ---------- poster (first screen) ---------- */
 
+/* A column in the flow: label, headline, her post, then the space the pinned strip covers.
+   The headline takes the height the others leave; when they need more than the screen has,
+   the poster grows and scrolls instead of stacking one piece on another. */
 .poster {
     position: relative;
-    height: 100vh;
-    height: 100svh;
-    /* A shorter screen scrolls the poster instead of crushing it. */
-    min-height: calc(596 * var(--u));
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-height: 100vh;
+    min-height: 100svh;
+    padding-top: calc(16 * var(--u));
     overflow: hidden;
     background:
         linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px) 0 0 / calc(26 * var(--u)) calc(26 * var(--u)),
@@ -110,36 +110,47 @@
 }
 
 .chip {
-    position: absolute;
-    top: calc(16 * var(--u));
-    left: calc(16 * var(--u));
+    position: relative;
     z-index: 5;
+    flex: none;
+    max-width: calc(100% - 32 * var(--u));
+    margin-left: calc(16 * var(--u));
     padding: calc(7 * var(--u)) calc(10 * var(--u)) calc(6 * var(--u));
     border-radius: calc(6 * var(--u));
     background: var(--purple);
     color: #17102e;
-    font-size: max(calc(11.5 * var(--u)), 10px);
+    font-size: max(calc(11.5 * var(--u)), 11px);
     font-weight: 700;
-    line-height: 1.15;
-    letter-spacing: 0.16em;
-    white-space: nowrap;
+    line-height: 1.25;
+    letter-spacing: 0.1em;
 }
 
+/* The headline is a drawing (e1/E1Lettering), scaled to fit this box both ways. The box takes the
+   height left between the label and her post, within the sizes at which the poster still reads. */
 .h1 {
-    --stroke: calc(8 * var(--u));
-    position: absolute;
-    top: calc(58 * var(--u));
-    left: calc(14 * var(--u));
+    position: relative;
     z-index: 4;
-    /* The height term shrinks the headline on a short screen, so her post still fits between it
-       and the button: 470 units are the chip, the post and the strip, 2.7 is three lines at 0.9. */
-    font-size: clamp(calc(46 * var(--u)), calc((100vh - 470 * var(--u)) / 2.7), calc(86 * var(--u)));
-    font-size: clamp(calc(46 * var(--u)), calc((100svh - 470 * var(--u)) / 2.7), calc(86 * var(--u)));
-    line-height: 0.9;
-    white-space: nowrap;
+    flex: 1 1 0;
+    width: calc(100% - 26 * var(--u));
+    min-height: calc(132 * var(--u));
+    max-height: calc(246 * var(--u));
+    /* The bottom margin keeps the tape on her post off the lettering. */
+    margin: calc(12 * var(--u)) 0 calc(16 * var(--u)) calc(13 * var(--u));
 }
-.h1 .stroke {
-    text-shadow: 0 calc(5 * var(--u)) 0 #000;
+.lettering {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    fill: #fff;
+}
+/* The black outline and its drop are the same shapes with a thick stroke, behind the fill. */
+.letteringEdge {
+    fill: #000;
+    stroke: #000;
+}
+.letteringAccent {
+    fill: var(--purple);
 }
 
 .cut {
@@ -153,11 +164,12 @@
 }
 
 .tweet {
-    position: absolute;
-    bottom: calc(var(--dock-h) + 12 * var(--u));
-    left: calc(12 * var(--u));
+    position: relative;
     z-index: 6;
+    flex: none;
     width: calc(226 * var(--u));
+    /* `auto` on top: on a tall screen the post stays down by the strip, as on the mockup. */
+    margin: auto 0 calc(12 * var(--u)) calc(12 * var(--u));
     padding: calc(12 * var(--u)) calc(13 * var(--u)) calc(13 * var(--u));
     transform: rotate(-1.4deg);
     border: 1px solid #2c2c35;
@@ -184,27 +196,13 @@
     font-size: max(calc(12.5 * var(--u)), 11px);
     font-weight: 700;
     line-height: 1.15;
-    white-space: nowrap;
 }
 .who i {
     display: block;
-    color: #7d7d8a;
-    font-size: max(calc(12 * var(--u)), 10.5px);
+    color: #8f8f9c;
+    font-size: max(calc(12 * var(--u)), 11px);
     font-style: normal;
     line-height: 1.2;
-}
-.ok {
-    display: inline-block;
-    width: calc(14 * var(--u));
-    height: calc(14 * var(--u));
-    margin-left: calc(3 * var(--u));
-    border-radius: 50%;
-    background: #1d9bf0;
-    color: #fff;
-    font-size: calc(9 * var(--u));
-    line-height: calc(14 * var(--u));
-    text-align: center;
-    vertical-align: 1px;
 }
 .tweet blockquote {
     font-size: max(calc(13.5 * var(--u)), 11.5px);
@@ -238,17 +236,32 @@
     transform: rotate(-5.6deg);
     background: rgba(169, 139, 255, 0.88);
 }
+
+/* The last piece of the poster: as tall as the pinned strip, because it holds an unseen copy of
+   the strip's content. Whatever the text size makes of the strip, her post ends above it.
+   The collage pieces stand on its top edge, which is the strip's paper edge at the top of the page.
+   They lie over her post and under the strip (z-index 8), so none of them can cover the button. */
+.stand {
+    position: relative;
+    flex: none;
+    width: 100%;
+    pointer-events: none;
+}
+.placeholder {
+    visibility: hidden;
+}
 .tapeSticker {
     right: calc(var(--sticker-w) * 0.24);
+    bottom: calc(100% - 12 * var(--u) + var(--sticker-w) * 1.3);
+    z-index: 7;
     width: calc(var(--sticker-w) * 0.7);
-    bottom: calc(var(--dock-h) - 30 * var(--u) + var(--sticker-w) * 1.3);
     transform: rotate(-14deg);
 }
 .sticker {
     position: absolute;
     right: calc(6 * var(--u));
-    bottom: calc(var(--dock-h) - 30 * var(--u));
-    z-index: 9;
+    bottom: calc(100% - 12 * var(--u));
+    z-index: 7;
     width: var(--sticker-w);
     height: auto;
     transform: rotate(9deg);
@@ -257,8 +270,8 @@
 .guest {
     position: absolute;
     right: calc(104 * var(--u));
-    bottom: calc(var(--dock-h) + 2 * var(--u));
-    z-index: 9;
+    bottom: calc(100% + 4 * var(--u));
+    z-index: 7;
     padding: calc(5 * var(--u)) calc(8 * var(--u)) calc(4 * var(--u));
     transform: rotate(-3deg);
     border: 1px solid #000;
@@ -271,22 +284,12 @@
     height: calc(15 * var(--u));
 }
 
-/* When the poster is taller than the screen its bottom edge is below the pinned strip:
-   the pieces that stand on the strip go under it instead of over the button. */
-@media (max-width: 479px) and (min-aspect-ratio: 390/596), (min-width: 480px) and (max-height: 733px) {
-    .sticker,
-    .guest,
-    .tapeSticker {
-        z-index: 3;
-    }
-}
-
 /* ---------- the pinned paper strip with the button ---------- */
 
 .dock {
     position: sticky;
     bottom: 0;
-    z-index: 7;
+    z-index: 8;
     margin-top: calc(-24 * var(--u));
     padding-top: calc(24 * var(--u));
     /* Clips the tilted paper at the column edge; a clip on an ancestor would break sticky. */
@@ -309,7 +312,7 @@
 }
 .dockIn {
     position: relative;
-    padding: calc(24 * var(--u)) calc(16 * var(--u)) calc(17 * var(--u) + env(safe-area-inset-bottom, 0px));
+    padding: calc(22 * var(--u)) calc(16 * var(--u)) 0;
     color: #000;
     pointer-events: auto;
 }
@@ -324,26 +327,48 @@
     font-size: max(calc(18 * var(--u)), 16px);
     text-decoration: none;
 }
-.invite {
-    margin-top: calc(16 * var(--u));
-    color: #2a2733;
-    font-size: max(calc(9.5 * var(--u)), 9px);
-    line-height: 1.2;
-    letter-spacing: 0.1em;
+/* Under the button. An in-app browser can lay a toolbar of about 90 px over the bottom of the
+   page; these lines are what it covers, so the whole button stays in reach. */
+.note {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-sizing: content-box;
+    min-height: 74px;
+    padding: 10px 0 calc(10px + env(safe-area-inset-bottom, 0px));
+    gap: 6px;
     text-align: center;
 }
-.disclosure {
-    margin-top: calc(9 * var(--u));
-    color: #4d4957;
-    font-size: max(calc(10.5 * var(--u)), 10px);
-    font-weight: 500;
+.invite {
+    color: #2a2733;
+    font-size: 11px;
     line-height: 1.25;
-    text-align: center;
+    letter-spacing: 0.08em;
+}
+.disclosure {
+    color: #3f3b49;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.3;
 }
 .disclosure b {
     color: #14121a;
     font-weight: 700;
     white-space: nowrap;
+}
+/* A short screen is the in-app browser with its toolbar already taken out of the viewport: there the
+   strip is the button and one line, and who made the page is said in the footer only. */
+@media (max-height: 620px) {
+    .note {
+        flex-flow: row wrap;
+        min-height: 0;
+        padding: 9px 0 calc(11px + env(safe-area-inset-bottom, 0px));
+        gap: 2px 10px;
+    }
+    .sponsor {
+        display: none;
+    }
 }
 
 /* ---------- below the fold ---------- */
@@ -364,7 +389,7 @@
     border-radius: calc(6 * var(--u));
     background: var(--mint);
     color: #06231a;
-    font-size: max(calc(11 * var(--u)), 10px);
+    font-size: max(calc(11 * var(--u)), 11px);
     font-weight: 700;
     line-height: 1.15;
 }
@@ -373,7 +398,6 @@
     margin: calc(14 * var(--u)) 0 calc(22 * var(--u));
     font-size: calc(52 * var(--u));
     line-height: 0.94;
-    white-space: nowrap;
 }
 
 .steps {
@@ -382,10 +406,14 @@
     padding: 0;
     list-style: none;
 }
+/* The number has its own column, as wide as the number is at the visitor's text size. */
 .step {
     position: relative;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: calc(12 * var(--u));
     margin: 0 0 calc(16 * var(--u));
-    padding: calc(16 * var(--u)) calc(18 * var(--u)) calc(17 * var(--u)) calc(62 * var(--u));
+    padding: calc(16 * var(--u)) calc(18 * var(--u)) calc(17 * var(--u)) calc(14 * var(--u));
     background: var(--paper) url('/creator-pages/juanacervio/e1-paper.jpg');
     color: #14121a;
 }
@@ -398,10 +426,10 @@
     transform: rotate(0.8deg);
 }
 .stepNumber {
-    position: absolute;
-    top: calc(12 * var(--u));
-    left: calc(14 * var(--u));
+    grid-row: 1 / span 2;
     width: auto;
+    /* The squeeze is a transform, so the box keeps the unsqueezed width: give back the difference. */
+    margin: calc(-4 * var(--u)) -0.42em 0 0;
     color: #6a44e0;
     font-size: calc(50 * var(--u));
     line-height: 1;
@@ -412,6 +440,7 @@
     line-height: 1;
 }
 .step p {
+    grid-column: 2;
     color: #2c2936;
     font-size: max(calc(14.5 * var(--u)), 13px);
     font-weight: 500;
@@ -440,13 +469,12 @@
 }
 .ticketLabel {
     color: var(--mint);
-    font-size: max(calc(10 * var(--u)), 9px);
+    font-size: max(calc(10 * var(--u)), 11px);
 }
 .ticketTitle {
     margin: calc(6 * var(--u)) 0;
     font-size: calc(36 * var(--u));
     line-height: 0.95;
-    white-space: nowrap;
 }
 .ticketBody {
     color: #c9c6d6;
@@ -470,10 +498,17 @@
 .fine {
     max-width: calc(330 * var(--u));
     margin: 0 auto;
-    color: #8a8796;
-    font-size: max(calc(11.5 * var(--u)), 11px);
+    color: #9a97a6;
+    font-size: max(calc(12 * var(--u)), 12px);
     font-weight: 400;
     line-height: 1.5;
+}
+.fine b {
+    color: #d6d3e0;
+    font-weight: 600;
+}
+.fine + .fine {
+    margin-top: calc(6 * var(--u));
 }
 
 /* ---------- torn paper and tape edges (percent polygons, so they scale with the piece) ---------- */
