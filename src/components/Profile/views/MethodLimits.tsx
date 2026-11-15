@@ -8,7 +8,8 @@ import { DataRow } from '@/components/0_Bruddle/DataRow'
 import Card from '@/components/Global/Card'
 import ProgressBar from '@/components/0_Bruddle/ProgressBar'
 import { getCurrencySymbol, getLimitColorClass, getLimitData } from '@/features/limits/utils'
-import type { MantecaLimit, BridgeLimits } from '@/interfaces/interfaces'
+import type { MantecaLimit, BridgeLimits, MonthlyRoom } from '@/interfaces/interfaces'
+import MonthlyRoomCard from '@/features/limits/components/MonthlyRoomCard'
 import type { UnlockRow } from '@/utils/unlock-payments.utils'
 import { useTranslations } from 'next-intl'
 
@@ -23,6 +24,17 @@ import { useTranslations } from 'next-intl'
 export type RowLimitSummary =
     | { kind: 'manteca'; asset: string; remaining: string; limit: string; usedPercent: number }
     | { kind: 'bridge'; direction: 'deposit' | 'withdrawal'; perTransaction: string }
+    | { kind: 'room'; currency: string; deposit?: MonthlyRoom; payout: MonthlyRoom }
+
+/**
+ * BRL's limits when the user's Pix routes name Avenia (`aveniaServesBrl`): Avenia's monthly room, and
+ * whether the user's deposits are Avenia's. Manteca's BRL limit then stands for nothing they do, so it
+ * is never shown; an unread room shows no BRL limit at all.
+ */
+export interface BrlRoom {
+    room: { currency: string; deposit: MonthlyRoom; payout: MonthlyRoom } | null
+    deposits: boolean
+}
 
 // Whole-unit cap with locale grouping ($100,000, not $100000): the shared
 // formatter only abbreviates from seven digits and never groups.
@@ -36,7 +48,8 @@ export function limitSummariesForRows(
     rows: readonly UnlockRow[],
     mantecaLimits: MantecaLimit[] | null,
     bridgeLimits: BridgeLimits | null,
-    locale: string
+    locale: string,
+    brlRoom: BrlRoom | null = null
 ): RowLimitSummary[] {
     const refs = new Set(rows.filter((row) => row.chip === 'active').flatMap((row) => row.limitRefs ?? []))
     const summaries: RowLimitSummary[] = []
@@ -55,6 +68,17 @@ export function limitSummariesForRows(
                     })
                 }
             }
+            continue
+        }
+        if (ref === 'BRL' && brlRoom) {
+            const { room, deposits } = brlRoom
+            if (room)
+                summaries.push({
+                    kind: 'room',
+                    currency: room.currency,
+                    deposit: deposits ? room.deposit : undefined,
+                    payout: room.payout,
+                })
             continue
         }
         const limit = mantecaLimits?.find((l) => l.asset === ref)
@@ -84,6 +108,7 @@ export function MethodLimits({ noLimit, summaries }: { noLimit: boolean; summari
     const bridgeSummaries = summaries.filter(
         (s): s is Extract<RowLimitSummary, { kind: 'bridge' }> => s.kind === 'bridge'
     )
+    const roomSummaries = summaries.filter((s): s is Extract<RowLimitSummary, { kind: 'room' }> => s.kind === 'room')
 
     return (
         <>
@@ -133,6 +158,14 @@ export function MethodLimits({ noLimit, summaries }: { noLimit: boolean; summari
                     ))}
                 </Card>
             )}
+            {roomSummaries.map((summary) => (
+                <MonthlyRoomCard
+                    key={summary.currency}
+                    currency={summary.currency}
+                    deposit={summary.deposit}
+                    payout={summary.payout}
+                />
+            ))}
         </>
     )
 }
