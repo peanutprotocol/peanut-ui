@@ -137,12 +137,6 @@
     box-shadow: none;
 }
 
-.cta svg {
-    width: 24px;
-    height: 24px;
-    flex: none;
-}
-
 .invite {
     display: inline-flex;
     align-items: center;
