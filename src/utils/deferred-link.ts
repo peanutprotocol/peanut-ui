@@ -142,8 +142,29 @@ function base64UrlDecode(value: string): string {
     return atob(padded)
 }
 
+type HandoffDetail = 'full' | 'campaign' | 'journey'
+
+function reduceTouch(
+    { occurredAt, utmSource, utmMedium, utmCampaign }: SignupAttributionContext['firstTouch'],
+    detail: Exclude<HandoffDetail, 'full'>
+): SignupAttributionContext['firstTouch'] {
+    return detail === 'journey' ? { occurredAt } : { occurredAt, utmSource, utmMedium, utmCampaign }
+}
+
 /** Compact ASCII-only handoff token; Play's encoded referrer is capped at 512 chars. */
-function serializeAttributionHandoff(context: SignupAttributionContext): string {
+function serializeAttributionHandoff(fullContext: SignupAttributionContext, detail: HandoffDetail = 'full'): string {
+    const context: SignupAttributionContext =
+        detail === 'full'
+            ? fullContext
+            : {
+                  ...fullContext,
+                  firstTouch: reduceTouch(fullContext.firstTouch, detail),
+                  firstContentTouch: undefined,
+                  lastTouch:
+                      detail === 'campaign' && fullContext.lastTouch
+                          ? reduceTouch(fullContext.lastTouch, detail)
+                          : undefined,
+              }
     const first = compactTouch(context.firstTouch)
     const compact: CompactAttribution = {
         v: 1,
@@ -369,6 +390,15 @@ export function buildDeferredPayload(
     if (encodeURIComponent(params.toString()).length > MAX_PLAY_REFERRER_LENGTH) {
         // Analytics-only: the install still works and keeps its campaign.
         params.delete(WEB_ANALYTICS_ID_PARAM)
+    }
+
+    // A smaller journey still joins the install to the web visit; a new install-referrer journey would not.
+    // Only a tracked link keeps the bare journey: its visit event holds every tag under that journey ID,
+    // while elsewhere the Play campaign below is worth more than an untagged journey.
+    const reductions: HandoffDetail[] = params.has('tl') ? ['campaign', 'journey'] : ['campaign']
+    for (const detail of reductions) {
+        if (!attribution || encodeURIComponent(params.toString()).length <= MAX_PLAY_REFERRER_LENGTH) break
+        params.set(ATTRIBUTION_PARAM, serializeAttributionHandoff(attribution, detail))
     }
 
     if (encodeURIComponent(params.toString()).length > MAX_PLAY_REFERRER_LENGTH) {
