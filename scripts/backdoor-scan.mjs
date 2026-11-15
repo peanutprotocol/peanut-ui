@@ -209,9 +209,15 @@ const SLASH_COMMENT_FILE = /\.(c|m)?(j|t)sx?$|\.(html?|vue|svelte|astro)$/i
 const PAGE_FILE = /\.(html?|vue|svelte|astro)$/i
 const SAFE_COMMENT_TEXT = `[^"'\`\\\\$<>={}/]*`
 const SLASH_COMMENT = new RegExp(`^//${SAFE_COMMENT_TEXT}$`)
-const HTML_COMMENT = new RegExp(`^<!--${SAFE_COMMENT_TEXT}-->\\s*$`)
+const HTML_COMMENT = new RegExp(`^<!--${SAFE_COMMENT_TEXT}-->[ \\t]*$`)
+
+// JS ends a line at \r, U+2028 and U+2029, and Python at \r, but git and this scan split only on \n:
+// `// note<CR>evil()` looks like one comment here and runs evil() there. Such a line is never a comment
+// or a border. Vertical tab, form feed and NEL are refused too, as line breaks in other tools.
+const HIDDEN_LINE_BREAK = /[\r\v\f\u0085\u2028\u2029]/
 
 export function offScreenIsComment(path, text) {
+	if (HIDDEN_LINE_BREAK.test(text)) return false
 	const gap = text.match(/[ \t]{60,}/)
 	const offScreen = text.slice(gap.index + gap[0].length)
 	if (SLASH_COMMENT_FILE.test(path)) {
@@ -231,7 +237,7 @@ export function offScreenIsComment(path, text) {
 
 // Off-screen text made only of rule and border characters (an ASCII table edge `|`) cannot run: no
 // name, call or bracket. It paged Squirrel-Core on a plain-text site mockup on 2026-10-31.
-const BORDER_ONLY = /^[\s|+\-=*#.:_~^\u2500-\u257F]+$/
+const BORDER_ONLY = /^[ \t|+\-=*#.:_~^\u2500-\u257F]+$/
 
 export function offScreenIsBorder(text) {
 	const gap = text.match(/[ \t]{60,}/)
