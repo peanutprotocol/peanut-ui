@@ -173,6 +173,9 @@ export function usePixPayment({
                 // another open payment of the user holds this code's amount (API review 2): a QR line
                 case API_ERROR_CODES.WITHDRAWAL_IN_PROGRESS:
                     return t('errors.amountHeld')
+                // the user's budget of code reads is spent for now (API-CONTRACT-M4 §3)
+                case API_ERROR_CODES.PIX_KEY_LOOKUP_THROTTLED:
+                    return t('errors.throttled')
                 case API_ERROR_CODES.PIX_MIN_AMOUNT:
                 case API_ERROR_CODES.PROVIDER_REJECTED:
                     return refusalMessage(caught)
@@ -245,6 +248,8 @@ export function usePixPayment({
 
     // ---- the payment ---------------------------------------------------------------------------
     const [phase, setPhase] = useState<PayPhase>('idle')
+    // the USDC this session signed for: what left the wallet, where it differs from the review's figure
+    const [signedUsd, setSignedUsd] = useState<string | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [notice, setNotice] = useState<string | null>(null)
     // a lapsed quote needs a payment of its own: a new key (API-CONTRACT-M4 §2.2)
@@ -424,6 +429,7 @@ export function usePixPayment({
         // instead of offering Pay again, and the device mark says it may have been sent.
         markDepositMaybeSent(opened.intentId)
         void setIntentId(opened.intentId)
+        setSignedUsd(sign.payAmount)
         let minedHash: string | undefined
         let reverted = false
         try {
@@ -442,6 +448,7 @@ export function usePixPayment({
                 finish(cancelled ? 'cancelled' : 'failed')
                 clearDepositMaybeSent(opened.intentId)
                 void setIntentId(null)
+                setSignedUsd(null)
                 moveTo('idle')
                 setError(isUserCancellation(caught) ? t('errors.confirmTransaction') : t('errors.signFailed'))
                 return
@@ -542,6 +549,8 @@ export function usePixPayment({
         reviewed,
         /** Who is paid (name, bank, tax id), from the last read that named them. */
         merchant,
+        /** The USDC this session signed for; null before a signature, or after a reload. */
+        signedUsd,
         /** Null until the code's first read answers. */
         amountFixed: codeRead.data ? amountFixed : openAmount ? false : null,
         isReadingCode: codeRead.isLoading,

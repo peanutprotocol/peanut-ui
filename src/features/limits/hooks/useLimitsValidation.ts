@@ -23,6 +23,17 @@ import {
 // threshold for showing warning (percentage of limit remaining after transaction)
 const WARNING_THRESHOLD_PERCENT = 30
 
+/** Nothing to check here: no limit applies, or none is known (the API's own limit refusal still holds). */
+const NO_LIMIT_CHECK: LimitValidationResult = {
+    isBlocking: false,
+    isWarning: false,
+    remainingLimit: null,
+    totalLimit: null,
+    message: null,
+    daysUntilReset: null,
+    limitCurrency: null,
+}
+
 export type { LimitCurrency, LimitFlowType, LimitValidationResult }
 
 interface UseLimitsValidationOptions {
@@ -85,15 +96,7 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
     // validate for manteca users (argentina/brazil)
     const mantecaValidation = useMemo<LimitValidationResult>(() => {
         if (!hasMantecaLimits || !relevantMantecaLimit) {
-            return {
-                isBlocking: false,
-                isWarning: false,
-                remainingLimit: null,
-                totalLimit: null,
-                message: null,
-                daysUntilReset: null,
-                limitCurrency: null,
-            }
+            return NO_LIMIT_CHECK
         }
 
         const monthlyLimit = parseFloat(relevantMantecaLimit.monthlyLimit)
@@ -164,15 +167,7 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
     // bridge limits are always in USD
     const bridgeValidation = useMemo<LimitValidationResult>(() => {
         if (!hasBridgeLimits || !bridgeLimits) {
-            return {
-                isBlocking: false,
-                isWarning: false,
-                remainingLimit: null,
-                totalLimit: null,
-                message: null,
-                daysUntilReset: null,
-                limitCurrency: null,
-            }
+            return NO_LIMIT_CHECK
         }
 
         // bridge has per-transaction limits, not cumulative
@@ -222,15 +217,7 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
     // foreign qr limits are always in USD
     const foreignQrValidation = useMemo<LimitValidationResult>(() => {
         if (flowType !== 'qr-payment' || isLocalUser) {
-            return {
-                isBlocking: false,
-                isWarning: false,
-                remainingLimit: null,
-                totalLimit: null,
-                message: null,
-                daysUntilReset: null,
-                limitCurrency: null,
-            }
+            return NO_LIMIT_CHECK
         }
 
         // foreign users have a per-transaction limit for qr payments
@@ -267,29 +254,11 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
     // combined result - the provider that serves the operation, else manteca for local users, bridge for others
     const validation = useMemo<LimitValidationResult>(() => {
         if (mantecaUnread) {
-            return {
-                isBlocking: false,
-                isWarning: false,
-                remainingLimit: null,
-                totalLimit: null,
-                message: null,
-                daysUntilReset: null,
-                limitCurrency: null,
-            }
+            return NO_LIMIT_CHECK
         }
         if (servedByAvenia) {
             // no Avenia room read (yet): nothing to check here; the API's limit refusal still holds
-            return (
-                aveniaValidation ?? {
-                    isBlocking: false,
-                    isWarning: false,
-                    remainingLimit: null,
-                    totalLimit: null,
-                    message: null,
-                    daysUntilReset: null,
-                    limitCurrency: null,
-                }
-            )
+            return aveniaValidation ?? NO_LIMIT_CHECK
         }
 
         // for qr payments
@@ -312,15 +281,7 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
         }
 
         // no enabled rails - no limits to validate
-        return {
-            isBlocking: false,
-            isWarning: false,
-            remainingLimit: null,
-            totalLimit: null,
-            message: null,
-            daysUntilReset: null,
-            limitCurrency: null,
-        }
+        return NO_LIMIT_CHECK
     }, [
         mantecaUnread,
         servedByAvenia,

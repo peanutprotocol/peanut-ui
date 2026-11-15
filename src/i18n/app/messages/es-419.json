@@ -1853,7 +1853,8 @@
             "paymentCancelled": "El proveedor canceló este pago antes de enviar el dinero. Escanea un nuevo código QR para volver a intentarlo.",
             "payerBlocked": "El proveedor de pagos bloqueó tu cuenta para este pago. Usa otro método de pago o contacta a soporte.",
             "merchantBlocked": "El proveedor de pagos bloqueó a este comercio. Usa otro método de pago o pide otro QR al comercio.",
-            "amountHeld": "Otro pago tuyo todavía retiene este monto. Inténtalo más tarde."
+            "amountHeld": "Otro pago tuyo todavía retiene este monto. Inténtalo más tarde.",
+            "throttled": "Demasiados intentos. Espera un momento y vuelve a intentarlo."
         },
         "claim": {
             "navTitle": "Reclamar código QR",

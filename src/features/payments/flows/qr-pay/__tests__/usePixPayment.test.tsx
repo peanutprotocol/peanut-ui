@@ -232,6 +232,32 @@ describe('usePixPayment', () => {
         await waitFor(() => expect(result.current.outcome).toBe('processing'))
     })
 
+    // review 2, finding 7
+    it('a refused read for the user’s spent lookup budget shows the wait-a-moment line', async () => {
+        mockPreview.mockResolvedValue(FIXED)
+        mockOpen.mockRejectedValue(refusal(429, { code: 'PIX_KEY_LOOKUP_THROTTLED' }))
+        const { result } = render({ brCode: FIXED_CODE })
+        await waitFor(() => expect(result.current.reviewed).toEqual(FIXED))
+        await act(async () => {
+            await result.current.pay()
+        })
+        expect(result.current.error).toBe('errors.throttled')
+    })
+
+    it('names the USDC it signed for, which the success shows, where the open’s figures beat the review’s', async () => {
+        mockPreview.mockResolvedValue(FIXED)
+        mockOpen.mockResolvedValue(opened(display('42.50', '8.050000')))
+        mockSendTransactions.mockResolvedValue({ receipt: { status: 'success', transactionHash: MINED, logs: [] } })
+        const { result } = render({ brCode: FIXED_CODE })
+        await waitFor(() => expect(result.current.reviewed).toEqual(FIXED))
+        expect(result.current.signedUsd).toBeNull()
+        await act(async () => {
+            await result.current.pay()
+        })
+        expect(mockSendTransactions.mock.calls[0][1]).toMatchObject({ requiredUsdcAmount: 8_050_000n })
+        expect(result.current.signedUsd).toBe('8.050000')
+    })
+
     it('a dismissed passkey sends nothing: the form stays, and the next tap opens the same payment again', async () => {
         mockPreview.mockResolvedValue(FIXED)
         mockOpen.mockResolvedValue(opened())

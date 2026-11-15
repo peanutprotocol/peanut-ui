@@ -110,6 +110,19 @@ test('StrictMode double-mount fires reward_claim_shown once and no phantom dismi
     ).toHaveLength(1)
 })
 
+// review 2, finding 7: a reload of a paid Avenia payment reads a paid-out reward as claimed
+test('a reward already claimed is not offered again: no shown event, no dismissal', () => {
+    const { unmount } = render(
+        <Harness qrPayment={{ ...withPayout('completed'), perk: { ...withPayout('completed').perk, claimed: true } }} />
+    )
+    unmount()
+    act(() => {
+        jest.runOnlyPendingTimers()
+    })
+    expect(rewardEvents()).toEqual([])
+    expect(posthog.capture).not.toHaveBeenCalledWith('reward_claim_dismissed')
+})
+
 test('no dismissal when the perk was never shown', () => {
     const { unmount } = render(
         <React.StrictMode>

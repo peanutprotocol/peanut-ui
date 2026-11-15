@@ -30,6 +30,13 @@ describe('pixPaidPerk: the QR reward of a payment on the Pix pay routes, in the 
         }
     )
 
+    // review 2, finding 7: the read's `claimed` is always false; a paid-out reward was claimed
+    it('reads a reward already paid out as claimed, so a reload does not offer the hold again', () => {
+        const paidOut = { ...perk, payoutStatus: 'completed' as const, txHash: '0xabc' }
+        expect(pixPaidPerk({ state: 'paid', perk: paidOut })).toMatchObject({ claimed: true, txHash: '0xabc' })
+        expect(pixPaidPerk({ state: 'paid', perk })).toMatchObject({ claimed: false })
+    })
+
     it('shows nothing while the reward is not issued', () => {
         expect(pixPaidPerk({ state: 'paid', perk: null })).toBeNull()
         expect(pixPaidPerk(undefined)).toBeNull()

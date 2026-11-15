@@ -86,7 +86,8 @@ export function usePerkHoldToClaim(reward: PaidReward | null, onClaimed: () => v
     }, [perkClaimed])
 
     useEffect(() => {
-        if (rewardOffered && reward?.perk && !perkClaimed && !hasTrackedPerkShown.current) {
+        // a reward already claimed (read so after a reload) is shown revealed, not offered: no shown event
+        if (rewardOffered && reward?.perk && !reward.perk.claimed && !perkClaimed && !hasTrackedPerkShown.current) {
             hasTrackedPerkShown.current = true
             const eventProps = {
                 amount_usd: reward.perk.amountSponsored,

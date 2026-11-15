@@ -507,8 +507,8 @@ export function useQrPayFlowController(
     }, [errorMessage, errorCode, requoteFailed])
 
     const usdAmount = useMemo(() => {
-        // what leaves the wallet: the review's figure, or after a reload the paid entry's
-        if (isPixPay) return pixPayReviewed?.withdrawUsd ?? pixPayEntry?.amount ?? null
+        // what leaves the wallet: the paid entry's, else what this session signed, else the review's figure
+        if (isPixPay) return pixPayEntry?.amount ?? pixPayment.signedUsd ?? pixPayReviewed?.withdrawUsd ?? null
         if (!paymentLock) return null
         if (paymentLock.code === '') {
             // For static QR codes (user inputs amount), convert from local currency to USD
@@ -518,7 +518,7 @@ export function useQrPayFlowController(
             // For dynamic QR codes, backend provides the USD amount
             return paymentLock.paymentAgainstAmount
         }
-    }, [isPixPay, pixPayReviewed, pixPayEntry, paymentLock, amount])
+    }, [isPixPay, pixPayReviewed, pixPayEntry, pixPayment.signedUsd, paymentLock, amount])
 
     // Fetch points early to avoid latency penalty - fetch as soon as we have usdAmount
     // This way points are cached by the time success view shows
