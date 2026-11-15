@@ -200,10 +200,25 @@ export function lineHash(text) {
 // string (s = "x   #"; os.system(...)) would otherwise hide the code after the string closes.
 const HASH_COMMENT_FILE = /\.(py|sh|bash|zsh|ya?ml)$|(^|\/)(Dockerfile|Makefile)$/i
 
+// A column-aligned `// note` after JS cannot run either: it paged Squirrel-Core on a QR concept page
+// on 2026-11-15. It counts only when nothing before the gap can hold the `//` inside a string, regex
+// or block comment (no quote, backslash or slash), and the comment holds nothing that ends a string,
+// expands, or starts markup or JSX (`/`, quotes, `$`, `{}`, `<>`, `=`). Python is not here: `//` is division.
+// An HTML comment that ends the line counts in a page, under the same character limits.
+const SLASH_COMMENT_FILE = /\.(c|m)?(j|t)sx?$|\.(html?|vue|svelte|astro)$/i
+const PAGE_FILE = /\.(html?|vue|svelte|astro)$/i
+const SAFE_COMMENT_TEXT = `[^"'\`\\\\$<>={}/]*`
+const SLASH_COMMENT = new RegExp(`^//${SAFE_COMMENT_TEXT}$`)
+const HTML_COMMENT = new RegExp(`^<!--${SAFE_COMMENT_TEXT}-->\\s*$`)
+
 export function offScreenIsComment(path, text) {
-	if (!HASH_COMMENT_FILE.test(path)) return false
 	const gap = text.match(/[ \t]{60,}/)
 	const offScreen = text.slice(gap.index + gap[0].length)
+	if (SLASH_COMMENT_FILE.test(path)) {
+		const slash = !/["'`\\/]/.test(text.slice(0, gap.index)) && SLASH_COMMENT.test(offScreen)
+		return slash || (PAGE_FILE.test(path) && HTML_COMMENT.test(offScreen))
+	}
+	if (!HASH_COMMENT_FILE.test(path)) return false
 	// A Python comment line can end an open string only with a triple quote; shell strings span lines.
 	// Inside an open string a `#` is text and expansions still run: `$(...)` and `${...}` in shell, Make and
 	// Actions, `{...}` in a Python f-string. So a `{` in Python, or a `$` elsewhere, keeps the line code (Chip on ui#3823/api#1954).
@@ -212,6 +227,15 @@ export function offScreenIsComment(path, text) {
 	const wholeLine = text.trimStart().startsWith('#') && !stringEnd.test(text)
 	const trailing = offScreen.startsWith('#') && !(python ? /["'`\\{]/ : /["'`\\$]/).test(offScreen)
 	return wholeLine || trailing
+}
+
+// Off-screen text made only of rule and border characters (an ASCII table edge `|`) cannot run: no
+// name, call or bracket. It paged Squirrel-Core on a plain-text site mockup on 2026-10-31.
+const BORDER_ONLY = /^[\s|+\-=*#.:_~^\u2500-\u257F]+$/
+
+export function offScreenIsBorder(text) {
+	const gap = text.match(/[ \t]{60,}/)
+	return BORDER_ONLY.test(text.slice(gap.index + gap[0].length))
 }
 
 // A browser never runs `<script type="application/json">`: its body is data. Saved web pages carry
@@ -268,7 +292,9 @@ export function scanLines(lines, { allow = new Set() } = {}) {
 			const page = /\.html?$/i.test(entry.path)
 			const data = !tier && (/\.json$/i.test(entry.path) || (page && hidesOnlyInertJson(entry.text)))
 			const comment = offScreenIsComment(entry.path, entry.text)
-			add(data || comment ? 'warn' : 'block', 'hidden-code', entry, `${run} spaces, then more ${data ? 'text' : comment ? 'comment' : 'code'} off-screen`)
+			const border = !tier && offScreenIsBorder(entry.text)
+			const what = data ? 'text' : comment ? 'comment' : border ? 'border' : 'code'
+			add(what === 'code' ? 'block' : 'warn', 'hidden-code', entry, `${run} spaces, then more ${what} off-screen`)
 		}
 		if (entry.text.length > LONG_LINE) {
 			add(tier ? 'block' : 'warn', 'very-long-line', entry, `${entry.text.length} characters on one line`)
