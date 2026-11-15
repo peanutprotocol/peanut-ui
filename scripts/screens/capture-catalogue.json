@@ -1224,6 +1224,11 @@
         "route": "/history?tx=fixture-pix-deposit"
     },
     {
+        "id": "fixture-pix-deposit-receipt-completed",
+        "flow": "Add money",
+        "route": "/history?tx=fixture-avenia-deposit-paid"
+    },
+    {
         "id": "fixture-pix-activation-refused",
         "flow": "Add money",
         "route": "/add-money/pix"

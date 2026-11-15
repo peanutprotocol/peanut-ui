@@ -674,6 +674,14 @@ const aveniaPayableDeposit = {
     },
 }
 
+/** The same deposit once paid and credited: the code is spent. */
+const AVENIA_PAID_DEPOSIT = {
+    ...aveniaPayableDeposit,
+    uuid: 'fixture-avenia-deposit-paid',
+    status: 'COMPLETED',
+    extraData: { ...aveniaPayableDeposit.extraData, pixDeposit: { codePayable: false, expiresAt: null } },
+}
+
 /** Merchant Pix codes (valid EMV and CRC): one that leaves the amount to the payer, one with R$42.50, one with R$3. */
 const PIX_QR_OPEN_AMOUNT =
     '00020101021226680014br.gov.bcb.pix2546pix.example.com/qr/v2/cobv/padaria-pao-dourado5204000053039865802BR5924PADARIA PAO DOURADO LTDA6009SAO PAULO62070503***630409BC'
@@ -2588,6 +2596,14 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: {
             'GET /users/history': { entries: [aveniaPayableDeposit], hasMore: false },
             [`GET /history/${AVENIA_DEPOSIT_ID}`]: aveniaPayableDeposit,
+        },
+    },
+    'pix-deposit-receipt-completed': {
+        route: `/history?tx=${AVENIA_PAID_DEPOSIT.uuid}`,
+        about: 'The receipt of a paid Pix deposit: titled by its method, "Added by Pix".',
+        responses: {
+            'GET /users/history': { entries: [AVENIA_PAID_DEPOSIT], hasMore: false },
+            [`GET /history/${AVENIA_PAID_DEPOSIT.uuid}`]: AVENIA_PAID_DEPOSIT,
         },
     },
     'pix-setup-verify': {

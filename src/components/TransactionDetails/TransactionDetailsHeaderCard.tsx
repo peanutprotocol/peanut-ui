@@ -164,6 +164,9 @@ const getTitle = (
             case 'bank_deposit':
                 if (isTest) {
                     titleText = t('enjoyPeanut')
+                } else if (nameKey === TRANSACTION_NAME_KEYS.pix) {
+                    // Pix is the method, not a place the money came from: "Added by Pix"
+                    titleText = t(status === 'completed' ? 'title.addedByPix' : 'title.addingByPix')
                 } else {
                     titleText = t(status === 'completed' ? 'title.addedFrom' : 'title.addingFrom', {
                         name: sentenceName,
