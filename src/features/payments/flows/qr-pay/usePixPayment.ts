@@ -51,11 +51,12 @@ const PIX_PAY = 'pix-pay'
 /**
  * Where one payment stands, for the screens the QR flow already has:
  * - `processing`: the USDC left (or may have left) the wallet and the provider is paying the merchant.
- * - `paid`, `refunded` (returning or back), `cancelled` (nothing left the wallet).
- * - `not-sent`: opened, but this device never signed it; the provider lets it lapse.
+ *   A payment that still waits for its signature reads so too: a deposit signed where no device mark
+ *   survived (blocked storage, a reload right after signing) can still land until the API ends it.
+ * - `paid`, `refunded` (returning or back), `cancelled` (nothing left the wallet, or the API let it lapse).
  * - `needs-support`: a person at Peanut is looking at it.
  */
-export type PixPayOutcome = 'processing' | 'paid' | 'refunded' | 'cancelled' | 'not-sent' | 'needs-support'
+export type PixPayOutcome = 'processing' | 'paid' | 'refunded' | 'cancelled' | 'needs-support'
 
 /** What this session did with the payment: nothing yet, its open or signature in flight, or sent. */
 type PayPhase = 'idle' | 'opening' | 'signing' | 'sent' | 'unconfirmed'
@@ -78,7 +79,6 @@ export function pixPayOutcome(
         case 'needs_support':
             return 'needs-support'
         case 'awaiting_signature':
-            return mayHaveSent ? 'processing' : 'not-sent'
         case 'opening':
         case 'processing':
             return 'processing'
@@ -104,7 +104,6 @@ const ATTEMPT_OUTCOME: Record<Exclude<PixPayOutcome, 'processing'>, QrPaymentSta
     paid: 'success',
     refunded: 'failed',
     cancelled: 'failed',
-    'not-sent': 'failed',
     'needs-support': 'unknown',
 }
 
@@ -496,9 +495,8 @@ export function usePixPayment({
         enabled: enabled && !!intentId && phase !== 'opening' && phase !== 'signing',
         refetchInterval: (query) => {
             const state = query.state.data?.state
+            // read until the payment can no longer be funded: the API ends an unfunded one (cancelled)
             if (state && TERMINAL_STATES.has(state)) return false
-            // a payment never signed here lapses on its own; nothing to wait for
-            if (state === 'awaiting_signature' && !mayHaveSent) return false
             return READ_POLL_MS
         },
     })

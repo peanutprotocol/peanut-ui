@@ -488,6 +488,34 @@ describe('usePixPayment', () => {
         })
     })
 
+    // review 2, finding 6: blocked storage, or a reload right after signing, leaves no device mark
+    it('a payment still waiting for its signature, with no device mark, reads as processing until the API ends it', async () => {
+        const reopened = ({ children }: { children: ReactNode }) => (
+            <NuqsTestingAdapter searchParams="?intentId=pay-1">
+                <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+            </NuqsTestingAdapter>
+        )
+        mockRead
+            .mockResolvedValueOnce({ provider: 'avenia', intentId: 'pay-1', state: 'awaiting_signature', perk: null })
+            .mockResolvedValue({ provider: 'avenia', intentId: 'pay-1', state: 'cancelled', perk: null })
+        const { result } = renderHook(
+            () =>
+                usePixPayment({
+                    brCode: FIXED_CODE,
+                    timestamp: '1',
+                    enabled: true,
+                    canStart: true,
+                    amountBrl: undefined,
+                    minimumBrl: '5',
+                }),
+            { wrapper: reopened }
+        )
+        await waitFor(() => expect(mockRead).toHaveBeenCalledTimes(1))
+        await waitFor(() => expect(result.current.outcome).toBe('processing'))
+        await waitFor(() => expect(result.current.outcome).toBe('cancelled'), { timeout: 6_000 })
+        expect(mockRead).toHaveBeenCalledTimes(2)
+    }, 10_000)
+
     it('reads a paid payment once more when its reward is not issued yet, then stops (API-CONTRACT-M5 §3)', async () => {
         const reopened = ({ children }: { children: ReactNode }) => (
             <NuqsTestingAdapter searchParams="?intentId=pay-1">

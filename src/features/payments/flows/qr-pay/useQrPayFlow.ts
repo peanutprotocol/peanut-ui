@@ -107,7 +107,6 @@ const PIX_PAY_STATUS: Record<Exclude<PixPayOutcome, 'paid'>, QrPaymentStatus> = 
     processing: 'processing',
     refunded: 'refunded',
     cancelled: 'cancelled',
-    'not-sent': 'failed',
     'needs-support': 'failed',
 }
 
