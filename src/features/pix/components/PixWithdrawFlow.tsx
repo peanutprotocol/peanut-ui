@@ -8,7 +8,12 @@ import { formatUnits } from 'viem'
 import { useRouter } from 'next/navigation'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { PIX_WITHDRAW_STEPS, pixWithdrawAmount, completePixKey } from '@/features/pix/pixFlow.utils'
+import {
+    PIX_WITHDRAW_PREVIEW,
+    PIX_WITHDRAW_STEPS,
+    pixWithdrawAmount,
+    completePixKey,
+} from '@/features/pix/pixFlow.utils'
 import { PixKeyStep } from '@/features/pix/components/PixKeyStep'
 import { PixSetup } from '@/features/pix/components/PixSetup'
 import { PixWithdrawForm, type PixWithdrawAmountSeed } from '@/features/pix/components/PixWithdrawForm'
@@ -189,7 +194,7 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
     const amount = pixWithdrawAmount(form)
     const request = pixKey && amount ? { pixKey, ...amount } : null
     const preview = useQuery({
-        queryKey: ['pix-withdraw-preview', request],
+        queryKey: [PIX_WITHDRAW_PREVIEW, request],
         queryFn: () => pixApi.previewWithdrawal(request!),
         // the form shows it; once Confirm opened the ticket (`?intentId=`), the confirmed numbers stand
         enabled: formOpen && !!request && !amountError && !intentId && !pending,

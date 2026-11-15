@@ -95,6 +95,9 @@ export type PixWithdrawRefusal =
     | 'providerRejected'
     | 'unavailable'
 
+/** The query key of a withdrawal's review (`POST /pix/withdraw/preview`), read again when its quote moved. */
+export const PIX_WITHDRAW_PREVIEW = 'pix-withdraw-preview'
+
 export function pixWithdrawRefusalKey(code: string | undefined): PixWithdrawRefusal {
     switch (code) {
         case API_ERROR_CODES.PIX_LIMIT_EXCEEDED:

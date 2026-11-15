@@ -251,6 +251,22 @@ describe('usePixWithdrawSubmit', () => {
         expect(mockSendTransactions).not.toHaveBeenCalled()
     })
 
+    // API-CONTRACT-M5 §2 (Changed): a re-quote at init that moved the reais opens nothing
+    it('a quote that changed at init says so and reads the review again, so the next Confirm is for its figures', async () => {
+        mockInit.mockRejectedValue(new ApiError('changed', { status: 409, code: 'PIX_QUOTE_CHANGED' }))
+        const invalidate = jest.spyOn(queryClient, 'invalidateQueries')
+        const { result } = renderHook(() => usePixWithdrawSubmit(), { wrapper })
+
+        await act(async () => {
+            await result.current.submit(REQUEST, display)
+        })
+
+        expect(result.current.error).toBe('withdraw.errors.quoteChanged')
+        expect(result.current.phase).toBe('idle')
+        expect(invalidate).toHaveBeenCalledWith({ queryKey: ['pix-withdraw-preview'] })
+        expect(mockSendTransactions).not.toHaveBeenCalled()
+    })
+
     it.each([
         ['ROUTE_NOT_AVAILABLE', true],
         ['PROVIDER_UNAVAILABLE', true],

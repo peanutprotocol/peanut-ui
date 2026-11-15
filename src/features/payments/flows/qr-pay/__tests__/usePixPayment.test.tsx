@@ -260,6 +260,23 @@ describe('usePixPayment', () => {
         expect(mockSendTransactions.mock.calls[0][1]).toMatchObject({ requiredUsdcAmount: 8_090_000n })
     })
 
+    // API-CONTRACT-M5 §2: a re-quote at the open would pay other reais than the user entered
+    it('a quote that changed at the open shows the amount-changed line and reviews the code again', async () => {
+        mockPreview.mockResolvedValue(FIXED)
+        mockOpen.mockRejectedValue(refusal(409, { code: 'PIX_QUOTE_CHANGED' }))
+        const { result } = render({ brCode: FIXED_CODE })
+        await waitFor(() => expect(result.current.reviewed).toEqual(FIXED))
+
+        await act(async () => {
+            await result.current.pay()
+        })
+
+        expect(result.current.error).toBe('withdraw.errors.quoteChanged')
+        expect(result.current.phase).toBe('idle')
+        await waitFor(() => expect(mockPreview).toHaveBeenCalledTimes(2))
+        expect(mockSendTransactions).not.toHaveBeenCalled()
+    })
+
     it('a refused review of the code is the scan refusal, in the QR copy', async () => {
         mockPreview.mockRejectedValue(refusal(422, { code: 'PIX_KEY_BLOCKED' }))
         const { result } = render({ brCode: FIXED_CODE })

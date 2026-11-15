@@ -340,9 +340,10 @@ export function usePixPayment({
                 }
             }
             if (code === API_ERROR_CODES.PIX_QUOTE_CHANGED) {
-                // nothing was opened: the review is quoted again and shows the new figures
+                // nothing was opened: the review is quoted again and shows the new figures, under the
+                // line a withdrawal and a key send show for the same answer (API-CONTRACT-M5 §2)
                 void queryClient.invalidateQueries({ queryKey: ['pix-pay-preview', brCode] })
-                setNotice(t('reviewUpdatedQuote'))
+                setError(tPix('withdraw.errors.quoteChanged'))
                 return
             }
             if (code === API_ERROR_CODES.PIX_QUOTE_EXPIRED) restartQuote()
