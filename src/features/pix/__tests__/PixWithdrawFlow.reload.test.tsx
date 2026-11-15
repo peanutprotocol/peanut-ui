@@ -5,6 +5,7 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import type { UrlUpdateEvent } from 'nuqs/adapters/testing'
 import { renderWithIntl } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
+import { PROVIDERS } from '@/constants/providers.consts'
 import type { CapabilityRoute } from '@/types/capabilities'
 import { ApiError } from '@/services/api-error'
 
@@ -662,6 +663,39 @@ describe('PixWithdrawFlow form', () => {
         expect(await screen.findByText('R$270')).toBeInTheDocument()
         expect(screen.getByText(en.withdraw.bank.bankReceives)).toBeInTheDocument()
         expect(screen.getByText('$50')).toBeInTheDocument()
+    })
+
+    // Chip on ui#4106 (the QR review lost its rows while signing): the withdrawal's rows and provider come from
+    // the review and the route, so they stay while the passkey is open
+    it('keeps Avenia’s rate, its fee and the provider row while the passkey is open', async () => {
+        mockPreview.mockResolvedValue(display)
+        mockInit.mockResolvedValue({
+            intentId: 'w3',
+            display,
+            sign: {
+                kind: 'deposit-with-id',
+                contractAddress: '0x10417734001162Ea139e8b044DFe28DbB8B28ad0',
+                tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+                payAmount: '92.504310',
+                payAmountUnits: '92504310',
+                commitmentId: '6aeb17ea29f84d1e9b0c3a5d7e2f1c08',
+                quoteExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+                ticketExpiresAt: new Date(Date.now() + 600_000).toISOString(),
+            },
+        })
+        mockSendTransactions.mockReturnValue(new Promise(() => {}))
+        withForm(REVIEW_FORM)
+        renderAt('?step=review')
+
+        const confirm = await screen.findByRole('button', { name: en.common.confirm })
+        await waitFor(() => expect(confirm).toBeEnabled())
+        fireEvent.click(confirm)
+        await waitFor(() => expect(mockSendTransactions).toHaveBeenCalledTimes(1))
+        // the passkey prompt is open: the same figures and the same provider
+        expect(screen.getByText('1 USD = 5.46 BRL')).toBeInTheDocument()
+        expect(screen.getByText('R$2.07')).toBeInTheDocument()
+        expect(screen.getByText(PROVIDERS['avenia-br'].brand)).toBeInTheDocument()
+        expect(screen.queryByText('R$0.75')).toBeNull()
     })
 
     // the API sends the pair only where it is proven: Avenia's review then shows neither row, never the

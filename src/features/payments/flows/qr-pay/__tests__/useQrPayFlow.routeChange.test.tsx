@@ -523,6 +523,37 @@ describe('an Avenia payment waits on its review while the passkey is open', () =
         expect(mockPixApi.reportPaymentFunding).toHaveBeenCalledWith('pay-1', `0x${'ab'.repeat(32)}`)
     })
 
+    // Chip on ui#4106: while the passkey is open the payment read is off, so the provider must come from
+    // the open, or the review falls back to the all-in rate and the flat fee and loses its provider row
+    it('keeps Avenia’s rate, its fee and the provider row on the review while the passkey is open', async () => {
+        const priced = { ...review, exchangeRate: '5.400000', providerFeeBrl: '1.04' }
+        mockPixApi.previewPayment.mockResolvedValue(priced)
+        mockPixApi.openPayment.mockResolvedValue({ ...opened, display: priced })
+        const rows = () =>
+            mockSurface as unknown as {
+                providerId: string | null
+                shownRate: number | null
+                hideRate: boolean
+                providerFee: string | null
+            }
+        renderScan()
+        await screen.findByText('Payment form')
+        await waitFor(() => expect(rows().shownRate).toBe(5.4))
+        const before = { ...rows() }
+        expect(before).toMatchObject({ providerId: 'avenia-br', hideRate: false, providerFee: 'R$1.04' })
+
+        act(() => {
+            void mockSurface!.payQR()
+        })
+        await waitFor(() => expect(sendTransactions).toHaveBeenCalledTimes(1))
+        // the passkey prompt is open: the same figures and the same provider
+        expect(surface().loadingState).toBe('Approve transaction')
+        expect(rows().providerId).toBe('avenia-br')
+        expect(rows().shownRate).toBe(5.4)
+        expect(rows().hideRate).toBe(false)
+        expect(rows().providerFee).toBe('R$1.04')
+    })
+
     it('a dismissed passkey returns to a usable review, and the next tap signs the same payment', async () => {
         const { payment } = await tapPay()
         const dismissed = Object.assign(new Error('The operation either timed out or was not allowed.'), {

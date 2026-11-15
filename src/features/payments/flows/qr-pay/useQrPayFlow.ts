@@ -818,7 +818,12 @@ export function useQrPayFlowController(
     // the legal record behind the provider row: the opened payment's provider (a route that changed since
     // names another), else the route's, or Manteca's entity for the code's country
     const providerId: ProviderId | null = isPixPay
-        ? pixProviderId(pixPayment.intentId ? pixPayment.payment?.provider : pixPayRoute?.provider)
+        ? pixProviderId(
+              pixPayment.intentId
+                  ? // the read, else the open while the passkey is open (the read is off then)
+                    (pixPayment.payment?.provider ?? pixPayment.openedProvider)
+                  : pixPayRoute?.provider
+          )
         : paymentProcessor === 'MANTECA' && targetMantecaCountry
           ? targetMantecaCountry === 'BR'
               ? 'manteca-br'

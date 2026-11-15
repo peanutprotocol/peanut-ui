@@ -250,6 +250,9 @@ export function usePixPayment({
     const [phase, setPhase] = useState<PayPhase>('idle')
     // the USDC this session signed for: what left the wallet, where it differs from the review's figure
     const [signedUsd, setSignedUsd] = useState<string | null>(null)
+    // the provider the open named: while the passkey is open the payment read is off, and the review
+    // keeps showing that provider's rows (Chip on ui#4106)
+    const [openedProvider, setOpenedProvider] = useState<string | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [notice, setNotice] = useState<string | null>(null)
     // a lapsed quote needs a payment of its own: a new key (API-CONTRACT-M4 §2.2)
@@ -430,6 +433,7 @@ export function usePixPayment({
         markDepositMaybeSent(opened.intentId)
         void setIntentId(opened.intentId)
         setSignedUsd(sign.payAmount)
+        setOpenedProvider(opened.provider)
         let minedHash: string | undefined
         let reverted = false
         try {
@@ -449,6 +453,7 @@ export function usePixPayment({
                 clearDepositMaybeSent(opened.intentId)
                 void setIntentId(null)
                 setSignedUsd(null)
+                setOpenedProvider(null)
                 moveTo('idle')
                 setError(isUserCancellation(caught) ? t('errors.confirmTransaction') : t('errors.signFailed'))
                 return
@@ -555,6 +560,8 @@ export function usePixPayment({
         merchant,
         /** The USDC this session signed for; null before a signature, or after a reload. */
         signedUsd,
+        /** The provider this session's open named; null before a signature, or after a reload. */
+        openedProvider,
         /** Null until the code's first read answers. */
         amountFixed: codeRead.data ? amountFixed : openAmount ? false : null,
         isReadingCode: codeRead.isLoading,
