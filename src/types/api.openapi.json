@@ -401,7 +401,7 @@
 						"description": "Base64 RSA-PSS signature of the raw body",
 						"in": "header",
 						"name": "signature",
-						"required": false,
+						"required": true,
 						"schema": {
 							"type": "string"
 						}

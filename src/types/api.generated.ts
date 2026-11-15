@@ -331,9 +331,9 @@ export interface paths {
         post: {
             parameters: {
                 query?: never;
-                header?: {
+                header: {
                     /** @description Base64 RSA-PSS signature of the raw body */
-                    signature?: string;
+                    signature: string;
                 };
                 path?: never;
                 cookie?: never;
