@@ -45,7 +45,8 @@ export function usePixQuoteCurrency(
     })
     // the field converts with amount ÷ USDC, every fee in; the rate row is the quote's exchangeRate
     const price = quote.data ? pixQuotePrice(quote.data) : null
-    const typed = toApiDecimal(settledBrl ?? '', 2)
+    // the amount on screen now, not the debounced one: an older quote's fee is never this amount's
+    const typed = toApiDecimal(typedBrl ?? '', 2)
     return {
         rateAndFee: quote.data ? pixRateAndFee(quote.data) : undefined,
         quotesTypedAmount: !!quote.data && !quote.isPlaceholderData && !!typed && amountBrl === typed,
