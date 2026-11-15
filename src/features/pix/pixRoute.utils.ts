@@ -1,6 +1,7 @@
 import { VERIFY_ACTION } from '@/features/kyc-features/report'
 import type { CapabilityRoute, FeatureReport, FeatureReportEntry } from '@/types/capabilities'
 import type { GateState } from '@/utils/capability-gate'
+import { PIX_ADD_MONEY_PATH, PIX_WITHDRAW_PATH } from '@/features/pix/pix.routes'
 
 export const PIX_METHOD = 'PIX_BR'
 
@@ -192,4 +193,14 @@ export function pixRouteGate(route: CapabilityRoute): GateState {
         case 'refused':
             return { kind: 'blocked-rejection', userMessage, reason: route.reason }
     }
+}
+
+/**
+ * Where a user goes when Manteca refuses to open a Brazil session because their Pix moved
+ * (`PIX_PROVIDER_MOVED`): the Pix page that opens their account with no tap. The add-money page
+ * where their deposit route is open, else the withdraw page, which every Pix user has (a resident
+ * abroad deposits no BRL). Either page reads its route and shows the opening, the wait or the refusal.
+ */
+export function pixFlowPath(routes: CapabilityRoute[] | undefined): string {
+    return pixRouteOpen(findPixRoute(routes, 'deposit')) ? PIX_ADD_MONEY_PATH : PIX_WITHDRAW_PATH
 }

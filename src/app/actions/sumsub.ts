@@ -43,8 +43,12 @@ export type SumsubActionErrorCode =
     | 'supplement_not_required'
     // a provider asks for a new ID: the identity restart collects it, never a raw upload (`fallback`)
     | 'restart_identity'
+    // a Manteca session for Brazil, refused because the user's Pix moved to another provider (409)
+    | 'PIX_PROVIDER_MOVED'
     | 'invalid_response'
     | 'unexpected'
+
+const PIX_PROVIDER_MOVED = 'PIX_PROVIDER_MOVED'
 
 interface SumsubActionError {
     error: string
@@ -82,6 +86,9 @@ const backendOrFallback = (
     code: SumsubActionErrorCode,
     status: number
 ): SumsubActionError => {
+    // Manteca no longer opens Brazil for this user: their Pix moved (409). The caller sends them to the Pix flow.
+    if (responseJson.code === PIX_PROVIDER_MOVED)
+        return { error: responseJson.userMessage || fallback, code: PIX_PROVIDER_MOVED }
     const terminal = terminalCodeOf(responseJson)
     // `userMessage` is written for users. On a 4xx, `error` is a code or an
     // English developer string ("No provider rejection found", provider

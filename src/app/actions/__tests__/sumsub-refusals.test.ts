@@ -558,3 +558,24 @@ describe('R17 start-action supplement_changed wire response', () => {
         expect((await startKycAction('supplement:bridge')).code).not.toBe('supplement_changed')
     })
 })
+
+// TASK-24947 M5: a Manteca session for Brazil, refused because the user's Pix moved to another provider
+describe('a Manteca Brazil session refused with PIX_PROVIDER_MOVED keeps its code', () => {
+    const MOVED = {
+        error: 'provider_moved',
+        code: 'PIX_PROVIDER_MOVED',
+        userMessage: 'Pix now runs through another partner.',
+    }
+
+    it('on the identity start, so the app can send the user to the Pix flow', async () => {
+        respondWith(409, MOVED)
+        const result = await initiateSumsubKyc({ regionIntent: 'LATAM', targetCountry: 'BR' })
+        expect(result).toMatchObject({ code: 'PIX_PROVIDER_MOVED', error: MOVED.userMessage })
+    })
+
+    it('on start-action', async () => {
+        respondWith(409, MOVED)
+        const result = await startKycAction('sumsub:manteca_br')
+        expect(result).toMatchObject({ code: 'PIX_PROVIDER_MOVED', error: MOVED.userMessage })
+    })
+})
