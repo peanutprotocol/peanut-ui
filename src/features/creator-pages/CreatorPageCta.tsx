@@ -19,7 +19,7 @@ export function CreatorPageCta({
     /** Goes on the click event as `cta_position`. */
     position: CtaPosition
 }) {
-    const { page, experimentId, preview, deviceOs } = useCreatorPage()
+    const { page, preview, deviceOs } = useCreatorPage()
     const StoreIcon = deviceOs === 'ios' ? AppleLogoIcon : deviceOs === 'android' ? GooglePlayIcon : null
 
     return (
@@ -29,7 +29,7 @@ export function CreatorPageCta({
             data-cta-position={position}
             onClick={() => {
                 // Not awaited: the event leaves as a beacon and the navigation starts at once.
-                if (!preview) captureCreatorPageCtaClick(page, experimentId, position)
+                if (!preview) captureCreatorPageCtaClick(page, position)
             }}
         >
             {StoreIcon && (

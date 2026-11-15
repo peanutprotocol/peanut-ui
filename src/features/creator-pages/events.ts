@@ -1,4 +1,5 @@
 import type { CreatorPageProps } from '@/features/tracked-links/contract'
+import { goVisitPosthogProperties } from '@/features/tracked-links/visit-properties'
 import type { DeviceOs, InAppBrowser } from './environment'
 
 export type CreatorPageEnvironment = { deviceOs: DeviceOs; inAppBrowser: InAppBrowser }
@@ -6,30 +7,16 @@ export type CreatorPageEnvironment = { deviceOs: DeviceOs; inAppBrowser: InAppBr
 export type CtaPosition = 'hero' | 'sticky' | 'footer'
 
 /**
- * Properties of creator_page_cta_clicked. The visit keys carry the same names as the engine's
- * tracked_link_visit, so one breakdown reads views and taps. When this branch stacks on the
- * go-links PRs, `goVisitPosthogProperties(page)` replaces the keys from link_id to page_experiment
- * (ask the engine how it knows page_experiment: CreatorPageProps v1 has no experiment id).
+ * Properties of creator_page_cta_clicked. The engine's helper supplies the labels of its
+ * tracked_link_visit under the same names (link_id, signup_journey_id, page_variant and
+ * page_experiment are the join), so one breakdown reads views and taps. Only the last three keys
+ * are ours. The helper reads the sign-up journey: call this after `trackedLinkAnalyticsAllowed()`.
  * Read-out: mono engineering/ui/creator-pages.md.
  */
-export function creatorPageEventProperties(
-    page: CreatorPageProps,
-    experimentId: string | null,
-    environment: CreatorPageEnvironment
-) {
-    const { creator, visit } = page
+export function creatorPageEventProperties(page: CreatorPageProps, environment: CreatorPageEnvironment) {
     return {
-        link_id: creator.linkId,
-        placement: visit.placement,
-        code: visit.code,
-        utm_source: visit.utm.source,
-        utm_medium: visit.utm.medium,
-        utm_campaign: visit.utm.campaign,
-        utm_content: visit.utm.content,
-        referrer_host: visit.referrerHost,
-        page_variant: page.variant,
-        page_experiment: experimentId,
-        creator_username: creator.username,
+        ...goVisitPosthogProperties(page),
+        creator_username: page.creator.username,
         device_os: environment.deviceOs,
         in_app_browser: environment.inAppBrowser,
     }

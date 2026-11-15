@@ -15,12 +15,13 @@ export function CreatorPageProvider({
     children,
 }: {
     page: CreatorPageProps
+    /** From the server's experiments.ts: the sticky cookie names the experiment that picked this variant. */
     experimentId: string | null
     deviceOs: DeviceOs
     children: ReactNode
 }) {
     const preview = useContext(CreatorPagePreviewContext)
-    const context = useMemo(() => ({ page, experimentId, preview, deviceOs }), [page, experimentId, preview, deviceOs])
+    const context = useMemo(() => ({ page, preview, deviceOs }), [page, preview, deviceOs])
 
     const { username } = page.creator
     useEffect(() => {

@@ -11,12 +11,9 @@ import { USER_AGENTS } from './user-agents'
 
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 jest.mock('@/features/tracked-links/eligibility', () => ({ trackedLinkAnalyticsAllowed: jest.fn() }))
+// The engine's goVisitPosthogProperties reads the journey from here.
 jest.mock('@/utils/signup-attribution', () => ({
-    signupAttributionPosthogProperties: () => ({
-        signup_journey_id: '11111111-1111-4111-8111-111111111111',
-        signup_platform: 'web',
-        signup_attribution_capture_method: 'tracked_link',
-    }),
+    readSignupAttribution: () => ({ journeyId: '11111111-1111-4111-8111-111111111111' }),
 }))
 
 const capture = posthog.capture as jest.Mock
@@ -87,6 +84,8 @@ describe('CreatorPageCta', () => {
                 'creator_page_cta_clicked',
                 {
                     link_id: page.creator.linkId,
+                    signup_journey_id: '11111111-1111-4111-8111-111111111111',
+                    opened_in: 'web',
                     placement: 'ig',
                     code: null,
                     utm_source: null,
@@ -100,7 +99,6 @@ describe('CreatorPageCta', () => {
                     device_os: 'android',
                     in_app_browser: 'instagram',
                     cta_position: 'sticky',
-                    signup_journey_id: '11111111-1111-4111-8111-111111111111',
                 },
                 { transport: 'sendBeacon', send_instantly: true },
             ],
