@@ -122,6 +122,19 @@ describe('the LATAM limits screen shows the limits of the provider that serves e
         expect(screen.queryByText('Add money')).not.toBeInTheDocument()
     })
 
+    // review 2, finding 5: inside Avenia's Pix gate, outside its QR gate
+    it('a QR payment still on Manteca keeps Manteca’s BRL card, and Avenia’s room names only what Avenia serves', () => {
+        mockLimits = { manteca: [limit('BRL', 'BRA')], bridge: null, avenia: AVENIA }
+        mockRoutes = [...pixRoutes('avenia', ['deposit', 'withdraw']), ...pixRoutes('manteca', ['pay'])]
+        render(<MantecaLimitsView />)
+
+        expect(screen.getByText('BRL total allowed')).toBeInTheDocument()
+        expect(screen.getByText('BRL left this month')).toBeInTheDocument()
+        expect(screen.getByText('Add money')).toBeInTheDocument()
+        expect(screen.getByText('Withdraw')).toBeInTheDocument()
+        expect(screen.queryByText('Withdraw and pay')).not.toBeInTheDocument()
+    })
+
     it('keeps Manteca’s BRL card while the Pix routes name Manteca', () => {
         mockLimits = { manteca: [limit('BRL', 'BRA')], bridge: null, avenia: null }
         mockRoutes = pixRoutes('manteca')

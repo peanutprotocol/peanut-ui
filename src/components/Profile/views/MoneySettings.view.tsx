@@ -43,8 +43,7 @@ import { selectQrKycGate } from '@/features/payments/flows/qr-pay/qrKycGate.util
 import { IDENTITY_DOCUMENT_MISSING_CODE, QrKycState } from '@/constants/kyc.consts'
 import { useLimits } from '@/hooks/useLimits'
 import { limitSummariesForRows, MethodLimits, type BrlRoom } from './MethodLimits'
-import { aveniaServesBrl } from '@/features/limits/utils'
-import { findPixRoute } from '@/features/pix/pixRoute.utils'
+import { brlOperationsServedBy, mantecaBrlLimitApplies } from '@/features/limits/utils'
 import { rowStatusBadge, isRowTappable } from './RowStatusBadge'
 import { entryChip, entryAction, UNKNOWN_REPORT } from '@/features/kyc-features/report'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
@@ -464,13 +463,17 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
     // the BRL/ARS monthly bars and the P2P no-limit line — sat above the fold
     // and repeated what a tap already says. Same derivation, same formatting,
     // one tap down. The Limits block is hidden when a method publishes none.
-    // BRL's limits are the provider's the Pix routes name: Avenia's room, never Manteca's stale BRL limit
-    const brlRoom: BrlRoom | null = aveniaServesBrl(capabilities.routes)
-        ? {
-              room: aveniaLimits,
-              deposits: findPixRoute(capabilities.routes, 'deposit')?.provider === 'avenia',
-          }
-        : null
+    // BRL's limits are, per operation, the provider's that operation's Pix route names: Avenia's room for
+    // what Avenia serves, Manteca's BRL limit while Manteca still serves any of it
+    const aveniaBrlOperations = brlOperationsServedBy(capabilities.routes, 'avenia')
+    const brlRoom: BrlRoom | null =
+        aveniaBrlOperations.length > 0
+            ? {
+                  room: aveniaLimits,
+                  operations: aveniaBrlOperations,
+                  mantecaToo: mantecaBrlLimitApplies(capabilities.routes),
+              }
+            : null
     const detailSummaries = detailsRow
         ? limitSummariesForRows([detailsRow], mantecaLimits, bridgeLimits, locale, brlRoom)
         : []

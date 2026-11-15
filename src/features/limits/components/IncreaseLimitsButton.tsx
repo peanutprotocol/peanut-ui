@@ -11,7 +11,7 @@ import { initiateIncreaseLimits } from '@/app/actions/increase-limits'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { KycControlFlowProvider } from '@/features/paperwork-verification/analytics'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { aveniaServesBrl, isBrUserEligibleForLimitIncrease } from '../utils'
+import { isBrUserEligibleForLimitIncrease, mantecaBrlLimitApplies } from '../utils'
 
 const INCREASE_LIMITS_MESSAGE = 'Hi, I would like to increase my payment limits.'
 
@@ -27,9 +27,10 @@ export default function IncreaseLimitsButton({ variant = 'primary' }: { variant?
     const { mantecaLimits, isLoading: isLimitsLoading, refetch } = useLimits()
 
     const { capabilities } = useCapabilities()
-    // Manteca's increase raises Manteca's BRL limit, which stands for nothing once Avenia serves the user's Pix
+    // Manteca's increase raises Manteca's BRL limit: offered exactly while Manteca still serves a BRL
+    // operation of the user (a QR payment outside Avenia's QR gate keeps Manteca's cap)
     const isEligibleForSelfService =
-        !aveniaServesBrl(capabilities.routes) && isBrUserEligibleForLimitIncrease(mantecaLimits)
+        mantecaBrlLimitApplies(capabilities.routes) && isBrUserEligibleForLimitIncrease(mantecaLimits)
 
     const actionFlow = useSumsubActionFlow({
         fetchToken: initiateIncreaseLimits,

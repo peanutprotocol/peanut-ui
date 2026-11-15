@@ -7,7 +7,6 @@ import { useSafeBack } from '@/hooks/useSafeBack'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { findPixRoute } from '@/features/pix/pixRoute.utils'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Tabs } from '@/components/0_Bruddle/Tabs'
 import ProgressBar from '@/components/0_Bruddle/ProgressBar'
@@ -18,8 +17,9 @@ import {
     getLimitColorClass,
     formatAmountWithCurrency,
     getFlagUrlForCurrency,
-    aveniaServesBrl,
+    brlOperationsServedBy,
     limitsUnavailable,
+    mantecaBrlLimitApplies,
     type LimitsPeriod,
 } from '../utils'
 import MonthlyRoomCard from '../components/MonthlyRoomCard'
@@ -32,8 +32,9 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 
 /**
  * displays the limits of latam users
- * shows manteca's monthly/yearly limits per currency with remaining amounts; BRL shows the limits of
- * the provider the user's Pix routes name, so Avenia's monthly room replaces Manteca's BRL card
+ * shows manteca's monthly/yearly limits per currency with remaining amounts; BRL shows, per operation,
+ * the limits of the provider that operation's Pix route names: Avenia's monthly room for what Avenia
+ * serves, Manteca's BRL card while Manteca still serves any of it (a QR payment outside Avenia's QR gate)
  */
 const MantecaLimitsView = () => {
     const t = useTranslations('limits.provider')
@@ -49,14 +50,16 @@ const MantecaLimitsView = () => {
         isRefetching,
     } = useLimits()
     const { capabilities } = useCapabilities()
-    const brlOnAvenia = aveniaServesBrl(capabilities.routes)
-    const mantecaLimits = brlOnAvenia ? allMantecaLimits?.filter((limit) => limit.asset !== 'BRL') : allMantecaLimits
-    const aveniaRoom = brlOnAvenia ? aveniaLimits : null
-    const aveniaDeposits = findPixRoute(capabilities.routes, 'deposit')?.provider === 'avenia'
+    const aveniaOperations = brlOperationsServedBy(capabilities.routes, 'avenia')
+    const mantecaLimits = mantecaBrlLimitApplies(capabilities.routes)
+        ? allMantecaLimits
+        : allMantecaLimits?.filter((limit) => limit.asset !== 'BRL')
+    const aveniaRoom = aveniaOperations.length > 0 ? aveniaLimits : null
     const hasLimits = (mantecaLimits?.length ?? 0) > 0 || !!aveniaRoom
     // A provider whose limits this page shows could not be read: the screen's error, as when the whole
     // read failed. A null limit the API does not list is no account there, and shows nothing.
-    const mantecaUnread = limitsUnavailable(limits, 'manteca') || (brlOnAvenia && limitsUnavailable(limits, 'avenia'))
+    const limitsUnread =
+        limitsUnavailable(limits, 'manteca') || (aveniaOperations.length > 0 && limitsUnavailable(limits, 'avenia'))
     const [period, setPeriod] = useState<LimitsPeriod>('monthly')
     const [capNudgeCtaShown, setCapNudgeCtaShown] = useState(false)
 
@@ -66,7 +69,7 @@ const MantecaLimitsView = () => {
 
             {isLoading && <Loading variant="mascot" coverFullScreen />}
 
-            {(error || (!isLoading && mantecaUnread)) && (
+            {(error || (!isLoading && limitsUnread)) && (
                 <LimitsError onRetry={() => refetch()} isRetrying={isRefetching} />
             )}
 
@@ -77,8 +80,8 @@ const MantecaLimitsView = () => {
                         {aveniaRoom && (
                             <MonthlyRoomCard
                                 currency={aveniaRoom.currency}
-                                deposit={aveniaDeposits ? aveniaRoom.deposit : undefined}
-                                payout={aveniaRoom.payout}
+                                room={aveniaRoom}
+                                operations={aveniaOperations}
                             />
                         )}
                         {(mantecaLimits ?? []).map((limit) => {
@@ -153,7 +156,7 @@ const MantecaLimitsView = () => {
                 </>
             )}
 
-            {!isLoading && !error && !hasLimits && !mantecaUnread && <EmptyState title={t('noData')} icon="meter" />}
+            {!isLoading && !error && !hasLimits && !limitsUnread && <EmptyState title={t('noData')} icon="meter" />}
         </PageStack>
     )
 }

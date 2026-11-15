@@ -2616,6 +2616,44 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         }),
     },
+    'limits-avenia-qr-on-manteca': {
+        route: '/limits/manteca',
+        about: "Inside Avenia's Pix gate, outside its QR gate (review 2, finding 5): Avenia's room names add money and withdraw only, and QR payments keep Manteca's BRL limit.",
+        responses: aveniaResponses('enabled', {
+            'GET /users/me': {
+                ...aveniaResponses('enabled')['GET /users/me'],
+                capabilities: {
+                    ...aveniaResponses('enabled')['GET /users/me'].capabilities,
+                    routes: [
+                        ...aveniaRoutes('enabled'),
+                        {
+                            operation: 'pay',
+                            method: 'PIX_BR',
+                            provider: 'manteca',
+                            state: 'ready',
+                            candidates: [{ provider: 'manteca', state: 'ready' }],
+                        },
+                    ],
+                },
+            },
+            'GET /users/limits': {
+                manteca: [
+                    {
+                        exchangeCountry: 'BRA',
+                        type: 'EXCHANGE',
+                        asset: 'BRL',
+                        yearlyLimit: '12000',
+                        availableYearlyLimit: '12000',
+                        monthlyLimit: '1000',
+                        availableMonthlyLimit: '1000',
+                    },
+                ],
+                bridge: null,
+                avenia: AVENIA_LIMITS,
+                unavailable: [],
+            },
+        }),
+    },
     'pix-setup-open-failed': {
         route: '/add-money/pix',
         about: 'The first use could not reach the API: the activation says so and offers to try again.',

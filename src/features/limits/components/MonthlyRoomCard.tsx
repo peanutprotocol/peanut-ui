@@ -4,14 +4,15 @@ import Card from '@/components/Global/Card'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import type { MonthlyRoom } from '@/interfaces/interfaces'
+import type { RailOperation } from '@/types/capabilities'
 import { formatAmountWithCurrency, getFlagUrlForCurrency } from '../utils'
 
 interface MonthlyRoomCardProps {
     currency: string
-    /** Pix in; absent when the user's deposits are not this provider's (a resident abroad has none). */
-    deposit?: MonthlyRoom
-    /** Pix out: withdrawals, key sends and QR payments share it. */
-    payout: MonthlyRoom
+    /** Pix in and Pix out (withdrawals, key sends and QR payments share the payout room). */
+    room: { deposit: MonthlyRoom; payout: MonthlyRoom }
+    /** The operations this provider serves for the user: a row shows only for an operation it serves. */
+    operations: readonly RailOperation[]
 }
 
 /** The figure of one direction: reais left, else USD left; a blocked room has nothing left. */
@@ -22,16 +23,35 @@ function roomAmount(room: MonthlyRoom, currency: string): string | null {
     return null
 }
 
+/** Which of the payout room's operations the provider serves, for its row's label. */
+function payoutOperations(operations: readonly RailOperation[]): 'both' | 'withdraw' | 'pay' | null {
+    const withdraws = operations.includes('withdraw')
+    const pays = operations.includes('pay')
+    if (withdraws && pays) return 'both'
+    return withdraws ? 'withdraw' : pays ? 'pay' : null
+}
+
 /**
  * A provider's monthly room, as the API reads it (API-CONTRACT-M5 §5): what may still move this
  * month in each direction. The provider answers no monthly total, so the card shows no progress bar.
+ * Each row names only the operations this provider serves for the user; another provider's limit
+ * covers the rest.
  */
-export default function MonthlyRoomCard({ currency, deposit, payout }: MonthlyRoomCardProps) {
+export default function MonthlyRoomCard({ currency, room, operations }: MonthlyRoomCardProps) {
     const t = useTranslations('limits.provider')
     const flagUrl = getFlagUrlForCurrency(currency)
+    const payoutFor = payoutOperations(operations)
     const rows = [
-        { key: 'deposit', label: t('roomDeposit'), amount: deposit ? roomAmount(deposit, currency) : null },
-        { key: 'payout', label: t('roomPayout'), amount: roomAmount(payout, currency) },
+        {
+            key: 'deposit',
+            label: t('roomDeposit'),
+            amount: operations.includes('deposit') ? roomAmount(room.deposit, currency) : null,
+        },
+        {
+            key: 'payout',
+            label: t('roomPayout', { operations: payoutFor ?? 'both' }),
+            amount: payoutFor ? roomAmount(room.payout, currency) : null,
+        },
     ].filter((row) => row.amount !== null)
 
     if (rows.length === 0) return null

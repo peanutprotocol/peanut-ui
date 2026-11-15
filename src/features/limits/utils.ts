@@ -2,7 +2,7 @@
 
 import type { LimitsProvider, MantecaLimit, MonthlyRoom, UserLimitsResponse } from '@/interfaces/interfaces'
 import type { CapabilityRoute, ProviderCode, RailOperation } from '@/types/capabilities'
-import { findPixRoute, PIX_METHOD } from '@/features/pix/pixRoute.utils'
+import { findPixRoute } from '@/features/pix/pixRoute.utils'
 import { SYMBOLS_BY_CURRENCY_CODE } from '@/constants/currency-symbols.consts'
 import { getCurrencyFlagUrl } from '@/constants/countryCurrencyMapping'
 import { formatExtendedNumber } from '@/utils/general.utils'
@@ -103,9 +103,20 @@ export function limitsUnavailable(limits: UserLimitsResponse | null, provider: L
     return !!limits?.unavailable?.includes(provider)
 }
 
-/** Whether any of the user's Pix routes names Avenia: Manteca's BRL limits then stand for nothing the user does. */
-export function aveniaServesBrl(routes: CapabilityRoute[] | undefined): boolean {
-    return !!routes?.some((route) => route.method === PIX_METHOD && route.provider === 'avenia')
+const BRL_OPERATIONS: readonly RailOperation[] = ['deposit', 'withdraw', 'pay']
+
+/**
+ * The BRL operations a provider serves for this user, each read from its own Pix route: inside Avenia's
+ * Pix gate and outside its QR gate, Avenia serves the deposit and the withdrawal while Manteca still
+ * serves the QR payment.
+ */
+export function brlOperationsServedBy(routes: CapabilityRoute[] | undefined, provider: ProviderCode): RailOperation[] {
+    return BRL_OPERATIONS.filter((operation) => findPixRoute(routes, operation)?.provider === provider)
+}
+
+/** Whether Manteca's BRL limit applies to anything the user does: a Pix route names Manteca, or none names Avenia. */
+export function mantecaBrlLimitApplies(routes: CapabilityRoute[] | undefined): boolean {
+    return brlOperationsServedBy(routes, 'manteca').length > 0 || brlOperationsServedBy(routes, 'avenia').length === 0
 }
 
 /**

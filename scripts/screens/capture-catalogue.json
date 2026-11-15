@@ -2012,6 +2012,11 @@
         "route": "/history?tx=fixture-pix-send"
     },
     {
+        "id": "fixture-limits-avenia-qr-on-manteca",
+        "flow": "Payments",
+        "route": "/limits/manteca"
+    },
+    {
         "id": "fixture-qr-pay-avenia-form",
         "flow": "Payments",
         "route": "/qr-pay?qrCode=00020101021226680014br.gov.bcb.pix2546pix.example.com%2Fqr%2Fv2%2Fcobv%2Fpadaria-pao-dourado520400005303986540542.505802BR5924PADARIA%20PAO%20DOURADO%20LTDA6009SAO%20PAULO62070503***63043A47&type=PIX&t=1"

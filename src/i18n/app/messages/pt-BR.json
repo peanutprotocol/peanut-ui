@@ -852,7 +852,7 @@
             "appliesTo": "Vale para adicionar dinheiro, saques e pagamentos QR",
             "leftThisMonth": "{asset} disponível neste mês",
             "roomDeposit": "Adicionar dinheiro",
-            "roomPayout": "Sacar e pagar"
+            "roomPayout": "{operations, select, withdraw {Sacar} pay {Pagar} other {Sacar e pagar}}"
         },
         "period": {
             "monthly": "Mensal",
