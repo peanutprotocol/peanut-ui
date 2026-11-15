@@ -156,9 +156,11 @@ export function usePixPayment({
                     return t('errors.merchantNotAvailable')
                 case API_ERROR_CODES.PIX_LIMIT_EXCEEDED:
                     return t(amountFixed ? 'errors.monthlyCapReachedFixedAmount' : 'errors.monthlyCapReached')
+                // nothing was paid, or the quote lapsed: the payment starts again from the scan (API review 2)
+                case API_ERROR_CODES.PIX_QUOTE_EXPIRED:
+                    return t('errors.restartScan')
                 case API_ERROR_CODES.PIX_MIN_AMOUNT:
                 case API_ERROR_CODES.WITHDRAWAL_IN_PROGRESS:
-                case API_ERROR_CODES.PIX_QUOTE_EXPIRED:
                 case API_ERROR_CODES.PROVIDER_REJECTED:
                     return refusalMessage(caught)
                 default:

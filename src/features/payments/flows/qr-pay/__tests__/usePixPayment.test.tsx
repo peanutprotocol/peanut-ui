@@ -277,6 +277,47 @@ describe('usePixPayment', () => {
         expect(mockSendTransactions).not.toHaveBeenCalled()
     })
 
+    // API review 2 (6575b4dd8): a same-key retry after a payment that ended with nothing paid
+    it('nothing was paid (PIX_QUOTE_EXPIRED at the open): the scan-again line, and the next Pay opens with a new key', async () => {
+        mockPreview.mockResolvedValue(FIXED)
+        mockOpen.mockRejectedValueOnce(refusal(409, { code: 'PIX_QUOTE_EXPIRED' })).mockResolvedValueOnce(opened())
+        mockSendTransactions.mockResolvedValue({ receipt: { status: 'success', transactionHash: MINED, logs: [] } })
+        const { result } = render({ brCode: FIXED_CODE })
+        await waitFor(() => expect(result.current.reviewed).toEqual(FIXED))
+
+        await act(async () => {
+            await result.current.pay()
+        })
+        expect(result.current.error).toBe('errors.restartScan')
+        expect(urlIntentId()).toBeNull()
+
+        await waitFor(() => expect(result.current.reviewed).toEqual(FIXED))
+        await act(async () => {
+            await result.current.pay()
+        })
+        expect(mockOpen.mock.calls[1][0].idempotencyKey).not.toBe(mockOpen.mock.calls[0][0].idempotencyKey)
+    })
+
+    it('a lapsed payment the same key opened (PIX_PAYMENT_EXISTS) is read, not paid again', async () => {
+        mockPreview.mockResolvedValue(FIXED)
+        mockOpen.mockRejectedValue(refusal(409, { code: 'PIX_PAYMENT_EXISTS', intentId: 'pay-lapsed' }))
+        mockRead.mockResolvedValue({
+            provider: 'avenia',
+            intentId: 'pay-lapsed',
+            state: 'cancelled',
+            status: 'CANCELLED',
+            perk: null,
+        })
+        const { result } = render({ brCode: FIXED_CODE })
+        await waitFor(() => expect(result.current.reviewed).toEqual(FIXED))
+
+        await act(async () => {
+            await result.current.pay()
+        })
+        await waitFor(() => expect(result.current.outcome).toBe('cancelled'))
+        expect(mockSendTransactions).not.toHaveBeenCalled()
+    })
+
     it('a refused review of the code is the scan refusal, in the QR copy', async () => {
         mockPreview.mockRejectedValue(refusal(422, { code: 'PIX_KEY_BLOCKED' }))
         const { result } = render({ brCode: FIXED_CODE })
