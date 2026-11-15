@@ -31,7 +31,8 @@ export function HomeActionDrawers({
     const t = useTranslations('home.drawers')
     const tMethods = useTranslations('addMoney.methods')
     const tNav = useTranslations('navigation')
-    const tProfile = useTranslations('profile.unlockPayments')
+    // "Bank accounts" (the owner, 15 Nov): the existing key that says exactly that
+    const tSaved = useTranslations('global.savedAccounts')
     const router = useRouter()
     // Carry origins from existing Add drawer links into the chosen destination.
     const [returnTo, setReturnTo] = useQueryState(RETURN_TO_PARAM, parseAsString)
@@ -61,7 +62,7 @@ export function HomeActionDrawers({
                   key: method,
                   title:
                       method === 'account'
-                          ? tProfile('titles.bank')
+                          ? tSaved('bankSectionTitle')
                           : method === 'transfer'
                             ? tMethods('oneTimeTransfer')
                             : method === 'pix'

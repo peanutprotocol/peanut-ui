@@ -51,8 +51,11 @@ export function resolveAddMoneyMethods(input: {
     if (input.pixDepositOffered && !input.brazilPaused && !ready.pix.includes('BRL')) ready.pix.push('BRL')
     const pixRow = pixRowPlace({ ...input, pixReady: ready.pix.length > 0 })
     const drawerMethods: AddMoneyMethod[] = []
+    // Bank accounts show wherever the user can hold or open one (the owner, 15 Nov), as on the picker:
+    // the row alone never moves a user to the drawer, which still needs something ready or a payment.
+    const accountsOffered = input.standingEnabled || ready.account.length > 0
     if (pixRow === 'first') drawerMethods.push('pix')
-    if (ready.account.length) drawerMethods.push('account')
+    if (accountsOffered) drawerMethods.push('account')
     if (ready.transfer.length) drawerMethods.push('transfer')
     if (pixRow === 'after-bank') drawerMethods.push('pix')
     if (input.cryptoReady) drawerMethods.push('crypto')
@@ -61,7 +64,7 @@ export function resolveAddMoneyMethods(input: {
     if (usable && returning) drawerMethods.push('more')
     const pickerMethods: AddMoneyMethod[] = []
     if (pixRow === 'first') pickerMethods.push('pix')
-    if (input.standingEnabled || ready.account.length) pickerMethods.push('account')
+    if (accountsOffered) pickerMethods.push('account')
     pickerMethods.push('transfer')
     if (pixRow === 'after-bank') pickerMethods.push('pix')
     pickerMethods.push('crypto')

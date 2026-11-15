@@ -464,6 +464,11 @@
         "route": "/home?drawer=add"
     },
     {
+        "id": "fixture-home-add-drawer-pix-paused",
+        "flow": "Home and shared states",
+        "route": "/home?drawer=add"
+    },
+    {
         "id": "fixture-home-new-user",
         "flow": "Home and shared states",
         "route": "/home"
@@ -1375,6 +1380,11 @@
         "id": "fixture-add-money-picker-pix",
         "flow": "Add money",
         "route": "/add-money"
+    },
+    {
+        "id": "fixture-add-money-options-account-none",
+        "flow": "Add money",
+        "route": "/add-money/options?method=account"
     },
     {
         "id": "fixture-paperwork-verification-ars-setting-up",

@@ -4878,6 +4878,37 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'The Add drawer for a resident of Brazil on Avenia: Pix leads, bank transfer next, crypto last (Aleks, 2026-11-12 and 2026-11-14).',
         responses: aveniaResponses('enabled'),
     },
+    'home-add-drawer-pix-paused': {
+        route: '/home?drawer=add',
+        about: 'The Add drawer for a returning resident of Brazil under the Brazil pause: no Pix row; bank accounts, crypto and more ways (the owner, 15 Nov).',
+        responses: {
+            'GET /users/me': {
+                ...aveniaResponses('first-use')['GET /users/me'],
+                user: { fullName: 'Ana Souza', firstPaymentAt: '2026-09-15T00:00:00Z' },
+                capabilities: {
+                    rails: [],
+                    nextActions: [],
+                    restrictions: [],
+                    routes: (['deposit', 'withdraw'] as const).map((operation) => ({
+                        operation,
+                        method: 'PIX_BR',
+                        provider: null,
+                        state: 'paused',
+                        reason: {
+                            code: 'residence_paused',
+                            userMessage: 'Deposits and withdrawals are paused where you live for now.',
+                        },
+                        candidates: [],
+                    })),
+                },
+            },
+        },
+    },
+    'add-money-options-account-none': {
+        route: '/add-money/options?method=account',
+        about: "Bank accounts from Home's Add drawer for a user who holds none: the accounts they can open (the owner, 15 Nov).",
+        responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [] } },
+    },
     'home-request-drawer': {
         route: '/home?drawer=request',
         about: 'The Request drawer — share a request link, or share standing bank details.',

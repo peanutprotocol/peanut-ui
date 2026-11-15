@@ -71,7 +71,8 @@ it('keeps a pending EUR report out of the drawer even if the rail says ready', (
     expect(mockQuery).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['deposit-accounts', 'current-owner'] }))
     expect(result.current.ready.account).toEqual([])
     expect(result.current.ready.transfer).toEqual(['USD'])
-    expect(result.current.drawerMethods).toEqual(['transfer', 'crypto', 'more'])
+    // bank accounts stay on offer (the owner, 15 Nov); the pending EUR is not a ready account
+    expect(result.current.drawerMethods).toEqual(['account', 'transfer', 'crypto', 'more'])
 })
 
 it('requires transfer coordinates before calling a held COP account usable', () => {
@@ -186,7 +187,7 @@ it('reads the Brazil pause from the Pix deposit route and keeps Pix off the draw
 it('leads with Pix while Avenia is setting up or reviewing: the first tap is the setup', () => {
     mockRoutes = pixDeposit({ state: 'action_required' })
     const { result } = renderHook(() => useAddMoneyReadiness(true))
-    expect(result.current.drawerMethods).toEqual(['pix', 'crypto', 'more'])
+    expect(result.current.drawerMethods).toEqual(['pix', 'account', 'crypto', 'more'])
 })
 
 it('keeps Pix on offer through an outage of Avenia: the Pix page shows the outage itself', () => {
