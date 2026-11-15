@@ -33,3 +33,20 @@ describe('the creator page preview', () => {
         expect(proxy(new NextRequest(`https://staging.peanut.me${path}`))?.status).not.toBe(404)
     })
 })
+
+describe('the creator page preview title', () => {
+    it("is the creator's tab title, read from the experiment as on /go", async () => {
+        const [{ generateMetadata }, { CREATOR_PAGE_EXPERIMENTS }] = await Promise.all([
+            import('@/app/dev/creator-pages/[username]/[variant]/page'),
+            import('../experiments'),
+        ])
+        const params = Promise.resolve({ username: 'juanacervio', variant: 'g2' })
+        expect(await generateMetadata({ params })).toEqual({ title: CREATOR_PAGE_EXPERIMENTS.juanacervio.title })
+        expect(CREATOR_PAGE_EXPERIMENTS.juanacervio.title).toBe('Invitación de Nita')
+    })
+
+    it('leaves the site title on an unknown creator, which is a 404', async () => {
+        const { generateMetadata } = await import('@/app/dev/creator-pages/[username]/[variant]/page')
+        expect(await generateMetadata({ params: Promise.resolve({ username: 'nobody', variant: 'g2' }) })).toEqual({})
+    })
+})
