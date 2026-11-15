@@ -13,7 +13,7 @@ import { useDebounce } from '@/hooks/useDebounce'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { isUserCancellation } from '@/hooks/wallet/spendPreflight'
 import { pixApi, type PixPayDisplay, type PixPayOpened, type PixPayment } from '@/services/pix'
-import { API_ERROR_CODES, ApiError, wireErrorCode } from '@/services/api-error'
+import { API_ERROR_CODES, ApiError, apiErrorStatus, wireErrorCode } from '@/services/api-error'
 import { quoteMovedAgainstUser, signMatchesDisplay, toApiDecimal } from '@/features/pix/pixFlow.utils'
 import { isUnderPixMinimum } from '@/features/pix/pixQuote.utils'
 import { clearDepositMaybeSent, depositMaybeSent, markDepositMaybeSent } from '@/features/pix/pixWithdrawSent'
@@ -83,6 +83,18 @@ export function pixPayOutcome(
         case 'processing':
             return 'processing'
     }
+}
+
+/**
+ * Whether the API answered an open, which then opened nothing under its key: a refusal it named, or
+ * any 4xx. `QR_INIT_IN_PROGRESS` means the first request still opens it. A failure with no answer, or a
+ * 5xx the API did not name (a gateway), may have opened a payment.
+ */
+function openWasAnswered(caught: unknown): boolean {
+    const code = wireErrorCode(caught)
+    if (code) return code !== QR_INIT_CODE.IN_PROGRESS
+    const status = apiErrorStatus(caught)
+    return status !== undefined && status >= 400 && status < 500
 }
 
 type DepositWithIdSign = Extract<PixPayOpened['sign'], { kind: 'deposit-with-id' }>
@@ -343,6 +355,11 @@ export function usePixPayment({
                     return
                 }
             }
+            // The API records the key before it checks the quote and ends that payment when it refuses, so
+            // a key it answered is dead: the next tap of this scan gets a new one. No answer (a timeout,
+            // offline) may have opened a payment, so the same key asks again and the API answers for it.
+            if (code === API_ERROR_CODES.PIX_QUOTE_EXPIRED) restartQuote()
+            else if (openWasAnswered(caught)) setKeyGeneration((generation) => generation + 1)
             if (code === API_ERROR_CODES.PIX_QUOTE_CHANGED) {
                 // nothing was opened: the review is quoted again and shows the new figures, under the
                 // line a withdrawal and a key send show for the same answer (API-CONTRACT-M5 §2)
@@ -350,7 +367,6 @@ export function usePixPayment({
                 setError(tPix('withdraw.errors.quoteChanged'))
                 return
             }
-            if (code === API_ERROR_CODES.PIX_QUOTE_EXPIRED) restartQuote()
             if (code === API_ERROR_CODES.ROUTE_NOT_AVAILABLE || code === API_ERROR_CODES.PROVIDER_UNAVAILABLE) {
                 // the route moved since the screen loaded: the capabilities say where the user stands now
                 void fetchUser().catch(() => undefined)

@@ -296,6 +296,51 @@ describe('usePixPayment', () => {
         expect(mockSendTransactions).not.toHaveBeenCalled()
     })
 
+    // review 2, finding 4: the API ends the payment it recorded under a key it refused
+    it.each([
+        ['PIX_QUOTE_CHANGED', refusal(409, { code: 'PIX_QUOTE_CHANGED' })],
+        ['PIX_LIMIT_EXCEEDED', refusal(422, { code: 'PIX_LIMIT_EXCEEDED' })],
+        ['PROVIDER_UNAVAILABLE (502)', refusal(502, { code: 'PROVIDER_UNAVAILABLE' })],
+        ['a 400 without a code', refusal(400, {})],
+    ])('an open the API refused (%s): the next Pay opens with a new key', async (_label, refused) => {
+        mockPreview.mockResolvedValue(FIXED)
+        mockOpen.mockRejectedValueOnce(refused).mockResolvedValueOnce(opened())
+        mockSendTransactions.mockResolvedValue({ receipt: { status: 'success', transactionHash: MINED, logs: [] } })
+        const { result } = render({ brCode: FIXED_CODE })
+        await waitFor(() => expect(result.current.reviewed).toEqual(FIXED))
+
+        await act(async () => {
+            await result.current.pay()
+        })
+        await waitFor(() => expect(result.current.reviewed).toEqual(FIXED))
+        await act(async () => {
+            await result.current.pay()
+        })
+
+        expect(mockOpen).toHaveBeenCalledTimes(2)
+        expect(mockOpen.mock.calls[1][0].idempotencyKey).not.toBe(mockOpen.mock.calls[0][0].idempotencyKey)
+    })
+
+    it.each([
+        ['no answer (offline)', new TypeError('Failed to fetch')],
+        ['a 504 the API did not name', refusal(504, {})],
+    ])('an open with %s may have opened a payment: the next Pay asks with the same key', async (_label, lost) => {
+        mockPreview.mockResolvedValue(FIXED)
+        mockOpen.mockRejectedValueOnce(lost).mockResolvedValueOnce(opened())
+        mockSendTransactions.mockResolvedValue({ receipt: { status: 'success', transactionHash: MINED, logs: [] } })
+        const { result } = render({ brCode: FIXED_CODE })
+        await waitFor(() => expect(result.current.reviewed).toEqual(FIXED))
+
+        await act(async () => {
+            await result.current.pay()
+        })
+        await act(async () => {
+            await result.current.pay()
+        })
+
+        expect(mockOpen.mock.calls[1][0].idempotencyKey).toBe(mockOpen.mock.calls[0][0].idempotencyKey)
+    })
+
     // API review 2 (6575b4dd8): a same-key retry after a payment that ended with nothing paid
     it('nothing was paid (PIX_QUOTE_EXPIRED at the open): the scan-again line, and the next Pay opens with a new key', async () => {
         mockPreview.mockResolvedValue(FIXED)
