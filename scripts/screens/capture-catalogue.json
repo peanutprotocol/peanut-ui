@@ -1189,6 +1189,11 @@
         "route": "/add-money/pix?step=showQR&intentId=fixture-pix-deposit"
     },
     {
+        "id": "fixture-pix-deposit-code-unpriced",
+        "flow": "Add money",
+        "route": "/add-money/pix?step=showQR&intentId=fixture-pix-deposit"
+    },
+    {
         "id": "fixture-pix-deposit-expired",
         "flow": "Add money",
         "route": "/add-money/pix?step=showQR&intentId=fixture-pix-deposit"

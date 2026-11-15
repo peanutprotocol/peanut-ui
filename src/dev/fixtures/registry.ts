@@ -513,7 +513,8 @@ const aveniaWithdrawal = (status: string) => ({
     status,
     userRole: 'SENDER',
     senderAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
-    recipientAccount: { identifier: '+5511912345678', fullName: 'ANA SOUZA', type: 'PIX', isUser: false },
+    // the API names the Pix key paid, raw, with its holder for the owner (peanut-api-ts#2151)
+    recipientAccount: { identifier: '+5511912345678', type: 'BANK_PIX', isUser: false, fullName: 'ANA SOUZA' },
     currency: { amount: '503.00', code: 'BRL' },
     extraData: { kind: 'OFFRAMP', provider: 'AVENIA', usdAmount: '92.50431', pixRecovery: null, paymentMethod: 'PIX' },
 })
@@ -527,7 +528,7 @@ const aveniaSend = (status: string) => ({
     uuid: AVENIA_SEND_ID,
     timestamp: new Date('2026-11-06T10:00:00.000Z'),
     amount: '18.87',
-    recipientAccount: { identifier: AVENIA_OTHER_KEY, fullName: 'BRUNO LIMA', type: 'PIX', isUser: false },
+    recipientAccount: { identifier: AVENIA_OTHER_KEY, type: 'BANK_PIX', isUser: false, fullName: 'BRUNO LIMA' },
     currency: { amount: '100.00', code: 'BRL' },
     extraData: {
         kind: 'OFFRAMP',
@@ -538,14 +539,6 @@ const aveniaSend = (status: string) => ({
         pixPayout: { pixKey: AVENIA_OTHER_KEY, holderName: 'Bruno Lima', bankName: 'Nubank', ownAccount: false },
     },
 })
-/**
- * An Avenia entry as `GET /users/history` sends it: the other side is the user's Avenia wallet, an
- * address, never a Pix account; only `extraData` says it moved by Pix.
- */
-const aveniaListEntry = <T extends { userRole: string }>(entry: T): T => {
-    const avenia = { identifier: '0x7b3f9a1c2d4e5f60718293a4b5c6d7e8f9012345', type: 'address', isUser: false }
-    return entry.userRole === 'SENDER' ? { ...entry, recipientAccount: avenia } : { ...entry, senderAccount: avenia }
-}
 /** Another person's key as Avenia's lookup names it; a foreign holder's payouts are always third-party. */
 const AVENIA_OTHER_KEY_INFO = {
     provider: 'avenia',
@@ -684,7 +677,8 @@ const aveniaPayableDeposit = {
     tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
     status: 'PENDING',
     userRole: 'RECIPIENT',
-    senderAccount: { identifier: 'pix', type: 'PIX', isUser: false },
+    // a deposit names no sender, never the inflow address (peanut-api-ts#2151)
+    senderAccount: { identifier: '', type: 'address', isUser: false },
     recipientAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
     currency: { amount: '100.00', code: 'BRL' },
     extraData: {
@@ -2508,15 +2502,15 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'pix-activity-payouts': {
         route: '/history',
-        about: 'Activity rows of Pix transactions, as the list sends them: a send to another person, two QR payments, a withdrawal to the own key and a deposit, each with the Pix logo.',
+        about: 'Activity rows of Pix transactions, as the list sends them (the key paid, the merchant, no deposit sender): a send to another person, two QR payments, a withdrawal to the own key and a deposit, each with the Pix logo.',
         responses: {
             'GET /users/history': {
                 entries: [
-                    aveniaListEntry(aveniaSend('COMPLETED')),
+                    aveniaSend('COMPLETED'),
                     aveniaQrEntry('COMPLETED'),
                     { ...aveniaQrEntry('REFUNDED'), uuid: 'fixture-qr-avenia-2' },
-                    aveniaListEntry(aveniaWithdrawal('COMPLETED')),
-                    aveniaListEntry({ ...AVENIA_PAID_DEPOSIT, timestamp: new Date('2026-11-04T10:00:00.000Z') }),
+                    aveniaWithdrawal('COMPLETED'),
+                    { ...AVENIA_PAID_DEPOSIT, timestamp: new Date('2026-11-04T10:00:00.000Z') },
                 ],
                 hasMore: false,
             },
@@ -2596,7 +2590,7 @@ export const FIXTURES: Record<string, Fixture> = {
     // the code screen as ruled on 13 Nov: the amount, "You get ≈", the code, the timer badge under it
     'pix-deposit-code': {
         route: AVENIA_DEPOSIT_CODE_ROUTE,
-        about: 'A payable Avenia Pix code: the reais, what the balance gets, the code, then a pending badge with the time left; no fee line.',
+        about: "A payable Avenia Pix code: the reais, what the balance gets, the code, a pending badge with the time left, then Avenia's rate and every fee as one row.",
         responses: aveniaResponses('enabled', {
             [`GET /pix/deposit/${AVENIA_DEPOSIT_ID}`]: aveniaDepositRead({
                 codePayable: true,
@@ -2604,6 +2598,21 @@ export const FIXTURES: Record<string, Fixture> = {
                 // the code lives 10 minutes from when the fixture loads, so the badge always reads a live timer
                 expiresAt: new Date(Date.now() + 10 * 60_000).toISOString(),
                 payerCpfMasked: '095.***.***-89',
+            }),
+        }),
+    },
+    'pix-deposit-code-unpriced': {
+        route: AVENIA_DEPOSIT_CODE_ROUTE,
+        about: 'A payable Avenia Pix code whose bridge fee Rhino did not price: the API sends no rate and no fee, so neither row shows.',
+        responses: aveniaResponses('enabled', {
+            [`GET /pix/deposit/${AVENIA_DEPOSIT_ID}`]: aveniaDepositRead({
+                codePayable: true,
+                brCode: DEMO_PIX_BR_CODE,
+                expiresAt: new Date(Date.now() + 10 * 60_000).toISOString(),
+                payerCpfMasked: '095.***.***-89',
+                // the API leaves both out; null replaces the demo answer's pair
+                exchangeRate: null,
+                providerFeeBrl: null,
             }),
         }),
     },

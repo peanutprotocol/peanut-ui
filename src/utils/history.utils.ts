@@ -101,6 +101,13 @@ export type PixPayoutView = NonNullable<
     >['pixPayout']
 >
 
+/** How an entry's money moved, as `GET /history/:entryId` and the list send it ('PIX'). */
+export type PaymentMethodView = NonNullable<
+    NonNullable<
+        paths['/history/{entryId}']['get']['responses'][200]['content']['application/json']['extraData']
+    >['paymentMethod']
+>
+
 /** A Pix deposit's code state as `GET /history/:entryId` sends it, to its owner only. */
 export type PixDepositView = NonNullable<
     NonNullable<
@@ -140,7 +147,7 @@ export interface HistoryEntryExtraData {
     pixRecovery?: PixRecoveryView
     /** How the money moved, on list and detail entries: 'PIX' on every Pix transaction of every
      *  provider (peanut-api-ts#2151). Read it through `isPixEntry`. */
-    paymentMethod?: string
+    paymentMethod?: PaymentMethodView
     /** The intent's own status, which `status` folds into PENDING (a Pix withdrawal is
      *  AWAITING_USER_ACTION until it is signed, PROCESSING after). */
     intentStatus?: HistoryIntentStatus

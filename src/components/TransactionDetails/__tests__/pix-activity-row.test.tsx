@@ -4,14 +4,20 @@
  *
  * The entries are shaped as `GET /users/history` sends them (peanut-api-ts
  * src/transaction-intent/history.ts `mapGenericIntent` for Avenia, src/manteca/history.ts for
- * Manteca): an Avenia payout's other side is the user's Avenia wallet, an address, never a Pix
- * account, so only `extraData` says the money moved by Pix. The earlier rule passed on fixtures
- * that carried a Pix account and failed on these.
+ * Manteca, with peanut-api-ts#2151 b0d06b9af): an Avenia withdrawal or send names the Pix key it
+ * paid (`BANK_PIX`, with its holder, for the owner), a deposit names no sender (an empty identifier
+ * typed `address`), and a QR payment its merchant. The rule reads `paymentMethod` first; without it
+ * only `extraData` says the money moved by Pix.
  */
 import React from 'react'
 import { render as rtlRender, screen } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import TransactionCard from '../TransactionCard'
+import { ReceiptDetailsCard } from '../ReceiptDetailsCard'
+import { useReceiptViewModel } from '../useReceiptViewModel'
+import type { TransactionDetails } from '../transactionTransformer'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { ToastProvider } from '@/components/0_Bruddle/Toast'
 import { mapTransactionDataForDrawer } from '../transactionTransformer'
 import { isPixEntry } from '../pix-entry'
 import { getAvatarUrl, type HistoryEntry, type HistoryEntryExtraData } from '@/utils/history.utils'
@@ -19,7 +25,10 @@ import { getAvatarUrl, type HistoryEntry, type HistoryEntryExtraData } from '@/u
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }))
 jest.mock('use-haptic', () => ({ useHaptic: () => ({ triggerHaptic: jest.fn() }) }))
 jest.mock('@/hooks/usePrimaryNameServer', () => ({ usePrimaryNameServer: () => ({ primaryName: undefined }) }))
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ invitedUsernamesSet: new Set(), user: null }) }))
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ invitedUsernamesSet: new Set(), user: null }),
+    useOptionalAuth: () => null,
+}))
 jest.mock('../TransactionDetailsDrawer', () => ({ TransactionDetailsDrawer: () => null }))
 jest.mock('@/assets', () => ({}))
 jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '/mercado-pago.svg', PIX: '/pix.svg' }))
@@ -29,9 +38,16 @@ jest.mock('next/image', () => ({
 }))
 
 const WALLET = { identifier: '0x1111111111111111111111111111111111111111', type: 'peanut-wallet', isUser: true }
-// mapGenericIntent's counterparty on an Avenia intent: the user's Avenia wallet (metadata.recipient)
-const AVENIA_WALLET = { identifier: '0x7b3f9a1c2d4e5f60718293a4b5c6d7e8f9012345', type: 'address', isUser: false }
-const PIX = { paymentMethod: 'PIX' }
+// what the API names as an Avenia deposit's sender: nobody (never the inflow address)
+const NO_SENDER = { identifier: '', type: 'address', isUser: false }
+// an Avenia payout's recipient, for its owner: the raw key it paid, with its holder
+const pixKeyPaid = (holderName: string) => ({
+    identifier: '+5511987654321',
+    type: 'BANK_PIX',
+    isUser: false,
+    fullName: holderName,
+})
+const PIX = { paymentMethod: 'PIX' as const }
 
 let nextId = 0
 const entry = (
@@ -53,7 +69,7 @@ const aveniaDeposit = (extra: HistoryEntryExtraData = PIX, status: HistoryEntry[
     entry({
         status,
         userRole: 'RECIPIENT',
-        senderAccount: AVENIA_WALLET,
+        senderAccount: NO_SENDER,
         recipientAccount: WALLET,
         extraData: {
             kind: 'ONRAMP',
@@ -72,7 +88,7 @@ const aveniaPayout = (
         status,
         userRole: 'SENDER',
         senderAccount: WALLET,
-        recipientAccount: AVENIA_WALLET,
+        recipientAccount: pixKeyPaid(ownAccount ? 'Ana Souza' : 'Bruno Lima'),
         extraData: {
             kind: 'OFFRAMP',
             provider: 'AVENIA',
@@ -285,5 +301,32 @@ describe('Activity: rows that are not Pix do not change', () => {
     it('an ARS withdrawal keeps "Bank account"', () => {
         renderRow(mantecaWithdrawal('ARS', {}))
         expect(screen.getByText('Bank account')).toBeInTheDocument()
+    })
+})
+
+// The API names an Avenia payout's key (b0d06b9af): the receipt's first row is that key, as people
+// write it, never an address
+describe('the receipt of an Avenia withdrawal or send names the Pix key paid', () => {
+    function Receipt({ transaction }: { transaction: TransactionDetails }) {
+        const vm = useReceiptViewModel(transaction, { isPublic: false, surface: 'page' })
+        return (
+            <QueryClientProvider client={new QueryClient()}>
+                <ToastProvider>
+                    <ReceiptDetailsCard transaction={transaction} vm={vm} shouldShowQrShare={false} />
+                </ToastProvider>
+            </QueryClientProvider>
+        )
+    }
+
+    it.each([
+        ['a withdrawal to the own key', true],
+        ["a send to another person's key", false],
+    ])('%s: the formatted key, never "Address"', (_, ownAccount) => {
+        const { transactionDetails } = mapTransactionDataForDrawer(aveniaPayout(ownAccount))
+        rtlRender(<Receipt transaction={transactionDetails} />, { wrapper: IntlWrapper })
+        expect(screen.getByText('Pix key')).toBeInTheDocument()
+        expect(screen.getByText('11 98765-4321')).toBeInTheDocument()
+        expect(screen.queryByText('Address')).not.toBeInTheDocument()
+        expect(screen.queryByText(/0x/)).not.toBeInTheDocument()
     })
 })
