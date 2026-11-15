@@ -382,6 +382,19 @@ describe('the /go page entry', () => {
         expect(visits()).toHaveLength(1)
     })
 
+    it('counts the page once per tab when the visitor comes back to it or reloads it', async () => {
+        await enterGoPage(handoff())
+        await bootstrapTrackedLinkEntry(visit(`/app?${handoff()}`), false)
+        afterReplayWindow()
+        visit(`/go/${slug}/ig`)
+        await enterGoPage(handoff())
+        expect(visits()).toHaveLength(1)
+        // The CTA tapped again still opens /app without a count.
+        expect(marker()).toBe('1')
+        await bootstrapTrackedLinkEntry(visit(`/app?${handoff()}`), false)
+        expect(visits()).toHaveLength(1)
+    })
+
     it('counts a tap made before the page hydrated once, at /app, with the variant', async () => {
         await bootstrapTrackedLinkEntry(visit(`/app?${handoff()}`), false)
         expect(visits()).toEqual([

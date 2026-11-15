@@ -22,6 +22,8 @@ export type TrackedLinkBootstrap = { payload: string | null; iosPayload: string 
 export const EMPTY_TRACKED_LINK_BOOTSTRAP: TrackedLinkBootstrap = { payload: null, iosPayload: null }
 // A /go page sets it once its visit is sent or skipped, so the /app its CTA opens does not count again.
 const PAGE_VISIT_MARKER = 'peanut:tl-visit:'
+// Unlike the marker above, /app never removes it: the page counts once per tab and experiment.
+const PAGE_SEEN_MARKER = 'peanut:tl-page-seen:'
 
 /**
  * Runs on /app for a /go handoff (`tl`, inviter in `acq_invite`) or a legacy `?code=<username>`.
@@ -58,8 +60,17 @@ export async function bootstrapTrackedLinkEntry(
 export async function enterGoPage(handoff: URLSearchParams): Promise<void> {
     const slug = handoff.get('tl')
     if (!isAcquisitionSlug(slug)) return
-    await enterTrackedLink(handoff, slug, false, false)
+    // Back from /app, or a reload, shows the page again; the redirect arm never shows it twice.
+    const pageSeen = `${PAGE_SEEN_MARKER}${slug}:${handoff.get('tl_e') ?? ''}`
+    let seen = false
     try {
+        seen = sessionStorage.getItem(pageSeen) === '1'
+    } catch {
+        // Without storage, each showing counts.
+    }
+    await enterTrackedLink(handoff, slug, false, seen)
+    try {
+        sessionStorage.setItem(pageSeen, '1')
         sessionStorage.setItem(PAGE_VISIT_MARKER + slug, '1')
     } catch {
         // Without storage, /app counts the visit a second time.
