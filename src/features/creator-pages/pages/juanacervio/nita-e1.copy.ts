@@ -92,7 +92,7 @@ export const NITA_E1_COPY = {
         title: 'Invitación de Nita',
         // "Download Peanut from here and the app already knows Nita invited you." (sign-up is open to
         // everyone: the invitation is attribution, not a way in)
-        body: 'Bajá Peanut desde acá y la app ya sabe que te invitó\u00a0Nita.',
+        body: 'Bajá Peanut desde acá: este link lleva la invitación de\u00a0Nita.',
     },
     // "Nita • Juana Cervio" (alt text of her wordmark; her display name as she writes it)
     wordmarkAlt: 'Nita • Juana Cervio',
