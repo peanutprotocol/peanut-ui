@@ -171,6 +171,14 @@ describe('pixPayBlock', () => {
         expect(pixPayBlock(undefined)).toBeNull()
     })
 
+    // TASK-24947 M5: Manteca's BRL switched off pauses the route for everyone, residents of Brazil or not
+    it('a provider paused for everyone is an outage, not the pause of Brazil’s residents', () => {
+        expect(pixPayBlock(pay({ state: 'paused', reason: { code: 'provider_paused', userMessage: '' } }))).toBe(
+            'outage'
+        )
+        expect(pixPayBlock(pay({ state: 'paused' }))).toBe('outage')
+    })
+
     it('reads the pay route, not the deposit or withdraw route', () => {
         const routes = [route({ state: 'paused' }), pay({ state: 'ready' })]
         expect(pixPayBlock(findPixRoute(routes, 'pay'))).toBeNull()

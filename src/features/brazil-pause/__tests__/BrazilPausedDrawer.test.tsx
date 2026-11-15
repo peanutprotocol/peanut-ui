@@ -48,4 +48,19 @@ describe('BrazilPausedDrawer', () => {
         expect(screen.getByText(messages.pix.payResidence)).toBeInTheDocument()
         expect(screen.queryByText(messages.brazilPause.body)).not.toBeInTheDocument()
     })
+
+    // TASK-24947 M5: Manteca's BRL switched off pauses Pix for everyone, not only residents of Brazil
+    it.each(APP_LOCALES)('says Pix is down for a moment when its provider is paused, in %s', async (locale) => {
+        const messages = await loadMessages(locale)
+        render(
+            <NextIntlClientProvider locale={locale} messages={messages} timeZone="UTC">
+                <BrazilPausedDrawer />
+            </NextIntlClientProvider>
+        )
+        act(() => openBrazilPausedDrawer('outage'))
+
+        expect(screen.getByText(messages.pix.unavailableTitle)).toBeInTheDocument()
+        expect(screen.getByText(messages.pix.unavailable)).toBeInTheDocument()
+        expect(screen.queryByText(messages.brazilPause.body)).not.toBeInTheDocument()
+    })
 })

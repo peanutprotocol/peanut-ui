@@ -87,13 +87,15 @@ export function pixRefusalCopy(reason: CapabilityRoute['reason']): PixRefusalCop
 
 /**
  * Why a Pix payment or a Pix-key send cannot start, from the backend's pay:PIX_BR route: the
- * Brazil pause (`paused`), or a residence the route does not serve yet (`residence`). Null when
- * the route lets it through, or the API sent no pay route; the payment's own gates then decide.
+ * Brazil pause (`paused`, reason `residence_paused`), its provider paused for everyone (`outage`:
+ * any other pause, such as Manteca's BRL switched off), or a residence the route does not serve
+ * yet (`residence`). Null when the route lets it through, or the API sent no pay route; the
+ * payment's own gates then decide.
  */
-export type PixPayBlock = 'paused' | 'residence'
+export type PixPayBlock = 'paused' | 'outage' | 'residence'
 
 export function pixPayBlock(route: CapabilityRoute | undefined): PixPayBlock | null {
-    if (route?.state === 'paused') return 'paused'
+    if (route?.state === 'paused') return pixResidencePaused(route) ? 'paused' : 'outage'
     if (route?.state === 'refused' && route.reason?.code === 'residence_not_served') return 'residence'
     return null
 }
