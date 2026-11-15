@@ -1571,8 +1571,10 @@ export function useQrPayFlowController(
     }, [qrType])
 
     // check if we're still loading payment data before showing anything
+    // a payment this session is signing has no outcome yet: its review is on screen, not a loader
     const isLoadingPaymentData = isPixPay
-        ? !currency || (pixPayment.intentId ? !pixPayOutcome : pixPayment.isReadingCode)
+        ? !currency ||
+          (pixPayment.intentId && pixPayment.phase !== 'signing' ? !pixPayOutcome : pixPayment.isReadingCode)
         : (paymentProcessor === 'MANTECA' && !paymentLock) || !currency
 
     // Where a payment that is no longer on the form stands, for the status view.

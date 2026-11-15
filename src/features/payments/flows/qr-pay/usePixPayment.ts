@@ -507,7 +507,11 @@ export function usePixPayment({
             return READ_POLL_MS
         },
     })
-    const outcome = intentId ? pixPayOutcome(read.data, { mayHaveSent }) : null
+    // While this session waits for the passkey on the payment it just opened, that payment has no
+    // outcome yet: the review stays with Pay loading. An outcome this page does not know (a reload,
+    // another tab, a signature whose result was lost) still reads as processing.
+    const signingHere = phase === 'opening' || phase === 'signing'
+    const outcome = intentId && !signingHere ? pixPayOutcome(read.data, { mayHaveSent }) : null
     useEffect(() => {
         if (outcome && outcome !== 'processing') void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
     }, [outcome, queryClient])

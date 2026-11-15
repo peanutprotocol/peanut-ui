@@ -283,6 +283,33 @@ describe('usePixPayment', () => {
         expect(mockReport).toHaveBeenCalledWith('pay-1', MINED)
     })
 
+    // Aleks, 2026-11-15: no "processing" status behind the passkey prompt; the review waits for the signature
+    it('while the passkey is open, the payment it opened has no outcome and is not read', async () => {
+        mockPreview.mockResolvedValue(FIXED)
+        mockOpen.mockResolvedValue(opened())
+        let signed!: (result: unknown) => void
+        mockSendTransactions.mockImplementation(() => new Promise((resolve) => (signed = resolve)))
+        const { result } = render({ brCode: FIXED_CODE })
+        await waitFor(() => expect(result.current.reviewed).not.toBeNull())
+
+        let payment!: Promise<void>
+        act(() => {
+            payment = result.current.pay()
+        })
+        await waitFor(() => expect(result.current.phase).toBe('signing'))
+        // the URL and the device mark already name the payment, so a reload reads it; this page waits
+        expect(result.current.intentId).toBe('pay-1')
+        expect(result.current.outcome).toBeNull()
+        expect(mockRead).not.toHaveBeenCalled()
+
+        await act(async () => {
+            signed({ receipt: { status: 'success', transactionHash: MINED, logs: [] } })
+            await payment
+        })
+        expect(result.current.phase).toBe('sent')
+        await waitFor(() => expect(result.current.outcome).toBe('processing'))
+    })
+
     it('an open whose spend moved against the user is held unsigned; the next tap signs that same payment', async () => {
         mockPreview.mockResolvedValue(FIXED)
         const moved = display('42.50', '8.090000')
