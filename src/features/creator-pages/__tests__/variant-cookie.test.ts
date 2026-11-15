@@ -1,4 +1,4 @@
-import { parseVariantCookie, serializeVariantCookie, variantCookieName } from '../variant-cookie'
+import { expireVariantCookie, parseVariantCookie, serializeVariantCookie, variantCookieName } from '../variant-cookie'
 
 describe('variant cookie', () => {
     it('parses <experimentId>.<variantId>', () => {
@@ -30,5 +30,9 @@ describe('variant cookie', () => {
             experimentId: 'nita-2026-11-a',
             variantId: 'a1',
         })
+    })
+
+    it('expires the cookie under the scope it was written with', () => {
+        expect(expireVariantCookie('juanacervio')).toBe('cpv_juanacervio=; Max-Age=0; Path=/go; SameSite=Lax; Secure')
     })
 })

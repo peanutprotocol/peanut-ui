@@ -5,7 +5,7 @@ import type { CreatorPageProps } from '@/features/tracked-links/contract'
 import { trackedLinkAnalyticsAllowed } from '@/features/tracked-links/eligibility'
 import { CreatorPageContext, CreatorPagePreviewContext } from './CreatorPageContext'
 import type { DeviceOs } from './environment'
-import { serializeVariantCookie } from './variant-cookie'
+import { expireVariantCookie, serializeVariantCookie } from './variant-cookie'
 
 /** The browser half of CreatorPageShell: it gives the button its data and makes the variant sticky. */
 export function CreatorPageProvider({
@@ -27,8 +27,16 @@ export function CreatorPageProvider({
     useEffect(() => {
         // A page render cannot set cookies, so the variant becomes sticky here. It follows the
         // consent rule of the visit event: no consent, no cookie, and a fresh pick per visit.
-        if (preview || !experimentId || !trackedLinkAnalyticsAllowed()) return
-        document.cookie = serializeVariantCookie(username, { experimentId, variantId: page.variant })
+        if (preview || !experimentId) return
+        if (trackedLinkAnalyticsAllowed()) {
+            document.cookie = serializeVariantCookie(username, { experimentId, variantId: page.variant })
+            return
+        }
+        // Consent can end after a visit that wrote the cookie (an opt-out, or DNT or GPC switched on):
+        // remove it, or it would keep the variant for up to 30 days. A prerender is not a refusal,
+        // so it leaves the cookie alone.
+        if (!(document as Document & { prerendering?: boolean }).prerendering)
+            document.cookie = expireVariantCookie(username)
     }, [username, experimentId, page.variant, preview])
 
     return <CreatorPageContext.Provider value={context}>{children}</CreatorPageContext.Provider>

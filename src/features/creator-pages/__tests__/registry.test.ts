@@ -8,8 +8,9 @@ import { selectCreatorPage } from '../registry'
 
 const mockCookies = new Map<string, string>()
 const mockSet = jest.fn()
+let mockRequestHeaders = new Headers()
 jest.mock('next/headers', () => ({
-    headers: async () => new Headers(),
+    headers: async () => mockRequestHeaders,
     cookies: async () => ({
         get: (name: string) => (mockCookies.has(name) ? { name, value: mockCookies.get(name) } : undefined),
         set: mockSet,
@@ -17,7 +18,10 @@ jest.mock('next/headers', () => ({
 }))
 const creator = (username: string) => ({ username, linkId: 'invite_' + '0'.repeat(64) })
 
-beforeEach(() => mockCookies.clear())
+beforeEach(() => {
+    mockCookies.clear()
+    mockRequestHeaders = new Headers()
+})
 afterEach(() => jest.restoreAllMocks())
 
 describe('selectCreatorPage', () => {
@@ -46,6 +50,16 @@ describe('selectCreatorPage', () => {
         expect((await selectCreatorPage(creator('juanacervio')))?.variant).toBe('g2')
         mockCookies.set('cpv_juanacervio', 'nita-2026-10-z.a1')
         expect((await selectCreatorPage(creator('juanacervio')))?.variant).toBe('g2')
+    })
+
+    it.each(['dnt', 'sec-gpc'])('ignores the cookie on a request that carries %s: 1', async (header) => {
+        // The cookie says e1; a visitor who has since refused tracking gets a fresh pick (0.5 → g2).
+        jest.spyOn(Math, 'random').mockReturnValue(0.5)
+        mockCookies.set('cpv_juanacervio', `${CREATOR_PAGE_EXPERIMENTS.juanacervio.id}.e1`)
+        mockRequestHeaders = new Headers({ [header]: '1' })
+        expect((await selectCreatorPage(creator('juanacervio')))?.variant).toBe('g2')
+        mockRequestHeaders = new Headers({ [header]: '0' })
+        expect((await selectCreatorPage(creator('juanacervio')))?.variant).toBe('e1')
     })
 
     it('draws once per selection: later random values do not change the pick', async () => {

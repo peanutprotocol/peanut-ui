@@ -39,7 +39,13 @@ export async function selectCreatorPage(creator: {
     if (!experiment) return null
     const [cookieStore, requestHeaders] = await Promise.all([cookies(), headers()])
     // One draw per request. Drawing inside the lookup re-rolled for every variant and skewed the split.
-    const variant = pickVariant(experiment, cookieStore.get(variantCookieName(creator.username))?.value)
+    // A request that carries DNT or GPC gets a fresh pick even if an older visit left the cookie:
+    // the same two headers the visit route refuses on. CreatorPageProvider then removes the cookie.
+    const refusesTracking = requestHeaders.get('dnt') === '1' || requestHeaders.get('sec-gpc') === '1'
+    const variant = pickVariant(
+        experiment,
+        refusesTracking ? null : cookieStore.get(variantCookieName(creator.username))?.value
+    )
     const Variant = variant && creatorPageComponent(creator.username, variant)
     if (!Variant) return null
 

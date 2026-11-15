@@ -45,7 +45,7 @@ describe('CreatorPageProvider', () => {
         expect(posthog.capture).not.toHaveBeenCalled()
     })
 
-    it('writes nothing when analytics are not allowed', () => {
+    it('removes the sticky cookie when analytics are not allowed, so consent taken back ends the stickiness', () => {
         ;(trackedLinkAnalyticsAllowed as jest.Mock).mockReturnValue(false)
         render(
             <CreatorPageProvider page={page} experimentId="nita-2026-11-a" deviceOs="ios">
@@ -53,7 +53,23 @@ describe('CreatorPageProvider', () => {
             </CreatorPageProvider>
         )
         expect(screen.getByText('hola')).toBeInTheDocument()
-        expect(cookieWrites).toEqual([])
+        // Same scope as the write: a browser removes a cookie only under the path it was set with.
+        expect(cookieWrites).toEqual(['cpv_juanacervio=; Max-Age=0; Path=/go; SameSite=Lax; Secure'])
+    })
+
+    it('leaves the cookie alone during a prerender, which is not a refusal', () => {
+        ;(trackedLinkAnalyticsAllowed as jest.Mock).mockReturnValue(false)
+        Object.defineProperty(document, 'prerendering', { configurable: true, value: true })
+        try {
+            render(
+                <CreatorPageProvider page={page} experimentId="nita-2026-11-a" deviceOs="ios">
+                    <p>hola</p>
+                </CreatorPageProvider>
+            )
+            expect(cookieWrites).toEqual([])
+        } finally {
+            delete (document as { prerendering?: boolean }).prerendering
+        }
     })
 
     it('writes nothing in the dev preview', () => {
