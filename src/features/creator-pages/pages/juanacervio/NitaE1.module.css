@@ -383,17 +383,17 @@
     font-weight: 700;
     white-space: nowrap;
 }
-/* A short screen is the in-app browser with its toolbar already taken out of the viewport. Some lay
-   a second bar over the page all the same, so the lines stay under the button here too: the strip
-   takes 24% of the screen, and all of it that is not the button is under the button. Who made the
+/* A short screen (an iPhone SE, or a tall phone whose in-app browser has already taken its bars).
+   The in-app browser can still lay a toolbar of about 90 px over the bottom of the page, so the
+   lines under the button keep 92 px there and the whole button stays in reach above it. The room
+   comes from the strip's top padding first; the strip takes up to 27% of the screen. Who made the
    page is said in the footer only. */
 @media (max-height: 620px) {
     .dockIn {
-        padding-top: calc(12 * var(--u));
+        padding-top: calc(8 * var(--u));
     }
     .note {
-        min-height: max(40px, 24vh - 14 * var(--u) - max(56 * var(--u), 48px) - 20px);
-        min-height: max(40px, 24svh - 14 * var(--u) - max(56 * var(--u), 48px) - 20px);
+        min-height: 72px;
     }
     .sponsor {
         display: none;

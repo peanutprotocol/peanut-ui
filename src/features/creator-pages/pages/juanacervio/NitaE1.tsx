@@ -54,11 +54,11 @@ export function NitaE1(props: CreatorPageVariantProps) {
                             </span>
                         </figcaption>
                         <blockquote>
-                            {copy.post.runs.map(({ text, style }) =>
+                            {copy.post.runs.map(({ text, style }, index) =>
                                 style === 'mark' ? (
-                                    <mark key={text}>{text}</mark>
+                                    <mark key={index}>{text}</mark>
                                 ) : style === 'link' ? (
-                                    <span key={text} className={styles.link}>
+                                    <span key={index} className={styles.link}>
                                         {text}
                                     </span>
                                 ) : (
