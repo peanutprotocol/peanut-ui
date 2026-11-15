@@ -16736,6 +16736,7 @@
 									"merchantName": "PADARIA PAO DOURADO LTDA",
 									"perk": null,
 									"provider": "avenia",
+									"selfPay": false,
 									"state": "paid",
 									"status": "COMPLETED"
 								},
@@ -16846,6 +16847,10 @@
 											"description": "The provider the route names, e.g. avenia. Data only: the app does not branch on it.",
 											"type": "string"
 										},
+										"selfPay": {
+											"description": "True when the code pays an account in the user’s own name (marked at init): the payment earns no points and no QR reward. False otherwise.",
+											"type": "boolean"
+										},
 										"state": {
 											"anyOf": [
 												{
@@ -16911,6 +16916,7 @@
 										"status",
 										"amountBrl",
 										"merchantName",
+										"selfPay",
 										"perk"
 									],
 									"type": "object"
@@ -19943,6 +19949,7 @@
 									"ownAccount": false,
 									"perk": null,
 									"provider": "avenia",
+									"selfPay": false,
 									"state": "paid",
 									"status": "COMPLETED"
 								},
@@ -20065,6 +20072,10 @@
 											"description": "The provider the route names, e.g. avenia. Data only: the app does not branch on it.",
 											"type": "string"
 										},
+										"selfPay": {
+											"description": "True only for a send to another person’s key whose holder bears the user’s own name (marked at init): it earns no points and no QR reward. False otherwise, also for a withdrawal to the user’s own key (which earns a withdrawal’s points).",
+											"type": "boolean"
+										},
 										"state": {
 											"anyOf": [
 												{
@@ -20131,6 +20142,7 @@
 										"amountBrl",
 										"holderName",
 										"ownAccount",
+										"selfPay",
 										"perk"
 									],
 									"type": "object"

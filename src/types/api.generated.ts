@@ -9071,6 +9071,7 @@ export interface paths {
                          *       "merchantName": "PADARIA PAO DOURADO LTDA",
                          *       "perk": null,
                          *       "provider": "avenia",
+                         *       "selfPay": false,
                          *       "state": "paid",
                          *       "status": "COMPLETED"
                          *     }
@@ -9094,6 +9095,8 @@ export interface paths {
                             } | null;
                             /** @description The provider the route names, e.g. avenia. Data only: the app does not branch on it. */
                             provider: string;
+                            /** @description True when the code pays an account in the user’s own name (marked at init): the payment earns no points and no QR reward. False otherwise. */
+                            selfPay: boolean;
                             /** @description Where the payment stands */
                             state: "opening" | "awaiting_signature" | "processing" | "paid" | "refunding" | "refunded" | "cancelled" | "needs_support";
                             /** @description The intent’s own status, as stored */
@@ -10384,6 +10387,7 @@ export interface paths {
                          *       "ownAccount": false,
                          *       "perk": null,
                          *       "provider": "avenia",
+                         *       "selfPay": false,
                          *       "state": "paid",
                          *       "status": "COMPLETED"
                          *     }
@@ -10410,6 +10414,8 @@ export interface paths {
                             } | null;
                             /** @description The provider the route names, e.g. avenia. Data only: the app does not branch on it. */
                             provider: string;
+                            /** @description True only for a send to another person’s key whose holder bears the user’s own name (marked at init): it earns no points and no QR reward. False otherwise, also for a withdrawal to the user’s own key (which earns a withdrawal’s points). */
+                            selfPay: boolean;
                             /** @description Where the payment stands */
                             state: "opening" | "awaiting_signature" | "processing" | "paid" | "refunding" | "refunded" | "cancelled" | "needs_support";
                             /** @description The intent’s own status, as stored */
