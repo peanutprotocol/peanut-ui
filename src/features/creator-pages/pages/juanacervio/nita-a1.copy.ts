@@ -1,5 +1,5 @@
 // Copy for Nita's page, variant A1 (es-AR). Each line carries its English meaning.
-// Copy rules: mono inbox/go-links/creator-pages-spec.md § Pages.
+// Copy rules: mono engineering/ui/creator-pages.md.
 // Product facts: mono product/networks.md (who can pay into an account), product/kyc.md (QR needs verification).
 
 export type A1Highlight = 'yellow' | 'pink' | 'lilac'
@@ -14,6 +14,7 @@ export type A1PostSegment = {
 }
 
 // Nita's real X post (@eudtoxic, November 2026), word for word, cut once at "[…]". Never edit the words.
+// The month is from the creator-page brief; nobody has checked the day against the live post.
 // "What I'm using now that works for EVERYTHING is @joinpeanut, because in the same one I have accounts in
 // USD and EUR to charge clients abroad […] and I can also use the balance to pay through MercadoPago"
 const POST: A1PostSegment[] = [
@@ -39,8 +40,8 @@ export const NITA_A1_COPY = {
     // "Get paid from the US and Europe. Spend in Argentina with the balance." (the two proof-card titles below)
     benefit: 'Cobrá desde EE. UU. y Europa. Gastá en Argentina con el saldo.',
     post: {
-        // "Nita" (alt text of her photo)
-        avatarAlt: 'Nita',
+        // "Nita's profile photo" (alt text)
+        avatarAlt: 'Foto de perfil de Nita',
         // Her display name and handle on X, as they are.
         name: 'Nita • Juana Cervio',
         handle: '@eudtoxic',
@@ -49,18 +50,21 @@ export const NITA_A1_COPY = {
         meta: 'Posteado en X · nov. 2026',
     },
     cta: {
-        // "Open in the App Store"
-        ios: 'Abrir en App Store',
+        // "Open in the App Store" ("App Store" takes the article, "Google Play" takes none)
+        ios: 'Abrir en el App Store',
         // "Open in Google Play"
         android: 'Abrir en Google Play',
         // "Download Peanut"
         other: 'Bajar Peanut',
     },
-    // "With Nita's invitation" (not "saved": no device check backs that claim). Rendered as inviteLead + bold inviteName.
+    // "With Nita's invitation" (not "saved": no device check backs that claim, so no tick either).
+    // Rendered as inviteLead + bold inviteName, with no full stop, as on the other variants.
     inviteLead: 'Con la ',
     inviteName: 'invitación de Nita',
     // "↓ What she said, point by point"
     more: '↓ Lo que dijo, punto por punto',
+    // "Nita uses Peanut. Page made by Peanut." The same line on every variant; it claims no more than her post does.
+    madeBy: 'Nita usa Peanut. Página hecha por Peanut.',
     // "Peanut is not a bank."
     notABank: 'Peanut no es un banco.',
     proof: {
@@ -89,8 +93,8 @@ export const NITA_A1_COPY = {
                 // "Get paid from the US and Europe."
                 title: 'Cobrá desde EE. UU. y Europa.',
                 // "The client makes an ordinary bank transfer. You see the money in Peanut.
-                //  Who can pay you depends on the currency: the app shows it on each account."
-                body: 'El cliente hace una transferencia bancaria común. Vos ves la plata en Peanut. Quién puede pagarte depende de la moneda: la app lo muestra en cada cuenta.',
+                //  Who can pay you depends on the currency: the app shows you on each account."
+                body: 'El cliente hace una transferencia bancaria común. Vos ves la plata en Peanut. Quién puede pagarte depende de la moneda: la app te lo muestra en cada cuenta.',
             },
             {
                 // "…I can use the balance to [pay through MercadoPago]" (from her post)
@@ -132,18 +136,18 @@ export const NITA_A1_COPY = {
         items: [
             // "You download the app from your phone's store."
             { lead: 'Bajás la app', rest: ' desde la tienda de tu celu.' },
-            // "You create the user. With Nita's invitation."
-            { lead: 'Creás el usuario.', rest: ' Con la invitación de Nita.' },
+            // "You create your username. With Nita's invitation."
+            { lead: 'Creás tu usuario.', rest: ' Con la invitación de Nita.' },
             // "You verify your identity when you want to use the bank details or pay with QR."
-            { lead: 'Verificás la identidad', rest: ' cuando quieras usar los datos bancarios o pagar con QR.' },
+            { lead: 'Verificás tu identidad', rest: ' cuando quieras usar los datos bancarios o pagar con QR.' },
         ],
     },
     close: {
         // "…works for EVERYTHING" (from her post)
         quote: '“…me sirve para TODO”',
         by: 'Nita • @eudtoxic',
-        // "The quote is word for word, from a post by Nita on X (Nov 2026), cut where it says […].
+        // "The quote is word for word, from a post by Nita on X (Nov 2026). Where it says […] or … it is cut.
         //  Peanut added the colours and the numbers."
-        legal: ' La cita es textual, de un post de Nita en X (nov. 2026), recortada donde dice […]. Los colores y los números los agregó Peanut.',
+        legal: 'La cita es textual, de un post de Nita en X (nov. 2026). Donde dice […] o … está recortada. Los colores y los números los agregó Peanut.',
     },
 }

@@ -11,7 +11,7 @@ export function A1Proof({ item, number, children }: { item: ProofItem; number: n
     return (
         <div className="mt-6">
             <div className="flex items-start gap-2">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {/* eslint-disable-next-line @next/next/no-img-element -- a sized WebP in public/: the image optimizer would add a round trip and save nothing */}
                 <img
                     src={A1_AVATAR_SRC}
                     width={32}

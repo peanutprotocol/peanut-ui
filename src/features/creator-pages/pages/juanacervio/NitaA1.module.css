@@ -1,4 +1,22 @@
-/* Variant A1: what Tailwind utilities do not cover — the pinned button bar, the safe-area insets and the narrowest phones. */
+/* Variant A1: what Tailwind utilities do not cover — the hero's text-and-mascot row, the pinned button bar and the safe-area insets. */
+
+/* The mascot takes its width from the viewport, the text takes the rest. Neither can sit on the other. */
+.lead {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) min(20vw, 4.5rem);
+    column-gap: 0.5rem;
+    align-items: start;
+}
+
+/* The mascot sits on the top edge of the post card; the two doodles stay inside the seat, clear of the text. */
+.mascotSeat {
+    position: relative;
+    z-index: 1;
+    align-self: end;
+    margin-bottom: -1.25rem;
+    padding-inline: 0.25rem;
+    pointer-events: none;
+}
 
 .sticky {
     position: fixed;
@@ -16,8 +34,7 @@
 }
 
 /* Hidden: slid out, and out of the tab order once the slide ends. */
-.sticky[data-state='hidden'],
-.sticky[data-state='auto'] {
+.sticky[data-state='hidden'] {
     transform: translateY(100%);
     visibility: hidden;
     transition:
@@ -25,33 +42,13 @@
         visibility 0s var(--transition-duration-moderate);
 }
 
-/* Before hydration: on a viewport too short to show the in-card button, the bar is there at first paint. */
-@media (max-height: 40rem) {
-    .sticky[data-state='auto'] {
-        transform: none;
-        visibility: visible;
-    }
-}
-
 @media (prefers-reduced-motion: reduce) {
     .sticky,
-    .sticky[data-state='hidden'],
-    .sticky[data-state='auto'] {
+    .sticky[data-state='hidden'] {
         transition: none;
     }
 }
 
 .closeFold {
     padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
-}
-
-/* Under 360px the sitting mascot would cover the headline: it shrinks and the text keeps clear of it. */
-@media (max-width: 22.5rem) {
-    .mascot {
-        width: 4.5rem;
-    }
-
-    .besideMascot {
-        max-width: calc(100% - 5.5rem);
-    }
 }

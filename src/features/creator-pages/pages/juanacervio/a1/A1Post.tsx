@@ -11,13 +11,12 @@ export function A1Post({ children }: { children: ReactNode }) {
     return (
         <Card shadowSize="4" className="border-2 p-4">
             <div className="flex items-center gap-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {/* eslint-disable-next-line @next/next/no-img-element -- a sized WebP in public/: the image optimizer would add a round trip and save nothing */}
                 <img
                     src={A1_AVATAR_SRC}
                     width={48}
                     height={48}
                     alt={post.avatarAlt}
-                    fetchPriority="high"
                     className="size-12 flex-none rounded-full border border-border-button object-cover"
                 />
                 <div className="min-w-0">
