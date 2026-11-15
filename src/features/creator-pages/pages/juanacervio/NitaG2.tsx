@@ -10,10 +10,16 @@ export function NitaG2(props: CreatorPageVariantProps) {
     return (
         <CreatorPageShell page={props} lang="es-AR" className={styles.page}>
             <div className={styles.column}>
-                <div className={styles.reel}>
+                {/* The wrapper carries the image's name and the image has none: an image that fails to
+                    load then leaves the plain ground of .reel, not a broken-image icon. */}
+                <div className={styles.reel} role="img" aria-label={copy.reelAlt}>
+                    {/* The only frame we have is 425x758. This file is that frame enlarged 2x (Lanczos)
+                        to 850x1516, so a phone does not stretch it with a coarser filter. When Nita's
+                        original arrives, export a 9:16 frame at least 1080 px wide (WebP, under 150 kB)
+                        to the same path: nothing else changes. */}
                     <Image
                         src="/creator-pages/juanacervio/g2-reel.webp"
-                        alt={copy.reelAlt}
+                        alt=""
                         fill
                         priority
                         sizes="(min-width: 480px) 480px, 100vw"

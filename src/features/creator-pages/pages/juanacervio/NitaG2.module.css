@@ -41,6 +41,8 @@
     flex: 1 1 0;
     /* The frame runs on behind the sheet's rounded corners. */
     margin-bottom: -28px;
+    /* Shown while the frame loads, and for good if it does not. */
+    background: var(--color-gray-700);
 }
 
 /* Anchored on her face, which sits at about 42% of the frame's height: the same point of
@@ -51,8 +53,17 @@
     object-position: 50% 42%;
 }
 
+/* Chrome and Firefox draw this only on an image that failed to load: it covers their
+   broken-image icon with the ground of .reel. */
+.reelImage::after {
+    position: absolute;
+    inset: 0;
+    background: var(--color-gray-700);
+    content: '';
+}
+
 /* Dimmed so the frame reads as a backdrop, not as a paused video to tap. The source frame
-   is small (425 px wide), so the dim also keeps its softness from reading as a fault. */
+   is small (425 px wide, see NitaG2.tsx), so the dim also keeps its softness from reading as a fault. */
 .reel::after {
     position: absolute;
     inset: 0;

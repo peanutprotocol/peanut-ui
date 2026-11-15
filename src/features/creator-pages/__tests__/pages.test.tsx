@@ -55,7 +55,8 @@ describe('creator page variants', () => {
     it.each(VARIANTS)('%s/%s renders what the contract asks of a page', async (username, variant) => {
         const { props, html, links } = await serverRender(username, variant, USER_AGENTS.instagramIos)
         expect(html).toMatch(/<main[^>]*\slang="es-AR"/)
-        expect(html).toContain('Peanut no es un banco.')
+        // A page may tie "banco." to the word before it with a non-breaking space.
+        expect(html.replaceAll('\u00a0', ' ')).toContain('Peanut no es un banco.')
 
         expect(links.length).toBeGreaterThan(0)
         for (const link of links) {
