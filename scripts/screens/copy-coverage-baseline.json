@@ -837,7 +837,6 @@
         "global.qrScanner.clipboardUnavailable": "No capture state shows this copy yet",
         "global.qrScanner.pasteAddress": "Android only: needs a clipboard read at scanner open",
         "global.qrScanner.pastePixCode": "Android only: needs a clipboard read at scanner open",
-        "global.qrScanner.paymentMethods.evmAlt": "No capture state shows this copy yet",
         "global.qrScanner.qrProcessingError": "No capture state shows this copy yet",
         "global.qrScanner.qrProcessingFailed": "No capture state shows this copy yet",
         "global.qrScanner.qrRecognized": "No capture state shows this copy yet",

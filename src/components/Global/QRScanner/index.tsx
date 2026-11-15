@@ -29,10 +29,11 @@ import { reportQrScanError } from './utils'
 // row is the odd one out: its label is descriptive prose, so it
 // carries a key instead and is resolved at render.
 const PAYMENT_METHODS = [
-    { src: LOGO, name: 'Peanut' },
-    { src: MERCADO_PAGO, name: 'Mercado Pago' },
-    { src: PIX, name: 'Pix' },
-    { src: ETHEREUM_ICON, name: null },
+    { src: LOGO, name: 'Peanut', onDisc: false },
+    { src: MERCADO_PAGO, name: 'Mercado Pago', onDisc: false },
+    { src: PIX, name: 'Pix', onDisc: false },
+    // the Ethereum mark is dark: without a light disc it is lost on the camera
+    { src: ETHEREUM_ICON, name: null, onDisc: true },
 ] as const
 
 const CORNER_POSITIONS = [
@@ -104,11 +105,13 @@ function PaymentMethodPill({
     src,
     name,
     compact,
+    onDisc,
     className,
 }: {
     src: string
     name: string
     compact: boolean
+    onDisc: boolean
     className?: string
 }) {
     return (
@@ -120,7 +123,7 @@ function PaymentMethodPill({
                 alt=""
                 width={compact ? 16 : 20}
                 height={compact ? 16 : 20}
-                className={`shrink-0 object-contain ${compact ? 'size-4' : 'size-5'}`}
+                className={`shrink-0 object-contain ${compact ? 'size-4' : 'size-5'} ${onDisc ? 'rounded-full bg-background-default' : ''}`}
                 priority
             />
             <span className="text-center">{name}</span>
@@ -178,7 +181,7 @@ function PasteButton({
 }) {
     const t = useTranslations('global')
     return (
-        <Button variant="primary" size="small" icon="paste" onClick={onPaste} className={`w-auto ${className ?? ''}`}>
+        <Button variant="primary" size="small" icon="paste" onClick={onPaste} className={`w-fit ${className ?? ''}`}>
             {t(copiedKind ? PASTE_LABEL_KEYS[copiedKind] : 'qrScanner.paste')}
         </Button>
     )
@@ -219,6 +222,8 @@ function ScanRegionOverlay({
                         className={`pointer-events-auto absolute top-full left-1/2 z-50 flex w-[calc(100vw-3rem)] max-w-80 -translate-x-1/2 flex-col items-center ${isShortViewport ? 'mt-2' : 'mt-6'}`}
                     >
                         <ul
+                            // explicit role: Safari drops list semantics once list-style is none
+                            role="list"
                             aria-label={t('qrScanner.supportedQrCodes')}
                             className={`grid w-full grid-cols-2 gap-x-2 ${isShortViewport ? 'gap-y-1' : 'gap-y-2'}`}
                         >
@@ -229,9 +234,10 @@ function ScanRegionOverlay({
                                     src={method.src}
                                     name={method.name ?? t('qrScanner.paymentMethods.evmName')}
                                     compact={isShortViewport}
+                                    onDisc={method.onDisc}
                                     className={
                                         methods.length % 2 === 1 && index === methods.length - 1
-                                            ? 'col-span-2 w-1/2 justify-self-center'
+                                            ? 'col-span-2 w-[calc(50%-0.25rem)] justify-self-center'
                                             : undefined
                                     }
                                 />
@@ -335,17 +341,26 @@ export default function QRScanner({ onScan, onClose, onPermissionDenied, isOpen 
             return
         }
         let cancelled = false
-        Clipboard.read()
-            .then(({ value }) => {
-                if (cancelled) return
-                const text = (value ?? '').trim()
-                setCopiedKind(isPixEmvcoQr(text) ? 'pix' : isAddress(text) ? 'address' : null)
-            })
-            .catch(() => {
-                if (!cancelled) setCopiedKind(null)
-            })
+        const readCopiedKind = () => {
+            Clipboard.read()
+                .then(({ value }) => {
+                    if (cancelled) return
+                    const text = (value ?? '').trim()
+                    setCopiedKind(isPixEmvcoQr(text) ? 'pix' : isAddress(text) ? 'address' : null)
+                })
+                .catch(() => {
+                    if (!cancelled) setCopiedKind(null)
+                })
+        }
+        readCopiedKind()
+        // the user may leave to copy something else while the scanner stays open
+        const onVisible = () => {
+            if (document.visibilityState === 'visible') readCopiedKind()
+        }
+        document.addEventListener('visibilitychange', onVisible)
         return () => {
             cancelled = true
+            document.removeEventListener('visibilitychange', onVisible)
         }
     }, [isScanning])
 

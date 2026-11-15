@@ -342,3 +342,60 @@ describe('network pills', () => {
         }
     })
 })
+
+describe('short phones', () => {
+    const stubViewport = (matching: string[]) => {
+        window.matchMedia = ((query: string) => ({
+            matches: matching.includes(query),
+            addEventListener: jest.fn(),
+            removeEventListener: jest.fn(),
+        })) as unknown as typeof window.matchMedia
+    }
+    afterEach(() => {
+        // jsdom ships no matchMedia; put that back for the other tests
+        delete (window as { matchMedia?: unknown }).matchMedia
+    })
+
+    it('under 730px: pills compact, still one paste button below them', async () => {
+        mockIsAndroidNative.mockReturnValue(false)
+        stubViewport(['(max-height: 729px)'])
+
+        renderScanner()
+
+        expect(await screen.findAllByRole('button', { name: 'Paste' })).toHaveLength(1)
+        expect(screen.getByText('Pix').closest('li')!.className).toContain('min-h-6')
+    })
+
+    it('under 667px: no pills, one paste button anchored above the drawer peek', async () => {
+        mockIsAndroidNative.mockReturnValue(false)
+        stubViewport(['(max-height: 729px)', '(max-height: 666px)'])
+        mockRead.mockResolvedValue({ value: PIX_CODE, type: 'text/plain' })
+
+        const onScan = renderScanner()
+
+        const buttons = await screen.findAllByRole('button', { name: 'Paste' })
+        expect(buttons).toHaveLength(1)
+        expect(screen.queryByRole('list')).toBeNull()
+        // outside the transformed square, or position:fixed would resolve against it
+        expect(buttons[0].closest('.top-full')).toBeNull()
+        expect((buttons[0].closest('.fixed') as HTMLElement).style.bottom).toBe('166px')
+
+        await tapPaste()
+        expect(onScan).toHaveBeenCalledWith(PIX_CODE)
+    })
+})
+
+it('Android: re-reads the label when the user comes back to the app', async () => {
+    mockIsAndroidNative.mockReturnValue(true)
+    mockRead.mockResolvedValueOnce({ value: ADDRESS, type: 'text/plain' })
+
+    renderScanner()
+    await screen.findByRole('button', { name: 'Paste address' })
+
+    mockRead.mockResolvedValueOnce({ value: PIX_CODE, type: 'text/plain' })
+    await act(async () => {
+        document.dispatchEvent(new Event('visibilitychange'))
+    })
+
+    expect(await screen.findByRole('button', { name: 'Paste Pix code' })).toBeInTheDocument()
+})
