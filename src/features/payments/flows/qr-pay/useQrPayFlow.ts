@@ -305,7 +305,8 @@ export function useQrPayFlowController(
     const pixPayOutcome = pixPayment.outcome
 
     // A Pix payment may exist from its open until a refusal says nothing opened (the phase is back to
-    // idle with no id); a Manteca one from its first signature, for the rest of the screen's life.
+    // idle with no id); a Manteca one from its first signature until a failure that surely sent nothing
+    // (a dismissed passkey, a signing failure, a refusal before the send). An unknown send keeps it.
     const paymentMayExist =
         paymentProcessor === 'PIX_PAY'
             ? pixPayment.phase !== 'idle' || !!pixPayment.intentId
@@ -1079,12 +1080,15 @@ export function useQrPayFlowController(
         }
 
         let signedArtifact
-        // the flow stays on Manteca from here, whatever the Pix route says next
+        // From here a payment may exist on Manteca, so the flow stays on it whatever the Pix route says
+        // next. Each path that surely sent nothing releases it, and the page follows the route again.
         setMantecaSigningStarted(true)
         try {
             signedArtifact = await signSpend(signSpendInput())
             telemetry.stage('signature_ready', { outcome: 'success' })
         } catch (error) {
+            // nothing is submitted before the signature returns
+            setMantecaSigningStarted(false)
             // Controller-recovery control flow (nothing signed, nothing sent):
             // back to the same review screen, with a refreshed quote when the
             // replacement could not be prepared inside the current lock.
@@ -1184,6 +1188,7 @@ export function useQrPayFlowController(
         }
 
         if (quoteExpired()) {
+            setMantecaSigningStarted(false)
             await handleQuoteRecovery(new SpendRecoveryQuoteReviewError(new Error('quote expired while signing')))
             return
         }
@@ -1301,17 +1306,20 @@ export function useQrPayFlowController(
              */
             if (error instanceof SpendRecoveryQuoteReviewError) {
                 submittedPaymentRef.current = false
+                setMantecaSigningStarted(false)
                 await handleQuoteRecovery(error)
                 return
             }
             if (error instanceof SpendRecoveryAbortedError) {
                 submittedPaymentRef.current = false
+                setMantecaSigningStarted(false)
                 setIsSuccess(false)
                 setLoadingState('Idle')
                 return
             }
             if (wireErrorCode(error) === API_ERROR_CODES.PIX_RESIDENCE_NOT_SUPPORTED) {
                 submittedPaymentRef.current = false
+                setMantecaSigningStarted(false)
                 setAmountEntryRejection({ code: QR_INIT_CODE.PIX_RESIDENCE, amountRetryable: false })
                 setErrorMessage(scanFailureCopy[QR_INIT_CODE.PIX_RESIDENCE])
                 setIsSuccess(false)

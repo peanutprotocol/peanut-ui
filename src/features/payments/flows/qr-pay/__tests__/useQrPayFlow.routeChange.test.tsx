@@ -374,6 +374,42 @@ describe('a Manteca payment keeps its screen when the pay route moves to the Pix
         expect(mockPixApi.previewPayment).not.toHaveBeenCalled()
     })
 
+    // Chip on 7462f26c9: a signature that surely sent nothing releases the pin
+    it('a dismissed passkey sent nothing: a route that moves to Avenia is followed', async () => {
+        mockRoutes = [payRoute('manteca')]
+        const dismissed = new Error('The operation either timed out or was not allowed.')
+        dismissed.name = 'NotAllowedError'
+        fakeClient.account.signUserOperation.mockRejectedValue(dismissed)
+        const scan = renderScan()
+        await screen.findByText('Payment form')
+        await act(async () => {
+            await mockSurface!.payQR()
+        })
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx).not.toHaveBeenCalled()
+
+        scan.rerouted([payRoute('avenia', ACTIVATE)])
+
+        expect(await screen.findByText('Pix setup')).toBeInTheDocument()
+    })
+
+    it('a send whose outcome is unknown keeps the flow on Manteca when the route moves', async () => {
+        mockRoutes = [payRoute('manteca')]
+        mockMantecaApi.completeQrPaymentWithSignedTx.mockRejectedValue(new Error('socket hang up'))
+        const scan = renderScan()
+        await screen.findByText('Payment form')
+        await act(async () => {
+            await mockSurface!.payQR()
+        })
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx).toHaveBeenCalledTimes(1)
+
+        scan.rerouted([payRoute('avenia', ACTIVATE)])
+        await act(async () => {})
+
+        expect(screen.queryByText('Pix setup')).not.toBeInTheDocument()
+        expect(screen.getByText('Payment form')).toBeInTheDocument()
+        expect(mockPixApi.previewPayment).not.toHaveBeenCalled()
+    })
+
     it('before any signature, the route still decides: the page follows it', async () => {
         mockRoutes = [payRoute('manteca')]
         const scan = renderScan()
