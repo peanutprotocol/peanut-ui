@@ -25,18 +25,16 @@ const LINK_ID = `invite_${'a'.repeat(64)}`
 const EXPERIMENT = 'nita-2026-11-a'
 const VARIANTS = ['a1', 'g2', 'e1']
 /**
- * Known failure, 15 Nov 2026. The engine renders the page under `<Suspense fallback={null}>`
- * (CreatorPageBoundary). React sends a boundary whose HTML is over 12,800 bytes
- * (`progressiveChunkSize`) as a separate hidden block, `<div hidden id="S:0">`, even when nothing
- * in it suspends, and an inline script reveals it. A page cannot opt out.
+ * The engine renders the page under `<Suspense fallback={null}>` (CreatorPageBoundary). React sends
+ * a boundary whose HTML is over 12,800 bytes (`progressiveChunkSize`) as a separate hidden block,
+ * `<div hidden id="S:0">`, even when nothing in it suspends, and an inline script reveals it. A page
+ * cannot opt out, so every page stays under that size.
  *
- * Sizes of `<main>` with the Instagram iPhone user agent, 15 Nov 2026: A1 17,048 bytes, over the
- * limit; E1 10,309 bytes (it was about 21 kB before its headline shapes were made smaller); G2
- * 1,952 bytes. So only A1 is listed. E1 has about 2.5 kB of room: if it grows past the limit, its
- * two checks fail and say so. When the boundary stops hiding large pages, the A1 checks pass and
- * Playwright reports them: empty this list then.
+ * Sizes of `<main>` with the Instagram iPhone user agent, 15 Nov 2026: A1 10,182 bytes, E1 10,312,
+ * G2 1,952. If a page grows past the limit its two checks below fail. Only list a variant here when
+ * shipping it hidden-without-script is a decision, not an accident.
  */
-const HIDDEN_WITHOUT_SCRIPT = ['a1']
+const HIDDEN_WITHOUT_SCRIPT: string[] = []
 const HIDDEN_REASON = 'the engine Suspense boundary streams a page over 12.8 kB in a hidden block'
 const instagramUA =
     'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 350.0.0.0.0 (iPhone14,5; iOS 18_0; en_US; en; scale=3.00; 1170x2532; 600000000)'
