@@ -719,8 +719,8 @@ const aveniaQrResponses = (
         ...overrides,
     }
 }
-/** GET /pix/pay/:intentId of the open payment, in one of its states. */
-const aveniaQrRead = (state: string, status: string) => ({
+/** GET /pix/pay/:intentId of the open payment, in one of its states, with the QR reward it earned (M5). */
+const aveniaQrRead = (state: string, status: string, perk: Record<string, unknown> | null = null) => ({
     [`GET /pix/pay/${AVENIA_QR_PAYMENT_ID}`]: {
         provider: 'avenia',
         intentId: AVENIA_QR_PAYMENT_ID,
@@ -728,9 +728,25 @@ const aveniaQrRead = (state: string, status: string) => ({
         status,
         amountBrl: '42.50',
         merchantName: 'PADARIA PAO DOURADO LTDA',
-        perk: null,
+        perk,
     },
 })
+/** The QR reward of a paid Avenia payment, Manteca's shape (API-CONTRACT-M5 §3). */
+const AVENIA_QR_PERK = {
+    eligible: true,
+    discountPercentage: 0,
+    claimed: false,
+    sponsoredUsd: 1,
+    reason: 'Pix cashback',
+    usageId: 'fixture-perk-usage',
+    payoutStatus: 'pending',
+}
+/** Avenia's monthly room on the user's sub-account (GET /users/limits, API-CONTRACT-M5 §5). */
+const AVENIA_LIMITS = {
+    currency: 'BRL',
+    deposit: { brlLeft: '98500.00', usdLeft: '18100.00', blocked: false },
+    payout: { brlLeft: '104200.00', usdLeft: '19150.00', blocked: false },
+}
 /** The payment's history entry (API-CONTRACT-M4 §5): a QR payment to the merchant, provider Avenia. */
 const aveniaQrEntry = (status: string) => ({
     uuid: AVENIA_QR_PAYMENT_ID,
@@ -2573,6 +2589,32 @@ export const FIXTURES: Record<string, Fixture> = {
         about: "Avenia needs a CPF the verification lacks: the verify flow's tax step, asked on the Pix page.",
         ...aveniaMissingResponses('tax'),
     },
+    'pix-activation-refused': {
+        route: '/add-money/pix',
+        about: 'A user Avenia rejected (M5): the activation answers refused at once, and Pix shows its refusal with Contact support, no wait and no fall-back.',
+        responses: aveniaResponses('first-use', { [ACTIVATE_PIX]: { state: 'refused', reason: 'provider_rejected' } }),
+    },
+    'limits-avenia': {
+        route: '/limits/manteca',
+        about: "A user whose Pix routes name Avenia (M5): Avenia's monthly room for BRL, Pix in and Pix out, in place of Manteca's old BRL limit.",
+        responses: aveniaResponses('enabled', {
+            'GET /users/limits': {
+                manteca: [
+                    {
+                        exchangeCountry: 'BRA',
+                        type: 'EXCHANGE',
+                        asset: 'BRL',
+                        yearlyLimit: '12000',
+                        availableYearlyLimit: '12000',
+                        monthlyLimit: '1000',
+                        availableMonthlyLimit: '1000',
+                    },
+                ],
+                bridge: null,
+                avenia: AVENIA_LIMITS,
+            },
+        }),
+    },
     'pix-setup-open-failed': {
         route: '/add-money/pix',
         about: 'The first use could not reach the API: the activation says so and offers to try again.',
@@ -2900,6 +2942,49 @@ export const FIXTURES: Record<string, Fixture> = {
                 [`GET /history/${AVENIA_QR_PAYMENT_ID}`]: aveniaQrEntry('COMPLETED'),
             }
         ),
+    },
+    'qr-pay-avenia-paid-reward': {
+        route: qrPayRoute(PIX_QR_FIXED_AMOUNT, AVENIA_QR_PAYMENT_ID),
+        about: "An Avenia QR payment that earned the QR reward (M5): the same reward card and hold-to-claim as Manteca's.",
+        responses: aveniaQrResponses(
+            { state: 'ready' },
+            {
+                ...aveniaQrRead('paid', 'COMPLETED', AVENIA_QR_PERK),
+                [`GET /history/${AVENIA_QR_PAYMENT_ID}`]: aveniaQrEntry('COMPLETED'),
+            }
+        ),
+    },
+    'qr-pay-avenia-quote-changed': {
+        route: qrPayRoute(PIX_QR_FIXED_AMOUNT),
+        about: 'A Pix code whose re-quote at Pay would pay other reais (409 PIX_QUOTE_CHANGED, M5): the amount-changed line, and the code reviewed again.',
+        responses: aveniaQrResponses(),
+        rejects: {
+            'POST /pix/pay': {
+                status: 409,
+                body: { code: 'PIX_QUOTE_CHANGED', error: 'The price changed. Review the payment again.' },
+            },
+        },
+    },
+    'qr-pay-brl-switched-off': {
+        route: qrPayRoute(PIX_QR_FIXED_AMOUNT),
+        about: "Manteca's BRL switched off (disabledMantecaCurrencies BRL), outside Avenia's gates, no Avenia account: the pay route's pause, as an outage, never Manteca's flow.",
+        responses: mantecaPixResponses({
+            'GET /users/me': {
+                ...mantecaPixResponses()['GET /users/me'],
+                capabilities: {
+                    ...mantecaPixResponses()['GET /users/me'].capabilities,
+                    routes: mantecaPixRoutes().map((route) => ({
+                        ...route,
+                        state: 'paused',
+                        reason: {
+                            code: 'provider_paused',
+                            userMessage: 'This is paused for a moment. Try again soon.',
+                        },
+                        candidates: [{ provider: 'manteca', state: 'paused' }],
+                    })),
+                },
+            },
+        }),
     },
     'qr-pay-avenia-refunded': {
         route: qrPayRoute(PIX_QR_FIXED_AMOUNT, AVENIA_QR_PAYMENT_ID),

@@ -389,6 +389,11 @@
         "route": "/history"
     },
     {
+        "id": "fixture-limits-avenia",
+        "flow": "Home and shared states",
+        "route": "/limits/manteca"
+    },
+    {
         "id": "fixture-history-pix-key-owner",
         "flow": "Home and shared states",
         "route": "/history"
@@ -1200,6 +1205,11 @@
         "id": "fixture-pix-receipt-pay-code",
         "flow": "Add money",
         "route": "/history?tx=fixture-pix-deposit"
+    },
+    {
+        "id": "fixture-pix-activation-refused",
+        "flow": "Add money",
+        "route": "/add-money/pix"
     },
     {
         "id": "fixture-pix-route-method-not-served",
@@ -2027,6 +2037,16 @@
         "route": "/qr-pay?qrCode=00020101021226680014br.gov.bcb.pix2546pix.example.com%2Fqr%2Fv2%2Fcobv%2Fpadaria-pao-dourado520400005303986540542.505802BR5924PADARIA%20PAO%20DOURADO%20LTDA6009SAO%20PAULO62070503***63043A47&type=PIX&t=1&intentId=fixture-qr-avenia"
     },
     {
+        "id": "fixture-qr-pay-avenia-quote-changed",
+        "flow": "Payments",
+        "route": "/qr-pay?qrCode=00020101021226680014br.gov.bcb.pix2546pix.example.com%2Fqr%2Fv2%2Fcobv%2Fpadaria-pao-dourado520400005303986540542.505802BR5924PADARIA%20PAO%20DOURADO%20LTDA6009SAO%20PAULO62070503***63043A47&type=PIX&t=1"
+    },
+    {
+        "id": "fixture-qr-pay-brl-switched-off",
+        "flow": "Payments",
+        "route": "/qr-pay?qrCode=00020101021226680014br.gov.bcb.pix2546pix.example.com%2Fqr%2Fv2%2Fcobv%2Fpadaria-pao-dourado520400005303986540542.505802BR5924PADARIA%20PAO%20DOURADO%20LTDA6009SAO%20PAULO62070503***63043A47&type=PIX&t=1"
+    },
+    {
         "id": "fixture-qr-pay-avenia-refunded",
         "flow": "Payments",
         "route": "/qr-pay?qrCode=00020101021226680014br.gov.bcb.pix2546pix.example.com%2Fqr%2Fv2%2Fcobv%2Fpadaria-pao-dourado520400005303986540542.505802BR5924PADARIA%20PAO%20DOURADO%20LTDA6009SAO%20PAULO62070503***63043A47&type=PIX&t=1&intentId=fixture-qr-avenia"
@@ -2767,6 +2787,11 @@
         "id": "fixture-badges",
         "flow": "Rewards",
         "route": "/badges"
+    },
+    {
+        "id": "fixture-qr-pay-avenia-paid-reward",
+        "flow": "Rewards",
+        "route": "/qr-pay?qrCode=00020101021226680014br.gov.bcb.pix2546pix.example.com%2Fqr%2Fv2%2Fcobv%2Fpadaria-pao-dourado520400005303986540542.505802BR5924PADARIA%20PAO%20DOURADO%20LTDA6009SAO%20PAULO62070503***63043A47&type=PIX&t=1&intentId=fixture-qr-avenia"
     },
     {
         "id": "fixture-huge-rewards-cash",
