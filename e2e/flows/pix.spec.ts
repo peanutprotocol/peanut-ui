@@ -74,11 +74,11 @@ test.describe('Pix on the Avenia route', () => {
     })
 
     test("the user's own key resolves to holder and bank, and continues", async ({ page }) => {
-        await open(page, `${WITHDRAW}?destination=09579927189&__fixture=pix-withdraw-key`)
+        await open(page, `${WITHDRAW}?destination=11144477735&__fixture=pix-withdraw-key`)
         const holder = page.getByTestId('pix-key-holder')
         await expect(holder).toBeVisible({ timeout: 60_000 })
         await expect(holder).toContainText('Ana Souza')
-        await expect(holder).toContainText('Banco Inter · CPF 095.***.***-89')
+        await expect(holder).toContainText('Banco Inter · CPF 111.***.***-35')
         await expect(holder).toContainText('Own account')
         await expect(page.getByRole('button', { name: 'Continue' })).toBeEnabled()
     })
@@ -137,7 +137,7 @@ test.describe('Pix on the Avenia route', () => {
     }) => {
         await open(
             page,
-            `${WITHDRAW}?destination=09579927189&destinationAmount=503&step=review&__fixture=pix-withdraw-review`
+            `${WITHDRAW}?destination=11144477735&destinationAmount=503&step=review&__fixture=pix-withdraw-review`
         )
         await expect(page.getByText('Withdrawing')).toBeVisible({ timeout: 60_000 })
         await expect(page.getByText('Ana Souza')).toBeVisible()
@@ -181,7 +181,7 @@ test.describe('Pix on the Manteca route', () => {
     })
 
     test('a key whose holder the provider cannot check shows no badge and continues', async ({ page }) => {
-        await open(page, `${WITHDRAW}?destination=09579927189&__fixture=pix-manteca-withdraw-key`)
+        await open(page, `${WITHDRAW}?destination=11144477735&__fixture=pix-manteca-withdraw-key`)
         const holder = page.getByTestId('pix-key-holder')
         await expect(holder).toBeVisible({ timeout: 60_000 })
         await expect(holder).toContainText('Ana Souza')
@@ -193,7 +193,7 @@ test.describe('Pix on the Manteca route', () => {
     test('the form shows no flat-fee line and names Manteca', async ({ page }) => {
         await open(
             page,
-            `${WITHDRAW}?destination=09579927189&destinationAmount=503&step=review&__fixture=pix-manteca-withdraw-review`
+            `${WITHDRAW}?destination=11144477735&destinationAmount=503&step=review&__fixture=pix-manteca-withdraw-review`
         )
         await expect(page.getByText('Withdrawing')).toBeVisible({ timeout: 60_000 })
         await expect(page.getByText('Ana Souza')).toBeVisible()

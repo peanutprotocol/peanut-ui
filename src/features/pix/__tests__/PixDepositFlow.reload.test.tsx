@@ -148,7 +148,7 @@ describe('PixDepositFlow and the URL', () => {
             usdcAmount: '17.94',
             fixedFeeBrl: '0.75',
             expiresAt: null,
-            payerCpfMasked: '095.***.***-89',
+            payerCpfMasked: '111.***.***-35',
         }
         mockCreate.mockResolvedValue(created)
         const urls: string[] = []

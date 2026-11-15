@@ -176,9 +176,9 @@ test('full PIX key survives the redirect and cannot mislabel a different payment
 
 describe('pixKeyOwnerDetails', () => {
     it('shows a CPF key once, in full, as the CPF it is', () => {
-        expect(pixKeyOwnerDetails('09579927189', '09*******89')).toEqual({
+        expect(pixKeyOwnerDetails('11144477735', '11*******35')).toEqual({
             pixKey: null,
-            taxId: { kind: 'CPF', value: '095.799.271-89' },
+            taxId: { kind: 'CPF', value: '111.444.777-35' },
         })
     })
 

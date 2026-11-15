@@ -357,7 +357,7 @@ const mantecaPixResponses = (overrides: Record<string, unknown> = {}) => ({
 })
 const MANTECA_PIX_DEPOSIT_ID = 'fixture-pix-manteca-deposit'
 
-const AVENIA_OWN_KEY = '09579927189'
+const AVENIA_OWN_KEY = '11144477735'
 const AVENIA_OTHER_KEY = '+5511987654321'
 const AVENIA_WITHDRAW_ROUTE = '/withdraw/pix'
 /** The Pix withdraw form, which lives in the account's session draft and never in the URL. */
@@ -367,7 +367,7 @@ const pixWithdrawForm = (fields: Partial<PixWithdrawDraft>, flow: PixDraftFlow =
 const AVENIA_OWN_KEY_INFO = {
     provider: 'avenia',
     holderName: 'Ana Souza',
-    holderTaxIdMasked: '095.***.***-89',
+    holderTaxIdMasked: '111.***.***-35',
     bankName: 'Banco Inter',
     ispb: '00416968',
     ownAccount: true,
@@ -2433,7 +2433,7 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: aveniaResponses('enabled', {
             'POST /pix/key': {
                 holderName: 'Ana Souza',
-                holderTaxIdMasked: '095.***.***-89',
+                holderTaxIdMasked: '111.***.***-35',
                 bankName: 'Banco Inter',
                 ispb: '00416968',
                 ownAccount: true,
@@ -2607,7 +2607,7 @@ export const FIXTURES: Record<string, Fixture> = {
                 brCode: DEMO_PIX_BR_CODE,
                 // the code lives 10 minutes from when the fixture loads, so the badge always reads a live timer
                 expiresAt: new Date(Date.now() + 10 * 60_000).toISOString(),
-                payerCpfMasked: '095.***.***-89',
+                payerCpfMasked: '111.***.***-35',
             }),
         }),
     },
@@ -2619,7 +2619,7 @@ export const FIXTURES: Record<string, Fixture> = {
                 codePayable: true,
                 brCode: DEMO_PIX_BR_CODE,
                 expiresAt: new Date(Date.now() + 10 * 60_000).toISOString(),
-                payerCpfMasked: '095.***.***-89',
+                payerCpfMasked: '111.***.***-35',
                 // the API leaves both out; null replaces the demo answer's pair
                 exchangeRate: null,
                 providerFeeBrl: null,
@@ -3020,7 +3020,7 @@ export const FIXTURES: Record<string, Fixture> = {
             'POST /pix/key': {
                 provider: 'manteca',
                 holderName: 'Ana Souza',
-                holderTaxIdMasked: '095.***.***-89',
+                holderTaxIdMasked: '111.***.***-35',
                 bankName: null,
                 ispb: null,
                 ownAccount: null,

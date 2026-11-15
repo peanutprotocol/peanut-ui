@@ -131,7 +131,7 @@ const mantecaWithdrawal = (
         currency: { amount: '100.00', code },
         userRole: 'SENDER',
         senderAccount: WALLET,
-        recipientAccount: { identifier: '09579927189', type: 'BANK_CBU', isUser: false },
+        recipientAccount: { identifier: '11144477735', type: 'BANK_CBU', isUser: false },
         extraData: { kind: 'OFFRAMP', provider: 'MANTECA', isRefund: false, receipt: {}, ...extra },
     } as never)
 

@@ -542,14 +542,14 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '94-h-pix-withdraw-arrived-to': {
         name: 'Pix withdrawal — arrived: the shared success view, key and bank named',
         path: 'features/pix/components/PixWithdrawOutcome.tsx',
-        captureState: ['phase=funded', 'entry=COMPLETED', 'key=09579927189', 'bank=Banco Inter'],
+        captureState: ['phase=funded', 'entry=COMPLETED', 'key=11144477735', 'bank=Banco Inter'],
         shotFixture: 'pix-withdraw-arrived',
         expectSelector: '[data-testid="app-page-surface-content"] button',
     },
     '94-i-pix-withdraw-arrived-unnamed': {
         name: 'Pix withdrawal — arrived, no bank named: the key alone',
         path: 'features/pix/components/PixWithdrawOutcome.tsx',
-        captureState: ['phase=funded', 'entry=COMPLETED', 'key=09579927189', 'bank=none'],
+        captureState: ['phase=funded', 'entry=COMPLETED', 'key=11144477735', 'bank=none'],
         shotFixture: 'pix-withdraw-arrived',
         expectSelector: '[data-testid="app-page-surface-content"] button',
     },

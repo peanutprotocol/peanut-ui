@@ -30,7 +30,7 @@ const read = (overrides: Partial<PixDeposit> = {}): PixDeposit => ({
     usdcAmount: '17.940500',
     codePayable: true,
     brCode: '00020101021226...',
-    payerCpfMasked: '095.***.***-89',
+    payerCpfMasked: '111.***.***-35',
     ...overrides,
 })
 const state = (phase: PixDepositPhase, deposit: PixDeposit | undefined = read()) =>

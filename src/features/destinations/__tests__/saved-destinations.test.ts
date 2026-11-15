@@ -134,7 +134,7 @@ describe('isPixAccount', () => {
     const brazil = { bankName: null, accountOwnerName: 'Ada', countryCode: 'BRA', countryName: 'brazil' }
 
     it("the user's own account in Brazil", () => {
-        expect(isPixAccount(account({ type: AccountType.MANTECA, identifier: '09579927189', details: brazil }))).toBe(
+        expect(isPixAccount(account({ type: AccountType.MANTECA, identifier: '11144477735', details: brazil }))).toBe(
             true
         )
     })

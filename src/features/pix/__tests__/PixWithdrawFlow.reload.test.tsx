@@ -149,7 +149,7 @@ const renderAt = (
     )
 
 // The form lives in the account's draft in this tab's session, never in the URL (`pixWithdrawDraft`).
-const KEY = '09579927189'
+const KEY = '11144477735'
 const REVIEW_FORM = { destination: KEY, amountBrl: '503' }
 const DRAFT_KEY = (userId = 'u1') => `pix-withdraw-draft:${userId}`
 const withForm = (fields: Partial<PixWithdrawDraft>, userId = 'u1') =>
@@ -300,7 +300,7 @@ describe('PixWithdrawFlow after a reload', () => {
     it('puts the opened id in the URL at Confirm and keeps the review while the new quote waits', async () => {
         const display = {
             amountBrl: '503.00',
-            pixKey: '09579927189',
+            pixKey: '11144477735',
             ownAccount: true as const,
             holderName: 'Ana Souza',
             bankName: 'Banco Inter',
@@ -352,7 +352,7 @@ describe('PixWithdrawFlow after a reload', () => {
     it('opens a transfer-then-submit withdrawal at its submit, then drops the form and shows the payment loader', async () => {
         const display = {
             amountBrl: '503.00',
-            pixKey: '09579927189',
+            pixKey: '11144477735',
             ownAccount: null,
             holderName: 'Ana Souza',
             bankName: null,
@@ -406,7 +406,7 @@ describe('PixWithdrawFlow after a reload with a submit that may have gone out', 
     const SUBMITTED_AT = Date.now() - 60_000
     const display = (amountBrl: string) => ({
         amountBrl,
-        pixKey: '09579927189',
+        pixKey: '11144477735',
         ownAccount: null,
         holderName: 'Ana Souza',
         bankName: null,
@@ -811,7 +811,7 @@ describe('PixWithdrawFlow refused preview', () => {
 
             fireEvent.click(await screen.findByRole('button', { name: en.pix.withdraw.changeKey }))
 
-            expect(await screen.findByDisplayValue('09579927189')).toBeInTheDocument()
+            expect(await screen.findByDisplayValue('11144477735')).toBeInTheDocument()
             expect(urls.at(-1)).not.toContain('destination')
             expect(screen.queryByRole('button', { name: en.common.retry })).toBeNull()
         }
@@ -854,7 +854,7 @@ describe('PixWithdrawFlow form draft', () => {
     const OWN_KEY = {
         provider: 'avenia',
         holderName: 'Ana Souza',
-        holderTaxIdMasked: '095.***.***-89',
+        holderTaxIdMasked: '111.***.***-35',
         bankName: 'Banco Inter',
         ispb: '00416968',
         ownAccount: true,

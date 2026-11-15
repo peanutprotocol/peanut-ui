@@ -12,11 +12,11 @@ jest.mock('@/features/pix/usePixKeyLookup', () => ({
 
 import { PixKeyStep } from '../components/PixKeyStep'
 
-const KEY = '09579927189'
+const KEY = '11144477735'
 const info = {
     provider: 'avenia',
     holderName: 'Ana Souza',
-    holderTaxIdMasked: '095.***.***-89',
+    holderTaxIdMasked: '111.***.***-35',
     bankName: 'Banco Inter',
     ispb: '00416968',
     ownAccount: true,
@@ -42,7 +42,7 @@ describe('PixKeyStep holder card', () => {
 
         const holder = screen.getByTestId('pix-key-holder')
         expect(holder).toHaveTextContent('Ana Souza')
-        expect(holder).toHaveTextContent('Banco Inter · CPF 095.***.***-89')
+        expect(holder).toHaveTextContent('Banco Inter · CPF 111.***.***-35')
         expect(screen.queryByText(en.pix.withdraw.ownAccount)).toBeNull()
         expect(screen.queryByRole('alert')).toBeNull()
 

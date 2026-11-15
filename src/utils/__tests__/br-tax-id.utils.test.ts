@@ -1,7 +1,7 @@
 import { brTaxIdKind, formatBrTaxId, isValidCnpj, isValidCpf } from '@/utils/br-tax-id.utils'
 
 describe('isValidCpf', () => {
-    it.each(['12345678909', '09579927189'])('accepts %s, whose check digits match', (cpf) => {
+    it.each(['12345678909', '11144477735'])('accepts %s, whose check digits match', (cpf) => {
         expect(isValidCpf(cpf)).toBe(true)
     })
 
@@ -35,7 +35,7 @@ describe('brTaxIdKind', () => {
         ['a full CNPJ', '11222333000181', 'CNPJ'],
         ['a masked CPF (11 characters)', '12*******90', 'CPF'],
         ['a masked CNPJ (14 characters)', '11**********81', 'CNPJ'],
-        ['a masked CPF as the Pix directory punctuates it', '095.***.***-89', 'CPF'],
+        ['a masked CPF as the Pix directory punctuates it', '111.***.***-35', 'CPF'],
         ['a masked CNPJ as the Pix directory punctuates it', '11.***.***/****-81', 'CNPJ'],
         ['an 11-digit number that fails the CPF check', '12345678900', null],
         // review finding 9: Avenia's mask can hide the first digits
@@ -51,7 +51,7 @@ describe('brTaxIdKind', () => {
 
 describe('formatBrTaxId', () => {
     it('punctuates a CPF and a CNPJ the Brazilian way', () => {
-        expect(formatBrTaxId('09579927189')).toBe('095.799.271-89')
+        expect(formatBrTaxId('11144477735')).toBe('111.444.777-35')
         expect(formatBrTaxId('11222333000181')).toBe('11.222.333/0001-81')
     })
 

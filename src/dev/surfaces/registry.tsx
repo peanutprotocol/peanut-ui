@@ -358,7 +358,7 @@ function PixDepositSurface() {
             usdcAmount: '17.940500',
             fixedFeeBrl: '0.75',
             expiresAt: new Date(Date.now() + 9 * 60_000 + 12_000).toISOString(),
-            payerCpfMasked: '095.***.***-89',
+            payerCpfMasked: '111.***.***-35',
         } satisfies PixDeposit)
     )
     return (
@@ -377,7 +377,7 @@ function PixDepositSurface() {
 // the withdrawal this session signed, for the last step's in-memory destination
 const PIX_SURFACE_DISPLAY: PixWithdrawDisplay = {
     amountBrl: '503.00',
-    pixKey: '09579927189',
+    pixKey: '11144477735',
     ownAccount: true,
     holderTaxIdMasked: null,
     holderName: 'Ana Souza',

@@ -15,7 +15,7 @@ import { PixWithdrawForm } from '../components/PixWithdrawForm'
 
 const display = {
     amountBrl: '503.00',
-    pixKey: '09579927189',
+    pixKey: '11144477735',
     ownAccount: true as const,
     holderTaxIdMasked: null,
     holderName: 'Ana Souza',
@@ -77,7 +77,7 @@ describe('PixWithdrawForm', () => {
         expect(screen.getByText(en.pix.withdraw.withdrawing)).toBeInTheDocument()
         expect(screen.getByText('Ana Souza')).toBeInTheDocument()
         // a CPF key is the holder's own tax ID: shown once, punctuated
-        expect(screen.getByText('CPF 095.799.271-89')).toBeInTheDocument()
+        expect(screen.getByText('CPF 111.444.777-35')).toBeInTheDocument()
         expect(screen.getByText('Banco Inter')).toBeInTheDocument()
         // Avenia's own rate, no fee in it (the owner, 15 Nov, "Option A"); not the all-in 5.45
         expect(screen.getByText('1 USD = 5.46 BRL')).toBeInTheDocument()
@@ -106,12 +106,12 @@ describe('PixWithdrawForm', () => {
                 pixKey: '+5511912345678',
                 holderName: 'Ana Souza',
                 bankName: null,
-                taxIdMasked: '095.***.***-89',
+                taxIdMasked: '111.***.***-35',
                 ownAccount: true,
             },
         })
         expect(screen.getByText(/^11 91234-5678 ·$/)).toBeInTheDocument()
-        expect(screen.getByText('CPF 095.***.***-89')).toBeInTheDocument()
+        expect(screen.getByText('CPF 111.***.***-35')).toBeInTheDocument()
     })
 
     // TASK-24947: another person's key is a send to them

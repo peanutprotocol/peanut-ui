@@ -44,7 +44,7 @@ jest.mock('../../QrPayFlowContext', () => ({
         hideRate: mockHideRate,
         providerId: 'manteca-br',
         amountFixed: true,
-        pixKeyLabel: '09579927189',
+        pixKeyLabel: '11144477735',
         pixKeyOwner: { name: 'Ana Souza', legalIdMasked: null },
         isAwaitingPixKeyOwner: false,
         pixKeySave: {
@@ -95,7 +95,7 @@ describe('QrPayFormView', () => {
         renderWithIntl(<QrPayFormView />)
         expect(screen.getByText(en.qrPay.youArePaying)).toBeInTheDocument()
         expect(screen.getByText('Ana Souza')).toBeInTheDocument()
-        expect(screen.getByText('CPF 095.799.271-89')).toBeInTheDocument()
+        expect(screen.getByText('CPF 111.444.777-35')).toBeInTheDocument()
         expect(screen.getByText('Banco Inter')).toBeInTheDocument()
         expect(screen.getByText(en.global.savedAddresses.savePrompt)).toBeInTheDocument()
         expect(screen.getByText('1 USD = 5.40 BRL')).toBeInTheDocument()
