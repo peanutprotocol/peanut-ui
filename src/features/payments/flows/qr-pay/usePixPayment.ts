@@ -27,6 +27,14 @@ import { qrInitIdempotencyKey } from '@/utils/qr-payment.utils'
 import { rhinoDepositWithIdCalls } from '@/utils/rhino-deposit.utils'
 import { sleepUnlessCancelled } from '@/utils/cancellable-wait'
 import { QR_INIT_CODE } from './init-error-classifier'
+import {
+    createQrPaymentAttemptTelemetry,
+    trackPixQrInitResult,
+    type QrPaymentAttemptTelemetry,
+    type QrPaymentStageOutcome,
+    type QrPaymentStageProvider,
+} from './qr-payment-telemetry'
+import { pixQrHost } from '@/utils/pix-qr-host'
 
 const flowTags = (step: string) => ({ ...criticalFlowTags('qr-pay'), qr_pay_step: step, qr_pay_route: 'pix' })
 
@@ -79,6 +87,15 @@ export function pixPayOutcome(
 
 type DepositWithIdSign = Extract<PixPayOpened['sign'], { kind: 'deposit-with-id' }>
 
+/** How one attempt ends, by the payment's outcome: the same `attempt_finished` Manteca's attempts report. */
+const ATTEMPT_OUTCOME: Record<Exclude<PixPayOutcome, 'processing'>, QrPaymentStageOutcome> = {
+    paid: 'success',
+    refunded: 'failed',
+    cancelled: 'failed',
+    'not-sent': 'failed',
+    'needs-support': 'unknown',
+}
+
 /**
  * A merchant Pix code paid through the neutral pay routes (API-CONTRACT-M4): the code's review,
  * then one bridge from the wallet that the provider turns into the Pix to the merchant.
@@ -99,6 +116,7 @@ export function usePixPayment({
     canStart,
     amountBrl,
     minimumBrl,
+    provider,
 }: {
     brCode: string
     timestamp: string | null
@@ -110,6 +128,8 @@ export function usePixPayment({
     amountBrl: string | undefined
     /** The route's least amount, in reais (`route.limits`); null where it states none. */
     minimumBrl: string | null
+    /** The provider the pay route names: data for analytics only, never a branch. */
+    provider?: QrPaymentStageProvider | null
 }) {
     const t = useAppTranslations('qrPay')
     const tPix = useTranslations('pix')
@@ -119,6 +139,9 @@ export function usePixPayment({
     const { fetchUser } = useAuth()
     const { sendTransactions } = useWallet()
     const [intentId, setIntentId] = useQueryState('intentId', parseAsString)
+    // the QR flow's analytics: the same events as Manteca's QR attempts, with the route's provider
+    const telemetryProvider = provider ?? undefined
+    const attempt = useRef<QrPaymentAttemptTelemetry | null>(null)
 
     /** The line for a refusal of the review or the open, by wire code (API-CONTRACT-M4 §3). */
     const payRefusalMessage = useCallback(
@@ -155,6 +178,17 @@ export function usePixPayment({
         staleTime: Infinity,
     })
     const openAmount = wireErrorCode(codeRead.error) === QR_INIT_CODE.MISSING_AMOUNT
+    useEffect(() => {
+        if (codeRead.status === 'pending') return
+        // a code without its own amount is ready: the reais typed are reviewed next
+        const outcome =
+            codeRead.status === 'success' || openAmount
+                ? 'ready'
+                : wireErrorCode(codeRead.error)
+                  ? 'refused'
+                  : 'unavailable'
+        trackPixQrInitResult(pixQrHost(brCode), outcome, telemetryProvider)
+    }, [codeRead.status, codeRead.error, openAmount, brCode, telemetryProvider])
     const amountFixed = !!codeRead.data?.amountFixed
 
     const typedBrl = openAmount ? toApiDecimal(amountBrl ?? '', 2) : null
@@ -274,6 +308,17 @@ export function usePixPayment({
         setError(null)
         setNotice(null)
         moveTo('opening')
+        const telemetry = createQrPaymentAttemptTelemetry({
+            qrType: 'PIX',
+            pixQrHost: pixQrHost(brCode),
+            provider: telemetryProvider,
+        })
+        attempt.current = telemetry
+        telemetry.stage('pay_clicked')
+        const finish = (outcome: QrPaymentStageOutcome) => {
+            telemetry.stage('attempt_finished', { outcome })
+            attempt.current = null
+        }
         // the payment held for the figures now on screen is signed as it is; anything else opens
         const holding = held && held.display === display ? held : null
         setHeld(null)
@@ -282,6 +327,8 @@ export function usePixPayment({
             opened = holding ?? (await open(display))
         } catch (caught) {
             const code = wireErrorCode(caught)
+            telemetry.stage('lock_ready', { outcome: 'failed', ...(code ? { failureCode: code } : {}) })
+            finish('failed')
             moveTo('idle')
             if (code === API_ERROR_CODES.PIX_PAYMENT_EXISTS) {
                 // past its signature: this payment is read, never signed again
@@ -319,12 +366,16 @@ export function usePixPayment({
                 tags: flowTags('sign-request'),
                 extra: { intentId: opened.intentId, kind: sign.kind },
             })
+            telemetry.stage('lock_ready', { outcome: 'failed' })
+            finish('failed')
             moveTo('idle')
             setError(tPix('unavailable'))
             return
         }
+        telemetry.stage('lock_ready', { outcome: 'success' })
         if (!holding && quoteMovedAgainstUser(display, opened.display)) {
             // nothing is signed until the user taps Pay on the new figures
+            finish('cancelled')
             setHeld(opened)
             setNotice(t('reviewUpdatedQuote'))
             moveTo('idle')
@@ -332,6 +383,7 @@ export function usePixPayment({
         }
         // the bridge quote lives minutes; a deposit on an expired commitment is not bridged
         if (!(Date.parse(sign.quoteExpiresAt) > Date.now())) {
+            finish('failed')
             restartQuote()
             moveTo('idle')
             setError(tPix('withdraw.errors.quoteExpired'))
@@ -356,6 +408,9 @@ export function usePixPayment({
             // A dismissed passkey or a reverted transaction moved nothing: Pay opens the same payment
             // again (same key) and signs it. Any other failure may have sent it: the read decides.
             if (reverted || isUserCancellation(caught)) {
+                const cancelled = !reverted && isUserCancellation(caught)
+                telemetry.stage('signature_ready', { outcome: cancelled ? 'cancelled' : 'failed' })
+                finish(cancelled ? 'cancelled' : 'failed')
                 clearDepositMaybeSent(opened.intentId)
                 void setIntentId(null)
                 moveTo('idle')
@@ -363,10 +418,14 @@ export function usePixPayment({
                 return
             }
             void captureNetworkTriagedFailure(caught, { tags: flowTags('sign'), extra: { intentId: opened.intentId } })
+            // it may have been sent: the read's outcome finishes the attempt
+            telemetry.stage('signature_ready', { outcome: 'unknown' })
             moveTo('unconfirmed')
             setError(toFriendlyError(caught))
             return
         }
+        telemetry.stage('signature_ready', { outcome: 'success' })
+        if (minedHash) telemetry.stage('request_sent')
         void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
         void queryClient.invalidateQueries({ queryKey: ['balance'] })
         moveTo(minedHash ? 'sent' : 'unconfirmed')
@@ -383,6 +442,7 @@ export function usePixPayment({
         reviewed,
         held,
         minimumBrl,
+        telemetryProvider,
         moveTo,
         open,
         setIntentId,
@@ -416,6 +476,29 @@ export function usePixPayment({
     useEffect(() => {
         if (outcome && outcome !== 'processing') void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
     }, [outcome, queryClient])
+    // an attempt signed in this session ends with the payment's outcome
+    useEffect(() => {
+        const telemetry = attempt.current
+        if (!telemetry || !outcome || outcome === 'processing') return
+        telemetry.stage('response_received', { outcome: ATTEMPT_OUTCOME[outcome] })
+        if (outcome === 'paid') telemetry.stage('success_committed', { outcome: 'success' })
+        telemetry.stage('attempt_finished', { outcome: ATTEMPT_OUTCOME[outcome] })
+        attempt.current = null
+    }, [outcome])
+
+    // The reward is issued on completion, so a paid read may name none yet: it is read once more
+    // (API-CONTRACT-M5 §3). The mark is set when the read goes out, so a remount does not lose it.
+    const rereadForReward = useRef<string | null>(null)
+    const { refetch: readAgain } = read
+    const paidWithoutReward = read.data?.state === 'paid' && read.data.perk === null
+    useEffect(() => {
+        if (!paidWithoutReward || !intentId || rereadForReward.current === intentId) return
+        const timer = setTimeout(() => {
+            rereadForReward.current = intentId
+            void readAgain()
+        }, READ_POLL_MS)
+        return () => clearTimeout(timer)
+    }, [paidWithoutReward, intentId, readAgain])
 
     // the processing screen lasts the quoted arrival time; a payment still open then reads as processing
     const arrivalMs = (reviewed?.arrivalEstimateSeconds ?? FALLBACK_ARRIVAL_SECONDS) * 1000

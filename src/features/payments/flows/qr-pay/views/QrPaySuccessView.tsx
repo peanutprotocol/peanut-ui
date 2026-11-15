@@ -42,8 +42,8 @@ export function QrPaySuccessView() {
     const leaveToHome = useReturnTo('/home')
     const { user } = useAuth()
     const {
-        qrPayment,
-        setQrPayment,
+        paidReward,
+        markRewardClaimed,
         currency,
         usdAmount,
         pointsData,
@@ -53,7 +53,7 @@ export function QrPaySuccessView() {
         paidLocalAmount,
     } = useQrPayFlow()
     const { rewardOffered, perkClaimed, holdProgress, isShaking, shakeIntensity, startHold, cancelHold } =
-        usePerkHoldToClaim(qrPayment, setQrPayment)
+        usePerkHoldToClaim(paidReward, markRewardClaimed)
     const { openTransactionDetails, isTransactionSelected, closeTransactionDetails } = useTransactionDetailsDrawer()
     const [showInviteFriendsModal, setShowInviteFriendsModal] = useState(false)
     // a double tap would push /request twice and leave a duplicate history entry
@@ -87,7 +87,7 @@ export function QrPaySuccessView() {
     // `rewardOffered` is the hook's verdict (reserved AND not a failed payout);
     // `claimed` is a reveal flag (local hold or API), not payout settlement.
     // A failed payout is never revealed, whatever the flag says.
-    const rewardRevealed = rewardOffered && (perkClaimed || !!qrPayment?.perk?.claimed)
+    const rewardRevealed = rewardOffered && (perkClaimed || !!paidReward?.perk?.claimed)
     const rewardClaimable = rewardOffered && !rewardRevealed
 
     return (
@@ -128,7 +128,7 @@ export function QrPaySuccessView() {
                             <h2 className="text-heading-card">{t('success.earnedRewardTitle')}</h2>
                             <p className="text-body-s">
                                 {(() => {
-                                    const amountSponsored = qrPayment?.perk?.amountSponsored
+                                    const amountSponsored = paidReward?.perk?.amountSponsored
                                     if (amountSponsored && typeof amountSponsored === 'number') {
                                         return t('success.earnedHoldToClaim', {
                                             amount: formatFiniteDisplay(amountSponsored, 'en-US', {
@@ -154,7 +154,7 @@ export function QrPaySuccessView() {
                             <h2 className="text-heading-s">{t('success.earnedRewardTitle')}</h2>
                             <p className="text-body-m">
                                 {(() => {
-                                    const amountSponsored = qrPayment?.perk?.amountSponsored
+                                    const amountSponsored = paidReward?.perk?.amountSponsored
 
                                     if (amountSponsored && typeof amountSponsored === 'number') {
                                         return t('success.earnedInviteFriends', {

@@ -94,6 +94,7 @@ import { pixProviderId } from '@/utils/provider.utils'
 import { brTaxIdKind } from '@/utils/br-tax-id.utils'
 import type { ProviderId } from '@/types/provider.types'
 import { usePixPayment, type PixPayOutcome } from './usePixPayment'
+import { pixPaidPerk, type PaidReward } from './paidReward'
 import { useQrPayRoute } from './useQrPayRoute'
 
 const MAX_QR_PAYMENT_AMOUNT = '2000'
@@ -290,9 +291,12 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         canStart: !blocksNewPayment,
         amountBrl: currencyAmount,
         minimumBrl: pixPayMinimumBrl,
+        provider: pixPayRoute?.provider,
     })
     const pixPayReviewed = pixPayment.reviewed
     const pixPayOutcome = pixPayment.outcome
+    // the hold-to-claim reveal of a Pix pay-route payment's reward; Manteca's lives on its qrPayment
+    const [pixRewardClaimed, setPixRewardClaimed] = useState(false)
     // the paid payment's entry: what left the wallet after a reload, and the receipt
     const { data: pixPayEntry } = useHistoryEntry(pixPayment.intentId, 'QR_PAY', {
         enabled: isPixPay && pixPayOutcome === 'paid',
@@ -488,10 +492,11 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     // Fetch points early to avoid latency penalty - fetch as soon as we have usdAmount
     // This way points are cached by the time success view shows
     // Use timestamp as uniqueId to prevent cache collisions between different QR scans
+    // An Avenia QR payment earns the QR lane's points as Manteca's does (API-CONTRACT-M5 §3)
     const { pointsData, pointsDivRef } = usePointsCalculation(
         PointsAction.MANTECA_QR_PAYMENT,
         usdAmount,
-        paymentProcessor === 'MANTECA',
+        paymentProcessor !== null,
         timestamp || undefined
     )
 
@@ -543,13 +548,14 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                         { timeoutMs: MANTECA_QR_INIT_SCAN_TIMEOUT_MS }
                     )
                 )
-                if (qrType === EQrType.PIX) trackPixQrInitResult(pixQrHost(qrCode), 'ready')
+                if (qrType === EQrType.PIX) trackPixQrInitResult(pixQrHost(qrCode), 'ready', 'manteca')
                 return lock
             } catch (error) {
                 if (qrType === EQrType.PIX)
                     trackPixQrInitResult(
                         pixQrHost(qrCode),
-                        isNonRetryableQrInitError(error) ? 'refused' : 'unavailable'
+                        isNonRetryableQrInitError(error) ? 'refused' : 'unavailable',
+                        'manteca'
                     )
                 throw error
             }
@@ -896,6 +902,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         const telemetry = createQrPaymentAttemptTelemetry({
             qrType: boundedQrType(paymentLock.type) ?? boundedQrType(qrType),
             pixQrHost: pixQrHost(qrCode),
+            provider: 'manteca',
         })
         attemptTelemetryRef.current = telemetry
         telemetry.stage('pay_clicked')
@@ -1533,6 +1540,30 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         hasProcessor: !!paymentProcessor,
     })
 
+    // The paid payment's reward, whatever the provider: the success view shows one reward UI
+    const paidReward: PaidReward | null = useMemo(() => {
+        if (isPixPay) {
+            const payment = pixPayment.payment
+            const perk = pixPaidPerk(payment)
+            if (!payment || !pixPayment.intentId) return null
+            return {
+                paymentId: pixPayment.intentId,
+                merchantName: payment.merchantName ?? undefined,
+                perk: perk && pixRewardClaimed ? { ...perk, claimed: true } : perk,
+            }
+        }
+        if (!qrPayment) return null
+        return {
+            paymentId: qrPayment.externalId,
+            merchantName: qrPayment.details?.merchant?.name,
+            perk: qrPayment.perk ?? null,
+        }
+    }, [isPixPay, pixPayment.payment, pixPayment.intentId, pixRewardClaimed, qrPayment])
+    const markRewardClaimed = useCallback(() => {
+        if (isPixPay) setPixRewardClaimed(true)
+        else if (qrPayment?.perk) setQrPayment({ ...qrPayment, perk: { ...qrPayment.perk, claimed: true } })
+    }, [isPixPay, qrPayment, setQrPayment])
+
     return {
         view,
         /** What the BRAZIL_PAUSED view says: the API's refusal for the residence, else the pay route's block. */
@@ -1601,9 +1632,11 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         // loading
         isLoading,
         loadingState,
-        // points
+        // points and the QR reward
         pointsData,
         pointsDivRef,
+        paidReward,
+        markRewardClaimed,
         // actions
         onBack: onBackFromQrPay,
         payQR,

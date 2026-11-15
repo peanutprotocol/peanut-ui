@@ -50,11 +50,19 @@ const withPayout = (payoutStatus: 'pending' | 'completed' | 'failed') => ({
     perk: { ...eligibleQrPayment.perk, usageId: 'usage-1', payoutStatus },
 })
 
-const mockSetQrPayment = jest.fn()
+const mockOnClaimed = jest.fn()
 let latest: ReturnType<typeof usePerkHoldToClaim> | null = null
 
+// the flow hands the hook the paid payment's reward, whatever the provider
 function Harness({ qrPayment }: { qrPayment: any }) {
-    latest = usePerkHoldToClaim(qrPayment, mockSetQrPayment)
+    latest = usePerkHoldToClaim(
+        {
+            paymentId: qrPayment.externalId,
+            merchantName: qrPayment.details?.merchant?.name,
+            perk: qrPayment.perk ?? null,
+        },
+        mockOnClaimed
+    )
     return null
 }
 
@@ -161,7 +169,7 @@ describe('failed payout (eligible kept for reconciliation)', () => {
         expect(shootDoubleStarConfetti).not.toHaveBeenCalled()
         expect(notifyHaptic).not.toHaveBeenCalled()
         expect(rewardEvents()).toEqual([])
-        expect(mockSetQrPayment).not.toHaveBeenCalled()
+        expect(mockOnClaimed).not.toHaveBeenCalled()
         expect(latest?.perkClaimed).toBe(false)
     })
 
@@ -185,7 +193,7 @@ describe('failed payout (eligible kept for reconciliation)', () => {
         expect(shootDoubleStarConfetti).not.toHaveBeenCalled()
         expect(notifyHaptic).not.toHaveBeenCalled()
         expect(posthog.capture).not.toHaveBeenCalledWith('reward_claimed', expect.anything())
-        expect(mockSetQrPayment).not.toHaveBeenCalled()
+        expect(mockOnClaimed).not.toHaveBeenCalled()
         expect(latest?.perkClaimed).toBe(false)
     })
 })
@@ -210,11 +218,7 @@ describe.each([
         expect(notifyHaptic).toHaveBeenCalledWith('success')
         expect(posthog.capture).toHaveBeenCalledWith('reward_claimed', { amount_usd: 0.5, discount_pct: 5 })
         expect(latest?.perkClaimed).toBe(true)
-        // the reveal flag is written; the payout state is untouched
-        expect(mockSetQrPayment).toHaveBeenCalledTimes(1)
-        expect(mockSetQrPayment).toHaveBeenCalledWith({
-            ...qrPayment,
-            perk: { ...qrPayment.perk, claimed: true },
-        })
+        // the reveal is reported once; the flow writes the flag, never the payout state
+        expect(mockOnClaimed).toHaveBeenCalledTimes(1)
     })
 })

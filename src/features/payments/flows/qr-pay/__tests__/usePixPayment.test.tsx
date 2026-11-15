@@ -15,6 +15,7 @@ jest.mock('@/app/actions/clients', () => ({}))
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 jest.mock('@/i18n/app/useAppTranslations', () => ({ useAppTranslations: () => (key: string) => key }))
 jest.mock('@/utils/sentry-lazy', () => ({ captureException: jest.fn() }))
+jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 jest.mock('@/utils/network-triage', () => ({ captureNetworkTriagedFailure: jest.fn() }))
 jest.mock('@/constants/zerodev.consts', () => ({
     PEANUT_WALLET_CHAIN: { id: 42161 },
@@ -42,6 +43,7 @@ jest.mock('@/services/pix', () => ({
     },
 }))
 
+import posthog from 'posthog-js'
 import { usePixPayment } from '../usePixPayment'
 
 const DEPOSIT_ABI = parseAbi(['function depositWithId(address tokenAddress, uint256 amount, uint256 commitmentId)'])
@@ -267,4 +269,128 @@ describe('usePixPayment', () => {
         })
         expect(mockOpen).not.toHaveBeenCalled()
     })
+
+    describe('the same QR analytics as Manteca, with the route’s provider (TASK-24947 M5)', () => {
+        const captured = (event: string) =>
+            (posthog.capture as jest.Mock).mock.calls.filter(([name]) => name === event).map(([, props]) => props)
+
+        it('reports each stage of an attempt under qr_payment_stage, provider avenia, ending with the paid read', async () => {
+            mockPreview.mockResolvedValue(FIXED)
+            mockOpen.mockResolvedValue(opened())
+            mockSendTransactions.mockResolvedValue({ receipt: { status: 'success', transactionHash: MINED, logs: [] } })
+            mockRead.mockResolvedValue({
+                provider: 'avenia',
+                intentId: 'pay-1',
+                state: 'paid',
+                status: 'COMPLETED',
+                perk: null,
+            })
+            const { result } = renderHook(
+                () =>
+                    usePixPayment({
+                        brCode: FIXED_CODE,
+                        timestamp: '1',
+                        enabled: true,
+                        canStart: true,
+                        amountBrl: undefined,
+                        minimumBrl: '5',
+                        provider: 'avenia',
+                    }),
+                { wrapper }
+            )
+            await waitFor(() => expect(result.current.reviewed).toEqual(FIXED))
+            expect(captured('pix_qr_init_result')).toEqual([
+                expect.objectContaining({ outcome: 'ready', provider: 'avenia' }),
+            ])
+
+            await act(async () => {
+                await result.current.pay()
+            })
+            await waitFor(() => expect(result.current.outcome).toBe('paid'))
+
+            const stages = captured('qr_payment_stage')
+            expect(stages.every((props) => props.provider === 'avenia' && props.qr_type === 'PIX')).toBe(true)
+            expect(stages.map((props) => props.stage)).toEqual([
+                'pay_clicked',
+                'lock_ready',
+                'signature_ready',
+                'request_sent',
+                'response_received',
+                'success_committed',
+                'attempt_finished',
+            ])
+            expect(stages.at(-1)).toMatchObject({ outcome: 'success' })
+            expect(new Set(stages.map((props) => props.client_payment_attempt_id)).size).toBe(1)
+        })
+
+        it('a refused open finishes the attempt as failed, naming the refusal', async () => {
+            mockPreview.mockResolvedValue(FIXED)
+            mockOpen.mockRejectedValue(refusal(422, { code: 'PIX_LIMIT_EXCEEDED' }))
+            const { result } = renderHook(
+                () =>
+                    usePixPayment({
+                        brCode: FIXED_CODE,
+                        timestamp: '1',
+                        enabled: true,
+                        canStart: true,
+                        amountBrl: undefined,
+                        minimumBrl: '5',
+                        provider: 'avenia',
+                    }),
+                { wrapper }
+            )
+            await waitFor(() => expect(result.current.reviewed).toEqual(FIXED))
+            await act(async () => {
+                await result.current.pay()
+            })
+            const stages = captured('qr_payment_stage')
+            expect(stages.map((props) => [props.stage, props.outcome, props.failure_code])).toEqual([
+                ['pay_clicked', undefined, undefined],
+                ['lock_ready', 'failed', 'PIX_LIMIT_EXCEEDED'],
+                ['attempt_finished', 'failed', undefined],
+            ])
+        })
+    })
+
+    it('reads a paid payment once more when its reward is not issued yet, then stops (API-CONTRACT-M5 §3)', async () => {
+        const reopened = ({ children }: { children: ReactNode }) => (
+            <NuqsTestingAdapter searchParams="?intentId=pay-1">
+                <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+            </NuqsTestingAdapter>
+        )
+        const perk = {
+            eligible: true,
+            discountPercentage: 0,
+            claimed: false,
+            sponsoredUsd: 1,
+            reason: 'Pix cashback',
+            usageId: 'u-1',
+            payoutStatus: 'pending',
+        }
+        mockRead
+            .mockResolvedValueOnce({
+                provider: 'avenia',
+                intentId: 'pay-1',
+                state: 'paid',
+                status: 'COMPLETED',
+                perk: null,
+            })
+            .mockResolvedValue({ provider: 'avenia', intentId: 'pay-1', state: 'paid', status: 'COMPLETED', perk })
+        const { result } = renderHook(
+            () =>
+                usePixPayment({
+                    brCode: FIXED_CODE,
+                    timestamp: '1',
+                    enabled: true,
+                    canStart: true,
+                    amountBrl: undefined,
+                    minimumBrl: '5',
+                }),
+            { wrapper: reopened }
+        )
+        await waitFor(() => expect(result.current.outcome).toBe('paid'))
+        expect(result.current.payment?.perk).toBeNull()
+        await waitFor(() => expect(result.current.payment?.perk).toEqual(perk), { timeout: 6_000 })
+        expect(mockRead).toHaveBeenCalledTimes(2)
+    }, 10_000)
 })
