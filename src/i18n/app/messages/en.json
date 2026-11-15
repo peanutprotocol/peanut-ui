@@ -3832,7 +3832,7 @@
             "uncollectable": "{feature}: we can't finish setting this up in the app. Contact support and we'll complete it for you.",
             "identityDocumentInsufficient": "{feature}: this needs a different ID document than the one you verified with.",
             "unavailable": "{feature}: this feature isn’t available with the current verification.",
-            "servedElsewhere": "Pix deposits and withdrawals are available where you live."
+            "servedElsewhere": "Pix deposits, withdrawals, transfers and QR payments are available where you live."
         },
         "paperworkVerification": {
             "back": "Go back",
@@ -5497,8 +5497,8 @@
             "thirdNational": "Card issuer, a Rain subsidiary",
             "bridgeEea": "Fiat on-ramp, off-ramp and virtual IBAN provider",
             "mantecaAr": "Deposits, withdrawals and QR payments in Argentina",
-            "mantecaBr": "Pix payments and transfers for users who do not live in Brazil",
-            "aveniaBr": "Pix deposits and withdrawals for residents of Brazil"
+            "mantecaBr": "Pix for accounts that do not use Avenia yet",
+            "aveniaBr": "Pix deposits for residents of Brazil, and Pix withdrawals, transfers and QR payments for users in any country"
         },
         "about": "About {brand}",
         "execution": {

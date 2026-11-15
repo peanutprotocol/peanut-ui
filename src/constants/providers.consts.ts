@@ -90,7 +90,8 @@ export const PROVIDERS: Record<ProviderId, ProviderRecord> = {
         support: 'brazil@manteca.dev',
         answersFor: { provider: 'MANTECA', currency: 'BRL' },
     },
-    // Pix for Brazilian residents. Legal name and CNPJ as read on the Receita Federal register
+    // Pix deposits for residents of Brazil, and Pix withdrawals, sends and QR payments for every residence
+    // (TASK-24947). Legal name and CNPJ as read on the Receita Federal register
     // (mono product/providers/fiat/evidence/counterparty-health-tier1-latam-2026-08-27.md). No BCB
     // authorisation is on record, so the sheet names no regulator. The dynamic Pix code and the payout
     // name this entity as the payee.

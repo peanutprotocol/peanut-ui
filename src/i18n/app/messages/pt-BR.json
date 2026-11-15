@@ -3832,7 +3832,7 @@
             "uncollectable": "{feature}: não conseguimos terminar de configurar isso pelo app. Fale com o suporte e concluímos para você.",
             "identityDocumentInsufficient": "{feature}: isso exige um documento de identidade diferente do que você usou na verificação.",
             "unavailable": "{feature}: este recurso não está disponível com a verificação atual.",
-            "servedElsewhere": "Depósitos e saques por Pix estão disponíveis onde você mora."
+            "servedElsewhere": "Depósitos, saques, transferências e pagamentos por QR via Pix estão disponíveis onde você mora."
         },
         "paperworkVerification": {
             "back": "Voltar",
@@ -5497,8 +5497,8 @@
             "thirdNational": "Emissor do cartão, subsidiária da Rain",
             "bridgeEea": "Provedor de depósitos, saques e IBANs virtuais em moeda fiduciária",
             "mantecaAr": "Depósitos, saques e pagamentos por QR na Argentina",
-            "mantecaBr": "Pagamentos e transferências por Pix para quem não mora no Brasil",
-            "aveniaBr": "Depósitos e saques por Pix para residentes no Brasil"
+            "mantecaBr": "Pix para contas que ainda não usam a Avenia",
+            "aveniaBr": "Depósitos por Pix para residentes no Brasil, e saques, transferências e pagamentos por QR via Pix para usuários de qualquer país"
         },
         "about": "Sobre a {brand}",
         "execution": {
