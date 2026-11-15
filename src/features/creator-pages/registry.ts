@@ -1,10 +1,12 @@
 // Owned by the creator-pages work (TASK-24893). The /go engine created this file as a stub and imports
 // `selectCreatorPage` and `CreatorPageSelection` from it; only the creator-pages work edits it.
-// Seam: mono inbox/go-links/coordination.md, "Contract" (FROZEN v1).
+// Seam: the props and the label rule are in src/features/tracked-links/contract.ts (go-links contract v1);
+// how the two sides meet is in mono engineering/ui/creator-pages.md.
 import type { Metadata } from 'next'
-import { cookies } from 'next/headers'
-import type { ComponentType } from 'react'
+import { cookies, headers } from 'next/headers'
+import { createElement, type ComponentType } from 'react'
 import type { CreatorPageProps } from '@/features/tracked-links/contract'
+import { deviceOs } from './environment'
 import { creatorPageExperiment } from './experiments'
 import { creatorPageComponent } from './page-components'
 import { pickVariant } from './pick-variant'
@@ -18,12 +20,14 @@ export type CreatorPageSelection = {
     experimentId: string
     /** `null` is the contract's control arm (today's redirect). No experiment here uses one. */
     Page: ComponentType<CreatorPageProps> | null
+    /** The engine spreads it into the page metadata, under its own `robots`. */
     metadata?: Metadata
 }
 
 /**
- * Server only. Reads the variant cookie and never sets it: Next forbids cookies().set during
- * a page render, so CreatorPageShell writes it in the browser.
+ * Server only. Everything a page needs from the request is read here, so the page itself renders
+ * without waiting (see CreatorPageShell). Reads the variant cookie and never sets it: Next forbids
+ * cookies().set during a page render, so CreatorPageProvider writes it in the browser.
  */
 export async function selectCreatorPage(creator: {
     username: string
@@ -33,9 +37,21 @@ export async function selectCreatorPage(creator: {
     // coordination notes): a link id differs per environment, so a linkId key would show the page in one only.
     const experiment = creatorPageExperiment(creator.username)
     if (!experiment) return null
-    const cookieValue = (await cookies()).get(variantCookieName(creator.username))?.value
+    const [cookieStore, requestHeaders] = await Promise.all([cookies(), headers()])
     // One draw per request. Drawing inside the lookup re-rolled for every variant and skewed the split.
-    const variant = pickVariant(experiment, cookieValue)
-    const Page = variant && creatorPageComponent(creator.username, variant)
-    return Page ? { variant, experimentId: experiment.id, Page } : null
+    const variant = pickVariant(experiment, cookieStore.get(variantCookieName(creator.username))?.value)
+    const Variant = variant && creatorPageComponent(creator.username, variant)
+    if (!Variant) return null
+
+    // The visitors are on phones in in-app browsers, where hydration is slow. Deciding the OS here
+    // puts the right label and store icon in the first HTML, so nothing changes under the thumb.
+    // Presentation only: the event reads the user agent in the browser, at tap time.
+    const os = deviceOs(requestHeaders.get('user-agent') ?? '')
+    return {
+        variant,
+        experimentId: experiment.id,
+        // Made per request and rendered once, on the server: the engine's route is a server component.
+        Page: (props) => createElement(Variant, { ...props, deviceOs: os }),
+        metadata: { title: experiment.title },
+    }
 }

@@ -1,8 +1,8 @@
 import Image from 'next/image'
 import { LOGO_LOCKUP } from '@/assets/brand'
-import type { CreatorPageProps } from '@/features/tracked-links/contract'
 import { CreatorPageCta } from '../../CreatorPageCta'
 import { CreatorPageShell } from '../../CreatorPageShell'
+import type { CreatorPageVariantProps } from '../../variant-props'
 import { E1Lettering } from './e1/E1Lettering'
 import { NITA_E1_COPY as copy } from './nita-e1.copy'
 import styles from './NitaE1.module.css'
@@ -11,7 +11,7 @@ const ASSETS = '/creator-pages/juanacervio'
 const STEP_TEARS = [styles.tornStep, styles.tornStep2, styles.tornStep3]
 
 /** Nita's page, variant E1: a poster in her own collage style, with her real post taped on it. */
-export function NitaE1(props: CreatorPageProps) {
+export function NitaE1(props: CreatorPageVariantProps) {
     // Rendered twice: in the pinned strip, and unseen in the poster, which keeps the strip's place free.
     const dockNote = (
         <div className={styles.note}>

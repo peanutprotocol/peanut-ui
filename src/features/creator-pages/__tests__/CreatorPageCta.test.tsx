@@ -2,7 +2,7 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import posthog from 'posthog-js'
 import { trackedLinkAnalyticsAllowed } from '@/features/tracked-links/eligibility'
-import { creatorPageFixture } from '../creator-page-fixture'
+import { creatorPageFixture } from '../preview-fixture'
 import { CreatorPageCta } from '../CreatorPageCta'
 import { CreatorPagePreview } from '../CreatorPagePreview'
 import { CreatorPageProvider } from '../CreatorPageProvider'

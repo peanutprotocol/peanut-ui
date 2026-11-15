@@ -1,6 +1,6 @@
 import { goHandoffPath } from '@/features/tracked-links/contract'
 import { goVisitPosthogProperties } from '@/features/tracked-links/visit-properties'
-import { creatorPageFixture } from '../creator-page-fixture'
+import { creatorPageFixture } from '../preview-fixture'
 import { creatorPageEventProperties } from '../events'
 
 const mockJourney = jest.fn()

@@ -1,42 +1,35 @@
 /** @jest-environment node */
-import { Writable } from 'node:stream'
 import { createElement } from 'react'
-import { renderToPipeableStream } from 'react-dom/server'
-import { creatorPageFixture } from '../creator-page-fixture'
+import { renderToString } from 'react-dom/server'
 import { CREATOR_PAGE_EXPERIMENTS } from '../experiments'
 import { CREATOR_PAGE_COMPONENTS } from '../page-components'
+import { creatorPageFixture } from '../preview-fixture'
+import { selectCreatorPage } from '../registry'
+import { variantCookieName } from '../variant-cookie'
 import { USER_AGENTS } from './user-agents'
 
 let mockUserAgent = ''
-jest.mock('next/headers', () => ({ headers: async () => new Headers({ 'user-agent': mockUserAgent }) }))
+let mockCookie: { name: string; value: string } | null = null
+jest.mock('next/headers', () => ({
+    headers: async () => new Headers({ 'user-agent': mockUserAgent }),
+    cookies: async () => ({ get: (name: string) => (mockCookie?.name === name ? mockCookie : undefined) }),
+}))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
 type RenderedLink = { href: string | null; hasTarget: boolean; hasPosition: boolean; hasIcon: boolean; text: string }
 
 /**
- * The server HTML of a page, as /go sends it. The shell is an async server component, so a
- * client render cannot show it; React's server renderer can.
+ * The server HTML of a page, selected and rendered as /go does it: the sticky cookie names the
+ * variant, and `selectCreatorPage` reads the user agent. `renderToString` cannot wait, so it
+ * throws if a page or the shell suspends; on /go such a page would arrive in a hidden block.
  */
 async function serverRender(username: string, variant: string, userAgent: string) {
     mockUserAgent = userAgent
+    mockCookie = { name: variantCookieName(username), value: `${CREATOR_PAGE_EXPERIMENTS[username].id}.${variant}` }
+    const selection = await selectCreatorPage({ username, linkId: 'invite_' + '0'.repeat(64) })
+    if (selection?.variant !== variant || !selection.Page) throw new Error(`no page selected for ${variant}`)
     const props = creatorPageFixture(username, variant)
-    const html = await new Promise<string>((resolve, reject) => {
-        const chunks: string[] = []
-        const sink = new Writable({
-            write(chunk, _encoding, done) {
-                chunks.push(String(chunk))
-                done()
-            },
-            final(done) {
-                resolve(chunks.join(''))
-                done()
-            },
-        })
-        const stream = renderToPipeableStream(createElement(CREATOR_PAGE_COMPONENTS[username][variant], props), {
-            onAllReady: () => stream.pipe(sink),
-            onError: reject,
-        })
-    })
+    const html = renderToString(createElement(selection.Page, props))
     const links: RenderedLink[] = [...html.matchAll(/<a\s([^>]*)>(.*?)<\/a>/gs)].map(([, attributes, inner]) => ({
         href: /\bhref="([^"]*)"/.exec(attributes)?.[1].replaceAll('&amp;', '&') ?? null,
         hasTarget: /\btarget=/.test(attributes),
@@ -84,6 +77,9 @@ describe('creator page variants', () => {
             for (const link of android.links)
                 expect(link).toMatchObject({ text: 'Abrir en Google Play', hasIcon: true })
             expect(android.html).not.toContain('App Store')
+
+            const desktop = await serverRender(username, variant, USER_AGENTS.chromeMac)
+            for (const link of desktop.links) expect(link).toMatchObject({ text: 'Bajar Peanut', hasIcon: false })
         }
     )
 })

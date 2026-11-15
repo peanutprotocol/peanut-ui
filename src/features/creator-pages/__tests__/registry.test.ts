@@ -1,12 +1,15 @@
 /** @jest-environment node */
-import { isAcquisitionSlug, isGoPageLabel } from '@/features/tracked-links/contract'
+import { createElement, type ReactElement } from 'react'
+import { isAcquisitionSlug, isGoPageLabel, type CreatorPageProps } from '@/features/tracked-links/contract'
 import { CREATOR_PAGE_EXPERIMENTS } from '../experiments'
 import { CREATOR_PAGE_COMPONENTS } from '../page-components'
+import { creatorPageFixture } from '../preview-fixture'
 import { selectCreatorPage } from '../registry'
 
 const mockCookies = new Map<string, string>()
 const mockSet = jest.fn()
 jest.mock('next/headers', () => ({
+    headers: async () => new Headers(),
     cookies: async () => ({
         get: (name: string) => (mockCookies.has(name) ? { name, value: mockCookies.get(name) } : undefined),
         set: mockSet,
@@ -29,11 +32,12 @@ describe('selectCreatorPage', () => {
         jest.spyOn(Math, 'random').mockReturnValue(0)
         mockCookies.set('cpv_juanacervio', `${id}.e1`)
         const selection = await selectCreatorPage(creator('juanacervio'))
-        expect(selection).toEqual({
-            variant: 'e1',
-            experimentId: 'nita-2026-11-a',
-            Page: CREATOR_PAGE_COMPONENTS.juanacervio.e1,
-        })
+        expect(selection).toMatchObject({ variant: 'e1', experimentId: 'nita-2026-11-a' })
+        // `Page` is the e1 component with the request's device bound to it.
+        const element = createElement(selection!.Page!, creatorPageFixture('juanacervio', 'e1'))
+        const bound = (selection!.Page as (props: CreatorPageProps) => ReactElement)(element.props)
+        expect(bound.type).toBe(CREATOR_PAGE_COMPONENTS.juanacervio.e1)
+        expect(bound.props).toEqual({ ...element.props, deviceOs: 'other' })
         expect(mockSet).not.toHaveBeenCalled()
     })
 
@@ -74,6 +78,7 @@ describe('CREATOR_PAGE_EXPERIMENTS', () => {
             // The engine's own checks: it throws in development on a label it would not put in a handoff.
             expect(isAcquisitionSlug(username)).toBe(true)
             expect(isGoPageLabel(experiment.id)).toBe(true)
+            expect(experiment.title.trim()).not.toBe('')
             const ids = experiment.variants.map((variant) => variant.id)
             expect(new Set(ids).size).toBe(ids.length)
             for (const variant of experiment.variants) {

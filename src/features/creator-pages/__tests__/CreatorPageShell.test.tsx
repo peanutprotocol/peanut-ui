@@ -1,48 +1,45 @@
 /** @jest-environment jsdom */
 import { render, screen } from '@testing-library/react'
-import { creatorPageFixture } from '../creator-page-fixture'
+import { isValidElement } from 'react'
 import { CreatorPageCta } from '../CreatorPageCta'
 import { CreatorPageShell } from '../CreatorPageShell'
-import { USER_AGENTS } from './user-agents'
+import type { DeviceOs } from '../environment'
+import { creatorPageFixture } from '../preview-fixture'
 
-let mockUserAgent: string | null = null
-jest.mock('next/headers', () => ({
-    headers: async () => new Headers(mockUserAgent === null ? {} : { 'user-agent': mockUserAgent }),
-}))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 jest.mock('@/features/tracked-links/eligibility', () => ({ trackedLinkAnalyticsAllowed: () => false }))
 
 const labels = { ios: 'Abrir en el App Store', android: 'Abrir en Google Play', other: 'Bajar Peanut' }
 
-/** The shell is an async server component: resolve it as the server does, then mount what it returns. */
-async function renderShell(userAgent: string | null) {
-    mockUserAgent = userAgent
-    return render(
-        await CreatorPageShell({
-            page: creatorPageFixture('juanacervio', 'g2'),
-            lang: 'es-AR',
-            className: 'shell',
-            children: <CreatorPageCta labels={labels} position="hero" />,
-        })
-    )
+function shell(deviceOs: DeviceOs) {
+    return CreatorPageShell({
+        page: { ...creatorPageFixture('juanacervio', 'g2'), deviceOs },
+        lang: 'es-AR',
+        className: 'shell',
+        children: <CreatorPageCta labels={labels} position="hero" />,
+    })
 }
 
 describe('CreatorPageShell', () => {
-    it('renders <main> in the page language', async () => {
-        await renderShell(USER_AGENTS.instagramIos)
+    it('returns its element at once: a promise here would hide the page on /go until a script runs', () => {
+        // The engine renders the page under <Suspense fallback={null}>.
+        expect(isValidElement(shell('ios'))).toBe(true)
+    })
+
+    it('renders <main> in the page language', () => {
+        render(shell('ios'))
         const main = screen.getByRole('main')
         expect(main).toHaveAttribute('lang', 'es-AR')
         expect(main).toHaveClass('shell')
     })
 
-    // jsdom's own navigator.userAgent names no phone, so a matching label can only come from the request header.
+    // jsdom's own navigator.userAgent names no phone, so a matching label can only come from the prop.
     it.each([
-        [USER_AGENTS.instagramIos, 'Abrir en el App Store', true],
-        [USER_AGENTS.instagramAndroid, 'Abrir en Google Play', true],
-        [USER_AGENTS.safariIpad, 'Bajar Peanut', false],
-        [null, 'Bajar Peanut', false],
-    ])('labels the button from the request user agent', async (userAgent, label, hasIcon) => {
-        const { container } = await renderShell(userAgent)
+        ['ios', 'Abrir en el App Store', true],
+        ['android', 'Abrir en Google Play', true],
+        ['other', 'Bajar Peanut', false],
+    ] as const)('labels the button for %s', (deviceOs, label, hasIcon) => {
+        const { container } = render(shell(deviceOs))
         expect(screen.getByRole('link', { name: label })).toBeInTheDocument()
         expect(container.querySelector('svg') !== null).toBe(hasIcon)
     })

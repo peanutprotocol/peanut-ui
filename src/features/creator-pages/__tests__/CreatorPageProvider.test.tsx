@@ -3,7 +3,7 @@ import { StrictMode } from 'react'
 import { render, screen } from '@testing-library/react'
 import posthog from 'posthog-js'
 import { trackedLinkAnalyticsAllowed } from '@/features/tracked-links/eligibility'
-import { creatorPageFixture } from '../creator-page-fixture'
+import { creatorPageFixture } from '../preview-fixture'
 import { CreatorPagePreviewContext } from '../CreatorPageContext'
 import { CreatorPageProvider } from '../CreatorPageProvider'
 

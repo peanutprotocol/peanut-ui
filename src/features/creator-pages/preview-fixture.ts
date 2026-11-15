@@ -1,7 +1,7 @@
 import { goHandoffPath, type CreatorPageProps, type GoVisit } from '@/features/tracked-links/contract'
 import { creatorPageExperiment } from './experiments'
 
-/** Props for the dev preview and the tests: what the /go engine passes for an Instagram visit. */
+/** Props for the dev preview and the tests only: what the /go engine passes for an Instagram visit. */
 export function creatorPageFixture(username: string, variant: string): CreatorPageProps {
     const visit: GoVisit = {
         username,

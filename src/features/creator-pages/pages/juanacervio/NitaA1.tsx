@@ -5,8 +5,8 @@ import Star from '@/assets/illustrations/star.svg'
 import { PEANUT_SITTING } from '@/assets/mascot'
 import { Card } from '@/components/0_Bruddle/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
-import type { CreatorPageProps } from '@/features/tracked-links/contract'
 import { CreatorPageShell } from '../../CreatorPageShell'
+import type { CreatorPageVariantProps } from '../../variant-props'
 import { A1_AVATAR_SRC } from './a1/a1-avatar.consts'
 import { A1Cta } from './a1/A1Cta'
 import { A1InviteLine } from './a1/A1InviteLine'
@@ -23,7 +23,7 @@ import styles from './NitaA1.module.css'
 const POINTING_MASCOT_SRC = '/creator-pages/juanacervio/a1-mascot-pointing-down.webp'
 
 /** Nita's page, variant A1: her X post redrawn large, with the store button inside the post. */
-export function NitaA1(props: CreatorPageProps) {
+export function NitaA1(props: CreatorPageVariantProps) {
     const { proof, sample, steps, close } = copy
     const [accounts, clients, spend] = proof.items
 

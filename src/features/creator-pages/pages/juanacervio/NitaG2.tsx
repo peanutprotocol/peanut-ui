@@ -1,12 +1,12 @@
 import Image from 'next/image'
-import type { CreatorPageProps } from '@/features/tracked-links/contract'
 import { CreatorPageCta } from '../../CreatorPageCta'
 import { CreatorPageShell } from '../../CreatorPageShell'
+import type { CreatorPageVariantProps } from '../../variant-props'
 import { NITA_G2_COPY as copy } from './nita-g2.copy'
 import styles from './NitaG2.module.css'
 
 /** Nita's page, variant G2: a frame of the Reel the visitor just left, with a bottom sheet over it. */
-export function NitaG2(props: CreatorPageProps) {
+export function NitaG2(props: CreatorPageVariantProps) {
     return (
         <CreatorPageShell page={props} lang="es-AR" className={styles.page}>
             <div className={styles.column}>

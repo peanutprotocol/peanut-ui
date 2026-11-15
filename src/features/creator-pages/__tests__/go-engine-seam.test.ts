@@ -15,6 +15,7 @@ import { parseVariantCookie, serializeVariantCookie, variantCookieName } from '.
 
 const mockCookies = new Map<string, string>()
 jest.mock('next/headers', () => ({
+    headers: async () => new Headers(),
     cookies: async () => ({
         get: (name: string) => (mockCookies.has(name) ? { name, value: mockCookies.get(name) } : undefined),
     }),
@@ -46,12 +47,21 @@ describe('the /go engine seam', () => {
         expect(typeof selection!.Page).toBe('function')
     })
 
-    it('sets no metadata yet, so the engine serves the generic Peanut card with its own noindex', async () => {
+    it('gives the engine one Spanish tab title per creator, whatever the variant, and leaves robots to it', async () => {
+        const titles = new Set<unknown>()
+        for (const variant of ['a1', 'g2', 'e1']) {
+            mockCookies.set(variantCookieName('juanacervio'), `nita-2026-11-a.${variant}`)
+            const selection = await selectCreatorPage({ username: 'juanacervio', linkId: LINK_ID })
+            expect(selection!.variant).toBe(variant)
+            // A title only: no description, so the link preview keeps the generic Peanut card.
+            expect(selection!.metadata).toEqual({ title: 'Invitación de Nita' })
+            titles.add(selection!.metadata?.title)
+        }
+        expect(titles.size).toBe(1)
+        // generateMetadata spreads `selection.metadata` under its own `robots`: a page cannot make itself indexable.
         const selection = await selectCreatorPage({ username: 'juanacervio', linkId: LINK_ID })
-        // generateMetadata spreads `selection.metadata` under `robots`. When a page gets its own link
-        // preview, this expectation changes to the fields it sets (mono engineering/ui/creator-pages.md).
-        expect(selection!.metadata).toBeUndefined()
         expect({ ...selection!.metadata, robots: { index: false, follow: false } }).toEqual({
+            title: 'Invitación de Nita',
             robots: { index: false, follow: false },
         })
     })
