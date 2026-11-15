@@ -1395,6 +1395,77 @@ describe('tracked-link handoff', () => {
             expect(encodeURIComponent(encoded).length).toBeLessThanOrEqual(MAX_PLAY_REFERRER_LENGTH)
             expect(parseDeferredPayload(encoded)).toMatchObject({ acquisitionInvite: username, trackedLink: username })
         })
+
+        const playPayload = (touches: { firstTouch: object; lastTouch?: object }, username = 'juanacervio') => {
+            saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, { ...journey, ...touches })
+            saveToCookie('campaignTagsV2', ['nita'])
+            stashAcquisitionInvite(username)
+            const encoded = buildDeferredPayload('/home', undefined, 'android', { trackedLink: username })
+            expect(encodeURIComponent(encoded).length).toBeLessThanOrEqual(MAX_PLAY_REFERRER_LENGTH)
+            const parsed = parseDeferredPayload(encoded)!
+            expect(parsed).toMatchObject({ acquisitionInvite: username, badgeCampaigns: ['nita'] })
+            expect(parsed.attribution?.journeyId).toBe(journey.journeyId)
+            return parsed.attribution!
+        }
+        const adTouch = {
+            occurredAt: new Date().toISOString(),
+            utmSource: 'google',
+            utmMedium: 'cpc',
+            utmCampaign: 'ar-search-brand-2026',
+            referrerHost: 'www.google.com',
+        }
+
+        it('keeps the tags of a tagged boost after an earlier ad touch', () => {
+            const attribution = playPayload({
+                firstTouch: adTouch,
+                lastTouch: {
+                    occurredAt: new Date().toISOString(),
+                    utmSource: 'instagram',
+                    utmMedium: 'cpc',
+                    utmCampaign: 'nita-boost-2026-11-ar',
+                    utmContent: 'reel-a-es',
+                    referrerHost: 'l.instagram.com',
+                },
+            })
+            expect(attribution.firstTouch).toMatchObject({ utmSource: 'google', utmCampaign: 'ar-search-brand-2026' })
+            expect(attribution.lastTouch).toMatchObject({
+                utmSource: 'instagram',
+                utmMedium: 'cpc',
+                utmCampaign: 'nita-boost-2026-11-ar',
+            })
+        })
+
+        it('keeps the campaign of a single touch with a 64-character campaign', () => {
+            const attribution = playPayload({
+                firstTouch: {
+                    occurredAt: new Date().toISOString(),
+                    utmSource: 'instagram',
+                    utmMedium: 'cpc',
+                    utmCampaign: 'c'.repeat(64),
+                    utmContent: 'n'.repeat(30),
+                    referrerHost: 'l.instagram.com',
+                },
+            })
+            expect(attribution.firstTouch).toMatchObject({ utmSource: 'instagram', utmCampaign: 'c'.repeat(64) })
+        })
+
+        // The visit event holds every tag under the journey ID, so the bare journey still joins them.
+        it('keeps the journey for an earlier ad touch and four 64-character go tags', () => {
+            playPayload(
+                {
+                    firstTouch: adTouch,
+                    lastTouch: {
+                        occurredAt: new Date().toISOString(),
+                        utmSource: 's'.repeat(64),
+                        utmMedium: 'cpc',
+                        utmCampaign: 'c'.repeat(64),
+                        utmContent: 'n'.repeat(64),
+                        referrerHost: `${'r'.repeat(60)}.com`,
+                    },
+                },
+                'a'.repeat(20)
+            )
+        })
     })
 
     it('trims Android payload bytes without downgrading the passive inviter', () => {
