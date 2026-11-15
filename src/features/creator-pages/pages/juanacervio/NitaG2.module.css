@@ -1,0 +1,172 @@
+/* One screen, no scroll: the Reel frame fills the space above a bottom sheet.
+   Vertical sizes follow the viewport height (svh), so the whole sheet fits a
+   375x667 phone and still breathes on a tall one. */
+
+.page {
+    display: flex;
+    min-height: 100vh;
+    min-height: 100dvh;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-gray-950);
+    font-family: var(--font-roboto), ui-sans-serif, system-ui, sans-serif;
+    color: var(--color-foreground-primary);
+}
+
+.column {
+    position: relative;
+    display: flex;
+    width: 100%;
+    max-width: 480px;
+    height: 100vh;
+    height: 100dvh;
+    /* Below this height the page scrolls (a phone in landscape) instead of crushing the sheet. */
+    min-height: 520px;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--color-gray-950);
+}
+
+/* Desktop: a phone-sized column on the dark ground. */
+@media (min-width: 481px) {
+    .column {
+        max-height: 932px;
+    }
+}
+
+.reel {
+    position: relative;
+    min-height: 0;
+    flex: 1 1 0;
+    /* The frame runs on behind the sheet's rounded corners. */
+    margin-bottom: -28px;
+}
+
+/* Bottom-anchored: the caption of the Reel stays just above the sheet at every size. */
+.reelImage {
+    object-fit: cover;
+    object-position: 50% 100%;
+}
+
+/* Dimmed so the frame reads as a backdrop, not as a paused video to tap. */
+.reel::after {
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(180deg, rgb(0 0 0 / 0.2) 0, rgb(0 0 0 / 0) 25%, rgb(0 0 0 / 0) 65%, rgb(0 0 0 / 0.4) 100%),
+        rgb(0 0 0 / 0.18);
+    content: '';
+}
+
+.sheet {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    align-items: center;
+    border-top: 1px solid var(--color-gray-950);
+    border-radius: 28px 28px 0 0;
+    background: var(--color-background-default);
+    box-shadow: 0 -10px 40px rgb(0 0 0 / 0.35);
+    /* In-app browsers (Instagram, X, TikTok) lay a toolbar of 80 to 100 px over the
+       bottom of the viewport. Nothing the visitor needs sits in that band. */
+    padding: 0 20px max(92px, calc(env(safe-area-inset-bottom) + 16px));
+    text-align: center;
+}
+
+.grab {
+    width: 40px;
+    height: 5px;
+    margin-top: 8px;
+    border-radius: 999px;
+    background: var(--color-gray-300);
+}
+
+.eyebrow {
+    margin-top: clamp(10px, 1.9svh, 16px);
+    color: var(--color-foreground-secondary);
+    font-size: var(--text-label-m);
+    font-weight: var(--text-label-m--font-weight);
+    line-height: var(--text-label-m--line-height);
+    text-transform: uppercase;
+}
+
+/* Fluid between heading.m (30) and headingSmall (42): "Nita usa Peanut." must stay on one line from 320 px up. */
+.headline {
+    margin-top: clamp(4px, 0.95svh, 8px);
+    font-size: clamp(var(--text-heading-m), 10.5vw, var(--text-headingSmall));
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+    white-space: nowrap;
+}
+
+.accent {
+    display: inline-block;
+    padding: 0 8px;
+    transform: rotate(-1.5deg);
+    border: 1px solid var(--color-gray-950);
+    border-radius: 8px;
+    background: var(--color-background-accent-yellow);
+    font-style: normal;
+}
+
+.benefit {
+    margin-top: clamp(8px, 1.4svh, 12px);
+    font-size: var(--text-heading-card);
+    font-weight: 700;
+    line-height: 1.5rem;
+}
+
+/* On top of the DS .btn .btn-primary: full width and taller, because this page has one job. */
+.cta {
+    width: 100%;
+    height: clamp(56px, 8svh, 68px);
+    margin-top: clamp(14px, 2.6svh, 22px);
+    gap: 10px;
+    font-size: var(--text-heading-xs);
+    font-weight: var(--text-heading-xs--font-weight);
+    line-height: var(--text-heading-xs--line-height);
+    text-decoration: none;
+}
+
+/* DS press law: the button drops into its own shadow. */
+.cta:active {
+    transform: translate(4px, 4px);
+    box-shadow: none;
+}
+
+.cta svg {
+    width: 24px;
+    height: 24px;
+    flex: none;
+}
+
+.invite {
+    display: inline-flex;
+    align-items: center;
+    margin-top: clamp(14px, 2.4svh, 20px);
+    gap: 7px;
+    font-size: var(--text-body-s-semibold);
+    font-weight: var(--text-body-s-semibold--font-weight);
+    line-height: var(--text-body-s-semibold--line-height);
+}
+
+.check {
+    display: grid;
+    width: 18px;
+    height: 18px;
+    flex: none;
+    place-items: center;
+    border: 1px solid var(--color-gray-950);
+    border-radius: 999px;
+    background: var(--color-green-500);
+}
+
+.legal {
+    margin-top: clamp(4px, 1.2svh, 12px);
+    color: var(--color-foreground-secondary);
+    font-size: var(--text-body-xs);
+    line-height: var(--text-body-xs--line-height);
+}
