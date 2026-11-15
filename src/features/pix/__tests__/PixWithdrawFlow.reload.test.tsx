@@ -26,8 +26,9 @@ jest.mock('@/services/manteca', () => ({
     mantecaApi: { savePixKey: (...args: unknown[]) => mockSavePixKey(...args) },
 }))
 const mockOpenSupport = jest.fn()
+const mockOpenScanner = jest.fn()
 jest.mock('@/context/ModalsContext', () => ({
-    useModalsContext: () => ({ setIsSupportModalOpen: mockOpenSupport }),
+    useModalsContext: () => ({ setIsSupportModalOpen: mockOpenSupport, setIsQRScannerOpen: mockOpenScanner }),
     useModalsContextOptional: () => null,
 }))
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn(), useReturnTo: () => jest.fn() }))
@@ -813,6 +814,17 @@ describe('PixWithdrawFlow refused preview', () => {
         for (const name of [en.common.retry, en.pix.withdraw.changeKey]) {
             expect(screen.queryByRole('button', { name })).toBeNull()
         }
+    })
+
+    // API review 2 (abeb3b909): a Pix code where a key belongs is refused before any provider is asked
+    it('a Pix code refused as a key: the key step’s own line, and Scan QR opens the scanner', async () => {
+        refuse(400, 'PIX_KEY_IS_QR_CODE')
+        renderAt(REVIEW)
+
+        expect(await screen.findByText(en.pix.withdraw.notACode)).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: en.navigation.scanQr }))
+        expect(mockOpenScanner).toHaveBeenCalledWith(true)
+        expect(screen.queryByRole('button', { name: en.common.retry })).toBeNull()
     })
 
     it('the quote changed: Retry asks for the preview again', async () => {

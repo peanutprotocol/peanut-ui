@@ -14,6 +14,8 @@ export type PixKeyLookup =
     | { key: string; status: 'found'; info: PixKeyInfo }
     | { key: string; status: 'not-found' }
     | { key: string; status: 'failed' }
+    /** The API reads the input as a Pix code, not a key (`PIX_KEY_IS_QR_CODE`): the scanner pays it. */
+    | { key: string; status: 'qr-code' }
 
 export const pixKeyInfoQueryKey = (key: string) => ['pix-key', key] as const
 
@@ -53,7 +55,12 @@ export function usePixKeyLookup() {
                 }
                 outcome = { key, status: 'found', info }
             } catch (error) {
-                outcome = apiErrorStatus(error) === 404 ? { key, status: 'not-found' } : { key, status: 'failed' }
+                outcome =
+                    apiErrorStatus(error) === 404
+                        ? { key, status: 'not-found' }
+                        : wireErrorCode(error) === API_ERROR_CODES.PIX_KEY_IS_QR_CODE
+                          ? { key, status: 'qr-code' }
+                          : { key, status: 'failed' }
             }
             setResult(outcome)
             return outcome

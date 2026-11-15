@@ -53,6 +53,7 @@ export function PixKeyStep({
     function keyError(lookupResult: PixKeyLookup | null): string | undefined {
         if (!lookupResult) return undefined
         if (lookupResult.status === 'not-found') return tWithdraw('pixKey.notFound')
+        if (lookupResult.status === 'qr-code') return t('notACode')
         if (lookupResult.status === 'failed') return t('lookupFailed')
         if (lookupResult.info.blocked) return t('keyBlocked')
         return undefined

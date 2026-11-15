@@ -68,6 +68,16 @@ describe('usePixKeyLookup', () => {
         })
     })
 
+    // API review 2 (abeb3b909): POST /pix/key refuses a Pix code with 400 PIX_KEY_IS_QR_CODE
+    it('reads a code refused as a key as a code, which the key step sends to the scanner', async () => {
+        mockPixKeyInfo.mockRejectedValueOnce(new ApiError('qr', { status: 400, code: 'PIX_KEY_IS_QR_CODE' }))
+        const { result } = renderHook(() => usePixKeyLookup(), { wrapper })
+
+        await act(async () => {
+            expect(await result.current.lookup('br.gov.bcb.pix')).toEqual({ key: 'br.gov.bcb.pix', status: 'qr-code' })
+        })
+    })
+
     it('waits out the one-lookup-per-second limit once, then retries', async () => {
         jest.useFakeTimers()
         mockPixKeyInfo

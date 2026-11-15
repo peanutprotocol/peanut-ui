@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useModalsContext } from '@/context/ModalsContext'
 import { useTranslations } from 'next-intl'
 import { parseAsString, useQueryState } from 'nuqs'
 import { formatUnits } from 'viem'
@@ -57,6 +58,7 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
     const t = useTranslations('pix.withdraw')
     const tShared = useTranslations('pix')
     const tNav = useTranslations('navigation')
+    const { setIsQRScannerOpen } = useModalsContext()
     const tCommon = useTranslations('common')
     const tErrors = useTranslations('errors')
     const router = useRouter()
@@ -311,6 +313,9 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
             case API_ERROR_CODES.PIX_KEY_BLOCKED:
             case API_ERROR_CODES.PIX_KEY_NOT_FOUND:
                 return { label: t('changeKey'), onClick: () => void stepper.goTo('pix-key') }
+            // a Pix code, not a key: the scanner pays it
+            case API_ERROR_CODES.PIX_KEY_IS_QR_CODE:
+                return { label: tNav('scanQr'), onClick: () => setIsQRScannerOpen(true) }
             default:
                 return { label: tCommon('retry'), onClick: () => void preview.refetch() }
         }

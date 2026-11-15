@@ -243,3 +243,10 @@ describe('recipientBankNameOf', () => {
         expect(recipientBankNameOf(lock)).toBeNull()
     })
 })
+
+// API review 2: a hand-made /qr-pay?pixKey=<BR Code> link is a code, never looked up or saved as a key
+test('a pixKey that is itself a Pix code is no key label', () => {
+    const code =
+        '00020101021226680014br.gov.bcb.pix2546pix.example.com/qr/v2/cobv/padaria-pao-dourado520400005303986540542.505802BR5924PADARIA PAO DOURADO LTDA6009SAO PAULO62070503***63043A47'
+    expect(verifiedPixKeyLabel(code, code)).toBeNull()
+})

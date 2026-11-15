@@ -103,6 +103,8 @@ export const API_ERROR_CODES = {
     PIX_KEY_LOOKUP_THROTTLED: 'PIX_KEY_LOOKUP_THROTTLED',
     /** The Pix directory has no such key. Sent with 422 by the withdraw routes, 404 by the key lookup. */
     PIX_KEY_NOT_FOUND: 'PIX_KEY_NOT_FOUND',
+    /** A Pix BR Code sent where a key belongs (400): a code is paid from the scanner (`/pix/pay`). */
+    PIX_KEY_IS_QR_CODE: 'PIX_KEY_IS_QR_CODE',
     /** A withdrawal sized by the balance would now take more than that balance. Sent with 409; quote again. */
     PIX_QUOTE_CHANGED: 'PIX_QUOTE_CHANGED',
     /** Another Pix withdrawal is still waiting for its signature. */

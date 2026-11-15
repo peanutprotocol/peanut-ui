@@ -90,6 +90,7 @@ export type PixWithdrawRefusal =
     | 'withdraw.errors.quoteExpired'
     | 'withdraw.errors.quoteChanged'
     | 'withdraw.keyBlocked'
+    | 'withdraw.notACode'
     | 'pixKeyNotFound'
     | 'minimum'
     | 'providerRejected'
@@ -112,6 +113,9 @@ export function pixWithdrawRefusalKey(code: string | undefined): PixWithdrawRefu
             return 'withdraw.keyBlocked'
         case API_ERROR_CODES.PIX_KEY_NOT_FOUND:
             return 'pixKeyNotFound'
+        // a Pix code where a key belongs: the key step's own line; the scanner pays a code
+        case API_ERROR_CODES.PIX_KEY_IS_QR_CODE:
+            return 'withdraw.notACode'
         case API_ERROR_CODES.PIX_MIN_AMOUNT:
             return 'minimum'
         case API_ERROR_CODES.PROVIDER_REJECTED:
