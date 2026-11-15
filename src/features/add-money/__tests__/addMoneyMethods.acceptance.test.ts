@@ -26,7 +26,7 @@ describe('resolveAddMoneyMethods', () => {
             entry: 'drawer',
             ready: { account: [], transfer: [], pix: [] },
             drawerMethods: ['crypto', 'more'],
-            pickerMethods: ['account', 'transfer', 'pix', 'crypto'],
+            pickerMethods: ['account', 'transfer', 'crypto'],
         })
     })
 
@@ -51,7 +51,7 @@ describe('resolveAddMoneyMethods', () => {
         expect(result).toMatchObject({
             entry: 'drawer',
             ready: { account: ['USD', 'COP'], transfer: [], pix: [] },
-            pickerMethods: ['account', 'transfer', 'pix', 'crypto'],
+            pickerMethods: ['account', 'transfer', 'crypto'],
         })
         expect(new Set(result.drawerMethods)).toEqual(new Set(['account', 'more']))
         expect(result.drawerMethods).toHaveLength(2)
@@ -60,13 +60,68 @@ describe('resolveAddMoneyMethods', () => {
     it('omits Account from the picker when opening is disabled and no usable account exists', () => {
         expect(resolve({ standingEnabled: false, activeAccounts: ['ARS', 'unknown'] })).toMatchObject({
             entry: 'picker',
-            pickerMethods: ['transfer', 'pix', 'crypto'],
+            pickerMethods: ['transfer', 'crypto'],
         })
     })
 
-    // TASK-24947: a resident of another country on Avenia gets no BRL deposit (ruled 2026-11-14)
-    it('offers no Pix in the picker where the Pix deposit route refuses the residence', () => {
-        expect(resolve({ pixDepositNotServed: true }).pickerMethods).toEqual(['account', 'transfer', 'crypto'])
+    // The owner, 15 Nov: one rule for the Pix row on both lists, read from the Pix deposit route
+    describe('the Pix row, on the picker and the drawer alike', () => {
+        const returning = { firstPaymentAt: '2026-01-01T00:00:00Z' }
+
+        it('a verified user outside Brazil, whose Manteca route waits for its first use, gets no Pix row', () => {
+            const result = resolve({ ...returning, residenceIso2s: ['DE'], pixDepositRouteOpen: true })
+            expect(result.pickerMethods).toEqual(['account', 'transfer', 'crypto'])
+            expect(result.drawerMethods).not.toContain('pix')
+        })
+
+        it('a resident on Avenia’s route gets Pix first on both lists', () => {
+            const result = resolve({
+                ...returning,
+                residenceIso2s: ['BR'],
+                readyTopUps: ['USD'],
+                pixDepositOffered: true,
+                pixDepositRouteOpen: true,
+            })
+            expect(result.pickerMethods).toEqual(['pix', 'account', 'transfer', 'crypto'])
+            expect(result.drawerMethods).toEqual(['pix', 'transfer', 'crypto', 'more'])
+        })
+
+        it('a ready Manteca Pix top-up shows after the bank methods on both lists', () => {
+            const result = resolve({ ...returning, residenceIso2s: ['BR', 'US'], readyTopUps: ['BRL', 'USD'] })
+            expect(result.pickerMethods).toEqual(['account', 'transfer', 'pix', 'crypto'])
+            expect(result.drawerMethods).toEqual(['transfer', 'pix', 'crypto', 'more'])
+        })
+
+        it('a declared resident of Brazil with an open route gets the row, after the bank methods', () => {
+            const result = resolve({ ...returning, residenceIso2s: ['BR'], pixDepositRouteOpen: true })
+            expect(result.pickerMethods).toEqual(['account', 'transfer', 'pix', 'crypto'])
+            expect(result.drawerMethods).toEqual(['pix', 'crypto', 'more'])
+            // the row starts Pix; it does not make Pix ready
+            expect(result.ready.pix).toEqual([])
+        })
+
+        it('a user with no residence on file gets no Pix row', () => {
+            const result = resolve({ ...returning, residenceIso2s: [], pixDepositRouteOpen: true })
+            expect(result.pickerMethods).not.toContain('pix')
+            expect(result.drawerMethods).not.toContain('pix')
+        })
+
+        it('the Brazil pause gets no Pix row, even for a resident with a ready top-up', () => {
+            const result = resolve({
+                ...returning,
+                residenceIso2s: ['BR'],
+                readyTopUps: ['BRL'],
+                brazilPaused: true,
+                pixDepositRouteOpen: false,
+            })
+            expect(result.pickerMethods).not.toContain('pix')
+            expect(result.drawerMethods).not.toContain('pix')
+        })
+
+        it('a refused route gets no Pix row for a resident of Brazil', () => {
+            const result = resolve({ ...returning, residenceIso2s: ['BR'], pixDepositRouteOpen: false })
+            expect(result.pickerMethods).not.toContain('pix')
+        })
     })
 
     it('deduplicates ready bank transfers and drops unsupported and malformed corridors', () => {

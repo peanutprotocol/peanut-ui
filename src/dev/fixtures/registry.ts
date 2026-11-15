@@ -4842,7 +4842,7 @@ export const FIXTURES: Record<string, Fixture> = {
     'add-money-picker-first-time': {
         route: '/add-money',
         balance: '0',
-        about: 'First-time Add money picker, with Crypto available before identity verification.',
+        about: 'First-time Add money picker for a resident of Portugal, with Crypto available before identity verification, and no Pix row (the owner, 15 Nov).',
         responses: {
             'GET /users/me': {
                 user: { activationMilestone: 'registered', isActivated: false, firstPaymentAt: null },
@@ -4853,6 +4853,11 @@ export const FIXTURES: Record<string, Fixture> = {
             },
             'GET /users/deposit-accounts': { depositAccounts: [], claimable: [] },
         },
+    },
+    'add-money-picker-pix': {
+        route: '/add-money',
+        about: 'The Add picker for a resident of Brazil on Avenia: Pix leads, as on the Home drawer (the owner, 15 Nov).',
+        responses: aveniaResponses('enabled'),
     },
     'home-add-drawer-pix': {
         route: '/home?drawer=add',

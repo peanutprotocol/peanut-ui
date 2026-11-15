@@ -1372,6 +1372,11 @@
         "route": "/add-money"
     },
     {
+        "id": "fixture-add-money-picker-pix",
+        "flow": "Add money",
+        "route": "/add-money"
+    },
+    {
         "id": "fixture-paperwork-verification-ars-setting-up",
         "flow": "Add money",
         "route": "/add-money/argentina/manteca"

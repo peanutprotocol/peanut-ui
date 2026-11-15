@@ -23,13 +23,15 @@ jest.mock('@/hooks/useCapabilities', () => ({
         isLoading: false,
     }),
 }))
-jest.mock('@/features/deposit-accounts/useResidenceIso2s', () => ({ useResidenceIso2s: () => ['PT'] }))
+let mockResidence: string[] = ['PT']
+jest.mock('@/features/deposit-accounts/useResidenceIso2s', () => ({ useResidenceIso2s: () => mockResidence }))
 jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({
     useDepositAccountsEnabled: () => mockStandingEnabled,
 }))
 jest.mock('@tanstack/react-query', () => ({ useQuery: (...args: unknown[]) => mockQuery(...args) }))
 
 beforeEach(() => {
+    mockResidence = ['PT']
     mockStandingEnabled = true
     mockUserId = 'current-owner'
     mockOneShot = false
@@ -217,4 +219,27 @@ it.each<[string, Partial<CapabilityRoute>]>([
     const { result } = renderHook(() => useAddMoneyReadiness(true))
     expect(result.current.ready.pix).toEqual([])
     expect(result.current.drawerMethods).not.toContain('pix')
+})
+
+// The owner, 15 Nov: the picker offers Pix by the same rule as the drawer, from the route and the residence
+it.each<[string, string[], Partial<CapabilityRoute>, boolean]>([
+    [
+        'a resident of Brazil whose Manteca route waits for its first use',
+        ['BR'],
+        { provider: 'manteca', state: 'action_required' },
+        true,
+    ],
+    ['a user outside Brazil on the same route', ['PT'], { provider: 'manteca', state: 'action_required' }, false],
+    ['a resident of Brazil whose route is refused', ['BR'], { provider: null, state: 'refused' }, false],
+    [
+        'a resident of Brazil under the Brazil pause',
+        ['BR'],
+        { provider: null, state: 'paused', reason: residencePaused },
+        false,
+    ],
+])('the picker offers Pix to %s: %s', (_name, residence, route, offered) => {
+    mockResidence = residence
+    mockRoutes = pixDeposit(route)
+    const { result } = renderHook(() => useAddMoneyReadiness(false))
+    expect(result.current.pickerMethods.includes('pix')).toBe(offered)
 })

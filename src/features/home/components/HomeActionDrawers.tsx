@@ -25,7 +25,7 @@ import Image from 'next/image'
 export function HomeActionDrawers({
     addMoney,
 }: {
-    addMoney: Pick<ReturnType<typeof useAddMoneyReadiness>, 'entry' | 'drawerMethods' | 'isLoading'>
+    addMoney: Pick<ReturnType<typeof useAddMoneyReadiness>, 'entry' | 'drawerMethods' | 'ready' | 'isLoading'>
 }) {
     const [drawer, setDrawer] = useHomeDrawer()
     const t = useTranslations('home.drawers')
@@ -65,7 +65,7 @@ export function HomeActionDrawers({
                           : method === 'transfer'
                             ? tMethods('oneTimeTransfer')
                             : method === 'pix'
-                              ? tMethods('payPix')
+                              ? tMethods('pix')
                               : method === 'crypto'
                                 ? tMethods('crypto')
                                 : tMethods('moreWays'),
@@ -82,7 +82,8 @@ export function HomeActionDrawers({
                           ? '/add-money'
                           : method === 'crypto'
                             ? '/add-money/crypto'
-                            : `/add-money/options?method=${method}&ready=1`,
+                            : // only the ready ones where some are; a Pix row a resident can still start opens the chooser
+                              `/add-money/options?method=${method}${addMoney.ready[method as keyof typeof addMoney.ready].length ? '&ready=1' : ''}`,
               }))
             : (content ? homeDrawerOptions(content, depositAccounts) : []).map((option) => ({
                   key: option.key,

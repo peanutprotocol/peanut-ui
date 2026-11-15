@@ -2253,7 +2253,6 @@
             "cryptoDetails": "From wallets or exchanges",
             "openAccount": "Open a bank account",
             "oneTimeTransfer": "One-time bank transfer",
-            "payPix": "Pay with Pix",
             "crypto": "Crypto",
             "cryptoDescription": "Deposit from a wallet or exchange",
             "bankTransfer": "Bank transfer",

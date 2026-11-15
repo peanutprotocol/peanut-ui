@@ -12,7 +12,7 @@ import {
 } from '@/features/deposit-accounts/rails'
 import { DEPOSIT_ACCOUNTS_QUERY_KEY } from '@/features/deposit-accounts/useDepositAccounts'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
-import { findPixRoute, pixDepositOffered, pixResidencePaused } from '@/features/pix/pixRoute.utils'
+import { findPixRoute, pixDepositOffered, pixResidencePaused, pixRouteOpen } from '@/features/pix/pixRoute.utils'
 import { useResidenceIso2s } from '@/features/deposit-accounts/useResidenceIso2s'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { fetchDepositAccounts } from '@/services/deposit-accounts'
@@ -78,8 +78,7 @@ export function useAddMoneyReadiness(cryptoReady: boolean, readAccounts = true) 
         readyTopUps,
         firstPaymentAt: user?.user?.firstPaymentAt,
         pixDepositOffered: pixDepositOffered(pixDepositRoute),
-        pixDepositNotServed:
-            pixDepositRoute?.state === 'refused' && pixDepositRoute.reason?.code === 'residence_not_served',
+        pixDepositRouteOpen: pixRouteOpen(pixDepositRoute) && pixDepositRoute?.state !== 'paused',
     })
     const isLoading = !userId || capabilitiesLoading || (readAccounts && standingEnabled && query.isLoading)
     return {

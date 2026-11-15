@@ -14,7 +14,7 @@ import { useRouter } from 'next/navigation'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { trackAddMoney } from './analytics'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 
 export function AddMoneyPicker({ onBack, origin }: { onBack: () => void; origin: string | null }) {
     const t = useTranslations('addMoney.methods')
@@ -28,40 +28,30 @@ export function AddMoneyPicker({ onBack, origin }: { onBack: () => void; origin:
         viewed.current = true
         trackAddMoney(ANALYTICS_EVENTS.ADD_MONEY_VIEWED)
     }, [])
-    const rows = [
-        ...(readiness.pickerMethods.includes('account')
-            ? [
-                  {
-                      key: 'account',
-                      title: t('openAccount'),
-                      description: t('accountDetails'),
-                      icon: <IconBubble {...CONCEPT_ICONS.bankAccount} size="s" />,
-                  },
-              ]
-            : []),
-        {
-            key: 'transfer',
+    // the rows in the order the methods resolve: Pix leads where the route offers it on Avenia
+    const rowFor: Record<string, { title: string; description: string; icon: ReactNode }> = {
+        account: {
+            title: t('openAccount'),
+            description: t('accountDetails'),
+            icon: <IconBubble {...CONCEPT_ICONS.bankAccount} size="s" />,
+        },
+        transfer: {
             title: t('oneTimeTransfer'),
             description: t('oneTimeDetails'),
             icon: <IconBubble {...CONCEPT_ICONS.bank} size="s" />,
         },
-        ...(readiness.pickerMethods.includes('pix')
-            ? [
-                  {
-                      key: 'pix',
-                      title: t('payPix'),
-                      description: t('pixDetails'),
-                      icon: <Image src={PIX} alt="" width={32} height={32} />,
-                  },
-              ]
-            : []),
-        {
-            key: 'crypto',
+        pix: {
+            title: t('pix'),
+            description: t('pixDetails'),
+            icon: <Image src={PIX} alt="" width={32} height={32} />,
+        },
+        crypto: {
             title: t('crypto'),
             description: t('cryptoDetails'),
             icon: <IconBubble {...CONCEPT_ICONS.crypto} size="s" />,
         },
-    ]
+    }
+    const rows = readiness.pickerMethods.flatMap((key) => (rowFor[key] ? [{ key, ...rowFor[key] }] : []))
     return (
         <PageStack>
             <NavHeader

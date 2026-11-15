@@ -4,6 +4,27 @@ import { residenceAllows } from '@/features/deposit-accounts/residenceGate'
 
 export type AddMoneyMethod = 'account' | 'transfer' | 'pix' | 'crypto' | 'more'
 
+/**
+ * Where the Pix row stands on both Add lists, Home's drawer and the Add picker, read from the API's Pix
+ * deposit route, never from a list of countries (the owner, 15 Nov):
+ * - `first`: the route offers Pix on Avenia (`pixDepositOffered`): Pix leads (ruling of 12 Nov).
+ * - `after-bank`: a Pix top-up already ready (a Manteca account set up before), or a resident of Brazil
+ *   whose route is open and not paused, who can start Pix from the row.
+ * - null: everyone else, among them a user who lives outside Brazil, a refused route, the Brazil pause
+ *   and a user with no residence on file.
+ */
+function pixRowPlace(input: {
+    pixDepositOffered?: boolean
+    pixDepositRouteOpen?: boolean
+    residenceIso2s: readonly string[]
+    pixReady: boolean
+}): 'first' | 'after-bank' | null {
+    if (input.pixDepositOffered) return 'first'
+    if (input.pixReady) return 'after-bank'
+    if (input.residenceIso2s.includes('BR') && input.pixDepositRouteOpen) return 'after-bank'
+    return null
+}
+
 export function resolveAddMoneyMethods(input: {
     cryptoReady: boolean
     standingEnabled: boolean
@@ -14,8 +35,8 @@ export function resolveAddMoneyMethods(input: {
     firstPaymentAt?: string | null
     /** The Pix deposit route is Avenia's, not refused and not under the Brazil pause (`pixDepositOffered`). */
     pixDepositOffered?: boolean
-    /** The Pix deposit route refuses the residence: a resident of another country on Avenia gets no BRL deposit (ruled 2026-11-14). */
-    pixDepositNotServed?: boolean
+    /** The Pix deposit route is sent, and neither refused nor paused. */
+    pixDepositRouteOpen?: boolean
 }) {
     const ready = { account: [] as string[], transfer: [] as string[], pix: [] as string[] }
     for (const corridor of DEPOSIT_RAIL_ORDER) {
@@ -28,22 +49,21 @@ export function resolveAddMoneyMethods(input: {
         } else ready.transfer.push(rail.currency)
     }
     if (input.pixDepositOffered && !input.brazilPaused && !ready.pix.includes('BRL')) ready.pix.push('BRL')
+    const pixRow = pixRowPlace({ ...input, pixReady: ready.pix.length > 0 })
     const drawerMethods: AddMoneyMethod[] = []
-    // Pix leads for a user on a route on Avenia (Aleks, 2026-11-12 and 2026-11-14). On any other route
-    // a Pix top-up that is already ready stays on the drawer, as before Avenia, after the bank methods:
-    // it can be the user's only ready fiat method.
-    if (input.pixDepositOffered && ready.pix.length) drawerMethods.push('pix')
+    if (pixRow === 'first') drawerMethods.push('pix')
     if (ready.account.length) drawerMethods.push('account')
     if (ready.transfer.length) drawerMethods.push('transfer')
-    if (!input.pixDepositOffered && ready.pix.length) drawerMethods.push('pix')
+    if (pixRow === 'after-bank') drawerMethods.push('pix')
     if (input.cryptoReady) drawerMethods.push('crypto')
     const usable = drawerMethods.length > 0
     const returning = !!input.firstPaymentAt || !!(ready.account.length || ready.transfer.length || ready.pix.length)
     if (usable && returning) drawerMethods.push('more')
     const pickerMethods: AddMoneyMethod[] = []
+    if (pixRow === 'first') pickerMethods.push('pix')
     if (input.standingEnabled || ready.account.length) pickerMethods.push('account')
     pickerMethods.push('transfer')
-    if (!input.pixDepositNotServed) pickerMethods.push('pix')
+    if (pixRow === 'after-bank') pickerMethods.push('pix')
     pickerMethods.push('crypto')
     return {
         entry: usable && returning ? ('drawer' as const) : ('picker' as const),
