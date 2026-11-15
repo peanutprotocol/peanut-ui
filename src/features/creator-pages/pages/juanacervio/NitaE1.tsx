@@ -1,0 +1,161 @@
+import Image from 'next/image'
+import logoLockup from '@/assets/brand/logo-lockup.svg'
+import { CreatorPageCta } from '../../CreatorPageCta'
+import { CreatorPageShell } from '../../CreatorPageShell'
+import type { CreatorPageProps } from '../../types'
+import { NITA_E1_COPY as copy } from './nita-e1.copy'
+import styles from './NitaE1.module.css'
+
+const ASSETS = '/creator-pages/juanacervio'
+const CHECK = '✓'
+const STEP_TEARS = [styles.tornStep, styles.tornStep2, styles.tornStep3]
+
+/** Nita's page, variant E1: a poster in her own collage style, with her real post taped on it. */
+export function NitaE1(props: CreatorPageProps) {
+    return (
+        <CreatorPageShell page={props} lang="es-AR" className={styles.page}>
+            <div className={styles.column}>
+                <section className={styles.poster}>
+                    <p className={`${styles.mono} ${styles.chip}`}>{copy.chip}</p>
+                    <h1 className={`${styles.cond} ${styles.h1}`}>
+                        {copy.headline.map((line, index) => (
+                            <span key={line} className={`${styles.outlined} ${index === 1 ? styles.purple : ''}`}>
+                                {/* The black outline is a copy behind the fill: paint-order on HTML text is missing in older webviews. */}
+                                <span className={styles.stroke} aria-hidden>
+                                    {line}
+                                </span>
+                                <span className={styles.fill}>{line}</span>
+                            </span>
+                        ))}
+                    </h1>
+
+                    <Image
+                        src={`${ASSETS}/e1-nita-cutout.webp`}
+                        alt={copy.portraitAlt}
+                        width={515}
+                        height={1010}
+                        priority
+                        fetchPriority="high"
+                        sizes="(min-width: 480px) 330px, 69vw"
+                        className={styles.cut}
+                    />
+
+                    <figure className={styles.tweet}>
+                        <span className={`${styles.tapeShape} ${styles.tape} ${styles.tapeTweet}`} aria-hidden />
+                        <figcaption className={styles.who}>
+                            <Image src={`${ASSETS}/e1-nita-avatar.webp`} alt="" width={96} height={96} />
+                            <span>
+                                <b>
+                                    {copy.post.name}
+                                    <span className={styles.ok} role="img" aria-label={copy.post.verified}>
+                                        {CHECK}
+                                    </span>
+                                </b>
+                                <i>{copy.post.meta}</i>
+                            </span>
+                        </figcaption>
+                        <blockquote>
+                            {copy.post.runs.map(({ text, style }) =>
+                                style === 'mark' ? (
+                                    <mark key={text}>{text}</mark>
+                                ) : style === 'link' ? (
+                                    <span key={text} className={styles.link}>
+                                        {text}
+                                    </span>
+                                ) : (
+                                    text
+                                )
+                            )}
+                        </blockquote>
+                    </figure>
+
+                    <Image
+                        src={`${ASSETS}/e1-mascot-sticker.webp`}
+                        alt={copy.peanutAlt}
+                        width={240}
+                        height={343}
+                        sizes="113px"
+                        className={styles.sticker}
+                    />
+                    <span className={`${styles.tapeShape} ${styles.tape} ${styles.tapeSticker}`} aria-hidden />
+                    <div className={styles.guest}>
+                        <Image src={logoLockup} alt={copy.peanutAlt} />
+                    </div>
+                </section>
+
+                <section className={styles.how}>
+                    <p className={`${styles.mono} ${styles.label}`}>{copy.how.label}</p>
+                    <h2 className={`${styles.cond} ${styles.h2}`}>
+                        {copy.how.headline.map((line, index) => (
+                            <span key={line} className={`${styles.outlined} ${index === 1 ? styles.purple : ''}`}>
+                                <span className={styles.stroke} aria-hidden>
+                                    {line}
+                                </span>
+                                <span className={styles.fill}>{line}</span>
+                            </span>
+                        ))}
+                    </h2>
+                    <ol className={styles.steps}>
+                        {copy.how.steps.map(({ title, body }, index) => (
+                            <li key={title} className={`${styles.step} ${STEP_TEARS[index % STEP_TEARS.length]}`}>
+                                <span className={`${styles.cond} ${styles.stepNumber}`} aria-hidden>
+                                    {String(index + 1).padStart(2, '0')}
+                                </span>
+                                <b className={styles.cond}>{title}</b>
+                                <p>{body}</p>
+                            </li>
+                        ))}
+                    </ol>
+
+                    <div className={styles.ticket}>
+                        <Image
+                            src={`${ASSETS}/e1-nita-avatar.webp`}
+                            alt=""
+                            width={192}
+                            height={192}
+                            sizes="80px"
+                            className={styles.ticketPhoto}
+                        />
+                        <p className={`${styles.mono} ${styles.ticketLabel}`}>{copy.ticket.label}</p>
+                        <p className={`${styles.cond} ${styles.ticketTitle}`}>{copy.ticket.title}</p>
+                        <p className={styles.ticketBody}>{copy.ticket.body}</p>
+                    </div>
+                </section>
+
+                <footer className={styles.end}>
+                    <Image
+                        src={`${ASSETS}/e1-nita-wordmark.webp`}
+                        alt={copy.wordmarkAlt}
+                        width={450}
+                        height={189}
+                        sizes="185px"
+                        className={styles.wordmark}
+                    />
+                    <p className={styles.fine}>{copy.fine}</p>
+                </footer>
+
+                {/* Last in the column and sticky: pinned to the bottom of the visible viewport on every
+                    screen of the scroll, and at rest it is the page's closing button. */}
+                <div className={styles.dock}>
+                    <div className={styles.dockPaper} aria-hidden>
+                        <div className={styles.tornStrip} />
+                    </div>
+                    <div className={styles.dockIn}>
+                        <CreatorPageCta
+                            className={`btn btn-primary ${styles.cta}`}
+                            labels={copy.cta}
+                            showStoreIcon
+                            position="sticky"
+                        />
+                        <p className={`${styles.mono} ${styles.invite}`}>
+                            {copy.invite} {CHECK}
+                        </p>
+                        <p className={styles.disclosure}>
+                            {copy.disclosure} <b>{copy.notABank}</b>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </CreatorPageShell>
+    )
+}
