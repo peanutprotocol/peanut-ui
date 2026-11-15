@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import { useLimits } from '@/hooks/useLimits'
+import { useCapabilities } from '@/hooks/useCapabilities'
 import type { MantecaLimit } from '@/interfaces/interfaces'
 import {
     MAX_QR_PAYMENT_AMOUNT_FOREIGN,
@@ -9,7 +10,14 @@ import {
     MAX_MANTECA_WITHDRAW_AMOUNT,
 } from '@/constants/payment.consts'
 import { formatExtendedNumber } from '@/utils/general.utils'
-import { mapToLimitCurrency, type LimitCurrency, type LimitFlowType, type LimitValidationResult } from '../utils'
+import {
+    brlLimitsProvider,
+    mapToLimitCurrency,
+    monthlyRoomValidation,
+    type LimitCurrency,
+    type LimitFlowType,
+    type LimitValidationResult,
+} from '../utils'
 
 // threshold for showing warning (percentage of limit remaining after transaction)
 const WARNING_THRESHOLD_PERCENT = 30
@@ -29,13 +37,17 @@ interface UseLimitsValidationOptions {
 
 /**
  * hook to validate amounts against user's transaction limits.
- * uses the presence of API-returned limits (which are gated behind ENABLED rails on the backend)
+ * uses the presence of API-returned limits (which are gated behind ENABLED rails on the backend).
+ * A BRL operation uses the limits of the provider the API's Pix route for it names: Avenia's monthly
+ * room when the route is Avenia's, whatever Manteca limits the user still holds.
  */
 export function useLimitsValidation({ flowType, amount, currency: currencyInput }: UseLimitsValidationOptions) {
-    const { mantecaLimits, bridgeLimits, isLoading, hasMantecaLimits, hasBridgeLimits } = useLimits()
+    const { mantecaLimits, bridgeLimits, aveniaLimits, isLoading, hasMantecaLimits, hasBridgeLimits } = useLimits()
+    const { capabilities } = useCapabilities()
 
     // normalize currency to valid LimitCurrency type
     const currency = mapToLimitCurrency(currencyInput)
+    const servedByAvenia = brlLimitsProvider(capabilities.routes, flowType, currency) === 'avenia'
 
     // determine if user is "local" (has manteca limits = enabled manteca rails)
     const isLocalUser = hasMantecaLimits
@@ -237,8 +249,30 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
         }
     }, [flowType, isLocalUser, numericAmount])
 
-    // combined result - prioritize manteca for local users, bridge for others
+    // Avenia's room: Pix in for a deposit, Pix out for a withdrawal, a key send or a QR payment
+    const aveniaValidation = useMemo<LimitValidationResult | null>(() => {
+        if (!servedByAvenia || !aveniaLimits) return null
+        const room = flowType === 'onramp' ? aveniaLimits.deposit : aveniaLimits.payout
+        return monthlyRoomValidation(room, numericAmount, daysUntilMonthlyReset)
+    }, [servedByAvenia, aveniaLimits, flowType, numericAmount, daysUntilMonthlyReset])
+
+    // combined result - the provider that serves the operation, else manteca for local users, bridge for others
     const validation = useMemo<LimitValidationResult>(() => {
+        if (servedByAvenia) {
+            // no Avenia room read (yet): nothing to check here; the API's limit refusal still holds
+            return (
+                aveniaValidation ?? {
+                    isBlocking: false,
+                    isWarning: false,
+                    remainingLimit: null,
+                    totalLimit: null,
+                    message: null,
+                    daysUntilReset: null,
+                    limitCurrency: null,
+                }
+            )
+        }
+
         // for qr payments
         if (flowType === 'qr-payment') {
             // local users (manteca limits) use manteca limits
@@ -269,6 +303,8 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
             limitCurrency: null,
         }
     }, [
+        servedByAvenia,
+        aveniaValidation,
         flowType,
         isLocalUser,
         hasMantecaLimits,
@@ -288,5 +324,7 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
         hasLimits: hasMantecaLimits || hasBridgeLimits,
         isMantecaUser: hasMantecaLimits,
         isBridgeUser: hasBridgeLimits,
+        // the operation's limits are Avenia's: Manteca's limit increase does not apply to it
+        servedByAvenia,
     }
 }

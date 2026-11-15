@@ -1,6 +1,8 @@
 'use client'
 
-import type { MantecaLimit } from '@/interfaces/interfaces'
+import type { MantecaLimit, MonthlyRoom } from '@/interfaces/interfaces'
+import type { CapabilityRoute, ProviderCode, RailOperation } from '@/types/capabilities'
+import { findPixRoute, PIX_METHOD } from '@/features/pix/pixRoute.utils'
 import { SYMBOLS_BY_CURRENCY_CODE } from '@/constants/currency-symbols.consts'
 import { getCurrencyFlagUrl } from '@/constants/countryCurrencyMapping'
 import { formatExtendedNumber } from '@/utils/general.utils'
@@ -69,6 +71,70 @@ export function getProviderRoute(regionPath: string, hasMantecaKyc: boolean): st
 
     // default fallback
     return '/limits/bridge?region=us'
+}
+
+/** The Pix operation a limits check stands for. */
+const PIX_OPERATION: Record<LimitFlowType, RailOperation> = {
+    onramp: 'deposit',
+    offramp: 'withdraw',
+    'qr-payment': 'pay',
+}
+
+/**
+ * Whose limits apply to a BRL operation: the provider the API's PIX_BR route for that operation names
+ * (api `routing/route-for.ts`). Null for any other currency, or when the API sent no such route; the
+ * caller then keeps the rules it had.
+ */
+export function brlLimitsProvider(
+    routes: CapabilityRoute[] | undefined,
+    flowType: LimitFlowType,
+    currency: LimitCurrency
+): ProviderCode | null {
+    if (currency !== 'BRL') return null
+    return (findPixRoute(routes, PIX_OPERATION[flowType])?.provider as ProviderCode | undefined) ?? null
+}
+
+/** Whether any of the user's Pix routes names Avenia: Manteca's BRL limits then stand for nothing the user does. */
+export function aveniaServesBrl(routes: CapabilityRoute[] | undefined): boolean {
+    return !!routes?.some((route) => route.method === PIX_METHOD && route.provider === 'avenia')
+}
+
+/**
+ * A USD amount checked against one direction of a provider's monthly room (API-CONTRACT-M5 §5). The
+ * room says only what is left, not the month's total, so the check blocks and never warns. A room
+ * whose USD figure is unknown checks nothing: the API's own limit refusal still holds.
+ */
+export function monthlyRoomValidation(
+    room: MonthlyRoom,
+    amountUsd: number,
+    daysUntilReset: number
+): LimitValidationResult {
+    const usdLeft = room.blocked ? 0 : room.usdLeft === null ? null : parseFloat(room.usdLeft)
+    const base = {
+        isWarning: false,
+        totalLimit: null,
+        daysUntilReset,
+        limitCurrency: 'USD' as const,
+    }
+    if (usdLeft === null || isNaN(usdLeft)) {
+        return {
+            ...base,
+            isBlocking: false,
+            remainingLimit: null,
+            message: null,
+            daysUntilReset: null,
+            limitCurrency: null,
+        }
+    }
+    if (room.blocked || amountUsd > usdLeft) {
+        return {
+            ...base,
+            isBlocking: true,
+            remainingLimit: usdLeft,
+            message: `Amount exceeds your remaining limit of $${formatExtendedNumber(usdLeft)}`,
+        }
+    }
+    return { ...base, isBlocking: false, remainingLimit: usdLeft, message: null }
 }
 
 /**
@@ -205,9 +271,8 @@ export function getLimitsWarningCardProps({
               ? `$${formattedLimit}`
               : `${currencySymbol} ${formattedLimit}`
 
-    // qr payments are always capped per transaction; onramp/offramp only when
-    // there's no period limit to reset
-    const perTransaction = flowType === 'qr-payment' || !validation.daysUntilReset
+    // a limit that resets is a period's room, whatever the flow; any other is a per-transaction cap
+    const perTransaction = !validation.daysUntilReset
     const perTransactionSuffix = perTransaction ? ' per transaction' : ''
     let limitMessage = ''
     if (amountDisplay === null) {

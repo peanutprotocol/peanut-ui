@@ -426,9 +426,29 @@ export interface MantecaLimit {
     availableMonthlyLimit: string
 }
 
+/**
+ * What may still move this calendar month on one direction of a provider's monthly room (API-CONTRACT-M5
+ * §5). Either amount may be null; `blocked` means nothing moves this month.
+ */
+export interface MonthlyRoom {
+    brlLeft: string | null
+    usdLeft: string | null
+    blocked: boolean
+}
+
+/** Avenia's monthly room: `deposit` is Pix in, `payout` is Pix out (withdrawals, key sends and QR payments). */
+export interface AveniaLimits {
+    currency: 'BRL'
+    deposit: MonthlyRoom
+    payout: MonthlyRoom
+}
+
+// GET /users/limits has no response schema in the API snapshot, so this mirrors API-CONTRACT-M5 §5 by hand
 export interface UserLimitsResponse {
     manteca: MantecaLimit[] | null
     bridge: BridgeLimits | null
+    /** Null with no Avenia account, or when its limits could not be read; absent on an API before M5. */
+    avenia?: AveniaLimits | null
 }
 
 /** Flow-level error banner state (`showError` + copy) — the one shared shape

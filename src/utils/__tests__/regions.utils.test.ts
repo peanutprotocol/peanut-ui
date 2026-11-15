@@ -1,5 +1,6 @@
 import { RESIDENCE_RESTRICTION_SETS } from '@/test-utils/residenceRestrictions.fixture'
 import {
+    deriveRegionAccess,
     getBankRegionIntent,
     getRegionIntent,
     isVerifiedForCountry,
@@ -185,5 +186,30 @@ describe('isVerifiedForCountry reads the operation the flow runs', () => {
 
     it("another country's rail never answers for this one", () => {
         expect(isVerifiedForCountry(fullTier, 'AR', 'withdraw')).toBe(false)
+    })
+})
+
+// TASK-24947 M5: the limits page lists LATAM for any provider that serves it, so a user whose BRL
+// account is Avenia's sees its limits there, as a Manteca user does.
+describe('deriveRegionAccess unlocks LATAM for an Avenia account', () => {
+    const aveniaPix: RailCapability = {
+        id: 'avenia.pix_br',
+        provider: 'avenia',
+        method: 'PIX_BR',
+        channel: 'bank',
+        country: 'BR',
+        currency: 'BRL',
+        status: 'enabled',
+    }
+
+    it('lists LATAM as unlocked with only an Avenia rail', () => {
+        const { unlockedRegions, lockedRegions } = deriveRegionAccess([aveniaPix])
+        expect(unlockedRegions.map((region) => region.path)).toContain('latam')
+        expect(lockedRegions.map((region) => region.path)).not.toContain('latam')
+    })
+
+    it('keeps LATAM locked when the Avenia rail is blocked', () => {
+        const { lockedRegions } = deriveRegionAccess([{ ...aveniaPix, status: 'blocked' }])
+        expect(lockedRegions.map((region) => region.path)).toContain('latam')
     })
 })

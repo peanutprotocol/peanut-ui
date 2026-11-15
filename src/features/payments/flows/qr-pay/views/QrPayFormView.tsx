@@ -86,7 +86,8 @@ export function QrPayFormView() {
 
     // BR self-service limit increase flow
     const { mantecaLimits: qrMantecaLimits, refetch: refetchQrLimits } = useLimits()
-    const isBrQrEligible = isBrUserEligibleForLimitIncrease(qrMantecaLimits)
+    // Manteca's limit increase raises Manteca's room only: not for a payment Avenia serves
+    const isBrQrEligible = !limitsValidation.servedByAvenia && isBrUserEligibleForLimitIncrease(qrMantecaLimits)
     const qrLimitIncreaseFlow = useSumsubActionFlow({
         fetchToken: initiateIncreaseLimits,
         onSuccess: refetchQrLimits,

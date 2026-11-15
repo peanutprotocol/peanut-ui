@@ -849,7 +849,10 @@
             "noData": "Datos de límites no disponibles",
             "totalAllowed": "{asset} total permitido",
             "remaining": "{period, select, monthly {Restante este mes} other {Restante este año}}",
-            "appliesTo": "Aplica a agregar dinero, retiros y pagos QR"
+            "appliesTo": "Aplica a agregar dinero, retiros y pagos QR",
+            "leftThisMonth": "{asset} disponible este mes",
+            "roomDeposit": "Agregar dinero",
+            "roomPayout": "Retirar y pagar"
         },
         "period": {
             "monthly": "Mensual",

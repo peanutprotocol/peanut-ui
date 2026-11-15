@@ -6,6 +6,8 @@ import { useLimits } from '@/hooks/useLimits'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
+import { useCapabilities } from '@/hooks/useCapabilities'
+import { findPixRoute } from '@/features/pix/pixRoute.utils'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Tabs } from '@/components/0_Bruddle/Tabs'
 import ProgressBar from '@/components/0_Bruddle/ProgressBar'
@@ -16,8 +18,10 @@ import {
     getLimitColorClass,
     formatAmountWithCurrency,
     getFlagUrlForCurrency,
+    aveniaServesBrl,
     type LimitsPeriod,
 } from '../utils'
+import MonthlyRoomCard from '../components/MonthlyRoomCard'
 import { AttentionSlot } from '@/features/attention/AttentionSlot'
 import IncreaseLimitsButton from '../components/IncreaseLimitsButton'
 import { CapNudgeCtaContext } from '../cap-nudge-cta-context'
@@ -26,14 +30,21 @@ import LimitsDocsLink from '../components/LimitsDocsLink'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 
 /**
- * displays manteca limits for latam users
- * shows monthly/yearly limits per currency with remaining amounts
+ * displays the limits of latam users
+ * shows manteca's monthly/yearly limits per currency with remaining amounts; BRL shows the limits of
+ * the provider the user's Pix routes name, so Avenia's monthly room replaces Manteca's BRL card
  */
 const MantecaLimitsView = () => {
     const t = useTranslations('limits.provider')
     const tPeriod = useTranslations('limits.period')
     const onBack = useSafeBack('/limits')
-    const { mantecaLimits, isLoading, error, refetch, isRefetching } = useLimits()
+    const { mantecaLimits: allMantecaLimits, aveniaLimits, isLoading, error, refetch, isRefetching } = useLimits()
+    const { capabilities } = useCapabilities()
+    const brlOnAvenia = aveniaServesBrl(capabilities.routes)
+    const mantecaLimits = brlOnAvenia ? allMantecaLimits?.filter((limit) => limit.asset !== 'BRL') : allMantecaLimits
+    const aveniaRoom = brlOnAvenia ? aveniaLimits : null
+    const aveniaDeposits = findPixRoute(capabilities.routes, 'deposit')?.provider === 'avenia'
+    const hasLimits = (mantecaLimits?.length ?? 0) > 0 || !!aveniaRoom
     const [period, setPeriod] = useState<LimitsPeriod>('monthly')
     const [capNudgeCtaShown, setCapNudgeCtaShown] = useState(false)
 
@@ -45,11 +56,18 @@ const MantecaLimitsView = () => {
 
             {error && <LimitsError onRetry={() => refetch()} isRetrying={isRefetching} />}
 
-            {!isLoading && !error && mantecaLimits && mantecaLimits.length > 0 && (
+            {!isLoading && !error && hasLimits && (
                 <>
                     {/* limit cards per currency */}
                     <div className="space-y-4">
-                        {mantecaLimits.map((limit) => {
+                        {aveniaRoom && (
+                            <MonthlyRoomCard
+                                currency={aveniaRoom.currency}
+                                deposit={aveniaDeposits ? aveniaRoom.deposit : undefined}
+                                payout={aveniaRoom.payout}
+                            />
+                        )}
+                        {(mantecaLimits ?? []).map((limit) => {
                             const limitData = getLimitData(limit, period)
                             // use centralized flag url utility
                             const flagUrl = getFlagUrlForCurrency(limit.asset)
@@ -121,9 +139,7 @@ const MantecaLimitsView = () => {
                 </>
             )}
 
-            {!isLoading && !error && (!mantecaLimits || mantecaLimits.length === 0) && (
-                <EmptyState title={t('noData')} icon="meter" />
-            )}
+            {!isLoading && !error && !hasLimits && <EmptyState title={t('noData')} icon="meter" />}
         </PageStack>
     )
 }
