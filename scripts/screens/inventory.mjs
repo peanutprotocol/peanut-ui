@@ -30,6 +30,10 @@ const ROUTE_EXCLUSIONS = new Map([
         '/withdraw/new-pix-key',
         'Routing alias for the Pix withdrawal outcome on /withdraw/pix, which is catalogued separately',
     ],
+    [
+        '/go/[slug]/[[...rest]]',
+        'Creator link: a redirect to /app, or a creator-owned marketing page outside app-owned mobile UI',
+    ],
 ])
 
 // The star-feature landing pages (StarLp/starLp.consts.ts STAR_LP_ROUTES): marketing, not app UI.

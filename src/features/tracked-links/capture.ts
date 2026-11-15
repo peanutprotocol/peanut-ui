@@ -2,8 +2,10 @@ import { isAnalyticsCaptureBuild } from '@/utils/posthog-setup'
 import type { SignupAttributionContext } from '@/utils/signup-attribution'
 import { cleanReferrerHost } from '@/utils/attribution-values'
 import {
+    type GoPageVariant,
     type GoVisit,
     isAcquisitionSlug,
+    isGoPageLabel,
     parseGoVisitParams,
     TRACKED_LINK_EVENT,
     TRACKED_LINK_ORIGIN,
@@ -24,7 +26,6 @@ const KEYS = new Set([
     'page_variant',
     'page_experiment',
 ])
-const PAGE_LABEL = /^[a-z0-9][a-z0-9-]{0,31}$/
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -44,7 +45,14 @@ export function captureTrackedLinkVisit(
         seen,
         journey,
         visit,
-    }: { openedIn: 'web' | 'app'; seen: boolean; journey: SignupAttributionContext | null; visit?: GoVisit | null }
+        page,
+    }: {
+        openedIn: 'web' | 'app'
+        seen: boolean
+        journey: SignupAttributionContext | null
+        visit?: GoVisit | null
+        page?: GoPageVariant | null
+    }
 ): void {
     // Journeys fall back when randomUUID is missing (older webviews); a throw here would cost the handoff.
     if (seen || !journey || !isAnalyticsCaptureBuild() || typeof crypto.randomUUID !== 'function') return
@@ -70,6 +78,8 @@ export function captureTrackedLinkVisit(
             utm_campaign: visit?.utm.campaign ?? null,
             utm_content: visit?.utm.content ?? null,
             referrer_host: visit?.referrerHost ?? null,
+            page_variant: page?.variant ?? null,
+            page_experiment: page?.experimentId ?? null,
         }),
     }).catch(() => {})
 }
@@ -115,7 +125,7 @@ function parseLabels(body: Record<string, unknown>) {
     for (const key of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content']) params.set(key, text(key))
     // The contract's rules, so the event and the handoff agree on what a valid label is.
     const visit = parseGoVisitParams(params)!
-    const page = (key: string) => (PAGE_LABEL.test(text(key)) ? text(key) : null)
+    const page = (key: string) => (isGoPageLabel(text(key)) ? text(key) : null)
     return {
         placement: visit.placement,
         code: typeof body.placement === 'string' ? null : visit.code,

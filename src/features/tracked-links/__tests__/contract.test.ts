@@ -5,7 +5,9 @@ import {
     type GoVisit,
     goHandoffPath,
     goTouch,
+    isGoPageLabel,
     parseGoRequest,
+    parseGoPageVariant,
     parseGoSegment,
     parseGoVisitParams,
 } from '../contract'
@@ -217,5 +219,32 @@ describe('parseGoVisitParams', () => {
         expect(parseGoVisitParams(new URLSearchParams('code=alice'))).toBeNull()
         expect(parseGoVisitParams(new URLSearchParams('tl=a.b'))).toBeNull()
         expect(parseGoVisitParams(new URLSearchParams('tl=Alice'))).toBeNull()
+    })
+})
+
+describe('page variant labels', () => {
+    it.each(['a1', 'control', 'nita-2026-11-a', 'e', 'a'.repeat(32)])('accepts %s', (label) => {
+        expect(isGoPageLabel(label)).toBe(true)
+    })
+
+    it.each(['A1', '-a', 'a_1', 'a'.repeat(33), '', null, 7])('rejects %p', (label) => {
+        expect(isGoPageLabel(label)).toBe(false)
+    })
+
+    it('reads a handoff variant only when both the variant and the experiment are labels', () => {
+        expect(parseGoPageVariant(new URLSearchParams('tl_v=a1&tl_e=n1'))).toEqual({
+            variant: 'a1',
+            experimentId: 'n1',
+        })
+        expect(parseGoPageVariant(new URLSearchParams('tl_v=a1'))).toBeNull()
+        expect(parseGoPageVariant(new URLSearchParams('tl_v=A1&tl_e=n1'))).toBeNull()
+    })
+
+    it('round-trips through the handoff', () => {
+        const path = goHandoffPath(bareGoVisit('alice'), { variant: 'control', experimentId: 'n1' })
+        expect(parseGoPageVariant(new URL(path, 'https://peanut.me').searchParams)).toEqual({
+            variant: 'control',
+            experimentId: 'n1',
+        })
     })
 })
