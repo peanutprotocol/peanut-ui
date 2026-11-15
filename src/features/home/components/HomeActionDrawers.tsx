@@ -63,13 +63,11 @@ export function HomeActionDrawers({
                   title:
                       method === 'account'
                           ? tSaved('bankSectionTitle')
-                          : method === 'transfer'
-                            ? tMethods('oneTimeTransfer')
-                            : method === 'pix'
-                              ? tMethods('pix')
-                              : method === 'crypto'
-                                ? tMethods('crypto')
-                                : tMethods('moreWays'),
+                          : method === 'pix'
+                            ? tMethods('pix')
+                            : method === 'crypto'
+                              ? tMethods('crypto')
+                              : tMethods('moreWays'),
                   leading:
                       method === 'pix' ? (
                           <Image src={PIX} alt="" width={32} height={32} />

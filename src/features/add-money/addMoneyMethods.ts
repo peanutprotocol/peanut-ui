@@ -56,7 +56,8 @@ export function resolveAddMoneyMethods(input: {
     const accountsOffered = input.standingEnabled || ready.account.length > 0
     if (pixRow === 'first') drawerMethods.push('pix')
     if (accountsOffered) drawerMethods.push('account')
-    if (ready.transfer.length) drawerMethods.push('transfer')
+    // A one-time bank transfer is never a drawer row (the owner, 15 Nov): it lives on the picker,
+    // behind "More ways to add money". A ready one still makes the user returning.
     if (pixRow === 'after-bank') drawerMethods.push('pix')
     if (input.cryptoReady) drawerMethods.push('crypto')
     const usable = drawerMethods.length > 0

@@ -71,8 +71,9 @@ it('keeps a pending EUR report out of the drawer even if the rail says ready', (
     expect(mockQuery).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['deposit-accounts', 'current-owner'] }))
     expect(result.current.ready.account).toEqual([])
     expect(result.current.ready.transfer).toEqual(['USD'])
-    // bank accounts stay on offer (the owner, 15 Nov); the pending EUR is not a ready account
-    expect(result.current.drawerMethods).toEqual(['account', 'transfer', 'crypto', 'more'])
+    // bank accounts stay on offer (the owner, 15 Nov); the pending EUR is not a ready account; the
+    // ready USD transfer is on the picker only
+    expect(result.current.drawerMethods).toEqual(['account', 'crypto', 'more'])
 })
 
 it('requires transfer coordinates before calling a held COP account usable', () => {
