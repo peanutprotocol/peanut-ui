@@ -1,10 +1,10 @@
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import type { CreatorPageProps } from '@/features/tracked-links/contract'
 import { trackedLinkAnalyticsAllowed } from '@/features/tracked-links/eligibility'
 import { signupAttributionPosthogProperties } from '@/utils/signup-attribution'
 import { deviceOs, inAppBrowser } from './environment'
 import { creatorPageEventProperties, type CtaPosition } from './events'
-import type { CreatorPageProps } from './types'
 
 /** Same consent rule as tracked_link_visit: nothing leaves under DNT, GPC or a PostHog opt-out. */
 export function captureCreatorPageCtaClick(

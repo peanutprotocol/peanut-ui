@@ -1,8 +1,8 @@
 'use client'
 
 import { createContext, useContext } from 'react'
+import type { CreatorPageProps } from '@/features/tracked-links/contract'
 import type { DeviceOs } from './environment'
-import type { CreatorPageProps } from './types'
 
 export type CreatorPageContextValue = {
     page: CreatorPageProps

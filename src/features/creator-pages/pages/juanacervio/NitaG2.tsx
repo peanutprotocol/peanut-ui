@@ -1,7 +1,7 @@
 import Image from 'next/image'
+import type { CreatorPageProps } from '@/features/tracked-links/contract'
 import { CreatorPageCta } from '../../CreatorPageCta'
 import { CreatorPageShell } from '../../CreatorPageShell'
-import type { CreatorPageProps } from '../../types'
 import { NITA_G2_COPY as copy } from './nita-g2.copy'
 import styles from './NitaG2.module.css'
 

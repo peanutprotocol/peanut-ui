@@ -1,8 +1,8 @@
 import type { ComponentType } from 'react'
+import type { CreatorPageProps } from '@/features/tracked-links/contract'
 import { NitaA1 } from './pages/juanacervio/NitaA1'
 import { NitaE1 } from './pages/juanacervio/NitaE1'
 import { NitaG2 } from './pages/juanacervio/NitaG2'
-import type { CreatorPageProps } from './types'
 
 type CreatorPageComponent = ComponentType<CreatorPageProps>
 

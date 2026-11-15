@@ -1,4 +1,4 @@
-import type { CreatorPageProps } from './types'
+import type { CreatorPageProps } from '@/features/tracked-links/contract'
 
 /** Props for the dev preview and the tests: the shape the /go engine passes for an Instagram visit. */
 export function creatorPageFixture(username: string, variant: string): CreatorPageProps {

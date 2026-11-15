@@ -4,10 +4,10 @@
 import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 import type { ComponentType } from 'react'
+import type { CreatorPageProps } from '@/features/tracked-links/contract'
 import { creatorPageExperiment } from './experiments'
 import { creatorPageComponent } from './page-components'
 import { pickVariant } from './pick-variant'
-import type { CreatorPageProps } from './types'
 import { variantCookieName } from './variant-cookie'
 
 /** The seam with the /go engine (go-links contract v1). The engine imports nothing else from this folder. */

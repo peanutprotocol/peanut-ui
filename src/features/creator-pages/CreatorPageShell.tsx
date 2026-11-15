@@ -1,9 +1,9 @@
 import { headers } from 'next/headers'
 import type { ReactNode } from 'react'
+import type { CreatorPageProps } from '@/features/tracked-links/contract'
 import { CreatorPageProvider } from './CreatorPageProvider'
 import { deviceOs } from './environment'
 import { creatorPageExperiment } from './experiments'
-import type { CreatorPageProps } from './types'
 
 /**
  * The root element of every creator page variant, a server component. It sends no view event:

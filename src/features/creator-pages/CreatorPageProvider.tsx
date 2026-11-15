@@ -1,10 +1,10 @@
 'use client'
 
 import { useContext, useEffect, useMemo, type ReactNode } from 'react'
+import type { CreatorPageProps } from '@/features/tracked-links/contract'
 import { trackedLinkAnalyticsAllowed } from '@/features/tracked-links/eligibility'
 import { CreatorPageContext, CreatorPagePreviewContext } from './CreatorPageContext'
 import type { DeviceOs } from './environment'
-import type { CreatorPageProps } from './types'
 import { serializeVariantCookie } from './variant-cookie'
 
 /** The browser half of CreatorPageShell: it gives the button its data and makes the variant sticky. */

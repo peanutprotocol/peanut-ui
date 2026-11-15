@@ -1,5 +1,5 @@
+import type { CreatorPageProps } from '@/features/tracked-links/contract'
 import type { DeviceOs, InAppBrowser } from './environment'
-import type { CreatorPageProps } from './types'
 
 export type CreatorPageEnvironment = { deviceOs: DeviceOs; inAppBrowser: InAppBrowser }
 
