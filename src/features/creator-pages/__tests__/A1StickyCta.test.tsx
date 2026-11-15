@@ -65,6 +65,8 @@ describe('A1StickyCta', () => {
         const { observer } = renderA1()
         // A 48px button at this share shows at least 44px, the height a finger needs.
         expect(Number(observer.options?.threshold) * 48).toBeGreaterThanOrEqual(44)
+        // The exact share is pinned: the hand-over rule waits on an owner ruling, so it must not drift.
+        expect(observer.options?.threshold).toBe(0.95)
     })
 
     it('starts hidden: the first screen holds the button in the post', () => {

@@ -45,7 +45,7 @@ export function A1StickyCta() {
     return (
         <div ref={bar} data-state={shown ? 'shown' : 'hidden'} className={styles.sticky}>
             <A1Cta position="sticky" />
-            <A1InviteLine className="text-foreground-secondary" />
+            <A1InviteLine />
         </div>
     )
 }

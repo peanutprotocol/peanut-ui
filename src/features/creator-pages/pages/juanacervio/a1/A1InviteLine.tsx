@@ -1,11 +1,12 @@
 import { NITA_A1_COPY as copy } from '../nita-a1.copy'
+import styles from '../NitaA1.module.css'
 
 /** "Con la invitación de Nita" under a store button. */
-export function A1InviteLine({ className }: { className: string }) {
+export function A1InviteLine() {
     return (
-        <p className={`mt-2 text-center text-body-s ${className}`}>
+        <p className={styles.inv}>
             {copy.inviteLead}
-            <b className="font-extrabold text-foreground-primary">{copy.inviteName}</b>
+            <b>{copy.inviteName}</b>
         </p>
     )
 }

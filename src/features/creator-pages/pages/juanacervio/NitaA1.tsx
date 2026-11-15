@@ -21,78 +21,66 @@ import styles from './NitaA1.module.css'
 /** A still frame of the approved `pointing-down` mascot pose (mono assets/mascot/lottie), 256px WebP. */
 const POINTING_MASCOT_SRC = '/creator-pages/juanacervio/a1-mascot-pointing-down.webp'
 
-/** Nita's page, variant A1: her X post redrawn large, with the store button inside the post. */
+/**
+ * Nita's page, variant A1: her X post redrawn large, with the store button inside the post.
+ *
+ * The markup is kept small on purpose: its server HTML must stay under 12,800 bytes, or React
+ * hides the page until a script runs (see NitaA1.module.css). So elements carry few classes and
+ * the stylesheet reaches them by their place in the block. Keep the order of elements in step with it.
+ */
 export function NitaA1(props: CreatorPageVariantProps) {
     const { proof, sample, steps, close } = copy
     const [accounts, clients, spend] = proof.items
 
     return (
-        <CreatorPageShell
-            page={props}
-            lang="es-AR"
-            className="mx-auto min-h-dvh w-full max-w-120 overflow-x-clip bg-background-page text-foreground-primary"
-        >
-            <section className="border-b-2 border-border-default bg-background-marketing-sky px-4 pt-3 pb-6 max-[359px]:pt-2">
-                <div className="flex flex-wrap items-center justify-between gap-2">
+        <CreatorPageShell page={props} lang="es-AR" className={styles.a1}>
+            <section className={styles.hero}>
+                <div>
                     <Image src={LOGO_LOCKUP} alt={copy.logoAlt} loading="eager" className="h-6 w-auto" />
-                    <p className="flex items-center gap-2 rounded-full border border-border-button bg-background-default py-1 pr-3 pl-1 text-label-m">
+                    <p>
                         {/* eslint-disable-next-line @next/next/no-img-element -- a sized WebP in public/: the image optimizer would add a round trip and save nothing */}
-                        <img
-                            src={A1_AVATAR_SRC}
-                            width={24}
-                            height={24}
-                            alt=""
-                            className="size-6 rounded-full object-cover"
-                        />
+                        <img src={A1_AVATAR_SRC} width={24} height={24} alt="" />
                         {copy.chip}
                     </p>
                 </div>
 
-                <h1 className="mt-2 text-heading-m xs:text-heading-l">{copy.headline}</h1>
+                <h1>{copy.headline}</h1>
                 {/* Benefit and mascot share one grid row, so the text wraps beside the mascot at any width or font size. */}
-                <div className={`mt-2 ${styles.lead}`}>
-                    <p className="pb-2 text-body-m-semibold max-[359px]:pb-1">{copy.benefit}</p>
-                    <div className={styles.mascotSeat}>
+                <div className={styles.lead}>
+                    <p>{copy.benefit}</p>
+                    <div>
                         {/* eslint-disable-next-line @next/next/no-img-element -- a small decorative SVG: nothing for the image optimizer to do */}
-                        <img src={Star.src} alt="" aria-hidden className="absolute top-0 right-0 size-4" />
+                        <img src={Star.src} alt="" />
                         {/* eslint-disable-next-line @next/next/no-img-element -- a small decorative SVG: nothing for the image optimizer to do */}
-                        <img src={Sparkle.src} alt="" aria-hidden className="absolute bottom-6 left-0 size-3" />
-                        <Image src={PEANUT_SITTING} alt="" priority sizes="72px" className="h-auto w-full" />
+                        <img src={Sparkle.src} alt="" />
+                        <Image src={PEANUT_SITTING} alt="" priority sizes="72px" />
                     </div>
                 </div>
                 <A1Post>
                     <A1Cta position="hero" />
-                    <A1InviteLine className="text-foreground-secondary" />
+                    <A1InviteLine />
                 </A1Post>
 
-                <div className="mt-2 text-center text-body-s text-foreground-over-color-primary">
-                    <p className="text-body-xs">{copy.post.added}</p>
-                    <p className="mt-2">{copy.madeBy}</p>
-                    <p className="text-body-s-semibold">{copy.notABank}</p>
-                    <p className="mt-4 text-body-s-semibold">{copy.more}</p>
+                <div>
+                    <p>{copy.post.added}</p>
+                    <p>{copy.madeBy}</p>
+                    <p>{copy.notABank}</p>
+                    <p>{copy.more}</p>
                 </div>
             </section>
 
-            <section className="px-4 pt-8 pb-10">
-                <p className="text-label-m text-foreground-secondary uppercase">{proof.kicker}</p>
-                <h2 className="mt-2 text-heading-s">{proof.title}</h2>
+            <section className={styles.proofs}>
+                <p>{proof.kicker}</p>
+                <h2>{proof.title}</h2>
 
                 <A1Proof item={accounts} number={1}>
                     <A1SampleRow
-                        leading={
-                            <A1SampleBubble fillClassName="bg-background-icon-bubble-green">
-                                {sample.usdCode}
-                            </A1SampleBubble>
-                        }
+                        leading={<A1SampleBubble fill="green">{sample.usdCode}</A1SampleBubble>}
                         title={sample.usd}
                         note={sample.usdNumber}
                     />
                     <A1SampleRow
-                        leading={
-                            <A1SampleBubble fillClassName="bg-background-icon-bubble-blue">
-                                {sample.eurCode}
-                            </A1SampleBubble>
-                        }
+                        leading={<A1SampleBubble fill="blue">{sample.eurCode}</A1SampleBubble>}
                         title={sample.eur}
                         note={sample.eurNumber}
                     />
@@ -101,27 +89,27 @@ export function NitaA1(props: CreatorPageVariantProps) {
                 <A1Proof item={clients} number={2}>
                     <A1SampleRow
                         leading={
-                            <A1SampleBubble fillClassName="bg-background-icon-bubble-green">
+                            <A1SampleBubble fill="green">
                                 <Icon name="arrow-down" size={16} />
                             </A1SampleBubble>
                         }
                         title={sample.received}
                         note={sample.receivedNote}
-                        trailing={<span className="text-body-m-semibold">{sample.receivedAmount}</span>}
+                        trailing={<b>{sample.receivedAmount}</b>}
                     />
                 </A1Proof>
 
                 <A1Proof item={spend} number={3}>
                     <A1SampleRow
                         leading={
-                            <A1SampleBubble fillClassName="bg-background-icon-bubble-yellow">
+                            <A1SampleBubble fill="yellow">
                                 <Icon name="qr-code" size={16} />
                             </A1SampleBubble>
                         }
                         title={sample.qr}
                         note={sample.qrNote}
                         trailing={
-                            <A1SampleBubble fillClassName="bg-background-icon-bubble-green">
+                            <A1SampleBubble fill="green">
                                 <Icon name="check" size={16} />
                             </A1SampleBubble>
                         }
@@ -129,23 +117,15 @@ export function NitaA1(props: CreatorPageVariantProps) {
                 </A1Proof>
             </section>
 
-            <section className="border-y-2 border-border-default bg-background-accent-yellow px-4 py-8">
-                <h2 className="text-heading-xs">{steps.title}</h2>
-                <Card shadowSize="4" className="mt-4 border-2 px-4">
+            <section className={styles.steps}>
+                <h2>{steps.title}</h2>
+                <Card shadowSize="4">
                     <ol>
                         {steps.items.map((step, index) => (
-                            <li
-                                key={step.lead}
-                                className="flex items-start gap-3 border-border-disabled py-3 not-first:border-t"
-                            >
-                                <span
-                                    aria-hidden
-                                    className="flex size-6 flex-none items-center justify-center rounded-full bg-foreground-primary text-label-m text-foreground-inverse"
-                                >
-                                    {index + 1}
-                                </span>
-                                <p className="text-body-m">
-                                    <b className="font-extrabold">{step.lead}</b>
+                            <li key={step.lead}>
+                                <span aria-hidden>{index + 1}</span>
+                                <p>
+                                    <b>{step.lead}</b>
                                     {step.rest}
                                 </p>
                             </li>
@@ -154,24 +134,17 @@ export function NitaA1(props: CreatorPageVariantProps) {
                 </Card>
             </section>
 
-            <section className={`bg-background-marketing-sky px-4 pt-8 text-center ${styles.closeFold}`}>
-                <p className="text-heading-m">{close.quote}</p>
-                <p className="mt-2 text-body-s-semibold">{close.by}</p>
+            <section className={styles.close}>
+                <p>{close.quote}</p>
+                <p>{close.by}</p>
                 {/* eslint-disable-next-line @next/next/no-img-element -- a sized WebP in public/: the image optimizer would add a round trip and save nothing */}
-                <img
-                    src={POINTING_MASCOT_SRC}
-                    width={256}
-                    height={256}
-                    alt=""
-                    loading="lazy"
-                    className="mx-auto mt-2 size-28"
-                />
+                <img src={POINTING_MASCOT_SRC} width={256} height={256} alt="" loading="lazy" />
                 <A1Cta position="footer" />
-                <A1InviteLine className="text-foreground-over-color-primary" />
-                <div className="mt-6 text-left text-body-xs text-foreground-over-color-primary">
+                <A1InviteLine />
+                <div>
                     <p>{close.legal}</p>
-                    <p className="mt-2">{copy.madeBy}</p>
-                    <p className="font-extrabold">{copy.notABank}</p>
+                    <p>{copy.madeBy}</p>
+                    <p>{copy.notABank}</p>
                 </div>
             </section>
 

@@ -1,6 +1,10 @@
 import type { ReactNode } from 'react'
+import styles from '../NitaA1.module.css'
 
-/** One row of sample app UI inside a proof card. An illustration, not a control. */
+/**
+ * One row of sample app UI inside a proof card. An illustration, not a control.
+ * `trailing` keeps its width; the text wraps, and `trailing` moves under it when even one word no longer fits beside it.
+ */
 export function A1SampleRow({
     leading,
     title,
@@ -13,13 +17,13 @@ export function A1SampleRow({
     trailing?: ReactNode
 }) {
     return (
-        <div className="flex items-center gap-3 border-border-disabled bg-background-default px-3 py-2 not-first:border-t">
+        <div className={styles.row}>
             {leading}
-            <div className="min-w-0">
-                <p className="text-body-s-semibold">{title}</p>
-                <p className="text-body-xs text-foreground-secondary">{note}</p>
+            <div>
+                <p>{title}</p>
+                <p>{note}</p>
             </div>
-            {trailing && <div className="ml-auto flex-none">{trailing}</div>}
+            {trailing}
         </div>
     )
 }

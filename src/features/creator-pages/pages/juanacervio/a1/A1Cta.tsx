@@ -1,17 +1,16 @@
 import { CreatorPageCta } from '../../../CreatorPageCta'
 import type { CtaPosition } from '../../../events'
 import { NITA_A1_COPY as copy } from '../nita-a1.copy'
+import styles from '../NitaA1.module.css'
 
 /**
  * The store button of variant A1: the DS large primary button, on the one shared creator-page link.
- * It grows instead of clipping when a large text setting wraps the label onto two lines.
- * The side padding is 16px, not the 24px of `btn-large`: at 320px wide "Abrir en el App Store"
- * and its mark then fit on one line, which keeps the button on the first screen.
+ * `styles.cta` holds what A1 changes on it (it grows with its label, 16px side padding, the press move).
  */
 export function A1Cta({ position }: { position: CtaPosition }) {
     return (
         <CreatorPageCta
-            className="btn btn-primary btn-large notranslate h-auto min-h-12 w-full gap-2 px-4 py-2 text-center no-underline transition-all duration-instant active:translate-x-1 active:translate-y-1 active:shadow-none"
+            className={`btn btn-primary btn-large notranslate ${styles.cta}`}
             labels={copy.cta}
             position={position}
         />

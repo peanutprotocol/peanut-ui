@@ -9,22 +9,8 @@ const HIGHLIGHT_CLASS: Record<A1Highlight, string> = {
 
 /**
  * A highlighter stroke over a phrase of Nita's post. The colour ties the phrase to its proof card.
- * `flushEnd` drops the padding after the phrase, for a phrase that a closing quotation mark follows.
+ * The shape of the stroke is in NitaA1.module.css (`.a1 mark`, and `.proof mark` before a closing quotation mark).
  */
-export function A1Mark({
-    highlight,
-    flushEnd,
-    children,
-}: {
-    highlight: A1Highlight
-    flushEnd?: boolean
-    children: ReactNode
-}) {
-    return (
-        <mark
-            className={`rounded-sm box-decoration-clone py-0.5 text-inherit ${flushEnd ? 'pl-1' : 'px-1'} ${HIGHLIGHT_CLASS[highlight]}`}
-        >
-            {children}
-        </mark>
-    )
+export function A1Mark({ highlight, children }: { highlight: A1Highlight; children: ReactNode }) {
+    return <mark className={HIGHLIGHT_CLASS[highlight]}>{children}</mark>
 }
