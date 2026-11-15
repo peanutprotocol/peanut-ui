@@ -768,7 +768,7 @@
             "funding": {
                 "crypto": "Cripto",
                 "bank": "Transferencia bancaria",
-                "brlBank": "Transferencia bancaria (BRL)",
+                "brlBank": "Pix (BRL)",
                 "arsBank": "Transferencia bancaria (ARS)"
             },
             "payment": {

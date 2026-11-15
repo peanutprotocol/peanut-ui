@@ -1292,7 +1292,7 @@
                 "peanut": "Receive from a Peanut user",
                 "bank": "Bank transfer",
                 "bankCurrencies": "Bank transfer ({currencies})",
-                "brlBank": "Bank transfer (BRL)",
+                "brlBank": "Pix (BRL)",
                 "arsBank": "Bank transfer (ARS)"
             },
             "payment": {

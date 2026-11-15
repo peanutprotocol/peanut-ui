@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble, type IconBubbleColor } from '@/components/0_Bruddle/IconBubble'
-import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
+import { CONCEPT_ICONS, type ConceptIcon } from '@/components/0_Bruddle/conceptIcons'
 import { DrawerSelect } from '@/components/0_Bruddle/DrawerSelect'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -30,8 +30,11 @@ function ChannelIcon({ channel, size }: { channel: SetupChannel | null; size: 'x
     // Nothing chosen yet: gray (design.md); an empty bubble read as a broken image
     if (!channel) return <IconBubble icon="question-mark" size={size} color="gray" />
     const concept = SETUP_CHANNEL_CONCEPTS[channel]
-    const color: IconBubbleColor = concept === 'bank' ? 'green' : CONCEPT_ICONS[concept].color
-    return <IconBubble {...CONCEPT_ICONS[concept]} size={size} color={color} />
+    const mark: ConceptIcon = CONCEPT_ICONS[concept]
+    // a brand mark (Pix) is the whole circle: no bubble colour reaches it
+    if ('logo' in mark) return <IconBubble logo={mark.logo} size={size} />
+    const color: IconBubbleColor = concept === 'bank' ? 'green' : mark.color
+    return <IconBubble {...mark} size={size} color={color} />
 }
 
 function ChannelPicker<C extends SetupChannel>({
@@ -110,6 +113,7 @@ function ChannelPicker<C extends SetupChannel>({
  */
 export default function PaymentPlanStep() {
     const t = useTranslations('setup.paymentPlan')
+    const tMethods = useTranslations('addMoney.methods')
     const { residenceCountry, fundingChannel, setFundingChannel, paymentChannel, setPaymentChannel, onFinish } =
         useSetupFlowContext()
     const { handleNext, isLoading } = useSetupFlow()
@@ -163,7 +167,9 @@ export default function PaymentPlanStep() {
                         compactLabel={(channel) =>
                             channel === 'peanut'
                                 ? t('peanutCompact')
-                                : t(`funding.${channel === 'brlBank' || channel === 'arsBank' ? 'bank' : channel}`)
+                                : channel === 'brlBank'
+                                  ? tMethods('pix')
+                                  : t(`funding.${channel === 'arsBank' ? 'bank' : channel}`)
                         }
                         label={(channel) =>
                             channel === 'bank' && intents?.bank.currencies?.length

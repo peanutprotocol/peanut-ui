@@ -156,6 +156,17 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         shotClickTestId: 'setup-payment-channel',
         shotFixture: 'setup-payment-plan',
     },
+    '03-j-funding-methods-argentina': {
+        name: 'Setup — funding methods, resident of Argentina',
+        path: 'Setup/Views/PaymentPlan.tsx',
+        shotClickTestId: 'setup-funding-channel',
+        shotFixture: 'setup-payment-plan',
+    },
+    '03-k-funding-pix-chosen': {
+        name: 'Setup — Pix chosen to add money, resident of Brazil',
+        path: 'Setup/Views/PaymentPlan.tsx',
+        shotFixture: 'setup-payment-plan',
+    },
     '03-a-residence-select': { name: 'Residence — select', path: 'Setup/Views/Residence.tsx' },
     '03-b-residence-compare': {
         name: 'Residence — two countries compared',

@@ -753,6 +753,14 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['03-i-payment-methods'],
         render: () => <SetupScreen screenId="payment-plan" residenceCountry="BR" />,
     },
+    '03-j-funding-methods-argentina': {
+        ...SURFACE_META['03-j-funding-methods-argentina'],
+        render: () => <SetupScreen screenId="payment-plan" residenceCountry="AR" />,
+    },
+    '03-k-funding-pix-chosen': {
+        ...SURFACE_META['03-k-funding-pix-chosen'],
+        render: () => <SetupScreen screenId="payment-plan" residenceCountry="BR" fundingChannel="brlBank" />,
+    },
     '03-a-residence-select': {
         ...SURFACE_META['03-a-residence-select'],
         render: () => <SetupScreen screenId="residence" />,

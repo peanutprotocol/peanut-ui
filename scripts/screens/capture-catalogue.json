@@ -287,6 +287,18 @@
         "source": "features/card/components/CardResidenceAddressScreen.tsx"
     },
     {
+        "id": "03-j-funding-methods-argentina",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=03-j-funding-methods-argentina",
+        "source": "Setup/Views/PaymentPlan.tsx"
+    },
+    {
+        "id": "03-k-funding-pix-chosen",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=03-k-funding-pix-chosen",
+        "source": "Setup/Views/PaymentPlan.tsx"
+    },
+    {
         "id": "07-d-notification-switches",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=07-d-notification-switches",
