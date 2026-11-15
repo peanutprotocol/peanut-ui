@@ -25,13 +25,14 @@ import Image from 'next/image'
 export function HomeActionDrawers({
     addMoney,
 }: {
-    addMoney: Pick<ReturnType<typeof useAddMoneyReadiness>, 'entry' | 'drawerMethods' | 'isLoading'>
+    addMoney: Pick<ReturnType<typeof useAddMoneyReadiness>, 'entry' | 'drawerMethods' | 'ready' | 'isLoading'>
 }) {
     const [drawer, setDrawer] = useHomeDrawer()
     const t = useTranslations('home.drawers')
     const tMethods = useTranslations('addMoney.methods')
     const tNav = useTranslations('navigation')
-    const tProfile = useTranslations('profile.unlockPayments')
+    // "Bank accounts" (the owner, 15 Nov): the existing key that says exactly that
+    const tSaved = useTranslations('global.savedAccounts')
     const router = useRouter()
     // Carry origins from existing Add drawer links into the chosen destination.
     const [returnTo, setReturnTo] = useQueryState(RETURN_TO_PARAM, parseAsString)
@@ -61,11 +62,11 @@ export function HomeActionDrawers({
                   key: method,
                   title:
                       method === 'account'
-                          ? tProfile('titles.bank')
+                          ? tSaved('bankSectionTitle')
                           : method === 'transfer'
                             ? tMethods('oneTimeTransfer')
                             : method === 'pix'
-                              ? tMethods('payPix')
+                              ? tMethods('pix')
                               : method === 'crypto'
                                 ? tMethods('crypto')
                                 : tMethods('moreWays'),
@@ -82,7 +83,8 @@ export function HomeActionDrawers({
                           ? '/add-money'
                           : method === 'crypto'
                             ? '/add-money/crypto'
-                            : `/add-money/options?method=${method}&ready=1`,
+                            : // only the ready ones where some are; a Pix row a resident can still start opens the chooser
+                              `/add-money/options?method=${method}${addMoney.ready[method as keyof typeof addMoney.ready].length ? '&ready=1' : ''}`,
               }))
             : (content ? homeDrawerOptions(content, depositAccounts) : []).map((option) => ({
                   key: option.key,

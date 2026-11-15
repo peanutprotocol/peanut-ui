@@ -132,3 +132,30 @@ it('an ordinary city text field remains a text input', () => {
     fireEvent.change(input, { target: { value: 'Austin' } })
     expect(onChange).toHaveBeenCalledWith('city', 'Austin')
 })
+
+// TASK-24947: Brazil's states for Avenia come with their names; the code is what is saved
+it("shows the API's names for a state list and records the code", () => {
+    const onChange = jest.fn()
+    renderWithIntl(
+        <QuestionFields
+            fields={[
+                {
+                    key: 'state',
+                    kind: 'choice',
+                    required: true,
+                    options: ['PB', 'SP'],
+                    optionLabels: { PB: 'Paraíba', SP: 'São Paulo' },
+                    value: null,
+                },
+            ]}
+            values={{ state: '' }}
+            errors={{}}
+            residence="BR"
+            onChange={onChange}
+        />
+    )
+    const picker = screen.getByRole('combobox', { name: /state or region/i }) as HTMLSelectElement
+    expect(Array.from(picker.options).map((option) => option.textContent)).toEqual(['Choose', 'Paraíba', 'São Paulo'])
+    fireEvent.change(picker, { target: { value: 'PB' } })
+    expect(onChange).toHaveBeenLastCalledWith('state', 'PB')
+})

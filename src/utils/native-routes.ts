@@ -483,6 +483,7 @@ export function rewriteMethodPath(path: string, extraParams?: string, native = i
         const country = withdrawMatch[1]
         const subView = withdrawMatch[2]
         // static routes, not [country]
+        // new-pix-key: a retired page kept as an alias for links already delivered
         if (country === 'manteca' || country === 'crypto' || country === 'pix' || country === 'new-pix-key') {
             return extraParams ? `${path}${path.includes('?') ? '&' : '?'}${extraParams}` : path
         }

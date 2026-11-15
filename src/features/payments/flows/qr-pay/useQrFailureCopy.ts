@@ -48,6 +48,8 @@ export function useQrFailureCopy(qrType: string | null, qrMethodName: string) {
             [QR_INIT_CODE.EXPIRED]: t('errors.merchantChargeExpired'),
             [QR_INIT_CODE.DECODE]: qrType === EQrType.PIX ? t('errors.pixDecode') : t('errors.genericDecode'),
             [QR_INIT_CODE.PROVIDER_UNAVAILABLE]: t('errors.providerIssues', { method: qrMethodName }),
+            // shown only until the capabilities are read again and the page follows the route
+            [QR_INIT_CODE.PROVIDER_MOVED]: tPix('unavailable'),
             [QR_INIT_CODE.IN_PROGRESS]: t('errors.providerIssues', { method: qrMethodName }),
             /*
              * Never expected from this screen — it derives a key per (scan,

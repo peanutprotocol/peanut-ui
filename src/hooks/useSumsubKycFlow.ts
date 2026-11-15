@@ -37,6 +37,7 @@ import { RESIDENCE_ADDRESS_ACTION_KEY } from '@/constants/kyc.consts'
 import { isDemoMode } from '@/utils/demo'
 import { captureSessionFence } from '@/utils/session-fence'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
+import { pixFlowPath } from '@/features/pix/pixRoute.utils'
 import {
     entryFeature,
     paperworkVerificationRoute,
@@ -152,6 +153,14 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const router = useRouter()
     const t = useTranslations('kyc')
     const tIdentity = useTranslations('identity')
+
+    // A Manteca session for Brazil refused because the user's Pix moved (409 PIX_PROVIDER_MOVED): Manteca
+    // has nothing to verify for them. The user is read again and sent to the Pix flow, which opens the
+    // account the routes name with no tap (API-CONTRACT-M5 §7).
+    const followPixRoute = useCallback(async () => {
+        const latest = await Promise.resolve(fetchUser()).catch(() => null)
+        router.push(pixFlowPath(latest?.capabilities?.routes))
+    }, [fetchUser, router])
 
     // Localize a failed action result: known codes map onto catalog copy (a
     // residence refusal onto its capability reason line), codeless results
@@ -585,6 +594,13 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     return false
                 }
 
+                if (response.code === 'PIX_PROVIDER_MOVED') {
+                    userInitiatedRef.current = false
+                    if (crossRegion) prevStatusRef.current = savedPrevStatus
+                    await followPixRoute()
+                    return false
+                }
+
                 if (response.code === 'feature_selection_required') {
                     userInitiatedRef.current = false
                     if (crossRegion) prevStatusRef.current = savedPrevStatus
@@ -974,6 +990,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         [
             regionIntent,
             onKycSuccess,
+            followPixRoute,
             t,
             actionErrorMessage,
             acceptSessionView,
@@ -1578,6 +1595,11 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                         return false
                     }
                 }
+                if (response.code === 'PIX_PROVIDER_MOVED') {
+                    userInitiatedRef.current = false
+                    await followPixRoute()
+                    return false
+                }
                 if (response.error || !response.data?.token) {
                     userInitiatedRef.current = false
                     setError(response.error ? actionErrorMessage(response) : t('errorStartActionFailed'))
@@ -1607,6 +1629,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             user?.user?.userId,
             t,
             tIdentity,
+            followPixRoute,
             actionErrorMessage,
             setError,
             acceptSessionView,

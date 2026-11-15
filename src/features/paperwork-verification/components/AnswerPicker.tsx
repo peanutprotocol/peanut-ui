@@ -184,7 +184,7 @@ export function AnswerPicker({
         if (isJob && option === noJob) return t(`jobNone.${jobMode}` as never)
         if (isJob) return jobLabels?.[option] ?? humanizeOccupation(option)
         if (field.kind === 'country') return countries.find((c) => c.value === option)?.label ?? option
-        return label(field.key, option)
+        return field.optionLabels?.[option] ?? label(field.key, option)
     }
     const options =
         field.kind === 'country'

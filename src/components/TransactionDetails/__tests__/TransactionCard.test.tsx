@@ -48,6 +48,8 @@ jest.mock('../TransactionDetailsDrawer', () => ({
     TransactionDetailsDrawer: () => null,
 }))
 
+jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '/mercado-pago.svg', PIX: '/pix.svg' }))
+
 jest.mock('next/image', () => ({
     __esModule: true,
     default: (props: Record<string, unknown>) => {
@@ -583,49 +585,43 @@ describe('TransactionCard — amount format', () => {
     })
 })
 
-describe('TransactionCard — a refused Pix payout that waits for a new key', () => {
-    const withdrawal = (awaitsNewPixKey: boolean) =>
-        ({
-            id: 'intent-refused',
-            direction: 'bank_withdraw',
-            status: 'pending',
-            userName: 'Bank account',
-            amount: 92.5,
-            totalAmountCollected: 0,
-            extraDataForDrawer: { transactionCardType: 'bank_withdraw', awaitsNewPixKey: awaitsNewPixKey || undefined },
-        }) as unknown as TransactionDetails
-
-    const renderRow = (transaction: TransactionDetails) =>
+// TASK-24947: a payout to a Pix key leads with the Pix logo, as a Manteca Pix payment does
+describe('TransactionCard — Pix payout', () => {
+    const renderPayout = (accountType: string) =>
         render(
             <TransactionCard
                 type="bank_withdraw"
-                name="Bank account"
-                amount={92.5}
-                status="pending"
-                transaction={transaction}
+                name="Bank Account"
+                amount={18.87}
+                status="completed"
+                initials="BA"
+                transaction={
+                    {
+                        ...eligibleTx(),
+                        isPeerActuallyUser: false,
+                        direction: 'bank_withdraw',
+                        bankAccountDetails: { identifier: '+5511987654321', type: accountType },
+                        extraDataForDrawer: {
+                            transactionCardType: 'bank_withdraw',
+                            isLinkTransaction: false,
+                            kind: 'OFFRAMP',
+                            provider: 'AVENIA',
+                        },
+                    } as unknown as TransactionDetails
+                }
                 isSelected={false}
                 onOpen={openTransactionDetails}
                 onClose={jest.fn()}
             />
         )
 
-    beforeEach(() => {
-        push.mockClear()
-        openTransactionDetails.mockClear()
+    it.each(['pix', 'BANK_PIX'])('shows the Pix logo for a payout to a %s account', (type) => {
+        const { container } = renderPayout(type)
+        expect(container.querySelector('img')).toHaveAttribute('src', '/pix.svg')
     })
 
-    it('names the action, and the tap opens the new-key screen instead of the drawer', () => {
-        renderRow(withdrawal(true))
-        fireEvent.click(screen.getByText('Action needed'))
-        expect(push).toHaveBeenCalledWith('/withdraw/new-pix-key?intentId=intent-refused')
-        expect(openTransactionDetails).not.toHaveBeenCalled()
-    })
-
-    it('goes back to the normal row once the payout no longer waits for a key', () => {
-        renderRow(withdrawal(false))
-        expect(screen.queryByText('Action needed')).toBeNull()
-        fireEvent.click(screen.getByText('Bank account'))
-        expect(openTransactionDetails).toHaveBeenCalledTimes(1)
-        expect(push).not.toHaveBeenCalled()
+    it('keeps the bank bubble on a bank withdrawal', () => {
+        const { container } = renderPayout('BANK_IBAN')
+        expect(container.querySelector('img[src="/pix.svg"]')).toBeNull()
     })
 })

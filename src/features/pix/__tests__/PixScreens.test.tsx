@@ -3,6 +3,8 @@ import { render, screen } from '@testing-library/react'
 import type { CapabilityRoute } from '@/types/capabilities'
 
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
+let mockIntentId: string | null = null
+jest.mock('nuqs', () => ({ parseAsString: {}, useQueryState: () => [mockIntentId, jest.fn()] }))
 let mockRoutes: CapabilityRoute[] | undefined
 let mockLoading = false
 jest.mock('@/hooks/useCapabilities', () => ({
@@ -39,7 +41,7 @@ import { PixWithdraw } from '../components/PixWithdraw'
 const route = (operation: 'deposit' | 'withdraw', overrides: Partial<CapabilityRoute> = {}): CapabilityRoute => ({
     operation,
     method: 'PIX_BR',
-    provider: 'manteca',
+    provider: 'avenia',
     state: 'ready',
     candidates: [],
     ...overrides,
@@ -49,23 +51,44 @@ describe('the neutral Pix screens', () => {
     beforeEach(() => {
         mockRoutes = undefined
         mockLoading = false
+        mockIntentId = null
+    })
+
+    // review finding 7: the retired new-key link (`?intentId=`) lands here; a pause or a refused route
+    // since the payout must not hide its outcome (the money came back, or arrived)
+    it.each<[string, Partial<CapabilityRoute>]>([
+        ['a residence pause', { state: 'paused', reason: { code: 'residence_paused', userMessage: '' } }],
+        ["a provider's pause", { state: 'paused', reason: { code: 'provider_paused', userMessage: '' } }],
+        ['a refused route', { provider: null, state: 'refused' }],
+    ])("shows an opened withdrawal's outcome under %s", (_case, overrides) => {
+        mockIntentId = 'w1'
+        mockRoutes = [route('withdraw', overrides)]
+        render(<PixWithdraw />)
+        expect(screen.getByText(new RegExp(`^pix withdraw .*${overrides.state}$`))).toBeInTheDocument()
+        expect(screen.queryByText(/brazil paused|outage|unavailable/)).toBeNull()
     })
 
     it('mount the one Pix flow, with its route, whichever provider the route names', () => {
         mockRoutes = [route('deposit', { state: 'action_required', action: 'activate' }), route('withdraw')]
         const { unmount } = render(<PixAddMoney />)
-        expect(screen.getByText('pix deposit manteca action_required')).toBeInTheDocument()
+        expect(screen.getByText('pix deposit avenia action_required')).toBeInTheDocument()
         unmount()
         const withdraw = render(<PixWithdraw />)
-        expect(screen.getByText('pix withdraw manteca ready')).toBeInTheDocument()
+        expect(screen.getByText('pix withdraw avenia ready')).toBeInTheDocument()
         withdraw.unmount()
+
+        mockRoutes = [route('deposit', { provider: 'manteca' }), route('withdraw', { provider: 'manteca' })]
+        const deposit = render(<PixAddMoney />)
+        expect(screen.getByText('pix deposit manteca ready')).toBeInTheDocument()
+        deposit.unmount()
+        render(<PixWithdraw />)
+        expect(screen.getByText('pix withdraw manteca ready')).toBeInTheDocument()
     })
 
-    // the router reads the pause switches: the paused route is the only pause these pages show. A resident of
-    // Brazil has no provider for Pix, so the route names none (TASK-24910, D9)
-    it('show the residence pause in its own words, with or without a provider', () => {
+    // the router reads the pause switches: the paused route is the only pause these pages show
+    it('show the residence pause in its own words, for either provider', () => {
         const residencePaused = { state: 'paused' as const, reason: { code: 'residence_paused', userMessage: '' } }
-        mockRoutes = [route('deposit', { provider: null, ...residencePaused }), route('withdraw', residencePaused)]
+        mockRoutes = [route('deposit', { provider: 'manteca', ...residencePaused }), route('withdraw', residencePaused)]
         const { unmount } = render(<PixAddMoney />)
         expect(screen.getByText('brazil paused')).toBeInTheDocument()
         expect(screen.queryByText(/pix deposit/)).toBeNull()
@@ -78,6 +101,7 @@ describe('the neutral Pix screens', () => {
     it("show the outage for a provider's or a currency's pause", () => {
         mockRoutes = [
             route('deposit', {
+                provider: 'manteca',
                 state: 'paused',
                 reason: { code: 'provider_paused', userMessage: '' },
             }),

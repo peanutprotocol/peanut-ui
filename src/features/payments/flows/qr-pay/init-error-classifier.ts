@@ -33,6 +33,7 @@ export const QR_INIT_CODE = {
     EXPIRED: 'PAYMENT_DESTINATION_EXPIRED',
     DECODE: 'PAYMENT_DESTINATION_DECODING_ERROR',
     PROVIDER_UNAVAILABLE: 'PROVIDER_UNAVAILABLE',
+    PROVIDER_MOVED: API_ERROR_CODES.PIX_PROVIDER_MOVED,
     IN_PROGRESS: 'QR_INIT_IN_PROGRESS',
     KEY_MISMATCH: 'QR_INIT_KEY_MISMATCH',
 } as const
@@ -94,6 +95,8 @@ const DETERMINISTIC: Partial<Record<QrInitCode, { amountRetryable: boolean }>> =
      * it means the derivation broke.
      */
     [QR_INIT_CODE.KEY_MISMATCH]: { amountRetryable: false },
+    // Manteca yields the user's Pix to another provider (409): the capabilities say where it went
+    [QR_INIT_CODE.PROVIDER_MOVED]: { amountRetryable: false },
 }
 
 /*

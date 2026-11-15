@@ -36,6 +36,20 @@ it("keeps Brazil's bank where another entry serves the residence, and closes it 
     ).toEqual(['bank', 'crypto', 'peanut'])
 })
 
+// TASK-24947: Pix by Avenia is Brazil's local feature, so the API answers it available
+it("offers Brazil's BRL plan where the API says Pix is available", () => {
+    const intents = {
+        ...KYC_INTENTS_BY_COUNTRY.BR,
+        local: { available: true } as typeof KYC_INTENTS_BY_COUNTRY.BR.local,
+    }
+    expect(setupChannelsForResidence(RESIDENCE_RESTRICTION_SETS, 'BR', true, intents).funding).toEqual([
+        'brlBank',
+        'bank',
+        'crypto',
+        'peanut',
+    ])
+})
+
 it('offers only universal channels before the server lookup settles', () => {
     expect(setupChannelsForResidence(RESIDENCE_RESTRICTION_SETS, 'PT', false)).toEqual({
         funding: ['crypto', 'peanut'],

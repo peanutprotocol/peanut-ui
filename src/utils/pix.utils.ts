@@ -66,7 +66,8 @@ export const pixKeyToQrPayUrl = (pixKey: string): string | null => {
 
 /** The key a `/qr-pay` URL names, in its directory form, when it is the key the BR Code pays. */
 export function verifiedPixKeyLabel(qrCode: string, pixKey: string | null): string | null {
-    if (!pixKey) return null
+    // a hand-made `?pixKey=<BR Code>` is a code, not a key: it is paid as the code it is, never looked up as a key
+    if (!pixKey || isPixEmvcoQr(pixKey.trim())) return null
     const key = normalizePixInput(pixKey)
     return pixKeyToBRCode(key) === qrCode ? key : null
 }

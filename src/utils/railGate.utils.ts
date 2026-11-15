@@ -4,7 +4,7 @@ import { type IUserRail } from '@/interfaces/interfaces'
 // rail-gating: the frontend gate hooks derive from UserRail.status instead
 // of kycVerifications / bridgeKycStatus. Mirrors the backend resolveEnabledRail.
 
-export type RailProviderCode = 'MANTECA' | 'BRIDGE'
+export type RailProviderCode = 'MANTECA' | 'BRIDGE' | 'AVENIA'
 
 const IN_PROGRESS_STATUSES: ReadonlyArray<string> = ['PENDING', 'REQUIRES_INFORMATION', 'REQUIRES_EXTRA_INFORMATION']
 

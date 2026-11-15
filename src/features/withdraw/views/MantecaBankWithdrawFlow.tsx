@@ -302,7 +302,7 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
 
     // BR self-service limit increase flow
     const { mantecaLimits, refetch: refetchLimits } = useLimits()
-    const isBrEligible = isBrUserEligibleForLimitIncrease(mantecaLimits)
+    const isBrEligible = !limitsValidation.servedByAvenia && isBrUserEligibleForLimitIncrease(mantecaLimits)
     const limitIncreaseFlow = useSumsubActionFlow({
         fetchToken: initiateIncreaseLimits,
         onSuccess: refetchLimits,

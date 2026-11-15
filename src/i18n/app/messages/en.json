@@ -149,8 +149,6 @@
             "addMoneyRoutesNoBank": "Crypto from any wallet",
             "verifyIdentity": "Verify identity",
             "verifyIdentityNote": "One-time ID check",
-            "setUpPix": "Set up Pix",
-            "setUpPixNote": "With our Pix partner",
             "inReview": "In review",
             "firstPaymentCardNote": "Get the card or pay a QR",
             "firstPaymentQrNote": "Pay a QR code",
@@ -851,7 +849,10 @@
             "noData": "Limits data not available",
             "totalAllowed": "{asset} total allowed",
             "remaining": "{period, select, monthly {Remaining this month} other {Remaining this year}}",
-            "appliesTo": "Applies to adding money, withdraws and QR payments"
+            "appliesTo": "Applies to adding money, withdraws and QR payments",
+            "leftThisMonth": "{asset} left this month",
+            "roomDeposit": "Add money",
+            "roomPayout": "{operations, select, withdraw {Withdraw} pay {Pay} other {Withdraw and pay}}"
         },
         "period": {
             "monthly": "Monthly",
@@ -1851,7 +1852,9 @@
             "paymentStatusUnknown": "We couldn't confirm the payment status. Check Activity before trying again. If the status is unclear, contact support.",
             "paymentCancelled": "The provider cancelled this payment before funds were sent. Scan a new QR code to try again.",
             "payerBlocked": "The payment provider has blocked your payer account for this payment. Use another payment method or contact support.",
-            "merchantBlocked": "The payment provider has blocked this merchant. Use another payment method or ask for a different merchant QR."
+            "merchantBlocked": "The payment provider has blocked this merchant. Use another payment method or ask for a different merchant QR.",
+            "amountHeld": "Another payment of yours still holds this amount. Try again later.",
+            "throttled": "Too many tries. Wait a moment and try again."
         },
         "claim": {
             "navTitle": "Claim QR Code",
@@ -2250,7 +2253,6 @@
             "cryptoDetails": "From wallets or exchanges",
             "openAccount": "Open a bank account",
             "oneTimeTransfer": "One-time bank transfer",
-            "payPix": "Pay with Pix",
             "crypto": "Crypto",
             "cryptoDescription": "Deposit from a wallet or exchange",
             "bankTransfer": "Bank transfer",
@@ -2616,7 +2618,7 @@
     "pix": {
         "methodNotServed": "Peanut does not offer this.",
         "rolloutClosed": "Pix is not available for your account yet.",
-        "residenceNotServed": "Pix is not offered where you live.",
+        "residenceNotServed": "Pix is not offered where you live. Message support.",
         "unavailableTitle": "Pix not available",
         "rejected": "Our Pix partner didn't approve your verification, so Pix isn't available for now. Your other Peanut features aren't affected. Message support if you think this is a mistake.",
         "payResidence": "Pix payments are not available where you live yet.",
@@ -2625,23 +2627,7 @@
             "reviewing": "Our payment partner is checking your verification.",
             "verifyCta": "Verify identity",
             "title": "Set up Pix",
-            "body": "Our payment partner provides Pix.",
-            "bodyBeforeVerification": "{brand}, our new Pix partner, checks your identity. Cards or other accounts may ask again.",
-            "terms": "By continuing, you agree to the <terms>{termsName}</terms>.",
-            "cpfRequired": "Pix needs a CPF your verification lacks. Contact support.",
-            "termsNotSaved": "Your acceptance of the terms was not saved. Try again.",
-            "notAvailable": "Pix could not be set up. Contact support.",
-            "hosted": {
-                "body": "Verify with {brand}.",
-                "bodyPartner": "Verify with our payment partner.",
-                "expired": "This link expired.",
-                "newLink": "Get a new link",
-                "failed": "That failed. Try again.",
-                "back": "Back from {brand}? We are waiting for its answer.",
-                "backPartner": "Back from our payment partner? We are waiting for its answer.",
-                "openAgain": "Open {brand} again",
-                "openAgainPartner": "Open the page again"
-            }
+            "notAvailable": "Pix could not be set up. Contact support."
         },
         "deposit": {
             "startNew": "Start a new deposit",
@@ -2657,14 +2643,11 @@
         "withdraw": {
             "stuck": "This withdrawal did not finish. Contact support.",
             "fee": "Provider fee",
-            "keyIntro": "Enter a Pix key registered to your CPF.",
             "notACode": "Enter a Pix key, not a Pix code.",
             "lookupFailed": "This key could not be checked. Try again.",
-            "keyNotOwn": "This key belongs to someone else. Withdrawals go only to accounts under your CPF.",
             "keyBlocked": "Pix withdrawals to this bank are not available.",
             "unknownHolder": "Name not shown",
             "ownAccount": "Own account",
-            "someoneElses": "Someone else's",
             "sent": "On its way.",
             "sentTo": "On its way to {destination}.",
             "processingTitle": "Processing withdrawal",
@@ -2684,17 +2667,6 @@
             },
             "changeKey": "Change key",
             "withdrawing": "Withdrawing"
-        },
-        "recovery": {
-            "actionNeeded": "Action needed",
-            "intro": "The bank refused the payout to the previous key. Your money is waiting. Enter a Pix key of another account under your CPF.",
-            "notice": "The bank refused this payout. The money waits for another key under your CPF.",
-            "addKey": "Add Pix key",
-            "savedTitle": "Pix key saved",
-            "savedTo": "The money will be sent to {destination}.",
-            "saved": "The money will be sent to the new key.",
-            "notWaitingTitle": "No new key needed",
-            "notWaiting": "This withdrawal is no longer waiting for a new Pix key."
         }
     },
     "transaction": {
@@ -3861,7 +3833,7 @@
             "uncollectable": "{feature}: we can't finish setting this up in the app. Contact support and we'll complete it for you.",
             "identityDocumentInsufficient": "{feature}: this needs a different ID document than the one you verified with.",
             "unavailable": "{feature}: this feature isn’t available with the current verification.",
-            "servedElsewhere": "Pix deposits and withdrawals are available where you live."
+            "servedElsewhere": "Pix deposits, withdrawals, transfers and QR payments are available where you live."
         },
         "paperworkVerification": {
             "back": "Go back",
@@ -5526,7 +5498,8 @@
             "thirdNational": "Card issuer, a Rain subsidiary",
             "bridgeEea": "Fiat on-ramp, off-ramp and virtual IBAN provider",
             "mantecaAr": "Deposits, withdrawals and QR payments in Argentina",
-            "mantecaBr": "Pix payments and transfers for users who do not live in Brazil"
+            "mantecaBr": "Pix for accounts that do not use Avenia yet",
+            "aveniaBr": "Pix deposits for Brazil residents, and Pix withdrawals, transfers and QR payments for users anywhere"
         },
         "about": "About {brand}",
         "execution": {
@@ -5535,7 +5508,8 @@
             "mantecaAr": "Settled by {brand}",
             "mantecaBr": "Settled by {brand}",
             "rhino": "Signed by you, {brand} bridges",
-            "thirdNational": "Third National issues and settles"
+            "thirdNational": "Third National issues and settles",
+            "aveniaBr": "Settled by {brand}"
         },
         "peanutRole": "Self-custodial wallet software provider; not a party to provider trades",
         "cardRelationship": "You have a direct relationship with Third National under the card terms.",

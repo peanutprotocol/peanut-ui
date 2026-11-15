@@ -164,7 +164,7 @@ describe('native-routes', () => {
                 )
             })
 
-            it('should not rewrite the neutral Pix pages or the new-key page (static routes)', () => {
+            it('should not rewrite the neutral Pix pages or the retired new-key alias (static routes)', () => {
                 expect(rewriteMethodPath('/add-money/pix?step=showQR&intentId=d1')).toBe(
                     '/add-money/pix?step=showQR&intentId=d1'
                 )

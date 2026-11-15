@@ -18,7 +18,6 @@ import { parseWireAmount, senderNoteText } from './transaction-details.utils'
 import { networkFeeDetailsForEntry } from './network-fee.utils'
 import { pipelineAlert } from '@/utils/pipelineAlerts'
 import { formatBankAmount } from '@/utils/currency'
-import { awaitsNewPixKey } from '@/features/pix/pixRecovery'
 import { pixCodePayable } from '@/features/pix/pixDepositCode'
 
 /** Sender account types that are not a payer's bank account. */
@@ -40,8 +39,8 @@ function isDisputeStatus(value: unknown): value is DisputeStatus {
     return typeof value === 'string' && DISPUTE_STATUSES.has(value)
 }
 
-// peanut-api-ts `enum TransactionProvider`, as a history row names it (BRIDGE, MANTECA, RAIN, ...).
-// The history schema types `extraData.provider` as a plain string, so the app reads a
+// peanut-api-ts `enum TransactionProvider`, as a history row names it (BRIDGE, MANTECA, AVENIA,
+// RAIN, ...). The history schema types `extraData.provider` as a plain string, so the app reads a
 // string too: a new provider needs no change here, and its legal record comes from the registry
 // (`providerIdFor` in provider.utils). Receipts that branch on a provider compare this value for
 // positive identity rather than infer it from the absence of other fields.
@@ -431,8 +430,6 @@ export interface TransactionDetails {
          *  `hasPublicReceipt`: it is the one gate for the receipt link, its
          *  share and the anonymous PDF. */
         publicReceipt?: boolean
-        /** A Pix withdrawal whose payout the bank refused: the money waits for another own Pix key. */
-        awaitsNewPixKey?: boolean
         /** A Pix deposit whose code can still be paid: the receipt opens it again. */
         pixCodePayable?: boolean
         link?: string
@@ -821,7 +818,6 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             provider: entry.extraData?.provider as Provider | undefined,
             bridgeFlow: entry.extraData?.bridgeFlow,
             publicReceipt: entry.extraData?.publicReceipt || undefined,
-            awaitsNewPixKey: awaitsNewPixKey(entry.extraData) || undefined,
             pixCodePayable: pixCodePayable(entry.extraData, Date.now()) || undefined,
             link: entry.extraData?.link,
             isLinkTransaction: isLinkTx,
