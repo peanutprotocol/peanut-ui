@@ -64,6 +64,7 @@ test('a creator page counts one visit with its variant, and the CTA does not cou
     const visits = await recordVisits(page)
     const response = await page.goto('/go/alice/ig?utm_campaign=t')
     expect(response?.status()).toBe(200)
+    expect(response?.headers()['cache-control']).toContain('no-store')
     await expect(page.getByRole('dialog')).toHaveCount(0)
     await expect.poll(() => visits.length).toBe(1)
     expect(visits[0]).toMatchObject({

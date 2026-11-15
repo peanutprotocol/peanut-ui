@@ -1,12 +1,6 @@
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import type { paths } from '@/types/api.generated'
 
-export const TRACKED_LINK_HEADERS = {
-    'Cache-Control': 'private, no-store, max-age=0',
-    'X-Robots-Tag': 'noindex, nofollow',
-    'Referrer-Policy': 'no-referrer',
-}
-
 export type InviteLinkLookup = { status: 'found'; linkId: string } | { status: 'not_found' } | { status: 'unavailable' }
 
 type InviteLinkResponses = paths['/tracked-links/invites/{username}']['get']['responses']

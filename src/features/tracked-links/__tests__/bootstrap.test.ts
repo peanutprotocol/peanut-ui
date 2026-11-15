@@ -15,7 +15,7 @@ import {
     type SignupAttributionContext,
 } from '@/utils/signup-attribution'
 import { parseDeferredPayload as parseLegacyPayload } from '@/utils/__tests__/fixtures/legacy-native-attribution'
-import { bootstrapTrackedLinkEntry, EMPTY_TRACKED_LINK_BOOTSTRAP } from '../bootstrap'
+import { bootstrapTrackedLinkEntry, EMPTY_TRACKED_LINK_BOOTSTRAP, enterGoPage } from '../bootstrap'
 
 const WEB_ID = '44444444-4444-4444-8444-444444444444'
 const mockNative = new Map<string, string>()
@@ -349,4 +349,72 @@ it('does not create a replacement journey when native storage is stuck', async (
     expect(await pending).toBeNull()
     expect(document.cookie).not.toContain('signupAttribution=')
     expect(mockNative.size).toBe(0)
+})
+
+describe('the /go page entry', () => {
+    const handoff = (page = '&tl_v=a1&tl_e=n1') =>
+        new URLSearchParams(`app_entry=1&tl=${slug}&acq_invite=${slug}&tl_s=ig${page}`)
+    const marker = () => sessionStorage.getItem(`peanut:tl-visit:${slug}`)
+    // The visit dedupe window would hide a second count; only the marker may stop it here.
+    const afterReplayWindow = () => jest.spyOn(Date, 'now').mockReturnValue(Date.now() + 10_000)
+    beforeEach(() => {
+        sessionStorage.clear()
+        visit(`/go/${slug}/ig`)
+    })
+
+    it('counts one visit with the page variant, then the CTA’s /app skips it once', async () => {
+        await enterGoPage(handoff())
+        expect(visits()).toEqual([
+            {
+                url: '/api/tracked-links/open',
+                body: expect.objectContaining({ slug, placement: 'ig', page_variant: 'a1', page_experiment: 'n1' }),
+            },
+        ])
+        expect(readSignupAttribution()?.lastTouch).toMatchObject({ utmSource: 'instagram', utmMedium: 'ambassador' })
+        expect(marker()).toBe('1')
+
+        fetchMock.mockClear()
+        afterReplayWindow()
+        await bootstrapTrackedLinkEntry(visit(`/app?${handoff()}`), false)
+        expect(fetchMock).not.toHaveBeenCalled()
+        expect(marker()).toBeNull()
+        await bootstrapTrackedLinkEntry(visit(`/app?${handoff()}`), false)
+        expect(visits()).toHaveLength(1)
+    })
+
+    it('counts a tap made before the page hydrated once, at /app, with the variant', async () => {
+        await bootstrapTrackedLinkEntry(visit(`/app?${handoff()}`), false)
+        expect(visits()).toEqual([
+            {
+                url: '/api/tracked-links/open',
+                body: expect.objectContaining({ slug, page_variant: 'a1', page_experiment: 'n1' }),
+            },
+        ])
+    })
+
+    it('records no variant for a creator without a page, and drops a bad label', async () => {
+        await enterGoPage(handoff(''))
+        afterReplayWindow()
+        sessionStorage.clear()
+        await bootstrapTrackedLinkEntry(visit(`/app?${handoff('&tl_v=A1&tl_e=n1')}`), false)
+        for (const { body } of visits()) expect(body).toMatchObject({ page_variant: null, page_experiment: null })
+        expect(visits()).toHaveLength(2)
+    })
+
+    it.each(['dnt', 'gpc', 'declined'] as const)(
+        'under %s keeps the stash and the badge, but writes no journey and sends no visit',
+        async (condition) => {
+            if (condition === 'dnt') Object.defineProperty(navigator, 'doNotTrack', { configurable: true, value: '1' })
+            if (condition === 'gpc')
+                Object.defineProperty(navigator, 'globalPrivacyControl', { configurable: true, value: true })
+            if (condition === 'declined') localStorage.setItem('__ph_opt_in_out_phc_tracked_test', '0')
+            visit('/go/juanacervio/ig')
+            await enterGoPage(new URLSearchParams('app_entry=1&tl=juanacervio&acq_invite=juanacervio&tl_s=ig'))
+            expect(readInviteCode()).toBe('juanacervio')
+            expect(readInviteIntent()).toBe('acquisition')
+            expect(getPendingBadgeCampaigns()).toContain('nita')
+            expect(document.cookie).not.toContain('signupAttribution')
+            expect(fetchMock).not.toHaveBeenCalled()
+        }
+    )
 })
