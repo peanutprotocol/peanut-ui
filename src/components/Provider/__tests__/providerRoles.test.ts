@@ -5,11 +5,12 @@ import ptBR from '@/i18n/app/messages/pt-BR.json'
 /**
  * The provider sheet says what the statement's provider page says (TASK-24947 M5, Chip's review
  * threads on api#2149). Pinned from the API's `src/i18n/messages/*.json` at f36ebcf31: Avenia's line
- * whole, and Manteca's as the app's two entities split it (Argentina's money, then Brazil's Pix).
+ * whole, and Manteca's as the app's two entities split it (Argentina's money, then Brazil's Pix). The
+ * English Avenia line was shortened here first (review 2, the sheet's word budget); the API follows.
  */
 const API = {
     en: {
-        avenia: 'Pix deposits for residents of Brazil, and Pix withdrawals, transfers and QR payments for users in any country',
+        avenia: 'Pix deposits for Brazil residents, and Pix withdrawals, transfers and QR payments for users anywhere',
         manteca: 'Deposits, withdrawals and QR payments in Argentina, and Pix for accounts that do not use Avenia yet',
         join: ', and ',
         messages: en,

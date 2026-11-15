@@ -2619,7 +2619,7 @@
     "pix": {
         "methodNotServed": "Peanut does not offer this.",
         "rolloutClosed": "Pix is not available for your account yet.",
-        "residenceNotServed": "Pix is not offered where you live. Message support if you have questions.",
+        "residenceNotServed": "Pix is not offered where you live. Message support.",
         "unavailableTitle": "Pix not available",
         "rejected": "Our Pix partner didn't approve your verification, so Pix isn't available for now. Your other Peanut features aren't affected. Message support if you think this is a mistake.",
         "payResidence": "Pix payments are not available where you live yet.",
@@ -5500,7 +5500,7 @@
             "bridgeEea": "Fiat on-ramp, off-ramp and virtual IBAN provider",
             "mantecaAr": "Deposits, withdrawals and QR payments in Argentina",
             "mantecaBr": "Pix for accounts that do not use Avenia yet",
-            "aveniaBr": "Pix deposits for residents of Brazil, and Pix withdrawals, transfers and QR payments for users in any country"
+            "aveniaBr": "Pix deposits for Brazil residents, and Pix withdrawals, transfers and QR payments for users anywhere"
         },
         "about": "About {brand}",
         "execution": {

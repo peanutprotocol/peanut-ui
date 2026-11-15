@@ -2619,7 +2619,7 @@
     "pix": {
         "methodNotServed": "Peanut no ofrece esto.",
         "rolloutClosed": "Pix todavía no está disponible para tu cuenta.",
-        "residenceNotServed": "Pix no se ofrece donde vives. Escríbenos a soporte si tienes preguntas.",
+        "residenceNotServed": "Pix no se ofrece donde vives. Escríbenos a soporte.",
         "unavailableTitle": "Pix no disponible",
         "rejected": "Nuestro socio de Pix no aprobó tu verificación, así que Pix no está disponible por ahora. El resto de Peanut no se ve afectado. Escríbenos a soporte si crees que es un error.",
         "payResidence": "Los pagos con Pix aún no están disponibles donde vives.",
