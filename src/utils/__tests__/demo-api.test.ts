@@ -117,6 +117,27 @@ describe('demoRespond — routing', () => {
         expect(await res.json()).toMatchObject(expected)
     })
 
+    // The owner's ruling of 15 Nov: R$5 to withdraw or send to a Pix key; adding money stays at R$20
+    it.each([
+        ['withdraw', '5'],
+        ['deposit', '20'],
+    ])('names the %s minimum on the Pix route and in the quote: R$%s', async (operation, minimum) => {
+        const me = await (await demoRespond('/users/me', { method: 'GET' }, { offline: true, strict: true })).json()
+        const route = me.capabilities.routes.find(
+            (r: { operation: string; method: string }) => r.operation === operation && r.method === 'PIX_BR'
+        )
+        expect(route.limits.minAmount).toBe(minimum)
+        const quote = await demoRespond(
+            `/pix/quote?operation=${operation}&amountBrl=100`,
+            { method: 'GET' },
+            {
+                offline: true,
+                strict: true,
+            }
+        )
+        expect(await quote.json()).toMatchObject({ operation, minAmountBrl: minimum })
+    })
+
     // The QR flow reads the payment's reward from this answer; the snapshot makes `perk` required
     // (null until the reward is issued), so the demo answer carries every field the snapshot names.
     it('answers the Pix payment read with every field the API snapshot requires', async () => {

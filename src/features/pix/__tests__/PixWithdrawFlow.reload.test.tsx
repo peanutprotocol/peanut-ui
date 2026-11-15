@@ -615,33 +615,33 @@ describe('PixWithdrawFlow form', () => {
         expect(screen.queryByText(en.withdraw.bank.bankReceives)).toBeNull()
     })
 
-    // a route with the provider's minimum, as Avenia's carries R$20
-    const WITH_MINIMUM: CapabilityRoute = { ...route, limits: { minAmount: '20', currency: 'BRL' } }
+    // a route with the provider's minimum, as Avenia's carries R$5 for a payout (ruling of 15 Nov)
+    const WITH_MINIMUM: CapabilityRoute = { ...route, limits: { minAmount: '5', currency: 'BRL' } }
 
     // A bridge fee makes the debit larger than the USD entered. The reais under the amount are the
     // payout per USD entered, never the payout over the debit, and the quote decides the minimum.
     it('converts a USD amount with the provider input, so a bridge fee cannot hold it under the minimum', async () => {
-        // the indicative price alone would read USD 4 as R$19.20, under the R$20 minimum
+        // the indicative price alone would read USD 1 as R$4.80, under the R$5 minimum
         mockQuote.mockReturnValue({ ...QUOTED, price: { sell: 4.8, buy: 4.8 } })
-        mockPreview.mockResolvedValue({ ...display, amountBrl: '20.00', withdrawUsd: '4.100000' })
-        withForm({ destination: KEY, amountUsd: '4' })
+        mockPreview.mockResolvedValue({ ...display, amountBrl: '5.00', withdrawUsd: '1.100000' })
+        withForm({ destination: KEY, amountUsd: '1' })
         renderAt('?step=review', undefined, false, WITH_MINIMUM)
 
-        await waitFor(() => expect(mockPreview).toHaveBeenCalledWith({ pixKey: KEY, amountUsd: '4' }))
-        expect(await screen.findByText('$4.10')).toBeInTheDocument()
-        expect(screen.getByText('R$20')).toBeInTheDocument()
-        // the field converts USD 4 with the payout over the USD entered: R$20, not 20 / 4.10 ≈ R$19.51
-        expect(screen.getByText(/≈ R\$ 20(\.00)?$/)).toBeInTheDocument()
-        expect(screen.queryByText(en.pix.deposit.minimum.replace('{amount}', 'R$20'))).toBeNull()
+        await waitFor(() => expect(mockPreview).toHaveBeenCalledWith({ pixKey: KEY, amountUsd: '1' }))
+        expect(await screen.findByText('$1.10')).toBeInTheDocument()
+        expect(screen.getByText('R$5')).toBeInTheDocument()
+        // the field converts USD 1 with the payout over the USD entered: R$5, not 5 / 1.10 ≈ R$4.55
+        expect(screen.getByText(/≈ R\$ 5(\.00)?$/)).toBeInTheDocument()
+        expect(screen.queryByText(en.pix.deposit.minimum.replace('{amount}', 'R$5'))).toBeNull()
         await waitFor(() => expect(screen.getByRole('button', { name: en.common.confirm })).toBeEnabled())
     })
 
     it('still refuses typed reais under the minimum before any quote', () => {
         mockPreview.mockResolvedValue(display)
-        withForm({ destination: KEY, amountBrl: '10' })
+        withForm({ destination: KEY, amountBrl: '3' })
         renderAt('?step=review', undefined, false, WITH_MINIMUM)
 
-        expect(screen.getByText(en.pix.deposit.minimum.replace('{amount}', 'R$20'))).toBeInTheDocument()
+        expect(screen.getByText(en.pix.deposit.minimum.replace('{amount}', 'R$5'))).toBeInTheDocument()
         expect(mockPreview).not.toHaveBeenCalled()
         expect(screen.getByRole('button', { name: en.common.confirm })).toBeDisabled()
     })

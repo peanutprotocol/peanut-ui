@@ -185,7 +185,7 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
               : undefined
     // Typed reais are checked against the provider's minimum here; the API checks the credited amount
     // again. Reais converted from USD or the balance are an estimate that a bridge fee can put under
-    // the minimum while the payout is not (USD 4 can debit 4.10 USDC and still pay R$20), so there
+    // the minimum while the payout is not (USD 1 can debit 1.10 USDC and still pay R$5), so there
     // the quote's own payout decides: a short one comes back as the API's minimum refusal.
     const amountError =
         balanceError ??
@@ -242,7 +242,7 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
     // amount is the debit itself and agrees with the Total row. Typed USD: reais per USD entered,
     // the provider input the quote converts, so the reais under the amount are the payout itself
     // and the debit, a bridge fee larger, stands in the Total row alone. The payout over the debit
-    // would read R$19.51 for a USD 4 that pays R$20, and hold the form under the minimum (Chip, ui#4082).
+    // would read R$4.55 for a USD 1 that pays R$5, and hold the form under the minimum (Chip, ui#4082).
     const exactPrice = display
         ? pixQuotePrice({
               amountBrl: display.amountBrl,

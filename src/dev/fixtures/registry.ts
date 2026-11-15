@@ -251,8 +251,9 @@ const aveniaRoutes = (stage: 'enabled' | 'first-use' | 'reviewing') =>
             method: 'PIX_BR',
             provider: 'avenia',
             ...step,
-            // the provider's minimum, as the route states it before any quote
-            limits: { minAmount: '20', currency: 'BRL' },
+            // the provider's minimum, as the route states it before any quote: R$20 to add money, R$5 to
+            // withdraw or send (the owner's ruling of 15 Nov)
+            limits: { minAmount: operation === 'deposit' ? '20' : '5', currency: 'BRL' },
             candidates: [{ provider: 'avenia', ...step }],
         }
     })
@@ -395,7 +396,7 @@ const aveniaRouteResponses = (
                 method: 'PIX_BR',
                 provider: 'avenia',
                 ...step,
-                limits: { minAmount: '20', currency: 'BRL' },
+                limits: { minAmount: operation === 'deposit' ? '20' : '5', currency: 'BRL' },
                 candidates: [{ provider: 'avenia', state: step.state, action: step.action, reason: step.reason }],
             })),
         },
@@ -630,7 +631,7 @@ const aveniaNonResidentResponses = (stage: 'enabled' | 'first-use', overrides: R
         usdcAmount: '18.870000',
         rate: '5.339163',
         fixedFeeBrl: '0.75',
-        minAmountBrl: '20',
+        minAmountBrl: '5',
     },
     ...overrides,
 })
@@ -2517,7 +2518,7 @@ export const FIXTURES: Record<string, Fixture> = {
     'pix-withdraw-form': {
         route: `${AVENIA_WITHDRAW_ROUTE}?step=review`,
         sessionStorage: pixWithdrawForm({ destination: AVENIA_OWN_KEY }),
-        about: 'Avenia Pix withdrawal: the form before an amount, in reais estimated with the Pix quote, R$20 minimum.',
+        about: 'Avenia Pix withdrawal: the form before an amount, in reais estimated with the Pix quote, R$5 minimum.',
         responses: aveniaResponses('enabled'),
     },
     'pix-withdraw-quote-failed': {

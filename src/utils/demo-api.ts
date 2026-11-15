@@ -956,19 +956,6 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     },
 
     // avenia (Brazil Pix for residents). 200s, so a fixture can override any field.
-    {
-        method: 'GET',
-        pattern: '/pix/quote',
-        handler: () => ({
-            provider: 'avenia',
-            operation: 'deposit',
-            amountBrl: '100.00',
-            usdcAmount: '18.237000',
-            rate: '5.442342',
-            fixedFeeBrl: '0.75',
-            minAmountBrl: '20',
-        }),
-    },
     // the demo user's Pix routes name Avenia (DEMO_PIX_ROUTES), so these answer as Avenia does
     {
         method: 'GET',
@@ -1260,6 +1247,21 @@ export async function demoRespond(
             builtAt: null,
             migrationsHead: null,
             contracts: REQUIRED_API_CONTRACTS,
+        })
+    }
+
+    // Avenia's Pix quote names the minimum of the operation in its query: R$20 to add money, R$5 to
+    // withdraw or send (the owner's ruling of 15 Nov). Route handlers never see the query.
+    if (method === 'GET' && pathname === '/pix/quote') {
+        const operation = new URL(path, 'http://capture.invalid').searchParams.get('operation') ?? 'deposit'
+        return json({
+            provider: 'avenia',
+            operation,
+            amountBrl: '100.00',
+            usdcAmount: '18.237000',
+            rate: '5.442342',
+            fixedFeeBrl: '0.75',
+            minAmountBrl: operation === 'withdraw' ? '5' : '20',
         })
     }
 

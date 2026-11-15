@@ -115,7 +115,8 @@ const DEMO_PIX_ROUTES: CapabilityRoute[] = [
             method: 'PIX_BR',
             provider: 'avenia',
             state: 'ready',
-            limits: { minAmount: '20', currency: 'BRL' },
+            // a deposit's minimum is R$20; a withdrawal or send's is R$5 (the owner's ruling of 15 Nov)
+            limits: { minAmount: operation === 'deposit' ? '20' : '5', currency: 'BRL' },
             candidates: [{ provider: 'avenia', state: 'ready' }],
         })
     ),
