@@ -4448,7 +4448,10 @@
         },
         "qrScanner": {
             "scanToPay": "Escaneie para pagar",
-            "clickToPaste": "Toque para colar",
+            "paste": "Colar",
+            "pastePixCode": "Colar código Pix",
+            "pasteAddress": "Colar endereço",
+            "supportedQrCodes": "Códigos QR aceitos",
             "clipboardEmpty": "A área de transferência está vazia",
             "clipboardUnavailable": "Não foi possível acessar a área de transferência",
             "startingCamera": "Iniciando a câmera…",
@@ -4484,10 +4487,8 @@
                     "androidStep3": "Defina Câmera como Permitir"
                 }
             },
-            "useCopiedCode": "Usar código copiado",
             "paymentMethods": {
-                "evmName": "ETH e EVMs",
-                "evmAlt": "Ethereum e EVMs"
+                "evmName": "ETH e EVMs"
             }
         },
         "qrScannerOverlay": {
