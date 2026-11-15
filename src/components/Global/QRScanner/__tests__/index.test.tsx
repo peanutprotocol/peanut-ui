@@ -11,7 +11,7 @@ jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform
  * was copied on the button; the tap reads again and pays the fresh value.
  */
 import React from 'react'
-import { render as rtlRender, screen, fireEvent, act } from '@testing-library/react'
+import { render as rtlRender, screen, fireEvent, act, waitFor } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import { Clipboard } from '@capacitor/clipboard'
 import { isAndroidNative } from '@/utils/capacitor'
@@ -21,6 +21,16 @@ import { dispatchBackPress, resetBackHandlersForTests } from '@/utils/back-handl
 const mockToastError = jest.fn()
 
 jest.mock('@capacitor/clipboard', () => ({ Clipboard: { read: jest.fn() } }))
+const mockAppListeners: Array<(state: { isActive: boolean }) => void> = []
+const mockRemoveAppListener = jest.fn()
+jest.mock('@capacitor/app', () => ({
+    App: {
+        addListener: jest.fn(async (_event: string, cb: (state: { isActive: boolean }) => void) => {
+            mockAppListeners.push(cb)
+            return { remove: mockRemoveAppListener }
+        }),
+    },
+}))
 // isCapacitor: the DS Button's haptic asks on every tap
 jest.mock('@/utils/capacitor', () => ({ isAndroidNative: jest.fn(), isCapacitor: () => false }))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
@@ -398,4 +408,23 @@ it('Android: re-reads the label when the user comes back to the app', async () =
     })
 
     expect(await screen.findByRole('button', { name: 'Paste Pix code' })).toBeInTheDocument()
+})
+
+it('Android: re-reads the label on native resume, and stops listening on close', async () => {
+    mockIsAndroidNative.mockReturnValue(true)
+    mockAppListeners.length = 0
+    mockRead.mockResolvedValueOnce({ value: ADDRESS, type: 'text/plain' })
+
+    const { unmount } = render(<QRScanner onScan={jest.fn()} />)
+    await screen.findByRole('button', { name: 'Paste address' })
+    await waitFor(() => expect(mockAppListeners).toHaveLength(1))
+
+    mockRead.mockResolvedValueOnce({ value: PIX_CODE, type: 'text/plain' })
+    await act(async () => {
+        mockAppListeners[0]({ isActive: true })
+    })
+    expect(await screen.findByRole('button', { name: 'Paste Pix code' })).toBeInTheDocument()
+
+    unmount()
+    expect(mockRemoveAppListener).toHaveBeenCalled()
 })

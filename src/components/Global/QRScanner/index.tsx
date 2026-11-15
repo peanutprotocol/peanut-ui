@@ -358,8 +358,25 @@ export default function QRScanner({ onScan, onClose, onPermissionDenied, isOpen 
             if (document.visibilityState === 'visible') readCopiedKind()
         }
         document.addEventListener('visibilitychange', onVisible)
+        // Android WebViews do not reliably fire visibilitychange, so the native
+        // lifecycle is the authority; the DOM event stays as a fallback.
+        let removeNative: (() => void) | undefined
+        import('@capacitor/app')
+            .then(({ App }) =>
+                App.addListener('appStateChange', ({ isActive }) => {
+                    if (isActive) readCopiedKind()
+                })
+            )
+            .then((handle) => {
+                if (cancelled) handle.remove()
+                else removeNative = () => handle.remove()
+            })
+            .catch(() => {
+                // no bridge (old native shell): the DOM event covers it
+            })
         return () => {
             cancelled = true
+            removeNative?.()
             document.removeEventListener('visibilitychange', onVisible)
         }
     }, [isScanning])
