@@ -30,10 +30,11 @@ jest.mock('next/navigation', () => ({
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn(), captureMessage: jest.fn() }))
 jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '/mp.png', PIX: '/pix.png' }))
+const mockFetchUser = jest.fn(async () => null)
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({
         user: { user: { userId: 'u1', username: 'tester' } },
-        fetchUser: jest.fn(),
+        fetchUser: mockFetchUser,
     }),
 }))
 // what the pay:PIX_BR route blocks (its own suite covers reading the route)
@@ -221,6 +222,7 @@ import { QrPayPage } from '../QrPayPage'
 import { QrPayFlowProvider, useQrPayFlow } from '../QrPayFlowContext'
 import type { QrPayFlowSurface } from '../useQrPayFlow'
 import { pixProviderId } from '@/utils/provider.utils'
+import { ApiError } from '@/services/api-error'
 
 const PIX_CODE =
     '00020101021226680014br.gov.bcb.pix2546pix.example.com/qr/v2/cobv/padaria-pao-dourado520400005303986540542.505802BR5924PADARIA PAO DOURADO LTDA6009SAO PAULO62070503***63043A47'
@@ -241,11 +243,11 @@ const read = (state: string, status: string) => ({
     perk: null,
 })
 
-function renderOpenedPayment() {
+function renderOpenedPayment(searchParams = '?intentId=pay-1') {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
     return render(
         <IntlWrapper>
-            <NuqsTestingAdapter searchParams="?intentId=pay-1">
+            <NuqsTestingAdapter searchParams={searchParams}>
                 <QueryClientProvider client={queryClient}>
                     <LoadingStateContextProvider>
                         <QrPayPage qrCode={PIX_CODE} timestamp="1" qrType="PIX" />
@@ -341,5 +343,33 @@ describe('an opened payment shows its outcome without a live rate', () => {
 
         expect(await screen.findByText(screenText)).toBeInTheDocument()
         expect(mockGetCurrencyPrice).not.toHaveBeenCalled()
+    })
+})
+
+// TASK-24947 M5: the API answers Manteca's QR init for a Pix code it no longer serves on Manteca
+describe("Manteca's init refuses a Pix code Manteca no longer serves", () => {
+    it.each([
+        ['moved to another provider', 409, 'PIX_PROVIDER_MOVED'],
+        ['Manteca’s BRL switched off', 503, 'PROVIDER_UNAVAILABLE'],
+        ['the route’s refusal', 403, 'ROUTE_NOT_AVAILABLE'],
+    ])('%s: the capabilities are read again, so the page follows the route', async (_label, status, code) => {
+        mockRoutes = [payRoute('manteca')]
+        mockMantecaApi.initiateQrPayment.mockRejectedValue(new ApiError('refused', { status, code }))
+        renderOpenedPayment('')
+
+        await waitFor(() => expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalled())
+        await waitFor(() => expect(mockFetchUser).toHaveBeenCalled())
+    })
+
+    it('a moved code is not retried: one init call', async () => {
+        mockRoutes = [payRoute('manteca')]
+        mockMantecaApi.initiateQrPayment.mockRejectedValue(
+            new ApiError('moved', { status: 409, code: 'PIX_PROVIDER_MOVED' })
+        )
+        renderOpenedPayment('')
+
+        await waitFor(() => expect(mockFetchUser).toHaveBeenCalled())
+        await new Promise((resolve) => setTimeout(resolve, 50))
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
     })
 })

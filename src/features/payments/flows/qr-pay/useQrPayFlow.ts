@@ -636,7 +636,10 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             (amountEntryRejection ? scanFailureCopy[amountEntryRejection.code] : null) ??
             // A pasted key the PIX directory does not know: paying it can only fail.
             (isPixKeyNotFound(pixKeyOwnerError) ? tWithdraw('pixKey.notFound') : null) ??
-            (scanOutcome.kind === 'failed' ? scanFailureCopy[scanOutcome.reason] : null) ??
+            // Manteca's scan only: a Pix code the route has since moved to the pay routes leaves it behind
+            (paymentProcessor === 'MANTECA' && scanOutcome.kind === 'failed'
+                ? scanFailureCopy[scanOutcome.reason]
+                : null) ??
             // the provider's read of a code refused it: unpayable, as a refused Manteca scan
             pixPayment.codeRefusal,
         [
@@ -644,6 +647,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             amountEntryRejection,
             pixKeyOwnerError,
             tWithdraw,
+            paymentProcessor,
             scanOutcome,
             scanFailureCopy,
             pixPayment.codeRefusal,
@@ -663,6 +667,20 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     useEffect(() => {
         if (initErrorNeedsVerification) void fetchUser()
     }, [initErrorNeedsVerification, fetchUser])
+    // Manteca's init refused a Pix code because Manteca no longer serves it for this user: moved to
+    // another provider, its BRL switched off (503), or the route's refusal (403). The capabilities are
+    // read again, and the page follows the route: the pay routes, the pause, or the refusal (M5).
+    const pixInitRouteChanged =
+        paymentProcessor === 'MANTECA' &&
+        (qrType === EQrType.PIX || isPixEmvcoQr(qrCode)) &&
+        [
+            API_ERROR_CODES.PIX_PROVIDER_MOVED,
+            API_ERROR_CODES.PROVIDER_UNAVAILABLE,
+            API_ERROR_CODES.ROUTE_NOT_AVAILABLE,
+        ].some((code) => code === wireErrorCode(paymentLockError ?? paymentLockFailureReason))
+    useEffect(() => {
+        if (pixInitRouteChanged) void fetchUser()
+    }, [pixInitRouteChanged, fetchUser])
 
     // Side effects only. Everything the screen RENDERS is derived above.
     useEffect(() => {
