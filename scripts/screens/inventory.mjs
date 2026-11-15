@@ -26,6 +26,10 @@ const ROUTE_EXCLUSIONS = new Map([
         'Routing alias for the additional verification destination, which is catalogued separately',
     ],
     ['/add-money/us/bank', 'Routing alias for the US bank destination, which is catalogued separately'],
+    [
+        '/withdraw/new-pix-key',
+        'Routing alias for the Pix withdrawal outcome on /withdraw/pix, which is catalogued separately',
+    ],
 ])
 
 // The star-feature landing pages (StarLp/starLp.consts.ts STAR_LP_ROUTES): marketing, not app UI.

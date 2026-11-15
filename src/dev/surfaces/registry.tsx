@@ -348,15 +348,17 @@ function PixDepositSurface() {
     const queryClient = useQueryClient()
     useState(() =>
         queryClient.setQueryData(pixDepositQueryKey('demo-pix-deposit'), {
-            provider: 'manteca',
+            provider: 'avenia',
             intentId: 'demo-pix-deposit',
             status: 'AWAITING_USER_ACTION',
             codePayable: true,
             pixReceived: false,
             brCode: DEMO_PIX_BR_CODE,
             amountBrl: '100.00',
-            usdcAmount: '18.390000',
+            usdcAmount: '17.940500',
+            fixedFeeBrl: '0.75',
             expiresAt: new Date(Date.now() + 9 * 60_000 + 12_000).toISOString(),
+            payerCpfMasked: '095.***.***-89',
         } satisfies PixDeposit)
     )
     return (
@@ -376,14 +378,15 @@ function PixDepositSurface() {
 const PIX_SURFACE_DISPLAY: PixWithdrawDisplay = {
     amountBrl: '503.00',
     pixKey: '09579927189',
-    ownAccount: null,
+    ownAccount: true,
+    holderTaxIdMasked: null,
     holderName: 'Ana Souza',
     bankName: 'Banco Inter',
     withdrawUsd: '92.504310',
-    rate: '5.437586',
-    fixedFeeBrl: '0',
+    rate: '5.445692',
+    fixedFeeBrl: '0.75',
     arrivalEstimateSeconds: 60,
-    provider: 'Manteca',
+    provider: 'Avenia',
 }
 
 // the last step right after the signature: the destination comes from what was signed. `pastArrival`
@@ -405,7 +408,7 @@ function PixWithdrawOutcomeSurface({
             <PixWithdrawOutcome
                 title="Withdraw"
                 intentId="fixture-pix-withdrawal"
-                providerId="manteca-br"
+                providerId="avenia-br"
                 sent={{ phase: 'funded', display }}
                 onStartAgain={noop}
                 onDone={noop}
@@ -431,6 +434,7 @@ function PixWithdrawFormSurface({ variant }: { variant: 'quote-moved' | 'after-i
                     holderName: PIX_SURFACE_DISPLAY.holderName,
                     bankName: PIX_SURFACE_DISPLAY.bankName,
                     taxIdMasked: null,
+                    ownAccount: PIX_SURFACE_DISPLAY.ownAccount,
                 }}
                 save={{
                     savedName: null,
@@ -456,7 +460,7 @@ function PixWithdrawFormSurface({ variant }: { variant: 'quote-moved' | 'after-i
                 }}
                 display={PIX_SURFACE_DISPLAY}
                 total="$92.50"
-                providerId="manteca-br"
+                providerId="avenia-br"
                 error={error}
                 isSubmitting={false}
                 canConfirm={variant === 'quote-moved'}

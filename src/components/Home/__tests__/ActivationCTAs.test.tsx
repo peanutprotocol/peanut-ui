@@ -57,12 +57,8 @@ const mockOpenSupport = jest.fn()
 const mockPush = jest.fn()
 const mockSetIsQRScannerOpen = jest.fn()
 
-// the Pix deposit route and the next actions it names (TASK-24841)
-let mockRoutes: Array<Record<string, unknown>> = []
-let mockNextActions: Array<{ key: string; kind: string; purpose: string }> = []
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({
-        capabilities: { routes: mockRoutes },
         rails: mockRails,
         channelOf: (rail: { channel: string }) => rail.channel,
         operationStatus: (railId: string, op: string) => {
@@ -77,7 +73,7 @@ jest.mock('@/hooks/useCapabilities', () => ({
                     (rail.operations?.[op] ?? rail.status) === 'enabled'
             ),
         nextActionsForRail: () => [],
-        nextActions: mockNextActions,
+        nextActions: [],
     }),
 }))
 jest.mock('@/context/authContext', () => ({
@@ -191,8 +187,6 @@ beforeEach(() => {
     mockRejectLabels = undefined
     mockShowWrapper = false
     mockPaperworkVerification = () => Promise.resolve(false)
-    mockRoutes = []
-    mockNextActions = []
 })
 
 describe('Bridge postal correction', () => {

@@ -117,6 +117,27 @@ describe('HomeActionDrawers', () => {
         expect(mockCapture).not.toHaveBeenCalled()
     })
 
+    // Which Pix deposit routes offer the row: useAddMoneyReadiness.test.ts
+    it('leads with Pix on a route on Avenia and opens the ready-only Pix list (Aleks, 2026-11-12 and 2026-11-14)', async () => {
+        const onAvenia = resolveAddMoneyMethods({
+            cryptoReady: true,
+            standingEnabled: true,
+            brazilPaused: false,
+            residenceIso2s: ['BR'],
+            activeAccounts: [],
+            readyTopUps: [],
+            pixDepositOffered: true,
+        })
+        renderWithUrl('?drawer=add', undefined, onAvenia)
+
+        const pix = screen.getByTestId('home-drawer-add-pix')
+        const crypto = screen.getByTestId('home-drawer-add-crypto')
+        expect(pix.compareDocumentPosition(crypto) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+
+        fireEvent.click(pix)
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/options?method=pix&ready=1'))
+    })
+
     it('opens the full method picker from More ways and clears the drawer', async () => {
         const urlUpdates: UrlUpdateEvent[] = []
         renderWithUrl('?drawer=add', (event) => urlUpdates.push(event))

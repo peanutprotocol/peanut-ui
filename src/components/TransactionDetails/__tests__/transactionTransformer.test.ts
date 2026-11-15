@@ -1,5 +1,11 @@
 import { mapTransactionDataForDrawer } from '../transactionTransformer'
-import { EHistoryUserRole, EHistoryStatus, getTransactionSign, type HistoryEntry } from '@/utils/history.utils'
+import {
+    EHistoryUserRole,
+    EHistoryStatus,
+    getTransactionSign,
+    type HistoryEntry,
+    type HistoryEntryExtraData,
+} from '@/utils/history.utils'
 import { pipelineAlert } from '@/utils/pipelineAlerts'
 import { getTransactionExplorerUrl } from '@/utils/token.utils'
 
@@ -1434,5 +1440,42 @@ describe('QR_PAY to a looked-up PIX key', () => {
 
         expect(result.userName).toBe('•••• 8909')
         expect(result.nameDetail).toBeUndefined()
+    })
+})
+
+// TASK-24947 (API-CONTRACT-M3 §8): an Avenia payout to another person's key is a send to them
+describe('OFFRAMP to a Pix key, by whose key it is', () => {
+    const payoutEntry = (pixPayout?: HistoryEntryExtraData['pixPayout']) =>
+        baseEntry({
+            userRole: EHistoryUserRole.SENDER,
+            recipientAccount: { identifier: '+5511987654321', fullName: 'BRUNO LIMA', type: 'pix', isUser: false },
+            currency: { amount: '503.00', code: 'BRL' },
+            extraData: { kind: 'OFFRAMP', provider: 'AVENIA', ...(pixPayout ? { pixPayout } : {}) },
+        })
+
+    it("reads another person's key as a send to the holder, the key punctuated beside the name", () => {
+        const result = mapTransactionDataForDrawer(
+            payoutEntry({ pixKey: '+5511987654321', holderName: 'BRUNO LIMA', bankName: 'Nubank', ownAccount: false })
+        )
+        expect(result.transactionCardType).toBe('send')
+        expect(result.transactionDetails.userName).toBe('Bruno Lima')
+        expect(result.transactionDetails.nameDetail).toBe('11 98765-4321')
+        expect(result.transactionDetails.bankAccountDetails).toEqual({ identifier: '+5511987654321', type: 'pix' })
+    })
+
+    it('names the key alone where the lookup named no holder', () => {
+        const result = mapTransactionDataForDrawer(
+            payoutEntry({ pixKey: '11144477735', holderName: null, bankName: null, ownAccount: false })
+        )
+        expect(result.transactionDetails.userName).toBe('111.444.777-35')
+        expect(result.transactionDetails.nameDetail).toBeUndefined()
+    })
+
+    it.each([
+        ['the own key', { pixKey: '11144477735', holderName: 'Ana Souza', bankName: null, ownAccount: true }],
+        ['a payout opened before M3', { pixKey: '11144477735', holderName: null, bankName: null, ownAccount: null }],
+        ['a shared receipt, which carries no payout', undefined],
+    ])('keeps %s a withdrawal', (_case, pixPayout) => {
+        expect(mapTransactionDataForDrawer(payoutEntry(pixPayout)).transactionCardType).toBe('bank_withdraw')
     })
 })

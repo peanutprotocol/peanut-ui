@@ -7,7 +7,7 @@ import { PERK_HOLD_DURATION_MS } from '@/constants/general.consts'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
 import { cancelHaptic, notifyHaptic, vibrateHaptic } from '@/utils/haptics'
 import type { ShakeIntensity } from '@/utils/perk.utils'
-import type { QrPayment } from '@/services/manteca'
+import type { PaidReward } from './paidReward'
 
 // Module scope ON PURPOSE. The page remounts the whole flow under a new key
 // (`${qrCode}|${timestamp}` in qr-pay/page.tsx), which mounts a NEW hook
@@ -26,16 +26,17 @@ let pendingDismissTimer: ReturnType<typeof setTimeout> | null = null
  * reconciliation; nothing to hold for, celebrate or report as claimed.
  * A legacy response without `payoutStatus` behaves as before.
  */
-function isRewardOffered(payment: QrPayment | null): boolean {
-    return !!payment?.perk?.eligible && payment.perk.payoutStatus !== 'failed'
+function isRewardOffered(reward: PaidReward | null): boolean {
+    return !!reward?.perk?.eligible && reward.perk.payoutStatus !== 'failed'
 }
 
 /**
  * The hold-to-claim gesture: progress, shake, haptics, confetti, and the
  * shown/claimed/dismissed analytics. Mounted by the success view only, so
- * every timer dies with the screen that started it.
+ * every timer dies with the screen that started it. The same gesture for every
+ * provider: `reward` is the paid payment's reward, `onClaimed` marks it revealed.
  */
-export function usePerkHoldToClaim(qrPayment: QrPayment | null, setQrPayment: (payment: QrPayment | null) => void) {
+export function usePerkHoldToClaim(reward: PaidReward | null, onClaimed: () => void) {
     const [isShaking, setIsShaking] = useState(false)
     const [shakeIntensity, setShakeIntensity] = useState<ShakeIntensity>('none')
     const [perkClaimed, setPerkClaimed] = useState(false)
@@ -44,13 +45,13 @@ export function usePerkHoldToClaim(qrPayment: QrPayment | null, setQrPayment: (p
     const progressIntervalRef = useRef<NodeJS.Timeout | null>(null)
     const holdStartTimeRef = useRef<number | null>(null)
 
-    const rewardOffered = isRewardOffered(qrPayment)
+    const rewardOffered = isRewardOffered(reward)
     // The hold timer fires up to PERK_HOLD_DURATION_MS after it was armed;
     // the celebration must judge the payment as it is THEN, not as captured.
-    const qrPaymentRef = useRef(qrPayment)
+    const rewardRef = useRef(reward)
     useEffect(() => {
-        qrPaymentRef.current = qrPayment
-    }, [qrPayment])
+        rewardRef.current = reward
+    }, [reward])
 
     // Analytics tracking refs — read by the unmount capture below
     const hasTrackedPerkShown = useRef(false)
@@ -85,17 +86,18 @@ export function usePerkHoldToClaim(qrPayment: QrPayment | null, setQrPayment: (p
     }, [perkClaimed])
 
     useEffect(() => {
-        if (rewardOffered && qrPayment?.perk && !perkClaimed && !hasTrackedPerkShown.current) {
+        // a reward already claimed (read so after a reload) is shown revealed, not offered: no shown event
+        if (rewardOffered && reward?.perk && !reward.perk.claimed && !perkClaimed && !hasTrackedPerkShown.current) {
             hasTrackedPerkShown.current = true
             const eventProps = {
-                amount_usd: qrPayment.perk.amountSponsored,
-                discount_pct: qrPayment.perk.discountPercentage,
-                merchant: qrPayment.details?.merchant?.name,
+                amount_usd: reward.perk.amountSponsored,
+                discount_pct: reward.perk.discountPercentage,
+                merchant: reward.merchantName,
             }
             posthog.capture(ANALYTICS_EVENTS.REWARD_CLAIM_SHOWN, eventProps)
             posthog.capture(ANALYTICS_EVENTS.SURPRISE_MOMENT_SHOWN, eventProps)
         }
-    }, [rewardOffered, perkClaimed, qrPayment])
+    }, [rewardOffered, perkClaimed, reward])
 
     // Track dismiss: user navigated away after seeing the perk without claiming.
     // The capture is deferred one tick and cancelled by ANY remount — StrictMode
@@ -123,8 +125,8 @@ export function usePerkHoldToClaim(qrPayment: QrPayment | null, setQrPayment: (p
     const claimPerk = useCallback(() => {
         // Confetti needs a reward the API actually reserved for THIS payment
         // and has not reported as failed — judged now, not when the hold began.
-        const payment = qrPaymentRef.current
-        if (!payment?.externalId || !isRewardOffered(payment)) return
+        const payment = rewardRef.current
+        if (!payment?.paymentId || !isRewardOffered(payment)) return
 
         // 1. IMMEDIATELY show success UI (optimistic)
         setPerkClaimed(true)
@@ -141,7 +143,7 @@ export function usePerkHoldToClaim(qrPayment: QrPayment | null, setQrPayment: (p
         shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.5 } })
 
         // 5. Surface the reward. The perk was already issued server-side during
-        //    QR-payment processing, and qrPayment.perk already carries the
+        //    QR-payment processing, and reward.perk already carries the
         //    sponsored amount from that response — so mark it revealed and
         //    report it directly. `claimed` is this screen's reveal flag only;
         //    the payout transfer settles later and is `perk.payoutStatus` /
@@ -159,9 +161,9 @@ export function usePerkHoldToClaim(qrPayment: QrPayment | null, setQrPayment: (p
                 amount_usd: claimedPerk.amountSponsored,
                 discount_pct: claimedPerk.discountPercentage,
             })
-            setQrPayment({ ...payment, perk: { ...claimedPerk, claimed: true } })
+            onClaimed()
         }
-    }, [setQrPayment])
+    }, [onClaimed])
 
     // Hold-to-claim mechanics
     const cancelHold = useCallback(() => {
@@ -208,7 +210,7 @@ export function usePerkHoldToClaim(qrPayment: QrPayment | null, setQrPayment: (p
     const startHold = useCallback(() => {
         // Same live verdict as the claim: a failed payout gets no hold at all —
         // no timers, no shake, no progress vibration to reject later.
-        if (!isRewardOffered(qrPaymentRef.current)) return
+        if (!isRewardOffered(rewardRef.current)) return
 
         setHoldProgress(0)
         setIsShaking(true)

@@ -1,21 +1,25 @@
 import { useRouter } from 'next/navigation'
 import { QRPaymentStatusView } from '@/components/QRPay/QRPaymentStatusView'
 import { TransactionDetailsDrawer } from '@/components/TransactionDetails/TransactionDetailsDrawer'
+import { useModalsContext } from '@/context/ModalsContext'
 import { useTransactionDetailsDrawer } from '@/hooks/useTransactionDetailsDrawer'
-import { qrPaymentDisplayStatus } from '@/utils/qr-payment.utils'
 import { useQrPayFlow } from '../QrPayFlowContext'
 import { useQrReceipt } from '../useQrReceipt'
 
 export function QrPayStatusView() {
     const router = useRouter()
-    const { qrPayment } = useQrPayFlow()
+    const { paymentStatus, paymentNeedsSupport } = useQrPayFlow()
+    const { setIsSupportModalOpen } = useModalsContext()
     const receipt = useQrReceipt()
     const { isTransactionSelected, closeTransactionDetails } = useTransactionDetailsDrawer()
-    const status = qrPaymentDisplayStatus(qrPayment?.status)
-    if (status === 'completed') return null
+    if (!paymentStatus || paymentStatus === 'completed') return null
     return (
         <>
-            <QRPaymentStatusView status={status} onViewActivity={() => router.push('/history')} />
+            <QRPaymentStatusView
+                status={paymentStatus}
+                onViewActivity={() => router.push('/history')}
+                onContactSupport={paymentNeedsSupport ? () => setIsSupportModalOpen(true) : undefined}
+            />
             <TransactionDetailsDrawer
                 isOpen={isTransactionSelected(receipt?.id)}
                 onClose={closeTransactionDetails}

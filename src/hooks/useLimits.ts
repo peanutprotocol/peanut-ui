@@ -14,7 +14,7 @@ interface UseLimitsOptions {
 
 /**
  * hook to fetch user's fiat transaction limits
- * returns limits from both bridge (na/europe/mx) and manteca (latam) providers
+ * returns limits from bridge (na/europe/mx), manteca (latam) and avenia (BRL) providers
  * returns null values if user hasn't completed respective kyc
  */
 export function useLimits(options: UseLimitsOptions = {}) {
@@ -27,14 +27,14 @@ export function useLimits(options: UseLimitsOptions = {}) {
         await authReady()
         const token = getAuthToken()
         if (!isCapacitor() && !token && !isDemoMode()) {
-            return { manteca: null, bridge: null }
+            return { manteca: null, bridge: null, avenia: null, unavailable: [] }
         }
 
         const response = await serverFetch('/users/limits', { method: 'GET' })
 
         // 400 means user has no kyc - return empty limits
         if (response.status === 400) {
-            return { manteca: null, bridge: null }
+            return { manteca: null, bridge: null, avenia: null, unavailable: [] }
         }
 
         if (!response.ok) {
@@ -58,6 +58,7 @@ export function useLimits(options: UseLimitsOptions = {}) {
         limits: data ?? null,
         bridgeLimits: data?.bridge ?? null,
         mantecaLimits: data?.manteca ?? null,
+        aveniaLimits: data?.avenia ?? null,
         isLoading,
         error,
         refetch,

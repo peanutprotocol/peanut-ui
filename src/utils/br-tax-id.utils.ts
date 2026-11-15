@@ -30,16 +30,17 @@ export function isValidCnpj(value: string): boolean {
 
 /**
  * Which Brazilian tax ID a value is, or null. A full number is classified by
- * its check digits. A masked one ("12*******90", or "095.***.***-89" as the
- * Pix directory punctuates it: the first 2 or 3 and the last 2 digits kept,
- * one asterisk per hidden digit) can only be classified by its length.
+ * its check digits. A masked one can only be classified by its length: one
+ * asterisk per hidden digit, whichever digits it keeps ("12*******90" from
+ * Manteca, "095.***.***-89" as the Pix directory punctuates it, and Avenia's
+ * "***.456.789-**", which hides the first digits).
  */
 export function brTaxIdKind(value: string): BrTaxIdKind | null {
     if (isValidCpf(value)) return 'CPF'
     if (isValidCnpj(value)) return 'CNPJ'
-    // a masked id, bare ("12*******90", Manteca) or punctuated ("095.***.***-89", the Pix directory)
+    // a masked id, bare or punctuated: digits and asterisks, at least one of each
     const masked = value.replace(/[.\-/]/g, '')
-    if (!/^\d{2,3}\*+\d{2}$/.test(masked)) return null
+    if (!/^[\d*]+$/.test(masked) || !masked.includes('*') || !/\d/.test(masked)) return null
     if (masked.length === 11) return 'CPF'
     if (masked.length === 14) return 'CNPJ'
     return null

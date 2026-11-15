@@ -18,27 +18,39 @@ describe('the Pix withdraw draft', () => {
     })
 
     it("keeps the form in this tab's session, under the account's own key", () => {
-        keepPixWithdrawDraft('u1', FORM)
+        keepPixWithdrawDraft('u1', 'withdraw', FORM)
         expect(JSON.parse(window.sessionStorage.getItem('pix-withdraw-draft:u1')!)).toEqual(FORM)
         expect(window.localStorage.length).toBe(0)
-        expect(readPixWithdrawDraft('u1')).toEqual(FORM)
+        expect(readPixWithdrawDraft('u1', 'withdraw')).toEqual(FORM)
     })
 
     it('never hands one account the draft of another', () => {
-        keepPixWithdrawDraft('u1', FORM)
-        expect(readPixWithdrawDraft('u2')).toEqual(EMPTY_PIX_WITHDRAW_DRAFT)
+        keepPixWithdrawDraft('u1', 'withdraw', FORM)
+        expect(readPixWithdrawDraft('u2', 'withdraw')).toEqual(EMPTY_PIX_WITHDRAW_DRAFT)
         forgetPixWithdrawDraft('u2')
-        expect(readPixWithdrawDraft('u1')).toEqual(FORM)
-        expect(readPixWithdrawDraft(undefined)).toEqual(EMPTY_PIX_WITHDRAW_DRAFT)
+        expect(readPixWithdrawDraft('u1', 'withdraw')).toEqual(FORM)
+        expect(readPixWithdrawDraft(undefined, 'withdraw')).toEqual(EMPTY_PIX_WITHDRAW_DRAFT)
+    })
+
+    // review finding 2: a friend's key typed in Send never prefills a withdrawal, nor the reverse
+    it('keeps a send apart from a withdrawal, and forgets both at once', () => {
+        keepPixWithdrawDraft('u1', 'send', FORM)
+        expect(JSON.parse(window.sessionStorage.getItem('pix-send-draft:u1')!)).toEqual(FORM)
+        expect(readPixWithdrawDraft('u1', 'withdraw')).toEqual(EMPTY_PIX_WITHDRAW_DRAFT)
+        expect(readPixWithdrawDraft('u1', 'send')).toEqual(FORM)
+        keepPixWithdrawDraft('u1', 'withdraw', { ...FORM, destination: 'own@key.com' })
+        forgetPixWithdrawDraft('u1')
+        expect(readPixWithdrawDraft('u1', 'send')).toEqual(EMPTY_PIX_WITHDRAW_DRAFT)
+        expect(readPixWithdrawDraft('u1', 'withdraw')).toEqual(EMPTY_PIX_WITHDRAW_DRAFT)
     })
 
     it('removes an empty form instead of storing it, and forgets one on request', () => {
-        keepPixWithdrawDraft('u1', FORM)
-        keepPixWithdrawDraft('u1', EMPTY_PIX_WITHDRAW_DRAFT)
+        keepPixWithdrawDraft('u1', 'withdraw', FORM)
+        keepPixWithdrawDraft('u1', 'withdraw', EMPTY_PIX_WITHDRAW_DRAFT)
         expect(window.sessionStorage.getItem('pix-withdraw-draft:u1')).toBeNull()
-        keepPixWithdrawDraft('u1', FORM)
+        keepPixWithdrawDraft('u1', 'withdraw', FORM)
         forgetPixWithdrawDraft('u1')
-        expect(readPixWithdrawDraft('u1')).toEqual(EMPTY_PIX_WITHDRAW_DRAFT)
+        expect(readPixWithdrawDraft('u1', 'withdraw')).toEqual(EMPTY_PIX_WITHDRAW_DRAFT)
     })
 
     it('reads a broken value as none, and a field that is not text as empty', () => {
@@ -56,13 +68,13 @@ describe('the Pix withdraw draft', () => {
         jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
             throw new DOMException('quota', 'QuotaExceededError')
         })
-        keepPixWithdrawDraft('u1', FORM)
+        keepPixWithdrawDraft('u1', 'withdraw', FORM)
         expect(window.sessionStorage.length).toBe(0)
-        expect(readPixWithdrawDraft('u1')).toEqual(FORM)
+        expect(readPixWithdrawDraft('u1', 'withdraw')).toEqual(FORM)
 
         jest.isolateModules(() => {
             const reloaded = jest.requireActual<typeof import('../pixWithdrawDraft')>('../pixWithdrawDraft')
-            expect(reloaded.readPixWithdrawDraft('u1')).toEqual(EMPTY_PIX_WITHDRAW_DRAFT)
+            expect(reloaded.readPixWithdrawDraft('u1', 'withdraw')).toEqual(EMPTY_PIX_WITHDRAW_DRAFT)
         })
     })
 })

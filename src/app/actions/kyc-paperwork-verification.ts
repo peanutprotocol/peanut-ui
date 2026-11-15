@@ -11,13 +11,13 @@ import type {
     SaveAnswersResult,
     PaperworkVerificationAnswers,
     PaperworkVerificationDocument,
-    PaperworkVerificationFeature,
+    PaperworkQuestionsFeature,
     PaperworkVerificationQuestions,
     PaperworkVerificationStepId,
 } from './types/kyc-paperwork-verification.types'
 import { KycFlowHandedBackError } from './kyc-flow-hand-back'
 
-const featureQuery = (feature?: PaperworkVerificationFeature) => (feature ? `?feature=${feature}` : '')
+const featureQuery = (feature?: PaperworkQuestionsFeature) => (feature ? `?feature=${feature}` : '')
 
 // Answers carry tax numbers and addresses: never in telemetry, never cached.
 async function call(path: string, step: string, init?: RequestInit) {
@@ -114,7 +114,7 @@ export async function searchKycPlaces(country: string, query: string): Promise<K
 
 const valueKind = (value: unknown): string => (value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value)
 
-export async function getKycQuestions(feature?: PaperworkVerificationFeature): Promise<PaperworkVerificationQuestions> {
+export async function getKycQuestions(feature?: PaperworkQuestionsFeature): Promise<PaperworkVerificationQuestions> {
     for (let attempt = 0; attempt < 2; attempt++) {
         const response = await call(`/users/kyc/questions${featureQuery(feature)}`, 'questions_read')
         if (!response.ok) {
@@ -166,7 +166,7 @@ export async function getKycQuestions(feature?: PaperworkVerificationFeature): P
 export async function saveKycAnswers(
     step: PaperworkVerificationStepId,
     values: PaperworkVerificationAnswers,
-    feature?: PaperworkVerificationFeature,
+    feature?: PaperworkQuestionsFeature,
     expectedUserId?: string
 ): Promise<SaveAnswersResult> {
     let response: Response

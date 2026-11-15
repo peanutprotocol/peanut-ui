@@ -10,9 +10,18 @@ const QrPayFlowContext = createContext<QrPayFlowSurface | null>(null)
 
 interface QrPayFlowProviderProps extends QrPayScanParams {
     children: ReactNode
+    /** Told whether a payment of this scan may exist (the page keeps the flow mounted while it does). */
+    onPaymentPinned?: (pinned: boolean) => void
 }
 
-export function QrPayFlowProvider({ qrCode, timestamp, qrType, pixKey, children }: QrPayFlowProviderProps) {
+export function QrPayFlowProvider({
+    qrCode,
+    timestamp,
+    qrType,
+    pixKey,
+    onPaymentPinned,
+    children,
+}: QrPayFlowProviderProps) {
     const [isSuccess, setIsSuccess] = useState(false)
     const [errorMessage, setErrorMessageRaw] = useState<string | null>(null)
     const [errorCode, setErrorCode] = useState<string | null>(null)
@@ -50,7 +59,8 @@ export function QrPayFlowProvider({ qrCode, timestamp, qrType, pixKey, children 
             waitingForMerchantAmount,
             setWaitingForMerchantAmount,
         },
-        { qrCode, timestamp, qrType, pixKey }
+        { qrCode, timestamp, qrType, pixKey },
+        onPaymentPinned
     )
 
     return <QrPayFlowContext.Provider value={surface}>{children}</QrPayFlowContext.Provider>

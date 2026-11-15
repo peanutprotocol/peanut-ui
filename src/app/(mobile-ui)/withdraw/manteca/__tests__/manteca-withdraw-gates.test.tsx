@@ -306,7 +306,7 @@ jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({ setIsSupportModalOpen: jest.fn(), openSupportWithMessage: mockOpenSupportWithMessage }),
 }))
 jest.mock('@/hooks/useCapabilities', () => ({
-    useCapabilities: () => ({ rails: [], nextActions: undefined }),
+    useCapabilities: () => ({ rails: [], nextActions: undefined, capabilities: { routes: [] } }),
 }))
 jest.mock('@/hooks/useIdentityVerification', () => ({
     useIdentityVerification: () => ({ isVerified: true }),

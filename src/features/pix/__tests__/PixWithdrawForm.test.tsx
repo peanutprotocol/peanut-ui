@@ -16,14 +16,15 @@ import { PixWithdrawForm } from '../components/PixWithdrawForm'
 const display = {
     amountBrl: '503.00',
     pixKey: '09579927189',
-    ownAccount: null,
+    ownAccount: true as const,
+    holderTaxIdMasked: null,
     holderName: 'Ana Souza',
     bankName: 'Banco Inter',
     withdrawUsd: '92.504310',
     rate: '5.445692',
     fixedFeeBrl: '0.75',
     arrivalEstimateSeconds: 60,
-    provider: 'Manteca' as const,
+    provider: 'Avenia' as const,
 }
 const noop = () => {}
 const save = { savedName: null, isOffered: false, checked: false, nickname: '', setChecked: noop, setNickname: noop }
@@ -44,12 +45,18 @@ const renderForm = (props: Partial<Parameters<typeof PixWithdrawForm>[0]> = {}) 
         <PixWithdrawForm
             title="Withdraw"
             onBack={noop}
-            recipient={{ pixKey: display.pixKey, holderName: 'Ana Souza', bankName: 'Banco Inter', taxIdMasked: null }}
+            recipient={{
+                pixKey: display.pixKey,
+                holderName: 'Ana Souza',
+                bankName: 'Banco Inter',
+                taxIdMasked: null,
+                ownAccount: true,
+            }}
             save={save}
             amount={amount}
             display={display}
             total="$92.50"
-            providerId="manteca-br"
+            providerId="avenia-br"
             error={null}
             isSubmitting={false}
             canConfirm
@@ -76,8 +83,8 @@ describe('PixWithdrawForm', () => {
         // the exact wallet debit the quote names, as the removed review showed it
         expect(screen.getByText(en.withdraw.confirm.youPay)).toBeInTheDocument()
         expect(screen.getByText('$92.50')).toBeInTheDocument()
-        expect(screen.getByText(PROVIDERS['manteca-br'].brand)).toBeInTheDocument()
-        expect(screen.getByText('help manteca-br')).toBeInTheDocument()
+        expect(screen.getByText(PROVIDERS['avenia-br'].brand)).toBeInTheDocument()
+        expect(screen.getByText('help avenia-br')).toBeInTheDocument()
         // a withdrawal saves nothing against a card, has no Arrives row, and typed reais need no payout row
         expect(screen.queryByText(en.qrPay.info.saveVsCard)).toBeNull()
         expect(screen.queryByText(en.withdraw.bank.arrives)).toBeNull()
@@ -85,22 +92,45 @@ describe('PixWithdrawForm', () => {
         expect(screen.getByRole('button', { name: en.common.confirm })).toBeEnabled()
     })
 
-    it('shows a phone key with the masked CPF the directory names under the holder', () => {
+    // TASK-24947: the phone key reads as people write it (Aleks, 2026-11-14)
+    it('shows a phone key, punctuated, with the masked CPF the directory names under the holder', () => {
         renderForm({
             recipient: {
                 pixKey: '+5511912345678',
                 holderName: 'Ana Souza',
                 bankName: null,
                 taxIdMasked: '095.***.***-89',
+                ownAccount: true,
             },
         })
-        expect(screen.getByText(/^\+5511912345678 ·$/)).toBeInTheDocument()
+        expect(screen.getByText(/^11 91234-5678 ·$/)).toBeInTheDocument()
         expect(screen.getByText('CPF 095.***.***-89')).toBeInTheDocument()
     })
 
+    // TASK-24947: another person's key is a send to them
+    it("leads with Sending for another person's key, and with Withdrawing where the provider cannot tell", () => {
+        const other = {
+            pixKey: '+5511987654321',
+            holderName: 'Bruno Lima',
+            bankName: 'Nubank',
+            taxIdMasked: '***.456.789-**',
+        }
+        const view = renderForm({ recipient: { ...other, ownAccount: false } })
+        expect(screen.getByText(en.payment.confirm.sending)).toBeInTheDocument()
+        expect(screen.queryByText(en.pix.withdraw.withdrawing)).toBeNull()
+        expect(screen.getByText('Bruno Lima')).toBeInTheDocument()
+        view.unmount()
+
+        renderForm({ recipient: { ...other, ownAccount: null } })
+        expect(screen.getByText(en.pix.withdraw.withdrawing)).toBeInTheDocument()
+    })
+
     // a provider whose fees all sit in the rate sends a zero flat fee: no fee line, the same rate rule
-    it('shows no fee row where the quote carries no flat fee', () => {
-        renderForm({ display: { ...display, fixedFeeBrl: '0', bankName: null } })
+    it('shows no fee row for a provider with no flat fee', () => {
+        renderForm({
+            display: { ...display, fixedFeeBrl: '0', bankName: null, provider: 'Manteca' },
+            providerId: 'manteca-br',
+        })
         expect(screen.queryByText(en.pix.withdraw.fee)).toBeNull()
         expect(screen.getByText('1 USD = 5.437838 BRL')).toBeInTheDocument()
         expect(screen.getByText(PROVIDERS['manteca-br'].brand)).toBeInTheDocument()
@@ -134,6 +164,17 @@ describe('PixWithdrawForm', () => {
         expect(screen.queryByText(en.pix.withdraw.fee)).toBeNull()
         expect(screen.queryByText(en.withdraw.confirm.youPay)).toBeNull()
         expect(screen.getByRole('button', { name: en.common.confirm })).toBeDisabled()
+    })
+
+    // the indicative quote's ratio is a float: the rate row prints it to the review's six decimals, not all its digits
+    it('prints the indicative rate to six decimals before the review answers', () => {
+        renderForm({
+            display: null,
+            total: undefined,
+            canConfirm: false,
+            amount: { ...amount, price: 5.299417064122946 },
+        })
+        expect(screen.getByText('1 USD = 5.299417 BRL')).toBeInTheDocument()
     })
 
     // the quote of the amount on screen is in flight: the Total row waits for it rather than showing an estimate

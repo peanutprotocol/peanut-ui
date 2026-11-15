@@ -21,7 +21,7 @@ import { PixQrDeposit } from '../components/PixQrDeposit'
 
 const inTenMinutes = () => new Date(Date.now() + 600_000).toISOString()
 const read = (overrides: Partial<PixDeposit> = {}): PixDeposit => ({
-    provider: 'manteca',
+    provider: 'avenia',
     intentId: 'd1',
     status: 'AWAITING_USER_ACTION',
     pixReceived: false,
@@ -30,6 +30,7 @@ const read = (overrides: Partial<PixDeposit> = {}): PixDeposit => ({
     usdcAmount: '17.940500',
     codePayable: true,
     brCode: '00020101021226...',
+    payerCpfMasked: '095.***.***-89',
     ...overrides,
 })
 const state = (phase: PixDepositPhase, deposit: PixDeposit | undefined = read()) =>
@@ -64,7 +65,7 @@ describe('PixQrDeposit', () => {
 
     // a provider that sends no expiry or payer CPF: the code alone, with no line it cannot fill
     it('draws a code with no expiry or payer as the code alone', () => {
-        state('pending', read({ expiresAt: null }))
+        state('pending', read({ provider: 'manteca', expiresAt: null, payerCpfMasked: undefined }))
         renderScreen()
         expect(screen.getByTestId('qr')).toHaveTextContent('00020101021226...')
         expect(screen.queryByText(/^Code valid for /)).toBeNull()

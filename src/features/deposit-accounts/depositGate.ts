@@ -140,6 +140,15 @@ export interface DepositGateView {
     }
 }
 
+/**
+ * A provider or our own setup acts next and the user only waits (`pending`,
+ * `waiting-on-provider`). Its row reads "Under review" and its tap opens the
+ * wait drawer, never "we cannot open" (TASK-24909).
+ */
+export function isWaitView(view: DepositGateView): boolean {
+    return view.notice?.action === 'none'
+}
+
 const ACTION_BY_BLOCK: Record<DepositBlock, DepositGateAction> = {
     'account-limit': 'account-limit',
     'endorsement-pending': 'pending-review',

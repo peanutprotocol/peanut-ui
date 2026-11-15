@@ -109,7 +109,7 @@ export function AddMoneyOptions() {
                 : t('openAccount')
             : method === 'transfer'
               ? t('oneTimeTransfer')
-              : t('payPix')
+              : t('pix')
     const { held, open } =
         method === 'account'
             ? virtualAccountRows(deposit, standingEnabled && !readyOnly, isTerminalFailure)

@@ -36,7 +36,9 @@ jest.mock('@/hooks/useCurrency', () => ({
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({ setIsSupportModalOpen: jest.fn(), openSupportWithMessage: jest.fn() }),
 }))
-jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ rails: [], nextActions: [] }) }))
+jest.mock('@/hooks/useCapabilities', () => ({
+    useCapabilities: () => ({ rails: [], nextActions: [], capabilities: { routes: [] } }),
+}))
 jest.mock('@/hooks/useIdentityVerification', () => ({ useIdentityVerification: () => ({ isVerified: true }) }))
 jest.mock('@/hooks/wallet/usePendingTransactions', () => ({
     usePendingTransactions: () => ({ hasPendingTransactions: false }),

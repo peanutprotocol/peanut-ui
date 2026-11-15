@@ -26,12 +26,14 @@ jest.mock('@/services/manteca', () => ({
     mantecaApi: { savePixKey: (...args: unknown[]) => mockSavePixKey(...args) },
 }))
 const mockOpenSupport = jest.fn()
+const mockOpenScanner = jest.fn()
 jest.mock('@/context/ModalsContext', () => ({
-    useModalsContext: () => ({ setIsSupportModalOpen: mockOpenSupport }),
+    useModalsContext: () => ({ setIsSupportModalOpen: mockOpenSupport, setIsQRScannerOpen: mockOpenScanner }),
     useModalsContextOptional: () => null,
 }))
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn(), useReturnTo: () => jest.fn() }))
-jest.mock('@/hooks/useSendFlowOrigin', () => ({ useSendFlowOrigin: () => ({ isFromSendFlow: false }) }))
+let mockFromSend = false
+jest.mock('@/hooks/useSendFlowOrigin', () => ({ useSendFlowOrigin: () => ({ isFromSendFlow: mockFromSend }) }))
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/SoundPlayer', () => ({ SoundPlayer: () => <div data-testid="success-sound" /> }))
 jest.mock('@/components/Provider/ProviderFinePrint', () => ({ ProviderFinePrint: () => null }))
@@ -115,9 +117,9 @@ import { forgetPixWithdrawDraft, type PixWithdrawDraft } from '../pixWithdrawDra
 const route: CapabilityRoute = {
     operation: 'withdraw',
     method: 'PIX_BR',
-    provider: 'manteca',
+    provider: 'avenia',
     state: 'ready',
-    candidates: [{ provider: 'manteca', state: 'ready' }],
+    candidates: [{ provider: 'avenia', state: 'ready' }],
 }
 const entry = (status: string, intentStatus?: string) => ({
     data: { uuid: 'w1', status, currency: { amount: '503.00', code: 'BRL' }, extraData: { intentStatus } },
@@ -157,6 +159,39 @@ const storedForm = (userId = 'u1') => JSON.parse(window.sessionStorage.getItem(D
 beforeEach(() => {
     window.sessionStorage.clear()
     forgetPixWithdrawDraft('u1')
+    mockFromSend = false
+})
+
+// Send and Withdraw fill the same form: a friend's key typed in Send must never wait, Continue
+// enabled, on a screen titled Withdraw, nor the reverse (review finding 2)
+describe('the Pix drafts of Send and Withdraw', () => {
+    const keyField = () => screen.findByRole('textbox', { name: en.withdraw.pixKey.placeholder })
+
+    it("opens Send with an empty key after a withdrawal's draft", async () => {
+        withForm(REVIEW_FORM)
+        mockFromSend = true
+        renderAt('')
+        expect(await keyField()).toHaveValue('')
+    })
+
+    it("opens Withdraw with an empty key after a send's draft", async () => {
+        window.sessionStorage.setItem(
+            'pix-send-draft:u1',
+            JSON.stringify({ destination: KEY, amountUsd: '', amountBrl: '503', spendUsd: '' })
+        )
+        renderAt('')
+        expect(await keyField()).toHaveValue('')
+    })
+
+    it('keeps the key a send typed for the send', async () => {
+        mockFromSend = true
+        window.sessionStorage.setItem(
+            'pix-send-draft:u1',
+            JSON.stringify({ destination: KEY, amountUsd: '', amountBrl: '', spendUsd: '' })
+        )
+        renderAt('')
+        expect(await keyField()).toHaveValue(KEY)
+    })
 })
 
 describe('PixWithdrawFlow after a reload', () => {
@@ -173,8 +208,33 @@ describe('PixWithdrawFlow after a reload', () => {
         expect(mockInit).not.toHaveBeenCalled()
     })
 
+    it('a withdrawal this device never signed reads as not sent, and starts a new one from the key', async () => {
+        window.localStorage.clear()
+        mockEntry.mockReturnValue(entry('PENDING', 'AWAITING_USER_ACTION'))
+        const urls: string[] = []
+        renderAt('?step=success&intentId=w1', (event) => urls.push(event.queryString))
+
+        expect(screen.getByText(en.pix.withdraw.notSent)).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: en.common.tryAgain }))
+
+        await waitFor(() => expect(urls.at(-1)).not.toContain('intentId'))
+        // the first step is the key, so the URL is empty again
+        expect(await screen.findByRole('textbox', { name: en.withdraw.pixKey.placeholder })).toBeInTheDocument()
+        expect(mockInit).not.toHaveBeenCalled()
+    })
+
+    it('a withdrawal this device may have signed stays unconfirmed after a reload', () => {
+        window.localStorage.setItem('pix-withdraw-sent:w1', '1')
+        mockEntry.mockReturnValue(entry('PENDING', 'AWAITING_USER_ACTION'))
+        renderAt('?step=success&intentId=w1')
+
+        expect(screen.getByText(en.pix.withdraw.unconfirmed)).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: en.common.tryAgain })).toBeNull()
+        window.localStorage.clear()
+    })
+
     // the shared success view ends it, fed from the entry: reais, USD, the key (no bank after a reload)
-    it('shows the shared success view once the provider paid the Pix, with no sound of its own', () => {
+    it('shows the shared success view once Avenia paid the Pix, with no sound of its own', () => {
         const completed = entry('COMPLETED')
         mockEntry.mockReturnValue({
             ...completed,
@@ -187,14 +247,14 @@ describe('PixWithdrawFlow after a reload', () => {
         renderAt('?step=success&intentId=w1')
 
         expect(screen.getByTestId('payment-success')).toHaveTextContent(
-            `withdraw R$503 $92.50 ${en.pix.withdraw.withdrawnToKey.replace('{key}', '+5511912345678')}`
+            `withdraw R$503 $92.50 ${en.pix.withdraw.withdrawnToKey.replace('{key}', '11 91234-5678')}`
         )
         // the success view plays the sound; the outcome screen adds none
         expect(screen.queryByTestId('success-sound')).toBeNull()
         expect(screen.queryByRole('button', { name: en.common.done })).toBeNull()
     })
 
-    it('shows the shared payment loader while the provider pays, then "on its way" with Done after 90 seconds', () => {
+    it('shows the shared payment loader while Avenia pays, then "on its way" with Done after 90 seconds', () => {
         jest.useFakeTimers()
         mockEntry.mockReturnValue(entry('PENDING', 'PROCESSING'))
         renderAt('?step=success&intentId=w1')
@@ -210,7 +270,7 @@ describe('PixWithdrawFlow after a reload', () => {
         jest.useRealTimers()
     })
 
-    it('says the withdrawal did not go through when the API cancelled it', () => {
+    it('says nothing left the wallet when the unsigned withdrawal expired', () => {
         mockEntry.mockReturnValue(entry('CANCELLED'))
         renderAt('?step=success&intentId=w1')
 
@@ -235,7 +295,58 @@ describe('PixWithdrawFlow after a reload', () => {
         expect(screen.queryByText(en.pix.withdraw.unconfirmed)).toBeNull()
     })
 
-    // Manteca's sign kind: nothing opens until the API takes the signed transfer, and its answer names the withdrawal
+    it('puts the opened id in the URL at Confirm and keeps the review while the new quote waits', async () => {
+        const display = {
+            amountBrl: '503.00',
+            pixKey: '09579927189',
+            ownAccount: true as const,
+            holderName: 'Ana Souza',
+            bankName: 'Banco Inter',
+            withdrawUsd: '92.504310',
+            rate: '5.445692',
+            fixedFeeBrl: '0.75',
+            arrivalEstimateSeconds: 60,
+            provider: 'Avenia' as const,
+        }
+        mockPreview.mockResolvedValue(display)
+        // the opened quote takes more USD: nothing is signed until the user confirms again
+        mockInit.mockResolvedValue({
+            intentId: 'w2',
+            display: { ...display, withdrawUsd: '93.100000' },
+            sign: {
+                kind: 'deposit-with-id',
+                contractAddress: '0x10417734001162Ea139e8b044DFe28DbB8B28ad0',
+                tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+                payAmount: '93.100000',
+                payAmountUnits: '93100000',
+                commitmentId: '6aeb17ea29f84d1e9b0c3a5d7e2f1c08',
+                quoteExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+                ticketExpiresAt: new Date(Date.now() + 600_000).toISOString(),
+            },
+        })
+        const urls: string[] = []
+        withForm(REVIEW_FORM)
+        renderAt('?step=review', (event) => urls.push(event.queryString))
+
+        const confirm = await screen.findByRole('button', { name: en.common.confirm })
+        await waitFor(() => expect(confirm).toBeEnabled())
+        fireEvent.click(confirm)
+
+        expect(await screen.findByText(en.pix.withdraw.quoteMoved)).toBeInTheDocument()
+        // the opened quote's totals stand next to the notice, before the user confirms them
+        expect(screen.getByText('$93.10')).toBeInTheDocument()
+        expect(screen.queryByText('$92.50')).toBeNull()
+        await waitFor(() => expect(urls.some((url) => url.includes('intentId=w2'))).toBe(true))
+        // from the open ticket on, the URL holds the step and the id only; the review stays
+        const opened = new URLSearchParams(urls.at(-1))
+        expect([...opened.keys()].sort()).toEqual(['intentId', 'step'])
+        // the open withdrawal holds the form now: the draft goes
+        expect(storedForm()).toBeNull()
+        expect(screen.getByRole('button', { name: en.common.confirm })).toBeEnabled()
+        expect(screen.queryByText(en.pix.withdraw.unconfirmed)).toBeNull()
+    })
+
+    // the other sign kind: nothing opens until the API takes the signed transfer, and its answer names the withdrawal
     it('opens a transfer-then-submit withdrawal at its submit, then drops the form and shows the payment loader', async () => {
         const display = {
             amountBrl: '503.00',
@@ -414,14 +525,14 @@ describe('PixWithdrawFlow form', () => {
     const display = {
         amountBrl: '503.00',
         pixKey: KEY,
-        ownAccount: null,
+        ownAccount: true as const,
         holderName: 'Ana Souza',
         bankName: 'Banco Inter',
         withdrawUsd: '92.504310',
         rate: '5.445692',
         fixedFeeBrl: '0.75',
         arrivalEstimateSeconds: 60,
-        provider: 'Manteca' as const,
+        provider: 'Avenia' as const,
     }
 
     it('quotes only while the form is on screen', () => {
@@ -458,6 +569,25 @@ describe('PixWithdrawFlow form', () => {
         expect(refetch).toHaveBeenCalledTimes(1)
     })
 
+    // API-CONTRACT-M3 section 6: the review names whom a send pays, after a reload too
+    it("reads a send to another person's key from the quote: Sending, the holder, the punctuated key and masked CPF", async () => {
+        mockPreview.mockResolvedValue({
+            ...display,
+            pixKey: '+5511987654321',
+            ownAccount: false,
+            holderName: 'Bruno Lima',
+            holderTaxIdMasked: '***.456.789-**',
+            bankName: 'Nubank',
+        })
+        withForm({ destination: '+5511987654321', amountBrl: '503' })
+        renderAt('?step=review')
+
+        expect(await screen.findByText('Bruno Lima')).toBeInTheDocument()
+        expect(screen.getByText(en.payment.confirm.sending)).toBeInTheDocument()
+        expect(screen.getByText(/^11 98765-4321 ·$/)).toBeInTheDocument()
+        expect(screen.getByText('CPF ***.456.789-**')).toBeInTheDocument()
+    })
+
     // the Pix-key payment form, with Withdrawing and Confirm (ruling 2026-11-12, providers are cattle)
     it('is the payment form: Withdrawing, the holder and bank, the rate, the sponsored Peanut fee, the provider fee apart, no savings row', async () => {
         mockPreview.mockResolvedValue(display)
@@ -485,33 +615,33 @@ describe('PixWithdrawFlow form', () => {
         expect(screen.queryByText(en.withdraw.bank.bankReceives)).toBeNull()
     })
 
-    // a route with a provider's minimum of R$20
-    const WITH_MINIMUM: CapabilityRoute = { ...route, limits: { minAmount: '20', currency: 'BRL' } }
+    // a route with the provider's minimum, as Avenia's carries R$5 for a payout (ruling of 15 Nov)
+    const WITH_MINIMUM: CapabilityRoute = { ...route, limits: { minAmount: '5', currency: 'BRL' } }
 
     // A bridge fee makes the debit larger than the USD entered. The reais under the amount are the
     // payout per USD entered, never the payout over the debit, and the quote decides the minimum.
     it('converts a USD amount with the provider input, so a bridge fee cannot hold it under the minimum', async () => {
-        // the indicative price alone would read USD 4 as R$19.20, under the R$20 minimum
+        // the indicative price alone would read USD 1 as R$4.80, under the R$5 minimum
         mockQuote.mockReturnValue({ ...QUOTED, price: { sell: 4.8, buy: 4.8 } })
-        mockPreview.mockResolvedValue({ ...display, amountBrl: '20.00', withdrawUsd: '4.100000' })
-        withForm({ destination: KEY, amountUsd: '4' })
+        mockPreview.mockResolvedValue({ ...display, amountBrl: '5.00', withdrawUsd: '1.100000' })
+        withForm({ destination: KEY, amountUsd: '1' })
         renderAt('?step=review', undefined, false, WITH_MINIMUM)
 
-        await waitFor(() => expect(mockPreview).toHaveBeenCalledWith({ pixKey: KEY, amountUsd: '4' }))
-        expect(await screen.findByText('$4.10')).toBeInTheDocument()
-        expect(screen.getByText('R$20')).toBeInTheDocument()
-        // the field converts USD 4 with the payout over the USD entered: R$20, not 20 / 4.10 ≈ R$19.51
-        expect(screen.getByText(/≈ R\$ 20(\.00)?$/)).toBeInTheDocument()
-        expect(screen.queryByText(en.pix.deposit.minimum.replace('{amount}', 'R$20'))).toBeNull()
+        await waitFor(() => expect(mockPreview).toHaveBeenCalledWith({ pixKey: KEY, amountUsd: '1' }))
+        expect(await screen.findByText('$1.10')).toBeInTheDocument()
+        expect(screen.getByText('R$5')).toBeInTheDocument()
+        // the field converts USD 1 with the payout over the USD entered: R$5, not 5 / 1.10 ≈ R$4.55
+        expect(screen.getByText(/≈ R\$ 5(\.00)?$/)).toBeInTheDocument()
+        expect(screen.queryByText(en.pix.deposit.minimum.replace('{amount}', 'R$5'))).toBeNull()
         await waitFor(() => expect(screen.getByRole('button', { name: en.common.confirm })).toBeEnabled())
     })
 
     it('still refuses typed reais under the minimum before any quote', () => {
         mockPreview.mockResolvedValue(display)
-        withForm({ destination: KEY, amountBrl: '10' })
+        withForm({ destination: KEY, amountBrl: '3' })
         renderAt('?step=review', undefined, false, WITH_MINIMUM)
 
-        expect(screen.getByText(en.pix.deposit.minimum.replace('{amount}', 'R$20'))).toBeInTheDocument()
+        expect(screen.getByText(en.pix.deposit.minimum.replace('{amount}', 'R$5'))).toBeInTheDocument()
         expect(mockPreview).not.toHaveBeenCalled()
         expect(screen.getByRole('button', { name: en.common.confirm })).toBeDisabled()
     })
@@ -647,7 +777,21 @@ describe('PixWithdrawFlow refused preview', () => {
         expect(screen.getByPlaceholderText('0.00')).toBeEnabled()
     })
 
-    it.each(['PIX_KEY_NOT_OWN', 'PIX_KEY_BLOCKED', 'PIX_KEY_NOT_FOUND'])(
+    // API-CONTRACT-M3 §6: the refusal names the provider's own minimum, which can differ from the route's
+    it('under the minimum: names the reais the refusal states', async () => {
+        mockPreview.mockRejectedValue(
+            new ApiError('The minimum is R$25.', {
+                status: 400,
+                code: 'PIX_MIN_AMOUNT',
+                minimum: { amount: '25', currency: 'BRL' },
+            })
+        )
+        renderAt(REVIEW)
+
+        expect(await screen.findByText(en.pix.deposit.minimum.replace('{amount}', 'R$25'))).toBeInTheDocument()
+    })
+
+    it.each(['PIX_KEY_BLOCKED', 'PIX_KEY_NOT_FOUND'])(
         'the key was refused (%s): Change key opens the key step with the key kept to edit',
         async (code) => {
             refuse(422, code)
@@ -672,6 +816,17 @@ describe('PixWithdrawFlow refused preview', () => {
         }
     })
 
+    // API review 2 (abeb3b909): a Pix code where a key belongs is refused before any provider is asked
+    it('a Pix code refused as a key: the key step’s own line, and Scan QR opens the scanner', async () => {
+        refuse(400, 'PIX_KEY_IS_QR_CODE')
+        renderAt(REVIEW)
+
+        expect(await screen.findByText(en.pix.withdraw.notACode)).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: en.navigation.scanQr }))
+        expect(mockOpenScanner).toHaveBeenCalledWith(true)
+        expect(screen.queryByRole('button', { name: en.common.retry })).toBeNull()
+    })
+
     it('the quote changed: Retry asks for the preview again', async () => {
         refuse(409, 'PIX_QUOTE_CHANGED')
         renderAt(REVIEW)
@@ -686,7 +841,7 @@ describe('PixWithdrawFlow refused preview', () => {
 // analytics, the browser history and the request logs (`pixWithdrawDraft`)
 describe('PixWithdrawFlow form draft', () => {
     const OWN_KEY = {
-        provider: 'manteca',
+        provider: 'avenia',
         holderName: 'Ana Souza',
         holderTaxIdMasked: '095.***.***-89',
         bankName: 'Banco Inter',
@@ -716,7 +871,7 @@ describe('PixWithdrawFlow form draft', () => {
         view.unmount()
         renderAt('?step=review')
         expect(screen.getByText('R$')).toBeInTheDocument()
-        expect(screen.queryByText(en.pix.withdraw.keyIntro)).toBeNull()
+        expect(screen.queryByRole('textbox', { name: en.withdraw.pixKey.placeholder })).toBeNull()
     })
 
     it('reviews the key and amount the draft holds', () => {
@@ -744,7 +899,7 @@ describe('PixWithdrawFlow form draft', () => {
         withForm(REVIEW_FORM, 'someone-else')
         renderAt('?step=review')
 
-        expect(screen.getByText(en.pix.withdraw.keyIntro)).toBeInTheDocument()
+        expect(screen.getByRole('textbox', { name: en.withdraw.pixKey.placeholder })).toBeInTheDocument()
         expect(mockPreview).not.toHaveBeenCalled()
         expect(storedForm('someone-else').destination).toBe(KEY)
     })

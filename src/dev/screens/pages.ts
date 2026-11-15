@@ -300,8 +300,18 @@ PAGE_CAPTURES.push(
         clicks: ['Continue'],
         expectSelector: '[role="alert"]',
     },
+    {
+        id: 'p84-pix-provider-sheet',
+        name: "Pix review — the provider's legal details",
+        // the key and amount come from the fixture's session draft, never the URL
+        route: '/withdraw/pix?step=review',
+        fixture: 'pix-withdraw-review',
+        // the (?) is an icon: "About Avenia" is its aria-label, not text a click by text finds
+        actions: [{ clickSelector: '[data-testid="provider-help"]' }],
+        expectSelector: '[role="dialog"][data-state="open"]',
+    },
     // Manteca's two entities, as the statement's provider page names them: Argentina's money, and Pix
-    // for users who do not live in Brazil
+    // for accounts that do not use Avenia yet
     {
         id: 'p85-manteca-ar-provider-sheet',
         name: "Argentina's add money — the provider's legal details",

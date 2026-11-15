@@ -5,7 +5,7 @@ import { saveKycAnswers } from '@/app/actions/kyc-paperwork-verification'
 import { useOptionalAuth } from '@/context/authContext'
 import type {
     PaperworkVerificationAnswers,
-    PaperworkVerificationFeature,
+    PaperworkQuestionsFeature,
     PaperworkVerificationStep,
     PaperworkVerificationStepId,
 } from '@/app/actions/types/kyc-paperwork-verification.types'
@@ -61,7 +61,7 @@ const CONFLICTS = new Set([
 export async function saveSteps(
     steps: PaperworkVerificationStep[],
     values: PaperworkVerificationAnswers,
-    feature?: PaperworkVerificationFeature,
+    feature?: PaperworkQuestionsFeature,
     userId?: string,
     active: () => boolean = () => true
 ): Promise<SaveOutcome> {
@@ -106,7 +106,7 @@ export async function saveSteps(
  */
 export function useAnswerForm(
     steps: PaperworkVerificationStep[],
-    feature?: PaperworkVerificationFeature,
+    feature?: PaperworkQuestionsFeature,
     residence: string | null = null,
     /** what a background save of these steps came back with */
     returned?: { errors?: Record<string, string>; formError?: AnswerFormError; message?: string }

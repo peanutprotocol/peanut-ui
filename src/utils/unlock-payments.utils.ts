@@ -376,7 +376,9 @@ export function paymentMethodSections(rows: readonly UnlockRow[]): Record<Paymen
     return sections
 }
 
-export const PIX_SEND_HREF = mantecaWithdrawUrl({ method: 'pix', country: 'brazil' })
+// a send to another person's key: `sendMethod` marks it, so a withdraw route on Avenia opens the
+// Pix-key form as a send ("Send", Back to Send), never as a withdrawal
+export const PIX_SEND_HREF = mantecaWithdrawUrl({ method: 'pix', country: 'brazil', sendMethod: 'bank' })
 
 /** Pix sending and first-party BRL bank access have separate eligibility. */
 export function withPixSend(

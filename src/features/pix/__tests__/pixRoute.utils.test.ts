@@ -1,7 +1,10 @@
 import {
     findPixRoute,
+    pixDepositOffered,
+    pixKeySend,
     pixPayBlock,
     pixRefusalCopy,
+    pixResidencePaused,
     pixRouteGate,
     pixRouteOpen,
     pixRouteReportEntry,
@@ -16,9 +19,9 @@ import { DEMO_USER } from '@/constants/demo-data'
 const route = (overrides: Partial<CapabilityRoute> = {}): CapabilityRoute => ({
     operation: 'deposit',
     method: 'PIX_BR',
-    provider: 'manteca',
+    provider: 'avenia',
     state: 'ready',
-    candidates: [{ provider: 'manteca', state: 'ready' }],
+    candidates: [{ provider: 'avenia', state: 'ready' }],
     ...overrides,
 })
 
@@ -34,17 +37,14 @@ describe('pixScreen', () => {
     it("mounts the one Pix flow for whichever provider the route names, whatever the user's step", () => {
         expect(pixScreen(route(), false)).toBe('flow')
         expect(pixScreen(route({ state: 'action_required', action: 'activate' }), false)).toBe('flow')
-        expect(pixScreen(route({ candidates: [] }), false)).toBe('flow')
+        expect(pixScreen(route({ provider: 'manteca', candidates: [] }), false)).toBe('flow')
     })
 
     it("shows a refused route as not available, never its candidates' screens", () => {
-        const refused = route({
-            provider: null,
-            state: 'refused',
-            candidates: [{ provider: 'manteca', state: 'refused' }],
-        })
-        expect(pixScreen(refused, false)).toBe('unavailable')
-        expect(pixScreen(route({ provider: null, state: 'refused', candidates: [] }), false)).toBe('unavailable')
+        const refused = (provider: 'avenia' | 'manteca') =>
+            route({ provider: null, state: 'refused', candidates: [{ provider, state: 'refused' }] })
+        expect(pixScreen(refused('avenia'), false)).toBe('unavailable')
+        expect(pixScreen(refused('manteca'), false)).toBe('unavailable')
     })
 
     it('shows the outage screen for a paused route, and waits while capabilities load', () => {
@@ -55,17 +55,68 @@ describe('pixScreen', () => {
 })
 
 describe('pixRouteOpen', () => {
-    it('offers Pix on Home for a deposit route the API sent and did not refuse, paused included', () => {
+    it('is open for a route the API sent and did not refuse, paused included', () => {
         expect(pixRouteOpen(route())).toBe(true)
         expect(pixRouteOpen(route({ state: 'action_required', action: 'activate' }))).toBe(true)
         expect(pixRouteOpen(route({ state: 'pending' }))).toBe(true)
-        // the Pix page shows the outage itself
         expect(pixRouteOpen(route({ state: 'paused' }))).toBe(true)
+        expect(pixRouteOpen(route({ provider: null, state: 'paused' }))).toBe(true)
+    })
+
+    it('is closed without a route, and for a refused one', () => {
+        expect(pixRouteOpen(undefined)).toBe(false)
+        expect(pixRouteOpen(route({ provider: null, state: 'refused' }))).toBe(false)
+    })
+})
+
+describe('pixDepositOffered', () => {
+    const residencePaused = { code: 'residence_paused', userMessage: '' }
+    const manteca = (overrides: Partial<CapabilityRoute> = {}) =>
+        route({ provider: 'manteca', candidates: [{ provider: 'manteca', state: 'ready' }], ...overrides })
+
+    it('offers Pix on Home on a route on Avenia, whatever the step: active, setting up, under review', () => {
+        expect(pixDepositOffered(route())).toBe(true)
+        expect(pixDepositOffered(route({ state: 'action_required', action: 'verify' }))).toBe(true)
+        expect(pixDepositOffered(route({ state: 'action_required', action: 'activate' }))).toBe(true)
+        expect(pixDepositOffered(route({ state: 'pending' }))).toBe(true)
+    })
+
+    it('keeps the row through an outage of Avenia: the Pix page shows the outage', () => {
+        const outage = { code: 'provider_paused', userMessage: '' }
+        expect(pixDepositOffered(route({ state: 'paused', reason: outage }))).toBe(true)
+    })
+
+    // Aleks, 2026-11-14: every user outside Brazil has a Manteca route; Pix on Home is for Avenia's users
+    it('offers no Pix on a Manteca route, whatever its step', () => {
+        expect(pixDepositOffered(manteca())).toBe(false)
+        expect(pixDepositOffered(manteca({ state: 'action_required', action: 'activate' }))).toBe(false)
+        expect(pixDepositOffered(manteca({ state: 'pending' }))).toBe(false)
+        expect(pixDepositOffered(manteca({ state: 'paused' }))).toBe(false)
+    })
+
+    it('offers no Pix under the Brazil pause, with no provider or with Avenia inside its rollout', () => {
+        expect(pixDepositOffered(route({ provider: null, state: 'paused', reason: residencePaused }))).toBe(false)
+        expect(pixDepositOffered(route({ state: 'paused', reason: residencePaused }))).toBe(false)
     })
 
     it('offers no Pix without a route, nor for a refused one', () => {
-        expect(pixRouteOpen(undefined)).toBe(false)
-        expect(pixRouteOpen(route({ provider: null, state: 'refused' }))).toBe(false)
+        expect(pixDepositOffered(undefined)).toBe(false)
+        expect(pixDepositOffered(route({ provider: null, state: 'refused' }))).toBe(false)
+    })
+})
+
+describe('pixResidencePaused', () => {
+    it('reads the Brazil pause by its reason, whatever provider the route names', () => {
+        const reason = { code: 'residence_paused', userMessage: '' }
+        expect(pixResidencePaused(route({ provider: null, state: 'paused', reason }))).toBe(true)
+        expect(pixResidencePaused(route({ state: 'paused', reason }))).toBe(true)
+    })
+
+    it("is not a provider's outage, nor any route that is not paused", () => {
+        const outage = { code: 'provider_paused', userMessage: '' }
+        expect(pixResidencePaused(route({ state: 'paused', reason: outage }))).toBe(false)
+        expect(pixResidencePaused(route())).toBe(false)
+        expect(pixResidencePaused(undefined)).toBe(false)
     })
 })
 
@@ -92,7 +143,7 @@ describe('pixRefusalCopy', () => {
 })
 
 describe('demo mode', () => {
-    it('reaches the Pix screens for both operations', () => {
+    it('reaches the Avenia Pix screens for both operations', () => {
         for (const operation of ['deposit', 'withdraw'] as const) {
             expect(pixScreen(findPixRoute(DEMO_USER.capabilities?.routes, operation), false)).toBe('flow')
         }
@@ -118,6 +169,14 @@ describe('pixPayBlock', () => {
         expect(pixPayBlock(pay({ state: 'ready' }))).toBeNull()
         // an API with no pay route lets the payment's own gates decide
         expect(pixPayBlock(undefined)).toBeNull()
+    })
+
+    // TASK-24947 M5: Manteca's BRL switched off pauses the route for everyone, residents of Brazil or not
+    it('a provider paused for everyone is an outage, not the pause of Brazil’s residents', () => {
+        expect(pixPayBlock(pay({ state: 'paused', reason: { code: 'provider_paused', userMessage: '' } }))).toBe(
+            'outage'
+        )
+        expect(pixPayBlock(pay({ state: 'paused' }))).toBe('outage')
     })
 
     it('reads the pay route, not the deposit or withdraw route', () => {
@@ -163,7 +222,7 @@ describe('the BRL account from the Pix route', () => {
         expect(withPixRoute(report, undefined)).toBe(report)
     })
 
-    // the local feature refused because another entry serves the residence's Pix
+    // the API's answer for a resident of Brazil: the local feature refused because the Pix route serves them
     it('reads the BRL account from the route whichever residence answer refused the local feature', () => {
         const servedElsewhere = {
             ...report,
@@ -187,5 +246,26 @@ describe('the BRL account from the Pix route', () => {
         })
         expect(pixRouteGate(route({ state: 'pending' })).kind).toBe('waiting-on-provider')
         expect(pixRouteGate(route({ state: 'refused' })).kind).toBe('blocked-rejection')
+    })
+})
+
+// TASK-24947: a withdraw route on Avenia pays any key, resident of Brazil or not
+describe('pixKeySend', () => {
+    const withdraw = (provider: CapabilityRoute['provider'], state: CapabilityRoute['state']) => ({ provider, state })
+
+    it.each([
+        ['a resident of Brazil, whose pay route refuses the residence', 'residence' as const],
+        ['a non-resident, whose pay route is open', null],
+        ['anyone under the Brazil pause', 'paused' as const],
+    ])('sends through the withdraw route on Avenia for %s', (_who, payBlock) => {
+        expect(pixKeySend(payBlock, withdraw('avenia', 'ready'))).toEqual({ via: 'withdraw', block: null })
+        // still being set up: the Pix page takes the user through it
+        expect(pixKeySend(payBlock, withdraw('avenia', 'action_required'))).toEqual({ via: 'withdraw', block: null })
+    })
+
+    it("keeps the pay route and its block for Manteca's withdraw route, a refused route, or none", () => {
+        expect(pixKeySend(null, withdraw('manteca', 'ready'))).toEqual({ via: 'pay', block: null })
+        expect(pixKeySend('residence', withdraw('avenia', 'refused'))).toEqual({ via: 'pay', block: 'residence' })
+        expect(pixKeySend('paused', undefined)).toEqual({ via: 'pay', block: 'paused' })
     })
 })

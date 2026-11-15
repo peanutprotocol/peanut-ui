@@ -149,8 +149,6 @@
             "addMoneyRoutesNoBank": "Cripto desde una wallet",
             "verifyIdentity": "Verificar identidad",
             "verifyIdentityNote": "Verificación única",
-            "setUpPix": "Configurar Pix",
-            "setUpPixNote": "Con nuestro socio de Pix",
             "inReview": "En revisión",
             "firstPaymentCardNote": "Pide la tarjeta o paga un QR",
             "firstPaymentQrNote": "Paga un código QR",
@@ -851,7 +849,10 @@
             "noData": "Datos de límites no disponibles",
             "totalAllowed": "{asset} total permitido",
             "remaining": "{period, select, monthly {Restante este mes} other {Restante este año}}",
-            "appliesTo": "Aplica a agregar dinero, retiros y pagos QR"
+            "appliesTo": "Aplica a agregar dinero, retiros y pagos QR",
+            "leftThisMonth": "{asset} disponible este mes",
+            "roomDeposit": "Agregar dinero",
+            "roomPayout": "{operations, select, withdraw {Retirar} pay {Pagar} other {Retirar y pagar}}"
         },
         "period": {
             "monthly": "Mensual",
@@ -1851,7 +1852,9 @@
             "paymentStatusUnknown": "No pudimos confirmar el estado del pago. Revisa tu actividad antes de volver a intentarlo. Si el estado no está claro, contacta a soporte.",
             "paymentCancelled": "El proveedor canceló este pago antes de enviar el dinero. Escanea un nuevo código QR para volver a intentarlo.",
             "payerBlocked": "El proveedor de pagos bloqueó tu cuenta para este pago. Usa otro método de pago o contacta a soporte.",
-            "merchantBlocked": "El proveedor de pagos bloqueó a este comercio. Usa otro método de pago o pide otro QR al comercio."
+            "merchantBlocked": "El proveedor de pagos bloqueó a este comercio. Usa otro método de pago o pide otro QR al comercio.",
+            "amountHeld": "Otro pago tuyo todavía retiene este monto. Inténtalo más tarde.",
+            "throttled": "Demasiados intentos. Espera un momento y vuelve a intentarlo."
         },
         "claim": {
             "navTitle": "Reclamar código QR",
@@ -2250,7 +2253,6 @@
             "cryptoDetails": "Desde billeteras o exchanges",
             "openAccount": "Abrir una cuenta bancaria",
             "oneTimeTransfer": "Transferencia bancaria única",
-            "payPix": "Pagar con Pix",
             "crypto": "Cripto",
             "cryptoDescription": "Deposita desde una billetera o exchange",
             "bankTransfer": "Transferencia bancaria",
@@ -2616,7 +2618,7 @@
     "pix": {
         "methodNotServed": "Peanut no ofrece esto.",
         "rolloutClosed": "Pix todavía no está disponible para tu cuenta.",
-        "residenceNotServed": "Pix no se ofrece donde vives.",
+        "residenceNotServed": "Pix no se ofrece donde vives. Escríbenos a soporte.",
         "unavailableTitle": "Pix no disponible",
         "rejected": "Nuestro socio de Pix no aprobó tu verificación, así que Pix no está disponible por ahora. El resto de Peanut no se ve afectado. Escríbenos a soporte si crees que es un error.",
         "payResidence": "Los pagos con Pix aún no están disponibles donde vives.",
@@ -2625,23 +2627,7 @@
             "reviewing": "Nuestro socio de pagos está revisando tu verificación.",
             "verifyCta": "Verificar identidad",
             "title": "Configurar Pix",
-            "body": "Nuestro socio de pagos ofrece Pix.",
-            "bodyBeforeVerification": "{brand}, nuestro nuevo socio de Pix, verifica tu identidad. Las tarjetas u otras cuentas pueden pedirte tus datos de nuevo.",
-            "terms": "Al continuar, aceptas los <terms>{termsName}</terms>.",
-            "cpfRequired": "Pix necesita un CPF que tu verificación no tiene. Contacta a soporte.",
-            "termsNotSaved": "No se guardó tu aceptación de los términos. Intenta de nuevo.",
-            "notAvailable": "No se pudo configurar Pix. Contacta a soporte.",
-            "hosted": {
-                "body": "Verifica con {brand}.",
-                "bodyPartner": "Verifica con nuestro socio de pagos.",
-                "expired": "Este enlace venció.",
-                "newLink": "Pedir un enlace nuevo",
-                "failed": "Falló. Intenta de nuevo.",
-                "back": "¿Volviste de {brand}? Esperamos su respuesta.",
-                "backPartner": "¿Volviste de nuestro socio de pagos? Esperamos su respuesta.",
-                "openAgain": "Abrir {brand} de nuevo",
-                "openAgainPartner": "Abrir la página de nuevo"
-            }
+            "notAvailable": "No se pudo configurar Pix. Contacta a soporte."
         },
         "deposit": {
             "startNew": "Iniciar un nuevo depósito",
@@ -2657,14 +2643,11 @@
         "withdraw": {
             "stuck": "Este retiro no se completó. Contacta a soporte.",
             "fee": "Comisión del proveedor",
-            "keyIntro": "Ingresa una clave Pix registrada con tu CPF.",
             "notACode": "Ingresa una clave Pix, no un código Pix.",
             "lookupFailed": "No pudimos revisar esta clave. Intenta de nuevo.",
-            "keyNotOwn": "Esta clave es de otra persona. Los retiros van solo a cuentas con tu CPF.",
             "keyBlocked": "Los retiros por Pix a este banco no están disponibles.",
             "unknownHolder": "Nombre no visible",
             "ownAccount": "Cuenta propia",
-            "someoneElses": "De otra persona",
             "sent": "En camino.",
             "sentTo": "En camino a {destination}.",
             "processingTitle": "Procesando retiro",
@@ -2684,17 +2667,6 @@
             },
             "changeKey": "Cambiar clave",
             "withdrawing": "Retirando"
-        },
-        "recovery": {
-            "actionNeeded": "Acción requerida",
-            "intro": "El banco rechazó el pago a la clave anterior. Tu dinero está esperando. Ingresa una clave Pix de otra cuenta con tu CPF.",
-            "notice": "El banco rechazó este pago. El dinero espera otra clave con tu CPF.",
-            "addKey": "Agregar clave Pix",
-            "savedTitle": "Clave Pix guardada",
-            "savedTo": "El dinero se enviará a {destination}.",
-            "saved": "El dinero se enviará a la nueva clave.",
-            "notWaitingTitle": "No hace falta otra clave",
-            "notWaiting": "Este retiro ya no está esperando una nueva clave Pix."
         }
     },
     "transaction": {
@@ -3380,6 +3352,7 @@
         "errorRestartFailed": "No pudimos reiniciar la verificación de identidad. Inténtalo de nuevo.",
         "errorResidenceChangeFailed": "No pudimos iniciar la verificación de residencia. Inténtalo de nuevo.",
         "errorResubmitFailed": "No pudimos iniciar el reenvío de documentos. Inténtalo de nuevo.",
+        "errorResubmitUnavailable": "No hay ningún documento para subir en este momento.",
         "errorNoResponse": "No hubo respuesta del servidor. Inténtalo de nuevo.",
         "errorStartDocVerification": "No pudimos iniciar la verificación de documentos. Inténtalo de nuevo.",
         "initiate": {
@@ -3390,7 +3363,7 @@
             "descriptionError": "{error} Contacta a soporte para recibir ayuda.",
             "descriptionBlocked": "No pudimos confirmar tu identidad. Contacta a soporte para recibir ayuda.",
             "descriptionRestartIdentity": "Este medio de pago requiere un documento de un país compatible. Puedes verificarte con otro documento.",
-            "descriptionProviderRejection": "Sube una foto más nítida de tu documento para continuar.",
+            "descriptionProviderRejection": "Necesitamos más información tuya para continuar.",
             "descriptionRegionUnavailable": "Debido a las regulaciones del Reino Unido, las transferencias bancarias no están disponibles para sus residentes. Tus fondos están seguros: puedes retirarlos como cripto en cualquier momento.",
             "titleBankUnavailable": "No disponible aquí",
             "descriptionBankUnavailable": "Las transferencias bancarias no están disponibles en tu país, así que verificar tu identidad no las desbloquearía. Tus fondos están seguros y puedes seguir enviando y recibiendo dinero con otras personas.",
@@ -3490,6 +3463,8 @@
             "genericError": "Algo salió mal. Puedes aceptar los términos más tarde desde tu historial de actividad.",
             "confirmError": "Algo salió mal al confirmar tus términos. Inténtalo de nuevo.",
             "notAcceptedYet": "Parece que todavía no aceptaste los términos. Inténtalo de nuevo.",
+            "unconfirmedTitle": "Términos enviados",
+            "unconfirmedDescription": "Nuestro socio de pagos aún no los confirmó. No hace falta aceptarlos de nuevo.",
             "notNow": "Ahora no",
             "title": "Aceptar términos"
         },
@@ -3861,7 +3836,7 @@
             "uncollectable": "{feature}: no podemos terminar de configurar esto desde la app. Contacta a soporte y lo completamos por ti.",
             "identityDocumentInsufficient": "{feature}: esto requiere un documento de identidad distinto al que usaste para verificarte.",
             "unavailable": "{feature}: esta función no está disponible con la verificación actual.",
-            "servedElsewhere": "Los depósitos y retiros por Pix están disponibles donde vives."
+            "servedElsewhere": "Los depósitos, retiros, transferencias y pagos con QR por Pix están disponibles donde vives."
         },
         "paperworkVerification": {
             "back": "Volver",
@@ -5526,7 +5501,8 @@
             "thirdNational": "Emisor de la tarjeta, filial de Rain",
             "bridgeEea": "Proveedor de depósitos, retiros e IBAN virtuales en moneda fiat",
             "mantecaAr": "Depósitos, retiros y pagos con QR en Argentina",
-            "mantecaBr": "Pagos y transferencias por Pix para quienes no viven en Brasil"
+            "mantecaBr": "Pix para cuentas que todavía no usan Avenia",
+            "aveniaBr": "Depósitos por Pix para residentes de Brasil, y retiros, transferencias y pagos con QR por Pix para usuarios de cualquier país"
         },
         "about": "Sobre {brand}",
         "execution": {
@@ -5535,7 +5511,8 @@
             "mantecaAr": "Liquidado por {brand}",
             "mantecaBr": "Liquidado por {brand}",
             "rhino": "Lo firmas tú, {brand} hace el puente",
-            "thirdNational": "Third National emite y liquida"
+            "thirdNational": "Third National emite y liquida",
+            "aveniaBr": "Liquidado por {brand}"
         },
         "peanutRole": "Proveedor de software de billetera autocustodiada; no es parte de las operaciones del proveedor",
         "cardRelationship": "Tienes una relación directa con Third National bajo los términos de la tarjeta.",

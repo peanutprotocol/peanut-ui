@@ -244,12 +244,16 @@ function applyDefaults() {
 
 let mockPixBlock: 'paused' | 'residence' | null = null
 jest.mock('@/features/pix/usePixPayBlock', () => ({ usePixPayBlock: () => mockPixBlock }))
+// the user's Pix routes: none unless a test sets the withdraw route (TASK-24947, a send on Avenia)
+let mockRoutes: Array<{ operation: string; method: string; provider: string; state: string }> = []
+jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ capabilities: { routes: mockRoutes } }) }))
 let mockResidenceIso2s: string[] = []
 jest.mock('@/features/deposit-accounts/useResidenceIso2s', () => ({ useResidenceIso2s: () => mockResidenceIso2s }))
 
 beforeEach(() => {
     jest.clearAllMocks()
     mockPixBlock = null
+    mockRoutes = []
     mockResidenceIso2s = []
     closeBrazilPausedDrawer()
     mockSearchParams.clear()
@@ -460,6 +464,23 @@ describe('GROUP 4: Method Selection', () => {
         fireEvent.click(screen.getByTestId('action-card-Pix'))
         expect(brazilPausedDrawerBlock()).toBe('residence')
         expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+
+    // TASK-24947: Avenia pays another person's key on the withdraw route, resident of Brazil or not
+    test.each([
+        ['a resident, whose pay route refuses the residence', 'residence' as const],
+        ['a non-resident, whose pay route is open', null],
+    ])('Pix opens the Pix-key form as a send for %s on Avenia', (_who, block) => {
+        mockPixBlock = block
+        mockRoutes = [{ operation: 'withdraw', method: 'PIX_BR', provider: 'avenia', state: 'ready' }]
+        mockUseGeoFilteredPaymentOptions.mockReturnValue({
+            filteredMethods: [{ id: 'pix', title: 'Pix', description: '', icons: [], soon: false }],
+        })
+        renderSend()
+
+        fireEvent.click(screen.getByTestId('action-card-Pix'))
+        expect(mockRouterPush).toHaveBeenCalledWith('/withdraw/pix?sendMethod=bank')
+        expect(brazilPausedDrawerBlock()).toBeNull()
     })
 
     test('Clicking Peanut user navigates to /send?view=contacts', () => {
