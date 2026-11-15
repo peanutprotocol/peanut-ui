@@ -28,11 +28,14 @@ export async function selectCreatorPage(creator: {
     username: string
     linkId: string
 }): Promise<CreatorPageSelection | null> {
-    // Keyed by username, not linkId: a link id differs between production and staging.
+    // Keyed by username, not linkId as the contract first said (deviation announced in the go-links
+    // coordination notes): a link id differs per environment, so a linkId key would show the page in one only.
     // hasOwn: a username such as `constructor` must not resolve to an Object.prototype member.
     if (!Object.hasOwn(CREATOR_PAGE_EXPERIMENTS, creator.username)) return null
     const experiment = CREATOR_PAGE_EXPERIMENTS[creator.username]
     const cookieValue = (await cookies()).get(variantCookieName(creator.username))?.value
-    const variant = experiment.variants.find(({ id }) => id === pickVariant(experiment, cookieValue))
+    // One draw per request. Drawing inside the lookup re-rolled for every variant and skewed the split.
+    const variantId = pickVariant(experiment, cookieValue)
+    const variant = experiment.variants.find(({ id }) => id === variantId)
     return variant ? { variant: variant.id, experimentId: experiment.id, Page: variant.Page } : null
 }
