@@ -11,8 +11,8 @@ const REWARD_REREAD_MS = 4_000
 /**
  * The QR reward of a paid send to another person's Pix key (API-CONTRACT-M5, ruling of 15 Nov), from
  * `GET /pix/withdraw/:intentId`: the reward Manteca's key send earned, with the QR payment's rules
- * (`pixPaidPerk`: only a paid send carries one; a paid-out reward reads as claimed). A payout to the
- * user's own key has none. `markClaimed` is the hold's reveal on this screen.
+ * (`pixPaidPerk`: only a paid send carries one; a paid-out reward reads as claimed; a send marked as
+ * one to the user's own account carries none). A payout to the user's own key has none. `markClaimed` is the hold's reveal on this screen.
  */
 export function usePixSendReward(intentId: string | null, enabled: boolean) {
     const read = useQuery({
@@ -46,5 +46,7 @@ export function usePixSendReward(intentId: string | null, enabled: boolean) {
               }
             : null
     const markClaimed = useCallback(() => setClaimed(true), [])
-    return { reward, markClaimed }
+    /** The send was to the user's own account by name: it earns no points. Null until the read answers. */
+    const selfPay = sent ? sent.selfPay === true : null
+    return { reward, markClaimed, selfPay }
 }

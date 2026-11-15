@@ -48,8 +48,9 @@ jest.mock('@/hooks/useRainCardOverview', () => ({
 }))
 jest.mock('@/hooks/wallet/useStaleSessionGuard', () => ({ useStaleSessionGuard: () => () => false }))
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn(), useReturnTo: () => jest.fn() }))
+let mockPointsData: { estimatedPoints: number } | null = null
 jest.mock('@/hooks/usePointsCalculation', () => ({
-    usePointsCalculation: () => ({ pointsData: null, pointsDivRef: { current: null } }),
+    usePointsCalculation: () => ({ pointsData: mockPointsData, pointsDivRef: { current: null } }),
 }))
 jest.mock('@/hooks/usePointsConfetti', () => ({ usePointsConfetti: jest.fn() }))
 jest.mock('@/hooks/useAppReviewNudge', () => ({ useAppReviewNudge: jest.fn() }))
@@ -343,6 +344,70 @@ describe('an opened payment shows its outcome without a live rate', () => {
 
         expect(await screen.findByText(screenText)).toBeInTheDocument()
         expect(mockGetCurrencyPrice).not.toHaveBeenCalled()
+    })
+})
+
+// The API's selfPay (a1c2b82d9): a payment to the user's own account earns no points and no reward
+describe('a paid Pix payment to the user’s own account', () => {
+    const perk = {
+        eligible: true,
+        discountPercentage: 0,
+        claimed: false,
+        sponsoredUsd: 1,
+        reason: 'Pix cashback',
+        usageId: 'u-1',
+        payoutStatus: 'pending',
+    }
+    const renderProbe = () => {
+        let surface: QrPayFlowSurface | null = null
+        const Probe = () => {
+            surface = useQrPayFlow()
+            return null
+        }
+        const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+        render(
+            <IntlWrapper>
+                <NuqsTestingAdapter searchParams="?intentId=pay-1">
+                    <QueryClientProvider client={queryClient}>
+                        <LoadingStateContextProvider>
+                            <QrPayFlowProvider qrCode={PIX_CODE} timestamp="1" qrType="PIX">
+                                <Probe />
+                            </QrPayFlowProvider>
+                        </LoadingStateContextProvider>
+                    </QueryClientProvider>
+                </NuqsTestingAdapter>
+            </IntlWrapper>
+        )
+        return () => surface
+    }
+
+    beforeEach(() => {
+        mockRoutes = [payRoute('avenia')]
+        mockPointsData = { estimatedPoints: 42 }
+    })
+    afterEach(() => {
+        mockPointsData = null
+    })
+
+    it('shows no points line and no reward when the read says selfPay', async () => {
+        mockPixApi.readPayment.mockResolvedValue({ ...read('paid', 'COMPLETED'), perk, selfPay: true })
+        const surface = renderProbe()
+
+        await waitFor(() => expect(surface()?.isSuccess).toBe(true))
+        expect(surface()?.pointsData).toBeUndefined()
+        expect(surface()?.paidReward?.perk).toBeNull()
+    })
+
+    it.each([
+        ['false', { selfPay: false }],
+        ['absent (an older API)', {}],
+    ])('keeps the points and the reward when selfPay is %s', async (_label, field) => {
+        mockPixApi.readPayment.mockResolvedValue({ ...read('paid', 'COMPLETED'), perk, ...field })
+        const surface = renderProbe()
+
+        await waitFor(() => expect(surface()?.isSuccess).toBe(true))
+        expect(surface()?.pointsData).toEqual({ estimatedPoints: 42 })
+        expect(surface()?.paidReward?.perk).toMatchObject({ eligible: true })
     })
 })
 

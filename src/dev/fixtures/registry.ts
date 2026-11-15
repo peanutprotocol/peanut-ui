@@ -729,6 +729,7 @@ const aveniaQrRead = (state: string, status: string, perk: Record<string, unknow
         status,
         amountBrl: '42.50',
         merchantName: 'PADARIA PAO DOURADO LTDA',
+        selfPay: false,
         perk,
     },
 })
@@ -2383,6 +2384,7 @@ export const FIXTURES: Record<string, Fixture> = {
                 amountBrl: '100.00',
                 holderName: 'Bruno Lima',
                 ownAccount: false,
+                selfPay: false,
                 perk: AVENIA_QR_PERK,
             },
         }),

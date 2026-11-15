@@ -19,9 +19,14 @@ export interface PaidReward {
  * The read's `claimed` is always false; what it does say is a reward already paid out (`payoutStatus`
  * `completed`, with its `txHash`). That one reads as claimed, so a reload shows it revealed instead of
  * offering the hold again. A reward still `pending` cannot be told apart from one never revealed.
+ *
+ * A payment to the user's own account (`selfPay`) earns no reward, whatever the read carries; a read
+ * without the field (an older API) is not one.
  */
-export function pixPaidPerk(payment: Pick<PixPayment, 'state' | 'perk'> | undefined): QrPerk | null {
-    if (payment?.state !== 'paid' || !payment.perk) return null
+export function pixPaidPerk(
+    payment: (Pick<PixPayment, 'state' | 'perk'> & { selfPay?: boolean }) | undefined
+): QrPerk | null {
+    if (payment?.state !== 'paid' || !payment.perk || payment.selfPay === true) return null
     const { eligible, discountPercentage, claimed, sponsoredUsd, txHash, usageId, payoutStatus } = payment.perk
     return {
         eligible,

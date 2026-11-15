@@ -37,6 +37,13 @@ describe('pixPaidPerk: the QR reward of a payment on the Pix pay routes, in the 
         expect(pixPaidPerk({ state: 'paid', perk })).toMatchObject({ claimed: false })
     })
 
+    // the API's selfPay (a1c2b82d9); a read without the field is an older API: not self-pay
+    it('shows nothing for a payment to the user’s own account', () => {
+        expect(pixPaidPerk({ state: 'paid', perk, selfPay: true })).toBeNull()
+        expect(pixPaidPerk({ state: 'paid', perk, selfPay: false })).toMatchObject({ eligible: true })
+        expect(pixPaidPerk({ state: 'paid', perk })).toMatchObject({ eligible: true })
+    })
+
     it('shows nothing while the reward is not issued', () => {
         expect(pixPaidPerk({ state: 'paid', perk: null })).toBeNull()
         expect(pixPaidPerk(undefined)).toBeNull()

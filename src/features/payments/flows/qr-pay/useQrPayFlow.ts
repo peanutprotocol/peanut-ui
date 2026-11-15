@@ -1517,8 +1517,13 @@ export function useQrPayFlowController(
           ? null
           : errorMessage
 
+    // A Pix pay-route payment to the user's own account earns no points (API `selfPay`): no points line
+    const shownPointsData = isPixPay && pixPayment.payment?.selfPay === true ? undefined : pointsData
     // Use points confetti hook for animation - must be called unconditionally
-    usePointsConfetti(isSuccess && pointsData?.estimatedPoints ? pointsData.estimatedPoints : undefined, pointsDivRef)
+    usePointsConfetti(
+        isSuccess && shownPointsData?.estimatedPoints ? shownPointsData.estimatedPoints : undefined,
+        pointsDivRef
+    )
 
     useEffect(() => {
         if (isSuccess) {
@@ -1693,7 +1698,7 @@ export function useQrPayFlowController(
         isLoading,
         loadingState,
         // points and the QR reward
-        pointsData,
+        pointsData: shownPointsData,
         pointsDivRef,
         paidReward,
         markRewardClaimed,

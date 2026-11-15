@@ -380,6 +380,20 @@ describe("PixWithdrawOutcome: a send's QR reward", () => {
         expect(mockCalculatePoints).toHaveBeenCalledWith({ actionType: 'MANTECA_QR_PAYMENT', usdAmount: 92.50431 })
     })
 
+    // the API's selfPay (a1c2b82d9): a send to a holder with the user's own name earns neither
+    it('a send the read marks as one to the user’s own account shows no reward and no points', async () => {
+        mockReadWithdrawal.mockResolvedValue({ ...read('paid'), selfPay: true })
+        renderOutcome(toBruno)
+
+        await waitFor(() => expect(mockReadWithdrawal).toHaveBeenCalledWith('w1'))
+        expect(await screen.findByText(en.payment.success.justSent)).toBeInTheDocument()
+        await new Promise((resolve) => setTimeout(resolve, 20))
+        expect(screen.queryByText(en.qrPay.success.earnedRewardTitle)).toBeNull()
+        expect(holdButton()).toBeNull()
+        expect(screen.queryByText('points 46')).toBeNull()
+        expect(mockCalculatePoints).not.toHaveBeenCalled()
+    })
+
     it('a payout to the user’s own key reads no reward and shows no QR points', async () => {
         renderOutcome(funded)
 

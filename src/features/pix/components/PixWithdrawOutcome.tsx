@@ -95,12 +95,14 @@ export function PixWithdrawOutcome({
     // A paid send to another person earns what Manteca's key send earned (ruling of 15 Nov): the QR
     // lane's points and, where a campaign grants it, the QR reward, shown as the QR success shows them.
     const paidSend = outcome === 'arrived' && toOtherPerson
-    const { reward: sendReward, markClaimed: markSendRewardClaimed } = usePixSendReward(intentId, paidSend)
+    const { reward: sendReward, markClaimed: markSendRewardClaimed, selfPay } = usePixSendReward(intentId, paidSend)
+    // points only once the read says the send was not to the user's own account (selfPay earns none)
+    const showsSendPoints = paidSend && selfPay === false
     const sentUsd = sent?.display.withdrawUsd ?? entry.data?.amount
     const { pointsData } = usePointsCalculation(
         PointsAction.MANTECA_QR_PAYMENT,
         sentUsd,
-        paidSend,
+        showsSendPoints,
         intentId ?? undefined
     )
 
@@ -156,7 +158,7 @@ export function PixWithdrawOutcome({
                 transactionDetails={receipt}
                 providerId={openedBy ?? undefined}
                 onComplete={onDone}
-                points={paidSend ? pointsData?.estimatedPoints : undefined}
+                points={showsSendPoints ? pointsData?.estimatedPoints : undefined}
                 paidReward={paidSend ? sendReward : null}
                 onRewardClaimed={markSendRewardClaimed}
             />
