@@ -104,6 +104,11 @@ export function goTouch(visit: GoVisit): GoTouch {
     }
 }
 
+/** True for the `utmContent` that `goTouch` writes for a code. */
+export function isGoCodeContent(value: string | null | undefined): boolean {
+    return !!value && value.startsWith('c') && GO_CODE_PATTERN.test(value.slice(1))
+}
+
 /** `/app`'s entry URL. The inviter is the path's username, both as `tl` and as the passive `acq_invite`. */
 export function goHandoffPath(visit: GoVisit, page?: GoPageVariant): string {
     const params = new URLSearchParams({ app_entry: '1', tl: visit.username, acq_invite: visit.username })
