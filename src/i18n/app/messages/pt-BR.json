@@ -4233,9 +4233,6 @@
                     "bankCheck": "Conclua a verificação das transferências bancárias"
                 }
             },
-            "bankRefused": {
-                "title": "Contas bancárias indisponíveis"
-            },
             "saved": {
                 "title": "Respostas salvas!",
                 "description": "Agora, uma foto do seu documento e uma selfie rápida."

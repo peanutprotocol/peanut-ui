@@ -4233,9 +4233,6 @@
                     "bankCheck": "Finish the bank transfer check"
                 }
             },
-            "bankRefused": {
-                "title": "Bank accounts not available"
-            },
             "saved": {
                 "title": "Answers saved!",
                 "description": "Next, a photo of your ID and a quick selfie."

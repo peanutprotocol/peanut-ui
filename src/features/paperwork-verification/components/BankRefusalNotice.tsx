@@ -11,15 +11,12 @@ import type { FeatureReportEntry } from '@/types/capabilities'
  * This says so, with the same reason line the bank screens show.
  */
 export function BankRefusalNotice({ refusal }: { refusal: FeatureReportEntry }) {
-    const t = useTranslations('kyc.paperworkVerification')
     const tIdentity = useTranslations('identity')
-    const tKyc = useTranslations('kyc')
     const reasonKey = reasonCodeKey(refusal.reason)
+    // No title: every reason line already names the bank accounts, and the API sends a message with every rail reason.
     return (
-        <Callout priority="error" title={t('bankRefused.title')} offerSupport data-testid="verify-bank-refused">
-            {reasonKey
-                ? tIdentity(reasonKey)
-                : (refusal.message ?? tKyc('supplement.unavailable', { feature: tKyc('documents.bank') }))}
+        <Callout priority="error" offerSupport data-testid="verify-bank-refused">
+            {reasonKey ? tIdentity(reasonKey) : refusal.message}
         </Callout>
     )
 }
