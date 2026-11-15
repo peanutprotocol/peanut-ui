@@ -360,6 +360,15 @@ export function usePixPayment({
             return
         }
 
+        // The API answers the same sign until a funding is reported, so another tab of this scan, or an
+        // earlier attempt here, may already have sent a deposit for it: read that payment, never sign again.
+        if (depositMaybeSent(opened.intentId)) {
+            telemetry.stage('lock_ready', { outcome: 'success' })
+            moveTo('unconfirmed')
+            void setIntentId(opened.intentId)
+            return
+        }
+
         const { sign } = opened
         // The wallet only ever spends its own USDC, for exactly the USD the user is shown, on one bridge.
         if (

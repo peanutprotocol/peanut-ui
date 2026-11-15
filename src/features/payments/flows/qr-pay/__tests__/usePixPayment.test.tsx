@@ -213,6 +213,25 @@ describe('usePixPayment', () => {
         expect(result.current.outcome).toBe('processing')
     })
 
+    // review 2, finding 2: two tabs of one scan share its key, so the API hands both the same sign
+    it('a payment whose deposit this device may have sent is read, never signed again', async () => {
+        mockPreview.mockResolvedValue(FIXED)
+        mockOpen.mockResolvedValue(opened())
+        localStorage.setItem('pix-withdraw-sent:pay-1', '1')
+        const { result } = render({ brCode: FIXED_CODE })
+        await waitFor(() => expect(result.current.reviewed).toEqual(FIXED))
+
+        await act(async () => {
+            await result.current.pay()
+        })
+
+        expect(mockOpen).toHaveBeenCalledTimes(1)
+        expect(mockSendTransactions).not.toHaveBeenCalled()
+        await waitFor(() => expect(urlIntentId()).toBe('pay-1'))
+        await waitFor(() => expect(mockRead).toHaveBeenCalledWith('pay-1'))
+        await waitFor(() => expect(result.current.outcome).toBe('processing'))
+    })
+
     it('a dismissed passkey sends nothing: the form stays, and the next tap opens the same payment again', async () => {
         mockPreview.mockResolvedValue(FIXED)
         mockOpen.mockResolvedValue(opened())
