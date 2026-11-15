@@ -3,7 +3,7 @@ import SetupTitleBlock from './SetupTitleBlock'
 
 /**
  * The notifications step renders its own heading, because each experiment
- * variant has its own copy. The spacing repeats SetupWrapper's title-to-content gap.
+ * variant has its own copy. The content and footer scroll together in SetupWrapper.
  */
 export default function NotificationsStepLayout({
     title,
@@ -17,14 +17,14 @@ export default function NotificationsStepLayout({
     children: ReactNode
 }) {
     return (
-        <div className="flex min-h-0 w-full flex-1 flex-col gap-8 compact:gap-6 short:gap-4 tight:gap-3">
+        <div className="flex w-full flex-1 flex-col gap-8 compact:gap-6 short:gap-4 tight:gap-3">
             <SetupTitleBlock
                 title={title}
                 description={description}
                 className="md:max-h-48 md:max-w-xs"
                 titleClassName={titleClassName}
             />
-            <div className="flex min-h-0 w-full flex-1 flex-col gap-6">{children}</div>
+            <div className="flex w-full flex-1 flex-col gap-6">{children}</div>
         </div>
     )
 }

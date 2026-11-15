@@ -100,7 +100,7 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
         registrationInProgress,
     ])
 
-    usePullToRefresh({ shouldPullToRefresh: useShouldPullToRefresh() })
+    usePullToRefresh({ shouldPullToRefresh: useShouldPullToRefresh('[data-setup-scroll-panel]') })
 
     return (
         <AppShell
