@@ -6,40 +6,22 @@
         "source": "Setup/Views/Landing.tsx"
     },
     {
-        "id": "06-b-invite",
+        "id": "01-a-landing-flag-welcome-headline-copy-every-border",
         "flow": "Setup and login",
-        "route": "/dev/surfaces?s=06-b-invite",
-        "source": "Setup/Views/Invite.tsx"
+        "route": "/dev/surfaces?s=01-a-landing",
+        "source": "Setup/Views/Landing.tsx"
     },
     {
-        "id": "06-a-signup",
+        "id": "01-a-landing-flag-welcome-headline-copy-whole-world",
         "flow": "Setup and login",
-        "route": "/dev/surfaces?s=06-a-signup",
-        "source": "Setup/Views/Signup.tsx"
+        "route": "/dev/surfaces?s=01-a-landing",
+        "source": "Setup/Views/Landing.tsx"
     },
     {
-        "id": "08-a-passkeysetuphelpmodal",
+        "id": "01-a-landing-flag-welcome-headline-copy-travels-free",
         "flow": "Setup and login",
-        "route": "/dev/surfaces?s=08-a-passkeysetuphelpmodal",
-        "source": "Setup/Views/PasskeySetupHelpDrawer.tsx"
-    },
-    {
-        "id": "09-a-passkeyinfomodal",
-        "flow": "Setup and login",
-        "route": "/dev/surfaces?s=09-a-passkeyinfomodal",
-        "source": "Setup/components/PasskeyInfoDrawer.tsx"
-    },
-    {
-        "id": "03-a-residence-select",
-        "flow": "Setup and login",
-        "route": "/dev/surfaces?s=03-a-residence-select",
-        "source": "Setup/Views/Residence.tsx"
-    },
-    {
-        "id": "03-b-residence-compare",
-        "flow": "Setup and login",
-        "route": "/dev/surfaces?s=03-b-residence-compare",
-        "source": "Setup/components/ResidenceCompare.tsx"
+        "route": "/dev/surfaces?s=01-a-landing",
+        "source": "Setup/Views/Landing.tsx"
     },
     {
         "id": "04-b-advantage-fees",
@@ -52,6 +34,18 @@
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=02-b-advantage-card",
         "source": "Setup/Views/Advantage.tsx"
+    },
+    {
+        "id": "03-a-residence-select",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=03-a-residence-select",
+        "source": "Setup/Views/Residence.tsx"
+    },
+    {
+        "id": "03-b-residence-compare",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=03-b-residence-compare",
+        "source": "Setup/components/ResidenceCompare.tsx"
     },
     {
         "id": "03-c-residence-congrats",
@@ -70,6 +64,36 @@
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=03-i-payment-methods",
         "source": "Setup/Views/PaymentPlan.tsx"
+    },
+    {
+        "id": "06-a-signup",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=06-a-signup",
+        "source": "Setup/Views/Signup.tsx"
+    },
+    {
+        "id": "06-b-invite",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=06-b-invite",
+        "source": "Setup/Views/Invite.tsx"
+    },
+    {
+        "id": "06-c-passkey",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=06-c-passkey",
+        "source": "Setup/Views/Passkey.tsx"
+    },
+    {
+        "id": "08-a-passkeysetuphelpmodal",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=08-a-passkeysetuphelpmodal",
+        "source": "Setup/Views/PasskeySetupHelpDrawer.tsx"
+    },
+    {
+        "id": "09-a-passkeyinfomodal",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=09-a-passkeyinfomodal",
+        "source": "Setup/components/PasskeyInfoDrawer.tsx"
     },
     {
         "id": "07-c-notification-email",
@@ -160,6 +184,21 @@
         "source": "Global/InviteFriendsModal/index.tsx"
     },
     {
+        "id": "fixture-setup-signup-reserved",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=06-a-signup"
+    },
+    {
+        "id": "fixture-setup-passkey-username-taken",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=06-c-passkey"
+    },
+    {
+        "id": "fixture-setup-passkey",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=06-c-passkey"
+    },
+    {
         "id": "fixture-setup-payment-plan",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=03-c-residence-congrats"
@@ -176,6 +215,21 @@
     },
     {
         "id": "fixture-pix-setup-reviewing",
+        "flow": "Setup and login",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-setup-address-missing",
+        "flow": "Setup and login",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-setup-cpf-missing",
+        "flow": "Setup and login",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-setup-open-failed",
         "flow": "Setup and login",
         "route": "/add-money/pix"
     },
@@ -233,6 +287,18 @@
         "source": "features/card/components/CardResidenceAddressScreen.tsx"
     },
     {
+        "id": "07-d-notification-switches",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=07-d-notification-switches",
+        "source": "Setup/Views/Notifications.tsx"
+    },
+    {
+        "id": "07-d-notification-defaults-on",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=07-d-notification-defaults-on",
+        "source": "Setup/Views/Notifications.tsx"
+    },
+    {
         "id": "08-b-loginrecoverydrawer",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=08-b-loginrecoverydrawer",
@@ -266,6 +332,12 @@
         "id": "45-c-residencechangemodal",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=45-c-residencechangemodal",
+        "source": "Profile/views/ResidenceChangeDrawer.tsx"
+    },
+    {
+        "id": "45-d-residence-review",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=45-d-residence-review",
         "source": "Profile/views/ResidenceChangeDrawer.tsx"
     },
     {
@@ -310,6 +382,16 @@
         "id": "fixture-history",
         "flow": "Home and shared states",
         "route": "/history"
+    },
+    {
+        "id": "fixture-pix-activity-payouts",
+        "flow": "Home and shared states",
+        "route": "/history"
+    },
+    {
+        "id": "fixture-limits-avenia",
+        "flow": "Home and shared states",
+        "route": "/limits/manteca"
     },
     {
         "id": "fixture-history-pix-key-owner",
@@ -378,6 +460,11 @@
     },
     {
         "id": "fixture-home-add-drawer-pix",
+        "flow": "Home and shared states",
+        "route": "/home?drawer=add"
+    },
+    {
+        "id": "fixture-home-add-drawer-pix-paused",
         "flow": "Home and shared states",
         "route": "/home?drawer=add"
     },
@@ -1070,6 +1157,11 @@
         "route": "/add-money/spain"
     },
     {
+        "id": "fixture-pix-first-use",
+        "flow": "Add money",
+        "route": "/add-money/pix"
+    },
+    {
         "id": "fixture-pix-deposit-amount",
         "flow": "Add money",
         "route": "/add-money/pix"
@@ -1077,7 +1169,12 @@
     {
         "id": "fixture-pix-deposit-minimum",
         "flow": "Add money",
-        "route": "/add-money/pix?amount=0.5&currency=BRL"
+        "route": "/add-money/pix?amount=10&currency=BRL"
+    },
+    {
+        "id": "fixture-pix-deposit-code",
+        "flow": "Add money",
+        "route": "/add-money/pix?step=showQR&intentId=fixture-pix-deposit"
     },
     {
         "id": "fixture-pix-deposit-expired",
@@ -1106,6 +1203,16 @@
     },
     {
         "id": "fixture-pix-route-paused-deposit",
+        "flow": "Add money",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-receipt-pay-code",
+        "flow": "Add money",
+        "route": "/history?tx=fixture-pix-deposit"
+    },
+    {
+        "id": "fixture-pix-activation-refused",
         "flow": "Add money",
         "route": "/add-money/pix"
     },
@@ -1270,6 +1377,21 @@
         "route": "/add-money?method=bank&step=details&corridor=BANK_TRANSFER_AR"
     },
     {
+        "id": "fixture-add-money-picker-first-time",
+        "flow": "Add money",
+        "route": "/add-money"
+    },
+    {
+        "id": "fixture-add-money-picker-pix",
+        "flow": "Add money",
+        "route": "/add-money"
+    },
+    {
+        "id": "fixture-add-money-options-account-none",
+        "flow": "Add money",
+        "route": "/add-money/options?method=account"
+    },
+    {
         "id": "fixture-paperwork-verification-ars-setting-up",
         "flow": "Add money",
         "route": "/add-money/argentina/manteca"
@@ -1355,9 +1477,34 @@
         "route": "/verify?feature=local"
     },
     {
+        "id": "fixture-feature-activation-local-served-elsewhere",
+        "flow": "Add money",
+        "route": "/add-money/argentina/manteca"
+    },
+    {
         "id": "p17-add-money",
         "flow": "Add money",
         "route": "/add-money?method=bank"
+    },
+    {
+        "id": "add-money-method-picker",
+        "flow": "Add money",
+        "route": "/add-money"
+    },
+    {
+        "id": "add-money-account-currencies",
+        "flow": "Add money",
+        "route": "/add-money/options?method=account"
+    },
+    {
+        "id": "add-money-transfer-currencies",
+        "flow": "Add money",
+        "route": "/add-money/options?method=transfer"
+    },
+    {
+        "id": "add-money-pix-currency",
+        "flow": "Add money",
+        "route": "/add-money/options?method=pix"
     },
     {
         "id": "p18-add-money-crypto",
@@ -1460,6 +1607,11 @@
         "flow": "Add money",
         "route": "/dev/surfaces?s=94-f-pix-deposit",
         "source": "features/pix/components/PixQrDeposit.tsx"
+    },
+    {
+        "id": "fixture-profile-accounts-card-state-blocked",
+        "flow": "Card",
+        "route": "/dev/surfaces?s=deposit-card-state-blocked"
     },
     {
         "id": "fixture-history-card-spend",
@@ -1717,6 +1869,12 @@
         "route": "/fix-card-signature"
     },
     {
+        "id": "deposit-card-state-blocked",
+        "flow": "Card",
+        "route": "/dev/surfaces?s=deposit-card-state-blocked",
+        "source": "features/deposit-accounts/components/ClosedRowDrawer.tsx"
+    },
+    {
         "id": "standalone-error-card",
         "flow": "Card",
         "route": "/dev/surfaces?s=standalone-error-card",
@@ -1807,6 +1965,12 @@
         "source": "components/AddMoney/views/RhinoDeposit.view.tsx"
     },
     {
+        "id": "82-e-card-creating",
+        "flow": "Card",
+        "route": "/dev/surfaces?s=82-e-card-creating",
+        "source": "Card/ApplicationStatusScreen.tsx"
+    },
+    {
         "id": "82-f-choice-card-requires-info",
         "flow": "Card",
         "route": "/dev/surfaces?s=82-f-choice-card-requires-info",
@@ -1861,6 +2025,96 @@
         "id": "qr-scanner-brazil-resident",
         "flow": "Payments",
         "route": "/dev/surfaces?s=54-d-qrbottomdrawer"
+    },
+    {
+        "id": "fixture-pix-receipt-send",
+        "flow": "Payments",
+        "route": "/history?tx=fixture-pix-send"
+    },
+    {
+        "id": "fixture-pix-receipt-send-returned",
+        "flow": "Payments",
+        "route": "/history?tx=fixture-pix-send"
+    },
+    {
+        "id": "fixture-limits-avenia-qr-on-manteca",
+        "flow": "Payments",
+        "route": "/limits/manteca"
+    },
+    {
+        "id": "fixture-qr-pay-avenia-form",
+        "flow": "Payments",
+        "route": "/qr-pay?qrCode=00020101021226680014br.gov.bcb.pix2546pix.example.com%2Fqr%2Fv2%2Fcobv%2Fpadaria-pao-dourado520400005303986540542.505802BR5924PADARIA%20PAO%20DOURADO%20LTDA6009SAO%20PAULO62070503***63043A47&type=PIX&t=1"
+    },
+    {
+        "id": "fixture-qr-pay-avenia-open-amount",
+        "flow": "Payments",
+        "route": "/qr-pay?qrCode=00020101021226680014br.gov.bcb.pix2546pix.example.com%2Fqr%2Fv2%2Fcobv%2Fpadaria-pao-dourado5204000053039865802BR5924PADARIA%20PAO%20DOURADO%20LTDA6009SAO%20PAULO62070503***630409BC&type=PIX&t=1"
+    },
+    {
+        "id": "fixture-qr-pay-avenia-minimum",
+        "flow": "Payments",
+        "route": "/qr-pay?qrCode=00020101021226680014br.gov.bcb.pix2546pix.example.com%2Fqr%2Fv2%2Fcobv%2Fpadaria-pao-dourado52040000530398654043.005802BR5924PADARIA%20PAO%20DOURADO%20LTDA6009SAO%20PAULO62070503***63044A84&type=PIX&t=1"
+    },
+    {
+        "id": "fixture-qr-pay-avenia-processing",
+        "flow": "Payments",
+        "route": "/qr-pay?qrCode=00020101021226680014br.gov.bcb.pix2546pix.example.com%2Fqr%2Fv2%2Fcobv%2Fpadaria-pao-dourado520400005303986540542.505802BR5924PADARIA%20PAO%20DOURADO%20LTDA6009SAO%20PAULO62070503***63043A47&type=PIX&t=1&intentId=fixture-qr-avenia"
+    },
+    {
+        "id": "fixture-qr-pay-avenia-paid",
+        "flow": "Payments",
+        "route": "/qr-pay?qrCode=00020101021226680014br.gov.bcb.pix2546pix.example.com%2Fqr%2Fv2%2Fcobv%2Fpadaria-pao-dourado520400005303986540542.505802BR5924PADARIA%20PAO%20DOURADO%20LTDA6009SAO%20PAULO62070503***63043A47&type=PIX&t=1&intentId=fixture-qr-avenia"
+    },
+    {
+        "id": "fixture-qr-pay-avenia-quote-changed",
+        "flow": "Payments",
+        "route": "/qr-pay?qrCode=00020101021226680014br.gov.bcb.pix2546pix.example.com%2Fqr%2Fv2%2Fcobv%2Fpadaria-pao-dourado520400005303986540542.505802BR5924PADARIA%20PAO%20DOURADO%20LTDA6009SAO%20PAULO62070503***63043A47&type=PIX&t=1"
+    },
+    {
+        "id": "fixture-qr-pay-avenia-amount-held",
+        "flow": "Payments",
+        "route": "/qr-pay?qrCode=00020101021226680014br.gov.bcb.pix2546pix.example.com%2Fqr%2Fv2%2Fcobv%2Fpadaria-pao-dourado520400005303986540542.505802BR5924PADARIA%20PAO%20DOURADO%20LTDA6009SAO%20PAULO62070503***63043A47&type=PIX&t=1"
+    },
+    {
+        "id": "fixture-qr-pay-avenia-throttled",
+        "flow": "Payments",
+        "route": "/qr-pay?qrCode=00020101021226680014br.gov.bcb.pix2546pix.example.com%2Fqr%2Fv2%2Fcobv%2Fpadaria-pao-dourado520400005303986540542.505802BR5924PADARIA%20PAO%20DOURADO%20LTDA6009SAO%20PAULO62070503***63043A47&type=PIX&t=1"
+    },
+    {
+        "id": "fixture-qr-pay-brl-switched-off",
+        "flow": "Payments",
+        "route": "/qr-pay?qrCode=00020101021226680014br.gov.bcb.pix2546pix.example.com%2Fqr%2Fv2%2Fcobv%2Fpadaria-pao-dourado520400005303986540542.505802BR5924PADARIA%20PAO%20DOURADO%20LTDA6009SAO%20PAULO62070503***63043A47&type=PIX&t=1"
+    },
+    {
+        "id": "fixture-qr-pay-avenia-refunded",
+        "flow": "Payments",
+        "route": "/qr-pay?qrCode=00020101021226680014br.gov.bcb.pix2546pix.example.com%2Fqr%2Fv2%2Fcobv%2Fpadaria-pao-dourado520400005303986540542.505802BR5924PADARIA%20PAO%20DOURADO%20LTDA6009SAO%20PAULO62070503***63043A47&type=PIX&t=1&intentId=fixture-qr-avenia"
+    },
+    {
+        "id": "fixture-qr-pay-avenia-needs-support",
+        "flow": "Payments",
+        "route": "/qr-pay?qrCode=00020101021226680014br.gov.bcb.pix2546pix.example.com%2Fqr%2Fv2%2Fcobv%2Fpadaria-pao-dourado520400005303986540542.505802BR5924PADARIA%20PAO%20DOURADO%20LTDA6009SAO%20PAULO62070503***63043A47&type=PIX&t=1&intentId=fixture-qr-avenia"
+    },
+    {
+        "id": "fixture-qr-pay-avenia-refused",
+        "flow": "Payments",
+        "route": "/qr-pay?qrCode=00020101021226680014br.gov.bcb.pix2546pix.example.com%2Fqr%2Fv2%2Fcobv%2Fpadaria-pao-dourado520400005303986540542.505802BR5924PADARIA%20PAO%20DOURADO%20LTDA6009SAO%20PAULO62070503***63043A47&type=PIX&t=1"
+    },
+    {
+        "id": "fixture-qr-pay-avenia-merchant-blocked",
+        "flow": "Payments",
+        "route": "/qr-pay?qrCode=00020101021226680014br.gov.bcb.pix2546pix.example.com%2Fqr%2Fv2%2Fcobv%2Fpadaria-pao-dourado520400005303986540542.505802BR5924PADARIA%20PAO%20DOURADO%20LTDA6009SAO%20PAULO62070503***63043A47&type=PIX&t=1"
+    },
+    {
+        "id": "fixture-qr-pay-avenia-first-use",
+        "flow": "Payments",
+        "route": "/qr-pay?qrCode=00020101021226680014br.gov.bcb.pix2546pix.example.com%2Fqr%2Fv2%2Fcobv%2Fpadaria-pao-dourado520400005303986540542.505802BR5924PADARIA%20PAO%20DOURADO%20LTDA6009SAO%20PAULO62070503***63043A47&type=PIX&t=1"
+    },
+    {
+        "id": "fixture-qr-pay-avenia-receipt",
+        "flow": "Payments",
+        "route": "/history?tx=fixture-qr-avenia"
     },
     {
         "id": "fixture-qr-pay-rate-unavailable",
@@ -2197,7 +2451,52 @@
         "route": "/withdraw/manteca?country=brazil&method=pix"
     },
     {
+        "id": "fixture-pix-withdraw-key",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix"
+    },
+    {
+        "id": "fixture-pix-withdraw-key-other",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?sendMethod=bank"
+    },
+    {
+        "id": "fixture-pix-send-review",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?sendMethod=bank&step=review"
+    },
+    {
+        "id": "fixture-pix-send-arrived",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?step=success&intentId=fixture-pix-send&sendMethod=bank"
+    },
+    {
+        "id": "fixture-pix-nonresident-send-key",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?sendMethod=bank"
+    },
+    {
+        "id": "fixture-pix-nonresident-address",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?sendMethod=bank"
+    },
+    {
+        "id": "fixture-pix-nonresident-send-review",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?sendMethod=bank&step=review"
+    },
+    {
+        "id": "fixture-pix-withdraw-review",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?step=review"
+    },
+    {
         "id": "fixture-pix-withdraw-form",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?step=review"
+    },
+    {
+        "id": "fixture-pix-withdraw-under-minimum",
         "flow": "Withdraw",
         "route": "/withdraw/pix?step=review"
     },
@@ -2228,6 +2527,11 @@
     },
     {
         "id": "fixture-pix-withdraw-key-lookup-failed",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix"
+    },
+    {
+        "id": "fixture-pix-withdraw-key-blocked",
         "flow": "Withdraw",
         "route": "/withdraw/pix"
     },
@@ -2272,9 +2576,9 @@
         "route": "/withdraw/pix?step=success&intentId=fixture-pix-withdrawal"
     },
     {
-        "id": "fixture-pix-new-key-not-waiting",
+        "id": "fixture-pix-withdraw-not-signed",
         "flow": "Withdraw",
-        "route": "/withdraw/new-pix-key?intentId=fixture-pix-withdrawal"
+        "route": "/withdraw/pix?step=success&intentId=fixture-pix-withdrawal"
     },
     {
         "id": "fixture-pix-manteca-withdraw-key",
@@ -2390,6 +2694,11 @@
         "id": "p74-network-selector-drawer",
         "flow": "Withdraw",
         "route": "/withdraw/crypto"
+    },
+    {
+        "id": "p84-pix-provider-sheet",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?step=review"
     },
     {
         "id": "p86-pix-manteca-provider-sheet",
@@ -2523,6 +2832,16 @@
         "id": "fixture-badges",
         "flow": "Rewards",
         "route": "/badges"
+    },
+    {
+        "id": "fixture-pix-send-arrived-reward",
+        "flow": "Rewards",
+        "route": "/withdraw/pix?step=success&intentId=fixture-pix-send&sendMethod=bank"
+    },
+    {
+        "id": "fixture-qr-pay-avenia-paid-reward",
+        "flow": "Rewards",
+        "route": "/qr-pay?qrCode=00020101021226680014br.gov.bcb.pix2546pix.example.com%2Fqr%2Fv2%2Fcobv%2Fpadaria-pao-dourado520400005303986540542.505802BR5924PADARIA%20PAO%20DOURADO%20LTDA6009SAO%20PAULO62070503***63043A47&type=PIX&t=1&intentId=fixture-qr-avenia"
     },
     {
         "id": "fixture-huge-rewards-cash",

@@ -308,3 +308,30 @@ it('unmount ignores late conflict navigation and leaves no polling', async () =>
     expect(mockPush).not.toHaveBeenCalled()
     expect(activateKycFeature).toHaveBeenCalledTimes(1)
 })
+
+// API-CONTRACT-M3 section 3: the Pix account opens through `pix` for every residence. The report has
+// no `pix` entry, and a resident abroad may already hold Manteca's BRL account, which says nothing
+// about Avenia's: the activation is the only answer.
+it("pix activates on mount even where the report's BRL account reads on, and asks a missing step in place", async () => {
+    jest.mocked(useAuth).mockReturnValue({
+        user: {
+            user: { userId: 'a' },
+            identityVerification: { oneShot: true, status: 'verified' },
+            capabilities: { features: { local: { state: 'on', accounts: { BRL: { state: 'on' } } } } },
+        },
+        isFetchingUser: false,
+    } as unknown as ReturnType<typeof useAuth>)
+    jest.mocked(activateKycFeature).mockResolvedValue({
+        kind: 'conflict',
+        code: 'questions_missing',
+        step: 'address',
+    } as Reply)
+
+    const { result } = renderHook(() => useKycFeatureActivation('pix', { automatic: true }))
+    await flush()
+
+    expect(activateKycFeature).toHaveBeenCalledWith('pix')
+    expect(result.current.allowed).toBe(false)
+    expect(result.current.result).toMatchObject({ kind: 'conflict', code: 'questions_missing', step: 'address' })
+    expect(mockPush).not.toHaveBeenCalled()
+})

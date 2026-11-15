@@ -28,7 +28,7 @@ jest.mock('@/services/rain', () => ({
     rainApi: { applyForCard: jest.fn(), getCardApplyReadiness: jest.fn(), getOverview: jest.fn() },
 }))
 jest.mock('@/services/consent', () => ({ cardConsentDocuments: jest.fn(() => []) }))
-const mockUser = {
+let mockUser = {
     user: { userId: 'user-1' },
     identityVerification: { status: 'verified', oneShot: true },
     capabilities: withFeatureReport({ rails: [], nextActions: [] }, { identity: { status: 'verified' } }),
@@ -148,6 +148,214 @@ describe('a pending application without a provider ID reconciles from the overvi
             await jest.advanceTimersByTimeAsync(60_000)
         })
         expect(mockGetOverview).toHaveBeenCalledTimes(readsAfterUnmount)
+        expect(mockApply).toHaveBeenCalledTimes(1)
+    })
+})
+
+const APPROVED_EMPTY = { ...CARD_ISSUED, cards: [] }
+const advance = async (ms: number) => {
+    await act(async () => {
+        await jest.advanceTimersByTimeAsync(ms)
+    })
+}
+
+describe('a provider-backed pending application reconciles card issuance', () => {
+    let client: QueryClient
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+        <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    )
+
+    beforeEach(() => {
+        jest.useFakeTimers()
+        jest.clearAllMocks()
+        mockUser = { ...mockUser, user: { userId: 'user-1' } }
+        ;(cardApi.getInfo as jest.Mock).mockResolvedValue({ geoProhibited: false })
+        mockGetOverview.mockResolvedValue(NO_APPLICATION)
+        mockApply.mockResolvedValue({ status: 'pending', rainUserId: 'rain-1', message: 'submitted' })
+        client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    })
+
+    afterEach(() => {
+        client.clear()
+        jest.useRealTimers()
+    })
+
+    const openApprovedEmpty = async () => {
+        const view = renderHook(() => useCardFlow(), { wrapper })
+        await waitFor(() => expect(view.result.current.state).toBe('add-card'))
+        mockGetOverview.mockResolvedValue(APPROVED_EMPTY)
+        await act(async () => {
+            await view.result.current.handleApply(false)
+        })
+        await advance(1)
+        return view
+    }
+
+    it('shows the issuance wait and displays the card on the first scheduled read', async () => {
+        const { result } = await openApprovedEmpty()
+        expect(result.current.state).toBe('creating-card')
+        expect(result.current.applyError).toBeNull()
+        const readsBefore = mockGetOverview.mock.calls.length
+        mockGetOverview.mockResolvedValue(CARD_ISSUED)
+
+        await advance(1_900)
+        expect(mockGetOverview).toHaveBeenCalledTimes(readsBefore)
+        await advance(200)
+        expect(mockGetOverview).toHaveBeenCalledTimes(readsBefore + 1)
+        expect(result.current.state).toBe('active')
+        expect(result.current.applyError).toBeNull()
+        await advance(12_000)
+        expect(mockGetOverview).toHaveBeenCalledTimes(readsBefore + 1)
+        expect(mockApply).toHaveBeenCalledTimes(1)
+    })
+
+    it('only offers the existing issuance retry after the bounded wait and fresh empty reads', async () => {
+        const { result } = await openApprovedEmpty()
+        const readsBefore = mockGetOverview.mock.calls.length
+        for (let tick = 0; tick < 5; tick++) {
+            await advance(2_000)
+        }
+        expect(result.current.state).toBe('creating-card')
+        expect(result.current.applyError).toBeNull()
+        expect(mockGetOverview).toHaveBeenCalledTimes(readsBefore + 5)
+
+        await advance(2_100)
+        expect(mockGetOverview.mock.calls.length - readsBefore).toBeLessThanOrEqual(6)
+        expect(result.current.state).toBe('add-card')
+        expect(result.current.applyError).toBe('page.issueFailed')
+        await advance(12_000)
+        expect(mockGetOverview.mock.calls.length - readsBefore).toBeLessThanOrEqual(6)
+        expect(mockApply).toHaveBeenCalledTimes(1)
+    })
+
+    it('keeps the pending screen while the overview has not caught up', async () => {
+        const { result } = renderHook(() => useCardFlow(), { wrapper })
+        await waitFor(() => expect(result.current.state).toBe('add-card'))
+        const apply = result.current.handleApply
+        await act(async () => {
+            await apply(false)
+            await apply(false)
+        })
+        await advance(1)
+        expect(result.current.state).toBe('pending')
+        expect(result.current.applyError).toBeNull()
+        mockGetOverview.mockResolvedValue(CARD_ISSUED)
+        await advance(30_100)
+        expect(result.current.state).toBe('active')
+        expect(mockApply).toHaveBeenCalledTimes(1)
+    })
+
+    it('clears an unavailable issuance result on an authenticated user change', async () => {
+        const { result, rerender } = await openApprovedEmpty()
+        mockGetOverview.mockRejectedValue(new Error('overview unavailable'))
+        await advance(4_100)
+        expect(result.current.issuanceReadError).toBe(true)
+        mockUser = { ...mockUser, user: { userId: 'user-2' } }
+        mockGetOverview.mockResolvedValue(APPROVED_EMPTY)
+        rerender()
+        await waitFor(() => expect(result.current.state).toBe('add-card'))
+        expect(result.current.issuanceReadError).toBe(false)
+        expect(result.current.applyError).toBeNull()
+    })
+
+    it('stops at twelve seconds when an overview read is still in flight', async () => {
+        const { result } = await openApprovedEmpty()
+        let resolveRead!: (value: typeof CARD_ISSUED) => void
+        mockGetOverview.mockReturnValueOnce(
+            new Promise((resolve) => {
+                resolveRead = resolve
+            })
+        )
+        const readsBefore = mockGetOverview.mock.calls.length
+        await advance(2_100)
+        expect(mockGetOverview).toHaveBeenCalledTimes(readsBefore + 1)
+        await advance(10_100)
+        expect(result.current.issuanceReadError).toBe(false)
+        expect(result.current.issuanceStillCreating).toBe(true)
+        expect(result.current.applyError).not.toBe('page.issueFailed')
+        expect(mockGetOverview).toHaveBeenCalledTimes(readsBefore + 1)
+        await act(async () => {
+            resolveRead(CARD_ISSUED)
+        })
+        await advance(1)
+        expect(result.current.applyError).not.toBe('page.issueFailed')
+        expect(mockApply).toHaveBeenCalledTimes(1)
+    })
+
+    it('retries the overview after a failed issuance read', async () => {
+        const { result } = await openApprovedEmpty()
+        mockGetOverview.mockRejectedValue(new Error('overview unavailable'))
+        await advance(4_100)
+        expect(result.current.issuanceReadError).toBe(true)
+        mockGetOverview.mockResolvedValue(CARD_ISSUED)
+        await act(async () => {
+            await result.current.retryIssuance()
+        })
+        await advance(1)
+        expect(result.current.state).toBe('active')
+        expect(result.current.issuanceReadError).toBe(false)
+        expect(result.current.applyError).toBeNull()
+        expect(mockApply).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not interpret failed overview reads as failed issuance', async () => {
+        const { result } = await openApprovedEmpty()
+        mockGetOverview.mockRejectedValue(new Error('overview unavailable'))
+        const readsBefore = mockGetOverview.mock.calls.length
+        for (let tick = 0; tick < 7; tick++) {
+            await advance(2_100)
+        }
+
+        expect(mockGetOverview.mock.calls.length).toBeGreaterThan(readsBefore)
+        expect(mockGetOverview.mock.calls.length - readsBefore).toBeLessThanOrEqual(6)
+        expect(result.current.applyError).not.toBe('page.issueFailed')
+        expect(mockApply).toHaveBeenCalledTimes(1)
+    })
+
+    it.each([
+        ['PENDING', 'manualReview'],
+        ['REQUIRES_INFORMATION', 'needsInformation'],
+        ['REJECTED', 'rejected'],
+    ])('defers to an authoritative %s overview during the wait', async (railStatus, applicationStatus) => {
+        const { result } = await openApprovedEmpty()
+        expect(result.current.state).toBe('creating-card')
+        mockGetOverview.mockResolvedValue({
+            ...APPROVED_EMPTY,
+            status: { ...APPROVED_EMPTY.status, railStatus, applicationStatus },
+        })
+        await advance(2_100)
+        expect(result.current.state).not.toBe('creating-card')
+        expect(result.current.applyError).not.toBe('page.issueFailed')
+        expect(mockApply).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not start a wait from an existing empty approved overview', async () => {
+        mockGetOverview.mockResolvedValue(APPROVED_EMPTY)
+        const { result } = renderHook(() => useCardFlow(), { wrapper })
+        await waitFor(() => expect(result.current.state).toBe('add-card'))
+        const readsBefore = mockGetOverview.mock.calls.length
+        await advance(12_100)
+        expect(result.current.state).toBe('add-card')
+        expect(result.current.applyError).toBeNull()
+        expect(mockGetOverview).toHaveBeenCalledTimes(readsBefore)
+        expect(mockApply).not.toHaveBeenCalled()
+    })
+
+    it('does not carry the issuance wait over to another authenticated user', async () => {
+        const { result, rerender } = await openApprovedEmpty()
+        expect(result.current.state).toBe('creating-card')
+        mockUser = { ...mockUser, user: { userId: 'user-2' } }
+        mockGetOverview.mockResolvedValue({
+            ...APPROVED_EMPTY,
+            status: { ...APPROVED_EMPTY.status, rainUserId: 'rain-2' },
+        })
+        rerender()
+        await waitFor(() => expect(result.current.state).toBe('add-card'))
+        const readsBefore = mockGetOverview.mock.calls.length
+        await advance(12_100)
+        expect(result.current.state).toBe('add-card')
+        expect(result.current.applyError).toBeNull()
+        expect(mockGetOverview).toHaveBeenCalledTimes(readsBefore)
         expect(mockApply).toHaveBeenCalledTimes(1)
     })
 })

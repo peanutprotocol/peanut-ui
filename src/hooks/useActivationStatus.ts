@@ -9,7 +9,6 @@ import { useCardInfo } from '@/hooks/useCardInfo'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { CARD_PROMOTION_DISABLED_FLAG } from '@/constants/card-flags.consts'
 import { useFeatureFlags } from '@/hooks/useFeatureFlag'
-import { usePixPlanSetUp } from '@/features/pix/usePixPlanSetUp'
 import {
     type OnboardingState,
     canAlreadyTransact,
@@ -50,7 +49,6 @@ export function useActivationStatus(): ActivationStatus {
     const { canSpendPathViaCard, holdsCardOrApplication } = useCardSurfaceAccess()
     const { cardInfo, error: cardInfoError } = useCardInfo()
     const { status: identityStatus, isRegionRestricted, isTerminalFailure } = useIdentityVerification()
-    const pixSetUp = usePixPlanSetUp()
 
     const isLoading = !user || isFetchingBalance
     const cardPromotionDisabled = useFeatureFlags()(CARD_PROMOTION_DISABLED_FLAG)
@@ -82,9 +80,7 @@ export function useActivationStatus(): ActivationStatus {
                 status: user?.user ? identityStatus : undefined,
                 isTerminalFailure,
                 isRegionRestricted,
-                // A Pix plan the provider verified has no ID step on Home (TASK-24841): the rule's other
-                // input that finishes the row. Our own check waits for the flow that needs it.
-                canTransact: canAlreadyTransact(rails, isActivated) || pixSetUp === 'done',
+                canTransact: canAlreadyTransact(rails, isActivated),
             },
             milestone: user?.user?.activationMilestone,
             isActivated,
@@ -114,7 +110,6 @@ export function useActivationStatus(): ActivationStatus {
         isLoadingCapabilities,
         capabilities.features,
         nextActions,
-        pixSetUp,
     ])
 
     return { ...derived, isLoading }

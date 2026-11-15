@@ -224,6 +224,47 @@ describe('ResidenceChangeDrawer', () => {
         expect(mockedUpdate).toHaveBeenCalledWith({ userId: 'u1', residenceCountry: 'ES' })
     })
 
+    it('shows a submitted target under review with a way to leave and no duplicate upload', async () => {
+        const { onClose, onReverify } = render({
+            declared: 'BR',
+            verified: 'BR',
+            pending: 'ES',
+            pendingStatus: 'REVIEW_PENDING',
+        })
+        expect(screen.getByText(/under review/i)).toBeInTheDocument()
+        expect(screen.queryByText(/(?:a few|a couple of|\d+)\s+minutes?/i)).not.toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Submit documents' })).not.toBeInTheDocument()
+        const save = screen.queryByRole('button', { name: 'Save' })
+        if (save) expect(save).toBeDisabled()
+        fireEvent.keyDown(document, { key: 'Escape' })
+        await waitFor(() => expect(onClose).toHaveBeenCalled())
+        expect(mockedUpdate).not.toHaveBeenCalled()
+        expect(onReverify).not.toHaveBeenCalled()
+    })
+
+    it.each([
+        ['France', 'FR', 'Submit documents'],
+        ['Brazil', 'BR', 'Save'],
+    ])('preserves the normal action for %s during review of Spain', async (name, country, action) => {
+        const { onClose, onReverify } = render({
+            declared: 'BR',
+            verified: 'BR',
+            pending: 'ES',
+            pendingStatus: 'REVIEW_PENDING',
+        })
+        fireEvent.click(screen.getByRole('combobox'))
+        fireEvent.click(screen.getByText(name))
+        expect(screen.queryByText(/under review/i)).not.toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: action }))
+        await waitFor(() => expect(onClose).toHaveBeenCalled())
+        expect(mockedUpdate).toHaveBeenCalledWith({ userId: 'u1', residenceCountry: country })
+        if (country === 'BR') {
+            expect(onReverify).not.toHaveBeenCalled()
+        } else {
+            expect(onReverify).toHaveBeenCalledWith(country)
+        }
+    })
+
     it('warns when the picked country is restricted', () => {
         render({ declared: 'RU', verified: null })
         expect(

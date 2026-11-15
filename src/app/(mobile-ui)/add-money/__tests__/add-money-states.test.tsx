@@ -539,7 +539,10 @@ jest.mock('@/components/AddMoney/components/OnrampConfirmationModal', () => ({
 
 jest.mock('@/components/0_Bruddle/ListItem', () => ({
     ListItem: (props: any) => (
-        <div data-testid={`action-card-${props.title?.toLowerCase().replace(/\s+/g, '-')}`} onClick={props.onClick}>
+        <div
+            data-testid={props['data-testid'] ?? `action-card-${props.title?.toLowerCase().replace(/\s+/g, '-')}`}
+            onClick={props.onClick}
+        >
             <span>{props.title}</span>
             <span>{props.body}</span>
         </div>
@@ -908,6 +911,7 @@ function setGate(kind: Gate) {
 
     mockUseCapabilities.mockReturnValue({
         rails,
+        capabilities: {},
         nextActions,
         isKycApproved,
         gateFor: () => gateState,
@@ -1025,35 +1029,43 @@ beforeEach(() => {
 })
 
 // ============================================================
-// GROUP 1: Landing (root = the merged bank screen; the old method-selection
-// screen is gone — crypto is a row on that screen and on the home Add drawer)
+// GROUP 1: Landing
 // ============================================================
 describe('GROUP 1: Landing', () => {
-    test('bare /add-money redirects to the home add drawer (nuqs url state)', () => {
+    test('bare /add-money renders the method picker without redirecting', () => {
         renderWithProviders(<AddMoneyPage />)
-
-        // the drawer offers crypto AND bank, so generic entries lose nothing
-        expect(mockRouterReplace).toHaveBeenCalledWith('/home?drawer=add')
-        expect(screen.queryByTestId('deposit-accounts-hub')).not.toBeInTheDocument()
+        expect(screen.getByTestId('add-money-method-crypto')).toBeInTheDocument()
+        expect(screen.getByTestId('add-money-method-transfer')).toBeInTheDocument()
+        expect(mockRouterReplace).not.toHaveBeenCalled()
+        expect(mockRouterPush).not.toHaveBeenCalled()
     })
 
-    test('bare /add-money carries returnTo through the drawer redirect', () => {
-        mockSearchParams.set('returnTo', '/profile/exchange-rate?from=USD&to=EUR')
+    test('pre-KYC users can select crypto', () => {
+        setGate('needs-identity')
         renderWithProviders(<AddMoneyPage />)
+        fireEvent.click(screen.getByTestId('add-money-method-crypto'))
+        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/crypto?returnTo=%2Fadd-money')
+    })
 
-        // dropping it would strand the exchange-rate widget's back contract
-        expect(mockRouterReplace).toHaveBeenCalledWith(
-            `/home?drawer=add&returnTo=${encodeURIComponent('/profile/exchange-rate?from=USD&to=EUR')}`
+    test('preserves an internal returnTo on back and method selection', () => {
+        const origin = '/profile/exchange-rate?from=USD&to=EUR'
+        mockSearchParams.set('returnTo', origin)
+        renderWithProviders(<AddMoneyPage />)
+        fireEvent.click(screen.getByTestId('nav-header'))
+        expect(mockRouterReplace).toHaveBeenCalledWith(origin)
+        fireEvent.click(screen.getByTestId('add-money-method-crypto'))
+        expect(mockRouterPush).toHaveBeenCalledWith(
+            '/add-money/crypto?returnTo=%2Fadd-money%3FreturnTo%3D%252Fprofile%252Fexchange-rate%253Ffrom%253DUSD%2526to%253DEUR'
         )
     })
 
-    test('bare /add-money drops an off-origin returnTo from the redirect', () => {
-        // forwarding the raw param verbatim would make a trusted deep link an
-        // open redirect the moment any consumer honors it
-        mockSearchParams.set('returnTo', 'https://evil.example/phish')
+    test.each(['https://evil.example/phish', '//evil.example/phish'])('rejects off-origin returnTo %s', (origin) => {
+        mockSearchParams.set('returnTo', origin)
         renderWithProviders(<AddMoneyPage />)
-
-        expect(mockRouterReplace).toHaveBeenCalledWith('/home?drawer=add')
+        fireEvent.click(screen.getByTestId('nav-header'))
+        expect(mockRouterReplace).toHaveBeenCalledWith('/home')
+        fireEvent.click(screen.getByTestId('add-money-method-crypto'))
+        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/crypto?returnTo=%2Fadd-money')
     })
 
     /*

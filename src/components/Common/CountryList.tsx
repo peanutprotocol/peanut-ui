@@ -6,6 +6,7 @@ import {
     PREFERRED_COUNTRY_ISO2,
 } from '@/components/AddMoney/consts'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
+import Badge from '@/components/Global/Badges/Badge'
 import { SearchInput } from '@/components/SearchInput'
 import Image from 'next/image'
 import { useCallback, useMemo, useState, useDeferredValue, type ReactNode } from 'react'
@@ -34,9 +35,13 @@ interface CountryListViewProps {
     viewMode: 'claim-request' | 'add-withdraw' | 'general-verification'
     /** returns false when it answered in place (a drawer over this list), so the row does not wait */
     onCountryClick: (country: CountryData) => void | boolean
+    /** Reports a real country tap before the selected route or waitlist opens. */
+    onCountrySelect?: (country: CountryData, outcome: 'route' | 'waitlist') => void
     onCryptoClick?: (flow: 'add' | 'withdraw') => void
     flow?: 'add' | 'withdraw'
     getRightContent?: (country: CountryData, isSupported: boolean) => ReactNode
+    /** A country the user can inspect but cannot use to deposit. */
+    restrictedCountry?: { id: string; label: string; onExplain: () => void }
     // Send has stricter country support than own-account withdrawal.
     enforceSupportedCountries?: boolean
     /**
@@ -91,9 +96,11 @@ export const CountryList = ({
     inputDescription,
     viewMode,
     onCountryClick,
+    onCountrySelect,
     onCryptoClick,
     flow,
     getRightContent,
+    restrictedCountry,
     enforceSupportedCountries,
     pixPayBlock = null,
     showLoadingState = true, // true by default to show loading state when clicking a country
@@ -138,6 +145,7 @@ export const CountryList = ({
 
     // sort countries: the user's own country first, then preferred countries
     // (in declared order), then everyone else alphabetically.
+    const restrictedCountryId = restrictedCountry?.id
     const sortedCountries = useMemo(() => {
         const preferredRank = (country: CountryData) => {
             const iso2 = country.iso2 ?? ALL_COUNTRIES_ALPHA3_TO_ALPHA2[country.id]
@@ -146,6 +154,8 @@ export const CountryList = ({
         }
 
         return [...supportedCountries].sort((a, b) => {
+            const restrictionOrder = Number(a.id === restrictedCountryId) - Number(b.id === restrictedCountryId)
+            if (restrictionOrder) return restrictionOrder
             if (homeCountryCode) {
                 const aIsUserCountry =
                     ALL_COUNTRIES_ALPHA3_TO_ALPHA2[a.id] === homeCountryCode || a.id === homeCountryCode
@@ -162,7 +172,7 @@ export const CountryList = ({
 
             return countryName(a).localeCompare(countryName(b), locale)
         })
-    }, [homeCountryCode, countryName, locale, supportedCountries])
+    }, [homeCountryCode, countryName, locale, supportedCountries, restrictedCountryId])
 
     // filter countries based on deferred search term to prevent blocking ui.
     // The English title stays searchable so "Brazil" still finds "Brasil".
@@ -260,7 +270,12 @@ export const CountryList = ({
                             isSupported = true
                         }
 
-                        const customRight = getRightContent ? getRightContent(country, isSupported) : undefined
+                        const restriction = restrictedCountry?.id === country.id ? restrictedCountry : undefined
+                        const customRight = restriction ? (
+                            <Badge status="neutral" customText={restriction.label} />
+                        ) : (
+                            getRightContent?.(country, isSupported)
+                        )
                         const trailing =
                             customRight ??
                             (showLoadingState && clickedCountryId === country.id ? <Loading /> : undefined)
@@ -270,18 +285,20 @@ export const CountryList = ({
                                 key={country.id}
                                 title={displayName}
                                 trailing={trailing}
-                                chevron={!trailing}
+                                chevron={!trailing || !!restriction}
                                 // A caller-supplied set is "the countries this currency
                                 // pays out in", and the caller's own row names that
                                 // currency. The country's local code under it ("Poland
                                 // PLN" inside EUR) promised a payout the rail does not make.
                                 body={countries ? undefined : country.currency}
                                 onClick={() => {
+                                    if (restriction) return restriction.onExplain()
                                     // check for easter egg countries first
                                     if (EASTER_EGG_COUNTRIES[country.id]) {
                                         setEasterEggCountry(country.id)
                                         return
                                     }
+                                    onCountrySelect?.(country, isSupported ? 'route' : 'waitlist')
                                     if (!isSupported) {
                                         setWaitlistCountry(country)
                                         return
@@ -291,7 +308,7 @@ export const CountryList = ({
                                     if (onCountryClick(country) === false) setClickedCountryId(null)
                                 }}
                                 position={position}
-                                disabled={clickedCountryId === country.id}
+                                disabled={!restriction && clickedCountryId === country.id}
                                 leading={
                                     <div className="relative h-8 w-8">
                                         <Image

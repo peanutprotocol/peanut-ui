@@ -393,6 +393,139 @@
 				]
 			}
 		},
+		"/avenia/webhook": {
+			"post": {
+				"description": "Signed Avenia events: tickets, KYC, limits, wallet qualification, deposit holds, KYT",
+				"parameters": [
+					{
+						"description": "Base64 RSA-PSS signature of the raw body",
+						"in": "header",
+						"name": "signature",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"properties": {
+									"event": {
+										"properties": {
+											"accountId": {
+												"minLength": 1,
+												"type": "string"
+											},
+											"createdAt": {
+												"type": "string"
+											},
+											"data": {
+												"properties": {
+													"type": {
+														"type": "string"
+													}
+												},
+												"required": [
+													"type"
+												],
+												"type": "object"
+											},
+											"id": {
+												"minLength": 1,
+												"type": "string"
+											},
+											"subscription": {
+												"type": "string"
+											}
+										},
+										"required": [
+											"id",
+											"accountId",
+											"subscription",
+											"data"
+										],
+										"type": "object"
+									}
+								},
+								"required": [
+									"event"
+								],
+								"type": "object"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"received": true
+								},
+								"schema": {
+									"properties": {
+										"received": {
+											"enum": [
+												true
+											],
+											"type": "boolean"
+										}
+									},
+									"required": [
+										"received"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Avenia webhook handler",
+				"tags": [
+					"avenia"
+				]
+			}
+		},
 		"/badge/award": {
 			"post": {
 				"parameters": [
@@ -10534,6 +10667,58 @@
 				}
 			}
 		},
+		"/healthz/avenia": {
+			"get": {
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"checkedAt": "2026-01-01T00:00:00.000Z",
+									"provider": "avenia",
+									"responseTime": 120,
+									"status": "healthy",
+									"timestamp": "2026-01-01T00:00:00.000Z"
+								},
+								"schema": {
+									"properties": {
+										"checkedAt": {
+											"format": "date-time",
+											"type": "string"
+										},
+										"provider": {
+											"type": "string"
+										},
+										"responseTime": {
+											"type": "number"
+										},
+										"status": {
+											"enum": [
+												"healthy"
+											],
+											"type": "string"
+										},
+										"timestamp": {
+											"format": "date-time",
+											"type": "string"
+										}
+									},
+									"required": [
+										"status",
+										"provider",
+										"timestamp",
+										"checkedAt",
+										"responseTime"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				}
+			}
+		},
 		"/healthz/bridge": {
 			"get": {
 				"responses": {
@@ -10724,10 +10909,56 @@
 													],
 													"type": "object"
 												},
+												"pixPayout": {
+													"description": "Who a Pix withdrawal or send paid, from the key lookup at the review (owner only; never on a public receipt). Null holder and bank on a withdrawal opened before they were kept.",
+													"properties": {
+														"bankName": {
+															"anyOf": [
+																{
+																	"type": "string"
+																},
+																{
+																	"type": "null"
+																}
+															]
+														},
+														"holderName": {
+															"anyOf": [
+																{
+																	"type": "string"
+																},
+																{
+																	"type": "null"
+																}
+															]
+														},
+														"ownAccount": {
+															"anyOf": [
+																{
+																	"type": "boolean"
+																},
+																{
+																	"type": "null"
+																}
+															]
+														},
+														"pixKey": {
+															"description": "Raw: the app formats a CPF, a phone or a CNPJ",
+															"type": "string"
+														}
+													},
+													"required": [
+														"pixKey",
+														"holderName",
+														"bankName",
+														"ownAccount"
+													],
+													"type": "object"
+												},
 												"pixRecovery": {
 													"anyOf": [
 														{
-															"description": "A Pix withdrawal’s recovery, on a Pix withdrawal only (null when it has none). `awaiting-key`: the bank refused the key or account, and the user names another own Pix key with POST /pix/withdraw/:intentId/recovery-key.",
+															"description": "A Pix withdrawal’s recovery, on a Pix withdrawal only (null when it has none): the money paid to the same key again after a slow bank, or returned to the wallet.",
 															"properties": {
 																"failureCode": {
 																	"anyOf": [
@@ -10769,12 +11000,6 @@
 																},
 																"state": {
 																	"anyOf": [
-																		{
-																			"enum": [
-																				"awaiting-key"
-																			],
-																			"type": "string"
-																		},
 																		{
 																			"enum": [
 																				"in-progress"
@@ -11868,7 +12093,7 @@
 		},
 		"/manteca/pix-key/saved": {
 			"post": {
-				"description": "Saves a PIX key as one of the user's bank accounts, named with the label, so it is offered under Send → Bank. The account carries isPixRecipient, so it is never offered as a withdrawal destination. Saving a key the user already has renames it.",
+				"description": "Saves a PIX key as one of the user's bank accounts, named with the label. The API decides whose key it is, once, with the directory lookup the Pix withdrawal uses, through the user's open Pix withdraw route: the user's own key is saved as a withdrawal destination; any other key, or any key while that route is closed, is saved as a recipient (isPixRecipient) for Send → Bank, never offered as a withdrawal destination. A recipient needs Pix payment eligibility; an own key needs only the open route. Where the open route's provider pays any key (Avenia), that provider saves the key with the holder and bank its lookup validated, own key or recipient; the lookup's refusals (those of POST /pix/key) answer instead. Saving a key the user already has renames it.",
 				"parameters": [
 					{
 						"in": "header",
@@ -11911,6 +12136,132 @@
 						"description": "Default Response"
 					},
 					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"502": {
 						"content": {
 							"application/json": {
 								"schema": {
@@ -12073,7 +12424,7 @@
 		},
 		"/manteca/qr-payment/complete-with-signed-tx": {
 			"post": {
-				"description": "Completes Manteca payment first, then either broadcasts the signed UserOp or submits the signed Rain withdrawal via the session key. This prevents funds from being stuck if Manteca fails.",
+				"description": "Broadcasts the signed UserOp, or submits the signed Rain withdrawal via the session key, first; the Manteca payment is created only once the USDC mined at the QR deposit address and is claimed for this attempt. A payment that fails after that is recorded and its USDC refunded.",
 				"parameters": [
 					{
 						"in": "header",
@@ -12390,7 +12741,7 @@
 		},
 		"/manteca/withdraw/complete-with-signed-tx": {
 			"post": {
-				"description": "Creates Manteca ramp-off order FIRST, then either broadcasts the signed UserOp or submits the signed Rain withdrawal via the session key. Prevents funds from being stuck if Manteca fails.",
+				"description": "Broadcasts the signed UserOp, or submits the signed Rain withdrawal via the session key, first; the Manteca ramp-off order opens once the USDC mined at the deposit address. An order that fails after that is recorded and its USDC refunded.",
 				"parameters": [
 					{
 						"in": "header",
@@ -13330,6 +13681,14 @@
 						"schema": {
 							"type": "string"
 						}
+					},
+					{
+						"in": "header",
+						"name": "x-username-hold",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
 					}
 				],
 				"requestBody": {
@@ -13366,6 +13725,14 @@
 					{
 						"in": "header",
 						"name": "api-key",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "header",
+						"name": "x-username-hold",
 						"required": false,
 						"schema": {
 							"type": "string"
@@ -13637,7 +14004,7 @@
 									"intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
 									"payerCpfMasked": "123.***.***-09",
 									"pixReceived": false,
-									"provider": "manteca",
+									"provider": "avenia",
 									"status": "AWAITING_USER_ACTION",
 									"usdcAmount": "17.920175"
 								},
@@ -13687,7 +14054,7 @@
 											"type": "boolean"
 										},
 										"provider": {
-											"description": "The provider the route names, e.g. manteca. Data only: the app does not branch on it.",
+											"description": "The provider the route names, e.g. avenia. Data only: the app does not branch on it.",
 											"type": "string"
 										},
 										"status": {
@@ -13730,7 +14097,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -13751,7 +14142,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -13772,7 +14187,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -13793,7 +14232,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -13814,7 +14277,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -13835,7 +14322,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -13856,7 +14367,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -13877,7 +14412,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -13973,7 +14532,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -13994,7 +14577,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14015,7 +14622,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14036,7 +14667,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14057,7 +14712,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14078,7 +14757,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14099,7 +14802,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14120,7 +14847,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14175,7 +14926,7 @@
 									"intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
 									"payerCpfMasked": "123.***.***-09",
 									"pixReceived": false,
-									"provider": "manteca",
+									"provider": "avenia",
 									"status": "AWAITING_USER_ACTION",
 									"usdcAmount": "17.920175"
 								},
@@ -14225,7 +14976,7 @@
 											"type": "boolean"
 										},
 										"provider": {
-											"description": "The provider the route names, e.g. manteca. Data only: the app does not branch on it.",
+											"description": "The provider the route names, e.g. avenia. Data only: the app does not branch on it.",
 											"type": "string"
 										},
 										"status": {
@@ -14268,7 +15019,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14332,7 +15107,7 @@
 									"holderTaxIdMasked": "***.456.789-**",
 									"ispb": "18236120",
 									"ownAccount": true,
-									"provider": "manteca"
+									"provider": "avenia"
 								},
 								"schema": {
 									"properties": {
@@ -14392,7 +15167,7 @@
 											"description": "Precheck: the holder looks like the user. Null when the provider cannot tell."
 										},
 										"provider": {
-											"description": "The provider the route names, e.g. manteca. Data only: the app does not branch on it.",
+											"description": "The provider the route names, e.g. avenia. Data only: the app does not branch on it.",
 											"type": "string"
 										}
 									},
@@ -14419,7 +15194,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14440,7 +15239,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14461,7 +15284,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14482,7 +15329,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14503,7 +15374,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14524,7 +15419,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14545,7 +15464,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14566,7 +15509,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14581,6 +15548,2175 @@
 					}
 				},
 				"summary": "Resolve a Pix key to its holder and bank",
+				"tags": [
+					"pix"
+				]
+			}
+		},
+		"/pix/pay": {
+			"post": {
+				"description": "Opens the payment with the provider the pay route names and returns what the wallet signs (sign.kind deposit-with-id: one bridge from the wallet, then the provider pays the code). Safe to retry with the same idempotencyKey: one key opens one payment.",
+				"parameters": [
+					{
+						"in": "header",
+						"name": "Authorization",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"properties": {
+									"amountBrl": {
+										"description": "Reais, only for a code without an amount of its own. A code with its own amount is paid that amount; another one is refused.",
+										"pattern": "^\\d{1,9}(\\.\\d{1,2})?$",
+										"type": "string"
+									},
+									"brCode": {
+										"description": "A Pix BR Code",
+										"maxLength": 512,
+										"minLength": 1,
+										"type": "string"
+									},
+									"idempotencyKey": {
+										"description": "One per payment the user means (a new one per scan and amount): a retried init with it never opens a second payment",
+										"maxLength": 200,
+										"minLength": 1,
+										"type": "string"
+									},
+									"maxSpendUsd": {
+										"description": "The review’s withdrawUsd: the init refuses a fresh spend more than 1% above it (409 PIX_QUOTE_CHANGED)",
+										"pattern": "^\\d{1,9}(\\.\\d{1,6})?$",
+										"type": "string"
+									}
+								},
+								"required": [
+									"brCode",
+									"maxSpendUsd",
+									"idempotencyKey"
+								],
+								"type": "object"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"display": {
+										"amountBrl": "42.50",
+										"amountFixed": true,
+										"arrivalEstimateSeconds": 60,
+										"bankName": "Banco Inter S.A.",
+										"fixedFeeBrl": "0.75",
+										"merchantName": "PADARIA PAO DOURADO LTDA",
+										"merchantTaxIdMasked": "12.345.678/0001-90",
+										"provider": "Avenia",
+										"rate": "5.364547",
+										"withdrawUsd": "8.062211"
+									},
+									"intentId": "4d2b7c1e-9a3f-4e81-b6d0-5c7e2a9f1b34",
+									"provider": "avenia",
+									"sign": {
+										"commitmentId": "6aeb17ea29f84d1e9b0c3a5d7e2f1c08",
+										"contractAddress": "0x10417734001162ea139e8b044dfe28dbb8b28ad0",
+										"kind": "deposit-with-id",
+										"payAmount": "8.062211",
+										"payAmountUnits": "8062211",
+										"quoteExpiresAt": "2026-11-15T12:03:00.000Z",
+										"ticketExpiresAt": "2026-11-15T12:10:00.000Z",
+										"tokenAddress": "0xaf88d065e77c8cc2239327c5edb3a432268e5831"
+									}
+								},
+								"schema": {
+									"properties": {
+										"display": {
+											"example": {
+												"amountBrl": "42.50",
+												"amountFixed": true,
+												"arrivalEstimateSeconds": 60,
+												"bankName": "Banco Inter S.A.",
+												"fixedFeeBrl": "0.75",
+												"merchantName": "PADARIA PAO DOURADO LTDA",
+												"merchantTaxIdMasked": "12.345.678/0001-90",
+												"provider": "Avenia",
+												"rate": "5.364547",
+												"withdrawUsd": "8.062211"
+											},
+											"properties": {
+												"amountBrl": {
+													"description": "The headline: reais the merchant receives",
+													"type": "string"
+												},
+												"amountFixed": {
+													"description": "The code fixes the amount: the user cannot change it",
+													"type": "boolean"
+												},
+												"arrivalEstimateSeconds": {
+													"description": "About how long from the signature to the merchant paid",
+													"type": "number"
+												},
+												"bankName": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"fixedFeeBrl": {
+													"description": "The provider’s flat fee in reais, shown as its own line",
+													"type": "string"
+												},
+												"merchantName": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													],
+													"description": "Who is paid, from the provider’s read of the code"
+												},
+												"merchantTaxIdMasked": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													],
+													"description": "The merchant’s tax id as the provider sends it: a CNPJ in full, a CPF masked"
+												},
+												"provider": {
+													"description": "The payments partner’s name, for the review’s \"processed by\" line",
+													"type": "string"
+												},
+												"rate": {
+													"description": "BRL per USDC that leaves the wallet, with the percentage fees inside: withdrawUsd × rate − fixedFeeBrl = amountBrl, to a centavo",
+													"type": "string"
+												},
+												"withdrawUsd": {
+													"description": "USDC that leaves the wallet",
+													"type": "string"
+												}
+											},
+											"required": [
+												"amountBrl",
+												"amountFixed",
+												"merchantName",
+												"merchantTaxIdMasked",
+												"bankName",
+												"withdrawUsd",
+												"rate",
+												"fixedFeeBrl",
+												"arrivalEstimateSeconds",
+												"provider"
+											],
+											"type": "object"
+										},
+										"intentId": {
+											"description": "The payment: read it at GET /pix/pay/{intentId}",
+											"type": "string"
+										},
+										"provider": {
+											"description": "The provider the route names, e.g. avenia. Data only: the app does not branch on it.",
+											"type": "string"
+										},
+										"sign": {
+											"anyOf": [
+												{
+													"description": "Approve tokenAddress to contractAddress, call depositWithId(commitmentId) on it, broadcast, then POST /pix/withdraw/{intentId}/funded with the hash.",
+													"properties": {
+														"commitmentId": {
+															"type": "string"
+														},
+														"contractAddress": {
+															"type": "string"
+														},
+														"kind": {
+															"enum": [
+																"deposit-with-id"
+															],
+															"type": "string"
+														},
+														"payAmount": {
+															"type": "string"
+														},
+														"payAmountUnits": {
+															"type": "string"
+														},
+														"quoteExpiresAt": {
+															"type": "string"
+														},
+														"ticketExpiresAt": {
+															"type": "string"
+														},
+														"tokenAddress": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"kind",
+														"contractAddress",
+														"tokenAddress",
+														"payAmount",
+														"payAmountUnits",
+														"commitmentId",
+														"quoteExpiresAt",
+														"ticketExpiresAt"
+													],
+													"type": "object"
+												},
+												{
+													"description": "Sign a transfer of payAmount to depositAddress without broadcasting it, then POST /pix/withdraw/submit. The API broadcasts it, then opens the payout order once it mined.",
+													"properties": {
+														"depositAddress": {
+															"type": "string"
+														},
+														"kind": {
+															"enum": [
+																"transfer-then-submit"
+															],
+															"type": "string"
+														},
+														"payAmount": {
+															"type": "string"
+														},
+														"payAmountUnits": {
+															"type": "string"
+														},
+														"priceLockCode": {
+															"type": "string"
+														},
+														"quoteExpiresAt": {
+															"type": "string"
+														},
+														"tokenAddress": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"kind",
+														"depositAddress",
+														"tokenAddress",
+														"payAmount",
+														"payAmountUnits",
+														"priceLockCode",
+														"quoteExpiresAt"
+													],
+													"type": "object"
+												}
+											],
+											"description": "How the wallet funds the withdrawal"
+										}
+									},
+									"required": [
+										"provider",
+										"intentId",
+										"display",
+										"sign"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"502": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Open a Pix QR payment",
+				"tags": [
+					"pix"
+				]
+			}
+		},
+		"/pix/pay/preview": {
+			"post": {
+				"description": "Reads the code with the provider the pay route names (who is paid, and the code’s own amount, if any) and quotes it. Opens nothing. Send amountBrl only for a code without an amount of its own.",
+				"parameters": [
+					{
+						"in": "header",
+						"name": "Authorization",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"properties": {
+									"amountBrl": {
+										"description": "Reais, only for a code without an amount of its own. A code with its own amount is paid that amount; another one is refused.",
+										"pattern": "^\\d{1,9}(\\.\\d{1,2})?$",
+										"type": "string"
+									},
+									"brCode": {
+										"description": "A Pix BR Code",
+										"maxLength": 512,
+										"minLength": 1,
+										"type": "string"
+									}
+								},
+								"required": [
+									"brCode"
+								],
+								"type": "object"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"amountBrl": "42.50",
+									"amountFixed": true,
+									"arrivalEstimateSeconds": 60,
+									"bankName": "Banco Inter S.A.",
+									"fixedFeeBrl": "0.75",
+									"merchantName": "PADARIA PAO DOURADO LTDA",
+									"merchantTaxIdMasked": "12.345.678/0001-90",
+									"provider": "Avenia",
+									"rate": "5.364547",
+									"withdrawUsd": "8.062211"
+								},
+								"schema": {
+									"properties": {
+										"amountBrl": {
+											"description": "The headline: reais the merchant receives",
+											"type": "string"
+										},
+										"amountFixed": {
+											"description": "The code fixes the amount: the user cannot change it",
+											"type": "boolean"
+										},
+										"arrivalEstimateSeconds": {
+											"description": "About how long from the signature to the merchant paid",
+											"type": "number"
+										},
+										"bankName": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"fixedFeeBrl": {
+											"description": "The provider’s flat fee in reais, shown as its own line",
+											"type": "string"
+										},
+										"merchantName": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											],
+											"description": "Who is paid, from the provider’s read of the code"
+										},
+										"merchantTaxIdMasked": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											],
+											"description": "The merchant’s tax id as the provider sends it: a CNPJ in full, a CPF masked"
+										},
+										"provider": {
+											"description": "The payments partner’s name, for the review’s \"processed by\" line",
+											"type": "string"
+										},
+										"rate": {
+											"description": "BRL per USDC that leaves the wallet, with the percentage fees inside: withdrawUsd × rate − fixedFeeBrl = amountBrl, to a centavo",
+											"type": "string"
+										},
+										"withdrawUsd": {
+											"description": "USDC that leaves the wallet",
+											"type": "string"
+										}
+									},
+									"required": [
+										"amountBrl",
+										"amountFixed",
+										"merchantName",
+										"merchantTaxIdMasked",
+										"bankName",
+										"withdrawUsd",
+										"rate",
+										"fixedFeeBrl",
+										"arrivalEstimateSeconds",
+										"provider"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"502": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Review a Pix QR payment",
+				"tags": [
+					"pix"
+				]
+			}
+		},
+		"/pix/pay/{intentId}": {
+			"get": {
+				"description": "Where the user’s payment stands. Owner only; read-only.",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "intentId",
+						"required": true,
+						"schema": {
+							"format": "uuid",
+							"type": "string"
+						}
+					},
+					{
+						"in": "header",
+						"name": "Authorization",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"amountBrl": "42.50",
+									"intentId": "4d2b7c1e-9a3f-4e81-b6d0-5c7e2a9f1b34",
+									"merchantName": "PADARIA PAO DOURADO LTDA",
+									"perk": null,
+									"provider": "avenia",
+									"selfPay": false,
+									"state": "paid",
+									"status": "COMPLETED"
+								},
+								"schema": {
+									"properties": {
+										"amountBrl": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"intentId": {
+											"type": "string"
+										},
+										"merchantName": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"perk": {
+											"anyOf": [
+												{
+													"properties": {
+														"claimed": {
+															"enum": [
+																false
+															],
+															"type": "boolean"
+														},
+														"discountPercentage": {
+															"type": "number"
+														},
+														"eligible": {
+															"enum": [
+																true
+															],
+															"type": "boolean"
+														},
+														"payoutStatus": {
+															"anyOf": [
+																{
+																	"enum": [
+																		"pending"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"completed"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"failed"
+																	],
+																	"type": "string"
+																}
+															]
+														},
+														"reason": {
+															"anyOf": [
+																{
+																	"type": "string"
+																},
+																{
+																	"type": "null"
+																}
+															]
+														},
+														"sponsoredUsd": {
+															"type": "number"
+														},
+														"txHash": {
+															"type": "string"
+														},
+														"usageId": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"eligible",
+														"discountPercentage",
+														"claimed",
+														"sponsoredUsd",
+														"reason",
+														"usageId",
+														"payoutStatus"
+													],
+													"type": "object"
+												},
+												{
+													"type": "null"
+												}
+											],
+											"description": "The QR reward the paid payment earned, as Manteca’s QR answers it; null when none (yet)"
+										},
+										"provider": {
+											"description": "The provider the route names, e.g. avenia. Data only: the app does not branch on it.",
+											"type": "string"
+										},
+										"selfPay": {
+											"description": "True when the code pays an account in the user’s own name (marked at init): the payment earns no points and no QR reward. False otherwise.",
+											"type": "boolean"
+										},
+										"state": {
+											"anyOf": [
+												{
+													"enum": [
+														"opening"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"awaiting_signature"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"processing"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"paid"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"refunding"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"refunded"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"cancelled"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"needs_support"
+													],
+													"type": "string"
+												}
+											],
+											"description": "Where the payment stands"
+										},
+										"status": {
+											"description": "The intent’s own status, as stored",
+											"type": "string"
+										}
+									},
+									"required": [
+										"provider",
+										"intentId",
+										"state",
+										"status",
+										"amountBrl",
+										"merchantName",
+										"selfPay",
+										"perk"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"502": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Read a Pix QR payment",
+				"tags": [
+					"pix"
+				]
+			}
+		},
+		"/pix/pay/{intentId}/funded": {
+			"post": {
+				"description": "The wallet broadcast the deposit. The API checks the receipt funds exactly this payment; the provider’s events move it after that. Idempotent, and optional for the money.",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "intentId",
+						"required": true,
+						"schema": {
+							"format": "uuid",
+							"type": "string"
+						}
+					},
+					{
+						"in": "header",
+						"name": "Authorization",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"properties": {
+									"txHash": {
+										"pattern": "^0x[0-9a-fA-F]{64}$",
+										"type": "string"
+									}
+								},
+								"required": [
+									"txHash"
+								],
+								"type": "object"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"status": "PROCESSING"
+								},
+								"schema": {
+									"properties": {
+										"status": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"status"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"502": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Report a Pix QR payment’s funding",
 				"tags": [
 					"pix"
 				]
@@ -14657,9 +17793,9 @@
 								"example": {
 									"amountBrl": "106.75",
 									"fixedFeeBrl": "0.75",
-									"minAmountBrl": "20",
+									"minAmountBrl": "5",
 									"operation": "withdraw",
-									"provider": "manteca",
+									"provider": "avenia",
 									"rate": "5.369543",
 									"usdcAmount": "20.020325"
 								},
@@ -14693,7 +17829,7 @@
 											]
 										},
 										"provider": {
-											"description": "The provider the route names, e.g. manteca",
+											"description": "The provider the route names, e.g. avenia",
 											"type": "string"
 										},
 										"rate": {
@@ -14728,7 +17864,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14749,7 +17909,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14770,7 +17954,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14791,7 +17999,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14812,7 +18044,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14833,7 +18089,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -14912,14 +18192,15 @@
 										"bankName": "Nu Pagamentos S.A.",
 										"fixedFeeBrl": "0.75",
 										"holderName": "Ana Souza",
-										"ownAccount": true,
+										"holderTaxIdMasked": "***.456.789-**",
+										"ownAccount": false,
 										"pixKey": "12345678909",
-										"provider": "Manteca",
+										"provider": "Avenia",
 										"rate": "5.369543",
 										"withdrawUsd": "20.020325"
 									},
 									"intentId": "0b9e3c1d-7a2f-4e68-b5d4-91c0f3a2e7b6",
-									"provider": "manteca",
+									"provider": "avenia",
 									"sign": {
 										"commitmentId": "6aeb17ea29f84d1e9b0c3a5d7e2f1c08",
 										"contractAddress": "0x10417734001162ea139e8b044dfe28dbb8b28ad0",
@@ -14965,7 +18246,19 @@
 														{
 															"type": "null"
 														}
-													]
+													],
+													"description": "Who is paid, from the provider’s lookup"
+												},
+												"holderTaxIdMasked": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													],
+													"description": "The holder’s masked tax id, as the provider sends it (its layout varies)"
 												},
 												"ownAccount": {
 													"anyOf": [
@@ -14975,7 +18268,8 @@
 														{
 															"type": "null"
 														}
-													]
+													],
+													"description": "The key looks like the user’s own: information, never a gate. Null when the provider cannot tell."
 												},
 												"pixKey": {
 													"type": "string"
@@ -14998,6 +18292,7 @@
 												"pixKey",
 												"ownAccount",
 												"holderName",
+												"holderTaxIdMasked",
 												"bankName",
 												"withdrawUsd",
 												"rate",
@@ -15019,7 +18314,7 @@
 											"description": "The withdrawal, when the provider opens it now; a transfer-then-submit one opens at the submit"
 										},
 										"provider": {
-											"description": "The provider the route names, e.g. manteca. Data only: the app does not branch on it.",
+											"description": "The provider the route names, e.g. avenia. Data only: the app does not branch on it.",
 											"type": "string"
 										},
 										"sign": {
@@ -15068,7 +18363,7 @@
 													"type": "object"
 												},
 												{
-													"description": "Sign a transfer of payAmount to depositAddress without broadcasting it, then POST /pix/withdraw/submit. The API opens the payout order first, then broadcasts.",
+													"description": "Sign a transfer of payAmount to depositAddress without broadcasting it, then POST /pix/withdraw/submit. The API broadcasts it, then opens the payout order once it mined.",
 													"properties": {
 														"depositAddress": {
 															"type": "string"
@@ -15130,7 +18425,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15151,7 +18470,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15172,7 +18515,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15193,7 +18560,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15214,7 +18605,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15235,7 +18650,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15256,7 +18695,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15277,7 +18740,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15355,9 +18842,10 @@
 									"bankName": "Nu Pagamentos S.A.",
 									"fixedFeeBrl": "0.75",
 									"holderName": "Ana Souza",
-									"ownAccount": true,
+									"holderTaxIdMasked": "***.456.789-**",
+									"ownAccount": false,
 									"pixKey": "12345678909",
-									"provider": "Manteca",
+									"provider": "Avenia",
 									"rate": "5.369543",
 									"withdrawUsd": "20.020325"
 								},
@@ -15393,7 +18881,19 @@
 												{
 													"type": "null"
 												}
-											]
+											],
+											"description": "Who is paid, from the provider’s lookup"
+										},
+										"holderTaxIdMasked": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											],
+											"description": "The holder’s masked tax id, as the provider sends it (its layout varies)"
 										},
 										"ownAccount": {
 											"anyOf": [
@@ -15403,7 +18903,8 @@
 												{
 													"type": "null"
 												}
-											]
+											],
+											"description": "The key looks like the user’s own: information, never a gate. Null when the provider cannot tell."
 										},
 										"pixKey": {
 											"type": "string"
@@ -15426,6 +18927,7 @@
 										"pixKey",
 										"ownAccount",
 										"holderName",
+										"holderTaxIdMasked",
 										"bankName",
 										"withdrawUsd",
 										"rate",
@@ -15447,7 +18949,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15468,7 +18994,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15489,7 +19039,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15510,7 +19084,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15531,7 +19129,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15552,7 +19174,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15573,7 +19219,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15594,7 +19264,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15616,7 +19310,7 @@
 		},
 		"/pix/withdraw/submit": {
 			"post": {
-				"description": "For sign.kind transfer-then-submit: the API opens the payout order for the locked price first, then broadcasts the signed transfer, so no money leaves for an order that could not open.",
+				"description": "For sign.kind transfer-then-submit: the API broadcasts the signed transfer first and opens the payout order for the locked price once the transfer mined; if the order then fails, the USDC goes back through the refund path.",
 				"parameters": [
 					{
 						"in": "header",
@@ -15863,7 +19557,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15884,7 +19602,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15905,7 +19647,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15926,7 +19692,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15947,7 +19737,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15968,7 +19782,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -15989,7 +19827,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -16010,7 +19872,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -16025,6 +19911,608 @@
 					}
 				},
 				"summary": "Submit a transfer-then-submit withdrawal’s signed funding",
+				"tags": [
+					"pix"
+				]
+			}
+		},
+		"/pix/withdraw/{intentId}": {
+			"get": {
+				"description": "Where the user’s withdrawal or send stands, and the QR reward a paid send to another person’s key earned. Owner only; read-only.",
+				"parameters": [
+					{
+						"in": "path",
+						"name": "intentId",
+						"required": true,
+						"schema": {
+							"format": "uuid",
+							"type": "string"
+						}
+					},
+					{
+						"in": "header",
+						"name": "Authorization",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"amountBrl": "150.00",
+									"holderName": "JOAO DA SILVA",
+									"intentId": "9b1f3c2e-7a4d-4e8b-a1c6-2d5e8f0a4b17",
+									"ownAccount": false,
+									"perk": null,
+									"provider": "avenia",
+									"selfPay": false,
+									"state": "paid",
+									"status": "COMPLETED"
+								},
+								"schema": {
+									"properties": {
+										"amountBrl": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											]
+										},
+										"holderName": {
+											"anyOf": [
+												{
+													"type": "string"
+												},
+												{
+													"type": "null"
+												}
+											],
+											"description": "Who the key paid, from the review; null for a withdrawal opened before M3"
+										},
+										"intentId": {
+											"type": "string"
+										},
+										"ownAccount": {
+											"anyOf": [
+												{
+													"type": "boolean"
+												},
+												{
+													"type": "null"
+												}
+											],
+											"description": "The key was the user’s own account (a withdrawal); false for a send"
+										},
+										"perk": {
+											"anyOf": [
+												{
+													"properties": {
+														"claimed": {
+															"enum": [
+																false
+															],
+															"type": "boolean"
+														},
+														"discountPercentage": {
+															"type": "number"
+														},
+														"eligible": {
+															"enum": [
+																true
+															],
+															"type": "boolean"
+														},
+														"payoutStatus": {
+															"anyOf": [
+																{
+																	"enum": [
+																		"pending"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"completed"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"failed"
+																	],
+																	"type": "string"
+																}
+															]
+														},
+														"reason": {
+															"anyOf": [
+																{
+																	"type": "string"
+																},
+																{
+																	"type": "null"
+																}
+															]
+														},
+														"sponsoredUsd": {
+															"type": "number"
+														},
+														"txHash": {
+															"type": "string"
+														},
+														"usageId": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"eligible",
+														"discountPercentage",
+														"claimed",
+														"sponsoredUsd",
+														"reason",
+														"usageId",
+														"payoutStatus"
+													],
+													"type": "object"
+												},
+												{
+													"type": "null"
+												}
+											],
+											"description": "The QR reward a paid send to another person’s key earned (Manteca paid such a send as a QR payment); null when none (yet), and always for a withdrawal to the user’s own key"
+										},
+										"provider": {
+											"description": "The provider the route names, e.g. avenia. Data only: the app does not branch on it.",
+											"type": "string"
+										},
+										"selfPay": {
+											"description": "True only for a send to another person’s key whose holder bears the user’s own name (marked at init): it earns no points and no QR reward. False otherwise, also for a withdrawal to the user’s own key (which earns a withdrawal’s points).",
+											"type": "boolean"
+										},
+										"state": {
+											"anyOf": [
+												{
+													"enum": [
+														"opening"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"awaiting_signature"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"processing"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"paid"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"refunding"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"refunded"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"cancelled"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"needs_support"
+													],
+													"type": "string"
+												}
+											],
+											"description": "Where the payment stands"
+										},
+										"status": {
+											"description": "The intent’s own status, as stored",
+											"type": "string"
+										}
+									},
+									"required": [
+										"provider",
+										"intentId",
+										"state",
+										"status",
+										"amountBrl",
+										"holderName",
+										"ownAccount",
+										"selfPay",
+										"perk"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"422": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"502": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Read a Pix withdrawal or send",
 				"tags": [
 					"pix"
 				]
@@ -16101,7 +20589,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -16122,7 +20634,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -16143,7 +20679,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -16164,7 +20724,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -16185,7 +20769,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -16206,7 +20814,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -16227,7 +20859,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -16248,7 +20904,31 @@
 										"code": {
 											"type": "string"
 										},
+										"currency": {
+											"anyOf": [
+												{
+													"enum": [
+														"BRL"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USDC"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"error": {
+											"type": "string"
+										},
+										"intentId": {
+											"description": "PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead",
+											"type": "string"
+										},
+										"minAmount": {
+											"description": "PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency`",
 											"type": "string"
 										}
 									},
@@ -16263,248 +20943,6 @@
 					}
 				},
 				"summary": "Report a deposit-with-id withdrawal’s funding",
-				"tags": [
-					"pix"
-				]
-			}
-		},
-		"/pix/withdraw/{intentId}/recovery-key": {
-			"post": {
-				"description": "For a withdrawal whose payout was refused for its key: the provider pays the reais to this key instead. Own key only. Open whatever the route says: it returns the user’s own money.",
-				"parameters": [
-					{
-						"in": "path",
-						"name": "intentId",
-						"required": true,
-						"schema": {
-							"format": "uuid",
-							"type": "string"
-						}
-					},
-					{
-						"in": "header",
-						"name": "Authorization",
-						"required": true,
-						"schema": {
-							"type": "string"
-						}
-					}
-				],
-				"requestBody": {
-					"content": {
-						"application/json": {
-							"schema": {
-								"properties": {
-									"pixKey": {
-										"maxLength": 140,
-										"minLength": 1,
-										"type": "string"
-									}
-								},
-								"required": [
-									"pixKey"
-								],
-								"type": "object"
-							}
-						}
-					},
-					"required": true
-				},
-				"responses": {
-					"200": {
-						"content": {
-							"application/json": {
-								"example": {
-									"accepted": true
-								},
-								"schema": {
-									"properties": {
-										"accepted": {
-											"enum": [
-												true
-											],
-											"type": "boolean"
-										}
-									},
-									"required": [
-										"accepted"
-									],
-									"type": "object"
-								}
-							}
-						},
-						"description": "Default Response"
-					},
-					"400": {
-						"content": {
-							"application/json": {
-								"schema": {
-									"properties": {
-										"code": {
-											"type": "string"
-										},
-										"error": {
-											"type": "string"
-										}
-									},
-									"required": [
-										"error"
-									],
-									"type": "object"
-								}
-							}
-						},
-						"description": "Default Response"
-					},
-					"403": {
-						"content": {
-							"application/json": {
-								"schema": {
-									"properties": {
-										"code": {
-											"type": "string"
-										},
-										"error": {
-											"type": "string"
-										}
-									},
-									"required": [
-										"error"
-									],
-									"type": "object"
-								}
-							}
-						},
-						"description": "Default Response"
-					},
-					"404": {
-						"content": {
-							"application/json": {
-								"schema": {
-									"properties": {
-										"code": {
-											"type": "string"
-										},
-										"error": {
-											"type": "string"
-										}
-									},
-									"required": [
-										"error"
-									],
-									"type": "object"
-								}
-							}
-						},
-						"description": "Default Response"
-					},
-					"409": {
-						"content": {
-							"application/json": {
-								"schema": {
-									"properties": {
-										"code": {
-											"type": "string"
-										},
-										"error": {
-											"type": "string"
-										}
-									},
-									"required": [
-										"error"
-									],
-									"type": "object"
-								}
-							}
-						},
-						"description": "Default Response"
-					},
-					"422": {
-						"content": {
-							"application/json": {
-								"schema": {
-									"properties": {
-										"code": {
-											"type": "string"
-										},
-										"error": {
-											"type": "string"
-										}
-									},
-									"required": [
-										"error"
-									],
-									"type": "object"
-								}
-							}
-						},
-						"description": "Default Response"
-					},
-					"429": {
-						"content": {
-							"application/json": {
-								"schema": {
-									"properties": {
-										"code": {
-											"type": "string"
-										},
-										"error": {
-											"type": "string"
-										}
-									},
-									"required": [
-										"error"
-									],
-									"type": "object"
-								}
-							}
-						},
-						"description": "Default Response"
-					},
-					"502": {
-						"content": {
-							"application/json": {
-								"schema": {
-									"properties": {
-										"code": {
-											"type": "string"
-										},
-										"error": {
-											"type": "string"
-										}
-									},
-									"required": [
-										"error"
-									],
-									"type": "object"
-								}
-							}
-						},
-						"description": "Default Response"
-					},
-					"503": {
-						"content": {
-							"application/json": {
-								"schema": {
-									"properties": {
-										"code": {
-											"type": "string"
-										},
-										"error": {
-											"type": "string"
-										}
-									},
-									"required": [
-										"error"
-									],
-									"type": "object"
-								}
-							}
-						},
-						"description": "Default Response"
-					}
-				},
-				"summary": "Name a new own Pix key for a refused payout",
 				"tags": [
 					"pix"
 				]
@@ -16730,6 +21168,12 @@
 								{
 									"enum": [
 										"MANTECA_FEE"
+									],
+									"type": "string"
+								},
+								{
+									"enum": [
+										"AVENIA_FEE"
 									],
 									"type": "string"
 								},
@@ -17594,6 +22038,34 @@
 											"type": "object"
 										}
 									]
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"additionalProperties": true,
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										},
+										"message": {
+											"type": "string"
+										},
+										"status": {
+											"type": "string"
+										},
+										"statusCode": {
+											"type": "number"
+										}
+									},
+									"type": "object"
 								}
 							}
 						},
@@ -20820,6 +25292,74 @@
 							"application/json": {
 								"schema": {
 									"properties": {
+										"collateralReturn": {
+											"properties": {
+												"cardCreditCents": {
+													"type": "integer"
+												},
+												"heldCents": {
+													"type": "integer"
+												},
+												"remainingCents": {
+													"type": "integer"
+												},
+												"retryAfterSec": {
+													"minimum": 1,
+													"type": "integer"
+												},
+												"returnedCents": {
+													"type": "integer"
+												},
+												"state": {
+													"anyOf": [
+														{
+															"enum": [
+																"nothing"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"returned"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"required"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"waiting"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"failed"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"unknown"
+															],
+															"type": "string"
+														}
+													]
+												}
+											},
+											"required": [
+												"state",
+												"returnedCents",
+												"remainingCents",
+												"heldCents",
+												"cardCreditCents"
+											],
+											"type": "object"
+										},
 										"fundingStop": {
 											"properties": {
 												"reason": {
@@ -20927,6 +25467,10 @@
 										},
 										"error": {
 											"type": "string"
+										},
+										"retryAfterSec": {
+											"minimum": 1,
+											"type": "integer"
 										}
 									},
 									"required": [
@@ -21449,6 +25993,74 @@
 							"application/json": {
 								"schema": {
 									"properties": {
+										"collateralReturn": {
+											"properties": {
+												"cardCreditCents": {
+													"type": "integer"
+												},
+												"heldCents": {
+													"type": "integer"
+												},
+												"remainingCents": {
+													"type": "integer"
+												},
+												"retryAfterSec": {
+													"minimum": 1,
+													"type": "integer"
+												},
+												"returnedCents": {
+													"type": "integer"
+												},
+												"state": {
+													"anyOf": [
+														{
+															"enum": [
+																"nothing"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"returned"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"required"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"waiting"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"failed"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"unknown"
+															],
+															"type": "string"
+														}
+													]
+												}
+											},
+											"required": [
+												"state",
+												"returnedCents",
+												"remainingCents",
+												"heldCents",
+												"cardCreditCents"
+											],
+											"type": "object"
+										},
 										"fundingStop": {
 											"properties": {
 												"reason": {
@@ -21556,6 +26168,10 @@
 										},
 										"error": {
 											"type": "string"
+										},
+										"retryAfterSec": {
+											"minimum": 1,
+											"type": "integer"
 										}
 									},
 									"required": [
@@ -25182,6 +29798,14 @@
 					},
 					{
 						"in": "header",
+						"name": "x-username-hold",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "header",
 						"name": "api-key",
 						"required": false,
 						"schema": {
@@ -25438,9 +30062,7 @@
 									"description": "Invalid input or a typed name change. PROFILE_NAME_READ_ONLY rejects the entire request before any profile fields are saved or email verification code is consumed. Blank or unchanged names are ignored.",
 									"properties": {
 										"code": {
-											"enum": [
-												"PROFILE_NAME_READ_ONLY"
-											],
+											"description": "PROFILE_NAME_READ_ONLY, EMAIL_VERIFICATION_REQUIRED or a validation code",
 											"type": "string"
 										},
 										"error": {
@@ -25614,6 +30236,12 @@
 							"application/json": {
 								"schema": {
 									"properties": {
+										"code": {
+											"enum": [
+												"EMAIL_CHANGE_UNAVAILABLE"
+											],
+											"type": "string"
+										},
 										"error": {
 											"type": "string"
 										}
@@ -26570,9 +31198,6 @@
 															"effectiveDate": {
 																"type": "string"
 															},
-															"expiresAt": {
-																"type": "string"
-															},
 															"feature": {
 																"anyOf": [
 																	{
@@ -26653,12 +31278,6 @@
 																			"questions"
 																		],
 																		"type": "string"
-																	},
-																	{
-																		"enum": [
-																			"hosted-identity"
-																		],
-																		"type": "string"
 																	}
 																]
 															},
@@ -26690,6 +31309,12 @@
 																						"rain"
 																					],
 																					"type": "string"
+																				},
+																				{
+																					"enum": [
+																						"avenia"
+																					],
+																					"type": "string"
 																				}
 																			]
 																		},
@@ -26709,9 +31334,6 @@
 																"type": "string"
 															},
 															"tosUrl": {
-																"type": "string"
-															},
-															"url": {
 																"type": "string"
 															}
 														},
@@ -26886,6 +31508,12 @@
 																			"rain"
 																		],
 																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"avenia"
+																		],
+																		"type": "string"
 																	}
 																]
 															},
@@ -26965,9 +31593,6 @@
 																				"type": "string"
 																			},
 																			"effectiveDate": {
-																				"type": "string"
-																			},
-																			"expiresAt": {
 																				"type": "string"
 																			},
 																			"feature": {
@@ -27050,12 +31675,6 @@
 																							"questions"
 																						],
 																						"type": "string"
-																					},
-																					{
-																						"enum": [
-																							"hosted-identity"
-																						],
-																						"type": "string"
 																					}
 																				]
 																			},
@@ -27087,6 +31706,12 @@
 																										"rain"
 																									],
 																									"type": "string"
+																								},
+																								{
+																									"enum": [
+																										"avenia"
+																									],
+																									"type": "string"
 																								}
 																							]
 																						},
@@ -27106,9 +31731,6 @@
 																				"type": "string"
 																			},
 																			"tosUrl": {
-																				"type": "string"
-																			},
-																			"url": {
 																				"type": "string"
 																			}
 																		},
@@ -27254,6 +31876,12 @@
 																						"rain"
 																					],
 																					"type": "string"
+																				},
+																				{
+																					"enum": [
+																						"avenia"
+																					],
+																					"type": "string"
 																				}
 																			]
 																		},
@@ -27386,6 +32014,12 @@
 																			{
 																				"enum": [
 																					"rain"
+																				],
+																				"type": "string"
+																			},
+																			{
+																				"enum": [
+																					"avenia"
 																				],
 																				"type": "string"
 																			}
@@ -29130,9 +33764,6 @@
 												"effectiveDate": {
 													"type": "string"
 												},
-												"expiresAt": {
-													"type": "string"
-												},
 												"feature": {
 													"anyOf": [
 														{
@@ -29213,12 +33844,6 @@
 																"questions"
 															],
 															"type": "string"
-														},
-														{
-															"enum": [
-																"hosted-identity"
-															],
-															"type": "string"
 														}
 													]
 												},
@@ -29250,6 +33875,12 @@
 																			"rain"
 																		],
 																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"avenia"
+																		],
+																		"type": "string"
 																	}
 																]
 															},
@@ -29269,9 +33900,6 @@
 													"type": "string"
 												},
 												"tosUrl": {
-													"type": "string"
-												},
-												"url": {
 													"type": "string"
 												}
 											},
@@ -29618,6 +34246,12 @@
 							"application/json": {
 								"schema": {
 									"properties": {
+										"code": {
+											"enum": [
+												"EMAIL_CHANGE_UNAVAILABLE"
+											],
+											"type": "string"
+										},
 										"error": {
 											"type": "string"
 										}
@@ -30432,6 +35066,18 @@
 																		"requirements_uncollectable"
 																	],
 																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"provider_rejected"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"provider_setup_failed"
+																	],
+																	"type": "string"
 																}
 															]
 														},
@@ -30607,6 +35253,18 @@
 																{
 																	"enum": [
 																		"requirements_uncollectable"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"provider_rejected"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"provider_setup_failed"
 																	],
 																	"type": "string"
 																}
@@ -30786,6 +35444,18 @@
 																		"requirements_uncollectable"
 																	],
 																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"provider_rejected"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"provider_setup_failed"
+																	],
+																	"type": "string"
 																}
 															]
 														},
@@ -30961,6 +35631,18 @@
 																{
 																	"enum": [
 																		"requirements_uncollectable"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"provider_rejected"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"provider_setup_failed"
 																	],
 																	"type": "string"
 																}
@@ -31124,7 +35806,7 @@
 							"schema": {
 								"properties": {
 									"key": {
-										"description": "The route’s accept-tos step (capabilities.routes[].action): accept-tos:<provider>",
+										"description": "The route’s accept-tos step (capabilities.routes[].action), e.g. accept-tos:<provider>",
 										"maxLength": 64,
 										"type": "string"
 									}
@@ -31257,6 +35939,12 @@
 								{
 									"enum": [
 										"local"
+									],
+									"type": "string"
+								},
+								{
+									"enum": [
+										"pix"
 									],
 									"type": "string"
 								}
@@ -32876,6 +37564,12 @@
 										"bank"
 									],
 									"type": "string"
+								},
+								{
+									"enum": [
+										"pix"
+									],
+									"type": "string"
 								}
 							]
 						}
@@ -33008,6 +37702,18 @@
 												{
 													"enum": [
 														"requirements_uncollectable"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"provider_rejected"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"provider_setup_failed"
 													],
 													"type": "string"
 												}
@@ -33494,6 +38200,12 @@
 																	"manteca.qr"
 																],
 																"type": "string"
+															},
+															{
+																"enum": [
+																	"avenia.pix"
+																],
+																"type": "string"
 															}
 														]
 													},
@@ -33514,6 +38226,12 @@
 															{
 																"enum": [
 																	"MANTECA"
+																],
+																"type": "string"
+															},
+															{
+																"enum": [
+																	"AVENIA"
 																],
 																"type": "string"
 															}
@@ -33762,6 +38480,12 @@
 																		"manteca.qr"
 																	],
 																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"avenia.pix"
+																	],
+																	"type": "string"
 																}
 															]
 														},
@@ -33785,6 +38509,12 @@
 																{
 																	"enum": [
 																		"MANTECA"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"AVENIA"
 																	],
 																	"type": "string"
 																}
@@ -34778,6 +39508,12 @@
 															{
 																"enum": [
 																	"RAIN"
+																],
+																"type": "string"
+															},
+															{
+																"enum": [
+																	"AVENIA"
 																],
 																"type": "string"
 															}
@@ -35840,6 +40576,12 @@
 										"local"
 									],
 									"type": "string"
+								},
+								{
+									"enum": [
+										"pix"
+									],
+									"type": "string"
 								}
 							]
 						}
@@ -36176,6 +40918,15 @@
 																},
 																"locked": {
 																	"type": "boolean"
+																},
+																"minAddressLineLength": {
+																	"type": "number"
+																},
+																"optionLabels": {
+																	"additionalProperties": {
+																		"type": "string"
+																	},
+																	"type": "object"
 																},
 																"options": {
 																	"items": {
@@ -36973,9 +41724,6 @@
 															"effectiveDate": {
 																"type": "string"
 															},
-															"expiresAt": {
-																"type": "string"
-															},
 															"feature": {
 																"anyOf": [
 																	{
@@ -37056,12 +41804,6 @@
 																			"questions"
 																		],
 																		"type": "string"
-																	},
-																	{
-																		"enum": [
-																			"hosted-identity"
-																		],
-																		"type": "string"
 																	}
 																]
 															},
@@ -37093,6 +41835,12 @@
 																						"rain"
 																					],
 																					"type": "string"
+																				},
+																				{
+																					"enum": [
+																						"avenia"
+																					],
+																					"type": "string"
 																				}
 																			]
 																		},
@@ -37112,9 +41860,6 @@
 																"type": "string"
 															},
 															"tosUrl": {
-																"type": "string"
-															},
-															"url": {
 																"type": "string"
 															}
 														},
@@ -37289,6 +42034,12 @@
 																			"rain"
 																		],
 																		"type": "string"
+																	},
+																	{
+																		"enum": [
+																			"avenia"
+																		],
+																		"type": "string"
 																	}
 																]
 															},
@@ -37368,9 +42119,6 @@
 																				"type": "string"
 																			},
 																			"effectiveDate": {
-																				"type": "string"
-																			},
-																			"expiresAt": {
 																				"type": "string"
 																			},
 																			"feature": {
@@ -37453,12 +42201,6 @@
 																							"questions"
 																						],
 																						"type": "string"
-																					},
-																					{
-																						"enum": [
-																							"hosted-identity"
-																						],
-																						"type": "string"
 																					}
 																				]
 																			},
@@ -37490,6 +42232,12 @@
 																										"rain"
 																									],
 																									"type": "string"
+																								},
+																								{
+																									"enum": [
+																										"avenia"
+																									],
+																									"type": "string"
 																								}
 																							]
 																						},
@@ -37509,9 +42257,6 @@
 																				"type": "string"
 																			},
 																			"tosUrl": {
-																				"type": "string"
-																			},
-																			"url": {
 																				"type": "string"
 																			}
 																		},
@@ -37657,6 +42402,12 @@
 																						"rain"
 																					],
 																					"type": "string"
+																				},
+																				{
+																					"enum": [
+																						"avenia"
+																					],
+																					"type": "string"
 																				}
 																			]
 																		},
@@ -37789,6 +42540,12 @@
 																			{
 																				"enum": [
 																					"rain"
+																				],
+																				"type": "string"
+																			},
+																			{
+																				"enum": [
+																					"avenia"
 																				],
 																				"type": "string"
 																			}
@@ -41187,6 +45944,218 @@
 									"required": [
 										"error",
 										"retryAfterSeconds"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				}
+			}
+		},
+		"/users/username/reservations": {
+			"delete": {
+				"parameters": [
+					{
+						"in": "header",
+						"name": "x-username-hold",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"204": {
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"enum": [
+												"HOLD_TOKEN_REQUIRED"
+											],
+											"type": "string"
+										}
+									},
+									"required": [
+										"code"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				}
+			},
+			"post": {
+				"parameters": [
+					{
+						"in": "header",
+						"name": "x-username-hold",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"properties": {
+									"username": {
+										"type": "string"
+									}
+								},
+								"required": [
+									"username"
+								],
+								"type": "object"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"expiresAt": "2026-11-12T18:30:00.000Z",
+									"username": "lucia"
+								},
+								"schema": {
+									"properties": {
+										"expiresAt": {
+											"format": "date-time",
+											"type": "string"
+										},
+										"username": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"username",
+										"expiresAt"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"anyOf": [
+										{
+											"properties": {
+												"code": {
+													"enum": [
+														"HOLD_TOKEN_REQUIRED"
+													],
+													"type": "string"
+												}
+											},
+											"required": [
+												"code"
+											],
+											"type": "object"
+										},
+										{
+											"properties": {
+												"code": {
+													"enum": [
+														"USERNAME_INVALID"
+													],
+													"type": "string"
+												},
+												"reason": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"code",
+												"reason"
+											],
+											"type": "object"
+										},
+										{
+											"properties": {
+												"code": {
+													"enum": [
+														"USERNAME_RESERVED"
+													],
+													"type": "string"
+												},
+												"reason": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"code",
+												"reason"
+											],
+											"type": "object"
+										}
+									]
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"anyOf": [
+												{
+													"enum": [
+														"USERNAME_TAKEN"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"USERNAME_RESERVED"
+													],
+													"type": "string"
+												}
+											]
+										}
+									},
+									"required": [
+										"code"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"429": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"enum": [
+												"RATE_LIMITED"
+											],
+											"type": "string"
+										}
+									},
+									"required": [
+										"code"
 									],
 									"type": "object"
 								}

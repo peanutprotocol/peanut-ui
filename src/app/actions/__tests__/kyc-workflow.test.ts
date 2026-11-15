@@ -198,6 +198,29 @@ it('reports a malformed identity profile before preserving its fallback', async 
 })
 
 describe('resumeKycDocumentAttempt', () => {
+    it('guards both the attempt token and the replacement-reset fallback', async () => {
+        const beforeDispatch = jest.fn(() => true)
+        mockFetch
+            .mockResolvedValueOnce({
+                ok: false,
+                status: 409,
+                json: async () => ({ code: 'replacement_reset_required' }),
+            } as Response)
+            .mockResolvedValueOnce({ ok: true, status: 200, json: async () => session } as Response)
+
+        await expect(resumeKycDocumentAttempt('attempt-1', beforeDispatch)).resolves.toEqual(session)
+        expect(mockFetch).toHaveBeenNthCalledWith(
+            1,
+            '/users/kyc/attempts/attempt-1/token',
+            expect.objectContaining({ beforeDispatch })
+        )
+        expect(mockFetch).toHaveBeenNthCalledWith(
+            2,
+            '/users/identity/restart',
+            expect.objectContaining({ beforeDispatch })
+        )
+    })
+
     it('returns the refreshed session', async () => {
         mockFetch.mockResolvedValue({ ok: true, status: 200, json: async () => session } as unknown as Response)
         await expect(resumeKycDocumentAttempt('attempt-1')).resolves.toEqual(session)

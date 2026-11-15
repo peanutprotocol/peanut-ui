@@ -130,7 +130,10 @@ export function PixDepositFlow({ route }: { route: CapabilityRoute }) {
                       ? tDeposit('limitExceeded')
                       : code === API_ERROR_CODES.PROVIDER_REJECTED
                         ? tErrors('providerRejected')
-                        : tShared('unavailable')
+                        : // no BRL deposit for a resident of another country (ruled 2026-11-14): no "try again"
+                          code === API_ERROR_CODES.PIX_RESIDENCE_NOT_SUPPORTED
+                          ? tShared('residenceNotServed')
+                          : tShared('unavailable')
             )
         } finally {
             setIsCreating(false)

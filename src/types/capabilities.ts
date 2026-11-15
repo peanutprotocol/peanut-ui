@@ -156,10 +156,6 @@ export interface ResolvedRail {
  *                           bridge-hosted.
  *   - `questions`         — a provider waits on an answer the app asks: open
  *                           the add-later questions of `feature`.
- *   - `hosted-identity`   — the provider checks the identity on its own page
- *                           (it takes no shared verification): open `url`,
- *                           valid until `expiresAt`; a capabilities read mints
- *                           a new one.
  */
 export type NextActionKind =
     | 'sumsub'
@@ -171,7 +167,6 @@ export type NextActionKind =
     | 'bridge-hosted'
     | 'rain-hosted'
     | 'questions'
-    | 'hosted-identity'
 
 export interface NextAction {
     key: string // stable id, referenced by RailCapability.blockingActions
@@ -205,9 +200,6 @@ export interface NextAction {
     refused?: { provider: ProviderCode; reason: string }[]
     /** for kind:'questions' — the feature whose open questions the app shows. */
     feature?: 'bank' | 'card' | 'local'
-    /** for kind:'hosted-identity' — the provider's verification page, and when that link stops working. */
-    url?: string
-    expiresAt?: string
 }
 
 export interface CapabilityRestriction {

@@ -17,7 +17,9 @@ export interface SetupDocuments {
     passkeys: Record<HelpLocale, SetupDoc>
 }
 
-const SetupDocsContext = createContext<((kind: SetupDocKind, onClose?: () => void) => void) | null>(null)
+const SetupDocsContext = createContext<
+    ((kind: SetupDocKind, onClose?: () => void, onLink?: () => void) => void) | null
+>(null)
 
 const helpLocale = (locale: string): HelpLocale => {
     const normalized = locale.toLowerCase()
@@ -29,6 +31,7 @@ const helpLocale = (locale: string): HelpLocale => {
 export function SetupDocsProvider({ children, documents }: { children: ReactNode; documents: SetupDocuments }) {
     const [active, setActive] = useState<SetupDocKind | null>(null)
     const onCloseRef = useRef<(() => void) | undefined>(undefined)
+    const onLinkRef = useRef<(() => void) | undefined>(undefined)
     const locale = helpLocale(useLocale())
     const tCommon = useTranslations('common')
     const document = active
@@ -37,13 +40,15 @@ export function SetupDocsProvider({ children, documents }: { children: ReactNode
             : documents[active][locale]
         : null
 
-    const open = (kind: SetupDocKind, onClose?: () => void) => {
+    const open = (kind: SetupDocKind, onClose?: () => void, onLink?: () => void) => {
         onCloseRef.current = onClose
+        onLinkRef.current = onLink
         setActive(kind)
     }
     const close = () => {
         onCloseRef.current?.()
         onCloseRef.current = undefined
+        onLinkRef.current = undefined
         setActive(null)
     }
 
@@ -64,7 +69,21 @@ export function SetupDocsProvider({ children, documents }: { children: ReactNode
                             </button>
                         </DrawerHeader>
                     </div>
-                    <article className="pb-6" aria-label={document?.title}>
+                    <article
+                        className="pb-6"
+                        aria-label={document?.title}
+                        onClickCapture={(event) => {
+                            if (event.target instanceof Element && event.target.closest('a')) onLinkRef.current?.()
+                        }}
+                        onKeyDownCapture={(event) => {
+                            if (
+                                (event.key === 'Enter' || event.key === ' ') &&
+                                event.target instanceof Element &&
+                                event.target.closest('a[role="button"]:not([href])')
+                            )
+                                onLinkRef.current?.()
+                        }}
+                    >
                         {document?.content}
                     </article>
                 </DrawerContent>
@@ -93,7 +112,7 @@ export function SetupDocLink({
     // layout. Keep the link working there rather than show an inert button.
     if (!open)
         return (
-            <DocsLink href={href} className={className}>
+            <DocsLink href={href} className={className} onOpen={() => track(control, 'open')}>
                 {children}
             </DocsLink>
         )
@@ -105,7 +124,11 @@ export function SetupDocLink({
             onClick={() => {
                 onBeforeOpen?.()
                 track(control, 'open')
-                open(kind, () => track(control, 'dismiss'))
+                open(
+                    kind,
+                    () => track(control, 'dismiss'),
+                    () => track(`${control}_link`, 'tap')
+                )
             }}
         >
             {children}

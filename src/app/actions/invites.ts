@@ -17,6 +17,7 @@ export async function validateInviteCode(inviteCode: string): Promise<{
     try {
         const response = await serverFetch('/invites/validate', {
             method: 'POST',
+            includeAuth: false,
             body: JSON.stringify({ inviteCode }),
         })
 

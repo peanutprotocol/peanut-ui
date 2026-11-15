@@ -235,14 +235,15 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
         const extra = new URLSearchParams()
         if (isBankFromSend && methodParam) extra.set('sendMethod', methodParam)
         // the Pix withdraw form never rides in the URL: the amount goes in the account's draft
-        if (urlAmount && mantecaForwardPath.startsWith(PIX_WITHDRAW_PATH))
-            keepPixWithdrawDraft(userId, {
-                ...readPixWithdrawDraft(userId),
+        if (urlAmount && mantecaForwardPath.startsWith(PIX_WITHDRAW_PATH)) {
+            const pixFlow = isBankFromSend ? 'send' : 'withdraw'
+            keepPixWithdrawDraft(userId, pixFlow, {
+                ...readPixWithdrawDraft(userId, pixFlow),
                 amountUsd: urlAmount,
                 amountBrl: '',
                 spendUsd: '',
             })
-        else if (urlAmount) extra.set('amount', urlAmount)
+        } else if (urlAmount) extra.set('amount', urlAmount)
         router.replace(rewriteMethodPath(mantecaForwardPath, extra.toString()))
     }, [mantecaForwardPath, router, isBankFromSend, methodParam, urlAmount, userId])
 

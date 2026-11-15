@@ -145,6 +145,13 @@ describe('restartIdentityVerification — wire shape', () => {
             json: async () => ({ token: 'tok', levelName: 'general', applicantId: 'app-1' }),
         }) as unknown as Response
 
+    it('passes the captured session guard to the restart transport', async () => {
+        mockFetch.mockResolvedValue(okResponse())
+        const beforeDispatch = jest.fn(() => true)
+        await restartIdentityVerification(undefined, undefined, beforeDispatch)
+        expect(mockFetch).toHaveBeenCalledWith('/users/identity/restart', expect.objectContaining({ beforeDispatch }))
+    })
+
     it('posts the region intent as JSON so the backend mints the matching level', async () => {
         mockFetch.mockResolvedValue(okResponse())
         const result = await restartIdentityVerification('LATAM')
@@ -291,6 +298,19 @@ describe('startResidenceChangeVerification — wire shape', () => {
         expect(result.code).toBe('residence_change_failed')
         expect(mockFetch).toHaveBeenCalledTimes(1)
         expect(mockFetch).not.toHaveBeenCalledWith('/users/identity/restart', expect.anything())
+    })
+
+    it('preserves the provider review-hold code without returning an SDK token', async () => {
+        respondWith(409, {
+            error: 'This residence action is already under review.',
+            code: 'RESIDENCE_ACTION_REVIEW_PENDING',
+        })
+
+        const result = await startResidenceChangeVerification('PT')
+
+        expect(result.code).toBe('RESIDENCE_ACTION_REVIEW_PENDING')
+        expect(result.data?.token).toBeUndefined()
+        expect(mockFetch).toHaveBeenCalledTimes(1)
     })
 
     it('preserves a residence-action retry window from a 409 response', async () => {
@@ -542,5 +562,26 @@ describe('R17 start-action supplement_changed wire response', () => {
     it('does not classify a server failure as a completed supplement', async () => {
         respondWith(503, { error: 'supplement_changed', userMessage: 'Try later' })
         expect((await startKycAction('supplement:bridge')).code).not.toBe('supplement_changed')
+    })
+})
+
+// TASK-24947 M5: a Manteca session for Brazil, refused because the user's Pix moved to another provider
+describe('a Manteca Brazil session refused with PIX_PROVIDER_MOVED keeps its code', () => {
+    const MOVED = {
+        error: 'provider_moved',
+        code: 'PIX_PROVIDER_MOVED',
+        userMessage: 'Pix now runs through another partner.',
+    }
+
+    it('on the identity start, so the app can send the user to the Pix flow', async () => {
+        respondWith(409, MOVED)
+        const result = await initiateSumsubKyc({ regionIntent: 'LATAM', targetCountry: 'BR' })
+        expect(result).toMatchObject({ code: 'PIX_PROVIDER_MOVED', error: MOVED.userMessage })
+    })
+
+    it('on start-action', async () => {
+        respondWith(409, MOVED)
+        const result = await startKycAction('sumsub:manteca_br')
+        expect(result).toMatchObject({ code: 'PIX_PROVIDER_MOVED', error: MOVED.userMessage })
     })
 })

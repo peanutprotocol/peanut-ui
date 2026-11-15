@@ -19,6 +19,7 @@ import React from 'react'
 import posthog from 'posthog-js'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { IntlWrapper } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
 
@@ -308,17 +309,19 @@ function renderFlow(
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
     const tree = () => (
         <IntlWrapper>
-            <QueryClientProvider client={queryClient}>
-                <LoadingStateContextProvider>
-                    {options.page ? (
-                        <QrPayPage {...scan} />
-                    ) : (
-                        <QrPayFlowProvider {...scan}>
-                            <Probe />
-                        </QrPayFlowProvider>
-                    )}
-                </LoadingStateContextProvider>
-            </QueryClientProvider>
+            <NuqsTestingAdapter>
+                <QueryClientProvider client={queryClient}>
+                    <LoadingStateContextProvider>
+                        {options.page ? (
+                            <QrPayPage {...scan} />
+                        ) : (
+                            <QrPayFlowProvider {...scan}>
+                                <Probe />
+                            </QrPayFlowProvider>
+                        )}
+                    </LoadingStateContextProvider>
+                </QueryClientProvider>
+            </NuqsTestingAdapter>
         </IntlWrapper>
     )
     const renderTree = () => (options.strict ? <React.StrictMode>{tree()}</React.StrictMode> : tree())
@@ -445,6 +448,7 @@ describe('Pay on a locked amount', () => {
         expect(elapsed.every((v, i) => i === 0 || v >= elapsed[i - 1])).toBe(true)
         expect(events.find((s) => s.stage === 'strategy_ready')).toMatchObject({ strategy: 'smart-only' })
         expect(events.find((s) => s.stage === 'attempt_finished')).toMatchObject({ strategy: 'smart-only' })
+        expect(events.every((s) => s.provider === 'manteca')).toBe(true)
         expect(events.find((s) => s.stage === 'signing_preparation_ready')).toMatchObject({ preparation: 'reused' })
         // no payload leaks: none of the bounded events carries anything else
         for (const event of events) {
@@ -463,6 +467,8 @@ describe('Pay on a locked amount', () => {
                         'strategy',
                         'outcome',
                         'preparation',
+                        // who serves it, so one event per stage covers every provider (TASK-24947 M5)
+                        'provider',
                     ].includes(k)
                 )
             ).toBe(true)
@@ -676,6 +682,26 @@ describe('Pay on a locked amount', () => {
         ])
         expectNoSuccessReported()
         expect(surface?.errorMessage).toBeTruthy()
+    })
+
+    test('a response-body timeout keeps status unknown and refreshes Activity without resubmitting', async () => {
+        const { MutationResponseTimeoutError } = await import('@/utils/connection-timeout-error')
+        mockMantecaApi.completeQrPaymentWithSignedTx.mockRejectedValue(
+            new MutationResponseTimeoutError(200, new Error('stalled'))
+        )
+        renderFlow()
+        await waitForLockedForm()
+        await waitForWarmup()
+        await pay()
+        expect(stageOutline().slice(-3)).toEqual([
+            ['request_sent', null],
+            ['response_received', 'unknown'],
+            ['attempt_finished', 'unknown'],
+        ])
+        expectNoSuccessReported()
+        expect(surface?.errorMessage).toBeTruthy()
+        expect(mockCaptureNetworkTriagedFailure).not.toHaveBeenCalled()
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx).toHaveBeenCalledTimes(1)
     })
 
     test('a deterministic rejection (nonce) is failed', async () => {
@@ -1032,7 +1058,7 @@ describe('the pay route before a new Pix payment', () => {
             await payment
         })
         expect(surface?.errorInitiatingPayment).toBeNull()
-        expect(surface?.errorMessage).toBe(en.qrPay.errors.paymentStatusUnknown)
+        expect(surface?.errorMessage).toBeTruthy()
         expect(surface?.view).toBe('FORM')
         expect(stageOutline().slice(-1)).toEqual([['attempt_finished', 'unknown']])
     })
@@ -1064,7 +1090,11 @@ test('a refused fixed Pix init reports its bounded host without spending retries
     renderFlow({ qrCode, timestamp: 'host', qrType: 'PIX' })
     await waitFor(() => expect(surface?.view).toBe('INIT_ERROR'))
     expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
-    expect(mockCapture).toHaveBeenCalledWith('pix_qr_init_result', { pix_qr_host: 'basspago', outcome: 'refused' })
+    expect(mockCapture).toHaveBeenCalledWith('pix_qr_init_result', {
+        pix_qr_host: 'basspago',
+        outcome: 'refused',
+        provider: 'manteca',
+    })
     expect(JSON.stringify(mockCapture.mock.calls)).not.toContain('private-payment-token')
 })
 

@@ -258,7 +258,7 @@ function TypedFields({
                 <option value="">{t('choose')}</option>
                 {(field.options ?? []).map((option) => (
                     <option key={option} value={option}>
-                        {optionLabel(field.key, option)}
+                        {field.optionLabels?.[option] ?? optionLabel(field.key, option)}
                     </option>
                 ))}
             </select>
@@ -330,7 +330,13 @@ function TypedFields({
             {address && (
                 <>
                     <div className="grid grid-cols-[minmax(0,3fr)_minmax(0,2fr)] gap-3">
-                        {fieldFor(byKey.get('street'), (f) => input(f, { autoComplete: ADDRESS_AUTOCOMPLETE.street }))}
+                        {fieldFor(
+                            byKey.get('street'),
+                            (f) => input(f, { autoComplete: ADDRESS_AUTOCOMPLETE.street }),
+                            byKey.get('street')?.minAddressLineLength
+                                ? t('addressMinimum', { count: byKey.get('street')!.minAddressLineLength! })
+                                : undefined
+                        )}
                         {fieldFor(byKey.get('buildingNumber'), (f) =>
                             input(f, { autoComplete: ADDRESS_AUTOCOMPLETE.buildingNumber })
                         )}

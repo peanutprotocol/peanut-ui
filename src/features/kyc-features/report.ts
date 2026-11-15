@@ -120,7 +120,8 @@ export function reportEntry(
         (method ? METHOD_ACCOUNTS[method] : undefined) ??
         (railAccount
             ? {
-                  feature: railAccount.provider === 'manteca' ? 'local' : 'bank',
+                  // Brazil's Pix account is the local one on either provider
+                  feature: railAccount.provider === 'manteca' || railAccount.provider === 'avenia' ? 'local' : 'bank',
                   currency: railAccount.currency,
               }
             : undefined) ??
@@ -169,7 +170,9 @@ export function entryChip(entry: FeatureReportEntry, nextActions: readonly NextA
             if (entry.action === VERIFY_ACTION) return 'unlock'
             const action = entryAction(entry, nextActions)
             // The address step is the user's own, like a new identity check: never "processing".
-            return action?.kind === 'restart-identity' || action?.key === RESIDENCE_ADDRESS_ACTION_KEY
+            return action?.kind === 'restart-identity' ||
+                action?.kind === 'contact-support' ||
+                action?.key === RESIDENCE_ADDRESS_ACTION_KEY
                 ? 'attention'
                 : 'processing'
         }

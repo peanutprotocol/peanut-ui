@@ -43,21 +43,24 @@ describe('useAddMoneyFlow', () => {
         mockGetFromLocalStorage.mockReturnValue(null)
     })
 
-    it('bare root redirects to the home add drawer and resets onramp state', () => {
-        renderFlow()
+    it('keeps the bare Add money picker on its own page and resets onramp state', () => {
+        const { result } = renderFlow()
+        expect(result.current.isBareRoot).toBe(true)
         expect(mockResetOnrampFlow).toHaveBeenCalled()
-        expect(mockRouterReplace).toHaveBeenCalledWith('/home?drawer=add')
+        expect(mockRouterReplace).not.toHaveBeenCalled()
     })
 
-    it('bare root carries a same-origin returnTo, drops an off-origin one', () => {
-        renderFlow('?returnTo=/profile/exchange-rate')
-        expect(mockRouterReplace).toHaveBeenCalledWith(
-            `/home?drawer=add&returnTo=${encodeURIComponent('/profile/exchange-rate')}`
-        )
+    it('returns from the picker to its validated origin, or Home for an external origin', () => {
+        const { result } = renderFlow('?returnTo=/profile/exchange-rate')
+        expect(mockRouterReplace).not.toHaveBeenCalled()
+        act(() => result.current.handleBack())
+        expect(mockRouterReplace).toHaveBeenCalledWith('/profile/exchange-rate')
 
         mockRouterReplace.mockClear()
-        renderFlow(`?returnTo=${encodeURIComponent('https://evil.example/phish')}`)
-        expect(mockRouterReplace).toHaveBeenCalledWith('/home?drawer=add')
+        const external = renderFlow(`?returnTo=${encodeURIComponent('https://evil.example/phish')}`)
+        expect(mockRouterReplace).not.toHaveBeenCalled()
+        act(() => external.result.current.handleBack())
+        expect(mockRouterReplace).toHaveBeenCalledWith('/home')
     })
 
     it('?method=bank is not bare root and does not redirect', () => {
