@@ -4,6 +4,7 @@ import { headers } from 'next/headers'
 import GoPage, { generateMetadata } from '@/app/go/[slug]/[[...rest]]/page'
 import { selectCreatorPage, type CreatorPageSelection } from '@/features/creator-pages/registry'
 import { GO_PLACEMENTS, parseGoRequest, type CreatorPageProps } from '@/features/tracked-links/contract'
+import CreatorPageBoundary from '@/features/tracked-links/CreatorPageBoundary'
 import TrackedLinkEntry from '@/features/tracked-links/TrackedLinkEntry'
 
 jest.mock('@/constants/general.consts', () => ({ PEANUT_API_URL: 'https://api.example.test' }))
@@ -263,8 +264,12 @@ describe('the creator page seam', () => {
         select({ variant: 'a1', experimentId: 'n1', Page: TestPage })
         const response = await open(slug, '?utm_campaign=t', ['ig'], { referer: 'https://l.instagram.com/x' })
         expect(response.status).toBe(200)
-        const [entry, page] = (rendered!.props as { children: ReactElement<Record<string, unknown>>[] }).children
+        const [entry, boundary] = (rendered!.props as { children: ReactElement<Record<string, unknown>>[] }).children
         const ctaHref = `/home?app_entry=1&tl=${slug}&acq_invite=${slug}&tl_s=ig&utm_campaign=t&tl_r=l.instagram.com&tl_v=a1&tl_e=n1`
+        // A page that fails to render still reaches its handoff; the entry stays outside, so the visit counts.
+        expect(boundary.type).toBe(CreatorPageBoundary)
+        expect(boundary.props.handoff).toBe(ctaHref)
+        const page = boundary.props.children as ReactElement<Record<string, unknown>>
         expect(page.type).toBe(TestPage)
         expect(page.props).toEqual({
             creator: { username: slug, linkId },

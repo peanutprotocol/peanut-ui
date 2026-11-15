@@ -19,6 +19,8 @@ const enabled = process.env.GO_LINKS_E2E_PAGE === '1' && apiUrl.startsWith('http
 const LINK_IDS: Record<string, string> = {
     alice: `invite_${'e'.repeat(64)}`,
     bob: `invite_${'b'.repeat(64)}`,
+    // Selects the engine's test page that throws while it renders.
+    carol: `invite_${'f'.repeat(64)}`,
 }
 const instagramUA =
     'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 350.0.0.0.0 (iPhone14,5; iOS 18_0; en_US; en; scale=3.00; 1170x2532; 600000000)'
@@ -99,4 +101,17 @@ test('a creator without a page goes straight to /app with the tags', async ({ pa
     expect(app.searchParams.has('tl_v')).toBe(false)
     await expect.poll(() => visits.length).toBe(1)
     expect(visits[0]).toMatchObject({ slug: 'bob', placement: 'ig', utm_campaign: 't', page_variant: null })
+})
+
+test('a creator page that fails to render still sends the visitor to /app for the creator', async ({ page }) => {
+    await page.goto('/go/carol/ig?utm_campaign=t')
+    await appEntryDone(page)
+    const app = new URL(page.url())
+    expect(Object.fromEntries(app.searchParams)).toMatchObject({
+        tl: 'carol',
+        acq_invite: 'carol',
+        tl_s: 'ig',
+        utm_campaign: 't',
+        tl_v: 'e2e-broken',
+    })
 })

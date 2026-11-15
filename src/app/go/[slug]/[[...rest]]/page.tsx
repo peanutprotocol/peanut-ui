@@ -15,9 +15,10 @@ import {
 } from '@/features/tracked-links/contract'
 import { e2eCreatorPage } from '@/features/tracked-links/e2e-creator-page'
 import { lookupInviteLink } from '@/features/tracked-links/server'
+import CreatorPageBoundary from '@/features/tracked-links/CreatorPageBoundary'
 import TrackedLinkEntry from '@/features/tracked-links/TrackedLinkEntry'
 
-// No loading.tsx or Suspense under /go: either would turn the 307 and 404 answers into soft 200s.
+// No loading.tsx or Suspense above the redirects: either would turn the 307 and 404 answers into soft 200s.
 export const dynamic = 'force-dynamic'
 
 type GoPageProps = {
@@ -79,7 +80,9 @@ export default async function GoPage({ params, searchParams }: GoPageProps) {
     return (
         <>
             <TrackedLinkEntry handoff={props.ctaHref} />
-            <Page {...props} />
+            <CreatorPageBoundary handoff={props.ctaHref}>
+                <Page {...props} />
+            </CreatorPageBoundary>
         </>
     )
 }
