@@ -48,6 +48,7 @@ export const DEDICATED_ROUTES = [
 
     // Public pages (existing)
     'app', // smart store link (/app) — QR codes point here, redirects by device
+    'go', // resolved acquisition links; never a recipient route
     'q', // registered marketing QR handoff; distinct from /qr payments
     'm', // merchant landing pages (/m/[slug]) — added on main; register so the catch-all never treats it as a recipient
     'careers',

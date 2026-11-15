@@ -75,6 +75,47 @@ const demoPixWithdrawDisplay = () => ({
     provider: 'Avenia',
 })
 
+/** A Pix BR Code's own amount (EMV tag 54), or null for a code that leaves the amount to the payer. */
+function brCodeAmount(brCode: string): string | null {
+    for (let at = 0; at + 4 <= brCode.length; ) {
+        const tag = brCode.slice(at, at + 2)
+        const length = Number(brCode.slice(at + 2, at + 4))
+        if (!Number.isInteger(length)) return null
+        if (tag === '54') return brCode.slice(at + 4, at + 4 + length)
+        at += 4 + length
+    }
+    return null
+}
+
+/**
+ * The review of a merchant Pix code on the neutral pay routes, as the API answers it: the code's
+ * own amount, or the reais sent for a code without one (API-CONTRACT-M4 §2.1).
+ */
+const demoPixPayDisplay = (amountBrl: string, amountFixed: boolean) => {
+    const rate = 5.364547
+    const fixedFeeBrl = 0.75
+    return {
+        amountBrl: Number(amountBrl).toFixed(2),
+        amountFixed,
+        merchantName: 'PADARIA PAO DOURADO LTDA',
+        merchantTaxIdMasked: '12.345.678/0001-95',
+        bankName: 'Banco Inter S.A.',
+        withdrawUsd: ((Number(amountBrl) + fixedFeeBrl) / rate).toFixed(6),
+        rate: String(rate),
+        fixedFeeBrl: fixedFeeBrl.toFixed(2),
+        arrivalEstimateSeconds: 60,
+        provider: 'Avenia',
+    }
+}
+
+/** A code without an amount of its own is reviewed only with the reais the payer typed. */
+function demoPixPayReview(body: { brCode?: string; amountBrl?: string }) {
+    const own = brCodeAmount(body.brCode ?? '')
+    if (own) return demoPixPayDisplay(own, true)
+    if (body.amountBrl) return demoPixPayDisplay(body.amountBrl, false)
+    return json({ error: 'This Pix code has no amount', code: 'PAYMENT_DESTINATION_MISSING_AMOUNT' }, 400)
+}
+
 function json(data: unknown, status = 200): Response {
     return new Response(JSON.stringify(data ?? {}), {
         status,
@@ -915,21 +956,6 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     },
 
     // avenia (Brazil Pix for residents). 200s, so a fixture can override any field.
-    // a route's provider terms step (accept-tos:avenia): the consent is recorded
-    { method: 'POST', pattern: '/users/kyc/accept-terms', handler: () => ({ accepted: true }) },
-    {
-        method: 'GET',
-        pattern: '/pix/quote',
-        handler: () => ({
-            provider: 'avenia',
-            operation: 'deposit',
-            amountBrl: '100.00',
-            usdcAmount: '18.237000',
-            rate: '5.442342',
-            fixedFeeBrl: '0.75',
-            minAmountBrl: '20',
-        }),
-    },
     // the demo user's Pix routes name Avenia (DEMO_PIX_ROUTES), so these answer as Avenia does
     {
         method: 'GET',
@@ -972,7 +998,66 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         }),
     },
     { method: 'POST', pattern: '/pix/withdraw/:intentId/funded', handler: () => ({ status: 'PROCESSING' }) },
-    { method: 'POST', pattern: '/pix/withdraw/:intentId/recovery-key', handler: () => ({ accepted: true }) },
+    // a send's own read: paid, no QR reward issued (the reward fixtures answer one)
+    {
+        method: 'GET',
+        pattern: '/pix/withdraw/:intentId',
+        handler: ({ params }) => ({
+            provider: 'avenia',
+            intentId: params.intentId,
+            state: 'paid',
+            status: 'COMPLETED',
+            amountBrl: '100.00',
+            holderName: 'Bruno Lima',
+            ownAccount: false,
+            selfPay: false,
+            perk: null,
+        }),
+    },
+    // a merchant Pix code on the neutral pay routes (API-CONTRACT-M4)
+    {
+        method: 'POST',
+        pattern: '/pix/pay/preview',
+        handler: ({ options }) => demoPixPayReview(parseBody(options) as { brCode?: string; amountBrl?: string }),
+    },
+    {
+        method: 'POST',
+        pattern: '/pix/pay',
+        handler: ({ options }) => {
+            const display = demoPixPayReview(parseBody(options) as { brCode?: string; amountBrl?: string })
+            if (display instanceof Response) return display
+            return {
+                provider: 'avenia',
+                intentId: 'demo-pix-pay',
+                display,
+                sign: {
+                    kind: 'deposit-with-id',
+                    contractAddress: DEMO_ADDRESS,
+                    tokenAddress: PEANUT_WALLET_TOKEN,
+                    payAmount: display.withdrawUsd,
+                    payAmountUnits: String(Math.round(Number(display.withdrawUsd) * 1e6)),
+                    commitmentId: '6aeb17ea29f84d1e9b0c3a5d7e2f1c08',
+                    quoteExpiresAt: soon(),
+                    ticketExpiresAt: new Date(Date.now() + 600_000).toISOString(),
+                },
+            }
+        },
+    },
+    { method: 'POST', pattern: '/pix/pay/:intentId/funded', handler: () => ({ status: 'PROCESSING' }) },
+    {
+        method: 'GET',
+        pattern: '/pix/pay/:intentId',
+        handler: ({ params }) => ({
+            provider: 'avenia',
+            intentId: params.intentId,
+            state: 'paid',
+            status: 'COMPLETED',
+            amountBrl: '42.50',
+            merchantName: 'PADARIA PAO DOURADO LTDA',
+            selfPay: false,
+            perk: null,
+        }),
+    },
 
     // points / perks / rewards
     {
@@ -1179,6 +1264,21 @@ export async function demoRespond(
             builtAt: null,
             migrationsHead: null,
             contracts: REQUIRED_API_CONTRACTS,
+        })
+    }
+
+    // Avenia's Pix quote names the minimum of the operation in its query: R$20 to add money, R$5 to
+    // withdraw or send (the owner's ruling of 15 Nov). Route handlers never see the query.
+    if (method === 'GET' && pathname === '/pix/quote') {
+        const operation = new URL(path, 'http://capture.invalid').searchParams.get('operation') ?? 'deposit'
+        return json({
+            provider: 'avenia',
+            operation,
+            amountBrl: '100.00',
+            usdcAmount: '18.237000',
+            rate: '5.442342',
+            fixedFeeBrl: '0.75',
+            minAmountBrl: operation === 'withdraw' ? '5' : '20',
         })
     }
 

@@ -49,7 +49,7 @@ jobs:
             (needs.route.result == 'skipped' || (needs.route.result == 'success' && needs.route.outputs.mode != 'skip')) &&
             (github.event_name != 'pull_request' ||
             (github.event.pull_request.head.repo.full_name == github.repository && !github.event.pull_request.draft &&
-            (github.base_ref == 'dev' || (github.base_ref == 'main' && github.head_ref == 'dev'))))
+            (github.base_ref == 'dev' || github.base_ref == 'main')))
         runs-on: ubuntu-24.04
         timeout-minutes: 10
         outputs:

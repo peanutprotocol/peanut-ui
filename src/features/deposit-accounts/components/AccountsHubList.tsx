@@ -17,7 +17,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import { useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react'
 import { addressStepOf } from '../addressStep'
 import { trackAddressStepViewed } from '../analytics'
-import { needsIdentity } from '../depositGate'
+import { isWaitView, needsIdentity } from '../depositGate'
 import {
     bankRowRefusedByIdentity,
     closedBankRow,
@@ -60,6 +60,7 @@ export function AccountsHubList({
     claimsEnabled,
     bankRows,
     onBankRowClick,
+    onVerifyPix,
     onChangeResidence,
     isKycDegraded = false,
     searchTerm = '',
@@ -74,6 +75,8 @@ export function AccountsHubList({
     bankRows: UnlockRow[]
     /** a bank row the user can use or unlock */
     onBankRowClick: (row: UnlockRow) => void
+    /** The Bank account list can open a verification drawer for the Pix top-up. */
+    onVerifyPix?: () => void
     onChangeResidence: () => void
     /** verification is down, so a bank row that needs it explains that instead */
     isKycDegraded?: boolean
@@ -167,7 +170,7 @@ export function AccountsHubList({
     const underReviewBadge = <Badge status="pending" customText={t('list.badgeUnderReview')} />
 
     /** Where an account the user could open stands. A fact with no tone is `neutral` (Konrad, 2026-09-23). */
-    const openBadge = ({ corridor, openable, unchecked, identityRefused }: OpenAccountRow) => {
+    const openBadge = ({ corridor, view, openable, unchecked, identityRefused }: OpenAccountRow) => {
         // at the limit the cap is the answer for every row, before any other reason
         if (capFirst(corridor)) return <Badge status="neutral" customText={t('list.badgeLimitReached')} />
         // a refused identity holds every corridor; support can review it, so it is not "Not available"
@@ -212,6 +215,15 @@ export function AccountsHubList({
             case 'account-limit':
                 return <Badge status="neutral" customText={t('list.badgeLimitReached')} />
         }
+        // the tap opens the wait drawer. "Under review" only when a provider or a
+        // reviewer acts next; our own setup in flight is "Setting up" (design.md, rows)
+        if (isWaitView(view))
+            return view.notice?.kind === 'waiting-on-provider' ||
+                view.notice?.reasonCode === 'requirements_in_review' ? (
+                underReviewBadge
+            ) : (
+                <Badge status="processing" customText={t('list.badgeSettingUp')} />
+            )
         // an action the user can take now: the info tone (hugo, 2026-09-25)
         return <Badge status="processing" customText={t('list.badgeSetUp')} />
     }
@@ -294,19 +306,27 @@ export function AccountsHubList({
     const bankRow = (row: UnlockRow) => {
         const label = tRows(`rows.${row.labelKey}`)
         const identityRefused = bankRowRefusedByIdentity(row, bankIdentity(row))
+        const verifyPix = row.corridor === 'PIX_BR' && row.chip === 'unlock' && !identityRefused && onVerifyPix
         return (
             <ListItem
                 key={row.id}
                 // a bank row with no country flag still names a bank
                 leading={row.flag ? <CorridorFlag iso2={row.flag} /> : <IconBubble {...CONCEPT_ICONS.bank} size="s" />}
                 title={row.currency ?? label}
-                trailing={rowStatusBadge(identityRefused ? { ...row, chip: 'attention' } : row, tRows)}
+                trailing={
+                    verifyPix ? (
+                        <Badge status="pending" customText={t('list.badgeVerifyId')} />
+                    ) : (
+                        rowStatusBadge(identityRefused ? { ...row, chip: 'attention' } : row, tRows)
+                    )
+                }
                 body={row.note && tRows(row.note)}
                 bodyWrap
                 chevron
                 onClick={() => {
                     const reason = closedBankRow(row, isKycDegraded, bankIdentity(row))
                     if (reason) setClosed(reason)
+                    else if (verifyPix) verifyPix()
                     else onBankRowClick(row)
                 }}
                 data-testid={`bank-row-${row.labelKey}`}

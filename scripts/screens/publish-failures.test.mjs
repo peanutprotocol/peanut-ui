@@ -139,7 +139,11 @@ for (const [name, candidates, event] of [
     ['stale head', [{ ...pr, head: { ...pr.head, sha: 'c'.repeat(40) } }], run],
     ['wrong branch', [{ ...pr, head: { ...pr.head, ref: 'other-feature' } }], run],
     ['fork repository', [{ ...pr, head: { ...pr.head, repo: { full_name: 'fork/peanut-ui' } } }], run],
-    ['wrong base branch', [{ ...pr, base: { ...pr.base, ref: 'main' } }], run],
+    [
+        'wrong base branch',
+        [{ ...pr, base: { ...pr.base, ref: 'main' } }],
+        { ...run, pull_requests: [{ number: pr.number, head: pr.head, base: pr.base }] },
+    ],
     ['ambiguous closed candidates', [pr, { ...pr, number: 13 }], run],
     ['ambiguous open and closed candidates', [pr, { ...pr, number: 13, state: 'open' }], run],
     [

@@ -36,11 +36,10 @@ const read = (overrides: Partial<PixDeposit> = {}): PixDeposit => ({
 const state = (phase: PixDepositPhase, deposit: PixDeposit | undefined = read()) =>
     mockDeposit.mockReturnValue({ deposit, phase, isError: false })
 const onNewDeposit = jest.fn()
-const renderScreen = (blockedBankNames: string[] = []) =>
+const renderScreen = () =>
     renderWithIntl(
         <PixQrDeposit
             intentId="d1"
-            blockedBankNames={blockedBankNames}
             onBack={jest.fn()}
             onDone={jest.fn()}
             onNewDeposit={onNewDeposit}
@@ -51,34 +50,26 @@ const renderScreen = (blockedBankNames: string[] = []) =>
 describe('PixQrDeposit', () => {
     beforeEach(() => jest.clearAllMocks())
 
-    it('draws the code from the deposit read, with what the balance gets', () => {
-        state('pending')
+    // Aleks, 2026-11-12: the header is the amount and what the balance gets; the time left is a pending
+    // badge under the code; the flat fee and the blocked-bank list are gone
+    it('draws the code from the deposit read, with what the balance gets and the time the code has left', () => {
+        state('pending', read({ fixedFeeBrl: '0.75' }))
         renderScreen()
         expect(screen.getByTestId('qr')).toHaveTextContent('00020101021226...')
         expect(screen.getByText('R$100')).toBeInTheDocument()
         expect(screen.getByText('You get ≈ $17.94')).toBeInTheDocument()
+        expect(screen.getByText(/^Code valid for /)).toBeInTheDocument()
+        expect(screen.queryByText(/^Fee /)).toBeNull()
+        expect(screen.queryByText(/is returned/)).toBeNull()
     })
 
-    it('shows the flat fee when the read carries it', () => {
-        state('pending', read({ fixedFeeBrl: '0.75' }))
-        renderScreen()
-        expect(screen.getByText('Fee R$0.75')).toBeInTheDocument()
-    })
-
-    // a provider that sends no expiry, payer CPF or flat fee: the code alone, with no line it cannot fill
-    it('draws a code with no expiry, payer or fee as the code alone', () => {
+    // a provider that sends no expiry or payer CPF: the code alone, with no line it cannot fill
+    it('draws a code with no expiry or payer as the code alone', () => {
         state('pending', read({ provider: 'manteca', expiresAt: null, payerCpfMasked: undefined }))
         renderScreen()
         expect(screen.getByTestId('qr')).toHaveTextContent('00020101021226...')
-        expect(screen.queryByText(/Fee/)).toBeNull()
-        expect(screen.queryByText(/Expires in/)).toBeNull()
+        expect(screen.queryByText(/^Code valid for /)).toBeNull()
         expect(screen.queryByText(/under your CPF/)).toBeNull()
-    })
-
-    it('names the banks whose Pix the provider sends back', () => {
-        state('pending')
-        renderScreen(['Caixa', 'Sicredi', 'Sicoob'])
-        expect(screen.getByText('A Pix from Caixa, Sicredi, or Sicoob is returned.')).toBeInTheDocument()
     })
 
     it('waits for the first read (a reload, a deep link) instead of offering a new amount', () => {

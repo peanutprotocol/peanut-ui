@@ -56,6 +56,8 @@ jest.mock('../QrPayFlowContext', () => ({
         pointsData: null,
         pointsDivRef: { current: null },
         pixKeyOwner: null,
+        paidTo: 'Shop',
+        paidLocalAmount: '1000',
     }),
 }))
 

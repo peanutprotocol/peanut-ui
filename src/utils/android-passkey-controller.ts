@@ -13,6 +13,7 @@ export type AndroidPasskeyDiagnostic = Record<string, string | number | boolean>
 
 type Native = {
     id: string
+    attemptId?: string
     abandonedAt?: number
     settled: boolean
     cancel?: 'pending' | 'failed' | 'done'
@@ -49,6 +50,7 @@ export function createAndroidPasskeyController({
     graceMs?: number
 }) {
     type Attempt = {
+        attemptId?: string
         native?: Native
         predecessor?: Native
         abandoned: boolean
@@ -166,6 +168,7 @@ export function createAndroidPasskeyController({
     const invoke = <T>(attempt: Attempt, operation: (id: string, context: { contended: boolean }) => Promise<T>) => {
         const native: Native = {
             id: `${prefix}-${++sequence}`.slice(-64),
+            attemptId: attempt.attemptId,
             settled: false,
             releasedByAck: false,
             providerOpen: true,
@@ -183,14 +186,28 @@ export function createAndroidPasskeyController({
         return call.then(
             (value) => {
                 if (native.abandonedAt !== undefined && !native.releasedByAck)
-                    emit({ phase: 'late_settlement', lateOutcome: 'success', elapsedMs: since(native) })
+                    emit({
+                        phase: 'late_settlement',
+                        lateOutcome: 'success',
+                        elapsedMs: since(native),
+                        ...(native.attemptId
+                            ? { attempt_id: native.attemptId, native_settled_after_timeout: true }
+                            : {}),
+                    })
                 markSettled(native, true)
                 releaseIfBlocking(native, 'settled')
                 return value
             },
             (cause: unknown) => {
                 if (native.abandonedAt !== undefined && !native.releasedByAck)
-                    emit({ phase: 'late_settlement', lateOutcome: 'error', elapsedMs: since(native) })
+                    emit({
+                        phase: 'late_settlement',
+                        lateOutcome: 'error',
+                        elapsedMs: since(native),
+                        ...(native.attemptId
+                            ? { attempt_id: native.attemptId, native_settled_after_timeout: true }
+                            : {}),
+                    })
                 markSettled(native, !native.releasedByAck)
                 releaseIfBlocking(native, 'settled')
                 throw cause
@@ -235,7 +252,10 @@ export function createAndroidPasskeyController({
         cancelRequest(id: string) {
             if (active?.native?.id === id) cancelActive()
         },
-        async run<T>(operation: (id: string, context: { contended: boolean }) => Promise<T>): Promise<T> {
+        async run<T>(
+            operation: (id: string, context: { contended: boolean }) => Promise<T>,
+            telemetry?: { attemptId?: string }
+        ): Promise<T> {
             if (active || starting) throw error('CeremonyConflictError', 'Another passkey request is in progress')
             if (blocking) {
                 starting = true
@@ -248,6 +268,7 @@ export function createAndroidPasskeyController({
             }
             return new Promise<T>((resolve, reject) => {
                 const attempt: Attempt = {
+                    attemptId: telemetry?.attemptId,
                     predecessor: [...unsettled].pop(),
                     abandoned: false,
                     reject,

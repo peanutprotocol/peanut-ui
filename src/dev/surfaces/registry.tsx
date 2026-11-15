@@ -1,11 +1,13 @@
 'use client'
 
+import { NotificationSwitches } from '@/components/Setup/Views/Notifications'
 import { SetupCelebrationView } from '@/components/Setup/Views/Success'
 import { TestBuildRibbonView } from '@/components/Global/TestBuildRibbon'
 import { API_CONTRACT_STATES } from './api-contract-states'
 import AmountInput from '@/components/Global/AmountInput'
 import { StandaloneErrorSurface } from './StandaloneErrorSurface'
 import { AddressLaunchModal } from '@/features/deposit-accounts/components/AddressLaunchModal'
+import { ClosedRowDrawer } from '@/features/deposit-accounts/components/ClosedRowDrawer'
 import { CardResidenceAddressScreen } from '@/features/card/components/CardResidenceAddressScreen'
 import { useToast } from '@/components/0_Bruddle/Toast'
 
@@ -23,7 +25,7 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import React, { useState } from 'react'
 import { PixQrDeposit } from '@/features/pix/components/PixQrDeposit'
 import { PixWithdrawOutcome } from '@/features/pix/components/PixWithdrawOutcome'
-import { PixWithdrawReview } from '@/features/pix/components/PixWithdrawReview'
+import { PixWithdrawForm } from '@/features/pix/components/PixWithdrawForm'
 import type { PixDeposit, PixWithdrawDisplay } from '@/services/pix'
 import { pixDepositQueryKey } from '@/features/pix/pixDepositCode'
 import { useQueryClient } from '@tanstack/react-query'
@@ -37,6 +39,7 @@ import { setupScreenIds, setupSteps } from '@/components/Setup/Setup.consts'
 import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
 import { useSetupStepCopy } from '@/components/Setup/useSetupStepCopy'
 import type { ScreenId } from '@/components/Setup/Setup.types'
+import type { SetupFundingChannel, SetupPaymentChannel } from '@/features/setup/paymentChannels'
 
 import { PasskeySetupHelpDrawer } from '@/components/Setup/Views/PasskeySetupHelpDrawer'
 import { LoginRecoveryDrawer } from '@/components/Setup/Views/LoginRecoveryDrawer'
@@ -118,6 +121,9 @@ function SetupScreen({
     forceFullScreen = false,
     residenceCountry,
     nationalityCountry,
+    username,
+    fundingChannel,
+    paymentChannel,
 }: {
     screenId: ScreenId
     children?: React.ReactNode
@@ -125,6 +131,9 @@ function SetupScreen({
     forceFullScreen?: boolean
     residenceCountry?: string
     nationalityCountry?: string
+    username?: string
+    fundingChannel?: SetupFundingChannel
+    paymentChannel?: SetupPaymentChannel
 }) {
     return (
         <SetupFlowProvider masterScreenIds={setupScreenIds}>
@@ -134,6 +143,9 @@ function SetupScreen({
                 forceFullScreen={forceFullScreen}
                 residenceCountry={residenceCountry}
                 nationalityCountry={nationalityCountry}
+                username={username}
+                fundingChannel={fundingChannel}
+                paymentChannel={paymentChannel}
             >
                 {children}
             </SetupScreenBody>
@@ -147,6 +159,9 @@ function SetupScreenBody({
     forceFullScreen = false,
     residenceCountry,
     nationalityCountry,
+    username,
+    fundingChannel,
+    paymentChannel,
 }: {
     screenId: ScreenId
     children?: React.ReactNode
@@ -154,16 +169,58 @@ function SetupScreenBody({
     forceFullScreen?: boolean
     residenceCountry?: string
     nationalityCountry?: string
+    username?: string
+    fundingChannel?: SetupFundingChannel
+    paymentChannel?: SetupPaymentChannel
 }) {
-    const { setSteps, setResidenceCountry, setNationalityCountry } = useSetupFlowContext()
+    const {
+        setSteps,
+        residenceCountry: currentResidence,
+        setResidenceCountry,
+        nationalityCountry: currentNationality,
+        setNationalityCountry,
+        username: currentUsername,
+        setUsername,
+        fundingChannel: currentFunding,
+        setFundingChannel,
+        paymentChannel: currentPayment,
+        setPaymentChannel,
+    } = useSetupFlowContext()
     React.useLayoutEffect(() => setSteps(setupSteps), [setSteps])
     React.useLayoutEffect(() => {
         if (residenceCountry) setResidenceCountry(residenceCountry)
         if (nationalityCountry) setNationalityCountry(nationalityCountry)
-    }, [residenceCountry, setResidenceCountry, nationalityCountry, setNationalityCountry])
+        if (username) setUsername(username)
+        if (fundingChannel) setFundingChannel(fundingChannel)
+        if (paymentChannel) setPaymentChannel(paymentChannel)
+    }, [
+        residenceCountry,
+        setResidenceCountry,
+        nationalityCountry,
+        setNationalityCountry,
+        username,
+        setUsername,
+        fundingChannel,
+        setFundingChannel,
+        paymentChannel,
+        setPaymentChannel,
+        currentResidence,
+        currentNationality,
+        currentUsername,
+        currentFunding,
+        currentPayment,
+    ])
     const step = setupSteps.find((entry) => entry.screenId === screenId)
     const stepCopy = useSetupStepCopy(step)
-    if (!step) return null
+    if (
+        !step ||
+        (residenceCountry && currentResidence !== residenceCountry) ||
+        (nationalityCountry && currentNationality !== nationalityCountry) ||
+        (username && currentUsername !== username) ||
+        (fundingChannel && currentFunding !== fundingChannel) ||
+        (paymentChannel && currentPayment !== paymentChannel)
+    )
+        return null
     const View = step.component
     return (
         <SetupWrapper
@@ -308,7 +365,6 @@ function PixDepositSurface() {
         <AppPageSurface>
             <PixQrDeposit
                 intentId="demo-pix-deposit"
-                blockedBankNames={['Caixa', 'Sicredi', 'Sicoob']}
                 onBack={noop}
                 onDone={noop}
                 onNewDeposit={noop}
@@ -323,6 +379,7 @@ const PIX_SURFACE_DISPLAY: PixWithdrawDisplay = {
     amountBrl: '503.00',
     pixKey: '09579927189',
     ownAccount: true,
+    holderTaxIdMasked: null,
     holderName: 'Ana Souza',
     bankName: 'Banco Inter',
     withdrawUsd: '92.504310',
@@ -332,9 +389,20 @@ const PIX_SURFACE_DISPLAY: PixWithdrawDisplay = {
     provider: 'Avenia',
 }
 
-// the last step right after the signature: the destination comes from what was signed
-function PixWithdrawOutcomeSurface({ unnamed = false }: { unnamed?: boolean }) {
-    const display = unnamed ? { ...PIX_SURFACE_DISPLAY, bankName: null, holderName: null } : PIX_SURFACE_DISPLAY
+// the last step right after the signature: the destination comes from what was signed. `pastArrival`
+// quotes a zero arrival time, so the loader gives way to "on its way" at once, as a slow bank would.
+function PixWithdrawOutcomeSurface({
+    unnamed = false,
+    pastArrival = false,
+}: {
+    unnamed?: boolean
+    pastArrival?: boolean
+}) {
+    const display = {
+        ...PIX_SURFACE_DISPLAY,
+        ...(unnamed && { bankName: null, holderName: null }),
+        ...(pastArrival && { arrivalEstimateSeconds: 0 }),
+    }
     return (
         <AppPageSurface>
             <PixWithdrawOutcome
@@ -349,8 +417,8 @@ function PixWithdrawOutcomeSurface({ unnamed = false }: { unnamed?: boolean }) {
     )
 }
 
-// the review once Confirm opened the ticket: a moved quote, or one that lapsed before the signature
-function PixWithdrawReviewSurface({ variant }: { variant: 'quote-moved' | 'after-init' }) {
+// the form once Confirm opened the ticket: a moved quote, or one that lapsed before the signature
+function PixWithdrawFormSurface({ variant }: { variant: 'quote-moved' | 'after-init' }) {
     const t = useTranslations('pix.withdraw')
     const error =
         variant === 'quote-moved'
@@ -358,17 +426,45 @@ function PixWithdrawReviewSurface({ variant }: { variant: 'quote-moved' | 'after
             : { message: `${t('errors.quoteExpired')} ${t('errors.afterInit')}` }
     return (
         <AppPageSurface>
-            <PixWithdrawReview
+            <PixWithdrawForm
                 title="Withdraw"
-                display={PIX_SURFACE_DISPLAY}
-                providerId="avenia-br"
-                isLoading={false}
-                isSubmitting={false}
-                error={error}
-                canConfirm={variant === 'quote-moved'}
                 onBack={noop}
+                recipient={{
+                    pixKey: PIX_SURFACE_DISPLAY.pixKey,
+                    holderName: PIX_SURFACE_DISPLAY.holderName,
+                    bankName: PIX_SURFACE_DISPLAY.bankName,
+                    taxIdMasked: null,
+                    ownAccount: PIX_SURFACE_DISPLAY.ownAccount,
+                }}
+                save={{
+                    savedName: null,
+                    isOffered: true,
+                    checked: true,
+                    nickname: 'Ana Souza',
+                    setChecked: noop,
+                    setNickname: noop,
+                }}
+                amount={{
+                    seed: { amount: PIX_SURFACE_DISPLAY.amountBrl, denomination: 'BRL' },
+                    price: Number(PIX_SURFACE_DISPLAY.amountBrl) / Number(PIX_SURFACE_DISPLAY.withdrawUsd),
+                    isLoading: false,
+                    isError: false,
+                    onRetry: noop,
+                    // the opened withdrawal keeps its amount
+                    disabled: true,
+                    walletBalance: '100',
+                    onBrlChange: noop,
+                    onUsdChange: noop,
+                    onBalanceFilled: noop,
+                    onAmountTyped: noop,
+                }}
+                display={PIX_SURFACE_DISPLAY}
+                total="$92.50"
+                providerId="avenia-br"
+                error={error}
+                isSubmitting={false}
+                canConfirm={variant === 'quote-moved'}
                 onConfirm={noop}
-                onCancel={noop}
             />
         </AppPageSurface>
     )
@@ -514,6 +610,16 @@ function DepositAddressSubmittedToastSurface() {
 }
 
 export const SURFACES: Record<string, Surface> = {
+    'deposit-card-state-blocked': {
+        ...SURFACE_META['deposit-card-state-blocked'],
+        render: () => (
+            <ClosedRowDrawer
+                closed={{ kind: 'card-restricted', reason: 'geo-blocked' }}
+                onClose={() => {}}
+                onChangeResidence={() => {}}
+            />
+        ),
+    },
     'deposit-address-launch-loading': {
         ...SURFACE_META['deposit-address-launch-loading'],
         render: () => <AddressLaunchSurface bank loading />,
@@ -681,6 +787,19 @@ export const SURFACES: Record<string, Surface> = {
         render: () => <SetupScreen screenId="invite" />,
     },
     '06-a-signup': { name: 'Signup', path: 'Setup/Views/Signup.tsx', render: () => <SetupScreen screenId="signup" /> },
+    '06-c-passkey': {
+        ...SURFACE_META['06-c-passkey'],
+        render: () => (
+            <SetupScreen
+                screenId="passkey"
+                username="kimchi"
+                residenceCountry="PT"
+                nationalityCountry="PT"
+                fundingChannel="bank"
+                paymentChannel="card"
+            />
+        ),
+    },
     '02-b-advantage-card': {
         ...SURFACE_META['02-b-advantage-card'],
         render: () => <SetupScreen screenId="advantage-card" />,
@@ -697,6 +816,22 @@ export const SURFACES: Record<string, Surface> = {
     '07-d-notification-settings': {
         ...SURFACE_META['07-d-notification-settings'],
         render: () => <SetupScreen screenId="notification-permission" />,
+    },
+    '07-d-notification-switches': {
+        ...SURFACE_META['07-d-notification-switches'],
+        render: () => (
+            <SetupScreen screenId="notification-permission">
+                <NotificationSwitches variant="switches" />
+            </SetupScreen>
+        ),
+    },
+    '07-d-notification-defaults-on': {
+        ...SURFACE_META['07-d-notification-defaults-on'],
+        render: () => (
+            <SetupScreen screenId="notification-permission">
+                <NotificationSwitches variant="defaults_on" />
+            </SetupScreen>
+        ),
     },
     '07-e-setup-celebration': {
         ...SURFACE_META['07-e-setup-celebration'],
@@ -1067,6 +1202,23 @@ export const SURFACES: Record<string, Surface> = {
             />
         ),
     },
+    '45-d-residence-review': {
+        ...SURFACE_META['45-d-residence-review'],
+        render: () => (
+            <ResidenceChangeDrawer
+                visible
+                onClose={noop}
+                userId="demo-user"
+                declared="ES"
+                verified="BR"
+                pending="ES"
+                pendingStatus="REVIEW_PENDING"
+                onSaved={asyncNoop}
+                onReverify={noop}
+                onContactSupport={noop}
+            />
+        ),
+    },
     '48-c-balancewarningmodal': {
         name: 'BalanceWarningDrawer',
         path: 'Global/BalanceWarningDrawer/index.tsx',
@@ -1352,6 +1504,14 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['81-g-request-pot-partial'],
         render: () => <RequestPotPartialSurface />,
     },
+    '82-e-card-creating': {
+        ...SURFACE_META['82-e-card-creating'],
+        render: () => (
+            <AppPageSurface>
+                <ApplicationStatusScreen variant="creating-card" />
+            </AppPageSurface>
+        ),
+    },
     '82-f-choice-card-requires-info': {
         ...SURFACE_META['82-f-choice-card-requires-info'],
         render: () => (
@@ -1504,22 +1664,30 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['94-h-pix-withdraw-arrived-to'],
         render: () => <PixWithdrawOutcomeSurface />,
     },
-    '94-i-pix-withdraw-sent-unnamed': {
-        ...SURFACE_META['94-i-pix-withdraw-sent-unnamed'],
+    '94-i-pix-withdraw-arrived-unnamed': {
+        ...SURFACE_META['94-i-pix-withdraw-arrived-unnamed'],
         render: () => <PixWithdrawOutcomeSurface unnamed />,
     },
     '94-j-pix-review-quote-moved': {
         ...SURFACE_META['94-j-pix-review-quote-moved'],
-        render: () => <PixWithdrawReviewSurface variant="quote-moved" />,
+        render: () => <PixWithdrawFormSurface variant="quote-moved" />,
     },
     '94-k-pix-review-after-init': {
         ...SURFACE_META['94-k-pix-review-after-init'],
-        render: () => <PixWithdrawReviewSurface variant="after-init" />,
+        render: () => <PixWithdrawFormSurface variant="after-init" />,
     },
     // the shot fixture's entry ended CANCELLED after this session funded it: support, never "on its way"
     '94-l-pix-withdraw-stuck': {
         ...SURFACE_META['94-l-pix-withdraw-stuck'],
         render: () => <PixWithdrawOutcomeSurface />,
+    },
+    '94-m-pix-withdraw-past-arrival': {
+        ...SURFACE_META['94-m-pix-withdraw-past-arrival'],
+        render: () => <PixWithdrawOutcomeSurface pastArrival />,
+    },
+    '94-n-pix-withdraw-past-arrival-unnamed': {
+        ...SURFACE_META['94-n-pix-withdraw-past-arrival-unnamed'],
+        render: () => <PixWithdrawOutcomeSurface unnamed pastArrival />,
     },
     '70-d-activationctas-outbound': {
         // the first-payment chooser opens on the row tap — the shot spec (or a

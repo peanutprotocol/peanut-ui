@@ -1,5 +1,5 @@
 'use client'
-import { type FC, useEffect, useState } from 'react'
+import { type FC, useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
@@ -8,9 +8,10 @@ import ActionModal from '@/components/Global/ActionModal'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
 import { useToast } from '@/components/0_Bruddle/Toast'
+import CardReturnNotice from '@/components/Card/CardReturnNotice'
 import CardStopNotice from '@/components/Card/CardStopNotice'
-import { apiErrorStatus } from '@/services/api-error'
-import { rainApi, type CardFundingStop } from '@/services/rain'
+import { cardReturnFacts, cardReturnUnits } from '@/components/Card/cardReturn.utils'
+import { rainApi, type CardCollateralReturn, type CardFundingStop } from '@/services/rain'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { newStopAttemptId, type StopAttempt } from '@/hooks/useCardStopConfirmation'
 import { useStopAttemptReporter } from '@/hooks/useStopAttemptReporter'
@@ -54,7 +55,10 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose, onStopAttempt
     const [phase, setPhase] = useState<Phase>('prompt')
     const [error, setError] = useState<string | null>(null)
     const queryClient = useQueryClient()
-    const { overview } = useRainCardOverview()
+    const { overview, refetch: refetchOverview } = useRainCardOverview()
+    // After a failed lock the balance on screen can predate a return that
+    // already ran. A retry that needs a new signature reads it again first.
+    const balanceIsStale = useRef(false)
     const { address: smartWalletAddress } = useWallet()
     const { signSpend } = useSignSpendBundle()
     const toast = useToast()
@@ -63,6 +67,7 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose, onStopAttempt
         attemptId: string
         stop?: CardFundingStop | null
         unlock?: 'kept' | 'unknown'
+        collateralReturn?: CardCollateralReturn
     } | null>(null)
     const withdrawalProof = useCardWithdrawalProof(cardId, smartWalletAddress)
     const beginStopReport = useStopAttemptReporter(smartWalletAddress, onStopAttempt)
@@ -85,22 +90,38 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose, onStopAttempt
         const report = beginStopReport()
         let stop: CardFundingStop | null | undefined
         let unlock: 'kept' | 'unknown' | undefined
+        let collateralReturn: CardCollateralReturn | undefined
         try {
             if (mode === 'lock') {
                 // An unloaded overview reads as zero spending power below, which
-                // would skip the withdrawal and get the lock rejected by the
-                // backend ("Withdrawal signature required"). Fail closed instead.
+                // would skip the withdrawal: the backend then freezes the card
+                // with the balance still in it (an older backend rejects the
+                // lock, "Withdrawal signature required"). Fail closed instead.
                 if (!overview) {
                     throw new Error(t('errors.cardDetailsLoading'))
                 }
                 // If the user has spending power, return collateral to their
                 // smart wallet BEFORE locking so funds stay liquid. The
-                // backend gates the lock on a successful withdrawal — order
-                // is handled there. We only need to deliver the signed body.
-                const spendingPowerUnits = rainCentsToUsdcUnits(overview?.balance?.spendingPower)
+                // backend runs the signed return first and then locks the card
+                // whatever the return did: `collateralReturn` says what is
+                // left in the card. A backend that predates it refuses the
+                // lock instead.
                 // A retry reuses the proof: signing again could be a second withdrawal.
                 let verifiedWithdrawal = withdrawalProof.get()
-                if (!verifiedWithdrawal && spendingPowerUnits > 0n) {
+                let balance = overview.balance
+                if (!verifiedWithdrawal && balanceIsStale.current) {
+                    // A read that fails sizes nothing. The card still freezes: a
+                    // freeze is never refused, and the backend reports what
+                    // stayed in the card.
+                    const fresh = await refetchOverview()
+                    const read = !fresh.isError && !!fresh.data
+                    balance = read ? fresh.data.balance : null
+                    if (read) balanceIsStale.current = false
+                }
+                const spendingPowerUnits = rainCentsToUsdcUnits(balance?.spendingPower)
+                // Never more than the card holds: refund credit is not signed for.
+                const returnUnits = cardReturnUnits(balance)
+                if (!verifiedWithdrawal && returnUnits > 0n) {
                     if (!smartWalletAddress) {
                         throw new Error(t('errors.walletNotReady'))
                     }
@@ -110,7 +131,7 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose, onStopAttempt
                     // leaves the collateral behind. (The `smartBalance: 0n` that
                     // used to force this was removed in cb302d35a.)
                     const artifact = await signSpend({
-                        requiredUsdcAmount: spendingPowerUnits,
+                        requiredUsdcAmount: returnUnits,
                         recipient: smartWalletAddress as `0x${string}`,
                         rainSpendingPower: spendingPowerUnits,
                         kind: 'CRYPTO_WITHDRAW',
@@ -125,8 +146,11 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose, onStopAttempt
                 // No draft back-out on a lockCard throw: the backend may have
                 // consumed the withdrawal before the error surfaced — cleanup
                 // belongs to the probe-verified TTL sweep (TASK-21815 review).
-                stop = (await rainApi.lockCard(cardId, verifiedWithdrawal))?.fundingStop
+                const locked = await rainApi.lockCard(cardId, verifiedWithdrawal)
+                stop = locked?.fundingStop
+                collateralReturn = locked?.collateralReturn
                 withdrawalProof.clear()
+                balanceIsStale.current = false
             } else {
                 const resume = (await rainApi.activateCard(cardId))?.fundingStop
                 // null: the card is active but the stop was not lifted; unlock again.
@@ -138,17 +162,21 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose, onStopAttempt
             else if (mode === 'unlock' && !unlock) report(null)
             await queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] })
             posthog.capture(mode === 'lock' ? ANALYTICS_EVENTS.CARD_LOCKED : ANALYTICS_EVENTS.CARD_UNLOCKED)
-            // Stay open only when there is something true to say about wallet payments.
-            if (unlock || (stop && stop.state !== 'not_applicable')) {
-                setDone({ attemptId, stop, unlock })
+            // Stay open only when there is something true to say: about wallet
+            // payments, or about a balance the freeze left in the card.
+            if (unlock || (stop && stop.state !== 'not_applicable') || cardReturnFacts('lock', collateralReturn)) {
+                setDone({ attemptId, stop, unlock, collateralReturn })
                 setPhase('done')
                 return
             }
             toast.success(t(copyKeys.success))
             onClose()
         } catch (e) {
-            // An expired signature cannot be reused: sign again on the next try.
-            if (apiErrorStatus(e) === 410) withdrawalProof.clear()
+            if (mode === 'lock') {
+                balanceIsStale.current = true
+                // A signature the backend used or can never verify is signed again on the next try.
+                withdrawalProof.dropIfSpent(e)
+            }
             // Other throws (passkey cancelled, network, 409 card_action_*) keep their message.
             let message = e instanceof Error ? e.message : t(copyKeys.failed)
             if (e instanceof InsufficientSpendableError) {
@@ -170,13 +198,17 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose, onStopAttempt
         <>
             {showError && <Callout priority="error">{error}</Callout>}
             {done && (
-                <CardStopNotice
-                    key={done.attemptId}
-                    stop={done.stop}
-                    attemptId={done.attemptId}
-                    wallet={smartWalletAddress}
-                    unlock={done.unlock}
-                />
+                // the modal stacks its body with no gap, and two notices must not touch
+                <div className="flex w-full flex-col gap-2">
+                    <CardReturnNotice action="lock" collateralReturn={done.collateralReturn} />
+                    <CardStopNotice
+                        key={done.attemptId}
+                        stop={done.stop}
+                        attemptId={done.attemptId}
+                        wallet={smartWalletAddress}
+                        unlock={done.unlock}
+                    />
+                </div>
             )}
             {showSlide && (
                 <SlideToConfirm

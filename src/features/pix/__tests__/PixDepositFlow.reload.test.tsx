@@ -6,6 +6,7 @@ import { renderWithIntl } from '@/test-utils/intl'
 import type { CapabilityRoute } from '@/types/capabilities'
 import { pixDepositQueryKey } from '../pixDepositCode'
 import { ApiError } from '@/services/api-error'
+import en from '@/i18n/app/messages/en.json'
 
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn(), useReturnTo: () => jest.fn() }))
@@ -21,15 +22,18 @@ jest.mock('@/components/AddMoney/components/InputAmountStep', () => ({
         onSubmit,
         setCurrencyAmount,
         validationError,
+        error,
     }: {
         onSubmit: () => void
         setCurrencyAmount: (v: string) => void
         validationError?: string | null
+        error?: string | null
     }) => (
         <div data-testid="amount-step">
             <button onClick={() => setCurrencyAmount('100')}>type</button>
             <button onClick={onSubmit}>submit</button>
             {validationError && <p>{validationError}</p>}
+            {error && <p>{error}</p>}
         </div>
     ),
 }))
@@ -42,10 +46,8 @@ jest.mock('@/features/pix/components/PixQrDeposit', () => ({
     ),
 }))
 const mockCreate = jest.fn()
-const mockDepositRules = jest.fn(() => Promise.resolve({ minAmountBrl: '20', blockedBanks: [] }))
 jest.mock('@/services/pix', () => ({
     pixApi: {
-        depositRules: () => mockDepositRules(),
         createDeposit: (amountBrl: string) => mockCreate(amountBrl),
     },
 }))
@@ -125,54 +127,26 @@ describe('PixDepositFlow and the URL', () => {
         })
     })
 
-    it('a re-entry right after a new code opens that code, because the create reads the route again', async () => {
-        mockCreate.mockResolvedValue({
-            intentId: 'd4',
-            brCode: 'code-d4',
-            amountBrl: '100.00',
-            usdcAmount: '17.94',
-            fixedFeeBrl: '0.75',
-            expiresAt: null,
-            payerCpfMasked: '095.***.***-89',
-        })
-        // the API names the new code payable to a user read after the create
-        let payable: string | undefined
-        mockFetchUser.mockImplementationOnce(() => {
-            payable = 'd4'
-            return Promise.resolve(null)
-        })
-        const first = renderAt('')
-        fireEvent.click(screen.getByText('type'))
-        fireEvent.click(screen.getByText('submit'))
-        expect(await screen.findByTestId('code-step')).toHaveTextContent('d4')
-        await waitFor(() => expect(payable).toBe('d4'))
-        first.unmount()
-
-        // back from Home: a fresh mount, no id in the URL
-        renderAt('', { payable })
-        expect(screen.getByTestId('code-step')).toHaveTextContent('d4')
-        expect(screen.queryByTestId('amount-step')).toBeNull()
-        expect(mockCreate).toHaveBeenCalledTimes(1)
-    })
-
-    it('opens the code that can still be paid instead of the amount step, and names it in the URL', async () => {
+    // Aleks, 2026-11-12: Add money never resumes a code. A live one is reached from Activity ("Show code").
+    it('starts at the amount step although the route still names a payable code', async () => {
         const urls: string[] = []
         renderAt('', { payable: 'd3', onUrlUpdate: (event) => urls.push(event.queryString) })
 
-        expect(screen.getByTestId('code-step')).toHaveTextContent('d3')
-        expect(screen.queryByTestId('amount-step')).toBeNull()
-        await waitFor(() => expect(urls.some((url) => url.includes('intentId=d3'))).toBe(true))
+        expect(screen.getByTestId('amount-step')).toBeInTheDocument()
+        expect(screen.queryByTestId('code-step')).toBeNull()
+        await new Promise((resolve) => setTimeout(resolve, 0))
+        expect(urls.some((url) => url.includes('intentId='))).toBe(false)
+        expect(mockFetchUser).not.toHaveBeenCalled()
     })
 
-    it('a new deposit from a lapsed code goes to the amount step and reads the route again', async () => {
+    it('a new deposit from a lapsed code goes to the amount step', async () => {
         renderAt('?step=showQR&intentId=d3', { payable: 'd3' })
 
         fireEvent.click(screen.getByText('new deposit'))
 
-        // the capabilities may still name the left code payable: it does not open again
+        // the route may still name the left code payable: it does not open again
         expect(await screen.findByTestId('amount-step')).toBeInTheDocument()
         expect(screen.queryByTestId('code-step')).toBeNull()
-        expect(mockFetchUser).toHaveBeenCalled()
     })
 
     // the route states the provider's minimum: the amount step refuses an amount under it before any quote
@@ -182,12 +156,11 @@ describe('PixDepositFlow and the URL', () => {
         expect(await screen.findByText(/The minimum is R\$200/)).toBeInTheDocument()
     })
 
-    it('reads no deposit rules for the amount step: the route already states the minimum', async () => {
+    it("shows no minimum line while the amount meets the route's minimum", async () => {
         renderAt('', { minAmount: '1' })
         fireEvent.click(screen.getByText('type'))
         await new Promise((resolve) => setTimeout(resolve, 0))
         expect(screen.queryByText(/The minimum is/)).toBeNull()
-        expect(mockDepositRules).not.toHaveBeenCalled()
     })
 
     it('reads the route again when the provider is paused or dormant (503), and says to try again soon', async () => {
@@ -200,5 +173,22 @@ describe('PixDepositFlow and the URL', () => {
 
         await waitFor(() => expect(mockFetchUser).toHaveBeenCalled())
         expect(screen.queryByTestId('code-step')).toBeNull()
+    })
+
+    // ruled 2026-11-14: no BRL deposit for a resident of another country; the refusal names support (M5)
+    it('a deposit refused for the residence says so and names support, with no "try again"', async () => {
+        mockCreate.mockRejectedValue(
+            new ApiError('BRL deposits are not available in your country of residence.', {
+                status: 422,
+                code: 'PIX_RESIDENCE_NOT_SUPPORTED',
+            })
+        )
+        renderAt('')
+        fireEvent.click(screen.getByText('type'))
+        fireEvent.click(screen.getByText('submit'))
+
+        expect(await screen.findByText(en.pix.residenceNotServed)).toBeInTheDocument()
+        expect(en.pix.residenceNotServed).toMatch(/support/i)
+        expect(screen.queryByText(en.pix.unavailable)).toBeNull()
     })
 })

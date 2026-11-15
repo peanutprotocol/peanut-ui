@@ -23,6 +23,7 @@ const APP_DIR = path.join(__dirname, '..', 'src', 'app')
 // everything else (marketing, blog, locale pages) is web-only.
 const ITEMS_TO_DISABLE = [
     { path: 'api', type: 'dir' },
+    { path: 'go', type: 'dir' }, // web resolver; native uses exported /app bootstrap
     { path: 'q', type: 'dir' }, // marketing QR handoff is web-only
     { path: 'sitemap.ts', type: 'file' },
     { path: 'robots.ts', type: 'file' },

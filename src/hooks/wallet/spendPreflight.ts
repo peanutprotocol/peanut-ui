@@ -30,7 +30,16 @@ import {
 export type SpendStrategy = 'collateral-only' | 'smart-only' | 'mixed' | 'insufficient'
 
 export class InsufficientSpendableError extends Error {
-    constructor() {
+    /**
+     * Both in USDC base units: what routing could spend (live smart + Rain) and
+     * what the spend needs. An open-amount QR compares them with the amount its
+     * form showed, to tell a quote above the balance from a balance that is
+     * still settling (TASK-24621).
+     */
+    constructor(
+        readonly available: bigint,
+        readonly required: bigint
+    ) {
         super('Insufficient spendable balance')
         this.name = 'InsufficientSpendableError'
     }
@@ -165,7 +174,7 @@ export async function resolveSpendStrategy(
             ...(flow ? { flow } : {}),
         })
         queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] })
-        throw new InsufficientSpendableError()
+        throw new InsufficientSpendableError(smartBalance + rainSpendingPower, requiredUsdcAmount)
     }
     return { strategy, smartBalance }
 }

@@ -75,7 +75,13 @@ const overview = (spendingPower: number | null, balanceUnavailable = false): Rai
     balance:
         spendingPower === null
             ? null
-            : { creditLimit: 0, spendingPower, pendingCharges: 0, postedCharges: 0, balanceDue: 0 },
+            : {
+                  creditLimit: Math.max(0, spendingPower),
+                  spendingPower,
+                  pendingCharges: 0,
+                  postedCharges: 0,
+                  balanceDue: 0,
+              },
     ...(balanceUnavailable ? { balanceUnavailable } : {}),
     cards: [CARD],
 })

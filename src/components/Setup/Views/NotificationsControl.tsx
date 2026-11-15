@@ -15,6 +15,7 @@ import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { trackPromptAnswer } from '@/features/setup/notificationsExperiment'
 import { notificationsApi, toPushPermission } from '@/services/notifications'
 import { useSessionFence, type SessionFence } from '@/hooks/useSessionFence'
+import { useSignupControl } from '@/features/setup/useSignupControl'
 
 /**
  * The notifications experiment's control: the step as it was before the three
@@ -38,6 +39,7 @@ export default function NotificationsControl() {
     const captureSession = useSessionFence()
     const choiceOwner = useRef<SessionFence | null>(null)
     const push = notificationChoices.push
+    const { track, trackError } = useSignupControl()
 
     const onToggle = async (on: boolean) => {
         if (requestingRef.current || savingRef.current) return
@@ -47,6 +49,8 @@ export default function NotificationsControl() {
         try {
             if (session.ready) await session.ready
             if (!session.current()) return
+            track('push', 'toggle', on ? 'on' : 'off')
+            trackError('notification_preferences', null)
             choiceOwner.current = session
             setError(undefined)
             setNotificationChoices({ ...notificationChoices, push: on })
@@ -55,16 +59,19 @@ export default function NotificationsControl() {
                 return
             }
             setOptedOut(false)
+            trackError('push_permission', null)
             // Started inside the tap, so the browser accepts the permission request.
             const permission = toPushPermission(await requestPermission())
             if (!session.current()) return
             await afterPermissionAttempt()
             if (!session.current()) return
             trackPromptAnswer('control', permission)
+            trackError('push_permission', permission === 'granted' ? null : permission)
             if (permission !== 'granted') setNotificationChoices({ ...notificationChoices, push: false })
         } catch {
             if (!session.current()) return
             trackPromptAnswer('control', 'dismissed')
+            trackError('push_permission', 'dismissed')
             setNotificationChoices({ ...notificationChoices, push: false })
         } finally {
             requestingRef.current = false
@@ -76,6 +83,8 @@ export default function NotificationsControl() {
         if (savingRef.current) return
         const session = captureSession()
         if (!session.current() || (choiceOwner.current && !choiceOwner.current.current())) return
+        track('continue', 'tap')
+        trackError('notification_preferences', null)
         savingRef.current = true
         setSaving(true)
         setSetupLoading(true)
@@ -93,6 +102,7 @@ export default function NotificationsControl() {
                 if (!session.current()) return
                 if (!saved) {
                     setError(t('saveFailed'))
+                    trackError('notification_preferences', 'save_failed')
                     return
                 }
             } else if (push) {
@@ -101,7 +111,9 @@ export default function NotificationsControl() {
                 // to this step, and the API keeps the last write.
                 await notificationsApi
                     .savePreferences({ push: true, pushPermission: 'granted' }, session.userId ?? undefined)
-                    .catch(() => {})
+                    .catch(() => {
+                        if (session.current()) trackError('notification_preferences', 'save_failed')
+                    })
             }
             if (!session.current()) return
             await handleNext()

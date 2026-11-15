@@ -135,6 +135,11 @@ export const ANALYTICS_EVENTS = {
     CLAIM_RECIPIENT_SELECTED: 'claim_recipient_selected',
 
     // ── Deposit / Onramp ──
+    ADD_MONEY_VIEWED: 'add_money_viewed',
+    ADD_MONEY_COUNTRY_LIST_OPENED: 'add_money_country_list_opened',
+    ADD_MONEY_COUNTRY_LIST_CLOSED: 'add_money_country_list_closed',
+    ADD_MONEY_COUNTRY_SELECTED: 'add_money_country_selected',
+    ADD_MONEY_BACK_TAPPED: 'add_money_back_tapped',
     DEPOSIT_METHOD_SELECTED: 'deposit_method_selected',
     DEPOSIT_AMOUNT_ENTERED: 'deposit_amount_entered',
     DEPOSIT_CONFIRMED: 'deposit_confirmed',
@@ -420,7 +425,6 @@ export const ANALYTICS_EVENTS = {
     CARD_LOCK_FAILED: 'card_lock_failed',
     CARD_CANCEL_OPENED: 'card_cancel_opened',
     CARD_CANCEL_CONFIRMED: 'card_cancel_confirmed',
-    CARD_CANCEL_FEEDBACK_SUBMITTED: 'card_cancel_feedback_submitted',
     CARD_CANCEL_FAILED: 'card_cancel_failed',
     CARD_PHYSICAL_WAITLIST_VIEWED: 'card_physical_waitlist_viewed',
     CARD_PHYSICAL_WAITLIST_JOINED: 'card_physical_waitlist_joined',

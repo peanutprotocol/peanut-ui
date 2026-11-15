@@ -41,6 +41,13 @@ const apiRibbon = (id: string): SurfaceMeta => {
 
 // Ids stay literal: the Screen Library capture finds surfaces by searching this file's text.
 export const SURFACE_META: Record<string, SurfaceMeta> = {
+    'deposit-card-state-blocked': {
+        name: 'Closed card row drawer — unavailable in this US state',
+        path: 'features/deposit-accounts/components/ClosedRowDrawer.tsx',
+        shotFixture: 'profile-accounts-card-state-blocked',
+        captureState: ['closed=card-restricted', 'reason=geo-blocked', 'residence=US', 'state=NY'],
+        expectSelector: '[role="dialog"][data-state="open"][data-testid="closed-row-drawer"]',
+    },
     'deposit-address-launch-loading': {
         name: 'Bank address check — opening',
         path: 'features/deposit-accounts/components/AddressLaunchModal.tsx',
@@ -163,11 +170,23 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         path: 'Setup/Views/SignTestTransaction.tsx',
     },
     '06-a-signup': { name: 'Signup', path: 'Setup/Views/Signup.tsx' },
+    '06-c-passkey': {
+        name: 'Create passkey',
+        path: 'Setup/Views/Passkey.tsx',
+        shotFixture: 'setup-passkey',
+        captureState: ['username=kimchi', 'residence=PT', 'nationality=PT', 'funding=bank', 'payment=card'],
+        expectSelector: '[data-setup-footer] button',
+    },
     '06-b-invite': { name: 'Invited by a friend', path: 'Setup/Views/Invite.tsx' },
     '02-b-advantage-card': { name: 'Setup benefit — card', path: 'Setup/Views/Advantage.tsx' },
     '04-b-advantage-fees': { name: 'Setup benefit — accounts', path: 'Setup/Views/Advantage.tsx' },
     '07-c-notification-email': { name: 'Setup — notification email', path: 'Setup/Views/Email.tsx' },
     '07-d-notification-settings': { name: 'Setup — notification settings', path: 'Setup/Views/Notifications.tsx' },
+    '07-d-notification-switches': { name: 'Setup — notification switches', path: 'Setup/Views/Notifications.tsx' },
+    '07-d-notification-defaults-on': {
+        name: 'Setup — notification defaults on',
+        path: 'Setup/Views/Notifications.tsx',
+    },
     '07-e-setup-celebration': { name: 'Setup — full-screen account celebration', path: 'Setup/Views/Success.tsx' },
     '07-b-advantage-control': { name: 'Setup benefit — control', path: 'Setup/Views/Advantage.tsx' },
     '08-a-passkeysetuphelpmodal': { name: 'PasskeySetupHelpDrawer', path: 'Setup/Views/PasskeySetupHelpDrawer.tsx' },
@@ -300,6 +319,11 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '43-c-scantodownloadmodal': { name: 'ScanToDownloadModal', path: 'Migration/ScanToDownloadModal.tsx' },
     '44-c-otaupdatemodal': { name: 'OtaUpdateModal (normal)', path: 'Profile/components/OtaUpdateModal.tsx' },
     '45-c-residencechangemodal': { name: 'ResidenceChangeDrawer', path: 'Profile/views/ResidenceChangeDrawer.tsx' },
+    '45-d-residence-review': {
+        name: 'Residence change under review',
+        path: 'Profile/views/ResidenceChangeDrawer.tsx',
+        captureState: ['pendingStatus=REVIEW_PENDING'],
+    },
     '48-c-balancewarningmodal': { name: 'BalanceWarningDrawer', path: 'Global/BalanceWarningDrawer/index.tsx' },
     '50-d-transactiondetailsdrawer': {
         name: 'TransactionDetailsDrawer',
@@ -390,6 +414,12 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         name: 'Request pot — deposit card after a short external-wallet deposit',
         path: 'components/AddMoney/views/RhinoDeposit.view.tsx',
         captureState: ['received=33', 'asked=58.51'],
+    },
+    '82-e-card-creating': {
+        name: 'Card application — creating card',
+        path: 'Card/ApplicationStatusScreen.tsx',
+        captureState: ['variant=creating-card'],
+        expectSelector: '[data-testid="app-page-surface-content"] h1',
     },
     '82-f-choice-card-requires-info': {
         name: 'Card application — more information required',
@@ -492,35 +522,35 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         expectSelector: '[data-testid="app-page-surface-content"] canvas, [data-testid="app-page-surface-content"] svg',
     },
     '94-g-pix-withdraw-on-its-way': {
-        name: 'Pix withdrawal — funded, on its way to the account',
+        name: 'Pix withdrawal — funded, the provider pays: the shared payment loader',
         path: 'features/pix/components/PixWithdrawOutcome.tsx',
-        captureState: ['phase=funded', 'entry=PENDING', 'destination=Banco Inter · Ana Souza'],
+        captureState: ['phase=funded', 'entry=PENDING', 'quoted arrival=60 s'],
         shotFixture: 'pix-withdraw-unconfirmed',
-        expectSelector: '[data-testid="app-page-surface-content"] button',
+        expectSelector: '[data-testid="app-page-surface-content"] [role="status"]',
     },
     '94-h-pix-withdraw-arrived-to': {
-        name: 'Pix withdrawal — arrived at the account',
+        name: 'Pix withdrawal — arrived: the shared success view, key and bank named',
         path: 'features/pix/components/PixWithdrawOutcome.tsx',
-        captureState: ['phase=funded', 'entry=COMPLETED', 'destination=Banco Inter · Ana Souza'],
+        captureState: ['phase=funded', 'entry=COMPLETED', 'key=09579927189', 'bank=Banco Inter'],
         shotFixture: 'pix-withdraw-arrived',
         expectSelector: '[data-testid="app-page-surface-content"] button',
     },
-    '94-i-pix-withdraw-sent-unnamed': {
-        name: 'Pix withdrawal — on its way, no holder named',
+    '94-i-pix-withdraw-arrived-unnamed': {
+        name: 'Pix withdrawal — arrived, no bank named: the key alone',
         path: 'features/pix/components/PixWithdrawOutcome.tsx',
-        captureState: ['phase=funded', 'entry=PENDING', 'destination=none'],
-        shotFixture: 'pix-withdraw-unconfirmed',
+        captureState: ['phase=funded', 'entry=COMPLETED', 'key=09579927189', 'bank=none'],
+        shotFixture: 'pix-withdraw-arrived',
         expectSelector: '[data-testid="app-page-surface-content"] button',
     },
     '94-j-pix-review-quote-moved': {
-        name: 'Pix review — the opened quote moved, confirm again',
-        path: 'features/pix/components/PixWithdrawReview.tsx',
+        name: 'Pix withdrawal form — the opened quote moved, confirm again',
+        path: 'features/pix/components/PixWithdrawForm.tsx',
         captureState: ['phase=reconfirm'],
         expectSelector: '[data-testid="app-page-surface-content"] [role="alert"]',
     },
     '94-k-pix-review-after-init': {
-        name: 'Pix review — the opened quote expired before the signature',
-        path: 'features/pix/components/PixWithdrawReview.tsx',
+        name: 'Pix withdrawal form — the opened quote expired before the signature',
+        path: 'features/pix/components/PixWithdrawForm.tsx',
         captureState: ['phase=idle', 'lockedAfterInit=true', 'error=quoteExpired'],
         expectSelector: '[data-testid="app-page-surface-content"] [role="alert"]',
     },
@@ -529,6 +559,20 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         path: 'features/pix/components/PixWithdrawOutcome.tsx',
         captureState: ['phase=funded', 'entry=CANCELLED', 'outcome=stuck'],
         shotFixture: 'pix-withdraw-not-sent',
+        expectSelector: '[data-testid="app-page-surface-content"] button',
+    },
+    '94-m-pix-withdraw-past-arrival': {
+        name: 'Pix withdrawal — still open past the quoted arrival time: on its way, with Done',
+        path: 'features/pix/components/PixWithdrawOutcome.tsx',
+        captureState: ['phase=funded', 'entry=PENDING', 'quoted arrival=0 s', 'destination=Banco Inter · Ana Souza'],
+        shotFixture: 'pix-withdraw-unconfirmed',
+        expectSelector: '[data-testid="app-page-surface-content"] button',
+    },
+    '94-n-pix-withdraw-past-arrival-unnamed': {
+        name: 'Pix withdrawal — still open past the quoted arrival time, no holder named',
+        path: 'features/pix/components/PixWithdrawOutcome.tsx',
+        captureState: ['phase=funded', 'entry=PENDING', 'quoted arrival=0 s', 'destination=none'],
+        shotFixture: 'pix-withdraw-unconfirmed',
         expectSelector: '[data-testid="app-page-surface-content"] button',
     },
     '70-d-activationctas-outbound': {

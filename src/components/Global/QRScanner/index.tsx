@@ -20,6 +20,7 @@ import { clipboardHasStrings } from '@/utils/clipboard-detect'
 import { extractPaymentValue, readClipboard } from '@/utils/clipboard-extract.utils'
 import { isAndroidNative } from '@/utils/capacitor'
 import { printableAddress } from '@/utils/general.utils'
+import { twMerge } from '@/utils/tw'
 import { reportQrScanError } from './utils'
 
 // ============================================================================
@@ -95,9 +96,19 @@ function PinkCorner({ className }: { className?: string }) {
     )
 }
 
-function PaymentMethodBadge({ src, alt, name }: { src: string; alt: string; name: string }) {
+function PaymentMethodBadge({
+    src,
+    alt,
+    name,
+    className,
+}: {
+    src: string
+    alt: string
+    name: string
+    className?: string
+}) {
     return (
-        <div className="flex max-w-26 items-center gap-1">
+        <div className={twMerge('flex max-w-26 items-center gap-1', className)}>
             <Image src={src} alt={alt} height={24} priority />
             <span className="text-left text-label-m leading-none tracking-wider break-normal text-white uppercase">
                 {name}
@@ -194,6 +205,7 @@ function ScanRegionOverlay({
 }) {
     const t = useTranslations('global')
     const isShortViewport = useIsShortViewport()
+    const methods = PAYMENT_METHODS.filter((method) => !hidePix || method.name !== 'PIX')
     return (
         <>
             <div className="fixed left-1/2 flex h-64 w-64 -translate-x-1/2 translate-y-1/2 justify-center">
@@ -216,12 +228,18 @@ function ScanRegionOverlay({
                 {!isShortViewport && (
                     <div className="pointer-events-auto absolute inset-x-0 top-full z-50 mt-6 flex flex-col items-center">
                         <div className="grid grid-cols-2 gap-2">
-                            {PAYMENT_METHODS.filter((method) => !hidePix || method.name !== 'PIX').map((method) => (
+                            {/* an odd count (Pix left out) centres its last pill on its own row; four keep the 2×2 */}
+                            {methods.map((method, index) => (
                                 <PaymentMethodBadge
                                     key={method.name ?? 'evm'}
                                     src={method.src}
                                     alt={method.alt ?? t('qrScanner.paymentMethods.evmAlt')}
                                     name={method.name ?? t('qrScanner.paymentMethods.evmName')}
+                                    className={
+                                        methods.length % 2 === 1 && index === methods.length - 1
+                                            ? 'col-span-2 justify-self-center'
+                                            : undefined
+                                    }
                                 />
                             ))}
                         </div>

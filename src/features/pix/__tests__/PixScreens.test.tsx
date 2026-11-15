@@ -3,6 +3,8 @@ import { render, screen } from '@testing-library/react'
 import type { CapabilityRoute } from '@/types/capabilities'
 
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
+let mockIntentId: string | null = null
+jest.mock('nuqs', () => ({ parseAsString: {}, useQueryState: () => [mockIntentId, jest.fn()] }))
 let mockRoutes: CapabilityRoute[] | undefined
 let mockLoading = false
 jest.mock('@/hooks/useCapabilities', () => ({
@@ -49,6 +51,21 @@ describe('the neutral Pix screens', () => {
     beforeEach(() => {
         mockRoutes = undefined
         mockLoading = false
+        mockIntentId = null
+    })
+
+    // review finding 7: the retired new-key link (`?intentId=`) lands here; a pause or a refused route
+    // since the payout must not hide its outcome (the money came back, or arrived)
+    it.each<[string, Partial<CapabilityRoute>]>([
+        ['a residence pause', { state: 'paused', reason: { code: 'residence_paused', userMessage: '' } }],
+        ["a provider's pause", { state: 'paused', reason: { code: 'provider_paused', userMessage: '' } }],
+        ['a refused route', { provider: null, state: 'refused' }],
+    ])("shows an opened withdrawal's outcome under %s", (_case, overrides) => {
+        mockIntentId = 'w1'
+        mockRoutes = [route('withdraw', overrides)]
+        render(<PixWithdraw />)
+        expect(screen.getByText(new RegExp(`^pix withdraw .*${overrides.state}$`))).toBeInTheDocument()
+        expect(screen.queryByText(/brazil paused|outage|unavailable/)).toBeNull()
     })
 
     it('mount the one Pix flow, with its route, whichever provider the route names', () => {

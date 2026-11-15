@@ -5,25 +5,33 @@ import {
     PasskeyAccountDeletedError,
     PasskeyOptionsFailedError,
     PasskeyVerifyRejectedError,
+    getLoginRetryError,
 } from '../passkey-auth-capture'
 import { stashCeremonyStepUpToken, stashCeremonyVerifyToken } from '@/utils/passkeyCeremony.utils'
 import { isCapacitor } from '@/utils/capacitor'
 
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: jest.fn(() => false) }))
 jest.mock('@/utils/sentry-lazy', () => ({ withScope: jest.fn(), captureMessage: jest.fn(), addBreadcrumb: jest.fn() }))
+let mockActiveCeremonyId = 7
 jest.mock('@/utils/passkeyCeremony.utils', () => ({
-    currentCeremonyId: () => 7,
+    currentCeremonyId: () => mockActiveCeremonyId,
     stashCeremonyVerifyToken: jest.fn(),
     stashCeremonyStepUpToken: jest.fn(),
+}))
+
+const mockRecordSignupRegistration = jest.fn(async (_userId: string, _username: string) => {})
+jest.mock('@/features/setup/signup-draft', () => ({
+    recordSignupRegistration: (userId: string, username: string) => mockRecordSignupRegistration(userId, username),
 }))
 
 const mockIsCapacitor = isCapacitor as jest.Mock
 
 // jsdom has no Response; the wrapper only touches ok/clone/json/text.
-function jsonResponse(body: unknown, status = 200): Response {
+function jsonResponse(body: unknown, status = 200, retryAfter?: string): Response {
     const response = {
         ok: status >= 200 && status < 300,
         status,
+        headers: new Headers(retryAfter ? { 'Retry-After': retryAfter } : {}),
         json: async () => body,
         text: async () => JSON.stringify(body),
         clone: () => response,
@@ -43,9 +51,48 @@ describe('installPasskeyVerifyCapture', () => {
 
     beforeEach(() => {
         jest.clearAllMocks()
+        mockActiveCeremonyId = 7
         mockIsCapacitor.mockReturnValue(false)
         mockUnderlyingFetch.mockResolvedValue(jsonResponse(verifyBody))
     })
+
+    it.each(['options', 'verify'])(
+        'classifies register/%s reserved username responses by code or legacy text',
+        async (step) => {
+            for (const body of [
+                { error: 'This username is reserved', code: 'USERNAME_RESERVED' },
+                { error: 'This username is reserved' },
+                { error: 'A localized refusal', code: 'USERNAME_RESERVED' },
+            ]) {
+                mockUnderlyingFetch.mockResolvedValueOnce(jsonResponse(body, 400))
+                await expect(window.fetch(`/passkeys/register/${step}`, { method: 'POST' })).rejects.toMatchObject({
+                    name: 'UsernameReserved',
+                })
+            }
+        }
+    )
+
+    it.each(['options', 'verify'])('does not classify invalid register/%s HTTP 400 as reserved', async (step) => {
+        for (const body of [{ error: 'Bad request' }, { error: 'Invalid username', code: 'USERNAME_INVALID' }]) {
+            mockUnderlyingFetch.mockResolvedValueOnce(jsonResponse(body, 400))
+            const result = await window.fetch(`/passkeys/register/${step}`, { method: 'POST' }).catch((error) => error)
+            expect(result.name).not.toBe('UsernameReserved')
+        }
+    })
+
+    it.each(['options', 'verify'])(
+        'keeps login/%s reserved-text HTTP 400 in the existing classification',
+        async (step) => {
+            const response = jsonResponse({ error: 'This username is reserved' }, 400)
+            mockUnderlyingFetch.mockResolvedValueOnce(response)
+            const pending = window.fetch(`/passkeys/login/${step}`, { method: 'POST' })
+            if (step === 'verify') {
+                await expect(pending).rejects.toMatchObject({ name: 'PasskeyVerifyRejectedError', status: 400 })
+            } else {
+                await expect(pending).rejects.toMatchObject({ name: 'PasskeyOptionsFailedError', status: 400 })
+            }
+        }
+    )
 
     it('web: stashes both proofs even when the browser does not accept the response cookie', async () => {
         await window.fetch('/passkeys/login/verify', { method: 'POST' })
@@ -134,11 +181,43 @@ describe('installPasskeyVerifyCapture', () => {
         await expect(window.fetch('/passkeys/register/verify', { method: 'POST' })).resolves.toBe(response)
     })
 
-    it('preserves non-auth login failures for the existing server/network classification', async () => {
-        const response = jsonResponse({ error: 'Login unavailable' }, 500)
-        mockUnderlyingFetch.mockResolvedValueOnce(response)
+    it.each([429, 500, 502, 503, 504])(
+        'types verify HTTP %s as a retryable failure without retrying',
+        async (status) => {
+            mockUnderlyingFetch.mockResolvedValueOnce(jsonResponse({ error: 'Login unavailable' }, status, '30'))
+            await expect(window.fetch('/passkeys/login/verify', { method: 'POST' })).rejects.toMatchObject({
+                status,
+            })
+            expect(mockUnderlyingFetch).toHaveBeenCalledTimes(1)
+            expect(stashCeremonyVerifyToken).not.toHaveBeenCalled()
+            expect(stashCeremonyStepUpToken).not.toHaveBeenCalled()
+        }
+    )
 
-        await expect(window.fetch('/passkeys/login/verify', { method: 'POST' })).resolves.toBe(response)
+    it.each([
+        '30',
+        'Thu, 12 Nov 2026 14:00:30 GMT',
+        'invalid',
+        '-1',
+        '99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999',
+    ])('honours Retry-After with a bounded parser and no immediate replay: %s', async (header) => {
+        const now = Date.parse('2026-11-12T14:00:00Z')
+        const clock = jest.spyOn(Date, 'now').mockReturnValue(now)
+        try {
+            mockUnderlyingFetch.mockResolvedValueOnce(jsonResponse({}, 429, header))
+            await expect(window.fetch('/passkeys/login/verify')).rejects.toMatchObject({
+                name: 'PasskeyVerifyRetryableError',
+                status: 429,
+            })
+            const retry = getLoginRetryError()
+            const expectedDelay = header === '30' || header.includes('GMT') ? 30000 : 1000
+            expect(retry?.retryAt).toBe(now + expectedDelay)
+            expect(mockUnderlyingFetch).toHaveBeenCalledTimes(1)
+            clock.mockReturnValue(now + expectedDelay)
+            expect(getLoginRetryError()).toBeUndefined()
+        } finally {
+            clock.mockRestore()
+        }
     })
 })
 
@@ -153,3 +232,66 @@ it.each(['options', 'verify'])(
         })
     }
 )
+
+it.each([
+    ['3600', 60_000],
+    ['Thu, 12 Nov 2026 15:00:00 GMT', 60_000],
+    ['5', 5_000],
+    ['Thu, 12 Nov 2026 14:00:05 GMT', 5_000],
+    ['0', 1_000],
+    ['Thu, 12 Nov 2026 13:59:59 GMT', 1_000],
+] as const)('bounds login verify Retry-After %s to %i ms', async (header, expectedDelay) => {
+    jest.clearAllMocks()
+    const now = Date.parse('2026-11-12T14:00:00Z')
+    const clock = jest.spyOn(Date, 'now').mockReturnValue(now)
+    try {
+        mockUnderlyingFetch.mockResolvedValueOnce(jsonResponse({}, 429, header))
+        await expect(window.fetch('/passkeys/login/verify', { method: 'POST' })).rejects.toMatchObject({
+            name: 'PasskeyVerifyRetryableError',
+        })
+        expect(getLoginRetryError()?.retryAt).toBe(now + expectedDelay)
+        expect(mockUnderlyingFetch).toHaveBeenCalledTimes(1)
+        clock.mockReturnValue(now + expectedDelay - 1)
+        expect(getLoginRetryError()).toBeDefined()
+        clock.mockReturnValue(now + expectedDelay)
+        expect(getLoginRetryError()).toBeUndefined()
+    } finally {
+        clock.mockRestore()
+    }
+})
+
+it('records only a verified registration receipt before releasing the response to the SDK', async () => {
+    mockUnderlyingFetch.mockResolvedValueOnce(jsonResponse({ verified: true, token: 'jwt' }))
+    await window.fetch('/passkeys/register/verify', {
+        method: 'POST',
+        body: JSON.stringify({ userId: btoa('new-user'), username: 'kimchi.peanut.wallet' }),
+    })
+    expect(mockRecordSignupRegistration).toHaveBeenCalledWith('new-user', 'kimchi.peanut.wallet')
+    mockRecordSignupRegistration.mockClear()
+    mockUnderlyingFetch.mockResolvedValueOnce(jsonResponse({ verified: false }))
+    await window.fetch('/passkeys/register/verify', {
+        method: 'POST',
+        body: JSON.stringify({ userId: btoa('other'), username: 'kimchi.peanut.wallet' }),
+    })
+    expect(mockRecordSignupRegistration).not.toHaveBeenCalled()
+})
+
+it('retains the receipt for a late verified registration without changing proof ceremony ownership', async () => {
+    let resolve!: (response: Response) => void
+    mockUnderlyingFetch.mockImplementationOnce(
+        () =>
+            new Promise((done) => {
+                resolve = done
+            })
+    )
+    mockActiveCeremonyId = 7
+    const pending = window.fetch('/passkeys/register/verify', {
+        method: 'POST',
+        body: JSON.stringify({ userId: btoa('late-user'), username: 'kimchi.peanut.wallet' }),
+    })
+    mockActiveCeremonyId = 8
+    resolve(jsonResponse({ verified: true, token: 'late-jwt' }))
+    await pending
+    expect(mockRecordSignupRegistration).toHaveBeenCalledWith('late-user', 'kimchi.peanut.wallet')
+    expect(stashCeremonyVerifyToken).toHaveBeenCalledWith('late-jwt', 7)
+})

@@ -27,9 +27,11 @@ const refused = (code: string, userMessage: string): CapabilityRoute => ({
 describe('PixUnavailableScreen', () => {
     beforeEach(() => jest.clearAllMocks())
 
-    it("says the verification was not accepted, in the user's language", () => {
+    it("explains the partner rejection in the user's language and offers support", () => {
         renderWithIntl(<PixUnavailableScreen title="Withdraw" route={refused('provider_rejected', 'Rejected.')} />)
         expect(screen.getByText(en.pix.rejected)).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: en.common.contactSupport }))
+        expect(mockOpenSupport).toHaveBeenCalledWith(expect.stringContaining('provider_rejected'))
     })
 
     it("shows the route's own reason text for a reason this build does not know, and offers support", () => {
@@ -57,11 +59,10 @@ describe('PixUnavailableScreen', () => {
         ['rollout_closed', en.pix.rolloutClosed],
         ['method_not_served', en.pix.methodNotServed],
         ['provider_unavailable', en.pix.unavailable],
-        ['provider_paused', en.pix.unavailable],
     ])('gives %s its own line', (code, line) => {
         renderWithIntl(<PixUnavailableScreen title="Withdraw" route={refused(code, 'From the API.')} />)
         expect(screen.getByText(line)).toBeInTheDocument()
-        if (code !== 'provider_unavailable' && code !== 'provider_paused') {
+        if (code !== 'provider_unavailable') {
             expect(screen.queryByText(/try again/i)).toBeNull()
         }
     })

@@ -19,14 +19,14 @@ const COLORS: { color: IconBubbleColor; icon: IconName; means: string; useFor: s
         color: 'blue',
         icon: 'bank',
         means: 'A method or plain information',
-        useFor: 'Bank, crypto, exchange, links, add money, withdraw, verification, other countries, support, info',
+        useFor: 'Bank, exchange, links, add money, withdraw, verification, other countries, support, info',
         never: 'A state',
     },
     {
         color: 'yellow',
         icon: 'credit-card',
         means: "Peanut's own, and attention",
-        useFor: 'The Peanut user, friends, card, rewards (the star), badges; in a modal or callout: pending, warnings, confirms',
+        useFor: 'Crypto, the Peanut user, friends, card, rewards (the star), badges; in a modal or callout: pending, warnings, confirms',
         never: 'An error',
     },
     {
@@ -207,9 +207,9 @@ export default function IconBubblePage() {
                         ))}
                     </div>
                     <DesignNote type="info">
-                        Blue is a method or plain information, yellow is Peanut&apos;s own, pink is QR pay. Flags, chain
-                        logos and payment-brand marks (Pix, Mercado Pago) are not concepts: they keep their own image in
-                        the same slot.
+                        Blue is a method or plain information, yellow is Peanut&apos;s own, pink is QR pay. Pix is the
+                        one brand mark in the map: its logo is the whole circle, with no bubble behind it. Flags, chain
+                        logos and the Mercado Pago mark are not concepts: they keep their own image in the same slot.
                     </DesignNote>
                 </DocSection.Content>
                 <DocSection.Code>

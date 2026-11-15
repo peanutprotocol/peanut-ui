@@ -1,58 +1,8 @@
 import { parseUnits } from 'viem'
 import { isPixEmvcoQr, normalizePixInput, validatePixKey } from '@/utils/withdraw.utils'
-import type { PixDeposit, PixKeyInfo, PixWithdrawDisplay } from '@/services/pix'
-import type { CapabilityRoute, NextActionKind } from '@/types/capabilities'
+import type { PixDeposit, PixWithdrawDisplay } from '@/services/pix'
 import { API_ERROR_CODES } from '@/services/api-error'
-import { ACTIVATE_ACTION, VERIFY_ACTION } from '@/features/kyc-features/report'
-import { awaitsNewPixKey } from '@/features/pix/pixRecovery'
 import type { HistoryEntry } from '@/utils/history.utils'
-
-/** The pending route's reasons while the provider reviews the shared verification (api `kyc/capabilities`). */
-const IDENTITY_IMPORT_UNAVAILABLE_REASON = 'identity_import_unavailable'
-const TAX_ID_MISSING_REASON = 'tax_id_missing'
-
-/**
- * What the Pix setup step shows for the backend's route: the Peanut identity
- * check first (`verify`), the provider's terms (the route's action is an
- * `accept-tos` next action), the provider's own identity check on its page
- * where it takes no shared verification (`hosted-verify`: a `hosted-identity`
- * next action), the account the first use opens (`activate`), then the wait
- * while the provider reviews the verification. Refused and paused routes never
- * reach it: the Pix pages show those. Anything else is a case support finishes.
- */
-export type PixSetupState = 'ready' | 'verify' | 'accept-terms' | 'hosted-verify' | 'activate' | 'pending' | 'support'
-
-export function pixSetupState(
-    route: Pick<CapabilityRoute, 'state' | 'action'> | undefined,
-    actionKind: NextActionKind | undefined
-): PixSetupState {
-    switch (route?.state) {
-        case 'ready':
-            return 'ready'
-        case 'pending':
-            return 'pending'
-        case 'action_required':
-            if (route.action === VERIFY_ACTION) return 'verify'
-            if (route.action === ACTIVATE_ACTION) return 'activate'
-            if (actionKind === 'hosted-identity') return 'hosted-verify'
-            return actionKind === 'accept-tos' ? 'accept-terms' : 'support'
-        default:
-            return 'support'
-    }
-}
-
-/** Why the route waits: the provider reviews, cannot receive the verification yet, or has no CPF for it. */
-export type PixPendingReason = 'reviewing' | 'import-unavailable' | 'cpf-missing'
-
-export function pixPendingReason(code: string | undefined): PixPendingReason {
-    if (code === TAX_ID_MISSING_REASON) return 'cpf-missing'
-    return code === IDENTITY_IMPORT_UNAVAILABLE_REASON ? 'import-unavailable' : 'reviewing'
-}
-
-/** The API's arrival estimate in whole minutes, at least one, for the Arrives row. */
-export function arrivalMinutes(seconds: number): number {
-    return Math.max(1, Math.round(seconds / 60))
-}
 
 export type PixDepositPhase = 'pending' | 'processing' | 'completed' | 'returned' | 'expired'
 
@@ -89,16 +39,6 @@ export function completePixKey(input: string): string | null {
     return validatePixKey(key).valid ? key : null
 }
 
-/** `unchecked`: the provider cannot tell whose key it is (`ownAccount` null), and it pays any key. */
-export type PixKeyVerdict = 'own' | 'not-own' | 'blocked' | 'unchecked'
-
-/** A provider that checks the holder pays only the user's own CPF; none pays a bank on its deny-list. */
-export function pixKeyVerdict(info: PixKeyInfo): PixKeyVerdict {
-    if (info.blocked) return 'blocked'
-    if (info.ownAccount === null) return 'unchecked'
-    return info.ownAccount ? 'own' : 'not-own'
-}
-
 /**
  * One amount reaches the API: reais when the user typed reais, the balance
  * when they tapped it (`spendUsd`: what leaves the wallet, every fee
@@ -131,17 +71,16 @@ export function toApiDecimal(value: string, decimals: number): string | null {
     return Number(result) > 0 ? result : null
 }
 
-/** "CPF" or "CNPJ" for a masked Brazilian tax id ("***.456.789-**" has 11 positions, a CNPJ 14). */
-export function maskedTaxIdKind(masked: string): 'CPF' | 'CNPJ' {
-    return masked.replace(/[^\d*]/g, '').length === 14 ? 'CNPJ' : 'CPF'
-}
-
-/** The steps of a Pix withdrawal: the key first. */
-export const PIX_WITHDRAW_STEPS = ['pix-key', 'amount', 'review', 'success'] as const
+/**
+ * The steps of a Pix withdrawal: the key first, then the one form (the amount and its quote, as the
+ * Pix-key payment form shows them; ruling 2026-11-12). The form keeps the `review` step name, so
+ * the links the review step had still open it; an old `amount` link falls back to the key step.
+ */
+export const PIX_WITHDRAW_STEPS = ['pix-key', 'review', 'success'] as const
 export type PixWithdrawStep = (typeof PIX_WITHDRAW_STEPS)[number]
 
 /**
- * What explains a refused withdrawal preview, init or new key, by wire code: an
+ * What explains a refused withdrawal preview or init, by wire code: an
  * `pix` catalog key, or `pixKeyNotFound` / `providerRejected` / `minimum`,
  * which `usePixRefusalMessage` reads from the shared catalogs.
  */
@@ -150,12 +89,15 @@ export type PixWithdrawRefusal =
     | 'withdraw.errors.inProgress'
     | 'withdraw.errors.quoteExpired'
     | 'withdraw.errors.quoteChanged'
-    | 'withdraw.keyNotOwn'
     | 'withdraw.keyBlocked'
+    | 'withdraw.notACode'
     | 'pixKeyNotFound'
     | 'minimum'
     | 'providerRejected'
     | 'unavailable'
+
+/** The query key of a withdrawal's review (`POST /pix/withdraw/preview`), read again when its quote moved. */
+export const PIX_WITHDRAW_PREVIEW = 'pix-withdraw-preview'
 
 export function pixWithdrawRefusalKey(code: string | undefined): PixWithdrawRefusal {
     switch (code) {
@@ -167,12 +109,13 @@ export function pixWithdrawRefusalKey(code: string | undefined): PixWithdrawRefu
             return 'withdraw.errors.quoteExpired'
         case API_ERROR_CODES.PIX_QUOTE_CHANGED:
             return 'withdraw.errors.quoteChanged'
-        case API_ERROR_CODES.PIX_KEY_NOT_OWN:
-            return 'withdraw.keyNotOwn'
         case API_ERROR_CODES.PIX_KEY_BLOCKED:
             return 'withdraw.keyBlocked'
         case API_ERROR_CODES.PIX_KEY_NOT_FOUND:
             return 'pixKeyNotFound'
+        // a Pix code where a key belongs: the key step's own line; the scanner pays a code
+        case API_ERROR_CODES.PIX_KEY_IS_QR_CODE:
+            return 'withdraw.notACode'
         case API_ERROR_CODES.PIX_MIN_AMOUNT:
             return 'minimum'
         case API_ERROR_CODES.PROVIDER_REJECTED:
@@ -235,14 +178,7 @@ export function quoteMovedAgainstUser(
  * still holds for its signature (AWAITING_USER_ACTION) is not sent: this page
  * lost the signature request, so it starts again.
  */
-export type PixWithdrawOutcomeKind =
-    | 'on-its-way'
-    | 'unconfirmed'
-    | 'arrived'
-    | 'needs-key'
-    | 'refunded'
-    | 'not-sent'
-    | 'stuck'
+export type PixWithdrawOutcomeKind = 'on-its-way' | 'unconfirmed' | 'arrived' | 'refunded' | 'not-sent' | 'stuck'
 
 /** How the API ends a withdrawal whose deposit never left the wallet. */
 const ENDED_UNFUNDED = ['FAILED', 'CANCELLED', 'EXPIRED']
@@ -252,7 +188,6 @@ export function pixWithdrawOutcome(
     entry: Pick<HistoryEntry, 'status' | 'extraData'> | undefined
 ): PixWithdrawOutcomeKind {
     if (entry?.status === 'COMPLETED') return 'arrived'
-    if (awaitsNewPixKey(entry?.extraData)) return 'needs-key'
     if (entry?.status === 'REFUNDED') return 'refunded'
     if (entry?.status && entry.status !== 'PENDING') {
         if (phase !== 'funded' && ENDED_UNFUNDED.includes(entry.status)) return 'not-sent'

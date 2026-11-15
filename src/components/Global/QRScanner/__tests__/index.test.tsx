@@ -319,4 +319,22 @@ describe('Pix offer before scan', () => {
         renderScanner()
         expect(screen.getByAltText('PIX')).toBeInTheDocument()
     })
+
+    // three pills: the odd last one spans both columns and centres itself, instead of hanging left
+    it('centres the last of three pills on its own row', () => {
+        render(<QRScanner onScan={jest.fn()} hidePix />)
+        const pills = ['Peanut', 'Mercado Pago', 'ETH & EVMs'].map((name) => screen.getByText(name).closest('div')!)
+        expect(pills.slice(0, 2).map((pill) => pill.className)).not.toContainEqual(
+            expect.stringContaining('col-span-2')
+        )
+        expect(pills[2].className).toContain('col-span-2')
+        expect(pills[2].className).toContain('justify-self-center')
+    })
+
+    it('keeps four pills in the 2×2 grid, none spanning a row', () => {
+        renderScanner()
+        for (const name of ['Peanut', 'Mercado Pago', 'PIX', 'ETH & EVMs']) {
+            expect(screen.getByText(name).closest('div')!.className).not.toContain('col-span-2')
+        }
+    })
 })

@@ -238,7 +238,11 @@ export class PasskeyServerError extends Error {
 }
 
 export function normalizePasskeyServerError(error: unknown): unknown {
-    if (error instanceof Error && error.name === 'PasskeyOptionsFailedError') return new PasskeyServerError(error)
+    if (
+        error instanceof Error &&
+        (error.name === 'PasskeyOptionsFailedError' || error.name === 'PasskeyVerifyRetryableError')
+    )
+        return new PasskeyServerError(error)
     if (!(error instanceof TypeError)) return error
     const message = error.message ?? ''
     if (PASSKEY_SERVER_TYPE_ERROR.test(message)) return new PasskeyServerError(error)
@@ -371,6 +375,7 @@ export function classifyPasskeyError(error: unknown): PasskeyErrorClassification
             break
         case 'PasskeyServerError':
         case 'PasskeyOptionsFailedError':
+        case 'PasskeyVerifyRetryableError':
             code = 'NETWORK'
             break
         case 'PasskeyAccountDeletedError':

@@ -200,10 +200,31 @@ export function lineHash(text) {
 // string (s = "x   #"; os.system(...)) would otherwise hide the code after the string closes.
 const HASH_COMMENT_FILE = /\.(py|sh|bash|zsh|ya?ml)$|(^|\/)(Dockerfile|Makefile)$/i
 
+// A column-aligned `// note` after JS cannot run either: it paged Squirrel-Core on a QR concept page
+// on 2026-11-15. It counts only when nothing before the gap can hold the `//` inside a string, regex
+// or block comment (no quote, backslash or slash), and the comment holds nothing that ends a string,
+// expands, or starts markup or JSX (`/`, quotes, `$`, `{}`, `<>`, `=`). Python is not here: `//` is division.
+// An HTML comment that ends the line counts in a page, under the same character limits.
+const SLASH_COMMENT_FILE = /\.(c|m)?(j|t)sx?$|\.(html?|vue|svelte|astro)$/i
+const PAGE_FILE = /\.(html?|vue|svelte|astro)$/i
+const SAFE_COMMENT_TEXT = `[^"'\`\\\\$<>={}/]*`
+const SLASH_COMMENT = new RegExp(`^//${SAFE_COMMENT_TEXT}$`)
+const HTML_COMMENT = new RegExp(`^<!--${SAFE_COMMENT_TEXT}-->[ \\t]*$`)
+
+// JS ends a line at \r, U+2028 and U+2029, and Python at \r, but git and this scan split only on \n:
+// `// note<CR>evil()` looks like one comment here and runs evil() there. Such a line is never a comment
+// or a border. Vertical tab, form feed and NEL are refused too, as line breaks in other tools.
+const HIDDEN_LINE_BREAK = /[\r\v\f\u0085\u2028\u2029]/
+
 export function offScreenIsComment(path, text) {
-	if (!HASH_COMMENT_FILE.test(path)) return false
+	if (HIDDEN_LINE_BREAK.test(text)) return false
 	const gap = text.match(/[ \t]{60,}/)
 	const offScreen = text.slice(gap.index + gap[0].length)
+	if (SLASH_COMMENT_FILE.test(path)) {
+		const slash = !/["'`\\/]/.test(text.slice(0, gap.index)) && SLASH_COMMENT.test(offScreen)
+		return slash || (PAGE_FILE.test(path) && HTML_COMMENT.test(offScreen))
+	}
+	if (!HASH_COMMENT_FILE.test(path)) return false
 	// A Python comment line can end an open string only with a triple quote; shell strings span lines.
 	// Inside an open string a `#` is text and expansions still run: `$(...)` and `${...}` in shell, Make and
 	// Actions, `{...}` in a Python f-string. So a `{` in Python, or a `$` elsewhere, keeps the line code (Chip on ui#3823/api#1954).
@@ -268,6 +289,8 @@ export function scanLines(lines, { allow = new Set() } = {}) {
 			const page = /\.html?$/i.test(entry.path)
 			const data = !tier && (/\.json$/i.test(entry.path) || (page && hidesOnlyInertJson(entry.text)))
 			const comment = offScreenIsComment(entry.path, entry.text)
+			// No exception for ASCII borders: in JS a lone `|`, `+` or `-` off-screen joins the next line into one
+			// expression (`x = flags` + `|` + `ADMIN`), and `++` changes state (Chip on ui#4103, 2026-11-15).
 			add(data || comment ? 'warn' : 'block', 'hidden-code', entry, `${run} spaces, then more ${data ? 'text' : comment ? 'comment' : 'code'} off-screen`)
 		}
 		if (entry.text.length > LONG_LINE) {

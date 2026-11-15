@@ -41,18 +41,18 @@ describe('usePixKeyLookup', () => {
             await result.current.lookup('09579927189')
         })
 
-        expect(first).toMatchObject({ status: 'found', verdict: 'own' })
-        expect(result.current.result).toMatchObject({ key: '09579927189', status: 'found', verdict: 'own' })
+        expect(first).toMatchObject({ status: 'found', info: { ownAccount: true } })
+        expect(result.current.result).toMatchObject({ key: '09579927189', status: 'found' })
         expect(mockPixKeyInfo).toHaveBeenCalledTimes(1)
     })
 
-    it("tells someone else's key and a blocked bank apart from the own one", async () => {
+    it('carries whose key it is and whether its bank is paid, as the API tells', async () => {
         mockPixKeyInfo.mockResolvedValueOnce(info({ ownAccount: false })).mockResolvedValueOnce(info({ blocked: true }))
         const { result } = renderHook(() => usePixKeyLookup(), { wrapper })
 
         await act(async () => {
-            expect(await result.current.lookup('+5511987654321')).toMatchObject({ verdict: 'not-own' })
-            expect(await result.current.lookup('ana@example.com')).toMatchObject({ verdict: 'blocked' })
+            expect(await result.current.lookup('+5511987654321')).toMatchObject({ info: { ownAccount: false } })
+            expect(await result.current.lookup('ana@example.com')).toMatchObject({ info: { blocked: true } })
         })
     })
 
@@ -65,6 +65,16 @@ describe('usePixKeyLookup', () => {
         await act(async () => {
             expect(await result.current.lookup('11111111111')).toEqual({ key: '11111111111', status: 'not-found' })
             expect(await result.current.lookup('22222222222')).toEqual({ key: '22222222222', status: 'failed' })
+        })
+    })
+
+    // API review 2 (abeb3b909): POST /pix/key refuses a Pix code with 400 PIX_KEY_IS_QR_CODE
+    it('reads a code refused as a key as a code, which the key step sends to the scanner', async () => {
+        mockPixKeyInfo.mockRejectedValueOnce(new ApiError('qr', { status: 400, code: 'PIX_KEY_IS_QR_CODE' }))
+        const { result } = renderHook(() => usePixKeyLookup(), { wrapper })
+
+        await act(async () => {
+            expect(await result.current.lookup('br.gov.bcb.pix')).toEqual({ key: 'br.gov.bcb.pix', status: 'qr-code' })
         })
     })
 
@@ -83,6 +93,6 @@ describe('usePixKeyLookup', () => {
         })
 
         expect(mockPixKeyInfo).toHaveBeenCalledTimes(2)
-        expect(outcome).toMatchObject({ status: 'found', verdict: 'own' })
+        expect(outcome).toMatchObject({ status: 'found' })
     })
 })

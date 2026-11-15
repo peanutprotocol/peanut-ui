@@ -28,14 +28,14 @@ export default function MiniHeaderPage() {
                         <div className="flex flex-col gap-1">
                             <MiniHeader>Works right now</MiniHeader>
                             <p className="text-body-s text-foreground-primary">
-                                Receive dollars, send to any @username, hold your balance — no ID needed.
+                                Receive dollars, send to any @username, hold your balance. No ID needed.
                             </p>
                         </div>
                         <div className="flex flex-col gap-1">
                             <MiniHeader>For bank payments or a card</MiniHeader>
                             <p className="text-body-s text-foreground-primary">
-                                An ID check will be required — a few minutes, or 1–3 business days if a reviewer takes a
-                                thorough look.
+                                An ID check will be required. It takes a few minutes, or 1–3 business days if a reviewer
+                                takes a thorough look.
                             </p>
                         </div>
                     </div>

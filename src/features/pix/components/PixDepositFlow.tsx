@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import { parseAsString, parseAsStringEnum, useQueryStates } from 'nuqs'
 import posthog from 'posthog-js'
@@ -34,9 +34,12 @@ type Denomination = 'USD' | 'BRL'
  * first-use setup while the route is not ready, the amount in reais, then the
  * dynamic Pix code. The URL holds the step, the amount and its currency
  * (`?step=`, `?amount=`, `?currency=`), plus `?intentId=` once the code
- * exists. While a code can still be paid (the route's
- * `payableDepositIntentId`), the flow opens that code instead of the amount
- * step; a new deposit is offered once the code has lapsed or come back.
+ * exists. Add money always starts a new deposit at the amount step (Aleks,
+ * 2026-11-12): a user may open as many codes as they like, and each stays
+ * payable until its own timer ends. A live code is reached from Activity,
+ * whose pending deposit row offers "Show code" and opens this flow with its
+ * `?intentId=`, so a reload of the code screen keeps working through the URL.
+ * The route's `payableDepositIntentId` is not read here.
  */
 export function PixDepositFlow({ route }: { route: CapabilityRoute }) {
     const t = useTranslations('addMoney')
@@ -62,27 +65,13 @@ export function PixDepositFlow({ route }: { route: CapabilityRoute }) {
     const step: PixDepositStep = urlState.step ?? 'inputAmount'
     const ready = route.state === 'ready'
     const providerId = pixProviderId(route.provider)
-    // The deposit the user left for a new one; the capabilities may still name it payable for a moment.
-    const [leftIntentId, setLeftIntentId] = useState<string | null>(null)
-    const payableIntentId = route.payableDepositIntentId
-    const resumeIntentId =
-        !urlState.intentId && step === 'inputAmount' && payableIntentId && payableIntentId !== leftIntentId
-            ? payableIntentId
-            : null
-    const intentId = urlState.intentId ?? resumeIntentId
+    const intentId = urlState.intentId
 
     const [usdAmount, setUsdAmount] = useState('')
     const [brlAmount, setBrlAmount] = useState('')
     const [isCreating, setIsCreating] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    // the banks the provider sends a Pix back to: the code screen names them, nothing else reads them
-    const rules = useQuery({
-        queryKey: ['pix-deposit-rules'],
-        queryFn: pixApi.depositRules,
-        enabled: ready && !!intentId,
-        staleTime: 5 * 60_000,
-    })
     // The route states the provider's minimum: an amount under it is refused here, before any quote.
     // The amount step's estimate is the provider's quote for the reais on screen, not the /fx rate.
     // Only the amount step quotes: the setup and the code screen do not.
@@ -96,17 +85,8 @@ export function PixDepositFlow({ route }: { route: CapabilityRoute }) {
         if (step === 'showQR' && !urlState.intentId) void setUrlState({ step: 'inputAmount' })
     }, [step, urlState.intentId, setUrlState])
 
-    // a code that can still be paid opens on its own; the URL names it, so a reload keeps it
-    useEffect(() => {
-        if (resumeIntentId) void setUrlState({ step: 'showQR', intentId: resumeIntentId })
-    }, [resumeIntentId, setUrlState])
-
-    const startNewDeposit = useCallback(() => {
-        setLeftIntentId(urlState.intentId)
-        void setUrlState({ step: 'inputAmount', intentId: null })
-        // the route's payable deposit is read again
-        void fetchUser().catch(() => undefined)
-    }, [urlState.intentId, setUrlState, fetchUser])
+    // the returned and the expired screen offer another deposit: the amount step, nothing resumed
+    const startNewDeposit = useCallback(() => void setUrlState({ step: 'inputAmount', intentId: null }), [setUrlState])
 
     const handleSubmit = useCallback(async () => {
         if (isCreating) return
@@ -129,8 +109,6 @@ export function PixDepositFlow({ route }: { route: CapabilityRoute }) {
             // the code screen reads this deposit's query; seeding it shows the code at once
             queryClient.setQueryData(pixDepositQueryKey(created.intentId), created)
             void setUrlState({ step: 'showQR', intentId: created.intentId })
-            // the route names this code payable from now on, so a re-entry opens it, not a second code
-            void fetchUser().catch(() => undefined)
         } catch (caught) {
             const code = wireErrorCode(caught)
             posthog.capture(ANALYTICS_EVENTS.DEPOSIT_FAILED, {
@@ -152,7 +130,10 @@ export function PixDepositFlow({ route }: { route: CapabilityRoute }) {
                       ? tDeposit('limitExceeded')
                       : code === API_ERROR_CODES.PROVIDER_REJECTED
                         ? tErrors('providerRejected')
-                        : tShared('unavailable')
+                        : // no BRL deposit for a resident of another country (ruled 2026-11-14): no "try again"
+                          code === API_ERROR_CODES.PIX_RESIDENCE_NOT_SUPPORTED
+                          ? tShared('residenceNotServed')
+                          : tShared('unavailable')
             )
         } finally {
             setIsCreating(false)
@@ -171,11 +152,10 @@ export function PixDepositFlow({ route }: { route: CapabilityRoute }) {
         route.provider,
     ])
 
-    if (intentId && (step === 'showQR' || resumeIntentId)) {
+    if (intentId && step === 'showQR') {
         return (
             <PixQrDeposit
                 intentId={intentId}
-                blockedBankNames={rules.data?.blockedBanks.flatMap((bank) => (bank.name ? [bank.name] : [])) ?? []}
                 // the code is made; back leaves the flow rather than offering a second code
                 onBack={onBack}
                 onDone={leaveToHome}

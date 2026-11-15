@@ -152,6 +152,7 @@ jest.mock('@/features/withdraw/components/WithdrawCurrencyList', () => ({
 // what each country leaves the user to choose: Germany one bank rail, Brazil
 // one Manteca rail, Argentina one, India none live
 jest.mock('@/features/destinations/country-rails', () => ({
+    sendOffersPix: jest.requireActual('@/features/destinations/country-rails').sendOffersPix,
     soleLiveRailForCountry: (id: string) =>
         ({
             DE: { id: 'de-default-bank-withdraw', title: 'To Bank' },
@@ -216,6 +217,8 @@ jest.mock('@/hooks/useGeoFilteredPaymentOptions', () => ({
 jest.mock('@/hooks/useSendFlowOrigin', () => ({
     useSendFlowOrigin: () => ({ isBankFromSend: mockIsBankFromSend }),
 }))
+let mockPixPayBlock: 'paused' | 'residence' | null = null
+jest.mock('@/features/pix/usePixPayBlock', () => ({ usePixPayBlock: () => mockPixPayBlock }))
 jest.mock('@/utils/general.utils', () => ({
     getFromLocalStorage: () => null,
 }))
@@ -240,8 +243,18 @@ const BANK_ACCOUNTS = [
     { type: 'iban', identifier: 'DE89370400440532013000', details: { countryName: 'germany' } },
 ]
 let mockUserAccounts: unknown[] = BANK_ACCOUNTS
+// the user's routes, for whether a Pix-key send goes through the withdraw route (`usePixKeySend`)
+let mockRoutes: unknown[] | undefined
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: { accounts: mockUserAccounts, user: { userId: 'u-saved' } } }),
+    useAuth: () => ({
+        user: {
+            accounts: mockUserAccounts,
+            user: { userId: 'u-saved' },
+            ...(mockRoutes
+                ? { capabilities: { rails: [], nextActions: [], restrictions: [], routes: mockRoutes } }
+                : {}),
+        },
+    }),
 }))
 
 const mockSetSelectedBankAccount = jest.fn()
@@ -278,7 +291,9 @@ const renderView = (searchParams: Record<string, string> = {}) =>
 beforeEach(() => {
     jest.clearAllMocks()
     mockIsBankFromSend = false
+    mockPixPayBlock = null
     mockUserAccounts = BANK_ACCOUNTS
+    mockRoutes = undefined
     mockSavedAddresses = [mockSavedBaseAddress]
 })
 
@@ -346,6 +361,75 @@ describe('WithdrawMethodView — destination state and routing (Chip review roun
             mockIsBankFromSend = true
             renderView()
             expect(screen.getByTestId(`account-${recipientKey.identifier}`)).toBeInTheDocument()
+        })
+
+        // live test on staging, 2026-11-12: a resident of Brazil cannot send to a Pix key, so a
+        // saved key under Send led to a block screen with no way on
+        describe('for a resident of Brazil, whose pay route refuses the residence', () => {
+            const recipientKey = { ...BR_PIX_ACCOUNT, identifier: 'joao@silva.com.br', isPixRecipient: true }
+
+            beforeEach(() => {
+                mockPixPayBlock = 'residence'
+                mockUserAccounts = [BR_PIX_ACCOUNT, recipientKey, IBAN_ACCOUNT, MANTECA_ACCOUNT]
+            })
+
+            it("Send lists no saved Pix destination, their own or another person's, and keeps the rest", () => {
+                mockIsBankFromSend = true
+                renderView()
+                expect(screen.queryByTestId(`account-${BR_PIX_ACCOUNT.identifier}`)).not.toBeInTheDocument()
+                expect(screen.queryByTestId(`account-${recipientKey.identifier}`)).not.toBeInTheDocument()
+                expect(screen.getByTestId(`account-${IBAN_ACCOUNT.identifier}`)).toBeInTheDocument()
+                expect(screen.getByTestId(`account-${MANTECA_ACCOUNT.identifier}`)).toBeInTheDocument()
+            })
+
+            it('Send with only Pix destinations saved opens the picker, not an empty saved list', () => {
+                mockIsBankFromSend = true
+                mockUserAccounts = [BR_PIX_ACCOUNT, recipientKey]
+                renderView()
+                expect(screen.getByTestId('currency-list')).toBeInTheDocument()
+                expect(screen.queryByTestId('hub-bank-row')).not.toBeInTheDocument()
+            })
+
+            it('a withdrawal still lists their own saved key, which opens the Pix withdraw page', () => {
+                renderView()
+                expect(screen.queryByTestId(`account-${recipientKey.identifier}`)).not.toBeInTheDocument()
+                fireEvent.click(screen.getByTestId(`account-${BR_PIX_ACCOUNT.identifier}`))
+                expect(mockRouterPush.mock.calls.at(-1)?.[0]).toBe('/withdraw/pix')
+                window.sessionStorage.clear()
+            })
+        })
+
+        // TASK-24947: Avenia pays another person's key on the withdraw route, resident of Brazil or not
+        describe.each([
+            ['a resident of Brazil', 'residence' as const],
+            ['a non-resident', null],
+        ])('for %s whose withdraw route is on Avenia', (_who, block) => {
+            const recipientKey = { ...BR_PIX_ACCOUNT, identifier: '11144477735', isPixRecipient: true }
+            afterEach(() => window.sessionStorage.clear())
+
+            it("in Send, another person's saved key opens the Pix-key form as a send, the key in the draft", () => {
+                mockPixPayBlock = block
+                mockRoutes = [{ operation: 'withdraw', method: 'PIX_BR', provider: 'avenia', state: 'ready' }]
+                mockIsBankFromSend = true
+                mockUserAccounts = [recipientKey]
+                renderView()
+                fireEvent.click(screen.getByTestId(`account-${recipientKey.identifier}`))
+
+                expect(mockRouterPush.mock.calls.at(-1)?.[0]).toBe('/withdraw/pix?sendMethod=bank')
+                // the send's own draft: the key never prefills a withdrawal
+                expect(window.sessionStorage.getItem('pix-withdraw-draft:u-saved')).toBeNull()
+                expect(JSON.parse(window.sessionStorage.getItem('pix-send-draft:u-saved')!)).toMatchObject({
+                    destination: recipientKey.identifier,
+                })
+            })
+        })
+
+        it('the Brazil pause keeps a saved key listed in Send', () => {
+            mockPixPayBlock = 'paused'
+            mockIsBankFromSend = true
+            mockUserAccounts = [BR_PIX_ACCOUNT]
+            renderView()
+            expect(screen.getByTestId(`account-${BR_PIX_ACCOUNT.identifier}`)).toBeInTheDocument()
         })
     })
 

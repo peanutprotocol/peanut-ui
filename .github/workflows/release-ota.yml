@@ -362,6 +362,8 @@ jobs:
               env:
                   SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
                   SENTRY_NATIVE_UPLOAD_REQUIRED: 'true'
+                  # The same build as tests.yml's native-export, which outgrew Node's default heap (Nov 2026).
+                  NODE_OPTIONS: --max-old-space-size=6144
               run: node scripts/native-build.js
 
             # A queued run can finish building after a newer commit lands on

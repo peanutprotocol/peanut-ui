@@ -86,14 +86,13 @@ if (mainRelease) {
 } else if (run.event === 'pull_request') {
     const reviewHead = reviewHeadRevision(run)
     const snapshot = run.pull_requests?.[0]
-    const candidates =
-        snapshot?.base.ref === 'main'
-            ? [api(`pulls/${snapshot.number}`)]
-            : JSON.parse(
-                  ghApiSync([`repos/${repo}/commits/${reviewHead}/pulls?per_page=100`, '--paginate', '--slurp'], {
-                      encoding: 'utf8',
-                  })
-              ).flat()
+    const candidates = snapshot
+        ? [api(`pulls/${snapshot.number}`)]
+        : JSON.parse(
+              ghApiSync([`repos/${repo}/commits/${reviewHead}/pulls?per_page=100`, '--paginate', '--slurp'], {
+                  encoding: 'utf8',
+              })
+          ).flat()
     const binding = reviewProvenance(repo, run, candidates, (args) => execFileSync('git', args, { encoding: 'utf8' }))
     if (!binding) {
         console.log('Superseded or closed PR run; preserving the current report link.')
@@ -128,7 +127,7 @@ const currentReleaseReview = () =>
         repository: repo,
         head: expectedHead,
         base: expectedBase,
-        headRef: 'dev',
+        headRef: pr.head.ref,
         baseRef: 'main',
     })
 
