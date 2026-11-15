@@ -5,12 +5,12 @@
 
 import { type TransactionStrategy, type TransactionStrategyOutput } from '../types'
 import { TRANSACTION_NAME_KEYS } from '@/components/TransactionDetails/transaction-name-keys'
+import { isPixEntry } from '@/components/TransactionDetails/pix-entry'
 
 export const fiatOnramp: TransactionStrategy = (entry): TransactionStrategyOutput => {
     const expired = entry.extraData?.provider === 'MANTECA' && entry.extraData.mantecaDepositExpired === true
     // A deposit is named by its method, whatever the provider (Aleks, 2026-11-15): "Added by Pix".
-    // The history sends no deposit method, and every BRL deposit any provider takes is a Pix.
-    const pix = entry.currency?.code?.toUpperCase() === 'BRL'
+    const pix = isPixEntry(entry)
     return {
         direction: 'bank_deposit',
         transactionCardType: 'bank_deposit',

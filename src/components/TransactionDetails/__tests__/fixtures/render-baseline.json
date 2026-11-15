@@ -1972,7 +1972,7 @@
     },
     "expected": {
       "direction": "bank_deposit",
-      "userName": "Pix",
+      "userName": "Bank Account",
       "transactionCardType": "bank_deposit",
       "kind": "ONRAMP",
       "provider": "MANTECA",

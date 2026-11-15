@@ -19,6 +19,7 @@ import { networkFeeDetailsForEntry } from './network-fee.utils'
 import { pipelineAlert } from '@/utils/pipelineAlerts'
 import { formatBankAmount } from '@/utils/currency'
 import { pixCodePayable } from '@/features/pix/pixDepositCode'
+import { isPixEntry } from '@/components/TransactionDetails/pix-entry'
 
 /** Sender account types that are not a payer's bank account. */
 const NON_BANK_SENDER_TYPES: ReadonlySet<string> = new Set(['peanut-wallet', 'evm-address', 'address'])
@@ -432,6 +433,8 @@ export interface TransactionDetails {
         publicReceipt?: boolean
         /** A Pix deposit whose code can still be paid: the receipt opens it again. */
         pixCodePayable?: boolean
+        /** Moved by Pix (`isPixEntry`): the Activity row and the receipt lead with the Pix logo. */
+        isPix?: boolean
         link?: string
         isLinkTransaction?: boolean
         transactionCardType?: TransactionCardType
@@ -821,6 +824,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             bridgeFlow: entry.extraData?.bridgeFlow,
             publicReceipt: entry.extraData?.publicReceipt || undefined,
             pixCodePayable: pixCodePayable(entry.extraData, Date.now()) || undefined,
+            isPix: isPixEntry(entry) || undefined,
             link: entry.extraData?.link,
             isLinkTransaction: isLinkTx,
             transactionCardType,

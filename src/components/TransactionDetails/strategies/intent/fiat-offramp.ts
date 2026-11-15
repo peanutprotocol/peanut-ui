@@ -4,6 +4,7 @@ import { type TransactionStrategy, type TransactionStrategyOutput } from '../typ
 import { TRANSACTION_NAME_KEYS } from '@/components/TransactionDetails/transaction-name-keys'
 import { normalizeMerchantName } from '@/components/TransactionDetails/transaction-details.utils'
 import { formatPixKey } from '@/utils/pix-key-format.utils'
+import { isPixEntry } from '@/components/TransactionDetails/pix-entry'
 
 const BANK_CLAIM: TransactionStrategyOutput = {
     direction: 'bank_claim',
@@ -78,11 +79,13 @@ export const fiatOfframp: TransactionStrategy = (entry: HistoryEntry): Transacti
             isLinkTx: false,
         }
     }
+    // The user's own Pix withdrawal is named by its method, as a Pix deposit is (Aleks, 2026-11-15).
+    const pix = isPixEntry(entry)
     return {
         direction: 'bank_withdraw',
         transactionCardType: 'bank_withdraw',
-        nameForDetails: 'Bank Account',
-        nameKey: TRANSACTION_NAME_KEYS.bankAccount,
+        nameForDetails: pix ? 'Pix' : 'Bank Account',
+        nameKey: pix ? TRANSACTION_NAME_KEYS.pix : TRANSACTION_NAME_KEYS.bankAccount,
         isPeerActuallyUser: false,
         isLinkTx: false,
     }

@@ -18,7 +18,6 @@ import {
 import { useTranslations } from 'next-intl'
 import { formatNumberForDisplay, printableUserHandle, isStableCoin, shortenStringLong } from '@/utils/general.utils'
 import {
-    getActivityRowAvatarUrl,
     getAvatarUrl,
     getTransactionSign,
     isOpenRequestDisplay,
@@ -124,7 +123,6 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     const userNameForAvatar =
         transaction.showFullName && transaction.fullName ? transaction.fullName : transaction.userName
     const avatarUrl = getAvatarUrl(transaction)
-    const rowAvatarUrl = getActivityRowAvatarUrl(transaction)
     // check if this is a test transaction (setup confirmation)
     const isTest = isTestTransaction(name)
 
@@ -303,9 +301,9 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         </div>
     ) : isPerkRewardEntry ? (
         <IconBubble {...CONCEPT_ICONS.rewards} size="s" />
-    ) : rowAvatarUrl ? (
+    ) : avatarUrl ? (
         <div className={'relative flex size-8 items-center justify-center rounded-full'}>
-            <Image src={rowAvatarUrl} alt="Icon" className="size-8 object-contain" width={30} height={30} />
+            <Image src={avatarUrl} alt="Icon" className="size-8 object-contain" width={30} height={30} />
         </div>
     ) : merchantLogo ? (
         <MerchantLogoIcon src={merchantLogo} fallback={genericBadge} />

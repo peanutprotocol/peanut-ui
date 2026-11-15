@@ -515,7 +515,7 @@ const aveniaWithdrawal = (status: string) => ({
     senderAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
     recipientAccount: { identifier: '+5511912345678', fullName: 'ANA SOUZA', type: 'PIX', isUser: false },
     currency: { amount: '503.00', code: 'BRL' },
-    extraData: { kind: 'OFFRAMP', provider: 'AVENIA', usdAmount: '92.50431', pixRecovery: null },
+    extraData: { kind: 'OFFRAMP', provider: 'AVENIA', usdAmount: '92.50431', pixRecovery: null, paymentMethod: 'PIX' },
 })
 /**
  * An Avenia Pix payout to another person's key (TASK-24947): the owner's entry names whom it paid
@@ -534,9 +534,18 @@ const aveniaSend = (status: string) => ({
         provider: 'AVENIA',
         usdAmount: '18.87',
         pixRecovery: null,
+        paymentMethod: 'PIX',
         pixPayout: { pixKey: AVENIA_OTHER_KEY, holderName: 'Bruno Lima', bankName: 'Nubank', ownAccount: false },
     },
 })
+/**
+ * An Avenia entry as `GET /users/history` sends it: the other side is the user's Avenia wallet, an
+ * address, never a Pix account; only `extraData` says it moved by Pix.
+ */
+const aveniaListEntry = <T extends { userRole: string }>(entry: T): T => {
+    const avenia = { identifier: '0x7b3f9a1c2d4e5f60718293a4b5c6d7e8f9012345', type: 'address', isUser: false }
+    return entry.userRole === 'SENDER' ? { ...entry, recipientAccount: avenia } : { ...entry, senderAccount: avenia }
+}
 /** Another person's key as Avenia's lookup names it; a foreign holder's payouts are always third-party. */
 const AVENIA_OTHER_KEY_INFO = {
     provider: 'avenia',
@@ -682,6 +691,7 @@ const aveniaPayableDeposit = {
         kind: 'ONRAMP',
         provider: 'AVENIA',
         usdAmount: '18.237',
+        paymentMethod: 'PIX',
         pixDeposit: { codePayable: true, expiresAt: null },
     },
 }
@@ -789,7 +799,7 @@ const aveniaQrEntry = (status: string) => ({
     senderAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
     recipientAccount: { identifier: 'PADARIA PAO DOURADO LTDA', type: 'BANK_CBU', isUser: false },
     currency: { amount: '42.50', code: 'BRL' },
-    extraData: { kind: 'QR_PAY', provider: 'AVENIA', usdAmount: '8.062211' },
+    extraData: { kind: 'QR_PAY', provider: 'AVENIA', usdAmount: '8.062211', pixRecovery: null, paymentMethod: 'PIX' },
 })
 
 const PIX_FAVORITE = {
@@ -938,7 +948,7 @@ const PIX_KEY_PAYMENT_ENTRY = {
     senderAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
     recipientAccount: { identifier: 'maria@silva.com.br', fullName: 'MARIA DA SILVA', type: 'BANK_CBU', isUser: false },
     currency: { amount: '51.30', code: 'BRL' },
-    extraData: { kind: 'QR_PAY', provider: 'MANTECA', usdAmount: '10' },
+    extraData: { kind: 'QR_PAY', provider: 'MANTECA', usdAmount: '10', paymentMethod: 'PIX' },
 }
 
 // An in-person card tap at a coffee shop, settled in USD (same currency, so
@@ -2480,15 +2490,33 @@ export const FIXTURES: Record<string, Fixture> = {
             [`GET /history/${AVENIA_SEND_ID}`]: aveniaSend('REFUNDED'),
         },
     },
+    'pix-receipt-withdrawal': {
+        route: `/history?tx=${AVENIA_WITHDRAWAL_ID}`,
+        about: 'The receipt of a Pix withdrawal to the own key: titled by its method, "Withdrew by Pix", under the Pix logo.',
+        responses: {
+            'GET /users/history': { entries: [aveniaWithdrawal('COMPLETED')], hasMore: false },
+            [`GET /history/${AVENIA_WITHDRAWAL_ID}`]: aveniaWithdrawal('COMPLETED'),
+        },
+    },
+    'pix-receipt-withdrawal-pending': {
+        route: `/history?tx=${AVENIA_WITHDRAWAL_ID}`,
+        about: 'The receipt of a Pix withdrawal on its way: "Withdrawing by Pix".',
+        responses: {
+            'GET /users/history': { entries: [aveniaWithdrawal('PENDING')], hasMore: false },
+            [`GET /history/${AVENIA_WITHDRAWAL_ID}`]: aveniaWithdrawal('PENDING'),
+        },
+    },
     'pix-activity-payouts': {
         route: '/history',
-        about: 'Activity rows of Pix payouts: a send to another person, a withdrawal to the own key and a returned send, each with the Pix logo.',
+        about: 'Activity rows of Pix transactions, as the list sends them: a send to another person, two QR payments, a withdrawal to the own key and a deposit, each with the Pix logo.',
         responses: {
             'GET /users/history': {
                 entries: [
-                    aveniaSend('COMPLETED'),
-                    aveniaWithdrawal('COMPLETED'),
-                    { ...aveniaSend('REFUNDED'), uuid: 'fixture-pix-send-returned' },
+                    aveniaListEntry(aveniaSend('COMPLETED')),
+                    aveniaQrEntry('COMPLETED'),
+                    { ...aveniaQrEntry('REFUNDED'), uuid: 'fixture-qr-avenia-2' },
+                    aveniaListEntry(aveniaWithdrawal('COMPLETED')),
+                    aveniaListEntry({ ...AVENIA_PAID_DEPOSIT, timestamp: new Date('2026-11-04T10:00:00.000Z') }),
                 ],
                 hasMore: false,
             },

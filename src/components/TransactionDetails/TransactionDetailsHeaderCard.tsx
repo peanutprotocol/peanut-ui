@@ -153,9 +153,14 @@ const getTitle = (
                 break
             case 'withdraw':
             case 'bank_withdraw':
-                titleText = t(status === 'completed' ? 'title.withdrewTo' : 'title.withdrawingTo', {
-                    name: sentenceName,
-                })
+                if (nameKey === TRANSACTION_NAME_KEYS.pix) {
+                    // Pix is the method, not a place the money went to: "Withdrew by Pix"
+                    titleText = t(status === 'completed' ? 'title.withdrewByPix' : 'title.withdrawingByPix')
+                } else {
+                    titleText = t(status === 'completed' ? 'title.withdrewTo' : 'title.withdrawingTo', {
+                        name: sentenceName,
+                    })
+                }
                 break
             case 'bank_claim':
                 titleText = displayName

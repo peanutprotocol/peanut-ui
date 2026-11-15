@@ -2728,6 +2728,8 @@
             "youRequested": "Solicitado",
             "withdrewTo": "Retirado a {name}",
             "withdrawingTo": "Retirando a {name}",
+            "withdrewByPix": "Retirado por Pix",
+            "withdrawingByPix": "Retirando por Pix",
             "addedFrom": "Ingresado desde {name}",
             "addingFrom": "Ingresando desde {name}",
             "addedByPix": "Ingresado por Pix",

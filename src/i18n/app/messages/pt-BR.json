@@ -2728,6 +2728,8 @@
             "youRequested": "Cobrado",
             "withdrewTo": "Sacado para {name}",
             "withdrawingTo": "Sacando para {name}",
+            "withdrewByPix": "Sacado por Pix",
+            "withdrawingByPix": "Sacando por Pix",
             "addedFrom": "Adicionado de {name}",
             "addingFrom": "Adicionando de {name}",
             "addedByPix": "Adicionado por Pix",

@@ -218,6 +218,8 @@ describe('TransactionDetailsHeaderCard generic names mid-sentence', () => {
         ['bank_deposit', 'completed', 'Pix', 'name.pix', 'Added by Pix'],
         ['bank_deposit', 'pending', 'Pix', 'name.pix', 'Adding by Pix'],
         ['bank_withdraw', 'completed', 'Bank account', 'name.bankAccount', 'Withdrew to bank account'],
+        ['bank_withdraw', 'completed', 'Pix', 'name.pix', 'Withdrew by Pix'],
+        ['bank_withdraw', 'pending', 'Pix', 'name.pix', 'Withdrawing by Pix'],
         ['withdraw', 'completed', 'External account', 'name.externalAccount', 'Withdrew to external account'],
         ['add', 'completed', 'External wallet', 'name.externalWallet', 'Added from external wallet'],
         ['send', 'completed', 'Recipient', 'name.recipient', 'Sent to recipient'],

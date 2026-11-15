@@ -2488,6 +2488,16 @@
         "route": "/withdraw/pix?step=success&intentId=fixture-pix-send&sendMethod=bank"
     },
     {
+        "id": "fixture-pix-receipt-withdrawal",
+        "flow": "Withdraw",
+        "route": "/history?tx=fixture-pix-withdrawal"
+    },
+    {
+        "id": "fixture-pix-receipt-withdrawal-pending",
+        "flow": "Withdraw",
+        "route": "/history?tx=fixture-pix-withdrawal"
+    },
+    {
         "id": "fixture-pix-nonresident-send-key",
         "flow": "Withdraw",
         "route": "/withdraw/pix?sendMethod=bank"
