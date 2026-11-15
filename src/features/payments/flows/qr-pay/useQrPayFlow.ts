@@ -81,7 +81,7 @@ import {
     type QrPaymentAttemptTelemetry,
     type QrPaymentStageOutcome,
 } from './qr-payment-telemetry'
-import type { QrPayFlowBag, QrPayScanParams } from './qr-pay-flow.types'
+import type { PaymentProcessor, QrPayFlowBag, QrPayScanParams } from './qr-pay-flow.types'
 import type { QrPaymentLock } from '@/services/manteca'
 import { isLockExpired, receiveLock } from '@/utils/price-lock.utils'
 import { QrKycState } from '@/constants/kyc.consts'
@@ -99,9 +99,6 @@ import { useQrPayRoute } from './useQrPayRoute'
 
 const MAX_QR_PAYMENT_AMOUNT = '2000'
 const MIN_QR_PAYMENT_AMOUNT = '0.1'
-
-/** Who the scan is paid through: Manteca's QR routes, or the neutral Pix pay routes (`/pix/pay/*`). */
-type PaymentProcessor = 'MANTECA' | 'PIX_PAY'
 
 /** What the status view says once a payment is no longer moving, or has waited past its arrival time. */
 export type QrPaymentStatus = ReturnType<typeof qrPaymentDisplayStatus>
@@ -138,7 +135,12 @@ function attemptOutcomeForStatus(status: ReturnType<typeof qrPaymentDisplayStatu
  * exactly ONCE, by `QrPayFlowProvider` — effects here must never run per-view.
  * Views read the result through `useQrPayFlow()`.
  */
-export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams) {
+export function useQrPayFlowController(
+    bag: QrPayFlowBag,
+    scan: QrPayScanParams,
+    /** Told whether a payment of this scan may exist, so the page keeps the flow mounted while it does. */
+    onPaymentPinned?: (pinned: boolean) => void
+) {
     const { qrCode, timestamp, qrType } = scan
     const pixKeyLabel = verifiedPixKeyLabel(qrCode, scan.pixKey ?? null)
     // Usually a cache hit: the key screen resolved it on Continue. A pasted key
@@ -237,7 +239,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
 
     // A Pix code whose pay route names the neutral routes is paid there (API-CONTRACT-M4 §1).
     const { route: pixPayRoute, viaPixRoutes } = useQrPayRoute(qrCode, qrType)
-    const paymentProcessor: PaymentProcessor | null = useMemo(() => {
+    const routeProcessor: PaymentProcessor | null = useMemo(() => {
         if (viaPixRoutes) return 'PIX_PAY'
         switch (qrType) {
             case EQrType.MERCADO_PAGO:
@@ -248,6 +250,13 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                 return null
         }
     }, [qrType, viaPixRoutes])
+    // While a payment of this scan may exist, the processor that opened it keeps the flow: a route that
+    // changes under it (a gate opening, the user read again) would reset that payment's screen and offer
+    // Pay again for a code already paid. Set below, once the payment's own state is known.
+    const [pinnedProcessor, setPinnedProcessor] = useState<PaymentProcessor | null>(null)
+    const paymentProcessor = pinnedProcessor ?? routeProcessor
+    // A Manteca signature began for this scan: from here a payment may exist on Manteca.
+    const [mantecaSigningStarted, setMantecaSigningStarted] = useState(false)
     const isPixPay = paymentProcessor === 'PIX_PAY'
     const targetMantecaCountry = useMemo(() => {
         switch (qrType) {
@@ -295,6 +304,17 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     })
     const pixPayReviewed = pixPayment.reviewed
     const pixPayOutcome = pixPayment.outcome
+
+    // A Pix payment may exist from its open until a refusal says nothing opened (the phase is back to
+    // idle with no id); a Manteca one from its first signature, for the rest of the screen's life.
+    const paymentMayExist =
+        paymentProcessor === 'PIX_PAY'
+            ? pixPayment.phase !== 'idle' || !!pixPayment.intentId
+            : paymentProcessor === 'MANTECA' && (mantecaSigningStarted || !!qrPayment || isSuccess)
+    useEffect(() => {
+        setPinnedProcessor(paymentMayExist ? paymentProcessor : null)
+        onPaymentPinned?.(paymentMayExist)
+    }, [paymentMayExist, paymentProcessor, onPaymentPinned])
     // the hold-to-claim reveal of a Pix pay-route payment's reward; Manteca's lives on its qrPayment
     const [pixRewardClaimed, setPixRewardClaimed] = useState(false)
     // the paid payment's entry: what left the wallet after a reload, and the receipt
@@ -1060,6 +1080,8 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         }
 
         let signedArtifact
+        // the flow stays on Manteca from here, whatever the Pix route says next
+        setMantecaSigningStarted(true)
         try {
             signedArtifact = await signSpend(signSpendInput())
             telemetry.stage('signature_ready', { outcome: 'success' })

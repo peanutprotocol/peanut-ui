@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import Loading from '@/components/Global/Loading'
 import RateGateScreen from '@/components/Global/RateUnavailable/RateGateScreen'
@@ -76,11 +77,22 @@ export function QrPayPage({ qrCode, timestamp, qrType, pixKey }: QrPayScanParams
     const onBack = useSafeBack('/home', { replace: true })
     // a Pix code on the neutral pay routes first meets its route's step, as the other Pix pages do
     const { route, step } = useQrPayRoute(qrCode, qrType)
-    if (step === 'loading') return <Loading variant="mascot" />
-    if (step === 'support') return <PixUnavailableScreen title={tNav('pay')} route={route} onBack={onBack} />
-    if (step === 'setup') return <PixSetup title={tNav('pay')} onBack={onBack} route={route} />
+    // A payment of this scan that may exist keeps its flow on screen, whatever the route turns into:
+    // unmounting it mid-sign or after it paid would lose that payment's state.
+    const [paymentPinned, setPaymentPinned] = useState(false)
+    if (!paymentPinned) {
+        if (step === 'loading') return <Loading variant="mascot" />
+        if (step === 'support') return <PixUnavailableScreen title={tNav('pay')} route={route} onBack={onBack} />
+        if (step === 'setup') return <PixSetup title={tNav('pay')} onBack={onBack} route={route} />
+    }
     return (
-        <QrPayFlowProvider qrCode={qrCode} timestamp={timestamp} qrType={qrType} pixKey={pixKey}>
+        <QrPayFlowProvider
+            qrCode={qrCode}
+            timestamp={timestamp}
+            qrType={qrType}
+            pixKey={pixKey}
+            onPaymentPinned={setPaymentPinned}
+        >
             <QrPayFlowContent />
         </QrPayFlowProvider>
     )
