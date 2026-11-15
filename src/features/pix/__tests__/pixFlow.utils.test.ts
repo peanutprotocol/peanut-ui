@@ -1,6 +1,5 @@
 import {
     pixDepositPhase,
-    pixPendingReason,
     pixWithdrawAmount,
     pixShownRate,
     pixWithdrawOutcome,
@@ -8,11 +7,9 @@ import {
     quoteMovedAgainstUser,
     signMatchesDisplay,
     completePixKey,
-    maskedTaxIdKind,
-    pixKeyVerdict,
     toApiDecimal,
 } from '../pixFlow.utils'
-import { pixSetupState } from '../pixRouteStep'
+import { pixOpensWithoutTap, pixSetupState } from '../pixRouteStep'
 import { DEMO_PIX_BR_CODE } from '@/constants/demo-data'
 import type { HistoryIntentStatus } from '@/utils/history.utils'
 import type { CapabilityRoute } from '@/types/capabilities'
@@ -23,32 +20,33 @@ const route = (
 ): Pick<CapabilityRoute, 'state' | 'action'> => ({ state, ...extra })
 
 describe('pixSetupState', () => {
-    it("reads the user's step from the backend's route and its next action", () => {
-        expect(pixSetupState(route('ready'), undefined)).toBe('ready')
-        expect(pixSetupState(route('pending'), undefined)).toBe('pending')
-        expect(pixSetupState(route('action_required', { action: 'verify' }), undefined)).toBe('verify')
-        expect(pixSetupState(route('action_required', { action: 'activate' }), undefined)).toBe('activate')
+    it("reads the user's step from the backend's route", () => {
+        expect(pixSetupState(route('ready'))).toBe('ready')
+        expect(pixSetupState(route('pending'))).toBe('pending')
+        expect(pixSetupState(route('action_required', { action: 'verify' }))).toBe('verify')
+        expect(pixSetupState(route('action_required', { action: 'activate' }))).toBe('activate')
     })
 
+    // TASK-24947: Avenia relies on our verification, so a terms or hosted step is no step of the Pix setup
     it('leaves any other step to support', () => {
-        expect(pixSetupState(route('action_required', { action: 'contact-support:x' }), 'contact-support')).toBe(
-            'support'
-        )
-        expect(pixSetupState(route('action_required', { action: 'unknown-step' }), undefined)).toBe('support')
-        expect(pixSetupState(undefined, undefined)).toBe('support')
+        expect(pixSetupState(route('action_required', { action: 'contact-support:x' }))).toBe('support')
+        expect(pixSetupState(route('action_required', { action: 'accept-tos:avenia' }))).toBe('support')
+        expect(pixSetupState(undefined)).toBe('support')
     })
 })
 
-describe('pixPendingReason', () => {
-    it('names why the route waits', () => {
-        expect(pixPendingReason('provider_reviewing')).toBe('reviewing')
-        expect(pixPendingReason(undefined)).toBe('reviewing')
+describe('pixOpensWithoutTap', () => {
+    it("opens Avenia's account with no tap and keeps Manteca's consent", () => {
+        expect(pixOpensWithoutTap({ provider: 'avenia' })).toBe(true)
+        expect(pixOpensWithoutTap({ provider: 'manteca' })).toBe(false)
+        expect(pixOpensWithoutTap({ provider: null })).toBe(false)
+        expect(pixOpensWithoutTap(undefined)).toBe(false)
     })
 })
 
 describe('pixDepositPhase', () => {
     const status = (s: string, pixReceived: boolean) => ({
-        provider: 'manteca',
+        provider: 'avenia',
         intentId: 'i',
         status: s,
         pixReceived,
@@ -85,33 +83,17 @@ describe('pixDepositPhase', () => {
 
 describe('completePixKey', () => {
     it('normalizes a complete key to the form the Pix directory holds', () => {
-        expect(completePixKey('095.799.271-89')).toBe('09579927189')
+        expect(completePixKey('111.444.777-35')).toBe('11144477735')
         expect(completePixKey('+55 11 98765 4321')).toBe('+5511987654321')
         expect(completePixKey('ana@example.com')).toBe('ana@example.com')
         expect(completePixKey('123e4567-e89b-12d3-a456-426614174000')).toBe('123e4567-e89b-12d3-a456-426614174000')
     })
 
     it('never sends an incomplete key or a Pix code to the lookup', () => {
-        expect(completePixKey('095.799')).toBeNull()
+        expect(completePixKey('111.444')).toBeNull()
         expect(completePixKey('ana@')).toBeNull()
         expect(completePixKey('')).toBeNull()
         expect(completePixKey(DEMO_PIX_BR_CODE)).toBeNull()
-    })
-})
-
-describe('pixKeyVerdict', () => {
-    it('leaves the holder unchecked when the provider cannot tell', () => {
-        expect(
-            pixKeyVerdict({
-                provider: 'manteca',
-                holderName: 'Ana',
-                holderTaxIdMasked: null,
-                bankName: null,
-                ispb: null,
-                ownAccount: null,
-                blocked: false,
-            })
-        ).toBe('unchecked')
     })
 })
 
@@ -149,19 +131,11 @@ describe('toApiDecimal', () => {
     })
 })
 
-describe('maskedTaxIdKind', () => {
-    it('tells a CPF from a CNPJ by the masked positions', () => {
-        expect(maskedTaxIdKind('***.456.789-**')).toBe('CPF')
-        expect(maskedTaxIdKind('12.***.***/0001-**')).toBe('CNPJ')
-    })
-})
-
 describe('pixWithdrawRefusalKey', () => {
     it('names each refusal the preview and the init can send, and nothing else', () => {
         expect(pixWithdrawRefusalKey('PIX_LIMIT_EXCEEDED')).toBe('withdraw.errors.limitExceeded')
         expect(pixWithdrawRefusalKey('WITHDRAWAL_IN_PROGRESS')).toBe('withdraw.errors.inProgress')
         expect(pixWithdrawRefusalKey('PIX_QUOTE_EXPIRED')).toBe('withdraw.errors.quoteExpired')
-        expect(pixWithdrawRefusalKey('PIX_KEY_NOT_OWN')).toBe('withdraw.keyNotOwn')
         expect(pixWithdrawRefusalKey('PIX_KEY_BLOCKED')).toBe('withdraw.keyBlocked')
         expect(pixWithdrawRefusalKey('PIX_KEY_NOT_FOUND')).toBe('pixKeyNotFound')
         expect(pixWithdrawRefusalKey('PIX_QUOTE_CHANGED')).toBe('withdraw.errors.quoteChanged')
@@ -198,19 +172,27 @@ describe('signMatchesDisplay', () => {
 })
 
 describe('pixWithdrawOutcome', () => {
-    const entry = (status: string) => ({
+    const entry = (status: string, state?: 'in-progress' | 'done') => ({
         status: status as never,
-        extraData: { kind: 'OFFRAMP', provider: 'MANTECA', pixRecovery: null },
+        extraData: {
+            kind: 'OFFRAMP',
+            provider: 'AVENIA',
+            pixRecovery: state
+                ? { state, reason: 'payout-failed' as const, failureCode: 'RECEIVER_ACCOUNT_CLOSED' }
+                : null,
+        },
     })
 
-    it('says "on its way" after the signature until the provider pays the Pix', () => {
+    it('says "on its way" after the funding deposit until Avenia pays the Pix', () => {
         expect(pixWithdrawOutcome('funded', undefined)).toBe('on-its-way')
         expect(pixWithdrawOutcome('funded', entry('PENDING'))).toBe('on-its-way')
         expect(pixWithdrawOutcome('funded', entry('COMPLETED'))).toBe('arrived')
     })
 
-    it('says when the money came back', () => {
-        expect(pixWithdrawOutcome('funded', entry('REFUNDED'))).toBe('refunded')
+    // TASK-24947: a payout Avenia refuses returns the money; no withdrawal waits for another key
+    it('stays on its way while the money comes back, and says when it came back', () => {
+        expect(pixWithdrawOutcome('funded', entry('PENDING', 'in-progress'))).toBe('on-its-way')
+        expect(pixWithdrawOutcome('funded', entry('REFUNDED', 'done'))).toBe('refunded')
     })
 
     it('after a reload, calls a withdrawal this device never signed not sent while the API waits for it', () => {
@@ -243,7 +225,7 @@ describe('pixWithdrawOutcome', () => {
 })
 
 describe('pixShownRate', () => {
-    // USD × rate − fee = reais holds over the API's exact USD (the /pix/withdraw display contract)
+    // USD × rate − fee = reais holds over the API's exact USD (api routes/avenia/withdraw.ts)
     const display = (withdrawUsd: string, amountBrl: string) => {
         const rate = ((Number(amountBrl) + 0.75) / Number(withdrawUsd)).toFixed(6)
         return { withdrawUsd, amountBrl, fixedFeeBrl: '0.75', rate }

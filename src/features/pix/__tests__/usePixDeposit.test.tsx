@@ -11,7 +11,7 @@ import { usePixDeposit } from '../usePixDeposit'
 import { pixDepositQueryKey } from '../pixDepositCode'
 
 const read = (overrides: Record<string, unknown> = {}) => ({
-    provider: 'manteca',
+    provider: 'avenia',
     intentId: 'd1',
     status: 'AWAITING_USER_ACTION',
     pixReceived: false,
@@ -20,7 +20,7 @@ const read = (overrides: Record<string, unknown> = {}) => ({
     usdcAmount: '17.94',
     codePayable: true,
     brCode: 'code',
-    payerCpfMasked: '095.***.***-89',
+    payerCpfMasked: '111.***.***-35',
     ...overrides,
 })
 

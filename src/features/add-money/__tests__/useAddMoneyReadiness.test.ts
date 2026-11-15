@@ -23,13 +23,15 @@ jest.mock('@/hooks/useCapabilities', () => ({
         isLoading: false,
     }),
 }))
-jest.mock('@/features/deposit-accounts/useResidenceIso2s', () => ({ useResidenceIso2s: () => ['PT'] }))
+let mockResidence: string[] = ['PT']
+jest.mock('@/features/deposit-accounts/useResidenceIso2s', () => ({ useResidenceIso2s: () => mockResidence }))
 jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({
     useDepositAccountsEnabled: () => mockStandingEnabled,
 }))
 jest.mock('@tanstack/react-query', () => ({ useQuery: (...args: unknown[]) => mockQuery(...args) }))
 
 beforeEach(() => {
+    mockResidence = ['PT']
     mockStandingEnabled = true
     mockUserId = 'current-owner'
     mockOneShot = false
@@ -69,7 +71,9 @@ it('keeps a pending EUR report out of the drawer even if the rail says ready', (
     expect(mockQuery).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['deposit-accounts', 'current-owner'] }))
     expect(result.current.ready.account).toEqual([])
     expect(result.current.ready.transfer).toEqual(['USD'])
-    expect(result.current.drawerMethods).toEqual(['transfer', 'crypto', 'more'])
+    // bank accounts stay on offer (the owner, 15 Nov); the pending EUR is not a ready account; the
+    // ready USD transfer is on the picker only
+    expect(result.current.drawerMethods).toEqual(['account', 'crypto', 'more'])
 })
 
 it('requires transfer coordinates before calling a held COP account usable', () => {
@@ -163,16 +167,81 @@ it('does not read or use cached standing accounts when disabled', () => {
     expect(result.current.isLoading).toBe(false)
 })
 
+// Pix leads Home's Add drawer only on a Pix deposit route on Avenia (Aleks, 2026-11-12 and 2026-11-14).
+// The route goes through the real rule (`pixDepositOffered`).
+const pixDeposit = (route: Partial<CapabilityRoute>) =>
+    [{ operation: 'deposit', method: 'PIX_BR', provider: 'avenia', state: 'ready', ...route }] as CapabilityRoute[]
+const residencePaused = { code: 'residence_paused', userMessage: 'Deposits and withdrawals are paused where you live.' }
+
 it('reads the Brazil pause from the Pix deposit route and keeps Pix off the drawer while it is paused', () => {
-    const pixDeposit = (state: CapabilityRoute['state']) =>
-        [{ operation: 'deposit', method: 'PIX_BR', state }] as unknown as CapabilityRoute[]
-    mockRoutes = pixDeposit('paused')
+    mockRoutes = pixDeposit({ provider: null, state: 'paused', reason: residencePaused })
     const { result, rerender } = renderHook(() => useAddMoneyReadiness(true))
     expect(result.current.brazilPaused).toBe(true)
     expect(result.current.ready.pix).toEqual([])
 
-    mockRoutes = pixDeposit('ready')
+    mockRoutes = pixDeposit({ state: 'ready' })
     rerender()
     expect(result.current.brazilPaused).toBe(false)
     expect(result.current.drawerMethods[0]).toBe('pix')
+})
+
+it('leads with Pix while Avenia is setting up or reviewing: the first tap is the setup', () => {
+    mockRoutes = pixDeposit({ state: 'action_required' })
+    const { result } = renderHook(() => useAddMoneyReadiness(true))
+    expect(result.current.drawerMethods).toEqual(['pix', 'account', 'crypto', 'more'])
+})
+
+it('keeps Pix on offer through an outage of Avenia: the Pix page shows the outage itself', () => {
+    mockRoutes = pixDeposit({
+        state: 'paused',
+        reason: { code: 'provider_paused', userMessage: 'This is paused for a moment. Try again soon.' },
+    })
+    const { result } = renderHook(() => useAddMoneyReadiness(true))
+    expect(result.current.brazilPaused).toBe(false)
+    expect(result.current.drawerMethods[0]).toBe('pix')
+})
+
+// The pause names no provider outside a provider's rollout, and the provider inside it for a resident not on its allowed list
+it.each<CapabilityRoute['provider']>([null, 'avenia'])(
+    'offers no Pix row to a resident under the Brazil pause, route provider %s (Aleks, 2026-11-14)',
+    (provider) => {
+        mockRoutes = pixDeposit({ provider, state: 'paused', reason: residencePaused })
+        const { result } = renderHook(() => useAddMoneyReadiness(true))
+        expect(result.current.brazilPaused).toBe(true)
+        expect(result.current.drawerMethods).not.toContain('pix')
+    }
+)
+
+// Aleks, 2026-11-14: every user outside Brazil has a Manteca Pix route; they find BRL in the bank list
+it.each<[string, Partial<CapabilityRoute>]>([
+    ['a Manteca route', { provider: 'manteca', state: 'action_required' }],
+    ['a refused route', { provider: null, state: 'refused' }],
+])('offers no Pix row on %s', (_name, route) => {
+    mockRoutes = pixDeposit(route)
+    const { result } = renderHook(() => useAddMoneyReadiness(true))
+    expect(result.current.ready.pix).toEqual([])
+    expect(result.current.drawerMethods).not.toContain('pix')
+})
+
+// The owner, 15 Nov: the picker offers Pix by the same rule as the drawer, from the route and the residence
+it.each<[string, string[], Partial<CapabilityRoute>, boolean]>([
+    [
+        'a resident of Brazil whose Manteca route waits for its first use',
+        ['BR'],
+        { provider: 'manteca', state: 'action_required' },
+        true,
+    ],
+    ['a user outside Brazil on the same route', ['PT'], { provider: 'manteca', state: 'action_required' }, false],
+    ['a resident of Brazil whose route is refused', ['BR'], { provider: null, state: 'refused' }, false],
+    [
+        'a resident of Brazil under the Brazil pause',
+        ['BR'],
+        { provider: null, state: 'paused', reason: residencePaused },
+        false,
+    ],
+])('the picker offers Pix to %s: %s', (_name, residence, route, offered) => {
+    mockResidence = residence
+    mockRoutes = pixDeposit(route)
+    const { result } = renderHook(() => useAddMoneyReadiness(false))
+    expect(result.current.pickerMethods.includes('pix')).toBe(offered)
 })

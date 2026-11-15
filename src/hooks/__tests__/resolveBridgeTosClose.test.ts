@@ -53,7 +53,7 @@ describe('resolveBridgeTosClose', () => {
 
     it("reports Bridge's yes and records the acceptance with how the page closed", async () => {
         mockConfirmBridgeTos.mockResolvedValue({ data: { accepted: true } })
-        await expect(run('returned')).resolves.toBe(true)
+        await expect(run('returned')).resolves.toBe('accepted')
         expect(mockConfirmBridgeTos).toHaveBeenCalledTimes(1)
         expect(posthog.capture).toHaveBeenCalledWith('kyc_tos_accepted', { source: 'returned' })
         expect(markSubmitted).toHaveBeenCalled()
@@ -64,7 +64,7 @@ describe('resolveBridgeTosClose', () => {
         mockConfirmBridgeTos
             .mockResolvedValueOnce({ data: { accepted: false } })
             .mockResolvedValueOnce({ data: { accepted: true } })
-        await expect(run('returned')).resolves.toBe(true)
+        await expect(run('returned')).resolves.toBe('accepted')
         expect(mockConfirmBridgeTos).toHaveBeenCalledTimes(2)
     })
 
@@ -72,21 +72,31 @@ describe('resolveBridgeTosClose', () => {
         // no submission happened, so no grace window to arm and no rail change
         // to poll for — fail fast instead.
         mockConfirmBridgeTos.mockResolvedValue({ data: { accepted: false } })
-        await expect(run('returned')).resolves.toBe(false)
+        await expect(run('returned')).resolves.toBe('not-accepted')
         expect(mockConfirmBridgeTos).toHaveBeenCalledTimes(2)
         expect(markSubmitted).not.toHaveBeenCalled()
         expect(fetchUser).not.toHaveBeenCalled()
         expect(posthog.capture).not.toHaveBeenCalled()
     })
 
-    it('reports no when the confirm call errored out', async () => {
+    // TASK-24909: a failed request is not a "no"; the step says it could not check
+    it('reports a failure, not a no, when the confirm call errored out', async () => {
         mockConfirmBridgeTos.mockResolvedValue({ error: 'Failed to confirm Bridge ToS' })
-        await expect(run('returned')).resolves.toBe(false)
+        await expect(run('returned')).resolves.toBe('failed')
+        expect(mockConfirmBridgeTos).toHaveBeenCalledTimes(2)
+        expect(fetchUser).not.toHaveBeenCalled()
+    })
+
+    it("takes the retry's answer when only the first confirm call failed", async () => {
+        mockConfirmBridgeTos
+            .mockResolvedValueOnce({ error: 'Failed to confirm Bridge ToS' })
+            .mockResolvedValueOnce({ data: { accepted: false } })
+        await expect(run('returned')).resolves.toBe('not-accepted')
     })
 
     it('does not advance on an early signature when confirmation is negative', async () => {
         mockConfirmBridgeTos.mockResolvedValue({ data: { accepted: false } })
-        await expect(run('tos_accepted')).resolves.toBe(false)
+        await expect(run('tos_accepted')).resolves.toBe('not-accepted')
         expect(mockConfirmBridgeTos).toHaveBeenCalledTimes(2)
         expect(markSubmitted).not.toHaveBeenCalled()
         expect(fetchUser).not.toHaveBeenCalled()
@@ -95,19 +105,22 @@ describe('resolveBridgeTosClose', () => {
     it('waits for USD terms after a signature, even when EUR still needs terms', async () => {
         mockConfirmBridgeTos.mockResolvedValue({ data: { accepted: true } })
         fetchUser.mockResolvedValueOnce({ capabilities: pending }).mockResolvedValueOnce({ capabilities: settled })
-        await expect(run('tos_accepted')).resolves.toBe(true)
+        await expect(run('tos_accepted')).resolves.toBe('accepted')
         expect(markSubmitted).toHaveBeenCalled()
         expect(fetchUser).toHaveBeenCalledTimes(2)
         expect(posthog.capture).toHaveBeenCalledWith('kyc_tos_accepted', { source: 'tos_accepted' })
     })
 
+    // TASK-24909: Bridge has the signature, the account still asks for terms. Another page
+    // cannot change that, so the step must not read it as "not accepted, try again".
     it.each([
         ['missing', null],
         ['blocked on USD terms', { capabilities: pending }],
-    ])('does not complete when the confirmed profile remains %s', async (_label, profile) => {
+    ])('reports an acceptance not yet reflected when the confirmed profile remains %s', async (_label, profile) => {
         mockConfirmBridgeTos.mockResolvedValue({ data: { accepted: true } })
         fetchUser.mockResolvedValue(profile)
-        await expect(run('returned')).resolves.toBe(false)
+        await expect(run('returned')).resolves.toBe('unconfirmed')
         expect(fetchUser).toHaveBeenCalledTimes(3)
+        expect(markSubmitted).toHaveBeenCalled()
     })
 })

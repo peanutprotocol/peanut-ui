@@ -2,13 +2,19 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useModalsContext } from '@/context/ModalsContext'
 import { useTranslations } from 'next-intl'
 import { parseAsString, useQueryState } from 'nuqs'
 import { formatUnits } from 'viem'
 import { useRouter } from 'next/navigation'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { PIX_WITHDRAW_STEPS, pixWithdrawAmount, completePixKey } from '@/features/pix/pixFlow.utils'
+import {
+    PIX_WITHDRAW_PREVIEW,
+    PIX_WITHDRAW_STEPS,
+    pixWithdrawAmount,
+    completePixKey,
+} from '@/features/pix/pixFlow.utils'
 import { PixKeyStep } from '@/features/pix/components/PixKeyStep'
 import { PixSetup } from '@/features/pix/components/PixSetup'
 import { PixWithdrawForm, type PixWithdrawAmountSeed } from '@/features/pix/components/PixWithdrawForm'
@@ -52,6 +58,7 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
     const t = useTranslations('pix.withdraw')
     const tShared = useTranslations('pix')
     const tNav = useTranslations('navigation')
+    const { setIsQRScannerOpen } = useModalsContext()
     const tCommon = useTranslations('common')
     const tErrors = useTranslations('errors')
     const router = useRouter()
@@ -178,7 +185,7 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
               : undefined
     // Typed reais are checked against the provider's minimum here; the API checks the credited amount
     // again. Reais converted from USD or the balance are an estimate that a bridge fee can put under
-    // the minimum while the payout is not (USD 4 can debit 4.10 USDC and still pay R$20), so there
+    // the minimum while the payout is not (USD 1 can debit 1.10 USDC and still pay R$5), so there
     // the quote's own payout decides: a short one comes back as the API's minimum refusal.
     const amountError =
         balanceError ??
@@ -189,7 +196,7 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
     const amount = pixWithdrawAmount(form)
     const request = pixKey && amount ? { pixKey, ...amount } : null
     const preview = useQuery({
-        queryKey: ['pix-withdraw-preview', request],
+        queryKey: [PIX_WITHDRAW_PREVIEW, request],
         queryFn: () => pixApi.previewWithdrawal(request!),
         // the form shows it; once Confirm opened the ticket (`?intentId=`), the confirmed numbers stand
         enabled: formOpen && !!request && !amountError && !intentId && !pending,
@@ -235,7 +242,7 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
     // amount is the debit itself and agrees with the Total row. Typed USD: reais per USD entered,
     // the provider input the quote converts, so the reais under the amount are the payout itself
     // and the debit, a bridge fee larger, stands in the Total row alone. The payout over the debit
-    // would read R$19.51 for a USD 4 that pays R$20, and hold the form under the minimum (Chip, ui#4082).
+    // would read R$4.55 for a USD 1 that pays R$5, and hold the form under the minimum (Chip, ui#4082).
     const exactPrice = display
         ? pixQuotePrice({
               amountBrl: display.amountBrl,
@@ -303,10 +310,12 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
             case API_ERROR_CODES.PROVIDER_REJECTED:
                 return undefined
             // the key itself was refused: back to the key step, the key kept in the field to edit
-            case API_ERROR_CODES.PIX_KEY_NOT_OWN:
             case API_ERROR_CODES.PIX_KEY_BLOCKED:
             case API_ERROR_CODES.PIX_KEY_NOT_FOUND:
                 return { label: t('changeKey'), onClick: () => void stepper.goTo('pix-key') }
+            // a Pix code, not a key: the scanner pays it
+            case API_ERROR_CODES.PIX_KEY_IS_QR_CODE:
+                return { label: tNav('scanQr'), onClick: () => setIsQRScannerOpen(true) }
             default:
                 return { label: tCommon('retry'), onClick: () => void preview.refetch() }
         }
@@ -344,12 +353,14 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
                 pixKey: named?.pixKey ?? pixKey ?? '',
                 holderName,
                 bankName: named?.bankName ?? keyInfo?.bankName ?? null,
-                taxIdMasked: keyInfo?.holderTaxIdMasked ?? null,
+                taxIdMasked: named?.holderTaxIdMasked ?? keyInfo?.holderTaxIdMasked ?? null,
+                ownAccount: named?.ownAccount ?? keyInfo?.ownAccount ?? null,
             }}
             save={pixKeySave}
             amount={{
                 seed,
                 price,
+                rateAndFee: brl.rateAndFee,
                 isLoading: brl.isLoading,
                 isError: brl.isError,
                 onRetry: brl.refetch,

@@ -36,13 +36,15 @@ export function QrPayFormView() {
     const tNav = useTranslations('navigation')
     const tLoading = useTranslations('loadingStates')
     const {
-        paymentProcessor,
-        targetMantecaCountry,
-        paymentLock,
         qrPayment,
         merchantName,
+        merchantTaxId,
         recipientBankName,
         providerFee,
+        providerId,
+        amountFixed,
+        shownRate,
+        hideRate,
         pixKeyLabel,
         pixKeyOwner,
         isAwaitingPixKeyOwner,
@@ -85,7 +87,8 @@ export function QrPayFormView() {
 
     // BR self-service limit increase flow
     const { mantecaLimits: qrMantecaLimits, refetch: refetchQrLimits } = useLimits()
-    const isBrQrEligible = isBrUserEligibleForLimitIncrease(qrMantecaLimits)
+    // Manteca's limit increase raises Manteca's room only: not for a payment Avenia serves
+    const isBrQrEligible = !limitsValidation.servedByAvenia && isBrUserEligibleForLimitIncrease(qrMantecaLimits)
     const qrLimitIncreaseFlow = useSumsubActionFlow({
         fetchToken: initiateIncreaseLimits,
         onSuccess: refetchQrLimits,
@@ -97,14 +100,6 @@ export function QrPayFormView() {
     // The LOADING view precedes FORM in the precedence ladder, so currency is
     // always set here — the guard only carries that fact to the type level.
     if (!currency) return null
-
-    // the manteca entity behind the rail, for the provider row (TASK-23295)
-    const providerId =
-        paymentProcessor === 'MANTECA' && targetMantecaCountry
-            ? targetMantecaCountry === 'BR'
-                ? 'manteca-br'
-                : 'manteca-ar'
-            : null
 
     // the USD a foreign card would have cost on top, when the comparison holds for this currency
     const savingsInCents = hasCardMarkupComparison(currency.code)
@@ -151,7 +146,7 @@ export function QrPayFormView() {
                         name={merchantName ?? ''}
                         maskName={!!pixKeyLabel}
                         pixKey={ownerDetails?.pixKey}
-                        taxId={ownerDetails?.taxId}
+                        taxId={ownerDetails?.taxId ?? merchantTaxId}
                         bankName={recipientBankName}
                     />
 
@@ -172,9 +167,7 @@ export function QrPayFormView() {
                             decimals: 2,
                         }}
                         setSecondaryAmount={setAmount}
-                        disabled={
-                            !!qrPayment || isLoading || (paymentProcessor === 'MANTECA' && paymentLock?.code !== '')
-                        }
+                        disabled={!!qrPayment || isLoading || amountFixed}
                         walletBalance={balance ? formatUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS) : undefined}
                         hideBalance
                         // only show balance error if limits blocking card is not displayed (warnings can coexist)
@@ -195,7 +188,7 @@ export function QrPayFormView() {
                     )}
 
                     <PaymentDetailsCard
-                        rate={{ price: currency.price, code: currency.code }}
+                        rate={hideRate ? undefined : { price: shownRate ?? currency.price, code: currency.code }}
                         savings={savings}
                         providerFee={providerFee}
                         providerId={providerId}

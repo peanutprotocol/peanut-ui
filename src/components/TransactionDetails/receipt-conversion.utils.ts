@@ -1,5 +1,6 @@
 import type { TransactionDetails } from './transactionTransformer'
 import { isFxBearingFlow } from './transaction-predicates'
+import { formatBankAmount, formatFiatRate } from '@/utils/currency'
 import { formatCurrency, isStableCoin } from '@/utils/general.utils'
 
 /**
@@ -33,14 +34,22 @@ export function receiptConvertedAmount(
     return undefined
 }
 
-/** "1 USD = EUR 0.8769" for a fiat-rail or card entry that carries a rate;
+/** "1 USD = EUR 0.88" for a fiat-rail or card entry that carries a rate;
  *  undefined for USD / stablecoin legs and cancelled entries. */
 export function receiptExchangeRate(transaction: TransactionDetails): string | undefined {
     const code = transaction.currency?.code?.toUpperCase()
     const rate = transaction.extraDataForDrawer?.receipt?.exchange_rate
     if (!rate || !code || code === 'USD' || isStableCoin(code)) return undefined
     if (!isFxBearingFlow(transaction) || transaction.status === 'cancelled') return undefined
-    return `1 USD = ${code} ${formatCurrency(rate, 4)}`
+    return `1 USD = ${code} ${formatFiatRate(rate)}`
+}
+
+/** "R$0.97": every fee a settled Avenia Pix entry's providers took, shown only beside its rate (the
+ *  API sends both or neither, and a rate with no fee row would not add up to the amounts). */
+export function receiptProviderFee(transaction: TransactionDetails): string | undefined {
+    const fee = transaction.extraDataForDrawer?.providerFeeBrl
+    if (!fee || !receiptExchangeRate(transaction)) return undefined
+    return formatBankAmount(fee, 'BRL')
 }
 
 /**
@@ -57,9 +66,23 @@ export function isSettledConversion(transaction: Pick<TransactionDetails, 'statu
 }
 
 /**
+ * A deposit sent back to the payer. The money went back as it came, so its
+ * conversion line states the rate it was priced at, not a conversion that
+ * happened: the row is the exchange rate, never "Converted" (Aleks, 2026-11-13).
+ */
+export function isReturnedDeposit(
+    transaction: Pick<TransactionDetails, 'direction' | 'status' | 'extraDataForDrawer'>
+): boolean {
+    return (
+        transaction.direction === 'bank_deposit' &&
+        (transaction.status === 'refunded' || !!transaction.extraDataForDrawer?.wasReturned)
+    )
+}
+
+/**
  * The settled conversion as one line, in the direction the money moved:
  * "EUR 21.33 → 24.32 USD" for money coming in, "24.32 USD → ARS 30,000"
- * for money going out. USD, like the rate line ("1 USD = EUR 0.8769") and
+ * for money going out. USD, like the rate line ("1 USD = EUR 0.88") and
  * every other rate in the app.
  */
 export function receiptConversionLine(

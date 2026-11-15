@@ -1,5 +1,5 @@
 import { withFeatureReport } from '@/test-utils/featureReport.fixture'
-import type { CapabilityRoute, IdentityVerificationStatus, NextAction, RailCapability } from '@/types/capabilities'
+import type { IdentityVerificationStatus, RailCapability } from '@/types/capabilities'
 import { normalizeResidence } from '@/utils/residence-profile'
 /**
  * useActivationStatus gathers the onboarding inputs from data Home already
@@ -32,22 +32,17 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
 
 type MockRail = { provider: string; status: string; operations?: Record<string, string> }
 let mockRails: MockRail[] = []
-// the Pix deposit route and the next actions it names (TASK-24841)
-let mockRoutes: CapabilityRoute[] = []
-let mockNextActions: NextAction[] = []
-const mockCapabilities = () => ({
-    ...withFeatureReport(
+const mockCapabilities = () =>
+    withFeatureReport(
         { rails: mockRails as RailCapability[], nextActions: [] },
         { identity: { status: mockIdentityStatus } }
-    ),
-    routes: mockRoutes,
-})
+    )
 jest.mock('@/hooks/useCapabilities', () => ({
     // canDo mirrors the real hook: per-op status, falling back to the rail status
     useCapabilities: () => ({
         capabilities: mockCapabilities(),
         isLoading: false,
-        nextActions: mockNextActions,
+        nextActions: [],
         rails: mockRails,
         railsForProvider: (provider: string) => mockRails.filter((rail) => rail.provider === provider),
         canDo: (op: string, opts?: { provider?: string }) =>
@@ -118,8 +113,6 @@ function setup(user: Record<string, unknown> = {}) {
 beforeEach(() => {
     mockBalance = 0n
     mockRails = []
-    mockRoutes = []
-    mockNextActions = []
     mockOverview = undefined
     mockCanSpendViaCard = false
     mockHoldsCard = false

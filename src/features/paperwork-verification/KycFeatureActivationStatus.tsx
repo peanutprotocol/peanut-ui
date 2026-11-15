@@ -20,7 +20,8 @@ export function KycFeatureActivationStatus({
     onRetry,
     onBack,
 }: {
-    feature: KycActivationFeature
+    /** The feature whose words the screen shows; the Pix screens show local's for `pix`. */
+    feature: Exclude<KycActivationFeature, 'pix'>
     result: KycFeatureActivationResult | null
     accountCurrency?: string
     accountStatus?: FeatureReportEntry

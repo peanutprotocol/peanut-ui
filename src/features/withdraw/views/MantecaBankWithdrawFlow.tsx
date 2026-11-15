@@ -45,7 +45,7 @@ import { isLockExpired, receiveLock, type ReceivedLock } from '@/utils/price-loc
 import { useCurrency } from '@/hooks/useCurrency'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { countryData } from '@/components/AddMoney/consts'
-import { formatBankAmount } from '@/utils/currency'
+import { formatBankAmount, formatFiatRate } from '@/utils/currency'
 import { formatCurrency } from '@/utils/general.utils'
 import { validateCbuCvuAlias } from '@/utils/withdraw.utils'
 import ValidatedInput from '@/components/Global/ValidatedInput'
@@ -302,7 +302,7 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
 
     // BR self-service limit increase flow
     const { mantecaLimits, refetch: refetchLimits } = useLimits()
-    const isBrEligible = isBrUserEligibleForLimitIncrease(mantecaLimits)
+    const isBrEligible = !limitsValidation.servedByAvenia && isBrUserEligibleForLimitIncrease(mantecaLimits)
     const limitIncreaseFlow = useSumsubActionFlow({
         fetchToken: initiateIncreaseLimits,
         onSuccess: refetchLimits,
@@ -1360,7 +1360,7 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
                         />
                         <PaymentInfoRow
                             label={t('manteca.exchangeRate')}
-                            value={`1 USD = ${priceLock?.price ?? currencyPrice!.sell} ${currencyCode!.toUpperCase()}`}
+                            value={`1 USD = ${formatFiatRate(priceLock?.price ?? currencyPrice!.sell)} ${currencyCode!.toUpperCase()}`}
                             moreInfoText={tCommon('exchangeRateInfo')}
                         />
                         <PaymentInfoRow

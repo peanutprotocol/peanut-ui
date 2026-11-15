@@ -16,6 +16,9 @@ jest.mock('@/features/kill-switches/useKillSwitches', () => ({
 }))
 let mockPixPayBlock: 'paused' | 'residence' | null = null
 jest.mock('@/features/pix/usePixPayBlock', () => ({ usePixPayBlock: () => mockPixPayBlock }))
+// the user's Pix routes: none unless a test sets the withdraw route (TASK-24947, a send on Avenia)
+let mockRoutes: Array<{ operation: string; method: string; provider: string; state: string }> = []
+jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ capabilities: { routes: mockRoutes } }) }))
 jest.mock('@/features/withdraw/views/PixKeySendView', () => ({
     __esModule: true,
     default: () => <div>pix key send</div>,
@@ -43,6 +46,7 @@ import MantecaWithdrawPage from '@/app/(mobile-ui)/withdraw/manteca/page'
 
 beforeEach(() => {
     mockPixPayBlock = null
+    mockRoutes = []
 })
 
 describe('the old Brazil URLs', () => {
@@ -54,7 +58,7 @@ describe('the old Brazil URLs', () => {
     })
 
     it('send a withdrawal to the neutral Pix page', () => {
-        mockSearch.current = new URLSearchParams('country=brazil&destination=09579927189')
+        mockSearch.current = new URLSearchParams('country=brazil&destination=11144477735')
         render(<MantecaWithdrawPage />)
         expect(screen.getByTestId('alias')).toHaveTextContent('/withdraw/pix')
     })
@@ -104,6 +108,19 @@ describe('the Brazil Pix page (/withdraw/manteca?country=brazil&method=pix)', ()
         expect(screen.getByText('pix key send')).toBeInTheDocument()
         expect(screen.queryByTestId('alias')).toBeNull()
         expect(screen.queryByTestId('pix-block')).toBeNull()
+    })
+
+    // TASK-24947: Avenia pays another person's key on the withdraw route, resident of Brazil or not
+    it.each([
+        ['a resident, from Send', FROM_SEND, 'residence' as const],
+        ['a non-resident, from Send', FROM_SEND, null],
+        ['a non-resident, outside Send', OWN, null],
+    ])('%s on Avenia lands on the Pix-key form of /withdraw/pix', (_who, search, block) => {
+        mockRoutes = [{ operation: 'withdraw', method: 'PIX_BR', provider: 'avenia', state: 'ready' }]
+        open(search, block)
+        expect(screen.getByTestId('alias')).toHaveTextContent('/withdraw/pix')
+        expect(screen.queryByTestId('pix-block')).toBeNull()
+        expect(screen.queryByText('pix key send')).toBeNull()
     })
 
     it.each([

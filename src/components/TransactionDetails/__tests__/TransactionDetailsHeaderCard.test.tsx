@@ -214,7 +214,12 @@ describe('TransactionDetailsHeaderCard generic names mid-sentence', () => {
     it.each([
         ['bank_deposit', 'completed', 'Bank account', 'name.bankAccount', 'Added from bank account'],
         ['bank_deposit', 'pending', 'Bank account', 'name.bankAccount', 'Adding from bank account'],
+        // Pix is a method, not a source: "by", and its capital stays (Aleks, 2026-11-15)
+        ['bank_deposit', 'completed', 'Pix', 'name.pix', 'Added by Pix'],
+        ['bank_deposit', 'pending', 'Pix', 'name.pix', 'Adding by Pix'],
         ['bank_withdraw', 'completed', 'Bank account', 'name.bankAccount', 'Withdrew to bank account'],
+        ['bank_withdraw', 'completed', 'Pix', 'name.pix', 'Withdrew by Pix'],
+        ['bank_withdraw', 'pending', 'Pix', 'name.pix', 'Withdrawing by Pix'],
         ['withdraw', 'completed', 'External account', 'name.externalAccount', 'Withdrew to external account'],
         ['add', 'completed', 'External wallet', 'name.externalWallet', 'Added from external wallet'],
         ['send', 'completed', 'Recipient', 'name.recipient', 'Sent to recipient'],

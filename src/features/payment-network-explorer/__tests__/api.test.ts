@@ -55,7 +55,7 @@ describe('payment explorer data layer', () => {
 
     it('maps the client timeout error shape to 408 with fewer-top-users guidance', async () => {
         // fetchWithSentry converts its internal timeout abort before rethrowing.
-        const timeout = new Error('Peanut is taking too long to respond — check your connection and try again.')
+        const timeout = new Error('Peanut is taking too long to respond. Check your connection and try again.')
         timeout.name = 'ConnectionTimeoutError'
         jest.mocked(serverFetch).mockRejectedValue(timeout)
         await expect(fetchPaymentNetwork(5000)).rejects.toMatchObject({

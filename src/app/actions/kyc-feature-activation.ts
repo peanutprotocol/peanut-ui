@@ -13,7 +13,7 @@ export type KycFeatureActivationResult =
     | ({ kind: 'conflict' } & Conflict)
     | { kind: 'failed' }
 
-const FEATURES: ReadonlySet<string> = new Set<KycActivationFeature>(['qr', 'bank', 'local', 'card'])
+const FEATURES: ReadonlySet<string> = new Set<KycActivationFeature>(['qr', 'bank', 'local', 'card', 'pix'])
 const STATES: ReadonlySet<string> = new Set<KycActivationReport['state']>([
     'ready',
     'on',

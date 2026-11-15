@@ -31,16 +31,20 @@ jest.mock('@/components/Provider/ProviderHelp', () => ({
     ProviderHelp: ({ providerId }: { providerId: string }) => <span>help {providerId}</span>,
 }))
 let mockProviderFee: string | null = null
+let mockShownRate: number | null = null
+let mockHideRate = false
 jest.mock('../../QrPayFlowContext', () => ({
     useQrPayFlow: () => ({
-        paymentProcessor: 'MANTECA',
-        targetMantecaCountry: 'BR',
-        paymentLock: { code: 'lock-1' },
         qrPayment: null,
         merchantName: 'Ana Souza',
+        merchantTaxId: null,
         recipientBankName: 'Banco Inter',
         providerFee: mockProviderFee,
-        pixKeyLabel: '09579927189',
+        shownRate: mockShownRate,
+        hideRate: mockHideRate,
+        providerId: 'manteca-br',
+        amountFixed: true,
+        pixKeyLabel: '11144477735',
         pixKeyOwner: { name: 'Ana Souza', legalIdMasked: null },
         isAwaitingPixKeyOwner: false,
         pixKeySave: {
@@ -82,6 +86,8 @@ import { QrPayFormView } from '../QrPayFormView'
 describe('QrPayFormView', () => {
     beforeEach(() => {
         mockProviderFee = null
+        mockShownRate = null
+        mockHideRate = false
     })
 
     // the shared form (ruling 2026-11-12): the look the Pix withdrawal copies
@@ -89,10 +95,10 @@ describe('QrPayFormView', () => {
         renderWithIntl(<QrPayFormView />)
         expect(screen.getByText(en.qrPay.youArePaying)).toBeInTheDocument()
         expect(screen.getByText('Ana Souza')).toBeInTheDocument()
-        expect(screen.getByText('CPF 095.799.271-89')).toBeInTheDocument()
+        expect(screen.getByText('CPF 111.444.777-35')).toBeInTheDocument()
         expect(screen.getByText('Banco Inter')).toBeInTheDocument()
         expect(screen.getByText(en.global.savedAddresses.savePrompt)).toBeInTheDocument()
-        expect(screen.getByText('1 USD = 5.4 BRL')).toBeInTheDocument()
+        expect(screen.getByText('1 USD = 5.40 BRL')).toBeInTheDocument()
         // $18.52 × 5% against a foreign card
         expect(screen.getByText(en.qrPay.info.saveVsCard)).toBeInTheDocument()
         expect(screen.getByText('~$0.93')).toBeInTheDocument()
@@ -111,5 +117,22 @@ describe('QrPayFormView', () => {
         renderWithIntl(<QrPayFormView />)
         expect(screen.getByText(en.pix.withdraw.fee)).toBeInTheDocument()
         expect(screen.getByText('R$0.75')).toBeInTheDocument()
+    })
+
+    // Avenia (the owner, 15 Nov, "Option A"): its own rate, never the field's price
+    it('prints the rate the flow names over the field’s price', () => {
+        mockShownRate = 5.728962
+        mockProviderFee = 'R$0.97'
+        renderWithIntl(<QrPayFormView />)
+        expect(screen.getByText('1 USD = 5.73 BRL')).toBeInTheDocument()
+        expect(screen.queryByText('1 USD = 5.40 BRL')).toBeNull()
+        expect(screen.getByText('R$0.97')).toBeInTheDocument()
+    })
+
+    it('shows no rate row where the flow hides it, and never falls back to the field’s price', () => {
+        mockHideRate = true
+        renderWithIntl(<QrPayFormView />)
+        expect(screen.queryByText(en.qrPay.info.exchangeRate)).toBeNull()
+        expect(screen.queryByText(/^1 USD =/)).toBeNull()
     })
 })

@@ -10,6 +10,9 @@ export interface QrPayScanParams {
     pixKey?: string | null
 }
 
+/** Who the scan is paid through: Manteca's QR routes, or the neutral Pix pay routes (`/pix/pay/*`). */
+export type PaymentProcessor = 'MANTECA' | 'PIX_PAY'
+
 export interface QrPayCurrency {
     code: string
     symbol: string

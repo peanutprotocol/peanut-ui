@@ -14,6 +14,7 @@ import { sanitizeRedirectURL } from './cookie-url.utils'
 import { toInviteCode } from './invite-code.utils'
 import { deepLinkToNativePath } from './native-routes'
 import { readInviteCode, readInviteIntent, stashInvite, stashAcquisitionInvite } from '@/utils/invite-stash'
+import { isGoCodeContent } from '@/features/tracked-links/contract'
 import { trackedLinkAnalyticsAllowed } from '@/features/tracked-links/eligibility'
 import { EInviteType } from '@/services/services.types'
 import {
@@ -143,28 +144,41 @@ function base64UrlDecode(value: string): string {
 }
 
 type HandoffDetail = 'full' | 'campaign' | 'journey'
+type Touch = SignupAttributionContext['firstTouch']
 
-function reduceTouch(
-    { occurredAt, utmSource, utmMedium, utmCampaign }: SignupAttributionContext['firstTouch'],
-    detail: Exclude<HandoffDetail, 'full'>
-): SignupAttributionContext['firstTouch'] {
-    return detail === 'journey' ? { occurredAt } : { occurredAt, utmSource, utmMedium, utmCampaign }
+/** The fields reports group by, plus the short ones: the referrer host and a /go code. */
+function campaignTouch({ occurredAt, utmSource, utmMedium, utmCampaign, utmContent, referrerHost }: Touch): Touch {
+    return {
+        occurredAt,
+        utmSource,
+        utmMedium,
+        utmCampaign,
+        ...(isGoCodeContent(utmContent) ? { utmContent } : {}),
+        referrerHost,
+    }
+}
+
+function reduceAttribution(context: SignupAttributionContext, detail: HandoffDetail): SignupAttributionContext {
+    if (detail === 'full') return context
+    if (detail === 'journey')
+        return {
+            ...context,
+            firstTouch: { occurredAt: context.firstTouch.occurredAt },
+            firstContentTouch: undefined,
+            lastTouch: undefined,
+        }
+    const firstTouch = campaignTouch(context.firstTouch)
+    const last = context.lastTouch
+    // Without a campaign the reduced last touch would report blank fields; without it, the first touch counts.
+    const lastTouch = last && (last.utmSource || last.utmMedium || last.utmCampaign) ? campaignTouch(last) : undefined
+    const content = context.firstContentTouch
+    const onlyCampaign = content?.utmCampaign && !firstTouch.utmCampaign && !lastTouch?.utmCampaign
+    return { ...context, firstTouch, firstContentTouch: onlyCampaign ? campaignTouch(content) : undefined, lastTouch }
 }
 
 /** Compact ASCII-only handoff token; Play's encoded referrer is capped at 512 chars. */
 function serializeAttributionHandoff(fullContext: SignupAttributionContext, detail: HandoffDetail = 'full'): string {
-    const context: SignupAttributionContext =
-        detail === 'full'
-            ? fullContext
-            : {
-                  ...fullContext,
-                  firstTouch: reduceTouch(fullContext.firstTouch, detail),
-                  firstContentTouch: undefined,
-                  lastTouch:
-                      detail === 'campaign' && fullContext.lastTouch
-                          ? reduceTouch(fullContext.lastTouch, detail)
-                          : undefined,
-              }
+    const context = reduceAttribution(fullContext, detail)
     const first = compactTouch(context.firstTouch)
     const compact: CompactAttribution = {
         v: 1,
@@ -393,8 +407,9 @@ export function buildDeferredPayload(
     }
 
     // A smaller journey still joins the install to the web visit; a new install-referrer journey would not.
-    // Only a tracked link keeps the bare journey: its visit event holds every tag under that journey ID,
-    // while elsewhere the Play campaign below is worth more than an untagged journey.
+    // Only a tracked link keeps the bare journey: its visit event holds every tag under that journey ID.
+    // Elsewhere a bare journey joins nothing, so `at` goes and the Play utm_* below stays; with the
+    // pnutdl marker only Play Console reads those, not the app's attribution.
     const reductions: HandoffDetail[] = params.has('tl') ? ['campaign', 'journey'] : ['campaign']
     for (const detail of reductions) {
         if (!attribution || encodeURIComponent(params.toString()).length <= MAX_PLAY_REFERRER_LENGTH) break

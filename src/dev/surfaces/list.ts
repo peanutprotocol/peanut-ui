@@ -156,6 +156,17 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         shotClickTestId: 'setup-payment-channel',
         shotFixture: 'setup-payment-plan',
     },
+    '03-j-funding-methods-argentina': {
+        name: 'Setup — funding methods, resident of Argentina',
+        path: 'Setup/Views/PaymentPlan.tsx',
+        shotClickTestId: 'setup-funding-channel',
+        shotFixture: 'setup-payment-plan',
+    },
+    '03-k-funding-pix-chosen': {
+        name: 'Setup — Pix chosen to add money, resident of Brazil',
+        path: 'Setup/Views/PaymentPlan.tsx',
+        shotFixture: 'setup-payment-plan',
+    },
     '03-a-residence-select': { name: 'Residence — select', path: 'Setup/Views/Residence.tsx' },
     '03-b-residence-compare': {
         name: 'Residence — two countries compared',
@@ -517,7 +528,7 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         name: 'Pix deposit — the dynamic code',
         path: 'features/pix/components/PixQrDeposit.tsx',
         captureState: ['amountBrl=100', 'expiresAt=+10 min'],
-        // a signed-in user whose Pix deposit route is ready
+        // the signed-in Brazilian resident the CPF line's avatar is drawn for
         shotFixture: 'pix-deposit-amount',
         expectSelector: '[data-testid="app-page-surface-content"] canvas, [data-testid="app-page-surface-content"] svg',
     },
@@ -531,14 +542,14 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '94-h-pix-withdraw-arrived-to': {
         name: 'Pix withdrawal — arrived: the shared success view, key and bank named',
         path: 'features/pix/components/PixWithdrawOutcome.tsx',
-        captureState: ['phase=funded', 'entry=COMPLETED', 'key=09579927189', 'bank=Banco Inter'],
+        captureState: ['phase=funded', 'entry=COMPLETED', 'key=11144477735', 'bank=Banco Inter'],
         shotFixture: 'pix-withdraw-arrived',
         expectSelector: '[data-testid="app-page-surface-content"] button',
     },
     '94-i-pix-withdraw-arrived-unnamed': {
         name: 'Pix withdrawal — arrived, no bank named: the key alone',
         path: 'features/pix/components/PixWithdrawOutcome.tsx',
-        captureState: ['phase=funded', 'entry=COMPLETED', 'key=09579927189', 'bank=none'],
+        captureState: ['phase=funded', 'entry=COMPLETED', 'key=11144477735', 'bank=none'],
         shotFixture: 'pix-withdraw-arrived',
         expectSelector: '[data-testid="app-page-surface-content"] button',
     },

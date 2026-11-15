@@ -1,5 +1,8 @@
 import { useMemo } from 'react'
-import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
+import {
+    mapTransactionDataForDrawer,
+    type TransactionDetails,
+} from '@/components/TransactionDetails/transactionTransformer'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { useHistoryEntry } from '@/hooks/useHistoryEntry'
 import { withPublicReceipt } from '@/utils/history.utils'
@@ -9,13 +12,15 @@ import { formatBrTaxId } from '@/utils/br-tax-id.utils'
 import { normalizeMerchantName } from '@/components/TransactionDetails/transaction-details.utils'
 
 export function useQrReceipt() {
-    const { qrPayment, currency, usdAmount, methodIcon, pixKeyOwner, pixKeyLabel } = useQrPayFlow()
+    const { qrPayment, currency, usdAmount, methodIcon, pixKeyOwner, pixKeyLabel, pixPayEntry } = useQrPayFlow()
     // the receipt is built here, before Activity has it, so only the history
     // entry can say whether it has a public link to share
     const { data: entry } = useHistoryEntry(qrPayment?.id, 'QR_PAY')
     // receipt transaction for the success drawer — built up-front (not in the
     // cta's onClick) because the drawer opens off the url's `?tx=` match.
     const receiptTransaction: TransactionDetails | null = useMemo(() => {
+        // a payment on the Pix pay routes is its own history entry: the receipt Activity shows
+        if (pixPayEntry) return mapTransactionDataForDrawer(pixPayEntry).transactionDetails
         if (!qrPayment || !currency) return null
         const now = new Date()
         // A PIX key the payer looked up: the owner, with the key beside the name,
@@ -54,7 +59,7 @@ export function useQrReceipt() {
             totalAmountCollected: Number(usdAmount),
         }
         return withPublicReceipt(receipt, entry)
-    }, [qrPayment, currency, usdAmount, methodIcon, pixKeyOwner, pixKeyLabel, entry])
+    }, [pixPayEntry, qrPayment, currency, usdAmount, methodIcon, pixKeyOwner, pixKeyLabel, entry])
 
     return receiptTransaction
 }

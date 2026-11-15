@@ -6,13 +6,21 @@ import { renderWithIntl } from '@/test-utils/intl'
 import type { CapabilityRoute } from '@/types/capabilities'
 import { pixDepositQueryKey } from '../pixDepositCode'
 import { ApiError } from '@/services/api-error'
+import en from '@/i18n/app/messages/en.json'
 
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn(), useReturnTo: () => jest.fn() }))
 const mockFetchUser = jest.fn(() => Promise.resolve(null))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ fetchUser: mockFetchUser }) }))
+let mockRateAndFee: { exchangeRate: number; providerFeeBrl: string } | null | undefined = null
+let mockQuotesTypedAmount = false
 jest.mock('@/features/pix/usePixQuoteCurrency', () => ({
-    usePixQuoteCurrency: () => ({ code: 'BRL', price: { sell: 5.4, buy: 5.5 } }),
+    usePixQuoteCurrency: () => ({
+        code: 'BRL',
+        price: { sell: 5.4, buy: 5.5 },
+        rateAndFee: mockRateAndFee,
+        quotesTypedAmount: mockQuotesTypedAmount,
+    }),
 }))
 jest.mock('@/components/Provider/ProviderFinePrint', () => ({ ProviderFinePrint: () => null }))
 jest.mock('@/components/AddMoney/components/InputAmountStep', () => ({
@@ -21,15 +29,21 @@ jest.mock('@/components/AddMoney/components/InputAmountStep', () => ({
         onSubmit,
         setCurrencyAmount,
         validationError,
+        error,
+        details,
     }: {
         onSubmit: () => void
         setCurrencyAmount: (v: string) => void
         validationError?: string | null
+        error?: string | null
+        details?: import('react').ReactNode
     }) => (
         <div data-testid="amount-step">
+            {details}
             <button onClick={() => setCurrencyAmount('100')}>type</button>
             <button onClick={onSubmit}>submit</button>
             {validationError && <p>{validationError}</p>}
+            {error && <p>{error}</p>}
         </div>
     ),
 }))
@@ -53,10 +67,10 @@ import { PixDepositFlow } from '../components/PixDepositFlow'
 const route = (payableDepositIntentId?: string, minAmount = '20'): CapabilityRoute => ({
     operation: 'deposit',
     method: 'PIX_BR',
-    provider: 'manteca',
+    provider: 'avenia',
     state: 'ready',
     limits: { minAmount, currency: 'BRL' },
-    candidates: [{ provider: 'manteca', state: 'ready' }],
+    candidates: [{ provider: 'avenia', state: 'ready' }],
     ...(payableDepositIntentId ? { payableDepositIntentId } : {}),
 })
 
@@ -80,7 +94,36 @@ const renderAt = (
 }
 
 describe('PixDepositFlow and the URL', () => {
-    beforeEach(() => jest.clearAllMocks())
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockRateAndFee = null
+        mockQuotesTypedAmount = false
+    })
+
+    // The owner, 15 Nov, "Option A": the amount step shows Avenia's own rate, the minimum's before an
+    // amount, and the fee once the amount on screen is quoted; never R$5 over the USDC that pays it
+    it('shows the minimum quote’s exchangeRate and no fee before an amount, then the fee of the typed amount', () => {
+        mockRateAndFee = { exchangeRate: 5.37, providerFeeBrl: '0.95' }
+        const view = renderAt('')
+        expect(screen.getByText('1 USD = 5.37 BRL')).toBeInTheDocument()
+        expect(screen.queryByText(en.pix.withdraw.fee)).toBeNull()
+        view.unmount()
+
+        mockRateAndFee = { exchangeRate: 5.728962, providerFeeBrl: '0.97' }
+        mockQuotesTypedAmount = true
+        renderAt('')
+        expect(screen.getByText('1 USD = 5.73 BRL')).toBeInTheDocument()
+        expect(screen.getByText(en.pix.withdraw.fee)).toBeInTheDocument()
+        expect(screen.getByText('R$0.97')).toBeInTheDocument()
+    })
+
+    it('shows neither row when the quote carries no pair', () => {
+        mockRateAndFee = null
+        renderAt('')
+        expect(screen.getByTestId('amount-step')).toBeInTheDocument()
+        expect(screen.queryByText(en.common.exchangeRate)).toBeNull()
+        expect(screen.queryByText(en.pix.withdraw.fee)).toBeNull()
+    })
 
     it('after a reload on the code step, shows that deposit instead of a new amount form', () => {
         renderAt('?step=showQR&amount=100&currency=BRL&intentId=d1')
@@ -95,15 +138,17 @@ describe('PixDepositFlow and the URL', () => {
 
     it('seeds the new deposit for the code screen and writes its id to the URL', async () => {
         const created = {
-            provider: 'manteca',
+            provider: 'avenia',
             intentId: 'd2',
             status: 'AWAITING_USER_ACTION',
             codePayable: true,
             pixReceived: false,
             brCode: 'code-d2',
             amountBrl: '100.00',
-            usdcAmount: '18.39',
+            usdcAmount: '17.94',
+            fixedFeeBrl: '0.75',
             expiresAt: null,
+            payerCpfMasked: '111.***.***-35',
         }
         mockCreate.mockResolvedValue(created)
         const urls: string[] = []
@@ -167,5 +212,22 @@ describe('PixDepositFlow and the URL', () => {
 
         await waitFor(() => expect(mockFetchUser).toHaveBeenCalled())
         expect(screen.queryByTestId('code-step')).toBeNull()
+    })
+
+    // ruled 2026-11-14: no BRL deposit for a resident of another country; the refusal names support (M5)
+    it('a deposit refused for the residence says so and names support, with no "try again"', async () => {
+        mockCreate.mockRejectedValue(
+            new ApiError('BRL deposits are not available in your country of residence.', {
+                status: 422,
+                code: 'PIX_RESIDENCE_NOT_SUPPORTED',
+            })
+        )
+        renderAt('')
+        fireEvent.click(screen.getByText('type'))
+        fireEvent.click(screen.getByText('submit'))
+
+        expect(await screen.findByText(en.pix.residenceNotServed)).toBeInTheDocument()
+        expect(en.pix.residenceNotServed).toMatch(/support/i)
+        expect(screen.queryByText(en.pix.unavailable)).toBeNull()
     })
 })

@@ -2,6 +2,9 @@ import { EHistoryUserRole, type HistoryEntry } from '@/hooks/useTransactionHisto
 import { personFrom } from '@/lib/person/person'
 import { type TransactionStrategy, type TransactionStrategyOutput } from '../types'
 import { TRANSACTION_NAME_KEYS } from '@/components/TransactionDetails/transaction-name-keys'
+import { normalizeMerchantName } from '@/components/TransactionDetails/transaction-details.utils'
+import { formatPixKey } from '@/utils/pix-key-format.utils'
+import { isPixEntry } from '@/components/TransactionDetails/pix-entry'
 
 const BANK_CLAIM: TransactionStrategyOutput = {
     direction: 'bank_claim',
@@ -61,11 +64,28 @@ export const fiatOfframp: TransactionStrategy = (entry: HistoryEntry): Transacti
             isLinkTx: false,
         }
     }
+    // A Pix payout to another person's key (TASK-24947) is a send to them, as a Pix-key payment reads
+    // (`qrPay`): the holder the lookup named, owner only, with the key beside the name. A shared
+    // receipt carries no `pixPayout` and reads as a withdrawal.
+    const payout = entry.extraData?.pixPayout
+    if (payout?.ownAccount === false) {
+        const key = formatPixKey(payout.pixKey)
+        return {
+            direction: 'send',
+            transactionCardType: 'send',
+            nameForDetails: payout.holderName ? normalizeMerchantName(payout.holderName) : key,
+            nameDetail: payout.holderName ? key : undefined,
+            isPeerActuallyUser: false,
+            isLinkTx: false,
+        }
+    }
+    // The user's own Pix withdrawal is named by its method, as a Pix deposit is (Aleks, 2026-11-15).
+    const pix = isPixEntry(entry)
     return {
         direction: 'bank_withdraw',
         transactionCardType: 'bank_withdraw',
-        nameForDetails: 'Bank Account',
-        nameKey: TRANSACTION_NAME_KEYS.bankAccount,
+        nameForDetails: pix ? 'Pix' : 'Bank Account',
+        nameKey: pix ? TRANSACTION_NAME_KEYS.pix : TRANSACTION_NAME_KEYS.bankAccount,
         isPeerActuallyUser: false,
         isLinkTx: false,
     }

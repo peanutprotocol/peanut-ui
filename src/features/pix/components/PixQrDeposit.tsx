@@ -15,6 +15,8 @@ import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import { useAuth } from '@/context/authContext'
+import { PixRateAndFeeCard } from '@/features/pix/components/PixRateAndFeeCard'
+import { pixRateAndFee, showsProviderRateAndFee } from '@/features/pix/pixRateAndFee'
 import { usePixDeposit } from '@/features/pix/usePixDeposit'
 import { useExpiryCountdown } from '@/hooks/useExpiryCountdown'
 import { formatBankAmount } from '@/utils/currency'
@@ -54,6 +56,8 @@ export function PixQrDeposit({
     const { deposit, phase, isError } = usePixDeposit(intentId, onComplete)
     // the provider the deposit answer names, for its row and sheet
     const providerId = pixProviderId(deposit?.provider)
+    // Avenia's own rate and every fee, as the deposit answer states them; neither row without both
+    const rateAndFee = showsProviderRateAndFee(providerId) ? pixRateAndFee(deposit) : null
 
     const expiresAtMs = useMemo(() => (deposit?.expiresAt ? Date.parse(deposit.expiresAt) : null), [deposit?.expiresAt])
     const countdown = useExpiryCountdown(expiresAtMs, phase === 'pending')
@@ -169,6 +173,10 @@ export function PixQrDeposit({
                     <p className="text-center text-body-s text-foreground-secondary">{t('pix.scanWithBankApp')}</p>
                     <CopyToClipboard textToCopy={deposit.brCode} type="button" className="w-full" />
                 </div>
+
+                {rateAndFee && (
+                    <PixRateAndFeeCard rate={rateAndFee.exchangeRate} providerFeeBrl={rateAndFee.providerFeeBrl} />
+                )}
 
                 {deposit.payerCpfMasked && (
                     <div className="flex items-center gap-2">

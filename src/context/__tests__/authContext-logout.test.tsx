@@ -297,8 +297,9 @@ describe('logoutUser', () => {
     })
 
     // a Pix withdraw form not yet sent holds the Pix key: the next user of this tab never sees it
-    it("forgets the account's Pix withdraw draft", async () => {
-        sessionStorage.setItem('pix-withdraw-draft:u1', JSON.stringify({ destination: '09579927189' }))
+    it("forgets the account's Pix withdraw and send drafts", async () => {
+        sessionStorage.setItem('pix-withdraw-draft:u1', JSON.stringify({ destination: '12345678909' }))
+        sessionStorage.setItem('pix-send-draft:u1', JSON.stringify({ destination: '11144477735' }))
         stubLocation()
         const { result } = renderHook(() => useAuth(), { wrapper })
 
@@ -307,6 +308,7 @@ describe('logoutUser', () => {
         })
 
         expect(sessionStorage.getItem('pix-withdraw-draft:u1')).toBeNull()
+        expect(sessionStorage.getItem('pix-send-draft:u1')).toBeNull()
     })
 
     it('forgets the analytics identity fingerprint, so the next user starts clean', async () => {

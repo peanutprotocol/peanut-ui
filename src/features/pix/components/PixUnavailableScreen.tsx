@@ -16,16 +16,19 @@ import { buildContactSupportMessage } from '@/utils/contact-support.utils'
  * Pix is not available to this user: the route is refused, or the API sent
  * none, or the setup step needs support to finish. It says why with the
  * route's reason, in a localized line where this build knows the reason, and
- * offers support. `description` replaces that line; `onBack` the way back.
+ * offers support. `reason` stands for the route's where another answer named it
+ * (the activation's refusal); `description` replaces the line; `onBack` the way back.
  */
 export function PixUnavailableScreen({
     title,
     route,
+    reason: givenReason,
     description: line,
     onBack,
 }: {
     title: string
     route: CapabilityRoute | undefined
+    reason?: CapabilityRoute['reason']
     description?: string
     onBack?: () => void
 }) {
@@ -34,7 +37,7 @@ export function PixUnavailableScreen({
     const { user } = useAuth()
     const safeBack = useSafeBack('/home')
     const back = onBack ?? safeBack
-    const reason = route?.reason
+    const reason = givenReason ?? route?.reason
     const refusalLine = usePixRouteRefusalLine()
     const description = line ?? refusalLine(reason)
     return (

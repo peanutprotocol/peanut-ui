@@ -101,10 +101,16 @@ describe('initiateSumsubKyc — backend refusals', () => {
         respondWith(404, { error: 'No provider rejection found' })
         const result = await initiateSelfHealResubmission('BRIDGE')
         expect(result.error).not.toMatch(/no provider rejection found/i)
-        expect(result.code).toBe('resubmit_failed')
+        // TASK-24909: nothing to answer, so the copy offers no retry
+        expect(result.code).toBe('resubmit_unavailable')
 
         respondWith(400, { error: 'No identity verification found', userMessage: 'Start the ID check first.' })
         expect((await initiateSelfHealResubmission('BRIDGE')).error).toBe('Start the ID check first.')
+    })
+
+    it('keeps the retry copy for a resubmit that failed on our side', async () => {
+        respondWith(500, {})
+        expect((await initiateSelfHealResubmission('BRIDGE')).code).toBe('resubmit_failed')
     })
 
     it('falls back to canned copy with a code when the backend says nothing', async () => {
@@ -556,5 +562,26 @@ describe('R17 start-action supplement_changed wire response', () => {
     it('does not classify a server failure as a completed supplement', async () => {
         respondWith(503, { error: 'supplement_changed', userMessage: 'Try later' })
         expect((await startKycAction('supplement:bridge')).code).not.toBe('supplement_changed')
+    })
+})
+
+// TASK-24947 M5: a Manteca session for Brazil, refused because the user's Pix moved to another provider
+describe('a Manteca Brazil session refused with PIX_PROVIDER_MOVED keeps its code', () => {
+    const MOVED = {
+        error: 'provider_moved',
+        code: 'PIX_PROVIDER_MOVED',
+        userMessage: 'Pix now runs through another partner.',
+    }
+
+    it('on the identity start, so the app can send the user to the Pix flow', async () => {
+        respondWith(409, MOVED)
+        const result = await initiateSumsubKyc({ regionIntent: 'LATAM', targetCountry: 'BR' })
+        expect(result).toMatchObject({ code: 'PIX_PROVIDER_MOVED', error: MOVED.userMessage })
+    })
+
+    it('on start-action', async () => {
+        respondWith(409, MOVED)
+        const result = await startKycAction('sumsub:manteca_br')
+        expect(result).toMatchObject({ code: 'PIX_PROVIDER_MOVED', error: MOVED.userMessage })
     })
 })

@@ -15,10 +15,12 @@ import { PaymentDetailsCard } from '@/features/payments/shared/components/Paymen
 import { RecipientCard } from '@/features/payments/shared/components/RecipientCard'
 import { SaveRecipientCard, type SaveRecipientState } from '@/features/payments/shared/components/SaveRecipientCard'
 import { pixShownRate } from '@/features/pix/pixFlow.utils'
+import { pixRateAndFee, showsProviderRateAndFee, type PixRateAndFee } from '@/features/pix/pixRateAndFee'
 import type { PixWithdrawDisplay } from '@/services/pix'
 import type { ProviderId } from '@/types/provider.types'
 import { formatBankAmount } from '@/utils/currency'
 import { pixKeyOwnerDetails } from '@/utils/pix.utils'
+import { formatPixKey } from '@/utils/pix-key-format.utils'
 
 /** How the form's amount field starts: the amount already typed, in the denomination it was typed in. */
 export interface PixWithdrawAmountSeed {
@@ -29,7 +31,9 @@ export interface PixWithdrawAmountSeed {
 /**
  * The one form of a Pix withdrawal, after the key resolved: the Pix-key
  * payment form with "Withdrawing" as its lead word and Confirm as its button
- * (ruling 2026-11-12, providers are cattle). The recipient card, the save
+ * (ruling 2026-11-12, providers are cattle). Where the provider says the key is
+ * another person's (`ownAccount` false), the same form is a send to them and
+ * leads with "Sending" (TASK-24947). The recipient card, the save
  * card, the amount card and the details card are the payment form's own
  * parts; the details card adds the provider's flat fee where the quote
  * carries one, and the exact reais and wallet debit the quote names. Dumb
@@ -56,14 +60,22 @@ export function PixWithdrawForm({
 }: {
     title: string
     onBack: () => void
-    /** The resolved key: its holder and bank from the lookup, or from the quote after a reload. */
-    recipient: { pixKey: string; holderName: string | null; bankName: string | null; taxIdMasked: string | null }
+    /** The resolved key: its holder and bank from the lookup, or from the quote after a reload; whose key it is, where the provider tells. */
+    recipient: {
+        pixKey: string
+        holderName: string | null
+        bankName: string | null
+        taxIdMasked: string | null
+        ownAccount: boolean | null
+    }
     save: SaveRecipientState
     amount: {
         /** Read once, when the form mounts: the field is never re-seeded while the user types. */
         seed: PixWithdrawAmountSeed | null
         /** BRL per USD the field converts with: the quote in hand's ratio for the amount as entered (payout per USD entered, or per USD debited for typed reais), else the indicative quote's; null while it loads. */
         price: number | null
+        /** The indicative quote's own rate and fee rows (`usePixQuoteCurrency`): undefined while it loads, null when it sends none. */
+        rateAndFee?: PixRateAndFee | null
         isLoading: boolean
         isError: boolean
         onRetry: () => void
@@ -94,29 +106,51 @@ export function PixWithdrawForm({
 }) {
     const t = useTranslations('pix.withdraw')
     const tCommon = useTranslations('common')
+    const tPayment = useTranslations('payment')
     // the seed the flow hands over at mount; later renders carry the live typed values, which the field already shows
     const [seed] = useState(amount.seed)
     // as the payment form: the holder's name leads, the key and tax ID under it; an unnamed holder leaves the key as the heading
     const details = recipient.holderName ? pixKeyOwnerDetails(recipient.pixKey, recipient.taxIdMasked) : null
-    // the preview's all-in rate agrees with the fee row and the USD to the centavo; before it, the quote the field converts with
-    const rate = display
-        ? { price: Number(pixShownRate(display)), code: 'BRL' }
-        : amount.price !== null
-          ? { price: amount.price, code: 'BRL' }
+    // Avenia (the owner, 15 Nov, "Option A"): its own rate, from the review once it answers and from the
+    // minimum's quote before it, and every fee as one row once the amount on screen is reviewed; neither
+    // row when the API sends neither, never a rate worked out from the amounts
+    const providerRows = showsProviderRateAndFee(providerId)
+    const reviewedPair = display ? pixRateAndFee(display) : null
+    const rate = providerRows
+        ? display
+            ? reviewedPair
+                ? { price: reviewedPair.exchangeRate, code: 'BRL' }
+                : undefined
+            : amount.rateAndFee === undefined
+              ? null
+              : amount.rateAndFee
+                ? { price: amount.rateAndFee.exchangeRate, code: 'BRL' }
+                : undefined
+        : // another provider: the preview's all-in rate once it answers, before it the quote the field converts with
+          display
+          ? { price: Number(pixShownRate(display)), code: 'BRL' }
+          : amount.price !== null
+            ? { price: amount.price, code: 'BRL' }
+            : null
+    const providerFee = providerRows
+        ? reviewedPair
+            ? formatBankAmount(reviewedPair.providerFeeBrl, 'BRL')
+            : null
+        : // the rate holds the percentage fees; a flat fee is its own line, and a provider that charges none shows no line
+          display && Number(display.fixedFeeBrl) > 0
+          ? formatBankAmount(display.fixedFeeBrl, 'BRL')
           : null
-    // the rate holds the percentage fees; a flat fee is its own line, and a provider that charges none shows no line
-    const providerFee = display && Number(display.fixedFeeBrl) > 0 ? formatBankAmount(display.fixedFeeBrl, 'BRL') : null
 
     return (
         <PageStack>
             <NavHeader title={title} onPrev={onBack} />
             <PageStack.Center className="gap-4">
                 <RecipientCard
-                    lead={t('withdrawing')}
+                    lead={recipient.ownAccount === false ? tPayment('confirm.sending') : t('withdrawing')}
                     icon={PIX}
-                    name={recipient.holderName ?? recipient.pixKey}
+                    name={recipient.holderName ?? formatPixKey(recipient.pixKey)}
                     maskName
-                    pixKey={details?.pixKey}
+                    pixKey={details?.pixKey && formatPixKey(details.pixKey)}
                     taxId={details?.taxId}
                     bankName={recipient.bankName}
                 />

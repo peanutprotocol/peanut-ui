@@ -9,7 +9,7 @@ import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
 import { Icon } from '@/components/Global/Icons/Icon'
 import SetupTitleBlock from '@/components/Setup/components/SetupTitleBlock'
 import type {
-    PaperworkVerificationFeature,
+    PaperworkQuestionsFeature,
     PaperworkVerificationStep,
     PaperworkVerificationStepId,
 } from '@/app/actions/types/kyc-paperwork-verification.types'
@@ -166,7 +166,10 @@ export function WhyWeAsk({ steps }: { steps: Array<PaperworkVerificationStepId |
 /**
  * One or more question steps on one screen. The per-step flow passes one step
  * (its sentences are the heading); add-later passes every open step of a
- * feature under its own title. Continue saves each step in order.
+ * feature. A step with a heading of its own (address, phone, tax,
+ * declarations) shows it in every flow, so it looks the same whatever the
+ * provider or feature (Aleks, 2026-11-14); `title` is the heading only for a
+ * screen whose step has none. Continue saves each step in order.
  */
 export function QuestionStepScreen({
     steps,
@@ -188,7 +191,7 @@ export function QuestionStepScreen({
 }: {
     steps: PaperworkVerificationStep[]
     residence: string | null
-    feature?: PaperworkVerificationFeature
+    feature?: PaperworkQuestionsFeature
     progress?: { current: number; total: number; pages?: number }
     startAtStep?: PaperworkVerificationStepId | null
     startFromEnd?: boolean
@@ -460,10 +463,10 @@ export function QuestionStepScreen({
                         </VerifyFooter>
                     }
                 >
-                    {title ? (
-                        <SetupTitleBlock title={title} description={description} size="s" />
+                    {heading ? (
+                        <SetupTitleBlock title={heading.title} description={heading.description} size="s" />
                     ) : (
-                        heading && <SetupTitleBlock title={heading.title} description={heading.description} size="s" />
+                        title && <SetupTitleBlock title={title} description={description} size="s" />
                     )}
                     <form
                         className="contents"
