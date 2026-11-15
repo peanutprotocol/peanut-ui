@@ -24,10 +24,12 @@ import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import type { CapabilityRoute } from '@/types/capabilities'
 import { formatBankAmount } from '@/utils/currency'
 import { pixProviderId } from '@/utils/provider.utils'
-import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
+import { originPastHubs, readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
 
 type PixDepositStep = 'inputAmount' | 'showQR'
 type Denomination = 'USD' | 'BRL'
+// The Add picker and the method chooser send themselves as `returnTo` so Back reopens them
+const ADD_MONEY_HUBS = ['/add-money', '/add-money/options'] as const
 
 /**
  * Add money by Pix, for whichever provider the deposit route names: the
@@ -60,7 +62,8 @@ export function PixDepositFlow({ route }: { route: CapabilityRoute }) {
     const returnTo = readReturnTo(
         new URLSearchParams(urlState.returnTo ? { [RETURN_TO_PARAM]: urlState.returnTo } : {})
     )
-    const leaveToHome = useReturnTo(returnTo ?? '/home')
+    // Done after a paid deposit never reopens a hub or the paid code: Home, or the origin a caller stated
+    const leaveToHome = useReturnTo(originPastHubs(returnTo, ADD_MONEY_HUBS) ?? '/home')
     const onBack = useSafeBack(returnTo ?? '/add-money?method=bank')
     const step: PixDepositStep = urlState.step ?? 'inputAmount'
     const ready = route.state === 'ready'
