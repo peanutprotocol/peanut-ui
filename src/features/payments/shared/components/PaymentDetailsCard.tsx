@@ -7,7 +7,7 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { ProviderHelp } from '@/components/Provider/ProviderHelp'
 import { PROVIDERS } from '@/constants/providers.consts'
 import type { ProviderId } from '@/types/provider.types'
-import { formatFiniteDisplay } from '@/utils/currency'
+import { formatFiatRate } from '@/utils/currency'
 
 /**
  * The details card of a payment form, one row per fact the user pays by. The
@@ -53,9 +53,7 @@ export function PaymentDetailsCard({
         {
             key: 'rate',
             label: t('info.exchangeRate'),
-            value: rate
-                ? `1 USD = ${formatFiniteDisplay(rate.price, 'en-US', { maximumFractionDigits: 20, useGrouping: false })} ${rate.code.toUpperCase()}`
-                : '',
+            value: rate ? `1 USD = ${formatFiatRate(rate.price)} ${rate.code.toUpperCase()}` : '',
             moreInfoText: tCommon('exchangeRateInfo'),
         },
     ]

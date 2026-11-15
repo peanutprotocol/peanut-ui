@@ -46,7 +46,7 @@ export default function DataRowGroupPage() {
                             <DataRow label="IBAN" value="ES27 0075 0984 2206 0708 02" />
                         </DataRowGroup>
                         <DataRowGroup>
-                            <DataRow label="Exchange rate" value="1 USD = 1.0000 EUR" />
+                            <DataRow label="Exchange rate" value="1 USD = 0.86 EUR" />
                             <DataRow label="Fee" value="$0" />
                             <DataRow label="Provider" value="Bridge" />
                         </DataRowGroup>
@@ -123,7 +123,7 @@ export default function DataRowGroupPage() {
                             <DataRow label="Sort code" value="202015" />
                         </DataRowGroup>
                         <DataRowGroup>
-                            <DataRow label="Exchange rate" value="1 USD = 0.8955 GBP" />
+                            <DataRow label="Exchange rate" value="1 USD = 0.76 GBP" />
                             <DataRow label="Fee" value="$0" />
                             <DataRow label="Provider" value="Bridge" />
                         </DataRowGroup>

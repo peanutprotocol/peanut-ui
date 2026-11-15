@@ -48,7 +48,7 @@ describe('receiptConvertedAmount', () => {
 
 describe('receiptExchangeRate', () => {
     it('prints the rate for a fiat-rail entry', () => {
-        expect(receiptExchangeRate(eurDeposit())).toBe('1 USD = EUR 0.8769')
+        expect(receiptExchangeRate(eurDeposit())).toBe('1 USD = EUR 0.88')
     })
 
     it('prints nothing on a cancelled entry or without a rate', () => {

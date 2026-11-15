@@ -1,7 +1,5 @@
 'use client'
 
-import { formatFiniteDisplay } from '@/utils/currency'
-
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import CooldownErrorText from '@/components/Global/RainCooldown/CooldownErrorText'
@@ -29,7 +27,7 @@ import {
 } from '@/features/withdraw/bank-reference'
 import { useTranslations } from 'next-intl'
 import RateUnavailable from '@/components/Global/RateUnavailable'
-import { formatBankAmount } from '@/utils/currency'
+import { formatBankAmount, formatFiatRate } from '@/utils/currency'
 import { UsdPayoutSpeedChoice } from '@/features/withdraw/components/UsdPayoutSpeedChoice'
 import { type UsdPayoutSpeed, type UsdPayoutSpeedOption } from '@/features/withdraw/usd-payout-speed'
 
@@ -239,7 +237,7 @@ export const WithdrawBankReviewView: FC<WithdrawBankReviewViewProps> = ({
                             label={tCommon('exchangeRate')}
                             value={
                                 payout.rate
-                                    ? `1 USD ≈ ${formatFiniteDisplay(payout.rate, 'en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4, useGrouping: false })} ${payout.currency.toUpperCase()}`
+                                    ? `1 USD ≈ ${formatFiatRate(payout.rate)} ${payout.currency.toUpperCase()}`
                                     : '-'
                             }
                             moreInfoText={tRate('approximate')}

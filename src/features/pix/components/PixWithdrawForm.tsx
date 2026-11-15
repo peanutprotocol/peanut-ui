@@ -108,12 +108,11 @@ export function PixWithdrawForm({
     const [seed] = useState(amount.seed)
     // as the payment form: the holder's name leads, the key and tax ID under it; an unnamed holder leaves the key as the heading
     const details = recipient.holderName ? pixKeyOwnerDetails(recipient.pixKey, recipient.taxIdMasked) : null
-    // the preview's all-in rate agrees with the fee row and the USD to the centavo; before it, the quote the field converts
-    // with, to the review's six decimals (the field itself keeps the exact ratio)
+    // the preview's all-in rate once it answers; before it, the quote the field converts with. The row prints two decimals.
     const rate = display
         ? { price: Number(pixShownRate(display)), code: 'BRL' }
         : amount.price !== null
-          ? { price: Number(amount.price.toFixed(6)), code: 'BRL' }
+          ? { price: amount.price, code: 'BRL' }
           : null
     // the rate holds the percentage fees; a flat fee is its own line, and a provider that charges none shows no line
     const providerFee = display && Number(display.fixedFeeBrl) > 0 ? formatBankAmount(display.fixedFeeBrl, 'BRL') : null

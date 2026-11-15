@@ -145,7 +145,7 @@ test.describe('Pix on the Avenia route', () => {
         await expect(page.getByText('Save to favorites')).toBeVisible()
         await expect(page.getByText('Provider fee', { exact: true })).toHaveCount(1)
         await expect(page.getByText('R$0.75')).toBeVisible()
-        await expect(page.getByText('1 USD = 5.445946 BRL')).toBeVisible()
+        await expect(page.getByText('1 USD = 5.45 BRL')).toBeVisible()
         await expect(page.getByText('Sponsored by Peanut!')).toBeVisible()
         // the exact wallet debit the quote names, never the field's estimate
         await expect(page.getByText('$92.50')).toBeVisible()
@@ -196,7 +196,7 @@ test.describe('Pix on the Manteca route', () => {
         await expect(page.getByText('Withdrawing')).toBeVisible({ timeout: 60_000 })
         await expect(page.getByText('Ana Souza')).toBeVisible()
         await expect(page.getByText('Provider fee', { exact: true })).toHaveCount(0)
-        await expect(page.getByText('1 USD = 5.437838 BRL')).toBeVisible()
+        await expect(page.getByText('1 USD = 5.44 BRL')).toBeVisible()
         // exact: the fixture banner's name holds the word too
         await expect(page.getByText('Manteca', { exact: true })).toBeVisible()
         await expect(page.getByRole('button', { name: 'Confirm' })).toBeEnabled()

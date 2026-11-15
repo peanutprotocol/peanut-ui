@@ -75,7 +75,7 @@ describe('PixWithdrawForm', () => {
         expect(screen.getByText('CPF 095.799.271-89')).toBeInTheDocument()
         expect(screen.getByText('Banco Inter')).toBeInTheDocument()
         // $92.50 × 5.445946 − R$0.75 = R$503.00: the three numbers agree to the centavo
-        expect(screen.getByText('1 USD = 5.445946 BRL')).toBeInTheDocument()
+        expect(screen.getByText('1 USD = 5.45 BRL')).toBeInTheDocument()
         expect(screen.getByText(en.common.peanutFee)).toBeInTheDocument()
         expect(screen.getByText(en.common.sponsoredByPeanut)).toBeInTheDocument()
         expect(screen.getByText(en.pix.withdraw.fee)).toBeInTheDocument()
@@ -132,7 +132,7 @@ describe('PixWithdrawForm', () => {
             providerId: 'manteca-br',
         })
         expect(screen.queryByText(en.pix.withdraw.fee)).toBeNull()
-        expect(screen.getByText('1 USD = 5.437838 BRL')).toBeInTheDocument()
+        expect(screen.getByText('1 USD = 5.44 BRL')).toBeInTheDocument()
         expect(screen.getByText(PROVIDERS['manteca-br'].brand)).toBeInTheDocument()
     })
 
@@ -160,21 +160,20 @@ describe('PixWithdrawForm', () => {
         })
         expect(screen.getByText(en.pix.withdraw.errors.limitExceeded)).toBeInTheDocument()
         expect(screen.getByRole('button', { name: en.common.retry })).toBeInTheDocument()
-        expect(screen.getByText('1 USD = 5.4 BRL')).toBeInTheDocument()
+        expect(screen.getByText('1 USD = 5.40 BRL')).toBeInTheDocument()
         expect(screen.queryByText(en.pix.withdraw.fee)).toBeNull()
         expect(screen.queryByText(en.withdraw.confirm.youPay)).toBeNull()
         expect(screen.getByRole('button', { name: en.common.confirm })).toBeDisabled()
     })
 
-    // the indicative quote's ratio is a float: the rate row prints it to the review's six decimals, not all its digits
-    it('prints the indicative rate to six decimals before the review answers', () => {
-        renderForm({
-            display: null,
-            total: undefined,
-            canConfirm: false,
-            amount: { ...amount, price: 5.299417064122946 },
-        })
-        expect(screen.getByText('1 USD = 5.299417 BRL')).toBeInTheDocument()
+    // Aleks, 2026-11-15 (staging, "1 USD = 4.941639 BRL"): no fiat value shows more than two decimals, a rate included
+    it.each([
+        [5.299417064122946, '1 USD = 5.30 BRL'],
+        [4.941639, '1 USD = 4.94 BRL'],
+        [5.4, '1 USD = 5.40 BRL'],
+    ])('prints the indicative rate %s to two decimals before the review answers', (price, shown) => {
+        renderForm({ display: null, total: undefined, canConfirm: false, amount: { ...amount, price } })
+        expect(screen.getByText(shown)).toBeInTheDocument()
     })
 
     // the quote of the amount on screen is in flight: the Total row waits for it rather than showing an estimate

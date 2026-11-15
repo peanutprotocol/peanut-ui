@@ -92,7 +92,7 @@ describe('QrPayFormView', () => {
         expect(screen.getByText('CPF 095.799.271-89')).toBeInTheDocument()
         expect(screen.getByText('Banco Inter')).toBeInTheDocument()
         expect(screen.getByText(en.global.savedAddresses.savePrompt)).toBeInTheDocument()
-        expect(screen.getByText('1 USD = 5.4 BRL')).toBeInTheDocument()
+        expect(screen.getByText('1 USD = 5.40 BRL')).toBeInTheDocument()
         // $18.52 × 5% against a foreign card
         expect(screen.getByText(en.qrPay.info.saveVsCard)).toBeInTheDocument()
         expect(screen.getByText('~$0.93')).toBeInTheDocument()
