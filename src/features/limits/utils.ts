@@ -1,7 +1,7 @@
 'use client'
 
-import type { MantecaLimit, MonthlyRoom } from '@/interfaces/interfaces'
-import type { CapabilityRoute, ProviderCode, RailOperation } from '@/types/capabilities'
+import type { MantecaLimit, MonthlyRoom, UserLimitsResponse } from '@/interfaces/interfaces'
+import type { CapabilityRoute, ProviderCode, RailCapability, RailOperation } from '@/types/capabilities'
 import { findPixRoute, PIX_METHOD } from '@/features/pix/pixRoute.utils'
 import { SYMBOLS_BY_CURRENCY_CODE } from '@/constants/currency-symbols.consts'
 import { getCurrencyFlagUrl } from '@/constants/countryCurrencyMapping'
@@ -92,6 +92,19 @@ export function brlLimitsProvider(
 ): ProviderCode | null {
     if (currency !== 'BRL') return null
     return (findPixRoute(routes, PIX_OPERATION[flowType])?.provider as ProviderCode | undefined) ?? null
+}
+
+/**
+ * Whether Manteca's limits are unknown right now: the user holds an enabled Manteca rail, and the
+ * limits read answered `manteca: null` because Manteca's read failed (API review 2, 8208ebba5; it
+ * used to fail the whole read). That is "not available right now", never "no limit".
+ */
+export function mantecaLimitsUnread(limits: UserLimitsResponse | null, rails: readonly RailCapability[]): boolean {
+    return (
+        !!limits &&
+        limits.manteca === null &&
+        rails.some((rail) => rail.provider === 'manteca' && rail.status === 'enabled')
+    )
 }
 
 /** Whether any of the user's Pix routes names Avenia: Manteca's BRL limits then stand for nothing the user does. */

@@ -4,6 +4,7 @@ import type { UserLimitsResponse } from '@/interfaces/interfaces'
 
 let mockLimits: UserLimitsResponse
 let mockRoutes: Array<{ operation: string; method: string; provider?: string; state: string }> = []
+let mockRails: Array<Record<string, unknown>> = []
 
 jest.mock('@/hooks/useLimits', () => ({
     useLimits: () => ({
@@ -17,7 +18,9 @@ jest.mock('@/hooks/useLimits', () => ({
     }),
 }))
 jest.mock('@/hooks/useCapabilities', () => ({
-    useCapabilities: () => ({ capabilities: { rails: [], nextActions: [], restrictions: [], routes: mockRoutes } }),
+    useCapabilities: () => ({
+        capabilities: { rails: mockRails, nextActions: [], restrictions: [], routes: mockRoutes },
+    }),
 }))
 
 // Manteca's BRL limit, in USDT as Manteca answers it: $100 left this month
@@ -38,9 +41,43 @@ const AVENIA = {
 const pixRoutes = (provider: string) =>
     ['deposit', 'withdraw', 'pay'].map((operation) => ({ operation, method: 'PIX_BR', provider, state: 'ready' }))
 
+const MANTECA_RAIL = {
+    id: 'manteca.bank_transfer_ar',
+    provider: 'manteca',
+    method: 'BANK_TRANSFER_AR',
+    channel: 'bank',
+    country: 'AR',
+    currency: 'ARS',
+    status: 'enabled',
+}
+
 describe('useLimitsValidation: a BRL operation reads the limits of the provider its route names', () => {
     beforeEach(() => {
         mockLimits = { manteca: [MANTECA_BRL], bridge: null, avenia: AVENIA }
+        mockRails = []
+    })
+
+    // API review 2 (8208ebba5): Manteca's failed read answers manteca: null, not a 500
+    it('a Manteca user whose Manteca limits could not be read gets no limit check, never the foreign QR cap', () => {
+        mockRoutes = pixRoutes('manteca')
+        mockRails = [MANTECA_RAIL]
+        mockLimits = { manteca: null, bridge: null, avenia: null }
+        const { result } = renderHook(() =>
+            useLimitsValidation({ flowType: 'qr-payment', amount: '5000', currency: 'ARS' })
+        )
+        expect(result.current.isBlocking).toBe(false)
+        expect(result.current.remainingLimit).toBeNull()
+        expect(result.current.limitsUnavailable).toBe(true)
+    })
+
+    it('a user with no Manteca account keeps the foreign QR cap', () => {
+        mockRoutes = []
+        mockLimits = { manteca: null, bridge: null, avenia: null }
+        const { result } = renderHook(() =>
+            useLimitsValidation({ flowType: 'qr-payment', amount: '5000', currency: 'ARS' })
+        )
+        expect(result.current.limitsUnavailable).toBe(false)
+        expect(result.current.isBlocking).toBe(true)
     })
 
     it('checks an Avenia QR payment against Avenia’s payout room, not Manteca’s smaller BRL limit', () => {

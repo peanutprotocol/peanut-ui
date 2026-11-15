@@ -15,7 +15,8 @@ import { useQueryState, parseAsStringEnum } from 'nuqs'
 import { useState, useMemo } from 'react'
 import Loading from '@/components/Global/Loading'
 import { getQrCountriesWithFlags, type QrCountryId } from '../consts'
-import { BANK_TRANSFER_REGIONS, type BridgeRegion, formatAmountWithCurrency } from '../utils'
+import { BANK_TRANSFER_REGIONS, type BridgeRegion, formatAmountWithCurrency, mantecaLimitsUnread } from '../utils'
+import { useCapabilities } from '@/hooks/useCapabilities'
 import LimitsError from '../components/LimitsError'
 import LimitsDocsLink from '../components/LimitsDocsLink'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
@@ -28,7 +29,10 @@ import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 const BridgeLimitsView = () => {
     const t = useTranslations('limits.provider')
     const onBack = useSafeBack('/limits')
-    const { bridgeLimits, isLoading, error, hasMantecaLimits, refetch, isRefetching } = useLimits()
+    const { limits, bridgeLimits, isLoading, error, hasMantecaLimits, refetch, isRefetching } = useLimits()
+    const { capabilities } = useCapabilities()
+    // a Manteca user whose Manteca limits could not be read is not a foreign QR payer
+    const mantecaUser = hasMantecaLimits || mantecaLimitsUnread(limits, capabilities.rails ?? [])
 
     // url state for source region (where user came from)
     const [region] = useQueryState(
@@ -93,7 +97,7 @@ const BridgeLimitsView = () => {
                     )}
 
                     {/* qr payment limits accordion - for bridge users without manteca kyc */}
-                    {!hasMantecaLimits && (
+                    {!mantecaUser && (
                         <Section title={t('qrPaymentLimits')}>
                             <Accordion
                                 type="single"

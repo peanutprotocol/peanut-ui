@@ -8,9 +8,11 @@ import MantecaLimitsView from '../MantecaLimitsView'
 
 let mockLimits: UserLimitsResponse
 let mockRoutes: Array<{ operation: string; method: string; provider?: string; state: string }> = []
+let mockRails: Array<Record<string, unknown>> = []
 
 jest.mock('@/hooks/useLimits', () => ({
     useLimits: () => ({
+        limits: mockLimits,
         mantecaLimits: mockLimits.manteca,
         aveniaLimits: mockLimits.avenia ?? null,
         isLoading: false,
@@ -20,7 +22,9 @@ jest.mock('@/hooks/useLimits', () => ({
     }),
 }))
 jest.mock('@/hooks/useCapabilities', () => ({
-    useCapabilities: () => ({ capabilities: { rails: [], nextActions: [], restrictions: [], routes: mockRoutes } }),
+    useCapabilities: () => ({
+        capabilities: { rails: mockRails, nextActions: [], restrictions: [], routes: mockRoutes },
+    }),
 }))
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn() }))
 jest.mock('@/features/attention/AttentionSlot', () => ({ AttentionSlot: () => null }))
@@ -45,7 +49,33 @@ const AVENIA = {
 const pixRoutes = (provider: string, operations = ['deposit', 'withdraw', 'pay']) =>
     operations.map((operation) => ({ operation, method: 'PIX_BR', provider, state: 'ready' }))
 
+const MANTECA_RAIL = {
+    id: 'manteca.bank_transfer_ar',
+    provider: 'manteca',
+    method: 'BANK_TRANSFER_AR',
+    channel: 'bank',
+    country: 'AR',
+    currency: 'ARS',
+    status: 'enabled',
+}
+
 describe('the LATAM limits screen shows the limits of the provider that serves each currency', () => {
+    beforeEach(() => {
+        mockRails = []
+    })
+
+    // API review 2 (8208ebba5): Manteca's failed read answers manteca: null for a user who holds Manteca
+    it('says the limits could not load when Manteca’s read failed, and still shows Avenia’s room', () => {
+        mockRails = [MANTECA_RAIL]
+        mockLimits = { manteca: null, bridge: null, avenia: AVENIA }
+        mockRoutes = pixRoutes('avenia')
+        render(<MantecaLimitsView />)
+
+        expect(screen.getByText('Couldn’t load limits')).toBeInTheDocument()
+        expect(screen.getByText('BRL left this month')).toBeInTheDocument()
+        expect(screen.queryByText('Limits data not available')).not.toBeInTheDocument()
+    })
+
     it('shows Avenia’s monthly room for BRL in place of Manteca’s BRL card, and keeps ARS on Manteca', () => {
         mockLimits = { manteca: [limit('ARS', 'ARG'), limit('BRL', 'BRA')], bridge: null, avenia: AVENIA }
         mockRoutes = pixRoutes('avenia')

@@ -19,6 +19,7 @@ import {
     formatAmountWithCurrency,
     getFlagUrlForCurrency,
     aveniaServesBrl,
+    mantecaLimitsUnread,
     type LimitsPeriod,
 } from '../utils'
 import MonthlyRoomCard from '../components/MonthlyRoomCard'
@@ -38,13 +39,23 @@ const MantecaLimitsView = () => {
     const t = useTranslations('limits.provider')
     const tPeriod = useTranslations('limits.period')
     const onBack = useSafeBack('/limits')
-    const { mantecaLimits: allMantecaLimits, aveniaLimits, isLoading, error, refetch, isRefetching } = useLimits()
+    const {
+        limits,
+        mantecaLimits: allMantecaLimits,
+        aveniaLimits,
+        isLoading,
+        error,
+        refetch,
+        isRefetching,
+    } = useLimits()
     const { capabilities } = useCapabilities()
     const brlOnAvenia = aveniaServesBrl(capabilities.routes)
     const mantecaLimits = brlOnAvenia ? allMantecaLimits?.filter((limit) => limit.asset !== 'BRL') : allMantecaLimits
     const aveniaRoom = brlOnAvenia ? aveniaLimits : null
     const aveniaDeposits = findPixRoute(capabilities.routes, 'deposit')?.provider === 'avenia'
     const hasLimits = (mantecaLimits?.length ?? 0) > 0 || !!aveniaRoom
+    // Manteca's read failed for a user who holds Manteca: the screen's error, as when the whole read failed
+    const mantecaUnread = mantecaLimitsUnread(limits, capabilities.rails ?? [])
     const [period, setPeriod] = useState<LimitsPeriod>('monthly')
     const [capNudgeCtaShown, setCapNudgeCtaShown] = useState(false)
 
@@ -54,7 +65,9 @@ const MantecaLimitsView = () => {
 
             {isLoading && <Loading variant="mascot" coverFullScreen />}
 
-            {error && <LimitsError onRetry={() => refetch()} isRetrying={isRefetching} />}
+            {(error || (!isLoading && mantecaUnread)) && (
+                <LimitsError onRetry={() => refetch()} isRetrying={isRefetching} />
+            )}
 
             {!isLoading && !error && hasLimits && (
                 <>
@@ -139,7 +152,7 @@ const MantecaLimitsView = () => {
                 </>
             )}
 
-            {!isLoading && !error && !hasLimits && <EmptyState title={t('noData')} icon="meter" />}
+            {!isLoading && !error && !hasLimits && !mantecaUnread && <EmptyState title={t('noData')} icon="meter" />}
         </PageStack>
     )
 }

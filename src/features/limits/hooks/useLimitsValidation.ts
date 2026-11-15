@@ -12,6 +12,7 @@ import {
 import { formatExtendedNumber } from '@/utils/general.utils'
 import {
     brlLimitsProvider,
+    mantecaLimitsUnread,
     mapToLimitCurrency,
     monthlyRoomValidation,
     type LimitCurrency,
@@ -42,12 +43,19 @@ interface UseLimitsValidationOptions {
  * room when the route is Avenia's, whatever Manteca limits the user still holds.
  */
 export function useLimitsValidation({ flowType, amount, currency: currencyInput }: UseLimitsValidationOptions) {
-    const { mantecaLimits, bridgeLimits, aveniaLimits, isLoading, hasMantecaLimits, hasBridgeLimits } = useLimits()
+    const { limits, mantecaLimits, bridgeLimits, aveniaLimits, isLoading, hasMantecaLimits, hasBridgeLimits } =
+        useLimits()
     const { capabilities } = useCapabilities()
 
     // normalize currency to valid LimitCurrency type
     const currency = mapToLimitCurrency(currencyInput)
     const servedByAvenia = brlLimitsProvider(capabilities.routes, flowType, currency) === 'avenia'
+    // Manteca's limits could not be read for a user who holds Manteca: a local operation checks nothing
+    // here (the API still refuses over the limit), and a QR payment never falls to the foreign cap
+    const mantecaUnread =
+        mantecaLimitsUnread(limits, capabilities.rails ?? []) &&
+        !servedByAvenia &&
+        (flowType === 'qr-payment' || currency !== 'USD')
 
     // determine if user is "local" (has manteca limits = enabled manteca rails)
     const isLocalUser = hasMantecaLimits
@@ -258,6 +266,17 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
 
     // combined result - the provider that serves the operation, else manteca for local users, bridge for others
     const validation = useMemo<LimitValidationResult>(() => {
+        if (mantecaUnread) {
+            return {
+                isBlocking: false,
+                isWarning: false,
+                remainingLimit: null,
+                totalLimit: null,
+                message: null,
+                daysUntilReset: null,
+                limitCurrency: null,
+            }
+        }
         if (servedByAvenia) {
             // no Avenia room read (yet): nothing to check here; the API's limit refusal still holds
             return (
@@ -303,6 +322,7 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
             limitCurrency: null,
         }
     }, [
+        mantecaUnread,
         servedByAvenia,
         aveniaValidation,
         flowType,
@@ -326,5 +346,7 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
         isBridgeUser: hasBridgeLimits,
         // the operation's limits are Avenia's: Manteca's limit increase does not apply to it
         servedByAvenia,
+        // Manteca's limits are not available right now (not "no limit")
+        limitsUnavailable: mantecaUnread,
     }
 }
