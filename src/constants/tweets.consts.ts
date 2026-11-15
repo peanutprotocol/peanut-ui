@@ -1,92 +1,29 @@
+import type { WallOfLovePost } from '@/components/LandingPage/homeWallOfLove.types'
+// Authored in mono at content/_system/generated/testimonials.json; ships through the content mirror.
+import testimonials from '@/content/generated/testimonials.json'
+
 /**
- * @joinpeanut Wall of Love
- *
- * Curated third-party mentions from X (Twitter) during Devconnect Buenos Aires.
- *
- * @dataset
- * - Date range: Oct 1 – Nov 26, 2025
- * - Count: ~140 unique posts
- * - Filters: Excludes team posts, neutral mentions, bots
- *
- * @scoring impact_score (0.55–0.99)
- * - 60% content quality (enthusiasm, specificity, authenticity)
- * - 30% author influence (followers, verified status, known builder/VC/EF)
- * - 10% engagement signals
- * - Caps: Internal team posts ≤0.55, low-effort posts ≤0.62
- *
- * @usage
- * Sorted descending by impact_score for carousel display.
- * Update quarterly by re-running collection with same criteria.
- *
- * @recreation Use Grok (has native X search access):
- *
- *   "Search X for positive third-party mentions of @joinpeanut from [DATE_START] to [DATE_END].
- *    Exclude team posts (@uwwgo, @0xkkonrad, @andxqueen), neutral mentions, and bots.
- *    For each post return: url, author, handle, content, verified, followers_count, avatar, timestamp.
- *    Add impact_score (0.60–0.98): 60% enthusiasm + 30% influence + 10% engagement.
- *    Cap bots at 0.65, boost EF/Arbitrum/known devs. Sort by impact_score desc.
- *    Return as JSON array."
- *
- *   If truncated, ask for batches ("top 50", then "remaining entries").
- *
- * @lastUpdated 2025-11-26
+ * The home's wall of love, in order: six real posts a stranger reads without
+ * context (product feel first). Picked by hand, not by impact_score; a post
+ * hidden in the manifest (`visible: false`) drops out rather than showing.
+ * The wall shows three at a time and cycles through all of them; the first
+ * three are the first screen.
  */
+const WALL_OF_LOVE_URLS = [
+    'https://x.com/Emmy_Wilz_01/status/1993198570225238514',
+    'https://x.com/theZeugh/status/1993446136867393834',
+    'https://x.com/cxqmaggie/status/1993393875059441999',
+    'https://x.com/DAppaDanDev/status/1992935274523840902',
+    'https://x.com/yssf_io/status/1993363153611374973',
+    // thanks another account (@uwwgo), so it waits past the first screen
+    'https://x.com/candicekteo/status/1993420115509956930',
+] as const
 
-export interface TweetMedia {
-    type: 'photo' | 'video'
-    url: string
-}
+const posts = (testimonials as { tweets: (WallOfLovePost & { visible?: boolean })[] }).tweets
 
-export interface Tweet {
-    url: string
-    author: string
-    handle: string
-    content: string
-    timestamp?: string
-    verified?: boolean
-    followers_count?: number
-    avatar?: string
-    impact_score?: number
-    is_reply?: boolean
-    reply_to_url?: string | null
-    media?: TweetMedia[]
-    visible?: boolean
-}
-
-interface TweetsData {
-    total_positive_mentions: number
-    date_range: string
-    scoring: string
-    note: string
-    tweets: Tweet[]
-}
-
-// Tweets manifest is authored in mono at content/_system/generated/testimonials.json
-// and ships to peanut-ui through the peanut-content mirror. Same shape as before.
-import tweetsJson from '@/content/generated/testimonials.json'
-
-const MAX_TWEETS = 100
-const MAX_PER_AUTHOR = 3
-
-const tweetsData = tweetsJson as TweetsData
-
-/** All tweets from dataset, sorted by impact_score desc */
-export const ALL_TWEETS: Tweet[] = tweetsData.tweets
-
-/** Filtered tweets for carousel: top 100, max 3 per author */
-export const TWEETS: Tweet[] = (() => {
-    const authorCount = new Map<string, number>()
-    const filtered: Tweet[] = []
-
-    for (const tweet of ALL_TWEETS.filter((t) => t.visible !== false)) {
-        const count = authorCount.get(tweet.handle) || 0
-        if (count >= MAX_PER_AUTHOR) continue
-
-        authorCount.set(tweet.handle, count + 1)
-        filtered.push(tweet)
-
-        if (filtered.length >= MAX_TWEETS) break
-    }
-
-    return filtered
-})()
+export const WALL_OF_LOVE_POSTS: WallOfLovePost[] = WALL_OF_LOVE_URLS.flatMap((url) => {
+    const post = posts.find((candidate) => candidate.url === url && candidate.visible !== false)
+    return post
+        ? [{ url: post.url, author: post.author, handle: post.handle, content: post.content, avatar: post.avatar }]
+        : []
+})

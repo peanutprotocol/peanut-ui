@@ -119,12 +119,14 @@ describe('feeConsumesWithdrawal', () => {
 })
 
 describe('formatNetworkFee', () => {
-    test('is sponsored (null) when the transfer is same-chain, unquoted, or quoted at zero', () => {
+    test('is sponsored only for a known same-chain or zero-fee transfer', () => {
         expect(formatNetworkFee(0.51, false)).toBeNull()
-        expect(formatNetworkFee(undefined, true)).toBeNull()
         expect(formatNetworkFee(0, true)).toBeNull()
-        expect(formatNetworkFee(-0.01, true)).toBeNull()
-        expect(formatNetworkFee(NaN, true)).toBeNull()
+    })
+
+    // TASK-24355: user requires unavailable/error, never a fabricated free fee.
+    test.each([undefined, -0.01, NaN, Infinity])('unknown/invalid fee %s stays unavailable', (fee) => {
+        expect(formatNetworkFee(fee, true)).toBe('—')
     })
 
     test('shows a quoted fee verbatim, to the cent', () => {

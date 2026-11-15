@@ -1,4 +1,5 @@
 import type { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
+import { PROVIDERS } from '@/constants/providers.consts'
 import type { ProviderId } from '@/types/provider.types'
 import { bridgeEntityForResidence, type BridgeEntity } from '@/utils/bridge-terms.utils'
 
@@ -30,6 +31,22 @@ export function isOwnBridgeAccountFlow(bridgeFlow: string | undefined): boolean 
 }
 
 /**
+ * The registry entry an API provider code answers for (`answersFor` in providers.consts.ts):
+ * the one for this currency where the provider runs an entity per currency, else its only one.
+ * Null for a code no entry answers for: the screen shows no provider row.
+ */
+export function providerIdFor(code: string | null | undefined, currency?: string | null): ProviderId | null {
+    if (!code) return null
+    const records = Object.values(PROVIDERS).filter(
+        (record) => record.answersFor?.provider.toUpperCase() === code.toUpperCase()
+    )
+    const forCurrency = records.find(
+        (record) => record.answersFor?.currency && record.answersFor.currency === currency?.toUpperCase()
+    )
+    return (forCurrency ?? records.find((record) => !record.answersFor?.currency))?.id ?? null
+}
+
+/**
  * The provider a transaction went through, for the receipt's provider row.
  * Null means no row: the money never left Peanut's own rails, or we cannot
  * tell which entity handled it. `residenceIso2` must be the entry owner's;
@@ -39,22 +56,18 @@ export function providerIdForTransaction(
     tx: Pick<TransactionDetails, 'extraDataForDrawer' | 'currency'>,
     residenceIso2?: string | null
 ): ProviderId | null {
-    switch (tx.extraDataForDrawer?.provider) {
-        case 'BRIDGE':
-            return isOwnBridgeAccountFlow(tx.extraDataForDrawer.bridgeFlow)
-                ? bridgeProviderIdForResidence(residenceIso2)
-                : 'bridge'
-        case 'MANTECA': {
-            const code = tx.currency?.code?.toUpperCase()
-            if (code === 'ARS') return 'manteca-ar'
-            if (code === 'BRL') return 'manteca-br'
-            return null
-        }
-        case 'RAIN':
-            return 'third-national'
-        case 'RHINO':
-            return 'rhino'
-        default:
-            return null
-    }
+    const code = tx.extraDataForDrawer?.provider
+    // Bridge runs an entity per residence: the owner's own on- or off-ramp names theirs
+    if (code === 'BRIDGE' && isOwnBridgeAccountFlow(tx.extraDataForDrawer?.bridgeFlow))
+        return bridgeProviderIdForResidence(residenceIso2)
+    return providerIdFor(code, tx.currency?.code)
+}
+
+/**
+ * The legal record behind a Pix provider code, as a route, a /pix/* answer or a history entry
+ * names it ('avenia', 'MANTECA'), for the provider row and its sheet: Pix moves reais. Null for
+ * a provider no registry entry answers for: the screen then shows no provider row.
+ */
+export function pixProviderId(provider: string | null | undefined): ProviderId | null {
+    return providerIdFor(provider, 'BRL')
 }

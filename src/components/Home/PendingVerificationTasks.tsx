@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
@@ -12,10 +12,24 @@ import { useAuth } from '@/context/authContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useDocumentRequestFlow } from '@/hooks/useDocumentRequestFlow'
 import type { NextAction } from '@/types/capabilities'
-import { bridgeTaskDismissalKey, selectBridgeTasks, selectHomeTasks } from '@/utils/bridge-tasks.utils'
+import {
+    bridgeTaskDismissalKey,
+    bridgeDocumentActionKey,
+    isBridgeDocumentTask,
+    isCardDocumentTask,
+    bridgeDocumentTaskEntry,
+    selectBridgeTasks,
+    selectHomeTasks,
+} from '@/utils/bridge-tasks.utils'
 import { formatEffectiveDate } from '@/utils/format.utils'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import Card from '../Global/Card'
+import { kycActionCtaKey } from '@/utils/kyc-action-copy.utils'
+import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
+import { ADDITIONAL_VERIFICATION_ROUTE } from '@/constants/kyc.consts'
+import { useAttentionFlows } from '@/features/attention/surfaces/AttentionFlowContext'
+import { bumpJourneyEpoch } from '@/features/attention/journeyEpoch'
+import { isDismissibleHomeTask as isDismissibleTask, visibleHomeTasks } from '@/features/attention/taskVisibility'
 
 // Currencies whose corridor a hosted-verification task can NAME. The backend
 // sets `NextAction.currency` on the bridge-hosted catch-all; anything outside
@@ -26,7 +40,6 @@ const CORRIDOR_CURRENCIES = new Set<string>(['USD', 'EUR', 'GBP', 'MXN'])
 // Advisory ToS and hosted tasks can be dismissed. The document request cannot:
 // it reaches this card only in its final week, and the bank-screen notice sends
 // the user here to complete it.
-const isDismissibleTask = (task: NextAction): boolean => !!task.effectiveDate && task.kind !== 'sumsub'
 
 /**
  * Home card listing the user's pending Bridge verification tasks — the in-app
@@ -48,6 +61,9 @@ const isDismissibleTask = (task: NextAction): boolean => !!task.effectiveDate &&
  * so a flow in progress survives the list refetching. A failed start shows its
  * error in the slide, never a silent no-op.
  *
+ * On Home it also carries the card application's document request
+ * (selectCardDocumentTask). That task opens /card, which holds the upload.
+ *
  * Home shows one CTA surface at a time: this card, or `whenEmpty` (the carousel
  * or the activation card) when no task is visible — never both.
  *
@@ -66,11 +82,7 @@ const isDismissibleTask = (task: NextAction): boolean => !!task.effectiveDate &&
  * and their rails are gated NOW; the Profile → Unlocked regions mount is
  * non-dismissible for everything.
  */
-export default function PendingVerificationTasks({
-    placement = 'profile',
-    whenEmpty = null,
-    whenEmptyShowsDocumentRequest = false,
-}: {
+type PendingTasksProps = {
     placement?: 'home' | 'profile'
     /** rendered in place of the card when no task is visible (Home: the carousel or the activation card) */
     whenEmpty?: ReactNode
@@ -80,14 +92,45 @@ export default function PendingVerificationTasks({
      * card hides it, this card carries the request instead, so it stays reachable.
      */
     whenEmptyShowsDocumentRequest?: boolean
+    prioritizeIdentityRestart?: boolean
+}
+
+export default function PendingVerificationTasks(props: PendingTasksProps) {
+    const flows = useAttentionFlows()
+    return flows ? (
+        <PendingTasksContent {...props} documentFlow={flows.document} hostedFlows={flows} />
+    ) : (
+        <StandalonePendingTasks {...props} />
+    )
+}
+
+function StandalonePendingTasks(props: PendingTasksProps) {
+    const documentFlow = useDocumentRequestFlow()
+    return <PendingTasksContent {...props} documentFlow={documentFlow} />
+}
+
+function PendingTasksContent({
+    placement = 'profile',
+    whenEmpty = null,
+    whenEmptyShowsDocumentRequest = false,
+    prioritizeIdentityRestart = false,
+    documentFlow,
+    hostedFlows,
+}: PendingTasksProps & {
+    documentFlow: ReturnType<typeof useDocumentRequestFlow>
+    hostedFlows?: NonNullable<ReturnType<typeof useAttentionFlows>>
 }) {
     const dismissible = placement === 'home'
     const t = useTranslations('home')
-    const { nextActions, rails } = useCapabilities()
+    const tKyc = useTranslations('kyc')
+    const tIdentity = useTranslations('identity')
+    const { nextActions, capabilities } = useCapabilities()
+    const locale = useLocale()
     const { user } = useAuth()
-    const [activeTosTask, setActiveTosTask] = useState<NextAction | null>(null)
+    const [localTosTask, setLocalTosTask] = useState<NextAction | null>(null)
+    const activeTosTask = hostedFlows ? hostedFlows.tosTask : localTosTask
+    const setActiveTosTask = hostedFlows ? hostedFlows.setTosTask : setLocalTosTask
     const router = useRouter()
-    const documentFlow = useDocumentRequestFlow()
     // Stored dismissals, tagged with the user they were loaded for
     // (localStorage is unreadable during SSR, hence the post-render effect).
     // The dismissible mount must not paint until the CURRENT user's entry is
@@ -97,8 +140,10 @@ export default function PendingVerificationTasks({
     const [storedDismissals, setStoredDismissals] = useState<{ forUserId: string; keys: string[] } | null>(null)
 
     const userId = user?.user?.userId
-    const homeTasks = placement === 'home' ? selectHomeTasks(nextActions, rails ?? []) : null
-    const tasks = homeTasks ? homeTasks.largeTasks : selectBridgeTasks(nextActions, rails ?? [])
+    const report = capabilities.features
+    const homeTasks =
+        placement === 'home' ? selectHomeTasks(nextActions, report, undefined, prioritizeIdentityRestart) : null
+    const tasks = homeTasks ? homeTasks.largeTasks : selectBridgeTasks(nextActions, report)
     useEffect(() => {
         if (!dismissible || !userId) return
         // Pre-fingerprint native builds (≤1.0.50) persisted this preference as a
@@ -119,12 +164,12 @@ export default function PendingVerificationTasks({
     const handleDismissTask = useCallback(
         (task: NextAction) => {
             if (!userId) return
-            setStoredDismissals((prev) => {
-                const keys = prev && prev.forUserId === userId ? prev.keys : []
-                const next = [...keys, bridgeTaskDismissalKey(task)]
-                updateUserPreferences(userId, { pendingVerificationTasksDismissed: next })
-                return { forUserId: userId, keys: next }
-            })
+            const saved = getUserPreferences(userId)?.pendingVerificationTasksDismissed
+            const keys = Array.isArray(saved) ? saved : []
+            const next = [...new Set([...keys, bridgeTaskDismissalKey(task)])]
+            updateUserPreferences(userId, { pendingVerificationTasksDismissed: next })
+            setStoredDismissals({ forUserId: userId, keys: next })
+            bumpJourneyEpoch()
         },
         [userId]
     )
@@ -139,37 +184,48 @@ export default function PendingVerificationTasks({
     // (an empty list would flash already-dismissed slides).
     const visibleLargeTasks = !dismissible
         ? tasks
-        : tasks.filter(
-              (task) =>
-                  !isDismissibleTask(task) ||
-                  (dismissedKeys !== null && !dismissedKeys.includes(bridgeTaskDismissalKey(task)))
-          )
+        : dismissedKeys === null
+          ? tasks.filter((task) => !isDismissibleTask(task))
+          : visibleHomeTasks(tasks, dismissedKeys)
     const documentSlide = homeTasks?.documentSlide
     const visibleTasks =
         documentSlide && (!whenEmptyShowsDocumentRequest || visibleLargeTasks.length > 0)
             ? [...visibleLargeTasks, documentSlide]
             : visibleLargeTasks
 
+    const taskReason = useCallback(
+        (task: NextAction) => {
+            if (!isBridgeDocumentTask(task)) return undefined
+            const entry = bridgeDocumentTaskEntry(task, nextActions, report)
+            return entry?.reason ? { code: entry.reason, userMessage: entry.message ?? '' } : undefined
+        },
+        [nextActions, report]
+    )
+
     const handleOpenTask = useCallback(
         (task: NextAction) => {
+            if (isCardDocumentTask(task)) {
+                router.push('/card')
+                return
+            }
             if (task.kind === 'accept-tos') {
                 setActiveTosTask(task)
                 return
             }
             if (task.kind === 'sumsub') {
-                documentFlow.start(task)
+                documentFlow.start(task, taskReason(task)?.code)
                 return
             }
             // The hosted flow gets its own screen first. It runs at the vendor,
             // in a browser we don't control, and keeps no partial progress — a
             // user who leaves mid-check to find a document restarts from step
             // one. That is a page's worth of prep, and it owns the handoff.
-            router.push('/profile/accounts/additional')
+            router.push(ADDITIONAL_VERIFICATION_ROUTE)
         },
-        [router, documentFlow]
+        [router, documentFlow, taskReason, setActiveTosTask]
     )
 
-    const closeTos = useCallback(() => setActiveTosTask(null), [])
+    const closeTos = useCallback(() => setActiveTosTask(null), [setActiveTosTask])
 
     // Advisory tasks (future-dated, rails still usable) are about KEEPING
     // access; blocking tasks are about ENABLING it — don't tell a blocked user
@@ -190,7 +246,24 @@ export default function PendingVerificationTasks({
     }
     const taskCopy = (task: NextAction): { title: string; description: string } => {
         const advisory = !!task.effectiveDate
+        if (isCardDocumentTask(task)) {
+            return {
+                title: t('pendingTasks.cardDocumentTitle'),
+                description:
+                    task.kind === 'rain-hosted' || task.kind === 'restart-identity'
+                        ? t('pendingTasks.cardIdentityDescription')
+                        : t('pendingTasks.cardAddressDescription'),
+            }
+        }
         if (task.kind === 'sumsub') {
+            if (isBridgeDocumentTask(task)) {
+                const reason = taskReason(task)
+                const key = reasonCodeKey(reason?.code)
+                return {
+                    title: tKyc('documentRequest.title'),
+                    description: key ? tIdentity(key) : reason?.userMessage || tKyc('setup.documentDescription'),
+                }
+            }
             return { title: t('pendingTasks.documentTitle'), description: t('pendingTasks.documentDescription') }
         }
         if (task.kind === 'accept-tos') {
@@ -230,7 +303,7 @@ export default function PendingVerificationTasks({
         return (
             <>
                 {!isHydratingDismissals && whenEmpty}
-                {documentFlow.modals}
+                {!hostedFlows && documentFlow.modals}
             </>
         )
     }
@@ -243,8 +316,9 @@ export default function PendingVerificationTasks({
                         {visibleTasks.map((task) => {
                             const copy = taskCopy(task)
                             const isHosted = task.kind === 'bridge-hosted'
-                            const isDocument = task.kind === 'sumsub'
-                            const deadline = formatEffectiveDate(task.effectiveDate)
+                            const isCard = isCardDocumentTask(task)
+                            const isDocument = task.kind === 'sumsub' && !isCard
+                            const deadline = formatEffectiveDate(task.effectiveDate, locale)
                             const startError =
                                 isDocument && documentFlow.startedTaskKey === task.key ? documentFlow.error : null
                             return (
@@ -261,7 +335,10 @@ export default function PendingVerificationTasks({
                                             </button>
                                         )}
                                         <div className="flex size-10 items-center justify-center rounded-full bg-background-icon-bubble-yellow">
-                                            <Icon name={isHosted || isDocument ? 'user-id' : 'badge'} size={20} />
+                                            <Icon
+                                                name={isHosted || isDocument || isCard ? 'user-id' : 'badge'}
+                                                size={20}
+                                            />
                                         </div>
                                         <div className="w-full">
                                             <div className="text-body-m-semibold">{copy.title}</div>
@@ -282,11 +359,20 @@ export default function PendingVerificationTasks({
                                             disabled={isDocument && documentFlow.isLoading}
                                             onClick={() => handleOpenTask(task)}
                                         >
-                                            {isDocument
-                                                ? t('pendingTasks.documentCta')
-                                                : isHosted
-                                                  ? 'Complete verification'
-                                                  : 'Review terms'}
+                                            {isCard
+                                                ? t('pendingTasks.cardDocumentCta')
+                                                : isDocument
+                                                  ? isBridgeDocumentTask(task)
+                                                      ? tKyc(
+                                                            kycActionCtaKey(
+                                                                { ...task, key: bridgeDocumentActionKey(task) },
+                                                                taskReason(task)?.code
+                                                            )
+                                                        )
+                                                      : t('pendingTasks.documentCta')
+                                                  : isHosted
+                                                    ? tKyc('continueVerification')
+                                                    : tKyc('setup.reviewTerms')}
                                         </Button>
                                         {startError && (
                                             <Callout
@@ -307,9 +393,9 @@ export default function PendingVerificationTasks({
 
             {visibleTasks.length === 0 && !isHydratingDismissals && whenEmpty}
 
-            {documentFlow.modals}
+            {!hostedFlows && documentFlow.modals}
 
-            {activeTosTask && <BridgeTosStep visible onComplete={closeTos} onSkip={closeTos} />}
+            {!hostedFlows && activeTosTask && <BridgeTosStep visible onComplete={closeTos} onSkip={closeTos} />}
         </>
     )
 }

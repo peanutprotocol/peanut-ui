@@ -10,6 +10,10 @@ export interface RunningVersionInfo extends BinaryInfo {
     otaVersion: string | null
 }
 
+let binaryInfo: BinaryInfo | null = null
+let binaryInfoPending: Promise<BinaryInfo | null> | undefined
+let binaryInfoReady: Promise<void> | undefined
+
 /**
  * The version the native shell actually ships, read off the binary.
  *
@@ -20,13 +24,50 @@ export interface RunningVersionInfo extends BinaryInfo {
  */
 export async function getBinaryInfo(): Promise<BinaryInfo | null> {
     if (!isCapacitor()) return null
+    if (!binaryInfoPending) {
+        binaryInfoPending = (async () => {
+            try {
+                const { App } = await import('@capacitor/app')
+                const info = await App.getInfo()
+                binaryInfo = { appVersion: info.version, appBuild: info.build }
+                return binaryInfo
+            } catch {
+                binaryInfoPending = undefined
+                return null
+            }
+        })()
+    }
+    return binaryInfoPending
+}
+
+export async function getCachedBinaryInfo(): Promise<BinaryInfo | null> {
     try {
-        const { App } = await import('@capacitor/app')
-        const info = await App.getInfo()
-        return { appVersion: info.version, appBuild: info.build }
+        if (!isCapacitor()) return null
+        if (!binaryInfoReady) {
+            binaryInfoReady = new Promise<void>((resolve) => {
+                // Share the wait budget so a stalled plugin only delays startup once.
+                const timeout = setTimeout(resolve, 300)
+                void getBinaryInfo()
+                    .finally(() => {
+                        clearTimeout(timeout)
+                        resolve()
+                    })
+                    .catch(() => undefined)
+            })
+        }
+        await binaryInfoReady
+        return binaryInfo
     } catch {
         return null
     }
+}
+
+export async function getCachedBinaryVersion(): Promise<string | undefined> {
+    const version = (await getCachedBinaryInfo())?.appVersion
+    if (typeof version === 'string' && /^\d{1,4}\.\d{1,4}\.\d{1,4}$/.test(version) && version.trim() === version) {
+        return version
+    }
+    return undefined
 }
 
 // Capgo's name for the JS baked into the binary; some plugin versions report it

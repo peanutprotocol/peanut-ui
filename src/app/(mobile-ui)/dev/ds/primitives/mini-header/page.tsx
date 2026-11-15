@@ -28,14 +28,14 @@ export default function MiniHeaderPage() {
                         <div className="flex flex-col gap-1">
                             <MiniHeader>Works right now</MiniHeader>
                             <p className="text-body-s text-foreground-primary">
-                                Receive dollars, send to any @username, hold your balance — no ID needed.
+                                Receive dollars, send to any @username, hold your balance. No ID needed.
                             </p>
                         </div>
                         <div className="flex flex-col gap-1">
                             <MiniHeader>For bank payments or a card</MiniHeader>
                             <p className="text-body-s text-foreground-primary">
-                                An ID check will be required — a few minutes, or 1–3 business days if a reviewer takes a
-                                thorough look.
+                                An ID check will be required. It takes a few minutes, or 1–3 business days if a reviewer
+                                takes a thorough look.
                             </p>
                         </div>
                     </div>
@@ -113,39 +113,6 @@ export default function MiniHeaderPage() {
                         <div className="flex flex-col gap-1">
                             <MiniHeader>Account owner</MiniHeader>
                             <p className="text-body-s text-foreground-secondary">Full name, address, country</p>
-                        </div>
-                    </div>
-                </ProductUsage.Example>
-
-                <ProductUsage.Example
-                    title="Add money — onramp confirmation drawer"
-                    path="src/components/AddMoney/components/OnrampConfirmationModal.tsx"
-                    description="Two topics, two grey headers, plain prose under each. Neither is a warning, which keeps the single Callout slot free for the real one."
-                    code={`<div className="flex flex-col gap-1">
-    <MiniHeader>{t('nextStep')}</MiniHeader>
-    <p className="text-body-s text-foreground-primary">{t('bankDetailsItem')}</p>
-    <p className="text-body-s text-foreground-primary">{t('referenceCodeItem')}</p>
-</div>
-<div className="flex flex-col gap-1">
-    <MiniHeader>{t('youMust')}</MiniHeader>
-    <p className="text-body-s text-foreground-primary">{t('copyReferenceCode')}</p>
-    <p className="text-body-s text-foreground-primary">{t('pasteReference')}</p>
-</div>`}
-                >
-                    <div className="flex flex-col gap-4 text-left">
-                        <div className="flex flex-col gap-1">
-                            <MiniHeader>Next step</MiniHeader>
-                            <p className="text-body-s text-foreground-primary">We show you the bank details</p>
-                            <p className="text-body-s text-foreground-primary">And a reference code</p>
-                        </div>
-                        <div className="flex flex-col gap-1">
-                            <MiniHeader>Required</MiniHeader>
-                            <p className="text-body-s text-foreground-primary">
-                                Copy the one-time reference code exactly
-                            </p>
-                            <p className="text-body-s text-foreground-primary">
-                                Paste it in the description/reference field
-                            </p>
                         </div>
                     </div>
                 </ProductUsage.Example>

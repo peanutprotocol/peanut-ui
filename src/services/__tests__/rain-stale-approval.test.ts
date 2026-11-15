@@ -50,6 +50,21 @@ describe('rainApi.submitWithdrawal — stale card approval', () => {
         window.removeEventListener(RAIN_STALE_APPROVAL_EVENT, onEvent)
     })
 
+    it('the card balance return keeps the typed error but opens no re-enable prompt', async () => {
+        mockFetchWithSentry.mockResolvedValue(
+            jsonResponse(409, { error: 'Your card needs to be re-enabled.', code: 'STALE_CARD_APPROVAL' })
+        )
+        const onEvent = jest.fn()
+        window.addEventListener(RAIN_STALE_APPROVAL_EVENT, onEvent)
+
+        await expect(
+            rainApi.submitWithdrawal(withdrawInput, { suppressStaleApprovalEvent: true })
+        ).rejects.toBeInstanceOf(StaleCardApprovalError)
+        expect(onEvent).not.toHaveBeenCalled()
+
+        window.removeEventListener(RAIN_STALE_APPROVAL_EVENT, onEvent)
+    })
+
     it('surfaces the backend copy verbatim on the typed error', async () => {
         mockFetchWithSentry.mockResolvedValue(
             jsonResponse(409, { error: 'Your card needs to be re-enabled.', code: 'STALE_CARD_APPROVAL' })
@@ -163,6 +178,44 @@ describe('rainApi.submitWithdrawal — stale card approval', () => {
         expect(onEvent).not.toHaveBeenCalled()
 
         window.removeEventListener(RAIN_STALE_APPROVAL_EVENT, onEvent)
+    })
+
+    it('a stamp failure is logged by default and reported only when asked', async () => {
+        const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+        mockFetchWithSentry.mockResolvedValue(jsonResponse(409, { error: 'Intent already processing' }))
+        const input = { preparationId: 'prep-1', txHash: `0x${'ee'.repeat(32)}` }
+
+        await expect(rainApi.stampWithdrawal(input)).resolves.toBeUndefined()
+        const err = await rainApi.stampWithdrawal(input, { throwOnError: true }).catch((e) => e)
+        expect(err).toMatchObject({ name: 'ApiError', status: 409 })
+        warn.mockRestore()
+    })
+
+    it('a cancel refusal is logged by default and reported only when asked', async () => {
+        const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+        mockFetchWithSentry.mockResolvedValue(
+            jsonResponse(503, { error: 'Could not verify the preparation on-chain — try again shortly' })
+        )
+        await expect(rainApi.cancelPreparation('prep-1')).resolves.toBeUndefined()
+        const err = await rainApi.cancelPreparation('prep-1', { throwOnError: true }).catch((e) => e)
+        expect(err).toMatchObject({ name: 'ApiError', status: 503 })
+        warn.mockRestore()
+    })
+
+    it('reads one preparation status without a body', async () => {
+        const status = {
+            preparationId: 'prep-1',
+            state: 'pending',
+            reason: 'confirming',
+            chainId: '42161',
+            txHash: null,
+            expiresAt: null,
+        }
+        mockFetchWithSentry.mockResolvedValue(jsonResponse(200, status))
+        await expect(rainApi.getWithdrawalStatus('prep-1')).resolves.toEqual(status)
+        const [url, init] = mockFetchWithSentry.mock.calls[0]
+        expect(url).toContain('/rain/cards/withdraw/status/prep-1')
+        expect(init).toMatchObject({ method: 'GET' })
     })
 
     it('a non-409 failure is unchanged (generic Error, no event)', async () => {

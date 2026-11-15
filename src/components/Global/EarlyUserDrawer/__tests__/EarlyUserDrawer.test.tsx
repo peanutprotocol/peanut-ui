@@ -1,29 +1,43 @@
-import { StrictMode } from 'react'
+import React, { StrictMode } from 'react'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
-import EarlyUserDrawer from '..'
 import Modal from '@/components/Global/Modal'
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
 import en from '@/i18n/app/messages/en.json'
 import { loadMessages } from '@/i18n/app/messages'
 import { APP_LOCALES } from '@/i18n/app/config'
 import { updateUserById } from '@/app/actions/users'
-import posthog from 'posthog-js'
-import { ANALYTICS_EVENTS, MODAL_TYPES, REFERRAL_SOURCES } from '@/constants/analytics.consts'
+import { REFERRAL_SOURCES } from '@/constants/analytics.consts'
+import { state } from '@/features/attention/__tests__/legacy-manager.fixture'
+import { updateUserPreferences } from '@/utils/general.utils'
+import { AttentionProvider, resetAttentionSessionForTests } from '@/features/attention/AttentionProvider'
+import { AttentionInterrupt } from '@/features/attention/AttentionInterrupt'
+import EarlyUserDrawer from '..'
 
 let mockUser: any
 let mockModals: any
+let mockJourney: ReturnType<typeof state>
 const mockFetchUser = jest.fn()
+const mockGenerateInviteCodeLink = jest.fn((_username: string, _source?: string, _origin?: string) => ({
+    inviteLink: 'https://peanut.me/invite?code=TEST',
+}))
+jest.mock('@/features/attention/journeyState', () => ({ useJourneyState: () => mockJourney }))
+jest.mock('@/features/attention/serverAttention', () => ({
+    ...jest.requireActual('@/features/attention/serverAttention'),
+    useServerAttention: () => undefined,
+}))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: mockUser, fetchUser: mockFetchUser }) }))
 jest.mock('@/context/ModalsContext', () => ({ useModalsContextOptional: () => mockModals }))
 jest.mock('@/app/actions/users', () => ({ updateUserById: jest.fn().mockResolvedValue({}) }))
-const mockGenerateInviteCodeLink = jest.fn((_username: string, _source?: string) => ({
-    inviteLink: 'https://peanut.me/invite?code=TEST',
-}))
 jest.mock('@/utils/general.utils', () => ({
-    generateInviteCodeLink: (username: string, source?: string) => mockGenerateInviteCodeLink(username, source),
+    ...jest.requireActual('@/utils/general.utils'),
+    generateInviteCodeLink: (username: string, source?: string, origin?: string) =>
+        mockGenerateInviteCodeLink(username, source, origin),
 }))
-jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
+jest.mock('@/hooks/useAppOrigin', () => ({ useAppOrigin: () => 'https://peanut.me' }))
+jest.mock('next/navigation', () => ({ usePathname: () => '/home' }))
+jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() }, capture: jest.fn() }))
+jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn(), captureMessage: jest.fn() }))
 jest.mock('@/components/0_Bruddle/IconBubble', () => ({ IconBubble: () => null }))
 jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => null }))
 jest.mock('@/components/Global/ShareButton', () => ({
@@ -36,8 +50,15 @@ jest.mock('@/components/Global/DocsLink', () => ({
 }))
 
 const title = en.global.earlyUserModal.title
+const completed = {
+    verify: 'done',
+    addMoneyDone: true,
+    firstPaymentDone: true,
+    firstPaymentRoute: 'card_qr',
+    step: 'completed',
+} as const
 const clearGate = () => ({ status: 'clear', userId: mockUser.user.userId })
-const Harness = ({
+function Harness({
     modal = false,
     drawer = false,
     announcementFirst = false,
@@ -45,25 +66,39 @@ const Harness = ({
     modal?: boolean
     drawer?: boolean
     announcementFirst?: boolean
-}) => (
-    <StrictMode>
-        <NextIntlClientProvider locale="en" messages={en}>
-            {announcementFirst && <EarlyUserDrawer />}
-            <Modal visible={modal} onClose={() => {}} title="Terms notice">
-                <p>Terms body</p>
-            </Modal>
-            <Drawer open={drawer}>
-                <DrawerContent>
-                    <DrawerTitle>Another drawer</DrawerTitle>
-                </DrawerContent>
-            </Drawer>
-            {!announcementFirst && <EarlyUserDrawer />}
-        </NextIntlClientProvider>
-    </StrictMode>
-)
-
-// jsdom does not run CSS animations. Deliver the real animation lifecycle
-// event so Radix can remove its closing portal and release the presence hold.
+}) {
+    const id = mockUser?.user.userId ?? null
+    const gate = mockModals?.legalConsentGate
+    mockJourney = state({
+        userId: id,
+        userLoaded: !!id,
+        showEarlyUserModal: !!mockUser?.showEarlyUserModal,
+        onboarding: completed,
+        consent:
+            gate?.status === 'clear' && gate.userId === id
+                ? { status: 'clear', versions: [], documents: [] }
+                : { status: 'unknown', versions: [], documents: [] },
+    })
+    const announcement = <AttentionInterrupt />
+    return (
+        <StrictMode>
+            <NextIntlClientProvider locale="en" messages={en}>
+                <AttentionProvider>
+                    {announcementFirst && announcement}
+                    <Modal visible={modal} onClose={() => {}} title="Terms notice">
+                        <p>Terms body</p>
+                    </Modal>
+                    <Drawer open={drawer}>
+                        <DrawerContent>
+                            <DrawerTitle>Another drawer</DrawerTitle>
+                        </DrawerContent>
+                    </Drawer>
+                    {!announcementFirst && announcement}
+                </AttentionProvider>
+            </NextIntlClientProvider>
+        </StrictMode>
+    )
+}
 function finishClosingDrawers() {
     for (const node of document.querySelectorAll('[data-state="closed"]')) {
         const event = new Event('animationend', { bubbles: true })
@@ -71,56 +106,59 @@ function finishClosingDrawers() {
         fireEvent(node, event)
     }
 }
-
 beforeAll(() => {
     Element.prototype.getAnimations = () => []
 })
-
 beforeEach(() => {
     jest.clearAllMocks()
+    window.localStorage.clear()
+    resetAttentionSessionForTests()
     mockUser = { user: { userId: 'alice', username: 'alice' }, showEarlyUserModal: true }
     mockModals = { legalConsentGate: clearGate() }
+    updateUserPreferences('alice', { sessionCount: 2 })
 })
 
-it('opens when clear and does not count itself as another drawer', async () => {
+// PR #3667's accepted quiet-session policy replaces the former self-opening
+// drawer: the same scenarios now exercise the real manager and interrupt host.
+it('opens in the first eligible quiet session and does not count itself as another drawer', async () => {
     render(<Harness />)
     expect(await screen.findByRole('dialog', { name: title })).toBeInTheDocument()
     expect(screen.getByText(en.global.earlyUserModal.description)).toBeInTheDocument()
     expect(screen.queryByText(/cut of their/)).not.toBeInTheDocument()
     expect(updateUserById).not.toHaveBeenCalled()
-    // The share button emits a tagged invite link (TASK-23382).
-    expect(mockGenerateInviteCodeLink).toHaveBeenCalledWith('alice', REFERRAL_SOURCES.EARLY_USER_DRAWER)
+    expect(mockGenerateInviteCodeLink).toHaveBeenCalledWith(
+        'alice',
+        REFERRAL_SOURCES.EARLY_USER_DRAWER,
+        'https://peanut.me'
+    )
 })
-
+it('does not open in the first session', async () => {
+    updateUserPreferences('alice', { sessionCount: 0 })
+    render(<Harness />)
+    await act(async () => {})
+    expect(screen.queryByText(title)).not.toBeInTheDocument()
+})
 it.each([false, true])('waits for another modal regardless of mount order (first=%s)', async (announcementFirst) => {
     const view = render(<Harness modal announcementFirst={announcementFirst} />)
     expect(screen.queryByText(title)).not.toBeInTheDocument()
-    expect(updateUserById).not.toHaveBeenCalled()
     view.rerender(<Harness announcementFirst={announcementFirst} />)
     expect(await screen.findByRole('dialog', { name: title })).toBeInTheDocument()
 })
-
-it('waits until both a modal and a drawer close, then yields and resumes without acknowledging', async () => {
+it('waits until modal and drawer close, then yields and resumes without acknowledging', async () => {
     const view = render(<Harness modal drawer />)
     expect(screen.queryByText(title)).not.toBeInTheDocument()
     view.rerender(<Harness drawer />)
     expect(screen.queryByText(title)).not.toBeInTheDocument()
     view.rerender(<Harness />)
-    expect(screen.queryByText(title)).not.toBeInTheDocument()
     finishClosingDrawers()
     expect(await screen.findByRole('dialog', { name: title })).toBeInTheDocument()
     view.rerender(<Harness drawer />)
     await waitFor(() => expect(screen.queryByText(title)).not.toBeInTheDocument())
     expect(updateUserById).not.toHaveBeenCalled()
-    expect(posthog.capture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.MODAL_DISMISSED, {
-        modal_type: MODAL_TYPES.EARLY_USER,
-    })
     view.rerender(<Harness />)
-    expect(screen.queryByText(title)).not.toBeInTheDocument()
     finishClosingDrawers()
     expect(await screen.findByRole('dialog', { name: title })).toBeInTheDocument()
 })
-
 it('waits for the legal status request and the current account to resolve', async () => {
     mockModals.legalConsentGate = { status: 'checking', userId: 'alice' }
     const view = render(<Harness />)
@@ -135,14 +173,13 @@ it('waits for the legal status request and the current account to resolve', asyn
     view.rerender(<Harness />)
     expect(await screen.findByRole('dialog', { name: title })).toBeInTheDocument()
 })
-
 it.each([
     'isSupportModalOpen',
     'isGetAppModalOpen',
     'isSignInModalOpen',
     'isQRScannerOpen',
     'isSecurityVerificationOpen',
-])('waits for globally requested overlays before their lazy content mounts (%s)', async (flag) => {
+])('waits for requested overlays before lazy content mounts (%s)', async (flag) => {
     mockModals[flag] = true
     const view = render(<Harness />)
     expect(screen.queryByText(title)).not.toBeInTheDocument()
@@ -150,8 +187,7 @@ it.each([
     view.rerender(<Harness />)
     expect(await screen.findByRole('dialog', { name: title })).toBeInTheDocument()
 })
-
-it('only saves seen on actual dismissal and stays closed across stale user refreshes', async () => {
+it('only saves seen on dismissal and does not leak the closed state to another account', async () => {
     const view = render(<Harness />)
     await screen.findByRole('dialog', { name: title })
     fireEvent.keyDown(document, { key: 'Escape', code: 'Escape' })
@@ -159,13 +195,13 @@ it('only saves seen on actual dismissal and stays closed across stale user refre
     expect(mockFetchUser).toHaveBeenCalledTimes(1)
     mockUser = { ...mockUser }
     view.rerender(<Harness />)
-    expect(screen.getByText(title).closest('[role="dialog"]')).toHaveAttribute('data-state', 'closed')
+    expect(screen.queryByRole('dialog', { name: title })).not.toBeInTheDocument()
     mockUser = { user: { userId: 'bob', username: 'bob' }, showEarlyUserModal: true }
+    updateUserPreferences('bob', { sessionCount: 2 })
     mockModals.legalConsentGate = clearGate()
     view.rerender(<Harness />)
     expect(await screen.findByRole('dialog', { name: title })).toBeInTheDocument()
 })
-
 it('does not open for ineligible or logged-out users', () => {
     mockUser.showEarlyUserModal = false
     const view = render(<Harness />)
@@ -174,16 +210,19 @@ it('does not open for ineligible or logged-out users', () => {
     view.rerender(<Harness />)
     expect(screen.queryByText(title)).not.toBeInTheDocument()
 })
-
-it.each(APP_LOCALES)('renders the translated replacement body in %s through the real locale loader', async (locale) => {
+it.each(APP_LOCALES)('renders the translated body in %s through the real locale loader', async (locale) => {
     const messages = await loadMessages(locale)
-    await act(async () => {
-        render(
-            <NextIntlClientProvider locale={locale} messages={messages}>
-                <EarlyUserDrawer />
-            </NextIntlClientProvider>
-        )
-    })
+    render(
+        <NextIntlClientProvider locale={locale} messages={messages}>
+            <EarlyUserDrawer
+                askId="early-user"
+                presentation="drawer"
+                onActed={jest.fn()}
+                onDismissed={jest.fn()}
+                onSnoozed={jest.fn()}
+            />
+        </NextIntlClientProvider>
+    )
     expect(screen.getByText(messages.global.earlyUserModal.description)).toBeInTheDocument()
     expect(messages.global.earlyUserModal.description).not.toContain('referral rewards.')
     if (locale !== 'en')

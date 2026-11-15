@@ -1,5 +1,6 @@
 import type { RailCapability } from '@/types/capabilities'
-import type { DepositAccountView, DepositCorridor, DepositRail, SenderPolicy } from './types'
+import { PIX_ADD_MONEY_PATH } from '@/features/pix/pix.routes'
+import type { DepositAccountView, DepositCorridor, DepositInstructions, DepositRail, SenderPolicy } from './types'
 
 /**
  * How each corridor PRESENTS: flag, currency, arrival, row count. It never
@@ -57,14 +58,14 @@ export const DEPOSIT_RAILS: Record<DepositCorridor, DepositRail> = {
         flagIso2: 'br',
         detailRowCount: 3,
         claimable: false,
-        // A frontend pre-check, not a mirror of a server rule: the backend
-        // does not gate the Manteca Pix corridor on residence. The account
-        // behind the top-up needs a CPF, and a Brazilian residence is the
-        // stand-in we can check before the user types an amount — the same
-        // proxy the backend uses for the Bridge BRL corridor
-        // (`isDepositResidenceSupported`, BANK_TRANSFER_BR only).
+        // The top-up (POST /manteca/deposit) reads no residence: it needs an
+        // enabled Manteca rail for BRL and refuses without one (`kyc_required`).
+        // The API opens Manteca local accounts only for a residence in
+        // Argentina or Brazil, keyed on the one residence and never a second
+        // one (`peanut.manteca-local-residence`); the app narrows that to the
+        // corridor's own country, as it does for Argentina below.
         residenceIso2: 'BR',
-        topUpHref: '/add-money/brazil/manteca',
+        topUpHref: PIX_ADD_MONEY_PATH,
     },
     BANK_TRANSFER_AR: {
         corridor: 'BANK_TRANSFER_AR',
@@ -220,4 +221,26 @@ export function corridorsFromRails(
         if (corridor) held.add(corridor)
     }
     return DEPOSIT_RAIL_ORDER.filter((corridor) => held.has(corridor))
+}
+
+/** Whether the account contains the transfer coordinates required for its corridor. */
+export function hasCompleteDepositInstructions(
+    corridor: DepositCorridor | undefined,
+    instructions: DepositInstructions | undefined
+): boolean {
+    if (!instructions) return false
+    switch (corridor) {
+        case 'SEPA_EU':
+            return !!instructions.iban
+        case 'FASTER_PAYMENTS_GB':
+            return !!instructions.accountNumber && !!instructions.sortCode
+        case 'ACH_US':
+            return !!instructions.accountNumber && !!instructions.routingNumber
+        case 'SPEI_MX':
+            return !!instructions.clabe
+        case 'BANK_TRANSFER_CO':
+            return !!instructions.breBKey && !!instructions.depositMessage
+        default:
+            return false
+    }
 }

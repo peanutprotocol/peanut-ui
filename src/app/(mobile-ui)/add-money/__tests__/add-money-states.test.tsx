@@ -288,6 +288,10 @@ jest.mock('@/constants/rhino.consts', () => ({
         { name: 'ETH', logoUrl: '/eth-token.png' },
     ]),
     TOKEN_LOGOS: { USDC: '/usdc.png', USDT: '/usdt.png', ETH: '/eth-token.png' },
+    CHAIN_SCOPED_DEPOSIT_TOKENS: [
+        { name: 'EURe v2', logoUrl: '/eure.png', network: 'Gnosis', isEuro: true },
+        { name: 'USDe', logoUrl: '/usde.png', network: 'Arbitrum', isEuro: false },
+    ],
 }))
 
 jest.mock('@/constants/zerodev.consts', () => ({
@@ -317,6 +321,7 @@ jest.mock('@/constants/manteca.consts', () => ({
 }))
 
 jest.mock('@/constants/analytics.consts', () => ({
+    ...jest.requireActual('@/constants/analytics.consts'),
     ANALYTICS_EVENTS: {
         DEPOSIT_METHOD_SELECTED: 'deposit_method_selected',
         DEPOSIT_AMOUNT_ENTERED: 'deposit_amount_entered',
@@ -333,7 +338,6 @@ jest.mock('@/constants/query.consts', () => ({
 // General utils
 jest.mock('@/utils/general.utils', () => ({
     formatAmount: jest.fn((v: any) => v?.toString() ?? '0'),
-    getExplorerUrl: jest.fn(() => 'https://arbiscan.io'),
     saveRedirectUrl: jest.fn(),
     getRedirectUrl: jest.fn(() => null),
     getStoredRedirect: jest.fn(() => null),
@@ -350,9 +354,15 @@ jest.mock('@/utils/general.utils', () => ({
         url.startsWith('/') && !url.startsWith('//') && !url.includes('://') ? url : null
     ),
 }))
+jest.mock('@/utils/token.utils', () => ({
+    ...jest.requireActual('@/utils/token.utils'),
+    getExplorerUrl: jest.fn(() => 'https://arbiscan.io'),
+}))
 
 jest.mock('@/utils/currency', () => ({
+    ...jest.requireActual('@/utils/currency'),
     formatBankAmount: jest.fn((amount: string, currency: string) => `${currency} ${amount}`),
+    formatAmountNumber: jest.fn((amount: string | number) => String(amount)),
 }))
 
 jest.mock('@/utils/format.utils', () => ({
@@ -529,7 +539,10 @@ jest.mock('@/components/AddMoney/components/OnrampConfirmationModal', () => ({
 
 jest.mock('@/components/0_Bruddle/ListItem', () => ({
     ListItem: (props: any) => (
-        <div data-testid={`action-card-${props.title?.toLowerCase().replace(/\s+/g, '-')}`} onClick={props.onClick}>
+        <div
+            data-testid={props['data-testid'] ?? `action-card-${props.title?.toLowerCase().replace(/\s+/g, '-')}`}
+            onClick={props.onClick}
+        >
             <span>{props.title}</span>
             <span>{props.body}</span>
         </div>
@@ -558,7 +571,9 @@ jest.mock('@/components/AddMoney/components/SupportedNetworksDrawer', () => ({
 }))
 
 jest.mock('@/components/Tooltip', () => ({
-    Tooltip: (props: any) => <div>{props.children}</div>,
+    Tooltip: (props: any) => (
+        <div data-tooltip={typeof props.content === 'string' ? props.content : undefined}>{props.children}</div>
+    ),
 }))
 
 // Crypto deposit polling hook
@@ -627,12 +642,15 @@ jest.mock('@/components/AddMoney/components/MantecaAddMoney', () => ({
 // MantecaTransfersMaintenanceView — the outage screen shown when a currency is
 // in disabledMantecaCurrencies. Mocked to a testid so GROUP 7 can assert which
 // branch the regional-method route renders without pulling the real Card tree.
+jest.mock('@/features/brazil-pause/components/BrazilPausedScreen', () => ({
+    BrazilPausedScreen: () => <div data-testid="brazil-paused-screen" />,
+}))
 jest.mock('@/components/Global/Banner/MantecaTransfersMaintenanceView', () => ({
     __esModule: true,
     MantecaTransfersMaintenanceView: () => <div data-testid="manteca-transfers-maintenance">Manteca Maintenance</div>,
 }))
 
-// AddMoneyBankDetails (for US bank page and bank details step)
+// AddMoneyBankDetails (for the bank details step)
 jest.mock('@/components/AddMoney/components/AddMoneyBankDetails', () => ({
     __esModule: true,
     default: (props: any) => (
@@ -893,6 +911,7 @@ function setGate(kind: Gate) {
 
     mockUseCapabilities.mockReturnValue({
         rails,
+        capabilities: {},
         nextActions,
         isKycApproved,
         gateFor: () => gateState,
@@ -1010,35 +1029,43 @@ beforeEach(() => {
 })
 
 // ============================================================
-// GROUP 1: Landing (root = the merged bank screen; the old method-selection
-// screen is gone — crypto is a row on that screen and on the home Add drawer)
+// GROUP 1: Landing
 // ============================================================
 describe('GROUP 1: Landing', () => {
-    test('bare /add-money redirects to the home add drawer (nuqs url state)', () => {
+    test('bare /add-money renders the method picker without redirecting', () => {
         renderWithProviders(<AddMoneyPage />)
-
-        // the drawer offers crypto AND bank, so generic entries lose nothing
-        expect(mockRouterReplace).toHaveBeenCalledWith('/home?drawer=add')
-        expect(screen.queryByTestId('deposit-accounts-hub')).not.toBeInTheDocument()
+        expect(screen.getByTestId('add-money-method-crypto')).toBeInTheDocument()
+        expect(screen.getByTestId('add-money-method-transfer')).toBeInTheDocument()
+        expect(mockRouterReplace).not.toHaveBeenCalled()
+        expect(mockRouterPush).not.toHaveBeenCalled()
     })
 
-    test('bare /add-money carries returnTo through the drawer redirect', () => {
-        mockSearchParams.set('returnTo', '/profile/exchange-rate?from=USD&to=EUR')
+    test('pre-KYC users can select crypto', () => {
+        setGate('needs-identity')
         renderWithProviders(<AddMoneyPage />)
+        fireEvent.click(screen.getByTestId('add-money-method-crypto'))
+        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/crypto?returnTo=%2Fadd-money')
+    })
 
-        // dropping it would strand the exchange-rate widget's back contract
-        expect(mockRouterReplace).toHaveBeenCalledWith(
-            `/home?drawer=add&returnTo=${encodeURIComponent('/profile/exchange-rate?from=USD&to=EUR')}`
+    test('preserves an internal returnTo on back and method selection', () => {
+        const origin = '/profile/exchange-rate?from=USD&to=EUR'
+        mockSearchParams.set('returnTo', origin)
+        renderWithProviders(<AddMoneyPage />)
+        fireEvent.click(screen.getByTestId('nav-header'))
+        expect(mockRouterReplace).toHaveBeenCalledWith(origin)
+        fireEvent.click(screen.getByTestId('add-money-method-crypto'))
+        expect(mockRouterPush).toHaveBeenCalledWith(
+            '/add-money/crypto?returnTo=%2Fadd-money%3FreturnTo%3D%252Fprofile%252Fexchange-rate%253Ffrom%253DUSD%2526to%253DEUR'
         )
     })
 
-    test('bare /add-money drops an off-origin returnTo from the redirect', () => {
-        // forwarding the raw param verbatim would make a trusted deep link an
-        // open redirect the moment any consumer honors it
-        mockSearchParams.set('returnTo', 'https://evil.example/phish')
+    test.each(['https://evil.example/phish', '//evil.example/phish'])('rejects off-origin returnTo %s', (origin) => {
+        mockSearchParams.set('returnTo', origin)
         renderWithProviders(<AddMoneyPage />)
-
-        expect(mockRouterReplace).toHaveBeenCalledWith('/home?drawer=add')
+        fireEvent.click(screen.getByTestId('nav-header'))
+        expect(mockRouterReplace).toHaveBeenCalledWith('/home')
+        fireEvent.click(screen.getByTestId('add-money-method-crypto'))
+        expect(mockRouterPush).toHaveBeenCalledWith('/add-money/crypto?returnTo=%2Fadd-money')
     })
 
     /*
@@ -1151,6 +1178,51 @@ describe('GROUP 3: Crypto deposit', () => {
         expect(screen.getAllByText(/EVM/).length).toBeGreaterThan(0)
         expect(screen.getByText('5 USD')).toBeInTheDocument()
         expect(screen.getByText('10,000 USD')).toBeInTheDocument()
+    })
+
+    describe('chain-scoped token chips', () => {
+        const renderAddressScreen = (network: 'EVM' | 'SOL' | 'TRON') => {
+            mockUseCryptoDepositPolling.mockReturnValue({
+                status: 'not_started',
+                resetStatus: jest.fn(),
+                isResetting: false,
+            })
+            renderWithProviders(
+                <CryptoDepositView
+                    network={network}
+                    depositAddressData={{
+                        depositAddress: '0x1234567890abcdef1234567890abcdef12345678',
+                        minDepositLimitUsd: 5,
+                        maxDepositLimitUsd: 10000,
+                        supportedChains: [],
+                    }}
+                    isLoading={false}
+                    onSuccess={jest.fn()}
+                    onBack={jest.fn()}
+                />
+            )
+        }
+
+        // A token sent on any other chain is silently lost, so each chip names its chain.
+        test('EVM address screen names the one network for each token', () => {
+            renderAddressScreen('EVM')
+
+            expect(screen.getByText('EURe v2 · Gnosis').closest('[data-tooltip]')).toHaveAttribute(
+                'data-tooltip',
+                'Only on Gnosis. Converted at the market rate.'
+            )
+            expect(screen.getByText('USDe · Arbitrum').closest('[data-tooltip]')).toHaveAttribute(
+                'data-tooltip',
+                'Only on Arbitrum'
+            )
+        })
+
+        test.each(['SOL', 'TRON'] as const)('%s address screen does not offer them', (network) => {
+            renderAddressScreen(network)
+
+            expect(screen.queryByText('EURe v2 · Gnosis')).not.toBeInTheDocument()
+            expect(screen.queryByText('USDe · Arbitrum')).not.toBeInTheDocument()
+        })
     })
 
     test('deposit processing shows the shared processing screen', () => {
@@ -1415,7 +1487,10 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
             setParams({ country })
             renderWithProviders(<OnrampBankPage />)
 
-            expect(mockRouterReplace).toHaveBeenCalledWith(`/add-money/${country}/manteca`)
+            // Brazil's Pix has one page, where the backend's route picks the provider
+            expect(mockRouterReplace).toHaveBeenCalledWith(
+                country === 'brazil' ? '/add-money/pix' : `/add-money/${country}/manteca`
+            )
             expect(screen.queryByText('Amount to add')).not.toBeInTheDocument()
             expect(screen.getByTestId('peanut-loading')).toBeInTheDocument()
         }
@@ -1643,15 +1718,17 @@ describe('GROUP 5: Bridge Bank Onramp', () => {
 })
 
 // ============================================================
-// GROUP 6: US Bank Page (static route)
+// GROUP 6: US Bank Page (static route, retired to an alias)
 // ============================================================
 describe('GROUP 6: US Bank Page', () => {
-    test('renders AddMoneyBankDetails with flow=add-money', () => {
-        const USBankPage = require('../us/bank/page').default
-        renderWithProviders(<USBankPage />)
+    test('sends the old US link to the live US bank route, query included', () => {
+        window.history.replaceState(null, '', '/add-money/us/bank?amount=10&currency=USD')
+        const USBankAlias = require('../us/bank/page').default
+        renderWithProviders(<USBankAlias />)
 
-        expect(screen.getByTestId('add-money-bank-details')).toBeInTheDocument()
-        expect(screen.getByText('Bank Details (flow: add-money)')).toBeInTheDocument()
+        expect(mockRouterReplace).toHaveBeenCalledWith('/add-money/usa/bank?amount=10&currency=USD')
+        expect(screen.queryByTestId('add-money-bank-details')).not.toBeInTheDocument()
+        window.history.replaceState(null, '', '/')
     })
 })
 
@@ -1662,6 +1739,15 @@ describe('GROUP 7: Manteca Deposit (Regional Method)', () => {
     afterEach(() => {
         // reset the per-currency outage list so its default value can't leak between tests
         killSwitches.disabledMantecaCurrencies = []
+    })
+
+    // Brazil's Pix lives on /add-money/pix (features/pix/__tests__): the old URL goes there.
+    test('BR + manteca mounts no Manteca flow and goes to the neutral Pix page', () => {
+        setParams({ country: 'brazil', 'regional-method': 'manteca' })
+        renderWithProviders(<AddMoneyRegionalMethodPage />)
+
+        expect(screen.queryByTestId('manteca-add-money')).not.toBeInTheDocument()
+        expect(mockRouterReplace).toHaveBeenCalledWith('/add-money/pix')
     })
 
     test('AR + manteca renders MantecaAddMoney when its currency (ARS) is live', () => {
@@ -1966,6 +2052,8 @@ describe('GROUP 8: InputAmountStep Component', () => {
         ).toBeInTheDocument()
         expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument()
         expect(screen.getByText('Continue')).toBeDisabled()
+        // no amount field: without a rate it would show $0.00 in USD
+        expect(screen.queryByTestId('amount-input')).toBeNull()
     })
 
     // #1848: the error state used to be a dead end — useCurrency only refetches

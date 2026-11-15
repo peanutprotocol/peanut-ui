@@ -1,4 +1,6 @@
-import { jsonParse } from '@/utils/general.utils'
+import { requirePaymentMoney } from '@/lib/money'
+import { validateNumericResponse } from '@/lib/numeric-response'
+import { isStableCoin, jsonParse } from '@/utils/general.utils'
 import {
     type TRequestChargeResponse,
     type PaymentCreationResponse,
@@ -11,6 +13,22 @@ import { isDemoMode } from '@/utils/demo'
 
 export const chargesApi = {
     create: async (data: CreateChargeRequest): Promise<TCharge> => {
+        if (data.pricing_type === 'fixed_price') {
+            requirePaymentMoney(data.local_price?.amount, data.local_price?.currency ?? '', 18)
+            // A withdrawal in a token that is not a dollar (ETH, EURC, USDe) has no
+            // destination amount to send: its charge stores '0' and the API books
+            // what Rhino delivered. Every other zero stays refused.
+            const noDestinationAmount =
+                data.transactionType === 'WITHDRAW' &&
+                data.requestProps?.tokenAmount === '0' &&
+                !isStableCoin(data.requestProps.tokenSymbol)
+            if (data.requestProps?.tokenAmount !== undefined && !noDestinationAmount)
+                requirePaymentMoney(
+                    data.requestProps.tokenAmount,
+                    data.requestProps.tokenSymbol,
+                    data.requestProps.tokenDecimals
+                )
+        }
         // The demo interceptor is invoked explicitly BEFORE apiFetch so the
         // demo store gets the exact JSON payload shape (intentional mapping —
         // parseBody now degrades gracefully for FormData callers that skip
@@ -39,7 +57,7 @@ export const chargesApi = {
             if (!response.ok) {
                 throw await apiErrorFromResponse(response, 'Failed to create charge')
             }
-            return response.json()
+            return validateNumericResponse(await response.json())
         }
 
         const formData = new FormData()
@@ -64,7 +82,7 @@ export const chargesApi = {
             throw await apiErrorFromResponse(response, 'Failed to create charge')
         }
 
-        return response.json()
+        return validateNumericResponse(await response.json())
     },
 
     get: async (id: string): Promise<TRequestChargeResponse> => {
@@ -76,11 +94,12 @@ export const chargesApi = {
             throw new Error(`Failed to fetch charge: ${response.statusText}`)
         }
 
-        return jsonParse(await response.text()) as TRequestChargeResponse
+        return validateNumericResponse(jsonParse(await response.text())) as TRequestChargeResponse
     },
 
     /** The requestee sets the amount of an open-amount request before paying it. */
     setAmount: async (id: string, amount: string): Promise<void> => {
+        requirePaymentMoney(amount, 'USD', 6)
         const response = await serverFetch(`/charges/${id}/amount`, {
             method: 'PATCH',
             body: JSON.stringify({ amount }),
@@ -143,6 +162,6 @@ export const chargesApi = {
             throw new Error(`Failed to create payment: ${response.statusText}`)
         }
 
-        return response.json()
+        return validateNumericResponse(await response.json())
     },
 }

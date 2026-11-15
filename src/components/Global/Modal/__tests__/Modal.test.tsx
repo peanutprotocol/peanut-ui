@@ -86,3 +86,14 @@ describe('Modal hardware back', () => {
         expect(onClose).not.toHaveBeenCalled()
     })
 })
+
+describe('Modal close button', () => {
+    it('carries the test id the caller names', () => {
+        const { getByTestId } = renderModal(
+            <Modal visible onClose={jest.fn()} closeTestId="picker-close">
+                <div>body</div>
+            </Modal>
+        )
+        expect(getByTestId('picker-close')).toHaveAttribute('aria-label', 'Close')
+    })
+})

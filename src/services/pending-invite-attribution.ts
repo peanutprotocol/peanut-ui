@@ -1,4 +1,5 @@
 import posthog from 'posthog-js'
+import { markSignupDraftInviteAccepted } from '@/features/setup/signup-draft'
 import { captureException } from '@/utils/sentry-lazy'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import {
@@ -7,6 +8,8 @@ import {
     extendInviteForRetry,
     readInviteCode,
     readInviteType,
+    readInviteIntent,
+    readInviteUserId,
 } from '@/utils/invite-stash'
 import { settleAcceptedInviteAcquisition } from './invite-acquisition'
 import { invitesApi, type AcceptInviteResult } from './invites'
@@ -51,7 +54,7 @@ export async function settlePendingInviteAttribution(
     userId: string,
     trigger: InviteAttributionTrigger = 'session'
 ): Promise<PendingInviteAttributionOutcome> {
-    const shared = await settleShared(userId)
+    const shared = await settleShared(userId, trigger)
     const outcome =
         trigger === 'registration' && shared.status === 'none' ? (consumedOutcomes.get(userId) ?? shared) : shared
     if (trigger === 'registration' || outcome.status !== 'none') {
@@ -67,9 +70,14 @@ export async function settlePendingInviteAttribution(
     return outcome
 }
 
-function settleShared(userId: string): Promise<PendingInviteAttributionOutcome> {
+function settleShared(userId: string, trigger: InviteAttributionTrigger): Promise<PendingInviteAttributionOutcome> {
     const inviteCode = readInviteCode().trim()
     if (!inviteCode) return Promise.resolve({ status: 'none' })
+    // Auth hydration can race registration. It must not accept an unbound
+    // passive invite for an existing account, nor claim registration's retry.
+    if (readInviteIntent() === 'acquisition' && !readInviteUserId() && trigger !== 'registration') {
+        return Promise.resolve({ status: 'none' })
+    }
     if (!bindInviteToUser(userId)) return Promise.resolve({ status: 'account_mismatch', inviteCode })
 
     const attemptKey = `${userId}:${inviteCode}`
@@ -122,6 +130,7 @@ async function settlePendingInviteAttributionOnce(
         }
 
         if (result.success && result.onboardingResolved) {
+            markSignupDraftInviteAccepted(userId)
             posthog.capture(ANALYTICS_EVENTS.INVITE_ACCEPTED, {
                 invite_code: inviteCode,
                 invite_type: inviteType,

@@ -7,6 +7,7 @@ import { Tabs } from '@/components/0_Bruddle/Tabs'
 import { useFitToWidth } from '@/hooks/useFitToWidth'
 import { VIEWPORT_WIDTHS, type PreviewViewport } from './viewport'
 
+// The reference demo in public/dev/knerd/: https://github.com/peanutprotocol/mono/blob/main/engineering/ui/knerd-hero-reference.md
 const examples = [
     { value: 'card', label: 'Peanut Card — IN PINK' },
     { value: 'accounts', label: 'Accounts — US and EUROPE' },

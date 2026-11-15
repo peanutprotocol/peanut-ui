@@ -1,8 +1,4 @@
-import {
-    getMarketingQrRegistration,
-    marketingQrTrackingEnabled,
-    parseMarketingQrQuery,
-} from '@/features/marketing-qr/contract'
+import { getMarketingQrRegistration, parseMarketingQrQuery } from '@/features/marketing-qr/contract'
 import { renderMarketingQrHandoff } from '@/features/marketing-qr/handoff'
 import { MARKETING_QR_HEADERS, isAutomatedMarketingQrRequest } from '@/features/marketing-qr/server'
 
@@ -17,7 +13,6 @@ export async function GET(request: Request, context: RouteContext): Promise<Resp
     if (!registration) return new Response(null, { status: 404, headers: MARKETING_QR_HEADERS })
     const attribution = parseMarketingQrQuery(registration, new URL(request.url).searchParams)
     const captureEnabled =
-        marketingQrTrackingEnabled() &&
         attribution.valid &&
         !isAutomatedMarketingQrRequest(request.headers) &&
         request.headers.get('dnt') !== '1' &&

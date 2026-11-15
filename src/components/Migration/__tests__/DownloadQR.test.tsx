@@ -67,41 +67,27 @@ it('keeps the bare QR and store links when an explicit handoff cannot be built',
     expect(screen.getByTestId('stores')).toHaveAttribute('data-payload', '')
 })
 
-it('uses a registered marketing URL only with explicit context and the gate enabled', () => {
-    const previous = process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING
-    process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING = 'true'
-    try {
-        const { rerender } = render(
-            <DownloadQR surface="landing_hero" marketingQr={{ page: 'home', placement: 'hero', locale: 'en' }} />
-        )
-        expect(screen.getByTestId('qr')).toHaveAttribute('href', `${window.location.origin}/q/home-hero-en`)
-        expect(screen.getByTestId('qr')).toHaveAttribute('data-level', 'M')
-        rerender(<DownloadQR surface="home_banner" />)
-        expect(screen.getByTestId('qr')).toHaveAttribute('href', `${window.location.origin}/home?app_entry=1`)
-    } finally {
-        if (previous === undefined) delete process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING
-        else process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING = previous
-    }
+it('uses a registered marketing URL only with explicit context', () => {
+    const { rerender } = render(
+        <DownloadQR surface="landing_hero" marketingQr={{ page: 'home', placement: 'hero', locale: 'en' }} />
+    )
+    expect(screen.getByTestId('qr')).toHaveAttribute('href', `${window.location.origin}/home?mqr=home-hero-en`)
+    expect(screen.getByTestId('qr')).toHaveAttribute('data-level', 'M')
+    rerender(<DownloadQR surface="home_banner" />)
+    expect(screen.getByTestId('qr')).toHaveAttribute('href', `${window.location.origin}/home?app_entry=1`)
 })
 
 it('keeps explicit campaign handoffs on the old path even if marketing context is supplied', () => {
-    const previous = process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING
-    process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING = 'true'
     jest.mocked(buildDeferredPayload).mockReturnValue('pnutdl=1&badgeCampaign=door&dest=%2Fcard')
-    try {
-        render(
-            <DownloadQR
-                surface="landing_door"
-                handoff={{ dest: '/card' }}
-                marketingQr={{ page: 'home', placement: 'hero', locale: 'en' }}
-            />
-        )
-        expect(screen.getByTestId('qr')).toHaveAttribute(
-            'href',
-            `${window.location.origin}/home?app_entry=1&pnutdl=1&badgeCampaign=door&dest=%2Fcard`
-        )
-    } finally {
-        if (previous === undefined) delete process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING
-        else process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING = previous
-    }
+    render(
+        <DownloadQR
+            surface="landing_door"
+            handoff={{ dest: '/card' }}
+            marketingQr={{ page: 'home', placement: 'hero', locale: 'en' }}
+        />
+    )
+    expect(screen.getByTestId('qr')).toHaveAttribute(
+        'href',
+        `${window.location.origin}/home?app_entry=1&pnutdl=1&badgeCampaign=door&dest=%2Fcard`
+    )
 })

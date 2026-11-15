@@ -46,6 +46,36 @@ beforeEach(() => {
 })
 
 describe('chargesApi.create transport', () => {
+    it.each(['NaN', 'Infinity', '-1', '0', '12junk', '9'.repeat(400)])(
+        'rejects invalid charge money %s before network effects',
+        async (amount) => {
+            await expect(
+                chargesApi.create({ ...chargeData, local_price: { amount, currency: 'USD' } })
+            ).rejects.toThrow()
+            expect(mockApiFetch).not.toHaveBeenCalled()
+        }
+    )
+
+    it('accepts a direct fixed-price request whose amount is supplied by local_price', async () => {
+        mockApiFetch.mockResolvedValue(okResponse({ data: { id: 'direct' } }))
+        await expect(chargesApi.create(chargeData)).resolves.toEqual({ data: { id: 'direct' } })
+    })
+
+    it('accepts the supported USDC.e asset and checks its precision', async () => {
+        mockApiFetch.mockResolvedValue(okResponse({ data: { id: 'bridged' } }))
+        const requestProps = {
+            ...chargeData.requestProps!,
+            tokenAmount: '1.000001',
+            tokenSymbol: 'USDC.e',
+            tokenDecimals: 6,
+        }
+        await expect(chargesApi.create({ ...chargeData, requestProps })).resolves.toEqual({ data: { id: 'bridged' } })
+        mockApiFetch.mockClear()
+        await expect(
+            chargesApi.create({ ...chargeData, requestProps: { ...requestProps, tokenAmount: '1.0000001' } })
+        ).rejects.toThrow()
+        expect(mockApiFetch).not.toHaveBeenCalled()
+    })
     it('sends JSON via apiFetch when there is no file attachment', async () => {
         mockApiFetch.mockResolvedValue(okResponse({ data: { id: 'c1' } }))
 
@@ -100,6 +130,33 @@ describe('chargesApi.create transport', () => {
         expect(err).toBeInstanceOf(ApiError)
         expect(err.status).toBe(502)
         expect(err.message).toBe('Failed to create charge')
+    })
+})
+
+describe('chargesApi.create — a zero destination amount', () => {
+    const withdrawal = (tokenSymbol: string, transactionType: CreateChargeRequest['transactionType'] = 'WITHDRAW') =>
+        ({
+            ...chargeData,
+            transactionType,
+            requestProps: { chainId: '8453', tokenSymbol, tokenDecimals: 6, tokenAmount: '0' },
+        }) as CreateChargeRequest
+
+    // EURC is not a dollar: the amount the user typed cannot be its token amount,
+    // so the API stores '0' and books what Rhino delivered (TASK-23850).
+    it.each(['EURC', 'USDe', 'ETH'])('reaches the API for a withdrawal in %s', async (symbol) => {
+        mockApiFetch.mockResolvedValue(okResponse({ data: { id: 'w' } }))
+        await expect(chargesApi.create(withdrawal(symbol))).resolves.toEqual({ data: { id: 'w' } })
+        expect(JSON.parse(String(mockApiFetch.mock.calls[0][1]?.body)).requestProps.tokenAmount).toBe('0')
+    })
+
+    it.each(['USDC', 'USDT'])('is still refused for a withdrawal in a dollar stablecoin (%s)', async (symbol) => {
+        await expect(chargesApi.create(withdrawal(symbol))).rejects.toThrow()
+        expect(mockApiFetch).not.toHaveBeenCalled()
+    })
+
+    it('is still refused on a charge that is not a withdrawal', async () => {
+        await expect(chargesApi.create(withdrawal('EURC', 'DIRECT_SEND'))).rejects.toThrow()
+        expect(mockApiFetch).not.toHaveBeenCalled()
     })
 })
 

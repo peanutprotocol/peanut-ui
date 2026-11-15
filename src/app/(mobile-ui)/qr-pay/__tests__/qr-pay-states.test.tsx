@@ -17,7 +17,8 @@ import { QueryClient, QueryClientProvider, onlineManager } from '@tanstack/react
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { parseUnits } from 'viem'
 import { MANTECA_QR_DEPOSIT_ADDRESS_AR } from '@/constants/manteca.consts'
-import type { RailCapability } from '@/types/capabilities'
+import type { NextAction, RailCapability } from '@/types/capabilities'
+import { withFeatureReport, type FeatureReportInput } from '@/test-utils/featureReport.fixture'
 import {
     registerSpendArtifactMeta,
     SpendRecoveryAbortedError,
@@ -63,6 +64,10 @@ const mockRouterBack = jest.fn()
 const mockRouterReplace = jest.fn()
 const mockSearchParams = new Map<string, string>()
 
+// these users are on today's flow: the unlock offer shows (the verify-once redirect has its own tests)
+jest.mock('@/features/paperwork-verification/usePaperworkVerificationRedirect', () => ({
+    usePaperworkVerificationRedirect: () => false,
+}))
 jest.mock('next/navigation', () => ({
     useSearchParams: () => ({
         get: (key: string) => mockSearchParams.get(key) ?? null,
@@ -338,12 +343,16 @@ jest.mock('@/hooks/usePointsConfetti', () => ({
 
 jest.mock('@/utils/history.utils', () => ({
     completeHistoryEntry: jest.fn((e: any) => Promise.resolve(e)),
+    withPublicReceipt: jest.fn((receipt: any) => receipt),
 }))
+// the receipt reads its public-receipt flag from the history entry, which
+// this suite never loads (useQrReceipt.test.ts covers that read)
+jest.mock('@/hooks/useHistoryEntry', () => ({ useHistoryEntry: () => ({ data: undefined }) }))
 
 jest.mock('@/utils/general.utils', () => ({
     isTxReverted: jest.fn(() => false),
     saveRedirectUrl: jest.fn(),
-    formatNumberForDisplay: jest.fn((v: any) => v ?? '0'),
+    formatCurrency: jest.fn((v: any) => v?.toString() ?? ''),
 }))
 
 jest.mock('@/utils/perk.utils', () => ({
@@ -357,6 +366,28 @@ jest.mock('@/utils/qr-payment.utils', () => ({
     calculateSavingsInCents: jest.fn(() => 0),
     hasCardMarkupComparison: jest.fn(() => false),
     isArgentinaMantecaQrPayment: jest.fn(() => false),
+}))
+
+// what the pay:PIX_BR route blocks, per test (its own suite covers the route reading). A
+// store, so a test can switch it on while a payment is already on screen.
+const mockPixBlock: { block: 'paused' | 'residence' | null; listeners: Set<() => void> } = {
+    block: null,
+    listeners: new Set<() => void>(),
+}
+const setPixBlock = (block: 'paused' | 'residence' | null) => {
+    mockPixBlock.block = block
+    mockPixBlock.listeners.forEach((listener) => listener())
+}
+const setBrazilPaused = (on: boolean) => setPixBlock(on ? 'paused' : null)
+jest.mock('@/features/pix/usePixPayBlock', () => ({
+    usePixPayBlock: () =>
+        jest.requireActual('react').useSyncExternalStore(
+            (listener: () => void) => {
+                mockPixBlock.listeners.add(listener)
+                return () => mockPixBlock.listeners.delete(listener)
+            },
+            () => mockPixBlock.block
+        ),
 }))
 
 jest.mock('@/features/kill-switches/kill-switches-store', () => {
@@ -543,8 +574,10 @@ const MANTECA_RAIL_ID = 'manteca.pix_br'
 // provider-metadata constant. The page's pool-fallback branch must match THIS value.
 const US_RESTRICTION_CODE = 'manteca_us_nationality'
 
-function capabilitiesForGate(state: GateState, opts: { userMessage?: string | null; usRestricted?: boolean } = {}) {
-    const { userMessage = null, usRestricted = false } = opts
+type GateOptions = { userMessage?: string | null; usRestricted?: boolean; regionRestricted?: boolean }
+
+function capabilitiesForGate(state: GateState, opts: GateOptions = {}) {
+    const { userMessage = null, usRestricted = false, regionRestricted = false } = opts
     // Map the target gate state to a single Manteca rail + (optional) restriction.
     let rails: TestRail[] = []
     let restrictions: TestRestriction[] = []
@@ -575,6 +608,19 @@ function capabilitiesForGate(state: GateState, opts: { userMessage?: string | nu
     return {
         rails,
         restrictions,
+        capabilities: {
+            features:
+                state === 'loading'
+                    ? undefined
+                    : reportFor(
+                          rails,
+                          [],
+                          restrictions,
+                          regionRestricted
+                              ? { status: 'failed', reason: { code: 'identity_region_restricted' } }
+                              : { status: state === 'requires_identity_verification' ? 'not_started' : 'verified' }
+                      ),
+        },
         isLoading: state === 'loading',
         isKycApproved: payEnabled,
         canDo: (_op: string, o?: { provider?: string }) =>
@@ -585,7 +631,20 @@ function capabilitiesForGate(state: GateState, opts: { userMessage?: string | nu
     }
 }
 
-function setCapabilitiesGate(state: GateState, opts: { userMessage?: string | null; usRestricted?: boolean } = {}) {
+// The QR gate reads the API's feature report; the fixture computes the one the API sends for these rails.
+function reportFor(
+    rails: TestRail[],
+    nextActions: NextAction[],
+    restrictions: TestRestriction[],
+    identity: FeatureReportInput['identity'] = { status: 'verified' }
+) {
+    return withFeatureReport(
+        { rails: rails as RailCapability[], nextActions, restrictions: restrictions as never },
+        { identity }
+    ).features
+}
+
+function setCapabilitiesGate(state: GateState, opts: GateOptions = {}) {
     mockUseCapabilities.mockReturnValue(capabilitiesForGate(state, opts))
 }
 
@@ -768,7 +827,7 @@ describe('GROUP 1: Loading & KYC Gate', () => {
     // every restricted residence — but not when Sumsub refuses the document's
     // jurisdiction, which no rail can survive and no re-upload can change.
     test('a jurisdictional rejection ends the flow instead of re-offering verification', () => {
-        setCapabilitiesGate('requires_identity_verification')
+        setCapabilitiesGate('requires_identity_verification', { regionRestricted: true })
         mockIsRegionRestricted = true
 
         renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
@@ -780,7 +839,7 @@ describe('GROUP 1: Loading & KYC Gate', () => {
     // nothing revokes a pool rail when a later reverification is refused on
     // jurisdiction, so the enabled-pay shortcut must not outrank the refusal
     test('a jurisdictional rejection closes the pay path even with an enabled QR rail', () => {
-        setCapabilitiesGate('proceed_to_pay')
+        setCapabilitiesGate('proceed_to_pay', { regionRestricted: true })
         mockIsRegionRestricted = true
 
         renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
@@ -812,24 +871,29 @@ describe('GROUP 1: Loading & KYC Gate', () => {
         // a fixable verdict whose only fix is adding an email must not open
         // the Sumsub upload flow (this surface has no email form) — same
         // mapping rule as deriveProviderRejection
+        const emailAction = { key: 'provide-email', kind: 'provide-email' as const, purpose: 'unlock-manteca' }
+        const rails: TestRail[] = [
+            {
+                id: MANTECA_RAIL_ID,
+                provider: 'manteca',
+                status: 'blocked',
+                resolved: {
+                    status: 'fixable',
+                    blocking: {
+                        code: 'email_required',
+                        userMessage: 'Add your email to continue.',
+                        selfHealable: true,
+                        selfHealKind: 'provide-email',
+                    },
+                    nextAction: emailAction,
+                },
+            },
+        ]
         mockUseCapabilities.mockReturnValue({
             ...capabilitiesForGate('provider_rejection_fixable', { userMessage: 'Add your email to continue.' }),
-            railsForProvider: () => [
-                {
-                    id: MANTECA_RAIL_ID,
-                    provider: 'manteca',
-                    status: 'blocked',
-                    resolved: {
-                        status: 'fixable',
-                        blocking: {
-                            code: 'email_required',
-                            userMessage: 'Add your email to continue.',
-                            selfHealable: true,
-                            selfHealKind: 'provide-email',
-                        },
-                    },
-                } as TestRail,
-            ],
+            capabilities: { features: reportFor(rails, [emailAction], []) },
+            nextActions: [emailAction],
+            railsForProvider: () => rails,
         })
 
         renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
@@ -885,6 +949,7 @@ describe('GROUP 1: Loading & KYC Gate', () => {
         mockUseCapabilities.mockReturnValue({
             ...base,
             rails,
+            capabilities: { features: reportFor(rails, [sofAction], []) },
             nextActions: [sofAction],
             railsForProvider: (provider: string) => rails.filter((r) => r.provider === provider),
         })
@@ -1211,12 +1276,13 @@ describe('GROUP 2: Payment Form States', () => {
             expect(screen.getByText('PIX Merchant')).toBeInTheDocument()
         })
 
-        // The balance error check happens via useEffect
+        // A merchant-fixed amount cannot be lowered, so the error says how much is missing.
         await waitFor(() => {
             const errorAlert = screen.queryByTestId('error-alert')
             expect(errorAlert).toBeInTheDocument()
-            expect(errorAlert).toHaveTextContent('Not enough balance')
+            expect(errorAlert).toHaveTextContent('Your balance is $13.40 short. Add money to continue.')
         })
+        expect(screen.getByRole('button', { name: 'Pay' })).toBeDisabled()
     })
 
     test.skip('Below minimum amount shows ErrorAlert', async () => {
@@ -1298,6 +1364,61 @@ describe('GROUP 2: Payment Form States', () => {
             // finally, not a trailing statement: a failed assertion above would otherwise
             // leak MANTECA into every later test through this module singleton.
             maintenanceConfig.disabledPaymentProviders = []
+        }
+    })
+
+    test('The Brazil pause shows its screen for a Pix code and never calls /init', async () => {
+        setBrazilPaused(true)
+        setupMantecaPayment()
+
+        try {
+            renderQrPay({ qrCode: 'pix://payment?id=123', type: 'PIX', t: '1' })
+
+            expect(await screen.findByText(en.brazilPause.title)).toBeInTheDocument()
+            expect(mockMantecaApi.initiateQrPayment).not.toHaveBeenCalled()
+        } finally {
+            setBrazilPaused(false)
+        }
+    })
+
+    test('A residence the pay route does not serve shows its own words for a Pix code and never calls /init', async () => {
+        setPixBlock('residence')
+        setupMantecaPayment()
+
+        try {
+            renderQrPay({ qrCode: 'pix://payment?id=123', type: 'PIX', t: '1' })
+
+            expect(await screen.findByText(en.pix.payResidence)).toBeInTheDocument()
+            expect(screen.queryByText(en.brazilPause.body)).not.toBeInTheDocument()
+            expect(mockMantecaApi.initiateQrPayment).not.toHaveBeenCalled()
+        } finally {
+            setPixBlock(null)
+        }
+    })
+
+    test('A Pix payment made before the Brazil pause keeps showing its status', async () => {
+        setupMantecaPayment()
+        mockMantecaApi.getPixKeyOwner.mockResolvedValue({ name: 'MARIA DA SILVA', legalIdMasked: '12*******90' })
+        mockMantecaApi.savePixKey.mockResolvedValue({})
+        mockMantecaApi.completeQrPaymentWithSignedTx.mockResolvedValue(SETTLING_PIX_PAYMENT)
+        const { pixKeyToBRCode } = require('@/utils/pix.utils')
+        renderQrPay({ qrCode: pixKeyToBRCode('maria@silva.com.br'), pixKey: 'maria@silva.com.br', type: 'PIX', t: '1' })
+
+        await screen.findByText('MARIA DA SILVA')
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+        await waitFor(() => expect(screen.getByText('Payment is processing')).toBeInTheDocument())
+
+        try {
+            act(() => setBrazilPaused(true))
+
+            expect(screen.getByText('Payment is processing')).toBeInTheDocument()
+            expect(screen.queryByText(en.brazilPause.title)).not.toBeInTheDocument()
+            expect(screen.queryByText('Service Temporarily Unavailable')).not.toBeInTheDocument()
+        } finally {
+            setBrazilPaused(false)
         }
     })
 

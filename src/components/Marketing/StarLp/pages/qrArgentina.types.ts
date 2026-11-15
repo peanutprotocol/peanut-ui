@@ -49,3 +49,11 @@ export interface QrArgentinaAppLinkProps {
     children: ReactNode
     className?: string
 }
+
+export interface QrArgentinaScanFrameProps {
+    children: ReactNode
+    /** false keeps the frame still round its content: no scan line and no "detected" pulse, only the corners locking in. Default true. */
+    scanLine?: boolean
+    /** Merged onto the frame, e.g. a wider width to frame two stickers. */
+    className?: string
+}

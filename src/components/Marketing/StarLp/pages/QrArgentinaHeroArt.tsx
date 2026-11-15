@@ -43,6 +43,7 @@ export function QrArgentinaHeroArt() {
                                 className="h-auto w-full"
                                 sizes="(min-width: 1024px) 520px, 300px"
                                 priority
+                                fetchPriority="high"
                             />
                             {/* The line sweeps the pink margins and passes behind the
                                 code's white card, never across its finders. */}

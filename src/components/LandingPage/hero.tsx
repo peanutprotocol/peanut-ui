@@ -2,8 +2,6 @@
 
 import PeanutMascot from '@/components/Global/PeanutMascot'
 import { Star } from '@/assets/illustrations'
-import Link from 'next/link'
-import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import Image from 'next/image'
 import { type CSSProperties } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -28,7 +26,7 @@ type HeroProps = {
     primaryCta?: CTAButton
     secondaryCta?: CTAButton
     buttonVisible?: boolean
-    /** replaces the primary button entirely (store-button pair on desktop during the migration window) */
+    /** replaces the primary button entirely (the store-button pair on the homepage) */
     customCta?: React.ReactNode
 }
 
@@ -46,24 +44,25 @@ const getButtonContainerClasses = (variant: 'primary' | 'secondary') =>
     `${styles.cta} relative z-20 flex flex-col items-center justify-center transition-opacity duration-slow ${variant === 'primary' ? 'mx-auto' : 'right-[calc(50%-120px)]'}`
 
 export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strings }: HeroProps) {
-    const migrationOn = useMigrationFlag()
     const headline = strings.heroHeadline
     const { heroRef, headlineRef, copyRef } = useHeroLayout(headline)
 
     const renderCTAButton = (cta: CTAButton, variant: 'primary' | 'secondary') => (
         <div className={getButtonContainerClasses(variant)} style={getCtaStyle(buttonVisible)}>
-            <Button
-                size="large"
-                variant="secondary"
-                icon={cta.icon}
-                href={cta.href}
-                plainAnchor
-                external={cta.isExternal}
-                onClick={cta.onClick}
-                className={`w-fit ${CTA_MOTION}`}
-            >
-                {cta.label}
-            </Button>
+            <div className={styles.ctaRow}>
+                <Button
+                    size="large"
+                    variant="secondary"
+                    icon={cta.icon}
+                    href={cta.href}
+                    plainAnchor
+                    external={cta.isExternal}
+                    onClick={cta.onClick}
+                    className={`w-fit ${CTA_MOTION}`}
+                >
+                    {cta.label}
+                </Button>
+            </div>
             {cta.subtext && (
                 <span className="mt-2 block text-center text-body-s text-foreground-primary italic md:text-body-m">
                     {cta.subtext}
@@ -112,19 +111,10 @@ export function Hero({ primaryCta, secondaryCta, buttonVisible, customCta, strin
                     renderCTAButton(primaryCta, 'primary')
                 ) : customCta ? (
                     <div className={getButtonContainerClasses('primary')} style={getCtaStyle(buttonVisible)}>
-                        {customCta}
+                        <div className={styles.ctaRow}>{customCta}</div>
                     </div>
                 ) : null}
                 {secondaryCta && renderCTAButton(secondaryCta, 'secondary')}
-                {!migrationOn && (
-                    <Link
-                        prefetch={false}
-                        href="/setup?step=login"
-                        className={`${styles.login} block text-center text-body-s text-foreground-primary underline`}
-                    >
-                        {strings.logIn}
-                    </Link>
-                )}
                 <AnimateOnView className={`${styles.star} ${styles.starThree}`} y="20px" x="5px">
                     <Image src={Star} alt="" />
                 </AnimateOnView>

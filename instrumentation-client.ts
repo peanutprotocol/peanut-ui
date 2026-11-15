@@ -14,11 +14,18 @@ import { withoutBrowserTracing } from '@/utils/sentry-integrations'
 import { posthogErrorMirror } from '@/utils/sentry-posthog-mirror'
 import { whenIdle } from '@/utils/defer-analytics'
 import { importWithChunkRetry } from '@/utils/chunk-error-recovery'
-import { startWebVitalsShim } from '@/utils/web-vitals-shim'
+import { startWebVitalsShim, WEB_VITALS_FLUSH_DELAY_MS } from '@/utils/web-vitals-shim'
+import { isMarketingRoute } from '@/utils/marketing-routes'
+import {
+    afterLoadIdle,
+    DEFERRED_ADDONS_INIT,
+    releaseDeferredAddons,
+    rememberRemoteConfig,
+} from '@/utils/posthog-deferred-addons'
 import { noteAppReviewFriction } from '@/utils/app-review-friction'
 import { isNativeFetchRejectionExceptionEvent } from '@/utils/native-fetch-rejection'
 import { isExpectedExceptionChain } from '@/utils/expected-exception'
-import { installPaymentNetworkGoogleAnalyticsGuard, isPaymentNetworkExplorerPath } from '@/utils/private-routes'
+import { installPaymentNetworkGoogleAnalyticsGuard, isPrivateDataPath } from '@/utils/private-routes'
 import { captureSignupAttribution, signupAttributionPosthogProperties } from '@/utils/signup-attribution'
 import { initialSuperProperties, isAnalyticsCaptureBuild, posthogProjectKey } from '@/utils/posthog-setup'
 import {
@@ -48,7 +55,7 @@ if (
     typeof window !== 'undefined' &&
     process.env.NODE_ENV !== 'development' &&
     !PERF_BARE &&
-    !isPaymentNetworkExplorerPath(window.location.pathname)
+    !isPrivateDataPath(window.location.pathname)
 ) {
     const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://eu.i.posthog.com'
     const isNativeBuild = process.env.NEXT_PUBLIC_CAPACITOR_BUILD === 'true'
@@ -59,6 +66,8 @@ if (
 
     // An empty key means this build sends nothing (see posthogProjectKey).
     if (POSTHOG_KEY) {
+        // The landing pages start PostHog's add-ons after load (posthog-deferred-addons).
+        const deferAddons = isMarketingRoute(window.location.pathname)
         posthog.init(POSTHOG_KEY, {
             // Non-production builds keep the production key for feature flags
             // (posthog-js still requests /flags when capture is opted out) and
@@ -94,7 +103,7 @@ if (
             // Doubles as the review nudge's friction tap: every money-flow failure
             // already funnels through here, so the suppressor needs no call sites.
             before_send: (event) => {
-                if (isPaymentNetworkExplorerPath(window.location.pathname)) return null
+                if (isPrivateDataPath(window.location.pathname)) return null
                 // Handled WebKit/Chromium connectivity blips: Sentry already filters
                 // this class server-side; exception autocapture must not double-report
                 // it here (TASK-22408).
@@ -127,10 +136,11 @@ if (
              * Session recording is ON everywhere, native included, as a deliberate
              * trial from 1.0.48.
              *
-             * It starts at `whenIdle` rather than at init: rrweb's recorder is a
-             * separate ~183 KB script whose load and first full-DOM snapshot landed
-             * in the middle of page load, and on the landing page that is the single
-             * largest blocking cost after the framework itself. Recording still
+             * It starts at `whenIdle` (after `load` on the marketing site) rather
+             * than at init: rrweb's recorder is a separate ~183 KB script whose
+             * load and first full-DOM snapshot landed in the middle of page load,
+             * and on the landing page that is the single largest blocking cost
+             * after the framework itself. Recording still
              * covers every session — it begins a beat later, so the opening moment
              * of a replay is not captured.
              *
@@ -153,9 +163,22 @@ if (
             // Masks amounts, ids, addresses, names in sensitive areas, picked images,
             // QR payloads and claim-link secrets; drops network bodies and headers.
             session_recording: SESSION_RECORDING_PRIVACY,
+            // Only the flush delay is set here: web vitals and their metric list
+            // stay with the remote config. A metric buffered when the visitor
+            // leaves is lost, so a shorter wait keeps more LCP samples.
+            capture_performance: { web_vitals_delayed_flush_ms: WEB_VITALS_FLUSH_DELAY_MS },
+            ...(deferAddons ? DEFERRED_ADDONS_INIT : {}),
         })
 
-        if (ANALYTICS_CAPTURE) whenIdle(() => posthog.startSessionRecording())
+        if (deferAddons) {
+            const latestRemoteConfig = rememberRemoteConfig(posthog)
+            afterLoadIdle(() => {
+                releaseDeferredAddons(posthog, latestRemoteConfig())
+                if (ANALYTICS_CAPTURE) posthog.startSessionRecording()
+            })
+        } else if (ANALYTICS_CAPTURE) {
+            whenIdle(() => posthog.startSessionRecording())
+        }
     }
 
     // No-ops unless the document is one PostHog refuses to measure (iOS native,
@@ -165,7 +188,7 @@ if (
     startWebVitalsShim()
 
     // expose the instance like the official snippet does — console access for
-    // QA (feature-flag overrides, e.g. pwa-sunset preview testing) and support
+    // QA (feature-flag overrides) and support
     // debugging; the npm bundle doesn't attach it by itself
     ;(window as Window & { posthog?: typeof posthog }).posthog = posthog
 
@@ -198,10 +221,9 @@ if (
                 // non-Error, the explicit captureMessage calls) so they attribute
                 // to a call site — see the web init in sentry-init.ts.
                 attachStacktrace: true,
-                beforeSend: (event) =>
-                    isPaymentNetworkExplorerPath(window.location.pathname) ? null : beforeSendHandler(event),
+                beforeSend: (event) => (isPrivateDataPath(window.location.pathname) ? null : beforeSendHandler(event)),
                 beforeSendTransaction: (event) =>
-                    isPaymentNetworkExplorerPath(window.location.pathname) ? null : redactSentryTelemetry(event),
+                    isPrivateDataPath(window.location.pathname) ? null : redactSentryTelemetry(event),
                 // A WebView that can't reach the bundler can't reach ingest either,
                 // so the report of the failure died with the session. The offline
                 // transport parks undeliverable envelopes in IndexedDB and flushes

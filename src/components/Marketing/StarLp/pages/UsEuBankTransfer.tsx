@@ -8,7 +8,7 @@ export function UsEuBankTransfer() {
         <div
             role="img"
             aria-label={`Their bank app: instant transfer of €1,500.00 sent to ${STAR_LP_PERSONA.main.name}`}
-            className="rounded-card bg-gray-100 p-4 text-body-s text-foreground-secondary"
+            className="rounded-card bg-background-disabled p-4 text-body-s text-foreground-secondary"
         >
             <p className="flex items-center gap-2 text-body-m-semibold text-foreground-primary">
                 <span className="grid h-5 w-5 place-items-center rounded-full bg-background-icon-bubble-blue text-foreground-primary">

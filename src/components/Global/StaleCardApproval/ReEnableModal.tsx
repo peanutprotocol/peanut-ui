@@ -6,7 +6,7 @@ import ActionModal, { type ActionModalButtonProps, type ActionModalTertiaryCta }
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 import { RAIN_STALE_APPROVAL_EVENT } from '@/services/rain'
 
-type GrantErrorKind = 'user-cancelled' | 'stale-approval' | 'unexpected'
+type GrantErrorKind = 'user-cancelled' | 'stale-approval' | 'signature-rejected' | 'unexpected'
 
 /**
  * Global recovery modal for the stale-card-approval case.
@@ -20,15 +20,15 @@ type GrantErrorKind = 'user-cancelled' | 'stale-approval' | 'unexpected'
  * without threading state through each flow's catch block.
  *
  * The CTA reuses the existing session-key grant (`useGrantSessionKey().grant()`
- * — the same flow EnableAutoBalanceBanner drives) rather than building a new
+ * — the same lazy grant spendPreflight asks for) rather than building a new
  * one; a fresh grant re-binds a sponsorable approval and unblocks withdrawals.
  * Note: these users have `hasWithdrawApproval === true` (the approval exists,
- * it's just stale), so EnableAutoBalanceBanner never fires for them — this
- * modal is their only prompt.
+ * it's just stale), so the lazy grant never fires for them — this modal is
+ * their only prompt.
  *
- * Unlike EnableAutoBalanceBanner this is NOT a hard block: the user can dismiss
- * and re-enable later. On a successful grant we show a short confirmation so
- * they know to retry the withdrawal.
+ * This is NOT a hard block: the user can dismiss and re-enable later. On a
+ * successful grant we show a short confirmation so they know to retry the
+ * withdrawal.
  */
 export default function StaleCardApprovalReEnableModal() {
     const t = useTranslations('global')
@@ -59,7 +59,11 @@ export default function StaleCardApprovalReEnableModal() {
             // the controller moved again while this grant was being saved, and
             // trying once more is exactly the right advice.
             const kind = result.error.kind
-            setErrorKind(kind === 'user-cancelled' || kind === 'stale-approval' ? kind : 'unexpected')
+            setErrorKind(
+                kind === 'user-cancelled' || kind === 'stale-approval' || kind === 'signature-rejected'
+                    ? kind
+                    : 'unexpected'
+            )
         }
     }, [grant])
 
@@ -68,9 +72,11 @@ export default function StaleCardApprovalReEnableModal() {
             ? t('staleCardApprovalModal.cancelledError')
             : errorKind === 'stale-approval'
               ? t('staleCardApprovalModal.rotatedError')
-              : errorKind === 'unexpected'
-                ? t('staleCardApprovalModal.unexpectedError')
-                : null
+              : errorKind === 'signature-rejected'
+                ? t('staleCardApprovalModal.signatureRejectedError')
+                : errorKind === 'unexpected'
+                  ? t('staleCardApprovalModal.unexpectedError')
+                  : null
 
     const ctas: ActionModalButtonProps[] = succeeded
         ? [{ text: t('staleCardApprovalModal.doneCta'), variant: 'primary', shadowSize: '4', onClick: close }]

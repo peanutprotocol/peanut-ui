@@ -8,7 +8,7 @@ import { twMerge } from '@/utils/tw'
 export function QrArgentinaScanLine({ className }: { className?: string }) {
     return (
         <span aria-hidden className={twMerge('absolute inset-0 block', className)}>
-            <span className="absolute inset-x-0 top-0 h-[2px] bg-pink-500 shadow-[0_0_8px_2px_var(--color-pink-500)]" />
+            <span className="absolute inset-x-0 top-0 h-[2px] bg-background-brand shadow-[0_0_8px_2px_var(--color-pink-500)]" />
         </span>
     )
 }

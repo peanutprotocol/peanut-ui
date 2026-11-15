@@ -12,10 +12,11 @@ import {
     buildBalanceSummary,
     buildCardSummary,
     buildLinkedAccounts,
+    buildSupportLinkedAccounts,
     buildSupportLinks,
     buildSupportSegments,
 } from '@/utils/support-context'
-import { computeDisplaySpendable, isRainBalanceKnown } from '@/utils/balance.utils'
+import { computeAvailableSpendable, isRainBalanceKnown } from '@/utils/balance.utils'
 import { useSupportClientContext } from '@/hooks/useSupportClientContext'
 
 export interface CrispUserData {
@@ -43,6 +44,8 @@ export interface CrispUserData {
     accountStats: string | undefined
     card: string | undefined
     linkedAccounts: string | undefined
+    /** other Peanut accounts in an email collision with this one */
+    sameEmailAccounts: string | undefined
     appContext: string | undefined
     /** Filterable/routable flags for the Crisp inbox — not sidebar rows. */
     segments: string[]
@@ -189,18 +192,9 @@ function buildCrispUserData(input: CrispUserDataInput): CrispUserData {
 
     const balance = user ? buildBalanceSummary(smartBalance, rainOverview) : undefined
     const balanceKnown = smartBalance !== undefined && isRainBalanceKnown(rainOverview)
-    /*
-     * Zero is decided by the SAME total the balance row prints. During the
-     * smart-to-collateral handoff the funds are in neither bucket, and only
-     * `inTransitToCollateralCents` accounts for them — reading the two halves
-     * directly would show a funded balance beside a `zero-balance` flag.
-     */
+    // Zero is decided by the SAME total the balance row prints.
     const displaySpendable = balanceKnown
-        ? computeDisplaySpendable(
-              smartBalance as bigint,
-              rainOverview?.balance?.spendingPower,
-              rainOverview?.balance?.inTransitToCollateralCents
-          )
+        ? computeAvailableSpendable(smartBalance as bigint, rainOverview?.balance?.spendingPower)
         : undefined
 
     return {
@@ -223,6 +217,7 @@ function buildCrispUserData(input: CrispUserDataInput): CrispUserData {
         accountStats: buildAccountStats(user ?? undefined),
         card: buildCardSummary(rainOverview),
         linkedAccounts: buildLinkedAccounts(user?.accounts),
+        sameEmailAccounts: buildSupportLinkedAccounts(user?.supportLinkedAccounts),
         appContext: buildAppContext(client),
         segments: buildSupportSegments({
             isLoggedIn: Boolean(userId),

@@ -1,5 +1,5 @@
+import { requirePaymentMoney } from '@/lib/money'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { parseUnits } from 'viem'
 import type { Address } from 'viem'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { TRANSACTIONS, BALANCE_DECREASE, SEND_MONEY } from '@/constants/query.consts'
@@ -81,7 +81,7 @@ export const useSendMoney = ({ address }: UseSendMoneyOptions) => {
             onStrategyDecided,
             onGrantRequired,
         }: SendMoneyParams) => {
-            const amountToSend = parseUnits(amountInUsd, PEANUT_WALLET_TOKEN_DECIMALS)
+            const amountToSend = requirePaymentMoney(amountInUsd, 'USDC', PEANUT_WALLET_TOKEN_DECIMALS).minorUnits
             const result = await spend({
                 requiredUsdcAmount: amountToSend,
                 recipient: toAddress,
@@ -101,7 +101,7 @@ export const useSendMoney = ({ address }: UseSendMoneyOptions) => {
         onMutate: async ({ amountInUsd }) => {
             if (!address) return
 
-            const amountToSend = parseUnits(amountInUsd, PEANUT_WALLET_TOKEN_DECIMALS)
+            const amountToSend = requirePaymentMoney(amountInUsd, 'USDC', PEANUT_WALLET_TOKEN_DECIMALS).minorUnits
 
             await queryClient.cancelQueries({ queryKey: ['balance', address] })
             const previousBalance = queryClient.getQueryData<bigint>(['balance', address])

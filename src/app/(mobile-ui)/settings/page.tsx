@@ -1,0 +1,17 @@
+import { generateMetadata } from '@/app/metadata'
+import { Profile } from '@/components/Profile'
+import PageContainer from '@/components/0_Bruddle/PageContainer'
+
+export const metadata = generateMetadata({
+    title: 'Settings | Peanut',
+    description:
+        'Manage your Peanut profile and settings. Keep your information up to date for seamless P2P digital dollar transfers and verify your identity.',
+})
+
+export default function SettingsPage() {
+    return (
+        <PageContainer>
+            <Profile />
+        </PageContainer>
+    )
+}

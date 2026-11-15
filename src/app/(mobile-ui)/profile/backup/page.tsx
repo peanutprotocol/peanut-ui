@@ -18,7 +18,7 @@ import { useSafeBack } from '@/hooks/useSafeBack'
 
 export default function BackupPage() {
     const t = useTranslations('profile.backup')
-    const onBack = useSafeBack('/profile', { replace: true })
+    const onBack = useSafeBack('/settings', { replace: true })
     const { deviceType } = useDeviceType()
     const [activeModal, setActiveModal] = useState<BackupFaq>(null)
 

@@ -35,8 +35,13 @@ export const rhinoApi = {
         return data
     },
 
-    resetDepositAddressStatus: async (depositAddress: string): Promise<boolean> => {
-        const response = await serverFetch(`/rhino/reset-status/${depositAddress}`, {
+    /**
+     * A request payment's address is cleared with its charge id: the payer may
+     * be signed out, and the API binds the clear to the charge (TASK-24366).
+     */
+    resetDepositAddressStatus: async (depositAddress: string, chargeId?: string): Promise<boolean> => {
+        const query = chargeId ? `?chargeId=${encodeURIComponent(chargeId)}` : ''
+        const response = await serverFetch(`/rhino/reset-status/${depositAddress}${query}`, {
             method: 'POST',
         })
 

@@ -5,28 +5,27 @@ import { useTranslations } from 'next-intl'
 import { useRainCooldown } from '@/context/RainCooldownContext'
 import DocsLink from '@/components/Global/DocsLink'
 import { LINK_BUTTON_CLASSES } from '@/components/0_Bruddle/LinkButton'
+import { useCooldownRemaining } from '@/hooks/useCooldownRemaining'
 
-/**
- * Shown the first time the user trips Rain's withdrawal-signature lock in a
- * session, so the floating timer that follows is not mysterious. Dismissing
- * the modal hands off to the persistent `RainCooldownFloatingTimer` widget.
- */
+/** Introduces the countdown before handing it off to the persistent toast. */
 const RainCooldownIntroModal = () => {
     const t = useTranslations('global')
     const tCommon = useTranslations('common')
-    const { showIntroModal, dismissIntroModal } = useRainCooldown()
-    // Don't gate on cooldownEndsAt — if the cooldown auto-clears while the
-    // modal is still open, ActionModal needs its own `visible=false` cycle
-    // to play the exit animation. Returning null mid-render would unmount
-    // hard and skip the animation + onClose lifecycle.
+    const { cooldownEndsAt, showIntroModal, dismissIntroModal } = useRainCooldown()
+    const remaining = useCooldownRemaining()
     return (
         <ActionModal
-            visible={showIntroModal}
+            visible={showIntroModal && cooldownEndsAt !== null}
             onClose={dismissIntroModal}
             tone="attention"
             icon="clock"
             title={t('rainCooldownIntroModal.title')}
-            description={t('rainCooldownIntroModal.description')}
+            description={
+                <div className="flex flex-col gap-2">
+                    {remaining && <p className="text-heading-s text-foreground-primary tabular-nums">{remaining}</p>}
+                    <p>{t('rainCooldownIntroModal.description')}</p>
+                </div>
+            }
             ctas={[
                 {
                     text: tCommon('gotIt'),

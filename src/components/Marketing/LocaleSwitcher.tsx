@@ -90,7 +90,14 @@ export function LocaleSwitcher({ locale, label }: { locale: Locale; label: strin
                 className={`${TRIGGER_WIDTH} ${CARD_SURFACE} ${FOCUS_RING} inline-flex min-h-11 items-center gap-2 px-3 py-2 text-body-s-semibold text-foreground-primary transition-colors duration-instant hover:bg-background-page active:bg-action-primary`}
             >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={LOCALE_META[locale].flag} alt="" width={20} height={20} className="shrink-0 rounded-full" />
+                <img
+                    src={LOCALE_META[locale].flag}
+                    alt=""
+                    width={20}
+                    height={20}
+                    loading="lazy"
+                    className="shrink-0 rounded-full"
+                />
                 <span className="truncate">{LOCALE_META[locale].shortLabel}</span>
                 <Icon name="chevron-down" size={16} className="ml-auto shrink-0 text-foreground-secondary" />
             </button>

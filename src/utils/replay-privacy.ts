@@ -9,6 +9,8 @@ import { maskQrReplayRequest, redactQrTelemetryString } from './qr-telemetry-pri
  * or payers, who may not be Peanut users), emails, phone numbers, bank, card,
  * tax and ID numbers, wallet addresses, amounts and balances, document images,
  * camera, QR codes, inputs, and network bodies and headers.
+ * Typed KYC answers stay masked whole when echoed into pills, attributes or
+ * portaled place suggestions. Fixed-option button labels retain the policy below.
  *
  * Readable: Peanut usernames and @handles, which are public pay-link handles
  * (peanut.me/<username>) and already tied to the replay through its distinct

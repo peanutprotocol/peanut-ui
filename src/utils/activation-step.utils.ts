@@ -1,6 +1,10 @@
+import {
+    verifyRowStatus as canonicalVerifyRowStatus,
+    resolveOnboarding as canonicalResolveOnboarding,
+} from '@/features/attention/onboarding.generated'
 import { type User } from '@/interfaces/interfaces'
 import type { IdentityVerificationStatus, RailCapability } from '@/types/capabilities'
-import { computeDisplaySpendable } from '@/utils/balance.utils'
+import { computeAvailableSpendable } from '@/utils/balance.utils'
 
 /**
  * The Home onboarding checklist (TASK-23054, Hugo 2026-09-25):
@@ -48,18 +52,18 @@ export interface OnboardingState {
 }
 
 /**
- * True when the account holds any money: wallet USDC, card collateral, or a
- * collateral top-up still in transit. Any amount counts — $0.17 sent by crypto
- * is as much "added money" as a bank top-up.
+ * True when the account holds any money: wallet USDC or card collateral. Any
+ * amount counts — $0.17 sent by crypto is as much "added money" as a bank
+ * top-up.
  *
  * `walletBalance` is USDC base units (bigint from useWallet).
  */
 export function holdsMoney(
     walletBalance: bigint | string | number | null | undefined,
-    cardBalance: { spendingPower?: number | null; inTransitToCollateralCents?: number | null } | null | undefined
+    cardBalance: { spendingPower?: number | null } | null | undefined
 ): boolean {
     if (walletBalance != null && Number(walletBalance) > 0) return true
-    return computeDisplaySpendable(0n, cardBalance?.spendingPower, cardBalance?.inTransitToCollateralCents) > 0n
+    return computeAvailableSpendable(0n, cardBalance?.spendingPower) > 0n
 }
 
 /**
@@ -87,6 +91,20 @@ export function canAlreadyTransact(rails: readonly RailCapability[], isActivated
     return isActivated || rails.some((rail) => rail.status === 'enabled')
 }
 
+/**
+ * The to-do list's count: create account (always done), verify, add money, and
+ * first payment when a spend route exists (a pending route is an open row).
+ */
+export function checklistProgress(onboarding: OnboardingState): { done: number; total: number } {
+    const hasPaymentRow = onboarding.firstPaymentRoute !== 'none'
+    const done =
+        1 +
+        (onboarding.verify === 'done' ? 1 : 0) +
+        (onboarding.addMoneyDone ? 1 : 0) +
+        (hasPaymentRow && onboarding.firstPaymentDone ? 1 : 0)
+    return { done, total: hasPaymentRow ? 4 : 3 }
+}
+
 export interface VerifyRowInput {
     status: IdentityVerificationStatus | undefined
     /** useIdentityVerification: a final decision (not region), incl. a FINAL action_required */
@@ -98,12 +116,7 @@ export interface VerifyRowInput {
 }
 
 export function verifyRowStatus(input: VerifyRowInput): VerifyRowStatus {
-    if (input.status === 'verified' || input.canTransact) return 'done'
-    if (input.status === 'processing') return 'in_review'
-    if (input.isTerminalFailure || input.isRegionRestricted) return 'failed'
-    // a retryable failure (the check itself errored) has a fix, like action_required
-    if (input.status === 'action_required' || input.status === 'failed') return 'action_required'
-    return 'todo'
+    return canonicalVerifyRowStatus(input)
 }
 
 export interface OnboardingInput {
@@ -117,32 +130,5 @@ export interface OnboardingInput {
 }
 
 export function resolveOnboarding(input: OnboardingInput): OnboardingState {
-    const verify = verifyRowStatus(input.identity)
-    // "Add money" is done on any money received (the API milestone needs a
-    // posted money-in credit) or on any money held right now — a raw transfer
-    // the ledger has not booked yet, or card collateral.
-    const addMoneyDone =
-        input.isActivated || input.milestone === 'funded' || input.milestone === 'activated' || input.holdsMoney
-    // Only the spend that activates (card or QR) completes the payment row.
-    const firstPaymentDone = input.isActivated
-
-    const hasPaymentRow = input.firstPaymentRoute !== 'none'
-    let step: ActivationStep
-    if (firstPaymentDone) step = 'completed'
-    // a failed check stays on `verify`: Home shows the blocked card, not the list
-    else if (verify === 'todo' || verify === 'action_required' || verify === 'failed') step = 'verify'
-    else if (!addMoneyDone) step = 'add_money'
-    else if (hasPaymentRow) step = 'first_payment'
-    // no payment row: the list ends at Add money, done once identity is too
-    // (an ID check in review is the one open row left)
-    else step = verify === 'done' ? 'completed' : 'verify'
-
-    return {
-        verify,
-        addMoneyDone,
-        firstPaymentDone,
-        firstPaymentRoute: input.firstPaymentRoute,
-        cardHeld: input.cardHeld,
-        step,
-    }
+    return canonicalResolveOnboarding(input)
 }

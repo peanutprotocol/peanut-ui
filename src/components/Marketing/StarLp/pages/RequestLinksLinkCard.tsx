@@ -13,7 +13,7 @@ export function RequestLinksLinkCard({ tilt = 0, className, to }: RequestLinksLi
         <RequestLinksAppLink to={to}>
             <span
                 className={twMerge(
-                    'rl-lift shadow-2 flex items-center gap-3 rounded-card border-2 border-border-default bg-yellow-500 p-3 text-left',
+                    'rl-lift shadow-2 flex items-center gap-3 rounded-card border-2 border-border-default bg-background-accent-yellow p-3 text-left',
                     className
                 )}
                 style={tilt ? { transform: `rotate(${tilt}deg)` } : undefined}

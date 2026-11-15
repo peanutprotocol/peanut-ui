@@ -5,6 +5,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
+import CenteredStatusCard from '@/components/Global/EmptyStates/CenteredStatusCard'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import NavHeader from '@/components/Global/NavHeader'
 import Loading from '@/components/Global/Loading'
@@ -26,9 +27,9 @@ import { loadingStateKey } from '@/i18n/app/loading-states'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useRequestContact } from '@/hooks/useRequestContact'
 import { useRouter } from 'next/navigation'
-import { AccountType } from '@/interfaces/interfaces'
+import { unfinishedSignupRoute } from '@/features/setup/unfinished-signup'
 import { apiErrorStatus } from '@/services/api-error'
-import { useUserByUsername } from '@/hooks/useUserByUsername'
+import { usePerson } from '@/lib/person/usePerson'
 import { useRequestBack } from '@/components/Request/useRequestBack'
 import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import { profileUrl, sendUrl } from '@/utils/native-routes'
@@ -53,15 +54,16 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     const authUnavailable = !authUser && !!userFetchError
     const router = useRouter()
     const contact = useRequestContact(username)
-    const needsSetup = !!authUser && !authUser.accounts.some((account) => account.type === AccountType.PEANUT_WALLET)
+    const setupRoute = authUser ? unfinishedSignupRoute(authUser) : null
+    const needsSetup = setupRoute !== null
     // a settled signed-out visitor gets a card, not a redirect; undefined means auth is still loading
     const isGuest = authUser === null && !userFetchError
 
     useEffect(() => {
-        if (isFetchingUser || userFetchError || !needsSetup) return
+        if (isFetchingUser || userFetchError || !setupRoute) return
         saveRedirectUrl()
-        router.replace('/setup/finish')
-    }, [isFetchingUser, userFetchError, needsSetup, router])
+        router.replace(setupRoute)
+    }, [isFetchingUser, userFetchError, setupRoute, router])
     const { address } = useWallet()
     const [attachmentOptions, setAttachmentOptions] = useState<IAttachmentOptions>({
         message: undefined,
@@ -79,10 +81,11 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
     const [validationError, setValidationError] = useState<ValidationErrorViewProps | null>(null)
 
     const {
-        user: recipientUser,
+        person: recipientPerson,
+        profile: recipientUser,
         isLoading: isRecipientUserLoading,
         error: recipientUserError,
-    } = useUserByUsername(username)
+    } = usePerson(username)
 
     const resetRequestState = () => {
         setCreatedChargeId(null)
@@ -322,26 +325,27 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                             }
                         />
                     ) : (
-                        <EmptyState
-                            icon="txn-off"
+                        <CenteredStatusCard
+                            tone="neutral"
+                            pose="worried"
                             title={t('blocked.title', { username })}
                             description={t('errors.moneyContactsOnly')}
-                            cta={
-                                <div className="mt-4 flex w-full flex-col gap-3">
-                                    <Button
-                                        variant="primary"
-                                        className="w-full"
-                                        icon="arrow-up-right"
-                                        href={sendUrl(username, native.isCapacitor)}
-                                    >
-                                        {t('blocked.sendCta', { username })}
-                                    </Button>
-                                    <Button variant="secondary" className="w-full" icon="link" href="/request">
-                                        {tHome('shareRequestLink')}
-                                    </Button>
-                                </div>
-                            }
-                        />
+                        >
+                            {' '}
+                            <div className="mt-4 flex w-full flex-col gap-3">
+                                <Button
+                                    variant="primary"
+                                    className="w-full"
+                                    icon="arrow-up-right"
+                                    href={sendUrl(username, native.isCapacitor)}
+                                >
+                                    {t('blocked.sendCta', { username })}
+                                </Button>
+                                <Button variant="secondary" className="w-full" icon="link" href="/request">
+                                    {tHome('shareRequestLink')}
+                                </Button>
+                            </div>
+                        </CenteredStatusCard>
                     )}
                 </PageStack.Center>
             </div>
@@ -361,7 +365,7 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
                 <PageStack.Center className="gap-4">
                     {createdChargeId && <ChargeFulfillmentNotice chargeId={createdChargeId} />}
                     <PaymentSuccessView
-                        user={recipientUser}
+                        recipient={recipientPerson}
                         // currencyAmount is shown as given, in place of an amount the requestee chooses
                         {...(currentInputValue
                             ? { amount: formatAmount(currentInputValue) }
@@ -383,15 +387,17 @@ const DirectRequestInitialView = ({ username }: DirectRequestInitialViewProps) =
             )}
 
             <PageStack.Center className="gap-4">
-                <UserCard
-                    type="request"
-                    recipientType={'USERNAME'}
-                    username={recipientUser?.username || username}
-                    fullName={recipientUser?.fullName}
-                    avatarKey={recipientUser?.avatarKey}
-                    isVerified={recipientUser?.isVerified ?? false}
-                    haveSentMoneyToUser={contact.data.relationshipTypes.includes('sent_money')}
-                />
+                {recipientPerson && (
+                    <UserCard
+                        type="request"
+                        recipientType={'USERNAME'}
+                        person={recipientPerson}
+                        username={recipientUser?.username || username}
+                        fullName={recipientUser?.fullName}
+                        isVerified={recipientUser?.isVerified ?? false}
+                        haveSentMoneyToUser={contact.data.relationshipTypes.includes('sent_money')}
+                    />
+                )}
 
                 <div className="space-y-4">
                     <AmountInput

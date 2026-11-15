@@ -10,9 +10,9 @@ import type { CloseFoldProps } from './starLp.types'
  * The closing fold: knerd lockup, one line, the CTA. Two sparkles pop in
  * unless `decoration` replaces them or `circleWord` circles a word instead.
  */
-export function CloseFold({ title, line, cta, ground = 'pink', decoration, circleWord }: CloseFoldProps) {
+export function CloseFold({ title, line, cta, ground = 'pink', decoration, circleWord, id }: CloseFoldProps) {
     return (
-        <Band ground={ground} align="center">
+        <Band ground={ground} align="center" id={id}>
             {circleWord
                 ? null
                 : (decoration ?? (
@@ -22,7 +22,14 @@ export function CloseFold({ title, line, cta, ground = 'pink', decoration, circl
                               className="pointer-events-none absolute top-0 left-2 w-10 md:left-[15%] md:w-14"
                           >
                               {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img src={Sparkle.src} width={Sparkle.width} height={Sparkle.height} alt="" aria-hidden />
+                              <img
+                                  src={Sparkle.src}
+                                  width={Sparkle.width}
+                                  height={Sparkle.height}
+                                  alt=""
+                                  aria-hidden
+                                  loading="lazy"
+                              />
                           </PopIn>
                           <PopIn
                               delay={0.2}
@@ -30,7 +37,14 @@ export function CloseFold({ title, line, cta, ground = 'pink', decoration, circl
                               className="pointer-events-none absolute right-2 bottom-24 w-8 md:right-[15%] md:w-12"
                           >
                               {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img src={Sparkle.src} width={Sparkle.width} height={Sparkle.height} alt="" aria-hidden />
+                              <img
+                                  src={Sparkle.src}
+                                  width={Sparkle.width}
+                                  height={Sparkle.height}
+                                  alt=""
+                                  aria-hidden
+                                  loading="lazy"
+                              />
                           </PopIn>
                       </>
                   ))}

@@ -5,6 +5,7 @@ import {
     buildDeferredPayload,
     iosHandoffString,
     parseDeferredPayload,
+    parseReferrerCampaign,
     playStoreUrlWithReferrer,
     restoreDeferredContext,
     APP_LOCALE_KEY,
@@ -19,7 +20,14 @@ import {
     ensureSignupAttributionForRegistration,
     readSignupAttribution,
 } from '../signup-attribution'
-import { readInviteCode, stashInvite } from '../invite-stash'
+import {
+    bindInviteToUser,
+    readInviteCode,
+    readInviteIntent,
+    readInviteUserId,
+    stashAcquisitionInvite,
+    stashInvite,
+} from '../invite-stash'
 import { EInviteType } from '@/services/services.types'
 import publicAttributionPaths from '@/constants/signup-attribution-paths.generated.json'
 import {
@@ -70,9 +78,11 @@ const posthogAlias = jest.fn()
 const posthogRegisterOnce = jest.fn()
 const posthogDistinctId = jest.fn<string | undefined, []>()
 const posthogIsIdentified = jest.fn<boolean, []>()
+const posthogOptedOut = jest.fn<boolean, []>(() => false)
 jest.mock('posthog-js', () => ({
     __esModule: true,
     default: {
+        has_opted_out_capturing: () => posthogOptedOut(),
         capture: (...args: unknown[]) => posthogCapture(...args),
         register: (...args: unknown[]) => posthogRegister(...args),
         alias: (...args: unknown[]) => posthogAlias(...args),
@@ -718,6 +728,60 @@ describe('parseDeferredPayload rejection', () => {
     })
 })
 
+describe('parseReferrerCampaign', () => {
+    it("ignores Play's organic referrer and its (not set) placeholders", () => {
+        expect(parseReferrerCampaign('utm_source=google-play&utm_medium=organic')).toBeNull()
+        expect(parseReferrerCampaign('utm_source=Google-Play&utm_medium=Organic&utm_campaign=x')).toBeNull()
+        expect(parseReferrerCampaign('utm_source=(not%20set)&utm_medium=(not%20set)')).toBeNull()
+        expect(parseReferrerCampaign('utm_source=(not+set)&utm_medium=(not+set)&utm_campaign=(not+set)')).toBeNull()
+        expect(parseReferrerCampaign('')).toBeNull()
+    })
+
+    it('turns a direct-to-store ad link into an android campaign journey', () => {
+        const context = parseReferrerCampaign(
+            'utm_source=twitter&utm_medium=cpm&utm_campaign=launch-films-ar&utm_content=direct-to-store'
+        )
+        expect(context).toMatchObject({
+            schemaVersion: '1',
+            platform: 'android',
+            analyticsState: 'enabled',
+            captureMethod: 'deferred_link',
+            firstTouch: {
+                utmSource: 'twitter',
+                utmMedium: 'cpm',
+                utmCampaign: 'launch-films-ar',
+                utmContent: 'direct-to-store',
+            },
+        })
+        expect(context?.journeyId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)
+        expect(context?.firstTouch.path).toBeUndefined()
+        expect(context?.lastTouch).toBeUndefined()
+    })
+
+    it('keeps a google-play source that is not organic, and drops only the (not set) tags', () => {
+        expect(
+            parseReferrerCampaign('utm_source=google-play&utm_medium=(not%20set)&utm_campaign=promo')?.firstTouch
+        ).toEqual(expect.objectContaining({ utmSource: 'google-play', utmCampaign: 'promo' }))
+        expect(
+            parseReferrerCampaign('utm_source=google-play&utm_medium=(not%20set)&utm_campaign=promo')?.firstTouch
+                .utmMedium
+        ).toBeUndefined()
+    })
+
+    it('reads only the utm tags and drops values that could identify a person', () => {
+        const context = parseReferrerCampaign(
+            'utm_source=someone%40example.com&utm_campaign=fall&invite=abc&lang=es-419&dest=%2Fhome&gclid=123'
+        )
+        expect(context?.firstTouch).toEqual({ occurredAt: expect.any(String), utmCampaign: 'fall' })
+        expect(parseReferrerCampaign('utm_source=someone%40example.com')).toBeNull()
+        expect(parseReferrerCampaign('invite=abc&dest=%2Fhome')).toBeNull()
+    })
+
+    it('leaves marked payloads to parseDeferredPayload', () => {
+        expect(parseReferrerCampaign('pnutdl=1&utm_source=peanut.me&utm_campaign=web')).toBeNull()
+    })
+})
+
 describe('applyDeferredPayload', () => {
     it('stashes the invite outside cookies and writes a 30-day campaign list', () => {
         applyDeferredPayload({ invite: 'abc', campaign: 'off' })
@@ -974,6 +1038,102 @@ describe('restore telemetry', () => {
 
         await restoreDeferredContext()
         expect(lastRestoreEvent()).toEqual({ channel: 'referrer', outcome: 'marker_missing' })
+        expect(readSignupAttribution()).toBeNull()
+        expect(posthogRegister).not.toHaveBeenCalled()
+    })
+
+    it('restores the campaign of an unmarked UTM referrer as signup attribution, and nothing else', async () => {
+        mockIsAndroidNative.mockReturnValue(true)
+        getReferrer.mockResolvedValue({
+            referrer:
+                'utm_source=twitter&utm_medium=cpm&utm_campaign=launch-films-ar&invite=abc&lang=es-419&badge_campaign=off&dest=%2Fclaim%2FXYZ',
+        })
+
+        await expect(restoreDeferredContext()).resolves.toBeNull()
+
+        const attribution = readSignupAttribution()
+        expect(attribution).toMatchObject({
+            platform: 'android',
+            captureMethod: 'deferred_link',
+            firstTouch: { utmSource: 'twitter', utmMedium: 'cpm', utmCampaign: 'launch-films-ar' },
+        })
+        expect(lastRestoreEvent()).toEqual({
+            channel: 'referrer',
+            outcome: 'utm_referrer',
+            has_attribution: true,
+            referrer_utm_source: 'twitter',
+            referrer_utm_medium: 'cpm',
+            referrer_utm_campaign: 'launch-films-ar',
+        })
+        expect(posthogRegister).toHaveBeenCalledWith({
+            signup_journey_id: attribution?.journeyId,
+            signup_platform: 'android',
+            signup_attribution_capture_method: 'deferred_link',
+        })
+        // an unmarked referrer is not our hand-off: no invite, locale, badge campaign or dest
+        expect(readInviteCode()).toBe('')
+        expect(document.cookie).not.toContain('campaignTag=')
+        expect(localStorage.getItem(APP_LOCALE_KEY)).toBeNull()
+        expect(JSON.stringify(posthogCapture.mock.calls)).not.toContain('abc')
+        expect(JSON.stringify(posthogCapture.mock.calls)).not.toContain('XYZ')
+
+        // the registration header carries the campaign to the API
+        await expect(ensureSignupAttributionForRegistration()).resolves.toMatchObject({
+            journeyId: attribution?.journeyId,
+            captureMethod: 'deferred_link',
+            firstTouch: { utmCampaign: 'launch-films-ar' },
+        })
+
+        getReferrer.mockClear()
+        await expect(restoreDeferredContext()).resolves.toBeNull()
+        expect(getReferrer).not.toHaveBeenCalled()
+    })
+
+    it('stores nothing from a UTM referrer when analytics is declined', async () => {
+        const env = { ...process.env }
+        Object.assign(process.env, {
+            NODE_ENV: 'production',
+            NEXT_PUBLIC_POSTHOG_KEY: 'phc_test',
+            NEXT_PUBLIC_VERCEL_ENV: 'production',
+        })
+        posthogOptedOut.mockReturnValue(true)
+        try {
+            mockIsAndroidNative.mockReturnValue(true)
+            getReferrer.mockResolvedValue({
+                referrer: 'utm_source=twitter&utm_medium=cpm&utm_campaign=launch-films-ar',
+            })
+
+            await expect(restoreDeferredContext()).resolves.toBeNull()
+
+            expect(document.cookie).not.toContain(SIGNUP_ATTRIBUTION_COOKIE)
+            expect(preferencesSet).not.toHaveBeenCalled()
+            expect(posthogRegister).not.toHaveBeenCalled()
+            expect(lastRestoreEvent()).toMatchObject({ outcome: 'utm_referrer', has_attribution: false })
+            expect(localStorage.getItem('deferredLinkConsumed')).toBe('1')
+        } finally {
+            process.env = env
+            posthogOptedOut.mockReturnValue(false)
+        }
+    })
+
+    it('ignores the plain utm fields of a marked payload', async () => {
+        mockIsAndroidNative.mockReturnValue(true)
+        getReferrer.mockResolvedValue({ referrer: 'pnutdl=1&dest=%2Fhome&utm_source=peanut.me&utm_campaign=web' })
+
+        await expect(restoreDeferredContext()).resolves.toEqual({ dest: '/home', locale: null })
+        expect(lastRestoreEvent()).toMatchObject({ channel: 'referrer', outcome: 'restored' })
+        expect(readSignupAttribution()).toBeNull()
+    })
+
+    it('never reads attribution from an unmarked iOS clipboard url', async () => {
+        mockIsIOSNative.mockReturnValue(true)
+        mockClipboardHasStrings.mockResolvedValue(true)
+        mockClipboardHasProbableWebUrl.mockResolvedValue(true)
+        clipboardRead.mockResolvedValue({ value: 'https://peanut.me/?utm_source=twitter&utm_campaign=launch' })
+
+        await expect(restoreDeferredContext()).resolves.toBeNull()
+        expect(lastRestoreEvent()).toEqual({ channel: 'clipboard', outcome: 'marker_missing' })
+        expect(readSignupAttribution()).toBeNull()
     })
 
     it('does not lose the restored context when posthog throws', async () => {
@@ -1081,5 +1241,126 @@ describe('web visitor identity hand-off', () => {
         expect(restored).not.toHaveProperty('web_distinct_id')
         expect(posthogRegisterOnce).not.toHaveBeenCalled()
         expect(posthogAlias).not.toHaveBeenCalled()
+    })
+})
+
+// A /go opening stashes a passive inviter and may carry a strict-consent journey.
+describe('tracked-link handoff', () => {
+    const WEB_ID = '44444444-4444-4444-8444-444444444444'
+    const savedKey = process.env.NEXT_PUBLIC_POSTHOG_KEY
+    const journey = {
+        schemaVersion: '1',
+        journeyId: '33333333-3333-4333-8333-333333333333',
+        platform: 'web',
+        analyticsState: 'enabled',
+        captureMethod: 'browser',
+        firstTouch: { occurredAt: new Date().toISOString() },
+    }
+    const deny = (condition: 'dnt' | 'gpc' | 'declined') => {
+        if (condition === 'dnt') Object.defineProperty(navigator, 'doNotTrack', { configurable: true, value: '1' })
+        if (condition === 'gpc')
+            Object.defineProperty(navigator, 'globalPrivacyControl', { configurable: true, value: true })
+        if (condition === 'declined') localStorage.setItem('__ph_opt_in_out_phc_tracked', '0')
+    }
+    beforeEach(() => {
+        process.env.NEXT_PUBLIC_POSTHOG_KEY = 'phc_tracked'
+        posthogDistinctId.mockReturnValue(WEB_ID)
+        posthogIsIdentified.mockReturnValue(false)
+    })
+    afterEach(() => {
+        Reflect.deleteProperty(navigator, 'doNotTrack')
+        Reflect.deleteProperty(navigator, 'globalPrivacyControl')
+        posthogDistinctId.mockReset()
+        posthogIsIdentified.mockReset()
+        if (savedKey === undefined) delete process.env.NEXT_PUBLIC_POSTHOG_KEY
+        else process.env.NEXT_PUBLIC_POSTHOG_KEY = savedKey
+    })
+
+    it.each(['android', 'ios'] as const)(
+        'carries a passive inviter as acq_invite, which installed apps never accept (%s)',
+        (store) => {
+            stashAcquisitionInvite('alice')
+            const encoded = buildDeferredPayload('/home', undefined, store, { trackedLink: 'alice' })
+            expect(new URLSearchParams(encoded).has('invite')).toBe(false)
+            expect(parseLegacyDeferredPayload(encoded)?.invite).toBeUndefined()
+            expect(parseDeferredPayload(encoded)).toMatchObject({ acquisitionInvite: 'alice', trackedLink: 'alice' })
+            localStorage.clear()
+            applyDeferredPayload(parseDeferredPayload(encoded)!)
+            expect(readInviteCode()).toBe('alice')
+            expect(readInviteIntent()).toBe('acquisition')
+        }
+    )
+
+    it('lets a payload invite win over a passive one on restore', () => {
+        stashAcquisitionInvite('creator')
+        applyDeferredPayload(parseDeferredPayload('pnutdl=1&tl=creator&invite=friend&acq_invite=creator')!)
+        expect(readInviteCode()).toBe('friend')
+        expect(readInviteIntent()).toBe('explicit')
+    })
+
+    it.each(['explicit', 'explicit-owned', 'passive-owned'] as const)(
+        'never lets a passive payload replace a %s stash',
+        (state) => {
+            if (state === 'passive-owned') stashAcquisitionInvite('dave')
+            else stashInvite('dave', EInviteType.DIRECT)
+            if (state !== 'explicit') bindInviteToUser('account-a')
+            applyDeferredPayload(parseDeferredPayload('pnutdl=1&tl=alice&acq_invite=alice')!)
+            expect(readInviteCode()).toBe('dave')
+            expect(readInviteUserId()).toBe(state === 'explicit' ? '' : 'account-a')
+        }
+    )
+
+    it('drops a passive inviter that is not a username', () => {
+        applyDeferredPayload(parseDeferredPayload('pnutdl=1&tl=alice&acq_invite=al%2Fice')!)
+        expect(readInviteCode()).toBe('')
+    })
+
+    it.each(['dnt', 'gpc', 'declined'] as const)(
+        'keeps the passive inviter but leaves the journey and web id behind under %s',
+        (condition) => {
+            saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, journey)
+            stashAcquisitionInvite('alice')
+            deny(condition)
+            const parsed = parseDeferredPayload(
+                buildDeferredPayload('/home', undefined, 'ios', { trackedLink: 'alice' })
+            )!
+            expect(parsed.acquisitionInvite).toBe('alice')
+            expect(parsed.attribution).toBeUndefined()
+            expect(parsed.webDistinctId).toBeUndefined()
+        }
+    )
+
+    it.each([true, false])(
+        'restores the journey and web id only under tracked consent (allowed: %s)',
+        async (allowed) => {
+            saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, journey)
+            stashAcquisitionInvite('alice')
+            const referrer = buildDeferredPayload('/home', undefined, 'android', { trackedLink: 'alice' })
+            expect(parseDeferredPayload(referrer)).toMatchObject({ webDistinctId: WEB_ID, trackedLink: 'alice' })
+            localStorage.clear()
+            clearCookies()
+            if (!allowed) deny('dnt')
+            mockIsAndroidNative.mockReturnValue(true)
+            getReferrer.mockResolvedValue({ referrer })
+            await restoreDeferredContext()
+            expect(readInviteCode()).toBe('alice')
+            expect(readSignupAttribution()?.journeyId).toBe(allowed ? journey.journeyId : undefined)
+            if (allowed) expect(posthogRegisterOnce).toHaveBeenCalledWith({ web_distinct_id: WEB_ID })
+            else expect(posthogRegisterOnce).not.toHaveBeenCalled()
+        }
+    )
+
+    it('trims Android payload bytes without downgrading the passive inviter', () => {
+        saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, {
+            ...journey,
+            firstTouch: { ...journey.firstTouch, utmCampaign: 'x'.repeat(64), utmContent: 'y'.repeat(64) },
+        })
+        stashAcquisitionInvite('a'.repeat(64))
+        const encoded = buildDeferredPayload('/home?' + 'x'.repeat(600), undefined, 'android', {
+            trackedLink: 'a'.repeat(64),
+        })
+        expect(encodeURIComponent(encoded).length).toBeLessThanOrEqual(MAX_PLAY_REFERRER_LENGTH)
+        expect(parseDeferredPayload(encoded)?.acquisitionInvite).toBe('a'.repeat(64))
+        expect(parseLegacyDeferredPayload(encoded)?.invite).toBeUndefined()
     })
 })

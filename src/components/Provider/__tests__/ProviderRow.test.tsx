@@ -4,6 +4,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import messages from '@/i18n/app/messages/en.json'
 import type { ProviderId } from '@/types/provider.types'
+import { PROVIDERS } from '@/constants/providers.consts'
 import { openExternalUrl } from '@/utils/capacitor'
 import { ProviderFinePrint } from '../ProviderFinePrint'
 import { ProviderRow } from '../ProviderRow'
@@ -118,21 +119,7 @@ describe('ProviderSheet rows', () => {
                 'Support',
             ],
         ],
-        [
-            'manteca-br',
-            'Manteca',
-            [
-                'Legal name',
-                'Registered office',
-                'Tax ID',
-                'Role',
-                'How this executes',
-                "Peanut's role",
-                'Terms',
-                'Privacy',
-                'Support',
-            ],
-        ],
+        ['manteca-br', 'Manteca', ['Role', 'How this executes', "Peanut's role", 'Terms', 'Privacy', 'Support']],
         ['rhino', 'Rhino.fi', ['Legal name', 'Role', 'How this executes', "Peanut's role", 'Terms', 'Privacy']],
         [
             'third-national',
@@ -169,6 +156,20 @@ describe('ProviderSheet rows', () => {
     })
 })
 
+// Each entry reads its own execution line: no entry borrows another's, so a new provider needs
+// only its registry entry and its copy.
+describe('ProviderSheet execution line', () => {
+    it.each(Object.values(PROVIDERS).map((record) => [record.id, record.role, record.brand] as const))(
+        '%s reads the execution line of its own role (%s)',
+        (id, role, brand) => {
+            withIntl(<ProviderRow providerId={id} />)
+            const line = (messages.provider.execution as Record<string, string>)[role]
+            expect(line).toBeDefined()
+            expect(within(openSheet(brand)).getByText(line.replace('{brand}', brand))).toBeInTheDocument()
+        }
+    )
+})
+
 describe('ProviderFinePrint', () => {
     it('reads "Card provider · Rain" on the card and keeps the issuer inside the sheet', () => {
         withIntl(<ProviderFinePrint providerId="third-national" label="cardProvider" />)
@@ -184,7 +185,8 @@ describe('ProviderFinePrint', () => {
         withIntl(<ProviderFinePrint providerId="manteca-br" />)
         expect(screen.getByText('Provider · Manteca')).toBeInTheDocument()
         const sheet = openSheet('Manteca')
-        expect(within(sheet).getByText('CNPJ 63.653.001/0001-55')).toBeInTheDocument()
+        // brand only in brazil: no legal name, office or CNPJ
+        expect(within(sheet).queryByText(/CNPJ/)).not.toBeInTheDocument()
     })
 
     it('says Manteca settles, since the brazil sheet also opens from qr pay', () => {

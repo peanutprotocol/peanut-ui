@@ -16,6 +16,7 @@
  * that fails to pass it, not the word.
  */
 import { screen } from '@testing-library/react'
+import { personFrom } from '@/lib/person/person'
 import { renderWithIntl } from '@/test-utils/intl'
 import PeanutActionDetailsCard from '../index'
 
@@ -68,7 +69,7 @@ describe('PeanutActionDetailsCard — counterparty avatar', () => {
                 {...baseProps}
                 recipientName="satoshi"
                 transactionType="CLAIM_LINK"
-                avatarKey="basic.frog"
+                person={personFrom({ username: 'satoshi', avatarKey: 'basic.frog' })}
             />
         )
 
@@ -81,7 +82,7 @@ describe('PeanutActionDetailsCard — counterparty avatar', () => {
                 {...baseProps}
                 recipientName="satoshi"
                 transactionType="CLAIM_LINK"
-                avatarKey={null}
+                person={personFrom({ username: 'satoshi', avatarKey: null })}
             />
         )
 
@@ -95,7 +96,7 @@ describe('PeanutActionDetailsCard — counterparty avatar', () => {
                 recipientType="ADDRESS"
                 recipientName="0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
                 transactionType="REQUEST_PAYMENT"
-                avatarKey="basic.frog"
+                person={personFrom({ username: 'satoshi', avatarKey: 'basic.frog' })}
             />
         )
 
@@ -110,7 +111,7 @@ describe('PeanutActionDetailsCard — counterparty avatar', () => {
                 recipientName="satoshi"
                 transactionType="CLAIM_LINK"
                 viewType="SUCCESS"
-                avatarKey="basic.frog"
+                person={personFrom({ username: 'satoshi', avatarKey: 'basic.frog' })}
             />
         )
 

@@ -1,7 +1,7 @@
 // Screen wordiness: static count of the English copy each screen can show.
 // The CLI (screen-wordiness.mjs) owns flags, baseline and output; this module
 // only reads files and counts, so the jest test can drive it on a fixture tree.
-// Counting rules: scripts/screen-wordiness.md.
+// Counting rules: https://github.com/peanutprotocol/mono/blob/main/engineering/ui/screen-wordiness.md
 const ts = require('typescript')
 const { readdirSync, readFileSync, existsSync, statSync } = require('node:fs')
 const { join, relative, dirname, basename } = require('node:path')

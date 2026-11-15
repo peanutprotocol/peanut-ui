@@ -1,3 +1,4 @@
+import { normalizeResidence } from '@/utils/residence-profile'
 /**
  * DynamicBankAccountForm — the existing-account branch (Chip round 9).
  *
@@ -14,6 +15,7 @@
  */
 import React from 'react'
 import { render, act, screen, fireEvent, waitFor } from '@testing-library/react'
+import { maskReplayAttribute } from '@/utils/replay-privacy'
 
 // ---------- module-level mocks ----------
 
@@ -34,7 +36,9 @@ jest.mock('next-intl', () => ({
 // Where the user lives, as /users/me reports it. Nobody by default.
 let mockResidence: { declared: string | null; declaredSecond: string | null; verified: string | null } | undefined
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: { user: { fullName: 'John Doe', email: 'john@doe.co' }, residence: mockResidence } }),
+    useAuth: () => ({
+        user: { user: { fullName: 'John Doe', email: 'john@doe.co' }, residence: normalizeResidence(mockResidence) },
+    }),
 }))
 
 jest.mock('@/hooks/useSendFlowOrigin', () => ({
@@ -125,7 +129,7 @@ jest.mock('@/components/0_Bruddle/BaseSelect', () => ({
     default: () => null,
 }))
 
-import { DynamicBankAccountForm } from '../DynamicBankAccountForm'
+import { DynamicBankAccountForm, type DynamicBankAccountFormHandle } from '../DynamicBankAccountForm'
 
 // ---------- helpers ----------
 
@@ -562,6 +566,83 @@ const renderBareForm = (onSuccess: jest.Mock, country: string) => {
 
 const input = (name: string) => document.getElementById(`bank-${name}`) as HTMLInputElement | null
 const ownAccountBox = () => screen.queryByRole('checkbox')
+
+it('restores entered IBAN, holder and address without replay exposure or late prefill replacing them', async () => {
+    const onSuccess = jest.fn(async () => ({}))
+    const ref = React.createRef<DynamicBankAccountFormHandle>()
+    const { unmount } = render(<DynamicBankAccountForm ref={ref} country="SEPA" error={null} onSuccess={onSuccess} />)
+    const entered = {
+        accountNumber: 'DE89 3704 0044 0532 0130 00',
+        accountOwnerName: 'Draft Fixture',
+        street: '12 Teststrasse',
+        city: 'Berlin',
+        postalCode: '10115',
+    }
+    await act(async () => {
+        for (const [name, value] of Object.entries(entered)) {
+            fireEvent.change(input(name)!, { target: { value } })
+        }
+    })
+    const draft = ref.current?.getOwnIbanDraft?.()
+    expect(draft?.values).toEqual(entered)
+    unmount()
+
+    mockOwnIdentity = { ...KNOWN_IDENTITY, address: { ...KNOWN_IDENTITY.address!, countryCode: 'IT' } }
+    render(
+        <DynamicBankAccountForm
+            ref={ref}
+            country="SEPA"
+            restoredOwnIbanDraft={draft ?? undefined}
+            error={null}
+            onSuccess={onSuccess}
+        />
+    )
+    for (const [name, value] of Object.entries(entered)) {
+        const field = input(name)
+        expect(field).toHaveValue(value)
+        expect(maskReplayAttribute('value', value, field)).toMatch(/^[* ]+$/)
+    }
+    expect(onSuccess).not.toHaveBeenCalled()
+
+    // Turning off own account cannot carry this draft into another person's verification.
+    await act(async () => {
+        fireEvent.click(ownAccountBox()!)
+    })
+    expect(ref.current?.getOwnIbanDraft?.()).toBeNull()
+    expect(input('accountOwnerName')).toHaveValue(entered.accountOwnerName)
+    expect(input('street')).toHaveValue(entered.street)
+})
+
+it('retracts restored prefills and keeps manual fields when own account is unticked', async () => {
+    mockOwnIdentity = KNOWN_IDENTITY
+    const onSuccess = jest.fn(async () => ({}))
+    const ref = React.createRef<DynamicBankAccountFormHandle>()
+    const { unmount } = render(<DynamicBankAccountForm ref={ref} country="SEPA" error={null} onSuccess={onSuccess} />)
+    await waitFor(() => expect(input('street')).toHaveValue('1 Via Roma'))
+    await act(async () => {
+        fireEvent.change(input('city')!, { target: { value: 'Milan' } })
+    })
+    const draft = ref.current?.getOwnIbanDraft?.()
+    expect(draft?.values.city).toBe('Milan')
+    unmount()
+
+    render(
+        <DynamicBankAccountForm
+            country="SEPA"
+            restoredOwnIbanDraft={draft ?? undefined}
+            error={null}
+            onSuccess={onSuccess}
+        />
+    )
+    expect(input('street')).toHaveValue('1 Via Roma')
+    expect(input('city')).toHaveValue('Milan')
+    await act(async () => {
+        fireEvent.click(ownAccountBox()!)
+    })
+    expect(input('street')).toHaveValue('')
+    expect(input('postalCode')).toHaveValue('')
+    expect(input('city')).toHaveValue('Milan')
+})
 
 describe('DynamicBankAccountForm — my own account', () => {
     it('euro payout: the box is ticked, and the name and address are in the fields for the user to read', async () => {

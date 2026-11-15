@@ -1,3 +1,4 @@
+import { requirePaymentMoney } from '@/lib/money'
 import { useState, useCallback } from 'react'
 import { getCurrencyConfig } from '@/utils/bridge.utils'
 import { type CountryData } from '@/components/AddMoney/consts'
@@ -42,6 +43,7 @@ export const useCreateOnramp = (): UseCreateOnrampReturn => {
         try {
             const { currency, paymentRail } = getCurrencyConfig(country.id, 'onramp')
 
+            requirePaymentMoney(amount, currency.toUpperCase(), 2)
             const response = await apiFetch('/bridge/onramp/create', {
                 method: 'POST',
                 body: JSON.stringify({

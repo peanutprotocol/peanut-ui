@@ -10,13 +10,13 @@
 //
 // hover and press are the SAME fill, action-primary pink — the board draws ONE
 // colour for both states (kush ruling 2026-09-21, reverting a short-lived
-// action-ghost-hover press that read as purple). On a desktop pointer that
+// action-ghost-press press that read as purple). On a desktop pointer that
 // means no visible hover-to-press change; the board says so, leave it.
 //
 // `border-solid` is what evicts the ghost variant's `border-none` and puts the
 // ring back; the `!`s beat its own background rules (twMerge drops the rest).
 // The icon takes the over-colour foreground on the fill — the variant paints
-// it action-ghost-hover, which is 2.5:1 on the pink.
+// it action-ghost-press, which is 2.5:1 on the pink.
 //
 // THE RULE: every 40px icon-only nav circle takes this const AND
 // `variant="ghost"`. A `variant="secondary"` circle with `shadow-none`

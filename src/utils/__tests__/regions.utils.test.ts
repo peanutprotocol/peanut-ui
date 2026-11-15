@@ -1,4 +1,6 @@
+import { RESIDENCE_RESTRICTION_SETS } from '@/test-utils/residenceRestrictions.fixture'
 import {
+    deriveRegionAccess,
     getBankRegionIntent,
     getRegionIntent,
     isVerifiedForCountry,
@@ -119,23 +121,23 @@ describe('pendingBankRailRegionPaths', () => {
 
 describe('regionIntentForResidence', () => {
     it('routes LATAM residences to Manteca and everything Bridge-served to the Bridge levels', () => {
-        expect(regionIntentForResidence('BR')).toBe('LATAM')
-        expect(regionIntentForResidence('ar')).toBe('LATAM')
-        expect(regionIntentForResidence('US')).toBe('NA')
-        expect(regionIntentForResidence('MX')).toBe('NA')
-        expect(regionIntentForResidence('PT')).toBe('EU')
+        expect(regionIntentForResidence('BR', RESIDENCE_RESTRICTION_SETS)).toBe('LATAM')
+        expect(regionIntentForResidence('ar', RESIDENCE_RESTRICTION_SETS)).toBe('LATAM')
+        expect(regionIntentForResidence('US', RESIDENCE_RESTRICTION_SETS)).toBe('NA')
+        expect(regionIntentForResidence('MX', RESIDENCE_RESTRICTION_SETS)).toBe('NA')
+        expect(regionIntentForResidence('PT', RESIDENCE_RESTRICTION_SETS)).toBe('EU')
         // GB is in Bridge's document map but every bank rail refuses UK residents
-        expect(regionIntentForResidence('GB')).toBe('ROW')
-        expect(regionIntentForResidence('NG')).toBe('ROW')
+        expect(regionIntentForResidence('GB', RESIDENCE_RESTRICTION_SETS)).toBe('ROW')
+        expect(regionIntentForResidence('NG', RESIDENCE_RESTRICTION_SETS)).toBe('ROW')
         // Colombia's Manteca rail is deactivated: not LATAM until it comes back
-        expect(regionIntentForResidence('CO')).toBe('ROW')
+        expect(regionIntentForResidence('CO', RESIDENCE_RESTRICTION_SETS)).toBe('ROW')
     })
 
     // Same class as the GB block: Bridge lists the country but does not onboard
     // its residents, so a Bridge level could only end on a terminal rejection.
     it('routes a Bridge banking exclusion to the provider-less level', () => {
-        expect(regionIntentForResidence('JP')).toBe('ROW')
-        expect(regionIntentForResidence('dz')).toBe('ROW')
+        expect(regionIntentForResidence('JP', RESIDENCE_RESTRICTION_SETS)).toBe('ROW')
+        expect(regionIntentForResidence('dz', RESIDENCE_RESTRICTION_SETS)).toBe('ROW')
     })
 })
 
@@ -184,5 +186,30 @@ describe('isVerifiedForCountry reads the operation the flow runs', () => {
 
     it("another country's rail never answers for this one", () => {
         expect(isVerifiedForCountry(fullTier, 'AR', 'withdraw')).toBe(false)
+    })
+})
+
+// TASK-24947 M5: the limits page lists LATAM for any provider that serves it, so a user whose BRL
+// account is Avenia's sees its limits there, as a Manteca user does.
+describe('deriveRegionAccess unlocks LATAM for an Avenia account', () => {
+    const aveniaPix: RailCapability = {
+        id: 'avenia.pix_br',
+        provider: 'avenia',
+        method: 'PIX_BR',
+        channel: 'bank',
+        country: 'BR',
+        currency: 'BRL',
+        status: 'enabled',
+    }
+
+    it('lists LATAM as unlocked with only an Avenia rail', () => {
+        const { unlockedRegions, lockedRegions } = deriveRegionAccess([aveniaPix])
+        expect(unlockedRegions.map((region) => region.path)).toContain('latam')
+        expect(lockedRegions.map((region) => region.path)).not.toContain('latam')
+    })
+
+    it('keeps LATAM locked when the Avenia rail is blocked', () => {
+        const { lockedRegions } = deriveRegionAccess([{ ...aveniaPix, status: 'blocked' }])
+        expect(lockedRegions.map((region) => region.path)).toContain('latam')
     })
 })

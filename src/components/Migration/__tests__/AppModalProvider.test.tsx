@@ -3,12 +3,15 @@ import { AppModalProvider, useAppModal } from '../AppModalProvider'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { DeviceType } from '@/hooks/useGetDeviceType'
 import type { MarketingQrContext } from '@/features/marketing-qr/contract'
+import { isCapacitor } from '@/utils/capacitor'
 
-const mockMigrationOn = jest.fn(() => true)
 const mockDeviceType = jest.fn(() => DeviceType.WEB)
 const mockOpenStore = jest.fn()
 
-jest.mock('@/hooks/useMigrationFlag', () => ({ useMigrationFlag: () => mockMigrationOn() }))
+jest.mock('@/utils/capacitor', () => ({
+    ...jest.requireActual('@/utils/capacitor'),
+    isCapacitor: jest.fn(() => false),
+}))
 jest.mock('@/hooks/useGetDeviceType', () => ({
     ...jest.requireActual('@/hooks/useGetDeviceType'),
     useDeviceType: () => ({ deviceType: mockDeviceType() }),
@@ -63,7 +66,7 @@ const renderCta = () =>
 
 beforeEach(() => {
     handled = undefined
-    mockMigrationOn.mockReturnValue(true)
+    jest.mocked(isCapacitor).mockReturnValue(false)
     mockDeviceType.mockReturnValue(DeviceType.WEB)
     mockOpenStore.mockClear()
 })
@@ -92,8 +95,8 @@ describe('AppModalProvider', () => {
         expect(screen.queryByTestId('qr-modal')).not.toBeInTheDocument()
     })
 
-    it('does nothing with the flag off, so the CTA keeps its own behaviour', () => {
-        mockMigrationOn.mockReturnValue(false)
+    it('does nothing in the native app, so the CTA keeps its own behaviour', () => {
+        jest.mocked(isCapacitor).mockReturnValue(true)
         renderCta()
 
         fireEvent.click(screen.getByRole('button', { name: 'cta' }))

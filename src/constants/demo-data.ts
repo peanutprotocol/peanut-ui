@@ -10,7 +10,7 @@ import {
 // Type-only: importing the enum values would cause a runtime import cycle.
 import type { HistoryEntry } from '@/utils/history.utils'
 import type { AccountType, Contact, IUserProfile, UserLimitsResponse } from '@/interfaces/interfaces'
-import type { UserCapabilities, IdentityVerification } from '@/types/capabilities'
+import type { CapabilityRoute, UserCapabilities, IdentityVerification } from '@/types/capabilities'
 
 /** Demo smart-account balance in token base units (USDC, 6 decimals). */
 export const DEMO_BALANCE_UNITS = parseUnits('1250.75', PEANUT_WALLET_TOKEN_DECIMALS)
@@ -19,6 +19,10 @@ const CHAIN_ID = PEANUT_WALLET_CHAIN.id.toString()
 
 // Synthetic kernel address for demo mode, pinned to DEMO_USER's PEANUT_WALLET account so useWallet's address-match passes.
 export const DEMO_ADDRESS = '0xdec0debad1dec0debad1dec0debad1dec0debad1' as Address
+
+/** A dynamic Pix code with Avenia's payee name, as its deposit tickets carry. Synthetic URL, valid CRC. */
+export const DEMO_PIX_BR_CODE =
+    '00020126680014br.gov.bcb.pix2546pix.example.com/qr/v2/cobv/demo-avenia-deposit5204000053039865802BR5925AVENIA SOCIEDADE PRESTADO6009SAO PAULO62070503***63044D3A'
 
 const account = (username: string, fullName: string) => ({
     identifier: username,
@@ -101,6 +105,31 @@ const DEMO_CREATED_AT = '2026-01-01T00:00:00.000Z'
 // Verified identity + enabled rails so KYC walls and regional on/off-ramps are
 // unlocked for the walkthrough. All simulated: demo has no JWT and UserOps are
 // hard-stopped, so "enabled" rails can't move real money.
+// The demo user lives in Brazil: the API's router names Avenia for both Pix operations, so
+// /add-money/pix and /withdraw/pix open the Avenia screens the demo API answers. No provider
+// serves Pix payments for a resident of Brazil yet, so the pay route refuses.
+const DEMO_PIX_ROUTES: CapabilityRoute[] = [
+    ...(['deposit', 'withdraw'] as const).map(
+        (operation): CapabilityRoute => ({
+            operation,
+            method: 'PIX_BR',
+            provider: 'avenia',
+            state: 'ready',
+            // a deposit's minimum is R$20; a withdrawal or send's is R$5 (the owner's ruling of 15 Nov)
+            limits: { minAmount: operation === 'deposit' ? '20' : '5', currency: 'BRL' },
+            candidates: [{ provider: 'avenia', state: 'ready' }],
+        })
+    ),
+    {
+        operation: 'pay',
+        method: 'PIX_BR',
+        provider: null,
+        state: 'refused',
+        reason: { code: 'residence_not_served', userMessage: 'Pix payments are not available where you live yet.' },
+        candidates: [],
+    },
+]
+
 const DEMO_CAPABILITIES: UserCapabilities = {
     rails: [
         {
@@ -133,6 +162,22 @@ const DEMO_CAPABILITIES: UserCapabilities = {
     ],
     nextActions: [],
     restrictions: [],
+    routes: DEMO_PIX_ROUTES,
+    // The API's report for these rails, written out: the app never computes one (a test keeps them equal).
+    features: {
+        qr: { state: 'on' },
+        local: { state: 'on', accounts: { BRL: { state: 'on' }, ARS: { state: 'on' } } },
+        bank: {
+            state: 'on',
+            accounts: {
+                USD: { state: 'on' },
+                EUR: { state: 'ready' },
+                GBP: { state: 'ready' },
+                MXN: { state: 'ready' },
+            },
+        },
+        card: { state: 'ready' },
+    },
 }
 
 const DEMO_IDENTITY_VERIFICATION: IdentityVerification = {
@@ -151,7 +196,11 @@ export const DEMO_USER: IUserProfile = {
     invitesSent: [],
     showEarlyUserModal: false,
     invitedBy: null,
-    residence: { declared: 'BR', declaredSecond: null, verified: null, kycReported: null },
+    residence: {
+        verified: null,
+        declared: { country: 'BR', status: 'UNVERIFIED', updatedAt: null, secondCountry: null },
+        secondaryDeclaredCountry: null,
+    },
     capabilities: DEMO_CAPABILITIES,
     identityVerification: DEMO_IDENTITY_VERIFICATION,
     accounts: [
@@ -268,4 +317,5 @@ export const DEMO_LIMITS: UserLimitsResponse = {
             availableMonthlyLimit: '950000',
         },
     ],
+    unavailable: [],
 }

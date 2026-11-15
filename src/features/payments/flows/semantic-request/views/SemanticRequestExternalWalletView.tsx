@@ -7,6 +7,7 @@ import RhinoDepositView from '@/components/AddMoney/views/RhinoDeposit.view'
 import type { RhinoChainType } from '@/services/services.types'
 import { useTranslations } from 'next-intl'
 import { isStableCoin } from '@/utils/general.utils'
+import { personFrom } from '@/lib/person/person'
 
 const SemanticRequestExternalWalletView = () => {
     const t = useTranslations('payment')
@@ -39,6 +40,7 @@ const SemanticRequestExternalWalletView = () => {
 
     return (
         <RhinoDepositView
+            chargeId={charge?.uuid}
             headerTitle={t('headers.pay')}
             chainType={chainType}
             setChainType={setChainType}
@@ -60,6 +62,12 @@ const SemanticRequestExternalWalletView = () => {
                 charge?.requestLink.recipientAccount.type === 'peanut-wallet'
                     ? charge?.requestLink.recipientAccount.user.username
                     : charge?.requestLink.recipientAccount.identifier
+            }
+            // the requester the charge names; the card must not wait on a fetch of its own
+            person={
+                charge?.requestLink.recipientAccount.type === 'peanut-wallet'
+                    ? personFrom(charge.requestLink.recipientAccount.user)
+                    : null
             }
         />
     )

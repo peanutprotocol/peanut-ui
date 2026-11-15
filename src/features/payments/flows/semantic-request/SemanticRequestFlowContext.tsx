@@ -18,17 +18,15 @@
 import { createContext, useContext, useState, useMemo, useCallback, type ReactNode } from 'react'
 import { type Address, type Hash } from 'viem'
 import { type TRequestChargeResponse, type PaymentCreationResponse } from '@/services/services.types'
-import { type ParsedURL, type RecipientType } from '@/lib/url-parser/types/payment'
-import type { TokenMeta } from '@/interfaces/chain-meta'
-import { areEvmAddressesEqual, isStableCoin } from '@/utils/general.utils'
+import { type ParsedURL, type RecipientPerson } from '@/lib/url-parser/types/payment'
+import { areEvmAddressesEqual } from '@/utils/general.utils'
 
 // view states for semantic request flow
 export type SemanticRequestFlowView = 'INITIAL' | 'CONFIRM' | 'STATUS' | 'RECEIPT' | 'EXTERNAL_WALLET'
 
 // recipient info from parsed url
-export interface SemanticRequestRecipient {
+export type SemanticRequestRecipient = RecipientPerson & {
     identifier: string
-    recipientType: RecipientType
     resolvedAddress: Address
 }
 
@@ -70,14 +68,6 @@ interface SemanticRequestFlowContextValue {
     isTokenFromUrl: boolean
     isChainFromUrl: boolean
 
-    // token denomination from url (e.g., ETH when url is /address/0.0001eth)
-    // when set, amounts should be displayed in this token rather than USD
-    urlToken: TokenMeta | undefined
-
-    // whether the url specified a non-stablecoin token (e.g., eth, not usdc)
-    // when true, amounts are displayed in token units rather than USD
-    isTokenDenominated: boolean
-
     // attachment state
     attachment: SemanticRequestAttachment
     setAttachment: (attachment: SemanticRequestAttachment) => void
@@ -97,6 +87,8 @@ interface SemanticRequestFlowContextValue {
     setIsLoading: (loading: boolean) => void
     isSuccess: boolean
     setIsSuccess: (success: boolean) => void
+    isPaymentStatusUnknown: boolean
+    setIsPaymentStatusUnknown: (unknown: boolean) => void
     isExternalWalletPayment: boolean
     setIsExternalWalletPayment: (isExternalWalletPayment: boolean) => void
 
@@ -137,20 +129,9 @@ export function SemanticRequestFlowProvider({
     const isTokenFromUrl = !!initialParsedUrl.token
     const isChainFromUrl = !!initialParsedUrl.chain
 
-    // token denomination from url - when url specifies a token like /address/0.0001eth
-    // this is used to display amounts in that token rather than USD
-    const urlToken = initialParsedUrl.token
-
-    // whether the url specified a non-stablecoin token (e.g., eth, not usdc)
-    // computed once here to avoid duplication across components
-    const isTokenDenominated = useMemo(() => {
-        if (!urlToken) return false
-        return !isStableCoin(urlToken.symbol)
-    }, [urlToken])
-
-    // amount state
+    // amount state — always USD: a request is paid in USDC or USDT only (TASK-23850)
     const [amount, setAmount] = useState<string>(initialParsedUrl.amount || '')
-    const [usdAmount, setUsdAmount] = useState<string>(isTokenDenominated ? '' : initialParsedUrl.amount || '')
+    const [usdAmount, setUsdAmount] = useState<string>(initialParsedUrl.amount || '')
 
     // attachment state
     const [attachment, setAttachment] = useState<SemanticRequestAttachment>({})
@@ -164,6 +145,7 @@ export function SemanticRequestFlowProvider({
     const [error, setError] = useState<SemanticRequestError>({ showError: false, errorMessage: '' })
     const [isLoading, setIsLoading] = useState(false)
     const [isSuccess, setIsSuccess] = useState(false)
+    const [isPaymentStatusUnknown, setIsPaymentStatusUnknown] = useState(false)
     const [isExternalWalletPayment, setIsExternalWalletPayment] = useState(false)
 
     // derive recipient from parsed url OR charge
@@ -174,32 +156,25 @@ export function SemanticRequestFlowProvider({
         // name survives. Keep the name while it resolves to the charge's address.
         if (chargeAddress) {
             if (urlRecipient && areEvmAddressesEqual(urlRecipient.resolvedAddress, chargeAddress)) {
-                return {
-                    identifier: urlRecipient.identifier,
-                    recipientType: urlRecipient.recipientType,
-                    resolvedAddress: chargeAddress as Address,
-                }
+                return { ...urlRecipient, resolvedAddress: chargeAddress as Address }
             }
             return {
                 identifier: chargeAddress,
-                recipientType: 'ADDRESS' as RecipientType,
+                recipientType: 'ADDRESS',
                 resolvedAddress: chargeAddress as Address,
+                person: null,
             }
         }
         // Otherwise use parsed URL recipient
         if (!urlRecipient) return null
-        return {
-            identifier: urlRecipient.identifier,
-            recipientType: urlRecipient.recipientType,
-            resolvedAddress: urlRecipient.resolvedAddress as Address,
-        }
+        return { ...urlRecipient, resolvedAddress: urlRecipient.resolvedAddress as Address }
     }, [parsedUrl, charge])
 
     // reset flow
     const resetSemanticRequestFlow = useCallback(() => {
         setCurrentView('INITIAL')
         setAmount(initialParsedUrl.amount || '')
-        setUsdAmount(isTokenDenominated ? '' : initialParsedUrl.amount || '')
+        setUsdAmount(initialParsedUrl.amount || '')
         setAttachment({})
         setCharge(null)
         setPayment(null)
@@ -207,8 +182,9 @@ export function SemanticRequestFlowProvider({
         setError({ showError: false, errorMessage: '' })
         setIsLoading(false)
         setIsSuccess(false)
+        setIsPaymentStatusUnknown(false)
         setIsExternalWalletPayment(false)
-    }, [initialParsedUrl.amount, isTokenDenominated])
+    }, [initialParsedUrl.amount])
 
     const value = useMemo<SemanticRequestFlowContextValue>(
         () => ({
@@ -225,8 +201,6 @@ export function SemanticRequestFlowProvider({
             isAmountFromUrl,
             isTokenFromUrl,
             isChainFromUrl,
-            urlToken,
-            isTokenDenominated,
             attachment,
             setAttachment,
             charge,
@@ -242,6 +216,8 @@ export function SemanticRequestFlowProvider({
             isSuccess,
             setIsSuccess,
             resetSemanticRequestFlow,
+            isPaymentStatusUnknown,
+            setIsPaymentStatusUnknown,
             isExternalWalletPayment,
             setIsExternalWalletPayment,
         }),
@@ -255,8 +231,6 @@ export function SemanticRequestFlowProvider({
             isAmountFromUrl,
             isTokenFromUrl,
             isChainFromUrl,
-            urlToken,
-            isTokenDenominated,
             attachment,
             charge,
             payment,
@@ -265,6 +239,7 @@ export function SemanticRequestFlowProvider({
             isLoading,
             isSuccess,
             resetSemanticRequestFlow,
+            isPaymentStatusUnknown,
             isExternalWalletPayment,
         ]
     )

@@ -6,7 +6,7 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import ActionModal from '@/components/Global/ActionModal'
 import { useAuth } from '@/context/authContext'
 import { useTranslations } from 'next-intl'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 
 interface ShowNameToggleProps {
     checked: boolean
@@ -20,17 +20,25 @@ const ShowNameToggle = ({ checked, onChange }: ShowNameToggleProps) => {
     const { fetchUser, user } = useAuth()
     const toast = useToast()
     const [isConfirming, setIsConfirming] = useState(false)
+    const [isSaving, setIsSaving] = useState(false)
+    const pending = useRef(false)
 
     const save = async (newValue: boolean) => {
+        const userId = user?.user.userId
+        if (!userId || pending.current) return
+        pending.current = true
+        setIsSaving(true)
         onChange(newValue)
 
         // updateUserById RESOLVES { error } for a non-2xx or a network failure —
         // it never rejects, so a catch block would let a failed save stand and
         // this screen would claim the legal name is hidden while it is public.
         const { error } = await updateUserById({
-            userId: user?.user.userId,
+            userId,
             showFullName: newValue,
         })
+        pending.current = false
+        setIsSaving(false)
         if (error) {
             onChange(!newValue)
             toast.error(tCommon('genericError'))
@@ -46,7 +54,12 @@ const ShowNameToggle = ({ checked, onChange }: ShowNameToggleProps) => {
 
     return (
         <>
-            <Toggle checked={checked} onChange={handleToggleChange} aria-label={t('menu.showFullName')} />
+            <Toggle
+                checked={checked}
+                onChange={handleToggleChange}
+                disabled={isSaving}
+                aria-label={t('menu.showFullName')}
+            />
             <ActionModal
                 visible={isConfirming}
                 onClose={() => setIsConfirming(false)}

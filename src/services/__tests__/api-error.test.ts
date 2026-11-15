@@ -4,6 +4,21 @@ const response = (status: number, body: unknown) =>
     ({ status, text: async () => JSON.stringify(body) }) as unknown as Response
 
 describe('apiErrorFromResponse', () => {
+    it.each([
+        [403, 'MANTECA_ACCOUNT_REJECTED'],
+        [400, 'MANTECA_KYC_REQUIRED'],
+    ] as const)('preserves the Manteca wire code on HTTP %s/%s', async (status, code) => {
+        const error = await apiErrorFromResponse(
+            response(status, {
+                error: 'Manteca closed this account for deposits and withdrawals in this country',
+                code,
+            }),
+            'fallback'
+        )
+        expect(error.code).toBe(code)
+        expect(error.status).toBe(status)
+    })
+
     // api#1738: guarded Bridge routes refuse a restricted residence with
     // { error, code, userMessage }; the copy written for users wins
     it('prefers userMessage and keeps the code', async () => {
@@ -19,6 +34,16 @@ describe('apiErrorFromResponse', () => {
         expect(error.message).toBe('Bank transfers are not available for your current or pending residence.')
         expect(error.code).toBe('residence_bank_restricted')
         expect(error.status).toBe(403)
+    })
+
+    // API-CONTRACT-M3 §6: the Pix routes' minimum refusal names its figure as fields
+    it('keeps the minimum a refusal names, and none where it names none', async () => {
+        const error = await apiErrorFromResponse(
+            response(400, { error: 'The minimum is R$25.', code: 'PIX_MIN_AMOUNT', minAmount: '25', currency: 'BRL' }),
+            'fallback'
+        )
+        expect(error.minimum).toEqual({ amount: '25', currency: 'BRL' })
+        expect((await apiErrorFromResponse(response(400, { error: 'e', code: 'X' }), 'f')).minimum).toBeUndefined()
     })
 
     it('falls back to message, then error, then the fallback', async () => {

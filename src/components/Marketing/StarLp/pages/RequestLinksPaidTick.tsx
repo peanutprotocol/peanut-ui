@@ -11,7 +11,7 @@ export function RequestLinksPaidTick({ children, className }: RequestLinksPaidTi
                 className
             )}
         >
-            <span className="grid size-6 shrink-0 place-items-center rounded-full border-2 border-border-default bg-green-500 text-foreground-inverse">
+            <span className="grid size-6 shrink-0 place-items-center rounded-full border-2 border-border-default bg-background-icon-bubble-green text-foreground-inverse">
                 <Icon name="check" size={16} strokeWidth={3} />
             </span>
             {children}

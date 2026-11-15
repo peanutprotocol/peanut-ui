@@ -1,6 +1,6 @@
 import { EHistoryUserRole, getTransactionSign } from '@/utils/history.utils'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
-import { isSendLinkEntry } from '@/components/TransactionDetails/transaction-predicates'
+import { isFiatPayout, isSendLinkEntry } from '@/components/TransactionDetails/transaction-predicates'
 import {
     bankAccountLabelKey,
     receiptHeadlineAmount,
@@ -13,7 +13,8 @@ import {
     receiptExchangeRate,
 } from '@/components/TransactionDetails/receipt-conversion.utils'
 import { maskAccountIdentifier } from '@/utils/account-mask.utils'
-import { formatAmount, printableAddress } from '@/utils/general.utils'
+import { formatPixKey } from '@/utils/pix-key-format.utils'
+import { printableAddress } from '@/utils/general.utils'
 import { formatBankAmount } from '@/utils/currency'
 import { RECEIPT_COMPANY } from '@/components/TransactionDetails/receipt-company'
 import { PROVIDERS } from '@/constants/providers.consts'
@@ -152,11 +153,11 @@ export function buildReceiptPdfModel(
         const label =
             labelKey === 'address'
                 ? t('transaction.rows.address')
-                : (BANK_ACCOUNT_SCHEME_LABELS[labelKey] ?? t('transaction.rows.accountNumber'))
-        push(
-            label,
-            maskAccountIdentifier(transaction.bankAccountDetails.identifier, transaction.bankAccountDetails.type)
-        )
+                : labelKey === 'pixKey'
+                  ? t('withdraw.pixKey.placeholder')
+                  : (BANK_ACCOUNT_SCHEME_LABELS[labelKey] ?? t('transaction.rows.accountNumber'))
+        const { identifier, type } = transaction.bankAccountDetails
+        push(label, maskAccountIdentifier(labelKey === 'pixKey' ? formatPixKey(identifier) : identifier, type))
     }
 
     // Money, the provider last (receipt-rows ruling)
@@ -169,12 +170,12 @@ export function buildReceiptPdfModel(
     if (transaction.networkFeeDetails?.state === 'charged' && deliveredSomething) {
         push(t('transaction.rows.networkFee'), transaction.networkFeeDetails.amountDisplay)
         if (transaction.recipientReceivesUsd !== undefined) {
-            push(t('transaction.rows.recipientReceives'), `$${formatAmount(transaction.recipientReceivesUsd)}`)
+            push(t('transaction.rows.recipientReceives'), formatBankAmount(transaction.recipientReceivesUsd, 'USD'))
         }
     }
 
     if (transaction.fee !== undefined && !isCancelled) {
-        push(t('transaction.rows.fee'), formatAmount(transaction.fee as number))
+        push(t('transaction.rows.fee'), formatBankAmount(transaction.fee, 'USD'))
     }
 
     // without the owner's residence bridge gets its brand-only record
@@ -192,11 +193,7 @@ export function buildReceiptPdfModel(
         push(t('transaction.rows.txId'), transaction.txHash)
     }
 
-    if (
-        (transaction.direction === 'bank_withdraw' || transaction.direction === 'bank_claim') &&
-        transaction.id &&
-        !isCancelled
-    ) {
+    if (isFiatPayout(transaction) && transaction.id && !isCancelled) {
         push(t('transaction.rows.transferId'), transaction.id)
     }
 
@@ -205,8 +202,8 @@ export function buildReceiptPdfModel(
     }
 
     // The payer's own reference on a bank deposit is NOT printed. It is free
-    // text a third party typed (up to 300 characters), and "Share receipt" sends
-    // this document onward. The owner still reads it in the receipt drawer.
+    // text a third party typed (up to 300 characters), and "Share receipt (PDF)"
+    // sends this document onward. The owner still reads it in the receipt drawer.
     // Temporary decision TD-12.
 
     // One rule for both the screen and this document — see receiptHeadlineAmount.

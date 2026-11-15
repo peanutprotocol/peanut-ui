@@ -427,3 +427,28 @@ test('main release publishes a full library and a recomputed comparison with New
         rmSync(dir, { recursive: true, force: true })
     }
 })
+
+test('release preview marker survives index rebuild without advancing the integration pointer', async (t) => {
+    const dir = mkdtempSync(join(tmpdir(), 'screen-publish-release-preview-'))
+    t.after(() => rmSync(dir, { recursive: true, force: true }))
+    const assets = join(dir, 'assets')
+    mkdirSync(assets)
+    const image = storeAsset(assets, PNG.sync.write(new PNG({ width: 393, height: 852 })))
+    const before = capture(image, 'en', 'b'.repeat(40))
+    const after = capture(image)
+    const reportPath = `2026-10-08/pr-42/en/${after.commit}/run-50-1`
+    writeFileSync(join(dir, 'manifest.json'), JSON.stringify({ type: 'comparison', before, after }))
+    const storage = memoryStorage()
+    await publishReport({
+        inputDir: dir,
+        reportPath,
+        env: { SCREEN_LIBRARY_PUBLIC_URL: 'https://screens.example', SOURCE_BRANCH: 'dev' },
+        storage,
+        updateSharedIndexes: false,
+        releasePreview: true,
+    })
+    const { entries } = await updateIndexes(storage)
+    assert.equal(entries[0].releasePreview, true)
+    assert.equal(entries[0].changedScreens, 0)
+    assert.equal(storage.objects.has('latest.json'), false)
+})

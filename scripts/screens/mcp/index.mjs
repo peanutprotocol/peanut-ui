@@ -2,9 +2,10 @@ import { McpServer } from '@modelcontextprotocol/server'
 import { createMcpHandler } from 'agents/mcp/server'
 import { z } from 'zod'
 import { verifiedAccessIdentity } from '../access.mjs'
+import { COLLECTION_LOCALES, FLOW_PAGE_REQUEST_ID } from '../collection-core.mjs'
 import { collectionRequest, textResult } from './client.mjs'
 
-function serverFor(env) {
+function serverFor(env, actor) {
     const server = new McpServer({ name: 'Peanut screen library', version: '1.0.0' })
     server.registerTool(
         'search_screens',
@@ -83,6 +84,62 @@ function serverFor(env) {
                 })
             )
     )
+    const flowSchema = z.strictObject({
+        title: z.string().trim().min(1).max(120),
+        items: z
+            .array(
+                z.strictObject({
+                    id: z.string().regex(/^[a-z0-9][a-z0-9-]{0,119}$/),
+                    note: z.string().max(1000).optional(),
+                })
+            )
+            .min(1),
+    })
+    server.registerTool(
+        'create_flow_page',
+        {
+            title: 'Create a private screen flow page',
+            description:
+                'Create a private shareable page with titled flows or sections of flows and ordered steps using published screenshots. Section pages compare against captured main by default. Use search_screens to find exact state IDs. Reuse a requestId with the same input to recover an interrupted request.',
+            annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+            inputSchema: z
+                .strictObject({
+                    title: z.string().trim().min(1).max(120),
+                    description: z.string().max(2000).optional(),
+                    locales: z.array(z.enum(COLLECTION_LOCALES)).min(1).max(COLLECTION_LOCALES.length).default(['en']),
+                    flows: z.array(flowSchema).min(1).optional(),
+                    sections: z
+                        .array(
+                            z.strictObject({
+                                title: z.string().trim().min(1).max(120),
+                                flows: z.array(flowSchema).min(1),
+                            })
+                        )
+                        .min(1)
+                        .optional(),
+                    compareWith: z.literal('main').optional(),
+                    requestId: z.string().regex(FLOW_PAGE_REQUEST_ID).optional(),
+                })
+                .refine((input) => (input.flows !== undefined) !== (input.sections !== undefined), {
+                    message: 'Provide exactly one of flows or sections',
+                }),
+            outputSchema: {
+                id: z.string(),
+                title: z.string(),
+                description: z.string().optional(),
+                locales: z.array(z.enum(COLLECTION_LOCALES)),
+                url: z.url(),
+            },
+        },
+        async (input) => {
+            const page = await collectionRequest(env, '/v1/flow-pages', {
+                method: 'POST',
+                headers: { 'X-Screen-Library-Actor': encodeURIComponent(actor) },
+                body: JSON.stringify(input),
+            })
+            return { ...textResult(page), structuredContent: page }
+        }
+    )
     server.registerTool(
         'compare_collection',
         {
@@ -109,7 +166,10 @@ function serverFor(env) {
             description: 'Read a collection and see whether any locale variants are still waiting for capture.',
             inputSchema: { id: z.string().regex(/^[a-z0-9][a-z0-9-]{0,119}$/) },
         },
-        async ({ id }) => textResult(await collectionRequest(env, `/v1/collections/${id}`))
+        async ({ id }) => {
+            const status = await collectionRequest(env, `/v1/collections/${id}`)
+            return { ...textResult(status), structuredContent: status }
+        }
     )
     server.registerTool(
         'capture_missing_states',
@@ -125,10 +185,11 @@ function serverFor(env) {
 
 export default {
     async fetch(request, env, context) {
-        if (!(await verifiedAccessIdentity(context, env.SCREEN_LIBRARY_ACCESS_AUD))) {
+        const actor = await verifiedAccessIdentity(context, env.SCREEN_LIBRARY_ACCESS_AUD)
+        if (!actor) {
             return new Response('Unauthorized', { status: 401, headers: { 'Cache-Control': 'no-store' } })
         }
-        const handler = createMcpHandler(() => serverFor(env), {
+        const handler = createMcpHandler(() => serverFor(env, actor), {
             route: '/mcp',
             allowedHostnames: [new URL(env.SCREEN_LIBRARY_MCP_URL).hostname],
         })

@@ -18,7 +18,6 @@ const mockAdapter = {
 jest.mock('@/services/onesignal', () => ({ getOneSignalAdapter: async () => mockAdapter }))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
-jest.mock('@/utils/migration.utils', () => ({ isPwaSunsetOn: () => false }))
 jest.mock('@/utils/sentry-env', () => ({ inferSentryEnvironment: () => mockEnvironment }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: null }) }))
 jest.mock('@/utils/general.utils', () => ({ getUserPreferences: jest.fn(), updateUserPreferences: jest.fn() }))

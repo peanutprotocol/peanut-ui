@@ -7,6 +7,8 @@
 import { expect, type Page } from '@playwright/test'
 import { FIXTURE_STORAGE_KEY, fixtureHref } from '../../src/dev/fixtures/active'
 import { FIXTURES } from '../../src/dev/fixtures/registry'
+import { answerRpc, isChainRpc, isRhinoTokenConfigs } from '../../scripts/screens/rpc'
+import { freezeDate } from '../../scripts/screens/freeze-date.mjs'
 
 export const FROZEN_NOW = new Date('2026-08-15T12:00:00.000Z')
 export const LOADERS = '.animate-spin img[alt="Peanut mascot"], .animate-pulse'
@@ -48,25 +50,49 @@ export async function settle(page: Page): Promise<void> {
             return false
         },
         null,
-        { polling: 250 }
+        { polling: 100 }
     )
 }
 
-export async function blockExternal(page: Page): Promise<void> {
-    await page.route('**/*', (route) => {
-        const { hostname } = new URL(route.request().url())
-        return hostname === '127.0.0.1' || hostname === 'localhost' ? route.continue() : route.abort()
+/** A Lottie (hero or mascot) draws frame 0 until it loads, then jumps to its reduced-motion still. */
+export async function waitForLottie(page: Page): Promise<void> {
+    await page.waitForFunction(() => !document.querySelector('[data-lottie-ready="false"]'))
+}
+
+/**
+ * Everything off-box is aborted except the app's own chain RPC and Rhino's token list, which get the
+ * Screen Library's synthetic answers: an aborted read retries with backoff and lands at a random time.
+ */
+export async function blockExternal(page: Page, fixture = ''): Promise<void> {
+    await page.route('**/*', async (route) => {
+        const request = route.request()
+        const url = request.url()
+        const { hostname } = new URL(url)
+        if (hostname === '127.0.0.1' || hostname === 'localhost') return route.continue()
+        const cors = {
+            'access-control-allow-origin': '*',
+            'access-control-allow-headers': '*',
+            'access-control-allow-methods': 'GET, POST, OPTIONS',
+        }
+        if (isRhinoTokenConfigs(url))
+            return route.fulfill({ status: 200, headers: cors, contentType: 'application/json', body: '{}' })
+        if (isChainRpc(url)) {
+            if (request.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: cors })
+            const { body } = answerRpc(url, fixture, request.postData() ?? '')
+            return route.fulfill({ status: 200, headers: cors, contentType: 'application/json', body })
+        }
+        return route.abort()
     })
 }
 
-export function seenOnceModals(): void {
+export function seenOnceModals(geoCountry = 'DE'): void {
     window.sessionStorage.setItem('showNoMoreJailModal', 'true')
     window.localStorage.setItem('peanut_demo_activation_celebrated_at', '2026-01-01T00:00:00.000Z')
     window.localStorage.setItem(
         'demo-user:user-preferences',
         JSON.stringify({ hasSeenBalanceWarning: { value: true, expiry: 4102444800000 } })
     )
-    window.sessionStorage.setItem('user_geo_country_code', 'DE')
+    window.sessionStorage.setItem('user_geo_country_code', geoCountry)
     window.sessionStorage.setItem(
         'user_geo_country_code_timestamp',
         String(new Date('2026-08-15T11:59:00.000Z').getTime())
@@ -80,9 +106,17 @@ export function seenOnceModals(): void {
  */
 export async function openFixture(page: Page, name: string, locale: string | undefined): Promise<void> {
     const fixture = FIXTURES[name]
-    await blockExternal(page)
-    await page.clock.setFixedTime(FROZEN_NOW)
-    await page.addInitScript(seenOnceModals)
+    await blockExternal(page, name)
+    await page.addInitScript(freezeDate, FROZEN_NOW.getTime())
+    if (fixture.geoCountry) {
+        await page.route('**/api/geo-country', (route) =>
+            route.fulfill({
+                json: { country: fixture.geoCountry },
+                headers: { 'access-control-allow-origin': '*' },
+            })
+        )
+    }
+    await page.addInitScript(seenOnceModals, fixture.geoCountry ?? 'DE')
 
     await page.goto(fixtureHref(fixture.route, name), { waitUntil: 'domcontentloaded' })
     await expect

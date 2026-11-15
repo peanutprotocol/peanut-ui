@@ -1,9 +1,12 @@
 'use client'
 
+import { USER } from '@/constants/query.consts'
 import { useAuth } from '@/context/authContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
+import { useSubmissionWindow } from '@/hooks/useSubmissionWindow'
 import { API_ERROR_CODES, apiErrorStatus, wireErrorCode } from '@/services/api-error'
 import { claimDepositAccount, fetchDepositAccounts } from '@/services/deposit-accounts'
+import type { NextAction } from '@/types/capabilities'
 import type { GateState } from '@/utils/capability-gate'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -23,6 +26,9 @@ import {
     isClaimable,
     railIdFor,
 } from './rails'
+import { applyDepositPreviewGate } from './depositGate'
+import { closeRefusedCorridors } from './reportClosures'
+import { findPixRoute, pixRouteGate, withPixRoute } from '@/features/pix/pixRoute.utils'
 import { holdsSlot } from './resolveScreen'
 import type {
     ClaimableCorridor,
@@ -128,11 +134,14 @@ export function useDepositAccounts({
      * not done yet. The caller starts it; the claim screen stays where it is,
      * so the user comes back to the same corridor.
      */
-    onVerificationRequired?: (corridor: DepositCorridor) => void
+    onVerificationRequired?: (corridor: DepositCorridor, nextAction?: NextAction) => void
 } = {}): UseDepositAccountsResult {
     const { userId } = useAuth()
+    const claimOwner = useRef(userId)
+    claimOwner.current = userId
     const queryClient = useQueryClient()
-    const { gateFor, rails, isLoading: capabilitiesLoading } = useCapabilities()
+    const { gateFor, rails, capabilities, isLoading: capabilitiesLoading } = useCapabilities()
+    const { isInWindow: justSubmitted } = useSubmissionWindow()
     const [claimingCorridor, setClaimingCorridor] = useState<DepositCorridor | undefined>()
     const [claimError, setClaimError] = useState<DepositClaimError | undefined>()
 
@@ -154,9 +163,18 @@ export function useDepositAccounts({
             // screen is waiting on exactly this read to continue into the claim.
             // The same holds for the user's own review of a rail (`review-pending`):
             // its wait drawer says the page updates by itself.
+            const unavailable = q.state.data?.unavailable ?? []
+            // An address with Sumsub resolves on its own too, and just after the SDK
+            // closes the backend may not have heard of it yet (TASK-24662).
             const reviewUnderWay =
                 (q.state.data?.claimable ?? []).some((corridor) => corridor.blockedBy === 'endorsement-pending') ||
-                (q.state.data?.unavailable ?? []).some((corridor) => corridor.cause === 'review-pending')
+                unavailable.some(
+                    (corridor) =>
+                        corridor.cause === 'review-pending' ||
+                        corridor.cause === 'setup-pending' ||
+                        corridor.cause === 'address-in-review'
+                ) ||
+                (justSubmitted && unavailable.some((corridor) => corridor.cause === 'address-required'))
             return reviewUnderWay ? ENDORSEMENT_POLL_MS : false
         },
     })
@@ -194,12 +212,20 @@ export function useDepositAccounts({
                 return next
             })
             trackClaimStarted(corridor)
+            return userId
         },
-        onSuccess: (result, method: string) => {
+        onSuccess: (result, method: string, ownerAtClaim) => {
             const corridor = method as DepositCorridor
             if (result.outcome === 'opened') trackClaimed(corridor, DEPOSIT_RAILS[corridor].currency)
             if (result.outcome === 'endorsement_pending') trackEndorsementRequested(corridor)
-            if (result.outcome === 'verification_required') onVerificationRequired?.(corridor)
+            if (result.outcome === 'verification_required' && ownerAtClaim === claimOwner.current) {
+                if (result.nextAction?.kind === 'restart-identity') {
+                    // the API's schema still lists `hosted-identity`, which this build no longer handles
+                    onVerificationRequired?.(corridor, { ...result.nextAction, kind: result.nextAction.kind })
+                } else {
+                    onVerificationRequired?.(corridor)
+                }
+            }
         },
         onError: (error: Error, method: string) => {
             const corridor = method as DepositCorridor
@@ -212,9 +238,16 @@ export function useDepositAccounts({
             })
             trackClaimFailed(corridor, error.message)
         },
-        onSettled: async () => {
+        onSettled: async (result) => {
+            // The claim can see a newer rail state than the cached capability.
+            // Refresh it too so the existing Bridge terms action can surface.
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: DEPOSIT_ACCOUNTS_QUERY_KEY }),
+                ...(result?.outcome === 'endorsement_pending'
+                    ? [queryClient.invalidateQueries({ queryKey: [USER] })]
+                    : []),
+            ])
             setClaimingCorridor(undefined)
-            await queryClient.invalidateQueries({ queryKey: DEPOSIT_ACCOUNTS_QUERY_KEY })
         },
     })
 
@@ -252,7 +285,7 @@ export function useDepositAccounts({
         [query.data]
     )
 
-    const claimable = useMemo((): Record<DepositCorridor, ClaimableCorridor | undefined> => {
+    const offeredClaimable = useMemo((): Record<DepositCorridor, ClaimableCorridor | undefined> => {
         const byCorridor = emptyCorridorRecord<ClaimableCorridor>()
         for (const corridorTerms of query.data?.claimable ?? []) {
             const corridor = corridorFromRailId(corridorTerms.railId)
@@ -271,7 +304,7 @@ export function useDepositAccounts({
      * about — the provider read failed — so it is absent here too and the rows
      * keep the gate's own answer.
      */
-    const unavailable = useMemo((): Record<DepositCorridor, UnavailableCorridor | undefined> => {
+    const withheldUnavailable = useMemo((): Record<DepositCorridor, UnavailableCorridor | undefined> => {
         const byCorridor = emptyCorridorRecord<UnavailableCorridor>()
         for (const withheld of query.data?.unavailable ?? []) {
             const corridor = corridorFromRailId(withheld.railId)
@@ -279,6 +312,42 @@ export function useDepositAccounts({
         }
         return byCorridor
     }, [query.data])
+
+    const { claimable, unavailable } = useMemo(
+        () =>
+            closeRefusedCorridors(
+                capabilities.features && withPixRoute(capabilities.features, capabilities.routes),
+                rails,
+                {
+                    accounts,
+                    claimable: offeredClaimable,
+                    unavailable: withheldUnavailable,
+                }
+            ),
+        [capabilities.features, capabilities.routes, rails, accounts, offeredClaimable, withheldUnavailable]
+    )
+
+    const { gates, staleReviewAction } = useMemo(() => {
+        const gates = {} as Record<DepositCorridor, GateState>
+        let staleReviewAction = false
+        for (const corridor of DEPOSIT_RAIL_ORDER) {
+            const gate = gateFor('deposit', { railId: railIdFor(corridor) })
+            const cause = unavailable[corridor]?.cause
+            const effectiveGate = applyDepositPreviewGate(gate, cause)
+            if (effectiveGate !== gate && cause === 'review-action') staleReviewAction = true
+            gates[corridor] = effectiveGate
+        }
+        // Pix is the route's, whichever provider serves it: a resident of Brazil has no local rail for it
+        const pixRoute = findPixRoute(capabilities.routes, 'deposit')
+        if (pixRoute) gates.PIX_BR = pixRouteGate(pixRoute)
+        return { gates, staleReviewAction }
+    }, [gateFor, unavailable, capabilities.routes])
+
+    useEffect(() => {
+        // A withheld corridor cannot be tapped through to a claim. Fetch its
+        // missing action even when the user never presses the claim button.
+        if (enabled && userId && staleReviewAction) void queryClient.invalidateQueries({ queryKey: [USER] })
+    }, [enabled, queryClient, staleReviewAction, userId])
 
     /**
      * The rows this user gets: their own rails, plus any corridor they already
@@ -318,20 +387,6 @@ export function useDepositAccounts({
                   ),
         [enabled, rails, accounts, query.data, gateFor, claimable, unavailable]
     )
-
-    const gates = useMemo((): Record<DepositCorridor, GateState> => {
-        const out = {} as Record<DepositCorridor, GateState>
-        for (const corridor of DEPOSIT_RAIL_ORDER) {
-            // railId, not { channel: 'bank' }: a channel-wide gate answers
-            // "ready" as soon as ANY bank rail is enabled, so one working
-            // Manteca rail was unlocking four Bridge corridors the user has no
-            // rail for at all. A corridor with no rail in the capability block
-            // resolves to needs-identity / needs-enrollment, which is the
-            // honest answer.
-            out[corridor] = gateFor('deposit', { railId: railIdFor(corridor) })
-        }
-        return out
-    }, [gateFor])
 
     // A review that has come back is worth one event, on the transition alone:
     // the preview repeats the same answer on every poll afterwards.

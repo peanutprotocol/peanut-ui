@@ -22,6 +22,7 @@ export function KnerdWordCircle() {
                 height={ScribbleCircle.height}
                 alt=""
                 aria-hidden
+                loading="lazy"
                 className="block h-full w-full max-w-none"
             />
         </PopIn>

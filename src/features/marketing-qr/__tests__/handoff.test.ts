@@ -105,10 +105,15 @@ it.each([{ optOut: true }, { storageThrows: true }, { gpc: true }, { captureEnab
     async (options) => {
         const result = await browser(options)
         expect(result.fetch).not.toHaveBeenCalled()
-        expect(result.replace).toHaveBeenCalledWith('/home?app_entry=1&marketing_qr=home-hero-en&qr_analytics=deny')
+        expect(result.replace).toHaveBeenCalledWith('/app?marketing_qr=home-hero-en&qr_analytics=deny')
         expect(result.html).toContain('href="https://play.google.com/store/apps/details?id=me.peanut.wallet"')
     }
 )
+
+it('renders the store fallback only when JavaScript does not run, so it never flashes', async () => {
+    const { html } = await browser()
+    expect(html).toMatch(/<body><noscript><main><h1>[^<]+<\/h1>.*Google Play.*<\/main><\/noscript><script /)
+})
 
 it('waits for prerender activation and handles duplicate activation once', async () => {
     const result = await browser({ prerendering: true })

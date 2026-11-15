@@ -41,7 +41,8 @@ export const SearchInput = ({
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={placeholder}
                 size="sm"
-                className="w-full px-10 text-body-s font-normal"
+                // the clear button's room is kept only while it shows
+                className={twMerge('w-full pl-10 text-body-s font-normal text-ellipsis', value ? 'pr-10' : 'pr-3')}
                 {...props}
             />
             <Icon

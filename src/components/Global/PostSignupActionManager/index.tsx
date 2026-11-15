@@ -1,80 +1,53 @@
 'use client'
 
-import { clearRedirectUrl, getStoredRedirect, type StoredRedirect } from '@/utils/general.utils'
+import { clearRedirectUrl, getStoredRedirect } from '@/utils/general.utils'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
-import ActionModal from '../ActionModal'
+import { useTranslations } from 'next-intl'
+import { useState } from 'react'
+import { AskShell } from '@/features/attention/AskShell'
 import { POST_SIGNUP_ACTIONS } from './post-signup-action.consts'
-import { type IconName } from '../Icons/Icon'
-import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import type { AskSurfaceProps } from '@/features/attention/types'
 
-export const PostSignupActionManager = ({
-    onActionModalVisibilityChange,
-}: {
-    onActionModalVisibilityChange: (isVisible: boolean) => void
-}) => {
-    const [showModal, setShowModal] = useState(false)
-    const [actionConfig, setActionConfig] = useState<{
-        cta: string
-        title: string
-        description: string
-        icon: IconName
-        redirect: StoredRedirect
-        action: () => void
-    } | null>(null)
+/**
+ * "Verification complete, finish what you came for": the stored post-auth
+ * redirect (a claim link, a request link) the user was sent to sign up from.
+ * Whether it shows is the attention manager's call (the
+ * `post-verification-action` ask); this reads the redirect once on mount so
+ * the modal survives the redirect being cleared mid-flow.
+ */
+export default function PostSignupActionManager({ onActed, onDismissed, presentation }: AskSurfaceProps) {
     const router = useRouter()
-    // Post-signup re-engagement gate: did the user finish their ID check? Reads
-    // the identity signal directly (Sumsub-cleared) — `isKycApproved` (any rail
-    // enabled) over-fires for a card-only Rain user who can't actually act on
-    // a bank-claim redirect URL.
-    const { isVerified: isIdentityVerified } = useIdentityVerification()
-
-    const checkClaimModalAfterKYC = () => {
+    const t = useTranslations('home.postVerification')
+    const [snapshot] = useState(() => {
         const redirect = getStoredRedirect()
-        if (isIdentityVerified && redirect) {
-            const redirectUrl = redirect.destination
-            const matchedAction = POST_SIGNUP_ACTIONS.find((action) => action.pathPattern.test(redirectUrl))
-            if (matchedAction) {
-                setActionConfig({
-                    ...matchedAction.config,
-                    redirect,
-                    action: () => {
-                        router.push(redirectUrl)
-                        clearRedirectUrl(redirect)
-                        setShowModal(false)
-                    },
-                })
-                setShowModal(true)
-            }
-        }
-    }
+        const action = redirect && POST_SIGNUP_ACTIONS.find((a) => a.pathPattern.test(redirect.destination))
+        return redirect && action ? { redirect, config: action.config } : null
+    })
 
-    useEffect(() => {
-        checkClaimModalAfterKYC()
-    }, [router, isIdentityVerified])
-
-    useEffect(() => {
-        onActionModalVisibilityChange(showModal)
-    }, [showModal, onActionModalVisibilityChange])
-
-    if (!actionConfig) return null
+    if (!snapshot) return null
+    const { redirect, config } = snapshot
 
     return (
-        <ActionModal
-            visible={showModal}
+        <AskShell
+            presentation={presentation}
+            visible
             onClose={() => {
-                setShowModal(false)
-                if (actionConfig) clearRedirectUrl(actionConfig.redirect)
+                clearRedirectUrl(redirect)
+                onDismissed()
             }}
             preventClose // Prevent closing the modal by clicking outside
-            title={actionConfig.title}
-            description={actionConfig.description}
+            title={t('title')}
+            description={t(`${config.copyKey}.description`)}
             tone="success"
-            icon={actionConfig.icon}
+            icon={config.icon}
             ctas={[
                 {
-                    text: actionConfig.cta,
-                    onClick: actionConfig.action,
+                    text: t(`${config.copyKey}.cta`),
+                    onClick: () => {
+                        router.push(redirect.destination)
+                        clearRedirectUrl(redirect)
+                        onActed()
+                    },
                     variant: 'primary',
                     shadowSize: '4',
                 },
@@ -82,3 +55,5 @@ export const PostSignupActionManager = ({
         />
     )
 }
+
+export { PostSignupActionManager }

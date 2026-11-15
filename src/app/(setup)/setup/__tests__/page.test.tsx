@@ -1,19 +1,47 @@
 jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
 
+import { getFromCookie, toInviteCode } from '@/utils/general.utils'
+import {
+    readInviteCode,
+    readInviteIntent,
+    readInviteType,
+    stashAcquisitionInvite,
+    stashInvite,
+} from '@/utils/invite-stash'
+import { keepWebSignupUrl } from '@/features/setup/keep-web-signup-url'
+import { EInviteType } from '@/services/services.types'
+import { KEEP_WEB_COOKIE, KEEP_WEB_TOKEN } from '@/constants/migration.consts'
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import type { ISetupStep } from '@/components/Setup/Setup.types'
 import SetupPage from '../page'
 import * as Sentry from '@sentry/nextjs'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useSetupStepAnalytics } from '@/features/setup/useSetupStepAnalytics'
 import { markDeepLinkNavigated, resetDeepLinkStateForTests } from '@/utils/deep-link-state'
+import { enableDemoMode, disableDemoMode } from '@/utils/demo'
+import { recordSignupRegistration, readSignupDraft, saveSignupDraft } from '@/features/setup/signup-draft'
+import { readSignupProgress, saveSignupProgress } from '@/features/setup/signup-progress'
 
 let mockNoBackLock: string | null = null
+const mockDefaultChoices = { push: false, marketingPush: false, emailUpdates: false, cascaded: false }
 let mockSignupCompleted = false
 const mockSetNoBackLock = jest.fn()
 const mockSetSellScreensCountry = jest.fn()
 let mockSellScreensCountry: string | null | undefined = undefined
 const mockSupport = jest.fn()
+const mockAnswerSetters = {
+    setUsername: jest.fn(),
+    setInviteSelection: jest.fn(),
+    setFeatureScreenIds: jest.fn(),
+    setResidenceCountry: jest.fn(),
+    setNationalityCountry: jest.fn(),
+    setFundingChannel: jest.fn(),
+    setPaymentChannel: jest.fn(),
+    setNotificationChoices: jest.fn(),
+    setInviterAccepted: jest.fn(),
+}
 const mockResolve = jest.fn()
 const mockRouter = { replace: jest.fn(), push: jest.fn() }
 const mockQueuePendingBadgeCampaigns = jest.fn((campaigns: readonly string[]) => [...campaigns])
@@ -32,16 +60,21 @@ const mockFlow = {
     setScreenId: jest.fn(),
 }
 const mockStore = { steps: [] as ISetupStep[], inviteCode: undefined }
-type MockAuthUser = { user?: { username?: string; hasAppAccess?: boolean } }
+type MockAuthUser = {
+    user?: { userId?: string; username?: string; hasAppAccess?: boolean; email?: string }
+    accounts?: { type: string }[]
+}
+// The last setup step creates the wallet, so a finished signup always has one.
+const WALLET = [{ type: 'peanut-wallet' }]
 const mockAuth = {
     user: undefined as MockAuthUser | undefined,
     isFetchingUser: false,
+    userFetchError: null as Error | null,
     logoutUser: jest.fn(),
     isLoggingOut: false,
     fetchUser: jest.fn().mockResolvedValue(undefined),
 }
 let mockNative = true
-let mockPwaSunsetOn = false
 let mockSearchParams = new URLSearchParams()
 let mockStoredRedirect: {
     destination: string
@@ -50,19 +83,54 @@ let mockStoredRedirect: {
 } | null = null
 
 jest.mock('@/features/setup/SetupFlowContext', () => ({
+    useOptionalSetupFlow: () => null,
     useSetupFlowContext: () => ({
         ...mockStore,
         resetSetupFlow: jest.fn(),
+        username: '',
+        inviteSelection: '',
+        featureScreenIds: null,
+        registrationInProgress: false,
         noBackLockScreenId: mockNoBackLock,
         signupCompleted: mockSignupCompleted,
         setNoBackLockScreenId: mockSetNoBackLock,
         sellScreensCountry: mockSellScreensCountry,
         setSellScreensCountry: mockSetSellScreensCountry,
         setSignupEntryFlow: jest.fn(),
+        masterScreenIds: [
+            'landing',
+            'advantage-fees',
+            'advantage-card',
+            'residence',
+            'payment-plan',
+            'signup',
+            'invite',
+            'passkey',
+            'notification-email',
+            'notification-permission',
+            'advantage-control',
+        ],
+        residenceCountry: '',
+        nationalityCountry: '',
+        fundingChannel: null,
+        paymentChannel: null,
+        notificationChoices: mockDefaultChoices,
+        inviterAccepted: false,
+        ...mockAnswerSetters,
     }),
+    isUntouchedNotificationChoices: (choices: unknown) => choices === mockDefaultChoices,
 }))
-jest.mock('@/utils/invite-stash', () => ({ readInviteCode: jest.fn(), stashInvite: jest.fn() }))
+jest.mock('@/utils/invite-stash', () => ({
+    INVITE_TYPE_PARAM: 'invite_type',
+    readInviteCode: jest.fn(),
+    readInviteIntent: jest.fn(),
+    readInviteType: jest.fn(),
+    stashAcquisitionInvite: jest.fn(),
+    stashInvite: jest.fn(),
+    bindInviteToUser: jest.fn(async () => {}),
+}))
 jest.mock('@/components/Invites/badge-campaign-context', () => ({
+    BADGE_CAMPAIGN_QUERY_PARAM: 'badge_campaign',
     badgeCampaignsFromSearchParams: (params: URLSearchParams) => params.getAll('badge_campaign'),
     getPendingBadgeCampaigns: () => mockGetPendingBadgeCampaigns(),
     queuePendingBadgeCampaigns: (campaigns: readonly string[]) => mockQueuePendingBadgeCampaigns(campaigns),
@@ -71,7 +139,14 @@ jest.mock('@/services/badge-campaigns', () => ({
     claimAndSettlePendingBadgeCampaigns: (campaigns: readonly string[]) =>
         mockClaimAndSettlePendingBadgeCampaigns(campaigns),
 }))
-jest.mock('@/hooks/useSetupFlow', () => ({ postRegistrationScreen: () => 'residence', useSetupFlow: () => mockFlow }))
+jest.mock('@/hooks/useSetupFlow', () => ({
+    postRegistrationScreen: () => 'notification-email',
+    useSetupFlow: () => mockFlow,
+}))
+jest.mock('@/features/setup/saveSignupAnswers', () => ({
+    flushPendingSignupAnswers: jest.fn(async () => {}),
+    queueSignupAnswers: jest.fn(async () => {}),
+}))
 jest.mock('@/features/setup/useSetupStepAnalytics', () => ({ useSetupStepAnalytics: jest.fn() }))
 jest.mock('@/hooks/useSetupBackHandler', () => ({ useSetupBackHandler: jest.fn() }))
 jest.mock('@/hooks/useGeoLocation', () => ({ useGeoLocation: jest.fn() }))
@@ -88,8 +163,7 @@ jest.mock('@/hooks/useGetDeviceType', () => ({
 jest.mock('@/context/authContext', () => ({ useAuth: () => mockAuth }))
 jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ setIsSupportModalOpen: mockSupport }) }))
 jest.mock('next/navigation', () => ({ useSearchParams: () => mockSearchParams, useRouter: () => mockRouter }))
-jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => mockNative }))
-jest.mock('@/utils/migration.utils', () => ({ isPwaSunsetOn: () => mockPwaSunsetOn }))
+jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => mockNative, isNativeBridge: () => false }))
 jest.mock('@/utils/general.utils', () => ({
     getFromCookie: jest.fn(),
     getStoredRedirect: () => mockStoredRedirect,
@@ -102,7 +176,6 @@ jest.mock('@/components/Setup/setup-entry', () => ({
     hasKnownDeviceCredentials: () => false,
     resolveSetupEntryStep: (...args: unknown[]) => mockResolve(...args),
 }))
-jest.mock('@/components/Setup/Setup.utils', () => ({ isLikelyWebview: () => false, isDeviceOsSupported: () => true }))
 jest.mock('@/components/Setup/components/SetupWrapper', () => ({
     SetupWrapper: ({
         children,
@@ -121,10 +194,6 @@ jest.mock('@/components/Setup/components/SetupWrapper', () => ({
     ),
 }))
 jest.mock('@/components/Global/Loading', () => ({ __esModule: true, default: () => <div role="status">Loading</div> }))
-jest.mock('@/components/Global/UnsupportedBrowserModal', () => ({
-    __esModule: true,
-    default: () => <div>Unsupported device</div>,
-}))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 jest.mock('@sentry/nextjs', () => ({
     captureException: jest.fn(),
@@ -138,14 +207,25 @@ const landing: ISetupStep = {
     image: { src: '' },
     component: () => <div>Landing step</div>,
 }
-const advance = (ms: number) =>
-    act(async () => {
+const advance = async (ms: number) => {
+    await act(async () => {})
+    await act(async () => {
         await jest.advanceTimersByTimeAsync(ms)
     })
+}
 
 beforeEach(() => {
+    localStorage.clear()
+    sessionStorage.clear()
     jest.useFakeTimers()
     jest.clearAllMocks()
+    jest.mocked(getFromCookie).mockReset()
+    jest.mocked(readInviteCode).mockReset()
+    jest.mocked(readInviteIntent).mockReset().mockReturnValue(null)
+    jest.mocked(readInviteType).mockReset()
+    jest.mocked(stashInvite).mockReset()
+    jest.mocked(stashAcquisitionInvite).mockReset()
+    jest.mocked(toInviteCode).mockReset()
     mockNoBackLock = null
     mockSignupCompleted = false
     mockSellScreensCountry = undefined
@@ -153,6 +233,7 @@ beforeEach(() => {
     mockStore.steps = [landing]
     mockFlow.step = landing
     mockAuth.isFetchingUser = false
+    mockAuth.userFetchError = null
     mockAuth.user = undefined
     mockAuth.fetchUser.mockResolvedValue(undefined)
     mockGetPendingBadgeCampaigns.mockReturnValue([])
@@ -164,9 +245,18 @@ beforeEach(() => {
     })
     resetDeepLinkStateForTests()
     mockNative = true
-    mockPwaSunsetOn = false
     mockSearchParams = new URLSearchParams()
     mockStoredRedirect = null
+})
+
+it('does not record a step while a profile refresh hides it behind Loading', async () => {
+    const view = renderWithIntl(<SetupPage />)
+    await advance(100)
+    expect(screen.getByText('Landing step')).toBeInTheDocument()
+    mockAuth.isFetchingUser = true
+    view.rerender(<SetupPage />)
+    expect(screen.queryByText('Landing step')).not.toBeInTheDocument()
+    expect(useSetupStepAnalytics).toHaveBeenLastCalledWith(expect.objectContaining({ enabled: false }))
 })
 afterEach(() => {
     jest.useRealTimers()
@@ -174,16 +264,38 @@ afterEach(() => {
 
 it('shows retry and support when no current setup step can render', async () => {
     mockFlow.step = undefined
-    renderWithIntl(<SetupPage />)
+    const view = renderWithIntl(<SetupPage />)
+    await advance(100)
     await advance(100)
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
     expect(mockSupport).toHaveBeenCalledWith(true)
+    expect(posthog.capture).toHaveBeenCalledWith(
+        ANALYTICS_EVENTS.CONTROL_USED,
+        expect.objectContaining({
+            flow: 'signup',
+            screen_id: 'setup-error',
+            control: 'contact_support',
+            action: 'tap',
+            value: 'missing_step',
+        })
+    )
     expect(Sentry.addBreadcrumb).toHaveBeenCalledWith(
         expect.objectContaining({ category: 'setup.recovery', level: 'info', message: 'Setup recovery required' })
     )
     expect(useSetupStepAnalytics).toHaveBeenLastCalledWith(expect.objectContaining({ enabled: false }))
+    view.rerender(<SetupPage />)
+    const captures = (posthog.capture as jest.Mock).mock.calls
+    expect(
+        captures.filter(
+            ([event, props]) => event === ANALYTICS_EVENTS.SIGNUP_STEP_VIEWED && props.screen_id === 'setup-error'
+        )
+    ).toHaveLength(1)
+    expect(captures).toContainEqual([
+        ANALYTICS_EVENTS.CONTROL_USED,
+        expect.objectContaining({ screen_id: 'setup-error', control: 'setup', action: 'error', value: 'missing_step' }),
+    ])
 })
 
 it.each([true, false])('does not select the wrong step when the entry step is absent (native=%s)', async (native) => {
@@ -195,6 +307,7 @@ it.each([true, false])('does not select the wrong step when the entry step is ab
     mockResolve.mockReturnValue('signup')
     renderWithIntl(<SetupPage />)
     await advance(100)
+    await advance(100)
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
     expect(mockFlow.setScreenId).not.toHaveBeenCalled()
     expect(screen.queryByText('Landing step')).not.toBeInTheDocument()
@@ -203,6 +316,7 @@ it.each([true, false])('does not select the wrong step when the entry step is ab
 it('bounds waiting for the layout and reloads to restart layout and session initialization', async () => {
     mockStore.steps = []
     renderWithIntl(<SetupPage />)
+    await advance(15000)
     await advance(15000)
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
     const originalLocation = window.location
@@ -222,6 +336,7 @@ it('recovers from an initialization exception', async () => {
     })
     renderWithIntl(<SetupPage />)
     await advance(100)
+    await advance(100)
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
     expect(Sentry.captureMessage).toHaveBeenCalledWith(
         'Setup initialization failed',
@@ -230,48 +345,8 @@ it('recovers from an initialization exception', async () => {
     expect(Sentry.addBreadcrumb).not.toHaveBeenCalled()
 })
 
-it('ignores an authenticator check that completes after initialization timed out', async () => {
+it('routes web guests to landing without browser capability checks', async () => {
     mockNative = false
-    let resolveSupport!: (supported: boolean) => void
-    Object.defineProperty(window, 'PublicKeyCredential', {
-        configurable: true,
-        value: {
-            isUserVerifyingPlatformAuthenticatorAvailable: () =>
-                new Promise<boolean>((resolve) => {
-                    resolveSupport = resolve
-                }),
-        },
-    })
-    renderWithIntl(<SetupPage />)
-    await advance(15000)
-    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
-    expect(Sentry.captureMessage).toHaveBeenCalledWith(
-        'Setup initialization failed',
-        expect.objectContaining({ level: 'error', tags: { reason: 'initialization_timeout' } })
-    )
-    expect(Sentry.addBreadcrumb).not.toHaveBeenCalled()
-    await act(async () => {
-        resolveSupport(true)
-    })
-    expect(mockFlow.setScreenId).not.toHaveBeenCalled()
-    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
-})
-
-it('preserves the unsupported-device recovery on web', async () => {
-    mockNative = false
-    Object.defineProperty(window, 'PublicKeyCredential', {
-        configurable: true,
-        value: { isUserVerifyingPlatformAuthenticatorAvailable: async () => false },
-    })
-    renderWithIntl(<SetupPage />)
-    await advance(100)
-    expect(screen.getByText('Unsupported device')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
-})
-
-it('routes sunset web guests to landing before unsupported-browser capability gates', async () => {
-    mockNative = false
-    mockPwaSunsetOn = true
     Object.defineProperty(window, 'PublicKeyCredential', {
         configurable: true,
         value: { isUserVerifyingPlatformAuthenticatorAvailable: jest.fn().mockResolvedValue(false) },
@@ -281,7 +356,6 @@ it('routes sunset web guests to landing before unsupported-browser capability ga
     await advance(100)
 
     expect(screen.getByText('Landing step')).toBeInTheDocument()
-    expect(screen.queryByText('Unsupported device')).not.toBeInTheDocument()
     expect(PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable).not.toHaveBeenCalled()
     expect(mockResolve).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -291,9 +365,90 @@ it('routes sunset web guests to landing before unsupported-browser capability ga
     expect(mockFlow.setScreenId).toHaveBeenCalledWith('landing', { history: 'replace' })
 })
 
+it.each([
+    ['explicit', true],
+    ['acquisition', false],
+] as const)('lets only a chosen invite skip Landing: %s stash', async (intent, hasInviteCode) => {
+    jest.mocked(readInviteCode).mockReturnValue('alice')
+    jest.mocked(readInviteIntent).mockReturnValue(intent)
+
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+
+    expect(mockResolve).toHaveBeenCalledWith(expect.objectContaining({ hasInviteCode }))
+})
+
+it('keeps the signup fast path in a keep-web browser', async () => {
+    mockNative = false
+    jest.mocked(getFromCookie).mockImplementation((key: string) =>
+        key === KEEP_WEB_COOKIE ? KEEP_WEB_TOKEN : undefined
+    )
+
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+
+    expect(mockResolve).toHaveBeenCalledWith(expect.objectContaining({ webSignupClosed: false }))
+})
+
+it('keeps the signup fast path on the first visit of a keep-web link', async () => {
+    mockNative = false
+    mockSearchParams = new URLSearchParams(`step=signup&${KEEP_WEB_COOKIE}=${KEEP_WEB_TOKEN}`)
+
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+
+    expect(mockResolve).toHaveBeenCalledWith(expect.objectContaining({ webSignupClosed: false }))
+})
+
+it('restores the signup context of the Android app browser handoff in a fresh browser (TASK-24498)', async () => {
+    // The app side: the link the drawer opens, built from the app's own storage.
+    jest.mocked(readInviteCode).mockReturnValue('alice')
+    jest.mocked(readInviteType).mockReturnValue(EInviteType.PAYMENT_LINK)
+    mockGetPendingBadgeCampaigns.mockReturnValue(['nita'])
+    window.history.replaceState({}, '', `/setup?redirect_uri=${encodeURIComponent('/add-money')}`)
+    const handoff = new URL(keepWebSignupUrl())
+    window.history.replaceState({}, '', '/')
+    // The browser side: nothing stored, only the link.
+    jest.mocked(readInviteCode).mockReturnValue('')
+    mockGetPendingBadgeCampaigns.mockReturnValue([])
+    jest.mocked(toInviteCode).mockImplementation((code: string) => code)
+    mockNative = false
+    mockSearchParams = handoff.searchParams
+
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+
+    expect(handoff.searchParams.get('redirect_uri')).toBe('/add-money')
+    expect(handoff.searchParams.getAll('badge_campaign')).toEqual(['nita'])
+    expect(stashInvite).toHaveBeenCalledWith('alice', 'PAYMENT_LINK')
+    expect(mockQueuePendingBadgeCampaigns).toHaveBeenCalledWith(['nita'])
+    expect(mockResolve).toHaveBeenCalledWith(expect.objectContaining({ webSignupClosed: false }))
+})
+
+it('keeps a passive inviter from the Android app browser handoff passive', async () => {
+    const stash = jest.requireActual<typeof import('@/utils/invite-stash')>('@/utils/invite-stash')
+    localStorage.clear()
+    jest.mocked(stashInvite).mockImplementation(stash.stashInvite)
+    jest.mocked(stashAcquisitionInvite).mockImplementation(stash.stashAcquisitionInvite)
+    jest.mocked(readInviteIntent).mockImplementation(stash.readInviteIntent)
+    jest.mocked(toInviteCode).mockImplementation((code: string) => code)
+    mockNative = false
+    mockSearchParams = new URLSearchParams(`${KEEP_WEB_COOKIE}=${KEEP_WEB_TOKEN}&acq_invite=creator`)
+
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+
+    expect(stash.readInviteCode()).toBe('creator')
+    // The layout hides the invite step only for an explicit stash.
+    expect(stash.readInviteIntent()).toBe('acquisition')
+    expect(mockResolve).toHaveBeenCalledWith(expect.objectContaining({ hasInviteCode: false }))
+    localStorage.clear()
+})
+
 it('bounds waiting for session hydration', async () => {
     mockAuth.isFetchingUser = true
     renderWithIntl(<SetupPage />)
+    await advance(15000)
     await advance(15000)
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
 })
@@ -303,10 +458,11 @@ it('suppresses timeout recovery when a completed session starts leaving for home
     const view = renderWithIntl(<SetupPage />)
     await advance(100)
     await advance(15000)
+    await advance(15000)
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
 
     mockAuth.isFetchingUser = false
-    mockAuth.user = { user: { username: 'peanutter', hasAppAccess: true } }
+    mockAuth.user = { user: { username: 'peanutter', hasAppAccess: true }, accounts: WALLET }
     await act(async () => {
         view.rerender(<SetupPage />)
     })
@@ -317,9 +473,10 @@ it('suppresses timeout recovery when a completed session starts leaving for home
 })
 
 it('treats a stale legacy no-access profile as an authenticated account', async () => {
-    mockAuth.user = { user: { username: 'peanutter', hasAppAccess: false } }
+    mockAuth.user = { user: { username: 'peanutter', hasAppAccess: false }, accounts: WALLET }
 
     renderWithIntl(<SetupPage />)
+    await advance(0)
 
     expect(mockRouter.replace).toHaveBeenCalledWith('/home')
     expect(screen.getByRole('status')).toBeInTheDocument()
@@ -335,10 +492,11 @@ it.each([
     { label: 'a redirect_uri back into setup', query: 'redirect_uri=%2Fsetup%3Fstep%3Dsignup', destination: '/home' },
     { label: 'no redirect_uri', query: '', destination: '/home' },
 ])('sends a completed session with $label to $destination', async ({ query, destination }) => {
-    mockAuth.user = { user: { username: 'peanutter', hasAppAccess: true } }
+    mockAuth.user = { user: { username: 'peanutter', hasAppAccess: true }, accounts: WALLET }
     mockSearchParams = new URLSearchParams(query)
 
     renderWithIntl(<SetupPage />)
+    await advance(0)
 
     expect(mockRouter.replace).toHaveBeenCalledTimes(1)
     expect(mockRouter.replace).toHaveBeenCalledWith(destination)
@@ -346,16 +504,17 @@ it.each([
 })
 
 it('does not let stored redirect state redirect a completed session', async () => {
-    mockAuth.user = { user: { username: 'peanutter', hasAppAccess: true } }
+    mockAuth.user = { user: { username: 'peanutter', hasAppAccess: true }, accounts: WALLET }
     mockStoredRedirect = { destination: '/card', origin: 'deep-link', generationId: 'g1' }
 
     renderWithIntl(<SetupPage />)
+    await advance(0)
 
     expect(mockRouter.replace).toHaveBeenCalledWith('/home')
 })
 
 it('sends a completed session to its redirect_uri once a native badge claim settles', async () => {
-    mockAuth.user = { user: { username: 'alice', hasAppAccess: true } }
+    mockAuth.user = { user: { username: 'alice', hasAppAccess: true }, accounts: WALLET }
     mockSearchParams = new URLSearchParams('step=signup&badge_campaign=bug_whisperer&redirect_uri=%2Fadd-money')
 
     renderWithIntl(<SetupPage />)
@@ -405,7 +564,7 @@ it('does not attribute a stored session-end page to a new signup', async () => {
 it.each([true, false])(
     'settles a native badge campaign before redirecting home (legacy access=%s)',
     async (hasAppAccess) => {
-        mockAuth.user = { user: { username: 'alice', hasAppAccess } }
+        mockAuth.user = { user: { username: 'alice', hasAppAccess }, accounts: WALLET }
         mockSearchParams = new URLSearchParams('step=signup&badge_campaign=bug_whisperer')
 
         renderWithIntl(<SetupPage />)
@@ -421,7 +580,7 @@ it.each([true, false])(
 )
 
 it('does not redirect home when setup unmounts before the native claim settles', async () => {
-    mockAuth.user = { user: { username: 'alice', hasAppAccess: true } }
+    mockAuth.user = { user: { username: 'alice', hasAppAccess: true }, accounts: WALLET }
     mockSearchParams = new URLSearchParams('step=signup&badge_campaign=bug_whisperer')
     type ClaimResult = Awaited<ReturnType<typeof mockClaimAndSettlePendingBadgeCampaigns>>
     let resolveClaim!: (result: ClaimResult) => void
@@ -448,7 +607,7 @@ it('does not redirect home when setup unmounts before the native claim settles',
 })
 
 it('does not redirect home after a newer native deep link is accepted', async () => {
-    mockAuth.user = { user: { username: 'alice', hasAppAccess: true } }
+    mockAuth.user = { user: { username: 'alice', hasAppAccess: true }, accounts: WALLET }
     mockSearchParams = new URLSearchParams('step=signup&badge_campaign=bug_whisperer')
     type ClaimResult = Awaited<ReturnType<typeof mockClaimAndSettlePendingBadgeCampaigns>>
     let resolveClaim!: (result: ClaimResult) => void
@@ -475,7 +634,7 @@ it('does not redirect home after a newer native deep link is accepted', async ()
 })
 
 it('restarts native badge settlement when the same invite is accepted again', async () => {
-    mockAuth.user = { user: { username: 'alice', hasAppAccess: true } }
+    mockAuth.user = { user: { username: 'alice', hasAppAccess: true }, accounts: WALLET }
     mockSearchParams = new URLSearchParams('step=signup&badge_campaign=bug_whisperer')
     type ClaimResult = Awaited<ReturnType<typeof mockClaimAndSettlePendingBadgeCampaigns>>
     const resolveClaims: Array<(result: ClaimResult) => void> = []
@@ -513,7 +672,7 @@ it('restarts native badge settlement when the same invite is accepted again', as
 })
 
 it('restarts native badge settlement when a newer invite replaces the setup URL', async () => {
-    mockAuth.user = { user: { username: 'alice', hasAppAccess: true } }
+    mockAuth.user = { user: { username: 'alice', hasAppAccess: true }, accounts: WALLET }
     mockSearchParams = new URLSearchParams('step=signup&badge_campaign=bug_whisperer')
     type ClaimResult = Awaited<ReturnType<typeof mockClaimAndSettlePendingBadgeCampaigns>>
     const resolveClaims: Array<(result: ClaimResult) => void> = []
@@ -555,7 +714,7 @@ it('restarts native badge settlement when a newer invite replaces the setup URL'
 })
 
 it('redirects home for a newer setup invite without a badge campaign', async () => {
-    mockAuth.user = { user: { username: 'alice', hasAppAccess: true } }
+    mockAuth.user = { user: { username: 'alice', hasAppAccess: true }, accounts: WALLET }
     mockSearchParams = new URLSearchParams('step=signup&badge_campaign=bug_whisperer')
     type ClaimResult = Awaited<ReturnType<typeof mockClaimAndSettlePendingBadgeCampaigns>>
     mockClaimAndSettlePendingBadgeCampaigns.mockImplementation(
@@ -587,7 +746,7 @@ it('does not initialize after unmount', async () => {
  * already recovering from (PEANUT-UI-T3A, reason=missing_step).
  */
 it('bounces a completed session home without showing the recovery screen', async () => {
-    mockAuth.user = { user: { username: 'peanutter', hasAppAccess: true } }
+    mockAuth.user = { user: { username: 'peanutter', hasAppAccess: true }, accounts: WALLET }
     mockFlow.step = undefined
     renderWithIntl(<SetupPage />)
     await advance(100)
@@ -630,26 +789,22 @@ it('hides Logout on the final ready-to-start confirmation screen', async () => {
     expect(screen.queryByRole('button', { name: 'Logout' })).not.toBeInTheDocument()
 })
 
-it.each([
-    'invite',
-    'payment-plan',
-    'advantage-fees',
-    'advantage-card',
-    'notification-email',
-    'notification-permission',
-    'advantage-control',
-] as const)('shows Back on %s after registration and arms the lock at residence', async (screenId) => {
-    const step = { ...landing, screenId, showBackButton: true }
-    mockStore.steps = [step]
-    mockFlow.step = step
-    mockResolve.mockReturnValue(screenId)
-    mockNoBackLock = 'residence'
-    renderWithIntl(<SetupPage />)
-    await advance(100)
-    expect(screen.getByRole('button', { name: 'Go back' })).toBeInTheDocument()
-    expect(mockSetNoBackLock).toHaveBeenCalledWith('residence')
-})
-it('fixes the sell screens to the suggested country once the account exists', async () => {
+it.each(['notification-permission', 'advantage-control'] as const)(
+    'shows Back on %s after registration and arms the lock at Email',
+    async (screenId) => {
+        const step = { ...landing, screenId, showBackButton: true }
+        mockStore.steps = [landing, { ...landing, screenId: 'notification-email' }, step]
+        mockFlow.step = step
+        mockResolve.mockReturnValue(screenId)
+        mockNoBackLock = 'notification-email'
+        mockAuth.user = { user: { userId: 'u-1', username: 'test044' }, accounts: [] }
+        renderWithIntl(<SetupPage />)
+        await advance(100)
+        expect(screen.getByRole('button', { name: 'Go back' })).toBeInTheDocument()
+        expect(mockSetNoBackLock).toHaveBeenCalledWith('notification-email')
+    }
+)
+it('fixes the sell screens to the suggested country after Welcome', async () => {
     const step = { ...landing, screenId: 'invite' as const, showBackButton: true }
     mockStore.steps = [step]
     mockFlow.step = step
@@ -659,7 +814,16 @@ it('fixes the sell screens to the suggested country once the account exists', as
     await advance(100)
     expect(mockSetSellScreensCountry).toHaveBeenCalledWith('PT')
 })
-it.each(['landing', 'signup'] as const)('does not arm the registration lock on %s', async (screenId) => {
+it.each([
+    'landing',
+    'advantage-fees',
+    'advantage-card',
+    'residence',
+    'payment-plan',
+    'signup',
+    'invite',
+    'passkey',
+] as const)('does not arm the registration lock on %s', async (screenId) => {
     const step = { ...landing, screenId, showBackButton: true }
     mockStore.steps = [step]
     mockFlow.step = step
@@ -668,18 +832,520 @@ it.each(['landing', 'signup'] as const)('does not arm the registration lock on %
     await advance(100)
     expect(mockSetNoBackLock).not.toHaveBeenCalled()
 })
-it('hides Back at the residence boundary once registered, and during celebration', async () => {
-    const step = { ...landing, screenId: 'residence' as const, showBackButton: true }
+it('hides Back at the Email boundary once registered, and during celebration', async () => {
+    const step = { ...landing, screenId: 'notification-email' as const, showBackButton: true }
     mockStore.steps = [step]
     mockFlow.step = step
     mockResolve.mockReturnValue(step.screenId)
-    mockNoBackLock = 'residence'
+    mockNoBackLock = 'notification-email'
+    mockAuth.user = { user: { userId: 'u-1', username: 'test044' }, accounts: [] }
     const view = renderWithIntl(<SetupPage />)
     await advance(100)
-    expect(mockSetNoBackLock).toHaveBeenCalledWith('residence')
+    expect(mockSetNoBackLock).toHaveBeenCalledWith('notification-email')
     expect(screen.queryByRole('button', { name: 'Go back' })).not.toBeInTheDocument()
     mockSignupCompleted = true
     mockFlow.step = { ...step, screenId: 'advantage-control' }
     view.rerender(<SetupPage />)
     expect(screen.queryByRole('button', { name: 'Go back' })).not.toBeInTheDocument()
+})
+
+/*
+ * A reload mid-signup (a deploy's service worker, chunk recovery, pull to
+ * refresh) or an app restart lands on /setup signed in but without the wallet
+ * the last step creates. Leaving for /home sent it to /setup/finish and skipped
+ * the email and every other step after registration (test044, 2026-10-26).
+ */
+describe('a signup interrupted after registration', () => {
+    const residence: ISetupStep = { ...landing, screenId: 'residence', component: () => <div>Residence step</div> }
+    const unfinished = { user: { username: 'test044', hasAppAccess: true }, accounts: [] }
+
+    beforeEach(() => {
+        mockStore.steps = [landing, residence]
+        mockFlow.step = residence
+        mockSearchParams = new URLSearchParams('screen=notification-email')
+    })
+
+    it.each([true, false])('restarts at the first step after registration (native=%s)', async (native) => {
+        mockNative = native
+        Object.defineProperty(window, 'PublicKeyCredential', {
+            configurable: true,
+            value: { isUserVerifyingPlatformAuthenticatorAvailable: async () => true },
+        })
+        mockAuth.user = unfinished
+        renderWithIntl(<SetupPage />)
+        await advance(100)
+        expect(mockRouter.replace).not.toHaveBeenCalled()
+        expect(mockFlow.setScreenId).toHaveBeenCalledTimes(1)
+        expect(mockFlow.setScreenId).toHaveBeenCalledWith('residence', { history: 'replace' })
+        expect(screen.getByText('Residence step')).toBeInTheDocument()
+        expect(mockSetNoBackLock).toHaveBeenCalledWith('residence')
+    })
+
+    it('moves to that step when the profile arrives after the entry step resolved', async () => {
+        mockAuth.isFetchingUser = true
+        mockFlow.step = landing
+        const view = renderWithIntl(<SetupPage />)
+        await advance(100)
+        expect(mockFlow.setScreenId).toHaveBeenLastCalledWith('landing', { history: 'replace' })
+
+        mockAuth.isFetchingUser = false
+        mockAuth.user = unfinished
+        await act(async () => {
+            view.rerender(<SetupPage />)
+        })
+
+        expect(mockFlow.setScreenId).toHaveBeenLastCalledWith('residence', { history: 'replace' })
+        expect(mockRouter.replace).not.toHaveBeenCalled()
+    })
+
+    it('resumes, not leaves, once a native badge claim settles', async () => {
+        mockAuth.user = unfinished
+        mockSearchParams = new URLSearchParams('step=signup&badge_campaign=bug_whisperer')
+        renderWithIntl(<SetupPage />)
+        await advance(100)
+        await waitFor(() => expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledWith(['bug_whisperer']))
+        await waitFor(() => expect(mockAuth.fetchUser).toHaveBeenCalledTimes(1))
+        await advance(0)
+        expect(mockRouter.replace).not.toHaveBeenCalled()
+        expect(mockFlow.setScreenId).toHaveBeenCalledWith('residence', { history: 'replace' })
+    })
+
+    it('keeps its place when a newer setup deep link arrives mid-flow', async () => {
+        const paymentPlan: ISetupStep = { ...landing, screenId: 'payment-plan', component: () => <div>Plan step</div> }
+        mockStore.steps = [landing, residence, paymentPlan]
+        mockAuth.user = unfinished
+        mockSearchParams = new URLSearchParams()
+        const view = renderWithIntl(<SetupPage />)
+        await advance(100)
+        expect(mockFlow.setScreenId).toHaveBeenLastCalledWith('residence', { history: 'replace' })
+
+        // The person moves on in the flow, then a new invite link opens /setup.
+        mockFlow.step = paymentPlan
+        view.rerender(<SetupPage />)
+        mockFlow.setScreenId.mockClear()
+        mockSearchParams = new URLSearchParams('code=friend')
+        await act(async () => {
+            markDeepLinkNavigated('/setup?code=friend')
+            view.rerender(<SetupPage />)
+        })
+        await advance(100)
+
+        expect(mockRouter.replace).not.toHaveBeenCalled()
+        expect(mockFlow.setScreenId).not.toHaveBeenCalledWith('residence', expect.anything())
+        expect(screen.getByText('Plan step')).toBeInTheDocument()
+    })
+
+    it('keeps a flow under way going after its email is saved, until the wallet exists', async () => {
+        const paymentPlan: ISetupStep = { ...landing, screenId: 'payment-plan', component: () => <div>Plan step</div> }
+        mockStore.steps = [landing, residence, paymentPlan]
+        mockAuth.user = unfinished
+        const view = renderWithIntl(<SetupPage />)
+        await advance(100)
+
+        mockFlow.step = paymentPlan
+        mockAuth.user = { ...unfinished, user: { ...unfinished.user, email: 'test044@example.com' } }
+        view.rerender(<SetupPage />)
+        mockSearchParams = new URLSearchParams('code=friend')
+        await act(async () => {
+            markDeepLinkNavigated('/setup?code=friend')
+            view.rerender(<SetupPage />)
+        })
+        await advance(100)
+
+        expect(mockRouter.replace).not.toHaveBeenCalled()
+        expect(screen.getByText('Plan step')).toBeInTheDocument()
+    })
+
+    it('restarts after registration on a fresh load even when the URL names a later step', async () => {
+        const paymentPlan: ISetupStep = { ...landing, screenId: 'payment-plan', component: () => <div>Plan step</div> }
+        mockStore.steps = [landing, residence, paymentPlan]
+        mockFlow.step = paymentPlan
+        mockAuth.user = unfinished
+        renderWithIntl(<SetupPage />)
+        await advance(100)
+        expect(mockFlow.setScreenId).toHaveBeenCalledWith('residence', { history: 'replace' })
+        expect(mockFlow.setScreenId).not.toHaveBeenCalledWith('payment-plan', expect.anything())
+    })
+
+    it('still sends a finished signup home', async () => {
+        mockAuth.user = { ...unfinished, accounts: WALLET }
+        renderWithIntl(<SetupPage />)
+        await advance(0)
+        expect(mockRouter.replace).toHaveBeenCalledWith('/home')
+    })
+
+    // A saved email marks nothing after it: the payment choices and notification step were never sent.
+    it('resumes after a reload that followed the email step', async () => {
+        mockAuth.user = { ...unfinished, user: { ...unfinished.user, email: 'test044@example.com' } }
+        renderWithIntl(<SetupPage />)
+        await advance(100)
+        expect(mockRouter.replace).not.toHaveBeenCalled()
+        expect(mockFlow.setScreenId).toHaveBeenCalledWith('residence', { history: 'replace' })
+    })
+
+    describe('with progress saved on this device', () => {
+        const finalStep: ISetupStep = {
+            ...landing,
+            screenId: 'advantage-control',
+            component: () => <div>Final step</div>,
+        }
+        const paymentPlan: ISetupStep = { ...landing, screenId: 'payment-plan', component: () => <div>Plan step</div> }
+        const registered = { user: { userId: 'u-1', username: 'test044', hasAppAccess: true }, accounts: [] }
+
+        beforeEach(() => {
+            localStorage.clear()
+            sessionStorage.clear()
+            mockStore.steps = [landing, residence, paymentPlan, finalStep]
+            mockFlow.step = landing
+            mockSearchParams = new URLSearchParams()
+        })
+
+        it('a reload on the final step resumes there with residence and plan kept', async () => {
+            saveSignupProgress('u-1', {
+                screenId: 'advantage-control',
+                answers: {
+                    residenceCountry: 'AR',
+                    nationalityCountry: 'BR',
+                    fundingChannel: 'arsBank',
+                    paymentChannel: 'qr',
+                    notificationChoices: null,
+                    inviterAccepted: false,
+                    sellScreensCountry: 'AR',
+                },
+            })
+            mockAuth.user = registered
+            renderWithIntl(<SetupPage />)
+            await advance(100)
+
+            expect(mockFlow.setScreenId).toHaveBeenLastCalledWith('advantage-control', { history: 'replace' })
+            expect(mockFlow.setScreenId).not.toHaveBeenCalledWith('residence', expect.anything())
+            expect(mockAnswerSetters.setResidenceCountry).toHaveBeenCalledWith('AR')
+            expect(mockAnswerSetters.setNationalityCountry).toHaveBeenCalledWith('BR')
+            expect(mockAnswerSetters.setFundingChannel).toHaveBeenCalledWith('arsBank')
+            expect(mockAnswerSetters.setPaymentChannel).toHaveBeenCalledWith('qr')
+            expect(mockSetSellScreensCountry).toHaveBeenCalledWith('AR')
+            expect(mockRouter.replace).not.toHaveBeenCalled()
+        })
+
+        it('resumes there too when the profile arrives after the entry step resolved', async () => {
+            saveSignupProgress('u-1', {
+                screenId: 'payment-plan',
+                answers: {
+                    residenceCountry: 'MX',
+                    nationalityCountry: '',
+                    fundingChannel: null,
+                    paymentChannel: null,
+                    notificationChoices: null,
+                    inviterAccepted: false,
+                    sellScreensCountry: undefined,
+                },
+            })
+            mockAuth.isFetchingUser = true
+            const view = renderWithIntl(<SetupPage />)
+            await advance(100)
+            mockAuth.isFetchingUser = false
+            mockAuth.user = registered
+            await act(async () => {
+                view.rerender(<SetupPage />)
+            })
+            await advance(100)
+            expect(mockFlow.setScreenId).toHaveBeenLastCalledWith('payment-plan', { history: 'replace' })
+            expect(mockAnswerSetters.setResidenceCountry).toHaveBeenCalledWith('MX')
+        })
+
+        it('saves the step and the answers as the person reaches it', async () => {
+            mockAuth.user = registered
+            mockFlow.step = finalStep
+            renderWithIntl(<SetupPage />)
+            await advance(100)
+            expect(readSignupProgress('u-1')).toMatchObject({ screenId: 'advantage-control' })
+        })
+
+        it('progress saved by another account on this device is not used', async () => {
+            saveSignupProgress('someone-else', {
+                screenId: 'advantage-control',
+                answers: {
+                    residenceCountry: 'AR',
+                    nationalityCountry: '',
+                    fundingChannel: null,
+                    paymentChannel: null,
+                    notificationChoices: null,
+                    inviterAccepted: false,
+                    sellScreensCountry: undefined,
+                },
+            })
+            mockAuth.user = registered
+            renderWithIntl(<SetupPage />)
+            await advance(100)
+            expect(mockFlow.setScreenId).toHaveBeenLastCalledWith('residence', { history: 'replace' })
+            expect(mockAnswerSetters.setResidenceCountry).not.toHaveBeenCalled()
+        })
+    })
+})
+
+describe('unknown account state and bounded initialization recovery', () => {
+    it('does not enter signup when a profile error leaves the account unknown', async () => {
+        mockAuth.userFetchError = new Error('profile unavailable')
+        renderWithIntl(<SetupPage />)
+        await advance(100)
+        expect(screen.queryByText('Landing step')).not.toBeInTheDocument()
+        expect(mockRouter.replace).not.toHaveBeenCalled()
+        fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+        await advance(0)
+        expect(mockAuth.fetchUser).toHaveBeenCalledTimes(1)
+    })
+
+    // press-contract on ui#4081: a signed-out browser whose /users/me never
+    // reached the API sat on the recovery screen instead of Welcome.
+    it('shows Welcome to a signed-out web visitor whose profile request failed', async () => {
+        mockNative = false
+        mockAuth.userFetchError = new Error('Failed to fetch')
+        renderWithIntl(<SetupPage />)
+        await advance(100)
+        expect(screen.getByText('Landing step')).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+        expect(mockRouter.replace).not.toHaveBeenCalled()
+    })
+
+    it('keeps a web session with a failed profile request on the recovery screen', async () => {
+        mockNative = false
+        document.cookie = 'jwt-token=header.payload.signature; path=/'
+        try {
+            mockAuth.userFetchError = new Error('Failed to fetch')
+            renderWithIntl(<SetupPage />)
+            await advance(100)
+            expect(screen.queryByText('Landing step')).not.toBeInTheDocument()
+            expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+        } finally {
+            document.cookie = 'jwt-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+        }
+    })
+
+    it('recovers an unknown profile and resumes the login redirect from Landing', async () => {
+        const view = renderWithIntl(<SetupPage />)
+        await advance(100)
+        expect(screen.getByText('Landing step')).toBeInTheDocument()
+        mockAuth.userFetchError = new Error('profile unavailable')
+        view.rerender(<SetupPage />)
+        expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+        expect(mockAuth.fetchUser).toHaveBeenCalledTimes(1)
+        mockAuth.userFetchError = null
+        mockAuth.user = { user: { userId: 'u1', username: 'alice' }, accounts: WALLET }
+        view.rerender(<SetupPage />)
+        await advance(100)
+        expect(mockRouter.replace).toHaveBeenCalledWith('/home')
+    })
+
+    it('keeps a loaded signup step when a background profile refetch fails', async () => {
+        const emailStep = {
+            ...landing,
+            screenId: 'notification-email' as const,
+            component: () => <div>Email step</div>,
+        }
+        mockAuth.user = { user: { userId: 'u1', username: 'alice' }, accounts: [] }
+        mockStore.steps = [landing, { ...landing, screenId: 'residence' }, emailStep]
+        mockFlow.step = emailStep
+        const view = renderWithIntl(<SetupPage />)
+        await advance(100)
+        mockAuth.userFetchError = new Error('429')
+        view.rerender(<SetupPage />)
+        expect(screen.getByText('Email step')).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+    })
+
+    it('routes a loaded completed profile despite a background error', async () => {
+        mockAuth.user = { user: { userId: 'u1', username: 'alice' }, accounts: WALLET }
+        mockAuth.userFetchError = new Error('refetch unavailable')
+        renderWithIntl(<SetupPage />)
+        await advance(100)
+        expect(mockRouter.replace).toHaveBeenCalledWith('/home')
+        expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+    })
+
+    it('automatically retries a failed initialization once and recovers when the second resolve succeeds', async () => {
+        mockResolve
+            .mockImplementationOnce(() => {
+                throw new Error('transient initialization')
+            })
+            .mockReturnValue('landing')
+        renderWithIntl(<SetupPage />)
+        await advance(100)
+        await advance(100)
+        expect(mockResolve).toHaveBeenCalledTimes(2)
+        expect(screen.getByText('Landing step')).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+    })
+
+    it('bounds persistent initialization exceptions to two attempts and retains manual recovery', async () => {
+        mockResolve.mockImplementation(() => {
+            throw new Error('persistent initialization')
+        })
+        renderWithIntl(<SetupPage />)
+        await advance(100)
+        await advance(100)
+        await advance(120000)
+        expect(mockResolve).toHaveBeenCalledTimes(2)
+        expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+    })
+
+    it('retries missing entry steps once before generic recovery', async () => {
+        mockResolve.mockReturnValue('signup')
+        renderWithIntl(<SetupPage />)
+        await advance(100)
+        await advance(100)
+        await advance(120000)
+        expect(mockResolve).toHaveBeenCalledTimes(2)
+        expect(mockFlow.setScreenId).not.toHaveBeenCalled()
+        expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+    })
+})
+
+it('automatically gives layout initialization one more bounded chance after its first timeout', async () => {
+    mockStore.steps = []
+    const view = renderWithIntl(<SetupPage />)
+    await advance(15000)
+    expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+    mockStore.steps = [landing]
+    view.rerender(<SetupPage />)
+    await advance(1000)
+    expect(screen.getByText('Landing step')).toBeInTheDocument()
+    expect(mockResolve).toHaveBeenCalledTimes(1)
+})
+
+it.each(['web gate', 'login entry'])('keeps the Welcome %s ahead of a restored anonymous draft', async (gate) => {
+    mockNative = gate !== 'web gate'
+    if (gate === 'login entry') mockSearchParams = new URLSearchParams('step=login')
+    const plan: ISetupStep = { ...landing, screenId: 'payment-plan' }
+    mockStore.steps = [landing, plan]
+    mockFlow.step = landing
+    saveSignupDraft({
+        screenId: 'payment-plan',
+        answers: {
+            username: 'kimchi',
+            inviteSelection: '',
+            residenceCountry: 'AR',
+            nationalityCountry: 'BR',
+            fundingChannel: 'arsBank',
+            paymentChannel: 'qr',
+            notificationChoices: null,
+            inviterAccepted: false,
+            sellScreensCountry: 'AR',
+        },
+    })
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+    expect(mockFlow.setScreenId).toHaveBeenLastCalledWith('landing', { history: 'replace' })
+})
+
+it('keeps the demo’s completed flow when its synthetic account appears', async () => {
+    const view = renderWithIntl(<SetupPage />)
+    await advance(100)
+    mockFlow.setScreenId.mockClear()
+    enableDemoMode()
+    try {
+        mockSignupCompleted = true
+        mockAuth.user = { user: { userId: 'demo-user', username: 'demo' }, accounts: WALLET }
+        await act(async () => {
+            view.rerender(<SetupPage />)
+        })
+        await advance(100)
+        expect(mockFlow.setScreenId).not.toHaveBeenCalled()
+        expect(mockRouter.replace).not.toHaveBeenCalled()
+    } finally {
+        disableDemoMode()
+    }
+})
+
+const savedAnswers = {
+    username: 'kimchi',
+    inviteSelection: 'alice',
+    residenceCountry: 'AR',
+    nationalityCountry: 'BR',
+    fundingChannel: 'arsBank' as const,
+    paymentChannel: 'qr' as const,
+    notificationChoices: null,
+    inviterAccepted: true,
+    sellScreensCountry: 'AR',
+}
+
+it('starts Welcome without restoring a previous account’s bound draft when signed out', async () => {
+    mockStore.steps = [landing, { ...landing, screenId: 'payment-plan' }]
+    saveSignupDraft({ screenId: 'payment-plan', answers: savedAnswers })
+    await recordSignupRegistration('previous-user', 'kimchi')
+
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+
+    expect(mockFlow.setScreenId).toHaveBeenLastCalledWith('landing', { history: 'replace' })
+    expect(readSignupDraft()?.userId).toBeUndefined()
+    expect(readSignupDraft()?.answers.username || '').toBe('')
+    expect(mockAnswerSetters.setUsername).not.toHaveBeenCalledWith('kimchi')
+    expect(mockAnswerSetters.setInviteSelection).not.toHaveBeenCalledWith('alice')
+    expect(mockAnswerSetters.setResidenceCountry).not.toHaveBeenCalledWith('AR')
+    expect(mockAnswerSetters.setNationalityCountry).not.toHaveBeenCalledWith('BR')
+    expect(mockAnswerSetters.setFundingChannel).not.toHaveBeenCalledWith('arsBank')
+    expect(mockAnswerSetters.setPaymentChannel).not.toHaveBeenCalledWith('qr')
+    expect(mockAnswerSetters.setInviterAccepted).not.toHaveBeenCalledWith(true)
+    expect(mockSetSellScreensCountry).not.toHaveBeenCalledWith('AR')
+})
+
+it('restores an unbound draft and resumes its saved step after restart', async () => {
+    mockStore.steps = [landing, { ...landing, screenId: 'payment-plan' }]
+    saveSignupDraft({ screenId: 'payment-plan', answers: savedAnswers })
+
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+
+    expect(mockFlow.setScreenId).toHaveBeenLastCalledWith('payment-plan', { history: 'replace' })
+    expect(mockAnswerSetters.setUsername).toHaveBeenCalledWith('kimchi')
+    expect(mockAnswerSetters.setInviteSelection).toHaveBeenCalledWith('alice')
+    expect(mockAnswerSetters.setResidenceCountry).toHaveBeenCalledWith('AR')
+    expect(mockAnswerSetters.setNationalityCountry).toHaveBeenCalledWith('BR')
+    expect(mockAnswerSetters.setFundingChannel).toHaveBeenCalledWith('arsBank')
+    expect(mockAnswerSetters.setPaymentChannel).toHaveBeenCalledWith('qr')
+    expect(mockAnswerSetters.setInviterAccepted).toHaveBeenCalledWith(true)
+    expect(mockSetSellScreensCountry).toHaveBeenCalledWith('AR')
+})
+
+it('clears the bound draft when signup completes', async () => {
+    saveSignupDraft({ screenId: 'payment-plan', answers: savedAnswers })
+    await recordSignupRegistration('u1', 'kimchi')
+    mockAuth.user = { user: { userId: 'u1', username: 'kimchi' }, accounts: WALLET }
+
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+
+    expect(mockRouter.replace).toHaveBeenCalledWith('/home')
+    expect(readSignupDraft()).toBeNull()
+})
+
+it('clears the bound draft when the setup flow marks signup complete', async () => {
+    saveSignupDraft({ screenId: 'payment-plan', answers: savedAnswers })
+    await recordSignupRegistration('u1', 'kimchi')
+    mockAuth.user = { user: { userId: 'u1', username: 'kimchi' }, accounts: [] }
+    mockSignupCompleted = true
+
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+
+    expect(readSignupDraft()).toBeNull()
+})
+
+it('preserves a bound draft while session hydration is pending for its matching user', async () => {
+    saveSignupDraft({ screenId: 'payment-plan', answers: savedAnswers })
+    await recordSignupRegistration('u1', 'kimchi')
+    mockAuth.isFetchingUser = true
+    mockStore.steps = [landing, { ...landing, screenId: 'payment-plan' }]
+
+    const view = renderWithIntl(<SetupPage />)
+    await advance(100)
+    expect(readSignupDraft()?.userId).toBe('u1')
+    expect(mockAnswerSetters.setUsername).not.toHaveBeenCalledWith('kimchi')
+
+    mockAuth.isFetchingUser = false
+    mockAuth.user = { user: { userId: 'u1', username: 'kimchi' }, accounts: [] }
+    view.rerender(<SetupPage />)
+    await advance(100)
+    expect(readSignupDraft()?.userId).toBe('u1')
 })

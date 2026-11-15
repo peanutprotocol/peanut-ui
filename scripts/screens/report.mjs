@@ -2,6 +2,7 @@ import { bundle } from './bundle.mjs'
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, copyFileSync } from 'node:fs'
 import { resolve, join } from 'node:path'
 import { compare, validateCapture, verifyAsset } from './core.mjs'
+import { readBeforeHarness } from './before-harness-receipt.mjs'
 const [beforeDir, afterDir, destination] = process.argv.slice(2)
 if (!beforeDir || !afterDir || !destination) throw new Error('Usage: report.mjs BEFORE AFTER OUTPUT')
 const out = resolve(destination),
@@ -17,7 +18,7 @@ for (const [i, dir] of [beforeDir, afterDir].entries())
                 verifyAsset(join(dir, 'assets'), name, captures[i])
                 copyFileSync(join(dir, 'assets', name), join(assets, name))
             }
-const report = compare(captures[0], captures[1], assets)
+const report = compare(captures[0], captures[1], assets, readBeforeHarness(beforeDir, captures[0].commit))
 writeFileSync(join(out, 'manifest.json'), JSON.stringify(report, null, 2))
 console.log(`${report.screens.length} states; complete=${report.complete}`)
 

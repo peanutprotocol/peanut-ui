@@ -80,10 +80,10 @@ function ExchangeWidgetInner({
 // label + bordered amount row — the shape ExchangeRateWidget renders twice
 const amountFieldSkeleton = (
     <div className="w-full">
-        <div className="h-5 w-24 animate-pulse rounded bg-foreground-primary/10" />
+        <div className="h-5 w-24 animate-pulse rounded bg-background-skeleton" />
         <div className="mt-2 flex w-full items-center gap-4 rounded-sm border border-border-default p-4">
-            <div className="h-5 w-40 animate-pulse rounded-full bg-foreground-primary/10" />
-            <div className="ml-auto h-5 w-20 animate-pulse rounded-full bg-foreground-primary/10" />
+            <div className="h-5 w-40 animate-pulse rounded-full bg-background-skeleton" />
+            <div className="ml-auto h-5 w-20 animate-pulse rounded-full bg-background-skeleton" />
         </div>
     </div>
 )
@@ -108,11 +108,11 @@ export function ExchangeWidget(props: ExchangeWidgetProps) {
                             className="mx-auto mt-12 h-fit w-full items-center justify-center gap-4 p-6 md:w-[420px]"
                         >
                             {amountFieldSkeleton}
-                            <div className="size-8 animate-pulse rounded-full bg-foreground-primary/10" />
+                            <div className="size-8 animate-pulse rounded-full bg-background-skeleton" />
                             {amountFieldSkeleton}
-                            <div className="h-5 w-32 animate-pulse rounded-full bg-foreground-primary/10" />
+                            <div className="h-5 w-32 animate-pulse rounded-full bg-background-skeleton" />
                             <div className="min-h-17 w-full rounded-sm border border-border-default" />
-                            <div className="h-11 w-full animate-pulse rounded-full bg-foreground-primary/10" />
+                            <div className="h-11 w-full animate-pulse rounded-full bg-background-skeleton" />
                             <div className="min-h-4 w-full" />
                         </Card>
                     </div>

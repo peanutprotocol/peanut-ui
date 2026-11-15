@@ -168,8 +168,9 @@ export const nativeOneSignalAdapter: OneSignalAdapter = {
 
     async requestPermission() {
         // fallbackToSettings: true routes an already-denied user to the OS settings prompt
-        await OneSignal.Notifications.requestPermission(true)
-        return nativePermission()
+        const granted = await OneSignal.Notifications.requestPermission(true)
+        // the dialog's own answer: a grant the SDK has not settled yet must not read as unanswered
+        return granted ? 'granted' : nativePermission()
     },
 
     getPermission() {

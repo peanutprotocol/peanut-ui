@@ -7,15 +7,22 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import NavHeader from '@/components/Global/NavHeader'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Checkbox } from '@/components/0_Bruddle/Checkbox'
+import CardFundingConsent from '@/components/Card/CardFundingConsent'
+import { RTF_AUTHORIZATION_TEXT } from '@/constants/rain.consts'
 import { toMarketingLocale } from '@/i18n/localeBridge'
 import type { Locale as MarketingLocale } from '@/i18n/types'
+import type { RainFundingConsent } from '@/utils/rain-funding.utils'
 import { PROVIDERS } from '@/constants/providers.consts'
 import { ProviderRow } from '@/components/Provider/ProviderRow'
 import Card from '@/components/Global/Card'
 
 interface Props {
     isUsResident: boolean
-    onAccept: () => void | Promise<void>
+    /** The account is on (or offered) managed card funding: the funding authorization is part of the agreement. */
+    managedFunding: boolean
+    /** Called after all card agreements are accepted: with the funding authorization on the
+     *  managed path, with null on the existing card path, which has none. */
+    onAccept: (consent: RainFundingConsent | null) => void | Promise<void>
     onPrev?: () => void
     submitError?: string | null
 }
@@ -48,12 +55,15 @@ const ExternalLink: FC<{ href: string; children: ReactNode }> = ({ href, childre
     </a>
 )
 
-const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitError }) => {
+const CardTermsScreen: FC<Props> = ({ isUsResident, managedFunding, onAccept, onPrev, submitError }) => {
     const t = useTranslations('card.terms')
     const tCard = useTranslations('card')
     const tCommon = useTranslations('common')
     const locale = useLocale()
     const [checked, setChecked] = useState<Record<string, boolean>>({})
+    // The funding authorization follows the card terms. Every box starts
+    // unticked and every one is required.
+    const [authorizationAccepted, setAuthorizationAccepted] = useState(false)
     const [submitting, setSubmitting] = useState(false)
 
     const links = useMemo(() => linksFor(toMarketingLocale(locale)), [locale])
@@ -99,13 +109,16 @@ const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitErro
         })
     }, [isUsResident, terms.length])
 
-    const allAccepted = useMemo(() => terms.every((t) => checked[t.id]), [terms, checked])
+    const allAccepted = useMemo(
+        () => terms.every((t) => checked[t.id]) && (!managedFunding || authorizationAccepted),
+        [terms, checked, authorizationAccepted, managedFunding]
+    )
 
     const handleContinue = async () => {
         if (!allAccepted) return
         setSubmitting(true)
         try {
-            await onAccept()
+            await onAccept(managedFunding ? { authorizationAccepted, authorizationText: RTF_AUTHORIZATION_TEXT } : null)
         } finally {
             setSubmitting(false)
         }
@@ -140,6 +153,15 @@ const CardTermsScreen: FC<Props> = ({ isUsResident, onAccept, onPrev, submitErro
                     </li>
                 ))}
             </ul>
+
+            {managedFunding && (
+                <CardFundingConsent
+                    authorizationText={RTF_AUTHORIZATION_TEXT}
+                    authorizationAccepted={authorizationAccepted}
+                    onAuthorizationChange={setAuthorizationAccepted}
+                    disabled={submitting}
+                />
+            )}
 
             {submitError && <p className="text-body-s text-foreground-error">{submitError}</p>}
 

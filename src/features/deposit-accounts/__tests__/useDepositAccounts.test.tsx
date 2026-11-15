@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
+import { USER } from '@/constants/query.consts'
 import {
     ENDORSEMENT_POLL_MS,
     MAX_PROVISIONING_POLLS,
@@ -8,7 +9,8 @@ import {
     useDepositAccounts,
 } from '../useDepositAccounts'
 import { CLAIMABLE_USD_PREVIEW } from '../__fixtures__/railPolicy'
-import type { ClaimableCorridor, DepositAccount } from '../types'
+import type { ClaimableCorridor, DepositAccount, DepositCorridor, UnavailableCorridor } from '../types'
+import { withFeatureReport } from '@/test-utils/featureReport.fixture'
 import type { RailCapability } from '@/types/capabilities'
 import type { GateScope, GateState } from '@/utils/capability-gate'
 
@@ -29,17 +31,43 @@ jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn()
 let gatesByRailId: Record<string, GateState> = {}
 // the rails the capability block names — what the corridor rows are built from
 let userRails: RailCapability[] = []
+let mockProductRefusals: Record<string, string> = {}
+let mockCapabilitiesLoading = false
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({
+        capabilities: withFeatureReport(
+            { rails: userRails, nextActions: [] },
+            {
+                identity: { status: 'verified' },
+                productRefusals: mockProductRefusals,
+            }
+        ),
         gateFor: (_op: string, scope?: GateScope) =>
             (scope?.railId && gatesByRailId[scope.railId]) || ({ kind: 'needs-enrollment' } as GateState),
         rails: userRails,
-        isLoading: false,
+        isLoading: mockCapabilitiesLoading,
     }),
 }))
 
-const bankRail = (id: string, method: string): RailCapability =>
-    ({ id, method, channel: 'bank', status: 'enabled' }) as RailCapability
+const bankRail = (id: RailCapability['id'], method: DepositCorridor): RailCapability => ({
+    id,
+    method,
+    provider: id.startsWith('manteca.') ? 'manteca' : 'bridge',
+    channel: 'bank',
+    status: 'enabled',
+    country:
+        (
+            { SEPA_EU: 'EU', ACH_US: 'US', SPEI_MX: 'MX', BANK_TRANSFER_AR: 'AR', PIX_BR: 'BR' } as Partial<
+                Record<DepositCorridor, string>
+            >
+        )[method] ?? 'GLOBAL',
+    currency:
+        (
+            { SEPA_EU: 'EUR', ACH_US: 'USD', SPEI_MX: 'MXN', BANK_TRANSFER_AR: 'ARS', PIX_BR: 'BRL' } as Partial<
+                Record<DepositCorridor, string>
+            >
+        )[method] ?? 'USD',
+})
 
 const account = (over: Partial<DepositAccount> = {}): DepositAccount => ({
     id: 'a',
@@ -70,9 +98,126 @@ beforeEach(() => {
     mockUserId = 'user-a'
     gatesByRailId = {}
     userRails = [bankRail('bridge.sepa_eu', 'SEPA_EU'), bankRail('bridge.ach_us', 'ACH_US')]
+    mockProductRefusals = {}
+    mockCapabilitiesLoading = false
 })
 
 describe('useDepositAccounts', () => {
+    it('does not request accounts until explicitly enabled', async () => {
+        resolveAccounts([])
+        const { result, rerender } = renderHook(({ enabled }) => useDepositAccounts({ enabled }), {
+            wrapper,
+            initialProps: { enabled: false },
+        })
+        expect(fetchDepositAccounts).not.toHaveBeenCalled()
+
+        rerender({ enabled: true })
+        await waitFor(() => expect(result.current.isLoading).toBe(false))
+        expect(fetchDepositAccounts).toHaveBeenCalledTimes(1)
+
+        rerender({ enabled: false })
+        expect(fetchDepositAccounts).toHaveBeenCalledTimes(1)
+    })
+
+    /**
+     * Bridge refused USD to 79 of 85 Bangladesh residents. The engine
+     * sends that refusal in the feature report before verification, so the
+     * USD corridor is never offered: not as a claim, not as "verify to open".
+     */
+    describe('with the feature report', () => {
+        const identityRequired = (railId: string, method: string, currency: string) => ({
+            railId,
+            method,
+            country: 'US',
+            currency,
+            reason: 'identity-required',
+        })
+        const bangladesh = { 'bridge.usd': 'account_unavailable_in_residence' }
+
+        beforeEach(() => {
+            userRails = userRails.map((rail) => ({ ...rail, status: 'requires-info' }))
+            fetchDepositAccounts.mockResolvedValue({
+                accounts: [],
+                claimable: [{ ...CLAIMABLE_USD_PREVIEW, railId: 'bridge.ach_us', method: 'ACH_US' }],
+                unavailable: [identityRequired('bridge.sepa_eu', 'SEPA_EU', 'EUR')],
+            })
+        })
+
+        it('never offers a Bangladesh resident a USD account', async () => {
+            mockProductRefusals = bangladesh
+
+            const { result } = renderHook(() => useDepositAccounts(), { wrapper })
+
+            await waitFor(() => expect(result.current.isLoading).toBe(false))
+            expect(result.current.claimable.ACH_US).toBeUndefined()
+            expect(result.current.unavailable.ACH_US).toMatchObject({
+                reason: 'not-offered',
+                cause: 'residence-restricted',
+            })
+            expect(result.current.corridors).toContain('ACH_US')
+            expect(result.current.unavailable.SEPA_EU?.reason).toBe('identity-required')
+        })
+
+        it("keeps the backend's identity-rejected answer under a refusal with no action", async () => {
+            mockProductRefusals = bangladesh
+            fetchDepositAccounts.mockResolvedValue({
+                accounts: [],
+                claimable: [{ ...CLAIMABLE_USD_PREVIEW, railId: 'bridge.ach_us', method: 'ACH_US' }],
+                unavailable: [
+                    {
+                        ...identityRequired('bridge.ach_us', 'ACH_US', 'USD'),
+                        reason: 'support-required',
+                        cause: 'identity-rejected',
+                    },
+                ],
+            })
+
+            const { result } = renderHook(() => useDepositAccounts(), { wrapper })
+
+            await waitFor(() => expect(result.current.isLoading).toBe(false))
+            expect(result.current.claimable.ACH_US).toBeUndefined()
+            expect(result.current.unavailable.ACH_US).toMatchObject({
+                reason: 'support-required',
+                cause: 'identity-rejected',
+            })
+        })
+
+        it("keeps an older API's support-required answer, which has no cause", async () => {
+            mockProductRefusals = bangladesh
+            fetchDepositAccounts.mockResolvedValue({
+                accounts: [],
+                claimable: [],
+                unavailable: [{ ...identityRequired('bridge.ach_us', 'ACH_US', 'USD'), reason: 'support-required' }],
+            })
+
+            const { result } = renderHook(() => useDepositAccounts(), { wrapper })
+
+            await waitFor(() => expect(result.current.isLoading).toBe(false))
+            expect(result.current.unavailable.ACH_US?.reason).toBe('support-required')
+            expect(result.current.unavailable.ACH_US?.cause).toBeUndefined()
+        })
+
+        it('waits for capabilities before listing the reported corridor answers', async () => {
+            mockCapabilitiesLoading = true
+            mockProductRefusals = bangladesh
+            const { result, rerender } = renderHook(() => useDepositAccounts(), { wrapper })
+
+            await waitFor(() => expect(fetchDepositAccounts).toHaveBeenCalled())
+            expect(result.current.isLoading).toBe(true)
+            mockCapabilitiesLoading = false
+            rerender()
+            await waitFor(() => expect(result.current.isLoading).toBe(false))
+            expect(result.current.claimable.ACH_US).toBeUndefined()
+        })
+
+        it('keeps the backend answers when the report has no refusal', async () => {
+            const { result } = renderHook(() => useDepositAccounts(), { wrapper })
+
+            await waitFor(() => expect(result.current.isLoading).toBe(false))
+            expect(result.current.claimable.ACH_US).toBeDefined()
+        })
+    })
+
     /**
      * The corridor rows used to come from a local table, so every user read an
      * unavailable ARS row. They come from the user's own rails now.
@@ -537,6 +682,51 @@ describe('deposit-account cache isolation', () => {
         await waitFor(() => expect(onVerificationRequired).toHaveBeenCalledWith('BANK_TRANSFER_CO'))
         expect(result.current.claimError).toBeUndefined()
     })
+
+    it('passes the explicit SEPA identity restart through even when capabilities are stale', async () => {
+        resolveAccounts([])
+        gatesByRailId = { 'bridge.sepa_eu': { kind: 'ready' } }
+        const nextAction = {
+            key: 'restart-identity',
+            kind: 'restart-identity',
+            purpose: 'identity_document_insufficient',
+        }
+        claimDepositAccount.mockResolvedValue({ outcome: 'verification_required', nextAction })
+        const onVerificationRequired = jest.fn()
+
+        const { result } = renderHook(() => useDepositAccounts({ onVerificationRequired }), { wrapper })
+        await waitFor(() => expect(result.current.isLoading).toBe(false))
+        act(() => result.current.claim('SEPA_EU'))
+
+        await waitFor(() => expect(onVerificationRequired).toHaveBeenCalledWith('SEPA_EU', nextAction))
+        expect(result.current.claimError).toBeUndefined()
+    })
+
+    it('does not forward a late SEPA restart after the signed-in user changes', async () => {
+        resolveAccounts([])
+        let resolveClaim!: (value: unknown) => void
+        claimDepositAccount.mockImplementation(() => new Promise((resolve) => (resolveClaim = resolve)))
+        const onVerificationRequired = jest.fn()
+        const { result, rerender } = renderHook(() => useDepositAccounts({ onVerificationRequired }), { wrapper })
+        await waitFor(() => expect(result.current.isLoading).toBe(false))
+        act(() => result.current.claim('SEPA_EU'))
+        await waitFor(() => expect(claimDepositAccount).toHaveBeenCalledTimes(1))
+
+        mockUserId = 'user-b'
+        rerender()
+        await act(async () => {
+            resolveClaim({
+                outcome: 'verification_required',
+                nextAction: {
+                    key: 'restart-identity',
+                    kind: 'restart-identity',
+                    purpose: 'identity_document_insufficient',
+                },
+            })
+        })
+        await waitFor(() => expect(result.current.claimingCorridor).toBeUndefined())
+        expect(onVerificationRequired).not.toHaveBeenCalled()
+    })
 })
 
 /*
@@ -557,6 +747,80 @@ describe('useDepositAccounts while the user own review is under way', () => {
         cause: 'review-pending',
     }
 
+    it('holds a stale SEPA claim, keeps Bridge terms actionable, and releases only when SEPA is offered', async () => {
+        gatesByRailId = { 'bridge.ach_us': { kind: 'ready' }, 'bridge.sepa_eu': { kind: 'ready' } }
+        const sepa = { ...underReview, railId: 'bridge.sepa_eu', method: 'SEPA_EU', country: 'EU', currency: 'EUR' }
+        const read = { accounts: [], claimable: [CLAIMABLE_USD_PREVIEW], unavailable: [sepa] }
+        fetchDepositAccounts.mockResolvedValue(read)
+
+        const { result, rerender } = renderHook(() => useDepositAccounts(), { wrapper })
+        await waitFor(() => expect(result.current.unavailable.SEPA_EU?.cause).toBe('review-pending'))
+        expect(result.current.gates.SEPA_EU.kind).toBe('pending')
+        expect(result.current.gates.ACH_US.kind).toBe('ready')
+
+        gatesByRailId['bridge.sepa_eu'] = { kind: 'accept-tos', userMessage: null }
+        rerender()
+        expect(result.current.gates.SEPA_EU.kind).toBe('accept-tos')
+
+        gatesByRailId['bridge.sepa_eu'] = { kind: 'ready' }
+        fetchDepositAccounts.mockResolvedValue({
+            accounts: [],
+            claimable: [
+                ...read.claimable,
+                { ...CLAIMABLE_USD_PREVIEW, railId: sepa.railId, method: sepa.method, country: 'EU', currency: 'EUR' },
+            ],
+            unavailable: [],
+        })
+        await act(async () => {
+            jest.advanceTimersByTime(ENDORSEMENT_POLL_MS)
+        })
+        await waitFor(() => expect(result.current.claimable.SEPA_EU).toBeDefined())
+        expect(result.current.gates.SEPA_EU.kind).toBe('ready')
+        expect(claimDepositAccount).not.toHaveBeenCalled()
+    })
+
+    it('routes a closed SEPA review to support even if the cached capability is ready', async () => {
+        gatesByRailId = { 'bridge.sepa_eu': { kind: 'ready' } }
+        fetchDepositAccounts.mockResolvedValue({
+            accounts: [],
+            claimable: [],
+            unavailable: [
+                {
+                    ...underReview,
+                    railId: 'bridge.sepa_eu',
+                    method: 'SEPA_EU',
+                    country: 'EU',
+                    currency: 'EUR',
+                    reason: 'support-required',
+                    cause: 'review-closed',
+                },
+            ],
+        })
+
+        const { result } = renderHook(() => useDepositAccounts(), { wrapper })
+        await waitFor(() => expect(result.current.gates.SEPA_EU.kind).toBe('blocked-rejection'))
+        expect(claimDepositAccount).not.toHaveBeenCalled()
+    })
+
+    it('refreshes stale capabilities when a SEPA review needs action, without a claim tap', async () => {
+        gatesByRailId = { 'bridge.sepa_eu': { kind: 'ready' } }
+        fetchDepositAccounts.mockResolvedValue({
+            accounts: [],
+            claimable: [],
+            unavailable: [{ ...underReview, railId: 'bridge.sepa_eu', method: 'SEPA_EU', cause: 'review-action' }],
+        })
+        const client = new QueryClient()
+        const invalidate = jest.spyOn(client, 'invalidateQueries')
+        const { rerender } = renderHook(() => useDepositAccounts(), {
+            wrapper: ({ children }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>,
+        })
+
+        await waitFor(() => expect(invalidate).toHaveBeenCalledWith({ queryKey: [USER] }))
+        rerender()
+        expect(invalidate).toHaveBeenCalledTimes(1)
+        expect(claimDepositAccount).not.toHaveBeenCalled()
+    })
+
     it('re-reads the accounts until the review answers', async () => {
         fetchDepositAccounts.mockResolvedValue({ accounts: [], claimable: [], unavailable: [underReview] })
 
@@ -572,6 +836,59 @@ describe('useDepositAccounts while the user own review is under way', () => {
         expect(result.current.unavailable.ACH_US).toBeUndefined()
 
         // nothing is under way any more, so the read stops
+        const calls = fetchDepositAccounts.mock.calls.length
+        await act(async () => {
+            jest.advanceTimersByTime(ENDORSEMENT_POLL_MS * 3)
+        })
+        expect(fetchDepositAccounts).toHaveBeenCalledTimes(calls)
+    })
+})
+
+/** TASK-24662: the home address with Sumsub resolves by itself, like a review. */
+describe('an account that waits for the home address to be checked', () => {
+    beforeEach(() => {
+        jest.useFakeTimers()
+    })
+    afterEach(() => {
+        jest.useRealTimers()
+    })
+
+    const inReview: UnavailableCorridor = {
+        railId: 'bridge.ach_us',
+        method: 'ACH_US',
+        country: 'US',
+        currency: 'USD',
+        reason: 'not-offered',
+        cause: 'address-in-review',
+    }
+
+    it('re-reads the accounts until the address is approved, then stops', async () => {
+        fetchDepositAccounts.mockResolvedValue({ accounts: [], claimable: [], unavailable: [inReview] })
+
+        const { result } = renderHook(() => useDepositAccounts(), { wrapper })
+        await waitFor(() => expect(result.current.unavailable.ACH_US?.cause).toBe('address-in-review'))
+
+        fetchDepositAccounts.mockResolvedValue({ accounts: [], claimable: [CLAIMABLE_USD_PREVIEW], unavailable: [] })
+        await act(async () => {
+            jest.advanceTimersByTime(ENDORSEMENT_POLL_MS)
+        })
+        await waitFor(() => expect(result.current.claimable.ACH_US).toBeDefined())
+
+        const calls = fetchDepositAccounts.mock.calls.length
+        await act(async () => {
+            jest.advanceTimersByTime(ENDORSEMENT_POLL_MS * 3)
+        })
+        expect(fetchDepositAccounts).toHaveBeenCalledTimes(calls)
+    })
+
+    it('does not poll a step the user has not answered', async () => {
+        fetchDepositAccounts.mockResolvedValue({
+            accounts: [],
+            claimable: [],
+            unavailable: [{ ...inReview, cause: 'address-required' }],
+        })
+        const { result } = renderHook(() => useDepositAccounts(), { wrapper })
+        await waitFor(() => expect(result.current.unavailable.ACH_US?.cause).toBe('address-required'))
         const calls = fetchDepositAccounts.mock.calls.length
         await act(async () => {
             jest.advanceTimersByTime(ENDORSEMENT_POLL_MS * 3)

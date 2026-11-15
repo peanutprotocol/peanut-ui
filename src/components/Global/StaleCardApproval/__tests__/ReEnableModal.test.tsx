@@ -107,6 +107,20 @@ describe('StaleCardApprovalReEnableModal', () => {
         expect(screen.getByText('Re-enable card')).toBeInTheDocument()
     })
 
+    it('a rejected approval signature gets its own message and keeps the retry CTA', async () => {
+        mockGrant.mockResolvedValue({ ok: false, error: { kind: 'signature-rejected' } })
+        render(<StaleCardApprovalReEnableModal />)
+        fireStaleEvent()
+
+        await act(async () => {
+            fireEvent.click(screen.getByText('Re-enable card'))
+        })
+
+        expect(screen.getByText(/passkey signature for this card could not be verified/i)).toBeInTheDocument()
+        expect(screen.queryByText(/couldn't re-enable your card/i)).not.toBeInTheDocument()
+        expect(screen.getByText('Re-enable card')).toBeInTheDocument()
+    })
+
     it('can be dismissed with "Not now"', () => {
         render(<StaleCardApprovalReEnableModal />)
         fireStaleEvent()

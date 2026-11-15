@@ -25,6 +25,12 @@ jest.mock('@sentry/nextjs', () => ({
 }))
 jest.mock('../defer-analytics', () => ({ whenIdle: jest.fn() }))
 jest.mock('../web-vitals-shim', () => ({ startWebVitalsShim: jest.fn() }))
+jest.mock('../posthog-deferred-addons', () => ({
+    afterLoadIdle: jest.fn(),
+    DEFERRED_ADDONS_INIT: {},
+    releaseDeferredAddons: jest.fn(),
+    rememberRemoteConfig: jest.fn(),
+}))
 jest.mock('@/utils/signup-attribution', () => ({
     captureSignupAttribution: jest.fn(),
     signupAttributionPosthogProperties: jest.fn(() => ({})),

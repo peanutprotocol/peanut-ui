@@ -29,6 +29,7 @@ import {
     FONT_KNERD_RE,
     countOffFocusColorClasses,
     countOffFocusColorCss,
+    isProductionSource,
 } from './ds-lint-rules.cjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -82,7 +83,7 @@ const INLINE_STYLE_ALLOW = [
     'dev/loading-words/', // dev tooling
     'app/layout.tsx', // colorScheme on <html> — must be a style prop
     '0_Bruddle/BaseSelect.tsx', // width from radix var(--radix-select-trigger-width)
-    'qr-pay/views/QrPaySuccessView.tsx', // hold button: -webkit-touch-callout + clip-path progress fill — no utility
+    'payments/shared/components/HoldToClaimButton.tsx', // hold button: -webkit-touch-callout + clip-path progress fill — no utility
     'Global/ValidatedInput/', // -webkit tap-highlight/text-fill — no utility
 ]
 
@@ -114,7 +115,7 @@ function* walk(dir) {
 
 const files = []
 for (const p of walk(SRC)) {
-    if (!/\.(tsx|ts)$/.test(p) || p.endsWith('.test.tsx') || p.endsWith('.test.ts')) continue
+    if (!isProductionSource(p)) continue
     files.push({ path: relative(SRC, p), text: readFileSync(p, 'utf8') })
 }
 

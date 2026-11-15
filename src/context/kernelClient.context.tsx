@@ -11,7 +11,7 @@ import {
 import { useAuth } from '@/context/authContext'
 import { createKernelMigrationAccount } from '@zerodev/sdk/accounts'
 import { zeroDevFlowActions } from '@/hooks/useZeroDevFlow'
-import { getFromCookie, updateUserPreferences, getUserPreferences } from '@/utils/general.utils'
+import { getFromCookie, updateUserPreferences, getUserPreferences, isIntentionalLogout } from '@/utils/general.utils'
 import { PasskeyValidatorContractVersion, toPasskeyValidator, toWebAuthnKey } from '@zerodev/passkey-validator'
 import { signerToEcdsaValidator } from '@zerodev/ecdsa-validator'
 import {
@@ -34,6 +34,7 @@ import { onReconnect } from '@/utils/reconnect.utils'
 import { isStaleClientForUser, isStaleKeyError, createStaleSessionError } from '@/utils/walletCredential.utils'
 import { isAndroidNative, getNativeRpId } from '@/utils/capacitor'
 import { createNativeSignMessageCallback } from '@/utils/native-webauthn'
+import { withPasskeySignatureCheck } from '@/utils/passkey-signature-check'
 import { PUBLIC_CLIENTS_BY_CHAIN } from '@/app/actions/clients'
 import { sponsorUserOperationArgs } from '@/hooks/wallet/paymasterSponsorship'
 
@@ -74,11 +75,17 @@ export const createPasskeyValidator = async (
     webAuthnKey: WebAuthnKey,
     validatorContractVersion: PasskeyValidatorContractVersion = PasskeyValidatorContractVersion.V0_0_3_PATCHED
 ) => {
-    return await toPasskeyValidator(publicClient, {
+    const validator = await toPasskeyValidator(publicClient, {
         webAuthnKey,
         entryPoint: USER_OP_ENTRY_POINT,
         kernelVersion: ZERODEV_KERNEL_VERSION,
         validatorContractVersion,
+    })
+    // Every validator the app builds is made here, so every passkey signature passes this check.
+    return withPasskeySignatureCheck(validator, {
+        publicKey: { x: webAuthnKey.pubX, y: webAuthnKey.pubY },
+        chainId: publicClient.chain?.id,
+        entryPoint: USER_OP_ENTRY_POINT,
     })
 }
 
@@ -315,6 +322,9 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
     const [webAuthnKey, setWebAuthnKey] = useState<WebAuthnKey | undefined>(undefined)
     const [initAttempt, setInitAttempt] = useState(0)
     const { fetchUser, logoutUser, user } = useAuth()
+    // Every forced re-auth below is about this device's stored passkey key, not
+    // the session, so it must not revoke the account's sessions on other devices.
+    const signOutThisDevice = useCallback(() => logoutUser({ skipBackendCall: true }), [logoutUser])
     // In-flight kernel-client builds keyed by chainId. Lets concurrent
     // ensureClientForChain() callers dedupe to a single build, and lets the
     // primary-init effect register itself so a recover-funds page mount that
@@ -429,7 +439,9 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             // The setup flow + mobile-ui layout own routing for genuinely stale
             // sessions; the kernel client must not interfere during setup.
             const inSetupFlow = typeof window !== 'undefined' && window.location.pathname.startsWith('/setup')
-            if (!inSetupFlow) {
+            // A logout already in progress clears the key itself, then refetches the
+            // profile before the token is gone (account deletion does this every time).
+            if (!inSetupFlow && !isIntentionalLogout()) {
                 // This hard-bounces the user to /setup. It's correct for genuinely
                 // stale sessions but has masqueraded as an onboarding bug when an
                 // upstream flow lands here with a half-valid session. Record it so
@@ -441,10 +453,10 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                         pathname: typeof window !== 'undefined' ? window.location.pathname : undefined,
                     },
                 })
-                logoutUser()
+                signOutThisDevice()
             }
         }
-    }, [user?.user.userId, logoutUser, clearClients])
+    }, [user?.user.userId, signOutThisDevice, clearClients])
 
     // Harness-only: when __harness_ecdsa_pk is set in localStorage, bypass the
     // passkey-webAuthnKey path and use an ECDSA validator instead. This is how
@@ -567,7 +579,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                     expectedAddress,
                 })
                 purgeStoredCredential()
-                logoutUser()
+                signOutThisDevice()
                 return
             }
 
@@ -601,7 +613,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                 // there lets the next restore pair the account with the same
                 // dead key and log the user straight back out.
                 purgeStoredCredential()
-                logoutUser()
+                signOutThisDevice()
                 return
             }
             // A transient RPC/bundler outage must not cost the user their session
@@ -657,12 +669,12 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                     expectedAddress,
                 })
                 purgeStoredCredential()
-                logoutUser()
+                signOutThisDevice()
                 throw createStaleSessionError()
             }
             return client
         },
-        [user, logoutUser, purgeStoredCredential]
+        [user, signOutThisDevice, purgeStoredCredential]
     )
 
     const getPatchedSudoValidator = useCallback(
@@ -744,7 +756,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
                     console.error(`Error lazy-building kernel client for chain ${chainId}:`, error)
                     if (isStaleKeyError(error)) {
                         purgeStoredCredential()
-                        logoutUser()
+                        signOutThisDevice()
                     } else {
                         captureException(error)
                     }
@@ -767,7 +779,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
             isAfterZeroDevMigration,
             user,
             assertClientOwnedByUser,
-            logoutUser,
+            signOutThisDevice,
             purgeStoredCredential,
             storeClient,
         ]

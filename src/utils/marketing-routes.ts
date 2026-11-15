@@ -1,6 +1,17 @@
+import { STAR_LP_ROUTES } from '@/constants/star-lp-routes.consts'
 import { SUPPORTED_LOCALES } from '@/i18n/types'
 
 const LOCALE_PREFIXES = new Set(SUPPORTED_LOCALES.map((locale) => locale.toLowerCase()))
+
+/** Unprefixed marketing pages at the app root: the star LPs (which include
+ *  /request-links) and /lp, the English landing alias. Matched as whole paths.
+ *  /peanut-card is left out on purpose: its CTA sends signed-in visitors
+ *  straight to /card, which needs the AuthProvider that only the app tree
+ *  mounts. Without it every visitor there would get the guest store hand-off. */
+const ROOT_MARKETING_PATHS: ReadonlySet<string> = new Set([
+    '/lp',
+    ...Object.values(STAR_LP_ROUTES).filter((route) => route !== STAR_LP_ROUTES.peanutCard),
+])
 
 /**
  * True for the marketing site — the landing page and the localized marketing
@@ -18,6 +29,11 @@ const LOCALE_PREFIXES = new Set(SUPPORTED_LOCALES.map((locale) => locale.toLower
  * withdraw flow under `(mobile-ui)`, so the app route would lose the providers
  * it needs. Anything unrecognised therefore falls through to the app tree,
  * which costs bytes but never breaks a page.
+ *
+ * The few marketing pages that sit at the app root without a locale (the star
+ * LPs and /lp) are listed by their exact path, trailing slash allowed, never by
+ * prefix: `/qr-payments/brazil` is marketing, `/qr-payments/anything-else` is
+ * not.
  */
 export function isMarketingRoute(pathname: string | null | undefined): boolean {
     // Native exports replace the landing page with an app redirect. A cold
@@ -25,6 +41,7 @@ export function isMarketingRoute(pathname: string | null | undefined): boolean {
     // choosing providers from that URL must not replace the prerendered tree.
     if (process.env.NEXT_PUBLIC_CAPACITOR_BUILD === 'true') return false
     if (!pathname) return false
+    if (ROOT_MARKETING_PATHS.has(pathname.replace(/\/$/, ''))) return true
 
     const segments = pathname.split('/').filter(Boolean)
     if (segments.length === 0) return true // '/' — the landing page

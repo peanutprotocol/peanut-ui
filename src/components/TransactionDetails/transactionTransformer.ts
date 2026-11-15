@@ -6,15 +6,9 @@ import {
     type TransactionType as TransactionCardType,
 } from '@/components/TransactionDetails/transaction-types'
 import { EHistoryUserRole, type HistoryEntry } from '@/hooks/useTransactionHistory'
-import {
-    getExplorerUrl,
-    getTransactionExplorerUrl,
-    getInitialsFromName,
-    getTokenDetails,
-    getChainName,
-    getTokenLogo,
-    getChainLogo,
-} from '@/utils/general.utils'
+import type { Person } from '@/lib/person/person.types'
+import { getInitialsFromName, getChainName, getTokenLogo, getChainLogo } from '@/utils/general.utils'
+import { getExplorerUrl, getTransactionExplorerUrl, getTokenDetails } from '@/utils/token.utils'
 import type { Address } from 'viem'
 import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { type HistoryEntryPerkReward, type ChargeEntry } from '@/services/services.types'
@@ -24,6 +18,7 @@ import { parseWireAmount, senderNoteText } from './transaction-details.utils'
 import { networkFeeDetailsForEntry } from './network-fee.utils'
 import { pipelineAlert } from '@/utils/pipelineAlerts'
 import { formatBankAmount } from '@/utils/currency'
+import { pixCodePayable } from '@/features/pix/pixDepositCode'
 
 /** Sender account types that are not a payer's bank account. */
 const NON_BANK_SENDER_TYPES: ReadonlySet<string> = new Set(['peanut-wallet', 'evm-address', 'address'])
@@ -44,24 +39,12 @@ function isDisputeStatus(value: unknown): value is DisputeStatus {
     return typeof value === 'string' && DISPUTE_STATUSES.has(value)
 }
 
-// Mirror of peanut-api-ts `enum TransactionProvider`. Receipts that branch
-// on provider (e.g. Manteca-specific deposit-info row) use this typed
-// value via `extraDataForDrawer.provider` for positive identity rather
-// than inferring from the absence of other fields.
-//
-// Stays a string union (not an enum) so it stays interchangeable with the
-// wire string at runtime and so adding a value here forces TS-side updates
-// at every gate that switches on it. Deprecated values are kept so old
-// rows that still carry them on the wire don't blow up the type system.
-export type Provider =
-    | 'PEANUT'
-    | 'BRIDGE'
-    | 'MANTECA'
-    | 'RHINO'
-    | 'RAIN'
-    | 'ONCHAIN'
-    | 'DEPRECATED_SIMPLEFI'
-    | 'DEPRECATED_SQUID'
+// peanut-api-ts `enum TransactionProvider`, as a history row names it (BRIDGE, MANTECA, AVENIA,
+// RAIN, ...). The history schema types `extraData.provider` as a plain string, so the app reads a
+// string too: a new provider needs no change here, and its legal record comes from the registry
+// (`providerIdFor` in provider.utils). Receipts that branch on a provider compare this value for
+// positive identity rather than infer it from the absence of other fields.
+export type Provider = string
 
 /**
  * @fileoverview maps raw transaction history data from the api/hook to the format needed by ui components.
@@ -380,10 +363,10 @@ export interface TransactionDetails {
     isPeerActuallyUser?: boolean
     fullName: string
     showFullName?: boolean
-    /** The counterparty's picked profile avatar (TASK-22625). Null whenever the
+    /** The counterparty as a Peanut user (TASK-23756). Null whenever the
      *  counterparty is not a Peanut user, so a render site can pass it straight
      *  through without re-checking `isPeerActuallyUser`. */
-    avatarKey?: string | null
+    peer?: Person | null
     amount: number | bigint
     /** Raw destination-token amount string from the BE (e.g. "0.000416666"
      *  for a $1 ETH withdraw). Preserves full decimals for receipt rendering;
@@ -442,6 +425,13 @@ export interface TransactionDetails {
          *  entries — separates the four Bridge paths that share an intent kind
          *  (ONRAMP, OFFRAMP, BANK_SEND_LINK_CLAIM, GUEST_DIRECT_SEND). */
         bridgeFlow?: 'ONRAMP' | 'OFFRAMP' | 'BANK_SEND_LINK_CLAIM' | 'GUEST_DIRECT_SEND'
+        /** The API serves this entry's receipt page and PDF to anyone with
+         *  the link (wire `extraData.publicReceipt`). Read it through
+         *  `hasPublicReceipt`: it is the one gate for the receipt link, its
+         *  share and the anonymous PDF. */
+        publicReceipt?: boolean
+        /** A Pix deposit whose code can still be paid: the receipt opens it again. */
+        pixCodePayable?: boolean
         link?: string
         isLinkTransaction?: boolean
         transactionCardType?: TransactionCardType
@@ -530,7 +520,7 @@ export interface TransactionDetails {
             rainTransactionId: string | null
             isRefund: boolean
             /** Populated when Rain has fired any dispute.* webhook for this
-             *  spend. Status drives the drawer's "Disputed — <label>" badge;
+             *  spend. Status drives the drawer's "Disputed: <label>" badge;
              *  evidenceRequestedMessage prompts the user to upload docs. */
             dispute: {
                 status: DisputeStatus
@@ -696,7 +686,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     // / rejected / canceled) restore the underlying status: the chargeback
     // for accepted disputes arrives as a separate credit transaction; the
     // others left the original spend standing. Status discrimination beyond
-    // the pill lives on the "Disputed — <label>" sub-row.
+    // the pill lives on the "Disputed: <label>" sub-row.
     const disputeStatus = (entry.extraData?.dispute as { status?: string } | null | undefined)?.status
     if (disputeStatus === 'pending' || disputeStatus === 'inReview') {
         uiStatus = 'pending'
@@ -768,7 +758,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
         showFullName,
         // Read after the reaper / failed-QR overrides above, so a row whose
         // counterparty was rewritten to system copy cannot keep their sticker.
-        avatarKey: isPeerActuallyUser ? (out.avatarKey ?? null) : null,
+        peer: isPeerActuallyUser ? (out.peer ?? null) : null,
         currency: rewardData ? undefined : entry.currency,
         currencySymbol: `${displayUserRole === EHistoryUserRole.SENDER ? '-' : '+'}$`,
         tokenSymbol: rewardData?.getSymbol(amount) ?? entry.tokenSymbol,
@@ -827,6 +817,8 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             kind: intentKindOf(entry),
             provider: entry.extraData?.provider as Provider | undefined,
             bridgeFlow: entry.extraData?.bridgeFlow,
+            publicReceipt: entry.extraData?.publicReceipt || undefined,
+            pixCodePayable: pixCodePayable(entry.extraData, Date.now()) || undefined,
             link: entry.extraData?.link,
             isLinkTransaction: isLinkTx,
             transactionCardType,

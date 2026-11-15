@@ -3,29 +3,29 @@
     "rawHexFiles": 3,
     "inlineStyle": 22,
     "stockTextSize": 0,
-    "dsTextScale": 1403,
+    "dsTextScale": 1582,
     "legacyTextScale": 0,
     "nonDsClassesInViews": 6,
-    "useSearchParamsFiles": 35,
-    "nuqsFiles": 47,
+    "useSearchParamsFiles": 34,
+    "nuqsFiles": 48,
     "legacyColorClasses": 0,
     "offRampPalette": 0,
     "deadLegacyTokens": 0,
     "consumedUndefinedTokens": 0,
     "classNameSitesInPages": 117,
     "fontWeightOnTypeToken": 26,
-    "offScaleSpacing": 82,
+    "offScaleSpacing": 65,
     "iconOffScale": 44,
     "offScaleRadius": 16,
     "rawDuration": 1,
     "retypedCardLiteral": 13,
-    "hoverNoActiveFiles": 17,
-    "arbitraryFontSize": 15,
+    "hoverNoActiveFiles": 13,
+    "arbitraryFontSize": 10,
     "rawErrorText": 13,
     "handRolledCloseGlyphFiles": 7,
     "bareListLeading": 17,
     "rawHexMarketing": 0,
-    "arbitraryFontSizeMarketing": 13,
+    "arbitraryFontSizeMarketing": 8,
     "knerdOutsideTitle": 3,
     "offFocusColor": 0,
     "_meta": [
@@ -67,7 +67,7 @@
         {
             "date": "2026-09-07",
             "metrics": ["fontWeightOnTypeToken 46 -> 45"],
-            "reason": "PR #3004 semantic contract: conditional branches are alternatives in all contexts. The only per-file count change is dev/_components/DevSegmented.tsx: font-bold in the small branch never co-applies with text-label-m in the other branch. CVA support is explicitly deferred with a diagnostic; there are no src consumers and its removal changes no counts. See scripts/ds-lint-contract.md."
+            "reason": "PR #3004 semantic contract: conditional branches are alternatives in all contexts. The only per-file count change is dev/_components/DevSegmented.tsx: font-bold in the small branch never co-applies with text-label-m in the other branch. CVA support is explicitly deferred with a diagnostic; there are no src consumers and its removal changes no counts. See https://github.com/peanutprotocol/mono/blob/main/engineering/ui/ds-lint-contract.md."
         },
         {
             "date": "2026-09-15",
@@ -147,6 +147,11 @@
             "date": "2026-10-19",
             "metrics": ["offScaleSpacing 81 -> 82"],
             "reason": "/dev/ds/marketing Landing shows the real band padding py-16 md:py-24 in its copyable snippet (design.md § marketing → layout: 64 mobile / 96 desktop); one documented sample, not a new call site"
+        },
+        {
+            "date": "2026-10-27",
+            "metrics": ["offScaleSpacing 65 -> 67"],
+            "reason": "home round 2 restores the production zero-transfer-fees fold (noFees.tsx from dev). offScaleSpacing 65 -> 67: its lettering's pt-[0.23em] and gap-[0.19em] set the scribble circle and the glove hands in em so they track the lettering size, geometry tied to the type, not box rhythm. Both counted on dev before this branch removed the fold."
         }
     ]
 }

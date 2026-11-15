@@ -5,6 +5,7 @@ import { type StatusType } from '@/components/Global/Badges/Badge'
 import AvatarWithBadge, { type AvatarSize } from '@/components/Profile/AvatarWithBadge'
 import { UserAvatar } from '@/components/Avatar/UserAvatar'
 import { type TransactionType } from '@/components/TransactionDetails/transaction-types'
+import type { Person } from '@/lib/person/person.types'
 import { AVATAR_TEXT_DARK, AVATAR_WALLET_BG, getColorForUsername } from '@/utils/color.utils'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import React from 'react'
@@ -26,6 +27,11 @@ export const LINK_STATE_BUBBLES: Partial<Record<StatusType, { icon: IconName; co
 }
 
 interface TransactionAvatarBadgeProps {
+    /**
+     * The person slot's size. A bubble, flag or wallet in the slot takes the
+     * same size (the AvatarSize names are IconBubble sizes of the same px), so
+     * rows and headers stay aligned.
+     */
     size?: AvatarSize
     initials?: string
     userName?: string
@@ -37,19 +43,14 @@ interface TransactionAvatarBadgeProps {
      */
     countryCode?: string | null
     /**
-     * The counterparty's picked profile avatar (TASK-22625). Only read on the
-     * person branch — a bank, link, wallet or card row keeps its icon whatever
-     * this holds.
+     * The counterparty as a Peanut user (TASK-23756). Only read on the person
+     * branch — a bank, link, wallet or card row keeps its icon whatever this
+     * holds. Its letter sticker follows the handle, so a peer without a pick
+     * looks the same here as on their profile, even though `userName` above
+     * honours their showFullName choice (it also has to stay the display
+     * name — it is the address discriminator).
      */
-    avatarKey?: string | null
-    /**
-     * The counterparty's handle, when the row has one. The letter sticker
-     * follows it so a peer without a pick looks the same here as on their
-     * profile, even though `userName` above honours their showFullName choice
-     * (it also has to stay the display name — it is the address discriminator).
-     * Falls back to `userName`.
-     */
-    avatarName?: string
+    person?: Person | null
     /**
      * The authoritative "there is a person behind this row" flag, when the
      * caller has one. `undefined` keeps this component's own heuristic (a named
@@ -73,11 +74,10 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
     initials,
     userName,
     isLinkTransaction = false,
-    size = 'l',
+    size = 's',
     transactionType,
     countryCode,
-    avatarKey,
-    avatarName,
+    person,
     isPeer,
     status,
 }) => {
@@ -90,8 +90,6 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
     // determine if the userName represents a user (not address or specific strings)
     const isValidUser = userName ? !isAddress(userName) : false
 
-    const bubbleSize = ({ xs: 'xs', s: 's', m: 'm', l: 'm', xl: 'l' } as const)[size]
-
     // Claim links and request links are the link rows: every one of them shows
     // the link's own state. A request always qualifies — with a link it is a
     // request link, without one it is the counterparty-less request row.
@@ -100,7 +98,7 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
         ((transactionType === 'send' || transactionType === 'receive') && isLinkTransaction)
     const stateBubble = isLinkRow && status ? LINK_STATE_BUBBLES[status] : undefined
     if (stateBubble) {
-        return <IconBubble icon={stateBubble.icon} size={bubbleSize} color={stateBubble.color} />
+        return <IconBubble icon={stateBubble.icon} size={size} color={stateBubble.color} />
     }
 
     // An unfulfilled request has no counterparty — its display name is the
@@ -110,12 +108,12 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
     // This is now the fallback for a row whose status has no ruled bubble; a
     // statused row took the state branch above.
     if (transactionType === 'request' && !isLinkTransaction) {
-        return <IconBubble icon="arrow-down-left" size={bubbleSize} color="green" />
+        return <IconBubble icon="arrow-down-left" size={size} color="green" />
     }
 
     // a row that shows a product concept rather than a person or a flag takes
     // that concept's bubble, the same one the Send, Add and Withdraw lists use
-    const conceptBubble = (concept: Concept) => <IconBubble {...CONCEPT_ICONS[concept]} size={bubbleSize} />
+    const conceptBubble = (concept: Concept) => <IconBubble {...CONCEPT_ICONS[concept]} size={size} />
 
     // determine Icon, background, and colors based on type
     switch (transactionType) {
@@ -156,19 +154,20 @@ const TransactionAvatarBadge: React.FC<TransactionAvatarBadgeProps> = ({
             } else if (!isValidUser) {
                 // an address, not a person: a crypto send or receive
                 return conceptBubble('crypto')
-            } else if (displayInitials && isPeer === false) {
-                // Named, but nobody is behind it — the transformer rewrote the
-                // name to system copy. Keep the initials circle: a sticker here
-                // would draw a face for a failure message.
+            } else if (displayInitials && (isPeer === false || !person)) {
+                // Named, but no person to show — the transformer rewrote the
+                // name to system copy, or the row resolved no Peanut user. Keep
+                // the initials circle: a sticker here would draw a face for a
+                // failure message.
                 const colors = getColorForUsername(userName)
                 calculatedBgColor = colors.lightShade
                 textColor = colors.darkShade
-            } else if (displayInitials) {
+            } else if (displayInitials && person) {
                 // The one branch with a person behind it, so it shows who they
-                // are: their picked avatar, or the letter sticker drawn from
-                // the name this row already displays (TASK-22625). `decorative`
-                // because that name is on screen right next to it.
-                return <UserAvatar name={avatarName || userName} avatarKey={avatarKey} size={size} decorative />
+                // are: their picked avatar, or their handle's letter sticker
+                // (TASK-22625). `decorative` because their name is on screen
+                // right next to it.
+                return <UserAvatar person={person} size={size} decorative />
             }
             // no name and not a link: an external wallet, the crypto concept
             if (!displayInitials) return conceptBubble('crypto')

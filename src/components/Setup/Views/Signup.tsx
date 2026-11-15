@@ -1,10 +1,8 @@
 import { Button } from '@/components/0_Bruddle/Button'
-import { Callout } from '@/components/0_Bruddle/Callout'
 import SetupFooter from '../components/SetupFooter'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import { SetupDocLink } from '@/components/Setup/components/SetupDocsDrawer'
-import { PasskeySetupHelpDrawer } from './PasskeySetupHelpDrawer'
 import { USERNAME_MIN_LENGTH } from '@/constants/general.consts'
 import { isCapacitor } from '@/utils/capacitor'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
@@ -13,13 +11,15 @@ import { USER } from '@/constants/query.consts'
 import { DEMO_USER } from '@/constants/demo-data'
 import { enableDemoMode, isDemoUsername } from '@/utils/demo'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
-import { useSignupPasskey } from '@/features/setup/useSignupPasskey'
+import { useSignupControl } from '@/features/setup/useSignupControl'
 import { apiFetch } from '@/utils/api-fetch'
 import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { reserveUsername } from '@/features/setup/username-reservation'
+import { isReservedSignupUsername } from '@/features/setup/reserved-username'
 import { useTranslations } from 'next-intl'
 
 // Valid username-shaped ideas, so the joke can double as inspiration.
@@ -36,26 +36,38 @@ const USERNAME_IDEAS = [
     'peanutpirate?',
 ] as const
 
-/** Claim username: validates the handle, then "Claim" creates the passkey and the account. */
+/** Claim a username before creating the account on the passkey screen. */
 const SignupStep = () => {
     const t = useTranslations('setup')
     const {
         username,
         setUsername,
+        refusedUsername,
+        setRefusedUsername,
         setResidenceCountry,
-        setSecondResidenceCountry,
+        setNationalityCountry,
         setSignupCompleted,
         setNoBackLockScreenId,
     } = useSetupFlowContext()
     const queryClient = useQueryClient()
     const [error, setError] = useState('')
-    const { isLoading, setScreenId } = useSetupFlow()
-    const passkey = useSignupPasskey(username)
+    const { isLoading, setScreenId, handleNext } = useSetupFlow()
+    const claiming = useRef(false)
+    const currentUsername = useRef(username)
+    currentUsername.current = username
+    useEffect(() => {
+        currentUsername.current = username
+        return () => {
+            currentUsername.current = ''
+        }
+    }, [username])
+    const [isReserving, setIsReserving] = useState(false)
     const [isValid, setIsValid] = useState(false)
     const [isChanging, setIsChanging] = useState(false)
     const prefersReducedMotion = useReducedMotion()
     const [suggestionIndex, setSuggestionIndex] = useState(-1)
     const [placeholderStopped, setPlaceholderStopped] = useState(false)
+    const { track, trackOnce, trackError } = useSignupControl()
 
     useEffect(() => {
         if (username || placeholderStopped || prefersReducedMotion) return
@@ -75,23 +87,51 @@ const SignupStep = () => {
         }
     }, [username, placeholderStopped, prefersReducedMotion])
 
-    const busy = passkey.isClaiming || isLoading
+    const busy = isReserving || isLoading
+    const refuseUsername = () => {
+        setError(t('signupStep.errors.reserved'))
+        setIsValid(false)
+        trackError('username', 'refused')
+        return false
+    }
 
     const onClaim = async () => {
-        if (!isValid || isChanging || busy) return
-        if (isDemoUsername(username)) {
-            enableDemoMode()
-            // Retire any pre-demo user request before seeding the synthetic session.
-            await queryClient.cancelQueries({ queryKey: [USER] })
-            queryClient.setQueryData([USER], DEMO_USER)
-            setResidenceCountry('BR')
-            setSecondResidenceCountry('')
-            setNoBackLockScreenId('advantage-control')
-            setSignupCompleted(true)
-            setScreenId('advantage-control')
-            return
+        if (!isValid || isChanging || busy || claiming.current) return
+        claiming.current = true
+        setIsReserving(true)
+        const claimedUsername = username
+        try {
+            track('claim', 'tap')
+            if (isReservedSignupUsername(claimedUsername) || refusedUsername === claimedUsername) {
+                refuseUsername()
+                return
+            }
+            if (isDemoUsername(username)) {
+                // Retire any pre-demo user request before seeding the synthetic session.
+                await queryClient.cancelQueries({ queryKey: [USER] })
+                if (currentUsername.current !== claimedUsername) return
+                enableDemoMode()
+                queryClient.setQueryData([USER], DEMO_USER)
+                setResidenceCountry('BR')
+                setNationalityCountry('')
+                setNoBackLockScreenId('advantage-control')
+                setSignupCompleted(true)
+                setScreenId('advantage-control')
+                return
+            }
+            const result = await reserveUsername(claimedUsername)
+            if (currentUsername.current !== claimedUsername) return
+            if (result === 'taken' || result === 'refused' || result === 'invalid') {
+                setError(t(`signupStep.errors.${result === 'refused' ? 'reserved' : result}`))
+                setIsValid(false)
+                trackError('username', result)
+                return
+            }
+            await handleNext()
+        } finally {
+            claiming.current = false
+            setIsReserving(false)
         }
-        await passkey.claim()
     }
 
     const checkUsernameValidity = async (username: string): Promise<boolean> => {
@@ -104,25 +144,31 @@ const SignupStep = () => {
         // handle empty input
         if (!username) {
             setError(t('signupStep.errors.required'))
+            trackError('username', 'required')
             return false
         }
+
+        if (isReservedSignupUsername(username) || refusedUsername === username) return refuseUsername()
 
         // check length requirement
         if (username.length < USERNAME_MIN_LENGTH) {
             setError(t('signupStep.errors.tooShort'))
-            posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_INVALID, { error_type: 'too_short', username })
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_INVALID, { error_type: 'too_short' })
+            trackError('username', 'too_short')
             return false
         }
         if (username.length > 12) {
             setError(t('signupStep.errors.tooLong'))
-            posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_INVALID, { error_type: 'too_long', username })
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_INVALID, { error_type: 'too_long' })
+            trackError('username', 'too_long')
             return false
         }
 
         // check character requirement
         if (!username.match(/^[a-z][a-z0-9]{3,11}$/)) {
             setError(t('signupStep.errors.invalidFormat'))
-            posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_INVALID, { error_type: 'format', username })
+            posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_INVALID, { error_type: 'format' })
+            trackError('username', 'format')
             return false
         }
 
@@ -140,26 +186,28 @@ const SignupStep = () => {
                     posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_VALIDATED, {
                         is_valid: false,
                         error_type: 'taken',
-                        username,
                     })
+                    trackError('username', 'taken')
                     return false
                 case 400:
                     setError(t('signupStep.errors.invalid'))
                     posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_VALIDATED, {
                         is_valid: false,
                         error_type: 'invalid',
-                        username,
                     })
+                    trackError('username', 'invalid')
                     return false
                 case 404:
                     // handle is available
                     setError('')
-                    posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_VALIDATED, { is_valid: true, username })
+                    posthog.capture(ANALYTICS_EVENTS.SIGNUP_USERNAME_VALIDATED, { is_valid: true })
+                    trackError('username', null)
                     return true
                 default:
                     // we dont expect any other status code
                     console.error('Unexpected status code when checking handle availability:', res.status)
                     setError(t('signupStep.errors.checkFailed'))
+                    trackError('username', 'unexpected_status')
                     Sentry.captureMessage('Unexpected status code when checking handle availability', {
                         level: 'error',
                         extra: {
@@ -172,6 +220,7 @@ const SignupStep = () => {
             }
         } catch {
             setError(t('signupStep.errors.checkFailedSupport'))
+            trackError('username', 'network')
             return false
         }
     }
@@ -187,17 +236,18 @@ const SignupStep = () => {
     }) => {
         setPlaceholderStopped(true)
         setSuggestionIndex(-1)
+        if (isChanging) trackOnce('username', 'change')
         setUsername(value.toLowerCase())
         setIsValid(isValid)
         setIsChanging(isChanging)
 
         // Clear error when input is being changed
         if (isChanging) {
+            trackError('username', null)
             setError('')
+            setRefusedUsername(null)
         }
     }
-
-    const passkeyMessage = passkey.inlineError ?? passkey.preflightWarning
 
     return (
         <>
@@ -206,6 +256,7 @@ const SignupStep = () => {
                     <div className="flex flex-col gap-1">
                         <div
                             className="relative"
+                            data-username-field
                             onFocusCapture={() => {
                                 setPlaceholderStopped(true)
                                 setSuggestionIndex(-1)
@@ -225,6 +276,7 @@ const SignupStep = () => {
                                 isInputChanging={isChanging}
                                 prefix="@"
                                 className="rounded-sm"
+                                onClear={() => track('username_clear', 'tap')}
                             />
                             <AnimatePresence>
                                 {suggestionIndex >= 0 && !username && !placeholderStopped && (
@@ -253,21 +305,6 @@ const SignupStep = () => {
                             )}
                         </div>
                     </div>
-                    {passkey.usernameTaken && (
-                        <div className="flex flex-col gap-3">
-                            <Callout priority="error">{t('passkey.usernameTaken')}</Callout>
-                            <Button
-                                loading={passkey.isLoggingIn}
-                                disabled={passkey.isLoggingIn}
-                                variant="secondary"
-                                onClick={passkey.logIn}
-                                shadowSize="4"
-                            >
-                                {t('logIn')}
-                            </Button>
-                        </div>
-                    )}
-                    {passkeyMessage && <Callout priority="error">{passkeyMessage}</Callout>}
                 </div>
                 <SetupFooter
                     actions={
@@ -304,15 +341,6 @@ const SignupStep = () => {
                     }
                 />
             </div>
-            {passkey.helpErrorName && (
-                <PasskeySetupHelpDrawer
-                    visible={passkey.isHelpOpen}
-                    onClose={passkey.closeHelp}
-                    onRetry={passkey.retryFromHelp}
-                    errorName={passkey.helpErrorName}
-                    platform={passkey.deviceType}
-                />
-            )}
         </>
     )
 }

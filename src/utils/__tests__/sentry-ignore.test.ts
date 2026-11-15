@@ -60,3 +60,19 @@ describe('shouldIgnoreError — existing patterns intact', () => {
         expect(shouldIgnoreError(event)).toBe(true)
     })
 })
+
+describe('mutation response timeout reporting', () => {
+    it('drops the already-reported typed wrapper', () => {
+        expect(
+            shouldIgnoreError(
+                eventWithException('MutationResponseTimeoutError', 'response body timed out; outcome unknown')
+            )
+        ).toBe(true)
+    })
+    it('keeps the transport unknown-outcome report even with a connectivity cause', () => {
+        const event = eventWithException('Error', 'Failed to fetch')
+        event.fingerprint = ['mutation-response-timeout']
+        event.tags = { 'http.method': 'POST', response_received: 'true' }
+        expect(shouldIgnoreError(event)).toBe(false)
+    })
+})

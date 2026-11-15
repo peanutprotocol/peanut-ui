@@ -12,13 +12,19 @@ jest.mock('posthog-js', () => ({
 jest.mock('next-intl', () => ({ useTranslations: (ns: string) => (key: string) => `${ns}.${key}` }))
 const mockPush = jest.fn()
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))
-let mockScannerOpen = false
 const mockSetScannerOpen = jest.fn()
 jest.mock('@/context/ModalsContext', () => ({
-    useModalsContext: () => ({ isQRScannerOpen: mockScannerOpen, setIsQRScannerOpen: mockSetScannerOpen }),
+    useModalsContext: () => ({ setIsQRScannerOpen: mockSetScannerOpen }),
 }))
-let mockOtherOverlayOpen = false
-jest.mock('@/utils/overlay-visibility', () => ({ useOtherOpenOverlays: () => mockOtherOverlayOpen }))
+let mockArrival: Arrival | null = null
+const mockDismissArrival = jest.fn(() => {
+    mockArrival = null
+})
+jest.mock('../arrival-session', () => ({
+    currentArrival: () => mockArrival,
+    subscribeArrival: () => () => {},
+    dismissArrival: () => mockDismissArrival(),
+}))
 jest.mock('@/components/0_Bruddle/IconBubble', () => ({
     IconBubble: ({ icon }: { icon: string }) => <span data-testid="icon">{icon}</span>,
 }))
@@ -37,13 +43,21 @@ jest.mock('next/image', () => ({
 }))
 
 import ArrivalDrawer from '../components/ArrivalDrawer'
+import { run } from '@/features/attention/__tests__/legacy-manager.fixture'
+
+const surfaceProps = (onActed = jest.fn(), onDismissed = jest.fn()) => ({
+    askId: 'arrival' as const,
+    presentation: 'drawer' as const,
+    onActed,
+    onDismissed,
+    onSnoozed: jest.fn(),
+})
 
 const arrival = (prompt: Arrival['prompt'], country: string): Arrival => ({ userId: 'u1', country, prompt })
 
 beforeEach(() => {
     jest.clearAllMocks()
-    mockScannerOpen = false
-    mockOtherOverlayOpen = false
+    mockArrival = null
 })
 
 it.each([
@@ -52,7 +66,8 @@ it.each([
     ['card', 'ES', null],
 ] as const)('renders the %s variant and tracks it once with country and prompt', (prompt, country, flag) => {
     const shown = arrival(prompt, country)
-    const { container, rerender } = render(<ArrivalDrawer arrival={shown} blocked={false} onDismiss={jest.fn()} />)
+    mockArrival = shown
+    const { container, rerender } = render(<ArrivalDrawer {...surfaceProps()} />)
     expect(screen.getByRole('heading')).toHaveTextContent(`home.arrival.${prompt}.title`)
     expect(screen.getByText(`home.arrival.${prompt}.description`)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: `home.arrival.${prompt}.cta` })).toBeInTheDocument()
@@ -64,24 +79,26 @@ it.each([
         expect(screen.getByTestId('icon')).toHaveTextContent('credit-card')
         expect(container.querySelector('img')).toBeNull()
     }
-    rerender(<ArrivalDrawer arrival={shown} blocked={false} onDismiss={jest.fn()} />)
+    rerender(<ArrivalDrawer {...surfaceProps()} />)
     expect(mockCapture).toHaveBeenCalledTimes(1)
     expect(mockCapture).toHaveBeenCalledWith('arrival_prompt_shown', { country, prompt })
 })
 
 it('a QR prompt opens the scanner and closes itself', () => {
-    const onDismiss = jest.fn()
-    render(<ArrivalDrawer arrival={arrival('pix_br', 'BR')} blocked={false} onDismiss={onDismiss} />)
+    const onActed = jest.fn()
+    mockArrival = arrival('pix_br', 'BR')
+    render(<ArrivalDrawer {...surfaceProps(onActed)} />)
     fireEvent.click(screen.getByRole('button', { name: 'home.arrival.pix_br.cta' }))
     expect(mockSetScannerOpen).toHaveBeenCalledWith(true)
     expect(mockPush).not.toHaveBeenCalled()
     // the scanner opens first, so Home never sees a cleared prompt with the scanner shut
-    expect(mockSetScannerOpen.mock.invocationCallOrder[0]).toBeLessThan(onDismiss.mock.invocationCallOrder[0])
+    expect(mockSetScannerOpen.mock.invocationCallOrder[0]).toBeLessThan(onActed.mock.invocationCallOrder[0])
     expect(mockCapture).toHaveBeenCalledWith('arrival_prompt_cta_clicked', { country: 'BR', prompt: 'pix_br' })
 })
 
 it('the card prompt opens the card screen', () => {
-    render(<ArrivalDrawer arrival={arrival('card', 'ES')} blocked={false} onDismiss={jest.fn()} />)
+    mockArrival = arrival('card', 'ES')
+    render(<ArrivalDrawer {...surfaceProps()} />)
     fireEvent.click(screen.getByRole('button', { name: 'home.arrival.card.cta' }))
     expect(mockPush).toHaveBeenCalledWith('/card')
     expect(mockSetScannerOpen).not.toHaveBeenCalled()
@@ -89,19 +106,19 @@ it('the card prompt opens the card screen', () => {
 
 it('not now dismisses without a CTA event', () => {
     const onDismiss = jest.fn()
-    render(<ArrivalDrawer arrival={arrival('qr_ar', 'AR')} blocked={false} onDismiss={onDismiss} />)
+    mockArrival = arrival('qr_ar', 'AR')
+    render(<ArrivalDrawer {...surfaceProps(jest.fn(), onDismiss)} />)
     fireEvent.click(screen.getByText('home.arrival.notNow'))
     expect(onDismiss).toHaveBeenCalled()
     expect(mockCapture).not.toHaveBeenCalledWith('arrival_prompt_cta_clicked', expect.anything())
 })
 
 it.each([
-    ['a higher Home prompt is up', () => ({ blocked: true })],
-    ['another drawer or modal is open', () => ((mockOtherOverlayOpen = true), { blocked: false })],
-    ['the QR scanner is open', () => ((mockScannerOpen = true), { blocked: false })],
-])('shows nothing and tracks nothing while %s', (_, setup) => {
-    const { blocked } = setup()
-    render(<ArrivalDrawer arrival={arrival('qr_ar', 'AR')} blocked={blocked} onDismiss={jest.fn()} />)
-    expect(screen.queryByTestId('drawer')).not.toBeInTheDocument()
+    ['a higher Home prompt is up', { isNative: false, migration: { on: true }, arrival: 'raised' }, {}],
+    ['another drawer or modal is open', { arrival: 'raised' }, { busy: true }],
+    ['the QR scanner is open', { arrival: 'raised' }, { busy: true }],
+] as const)('the manager does not select arrival while %s', (_, facts, session) => {
+    const result = run(facts, session)
+    expect(result.interrupt).not.toBe('arrival')
     expect(mockCapture).not.toHaveBeenCalled()
 })

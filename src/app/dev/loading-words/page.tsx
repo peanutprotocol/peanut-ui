@@ -46,7 +46,10 @@ export default function LoadingWordsPreview() {
             </Section>
 
             <Section title='Production match — Loading variant="mascot"'>
-                <Card className="items-center justify-center gap-6 bg-action-secondary px-6 py-16" shadowSize="4">
+                <Card
+                    className="items-center justify-center gap-6 bg-background-accent-yellow px-6 py-16"
+                    shadowSize="4"
+                >
                     <div className="animate-spin">
                         <Image src={LOGO} alt="Peanut" className="h-10 w-10" />
                     </div>

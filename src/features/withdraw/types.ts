@@ -1,4 +1,4 @@
-import { type ITokenPriceData, type Account } from '@/interfaces/interfaces'
+import { type IToken, type Account } from '@/interfaces/interfaces'
 import type { ChainWithTokens } from '@/interfaces/chain-meta'
 
 export interface WithdrawMethod {
@@ -11,7 +11,7 @@ export interface WithdrawMethod {
 }
 
 export interface WithdrawData {
-    token: ITokenPriceData
+    token: IToken
     chain: ChainWithTokens
     address: string
     amount: string

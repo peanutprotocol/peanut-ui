@@ -1,15 +1,20 @@
 'use client'
 
-import EmptyState from '@/components/Global/EmptyStates/EmptyState'
+import { buildContactSupportMessage } from '@/utils/contact-support.utils'
+import { usePixPayBlock } from '@/features/pix/usePixPayBlock'
+
 import NavHeader from '@/components/Global/NavHeader'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import VirtualAccountsHub from './VirtualAccountsHub'
 import { AccountsHubList } from '@/features/deposit-accounts/components/AccountsHubList'
 import { ClosedRowDrawer } from '@/features/deposit-accounts/components/ClosedRowDrawer'
-import type { ClosedRow } from '@/features/deposit-accounts/hubRows'
+import { CorridorGateDrawer } from '@/features/deposit-accounts/components/CorridorGateDrawer'
+import { DEPOSIT_RAILS } from '@/features/deposit-accounts/rails'
+import { virtualAccountRows, type ClosedRow } from '@/features/deposit-accounts/hubRows'
+import { useDepositAccounts } from '@/features/deposit-accounts/useDepositAccounts'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 import { useBankRows } from '@/hooks/useBankRows'
-import Badge from '@/components/Global/Badges/Badge'
+import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import IconStack from '@/components/Global/IconStack'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
@@ -21,8 +26,9 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Section } from '@/components/0_Bruddle/Section'
-import UnlockMethodModal from '@/components/IdentityVerification/UnlockMethodModal'
-import ResidenceChangeDrawer from '@/components/Profile/views/ResidenceChangeDrawer'
+import { IdentityCheckIntroScreen } from '@/features/paperwork-verification/components/IdentityCheckIntroScreen'
+import { usePaperworkVerificationRedirect } from '@/features/paperwork-verification/usePaperworkVerificationRedirect'
+import { useBridgeProviderId } from '@/hooks/useBridgeProviderId'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import PendingVerificationTasks from '@/components/Home/PendingVerificationTasks'
 import { KycProcessingModal } from '@/components/Kyc/modals/KycProcessingModal'
@@ -35,14 +41,11 @@ import { getRegionIntent, providerForRegionIntent, type Region } from '@/utils/r
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { selectQrKycGate } from '@/features/payments/flows/qr-pay/qrKycGate.utils'
 import { IDENTITY_DOCUMENT_MISSING_CODE, QrKycState } from '@/constants/kyc.consts'
-import { useQueryClient } from '@tanstack/react-query'
-import { LIMITS } from '@/constants/query.consts'
-import { useCardInfo } from '@/hooks/useCardInfo'
-import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useLimits } from '@/hooks/useLimits'
-import { limitSummariesForRows, MethodLimits } from './MethodLimits'
+import { limitSummariesForRows, MethodLimits, type BrlRoom } from './MethodLimits'
+import { brlOperationsServedBy, mantecaBrlLimitApplies } from '@/features/limits/utils'
 import { rowStatusBadge, isRowTappable } from './RowStatusBadge'
-import { findActiveCard } from '@/components/Card/cardState.utils'
+import { entryChip, entryAction, UNKNOWN_REPORT } from '@/features/kyc-features/report'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useKycDegraded } from '@/hooks/useKycDegraded'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -52,22 +55,21 @@ import { isTerminalRailRejection } from '@/utils/capability-gate'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { type RailCapability } from '@/types/capabilities'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
-import { useAuth } from '@/context/authContext'
+import { RESIDENCE_CHANGE_HREF } from '@/features/paperwork-verification/paperworkVerification.utils'
 import {
     BANK_ROW_COUNTRIES,
+    bankAccountRow,
     buildUnlockGroups,
+    paymentMethodSections,
     PIX_SEND_HREF,
     withPixSend,
     type BankRowKey,
-    type UnlockGroup,
     type UnlockRow,
     type UnlockRowLabelKey,
 } from '@/utils/unlock-payments.utils'
-import { localizedCountryTitle } from '@/utils/country-name.utils'
-import { countryData } from '@/components/AddMoney/consts'
 import { useTranslations, useLocale } from 'next-intl'
 import { useSafeBack } from '@/hooks/useSafeBack'
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import { useRouter } from 'next/navigation'
 import { parseAsString, useQueryState } from 'nuqs'
@@ -91,34 +93,33 @@ function getModalVariant(rail: RailCapability | undefined, hasSumsubAction: bool
 }
 
 /**
- * The two profile pages behind the money settings, split 2026-09-25 (hugo):
- * Accounts lists the accounts and the other ways money moves in and out of
- * Peanut; Payments lists the ways to spend and the always-on Peanut rows.
- * Pix and ARS are both, so they show on both: the BRL and ARS bank rows on
- * Accounts (BRL also sends to any Pix key), QR payments on Payments.
+ * Payment methods: one list (Slava, 2026-10-27), active methods first, then
+ * what the user can still set up or waits on, then what their residence
+ * closes. Every bank currency is one "Bank account" row; its screen (`bank`)
+ * is where the currency is picked, and it keeps the accounts list and the
+ * other bank rows. The residence lives in Profile now.
  *
- * One screen with two lists, not two screens: the residence row at the top,
- * the verification notices and every modal and drawer a row opens are the
- * same on both pages.
+ * One component for both screens: the verification notices and every modal
+ * and drawer a row opens are the same on both.
  */
-const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
+const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
     const t = useTranslations('profile.unlockPayments')
     const tRegions = useTranslations('profile.regions')
     const tCommon = useTranslations('common')
     const tIdentity = useTranslations('identity')
     const tKyc = useTranslations('kyc')
     const locale = useLocale()
-    const onBack = useSafeBack('/profile', { replace: true })
+    const onBack = useSafeBack(view === 'bank' ? '/profile/payments' : '/settings', { replace: true })
     const router = useRouter()
-    const [openView, setOpenView] = useQueryState('open', parseAsString)
-    const [detailsRow, setDetailsRow] = useState<UnlockRow | null>(null)
-    const { user, fetchUser } = useAuth()
+    const [openView] = useQueryState('open', parseAsString)
+    const [selectedDetailsRow, setDetailsRow] = useState<UnlockRow | null>(null)
+    // the pay:PIX_BR route, not the app, says whether Pix payments and sends serve this residence
+    const pixResidenceBlocked = usePixPayBlock() === 'residence'
     const {
+        capabilities,
         rails,
         isKycApproved,
         nextActionsForRail,
-        canDo,
-        railsForProvider,
         nextActions,
         isLoading: isLoadingCapabilities,
     } = useCapabilities()
@@ -129,25 +130,19 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
         isTerminalFailure: isIdentityFinallyRejected,
     } = useIdentityVerification()
     const isKycDegraded = useKycDegraded()
-    const { cardInfo } = useCardInfo()
-    const queryClient = useQueryClient()
-    const { overview } = useRainCardOverview()
-    const { mantecaLimits, bridgeLimits } = useLimits()
-    const { setIsSupportModalOpen } = useModalsContext()
+    const { mantecaLimits, bridgeLimits, aveniaLimits } = useLimits()
+    const { openSupportWithMessage, setIsSupportModalOpen } = useModalsContext()
 
     const isSumsubApproved = isKycApproved
     const depositAccountsEnabled = useDepositAccountsEnabled()
+    const depositAccounts = useDepositAccounts({ enabled: depositAccountsEnabled })
+    const accountCorridors = virtualAccountRows(depositAccounts, depositAccountsEnabled, isIdentityFinallyRejected)
 
     // ── list model ──────────────────────────────────────────────────────────
 
-    const {
-        rows: bankRows,
-        input: { bankChips, restrictions },
-        residence,
-        residenceIso2,
-        secondResidenceIso2,
-    } = useBankRows()
-    const hasActiveCard = !!findActiveCard(overview)
+    const { rows: bankRows, accountChip, report: accountsReport } = useBankRows()
+    // Copy only: which sentence a closed row's notes use. Whether a row is closed is the report's.
+    const restrictions = useResidenceRestrictions()
     // Would a QR payment go through today? The gate /qr-pay itself enforces
     // and Home reads (`selectQrKycGate`), so the QR row, the Pix key send and
     // those screens give one answer (audit C53). It replaces a second path
@@ -156,69 +151,89 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
     // payment the scan then refused.
     const qrPay = selectQrKycGate({
         isLoading: isLoadingCapabilities,
-        isRegionRestricted,
-        isTerminalFailure: isIdentityFinallyRejected,
-        canPayManteca: canDo('pay', { provider: 'manteca' }),
-        mantecaRails: railsForProvider('manteca'),
+        features: capabilities.features,
         nextActions,
+        rails,
     }).kycGateState
     const canPayQrNow = qrPay === QrKycState.PROCEED_TO_PAY
 
+    const [arsSupportOpen, setArsSupportOpen] = useState(false)
+    const arsAccount = capabilities.features?.local.accounts?.ARS
+    const arsSupportEntry =
+        arsAccount?.state === 'action_required' && entryAction(arsAccount, nextActions)?.kind === 'contact-support'
+            ? arsAccount
+            : undefined
+    useEffect(() => {
+        if (!arsSupportEntry) setArsSupportOpen(false)
+    }, [arsSupportEntry])
+
+    const cardEntry = capabilities.features?.card ?? UNKNOWN_REPORT.card
+    const cardChip = entryChip(cardEntry, nextActions)
     const groups = useMemo(
         () =>
             buildUnlockGroups({
-                bankChips,
                 // QR is a `pay` capability, read as one: the pool-tier rails
                 // every verified user holds pay by QR even though they cannot
                 // deposit or withdraw.
                 qrPay,
-                restrictions,
-                // New applications are public; retain known residence restrictions.
-                card: hasActiveCard ? 'active' : restrictions.card || cardInfo?.geoProhibited ? 'notAvailable' : 'get',
+                pixResidenceBlocked,
+                card: cardChip,
             }),
-        [bankChips, qrPay, restrictions, hasActiveCard, cardInfo?.geoProhibited]
+        [qrPay, cardChip, pixResidenceBlocked]
     )
 
     // The two lists beside the bank rows, named by group id rather than by position.
     const peanutGroup = groups.find((group) => group.id === 'everywhere')
     const spendGroup = groups.find((group) => group.id === 'spend')
     const accountBankRows = useMemo(
-        () => withPixSend(bankRows, { qrPay, brlChip: bankChips.brl }),
-        [bankRows, qrPay, bankChips.brl]
+        () => withPixSend(bankRows, { qrPay, pixResidenceBlocked }),
+        [bankRows, qrPay, pixResidenceBlocked]
+    )
+    const detailsRow =
+        selectedDetailsRow?.labelKey === 'brl' || selectedDetailsRow?.labelKey === 'qrPay'
+            ? ([...accountBankRows, ...(spendGroup?.rows ?? [])].find((row) => row.id === selectedDetailsRow.id) ??
+              selectedDetailsRow)
+            : selectedDetailsRow
+    const methodSections = useMemo(
+        () =>
+            paymentMethodSections([
+                bankAccountRow(bankRows, accountChip, {
+                    features: accountsReport,
+                    heldCorridors: accountCorridors.held,
+                    openableCorridors: accountCorridors.open.filter((row) => row.openable).map((row) => row.corridor),
+                }),
+                ...(spendGroup?.rows ?? []),
+                ...(peanutGroup?.rows ?? []),
+            ]),
+        [bankRows, accountChip, accountsReport, accountCorridors.held, accountCorridors.open, spendGroup, peanutGroup]
     )
     // A Spend row the user cannot use explains why on tap, like the bank rows
     // (hugo, 2026-09-24: "always show the rails, tell the user why").
     const [closedSpendRow, setClosedSpendRow] = useState<ClosedRow | null>(null)
     const closeSpendRow = useCallback(
         (row: UnlockRow) =>
-            setClosedSpendRow({
-                kind: row.labelKey === 'card' && !restrictions.banking ? 'card-restricted' : 'restricted-country',
-            }),
-        [restrictions.banking]
+            setClosedSpendRow(
+                row.labelKey === 'card'
+                    ? { kind: 'card-restricted', reason: cardEntry.reason }
+                    : { kind: 'restricted-country' }
+            ),
+        [cardEntry.reason]
     )
 
     // ── modal machinery (carried over from the retired UnlockedRegions view) ──
     const [selectedRegion, setSelectedRegion] = useState<Region | null>(null)
-    const [selectedMethodLabel, setSelectedMethodLabel] = useState<string | null>(null)
     // The tapped row, so the modal reads the rails of THAT row's country. A
     // region intent covers two countries (Brazil and Argentina share LATAM),
     // and a provider-wide read let a Brazilian row narrate an Argentine rail —
     // the abandoned awaiting-action ghost, "setting up your account" forever
     // on a Pix row it had nothing to do with (189 users in prod, 2026-09-22).
     const [selectedRowKey, setSelectedRowKey] = useState<UnlockRowLabelKey | null>(null)
-    // Card recovery deep-links here when only a pending residence change is
-    // blocking issuance. Keep the deep link live rather than snapshotting it,
-    // and clear it when the drawer closes so refresh/native restore cannot
-    // reopen a completed recovery flow.
-    const [isChangeModalOpen, setIsChangeModalOpen] = useState(false)
-    const isResidenceChangeVisible = isChangeModalOpen || openView === 'residence'
-    const closeResidenceChange = useCallback(() => {
-        setIsChangeModalOpen(false)
-        void setOpenView(null, { history: 'replace' })
-    }, [setOpenView])
+    // The residence moved to Profile; links from older builds and emails still open it here.
+    useEffect(() => {
+        if (openView === 'residence') router.replace(RESIDENCE_CHANGE_HREF)
+    }, [openView, router])
     const [activeRegionIntent, setActiveRegionIntent] = useState<KYCRegionIntent | undefined>(undefined)
     const [errorAcknowledged, setErrorAcknowledged] = useState(false)
-    const [reverifyTarget, setReverifyTarget] = useState<string | null>(null)
 
     const clickedRegionIntent = selectedRegion ? getRegionIntent(selectedRegion.path) : undefined
     const clickedRegionProvider = providerForRegionIntent(clickedRegionIntent)
@@ -226,6 +241,16 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
     // of its own (the pool rails span both), so it keeps the provider-wide read.
     const clickedRowCountry =
         selectedRowKey && selectedRowKey in BANK_ROW_COUNTRIES ? BANK_ROW_COUNTRIES[selectedRowKey as BankRowKey] : null
+    // the account provider the unlock opens, named on the intro (TASK-23295)
+    const bridgeProviderId = useBridgeProviderId()
+    const clickedProviderId =
+        clickedRegionProvider === 'bridge'
+            ? bridgeProviderId
+            : clickedRegionProvider === 'manteca' && clickedRowCountry === 'AR'
+              ? 'manteca-ar'
+              : clickedRegionProvider === 'manteca' && clickedRowCountry === 'BR'
+                ? 'manteca-br'
+                : null
     const clickedRegionRails = useMemo(() => {
         if (!selectedRegion || !clickedRegionProvider) return []
         return rails.filter(
@@ -243,11 +268,28 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
     // A finally rejected identity cannot pass a new check, so an unlock tap
     // explains the decision instead of starting one (the region refusal has
     // its own screen below). The rows read Attention for it (`qrPayChip`).
-    const baseModalVariant = !selectedRegion
-        ? null
-        : isIdentityFinallyRejected
-          ? ('rejected' as const)
-          : getModalVariant(clickedRegionRail, clickedRailHasSumsubAction)
+    const scopedArs = selectedRowKey === 'ars' ? capabilities.features?.local.accounts?.ARS : undefined
+    const arsProvisioning = scopedArs?.state === 'pending' || scopedArs?.state === 'setting_up'
+    const wasArsProvisioning = useRef(false)
+    useEffect(() => {
+        if (selectedRowKey !== 'ars' || !selectedRegion) {
+            wasArsProvisioning.current = false
+            return
+        }
+        if (wasArsProvisioning.current && !arsProvisioning) {
+            setSelectedRegion(null)
+            setSelectedRowKey(null)
+        }
+        wasArsProvisioning.current = arsProvisioning
+    }, [selectedRowKey, selectedRegion, arsProvisioning])
+    const baseModalVariant =
+        !selectedRegion || (wasArsProvisioning.current && !arsProvisioning)
+            ? null
+            : arsProvisioning
+              ? ('processing' as const)
+              : isIdentityFinallyRejected
+                ? ('rejected' as const)
+                : getModalVariant(clickedRegionRail, clickedRailHasSumsubAction)
     // Only support can unblock a terminally rejected rail. This surface holds
     // none of the Sumsub reject fields the modal reads, so it always offered
     // "Try again" — a retry that cannot succeed, on the one screen of three
@@ -289,7 +331,23 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
         clickedRegionProvider !== null &&
         (isSumsubApproved || isDocumentRestart) &&
         providerRejectionForRegion.state !== 'happy'
-    const modalVariant = hasProviderRejectionForRegion ? ('provider_rejection' as const) : baseModalVariant
+    const modalVariant =
+        baseModalVariant && hasProviderRejectionForRegion && !arsProvisioning
+            ? ('provider_rejection' as const)
+            : baseModalVariant
+    // A Smart Paperwork Verification user goes straight to /verify (or the add-later screen), as from
+    // every other entry point: this intro would be a shorter copy of the one /verify opens with, and
+    // its Continue only lands there (the start answers paperwork_verification_required).
+    const redirectingToVerify = usePaperworkVerificationRedirect(
+        modalVariant === 'start' && !isRegionRestricted,
+        clickedRegionIntent
+            ? {
+                  intent: clickedRegionIntent,
+                  targetCountry:
+                      clickedRegionProvider === 'manteca' && clickedRowCountry ? clickedRowCountry : undefined,
+              }
+            : undefined
+    )
 
     const handleFinalKycSuccess = useCallback(() => {
         setSelectedRegion(null)
@@ -318,7 +376,6 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
     const handleStartKyc = useCallback(async () => {
         const intent = selectedRegion ? getRegionIntent(selectedRegion.path) : undefined
         if (intent) setActiveRegionIntent(intent)
-        setReverifyTarget(null)
         setErrorAcknowledged(false)
         setSelectedRegion(null)
         setSelectedRowKey(null)
@@ -334,6 +391,21 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
 
     const handleRowClick = useCallback(
         (row: UnlockRow) => {
+            if (row.labelKey === 'ars' && arsSupportEntry) {
+                setArsSupportOpen(true)
+                return
+            }
+            if (
+                row.labelKey === 'card' &&
+                row.chip === 'attention' &&
+                (cardEntry.reason === 'duplicate_account' ||
+                    cardEntry.reason === 'imported_identity_rejected' ||
+                    cardEntry.action === 'contact-support' ||
+                    entryAction(cardEntry, nextActions)?.kind === 'contact-support')
+            ) {
+                setIsSupportModalOpen(true)
+                return
+            }
             if (row.href) {
                 router.push(row.href)
                 return
@@ -345,38 +417,25 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
             if (!row.regionPath) return
             // During a verification outage the unlock modal renders its degraded
             // variant (choke point in InitiateKycModal covers the other gates);
-            // here the shared UnlockMethodModal is ours, so gate the tap itself.
+            // here the intro is ours, so gate the tap itself.
             if (isKycDegraded) return
-            setSelectedMethodLabel(t(`rows.${row.labelKey}`))
             setSelectedRowKey(row.labelKey)
             // Synthetic Region: the modal machinery only reads path (intent) and
             // name (display); icons are not shown in the modal itself.
             setSelectedRegion({ path: row.regionPath, name: t(`groups.${regionGroupKey(row.regionPath)}`), icon: '' })
         },
-        [router, t, isKycDegraded]
+        [router, t, isKycDegraded, cardEntry, arsSupportEntry, nextActions, setIsSupportModalOpen]
     )
 
     // What both forms of the shared list take from this screen.
     const hubProps = {
         bankRows: accountBankRows,
         onBankRowClick: handleRowClick,
-        onChangeResidence: () => setIsChangeModalOpen(true),
+        onChangeResidence: () => router.push(RESIDENCE_CHANGE_HREF),
         isKycDegraded,
     }
 
-    // A residence re-verification never sets a region intent, so without the
-    // flag its failure would read as "Not available yet" instead of retriable.
-    const failedRegionRetriable = reverifyTarget !== null || providerForRegionIntent(activeRegionIntent) !== null
-
-    const countryDisplayName = (iso2: string | null): string | null =>
-        iso2
-            ? localizedCountryTitle(locale, {
-                  iso2,
-                  title: countryData.find((c) => c.iso2?.toUpperCase() === iso2)?.title ?? iso2,
-              })
-            : null
-    const residenceCountryName = countryDisplayName(residenceIso2)
-    const pendingCountryName = countryDisplayName(residence?.pending ?? null)
+    const failedRegionRetriable = providerForRegionIntent(activeRegionIntent) !== null
 
     // In-review line: submittedAt drives both the date and the 7-day
     // escalation. reviewedAt/updatedAt deliberately not used — the user cares
@@ -399,51 +458,54 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
     // the list's drawer.
     const showBankRestrictionNote = restrictions.banking
 
-    const residenceTrailing = !residenceIso2 ? undefined : residence?.verified ? (
-        <Badge status="completed" customText={t('residence.verified')} />
-    ) : (
-        <Badge status="neutral" customText={t('residence.unverified')} />
-    )
-
     // Detail-drawer facts. Limits live HERE and nowhere else on this screen
     // (2026-09-21, hugo): three standing cards — the Bridge per-transfer caps,
     // the BRL/ARS monthly bars and the P2P no-limit line — sat above the fold
     // and repeated what a tap already says. Same derivation, same formatting,
     // one tap down. The Limits block is hidden when a method publishes none.
-    const detailSummaries = detailsRow ? limitSummariesForRows([detailsRow], mantecaLimits, bridgeLimits, locale) : []
+    // BRL's limits are, per operation, the provider's that operation's Pix route names: Avenia's room for
+    // what Avenia serves, Manteca's BRL limit while Manteca still serves any of it
+    const aveniaBrlOperations = brlOperationsServedBy(capabilities.routes, 'avenia')
+    const brlRoom: BrlRoom | null =
+        aveniaBrlOperations.length > 0
+            ? {
+                  room: aveniaLimits,
+                  operations: aveniaBrlOperations,
+                  mantecaToo: mantecaBrlLimitApplies(capabilities.routes),
+              }
+            : null
+    const detailSummaries = detailsRow
+        ? limitSummariesForRows([detailsRow], mantecaLimits, bridgeLimits, locale, brlRoom)
+        : []
     const detailNoLimit = detailsRow?.labelKey === 'p2p' || detailsRow?.labelKey === 'crypto'
     const showDetailLimits = detailNoLimit || detailSummaries.length > 0
     // A BRL row that opens this drawer is a bank rail, not the Pix send
     // `withPixSend` makes of it outside Brazil (that row navigates instead).
-    // Its holder may still send to a Pix key, on the same capability.
-    const showPixSend = detailsRow?.labelKey === 'brl' && canPayQrNow
+    const showPixSend = detailsRow?.labelKey === 'brl' && canPayQrNow && !pixResidenceBlocked
+    const detailDescription = detailsRow
+        ? t(
+              detailsRow.labelKey === 'qrPay' && pixResidenceBlocked
+                  ? 'details.qrPayArgentina'
+                  : `details.${detailsRow.labelKey}`
+          )
+        : ''
     // the user's own BRL rail behind a row that leads with the Pix key send
-    const detailsBankRail = detailsRow?.bankChip ? { ...detailsRow, chip: detailsRow.bankChip } : null
+    const detailsBankRail = detailsRow?.bankChip
+        ? { ...detailsRow, chip: detailsRow.bankChip }
+        : detailsRow?.labelKey === 'brl' &&
+            pixResidenceBlocked &&
+            detailsRow.chip !== 'active' &&
+            detailsRow.chip !== 'alwaysOn'
+          ? detailsRow
+          : null
 
     return (
         <PageStack gap="6" className="pb-10">
-            <NavHeader title={t(`titles.${page}`)} onPrev={onBack} titleClassName="text-heading-xs md:text-heading-s" />
-
-            {/* Residence anchor: explains WHY the list looks the way it does. */}
-            <div className="flex flex-col gap-1">
-                <ListItem
-                    leading={<IconBubble {...CONCEPT_ICONS.otherCountries} size="s" />}
-                    // two-line row: the country sits on its own body line and wraps rather than
-                    // truncating beside the status pill (TASK-22994, hugo)
-                    title={residenceCountryName ? t('residence.label') : t('residence.unknown')}
-                    body={residenceCountryName ?? undefined}
-                    bodyWrap
-                    trailing={residenceTrailing}
-                    chevron
-                    onClick={() => setIsChangeModalOpen(true)}
-                    aria-label={residenceIso2 ? t('residence.change') : t('residence.set')}
-                />
-                {residence?.verified && residence?.pending && (
-                    <p className="text-center text-body-xs text-foreground-secondary">
-                        {t('residence.pendingReverify', { country: pendingCountryName ?? residence.pending })}
-                    </p>
-                )}
-            </div>
+            <NavHeader
+                title={t(view === 'bank' ? 'titles.bank' : 'titles.methods')}
+                onPrev={onBack}
+                titleClassName="py-2 text-heading-xs md:py-1 md:text-heading-s"
+            />
 
             {isKycDegraded && (
                 <Callout
@@ -489,44 +551,49 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
             {/* The list Add money shows too: accounts held and to open, then
                 the other ways in. The accounts are read only while their
                 rollout flag is on (`VirtualAccountsHub` owns that fetch). */}
-            {page === 'accounts' &&
+            {view === 'bank' &&
                 (depositAccountsEnabled ? (
                     <VirtualAccountsHub {...hubProps} />
                 ) : (
                     <AccountsHubList claimsEnabled={false} {...hubProps} />
                 ))}
 
-            {page === 'payments' && (
-                <>
-                    {groups.length === 0 && (
-                        <EmptyState
-                            title={tRegions('empty.title')}
-                            description={tRegions('empty.description')}
-                            icon="globe-lock"
-                        />
-                    )}
-
-                    {/* Spending methods, apart from the ways money moves between
-                        a bank and Peanut. */}
-                    {spendGroup && (
-                        <RowSection
-                            group={spendGroup}
-                            onRowClick={handleRowClick}
-                            onClosedRowClick={closeSpendRow}
-                            isKycDegraded={isKycDegraded}
-                        />
-                    )}
-                    <ClosedRowDrawer
-                        closed={closedSpendRow}
-                        onClose={() => setClosedSpendRow(null)}
-                        onChangeResidence={() => setIsChangeModalOpen(true)}
-                    />
-
-                    {peanutGroup && (
-                        <RowSection group={peanutGroup} onRowClick={handleRowClick} isKycDegraded={isKycDegraded} />
-                    )}
-                </>
+            {view === 'methods' &&
+                (['active', 'notActive', 'unavailable'] as const).map(
+                    (section) =>
+                        methodSections[section].length > 0 && (
+                            <MethodSection
+                                key={section}
+                                title={t(`sections.${section}`)}
+                                rows={methodSections[section]}
+                                onRowClick={handleRowClick}
+                                onClosedRowClick={closeSpendRow}
+                                isKycDegraded={isKycDegraded}
+                            />
+                        )
+                )}
+            {arsSupportEntry && (
+                <CorridorGateDrawer
+                    open={arsSupportOpen}
+                    rail={DEPOSIT_RAILS.BANK_TRANSFER_AR}
+                    notice={{
+                        kind: 'blocked-rejection',
+                        action: 'support',
+                        reasonCode: arsSupportEntry.reason,
+                        message: arsSupportEntry.message ?? null,
+                    }}
+                    onClose={() => setArsSupportOpen(false)}
+                    onAct={() => {
+                        setArsSupportOpen(false)
+                        setIsSupportModalOpen(true)
+                    }}
+                />
             )}
+            <ClosedRowDrawer
+                closed={closedSpendRow}
+                onClose={() => setClosedSpendRow(null)}
+                onChangeResidence={() => router.push(RESIDENCE_CHANGE_HREF)}
+            />
 
             {showBankRestrictionNote && (
                 <p className="text-body-xs text-foreground-secondary">
@@ -541,52 +608,28 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
             {isRegionRestricted ? (
                 <KycRegionRestrictedModal visible={modalVariant === 'start'} onClose={handleModalClose} />
             ) : (
-                <UnlockMethodModal
-                    visible={modalVariant === 'start'}
-                    onClose={handleModalClose}
-                    onUnlock={handleStartKyc}
-                    methodLabel={selectedMethodLabel}
-                    path={selectedRegion?.path === 'latam' ? 'extended' : 'standard'}
-                    isLoading={flow.isLoading}
-                    regionIntent={clickedRegionIntent}
-                    country={clickedRowCountry}
+                <IdentityCheckIntroScreen
+                    visible={modalVariant === 'start' && !redirectingToVerify}
+                    hasQuestions={selectedRegion?.path === 'latam'}
+                    providerId={clickedProviderId}
+                    busy={flow.isLoading}
+                    onBack={handleModalClose}
+                    onContinue={handleStartKyc}
                 />
             )}
-
-            <ResidenceChangeDrawer
-                visible={isResidenceChangeVisible}
-                onClose={closeResidenceChange}
-                userId={user?.user?.userId}
-                declared={residence?.declared ?? null}
-                declaredSecond={secondResidenceIso2}
-                verified={residence?.verified ?? null}
-                pending={residence?.pending ?? null}
-                onSaved={async () => {
-                    // A residence change shifts everything derived from it:
-                    // card eligibility (server recomputes from the declared
-                    // country) and limits, alongside the user record itself.
-                    await Promise.all([
-                        fetchUser(),
-                        queryClient.invalidateQueries({ queryKey: ['card-info'] }),
-                        queryClient.invalidateQueries({ queryKey: [LIMITS] }),
-                    ])
-                }}
-                onReverify={(targetCountry) => {
-                    setReverifyTarget(targetCountry)
-                    setErrorAcknowledged(false)
-                    void flow.handleResidenceChange(targetCountry)
-                }}
-            />
 
             <KycProcessingModal
                 visible={modalVariant === 'processing'}
                 onClose={handleModalClose}
                 pendingSince={clickedRegionRail?.pendingSince}
-                waitingOnProvider={clickedRegionRail?.resolved?.nextAction?.kind === 'wait'}
+                waitingOnProvider={arsProvisioning || clickedRegionRail?.resolved?.nextAction?.kind === 'wait'}
+                reason={clickedRegionRail?.reason}
                 onResume={handleStartKyc}
                 onContactSupport={() => {
                     handleModalClose()
-                    setIsSupportModalOpen(true)
+                    openSupportWithMessage(
+                        buildContactSupportMessage({ reason: clickedRegionRail?.reason, railId: clickedRegionRail?.id })
+                    )
                 }}
             />
 
@@ -624,32 +667,22 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
                         ? providerRejectionMessage || tRegions('providerRejection.fixableDescription')
                         : providerRejectionForRegion.state === 'restart-identity'
                           ? providerRejectionMessage || tRegions('providerRejection.restartDescription')
-                          : tRegions('providerRejection.unavailableDescription')
+                          : providerRejectionReasonKey
+                            ? tIdentity(providerRejectionReasonKey)
+                            : tRegions('providerRejection.unavailableDescription')
                 }
                 tone="error"
                 ctas={[
                     providerRejectionForRegion.state === 'fixable'
                         ? {
                               text: tRegions('providerRejection.uploadDocument'),
+                              'data-testid': providerRejectionForRegion.actionKey?.startsWith('supplement:')
+                                  ? 'kyc-supplement-cta'
+                                  : undefined,
                               onClick: () => {
                                   handleModalClose()
-                                  // This IS the surface the residence cohort reaches.
-                                  // REQUIRES_SUPPORT maps to a top-level rail status of
-                                  // `blocked`, and `hasFunctionalRail` tests that field,
-                                  // so their region is LOCKED, they tap it, and this
-                                  // modal opens with copy asking for their address over
-                                  // a button that 404s.
-                                  //
-                                  // Gated on the one reason code rather than routing
-                                  // everything through the handler: that would also
-                                  // divert every Manteca fixable rejection here from
-                                  // resubmit to start-action, which is a change this has
-                                  // no reason to make.
-                                  if (providerRejectionForRegion.reasonCode === 'residence_unresolved') {
-                                      void flow.handleFixableRejection(providerRejectionForRegion)
-                                      return
-                                  }
-                                  flow.handleSelfHealResubmit(providerRejectionForRegion.provider)
+                                  // The shared router picks start-action or resubmit from the row's action.
+                                  void flow.handleFixableRejection(providerRejectionForRegion)
                               },
                               variant: 'primary' as const,
                               shadowSize: '4' as const,
@@ -695,8 +728,7 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
                                   shadowSize: '4',
                                   disabled: flow.isLoading,
                                   onClick: () => {
-                                      if (reverifyTarget) void flow.handleResidenceChange(reverifyTarget)
-                                      else void flow.handleInitiateKyc(activeRegionIntent, undefined, true)
+                                      void flow.handleInitiateKyc(activeRegionIntent, undefined, true)
                                   },
                               },
                           ]
@@ -758,7 +790,7 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
                                         // bank rail keeps its status here, and its flow.
                                         <ListItem
                                             leading={<IconBubble {...CONCEPT_ICONS.bank} size="s" />}
-                                            title={t(`details.${detailsRow.labelKey}`)}
+                                            title={detailDescription}
                                             trailing={rowStatusBadge(detailsBankRail, t)}
                                             chevron={isRowTappable(detailsBankRail, isKycDegraded)}
                                             onClick={() => {
@@ -769,7 +801,7 @@ const MoneySettings = ({ page }: { page: 'accounts' | 'payments' }) => {
                                     ) : (
                                         <ListItem
                                             leading={<IconBubble icon="check" size="s" color="green" />}
-                                            title={t(`details.${detailsRow.labelKey}`)}
+                                            title={detailDescription}
                                         />
                                     )}
                                 </ListGroup>
@@ -836,46 +868,48 @@ const FLAG_STACK_SIZES = {
     m: 'size-8 min-h-8 max-h-8 min-w-8 max-w-8',
 } as const
 
-const RowSection = ({
-    group,
+const MethodSection = ({
+    title,
+    rows,
     onRowClick,
     onClosedRowClick,
     isKycDegraded,
 }: {
-    group: UnlockGroup
+    title: string
+    rows: readonly UnlockRow[]
     onRowClick: (row: UnlockRow) => void
     /** a Not available row: the tap explains why instead of doing nothing */
-    onClosedRowClick?: (row: UnlockRow) => void
+    onClosedRowClick: (row: UnlockRow) => void
     isKycDegraded: boolean
 }) => {
     const t = useTranslations('profile.unlockPayments')
 
     return (
-        <Section title={t(`groups.${group.labelKey}`)}>
+        <Section title={title}>
             <ListGroup>
-                {group.rows.map((row) => {
-                    const closed = row.chip === 'notAvailable' && onClosedRowClick
+                {rows.map((row) => {
+                    const closed = row.chip === 'notAvailable'
                     const tappable = isRowTappable(row, isKycDegraded)
                     return (
                         <ListItem
                             key={row.id}
                             className="min-h-18"
-                            // a closed row that explains itself is still a tap target,
-                            // as the bank rows are (AccountsHubList)
-                            disabled={row.chip === 'notAvailable' && !closed}
                             leading={rowLeading(row)}
                             title={t(`rows.${row.labelKey}`)}
                             // QR payments is the row people do not recognise
                             // by name, so it carries its explainer under the
                             // title — where it pays, in one line at 375px
-                            // (Slava, 2026-09-25).
-                            body={row.note && t(row.note)}
+                            // (Slava, 2026-09-25). The bank row names its currencies.
+                            body={
+                                row.note ? t(row.note) : row.currencies?.length ? row.currencies.join(', ') : undefined
+                            }
                             bodyWrap
                             trailing={rowStatusBadge(row, t)}
-                            chevron={tappable || !!closed}
+                            chevron={tappable || closed}
                             onClick={
                                 closed ? () => onClosedRowClick(row) : tappable ? () => onRowClick(row) : undefined
                             }
+                            data-testid={`method-row-${row.id}`}
                         />
                     )
                 })}

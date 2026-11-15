@@ -1,13 +1,10 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Button } from '@/components/0_Bruddle/Button'
-import type { LandingStrings } from './landingStrings'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
-import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import DownloadAppLink from '@/components/Migration/DownloadAppLink'
 
-export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
+export function StickyMobileCTA() {
     const [visible, setVisible] = useState(false)
     // AnimatePresence used to keep the bar mounted while it animated out; this
     // does the same with a timer matched to `.sticky-cta-out` (250ms).
@@ -16,7 +13,6 @@ export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
     const exitTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
     const rafId = useRef(0)
     const lastVisible = useRef(false)
-    const migrationOn = useMigrationFlag()
 
     useEffect(() => {
         if (visible) {
@@ -65,19 +61,11 @@ export function StickyMobileCTA({ strings }: { strings: LandingStrings }) {
                         visible ? 'sticky-cta-in' : 'sticky-cta-out'
                     }`}
                 >
-                    {migrationOn ? (
-                        <DownloadAppLink
-                            surface={MIGRATION_SURFACES.LANDING_HERO}
-                            variant="primary"
-                            className="pointer-events-auto w-full"
-                        />
-                    ) : (
-                        // full width on purpose: this is the pinned-footer CTA
-                        // (design.md page recipes), not a hugging marketing CTA
-                        <Button prefetch={false} href="/setup" variant="primary" className="pointer-events-auto w-full">
-                            {strings.signUpNow}
-                        </Button>
-                    )}
+                    <DownloadAppLink
+                        surface={MIGRATION_SURFACES.LANDING_HERO}
+                        variant="primary"
+                        className="pointer-events-auto w-full"
+                    />
                 </div>
             }
         </>

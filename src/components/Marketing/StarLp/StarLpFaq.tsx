@@ -6,15 +6,18 @@ import { MARKETING_BAND_PADDING } from '@/constants/layout.consts'
 import type { StarLpFaqProps } from './starLp.types'
 
 /** The DS FAQ fold, heading "FAQ.", flat on cream, with FAQPage JSON-LD and an optional legal line. */
-export function StarLpFaq({ items, footnote }: StarLpFaqProps) {
-    const schema = faqSchema(items.map(({ question, answer }) => ({ question, answer })))
+export function StarLpFaq({ items, footnote, learnMoreLabel, inLanguage, id }: StarLpFaqProps) {
+    const schema = faqSchema(
+        items.map(({ question, answer }) => ({ question, answer })),
+        inLanguage
+    )
     return (
-        <section className={`bg-background-page text-foreground-primary ${MARKETING_BAND_PADDING}`}>
+        <section id={id} className={`bg-background-page text-foreground-primary ${MARKETING_BAND_PADDING}`}>
             {schema && <JsonLd data={schema} />}
             {/* the panel's own pb-12 would stack on the band padding: the fold keeps the 64/96 step;
                 questions wrap balanced, never one word alone on a line */}
             <div className={`mx-auto ${PROSE_WIDTH} [&_summary>span]:text-balance [&>section]:pb-0`}>
-                <FAQsPanel inline heading="FAQ." questions={items} />
+                <FAQsPanel inline heading="FAQ." questions={items} learnMoreLabel={learnMoreLabel} />
                 {footnote && <p className="mt-8 text-body-s text-foreground-secondary">{footnote}</p>}
             </div>
         </section>

@@ -1,12 +1,14 @@
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import ActionModal from '@/components/Global/ActionModal'
+import { useKycControl } from '@/features/paperwork-verification/analytics'
 
 interface KycReverificationPendingModalProps {
     isOpen: boolean
     onClose: () => void
     // backend-specific review copy (gate.userMessage); falls back to generic text.
     message?: string
+    onContactSupport?: () => void
 }
 
 /**
@@ -18,7 +20,13 @@ interface KycReverificationPendingModalProps {
  * Bridge finishes (the capability poller — re-armed via markSubmitted when this
  * opens — flips the gate away from `waiting-on-provider`).
  */
-export const KycReverificationPendingModal = ({ isOpen, onClose, message }: KycReverificationPendingModalProps) => {
+export const KycReverificationPendingModal = ({
+    isOpen,
+    onClose,
+    message,
+    onContactSupport,
+}: KycReverificationPendingModalProps) => {
+    const { track } = useKycControl('kyc-status', 'kyc_status')
     const router = useRouter()
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
@@ -26,17 +34,24 @@ export const KycReverificationPendingModal = ({ isOpen, onClose, message }: KycR
     return (
         <ActionModal
             visible={isOpen}
-            onClose={onClose}
+            onClose={() => {
+                track('kyc_status', 'dismiss')
+                onClose()
+            }}
             tone="attention"
             icon="clock"
             title={t('reverificationPending.title')}
             description={<p>{message ?? t('reverificationPending.description')}</p>}
             ctas={[
                 {
-                    text: tCommon('goToHome'),
+                    text: tCommon(onContactSupport ? 'contactSupport' : 'goToHome'),
                     onClick: () => {
-                        onClose()
-                        router.push('/home')
+                        track(onContactSupport ? 'support' : 'home', 'tap')
+                        if (onContactSupport) onContactSupport()
+                        else {
+                            onClose()
+                            router.push('/home')
+                        }
                     },
                     variant: 'primary',
                     className: 'w-full',

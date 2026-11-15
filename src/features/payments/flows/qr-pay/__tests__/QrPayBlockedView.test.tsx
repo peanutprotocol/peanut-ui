@@ -42,9 +42,10 @@ beforeEach(() => {
 
 describe('QrPayBlockedView — failed scan', () => {
     it('a refusal for identity starts the verification for the scanned country', () => {
-        renderWithIntl(<QrPayBlockedView />)
+        const { container } = renderWithIntl(<QrPayBlockedView />)
 
         expect(screen.getByText(en.qrPay.errors.kycRequired)).toBeInTheDocument()
+        expect(container.querySelector('[data-mascot-pose="sad"]')).toHaveAttribute('aria-hidden', 'true')
         fireEvent.click(screen.getByRole('button', { name: en.qrPay.kyc.unlockCta }))
 
         expect(mockStartVerification).toHaveBeenCalledWith('BR')
@@ -57,7 +58,7 @@ describe('QrPayBlockedView — failed scan', () => {
         flow.gate.isTerminalFailure = true
         renderWithIntl(<QrPayBlockedView />)
 
-        expect(screen.getByText(en.qrPay.kyc.blockedDescription)).toBeInTheDocument()
+        expect(screen.getByText(en.kyc.terminalDescription)).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: en.qrPay.kyc.unlockCta })).not.toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', { name: en.qrPay.havingTrouble }))
         expect(mockSetSupportOpen).toHaveBeenCalledWith(true)

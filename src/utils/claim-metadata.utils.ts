@@ -2,6 +2,7 @@ import { PEANUT_WALLET_TOKEN_DECIMALS, PEANUT_WALLET_TOKEN_SYMBOL } from '@/cons
 import { sendLinksApi } from '@/services/sendLinks'
 import { resolveAddressToUsername } from '@/utils/ens.utils'
 import { formatAmount } from '@/utils/general.utils'
+import { formatAmountNumber } from '@/utils/currency'
 import { buildOgImageUrl } from '@/utils/og.utils'
 import { type Metadata } from 'next'
 import { formatUnits } from 'viem'
@@ -94,7 +95,7 @@ export function buildClaimMetadata({
         if (linkDetails.claimed) {
             title = 'This link has been claimed'
         } else if (username) {
-            title = `${username} sent you $${formatAmount(amount)} via Peanut`
+            title = `${username} sent you $${formatAmountNumber(amount)} via Peanut`
         } else {
             title = `You received ${amount < 0.01 ? 'some ' : `${formatAmount(amount)} in `}${linkDetails.tokenSymbol}!`
         }

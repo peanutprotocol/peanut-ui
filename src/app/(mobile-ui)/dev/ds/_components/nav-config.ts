@@ -43,6 +43,7 @@ import {
     MoveHorizontal,
     Palette,
     PanelBottom,
+    PanelBottomOpen,
     PanelsTopLeft,
     PanelTop,
     PartyPopper,
@@ -224,7 +225,7 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             label: 'IconBubble',
             icon: CircleDot,
             href: '/dev/ds/primitives/icon-bubble',
-            description: 'Round colored icon container. Sizes xs/s/m/l, five colors + logo',
+            description: 'Round colored icon container. Sizes xs/s/m/l/xl, five colors + logo',
             status: 'production',
         },
         {
@@ -254,6 +255,13 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             icon: ChevronsUpDown,
             href: '/dev/ds/primitives/base-select',
             description: 'Radix-based dropdown select with error and disabled states',
+            status: 'production',
+        },
+        {
+            label: 'DrawerSelect',
+            icon: PanelBottomOpen,
+            href: '/dev/ds/primitives/drawer-select',
+            description: 'A select whose options open in a bottom drawer, with SelectList rows',
             status: 'production',
         },
         {
@@ -346,7 +354,7 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             label: 'Divider',
             icon: Minus,
             href: '/dev/ds/primitives/divider',
-            description: 'Horizontal divider with optional text label',
+            description: 'Horizontal divider with optional text label, or a vertical dashed rule between two columns',
             status: 'production',
         },
         {

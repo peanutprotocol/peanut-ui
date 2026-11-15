@@ -1,5 +1,5 @@
-import type { GateState } from '@/utils/capability-gate'
-import type { ClaimableCorridor } from './types'
+import { gateSupportCase, getGateReasonCode, type GateState } from '@/utils/capability-gate'
+import type { UnavailableCause, ClaimableCorridor } from './types'
 
 /**
  * What the corridor list does with the app's capability gate.
@@ -40,6 +40,15 @@ type DepositGateAction =
      * Support cannot lift it, so the drawer states it and closes.
      */
     | 'residence-restricted'
+    /**
+     * No residence is approved yet and Sumsub holds no address to approve one
+     * from (backend `cause: 'address-required'`, TASK-24662): the address step
+     * clears it. `address-retry` after Sumsub refused the last answer.
+     */
+    | 'provide-address'
+    | 'address-retry'
+    /** the address is with Sumsub (`address-in-review`); the drawer waits */
+    | 'address-in-review'
     | 'none'
 
 /** The reasons the BACKEND gives, beside the ones the capability gate gives. */
@@ -84,6 +93,20 @@ export function offersVerification(gate: GateState | undefined): boolean {
 }
 
 /**
+ * Gate kinds where the user has no usable identity: the only ones a row may
+ * say "Verify" for. `fixable-rejection` is a verified user with one more
+ * thing the provider asked for, so its row names the ask, not the identity.
+ */
+const NEEDS_IDENTITY: ReadonlySet<GateState['kind']> = new Set<GateState['kind']>([
+    'needs-identity',
+    'restart-identity',
+])
+
+export function needsIdentity(gate: GateState | undefined): boolean {
+    return !!gate && NEEDS_IDENTITY.has(gate.kind)
+}
+
+/**
  * Gate kinds that only say "this user holds no working rail here yet".
  *
  * Two corridors are offered before the user has a rail: the tap asks the
@@ -107,6 +130,7 @@ export interface DepositGateView {
         kind: GateState['kind'] | DepositBlock
         /** the provider's own words, when it gave any */
         message: string | null
+        reasonCode?: string
         /** what the button does, or `none` when the user can only wait */
         action: DepositGateAction
         /** the terms link, on the one kind that has one */
@@ -114,6 +138,15 @@ export interface DepositGateView {
         /** `residence-restricted` for a UK residence: the UK rule has its own words */
         ukResidence?: true
     }
+}
+
+/**
+ * A provider or our own setup acts next and the user only waits (`pending`,
+ * `waiting-on-provider`). Its row reads "Under review" and its tap opens the
+ * wait drawer, never "we cannot open" (TASK-24909).
+ */
+export function isWaitView(view: DepositGateView): boolean {
+    return view.notice?.action === 'none'
 }
 
 const ACTION_BY_BLOCK: Record<DepositBlock, DepositGateAction> = {
@@ -164,7 +197,8 @@ function blockNotice(blockedBy: DepositBlock): DepositGateView {
  */
 export function depositGateView(gate: GateState, claimable?: ClaimableCorridor): DepositGateView {
     if (gate.kind === 'loading') return { claimable: false }
-    if (gate.kind === 'ready' || (claimable && NO_RAIL_YET.has(gate.kind))) {
+    const supplementInReview = gate.kind === 'pending' && gate.reason?.code === 'requirements_in_review'
+    if (gate.kind === 'ready' || (claimable && NO_RAIL_YET.has(gate.kind) && !supplementInReview)) {
         return claimable?.blockedBy ? blockNotice(claimable.blockedBy) : { claimable: true }
     }
 
@@ -186,9 +220,21 @@ export function depositGateView(gate: GateState, claimable?: ClaimableCorridor):
         claimable: false,
         notice: {
             kind: gate.kind,
-            message: 'userMessage' in gate ? gate.userMessage : null,
+            message: 'userMessage' in gate ? (gate.userMessage ?? null) : null,
+            // the app's own words for these two; the backend sentence is English
+            ...(supplementInReview || gateSupportCase(gate) || getGateReasonCode(gate) === 'invalid_bank_postal_code'
+                ? { reasonCode: getGateReasonCode(gate) }
+                : {}),
             action: ACTION_BY_KIND[gate.kind],
             tosUrl: gate.kind === 'accept-tos' ? gate.tosUrl : undefined,
         },
     }
+}
+
+/** The provider preview can see setup or review before the rail report catches up. */
+export function applyDepositPreviewGate(gate: GateState, cause: UnavailableCause | undefined): GateState {
+    if (gate.kind !== 'ready' && gate.kind !== 'needs-enrollment') return gate
+    if (cause === 'setup-pending' || cause === 'review-pending' || cause === 'review-action') return { kind: 'pending' }
+    if (cause === 'review-closed') return { kind: 'blocked-rejection', userMessage: null }
+    return gate
 }

@@ -76,7 +76,7 @@ export function Steps({ title, children, locale = DEFAULT_LOCALE }: StepsProps) 
                 in the 640px prose column). the clouds and stars ride the band.
                 100vw overshoots by the scrollbar width — the marketing layout
                 clips the x axis, so the page never scrolls sideways. */}
-            <div className="absolute inset-y-0 left-1/2 z-0 w-[100vw] -translate-x-1/2 overflow-hidden bg-action-secondary">
+            <div className="absolute inset-y-0 left-1/2 z-0 w-[100vw] -translate-x-1/2 overflow-hidden bg-background-accent-yellow">
                 <CloudsCss clouds={stepsClouds} />
                 <Stars />
             </div>

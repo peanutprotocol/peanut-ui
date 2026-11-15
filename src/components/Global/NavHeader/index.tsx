@@ -6,7 +6,7 @@ import type enMessages from '@/i18n/app/messages/en.json'
 import { Button } from '@/components/0_Bruddle/Button'
 import { twMerge } from '@/utils/tw'
 import { Icon, type IconName } from '../Icons/Icon'
-import { Banner } from '@/components/Global/Banner'
+import { AttentionBanner } from '@/features/attention/AttentionBanner'
 import { useRegisterNavHeader } from '@/components/Global/Banner/navHeaderPresence'
 import { NAV_CIRCLE_BUTTON_CLASSES } from './navHeader.consts'
 import { hasInAppHistory } from '@/hooks/useSafeBack'
@@ -113,7 +113,10 @@ const NavHeader = ({
                             // weight pair used here happened to render the same
                             // 24/800/32, but off the token the two drift apart the
                             // moment Heading/S moves.
-                            'col-start-2 row-start-1 min-w-0 pt-0.5 pb-1 text-center text-heading-s break-words whitespace-normal',
+                            // py-1 + the 32px line = the 40px back button, so the
+                            // first line sits on its centre. a smaller title size
+                            // needs its own padding (see MoneySettings)
+                            'col-start-2 row-start-1 min-w-0 py-1 text-center text-heading-s break-words whitespace-normal',
                             titleClassName
                         )}
                     >
@@ -127,7 +130,7 @@ const NavHeader = ({
                 own px-4 already insets it. Gap: section gap XL/24 (`mt-6`,
                 spacing board 17291:2772) — the banner is a block in the page
                 stack, same rhythm as PageStack's gap-6. */}
-            {!hideMaintenanceBanner && <Banner variant="feature" className="mt-6" />}
+            {!hideMaintenanceBanner && <AttentionBanner variant="feature" className="mt-6" />}
         </div>
     )
 }

@@ -1,7 +1,13 @@
 import { mapTransactionDataForDrawer } from '../transactionTransformer'
-import { EHistoryUserRole, EHistoryStatus, getTransactionSign, type HistoryEntry } from '@/utils/history.utils'
+import {
+    EHistoryUserRole,
+    EHistoryStatus,
+    getTransactionSign,
+    type HistoryEntry,
+    type HistoryEntryExtraData,
+} from '@/utils/history.utils'
 import { pipelineAlert } from '@/utils/pipelineAlerts'
-import { getTransactionExplorerUrl } from '@/utils/general.utils'
+import { getTransactionExplorerUrl } from '@/utils/token.utils'
 
 jest.mock('@/assets', () => ({}))
 jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '', PIX: '' }))
@@ -1057,7 +1063,7 @@ describe('mapTransactionDataForDrawer', () => {
         })
     })
 
-    describe('counterparty avatarKey (TASK-22625)', () => {
+    describe('counterparty person (TASK-22625, TASK-23756)', () => {
         const detailsOf = (entry: HistoryEntry) => mapTransactionDataForDrawer(entry).transactionDetails
 
         it('carries the recipient pick on an outgoing send', () => {
@@ -1068,7 +1074,7 @@ describe('mapTransactionDataForDrawer', () => {
                     extraData: { kind: 'DIRECT_TRANSFER' },
                 })
             )
-            expect(result.avatarKey).toBe('basic.frog')
+            expect(result.peer?.avatarKey).toBe('basic.frog')
         })
 
         it('carries the sender pick on an incoming receive', () => {
@@ -1080,7 +1086,7 @@ describe('mapTransactionDataForDrawer', () => {
                     extraData: { kind: 'DIRECT_TRANSFER' },
                 })
             )
-            expect(result.avatarKey).toBe('badge.OG.hat')
+            expect(result.peer?.avatarKey).toBe('badge.OG.hat')
         })
 
         it('carries the sender pick on a claimed send link', () => {
@@ -1092,7 +1098,7 @@ describe('mapTransactionDataForDrawer', () => {
                     extraData: { kind: 'SEND_LINK' },
                 })
             )
-            expect(result.avatarKey).toBe('basic.frog')
+            expect(result.peer?.avatarKey).toBe('basic.frog')
         })
 
         it('is null when the counterparty is not a Peanut user', () => {
@@ -1103,10 +1109,10 @@ describe('mapTransactionDataForDrawer', () => {
                     extraData: { kind: 'DIRECT_TRANSFER' },
                 })
             )
-            expect(result.avatarKey).toBeNull()
+            expect(result.peer).toBeNull()
         })
 
-        it('is null when the user has no pick', () => {
+        it('carries the person with a null key when the user has no pick', () => {
             const result = detailsOf(
                 baseEntry({
                     userRole: EHistoryUserRole.SENDER,
@@ -1114,7 +1120,8 @@ describe('mapTransactionDataForDrawer', () => {
                     extraData: { kind: 'DIRECT_TRANSFER' },
                 })
             )
-            expect(result.avatarKey).toBeNull()
+            expect(result.peer?.username).toBe(aliceUser.username)
+            expect(result.peer?.avatarKey).toBeNull()
         })
 
         // The reaper rewrites the name to system copy ("Transaction did not
@@ -1129,7 +1136,7 @@ describe('mapTransactionDataForDrawer', () => {
                     extraData: { kind: 'DIRECT_TRANSFER', failReason: 'DIRECT_TRANSFER_timeout' },
                 })
             )
-            expect(result.avatarKey).toBeNull()
+            expect(result.peer).toBeNull()
         })
 
         // A bank send-link claimed by a Peanut user renders as a send to them,
@@ -1143,7 +1150,7 @@ describe('mapTransactionDataForDrawer', () => {
                     extraData: { kind: 'OFFRAMP', bridgeFlow: 'BANK_SEND_LINK_CLAIM' },
                 })
             )
-            expect(result.avatarKey).toBe('basic.frog')
+            expect(result.peer?.avatarKey).toBe('basic.frog')
         })
 
         it('carries the initiator pick on a received bank withdraw', () => {
@@ -1155,7 +1162,7 @@ describe('mapTransactionDataForDrawer', () => {
                     extraData: { kind: 'OFFRAMP' },
                 })
             )
-            expect(result.avatarKey).toBe('basic.frog')
+            expect(result.peer?.avatarKey).toBe('basic.frog')
         })
 
         it('drops the pick on a failed QR payment', () => {
@@ -1167,7 +1174,7 @@ describe('mapTransactionDataForDrawer', () => {
                     extraData: { kind: 'QR_PAY' },
                 })
             )
-            expect(result.avatarKey).toBeNull()
+            expect(result.peer).toBeNull()
         })
     })
 
@@ -1433,5 +1440,42 @@ describe('QR_PAY to a looked-up PIX key', () => {
 
         expect(result.userName).toBe('•••• 8909')
         expect(result.nameDetail).toBeUndefined()
+    })
+})
+
+// TASK-24947 (API-CONTRACT-M3 §8): an Avenia payout to another person's key is a send to them
+describe('OFFRAMP to a Pix key, by whose key it is', () => {
+    const payoutEntry = (pixPayout?: HistoryEntryExtraData['pixPayout']) =>
+        baseEntry({
+            userRole: EHistoryUserRole.SENDER,
+            recipientAccount: { identifier: '+5511987654321', fullName: 'BRUNO LIMA', type: 'pix', isUser: false },
+            currency: { amount: '503.00', code: 'BRL' },
+            extraData: { kind: 'OFFRAMP', provider: 'AVENIA', ...(pixPayout ? { pixPayout } : {}) },
+        })
+
+    it("reads another person's key as a send to the holder, the key punctuated beside the name", () => {
+        const result = mapTransactionDataForDrawer(
+            payoutEntry({ pixKey: '+5511987654321', holderName: 'BRUNO LIMA', bankName: 'Nubank', ownAccount: false })
+        )
+        expect(result.transactionCardType).toBe('send')
+        expect(result.transactionDetails.userName).toBe('Bruno Lima')
+        expect(result.transactionDetails.nameDetail).toBe('11 98765-4321')
+        expect(result.transactionDetails.bankAccountDetails).toEqual({ identifier: '+5511987654321', type: 'pix' })
+    })
+
+    it('names the key alone where the lookup named no holder', () => {
+        const result = mapTransactionDataForDrawer(
+            payoutEntry({ pixKey: '11144477735', holderName: null, bankName: null, ownAccount: false })
+        )
+        expect(result.transactionDetails.userName).toBe('111.444.777-35')
+        expect(result.transactionDetails.nameDetail).toBeUndefined()
+    })
+
+    it.each([
+        ['the own key', { pixKey: '11144477735', holderName: 'Ana Souza', bankName: null, ownAccount: true }],
+        ['a payout opened before M3', { pixKey: '11144477735', holderName: null, bankName: null, ownAccount: null }],
+        ['a shared receipt, which carries no payout', undefined],
+    ])('keeps %s a withdrawal', (_case, pixPayout) => {
+        expect(mapTransactionDataForDrawer(payoutEntry(pixPayout)).transactionCardType).toBe('bank_withdraw')
     })
 })

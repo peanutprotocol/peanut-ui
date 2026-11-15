@@ -90,7 +90,7 @@ export type UnavailableReason = UnavailableCorridor['reason']
 /**
  * What stands behind `reason`, where the backend says: the user's own review
  * (`review-action`, `review-pending`, `review-closed`), a restricted residence,
- * or a corridor not open to them yet. Absent on an API that predates it, and
+ * a finally rejected identity, or a corridor not open to them yet. Absent on an API that predates it, and
  * when identity decides the corridor.
  */
 export type UnavailableCause = NonNullable<UnavailableCorridor['cause']>

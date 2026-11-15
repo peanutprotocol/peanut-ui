@@ -9,7 +9,6 @@ import { StarLpFaq } from '@/components/Marketing/StarLp/StarLpFaq'
 import { StarLpHero } from '@/components/Marketing/StarLp/StarLpHero'
 import { StarLpMarquee } from '@/components/Marketing/StarLp/StarLpMarquee'
 import { Wiggle } from '@/components/Marketing/StarLp/Wiggle'
-import { STAR_LP_HREF } from '@/components/Marketing/StarLp/starLp.consts'
 import type { StarLpFaqItem } from '@/components/Marketing/StarLp/starLp.types'
 import { EN_LANDING_CONTENT_HREFS } from '@/components/LandingPage/landingContentHrefs'
 import type { MarqueeItem } from '@/components/Global/MarqueeWrapper/marquee.types'
@@ -119,7 +118,7 @@ export function SelfCustodyLanding() {
                 subtitle="Your balance sits in your own account. Sending from it needs your passkey."
                 art={<SelfCustodySendScreen />}
                 cta={
-                    <StarLpCta qrPlacement="hero" href={STAR_LP_HREF.signup} ground="pink">
+                    <StarLpCta qrPlacement="hero" ground="pink">
                         Create an account
                     </StarLpCta>
                 }
@@ -131,7 +130,14 @@ export function SelfCustodyLanding() {
                 {/* inside the band's top padding, clear of the marquee above */}
                 <Wiggle kind="wobble" className="pointer-events-none absolute -top-10 right-0 w-11 md:-top-14 md:w-14">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={Sparkle.src} width={Sparkle.width} height={Sparkle.height} alt="" aria-hidden />
+                    <img
+                        src={Sparkle.src}
+                        width={Sparkle.width}
+                        height={Sparkle.height}
+                        alt=""
+                        aria-hidden
+                        loading="lazy"
+                    />
                 </Wiggle>
                 {/* Konrad's pick (self-custody fold picker, 20 Oct): type only, no cards.
                     "Money" is the hero's word; the card carve-out stays in the FAQ (security.md). */}

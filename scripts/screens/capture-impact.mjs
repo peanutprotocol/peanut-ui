@@ -109,6 +109,16 @@ export function localDependencies(path, source, files) {
     return unknown ? null : [...dependencies].sort()
 }
 
+export function fixtureRootFiles(files) {
+    return [
+        ...[...files].filter((path) => path.startsWith('src/dev/fixtures/') && !knownNonvisual(path)),
+        'src/utils/demo-api.ts',
+        'src/constants/demo-data.ts',
+        'src/constants/residence.consts.ts',
+        'src/types/api.openapi.json',
+    ].sort()
+}
+
 /** Hash every local input to fixture execution, rather than only its entry files. */
 export function fixtureIdentityFiles(roots, options = {}) {
     const files = options.files ?? new Set(git(['ls-files', '--cached', '-z']).split('\0').filter(Boolean))

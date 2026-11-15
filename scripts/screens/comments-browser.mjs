@@ -10,6 +10,8 @@ import { once } from 'node:events'
 import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
 import { DatabaseSync } from 'node:sqlite'
+import { acceptActivitySidebar } from './activity-sidebar-contract.mjs'
+import { assertScreenLibraryPreviewContract } from './preview-contract.mjs'
 import worker from './worker/index.mjs'
 
 const here = fileURLToPath(new URL('.', import.meta.url))
@@ -88,7 +90,19 @@ const manifest = {
     profile: '393x852',
     complete: true,
     before: { locale: 'en', profile: '393x852', width: 393, height: 852, commit: 'a'.repeat(40) },
-    after: { locale: 'en', profile: '393x852', width: 393, height: 852, commit: 'b'.repeat(40) },
+    after: {
+        locale: 'en',
+        profile: '393x852',
+        width: 393,
+        height: 852,
+        commit: 'b'.repeat(40),
+        device: {
+            platform: 'ios',
+            label: 'iPhone',
+            cutout: 'dynamic-island',
+            safeArea: { top: 59, right: 0, bottom: 34, left: 0 },
+        },
+    },
     screens: [
         {
             id: 'screen-home',
@@ -267,23 +281,30 @@ async function waitVisible(locator, label) {
 async function openComments(page) {
     const panel = page.locator('#zoom #comment-panel')
     if (await panel.isVisible()) return
-    const dialog = page.locator('#zoom')
-    if (await dialog.isVisible()) {
-        await page.keyboard.press('Escape')
-        await dialog.waitFor({ state: 'hidden', timeout: 5000 })
+    if (await page.locator('#zoom').isVisible()) {
+        const toggle = page.locator('#zoom-comments[aria-expanded="false"]')
+        if (await toggle.isVisible()) await toggle.click()
+    } else {
+        const badge = page.locator('#screen-home button.comment-count[data-comment-side="after"]')
+        await waitVisible(badge, 'after-image comment badge inside #screen-home')
+        await badge.click()
     }
-    const badge = page.locator('#screen-home button.comment-count[data-comment-side="after"]')
-    await waitVisible(badge, 'after-image comment badge inside #screen-home')
-    await badge.click()
     await waitVisible(panel, '#comment-panel inside #zoom dialog')
 }
 
-async function selectThreadFromFeed(page, threadId, label) {
+async function closePreview(page) {
     const dialog = page.locator('#zoom')
     if (await dialog.isVisible()) {
         await page.keyboard.press('Escape')
+        if (await dialog.isVisible()) await page.keyboard.press('Escape')
         await dialog.waitFor({ state: 'hidden', timeout: 5000 })
     }
+}
+
+async function selectThreadFromFeed(page, threadId, label) {
+    await closePreview(page)
+    const activity = page.getByRole('complementary', { name: 'Latest activity' })
+    if (!(await activity.isVisible())) await page.getByRole('button', { name: 'Latest activity', exact: true }).click()
     const matchingFeedItems = page.locator(`#comment-feed [data-thread-id="${threadId}"]`)
     let feedItem
     try {
@@ -358,6 +379,7 @@ async function openReportPage(context, origin, reportUrl, label) {
     page.on('pageerror', (error) => console.error(`${label} browser error: ${error.message}`))
     await page.goto(reportUrl, { waitUntil: 'domcontentloaded' })
     await waitVisible(page.locator('#screen-home'), `${label} comparison screen`)
+    await page.getByRole('button', { name: 'Latest activity', exact: true }).click()
     await openComments(page)
     return page
 }
@@ -456,8 +478,98 @@ async function main() {
             }
         })
         const reportUrl = `${origin}/screens/${reportRelativePath}/?source=synthetic&locale=en`
+        const equalAssetPreview = await aliceContext.newPage()
+        equalAssetPreview.on('pageerror', (error) => pageErrors.push(error.message))
+        await equalAssetPreview.route(`**/reports/${reportRelativePath}/manifest.json`, (route) =>
+            route.fulfill({
+                json: {
+                    ...manifest,
+                    screens: [
+                        {
+                            ...manifest.screens[0],
+                            before: { image: imageAfter, status: 'captured' },
+                        },
+                    ],
+                },
+            })
+        )
+        await equalAssetPreview.goto(reportUrl, { waitUntil: 'domcontentloaded' })
+        for (const width of [1024, 390]) {
+            await equalAssetPreview.setViewportSize({ width, height: 844 })
+            await assertScreenLibraryPreviewContract(equalAssetPreview, {
+                preview: (page) => page.locator('#zoom [data-preview-side="after"] img'),
+                openViewer: async (page) => {
+                    await page.locator('#screen-home').getByRole('button', { name: 'Enlarge Home, After' }).click()
+                    const before = page.locator('#zoom [data-preview-side="before"]')
+                    const after = page.locator('#zoom [data-preview-side="after"]')
+                    assert.equal(
+                        await before.locator('img').getAttribute('src'),
+                        await after.locator('img').getAttribute('src')
+                    )
+                    assert.equal(await before.locator('.screen-votes').count(), 0, 'equal-source Before has no verdict')
+                    assert.equal(await after.locator('.screen-votes').count(), 1, 'equal-source After has one verdict')
+                    assert.equal(
+                        await before.locator('.device-camera').isVisible(),
+                        false,
+                        'legacy Before has no cutout'
+                    )
+                    const dimensions = await after.evaluate((figure) => {
+                        const bounds = (selector) => figure.querySelector(selector).getBoundingClientRect()
+                        const { top, bottom, width, height } = bounds('.device-screen')
+                        const camera = bounds('.device-camera')
+                        const home = bounds('.device-home')
+                        return {
+                            ratio: width / height,
+                            cameraBottom: (camera.bottom - top) / height,
+                            homeTop: (bottom - home.top) / height,
+                            cameraWidth: camera.width / width,
+                        }
+                    })
+                    assert.ok(Math.abs(dimensions.ratio - 393 / 852) < 0.002, 'preview retains declared aspect ratio')
+                    assert.ok(dimensions.cameraWidth > 0 && dimensions.cameraBottom <= 59 / 852)
+                    assert.ok(dimensions.homeTop > 0 && dimensions.homeTop <= 34 / 852)
+                },
+                closeDiscussion: (page) => page.keyboard.press('Escape'),
+                switchMode: (page) => page.getByRole('button', { name: 'Overlay', exact: true }).click(),
+                closeViewer: (page) => page.getByRole('button', { name: 'Close', exact: true }).click(),
+            })
+            await equalAssetPreview.emulateMedia({ reducedMotion: 'no-preference' })
+        }
+        await equalAssetPreview.close()
         await alicePage.goto(reportUrl, { waitUntil: 'domcontentloaded' })
         await waitVisible(alicePage.locator('#screen-home'), 'comparison screen #screen-home')
+        await acceptActivitySidebar(alicePage, {
+            openPreview: (page) =>
+                page.locator('#screen-home').getByRole('button', { name: 'Enlarge Home, After' }).click(),
+        })
+        await closePreview(alicePage)
+        await alicePage.setViewportSize({ width: 390, height: 844 })
+        const activity = alicePage.getByRole('complementary', { name: 'Latest activity' })
+        const activityToggle = alicePage.getByRole('button', { name: 'Latest activity', exact: true })
+        await activityToggle.focus()
+        await alicePage.keyboard.press('Enter')
+        const activityClose = activity.getByRole('button', { name: 'Close activity' })
+        assert.equal(await activityClose.evaluate((element) => element === document.activeElement), true)
+        assert.deepEqual(
+            await activityClose.evaluate((element) => {
+                const { outlineColor, outlineWidth } = getComputedStyle(element)
+                return { outlineColor, outlineWidth }
+            }),
+            { outlineColor: 'rgb(37, 99, 235)', outlineWidth: '3px' },
+            'activity close uses the standard keyboard focus outline'
+        )
+        const intro = alicePage.locator('.library-intro')
+        await alicePage.getByRole('button', { name: 'View history for Home' }).click()
+        assert.equal(await intro.isVisible(), false, 'History hides the library intro')
+        assert.equal(await activity.isVisible(), false, 'History hides expanded activity')
+        await alicePage.locator('#history-close').click()
+        assert.equal(await intro.isVisible(), true, 'closing History restores the library intro')
+        assert.equal(await activity.isVisible(), true, 'closing History restores activity')
+        assert.equal(
+            await activityToggle.getAttribute('aria-expanded'),
+            'true',
+            'closing History preserves expanded activity'
+        )
         await openComments(alicePage)
         await waitVisible(alicePage.getByLabel('Add a comment'), 'Add a comment composer')
         await alicePage.getByLabel('Add a comment').fill(rootBody)
@@ -782,7 +894,7 @@ async function main() {
             await route.continue()
         })
         holdAliceFeed = true
-        await late401Page.evaluate(() => window.dispatchEvent(new Event('focus')))
+        await late401Page.locator('#comment-feed .comment-refresh').evaluate((refresh) => refresh.click())
         await waitForSignal(aliceFeedCaptured, 'an in-flight Alice feed request')
         assert.equal((await delayedAliceFeed.request().allHeaders())['x-test-actor'], 'alice')
         await late401Identity.setActor('bob')
@@ -971,8 +1083,7 @@ async function main() {
         await lateSavePage.getByRole('button', { name: 'Post comment', exact: true }).click()
         await waitForSignal(lateSaveCommitted, 'the first comment POST to commit')
         assert.equal(committedLateSaveStatus, 201, 'first in-flight save committed before its response was released')
-        await lateSavePage.keyboard.press('Escape')
-        await lateSavePage.locator('#zoom').waitFor({ state: 'hidden', timeout: 5000 })
+        await closePreview(lateSavePage)
         await openComments(lateSavePage)
         await lateSavePage.getByLabel('Add a comment').fill(newerPanelDraft)
         releaseLateSaveResponse()
@@ -1129,12 +1240,10 @@ async function main() {
         await staleView.setViewportSize({ width: 1280, height: 900 })
         await staleView.screenshot({
             path: resolve(screenshotDirectory, 'peanut-comments-browser-desktop.png'),
-            fullPage: true,
         })
         await staleView.setViewportSize({ width: 320, height: 900 })
         await staleView.screenshot({
             path: resolve(screenshotDirectory, 'peanut-comments-browser-mobile-320.png'),
-            fullPage: true,
         })
         console.log(
             `Populated browser screenshots: ${resolve(screenshotDirectory, 'peanut-comments-browser-desktop.png')} and ${resolve(screenshotDirectory, 'peanut-comments-browser-mobile-320.png')}`

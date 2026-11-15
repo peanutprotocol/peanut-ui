@@ -25,7 +25,7 @@ import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.co
 import { areEvmAddressesEqual } from '@/utils/general.utils'
 import type { WithdrawAddressFamily } from '@/lib/validation/addressFamily'
 import type { FlowErrorState } from '@/interfaces/interfaces'
-import { withdrawChainRecord } from '../chain-record'
+import { withdrawChainRecord, withdrawTokenRecord } from '../chain-record'
 import { useEnsRecipientForChain } from '../useEnsRecipientForChain'
 import { useWithdrawFlow } from '../WithdrawFlowContext'
 import type { WithdrawData } from '../types'
@@ -65,20 +65,30 @@ export default function ScannedDestinationPayView({
     error,
 }: ScannedDestinationPayViewProps) {
     const t = useTranslations('payment')
-    const { recipient } = useWithdrawFlow()
-    const { selectedTokenData, selectedChainID, selectedTokenAddress, supportedChainsAndTokens } =
-        useContext(tokenSelectorContext)
+    const { recipient, scannedRecipient } = useWithdrawFlow()
+    const { selectedChainID, selectedTokenAddress, supportedChainsAndTokens } = useContext(tokenSelectorContext)
 
     // a scanned ENS name was resolved for the wallet chain; another network
     // can hold another address for it (ENSIP-11), so it re-resolves per pick
     const isResolvingEns = useEnsRecipientForChain(selectedChainID, addressFamily)
 
+    // A scan that named its network, and a payment request that named its
+    // asset, are paid on exactly that pair. Checked on what would be sent, so
+    // neither a pick nor the selector's own correction can send another pair.
     const chain = withdrawChainRecord(supportedChainsAndTokens, selectedChainID)
-    const canContinue = !!selectedTokenData && !!chain && !!recipient.address && !isResolvingEns
+    // the token in that chain's withdraw list, never a price: a price outage cannot block a payout
+    const token = withdrawTokenRecord(supportedChainsAndTokens, selectedChainID, selectedTokenAddress)
+    const requestedChainId = scannedRecipient?.chainId
+    const requestedToken = scannedRecipient?.tokenAddress
+    const isScannedPair =
+        (!requestedChainId || (selectedChainID === requestedChainId && chain?.chainId === requestedChainId)) &&
+        (!requestedToken || (!!token && areEvmAddressesEqual(token.address, requestedToken)))
+
+    const canContinue = !!token && !!chain && !!recipient.address && !isResolvingEns && isScannedPair
     const handleContinue = () => {
-        if (!selectedTokenData || !chain || !recipient.address || isResolvingEns || continueDisabled || isLoading)
-            return
-        onContinue({ token: selectedTokenData, chain, address: recipient.address })
+        if (!token || !chain || !recipient.address || isResolvingEns || continueDisabled || isLoading) return
+        if (!isScannedPair) return
+        onContinue({ token, chain, address: recipient.address })
     }
 
     // the free route is USDC on the wallet chain; the hint only makes sense for
@@ -121,7 +131,8 @@ export default function ScannedDestinationPayView({
                     {amountError && <FieldError>{amountError}</FieldError>}
                 </div>
 
-                <TokenSelector viewType="withdraw" addressFamily={addressFamily} />
+                {/* a payment request's asset is the request: nothing to pick */}
+                <TokenSelector viewType="withdraw" addressFamily={addressFamily} disabled={!!requestedToken} />
 
                 {showFreeRouteHint && (
                     <div className="pt-1 text-center text-body-xs text-foreground-secondary">

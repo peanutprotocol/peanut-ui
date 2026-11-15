@@ -1,5 +1,7 @@
 import React from 'react'
 import { fireEvent, render, screen } from '@testing-library/react'
+import { personFrom } from '@/lib/person/person'
+import type { Person } from '@/lib/person/person.types'
 import { IntlWrapper } from '@/test-utils/intl'
 import { TransactionDetailsHeaderCard } from '../TransactionDetailsHeaderCard'
 
@@ -18,14 +20,14 @@ jest.mock('../TransactionAvatarBadge', () => ({
     __esModule: true,
     default: ({
         countryCode,
-        avatarKey,
+        person,
         status,
     }: {
         countryCode?: string | null
-        avatarKey?: string | null
+        person?: Person | null
         status?: string
     }) => (
-        <span data-testid="transaction-avatar" data-avatar-key={avatarKey ?? ''} data-status={status ?? ''}>
+        <span data-testid="transaction-avatar" data-avatar-key={person?.avatarKey ?? ''} data-status={status ?? ''}>
             {countryCode ? 'bank flag' : 'user initials'}
         </span>
     ),
@@ -293,14 +295,17 @@ describe('TransactionDetailsHeaderCard self-describing labels', () => {
 
 // TASK-22625: the receipt head shows the same picked avatar as the feed row.
 describe('TransactionDetailsHeaderCard — counterparty avatar', () => {
-    it('forwards the counterparty pick to the badge', () => {
-        renderHeaderCard({ avatarKey: 'basic.frog' })
+    it('forwards the counterparty to the badge', () => {
+        renderHeaderCard({ person: personFrom({ username: 'natalia', avatarKey: 'basic.frog' }) })
 
         expect(screen.getByTestId('transaction-avatar')).toHaveAttribute('data-avatar-key', 'basic.frog')
     })
 
     it('keeps the merchant logo ahead of the sticker', () => {
-        const { container } = renderHeaderCard({ avatarKey: 'basic.frog', avatarUrl: '/merchant-logo.png' })
+        const { container } = renderHeaderCard({
+            person: personFrom({ username: 'natalia', avatarKey: 'basic.frog' }),
+            avatarUrl: '/merchant-logo.png',
+        })
 
         expect(container.querySelector('img')).toHaveAttribute('src', '/merchant-logo.png')
         expect(screen.queryByTestId('transaction-avatar')).not.toBeInTheDocument()

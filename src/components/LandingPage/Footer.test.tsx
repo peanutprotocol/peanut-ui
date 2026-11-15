@@ -1,6 +1,16 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import Footer from './Footer'
 import { SUPPORTED_LOCALES } from '@/i18n/types'
+import { getTranslations } from '@/i18n'
+
+const FEATURE_HREFS = [
+    '/us-europe-accounts',
+    '/request-links',
+    '/self-custody',
+    '/peanut-card',
+    '/qr-payments/argentina',
+    '/qr-payments/brazil',
+]
 
 jest.mock('next/image', () => ({
     __esModule: true,
@@ -44,4 +54,64 @@ describe('Footer status link', () => {
         expect(labels.filter((l) => /pricing/i.test(l))).toHaveLength(1)
         expect(labels.indexOf('Status')).toBe(labels.indexOf('Supported Networks') + 1)
     })
+})
+
+describe('Footer feature discovery', () => {
+    it.each(SUPPORTED_LOCALES)('keeps all six feature destinations on %s', (locale) => {
+        const { container } = render(<Footer locale={locale} />)
+        const featureLinks = [...container.querySelectorAll<HTMLAnchorElement>('a[hreflang="en"]')]
+
+        expect(featureLinks.map((link) => link.getAttribute('href'))).toEqual(FEATURE_HREFS)
+        expect(featureLinks.every((link) => Boolean(link.textContent?.trim()))).toBe(true)
+        expect(
+            screen.getByRole('link', { name: /^(Terms of Service|Términos de servicio|Termos de serviço)$/ })
+        ).toBeInTheDocument()
+        expect(
+            screen.getByRole('link', { name: /^(Privacy Policy|Política de privacidad|Política de privacidade)$/ })
+        ).toBeInTheDocument()
+    })
+
+    it('gives feature discovery its own named navigation', () => {
+        render(<Footer locale="en" />)
+        const navigation = screen.getByRole('navigation', { name: 'Features' })
+
+        expect(navigation).toHaveAttribute('id', 'footer-features')
+        expect(within(navigation).getAllByRole('link')).toHaveLength(6)
+        expect(within(navigation).getByRole('link', { name: 'Peanut Card' })).toHaveAttribute('href', '/peanut-card')
+        expect(screen.getByRole('link', { name: 'Docs' })).toHaveAttribute('href', '/en/help')
+    })
+
+    it.each(SUPPORTED_LOCALES)('keeps the card footer country-free with access to all features in %s', (locale) => {
+        render(<Footer showSiteDirectory={false} showLocaleSwitcher={false} locale={locale} />)
+        const i18n = getTranslations(locale)
+        const navigation = screen.getByRole('navigation', { name: i18n.footerFeatures })
+        const directoryHref = locale === 'en' ? '/lp#footer-features' : `/${locale}#footer-features`
+
+        expect(
+            within(navigation)
+                .getAllByRole('link')
+                .map((link) => link.getAttribute('href'))
+        ).toEqual(['/request-links', '/self-custody', '/peanut-card', directoryHref])
+        expect(navigation).not.toHaveTextContent(/Argentina|Brazil|Brasil|Europe|Europa|EUA|EE\. UU\./)
+        expect(within(navigation).getByRole('link', { name: i18n.footerExploreFeatures })).toHaveAttribute(
+            'hreflang',
+            locale
+        )
+        expect(screen.queryByRole('button', { name: /^Language:/ })).not.toBeInTheDocument()
+    })
+
+    it.each([
+        ['es-419', 'Funciones', 'Tarjeta Peanut (En inglés)'],
+        ['es-ar', 'Funciones', 'Tarjeta Peanut (En inglés)'],
+        ['pt-br', 'Funcionalidades', 'Cartão Peanut (Em inglês)'],
+    ] as const)(
+        'translates feature labels and identifies English prose on %s',
+        (locale, navigationLabel, cardLabel) => {
+            render(<Footer locale={locale} />)
+            const navigation = screen.getByRole('navigation', { name: navigationLabel })
+
+            expect(within(navigation).getByRole('link', { name: cardLabel })).toHaveAttribute('href', '/peanut-card')
+            expect(within(navigation).getAllByRole('link')).toHaveLength(6)
+        }
+    )
 })

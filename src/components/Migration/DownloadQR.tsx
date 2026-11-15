@@ -15,10 +15,11 @@ import type { MarketingQrContext } from '@/features/marketing-qr/contract'
 import { useMarketingQrUrl } from '@/features/marketing-qr/useMarketingQrUrl'
 
 /**
- * Generic QR scans enter through /home, which is claimed by the already-released
+ * QR scans enter through /home, which is claimed by the already-released
  * native shells. Browsers are redirected to /app by the web proxy; installed
  * apps consume the marker and any explicit guest handoff directly. Explicitly
- * registered marketing placements can first use the browser-only /q hop.
+ * registered marketing placements also enter through /home; the proxy sends
+ * their browsers to the /q handoff first.
  */
 export default function DownloadQR({
     surface,

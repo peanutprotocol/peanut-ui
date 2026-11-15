@@ -1,4 +1,7 @@
-jest.mock('@/utils/capacitor', () => ({ getPlatform: () => 'ios-native' }))
+const mockGetPlatform = jest.fn(() => 'ios-native')
+const mockGetCachedBinaryVersion = jest.fn()
+jest.mock('@/utils/capacitor', () => ({ getPlatform: () => mockGetPlatform() }))
+jest.mock('@/utils/app-version', () => ({ getCachedBinaryVersion: () => mockGetCachedBinaryVersion() }))
 jest.mock('@/constants/app-release', () => ({ APP_RELEASE: 'abc123' }))
 
 import { initialSuperProperties, isAnalyticsCaptureBuild, posthogProjectKey } from '../posthog-setup'
@@ -66,4 +69,47 @@ describe('isAnalyticsCaptureBuild', () => {
         Object.assign(process.env, env)
         expect(isAnalyticsCaptureBuild()).toBe(expected)
     })
+})
+
+describe('client flag properties', () => {
+    function freshSetup(): typeof import('../posthog-setup') {
+        let setup: typeof import('../posthog-setup')
+        jest.isolateModules(() => {
+            setup = require('../posthog-setup')
+        })
+        return setup!
+    }
+    beforeEach(() => {
+        mockGetPlatform.mockReturnValue('ios-native')
+        mockGetCachedBinaryVersion.mockReset().mockResolvedValue('1.23.0')
+    })
+    afterEach(() => mockGetPlatform.mockReturnValue('ios-native'))
+
+    it.each([
+        ['android-native', 'android'],
+        ['ios-native', 'ios'],
+    ])('provides native properties for %s and retains the result synchronously', async (platform, expected) => {
+        mockGetPlatform.mockReturnValue(platform)
+        const setup = freshSetup()
+        expect(setup.currentClientFlagProperties()).toBeNull()
+        const props = await setup.clientFlagProperties()
+        expect(props).toEqual({ client_platform: expected, binary_version: '1.23.0' })
+        expect(setup.currentClientFlagProperties()).toEqual(props)
+    })
+
+    it.each(['web', 'android-pwa', 'ios-pwa'])('keeps %s web even if a native version is cached', async (platform) => {
+        mockGetPlatform.mockReturnValue(platform)
+        await expect(freshSetup().clientFlagProperties()).resolves.toEqual({ client_platform: 'web' })
+        expect(mockGetCachedBinaryVersion).not.toHaveBeenCalled()
+    })
+
+    it.each(['android-native', 'ios-native', 'web', 'android-pwa', 'ios-pwa'])(
+        'omits unavailable binary version for %s',
+        async (platform) => {
+            mockGetPlatform.mockReturnValue(platform)
+            mockGetCachedBinaryVersion.mockResolvedValue(undefined)
+            const expected = platform === 'android-native' ? 'android' : platform === 'ios-native' ? 'ios' : 'web'
+            await expect(freshSetup().clientFlagProperties()).resolves.toEqual({ client_platform: expected })
+        }
+    )
 })

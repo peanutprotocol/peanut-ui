@@ -13,14 +13,31 @@
     <body>
         <header>
             <a class="brand" href="/screens/">peanut <span>Screen library</span></a>
+            <div class="gallery-header-actions">
+                <a class="copy-nav" href="/screen-library/copy.html">Copy coverage</a>
+                <button
+                    id="activity-toggle"
+                    class="activity-button"
+                    type="button"
+                    aria-controls="comment-activity"
+                    aria-expanded="false"
+                    hidden
+                >
+                    Latest activity
+                </button>
+            </div>
         </header>
         <main>
-            <h1 id="title">Every screen.<br />Every change.</h1>
-            <p id="description">Browse app states and compare versions of Peanut.</p>
-            <details>
-                <summary>Capture details and exact revisions</summary>
-                <div id="provenance"></div>
-            </details>
+            <div class="library-intro">
+                <div>
+                    <h1 id="title">Every screen.<br />Every change.</h1>
+                    <p id="description">Browse app states and compare versions of Peanut.</p>
+                    <details>
+                        <summary>Capture details and exact revisions</summary>
+                        <div id="provenance"></div>
+                    </details>
+                </div>
+            </div>
             <p id="coverage" role="status">Loading library…</p>
             <p id="history-unavailable" class="history-meta" hidden></p>
             <section id="auth-preview" class="auth-preview" hidden aria-hidden="true">
@@ -223,34 +240,64 @@
                         Scroll to load more screens
                     </div>
                 </div>
-                <aside id="comment-feed" class="comment-feed" aria-label="Latest screen activity" hidden></aside>
             </div>
         </main>
+        <aside id="comment-activity" class="comment-activity" aria-labelledby="activity-title" hidden>
+            <div class="activity-heading">
+                <h2 id="activity-title">Latest activity</h2>
+                <button id="activity-close" class="activity-button" type="button" aria-label="Close activity">
+                    Close
+                </button>
+            </div>
+            <div id="comment-feed" class="comment-feed"></div>
+        </aside>
         <dialog id="zoom" aria-labelledby="zoom-title">
-            <div class="dialog-head">
-                <div>
-                    <p id="zoom-position" class="zoom-position"></p>
-                    <h2 id="zoom-title"></h2>
+            <div id="zoom-preview" class="zoom-preview">
+                <div class="dialog-head">
+                    <div>
+                        <p id="zoom-position" class="zoom-position"></p>
+                        <h2 id="zoom-title"></h2>
+                    </div>
+                    <div class="dialog-actions">
+                        <button id="zoom-history" type="button" aria-label="History" title="History" hidden>
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M3 12a9 9 0 1 1 2.6 6.4M3 12V6m0 6h6m3-5v5l3 2" />
+                            </svg>
+                        </button>
+                        <button
+                            id="zoom-comments"
+                            type="button"
+                            aria-label="Comments"
+                            title="Comments"
+                            aria-controls="comment-panel"
+                            aria-expanded="false"
+                            hidden
+                        >
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H5l1.7-3.3A7.5 7.5 0 1 1 20 11.5Z" />
+                            </svg>
+                        </button>
+                        <button id="close" type="button" aria-label="Close" title="Close">
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
+                        </button>
+                    </div>
                 </div>
-                <button id="zoom-history" type="button" hidden>History</button>
-                <button id="close" aria-label="Close enlarged screen">Close ×</button>
-            </div>
-            <div id="zoom-controls" class="zoom-controls">
-                <button id="side">Side by side</button><button id="overlay">Overlay</button
-                ><button id="difference">Pixel difference</button
-                ><label id="slider-label" hidden
-                    >Before / after<input id="slider" type="range" min="0" max="100" value="50"
-                /></label>
-            </div>
-            <div class="zoom-body">
+                <div id="zoom-controls" class="zoom-controls">
+                    <button id="side">Side by side</button><button id="overlay">Overlay</button
+                    ><button id="difference">Pixel difference</button
+                    ><label id="slider-label" hidden
+                        >Before / after<input id="slider" type="range" min="0" max="100" value="50"
+                    /></label>
+                </div>
                 <div class="preview-stage">
                     <button id="zoom-prev" class="preview-nav" type="button" aria-label="Previous screen">‹</button>
                     <div id="zoom-images"></div>
+                    <div id="zoom-feedback"></div>
                     <button id="zoom-next" class="preview-nav" type="button" aria-label="Next screen">›</button>
                 </div>
-                <aside id="comment-panel" class="comment-panel" aria-label="Screen discussion" hidden></aside>
+                <p class="preview-help"><kbd>←</kbd><kbd>→</kbd> Navigate <kbd>Esc</kbd> Close</p>
             </div>
-            <p class="preview-help"><kbd>←</kbd><kbd>→</kbd> Navigate <kbd>Esc</kbd> Close</p>
+            <aside id="comment-panel" class="comment-panel" aria-label="Screen discussion" tabindex="-1" hidden></aside>
         </dialog>
         <footer id="footer">English · 393 × 852 · Synthetic data</footer>
         <section id="auth-gate" class="auth-gate" hidden role="dialog" aria-modal="true" aria-labelledby="auth-title">

@@ -2,6 +2,7 @@
 
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
+import type { Person } from '@/lib/person/person.types'
 import type { RequestPayRail } from '@/services/services.types'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
@@ -12,8 +13,7 @@ import { getCardPosition } from '@/components/Global/Card/card.utils'
 export function BankTransferChooserDrawer({
     requestId,
     rails,
-    recipientUsername,
-    recipientAvatarKey,
+    person,
     requestMessage,
     requestAmount,
     bankRowProps,
@@ -21,8 +21,8 @@ export function BankTransferChooserDrawer({
 }: {
     requestId: string
     rails: RequestPayRail[]
-    recipientUsername?: string
-    recipientAvatarKey?: string | null
+    /** The requester (TASK-23756). */
+    person?: Person | null
     requestMessage?: string
     requestAmount?: string
     bankRowProps: {
@@ -53,9 +53,7 @@ export function BankTransferChooserDrawer({
                     <DrawerHeader>
                         <DrawerTitle className="text-start">{t('chooseCurrency')}</DrawerTitle>
                     </DrawerHeader>
-                    <RequestPaymentContext
-                        {...{ recipientUsername, recipientAvatarKey, requestMessage, requestAmount }}
-                    />
+                    <RequestPaymentContext {...{ person, requestMessage, requestAmount }} />
                     <div className="pb-4">
                         {rails.map((rail, index) => (
                             <PayByBankTransferDrawer
@@ -65,8 +63,7 @@ export function BankTransferChooserDrawer({
                                 nested
                                 position={getCardPosition(index, rails.length)}
                                 requestContext={{
-                                    recipientUsername,
-                                    recipientAvatarKey,
+                                    person,
                                     requestMessage,
                                     requestAmount,
                                 }}

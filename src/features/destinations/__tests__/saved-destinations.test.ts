@@ -3,6 +3,7 @@ import {
     accountDestination,
     byMostRecentlyUsed,
     destinationLabel,
+    isPixAccount,
     savedAddressDestination,
     type SavedDestination,
 } from '../saved-destinations'
@@ -126,5 +127,31 @@ describe('byMostRecentlyUsed', () => {
         const old = dest({ id: 'old', createdAt: '2026-01-01T00:00:00.000Z' })
         const fresh = dest({ id: 'fresh', createdAt: '2026-05-01T00:00:00.000Z' })
         expect([old, fresh].sort(byMostRecentlyUsed).map((d) => d.id)).toEqual(['fresh', 'old'])
+    })
+})
+
+describe('isPixAccount', () => {
+    const brazil = { bankName: null, accountOwnerName: 'Ada', countryCode: 'BRA', countryName: 'brazil' }
+
+    it("the user's own account in Brazil", () => {
+        expect(isPixAccount(account({ type: AccountType.MANTECA, identifier: '09579927189', details: brazil }))).toBe(
+            true
+        )
+    })
+
+    it("someone else's key, kept from a payment", () => {
+        expect(
+            isPixAccount(account({ type: AccountType.MANTECA, identifier: 'maria@silva.com.br', isPixRecipient: true }))
+        ).toBe(true)
+    })
+
+    it('not a Manteca account in Argentina, and not a bank account elsewhere', () => {
+        const argentina = { ...brazil, countryCode: 'ARG', countryName: 'argentina' }
+        expect(
+            isPixAccount(
+                account({ type: AccountType.MANTECA, identifier: '0000003100010000000001', details: argentina })
+            )
+        ).toBe(false)
+        expect(isPixAccount(account({ type: AccountType.IBAN, identifier: 'ES27007509842206070802' }))).toBe(false)
     })
 })

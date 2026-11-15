@@ -3,12 +3,15 @@ import {
     buildBalanceSummary,
     buildCardSummary,
     buildLinkedAccounts,
+    buildSupportLinkedAccounts,
     buildSupportSegments,
     normalizeSupportRoute,
     redactSupportText,
     relativeAge,
 } from '../support-context'
 import { AccountType, type Account, type IUserProfile } from '@/interfaces/interfaces'
+import type { SupportLinkedAccount } from '@/interfaces/interfaces'
+import type { paths } from '@/types/api.generated'
 import type { RainCardOverview } from '@/services/rain'
 
 const NOW = new Date('2026-08-27T12:00:00Z').getTime()
@@ -23,12 +26,12 @@ const overview = (partial: Partial<RainCardOverview> = {}): RainCardOverview =>
 
 describe('buildBalanceSummary', () => {
     it('sums the two halves when both are answers', () => {
-        expect(buildBalanceSummary(100_000_000n, overview())).toBe('$123.45 spendable (wallet $100.00 · card $23.45)')
+        expect(buildBalanceSummary(100_000_000n, overview())).toBe('$123.45 spendable (wallet $100 · card $23.45)')
     })
 
     it('treats a user with no card application as a real zero, not unknown', () => {
         const noCard = overview({ status: { hasApplication: false }, balance: null })
-        expect(buildBalanceSummary(100_000_000n, noCard)).toBe('$100.00 spendable (wallet $100.00 · card $0.00)')
+        expect(buildBalanceSummary(100_000_000n, noCard)).toBe('$100 spendable (wallet $100 · card $0)')
     })
 
     /*
@@ -36,11 +39,11 @@ describe('buildBalanceSummary', () => {
      * who reads "$0.00" tells a funded user they have no money. "unavailable"
      * is strictly better than a confident wrong number.
      */
-    it('never prints $0.00 for a balance it could not read', () => {
+    it('never prints $0 for a balance it could not read', () => {
         const unreadable = overview({ balance: null, balanceUnavailable: true })
         const summary = buildBalanceSummary(100_000_000n, unreadable)
-        expect(summary).toBe('wallet $100.00 · card unavailable — total unknown')
-        expect(summary).not.toContain('$0.00')
+        expect(summary).toBe('wallet $100 · card unavailable — total unknown')
+        expect(summary).not.toContain('$0')
     })
 
     it('reports unavailable when nothing has been cached yet', () => {
@@ -103,7 +106,7 @@ describe('buildCardSummary', () => {
             cards: [{ last4: '1234', status: 'active' }],
         } as Partial<RainCardOverview>)
         expect(buildCardSummary(withCard)).toBe(
-            'application:approved · rail:ENABLED · limit $500.00 · due $0.00 · ··1234:active'
+            'application:approved · rail:ENABLED · limit $500 · due $0 · ··1234:active'
         )
     })
 
@@ -111,6 +114,16 @@ describe('buildCardSummary', () => {
         const summary = buildCardSummary(overview({ balance: null, balanceUnavailable: true })) ?? ''
         expect(summary).toContain('balance unavailable')
         expect(summary).not.toContain('$0.00')
+    })
+})
+
+describe('buildSupportLinkedAccounts', () => {
+    it('lists the relation-only public payload without private identifiers', () => {
+        expect(buildSupportLinkedAccounts([{ relation: 'holds_email' }, { relation: 'blocked_on_email' }])).toBe(
+            'holds_email · blocked_on_email'
+        )
+        expect(buildSupportLinkedAccounts([])).toBeUndefined()
+        expect(buildSupportLinkedAccounts(undefined)).toBeUndefined()
     })
 })
 
@@ -294,4 +307,20 @@ describe('redactSupportText', () => {
         )
         expect(redactSupportText('')).toBe('')
     })
+})
+
+// Compile-time public contract: handwritten support metadata must not demand or
+// advertise identifiers that GET /users/me intentionally withholds.
+type WireLinkedAccount = NonNullable<
+    paths['/users/me']['get']['responses'][200]['content']['application/json']['supportLinkedAccounts']
+>[number]
+it('the handwritten linked-account type is exactly the public relation-only shape', () => {
+    const sameKeys: [keyof SupportLinkedAccount] extends [keyof WireLinkedAccount]
+        ? [keyof WireLinkedAccount] extends [keyof SupportLinkedAccount]
+            ? true
+            : false
+        : false = true
+    expect(sameKeys).toBe(true)
+    const linked: SupportLinkedAccount[] = [{ relation: 'holds_email' }, { relation: 'blocked_on_email' }]
+    expect(buildSupportLinkedAccounts(linked)).toBe('holds_email · blocked_on_email')
 })

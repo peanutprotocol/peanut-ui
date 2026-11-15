@@ -2,6 +2,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
+import { useModalsContext } from '@/context/ModalsContext'
+import { buildContactSupportMessage } from '@/utils/contact-support.utils'
+import { isBridgeProcessingSlow } from '@/utils/kyc-processing.utils'
 import type { GateState } from '@/utils/capability-gate'
 
 // Re-arm cadence: comfortably under SUBMISSION_WINDOW_MS (30s) so the singleton
@@ -35,6 +38,7 @@ const WAIT_ONLY_GATE_KINDS = new Set<GateState['kind']>(['waiting-on-provider', 
  */
 export function useWaitingOnProviderModal(gate: GateState) {
     const tIdentity = useTranslations('identity')
+    const { openSupportWithMessage } = useModalsContext()
     const [requested, setRequested] = useState(false)
     const isWaiting = WAIT_ONLY_GATE_KINDS.has(gate.kind)
     const isOpen = requested && isWaiting
@@ -43,7 +47,13 @@ export function useWaitingOnProviderModal(gate: GateState) {
     // the discriminated union rather than cast, so a rename of `userMessage`
     // fails the build instead of silently returning undefined. Known reason
     // codes render localized copy; unknown keep the BE prose.
-    const reasonKey = isOpen && gate.kind === 'waiting-on-provider' ? reasonCodeKey(gate.reason?.code) : undefined
+    const slow =
+        isOpen && gate.kind === 'waiting-on-provider' && isBridgeProcessingSlow(gate.reason?.code, gate.pendingSince)
+    const reasonKey = slow
+        ? 'reasons.bridge_processing_slow'
+        : isOpen && gate.kind === 'waiting-on-provider'
+          ? reasonCodeKey(gate.reason?.code)
+          : undefined
     const message =
         isOpen && gate.kind === 'waiting-on-provider'
             ? reasonKey
@@ -71,5 +81,13 @@ export function useWaitingOnProviderModal(gate: GateState) {
         return () => clearInterval(id)
     }, [isOpen])
 
-    return { isOpen, open, close, message }
+    const onContactSupport =
+        slow && gate.kind === 'waiting-on-provider'
+            ? () => {
+                  close()
+                  openSupportWithMessage(buildContactSupportMessage({ reason: gate.reason, railId: gate.railId }))
+              }
+            : undefined
+
+    return { isOpen, open, close, message, onContactSupport }
 }

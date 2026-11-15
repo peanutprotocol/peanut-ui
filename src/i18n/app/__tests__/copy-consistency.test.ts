@@ -182,3 +182,74 @@ describe.each(APP_LOCALES)('retired terms are gone from the fixed surfaces (%s)'
         expect(offenders).toEqual([])
     })
 })
+
+const SPANISH_REGISTER_KEYS = [
+    'kyc.paperworkVerification.errors.tooShort',
+    'kyc.paperworkVerification.errors.streetNumberMissing',
+    'kyc.paperworkVerification.errors.invalidBody',
+    'kyc.paperworkVerification.errors.unknownStep',
+    'kyc.paperworkVerification.errors.rateLimited',
+    'kyc.paperworkVerification.addLater.actionDescription',
+    'profile.about.beta.staged',
+    'profile.about.beta.closed',
+    'profile.about.beta.leftStillBeta',
+    'profile.about.beta.leftOverride',
+    'profile.about.beta.leftUnconfirmed',
+    'withdraw.errors.feeExceedsAmount',
+] as const
+const VOSEO =
+    /(?<!\p{L})(?:agregá|volvé|esperá|completá|ingresá|elegí|intentá|contactá|reiniciá|pedí|pedile|reinstalala)(?!\p{L})/iu
+const TUTEO =
+    /(?<!\p{L})(?:agrega|vuelve|espera|completa|ingresa|elige|intenta|contacta|reinicia|pide|pídele|reinstálala)(?!\p{L})/iu
+
+describe('Spanish paperwork, beta and withdrawal register', () => {
+    it.each(SPANISH_REGISTER_KEYS)('es-419 %s addresses the user with tú', (key) => {
+        const value = read('es-419', key)
+        expect(typeof value).toBe('string')
+        expect(value).not.toMatch(VOSEO)
+        expect(value).toMatch(TUTEO)
+    })
+
+    it.each(SPANISH_REGISTER_KEYS)('es-AR %s preserves its explicit voseo override', (key) => {
+        const value = read('es-AR', key)
+        // A resolved-only test could pass accidentally through base inheritance.
+        const override = key
+            .split('.')
+            .reduce<unknown>(
+                (node, part) =>
+                    node && typeof node === 'object' ? (node as Record<string, unknown>)[part] : undefined,
+                esAR
+            )
+        expect(typeof override).toBe('string')
+        expect(value).toBe(override)
+        expect(value).toMatch(VOSEO)
+        expect(value).not.toMatch(TUTEO)
+    })
+})
+
+describe('Portuguese Social Security number terminology', () => {
+    it.each(['tax.title.ssn', 'tax.label.ssn', 'errors.itinNotAccepted'])(
+        '%s consistently calls it the número do Seguro Social',
+        (suffix) => {
+            expect(read('pt-BR', `kyc.paperworkVerification.${suffix}`)).toMatch(/número do Seguro Social/i)
+            expect(read('pt-BR', `kyc.paperworkVerification.${suffix}`)).not.toMatch(/Social Security/i)
+        }
+    )
+})
+
+describe.each([
+    ['pt-BR', /^O Peanut Card /],
+    ['es-419', /^La Peanut Card /],
+    ['es-AR', /^La Peanut Card /],
+] as const)('closed card copy (%s)', (locale, article) => {
+    it('every reason starts with the localized card article', () => {
+        const card = leafValue(CATALOGS[locale], 'kyc.paperworkVerification.closed.card') as unknown as Record<
+            string,
+            string
+        >
+        expect(Object.keys(card).length).toBeGreaterThan(0)
+        for (const [reason, text] of Object.entries(card)) {
+            expect([reason, text]).toEqual([reason, expect.stringMatching(article)])
+        }
+    })
+})

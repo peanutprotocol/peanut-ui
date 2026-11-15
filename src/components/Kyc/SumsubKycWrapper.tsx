@@ -26,7 +26,11 @@ export const SumsubKycWrapper = (props: SumsubSdkProps) => {
     const { user } = useAuth()
     const email = (props.email ?? user?.user.email)?.trim() || undefined
     if (!nativePlatform.isHydrated) return null
-    if (nativePlatform.isCapacitor && !(webFallback && webFallback.sessionKey === props.sessionKey)) {
+    if (
+        nativePlatform.isCapacitor &&
+        !props.validationError &&
+        !(webFallback && webFallback.sessionKey === props.sessionKey)
+    ) {
         return (
             <SumsubNativeSdk
                 {...props}

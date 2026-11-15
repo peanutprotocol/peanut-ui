@@ -19,6 +19,7 @@ import React from 'react'
 import posthog from 'posthog-js'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { IntlWrapper } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
 
@@ -45,8 +46,14 @@ jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn()
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn(), captureMessage: jest.fn() }))
 jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '/mp.png', PIX: '/pix.png' }))
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: { user: { userId: 'u1', username: 'tester' } }, fetchUser: jest.fn() }),
+    useAuth: () => ({
+        user: { user: { userId: 'u1', username: 'tester' } },
+        fetchUser: jest.fn(),
+    }),
 }))
+// what the pay:PIX_BR route blocks (its own suite covers reading the route)
+let mockPixBlock: 'paused' | 'residence' | null = null
+jest.mock('@/features/pix/usePixPayBlock', () => ({ usePixPayBlock: () => mockPixBlock }))
 const mockUseWallet = jest.fn()
 jest.mock('@/hooks/wallet/useWallet', () => ({ useWallet: () => mockUseWallet() }))
 jest.mock('@/hooks/useRainCardOverview', () => ({
@@ -133,7 +140,13 @@ jest.mock('@/hooks/useZeroDev', () => ({ useZeroDev: () => ({ handleSendUserOpEn
 jest.mock('@/context/ModalsContext', () => ({ useModalsContextOptional: () => undefined }))
 const mockGrant = jest.fn()
 jest.mock('@/hooks/wallet/useGrantSessionKey', () => ({ useGrantSessionKey: () => ({ grant: mockGrant }) }))
-jest.mock('@/utils/rainWithdraw.utils', () => ({ buildRainWithdrawTypedData: jest.fn(() => ({})) }))
+jest.mock('@/utils/rainWithdraw.utils', () => ({
+    ...jest.requireActual('@/utils/rainWithdraw.utils'),
+    buildRainWithdrawTypedData: jest.fn(() => ({})),
+    // The real signer builds typed data from a full prep; the account's own signer is what is under test.
+    signRainWithdrawAdmin: (account: { signTypedData: (data: unknown) => Promise<string> }) =>
+        account.signTypedData({}),
+}))
 jest.mock('@/services/rain', () => ({ rainApi: { prepareWithdrawal: jest.fn(), cancelPreparation: jest.fn() } }))
 jest.mock('@/hooks/wallet/spendPreflight', () => ({
     ...jest.requireActual('@/hooks/wallet/spendPreflight'),
@@ -206,6 +219,7 @@ import { LoadingStateContextProvider } from '@/context/loadingStates.context'
 import { QrPayFlowProvider, useQrPayFlow } from '../QrPayFlowContext'
 import { QrPayPage } from '../QrPayPage'
 import { getCurrencyPrice } from '@/app/actions/currency'
+import { convertDecimalAmount } from '@/lib/money'
 import { SpendRecoveryQuoteReviewError } from '@/hooks/wallet/signSpendRetry'
 import type { QrPayFlowSurface } from '../useQrPayFlow'
 
@@ -293,22 +307,26 @@ function renderFlow(
     options: { strict?: boolean; page?: boolean } = {}
 ) {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
-    const tree = (
+    const tree = () => (
         <IntlWrapper>
-            <QueryClientProvider client={queryClient}>
-                <LoadingStateContextProvider>
-                    {options.page ? (
-                        <QrPayPage {...scan} />
-                    ) : (
-                        <QrPayFlowProvider {...scan}>
-                            <Probe />
-                        </QrPayFlowProvider>
-                    )}
-                </LoadingStateContextProvider>
-            </QueryClientProvider>
+            <NuqsTestingAdapter>
+                <QueryClientProvider client={queryClient}>
+                    <LoadingStateContextProvider>
+                        {options.page ? (
+                            <QrPayPage {...scan} />
+                        ) : (
+                            <QrPayFlowProvider {...scan}>
+                                <Probe />
+                            </QrPayFlowProvider>
+                        )}
+                    </LoadingStateContextProvider>
+                </QueryClientProvider>
+            </NuqsTestingAdapter>
         </IntlWrapper>
     )
-    return render(options.strict ? <React.StrictMode>{tree}</React.StrictMode> : tree)
+    const renderTree = () => (options.strict ? <React.StrictMode>{tree()}</React.StrictMode> : tree())
+    const rendered = render(renderTree())
+    return { ...rendered, refresh: () => rendered.rerender(renderTree()) }
 }
 
 async function waitForLockedForm() {
@@ -340,6 +358,7 @@ function expectNoSuccessReported() {
 }
 
 beforeEach(() => {
+    mockPixBlock = null
     jest.clearAllMocks()
     surface = null
     fakeClient = makeFakeClient()
@@ -429,6 +448,7 @@ describe('Pay on a locked amount', () => {
         expect(elapsed.every((v, i) => i === 0 || v >= elapsed[i - 1])).toBe(true)
         expect(events.find((s) => s.stage === 'strategy_ready')).toMatchObject({ strategy: 'smart-only' })
         expect(events.find((s) => s.stage === 'attempt_finished')).toMatchObject({ strategy: 'smart-only' })
+        expect(events.every((s) => s.provider === 'manteca')).toBe(true)
         expect(events.find((s) => s.stage === 'signing_preparation_ready')).toMatchObject({ preparation: 'reused' })
         // no payload leaks: none of the bounded events carries anything else
         for (const event of events) {
@@ -447,6 +467,8 @@ describe('Pay on a locked amount', () => {
                         'strategy',
                         'outcome',
                         'preparation',
+                        // who serves it, so one event per stage covers every provider (TASK-24947 M5)
+                        'provider',
                     ].includes(k)
                 )
             ).toBe(true)
@@ -530,7 +552,7 @@ describe('Pay on a locked amount', () => {
     describe('failures before signing started', () => {
         test('live routing fails (insufficient spendable): no strategy, no signature stage, one terminal failed', async () => {
             const { InsufficientSpendableError } = jest.requireActual('@/hooks/wallet/spendPreflight')
-            mockResolveSpendStrategy.mockRejectedValue(new InsufficientSpendableError())
+            mockResolveSpendStrategy.mockRejectedValue(new InsufficientSpendableError(0n, 10_000_000n))
             renderFlow()
             await waitForLockedForm()
             await waitForWarmup()
@@ -662,6 +684,26 @@ describe('Pay on a locked amount', () => {
         expect(surface?.errorMessage).toBeTruthy()
     })
 
+    test('a response-body timeout keeps status unknown and refreshes Activity without resubmitting', async () => {
+        const { MutationResponseTimeoutError } = await import('@/utils/connection-timeout-error')
+        mockMantecaApi.completeQrPaymentWithSignedTx.mockRejectedValue(
+            new MutationResponseTimeoutError(200, new Error('stalled'))
+        )
+        renderFlow()
+        await waitForLockedForm()
+        await waitForWarmup()
+        await pay()
+        expect(stageOutline().slice(-3)).toEqual([
+            ['request_sent', null],
+            ['response_received', 'unknown'],
+            ['attempt_finished', 'unknown'],
+        ])
+        expectNoSuccessReported()
+        expect(surface?.errorMessage).toBeTruthy()
+        expect(mockCaptureNetworkTriagedFailure).not.toHaveBeenCalled()
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx).toHaveBeenCalledTimes(1)
+    })
+
     test('a deterministic rejection (nonce) is failed', async () => {
         mockMantecaApi.completeQrPaymentWithSignedTx.mockRejectedValue(new Error('AA25 invalid account nonce'))
         renderFlow()
@@ -746,6 +788,7 @@ describe('open-amount QR (no lock until Pay)', () => {
         renderFlow(undefined, { page: true })
 
         const retry = await screen.findByRole('button', { name: /retry/i })
+        expect(screen.getByRole('heading', { name: 'Exchange rate unavailable' })).toBeInTheDocument()
         expect(screen.queryByText('Payment form')).not.toBeInTheDocument()
         expect(fakeClient.account.signUserOperation).not.toHaveBeenCalled()
         fireEvent.click(retry)
@@ -928,8 +971,8 @@ describe('honest Pay failure copy', () => {
         })
     })
 
-    test('unconfirmed Android passkey cleanup: restart copy, Pay disabled because every retry is refused', async () => {
-        const cleanup = new Error('Passkey cleanup is unconfirmed; restart the app')
+    test('unconfirmed Android passkey cleanup: still-open copy, Pay stays enabled for the next try', async () => {
+        const cleanup = new Error('Passkey cleanup is unconfirmed; native still holds the previous request')
         cleanup.name = 'PasskeyCleanupPendingError'
         fakeClient.account.signUserOperation.mockRejectedValue(cleanup)
         renderFlow()
@@ -937,10 +980,268 @@ describe('honest Pay failure copy', () => {
         await waitForWarmup()
         await pay()
 
-        expect(surface?.errorMessage).toBe(copy.passkeyRestart)
-        expect(surface?.isBlockingError).toBe(true)
+        expect(surface?.errorMessage).toBe(copy.passkeyStillOpen)
+        expect(surface?.isBlockingError).toBe(false)
         expect(mockCaptureNetworkTriagedFailure).toHaveBeenCalledWith(cleanup, {
             tags: expect.objectContaining({ qr_pay_step: 'sign', qr_pay_failure: 'passkey_cleanup_pending' }),
         })
+    })
+})
+
+const PIX_PAYLOAD =
+    '00020126580014BR.GOV.BCB.PIX0136123e4567-e12b-3456-7890-123456789abc5204000053039865802BR5913Fulano de Tal6008BRASILIA62070503***63041D3D'
+describe('the pay route before a new Pix payment', () => {
+    test.each(['PIX', 'MERCADO_PAGO'])(
+        'a residence the pay route refuses stops the actual Pix payload before init even with type %s',
+        async (qrType) => {
+            mockPixBlock = 'residence'
+            renderFlow({ qrCode: PIX_PAYLOAD, timestamp: 'blocked', qrType })
+            await act(async () => {})
+            expect(mockMantecaApi.initiateQrPayment).not.toHaveBeenCalled()
+            expect(surface?.view).toBe('BRAZIL_PAUSED')
+            expect(surface?.pixPayBlock).toBe('residence')
+            expect(fakeClient.account.signUserOperation).not.toHaveBeenCalled()
+        }
+    )
+    test('a paused pay route stops a new Pix payment before init too', async () => {
+        mockPixBlock = 'paused'
+        renderFlow({ qrCode: PIX_PAYLOAD, timestamp: 'paused', qrType: 'PIX' })
+        await act(async () => {})
+        expect(mockMantecaApi.initiateQrPayment).not.toHaveBeenCalled()
+        expect(surface?.view).toBe('BRAZIL_PAUSED')
+        expect(surface?.pixPayBlock).toBe('paused')
+    })
+    test('an API residence refusal the route did not foresee shows the residence words, without retries', async () => {
+        mockMantecaApi.initiateQrPayment.mockRejectedValue(
+            Object.assign(new Error('PIX_RESIDENCE_NOT_SUPPORTED'), {
+                code: 'PIX_RESIDENCE_NOT_SUPPORTED',
+                status: 422,
+            })
+        )
+        renderFlow({ qrCode: PIX_PAYLOAD, timestamp: 'api-refusal', qrType: 'PIX' })
+        await waitFor(() => expect(surface?.view).toBe('BRAZIL_PAUSED'))
+        expect(surface?.pixPayBlock).toBe('residence')
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
+    })
+    test('a pay route that turns refused cannot sign an already quoted new Pix payment', async () => {
+        mockMantecaApi.initiateQrPayment.mockResolvedValue(lockFixture({ type: 'PIX' }))
+        const view = renderFlow({ qrCode: PIX_PAYLOAD, timestamp: 'hydrate', qrType: 'PIX' })
+        await waitForLockedForm()
+        await waitForWarmup()
+        mockPixBlock = 'residence'
+        view.refresh()
+        await pay()
+        expect(fakeClient.account.signUserOperation).not.toHaveBeenCalled()
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx).not.toHaveBeenCalled()
+    })
+    test('a submitted payment with an unknown outcome is not replaced by residence refusal', async () => {
+        mockMantecaApi.initiateQrPayment.mockResolvedValue(lockFixture({ type: 'PIX' }))
+        let rejectRequest!: (error: Error) => void
+        mockMantecaApi.completeQrPaymentWithSignedTx.mockImplementation(
+            () =>
+                new Promise((_, reject) => {
+                    rejectRequest = reject
+                })
+        )
+        const view = renderFlow({ qrCode: PIX_PAYLOAD, timestamp: 'unknown', qrType: 'PIX' })
+        await waitForLockedForm()
+        await waitForWarmup()
+        let payment!: Promise<void>
+        await act(async () => {
+            payment = surface!.payQR()
+        })
+        await waitFor(() => expect(mockMantecaApi.completeQrPaymentWithSignedTx).toHaveBeenCalledTimes(1))
+        mockPixBlock = 'residence'
+        view.refresh()
+        await act(async () => {
+            rejectRequest(Object.assign(new Error('timed out'), { name: 'ConnectionTimeoutError' }))
+            await payment
+        })
+        expect(surface?.errorInitiatingPayment).toBeNull()
+        expect(surface?.errorMessage).toBeTruthy()
+        expect(surface?.view).toBe('FORM')
+        expect(stageOutline().slice(-1)).toEqual([['attempt_finished', 'unknown']])
+    })
+    test('payer rejection after amount entry exposes support and blocks signing', async () => {
+        mockMantecaApi.initiateQrPayment.mockResolvedValueOnce(lockFixture({ code: '', paymentAgainstAmount: '0' }))
+        renderFlow()
+        await waitFor(() => expect(surface?.paymentLock).not.toBeNull())
+        await act(async () => {
+            surface!.handleCurrencyAmountChange('5000')
+        })
+        mockMantecaApi.initiateQrPayment.mockRejectedValueOnce(
+            Object.assign(new Error('PAYER_BLOCKED'), { code: 'PAYER_BLOCKED', status: 422 })
+        )
+        await pay()
+        expect(surface?.view).toBe('INIT_ERROR')
+        expect(surface?.initErrorNeedsSupport).toBe(true)
+        expect(surface?.errorInitiatingPayment).toBe(en.qrPay.errors.payerBlocked)
+        expect(fakeClient.account.signUserOperation).not.toHaveBeenCalled()
+    })
+})
+
+test('a refused fixed Pix init reports its bounded host without spending retries', async () => {
+    const tlv = (tag: string, value: string) => `${tag}${String(value.length).padStart(2, '0')}${value}`
+    const qrCode =
+        tlv('00', '01') + tlv('26', tlv('00', 'br.gov.bcb.pix') + tlv('25', 'basspago.com/private-payment-token'))
+    mockMantecaApi.initiateQrPayment.mockRejectedValue(
+        Object.assign(new Error('PAYER_BLOCKED'), { code: 'PAYER_BLOCKED', status: 422 })
+    )
+    renderFlow({ qrCode, timestamp: 'host', qrType: 'PIX' })
+    await waitFor(() => expect(surface?.view).toBe('INIT_ERROR'))
+    expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
+    expect(mockCapture).toHaveBeenCalledWith('pix_qr_init_result', {
+        pix_qr_host: 'basspago',
+        outcome: 'refused',
+        provider: 'manteca',
+    })
+    expect(JSON.stringify(mockCapture.mock.calls)).not.toContain('private-payment-token')
+})
+
+// A whole-balance payment whose lock comes out above the balance (TASK-24621).
+// The live balance and the lock's need arrive on the routing error.
+describe('a lock above the balance', () => {
+    const { InsufficientSpendableError } = jest.requireActual('@/hooks/wallet/spendPreflight')
+    const BALANCE = 531_948_517n
+    // ARS 638,338.50 at 1200 is 531.94875 USD; the form shows it floored to the cent.
+    const TYPED = '638338.50'
+    const SHOWN_USD = '531.94'
+    const LOCKED = 531_948_750n
+
+    async function typeOpenAmount() {
+        mockMantecaApi.initiateQrPayment.mockResolvedValueOnce(lockFixture({ code: '', paymentAgainstAmount: '0' }))
+        const rendered = renderFlow()
+        await waitFor(() => expect(surface?.currency).toBeDefined())
+        await act(async () => {
+            surface!.handleCurrencyAmountChange(TYPED)
+            surface!.setAmount(SHOWN_USD)
+        })
+        await waitFor(() => expect(surface?.currencyAmount).toBe(TYPED))
+        mockMantecaApi.initiateQrPayment.mockResolvedValueOnce(
+            lockFixture({ code: 'LOCK_TYPED', paymentAssetAmount: TYPED, paymentAgainstAmount: '531.94875000' })
+        )
+        return rendered
+    }
+
+    beforeEach(() => {
+        mockUseWallet.mockReturnValue({ address: ACCOUNT, balance: BALANCE, spendableBalance: BALANCE })
+    })
+    afterEach(() => {
+        jest.mocked(getCurrencyPrice).mockImplementation(async () => ({ sell: 1200, buy: 1250 }))
+    })
+
+    test('typed amount, quote gap: the largest amount that fits is shown, nothing is sent, the next tap pays it', async () => {
+        await typeOpenAmount()
+        mockResolveSpendStrategy.mockRejectedValueOnce(new InsufficientSpendableError(BALANCE, LOCKED))
+        await pay()
+
+        expect(surface?.currencyAmount).toBe('638338.22')
+        expect(surface?.paymentLock?.code).toBe('')
+        expect(surface?.amountInputRevision).toBe(1)
+        expect(surface?.quoteUpdatedNotice).toBeNull()
+        expect(surface?.errorMessage).toBeNull()
+        expect(fakeClient.account.signUserOperation).not.toHaveBeenCalled()
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx).not.toHaveBeenCalled()
+        expect(stageOutline().slice(-1)).toEqual([['attempt_finished', 'failed']])
+
+        // Only the next tap quotes and pays, and it pays the amount on screen.
+        mockMantecaApi.initiateQrPayment.mockResolvedValueOnce(
+            lockFixture({ code: 'LOCK_FITTED', paymentAssetAmount: '638338.22', paymentAgainstAmount: '531.94851667' })
+        )
+        await pay()
+
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(3)
+        expect(mockMantecaApi.initiateQrPayment.mock.calls[2][0]).toMatchObject({ amount: '638338.22' })
+        expect(completionBody().paymentLockCode).toBe('LOCK_FITTED')
+        await waitFor(() => expect(surface?.isSuccess).toBe(true))
+    })
+
+    test('typed amount, quote gap: the form keeps the lock rate, so a lower fresh rate cannot block the lowered amount', async () => {
+        await typeOpenAmount()
+        // The lock priced the amount at 1199.9 (the form showed 1200), and the
+        // display rate has since fallen to 1190: at 1190 the lowered amount
+        // would read as 536.37 USD and the balance gate would block it again.
+        mockMantecaApi.initiateQrPayment.mockReset()
+        mockMantecaApi.initiateQrPayment.mockResolvedValueOnce(
+            lockFixture({
+                code: 'LOCK_TYPED',
+                paymentAssetAmount: TYPED,
+                paymentAgainstAmount: '531.99308276',
+                paymentPrice: '1199.9',
+            })
+        )
+        jest.mocked(getCurrencyPrice).mockResolvedValue({ sell: 1190, buy: 1250 })
+        let rejectRouting!: (error: unknown) => void
+        mockResolveSpendStrategy.mockImplementationOnce(
+            () =>
+                new Promise((_, reject) => {
+                    rejectRouting = reject
+                })
+        )
+        let payment!: Promise<void>
+        await act(async () => {
+            payment = surface!.payQR()
+        })
+        // The typed amount's lock is on screen, as it is between the init and routing.
+        await waitFor(() => expect(surface?.currency?.price).toBe(1199.9))
+        await act(async () => {
+            rejectRouting(new InsufficientSpendableError(BALANCE, 531_993_083n))
+            await payment
+        })
+
+        expect(surface?.currencyAmount).toBe('638285.02')
+        expect(surface?.paymentLock?.code).toBe('')
+        await act(async () => {})
+        expect(surface?.currency?.price).toBe(1199.9)
+        // Converted the way the amount field converts it, the lowered amount passes the gate.
+        const shownUsd = convertDecimalAmount(surface!.currencyAmount!, 1, surface!.currency!.price, 2)
+        expect(shownUsd).toBe('531.94')
+        await act(async () => {
+            surface!.setAmount(shownUsd!)
+        })
+        expect(surface?.balanceErrorMessage).toBeNull()
+    })
+
+    test('typed amount, live balance below what the form showed: the wait copy stays until the balance is really short', async () => {
+        const { refresh } = await typeOpenAmount()
+        mockResolveSpendStrategy.mockRejectedValueOnce(new InsufficientSpendableError(500_000_000n, LOCKED))
+        await pay()
+
+        expect(surface?.errorMessage).toBe(en.errors.balanceSettling)
+        expect(surface?.isBlockingError).toBe(false)
+        expect(surface?.currencyAmount).toBe(TYPED)
+        expect(surface?.amount).toBe(SHOWN_USD)
+        expect(surface?.paymentLock?.code).toBe('')
+        expect(surface?.amountInputRevision).toBe(0)
+        expect(surface?.quoteUpdatedNotice).toBeNull()
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx).not.toHaveBeenCalled()
+
+        // The refreshed balance cannot cover the amount: no "try again", the field error says it.
+        mockUseWallet.mockReturnValue({ address: ACCOUNT, balance: 500_000_000n, spendableBalance: 500_000_000n })
+        refresh()
+        await waitFor(() => expect(surface?.balanceErrorMessage).toBe(en.errors.notEnoughBalanceAddFunds))
+        expect(surface?.errorMessage).toBeNull()
+    })
+
+    test('merchant-fixed amount: no re-quote and no lower amount; the field error says how much is missing', async () => {
+        const { refresh } = renderFlow()
+        await waitForLockedForm()
+        mockResolveSpendStrategy.mockRejectedValueOnce(new InsufficientSpendableError(9_990_000n, 10_000_000n))
+        await pay()
+
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
+        expect(surface?.paymentLock?.code).toBe('LOCK123')
+        expect(surface?.currencyAmount).toBe('12000')
+        expect(surface?.amountInputRevision).toBe(0)
+        expect(surface?.quoteUpdatedNotice).toBeNull()
+        expect(surface?.errorMessage).toBe(en.errors.balanceSettling)
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx).not.toHaveBeenCalled()
+
+        mockUseWallet.mockReturnValue({ address: ACCOUNT, balance: 9_990_000n, spendableBalance: 9_990_000n })
+        refresh()
+        await waitFor(() =>
+            expect(surface?.balanceErrorMessage).toBe('Your balance is $0.01 short. Add money to continue.')
+        )
+        expect(surface?.errorMessage).toBeNull()
     })
 })

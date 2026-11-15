@@ -112,11 +112,14 @@ jest.mock('@/context/tokenSelector.context', () => ({
 
 jest.mock('@/utils/general.utils', () => ({
     getInitialsFromName: jest.fn((n: string) => (n ? n.slice(0, 2).toUpperCase() : 'UN')),
-    getTokenDetails: jest.fn(() => ({ symbol: 'USDC', decimals: 6 })),
     isStableCoin: jest.fn(() => true),
     getChainName: jest.fn(() => 'Polygon'),
     getTokenLogo: jest.fn(() => '/token.png'),
     getChainLogo: jest.fn(() => '/chain.png'),
+}))
+jest.mock('@/utils/token.utils', () => ({
+    ...jest.requireActual('@/utils/token.utils'),
+    getTokenDetails: jest.fn(() => ({ symbol: 'USDC', decimals: 6 })),
 }))
 
 // Mock the counterparty fetch the sender-verified enrichment uses; default to

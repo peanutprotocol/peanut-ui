@@ -16,9 +16,8 @@ import {
     isRequestEntry,
     isSendLinkEntry,
     isSplittable,
-    hasShareableReceipt,
+    hasPublicReceipt,
     hasResolvableReceiptDocument,
-    servesAnonymousReceipt,
 } from '../transaction-predicates'
 import type { TransactionDetails } from '../transactionTransformer'
 import type { IntentKind } from '../strategies/registry'
@@ -75,17 +74,6 @@ describe('entry-kind predicates', () => {
             })
         }
     }
-
-    test('hasShareableReceipt matches QR_PAY, ONRAMP, and OFFRAMP', () => {
-        expect(hasShareableReceipt(tx('QR_PAY'))).toBe(true)
-        expect(hasShareableReceipt(tx('ONRAMP'))).toBe(true)
-        expect(hasShareableReceipt(tx('OFFRAMP'))).toBe(true)
-    })
-
-    test('hasShareableReceipt does NOT match unrelated kinds', () => {
-        expect(hasShareableReceipt(tx('DIRECT_TRANSFER'))).toBe(false)
-        expect(hasShareableReceipt(tx('SEND_LINK'))).toBe(false)
-    })
 
     // Gates the "Split this bill" CTA — must fire on real card spends only,
     // never on refunds or auth reversals (you didn't pay those).
@@ -328,20 +316,28 @@ describe('hasUserProfile', () => {
 })
 
 /**
- * The dedicated page serves a crypto deposit to a reader with no session, but
- * the document gates read `hasReceiptPage`, which does not list it — so the
- * page carried no Download affordance and its PDF twin answered 404.
+ * The API decides per entry who may read a receipt and says so on the wire
+ * (TASK-24141). The UI reads that flag and keeps no kind list: a kind list
+ * kept apart from the API's is how P2P sends ended up with no link.
  */
-describe('servesAnonymousReceipt', () => {
-    const tx = (kind: string) => ({ extraDataForDrawer: { kind } }) as unknown as TransactionDetails
+describe('hasPublicReceipt', () => {
+    const tx = (kind: string, publicReceipt?: boolean) =>
+        ({ extraDataForDrawer: { kind, publicReceipt } }) as unknown as TransactionDetails
 
-    it.each(['ONRAMP', 'OFFRAMP', 'QR_PAY', 'SEND_LINK', 'CRYPTO_DEPOSIT'])('serves %s anonymously', (kind) => {
-        expect(servesAnonymousReceipt(tx(kind))).toBe(true)
-    })
+    it.each(['DIRECT_TRANSFER', 'QR_PAY', 'CARD_SPEND_CLEAR', 'SEND_LINK', 'CRYPTO_DEPOSIT'])(
+        'follows the flag on %s',
+        (kind) => {
+            expect(hasPublicReceipt(tx(kind, true))).toBe(true)
+            expect(hasPublicReceipt(tx(kind, false))).toBe(false)
+        }
+    )
 
-    it.each(['DIRECT_TRANSFER', 'CARD_SPEND_CLEAR', 'CRYPTO_WITHDRAW'])('keeps %s owner-only', (kind) => {
-        expect(servesAnonymousReceipt(tx(kind))).toBe(false)
-    })
+    it.each(['ONRAMP', 'OFFRAMP', 'QR_PAY', 'SEND_LINK', 'CRYPTO_DEPOSIT'])(
+        'an API that sends no flag opens no public receipt, %s included',
+        (kind) => {
+            expect(hasPublicReceipt(tx(kind))).toBe(false)
+        }
+    )
 })
 
 /**

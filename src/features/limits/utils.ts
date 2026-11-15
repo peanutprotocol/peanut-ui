@@ -1,6 +1,8 @@
 'use client'
 
-import type { MantecaLimit } from '@/interfaces/interfaces'
+import type { LimitsProvider, MantecaLimit, MonthlyRoom, UserLimitsResponse } from '@/interfaces/interfaces'
+import type { CapabilityRoute, ProviderCode, RailOperation } from '@/types/capabilities'
+import { findPixRoute } from '@/features/pix/pixRoute.utils'
 import { SYMBOLS_BY_CURRENCY_CODE } from '@/constants/currency-symbols.consts'
 import { getCurrencyFlagUrl } from '@/constants/countryCurrencyMapping'
 import { formatExtendedNumber } from '@/utils/general.utils'
@@ -71,6 +73,90 @@ export function getProviderRoute(regionPath: string, hasMantecaKyc: boolean): st
     return '/limits/bridge?region=us'
 }
 
+/** The Pix operation a limits check stands for. */
+const PIX_OPERATION: Record<LimitFlowType, RailOperation> = {
+    onramp: 'deposit',
+    offramp: 'withdraw',
+    'qr-payment': 'pay',
+}
+
+/**
+ * Whose limits apply to a BRL operation: the provider the API's PIX_BR route for that operation names
+ * (api `routing/route-for.ts`). Null for any other currency, or when the API sent no such route; the
+ * caller then keeps the rules it had.
+ */
+export function brlLimitsProvider(
+    routes: CapabilityRoute[] | undefined,
+    flowType: LimitFlowType,
+    currency: LimitCurrency
+): ProviderCode | null {
+    if (currency !== 'BRL') return null
+    return (findPixRoute(routes, PIX_OPERATION[flowType])?.provider as ProviderCode | undefined) ?? null
+}
+
+/**
+ * Whether a provider's limits are unknown right now: the API lists it in `unavailable` (the user holds
+ * it, and its read failed). That is "not available right now", never "no limit". A null limit whose
+ * provider is not listed means the user has no limits there (a Manteca QR pool rail alone has none).
+ */
+export function limitsUnavailable(limits: UserLimitsResponse | null, provider: LimitsProvider): boolean {
+    return !!limits?.unavailable?.includes(provider)
+}
+
+const BRL_OPERATIONS: readonly RailOperation[] = ['deposit', 'withdraw', 'pay']
+
+/**
+ * The BRL operations a provider serves for this user, each read from its own Pix route: inside Avenia's
+ * Pix gate and outside its QR gate, Avenia serves the deposit and the withdrawal while Manteca still
+ * serves the QR payment.
+ */
+export function brlOperationsServedBy(routes: CapabilityRoute[] | undefined, provider: ProviderCode): RailOperation[] {
+    return BRL_OPERATIONS.filter((operation) => findPixRoute(routes, operation)?.provider === provider)
+}
+
+/** Whether Manteca's BRL limit applies to anything the user does: a Pix route names Manteca, or none names Avenia. */
+export function mantecaBrlLimitApplies(routes: CapabilityRoute[] | undefined): boolean {
+    return brlOperationsServedBy(routes, 'manteca').length > 0 || brlOperationsServedBy(routes, 'avenia').length === 0
+}
+
+/**
+ * A USD amount checked against one direction of a provider's monthly room (API-CONTRACT-M5 §5). The
+ * room says only what is left, not the month's total, so the check blocks and never warns. A room
+ * whose USD figure is unknown checks nothing: the API's own limit refusal still holds.
+ */
+export function monthlyRoomValidation(
+    room: MonthlyRoom,
+    amountUsd: number,
+    daysUntilReset: number
+): LimitValidationResult {
+    const usdLeft = room.blocked ? 0 : room.usdLeft === null ? null : parseFloat(room.usdLeft)
+    const base = {
+        isWarning: false,
+        totalLimit: null,
+        daysUntilReset,
+        limitCurrency: 'USD' as const,
+    }
+    if (usdLeft === null || isNaN(usdLeft)) {
+        return {
+            ...base,
+            isBlocking: false,
+            remainingLimit: null,
+            message: null,
+            daysUntilReset: null,
+            limitCurrency: null,
+        }
+    }
+    if (room.blocked || amountUsd > usdLeft) {
+        return {
+            ...base,
+            isBlocking: true,
+            remainingLimit: usdLeft,
+            message: `Amount exceeds your remaining limit of $${formatExtendedNumber(usdLeft)}`,
+        }
+    }
+    return { ...base, isBlocking: false, remainingLimit: usdLeft, message: null }
+}
+
 /**
  * maps a currency string to a valid limit currency type
  * defaults to USD for unsupported currencies
@@ -139,7 +225,7 @@ export function getLimitColorClass(remainingPercent: number, type: 'bg' | 'text'
         return type === 'bg' ? 'bg-background-icon-bubble-green' : 'text-green-800'
     }
     if (remainingPercent > LIMIT_WARNING_THRESHOLD) {
-        return type === 'bg' ? 'bg-action-secondary' : 'text-action-secondary'
+        return type === 'bg' ? 'bg-background-accent-yellow' : 'text-foreground-attention'
     }
     return type === 'bg' ? 'bg-red-200' : 'text-foreground-error'
 }
@@ -205,9 +291,8 @@ export function getLimitsWarningCardProps({
               ? `$${formattedLimit}`
               : `${currencySymbol} ${formattedLimit}`
 
-    // qr payments are always capped per transaction; onramp/offramp only when
-    // there's no period limit to reset
-    const perTransaction = flowType === 'qr-payment' || !validation.daysUntilReset
+    // a limit that resets is a period's room, whatever the flow; any other is a per-transaction cap
+    const perTransaction = !validation.daysUntilReset
     const perTransactionSuffix = perTransaction ? ' per transaction' : ''
     let limitMessage = ''
     if (amountDisplay === null) {

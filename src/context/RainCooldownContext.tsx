@@ -84,10 +84,9 @@ export function RainCooldownProvider({ children }: { children: ReactNode }) {
         return () => window.removeEventListener('rain:cooldown', handler)
     }, [])
 
-    // Push a persistent toast whenever a cooldown is active. Toast's id-dedupe
-    // means re-firing on a mid-cooldown retry is a no-op — no re-animation.
+    // Keep the countdown in the intro until dismissal, then hand it off to the toast.
     useEffect(() => {
-        if (cooldownEndsAt === null) {
+        if (cooldownEndsAt === null || showIntroModal) {
             dismiss(COOLDOWN_TOAST_ID)
             return
         }
@@ -96,7 +95,7 @@ export function RainCooldownProvider({ children }: { children: ReactNode }) {
             duration: 'persistent',
             content: <CooldownPillContent />,
         })
-    }, [cooldownEndsAt, toast, dismiss])
+    }, [cooldownEndsAt, showIntroModal, toast, dismiss])
 
     // the pill and the error read the deadline from the shared clock, not from
     // the toast's props, so a retry that extends it updates both

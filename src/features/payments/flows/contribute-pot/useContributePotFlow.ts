@@ -13,10 +13,14 @@
  * based on existing contributions (e.g. suggests 1/3 for split bills)
  */
 
+import { isPositiveFiniteAmount } from '@/lib/validation/amount'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { type Address } from 'viem'
 import { useContributePotFlowContext } from './ContributePotFlowContext'
 import { useChargeManager } from '@/features/payments/shared/hooks/useChargeManager'
+import { MutationResponseTimeoutError } from '@/utils/connection-timeout-error'
+import { usePaymentStatusRecovery } from '@/features/payments/shared/hooks/usePaymentStatusRecovery'
+import { type TRequestChargeResponse } from '@/services/services.types'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
@@ -62,6 +66,8 @@ export function useContributePotFlow() {
         totalCollected,
         contributors,
         resetContributePotFlow,
+        isPaymentStatusUnknown,
+        setIsPaymentStatusUnknown,
         isExternalWalletPayment,
         setIsExternalWalletPayment,
         refetchRequestPot,
@@ -70,6 +76,15 @@ export function useContributePotFlow() {
     const { user } = useAuth()
     const { createCharge, fetchCharge, isCreating: isCreatingCharge } = useChargeManager()
     const { recordPayment, isRecording } = usePaymentRecorder()
+    const recoverPaymentStatus = usePaymentStatusRecovery({
+        fetchCharge,
+        setCharge,
+        setIsSuccess,
+        setIsPaymentStatusUnknown,
+        setCurrentView,
+        setError,
+        failureMessage: t('errors.externalPaymentNotConfirmed'),
+    })
     const {
         isConnected,
         address: walletAddress,
@@ -77,7 +92,7 @@ export function useContributePotFlow() {
         formattedSpendableBalance,
         spendableBalanceDecimal,
         hasSufficientSpendableBalance: hasSufficientBalance,
-        isFetchingSpendableBalance,
+        isSpendableBalanceReady,
     } = useWallet()
 
     const isLoggedIn = !!user?.user?.userId
@@ -99,8 +114,7 @@ export function useContributePotFlow() {
     // check if can proceed
     const canProceed = useMemo(() => {
         if (!amount || !recipient || !request) return false
-        const amountNum = parseFloat(amount)
-        if (isNaN(amountNum) || amountNum <= 0) return false
+        if (!isPositiveFiniteAmount(amount)) return false
         return true
     }, [amount, recipient, request])
 
@@ -111,9 +125,8 @@ export function useContributePotFlow() {
     }, [amount, hasSufficientBalance])
 
     // check if should show insufficient balance error.
-    // gate on !isFetchingSpendableBalance so we wait for both smart-account
-    // and Rain collateral to settle. See useSemanticRequestFlow for the
-    // same fix + reasoning (TASK-19573).
+    // gate on the live balance (smart-account + Rain collateral), not the
+    // displayed one: a cached total on screen is not an answer yet (TASK-19573).
     const isInsufficientBalance = useMemo(() => {
         return (
             isLoggedIn &&
@@ -122,9 +135,9 @@ export function useContributePotFlow() {
             !isLoading &&
             !isCreatingCharge &&
             !isRecording &&
-            !isFetchingSpendableBalance
+            isSpendableBalanceReady
         )
-    }, [isLoggedIn, amount, hasEnoughBalance, isLoading, isCreatingCharge, isRecording, isFetchingSpendableBalance])
+    }, [isLoggedIn, amount, hasEnoughBalance, isLoading, isCreatingCharge, isRecording, isSpendableBalanceReady])
 
     // What is left to pay. The slider spans it and every suggestion is capped
     // by it, so the field can never prefill more than the request still needs.
@@ -175,7 +188,7 @@ export function useContributePotFlow() {
             shouldReturnAfterCreatingCharge: boolean = false,
             bypassLoginCheck: boolean = false
         ): Promise<{ success: boolean }> => {
-            if (!recipient || !amount || !request) {
+            if (!recipient || !request || !isPositiveFiniteAmount(amount)) {
                 setError({ showError: true, errorMessage: t('errors.missingData') })
                 return { success: false }
             }
@@ -213,6 +226,7 @@ export function useContributePotFlow() {
                 }
             }
 
+            let recordingCharge: TRequestChargeResponse | null = null
             try {
                 // step 1: create charge for this contribution
                 const chargeResult = await createCharge({
@@ -252,6 +266,7 @@ export function useContributePotFlow() {
                 setTxHash(hash)
 
                 // step 3: record payment to backend
+                recordingCharge = chargeResult
                 const paymentResult = await recordPayment({
                     chargeId: chargeResult.uuid,
                     chainId: PEANUT_WALLET_CHAIN.id.toString(),
@@ -268,6 +283,13 @@ export function useContributePotFlow() {
                 void refetchRequestPot()
                 return { success: true }
             } catch (err) {
+                if (err instanceof MutationResponseTimeoutError && recordingCharge) {
+                    const outcome = await recoverPaymentStatus(recordingCharge.uuid)
+                    if (outcome !== 'cancelled') void refetchRequestPot()
+                    setIsLoading(false)
+                    return { success: outcome === 'completed' }
+                }
+
                 // Card re-approval dismissed, or the screen left, before
                 // anything was prepared or signed — control flow, not a failed
                 // contribution. The charge stays open for another attempt.
@@ -298,6 +320,7 @@ export function useContributePotFlow() {
             fetchCharge,
             createCharge,
             sendMoney,
+            recoverPaymentStatus,
             recordPayment,
             refetchRequestPot,
             setCharge,
@@ -392,6 +415,7 @@ export function useContributePotFlow() {
         error,
         isLoading: isLoading || isCreatingCharge || isRecording,
         isSuccess,
+        isPaymentStatusUnknown,
         isExternalWalletPayment,
 
         // derived data

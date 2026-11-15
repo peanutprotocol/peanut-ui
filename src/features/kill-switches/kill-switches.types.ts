@@ -1,3 +1,8 @@
+export interface AppUpdateCutoffs {
+    ios?: string
+    android?: string
+}
+
 export type PaymentProvider = 'MANTECA'
 
 // Manteca first-party bank/kyc rails currently exist only in Argentina (ARS) and Brazil (BRL).
@@ -21,4 +26,8 @@ export interface KillSwitches {
     disableXchainSend: boolean
     /** Warn-only "Maintenance" tag on the Pix option in /add-money/brazil. */
     pixBrazilOnrampMaintenance: boolean
+    /** Identity verification is down: every KYC entry point shows "temporarily down" instead of its CTA. */
+    kycVerificationDown: boolean
+    /** Attention asks that never show (AskId values, or '*' for all of them); an open one closes. */
+    disabledAttentionAsks: string[]
 }

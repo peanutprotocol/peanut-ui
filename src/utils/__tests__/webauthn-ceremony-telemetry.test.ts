@@ -87,6 +87,46 @@ describe('webauthn ceremony telemetry', () => {
         })
     })
 
+    it.each([false, true])('preserves refusal layout metadata with backup eligibility %s', async (backupEligible) => {
+        const error = Object.assign(new Error('incompatible provider'), {
+            name: 'PasskeyProviderUnsupportedError',
+            challengeOffset: 41,
+            backupEligible,
+            clientDataJSON: 'private challenge',
+        })
+        create.mockRejectedValueOnce(error)
+
+        await expect(withCeremonyPurpose('registration', () => navigator.credentials.create({}))).rejects.toBe(error)
+
+        expect(getCeremonyLog()[0]).toMatchObject({ challengeOffset: 41, backupEligible })
+        expect(events('webauthn_ceremony')[0]).toMatchObject({ challenge_offset: 41, backup_eligible: backupEligible })
+        expect(JSON.stringify(capture.mock.calls)).not.toContain('private challenge')
+    })
+
+    it.each([-1, 1.5, NaN, Infinity, '41', null])('ignores malformed refusal layout metadata (%s)', async (offset) => {
+        const error = Object.assign(new Error('refused'), { challengeOffset: offset, backupEligible: 'false' })
+        create.mockRejectedValueOnce(error)
+
+        await expect(navigator.credentials.create({})).rejects.toBe(error)
+
+        expect(getCeremonyLog()[0]).not.toHaveProperty('challengeOffset')
+        expect(getCeremonyLog()[0]).not.toHaveProperty('backupEligible')
+    })
+
+    it('does not mask a refusal when reading layout metadata throws', async () => {
+        const error = new Error('refused')
+        Object.defineProperty(error, 'challengeOffset', {
+            get: () => {
+                throw new Error('unreadable')
+            },
+        })
+        create.mockRejectedValueOnce(error)
+
+        await expect(navigator.credentials.create({})).rejects.toBe(error)
+
+        expect(getCeremonyLog()[0]).toMatchObject({ outcome: 'error', errorName: 'Error' })
+    })
+
     it('counts every native device failure and its later successful recovery without raw error data', async () => {
         const error = Object.assign(
             new Error('The operation couldn’t be completed. Device must be unlocked to perform request.'),
@@ -275,6 +315,28 @@ describe('webauthn ceremony telemetry', () => {
             expect(getCeremonyLog()[0]).toMatchObject({ outcome: 'ok' })
             expect(getCeremonyLog()[0]).not.toHaveProperty('challengeOffset')
             expect(getCeremonyLog()[0]).not.toHaveProperty('backupEligible')
+        })
+
+        it('keeps the offset of a registration refused for its layout (TASK-24498)', async () => {
+            const refusal = Object.assign(new Error('incompatible provider'), {
+                name: 'PasskeyProviderUnsupportedError',
+                code: 'PASSKEY_PROVIDER_UNSUPPORTED',
+                challengeOffset: 41,
+                backupEligible: false,
+            })
+            create.mockRejectedValueOnce(refusal)
+
+            await expect(withCeremonyPurpose('registration', () => navigator.credentials.create({}))).rejects.toBe(
+                refusal
+            )
+            expect(getCeremonyLog()[0]).toMatchObject({ outcome: 'error', challengeOffset: 41, backupEligible: false })
+            expect(events('webauthn_ceremony')[0]).toMatchObject({
+                kind: 'create',
+                outcome: 'error',
+                error_name: 'PasskeyProviderUnsupportedError',
+                challenge_offset: 41,
+                backup_eligible: false,
+            })
         })
 
         it('finds the newest user_op assertion of the current attempt only', async () => {

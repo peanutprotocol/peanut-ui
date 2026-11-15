@@ -59,6 +59,27 @@ afterAll(() => {
 })
 
 describe('ShareButton', () => {
+    it('runs onClick on the tap, before the share, whatever the share then does', async () => {
+        Object.defineProperty(navigator, 'clipboard', {
+            configurable: true,
+            value: { writeText: jest.fn().mockRejectedValue(new Error('denied')) },
+        })
+        const order: string[] = []
+        const onClick = jest.fn(() => order.push('click'))
+        const onError = jest.fn(() => order.push('error'))
+
+        renderWithIntl(
+            <ShareButton url="https://peanut.me/receipt/1" onClick={onClick} onError={onError}>
+                Share receipt
+            </ShareButton>
+        )
+        fireEvent.click(screen.getByRole('button', { name: 'Share receipt' }))
+
+        expect(onClick).toHaveBeenCalledTimes(1)
+        await waitFor(() => expect(onError).toHaveBeenCalledTimes(1))
+        expect(order).toEqual(['click', 'error'])
+    })
+
     it('does not report success when desktop clipboard copying fails', async () => {
         Object.defineProperty(navigator, 'clipboard', {
             configurable: true,

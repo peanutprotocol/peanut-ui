@@ -1,3 +1,4 @@
+import { normalizeResidence } from '@/utils/residence-profile'
 /**
  * The last KYC step prompts for Bridge's terms. It must name the account
  * provider and link its terms, and its button must not read as acceptance
@@ -10,8 +11,8 @@ import { KycVerificationInProgressModal } from '../KycVerificationInProgressModa
 
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }))
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: { residence: { verified: 'MX' } } }),
-    useOptionalAuth: () => ({ user: { residence: { verified: 'MX' } } }),
+    useAuth: () => ({ user: { residence: normalizeResidence({ verified: 'MX' }) } }),
+    useOptionalAuth: () => ({ user: { residence: normalizeResidence({ verified: 'MX' }) } }),
 }))
 
 const renderTosPhase = (props: { onAcceptTerms?: () => void; tosError?: string | null } = {}) =>
@@ -60,5 +61,21 @@ describe('KycVerificationInProgressModal — bridge_tos phase', () => {
         expect(screen.getByText('Could not load terms.')).toBeInTheDocument()
         expect(screen.queryByText('Account provider')).not.toBeInTheDocument()
         expect(screen.queryByRole('link', { name: 'Bridge user terms' })).not.toBeInTheDocument()
+    })
+})
+
+describe('KycVerificationInProgressModal — submitted tax ID', () => {
+    it('shows a dismissible notification promise without an indefinite spinner', () => {
+        const onClose = jest.fn()
+        const view = render(
+            <IntlWrapper>
+                <KycVerificationInProgressModal isOpen onClose={onClose} phase="submitted" />
+            </IntlWrapper>
+        )
+        expect(screen.getByText('Submitted')).toBeInTheDocument()
+        expect(screen.getByText(/reviewing your tax ID/)).toBeInTheDocument()
+        expect(view.baseElement.querySelector('.animate-spin')).toBeNull()
+        screen.getByRole('button', { name: /notify/i }).click()
+        expect(onClose).toHaveBeenCalledTimes(1)
     })
 })

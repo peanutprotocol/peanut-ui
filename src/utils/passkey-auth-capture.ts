@@ -7,6 +7,9 @@
 
 import * as Sentry from '@/utils/sentry-lazy'
 import { currentCeremonyId, stashCeremonyStepUpToken, stashCeremonyVerifyToken } from './passkeyCeremony.utils'
+import { currentAndroidPasskeyScope, registerScopeChallenge } from './android-passkey-scope'
+import { PasskeyProviderUnsupportedError } from './passkey-registration-compatibility'
+import { observePasskeyOptions, timingForPasskeyRequest } from './webauthn-ceremony-telemetry'
 
 // ZeroDev swallows the status/body of these fetches, so a rejected ceremony
 // reaches Sentry only as an opaque "Login not verified" (PEANUT-UI-R0X) with
@@ -30,6 +33,71 @@ export class PasskeyVerifyRejectedError extends Error {
         super('Passkey verification was rejected')
         this.name = 'PasskeyVerifyRejectedError'
         this.status = status
+    }
+}
+
+export class PasskeyVerifyRetryableError extends Error {
+    constructor(
+        readonly status: number,
+        readonly retryAt: number
+    ) {
+        super('Passkey verification temporarily unavailable')
+        this.name = 'PasskeyVerifyRetryableError'
+    }
+}
+
+let loginRetryError: PasskeyVerifyRetryableError | undefined
+export const getLoginRetryError = () =>
+    loginRetryError && Date.now() < loginRetryError.retryAt ? loginRetryError : undefined
+
+function retryAt(response: Response): number {
+    const header = response.headers?.get('Retry-After')?.trim()
+    if (header) {
+        const seconds = /^\d+(?:\.\d+)?$/.test(header) ? Number(header) : NaN
+        const deadline = Number.isFinite(seconds) ? Date.now() + seconds * 1000 : Date.parse(header)
+        if (Number.isSafeInteger(deadline)) return Math.min(Date.now() + 60_000, Math.max(Date.now() + 1000, deadline))
+    }
+    return Date.now() + 1000
+}
+
+/** The assertion verified, but the account it belongs to was deleted (soft-deleted). */
+export class PasskeyAccountDeletedError extends Error {
+    constructor() {
+        super('Passkey account was deleted')
+        this.name = 'PasskeyAccountDeletedError'
+    }
+}
+
+/**
+ * /login/options or /register/options answered non-2xx. ZeroDev would hand the
+ * error body to @simplewebauthn, which crashes reading the missing challenge
+ * with a browser-specific TypeError. No prompt was shown, so nothing is known
+ * about the device's passkey.
+ */
+export class PasskeyOptionsFailedError extends Error {
+    readonly status: number
+
+    constructor(path: string, status: number) {
+        super(`Passkey ${path} failed with status ${status}`)
+        this.name = 'PasskeyOptionsFailedError'
+        this.status = status
+    }
+}
+
+function errorCodeOf(body: string): unknown {
+    try {
+        return (JSON.parse(body) as { error?: unknown } | null)?.error
+    } catch {
+        return undefined
+    }
+}
+
+function isReservedUsername(body: string): boolean {
+    try {
+        const parsed = JSON.parse(body)
+        return parsed?.code === 'USERNAME_RESERVED' || parsed?.error === 'This username is reserved'
+    } catch {
+        return false
     }
 }
 
@@ -76,6 +144,17 @@ export function installPasskeyVerifyCapture(): void {
         // Bind the request to the ceremony active at ISSUE time: a verify whose
         // request predates the current ceremony's window must not enter its stash.
         const issuingCeremonyId = isVerify ? currentCeremonyId() : null
+        // Same rule for Android scopes: the challenge belongs to the flow that asked for it.
+        const issuingScope = passkeyPath?.endsWith('/options') ? currentAndroidPasskeyScope() : undefined
+        let settleTiming = () => {}
+        let timing: ReturnType<typeof timingForPasskeyRequest>
+        try {
+            if (passkeyPath) {
+                timing = timingForPasskeyRequest?.(init)
+                timing?.request(passkeyPath)
+                settleTiming = timing?.phase(isVerify ? 'verify' : 'options') ?? settleTiming
+            }
+        } catch {}
 
         let response: Response
         try {
@@ -87,7 +166,14 @@ export function installPasskeyVerifyCapture(): void {
                 } catch {}
             }
             throw error
+        } finally {
+            try {
+                settleTiming()
+            } catch {}
         }
+        try {
+            if (timing && passkeyPath?.endsWith('/options')) observePasskeyOptions?.(response, timing)
+        } catch {}
 
         // Surface the API conflict before the SDK tries to decode a missing
         // challenge/public key. Never retry by attaching to an existing user.
@@ -103,7 +189,19 @@ export function installPasskeyVerifyCapture(): void {
             }
         }
 
-        let verifyRejection: PasskeyVerifyRejectedError | null = null
+        // The API refuses a passkey whose signed note the wallet validator cannot
+        // read (TASK-24498). The app refuses it first on Android; this covers any
+        // client that does not, so signup still shows the guidance, not ZeroDev's
+        // "Registration not verified".
+        if (response.status === 400 && passkeyPath === '/passkeys/register/verify') {
+            const body = await response
+                .clone()
+                .json()
+                .catch(() => null)
+            if (body?.code === 'PASSKEY_PROVIDER_UNSUPPORTED') throw new PasskeyProviderUnsupportedError()
+        }
+
+        let failure: Error | null = null
         try {
             if (passkeyPath && !response.ok) {
                 const body = await response
@@ -116,9 +214,37 @@ export function installPasskeyVerifyCapture(): void {
                 // credential from a device that holds several. Throw before
                 // ZeroDev decodes the error body as `{ verification: ... }`;
                 // the login recovery wrapper decides whether to re-prompt.
-                if (passkeyPath === '/passkeys/login/verify' && (response.status === 400 || response.status === 401)) {
-                    verifyRejection = new PasskeyVerifyRejectedError(response.status)
+                if (
+                    passkeyPath.startsWith('/passkeys/register/') &&
+                    response.status === 400 &&
+                    isReservedUsername(body)
+                ) {
+                    failure = new Error('This username is reserved')
+                    failure.name = 'UsernameReserved'
+                } else if (
+                    passkeyPath === '/passkeys/login/verify' &&
+                    (response.status === 400 || response.status === 401)
+                ) {
+                    failure = new PasskeyVerifyRejectedError(response.status)
+                } else if (
+                    passkeyPath === '/passkeys/login/verify' &&
+                    response.status === 403 &&
+                    errorCodeOf(body) === 'ACCOUNT_DELETED'
+                ) {
+                    failure = new PasskeyAccountDeletedError()
+                } else if (
+                    passkeyPath === '/passkeys/login/verify' &&
+                    (response.status === 429 || response.status >= 500)
+                ) {
+                    loginRetryError = new PasskeyVerifyRetryableError(response.status, retryAt(response))
+                    failure = loginRetryError
+                } else if (passkeyPath.endsWith('/options')) {
+                    failure = new PasskeyOptionsFailedError(passkeyPath, response.status)
                 }
+            }
+            if (response.ok && issuingScope) {
+                const body = await response.clone().json()
+                registerScopeChallenge(issuingScope, body?.challenge ?? body?.options?.challenge)
             }
             // The token is only STASHED here (keyed to the issuing ceremony);
             // guardPasskeyCeremony persists it when the owning ceremony resolves
@@ -127,6 +253,21 @@ export function installPasskeyVerifyCapture(): void {
             // half-authenticated session (TASK-21782).
             if (response.ok && isVerify) {
                 const body = await response.clone().json()
+                if (
+                    passkeyPath === '/passkeys/register/verify' &&
+                    body?.verified === true &&
+                    issuingCeremonyId !== null &&
+                    typeof init?.body === 'string'
+                ) {
+                    try {
+                        const registration = JSON.parse(init.body)
+                        if (typeof registration.userId === 'string' && typeof registration.username === 'string') {
+                            const { recordSignupRegistration } = await import('@/features/setup/signup-draft')
+                            // The SDK sends a base64 WebAuthn handle; profiles use its decoded account ID.
+                            await recordSignupRegistration(atob(registration.userId), registration.username)
+                        }
+                    } catch {}
+                }
                 if (body && typeof body.token === 'string' && body.token) {
                     stashCeremonyVerifyToken(body.token, issuingCeremonyId)
                 }
@@ -137,7 +278,7 @@ export function installPasskeyVerifyCapture(): void {
         } catch {
             // capture is best-effort; never break the original request
         }
-        if (verifyRejection) throw verifyRejection
+        if (failure) throw failure
         return response
     }
 }

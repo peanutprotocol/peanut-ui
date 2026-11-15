@@ -1,5 +1,5 @@
 import { DEFAULT_KILL_SWITCHES, FULL_MAINTENANCE_ALLOWED_PATHS } from './kill-switches.consts'
-import type { KillSwitches } from './kill-switches.types'
+import type { AppUpdateCutoffs, KillSwitches } from './kill-switches.types'
 
 type Key = keyof KillSwitches
 
@@ -9,6 +9,28 @@ const isStringArray = (value: unknown): value is string[] =>
 // a value counts only if it has the same shape as the default for its key
 const isValidValue = (key: Key, value: unknown): boolean =>
     Array.isArray(DEFAULT_KILL_SWITCHES[key]) ? isStringArray(value) : typeof value === 'boolean'
+
+/** Empty is a confirmed policy with no critical cutoff. Invalid or absent is unknown. */
+export function parseAppUpdateCutoffs(raw: unknown): AppUpdateCutoffs | undefined {
+    if (!raw || typeof raw !== 'object') return undefined
+    const prototype = Object.getPrototypeOf(raw)
+    if (prototype !== Object.prototype && prototype !== null) return undefined
+
+    const cutoffs: AppUpdateCutoffs = {}
+    for (const key of Reflect.ownKeys(raw)) {
+        if (key !== 'ios' && key !== 'android') return undefined
+        const value = (raw as Record<string, unknown>)[key]
+        if (typeof value !== 'string') return undefined
+        if (key === 'ios') {
+            if (!/^(?:0|[1-9][0-9]{0,8})(?:\.(?:0|[1-9][0-9]{0,8})){0,2}$/.test(value) || !/[1-9]/.test(value))
+                return undefined
+        } else if (!/^[1-9][0-9]{0,9}$/.test(value) || Number(value) > 2_100_000_000) {
+            return undefined
+        }
+        cutoffs[key] = value
+    }
+    return cutoffs
+}
 
 /** Keeps only known keys whose value has the right type. Anything else becomes {}. */
 export function sanitizeKillSwitches(raw: unknown): Partial<KillSwitches> {

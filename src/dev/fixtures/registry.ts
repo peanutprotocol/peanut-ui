@@ -10,11 +10,10 @@
 // this registry replaced it.
 
 import type { Fixture } from './types'
-import {
-    RESTRICTED_RESIDENCE_ISO2,
-    CARD_RESTRICTED_RESIDENCE_ISO2,
-    BANKING_RESTRICTED_RESIDENCE_ISO2,
-} from '@/constants/residence.consts'
+import ATTENTION_POLICY from '@/features/attention/catalogue.generated.json'
+import { DOWNLOAD_PROMPT_FIXTURE } from './active'
+import type { RainCardFunding, RainFundingAccess, RainFundingManagementStatus } from '@/services/rain'
+import { DEMO_RESIDENCE_RESTRICTIONS } from '@/utils/demo-kyc'
 import {
     CLAIMABLE_COP,
     CLAIMABLE_EUR,
@@ -23,6 +22,122 @@ import {
 } from '@/features/deposit-accounts/__fixtures__/railPolicy'
 import type { DepositAccount } from '@/features/deposit-accounts/types'
 import { AVATAR_PICKER_PATH } from '@/components/Avatar/avatar.consts'
+import { PAPERWORK_VERIFICATION_FIXTURES } from './paperwork-verification'
+import { DEMO_ADDRESS, DEMO_PIX_BR_CODE, DEMO_USER } from '@/constants/demo-data'
+import {
+    EMPTY_PIX_WITHDRAW_DRAFT,
+    pixWithdrawDraftKey,
+    type PixDraftFlow,
+    type PixWithdrawDraft,
+} from '@/features/pix/pixWithdrawDraft'
+
+const ROUTES = {
+    bank: '/add-money/germany/bank',
+    local: '/add-money/argentina/manteca',
+    card: '/card?kyc=%7B%7D',
+} as const
+const PROVIDERS = { bank: 'bridge', local: 'manteca', card: 'rain' } as const
+const STATES = [
+    'ready',
+    'on',
+    'setting_up',
+    'pending',
+    'action_required',
+    'refused',
+    'failed',
+    'questions_missing',
+] as const
+
+const KYC_FEATURE_ACTIVATION_FIXTURES: Record<string, Fixture> = Object.fromEntries(
+    Object.entries(ROUTES).flatMap(([feature, route]) =>
+        STATES.map((state) => {
+            const key = `POST /users/kyc/features/${feature}/activate`
+            const provider = PROVIDERS[feature as keyof typeof PROVIDERS]
+            return [
+                `feature-activation-${feature}-${state.replaceAll('_', '-')}`,
+                {
+                    route,
+                    about: `First use ${feature}: ${state}; approved workflow identity, synthetic provider responses only.`,
+                    balance: '20',
+                    responses: {
+                        ...PAPERWORK_VERIFICATION_FIXTURES['paperwork-verification-verified'].responses,
+                        'GET /users/me': {
+                            identityVerification: { status: 'verified', oneShot: true },
+                            ...(feature === 'card'
+                                ? {}
+                                : {
+                                      // An account already on passes the gate with no tap; any other state asks first.
+                                      capabilities: {
+                                          features: {
+                                              [feature]: {
+                                                  ...(state === 'on'
+                                                      ? { state: 'on' }
+                                                      : { state: 'ready', action: 'activate' }),
+                                                  accounts: {
+                                                      [feature === 'bank' ? 'EUR' : 'ARS']:
+                                                          state === 'on'
+                                                              ? { state: 'on' }
+                                                              : { state: 'ready', action: 'activate' },
+                                                  },
+                                              },
+                                          },
+                                      },
+                                  }),
+                        },
+                        ...(feature === 'card'
+                            ? {
+                                  'GET /rain/cards': {
+                                      status: { hasApplication: false, railStatus: null, applicationStatus: null },
+                                      cards: [],
+                                      balance: null,
+                                  },
+                              }
+                            : {}),
+                        [key]: {
+                            state,
+                            ...(state === 'action_required' ? { action: `supplement:${provider}` } : {}),
+                            ...(state === 'refused' ? { reason: 'identity_document_insufficient' } : {}),
+                        },
+                        'GET /users/kyc/questions': {
+                            available: true,
+                            attemptId: null,
+                            residence: feature === 'local' ? 'AR' : 'DE',
+                            steps: [
+                                {
+                                    id: 'purpose',
+                                    features: [feature],
+                                    answered: false,
+                                    fields: [
+                                        {
+                                            key: feature === 'card' ? 'cardPurpose' : 'bankPurpose',
+                                            kind: 'choice',
+                                            required: true,
+                                            options: ['personal_or_living_expenses', 'travel'],
+                                            value: null,
+                                        },
+                                    ],
+                                },
+                            ],
+                            firstUnanswered: 'purpose',
+                        },
+                    },
+                    // the missing answers open the feature's questions on /verify
+                    ...(state === 'questions_missing' ? { landsOn: `/verify?feature=${feature}` } : {}),
+                    ...(state === 'failed' ? { fails: [key] } : {}),
+                    rejects: {
+                        'POST /users/kyc/start-action': {
+                            status: 503,
+                            body: { error: 'Synthetic action unavailable' },
+                        },
+                        ...(state === 'questions_missing'
+                            ? { [key]: { status: 409, body: { code: 'questions_missing', step: 'purpose' } } }
+                            : {}),
+                    },
+                } satisfies Fixture,
+            ]
+        })
+    )
+)
 
 // Hugo's overflow case: a username no header was designed for, and a points
 // total that is nine digits with separators.
@@ -90,6 +205,567 @@ const NAMED_BANK_ACCOUNTS = [
 
 // A PIX key saved to favorites after a payment, with the bank the PIX directory
 // named (TASK-23738). Offered under Send → Bank, never as a withdrawal.
+/** The pay:PIX_BR route as the API sends it: paused by the Brazil pause, or refused for a residence. */
+const pixPayRoute = (state: 'paused' | 'refused') => ({
+    operation: 'pay',
+    method: 'PIX_BR',
+    provider: state === 'paused' ? 'manteca' : null,
+    state,
+    reason:
+        state === 'paused'
+            ? { code: 'residence_paused', userMessage: 'Deposits and withdrawals are paused where you live for now.' }
+            : { code: 'residence_not_served', userMessage: 'Pix payments are not available where you live yet.' },
+    candidates: [],
+})
+
+/** the Brazil pause on for a Brazil resident (TASK-24197): the router pauses the pay route */
+const BRAZIL_PAUSED_RESPONSES = {
+    'GET /users/me': {
+        residence: {
+            verified: { country: 'BR', status: 'VERIFIED', updatedAt: null },
+            declared: null,
+            secondaryDeclaredCountry: null,
+        },
+        capabilities: { routes: [pixPayRoute('paused')] },
+    },
+}
+
+/** The backend's Pix routes for a Brazilian resident on Avenia: ready, its account still to open, or opening. */
+const aveniaRoutes = (stage: 'enabled' | 'first-use' | 'reviewing') =>
+    (['deposit', 'withdraw'] as const).map((operation) => {
+        const step =
+            stage === 'enabled'
+                ? { state: 'ready' }
+                : stage === 'reviewing'
+                  ? {
+                        state: 'pending',
+                        reason: { code: 'provider_reviewing', userMessage: 'Avenia is reviewing your verification.' },
+                    }
+                  : {
+                        state: 'action_required',
+                        action: 'activate',
+                        reason: { code: 'first_use_required', userMessage: 'Set up this payment method to continue.' },
+                    }
+        return {
+            operation,
+            method: 'PIX_BR',
+            provider: 'avenia',
+            ...step,
+            // the provider's minimum, as the route states it before any quote: R$20 to add money, R$5 to
+            // withdraw or send (the owner's ruling of 15 Nov)
+            limits: { minAmount: operation === 'deposit' ? '20' : '5', currency: 'BRL' },
+            candidates: [{ provider: 'avenia', ...step }],
+        }
+    })
+
+/** A Brazilian resident on Avenia Pix: verified in Brazil; the rail exists once the first use opened the account. */
+const aveniaResponses = (stage: 'enabled' | 'first-use', overrides: Record<string, unknown> = {}) => ({
+    'GET /users/me': {
+        user: { fullName: 'Ana Souza' },
+        residence: {
+            verified: { country: 'BR', status: 'VERIFIED', updatedAt: null },
+            declared: null,
+            secondaryDeclaredCountry: null,
+        },
+        capabilities: {
+            rails:
+                stage === 'enabled'
+                    ? [
+                          {
+                              id: 'avenia.pix_br',
+                              provider: 'avenia',
+                              method: 'PIX_BR',
+                              channel: 'bank',
+                              country: 'BR',
+                              currency: 'BRL',
+                              status: 'enabled',
+                              operations: { deposit: 'enabled', withdraw: 'enabled' },
+                          },
+                      ]
+                    : [],
+            nextActions: [],
+            restrictions: [],
+            routes: aveniaRoutes(stage),
+        },
+    },
+    // the amount step's estimate: Avenia's indicative quote for the reais on screen
+    'GET /pix/quote': {
+        provider: 'avenia',
+        operation: 'deposit',
+        amountBrl: '100.00',
+        usdcAmount: '18.237000',
+        rate: '5.442342',
+        fixedFeeBrl: '0.75',
+        minAmountBrl: '20',
+    },
+    ...overrides,
+})
+
+/**
+ * A resident outside Brazil, whose Pix routes name Manteca: R$1 minimum, Manteca pays any key and
+ * cannot tell whose it is, charges no flat fee, and its Pix code has no expiry or payer CPF. The one
+ * Pix flow serves it; only the answers differ.
+ */
+const mantecaPixRoutes = () =>
+    (['deposit', 'withdraw', 'pay'] as const).map((operation) => ({
+        operation,
+        method: 'PIX_BR',
+        provider: 'manteca',
+        state: 'ready',
+        ...(operation === 'pay' ? {} : { limits: { minAmount: '1', currency: 'BRL' } }),
+        candidates: [{ provider: 'manteca', state: 'ready' }],
+    }))
+const mantecaPixResponses = (overrides: Record<string, unknown> = {}) => ({
+    'GET /users/me': {
+        user: { fullName: 'Ana Souza' },
+        residence: {
+            verified: { country: 'PT', status: 'VERIFIED', updatedAt: null },
+            declared: null,
+            secondaryDeclaredCountry: null,
+        },
+        capabilities: {
+            rails: [
+                {
+                    id: 'manteca.pix_br',
+                    provider: 'manteca',
+                    method: 'PIX_BR',
+                    channel: 'bank',
+                    country: 'BR',
+                    currency: 'BRL',
+                    status: 'enabled',
+                    operations: { deposit: 'enabled', withdraw: 'enabled', pay: 'enabled' },
+                },
+            ],
+            nextActions: [],
+            restrictions: [],
+            routes: mantecaPixRoutes(),
+        },
+    },
+    'GET /pix/quote': {
+        provider: 'manteca',
+        operation: 'withdraw',
+        amountBrl: '100.00',
+        usdcAmount: '18.390000',
+        rate: '5.437738',
+        fixedFeeBrl: '0',
+        minAmountBrl: '1',
+    },
+    ...overrides,
+})
+const MANTECA_PIX_DEPOSIT_ID = 'fixture-pix-manteca-deposit'
+
+const AVENIA_OWN_KEY = '09579927189'
+const AVENIA_OTHER_KEY = '+5511987654321'
+const AVENIA_WITHDRAW_ROUTE = '/withdraw/pix'
+/** The Pix withdraw form, which lives in the account's session draft and never in the URL. */
+const pixWithdrawForm = (fields: Partial<PixWithdrawDraft>, flow: PixDraftFlow = 'withdraw') => ({
+    [pixWithdrawDraftKey(DEMO_USER.user.userId, flow)]: JSON.stringify({ ...EMPTY_PIX_WITHDRAW_DRAFT, ...fields }),
+})
+const AVENIA_OWN_KEY_INFO = {
+    provider: 'avenia',
+    holderName: 'Ana Souza',
+    holderTaxIdMasked: '095.***.***-89',
+    bankName: 'Banco Inter',
+    ispb: '00416968',
+    ownAccount: true,
+    blocked: false,
+}
+
+/** A Brazilian resident whose Pix routes are in one step: no ready Avenia rail, the route says why. */
+const AVENIA_BR_USER = {
+    user: { fullName: 'Ana Souza' },
+    residence: {
+        verified: { country: 'BR', status: 'VERIFIED', updatedAt: null },
+        declared: null,
+        secondaryDeclaredCountry: null,
+    },
+}
+const aveniaRouteResponses = (
+    step: { state: string; action?: string; reason: { code: string; userMessage: string }; provider?: null },
+    rails: unknown[] = [],
+    nextActions: unknown[] = []
+) => ({
+    'GET /users/me': {
+        ...AVENIA_BR_USER,
+        capabilities: {
+            rails,
+            nextActions,
+            restrictions: [],
+            routes: (['deposit', 'withdraw'] as const).map((operation) => ({
+                operation,
+                method: 'PIX_BR',
+                provider: 'avenia',
+                ...step,
+                limits: { minAmount: operation === 'deposit' ? '20' : '5', currency: 'BRL' },
+                candidates: [{ provider: 'avenia', state: step.state, action: step.action, reason: step.reason }],
+            })),
+        },
+    },
+})
+/** Brazil's states as the API lists them for Avenia's address step: ISO 3166-2 codes alone, with their names. */
+const BR_STATES: Record<string, string> = {
+    AC: 'Acre',
+    AL: 'Alagoas',
+    AP: 'Amapá',
+    AM: 'Amazonas',
+    BA: 'Bahia',
+    CE: 'Ceará',
+    DF: 'Distrito Federal',
+    ES: 'Espírito Santo',
+    GO: 'Goiás',
+    MA: 'Maranhão',
+    MT: 'Mato Grosso',
+    MS: 'Mato Grosso do Sul',
+    MG: 'Minas Gerais',
+    PA: 'Pará',
+    PB: 'Paraíba',
+    PR: 'Paraná',
+    PE: 'Pernambuco',
+    PI: 'Piauí',
+    RJ: 'Rio de Janeiro',
+    RN: 'Rio Grande do Norte',
+    RS: 'Rio Grande do Sul',
+    RO: 'Rondônia',
+    RR: 'Roraima',
+    SC: 'Santa Catarina',
+    SP: 'São Paulo',
+    SE: 'Sergipe',
+    TO: 'Tocantins',
+}
+const ACTIVATE_PIX = 'POST /users/kyc/features/pix/activate'
+/** The one step Avenia still needs from a verified resident of Brazil (TASK-24947): the address or the CPF. */
+const AVENIA_MISSING_STEPS = {
+    address: {
+        id: 'address',
+        features: ['local'],
+        answered: false,
+        fields: [
+            { key: 'street', kind: 'text', required: true, value: null },
+            { key: 'buildingNumber', kind: 'text', required: false, value: null },
+            { key: 'town', kind: 'text', required: true, value: null },
+            {
+                key: 'state',
+                kind: 'choice',
+                required: true,
+                options: Object.keys(BR_STATES),
+                optionLabels: BR_STATES,
+                value: null,
+            },
+            { key: 'postCode', kind: 'text', required: true, value: null },
+            { key: 'country', kind: 'country', required: true, locked: true, value: 'BR' },
+        ],
+    },
+    tax: {
+        id: 'tax',
+        features: ['local'],
+        answered: false,
+        fields: [{ key: 'taxId', kind: 'taxId', required: true, format: 'cpf', value: null }],
+    },
+} as const
+/**
+ * Avenia's first use for a verified resident of Brazil whose verification lacks what Avenia needs:
+ * the activation answers 409 with the step, and the Pix page asks it in place.
+ */
+const aveniaMissingResponses = (step: keyof typeof AVENIA_MISSING_STEPS) => ({
+    responses: {
+        ...aveniaResponses('first-use'),
+        'GET /users/kyc/questions': {
+            available: true,
+            attemptId: null,
+            residence: 'BR',
+            steps: [AVENIA_MISSING_STEPS[step]],
+            firstUnanswered: step,
+            progress: { done: 0, total: 1 },
+        },
+    },
+    rejects: { [ACTIVATE_PIX]: { status: 409, body: { code: 'questions_missing', step } } },
+})
+
+/** The Avenia rail while Avenia reviews the shared verification, with the route's reason. */
+const aveniaPendingRail = (code: string) => ({
+    id: 'avenia.pix_br',
+    provider: 'avenia',
+    method: 'PIX_BR',
+    channel: 'bank',
+    country: 'BR',
+    currency: 'BRL',
+    status: 'pending',
+    reason: { code, userMessage: 'Avenia is reviewing the verification.' },
+})
+const aveniaPending = (code: string) =>
+    aveniaRouteResponses({ state: 'pending', reason: { code, userMessage: 'Avenia is reviewing the verification.' } }, [
+        aveniaPendingRail(code),
+    ])
+
+/** One Avenia Pix withdrawal's history entry as its owner reads it, for the last step after a reload. */
+const AVENIA_WITHDRAWAL_ID = 'fixture-pix-withdrawal'
+const aveniaWithdrawal = (status: string) => ({
+    uuid: AVENIA_WITHDRAWAL_ID,
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-11-05T10:00:00.000Z'),
+    amount: '92.50431',
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    status,
+    userRole: 'SENDER',
+    senderAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
+    recipientAccount: { identifier: '+5511912345678', fullName: 'ANA SOUZA', type: 'PIX', isUser: false },
+    currency: { amount: '503.00', code: 'BRL' },
+    extraData: { kind: 'OFFRAMP', provider: 'AVENIA', usdAmount: '92.50431', pixRecovery: null },
+})
+/**
+ * An Avenia Pix payout to another person's key (TASK-24947): the owner's entry names whom it paid
+ * (`extraData.pixPayout`, API-CONTRACT-M3 §8), so it reads as a send to them.
+ */
+const AVENIA_SEND_ID = 'fixture-pix-send'
+const aveniaSend = (status: string) => ({
+    ...aveniaWithdrawal(status),
+    uuid: AVENIA_SEND_ID,
+    timestamp: new Date('2026-11-06T10:00:00.000Z'),
+    amount: '18.87',
+    recipientAccount: { identifier: AVENIA_OTHER_KEY, fullName: 'BRUNO LIMA', type: 'PIX', isUser: false },
+    currency: { amount: '100.00', code: 'BRL' },
+    extraData: {
+        kind: 'OFFRAMP',
+        provider: 'AVENIA',
+        usdAmount: '18.87',
+        pixRecovery: null,
+        pixPayout: { pixKey: AVENIA_OTHER_KEY, holderName: 'Bruno Lima', bankName: 'Nubank', ownAccount: false },
+    },
+})
+/** Another person's key as Avenia's lookup names it; a foreign holder's payouts are always third-party. */
+const AVENIA_OTHER_KEY_INFO = {
+    provider: 'avenia',
+    holderName: 'Bruno Lima',
+    holderTaxIdMasked: '***.456.789-**',
+    bankName: 'Nubank',
+    ispb: '18236120',
+    ownAccount: false,
+    blocked: false,
+}
+/** The quote of a send of R$100 to that key: the review of a payout to another person. */
+const AVENIA_SEND_PREVIEW = {
+    amountBrl: '100.00',
+    pixKey: AVENIA_OTHER_KEY,
+    ownAccount: false,
+    holderName: 'Bruno Lima',
+    holderTaxIdMasked: '***.456.789-**',
+    bankName: 'Nubank',
+    withdrawUsd: '18.870000',
+    rate: '5.339163',
+    fixedFeeBrl: '0.75',
+    arrivalEstimateSeconds: 60,
+    provider: 'Avenia',
+}
+/** The Pix-key form as a send (`PIX_SEND_PATH`). */
+const AVENIA_SEND_ROUTE = `${AVENIA_WITHDRAW_ROUTE}?sendMethod=bank`
+
+/**
+ * A resident of Germany inside Avenia's rollout gate (API-CONTRACT-M3 §1): Pix sends and withdrawals
+ * on Avenia, no BRL deposit (ruled), merchant QR on Manteca as before. The withdraw route reads the
+ * resident's steps: the account opens at the first send.
+ */
+const aveniaNonResidentRoutes = (stage: 'enabled' | 'first-use') => {
+    const withdraw = aveniaRoutes(stage).find((route) => route.operation === 'withdraw')!
+    const notServed = { code: 'residence_not_served', userMessage: 'Pix deposits are not offered where you live.' }
+    return [
+        {
+            operation: 'deposit',
+            method: 'PIX_BR',
+            provider: null,
+            state: 'refused',
+            reason: notServed,
+            candidates: [
+                { provider: 'avenia', state: 'refused', reason: notServed },
+                {
+                    provider: 'manteca',
+                    state: 'refused',
+                    reason: { code: 'provider_moved', userMessage: 'Pix moved to another partner.' },
+                },
+            ],
+        },
+        withdraw,
+        {
+            operation: 'pay',
+            method: 'PIX_BR',
+            provider: 'manteca',
+            state: 'ready',
+            candidates: [{ provider: 'manteca', state: 'ready' }],
+        },
+    ]
+}
+const aveniaNonResidentResponses = (stage: 'enabled' | 'first-use', overrides: Record<string, unknown> = {}) => ({
+    'GET /users/me': {
+        user: { fullName: 'Lena Fischer' },
+        residence: {
+            verified: { country: 'DE', status: 'VERIFIED', updatedAt: null },
+            declared: null,
+            secondaryDeclaredCountry: null,
+        },
+        capabilities: {
+            rails:
+                stage === 'enabled'
+                    ? [
+                          {
+                              id: 'avenia.pix_br',
+                              provider: 'avenia',
+                              method: 'PIX_BR',
+                              channel: 'bank',
+                              country: 'BR',
+                              currency: 'BRL',
+                              status: 'enabled',
+                              operations: { withdraw: 'enabled' },
+                          },
+                      ]
+                    : [],
+            nextActions: [],
+            restrictions: [],
+            routes: aveniaNonResidentRoutes(stage),
+        },
+    },
+    'GET /pix/quote': {
+        provider: 'avenia',
+        operation: 'withdraw',
+        amountBrl: '100.00',
+        usdcAmount: '18.870000',
+        rate: '5.339163',
+        fixedFeeBrl: '0.75',
+        minAmountBrl: '5',
+    },
+    ...overrides,
+})
+const aveniaOutcomeRoute = (intentId: string) => `${AVENIA_WITHDRAW_ROUTE}?step=success&intentId=${intentId}`
+
+/** One Pix deposit as GET /pix/deposit/:intentId reads it; its code lapsed unless overridden. */
+const AVENIA_DEPOSIT_ID = 'fixture-pix-deposit'
+const AVENIA_DEPOSIT_CODE_ROUTE = `/add-money/pix?step=showQR&intentId=${AVENIA_DEPOSIT_ID}`
+const aveniaDepositRead = (overrides: Record<string, unknown> = {}) => ({
+    provider: 'avenia',
+    intentId: AVENIA_DEPOSIT_ID,
+    status: 'AWAITING_USER_ACTION',
+    pixReceived: false,
+    expiresAt: null,
+    amountBrl: '100.00',
+    usdcAmount: '18.237000',
+    fixedFeeBrl: '0.75',
+    codePayable: false,
+    ...overrides,
+})
+/** The deposit's history entry while its code can still be paid (owner-only pixDeposit). */
+const aveniaPayableDeposit = {
+    uuid: AVENIA_DEPOSIT_ID,
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-11-06T10:00:00.000Z'),
+    amount: '18.237',
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    status: 'PENDING',
+    userRole: 'RECIPIENT',
+    senderAccount: { identifier: 'pix', type: 'PIX', isUser: false },
+    recipientAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
+    currency: { amount: '100.00', code: 'BRL' },
+    extraData: {
+        kind: 'ONRAMP',
+        provider: 'AVENIA',
+        usdAmount: '18.237',
+        pixDeposit: { codePayable: true, expiresAt: null },
+    },
+}
+
+/** Merchant Pix codes (valid EMV and CRC): one that leaves the amount to the payer, one with R$42.50, one with R$3. */
+const PIX_QR_OPEN_AMOUNT =
+    '00020101021226680014br.gov.bcb.pix2546pix.example.com/qr/v2/cobv/padaria-pao-dourado5204000053039865802BR5924PADARIA PAO DOURADO LTDA6009SAO PAULO62070503***630409BC'
+const PIX_QR_FIXED_AMOUNT =
+    '00020101021226680014br.gov.bcb.pix2546pix.example.com/qr/v2/cobv/padaria-pao-dourado520400005303986540542.505802BR5924PADARIA PAO DOURADO LTDA6009SAO PAULO62070503***63043A47'
+const PIX_QR_SMALL_AMOUNT =
+    '00020101021226680014br.gov.bcb.pix2546pix.example.com/qr/v2/cobv/padaria-pao-dourado52040000530398654043.005802BR5924PADARIA PAO DOURADO LTDA6009SAO PAULO62070503***63044A84'
+const AVENIA_QR_PAYMENT_ID = 'fixture-qr-avenia'
+/** /qr-pay for a scanned Pix code, as the scanner opens it; `intentId` once a payment is open. */
+const qrPayRoute = (code: string, intentId?: string) =>
+    `/qr-pay?qrCode=${encodeURIComponent(code)}&type=PIX&t=1${intentId ? `&intentId=${intentId}` : ''}`
+
+/**
+ * A resident of Brazil inside the merchant QR gate (API-CONTRACT-M4 §1): the pay route names Avenia,
+ * with the R$5 floor the app checks before it calls (Aleks, 2026-11-14). Manteca's candidate moved.
+ */
+const aveniaPayRoute = (step: Record<string, unknown>) => ({
+    operation: 'pay',
+    method: 'PIX_BR',
+    provider: 'avenia',
+    ...step,
+    limits: { minAmount: '5', currency: 'BRL' },
+    candidates: [
+        { provider: 'avenia', ...step },
+        {
+            provider: 'manteca',
+            state: 'refused',
+            reason: { code: 'provider_moved', userMessage: 'Pix moved to another partner.' },
+        },
+    ],
+})
+const aveniaQrResponses = (
+    step: Record<string, unknown> = { state: 'ready' },
+    overrides: Record<string, unknown> = {}
+) => {
+    const base = aveniaResponses('enabled')
+    const me = base['GET /users/me']
+    return {
+        ...base,
+        'GET /users/me': {
+            ...me,
+            capabilities: { ...me.capabilities, routes: [...aveniaRoutes('enabled'), aveniaPayRoute(step)] },
+        },
+        ...overrides,
+    }
+}
+/** GET /pix/pay/:intentId of the open payment, in one of its states, with the QR reward it earned (M5). */
+const aveniaQrRead = (state: string, status: string, perk: Record<string, unknown> | null = null) => ({
+    [`GET /pix/pay/${AVENIA_QR_PAYMENT_ID}`]: {
+        provider: 'avenia',
+        intentId: AVENIA_QR_PAYMENT_ID,
+        state,
+        status,
+        amountBrl: '42.50',
+        merchantName: 'PADARIA PAO DOURADO LTDA',
+        selfPay: false,
+        perk,
+    },
+})
+/** The QR reward of a paid Avenia payment, Manteca's shape (API-CONTRACT-M5 §3). */
+const AVENIA_QR_PERK = {
+    eligible: true,
+    discountPercentage: 0,
+    claimed: false,
+    sponsoredUsd: 1,
+    reason: 'Pix cashback',
+    usageId: 'fixture-perk-usage',
+    payoutStatus: 'pending',
+}
+/** Avenia's monthly room on the user's sub-account (GET /users/limits, API-CONTRACT-M5 §5). */
+const AVENIA_LIMITS = {
+    currency: 'BRL',
+    deposit: { brlLeft: '98500.00', usdLeft: '18100.00', blocked: false },
+    payout: { brlLeft: '104200.00', usdLeft: '19150.00', blocked: false },
+}
+/** The payment's history entry (API-CONTRACT-M4 §5): a QR payment to the merchant, provider Avenia. */
+const aveniaQrEntry = (status: string) => ({
+    uuid: AVENIA_QR_PAYMENT_ID,
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-11-15T12:00:00.000Z'),
+    amount: '8.062211',
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    status,
+    userRole: 'SENDER',
+    senderAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
+    recipientAccount: { identifier: 'PADARIA PAO DOURADO LTDA', type: 'BANK_CBU', isUser: false },
+    currency: { amount: '42.50', code: 'BRL' },
+    extraData: { kind: 'QR_PAY', provider: 'AVENIA', usdAmount: '8.062211' },
+})
+
 const PIX_FAVORITE = {
     id: 'fixture-pix-favorite-1',
     userId: 'demo-user',
@@ -135,10 +811,10 @@ const INVITES_ONE = {
         {
             inviteeId: 'fixture-invitee-1',
             username: 'testfriend1',
+            // A friend who shows their name: the API sends it in fullName.
             fullName: 'Test Friend',
             kycVerified: true,
             contributedPoints: 50,
-            showFullName: false,
             lifetimeEarnedUsd: 0.5,
         },
     ],
@@ -152,6 +828,23 @@ const INVITES_ONE = {
         totalLifetimeEarnedUsd: 0.5,
         totalPendingUsd: 0,
     },
+}
+
+// A friend who never finished signup: no username and no name (TASK-24036).
+const INVITES_WITH_UNNAMED = {
+    invitees: [
+        ...INVITES_ONE.invitees,
+        {
+            inviteeId: 'fixture-invitee-unnamed',
+            username: null,
+            fullName: null,
+            kycVerified: false,
+            contributedPoints: 0,
+            showFullName: false,
+            lifetimeEarnedUsd: 0,
+        },
+    ],
+    summary: { ...INVITES_ONE.summary, pendingInvites: 1, totalInvites: 2 },
 }
 
 const HUGE_HISTORY_ENTRY = {
@@ -168,6 +861,40 @@ const HUGE_HISTORY_ENTRY = {
     recipientAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
     extraData: { kind: 'DIRECT_TRANSFER', usdAmount: '9876543.21' },
     memo: 'Series B wire, split three ways with a memo long enough to wrap',
+}
+
+// The capture clock is frozen at 2026-09-01 12:00 UTC. This order's
+// deadline is still ahead of that clock; the expired variant reports the
+// terminal status from the status endpoint instead of inferring it from time.
+const ARS_DEPOSIT = {
+    id: 'fixture-ars-deposit',
+    stages: {
+        '1': { thresholdAmount: '10000', asset: 'ARS', expireAt: '2026-09-01T12:30:00.000Z' },
+        '3': { amount: '10' },
+    },
+    details: {
+        depositAddress: '0000000000000000000000',
+        depositAlias: 'fixture.deposit.test',
+        price: '1000',
+        priceExpireAt: '2026-09-01T12:30:00.000Z',
+        withdrawCostInAsset: '0',
+    },
+}
+
+const EXPIRED_ARS_DEPOSIT_ENTRY = {
+    uuid: 'fixture-expired-ars-deposit',
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-09-01T11:00:00.000Z'),
+    amount: '10',
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    status: 'CANCELLED',
+    userRole: 'RECIPIENT',
+    senderAccount: { identifier: 'bank', type: 'BANK_CBU', isUser: true },
+    recipientAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
+    currency: { amount: '10000', code: 'ARS' },
+    extraData: { kind: 'ONRAMP', provider: 'MANTECA', usdAmount: '10', mantecaDepositExpired: true },
 }
 
 // A PIX-key payment the payer looked up first (TASK-23198): the API sends the
@@ -510,6 +1237,38 @@ const PEER_HISTORY_ENTRY = (
     memo,
 })
 
+// Receipts the API serves to anyone with the link (TASK-24141): Share receipt
+// sends the link, and the PDF actions sit under More actions. A QR payment
+// also moves Split this bill there.
+const PUBLIC_RECEIPT_SEND_ENTRY = {
+    ...PEER_HISTORY_ENTRY('fixture-public-receipt-send', '25', 'Dinner', PEER('ana', 'Ana Ruiz', 'basic.frog'), false),
+    // a hash, so the fixture shows the drawer leaving out the Transaction ID row
+    txHash: '0x' + '5f1c'.repeat(16),
+    extraData: { kind: 'DIRECT_TRANSFER', usdAmount: '25', publicReceipt: true },
+}
+
+const PUBLIC_RECEIPT_QR_PAY_ENTRY = {
+    uuid: 'fixture-public-receipt-qr-pay',
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-10-28T20:30:00.000Z'),
+    amount: '12.4',
+    chainId: '42161',
+    tokenSymbol: 'USDC',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    status: 'COMPLETED',
+    userRole: 'SENDER',
+    senderAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
+    recipientAccount: { identifier: 'La Parrilla de Juan', type: 'BANK_CBU', isUser: false },
+    currency: { amount: '15000', code: 'ARS' },
+    extraData: {
+        kind: 'QR_PAY',
+        provider: 'MANTECA',
+        usdAmount: '12.4',
+        publicReceipt: true,
+        receipt: { exchange_rate: '1209.68' },
+    },
+}
+
 const AVATAR_PEERS = [
     PEER('alice', 'Alice Nguyen', 'basic.frog'),
     PEER('bob', 'Bob Carter', 'basic.avocado'),
@@ -739,6 +1498,15 @@ const BLOCKED_BANK_CAPABILITIES = {
     restrictions: [],
 }
 
+/** The pay:PIX_BR route for a user who lives outside Brazil: Manteca pays the code. */
+const PIX_PAY_READY_ROUTE = {
+    operation: 'pay',
+    method: 'PIX_BR',
+    provider: 'manteca',
+    state: 'ready',
+    candidates: [{ provider: 'manteca', state: 'ready' }],
+}
+
 /**
  * QR pay closed for this user: the one case the Home checklist has no payment
  * row (QR pay is open to every verified user unless the capabilities block it).
@@ -756,22 +1524,60 @@ const QR_PAY_BLOCKED_RAIL = {
 }
 
 /**
- * QR rails the API paused because the identity evidence behind the approval is
- * gone (`SUMSUB_IDENTITY_MISSING`): the fix is the identity restart.
+ * QR rails the API paused because the identity behind the approval is not
+ * usable (`SUMSUB_IDENTITY_MISSING`), by cause: the fix is the identity restart.
  */
-const QR_IDENTITY_MISSING_CAPABILITIES = {
+const qrIdentityPausedCapabilities = (code: string, userMessage: string) => ({
     rails: [
         {
             ...QR_PAY_BLOCKED_RAIL,
             blockingActions: ['restart-identity'],
-            reason: { code: 'identity_missing', userMessage: 'Verify your identity again to restore QR payments.' },
+            reason: { code, userMessage },
+            resolved: {
+                status: 'fixable',
+                blocking: { code, userMessage, selfHealable: true, selfHealKind: 'restart-identity' },
+                nextAction: { key: 'restart-identity', kind: 'restart-identity', purpose: code },
+            },
         },
     ],
-    nextActions: [{ key: 'restart-identity', kind: 'restart-identity', purpose: 'identity_missing' }],
+    nextActions: [{ key: 'restart-identity', kind: 'restart-identity', purpose: code }],
     restrictions: [],
-}
+    // the router reads the paused rail: the pay route asks for the identity restart
+    routes: [
+        {
+            ...PIX_PAY_READY_ROUTE,
+            state: 'action_required',
+            action: 'restart-identity',
+            reason: { code, userMessage },
+            candidates: [
+                {
+                    provider: 'manteca',
+                    state: 'action_required',
+                    action: 'restart-identity',
+                    reason: { code, userMessage },
+                },
+            ],
+        },
+    ],
+})
+const QR_IDENTITY_MISSING_CAPABILITIES = qrIdentityPausedCapabilities(
+    'identity_missing',
+    'We could not read the name and ID number on your ID. Upload it again to pay by QR.'
+)
 
 /** A static Pix QR with no amount: the scan screen's own route. */
+const PIX_ELIGIBLE_RESIDENCE = {
+    verified: { country: 'PT', status: 'VERIFIED', updatedAt: null },
+    declared: null,
+    secondaryDeclaredCountry: null,
+}
+
+/**
+ * A user the pay:PIX_BR route serves. The demo user lives in Brazil, where the route refuses Pix
+ * payments, so a Pix payment fixture sends both the residence and the route.
+ */
+const PIX_ELIGIBLE_USER = { residence: PIX_ELIGIBLE_RESIDENCE, capabilities: { routes: [PIX_PAY_READY_ROUTE] } }
+
 const PIX_QR_ROUTE =
     '/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&t=1'
 
@@ -884,6 +1690,136 @@ const REVIEW_CAUSE_RESPONSE = {
     },
 }
 
+/**
+ * A verified user with no approved residence and no address on their identity
+ * check (TASK-24662): every bank account asks for the home address, then waits
+ * while it is checked. COP needs no residence approval to be offered.
+ */
+const addressStepResponse = (step: 'required' | 'rejected' | 'in_review') => {
+    const entry =
+        step === 'in_review'
+            ? { state: 'setting_up', reason: 'residence_address_in_review' }
+            : { state: 'action_required', reason: 'residence_unresolved', action: 'sumsub:address_of_residence' }
+    const cause = step === 'in_review' ? 'address-in-review' : 'address-required'
+    return {
+        'GET /users/me': {
+            capabilities: {
+                rails: [],
+                restrictions: [],
+                nextActions:
+                    step === 'in_review'
+                        ? []
+                        : [
+                              {
+                                  key: 'sumsub:address_of_residence',
+                                  kind: 'sumsub',
+                                  purpose:
+                                      step === 'rejected' ? 'residence_address_rejected' : 'residence_address_required',
+                                  levelKey: 'address_of_residence',
+                              },
+                          ],
+                features: {
+                    qr: { state: 'ready' },
+                    card: { state: 'ready' },
+                    local: { state: 'ready', accounts: {} },
+                    bank: { ...entry, accounts: { USD: entry, EUR: entry, GBP: entry, MXN: entry } },
+                },
+            },
+            depositAccounts: { enabled: true },
+            residence: { declared: null, verified: null, pending: null, declaredSecond: null },
+        },
+        'GET /users/deposit-accounts': {
+            depositAccounts: [],
+            claimable: [CLAIMABLE_COP],
+            unavailable: [
+                withheldCorridor('ACH_US', 'US', 'USD', 'not-offered', cause),
+                withheldCorridor('SEPA_EU', 'EU', 'EUR', 'not-offered', cause),
+                withheldCorridor('FASTER_PAYMENTS_GB', 'GB', 'GBP', 'not-offered', cause),
+                withheldCorridor('SPEI_MX', 'MX', 'MXN', 'not-offered', cause),
+            ],
+        },
+    }
+}
+
+/**
+ * A verified user whose payment partner asks for one more thing for EUR: the
+ * rail's gate reads `fixable-rejection` while the backend still offers the
+ * corridor. USD is the same review once the user has answered (the backend
+ * says `endorsement-pending`), and COP still waits on the identity.
+ */
+const PROVIDER_ASK_RESPONSE = {
+    'GET /users/me': {
+        capabilities: {
+            ...REVIEW_CAUSE_CAPABILITIES,
+            rails: REVIEW_CAUSE_CAPABILITIES.rails.slice(0, 2),
+        },
+        depositAccounts: { enabled: true },
+        residence: { declared: 'PT', verified: 'PT', pending: null, declaredSecond: null },
+    },
+    'GET /users/deposit-accounts': {
+        depositAccounts: [],
+        claimable: [CLAIMABLE_EUR, { ...CLAIMABLE_USD_PREVIEW, blockedBy: 'endorsement-pending' }],
+        unavailable: [
+            {
+                railId: 'bridge.bank_transfer_co',
+                method: 'BANK_TRANSFER_CO',
+                country: 'COL',
+                currency: 'COP',
+                reason: 'identity-required',
+            },
+        ],
+    },
+}
+
+/**
+ * TASK-24909: Bridge reviews the customer. Every Bridge rail waits on the
+ * provider, and the backend lists no corridor as offered or withheld. Those
+ * rows read "Under review"; they used to read "We cannot open {currency}".
+ */
+const BRIDGE_REVIEW_WAIT = { key: 'wait:provider-review', kind: 'wait', purpose: 'provider-review' }
+const BRIDGE_REVIEW_RESPONSE = {
+    'GET /users/me': {
+        capabilities: {
+            rails: BRIDGE_BANK_RAILS.map((rail) => ({
+                ...rail,
+                status: 'requires-info',
+                blockingActions: [BRIDGE_REVIEW_WAIT.key],
+                resolved: { status: 'pending', nextAction: BRIDGE_REVIEW_WAIT },
+            })),
+            nextActions: [BRIDGE_REVIEW_WAIT],
+            restrictions: [],
+        },
+        identityVerification: { status: 'verified' },
+        depositAccounts: { enabled: true },
+        residence: { declared: 'US', verified: 'US', pending: null, declaredSecond: null },
+    },
+    'GET /users/deposit-accounts': { depositAccounts: [], claimable: [], unavailable: [] },
+}
+
+/**
+ * TASK-24909: Bridge's terms, as the API asks for them. The terms page is a
+ * same-origin file, so a capture can post the signature from inside it.
+ */
+const BRIDGE_TERMS = { key: 'bridge-tos', kind: 'accept-tos', purpose: 'unlock-bridge' }
+const bridgeTermsResponse = (confirm: { accepted: boolean }) => ({
+    'GET /users/me': {
+        capabilities: {
+            rails: BRIDGE_BANK_RAILS.map((rail) => ({
+                ...rail,
+                status: 'requires-info',
+                blockingActions: [BRIDGE_TERMS.key],
+                resolved: { status: 'fixable', nextAction: BRIDGE_TERMS },
+            })),
+            nextActions: [BRIDGE_TERMS],
+            restrictions: [],
+        },
+        identityVerification: { status: 'verified' },
+        residence: { declared: 'US', verified: 'US', pending: null, declaredSecond: null },
+    },
+    'GET /users/bridge-tos-link': { tosLink: '/llms.txt' },
+    'POST /users/bridge-tos-confirm': confirm,
+})
+
 /** Every verified-user deposit-account fixture answers the gate the same way, rollout included. */
 const VA_READY_RESPONSE = {
     'GET /users/me': { capabilities: VA_READY_CAPABILITIES, depositAccounts: { enabled: true } },
@@ -942,6 +1878,62 @@ const PROFILE_ACCOUNTS_MIX = {
     },
 }
 
+/**
+ * An unverified Bangladesh resident who picked bank accounts. Every Bridge
+ * corridor waits on the ID, and the Smart Paperwork Engine (api#1931) refuses
+ * USD to the residence: Bridge publishes no USD rail for Bangladesh.
+ */
+const PAPERWORK_BANGLADESH_RESPONSE = {
+    'GET /users/me': {
+        capabilities: BLOCKED_BANK_CAPABILITIES,
+        depositAccounts: { enabled: true },
+        residence: { declared: 'BD', verified: null, pending: null, declaredSecond: null },
+    },
+    'GET /users/deposit-accounts': {
+        depositAccounts: [],
+        claimable: [],
+        unavailable: [
+            {
+                railId: 'bridge.sepa_eu',
+                method: 'SEPA_EU',
+                country: 'EU',
+                currency: 'EUR',
+                reason: 'identity-required',
+            },
+            {
+                railId: 'bridge.faster_payments_gb',
+                method: 'FASTER_PAYMENTS_GB',
+                country: 'GB',
+                currency: 'GBP',
+                reason: 'identity-required',
+            },
+            { railId: 'bridge.ach_us', method: 'ACH_US', country: 'US', currency: 'USD', reason: 'identity-required' },
+            {
+                railId: 'bridge.spei_mx',
+                method: 'SPEI_MX',
+                country: 'MX',
+                currency: 'MXN',
+                reason: 'identity-required',
+            },
+        ],
+    },
+    'GET /users/kyc/paperwork': {
+        products: [
+            {
+                product: 'bridge.usd',
+                provider: 'BRIDGE',
+                available: false,
+                reason: 'account_unavailable_in_residence',
+                rule: 'bridge.no-usd',
+            },
+            { product: 'bridge.eur', provider: 'BRIDGE', available: true },
+            { product: 'bridge.gbp', provider: 'BRIDGE', available: true },
+            { product: 'bridge.mxn', provider: 'BRIDGE', available: true },
+        ],
+        requirements: [],
+    },
+}
+
 /** A $250 request, as the payer settles it in dollars and by euro bank transfer. */
 const REQUEST_PAY_USD = { amount: '250.00', currency: 'USD', isEstimate: false }
 const REQUEST_PAY_EUR = {
@@ -951,16 +1943,144 @@ const REQUEST_PAY_EUR = {
     rate: { from: 'USD', to: 'EUR', rate: '0.92', source: 'fixture', asOf: null },
 }
 
+const CARD_HOLDER_OVERVIEW = {
+    status: { hasApplication: true, railStatus: 'ENABLED' },
+    balance: null,
+    cards: [
+        {
+            id: 'fixture-card',
+            rainCardId: 'fixture-rain',
+            status: 'ACTIVE',
+            last4: '0420',
+            expiryMonth: 6,
+            expiryYear: 2069,
+            network: 'visa',
+            issuedAt: '2026-01-01T00:00:00Z',
+            hasWithdrawApproval: false,
+        },
+    ],
+}
+
+/** $25.00 the provider can release; holds already excluded. */
+const CARD_HOLDER_COLLATERAL = {
+    creditLimit: 2500,
+    spendingPower: 2500,
+    pendingCharges: 0,
+    postedCharges: 0,
+    balanceDue: 0,
+}
+
+// `GET /rain/cards/funding` for managed card funding. Fake spender, wallet and
+// session signer — a fixture never signs. `allowance` is informational only:
+// every fixture gives a large one on purpose, because readiness is the
+// backend's `management.status` and never the allowance.
+// Typed from the API schema, so a change to the funding response breaks this
+// file at typecheck instead of drifting.
+const cardFunding = (
+    status: RainFundingManagementStatus,
+    migration: RainCardFunding['management']['migration'] = null
+): RainCardFunding => ({
+    chainId: '42161',
+    tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    spenderAddress: '0x0000000000000000000000000000000000000001',
+    walletAddress: DEMO_ADDRESS,
+    allowance: '150000000',
+    sessionKeyAddress: '0x4300F803a281e257F3C1de001512e68972f8d022',
+    permission: {
+        scopeVersion: 2,
+        ceiling: '300000000',
+        termsVersion: 'rtf-2026-09-29',
+        authorizationText: 'I authorize transfers according to the Real-Time Funding Terms.',
+    },
+    management: { status, reason: null, migration, stop: null },
+})
+
+// `GET /rain/cards/funding/access`: the server's funding decision, which picks
+// the card surfaces. `managed` with `enrollmentAllowed: false` is an accepted
+// account whose cohort was closed since: it must still finish. Typed from the
+// service, so a change to the response breaks this file at typecheck.
+const cardAccess = (fundingMode: RainFundingAccess['fundingMode'], enrollmentAllowed: boolean): RainFundingAccess => ({
+    fundingMode,
+    enrollmentAllowed,
+})
+
+// An account on the existing card permission: collateral contracts on file and
+// no stored withdrawal approval, so Home asks for the existing permission.
+const LEGACY_CARD_OVERVIEW = {
+    ...CARD_HOLDER_OVERVIEW,
+    status: {
+        ...CARD_HOLDER_OVERVIEW.status,
+        contractAddress: '0x2222222222222222222222222222222222222222',
+        coordinatorAddress: '0x3333333333333333333333333333333333333333',
+    },
+}
+
+// The funding wallet matches the demo wallet (see `cardFunding`), so the modals
+// can verify the funding response's scope.
+const cardStopFunding = (cause: 'card_locked' | 'card_canceled', state: 'pending' | 'confirmed' | 'unavailable') => {
+    const base = cardFunding('temporarily_unavailable')
+    return {
+        ...base,
+        walletAddress: DEMO_ADDRESS,
+        management: { ...base.management, reason: cause, stop: { cause, state } },
+    }
+}
+
 export const FIXTURES: Record<string, Fixture> = {
+    'setup-signup-reserved': {
+        route: '/dev/surfaces?s=06-a-signup',
+        about: 'Claim username — reserved-name error returned by the server.',
+        rejects: {
+            'HEAD /users/username/kimchi': { status: 404, body: {} },
+            'POST /users/username/reservations': { status: 400, body: { code: 'USERNAME_RESERVED' } },
+        },
+    },
+    'setup-passkey-username-taken': {
+        route: '/dev/surfaces?s=06-c-passkey',
+        about: 'Create passkey — username taken error with Log in offered.',
+        responses: {
+            'POST /users/username/reservations': { username: 'kimchi', expiresAt: '2030-01-01T00:00:00.000Z' },
+            'HEAD /users/username/kimchi': {},
+            'GET /config/residence-restrictions': DEMO_RESIDENCE_RESTRICTIONS,
+        },
+    },
+    'profile-accounts-card-state-blocked': {
+        route: '/dev/surfaces?s=deposit-card-state-blocked',
+        about: 'Closed card row drawer — card unavailable in a US resident’s state.',
+        responses: {
+            'GET /users/me': {
+                residence: {
+                    declared: { country: 'US', status: 'UNVERIFIED', updatedAt: null, secondCountry: null },
+                    verified: { country: 'US', status: 'VERIFIED', updatedAt: null },
+                },
+                capabilities: { features: { card: { state: 'refused', reason: 'geo-blocked' } } },
+            },
+            'GET /users/me/verified-address': {
+                streetLine1: '350 5th Ave',
+                city: 'New York',
+                postalCode: '10118',
+                subdivisionCode: 'NY',
+                countryCode: 'US',
+            },
+        },
+    },
+    'setup-passkey': {
+        route: '/dev/surfaces?s=06-c-passkey',
+        about: 'Create a passkey after choosing kimchi, a Portuguese residence and a bank/card payment plan.',
+        // /dev/surfaces is a protected (mobile-ui) route: a null /users/me sends the
+        // page to /setup before the step renders. The step reads its username from
+        // the setup context and reserves without auth, so the default session is
+        // enough, as for every other setup surface.
+        responses: {
+            'POST /users/username/reservations': { username: 'kimchi', expiresAt: '2030-01-01T00:00:00.000Z' },
+            'GET /config/residence-restrictions': DEMO_RESIDENCE_RESTRICTIONS,
+        },
+    },
     'setup-payment-plan': {
         route: '/dev/surfaces?s=03-c-residence-congrats',
         about: 'Signup funding and payment choices with settled residence eligibility.',
         responses: {
-            'GET /config/residence-restrictions': {
-                full: [...RESTRICTED_RESIDENCE_ISO2],
-                cardOnly: [...CARD_RESTRICTED_RESIDENCE_ISO2],
-                bankingOnly: [...BANKING_RESTRICTED_RESIDENCE_ISO2],
-            },
+            'GET /config/residence-restrictions': DEMO_RESIDENCE_RESTRICTIONS,
         },
     },
     // ---------------------------------------------------------------------
@@ -1009,15 +2129,15 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         },
     },
-    profile: { route: '/profile', about: 'Profile menu, verified user, card row present.' },
+    profile: { route: '/settings', about: 'Profile menu, verified user, card row present.' },
     'profile-edit': {
-        route: '/profile/edit',
-        about: 'Verified name locked, account email editable.',
+        route: '/settings/details',
+        about: 'Account details with email settings.',
         responses: { 'GET /users/me': { profileNameLocked: true }, 'POST /users/email-change': { success: true } },
     },
     'profile-edit-unverified': {
-        route: '/profile/edit',
-        about: 'Name and email editable before identity verification.',
+        route: '/settings/details',
+        about: 'Account details before identity verification.',
         responses: {
             'GET /users/me': { identityVerification: { status: 'not_started' }, profileNameLocked: false },
             'POST /users/email-change': { success: true },
@@ -1028,6 +2148,19 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Accounts page for a user whose ID check passed.',
     },
     'settings-language': { route: '/settings/language', about: 'Language picker, English selected.' },
+    'settings-notifications': {
+        route: '/settings/notifications',
+        about: 'Notification settings: Important alerts and Email updates on, Offers and perks not opted in.',
+        responses: {
+            'GET /notifications/preferences': {
+                push: true,
+                email: true,
+                marketingPush: false,
+                emailUpdates: true,
+                pushPermission: 'granted',
+            },
+        },
+    },
     rewards: {
         route: '/rewards',
         about: 'Points total, tier badge and invite list.',
@@ -1037,6 +2170,11 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/rewards/invites',
         about: 'Invite list with one verified friend.',
         responses: { 'GET /points/invites': INVITES_ONE },
+    },
+    'rewards-invites-unnamed': {
+        route: '/rewards/invites',
+        about: 'Invite list with a friend who never finished signup: no name, no profile link.',
+        responses: { 'GET /points/invites': INVITES_WITH_UNNAMED },
     },
     badges: {
         route: '/badges',
@@ -1056,6 +2194,27 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Add money, Argentina: one row for bank or Mercado Pago.',
         responses: { 'GET /users/me': { capabilities: MANTECA_AR_CAPABILITIES } },
     },
+    ...Object.fromEntries(
+        (['pending', 'expired'] as const).map((status) => [
+            `add-money-argentina-deposit-${status}`,
+            {
+                route: '/add-money/argentina/manteca?step=inputAmount&amount=10000&currency=ARS',
+                geoCountry: 'AR',
+                about: `ARS deposit ${status}: continue to ${status === 'pending' ? 'the transfer deadline' : 'the expired order and start-over button'}.`,
+                responses: {
+                    'GET /users/me': {
+                        residence: { declared: 'AR', verified: 'AR', pending: null, declaredSecond: null },
+                        capabilities: MANTECA_AR_CAPABILITIES,
+                    },
+                    'POST /manteca/deposit': ARS_DEPOSIT,
+                    'GET /manteca/deposit/fixture-ars-deposit/status':
+                        status === 'pending'
+                            ? { id: 'fixture-ars-deposit', status: 'PROCESSING', stage: 1, expired: false }
+                            : { id: 'fixture-ars-deposit', status: 'CANCELLED', stage: 1, expired: true },
+                },
+            },
+        ])
+    ),
     // TASK-23924: Liechtenstein banks in CHF, and a top-up pays EUR, so the
     // amount screen asks for a euro account, as it does for Switzerland.
     'add-money-bank-liechtenstein': {
@@ -1107,6 +2266,15 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/withdraw/crypto',
         about: 'Crypto withdrawal: select the token, network and address before entering an amount.',
         responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS] } },
+    },
+    // TASK-23850: every token price lookup fails, as when Mobula refused every
+    // call. Pick ETH, then Base, and enter an address: Continue still works,
+    // because a withdrawal needs the chain's withdraw list, not a price.
+    'withdraw-crypto-eth-no-price': {
+        route: '/withdraw/crypto',
+        about: 'Crypto withdrawal while every token price lookup fails: ETH on Base still continues.',
+        responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...BANK_ACCOUNTS] } },
+        fails: ['GET /tokens/price'],
     },
     // Crypto address book beside the saved bank accounts. The three entries hit
     // the three last-used pill tones against the shots' frozen clock
@@ -1195,6 +2363,606 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         },
     },
+    // TASK-24197: a Pix send reached by a link while the Brazil pause is on.
+    'withdraw-brazil-paused': {
+        route: '/withdraw/manteca?country=brazil&method=pix',
+        about: 'A Brazil Pix send during the Brazil pause: the paused screen instead of the key entry.',
+        responses: BRAZIL_PAUSED_RESPONSES,
+    },
+    // ---- Avenia Pix for Brazilian residents (PR C of the Brazil Avenia work) ----
+    'pix-first-use': {
+        route: '/add-money/pix',
+        about: "Avenia's first use (TASK-24947): no tap and no terms, the account opens as the page loads.",
+        isLoadingState: true,
+        responses: aveniaResponses('first-use', { [ACTIVATE_PIX]: { state: 'setting_up' } }),
+    },
+    'pix-deposit-amount': {
+        route: '/add-money/pix',
+        about: 'Avenia Pix deposit: the amount in reais, R$20 minimum, the provider under the button.',
+        responses: aveniaResponses('enabled'),
+        // the page capture that taps Continue shows the monthly limit
+        rejects: {
+            'POST /pix/deposit': { status: 422, body: { code: 'PIX_LIMIT_EXCEEDED', error: 'Over the limit' } },
+        },
+    },
+    'pix-withdraw-key': {
+        route: AVENIA_WITHDRAW_ROUTE,
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OWN_KEY }),
+        about: "Avenia Pix withdrawal: the key resolved to the holder and bank, the user's own account.",
+        waitFor: '[data-testid="pix-key-holder"]',
+        responses: aveniaResponses('enabled', {
+            'POST /pix/key': {
+                holderName: 'Ana Souza',
+                holderTaxIdMasked: '095.***.***-89',
+                bankName: 'Banco Inter',
+                ispb: '00416968',
+                ownAccount: true,
+                blocked: false,
+            },
+        }),
+    },
+    // TASK-24947: any key continues; the card says whom the money goes to
+    'pix-withdraw-key-other': {
+        route: AVENIA_SEND_ROUTE,
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OTHER_KEY }, 'send'),
+        about: "Avenia Pix send: another person's key resolves to the holder, bank and masked CPF; no badge, and Continue is on.",
+        waitFor: '[data-testid="pix-key-holder"]',
+        responses: aveniaResponses('enabled', { 'POST /pix/key': AVENIA_OTHER_KEY_INFO }),
+    },
+    'pix-send-review': {
+        route: `${AVENIA_SEND_ROUTE}&step=review`,
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OTHER_KEY, amountBrl: '100' }, 'send'),
+        about: "Avenia Pix send to another person's key: the form leads with Sending, the holder, the phone key punctuated and the bank.",
+        responses: aveniaResponses('enabled', { 'POST /pix/withdraw/preview': AVENIA_SEND_PREVIEW }),
+    },
+    'pix-send-arrived': {
+        route: `${aveniaOutcomeRoute(AVENIA_SEND_ID)}&sendMethod=bank`,
+        about: 'The last step of a Pix send after a reload, once Avenia paid it: Sent, to the holder by name.',
+        responses: aveniaResponses('enabled', { [`GET /history/${AVENIA_SEND_ID}`]: aveniaSend('COMPLETED') }),
+    },
+    'pix-send-arrived-reward': {
+        route: `${aveniaOutcomeRoute(AVENIA_SEND_ID)}&sendMethod=bank`,
+        about: "A paid Pix send to another person's key that earned the QR reward (ruling of 15 Nov): the QR success's reward card and hold-to-claim.",
+        responses: aveniaResponses('enabled', {
+            [`GET /history/${AVENIA_SEND_ID}`]: aveniaSend('COMPLETED'),
+            [`GET /pix/withdraw/${AVENIA_SEND_ID}`]: {
+                provider: 'avenia',
+                intentId: AVENIA_SEND_ID,
+                state: 'paid',
+                status: 'COMPLETED',
+                amountBrl: '100.00',
+                holderName: 'Bruno Lima',
+                ownAccount: false,
+                selfPay: false,
+                perk: AVENIA_QR_PERK,
+            },
+        }),
+    },
+    'pix-receipt-send': {
+        route: `/history?tx=${AVENIA_SEND_ID}`,
+        about: "The receipt of a Pix send to another person's key: the holder by name, the Pix key row punctuated, the raw key copied.",
+        responses: {
+            'GET /users/history': { entries: [aveniaSend('COMPLETED')], hasMore: false },
+            [`GET /history/${AVENIA_SEND_ID}`]: aveniaSend('COMPLETED'),
+        },
+    },
+    'pix-receipt-send-returned': {
+        route: `/history?tx=${AVENIA_SEND_ID}`,
+        about: 'The receipt of a Pix send Avenia refused: the money came back to the wallet.',
+        responses: {
+            'GET /users/history': { entries: [aveniaSend('REFUNDED')], hasMore: false },
+            [`GET /history/${AVENIA_SEND_ID}`]: aveniaSend('REFUNDED'),
+        },
+    },
+    'pix-activity-payouts': {
+        route: '/history',
+        about: 'Activity rows of Pix payouts: a send to another person, a withdrawal to the own key and a returned send, each with the Pix logo.',
+        responses: {
+            'GET /users/history': {
+                entries: [
+                    aveniaSend('COMPLETED'),
+                    aveniaWithdrawal('COMPLETED'),
+                    { ...aveniaSend('REFUNDED'), uuid: 'fixture-pix-send-returned' },
+                ],
+                hasMore: false,
+            },
+        },
+    },
+    // API-CONTRACT-M3: a resident of Germany inside Avenia's gate sends and withdraws by Pix on Avenia
+    'pix-nonresident-send-key': {
+        route: AVENIA_SEND_ROUTE,
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OTHER_KEY }, 'send'),
+        about: 'A non-resident on Avenia: Send to a Pix key reaches the same key step; the holder is named, and Continue is on.',
+        waitFor: '[data-testid="pix-key-holder"]',
+        responses: aveniaNonResidentResponses('enabled', { 'POST /pix/key': AVENIA_OTHER_KEY_INFO }),
+    },
+    'pix-nonresident-address': {
+        route: AVENIA_SEND_ROUTE,
+        about: "A non-resident's first Pix send: Avenia needs an address, asked on the Pix page; no state field outside the countries with clear states.",
+        responses: aveniaNonResidentResponses('first-use', {
+            'GET /users/kyc/questions': {
+                available: true,
+                attemptId: null,
+                residence: 'DE',
+                steps: [
+                    {
+                        id: 'address',
+                        features: ['pix'],
+                        answered: false,
+                        fields: [
+                            { key: 'street', kind: 'text', required: true, value: null },
+                            { key: 'buildingNumber', kind: 'text', required: false, value: null },
+                            { key: 'town', kind: 'text', required: true, value: null },
+                            { key: 'postCode', kind: 'text', required: true, value: null },
+                            { key: 'country', kind: 'country', required: true, locked: true, value: 'DE' },
+                        ],
+                    },
+                ],
+                firstUnanswered: 'address',
+                progress: { done: 0, total: 1 },
+            },
+        }),
+        rejects: { [ACTIVATE_PIX]: { status: 409, body: { code: 'questions_missing', step: 'address' } } },
+    },
+    'pix-nonresident-send-review': {
+        route: `${AVENIA_SEND_ROUTE}&step=review`,
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OTHER_KEY, amountBrl: '100' }, 'send'),
+        about: 'A non-resident on Avenia: the send review, as for a resident.',
+        responses: aveniaNonResidentResponses('enabled', { 'POST /pix/withdraw/preview': AVENIA_SEND_PREVIEW }),
+    },
+    'pix-withdraw-review': {
+        route: `${AVENIA_WITHDRAW_ROUTE}?step=review`,
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OWN_KEY, amountBrl: '503' }),
+        about: "Avenia Pix withdrawal: the one form, the key's holder and bank, the reais over the USD, the rate with the fees in, the flat fee apart.",
+        responses: aveniaResponses('enabled', {
+            'POST /pix/withdraw/preview': {
+                amountBrl: '503.00',
+                pixKey: AVENIA_OWN_KEY,
+                ownAccount: true,
+                holderName: 'Ana Souza',
+                bankName: 'Banco Inter',
+                withdrawUsd: '92.504310',
+                rate: '5.445692',
+                fixedFeeBrl: '0.75',
+                arrivalEstimateSeconds: 60,
+                provider: 'Avenia',
+            },
+        }),
+    },
+    // ---- the Avenia states the Screen Library must show (every changed copy line) ----
+    'pix-deposit-minimum': {
+        route: '/add-money/pix?amount=10&currency=BRL',
+        about: 'Avenia Pix deposit under R$20: the amount step says the minimum.',
+        waitFor: '[data-testid="error-alert"]',
+        responses: aveniaResponses('enabled'),
+    },
+    // the code screen as ruled on 13 Nov: the amount, "You get ≈", the code, the timer badge under it
+    'pix-deposit-code': {
+        route: AVENIA_DEPOSIT_CODE_ROUTE,
+        about: 'A payable Avenia Pix code: the reais, what the balance gets, the code, then a pending badge with the time left; no fee line.',
+        responses: aveniaResponses('enabled', {
+            [`GET /pix/deposit/${AVENIA_DEPOSIT_ID}`]: aveniaDepositRead({
+                codePayable: true,
+                brCode: DEMO_PIX_BR_CODE,
+                // the code lives 10 minutes from when the fixture loads, so the badge always reads a live timer
+                expiresAt: new Date(Date.now() + 10 * 60_000).toISOString(),
+                payerCpfMasked: '095.***.***-89',
+            }),
+        }),
+    },
+    'pix-deposit-expired': {
+        route: AVENIA_DEPOSIT_CODE_ROUTE,
+        about: 'An Avenia Pix code that lapsed: no code is drawn, and a new deposit is offered.',
+        responses: aveniaResponses('enabled', { [`GET /pix/deposit/${AVENIA_DEPOSIT_ID}`]: aveniaDepositRead() }),
+    },
+    'pix-deposit-returned': {
+        route: AVENIA_DEPOSIT_CODE_ROUTE,
+        about: 'A Pix Avenia sent back to the payer: it says so and offers a new deposit.',
+        responses: aveniaResponses('enabled', {
+            [`GET /pix/deposit/${AVENIA_DEPOSIT_ID}`]: aveniaDepositRead({ status: 'FAILED', pixReceived: true }),
+        }),
+    },
+    'pix-deposit-processing': {
+        route: AVENIA_DEPOSIT_CODE_ROUTE,
+        about: "The Pix left the payer's bank: the code screen waits while Avenia credits the deposit.",
+        isLoadingState: true,
+        responses: aveniaResponses('enabled', {
+            [`GET /pix/deposit/${AVENIA_DEPOSIT_ID}`]: aveniaDepositRead({ pixReceived: true }),
+        }),
+    },
+    'pix-deposit-received': {
+        route: AVENIA_DEPOSIT_CODE_ROUTE,
+        about: 'The Avenia Pix deposit is credited: received, and the balance is updated.',
+        responses: aveniaResponses('enabled', {
+            [`GET /pix/deposit/${AVENIA_DEPOSIT_ID}`]: aveniaDepositRead({ status: 'COMPLETED', pixReceived: true }),
+        }),
+    },
+    'pix-deposit-quote-failed': {
+        route: '/add-money/pix',
+        about: 'The deposit amount step when the Pix quote fails: the rate is unavailable, with a retry.',
+        responses: aveniaResponses('enabled'),
+        fails: ['GET /pix/quote'],
+    },
+    'pix-withdraw-form': {
+        route: `${AVENIA_WITHDRAW_ROUTE}?step=review`,
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OWN_KEY }),
+        about: 'Avenia Pix withdrawal: the form before an amount, in reais estimated with the Pix quote, R$5 minimum.',
+        responses: aveniaResponses('enabled'),
+    },
+    'pix-withdraw-under-minimum': {
+        route: `${AVENIA_WITHDRAW_ROUTE}?step=review`,
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OWN_KEY, amountBrl: '3' }),
+        about: 'Avenia Pix withdrawal of R$3: under the R$5 minimum (ruling of 15 Nov), the form says so and asks no quote.',
+        responses: aveniaResponses('enabled'),
+    },
+    'pix-withdraw-quote-failed': {
+        route: `${AVENIA_WITHDRAW_ROUTE}?step=review`,
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OWN_KEY }),
+        about: 'The withdrawal form when the Pix quote fails: the rate is unavailable, with a retry.',
+        responses: aveniaResponses('enabled'),
+        fails: ['GET /pix/quote'],
+    },
+    'pix-route-paused-deposit': {
+        route: '/add-money/pix',
+        about: 'The Pix deposit route is paused: the provider-outage screen, no provider flow.',
+        responses: aveniaRouteResponses({
+            state: 'paused',
+            reason: { code: 'provider_paused', userMessage: 'This is paused for a moment. Try again soon.' },
+        }),
+    },
+    // the router pauses every route of a Brazil resident while brazilServicesPaused is on
+    'pix-route-residence-paused': {
+        route: '/withdraw/pix',
+        about: "The residence pause on a Pix route: the residence's own words, no provider flow.",
+        responses: aveniaRouteResponses({
+            state: 'paused',
+            reason: {
+                code: 'residence_paused',
+                userMessage: 'Deposits and withdrawals are paused where you live for now.',
+            },
+        }),
+    },
+    'pix-route-paused-withdraw': {
+        route: '/withdraw/pix',
+        about: 'The Pix withdraw route is paused: the provider-outage screen, no provider flow.',
+        responses: aveniaRouteResponses({
+            state: 'paused',
+            reason: { code: 'provider_paused', userMessage: 'This is paused for a moment. Try again soon.' },
+        }),
+    },
+    'pix-receipt-pay-code': {
+        route: `/history?tx=${AVENIA_DEPOSIT_ID}`,
+        about: 'The receipt of a Pix deposit whose code can still be paid opens that code again.',
+        waitFor: '[data-testid="pix-pay-code-notice"]',
+        responses: {
+            'GET /users/history': { entries: [aveniaPayableDeposit], hasMore: false },
+            [`GET /history/${AVENIA_DEPOSIT_ID}`]: aveniaPayableDeposit,
+        },
+    },
+    'pix-setup-verify': {
+        route: '/add-money/pix',
+        about: 'Avenia Pix before the identity check: the step sends the user to verify first.',
+        responses: aveniaRouteResponses({
+            state: 'action_required',
+            action: 'verify',
+            reason: { code: 'identity_required', userMessage: 'Verify your identity first.' },
+        }),
+    },
+    'pix-setup-reviewing': {
+        route: '/add-money/pix',
+        about: 'Avenia Pix while the account opens: the wait while Avenia decides on our verification.',
+        isLoadingState: true,
+        responses: aveniaPending('provider_reviewing'),
+    },
+    'pix-setup-address-missing': {
+        route: '/add-money/pix',
+        about: "Avenia needs an address the verification lacks: the verify flow's address step, the state picked from Brazil's list.",
+        ...aveniaMissingResponses('address'),
+    },
+    'pix-setup-cpf-missing': {
+        route: '/add-money/pix',
+        about: "Avenia needs a CPF the verification lacks: the verify flow's tax step, asked on the Pix page.",
+        ...aveniaMissingResponses('tax'),
+    },
+    'pix-activation-refused': {
+        route: '/add-money/pix',
+        about: 'A user Avenia rejected (M5): the activation answers refused at once, and Pix shows its refusal with Contact support, no wait and no fall-back.',
+        responses: aveniaResponses('first-use', { [ACTIVATE_PIX]: { state: 'refused', reason: 'provider_rejected' } }),
+    },
+    'limits-avenia': {
+        route: '/limits/manteca',
+        about: "A user whose Pix routes name Avenia (M5): Avenia's monthly room for BRL, Pix in and Pix out, in place of Manteca's old BRL limit.",
+        responses: aveniaResponses('enabled', {
+            // inside the QR gate too: every Pix route, the pay route included, names Avenia
+            'GET /users/me': {
+                ...aveniaResponses('enabled')['GET /users/me'],
+                capabilities: {
+                    ...aveniaResponses('enabled')['GET /users/me'].capabilities,
+                    routes: [...aveniaRoutes('enabled'), aveniaPayRoute({ state: 'ready' })],
+                },
+            },
+            'GET /users/limits': {
+                manteca: [
+                    {
+                        exchangeCountry: 'BRA',
+                        type: 'EXCHANGE',
+                        asset: 'BRL',
+                        yearlyLimit: '12000',
+                        availableYearlyLimit: '12000',
+                        monthlyLimit: '1000',
+                        availableMonthlyLimit: '1000',
+                    },
+                ],
+                bridge: null,
+                avenia: AVENIA_LIMITS,
+                unavailable: [],
+            },
+        }),
+    },
+    'limits-avenia-qr-on-manteca': {
+        route: '/limits/manteca',
+        about: "Inside Avenia's Pix gate, outside its QR gate (review 2, finding 5): Avenia's room names add money and withdraw only, and QR payments keep Manteca's BRL limit.",
+        responses: aveniaResponses('enabled', {
+            'GET /users/me': {
+                ...aveniaResponses('enabled')['GET /users/me'],
+                capabilities: {
+                    ...aveniaResponses('enabled')['GET /users/me'].capabilities,
+                    routes: [
+                        ...aveniaRoutes('enabled'),
+                        {
+                            operation: 'pay',
+                            method: 'PIX_BR',
+                            provider: 'manteca',
+                            state: 'ready',
+                            candidates: [{ provider: 'manteca', state: 'ready' }],
+                        },
+                    ],
+                },
+            },
+            'GET /users/limits': {
+                manteca: [
+                    {
+                        exchangeCountry: 'BRA',
+                        type: 'EXCHANGE',
+                        asset: 'BRL',
+                        yearlyLimit: '12000',
+                        availableYearlyLimit: '12000',
+                        monthlyLimit: '1000',
+                        availableMonthlyLimit: '1000',
+                    },
+                ],
+                bridge: null,
+                avenia: AVENIA_LIMITS,
+                unavailable: [],
+            },
+        }),
+    },
+    'pix-setup-open-failed': {
+        route: '/add-money/pix',
+        about: 'The first use could not reach the API: the activation says so and offers to try again.',
+        responses: aveniaResponses('first-use'),
+        fails: [ACTIVATE_PIX],
+    },
+    'pix-route-setup-failed': {
+        route: '/withdraw/pix',
+        about: "A Pix route refused because our own set-up of the Avenia rail failed (FAILED, REQUIRES_SUPPORT): not available, support's to fix.",
+        responses: aveniaRouteResponses({
+            provider: null,
+            state: 'refused',
+            reason: {
+                code: 'provider_setup_failed',
+                userMessage: 'Something went wrong while we set this up. Message support so we can fix it.',
+            },
+        }),
+    },
+    'pix-route-rejected': {
+        route: '/add-money/pix',
+        about: "A refused Pix route: the verification was not accepted, in the user's language, with support.",
+        responses: aveniaRouteResponses({
+            provider: null,
+            state: 'refused',
+            reason: { code: 'provider_rejected', userMessage: 'Avenia did not accept the verification.' },
+        }),
+    },
+    'pix-route-not-offered': {
+        route: '/withdraw/pix',
+        about: 'A Pix route not offered to the user (the rollout gate): not on this account yet.',
+        responses: aveniaRouteResponses({
+            provider: null,
+            state: 'refused',
+            reason: { code: 'rollout_closed', userMessage: 'Pix is not open to this account yet.' },
+        }),
+    },
+    'pix-route-residence': {
+        route: '/add-money/pix',
+        about: 'A Pix route refused for the residence: not offered where the user lives, no "try again".',
+        responses: aveniaRouteResponses({
+            provider: null,
+            state: 'refused',
+            reason: { code: 'residence_not_served', userMessage: 'This is not available for your country.' },
+        }),
+    },
+    'pix-route-provider-down': {
+        route: '/withdraw/pix',
+        about: 'A Pix route refused while the provider is down: try again soon.',
+        responses: aveniaRouteResponses({
+            provider: null,
+            state: 'refused',
+            reason: { code: 'provider_unavailable', userMessage: 'This is not available right now.' },
+        }),
+    },
+    'pix-route-method-not-served': {
+        route: '/add-money/pix',
+        about: 'A Pix route no provider serves: Peanut does not offer it.',
+        responses: aveniaRouteResponses({
+            provider: null,
+            state: 'refused',
+            reason: { code: 'method_not_served', userMessage: 'This is not available.' },
+        }),
+    },
+    'pix-withdraw-key-code': {
+        route: AVENIA_WITHDRAW_ROUTE,
+        sessionStorage: pixWithdrawForm({ destination: DEMO_PIX_BR_CODE }),
+        about: 'A Pix code pasted where a withdrawal needs a key: the field asks for a key.',
+        responses: aveniaResponses('enabled'),
+    },
+    'pix-withdraw-key-lookup-failed': {
+        route: AVENIA_WITHDRAW_ROUTE,
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OWN_KEY }),
+        about: 'The Pix key lookup failed: the field asks to try again.',
+        responses: aveniaResponses('enabled'),
+        fails: ['POST /pix/key'],
+    },
+    'pix-withdraw-key-blocked': {
+        route: AVENIA_WITHDRAW_ROUTE,
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OWN_KEY }),
+        about: "A key at a bank on Avenia's deny-list: withdrawals there are not available.",
+        waitFor: '[data-testid="pix-key-holder"]',
+        responses: aveniaResponses('enabled', {
+            'POST /pix/key': { ...AVENIA_OWN_KEY_INFO, blocked: true },
+        }),
+    },
+    'pix-withdraw-review-limit': {
+        route: `${AVENIA_WITHDRAW_ROUTE}?step=review`,
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OWN_KEY, amountBrl: '503' }),
+        about: 'A withdrawal over the monthly Pix limit: the review says so (PIX_LIMIT_EXCEEDED).',
+        responses: aveniaResponses('enabled'),
+        rejects: {
+            'POST /pix/withdraw/preview': {
+                status: 422,
+                body: { code: 'PIX_LIMIT_EXCEEDED', error: 'Over the limit' },
+            },
+        },
+    },
+    'pix-withdraw-review-in-progress': {
+        route: `${AVENIA_WITHDRAW_ROUTE}?step=review`,
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OWN_KEY, amountBrl: '503' }),
+        about: 'Too many Pix withdrawals still on their way: the review asks to try later.',
+        responses: aveniaResponses('enabled'),
+        rejects: {
+            'POST /pix/withdraw/preview': {
+                status: 409,
+                body: { code: 'WITHDRAWAL_IN_PROGRESS', error: 'A withdrawal is in progress' },
+            },
+        },
+    },
+    'pix-withdraw-review-quote-changed': {
+        route: `${AVENIA_WITHDRAW_ROUTE}?step=review`,
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OWN_KEY, amountBrl: '503' }),
+        about: 'The amount changed while it was quoted (PIX_QUOTE_CHANGED): the review asks to try again.',
+        responses: aveniaResponses('enabled'),
+        rejects: {
+            'POST /pix/withdraw/preview': {
+                status: 409,
+                body: { code: 'PIX_QUOTE_CHANGED', error: 'Quote changed' },
+            },
+        },
+    },
+    'pix-withdraw-arrived': {
+        route: aveniaOutcomeRoute(AVENIA_WITHDRAWAL_ID),
+        about: 'The last step of a Pix withdrawal after a reload, once Avenia paid the Pix: the shared success view, the key alone.',
+        responses: aveniaResponses('enabled', {
+            [`GET /history/${AVENIA_WITHDRAWAL_ID}`]: aveniaWithdrawal('COMPLETED'),
+        }),
+    },
+    'pix-withdraw-unconfirmed': {
+        route: aveniaOutcomeRoute(AVENIA_WITHDRAWAL_ID),
+        about: 'The last step of a Pix withdrawal after a reload, while the entry is pending: not confirmed yet.',
+        responses: aveniaResponses('enabled', {
+            [`GET /history/${AVENIA_WITHDRAWAL_ID}`]: aveniaWithdrawal('PENDING'),
+        }),
+    },
+    'pix-withdraw-processing': {
+        route: aveniaOutcomeRoute(AVENIA_WITHDRAWAL_ID),
+        about: 'The last step of a Pix withdrawal after a reload, while Avenia pays the Pix: the shared payment loader.',
+        isLoadingState: true,
+        responses: aveniaResponses('enabled', {
+            [`GET /history/${AVENIA_WITHDRAWAL_ID}`]: {
+                ...aveniaWithdrawal('PENDING'),
+                extraData: { ...aveniaWithdrawal('PENDING').extraData, intentStatus: 'PROCESSING' },
+            },
+        }),
+    },
+    'pix-withdraw-refunded': {
+        route: aveniaOutcomeRoute(AVENIA_WITHDRAWAL_ID),
+        about: 'A Pix withdrawal the bank did not accept: the money is back in the balance.',
+        responses: aveniaResponses('enabled', {
+            [`GET /history/${AVENIA_WITHDRAWAL_ID}`]: aveniaWithdrawal('REFUNDED'),
+        }),
+    },
+    'pix-withdraw-not-sent': {
+        route: aveniaOutcomeRoute(AVENIA_WITHDRAWAL_ID),
+        about: 'An opened withdrawal that was never signed: it did not go through, the balance is unchanged.',
+        responses: aveniaResponses('enabled', {
+            [`GET /history/${AVENIA_WITHDRAWAL_ID}`]: aveniaWithdrawal('CANCELLED'),
+        }),
+    },
+    'pix-withdraw-not-signed': {
+        route: aveniaOutcomeRoute(AVENIA_WITHDRAWAL_ID),
+        about: 'After a reload, an opened withdrawal this device never signed: it did not go through, try again.',
+        responses: aveniaResponses('enabled', {
+            [`GET /history/${AVENIA_WITHDRAWAL_ID}`]: {
+                ...aveniaWithdrawal('PENDING'),
+                extraData: { ...aveniaWithdrawal('PENDING').extraData, intentStatus: 'AWAITING_USER_ACTION' },
+            },
+        }),
+    },
+    // ---- The same Pix flow on Manteca's route (a resident outside Brazil): the answers differ ----
+    'pix-manteca-deposit-code': {
+        route: `/add-money/pix?step=showQR&intentId=${MANTECA_PIX_DEPOSIT_ID}`,
+        about: "A Pix code from Manteca's route: no expiry, no payer CPF and no flat fee, so no line for them.",
+        responses: mantecaPixResponses({
+            [`GET /pix/deposit/${MANTECA_PIX_DEPOSIT_ID}`]: {
+                provider: 'manteca',
+                intentId: MANTECA_PIX_DEPOSIT_ID,
+                status: 'AWAITING_USER_ACTION',
+                codePayable: true,
+                pixReceived: false,
+                brCode: DEMO_PIX_BR_CODE,
+                expiresAt: null,
+                amountBrl: '100.00',
+                usdcAmount: '18.390000',
+                payerCpfMasked: null,
+                fixedFeeBrl: null,
+            },
+        }),
+    },
+    'pix-manteca-withdraw-key': {
+        route: AVENIA_WITHDRAW_ROUTE,
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OWN_KEY }),
+        about: "A Pix key on Manteca's route: the holder is named, no ownership badge, and the key continues.",
+        waitFor: '[data-testid="pix-key-holder"]',
+        responses: mantecaPixResponses({
+            'POST /pix/key': {
+                provider: 'manteca',
+                holderName: 'Ana Souza',
+                holderTaxIdMasked: '095.***.***-89',
+                bankName: null,
+                ispb: null,
+                ownAccount: null,
+                blocked: false,
+            },
+        }),
+    },
+    'pix-manteca-withdraw-review': {
+        route: `${AVENIA_WITHDRAW_ROUTE}?step=review`,
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OWN_KEY, amountBrl: '503' }),
+        about: "A Pix withdrawal review on Manteca's route: the fees in the rate, no flat-fee line, Manteca named.",
+        responses: mantecaPixResponses({
+            'POST /pix/withdraw/preview': {
+                amountBrl: '503.00',
+                pixKey: AVENIA_OWN_KEY,
+                ownAccount: null,
+                holderName: 'Ana Souza',
+                bankName: null,
+                withdrawUsd: '92.504310',
+                rate: '5.437586',
+                fixedFeeBrl: '0',
+                arrivalEstimateSeconds: 300,
+                provider: 'Manteca',
+            },
+        }),
+    },
     // ?step=form names the screen; the amount is collected after it now.
     'withdraw-bank-form': {
         route: '/withdraw/spain?step=form',
@@ -1264,11 +3032,167 @@ export const FIXTURES: Record<string, Fixture> = {
         waitFor: 'p[role="alert"]',
         responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...NAMED_BANK_ACCOUNTS] } },
     },
+    // ---- merchant Pix QR on Avenia, through the neutral pay routes (TASK-24947 M4) ----
+    'qr-pay-avenia-form': {
+        route: qrPayRoute(PIX_QR_FIXED_AMOUNT),
+        about: "A Pix code with its own amount on Avenia's pay route: the merchant, bank and CNPJ, the code's reais, the rate, the provider fee and Avenia.",
+        responses: aveniaQrResponses(),
+    },
+    'qr-pay-avenia-open-amount': {
+        route: qrPayRoute(PIX_QR_OPEN_AMOUNT),
+        about: 'A Pix code without an amount on Avenia: the payer types the reais, and the review names the merchant once it answers.',
+        responses: aveniaQrResponses(),
+    },
+    'qr-pay-avenia-minimum': {
+        route: qrPayRoute(PIX_QR_SMALL_AMOUNT),
+        about: 'A Pix code of R$3 on Avenia: under the R$5 the route states, the minimum line, and Pay stays off.',
+        responses: aveniaQrResponses(),
+    },
+    'qr-pay-avenia-processing': {
+        route: qrPayRoute(PIX_QR_FIXED_AMOUNT, AVENIA_QR_PAYMENT_ID),
+        about: 'An Avenia QR payment whose USDC left the wallet: the processing screen while Avenia pays the merchant.',
+        isLoadingState: true,
+        responses: aveniaQrResponses({ state: 'ready' }, aveniaQrRead('processing', 'PROCESSING')),
+    },
+    'qr-pay-avenia-paid': {
+        route: qrPayRoute(PIX_QR_FIXED_AMOUNT, AVENIA_QR_PAYMENT_ID),
+        about: 'An Avenia QR payment the merchant received: the QR success screen, the reais and the USD that left.',
+        responses: aveniaQrResponses(
+            { state: 'ready' },
+            {
+                ...aveniaQrRead('paid', 'COMPLETED'),
+                [`GET /history/${AVENIA_QR_PAYMENT_ID}`]: aveniaQrEntry('COMPLETED'),
+            }
+        ),
+    },
+    'qr-pay-avenia-paid-reward': {
+        route: qrPayRoute(PIX_QR_FIXED_AMOUNT, AVENIA_QR_PAYMENT_ID),
+        about: "An Avenia QR payment that earned the QR reward (M5): the same reward card and hold-to-claim as Manteca's.",
+        responses: aveniaQrResponses(
+            { state: 'ready' },
+            {
+                ...aveniaQrRead('paid', 'COMPLETED', AVENIA_QR_PERK),
+                [`GET /history/${AVENIA_QR_PAYMENT_ID}`]: aveniaQrEntry('COMPLETED'),
+            }
+        ),
+    },
+    'qr-pay-avenia-quote-changed': {
+        route: qrPayRoute(PIX_QR_FIXED_AMOUNT),
+        about: 'A Pix code whose re-quote at Pay would pay other reais (409 PIX_QUOTE_CHANGED, M5): the amount-changed line, and the code reviewed again.',
+        responses: aveniaQrResponses(),
+        rejects: {
+            'POST /pix/pay': {
+                status: 409,
+                body: { code: 'PIX_QUOTE_CHANGED', error: 'The price changed. Review the payment again.' },
+            },
+        },
+    },
+    'qr-pay-avenia-amount-held': {
+        route: qrPayRoute(PIX_QR_FIXED_AMOUNT),
+        about: 'A Pix code whose amount another open payment of the user still holds (409 WITHDRAWAL_IN_PROGRESS at Pay): the QR line that says so.',
+        responses: aveniaQrResponses(),
+        // the line sits under Pay, below the fold at 320
+        fullPage: true,
+        rejects: {
+            'POST /pix/pay': {
+                status: 409,
+                body: {
+                    code: 'WITHDRAWAL_IN_PROGRESS',
+                    error: 'Another payment of yours still holds this exact amount, and this code’s amount cannot change. Try again later.',
+                },
+            },
+        },
+    },
+    'qr-pay-avenia-throttled': {
+        route: qrPayRoute(PIX_QR_FIXED_AMOUNT),
+        about: "A Pix code read while the user's code-read budget is spent (429 PIX_KEY_LOOKUP_THROTTLED): the wait-a-moment line.",
+        responses: aveniaQrResponses(),
+        rejects: {
+            'POST /pix/pay/preview': {
+                status: 429,
+                body: { code: 'PIX_KEY_LOOKUP_THROTTLED', error: 'Too many lookups. Try again in a moment.' },
+            },
+        },
+    },
+    'qr-pay-brl-switched-off': {
+        route: qrPayRoute(PIX_QR_FIXED_AMOUNT),
+        about: "Manteca's BRL switched off (disabledMantecaCurrencies BRL), outside Avenia's gates, no Avenia account: the pay route's pause, as an outage, never Manteca's flow.",
+        responses: mantecaPixResponses({
+            'GET /users/me': {
+                ...mantecaPixResponses()['GET /users/me'],
+                capabilities: {
+                    ...mantecaPixResponses()['GET /users/me'].capabilities,
+                    routes: mantecaPixRoutes().map((route) => ({
+                        ...route,
+                        state: 'paused',
+                        reason: {
+                            code: 'provider_paused',
+                            userMessage: 'This is paused for a moment. Try again soon.',
+                        },
+                        candidates: [{ provider: 'manteca', state: 'paused' }],
+                    })),
+                },
+            },
+        }),
+    },
+    'qr-pay-avenia-refunded': {
+        route: qrPayRoute(PIX_QR_FIXED_AMOUNT, AVENIA_QR_PAYMENT_ID),
+        about: "An Avenia QR payment that failed after the USDC left: it came back, the QR flow's refunded status.",
+        responses: aveniaQrResponses({ state: 'ready' }, aveniaQrRead('refunded', 'REFUNDED')),
+    },
+    'qr-pay-avenia-needs-support': {
+        route: qrPayRoute(PIX_QR_FIXED_AMOUNT, AVENIA_QR_PAYMENT_ID),
+        about: 'An Avenia QR payment a person at Peanut is looking at: the status, and support as the way on.',
+        responses: aveniaQrResponses({ state: 'ready' }, aveniaQrRead('needs_support', 'FAILED')),
+    },
+    'qr-pay-avenia-refused': {
+        route: qrPayRoute(PIX_QR_FIXED_AMOUNT),
+        about: "A user Avenia refused: the pay route's refusal and support, no fall-back to another provider.",
+        responses: aveniaQrResponses({
+            state: 'refused',
+            reason: {
+                code: 'provider_rejected',
+                userMessage:
+                    'Our payments partner could not verify your identity. Message support if you think this is a mistake.',
+            },
+        }),
+    },
+    'qr-pay-avenia-merchant-blocked': {
+        route: qrPayRoute(PIX_QR_FIXED_AMOUNT),
+        about: "A Pix code Avenia does not pay (its bank or holder): the QR flow's card for a merchant it cannot pay.",
+        responses: aveniaQrResponses(),
+        rejects: { 'POST /pix/pay/preview': { status: 422, body: { code: 'PIX_KEY_BLOCKED', error: 'Blocked' } } },
+    },
+    'qr-pay-avenia-first-use': {
+        route: qrPayRoute(PIX_QR_FIXED_AMOUNT),
+        about: 'Inside the QR gate with no Avenia account yet: the same no-tap opening as the other Pix pages.',
+        isLoadingState: true,
+        responses: aveniaQrResponses(
+            {
+                state: 'action_required',
+                action: 'activate',
+                reason: { code: 'first_use_required', userMessage: 'Set up this payment method to continue.' },
+            },
+            { [ACTIVATE_PIX]: { state: 'setting_up' } }
+        ),
+    },
+    'qr-pay-avenia-receipt': {
+        route: `/history?tx=${AVENIA_QR_PAYMENT_ID}`,
+        about: "An Avenia QR payment's receipt: a QR payment to the merchant, the reais, and Avenia on the provider row.",
+        responses: {
+            'GET /users/history': {
+                entries: [aveniaQrEntry('COMPLETED'), { ...aveniaQrEntry('REFUNDED'), uuid: 'fixture-qr-avenia-2' }],
+                hasMore: false,
+            },
+            [`GET /history/${AVENIA_QR_PAYMENT_ID}`]: aveniaQrEntry('COMPLETED'),
+        },
+    },
     'qr-pay-rate-unavailable': {
         route: '/qr-pay?qrCode=00020126400014br.gov.bcb.pix0118maria%40silva.com.br5204000053039865802BR5918MARIA%40SILVA.COM.BR6009SAO%20PAULO62070503***63046DEC&type=PIX&t=1',
         about: 'An open-amount QR whose live exchange rate failed: Retry remains reachable before currency is set.',
         waitFor: 'div.my-auto button',
         responses: {
+            'GET /users/me': PIX_ELIGIBLE_USER,
             'POST /manteca/qr-payment/init': {
                 code: '',
                 type: 'PIX',
@@ -1289,6 +3213,7 @@ export const FIXTURES: Record<string, Fixture> = {
         about: "PIX-key payment showing the key owner's name, with the key, masked CPF/CNPJ and bank below it.",
         waitFor: 'p.text-body-s.ph-mask',
         responses: {
+            'GET /users/me': PIX_ELIGIBLE_USER,
             'POST /manteca/qr-payment/init': {
                 type: 'PIX',
                 paymentRecipientName: 'MARIA DA SILVA',
@@ -1309,6 +3234,7 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'PIX payment to a CPF key: the owner, then the CPF in full, with no masked copy.',
         waitFor: 'p.text-body-s.ph-mask',
         responses: {
+            'GET /users/me': PIX_ELIGIBLE_USER,
             'POST /manteca/qr-payment/init': {
                 type: 'PIX',
                 paymentRecipientName: '12345678909',
@@ -1321,9 +3247,67 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     // The capabilities let the user pay, but the API refuses the scan for
     // identity (TASK-23747): the card starts the verification.
+    'qr-pay-payer-blocked': {
+        route: PIX_QR_ROUTE,
+        about: 'A payer blocked by the payment provider: terminal guidance with support and another payment method.',
+        responses: { 'GET /users/me': PIX_ELIGIBLE_USER },
+        rejects: {
+            'POST /manteca/qr-payment/init': {
+                status: 422,
+                body: { code: 'PAYER_BLOCKED', error: 'PAYER_BLOCKED', message: 'Payer blocked' },
+            },
+        },
+    },
+    'qr-pay-merchant-blocked': {
+        route: PIX_QR_ROUTE,
+        about: 'A merchant blocked by the payment provider: ask for another QR or payment method.',
+        responses: { 'GET /users/me': PIX_ELIGIBLE_USER },
+        rejects: {
+            'POST /manteca/qr-payment/init': {
+                status: 422,
+                body: { code: 'MERCHANT_BLOCKED', error: 'MERCHANT_BLOCKED', message: 'Merchant blocked' },
+            },
+        },
+    },
+    // A merchant-fixed amount a few cents above the balance (TASK-24621): the
+    // amount cannot be lowered, so the field says how much is missing.
+    // The Screen Library answers the API outside the page, where a fixture's `balance` never applies:
+    // the amount sits a few cents above the demo balance ($1,250.75) instead.
+    'qr-pay-fixed-amount-short': {
+        route: PIX_QR_ROUTE,
+        about: 'A fixed-amount Pix QR a few cents above the balance: the field error says how much is missing.',
+        waitFor: '[data-testid="error-alert"]',
+        responses: {
+            'GET /users/me': PIX_ELIGIBLE_USER,
+            'POST /manteca/qr-payment/init': {
+                type: 'PIX',
+                paymentRecipientName: 'PADARIA CENTRAL',
+                paymentAsset: 'BRL',
+                paymentAssetAmount: '6879.40',
+                paymentAgainst: 'USDC',
+                paymentAgainstAmount: '1250.80',
+                paymentPrice: '5.5',
+            },
+        },
+    },
+    'qr-pay-brazil-resident': {
+        route: PIX_QR_ROUTE,
+        about: 'A Brazilian resident reaches a Pix deep link: the pay route refuses the residence before init.',
+        responses: {
+            'GET /users/me': {
+                residence: {
+                    verified: { country: 'BR', status: 'VERIFIED', updatedAt: null },
+                    declared: null,
+                    secondaryDeclaredCountry: null,
+                },
+                capabilities: { routes: [pixPayRoute('refused')] },
+            },
+        },
+    },
     'qr-pay-kyc-required': {
         route: PIX_QR_ROUTE,
         about: 'A scan the API refuses with MANTECA_KYC_REQUIRED: the error card offers Verify identity.',
+        responses: { 'GET /users/me': PIX_ELIGIBLE_USER },
         rejects: {
             'POST /manteca/qr-payment/init': {
                 status: 400,
@@ -1338,8 +3322,36 @@ export const FIXTURES: Record<string, Fixture> = {
     // TASK-22698: the restart, not the start route that answers "already approved".
     'qr-pay-identity-missing': {
         route: PIX_QR_ROUTE,
-        about: 'QR rails paused for missing identity evidence: the gate restarts the identity check.',
-        responses: { 'GET /users/me': { capabilities: QR_IDENTITY_MISSING_CAPABILITIES } },
+        about: "QR paused: the payment partner can't read the name and ID number on the user's ID. They upload it again.",
+        responses: {
+            'GET /users/me': { residence: PIX_ELIGIBLE_RESIDENCE, capabilities: QR_IDENTITY_MISSING_CAPABILITIES },
+        },
+    },
+    'qr-pay-identity-restart-pending': {
+        route: PIX_QR_ROUTE,
+        about: 'QR paused: the user started a new ID check and has not finished it. They continue it.',
+        responses: {
+            'GET /users/me': {
+                residence: PIX_ELIGIBLE_RESIDENCE,
+                capabilities: qrIdentityPausedCapabilities(
+                    'identity_restart_pending',
+                    'Finish your new ID check to pay by QR again.'
+                ),
+            },
+        },
+    },
+    'qr-pay-identity-document-missing': {
+        route: PIX_QR_ROUTE,
+        about: 'QR paused: an account imported from Manteca has no ID on file. They upload it and take a selfie.',
+        responses: {
+            'GET /users/me': {
+                residence: PIX_ELIGIBLE_RESIDENCE,
+                capabilities: qrIdentityPausedCapabilities(
+                    'identity_document_missing',
+                    'We need an identity document and a selfie to complete your verification.'
+                ),
+            },
+        },
     },
     // Activity after a PIX-key payment: the owner's name, not the key.
     'history-pix-key-owner': {
@@ -1394,6 +3406,77 @@ export const FIXTURES: Record<string, Fixture> = {
     limits: { route: '/limits', about: 'Payment limits: the unlocked regions and the crypto note.' },
     // Masked state only ('****' — same span as the digits). Revealing needs a
     // passkey step-up, which no fixture can answer.
+    'card-address-required': {
+        route: '/card',
+        about: 'Card residence recovery: required.',
+        responses: {
+            'GET /users/me': {
+                identityVerification: { status: 'verified' },
+                capabilities: {
+                    features: {
+                        card: {
+                            state: 'action_required',
+                            reason: 'residence_unresolved',
+                            action: 'sumsub:address_of_residence',
+                        },
+                    },
+                    nextActions: [
+                        {
+                            key: 'sumsub:address_of_residence',
+                            kind: 'sumsub',
+                            levelKey: 'address_of_residence',
+                            purpose: 'residence_address_required',
+                        },
+                    ],
+                },
+            },
+            'GET /card': { isEligible: false, geoProhibited: false },
+            'GET /rain/cards': { status: { hasApplication: false }, cards: [], balance: null },
+        },
+    },
+    'card-address-rejected': {
+        route: '/card',
+        about: 'Card residence recovery: rejected.',
+        responses: {
+            'GET /users/me': {
+                identityVerification: { status: 'verified' },
+                capabilities: {
+                    features: {
+                        card: {
+                            state: 'action_required',
+                            reason: 'residence_unresolved',
+                            action: 'sumsub:address_of_residence',
+                        },
+                    },
+                    nextActions: [
+                        {
+                            key: 'sumsub:address_of_residence',
+                            kind: 'sumsub',
+                            levelKey: 'address_of_residence',
+                            purpose: 'residence_address_rejected',
+                        },
+                    ],
+                },
+            },
+            'GET /card': { isEligible: false, geoProhibited: false },
+            'GET /rain/cards': { status: { hasApplication: false }, cards: [], balance: null },
+        },
+    },
+    'card-address-in-review': {
+        route: '/card',
+        about: 'Card residence recovery: in_review.',
+        responses: {
+            'GET /users/me': {
+                identityVerification: { status: 'verified' },
+                capabilities: {
+                    features: { card: { state: 'setting_up', reason: 'residence_address_in_review' } },
+                    nextActions: [],
+                },
+            },
+            'GET /card': { isEligible: false, geoProhibited: false },
+            'GET /rain/cards': { status: { hasApplication: false }, cards: [], balance: null },
+        },
+    },
     'card-application': {
         route: '/card',
         about: 'Public card application with unknown residence, no admission badge, and no card balance.',
@@ -1436,22 +3519,353 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Existing holder keeps card management even when new issuance is prohibited for their residence.',
         responses: {
             'GET /card': { isEligible: false, geoProhibited: true },
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+            'GET /rain/cards/funding': cardFunding('ready'),
+        },
+    },
+    'card-verification-open': {
+        route: '/card',
+        about: 'Existing cardholder can complete a pending card verification while card controls remain available.',
+        responses: {
+            'GET /card': { isEligible: true, geoProhibited: false },
             'GET /rain/cards': {
-                status: { hasApplication: true, railStatus: 'ENABLED' },
+                ...CARD_HOLDER_OVERVIEW,
+                pendingVerification: {
+                    kind: 'card_addon',
+                    generation: 'capture-generation',
+                    entryScope: 'a'.repeat(64),
+                },
+                verificationContext: { status: 'open', generation: 'capture-generation', entryScope: 'a'.repeat(64) },
+            },
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+            'GET /rain/cards/funding': cardFunding('ready'),
+        },
+    },
+    'card-verification-checking': {
+        route: '/card',
+        about: 'Existing cardholder while a previously opened card verification is being checked.',
+        responses: {
+            'GET /card': { isEligible: true, geoProhibited: false },
+            'GET /rain/cards': {
+                ...CARD_HOLDER_OVERVIEW,
+                verificationContext: {
+                    status: 'checking',
+                    generation: 'capture-generation',
+                    entryScope: 'a'.repeat(64),
+                },
+            },
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+            'GET /rain/cards/funding': cardFunding('ready'),
+        },
+    },
+    'card-verification-unavailable': {
+        route: '/card',
+        about: 'Existing cardholder when the optional card verification status cannot be read.',
+        responses: {
+            'GET /card': { isEligible: true, geoProhibited: false },
+            'GET /rain/cards': { ...CARD_HOLDER_OVERVIEW, verificationContext: { status: 'unavailable' } },
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+            'GET /rain/cards/funding': cardFunding('ready'),
+        },
+    },
+    'card-holder-collateral': {
+        route: '/card',
+        about: 'Managed holder with the permission ready and card balance left from before: the collateral note offers Move card balance to wallet.',
+        responses: {
+            'GET /card': { isEligible: true, geoProhibited: false },
+            'GET /rain/cards': { ...CARD_HOLDER_OVERVIEW, balance: CARD_HOLDER_COLLATERAL },
+            'GET /rain/cards/funding/access': cardAccess('managed', false),
+            'GET /rain/cards/funding': cardFunding('ready'),
+        },
+    },
+    // Card balance on the existing card permission is what card payments use:
+    // no note and no move, however much there is.
+    'card-holder-collateral-legacy': {
+        route: '/card',
+        about: 'Holder on the existing card permission with card balance: the screen offers no note and no Move card balance to wallet.',
+        responses: {
+            'GET /card': { isEligible: true, geoProhibited: false },
+            'GET /rain/cards': { ...LEGACY_CARD_OVERVIEW, balance: CARD_HOLDER_COLLATERAL },
+            'GET /rain/cards/funding/access': cardAccess('legacy', false),
+        },
+    },
+    // The funding authorization sits on the terms step, one tap in ("Get your
+    // card") — e2e/flows/card-public.spec.ts takes that tap and shoots it.
+    'card-reissue': {
+        route: '/card',
+        about: 'Approved holder with no card: the card terms end with one funding authorization.',
+        responses: {
+            'GET /card': { isEligible: true, geoProhibited: false },
+            'GET /rain/cards': {
+                status: {
+                    hasApplication: true,
+                    railStatus: 'ENABLED',
+                    contractAddress: '0x2222222222222222222222222222222222222222',
+                    coordinatorAddress: '0x3333333333333333333333333333333333333333',
+                },
                 balance: null,
-                cards: [
-                    {
-                        id: 'fixture-card',
-                        rainCardId: 'fixture-rain',
-                        status: 'ACTIVE',
-                        last4: '0420',
-                        expiryMonth: 6,
-                        expiryYear: 2069,
-                        network: 'visa',
-                        issuedAt: '2026-01-01T00:00:00Z',
-                        hasWithdrawApproval: false,
-                    },
-                ],
+                cards: [],
+            },
+            'POST /rain/cards': { status: 'terms-required', isUsResident: false },
+            // eligible for managed funding, not accepted yet: the managed terms
+            'GET /rain/cards/funding/access': cardAccess('legacy', true),
+        },
+    },
+    'card-reissue-legacy': {
+        route: '/card',
+        about: 'Approved holder with no card on the existing card permission: the production card terms, with no funding authorization.',
+        responses: {
+            'GET /card': { isEligible: true, geoProhibited: false },
+            'GET /rain/cards': {
+                status: {
+                    hasApplication: true,
+                    railStatus: 'ENABLED',
+                    contractAddress: '0x2222222222222222222222222222222222222222',
+                    coordinatorAddress: '0x3333333333333333333333333333333333333333',
+                },
+                balance: null,
+                cards: [],
+            },
+            'POST /rain/cards': { status: 'terms-required', isUsResident: false },
+            'GET /rain/cards/funding/access': cardAccess('legacy', false),
+        },
+    },
+    // The Home prompt is today's centered modal for an existing cardholder.
+    // Nothing can be signed in a fixture, so Continue's outcome is not shot.
+    'card-funding-needed': {
+        route: '/home',
+        about: 'Managed cardholder whose funding permission is missing: the centered Home prompt with one unchecked authorization.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+            'GET /rain/cards/funding': cardFunding('required'),
+        },
+        waitFor: '[data-testid="card-funding-consent"]',
+    },
+    // Before acceptance the funding read is withheld (`enrollment_required`)
+    // and carries no retirement payload.
+    'card-funding-enrollment': {
+        route: '/home',
+        about: 'Cardholder eligible for managed funding who has not accepted yet: the same prompt with one unchecked authorization, nothing retired.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('legacy', true),
+            'GET /rain/cards/funding': {
+                ...cardFunding('temporarily_unavailable'),
+                management: { status: 'temporarily_unavailable', reason: 'enrollment_required', migration: null },
+            },
+        },
+        waitFor: '[data-testid="card-funding-consent"]',
+    },
+    'card-funding-legacy': {
+        route: '/home',
+        about: 'Cardholder on the existing card permission that managed funding is not open to: the production permission prompt, no funding authorization.',
+        responses: {
+            'GET /rain/cards': LEGACY_CARD_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('legacy', false),
+        },
+    },
+    'card-funding-migration': {
+        route: '/home',
+        about: 'Managed cardholder with a legacy grant to retire: the card payments update prompt.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+            'GET /rain/cards/funding': cardFunding('migration_required', {
+                uninstall: [{ validationId: `0x02${'ab'.repeat(20)}`, deinitData: '0x1234' }],
+                invalidateNonceFloor: 3,
+            }),
+        },
+        waitFor: '[data-testid="card-funding-consent"]',
+    },
+    // Card balance from before goes back to the wallet once the update is
+    // confirmed: the update prompt names the amount.
+    'card-funding-return': {
+        route: '/home',
+        about: 'Existing cardholder with card balance and a legacy grant: the card payments update prompt names the amount.',
+        responses: {
+            'GET /rain/cards': {
+                ...CARD_HOLDER_OVERVIEW,
+                balance: CARD_HOLDER_COLLATERAL,
+                cards: [{ ...CARD_HOLDER_OVERVIEW.cards[0], hasWithdrawApproval: true }],
+            },
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+            'GET /rain/cards/funding': cardFunding('migration_required', {
+                uninstall: [{ validationId: `0x02${'ab'.repeat(20)}`, deinitData: '0x1234' }],
+                invalidateNonceFloor: 3,
+            }),
+        },
+        waitFor: '[data-testid="card-funding-consent"]',
+    },
+    'card-funding-withdrawal-in-flight': {
+        route: '/home',
+        about: 'Existing cardholder with a legacy grant while a card withdrawal still confirms: the same prompt waits, then offers Check status and Skip.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', false),
+            'GET /rain/cards/funding': {
+                ...cardFunding('temporarily_unavailable'),
+                management: { status: 'temporarily_unavailable', reason: 'withdrawal_in_flight', migration: null },
+            },
+        },
+        waitFor: '[data-testid="modal-head"]',
+    },
+    'card-funding-pending': {
+        route: '/home',
+        about: 'Existing cardholder whose grant is accepted but not confirmed: a disabled Working… button, then Check status and Skip once the wait window passes.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', false),
+            'GET /rain/cards/funding': cardFunding('pending'),
+        },
+        waitFor: '[data-testid="modal-head"]',
+    },
+    'card-funding-enabled': {
+        route: '/home',
+        about: 'Existing cardholder with the permission ready: Home shows no prompt, whatever the allowance is.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', false),
+            'GET /rain/cards/funding': cardFunding('ready'),
+        },
+    },
+    'card-funding-unavailable': {
+        route: '/home',
+        about: 'Existing cardholder whose permission stands but refills are paused: Home never asks for a grant.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+            'GET /rain/cards/funding': cardFunding('temporarily_unavailable'),
+        },
+    },
+    'card-funding-error': {
+        route: '/home',
+        about: 'Managed cardholder whose funding state cannot be read: fails closed, Home shows no prompt.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+        },
+        fails: ['GET /rain/cards/funding'],
+    },
+    'card-funding-access-error': {
+        route: '/home',
+        about: 'Existing cardholder whose funding decision cannot be read: fails closed, Home shows neither permission prompt.',
+        responses: {
+            'GET /rain/cards': LEGACY_CARD_OVERVIEW,
+            'GET /rain/cards/funding': cardFunding('required'),
+        },
+        fails: ['GET /rain/cards/funding/access'],
+    },
+    'card-cancel': {
+        route: '/card',
+        about: 'Existing cardholder on Card settings, to check that cancelling offers no permission-removal step.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+            'GET /rain/cards/funding': cardFunding('ready'),
+        },
+    },
+    // A card lock or cancel is a wallet-wide stop of managed payments. The card is done at once; whether
+    // the wallet stop is confirmed comes from the funding read. One fixture per visible state, static data.
+    'card-cancel-stop-pending': {
+        route: '/card',
+        about: 'Cardholder whose cancel answers "stop in progress": Card canceled, then payments stopping, and the card page banner.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+            'GET /rain/cards/funding': cardStopFunding('card_canceled', 'pending'),
+            'POST /rain/cards/fixture-card/cancel': {
+                status: 'CANCELED',
+                fundingStop: { state: 'pending', reason: 'card_canceled' },
+            },
+        },
+    },
+    'card-lock-stop-confirmed': {
+        route: '/card',
+        about: 'Cardholder whose lock is followed by a funding read confirming the wallet stop: "payments stopped".',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', false),
+            'GET /rain/cards/funding': cardStopFunding('card_locked', 'confirmed'),
+            'POST /rain/cards/fixture-card/lock': {
+                status: 'LOCKED',
+                fundingStop: { state: 'pending', reason: 'card_locked' },
+            },
+        },
+    },
+    'card-lock-stop-unavailable': {
+        route: '/card',
+        about: 'Cardholder whose lock cannot stop wallet payments (permission unusable): asks for support, never says stopped.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', false),
+            'GET /rain/cards/funding': cardStopFunding('card_locked', 'unavailable'),
+            'POST /rain/cards/fixture-card/lock': {
+                status: 'LOCKED',
+                fundingStop: { state: 'unavailable', reason: 'scope_retired' },
+            },
+        },
+    },
+    // What a lock or cancel left in the card. The balance on screen reads zero, as it does while the
+    // provider holds it back, so nothing is signed and the backend's answer alone decides the copy.
+    'card-lock-balance-left': {
+        route: '/card',
+        about: 'Cardholder whose freeze could not move the card balance: Card frozen, with the amount still in the card and what is reserved for pending payments.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+            'GET /rain/cards/funding': cardFunding('ready'),
+            'POST /rain/cards/fixture-card/lock': {
+                status: 'LOCKED',
+                fundingStop: { state: 'not_applicable', reason: null },
+                collateralReturn: {
+                    state: 'waiting',
+                    returnedCents: 0,
+                    remainingCents: 2000,
+                    heldCents: 550,
+                    cardCreditCents: 0,
+                    retryAfterSec: 420,
+                },
+            },
+        },
+    },
+    'card-cancel-return-blocked': {
+        route: '/card',
+        about: 'Cardholder whose cancel waits for the card balance: a countdown in place of the backend sentence, and the slide is held.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+            'GET /rain/cards/funding': cardFunding('ready'),
+        },
+        rejects: {
+            'POST /rain/cards/fixture-card/cancel': {
+                status: 409,
+                body: {
+                    error: 'Your card balance cannot be returned yet. Try again in 3 minutes.',
+                    code: 'CARD_RETURN_BLOCKED',
+                    retryAfterSec: 150,
+                },
+            },
+        },
+    },
+    'card-cancel-credit-left': {
+        route: '/card',
+        about: 'Cardholder whose cancel leaves a pending payment hold and refund credit: Card canceled, with both named.',
+        responses: {
+            'GET /rain/cards': CARD_HOLDER_OVERVIEW,
+            'GET /rain/cards/funding/access': cardAccess('managed', true),
+            'GET /rain/cards/funding': cardFunding('ready'),
+            'POST /rain/cards/fixture-card/cancel': {
+                status: 'CANCELED',
+                fundingStop: { state: 'not_applicable', reason: null },
+                collateralReturn: {
+                    state: 'returned',
+                    returnedCents: 2000,
+                    remainingCents: 0,
+                    heldCents: 550,
+                    cardCreditCents: 1234,
+                },
             },
         },
     },
@@ -1556,7 +3970,7 @@ export const FIXTURES: Record<string, Fixture> = {
     // Hazards — user text and numbers that break layouts.
     // ---------------------------------------------------------------------
     'hugo-long-username': {
-        route: '/profile',
+        route: '/settings',
         about: `Hugo's case: the ${LONG_USERNAME.length}-character username "${LONG_USERNAME}" in the header and the share-link pill.`,
         responses: {
             'GET /users/me': { user: { username: LONG_USERNAME, fullName: LONG_USERNAME, showFullName: false } },
@@ -1565,7 +3979,7 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'long-full-name': {
-        route: '/profile',
+        route: '/settings',
         about: 'Profile header with a 55-character full name shown instead of the username.',
         responses: { 'GET /users/me': { user: { fullName: LONG_FULL_NAME, showFullName: true } } },
     },
@@ -1604,6 +4018,7 @@ export const FIXTURES: Record<string, Fixture> = {
                         availableMonthlyLimit: '98765432109',
                     },
                 ],
+                unavailable: [],
             },
         },
     },
@@ -1635,6 +4050,36 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'A USD wire withdrawal: its receipt shows the wire fee and what the bank received.',
         responses: { 'GET /users/history': { entries: [WIRE_WITHDRAWAL_ENTRY], hasMore: false } },
     },
+    'history-expired-ars-deposit': {
+        route: '/history?tx=fixture-expired-ars-deposit',
+        about: 'An expired ARS deposit order: the receipt names the expired order.',
+        responses: {
+            'GET /users/history': { entries: [EXPIRED_ARS_DEPOSIT_ENTRY], hasMore: false },
+            'GET /history/fixture-expired-ars-deposit': EXPIRED_ARS_DEPOSIT_ENTRY,
+        },
+    },
+    ...Object.fromEntries(
+        (['name_mismatch', 'too_many_recent'] as const).map((reason) => {
+            const id = `fixture-returned-deposit-${reason.replaceAll('_', '-')}`
+            const entry = {
+                ...EXPIRED_ARS_DEPOSIT_ENTRY,
+                uuid: id,
+                status: 'REFUNDED',
+                extraData: { kind: 'ONRAMP', provider: 'BRIDGE', usdAmount: '10', returnReason: { code: reason } },
+            }
+            return [
+                `history-returned-deposit-${reason.replaceAll('_', '-')}`,
+                {
+                    route: `/history?tx=${id}`,
+                    about: `Returned deposit receipt: ${reason.replaceAll('_', ' ')} reason.`,
+                    responses: {
+                        'GET /users/history': { entries: [entry], hasMore: false },
+                        [`GET /history/${id}`]: entry,
+                    },
+                },
+            ]
+        })
+    ),
     'history-receipt-attachment': {
         route: '/history',
         about: 'A completed request payment with an attachment. Open its receipt to check download states.',
@@ -1690,6 +4135,22 @@ export const FIXTURES: Record<string, Fixture> = {
                 paymentReference: 'demo-req',
                 payerAmount: REQUEST_PAY_EUR,
             },
+        },
+    },
+    'history-receipt-public-link': {
+        route: '/history?tx=fixture-public-receipt-send',
+        about: 'A P2P send with a public receipt: Share receipt sends the link, the PDF is under More actions.',
+        responses: {
+            'GET /users/history': { entries: [PUBLIC_RECEIPT_SEND_ENTRY], hasMore: false },
+            'GET /history/fixture-public-receipt-send': PUBLIC_RECEIPT_SEND_ENTRY,
+        },
+    },
+    'history-qr-pay-public-link': {
+        route: '/history?tx=fixture-public-receipt-qr-pay',
+        about: 'A QR payment with a public receipt: Share receipt sends the link, Split this bill is under More actions.',
+        responses: {
+            'GET /users/history': { entries: [PUBLIC_RECEIPT_QR_PAY_ENTRY], hasMore: false },
+            'GET /history/fixture-public-receipt-qr-pay': PUBLIC_RECEIPT_QR_PAY_ENTRY,
         },
     },
     'empty-history': {
@@ -1840,6 +4301,36 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         },
     },
+    // TASK-24909: it used to ask for "a clearer photo of your ID".
+    'add-money-bank-provider-ask-unknown': {
+        route: '/add-money/germany/bank?step=verify',
+        about: 'The API asks for something the app has no step for, with no message: the document request says only that more information is needed.',
+        responses: {
+            'GET /users/me': {
+                capabilities: {
+                    rails: BRIDGE_BANK_RAILS.map((rail) => ({ ...rail, status: 'requires-info' })),
+                    nextActions: [],
+                    restrictions: [],
+                    features: {
+                        qr: { state: 'on' },
+                        card: { state: 'ready' },
+                        local: { state: 'ready', accounts: {} },
+                        bank: {
+                            state: 'action_required',
+                            accounts: {
+                                USD: { state: 'action_required' },
+                                EUR: { state: 'action_required' },
+                                GBP: { state: 'action_required' },
+                                MXN: { state: 'action_required' },
+                            },
+                        },
+                    },
+                },
+                identityVerification: { status: 'verified' },
+                residence: { declared: 'DE', verified: 'DE', pending: null, declaredSecond: null },
+            },
+        },
+    },
     'kyc-action-required': {
         route: '/profile/accounts',
         about: 'Bridge asks for more verification: the task card and its Complete verification button.',
@@ -1866,6 +4357,51 @@ export const FIXTURES: Record<string, Fixture> = {
                             requirementKey: 'proof_of_address',
                         },
                     ],
+                    restrictions: [],
+                },
+            },
+        },
+    },
+
+    'bank-proof-of-address-supplement': {
+        route: '/profile/accounts',
+        about: 'Identity approved with bank accounts ticked: Bridge waits for a proof of address, collected on its supplement action after the identity.',
+        responses: {
+            'GET /users/me': {
+                // what api#1816 answers right after the approval: the rail is
+                // parked REQUIREMENTS_MISSING and names supplement:bridge
+                capabilities: {
+                    rails: [
+                        {
+                            id: 'bridge.sepa_eu',
+                            provider: 'bridge',
+                            method: 'SEPA_EU',
+                            channel: 'bank',
+                            country: 'EU',
+                            currency: 'EUR',
+                            status: 'blocked',
+                            reason: {
+                                code: 'requirements_missing',
+                                userMessage: 'We need one more document to finish setting this up.',
+                            },
+                            blockingActions: ['supplement:bridge'],
+                            resolved: {
+                                status: 'fixable',
+                                blocking: {
+                                    code: 'requirements_missing',
+                                    userMessage: 'We need one more document to finish setting this up.',
+                                    selfHealable: true,
+                                    selfHealKind: 'document-resubmit',
+                                },
+                                nextAction: {
+                                    key: 'supplement:bridge',
+                                    kind: 'sumsub',
+                                    purpose: 'requirements_missing',
+                                },
+                            },
+                        },
+                    ],
+                    nextActions: [{ key: 'supplement:bridge', kind: 'sumsub', purpose: 'requirements_missing' }],
                     restrictions: [],
                 },
             },
@@ -1962,10 +4498,25 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: { 'GET /card': { isEligible: true, geoProhibited: false } },
     },
 
+    [DOWNLOAD_PROMPT_FIXTURE]: {
+        route: '/home',
+        about: 'The web "The Peanut app is here" prompt over home; every other fixture hides it.',
+    },
+
     'early-user': {
         route: '/home',
         about: 'Early-user reward drawer over home, opened by the user flag.',
-        responses: { 'GET /users/me': { showEarlyUserModal: true } },
+        responses: {
+            'GET /users/me': { showEarlyUserModal: true },
+            // the announcement waits for a quiet third session; the server's policy lets a capture's first one open it
+            'GET /users/me/attention': {
+                catalogueVersion: ATTENTION_POLICY.catalogueVersion,
+                settings: ATTENTION_POLICY.settings,
+                catalogue: ATTENTION_POLICY.catalogue.map((row) =>
+                    row.id === 'early-user' ? { ...row, tier: 1, rank: 0, policy: { interrupt: 'always' } } : row
+                ),
+            },
+        },
     },
 
     // Arrival prompt (TASK-23251). The app must resolve a country first (the
@@ -1973,11 +4524,15 @@ export const FIXTURES: Record<string, Fixture> = {
     'arrival-qr-ar': {
         route: '/home',
         about: 'Arrival drawer over home: in Argentina, pay a Mercado Pago QR.',
+        geoCountry: 'AR',
+        waitFor: '[role="dialog"] img[src$="/flags/ar.svg"]',
         responses: { 'POST /users/me/arrival': { prompt: 'qr_ar' } },
     },
     'arrival-pix-br': {
         route: '/home',
         about: 'Arrival drawer over home: in Brazil, pay a Pix QR.',
+        geoCountry: 'BR',
+        waitFor: '[role="dialog"] img[src$="/flags/br.svg"]',
         responses: { 'POST /users/me/arrival': { prompt: 'pix_br' } },
     },
     'arrival-card': {
@@ -1999,6 +4554,39 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/add-money?method=bank',
         about: 'The hub: one euro account held, the rest open to claim, every country below.',
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [DEPOSIT_ACCOUNT_EUR] } },
+    },
+    'profile-details': {
+        route: '/settings/details',
+        about: 'Profile details for a verified Portuguese resident: the name and answers read live from Sumsub, the address and tax number kept only there.',
+        responses: {
+            'GET /users/me': PROFILE_ACCOUNTS_MIX['GET /users/me'],
+            'GET /users/kyc/details': {
+                name: { first: 'Ana', last: 'Teste' },
+                nationality: 'PT',
+                idNationality: 'PT',
+                document: { country: 'PRT', type: 'PASSPORT' },
+                address: {
+                    street: 'Rua de Teste',
+                    buildingNumber: '10',
+                    postCode: '1000-001',
+                    town: 'Lisboa',
+                    country: 'PT',
+                },
+                taxId: '000000000',
+                stored: {
+                    dateOfBirth: '1990-05-14',
+                    countryOfBirth: 'PT',
+                    cityOfBirth: 'Lisboa',
+                    phone: '+351912345678',
+                    occupation: 'software_developer_applications',
+                    employmentStatus: 'employed',
+                    annualSalary: '25k_50k',
+                    expectedMonthlyVolume: '1k_5k',
+                    cardPurpose: 'personal_spending',
+                    sourceOfFunds: 'salary',
+                },
+            },
+        },
     },
     'profile-accounts': {
         route: '/profile/accounts',
@@ -2049,6 +4637,28 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'A verified user whose own review holds EUR (action), USD (under review) and MXN (support); GBP is not open yet. No residence on file, and nothing asks for one.',
         responses: REVIEW_CAUSE_RESPONSE,
     },
+    'profile-accounts-provider-reviewing': {
+        route: '/profile/accounts',
+        about: 'Bridge reviews the customer: every Bridge account reads "Under review", and a tap opens the wait drawer (TASK-24909).',
+        responses: BRIDGE_REVIEW_RESPONSE,
+    },
+    // Tap "Review terms", Continue, then post `{ signedAgreementId }` from the frame.
+    'profile-accounts-terms-unconfirmed': {
+        route: '/profile/accounts',
+        about: 'Bridge has the signature, the account still asks for terms: the step says "Terms sent" and offers no new page (TASK-24909).',
+        responses: bridgeTermsResponse({ accepted: true }),
+    },
+    'profile-accounts-terms-confirm-failed': {
+        route: '/profile/accounts',
+        about: 'The terms confirm request fails: the step says so and offers a retry (TASK-24909).',
+        responses: bridgeTermsResponse({ accepted: false }),
+        fails: ['POST /users/bridge-tos-confirm'],
+    },
+    'profile-accounts-provider-asks': {
+        route: '/profile/accounts',
+        about: 'A verified user whose payment partner asks for one more thing for EUR ("Action needed"), has answered for USD ("Under review"), and still has COP waiting on the ID ("Verify").',
+        responses: PROVIDER_ASK_RESPONSE,
+    },
     'profile-accounts-residence-restricted': {
         route: '/profile/accounts',
         about: 'A resident of a country barred from banking: every account says so, with no support and no "or not yet".',
@@ -2072,6 +4682,31 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         },
     },
+    'profile-accounts-address-required': {
+        route: '/profile/accounts',
+        about: 'A verified user with no approved residence: USD, EUR, GBP and MXN say "Action needed" and ask for the home address; COP opens as usual.',
+        responses: addressStepResponse('required'),
+    },
+    'add-money-address-in-review': {
+        route: '/add-money?method=bank',
+        about: 'Add money while the home address is with our verification partner: the four accounts say "Under review".',
+        responses: addressStepResponse('in_review'),
+    },
+    'get-paid-address-required': {
+        route: '/add-money?method=bank&step=claim&corridor=ACH_US',
+        about: 'The USD row of a user with no approved residence: one step for the home address, never "Not available".',
+        responses: addressStepResponse('required'),
+    },
+    'get-paid-address-retry': {
+        route: '/add-money?method=bank&step=claim&corridor=SEPA_EU',
+        about: 'The EUR row after the address was not accepted: send it again.',
+        responses: addressStepResponse('rejected'),
+    },
+    'get-paid-address-in-review': {
+        route: '/add-money?method=bank&step=claim&corridor=ACH_US',
+        about: 'The USD row while the address is checked: nothing to do, the page updates by itself.',
+        responses: addressStepResponse('in_review'),
+    },
     'get-paid-review-action': {
         route: '/add-money?method=bank&step=claim&corridor=SEPA_EU',
         about: 'The EUR row of a user whose own review waits on them: the extra check, never "Verify identity first".',
@@ -2084,10 +4719,39 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'profile-accounts-br-resident': {
         route: '/profile/accounts',
-        about: 'Accounts page, a Brazilian resident: BRL is their bank rail, and its drawer sends to a Pix key.',
+        about: "Accounts page, a Brazilian resident whose Pix deposit route is Avenia's: no BRL row, Pix leads Home's Add money drawer instead (Aleks, 2026-11-12 and 2026-11-14).",
         responses: {
-            'GET /users/me': { residence: { declared: 'BR', verified: 'BR', pending: null, declaredSecond: null } },
+            'GET /users/me': {
+                residence: {
+                    verified: { country: 'BR', status: 'VERIFIED', updatedAt: null },
+                    declared: null,
+                    secondaryDeclaredCountry: null,
+                },
+                capabilities: { routes: [...aveniaRoutes('enabled'), pixPayRoute('refused')] },
+            },
         },
+    },
+    'profile-accounts-br-pix-refused': {
+        route: '/profile/accounts',
+        about: "Accounts page, a Brazilian resident whose Pix deposit route is refused: the BRL row stays, closed, and its drawer says the route's reason.",
+        responses: (() => {
+            const refused = aveniaRouteResponses({
+                provider: null,
+                state: 'refused',
+                reason: { code: 'provider_unavailable', userMessage: 'This is not available right now.' },
+            })
+            // A resident of Brazil outside Avenia's QR gate: the pay route refuses the residence
+            // (API-CONTRACT-M4 §1), so the closed BRL row is not turned into the Pix key send.
+            return {
+                'GET /users/me': {
+                    ...refused['GET /users/me'],
+                    capabilities: {
+                        ...refused['GET /users/me'].capabilities,
+                        routes: [...refused['GET /users/me'].capabilities.routes, pixPayRoute('refused')],
+                    },
+                },
+            }
+        })(),
     },
     'get-paid-empty': {
         route: '/add-money?method=bank',
@@ -2101,6 +4765,29 @@ export const FIXTURES: Record<string, Fixture> = {
             'GET /users/deposit-accounts': { depositAccounts: [] },
             'GET /users/me': { capabilities: BLOCKED_BANK_CAPABILITIES },
         },
+    },
+    'bank-account-verify-drawer': {
+        route: '/add-money?method=bank&step=claim&corridor=SEPA_EU&returnTo=%2Fprofile%2Faccounts',
+        about: 'Bank account Verify: the currency drawer keeps the Bank account list behind it, without Add money search or discovery.',
+        waitFor: '[data-testid="corridor-gate-drawer"][data-state="open"]',
+        responses: {
+            'GET /users/deposit-accounts': { depositAccounts: [] },
+            'GET /users/me': {
+                identityVerification: { status: 'not_started' },
+                capabilities: BLOCKED_BANK_CAPABILITIES,
+                depositAccounts: { enabled: true },
+            },
+        },
+    },
+    'get-paid-usd-closed-bangladesh': {
+        route: '/add-money?method=bank',
+        about: 'An unverified Bangladesh resident: the paperwork engine refuses USD, so USD reads Not available while EUR, GBP and MXN still ask for the ID.',
+        responses: PAPERWORK_BANGLADESH_RESPONSE,
+    },
+    'get-paid-usd-closed-bangladesh-claim': {
+        route: '/add-money?method=bank&step=claim&corridor=ACH_US',
+        about: 'A link straight to the USD claim for a Bangladesh resident: the drawer says USD is not available where they live, with no ID check offered.',
+        responses: PAPERWORK_BANGLADESH_RESPONSE,
     },
     'get-paid-claim': {
         route: '/add-money?method=bank&step=claim&corridor=ACH_US',
@@ -2280,7 +4967,70 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     'home-add-drawer': {
         route: '/home?drawer=add',
-        about: 'The Add drawer — where bank transfer now leads to the standing account.',
+        about: 'Returning user with a usable EUR account and a completed peer payment.',
+        responses: {
+            ...PROFILE_ACCOUNTS_MIX,
+            'GET /users/me': {
+                ...PROFILE_ACCOUNTS_MIX['GET /users/me'],
+                user: { firstPaymentAt: '2026-09-15T00:00:00Z' },
+            },
+        },
+    },
+    'add-money-picker-first-time': {
+        route: '/add-money',
+        balance: '0',
+        about: 'First-time Add money picker for a resident of Portugal, with Crypto available before identity verification, and no Pix row (the owner, 15 Nov).',
+        responses: {
+            'GET /users/me': {
+                user: { activationMilestone: 'registered', isActivated: false, firstPaymentAt: null },
+                identityVerification: { status: 'not_started' },
+                capabilities: BLOCKED_BANK_CAPABILITIES,
+                depositAccounts: { enabled: true },
+                residence: { declared: { country: 'PT' }, verified: null },
+            },
+            'GET /users/deposit-accounts': { depositAccounts: [], claimable: [] },
+        },
+    },
+    'add-money-picker-pix': {
+        route: '/add-money',
+        about: 'The Add picker for a resident of Brazil on Avenia: Pix leads, as on the Home drawer (the owner, 15 Nov).',
+        responses: aveniaResponses('enabled'),
+    },
+    'home-add-drawer-pix': {
+        route: '/home?drawer=add',
+        about: 'The Add drawer for a resident of Brazil on Avenia: Pix leads, bank transfer next, crypto last (Aleks, 2026-11-12 and 2026-11-14).',
+        responses: aveniaResponses('enabled'),
+    },
+    'home-add-drawer-pix-paused': {
+        route: '/home?drawer=add',
+        about: 'The Add drawer for a returning resident of Brazil under the Brazil pause: no Pix row; bank accounts, crypto and more ways (the owner, 15 Nov).',
+        responses: {
+            'GET /users/me': {
+                ...aveniaResponses('first-use')['GET /users/me'],
+                user: { fullName: 'Ana Souza', firstPaymentAt: '2026-09-15T00:00:00Z' },
+                capabilities: {
+                    rails: [],
+                    nextActions: [],
+                    restrictions: [],
+                    routes: (['deposit', 'withdraw'] as const).map((operation) => ({
+                        operation,
+                        method: 'PIX_BR',
+                        provider: null,
+                        state: 'paused',
+                        reason: {
+                            code: 'residence_paused',
+                            userMessage: 'Deposits and withdrawals are paused where you live for now.',
+                        },
+                        candidates: [],
+                    })),
+                },
+            },
+        },
+    },
+    'add-money-options-account-none': {
+        route: '/add-money/options?method=account',
+        about: "Bank accounts from Home's Add drawer for a user who holds none: the accounts they can open (the owner, 15 Nov).",
+        responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [] } },
     },
     'home-request-drawer': {
         route: '/home?drawer=request',
@@ -2913,6 +5663,40 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         },
     },
+    // TASK-23850: a request is paid in USDC or USDT only. A link that asks for
+    // ETH is refused and says why; it is never paid in USDC instead. Opened
+    // through /send?recipient=, the route a native app and a scan use.
+    'pay-request-eth-link': {
+        route: '/send?recipient=0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed%40base%2F0.1eth',
+        about: 'A request link that asks for ETH: refused, requests are paid in USDC or USDT only.',
+    },
+    // An ETH request made before TASK-23850, opened by its charge id, which
+    // skips the URL parser: it can't be paid anymore and never opens Confirm.
+    'pay-request-eth-charge': {
+        route: '/pay-request?chargeId=demo-eth-charge',
+        about: "An ETH request opened by its charge id: it can't be paid anymore (TASK-23850).",
+        responses: {
+            'GET /request-charges/demo-eth-charge': {
+                transactionType: 'REQUEST',
+                chainId: '8453',
+                tokenAddress: '0x0000000000000000000000000000000000000000',
+                tokenSymbol: 'ETH',
+                tokenDecimals: 18,
+                tokenType: 'native',
+                tokenAmount: '0.01',
+                currencyAmount: '25',
+                requestLink: { recipientAddress: '0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed' },
+            },
+        },
+    },
+    // Tap Token: the request payment offers USDC and USDT, never ETH (TASK-23850).
+    // Cross-chain send is on here: its kill switch (on by default) locks the
+    // picker to USDC on Arbitrum.
+    'pay-request-address-tokens': {
+        route: '/send?recipient=0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed',
+        about: 'Paying a request to an address: the token picker offers USDC and USDT, not ETH.',
+        responses: { 'GET /config/kill-switches': { disableXchainSend: false } },
+    },
     'pay-request-pot-partial-success': {
         // The pay screen of a part-paid €88 pot. Tap External wallet: about
         // 15 s later the deposit poll answers completed and the charge reads
@@ -2993,5 +5777,18 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/limits/manteca',
         about: 'The caps screen when GET /users/limits fails.',
         fails: ['GET /users/limits'],
+    },
+
+    ...PAPERWORK_VERIFICATION_FIXTURES,
+    ...KYC_FEATURE_ACTIVATION_FIXTURES,
+    // The local account refused because the residence's Pix comes from its route (M5): the supplement says where
+    'feature-activation-local-served-elsewhere': {
+        ...KYC_FEATURE_ACTIVATION_FIXTURES['feature-activation-local-refused'],
+        // The Brazil local route sends a resident to the Pix page, so the line is captured on the family's own route.
+        about: "First use local: refused because the user's Pix route serves Pix (local_served_elsewhere): the line names what Pix covers.",
+        responses: {
+            ...KYC_FEATURE_ACTIVATION_FIXTURES['feature-activation-local-refused'].responses,
+            'POST /users/kyc/features/local/activate': { state: 'refused', reason: 'local_served_elsewhere' },
+        },
     },
 }

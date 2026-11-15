@@ -2,8 +2,19 @@
 export type Fixture = {
     /** Route the fixture is built for. The listing page links here with the param applied. */
     route: string
+    /**
+     * Where the app sends the user from `route`, when that screen is the state
+     * under test. The capture opens `route` and shoots once it lands here.
+     */
+    landsOn?: string
     /** What the fixture proves. One line, shown on /dev/fixtures. */
     about: string
+    /**
+     * Session storage the screen reads as it loads, seeded before the first
+     * navigation: a form that never rides in the URL, such as the Pix withdraw
+     * draft, which holds a Pix key.
+     */
+    sessionStorage?: Record<string, string>
     /**
      * Overrides on top of the demo-api response, keyed `METHOD /path`.
      * Deep-merged: objects merge key by key, arrays and primitives replace.
@@ -16,6 +27,8 @@ export type Fixture = {
      * (the Home checklist's "Add money") says it here.
      */
     balance?: string
+    /** ISO 3166-1 alpha-2 country to seed for IP geolocation in screenshots. */
+    geoCountry?: string
     /** `METHOD /path` keys that answer 500, for error-state screens. */
     fails?: string[]
     /**

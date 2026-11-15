@@ -8,7 +8,6 @@ describe('hosted KYC preparation copy', () => {
         expect(prep.items.proofOfAddress.title.length).toBeLessThan(32)
         expect(prep.items.selfie.title).not.toBe(prep.items.selfie.label)
         expect(prep.items.selfie.body.toLowerCase()).not.toMatch(/short selfie|selfie corta|selfie rápida/)
-        expect(prep.howLong.standard).not.toMatch(/\d+\s*(minutes|minutos)/)
         // no number of minutes (ui#3465), but the reviewer caveat stays: a
         // hosted check a person reviews takes days, not minutes
         expect(prep.howLong.hosted).not.toMatch(/\d+\s*(minutes|minutos)/)

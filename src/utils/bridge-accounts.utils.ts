@@ -90,14 +90,16 @@ export function isValidUKAccountNumber(accountNumber: string): boolean {
 
 /**
  * Why the API switched a saved bank account off, when the only fix is to add
- * the same account again:
+ * the same account again (peanut-api-ts src/bridge/automatic-reactivation.ts):
  *  - it belongs to an earlier provider customer of the user (TASK-23054);
  *  - the API deleted it at the provider to replace it, and the re-create
- *    failed (TASK-23477, peanut-api-ts#1832). The provider no longer has it.
+ *    failed (TASK-23477, peanut-api-ts#1832). The provider no longer has it;
+ *  - support removed it at the provider. It does not come back on its own.
  */
 const RE_ADDABLE_DEACTIVATION_REASONS: ReadonlySet<string> = new Set([
     'not_owned_by_current_bridge_customer',
     'bridge_account_replacement_pending',
+    'removed_by_support',
 ])
 
 /**

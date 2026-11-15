@@ -13,7 +13,7 @@
 // gaps the guarded mode closes.
 
 import { base64URLToBytes } from './native-webauthn'
-import { withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
+import { beginCeremonyTiming, withCeremonyPurpose, type CeremonyTiming } from '@/utils/webauthn-ceremony-telemetry'
 import { isCapacitor } from './capacitor'
 import { raceCeremonyTimeout, waitForPasskeyShim } from './passkeyCeremony.utils'
 
@@ -42,28 +42,55 @@ export async function requestLocalUserPresence(credentialId?: string): Promise<U
     const challenge = new Uint8Array(32)
     crypto.getRandomValues(challenge)
 
+    let timing: CeremonyTiming | undefined
+    try {
+        timing = beginCeremonyTiming?.(Date.now(), 'app_lock')
+        timing?.bindChallenge(challenge)
+        timing?.activate()
+    } catch {}
     try {
         // Fires at app open — the exact window where autoShimWebAuthn is still
         // installing on native. Gate on the shim and bound the ceremony (same
         // guard class as login, TASK-21782): an un-shimmed webview get() hangs
         // silently and would strand the user behind the lock with no retry.
         if (isCapacitor()) await waitForPasskeyShim()
+        try {
+            timing?.operationStarted()
+        } catch {}
         const assertion = await withCeremonyPurpose('app_lock', () =>
             raceCeremonyTimeout(
-                navigator.credentials.get({
-                    publicKey: {
-                        challenge,
-                        // Copy into a fresh buffer: BufferSource wants Uint8Array<ArrayBuffer>,
-                        // and base64URLToBytes is typed over the wider ArrayBufferLike.
-                        allowCredentials: [{ id: new Uint8Array(base64URLToBytes(credentialId)), type: 'public-key' }],
-                        userVerification: 'required',
-                        timeout: 60_000,
-                    },
-                })
+                navigator.credentials
+                    .get({
+                        publicKey: {
+                            challenge,
+                            // Copy into a fresh buffer: BufferSource wants Uint8Array<ArrayBuffer>,
+                            // and base64URLToBytes is typed over the wider ArrayBufferLike.
+                            allowCredentials: [
+                                { id: new Uint8Array(base64URLToBytes(credentialId)), type: 'public-key' },
+                            ],
+                            userVerification: 'required',
+                            timeout: 60_000,
+                        },
+                    })
+                    .finally(() => {
+                        try {
+                            timing?.operationSettled()
+                        } catch {}
+                    }),
+                undefined,
+                () => {
+                    try {
+                        timing?.timeout()
+                    } catch {}
+                }
             )
         )
         return assertion ? 'unlocked' : 'dismissed'
     } catch (error) {
+        try {
+            if ((error as Error)?.name !== 'CeremonyTimeoutError') timing?.operationSettled()
+            timing?.finish(error)
+        } catch {}
         // A cancelled prompt and a genuinely broken authenticator are
         // indistinguishable here; both leave the app locked with a retry, which
         // is the safe direction. NotSupportedError is the exception: it fails
@@ -74,5 +101,10 @@ export async function requestLocalUserPresence(credentialId?: string): Promise<U
         if (error instanceof Error && (error.name === 'NotSupportedError' || error.name === 'PasskeyShimFailedError'))
             return 'unsupported'
         return 'dismissed'
+    } finally {
+        try {
+            timing?.finish()
+            timing?.dispose()
+        } catch {}
     }
 }

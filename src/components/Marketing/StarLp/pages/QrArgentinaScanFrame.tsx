@@ -1,10 +1,11 @@
 'use client'
 
 import { motion, MotionConfig } from 'framer-motion'
-import type { ReactNode } from 'react'
 import { STAR_LP_SPRING } from '@/components/Marketing/StarLp/starLp.consts'
 import { useEntranceArm } from '@/components/Marketing/StarLp/useEntranceArm'
+import { twMerge } from '@/utils/tw'
 import { QrArgentinaScanLine } from './QrArgentinaScanLine'
+import type { QrArgentinaScanFrameProps } from './qrArgentina.types'
 
 // The four corners of the app's scanner frame, each with the diagonal it locks in from.
 const CORNERS = [
@@ -22,9 +23,10 @@ const PULSE_DELAY = SCAN_DELAY + SCAN_S
  * The app's scanner frame round the closing sticker. Once in view, the
  * corners spring in from outside, one scan line sweeps the sticker, and the
  * sticker gives one "detected" pulse. Plays once; at rest without JS, above
- * the fold or under reduced motion (useEntranceArm).
+ * the fold or under reduced motion (useEntranceArm). `scanLine={false}` keeps
+ * only the corners: no sweep and no pulse.
  */
-export function QrArgentinaScanFrame({ children }: { children: ReactNode }) {
+export function QrArgentinaScanFrame({ children, scanLine = true, className }: QrArgentinaScanFrameProps) {
     const { ref, armed } = useEntranceArm()
     return (
         <MotionConfig reducedMotion="user">
@@ -32,7 +34,7 @@ export function QrArgentinaScanFrame({ children }: { children: ReactNode }) {
             <motion.div
                 key={armed ? 'armed' : 'rest'}
                 ref={ref}
-                className="relative mx-auto mt-10 w-52 p-4 md:w-60"
+                className={twMerge('relative mx-auto mt-10 w-52 p-4 md:w-60', className)}
                 initial={armed ? 'hidden' : false}
                 whileInView={armed ? 'locked' : undefined}
                 viewport={{ once: true, amount: 0.6 }}
@@ -48,39 +50,45 @@ export function QrArgentinaScanFrame({ children }: { children: ReactNode }) {
                         }}
                     />
                 ))}
-                <motion.div
-                    variants={{
-                        hidden: { scale: 1 },
-                        locked: { scale: [1, 1.03, 1], transition: { duration: 0.22, delay: PULSE_DELAY } },
-                    }}
-                >
-                    {children}
-                </motion.div>
-                <span aria-hidden className="pointer-events-none absolute inset-4 overflow-hidden">
-                    <motion.span
-                        className="absolute inset-0 block"
+                {scanLine ? (
+                    <motion.div
                         variants={{
-                            hidden: { y: '0%' },
-                            locked: {
-                                y: '100%',
-                                transition: { duration: SCAN_S, delay: SCAN_DELAY, ease: 'easeInOut' },
-                            },
+                            hidden: { scale: 1 },
+                            locked: { scale: [1, 1.03, 1], transition: { duration: 0.22, delay: PULSE_DELAY } },
                         }}
                     >
+                        {children}
+                    </motion.div>
+                ) : (
+                    children
+                )}
+                {scanLine && (
+                    <span aria-hidden className="pointer-events-none absolute inset-4 overflow-hidden">
                         <motion.span
                             className="absolute inset-0 block"
                             variants={{
-                                hidden: { opacity: 0 },
+                                hidden: { y: '0%' },
                                 locked: {
-                                    opacity: [0, 1, 1, 0],
-                                    transition: { duration: SCAN_S, delay: SCAN_DELAY, times: [0, 0.1, 0.8, 1] },
+                                    y: '100%',
+                                    transition: { duration: SCAN_S, delay: SCAN_DELAY, ease: 'easeInOut' },
                                 },
                             }}
                         >
-                            <QrArgentinaScanLine />
+                            <motion.span
+                                className="absolute inset-0 block"
+                                variants={{
+                                    hidden: { opacity: 0 },
+                                    locked: {
+                                        opacity: [0, 1, 1, 0],
+                                        transition: { duration: SCAN_S, delay: SCAN_DELAY, times: [0, 0.1, 0.8, 1] },
+                                    },
+                                }}
+                            >
+                                <QrArgentinaScanLine />
+                            </motion.span>
                         </motion.span>
-                    </motion.span>
-                </span>
+                    </span>
+                )}
             </motion.div>
         </MotionConfig>
     )

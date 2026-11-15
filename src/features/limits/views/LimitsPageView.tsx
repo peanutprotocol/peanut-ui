@@ -34,7 +34,7 @@ const LimitsPageView = () => {
     const t = useTranslations('limits')
     const tCommon = useTranslations('common')
     const router = useRouter()
-    const goBack = useSafeBack('/profile', { replace: true })
+    const goBack = useSafeBack('/settings', { replace: true })
     const { isKycApproved, rails } = useCapabilities()
     // MIGRATION-REVIEW: finishes the LimitsPageView migration the prior pass deferred
     // (f4eb9f70e left `useIdentityVerification` here for the region lists). unlockedRegions/

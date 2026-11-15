@@ -151,7 +151,7 @@ describe('SumsubKycWrapper', () => {
         // Regression: before the callback-ref fix this never fired, leaving the
         // user on an infinite spinner (card_sumsub_opened with 0 completions).
         await waitFor(() => expect(launch).toHaveBeenCalledTimes(1))
-        expect(launch.mock.calls[0][0]).toBeInstanceOf(HTMLElement)
+        expect(launch.mock.calls[0][0]).toBe(screen.getByTestId('kyc-sumsub-sdk'))
     })
 
     it('does not launch while hidden', async () => {
@@ -421,5 +421,25 @@ describe('SumsubKycWrapper', () => {
                 jest.useRealTimers()
             }
         })
+    })
+})
+
+describe('tax-ID validation alongside the correction form', () => {
+    it.each([false, true])('shows the correction error inside the secure form on native=%s', async (native) => {
+        onCapacitor = native
+        installSdk()
+        render(
+            <SumsubKycWrapper
+                visible
+                accessToken="fixture-token"
+                validationError="Correct your CUIT to continue."
+                onClose={jest.fn()}
+                onComplete={jest.fn()}
+                onRefreshToken={async () => 'fixture-token'}
+            />
+        )
+        expect(await screen.findByRole('alert')).toHaveTextContent('Correct your CUIT to continue.')
+        await waitFor(() => expect(launch).toHaveBeenCalled())
+        delete (window as unknown as { snsWebSdk?: unknown }).snsWebSdk
     })
 })

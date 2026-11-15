@@ -6,6 +6,13 @@ import { DEV_TOOLS_ENABLED } from '@/constants/dev-tools.consts'
 
 export const FIXTURE_PARAM = '__fixture'
 
+/**
+ * The one fixture that shows the web "The Peanut app is here" prompt. It
+ * outranks every other home modal, so any other fixture hides it: otherwise it
+ * would cover the drawer each home fixture exists to show.
+ */
+export const DOWNLOAD_PROMPT_FIXTURE = 'download-prompt'
+
 /** `route?__fixture=name`, joining correctly when the route carries its own query. */
 export function fixtureHref(route: string, name: string): string {
     const url = new URL(route, 'http://fixture.local')
@@ -94,4 +101,10 @@ export function peekActiveFixture(): string | null {
     const fromUrl = new URLSearchParams(window.location.search).get(FIXTURE_PARAM)
     if (fromUrl === 'off' || fromUrl === '') return null
     return fromUrl ?? stored()
+}
+
+/** Whether the web download prompt may show: no fixture, or its own. */
+export function downloadPromptAllowedByFixture(): boolean {
+    const fixture = peekActiveFixture()
+    return !fixture || fixture === DOWNLOAD_PROMPT_FIXTURE
 }

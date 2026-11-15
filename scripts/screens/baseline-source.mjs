@@ -13,15 +13,33 @@ export function pages(api, path, key, budget = 20) {
     throw new Error(`GitHub ${key} pagination exceeded ${budget} pages`)
 }
 
-export function verifyBaselineSource({ api, repository, expectedCommit, run, locales }) {
+export function verifyBaselineSource({ api, repository, expectedCommit, run, locales, beforeHarnessMode = 'head' }) {
     const defaultBranch = api('').default_branch
     const artifacts = pages(api, `actions/runs/${run.id}/artifacts`, 'artifacts')
     const jobs =
         run.path === '.github/workflows/screen-library.yml' ? pages(api, `actions/runs/${run.id}/jobs`, 'jobs') : []
-    return verifiedExternalBaselineSource({ run, jobs, artifacts, repository, expectedCommit, defaultBranch, locales })
+    return verifiedExternalBaselineSource({
+        run,
+        jobs,
+        artifacts,
+        repository,
+        expectedCommit,
+        defaultBranch,
+        locales,
+        beforeHarnessMode,
+    })
 }
 
-export function findBaselineSource({ api, repository, expectedCommit, locales, log = console.log, now = Date.now }) {
+export function findBaselineSource({
+    api,
+    repository,
+    expectedCommit,
+    locales,
+    beforeHarnessMode = 'head',
+    log = console.log,
+    now = Date.now,
+}) {
+    if (!['head', 'base'].includes(beforeHarnessMode)) throw new Error('Invalid before harness mode')
     if (!/^[a-f0-9]{40}$/.test(expectedCommit)) throw new Error('Invalid baseline revision')
     const started = now(),
         deadline = started + 120000
@@ -49,9 +67,10 @@ export function findBaselineSource({ api, repository, expectedCommit, locales, l
             !['dev', 'main'].includes(run.head_branch)
         )
             continue
-        const verified = verifyBaselineSource({ api, repository, expectedCommit, run, locales })
+        const verified = verifyBaselineSource({ api, repository, expectedCommit, run, locales, beforeHarnessMode })
         if (verified?.kind === 'integration') return { run, ...verified }
     }
+    if (beforeHarnessMode === 'base') return null
     // Match the existing resolver's recent scheduled-run window. This is a cache lookup,
     // not an assertion that no older capture exists; a miss requests fresh capture once.
     const defaultBranch = api('').default_branch

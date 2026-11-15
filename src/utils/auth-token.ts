@@ -23,6 +23,7 @@ import { isCapacitor } from './capacitor'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { OPEN_GATED } from '@/constants/app-lock.consts'
 import { getLockState, setLockState } from './app-lock-state'
+import { forgetAnswerDraft } from '@/features/paperwork-verification/answerDraft'
 import {
     GuardedStoreError,
     canWriteSilently,
@@ -383,6 +384,16 @@ export async function hasNativeSession(): Promise<boolean> {
 }
 
 /**
+ * synchronous: could this device be signed in? On web the readable jwt cookie
+ * is the only credential the API sees (apiFetch sends no cookies), so no token
+ * means signed out. Native always answers yes: a legacy session can live in
+ * the OS cookie jar, which JS cannot read on Android.
+ */
+export function mayHoldSession(): boolean {
+    return isCapacitor() || getAuthToken() !== null
+}
+
+/**
  * clears the session.
  * capacitor: clears the in-memory cache, the guarded Keychain/Keystore item
  * and its marker, native Preferences, the legacy cookie jar, and any
@@ -394,6 +405,8 @@ export async function hasNativeSession(): Promise<boolean> {
  */
 export function clearAuthToken(): Promise<void> {
     clearEpoch++
+    // A session can end without a sign-out (a 401 or 404 on /users/me): its unsaved KYC answers go with it.
+    forgetAnswerDraft(tokenUserId(getAuthToken()))
     let nativeClear: Promise<void> = Promise.resolve()
     if (isCapacitor()) {
         nativeToken = null
@@ -422,6 +435,22 @@ export function clearAuthToken(): Promise<void> {
     Cookies.remove(JWT_COOKIE_KEY, { path: '/' })
     document.cookie = 'jwt-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
     return nativeClear
+}
+
+/** The account a session token belongs to, read from its `userId` claim; null when it cannot be read. */
+export function tokenUserId(token: string | null): string | null {
+    const payload = token?.split('.')[1]
+    if (!payload) return null
+    try {
+        const base64 = payload
+            .replace(/-/g, '+')
+            .replace(/_/g, '/')
+            .padEnd(Math.ceil(payload.length / 4) * 4, '=')
+        const { userId } = JSON.parse(atob(base64)) as { userId?: unknown }
+        return typeof userId === 'string' && userId ? userId : null
+    } catch {
+        return null
+    }
 }
 
 /**

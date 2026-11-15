@@ -18,6 +18,7 @@ interface PasskeySetupHelpDrawerProps {
     visible: boolean
     onClose: () => void
     onRetry: () => void
+    onSupport?: () => void
     errorName: string
     platform: 'android' | 'ios' | 'web'
 }
@@ -45,6 +46,7 @@ export const PasskeySetupHelpDrawer = ({
     visible,
     onClose,
     onRetry,
+    onSupport,
     errorName,
     platform,
 }: PasskeySetupHelpDrawerProps) => {
@@ -117,7 +119,9 @@ export const PasskeySetupHelpDrawer = ({
                                 {tCommon('retry')}
                             </Button>
                             {/* support leaves the tinted box: it is a secondary action, not a caveat */}
-                            <LinkButton href="https://peanut.me/support">{t('stillHavingIssues')}</LinkButton>
+                            <LinkButton href="https://peanut.me/support" onClick={onSupport}>
+                                {t('stillHavingIssues')}
+                            </LinkButton>
                         </div>
                     </div>
                 </div>

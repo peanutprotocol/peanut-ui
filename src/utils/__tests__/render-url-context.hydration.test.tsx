@@ -133,7 +133,7 @@ describe('explicit render URL context', () => {
         })
         const transaction = {
             id: 'entry-1',
-            extraDataForDrawer: { kind: 'QR_PAY' },
+            extraDataForDrawer: { kind: 'QR_PAY', publicReceipt: true },
         } as Parameters<typeof getReceiptUrl>[0]
         expect(getReceiptUrl(transaction, 'https://preview.peanut.me')).toBe(
             'https://preview.peanut.me/receipt/entry-1?kind=QR_PAY'

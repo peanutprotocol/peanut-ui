@@ -37,9 +37,13 @@ jest.mock('@/components/Global/ActionModal', () => ({
     __esModule: true,
     default: () => null,
 }))
+const mockInviteModal = jest.fn()
 jest.mock('../../../Global/ConfirmInviteModal', () => ({
     __esModule: true,
-    default: () => null,
+    default: (props: { isOpen: boolean; username: string }) => {
+        mockInviteModal(props)
+        return props.isOpen ? <div data-testid="invite-modal">{props.username}</div> : null
+    },
 }))
 jest.mock('../../../Global/SupportCTA', () => ({
     __esModule: true,
@@ -136,10 +140,14 @@ const claimLinkData = {
     sender: { userId: 'sender-123', username: 'alice' },
 } as any
 
-function renderList({ isLoggedIn = false }: { isLoggedIn?: boolean } = {}) {
+function renderList({
+    isLoggedIn = false,
+    isInviteLink = false,
+    data = claimLinkData,
+}: { isLoggedIn?: boolean; isInviteLink?: boolean; data?: typeof claimLinkData } = {}) {
     return render(
         <IntlWrapper>
-            <SendLinkActionList claimLinkData={claimLinkData} isLoggedIn={isLoggedIn} isInviteLink={false} />
+            <SendLinkActionList claimLinkData={data} isLoggedIn={isLoggedIn} isInviteLink={isInviteLink} />
         </IntlWrapper>
     )
 }
@@ -200,6 +208,26 @@ describe('SendLinkActionList — claim to a bank', () => {
 
         // clicking the enabled bank card enters the bank flow
         fireEvent.click(screen.getByText('Bank transfer'))
+        expect(mockSetFlowStep).toHaveBeenCalledWith('bank-country-list')
+    })
+})
+
+describe('SendLinkActionList — the invite prompt', () => {
+    test('a guest choosing a rail on an invite link is asked first, naming the sender', () => {
+        mockClaimType = 'guest-bank-claim'
+        renderList({ isInviteLink: true })
+
+        fireEvent.click(screen.getByText('Bank transfer'))
+        expect(screen.getByTestId('invite-modal')).toHaveTextContent('alice')
+        expect(mockSetFlowStep).not.toHaveBeenCalled()
+    })
+
+    test('a sender without a username earns nothing from a sign-up, so the rail opens directly', () => {
+        mockClaimType = 'guest-bank-claim'
+        renderList({ isInviteLink: true, data: { ...claimLinkData, sender: { userId: 'sender-123', username: null } } })
+
+        fireEvent.click(screen.getByText('Bank transfer'))
+        expect(screen.queryByTestId('invite-modal')).not.toBeInTheDocument()
         expect(mockSetFlowStep).toHaveBeenCalledWith('bank-country-list')
     })
 })

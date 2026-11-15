@@ -1,5 +1,7 @@
 'use client'
 
+import { validateNumericResponse } from '@/lib/numeric-response'
+
 /**
  * Client-side wrappers around the unified Rhino SDA-transfer backend.
  *
@@ -116,7 +118,7 @@ async function postRhino<TReq, TRes>(path: string, body: TReq, errorLabel: strin
     // `code` / `retryAfterSec`, so friendlyError can localize a 429 instead of
     // the UI echoing a "Failed to …: 429 {json}" string.
     if (!response.ok) throw await apiErrorFromResponse(response, errorLabel)
-    return (await response.json()) as TRes
+    return validateNumericResponse(await response.json()) as TRes
 }
 
 export async function provisionSdaTransfer(body: SdaTransferRequest): Promise<SdaTransferResult> {

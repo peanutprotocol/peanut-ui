@@ -1,4 +1,5 @@
-import { bridgeProviderIdForResidence, providerIdForTransaction } from '../provider.utils'
+import { bridgeProviderIdForResidence, pixProviderId, providerIdFor, providerIdForTransaction } from '../provider.utils'
+import { PROVIDERS } from '@/constants/providers.consts'
 import type { TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 
 const tx = (provider: string | undefined, code?: string, bridgeFlow?: string) =>
@@ -54,5 +55,34 @@ describe('providerIdForTransaction', () => {
 
     it.each(['PEANUT', 'ONCHAIN', 'DEPRECATED_SQUID', undefined])('shows no provider for %s', (provider) => {
         expect(providerIdForTransaction(tx(provider))).toBeNull()
+    })
+})
+
+// A third provider needs only its registry entry: every code below reaches its record through
+// `answersFor` in providers.consts.ts, and a code no entry names gets no provider row.
+describe('the provider codes come from the registry', () => {
+    it('finds each entry that names a provider code, by its currency where the provider runs one per currency', () => {
+        for (const record of Object.values(PROVIDERS)) {
+            if (!record.answersFor) continue
+            const { provider, currency } = record.answersFor
+            expect(providerIdFor(provider, currency)).toBe(record.id)
+            // routes name it in lower case, history in upper case
+            expect(providerIdFor(provider.toLowerCase(), currency)).toBe(record.id)
+        }
+    })
+
+    it('gives a code no entry names, or a currency its provider does not run, no provider row', () => {
+        expect(providerIdFor('NEWPIX', 'BRL')).toBeNull()
+        expect(providerIdFor('MANTECA', 'USD')).toBeNull()
+        expect(providerIdFor(undefined)).toBeNull()
+        expect(providerIdForTransaction(tx('NEWPIX', 'BRL'))).toBeNull()
+        expect(pixProviderId('newpix')).toBeNull()
+    })
+
+    it('maps a Pix route or answer to the entity that moves reais', () => {
+        expect(pixProviderId('avenia')).toBe('avenia-br')
+        expect(pixProviderId('manteca')).toBe('manteca-br')
+        expect(pixProviderId('MANTECA')).toBe('manteca-br')
+        expect(pixProviderId(null)).toBeNull()
     })
 })

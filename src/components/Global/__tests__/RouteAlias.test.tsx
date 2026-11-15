@@ -6,6 +6,9 @@
  */
 import { render } from '@testing-library/react'
 import type { ComponentType } from 'react'
+import ProfileAlias from '@/app/(mobile-ui)/profile/page'
+import ProfileDetailsAlias from '@/app/(mobile-ui)/profile/details/page'
+import ProfileEditAlias from '@/app/(mobile-ui)/profile/edit/page'
 import AccountsAndPaymentsAlias from '@/app/(mobile-ui)/profile/accounts-and-payments/page'
 import AccountsAndPaymentsAdditionalAlias from '@/app/(mobile-ui)/profile/accounts-and-payments/additional/page'
 import IdentityVerificationAlias from '@/app/(mobile-ui)/profile/identity-verification/page'
@@ -22,8 +25,12 @@ describe('retired profile routes', () => {
     beforeEach(() => mockReplace.mockClear())
 
     it.each<[string, ComponentType, string, string]>([
+        ['/profile', ProfileAlias, '?avatar=true', '/settings'],
+        ['/profile', ProfileAlias, '?open=residence&returnTo=%2Fcard', '/settings/details'],
+        ['/profile/details', ProfileDetailsAlias, '?open=residence', '/settings/details'],
+        ['/profile/edit', ProfileEditAlias, '', '/settings/details'],
         // the card recovery and add money residence links
-        ['/profile/accounts-and-payments', AccountsAndPaymentsAlias, '?open=residence', '/profile/accounts'],
+        ['/profile/accounts-and-payments', AccountsAndPaymentsAlias, '?open=residence', '/profile/payments'],
         [
             '/profile/accounts-and-payments/additional',
             AccountsAndPaymentsAdditionalAlias,
@@ -31,12 +38,7 @@ describe('retired profile routes', () => {
             '/profile/accounts/additional',
         ],
         // the backend's KYC push and email deep links
-        [
-            '/profile/identity-verification',
-            IdentityVerificationAlias,
-            '?step=resubmit&provider=bridge',
-            '/profile/accounts',
-        ],
+        ['/profile/identity-verification', IdentityVerificationAlias, '?step=resubmit&provider=bridge', '/home'],
         [
             '/profile/identity-verification/additional',
             IdentityVerificationAdditionalAlias,

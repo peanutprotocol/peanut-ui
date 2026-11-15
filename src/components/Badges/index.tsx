@@ -25,7 +25,7 @@ export const Badges = () => {
     const t = useTranslations('badges')
     const badgeCopy = useBadgeCopy()
     const locale = useLocale()
-    const onBack = useSafeBack('/profile')
+    const onBack = useSafeBack('/settings')
     const { user: authUser, fetchUser } = useAuth()
     const [selectedBadge, setSelectedBadge] = useState<BadgeView | null>(null)
 

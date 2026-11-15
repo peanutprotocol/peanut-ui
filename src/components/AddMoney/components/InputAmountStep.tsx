@@ -39,6 +39,8 @@ interface InputAmountStepProps {
     maintenanceBanner?: React.ReactNode
     // who provides the deposit, one line under the continue button (TASK-23295)
     providerFinePrint?: React.ReactNode
+    // a dynamic Pix code carries the amount, so the "must match" helper does not apply
+    amountFixedByCode?: boolean
 }
 
 const InputAmountStep = ({
@@ -58,6 +60,7 @@ const InputAmountStep = ({
     onBack,
     maintenanceBanner,
     providerFinePrint,
+    amountFixedByCode = false,
 }: InputAmountStepProps) => {
     const t = useTranslations('addMoney')
     const tCommon = useTranslations('common')
@@ -97,31 +100,35 @@ const InputAmountStep = ({
                 <div className="text-label-l">{t('howMuchToAdd')}</div>
 
                 {/* only show the field error if limits blocking card is not displayed (warnings can coexist) */}
-                <Field
-                    helper={t('mustMatchBankTransfer')}
-                    error={!limitsValidation?.isBlocking ? validationError : undefined}
-                    errorTestId="error-alert"
-                >
-                    <AmountInput
-                        initialAmount={tokenAmount}
-                        initialDenomination={initialDenomination}
-                        setPrimaryAmount={setCurrencyAmount}
-                        setSecondaryAmount={setTokenAmount}
-                        setDisplayedAmount={setDisplayedAmount}
-                        secondaryDenomination={{ symbol: 'USD', price: 1, decimals: 2 }}
-                        primaryDenomination={
-                            currencyData?.price && currencyData.symbol
-                                ? {
-                                      symbol: currencyData.symbol,
-                                      price: currencyData.price.buy,
-                                      decimals: 2,
-                                  }
-                                : undefined
-                        }
-                        setCurrentDenomination={setCurrentDenomination}
-                        hideBalance
-                    />
-                </Field>
+                {/* with no rate there is no amount to show: the field would fall back to $0.00 in USD,
+                    a zero in the wrong currency, so the retry below stands alone */}
+                {!rateUnavailable && (
+                    <Field
+                        helper={amountFixedByCode ? undefined : t('mustMatchBankTransfer')}
+                        error={!limitsValidation?.isBlocking ? validationError : undefined}
+                        errorTestId="error-alert"
+                    >
+                        <AmountInput
+                            initialAmount={tokenAmount}
+                            initialDenomination={initialDenomination}
+                            setPrimaryAmount={setCurrencyAmount}
+                            setSecondaryAmount={setTokenAmount}
+                            setDisplayedAmount={setDisplayedAmount}
+                            secondaryDenomination={{ symbol: 'USD', price: 1, decimals: 2 }}
+                            primaryDenomination={
+                                currencyData?.price && currencyData.symbol
+                                    ? {
+                                          symbol: currencyData.symbol,
+                                          price: currencyData.price.buy,
+                                          decimals: 2,
+                                      }
+                                    : undefined
+                            }
+                            setCurrentDenomination={setCurrentDenomination}
+                            hideBalance
+                        />
+                    </Field>
+                )}
 
                 {/* limits warning/error card */}
                 {limitsCardProps && (

@@ -4,7 +4,6 @@ import { resolveEns } from '@/app/actions/ens'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import ActionModal, {
     type ActionModalButtonProps,
-    type ActionModalCheckboxProps,
     type ActionModalTertiaryCta,
     type ActionModalTone,
 } from '@/components/Global/ActionModal'
@@ -12,6 +11,11 @@ import QRBottomDrawer from '@/components/Global/QRBottomDrawer'
 import QRScanner from '@/components/Global/QRScanner'
 import { EQrType, NAME_BY_QR_TYPE, parseEip681, recognizeQr } from '@/components/Global/DirectSendQR/utils'
 import { useAuth } from '@/context/authContext'
+import { usePixPayBlock } from '@/features/pix/usePixPayBlock'
+import { usePixKeySend } from '@/features/pix/usePixKeySend'
+import { PIX_SEND_PATH } from '@/features/pix/pix.routes'
+import { EMPTY_PIX_WITHDRAW_DRAFT, keepPixWithdrawDraft } from '@/features/pix/pixWithdrawDraft'
+import { openBrazilPausedDrawer } from '@/features/brazil-pause/brazil-paused-drawer-store'
 import { useModalsContext } from '@/context/ModalsContext'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { PUSH_PROMPT_TRIGGERS } from '@/constants/push-prompt.consts'
@@ -29,13 +33,12 @@ import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { useTranslations } from 'next-intl'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import posthog from 'posthog-js'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
 
 enum EModalType {
     QR_NOT_SUPPORTED = 'QR_NOT_SUPPORTED',
     WILL_BE_NOTIFIED = 'WILL_BE_NOTIFIED',
-    DIRECT_SEND = 'DIRECT_SEND',
     EXTERNAL_URL = 'EXTERNAL_URL',
     UNRECOGNIZED = 'UNRECOGNIZED',
     PIX_RECURRING = 'PIX_RECURRING',
@@ -57,20 +60,12 @@ interface QrResultModalContent {
     description: React.ReactNode
     ctas: ActionModalButtonProps[]
     tertiaryCta?: ActionModalTertiaryCta
-    checkbox?: ActionModalCheckboxProps
 }
 
 function QrResultModal({ visible, modalContent, qrType, redirectTo, onClose, onNotifyMe }: QrResultModalProps) {
     const t = useTranslations('global')
     const tCommon = useTranslations('common')
     const toast = useToast()
-    const router = useRouter()
-    const [acknowledged, setAcknowledged] = useState(false)
-
-    // every scan starts unacknowledged
-    useEffect(() => {
-        if (visible) setAcknowledged(false)
-    }, [visible, modalContent])
 
     if (!modalContent) return null
 
@@ -132,36 +127,6 @@ function QrResultModal({ visible, modalContent, qrType, redirectTo, onClose, onN
             title: t('qrScannerOverlay.titleWillBeNotified'),
             description: t('qrScannerOverlay.willBeNotified', { qrName }),
             ctas: [{ text: tCommon('close'), shadowSize: '4', onClick: onClose }],
-        },
-        [EModalType.DIRECT_SEND]: {
-            tone: 'info',
-            title: t('qrScannerOverlay.titleDirectSend'),
-            description: (
-                <>
-                    <p>{t('qrScannerOverlay.directSendCrossChain')}</p>
-                    <p>{t('qrScannerOverlay.directSendConfirm')}</p>
-                </>
-            ),
-            checkbox: {
-                text: t('qrScannerOverlay.directSendAcknowledge'),
-                checked: acknowledged,
-                onChange: setAcknowledged,
-            },
-            ctas: [
-                {
-                    text: t('qrScannerOverlay.continue'),
-                    shadowSize: '4',
-                    disabled: !acknowledged,
-                    onClick: () => {
-                        router.push(redirectTo!)
-                        closeAfterNavigation()
-                    },
-                },
-            ],
-            // The only way out: preventClose covers Escape, the backdrop and
-            // the back handler, and the X is hidden, so without this the user
-            // has to accept the warning to leave the modal.
-            tertiaryCta: { text: tCommon('close'), onClick: onClose },
         },
         // A payload that is not an http(s) link is not one the user can be asked
         // to trust, so it is reported as unrecognised instead of offered.
@@ -230,6 +195,10 @@ export default function QRScannerOverlay() {
     const searchParams = useSearchParams()
     const toast = useToast()
     const { user } = useAuth()
+    // the pay:PIX_BR route says whether a Pix payment can start: the Brazil pause, or a residence it does not serve
+    const pixBlock = usePixPayBlock()
+    // a bare Pix key is a send: a withdraw route on Avenia pays it (`pixKeySend`)
+    const pixKeySend = usePixKeySend()
     // A signed-in scan of an EVM destination is the user's own payout, so it
     // goes into the crypto withdrawal. A guest keeps the payment page.
     const isLoggedIn = !!user?.user?.userId
@@ -237,11 +206,7 @@ export default function QRScannerOverlay() {
     const { triggerHaptic } = useAppHaptic()
     const { isQRScannerOpen, setIsQRScannerOpen } = useModalsContext()
 
-    // Remounts the result modal per scan so its acknowledgement starts unticked
-    // on the first paint, not after an effect.
-    const [scanSeq, setScanSeq] = useState(0)
     const showModal = (type: EModalType) => {
-        setScanSeq((seq) => seq + 1)
         setModalContent(type)
         setIsModalOpen(true)
         setIsQRScannerOpen(false)
@@ -283,6 +248,22 @@ export default function QRScannerOverlay() {
         }
 
         posthog.capture(ANALYTICS_EVENTS.QR_SCANNED, { qr_type: recognized, ...qrTelemetry(data) })
+
+        // the key goes in the account's draft, never the URL (`pixWithdrawDraft`); a merchant code stays on the pay route
+        if (recognized === EQrType.PIX_KEY && pixKeySend.via === 'withdraw') {
+            keepPixWithdrawDraft(user?.user?.userId, 'send', {
+                ...EMPTY_PIX_WITHDRAW_DRAFT,
+                destination: scanned.trim(),
+            })
+            setIsQRScannerOpen(false)
+            router.push(PIX_SEND_PATH)
+            return { success: true }
+        }
+        if ((recognized === EQrType.PIX || recognized === EQrType.PIX_KEY) && pixBlock) {
+            setIsQRScannerOpen(false)
+            openBrazilPausedDrawer(pixBlock)
+            return { success: true }
+        }
         if (!recognized) {
             // Pasted text is often prose with an address embedded ("...0xabc... is
             // the Arbitrum address..."). Pull a valid EVM address out and re-process
@@ -522,8 +503,8 @@ export default function QRScannerOverlay() {
         }
 
         if (toConfirmUrl) {
-            setRedirectTo(toConfirmUrl)
-            showModal(EModalType.DIRECT_SEND)
+            router.push(toConfirmUrl)
+            setIsQRScannerOpen(false)
             return { success: true }
         }
 
@@ -538,7 +519,6 @@ export default function QRScannerOverlay() {
     return (
         <>
             <QrResultModal
-                key={scanSeq}
                 visible={isModalOpen && !!modalContent}
                 modalContent={modalContent}
                 qrType={qrType}
@@ -557,6 +537,7 @@ export default function QRScannerOverlay() {
                         onClose={() => setIsQRScannerOpen(false)}
                         onPermissionDenied={setIsCameraRecoveryOpen}
                         isOpen={true}
+                        hidePix={!!pixBlock}
                     />
                     {/* z-[60] keeps this drawer above the QRScanner portal (z-50) —
                         which also puts it above the z-50 camera-permission recovery

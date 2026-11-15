@@ -9,6 +9,7 @@ import { type TransactionType } from '@/components/TransactionDetails/transactio
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
 import { translateTransactionName } from '@/components/TransactionDetails/transaction-name-keys'
 import { requestedInCurrency } from '@/components/TransactionDetails/transaction-details.utils'
+import { tokenSymbolForDisplay } from '@/components/TransactionDetails/receipt-conversion.utils'
 import {
     hasUserProfile,
     isCardPaymentEntry,
@@ -17,6 +18,7 @@ import {
 import { useTranslations } from 'next-intl'
 import { formatNumberForDisplay, printableUserHandle, isStableCoin, shortenStringLong } from '@/utils/general.utils'
 import {
+    getActivityRowAvatarUrl,
     getAvatarUrl,
     getTransactionSign,
     isOpenRequestDisplay,
@@ -24,7 +26,7 @@ import {
     PENDING_AMOUNT_STATUSES,
     STRUCK_AMOUNT_STATUSES,
 } from '@/utils/history.utils'
-import { formatBankAmount } from '@/utils/currency'
+import { formatAmountNumber, formatBankAmount } from '@/utils/currency'
 import React, { lazy, Suspense, useEffect, useRef } from 'react'
 import { twMerge } from '@/utils/tw'
 import Image from 'next/image'
@@ -121,12 +123,8 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
     // respect user's showFullName preference: use fullName only if showFullName is true, otherwise use username
     const userNameForAvatar =
         transaction.showFullName && transaction.fullName ? transaction.fullName : transaction.userName
-    // The sticker's letter follows the handle instead, so a peer with no pick
-    // looks the same here as on their profile. A counterparty with only a
-    // display name has their address in `userName`, which draws no letter — the
-    // display name is the only thing left to derive one from.
-    const avatarNameForAvatar = isAddress(transaction.userName) ? userNameForAvatar : transaction.userName
     const avatarUrl = getAvatarUrl(transaction)
+    const rowAvatarUrl = getActivityRowAvatarUrl(transaction)
     // check if this is a test transaction (setup confirmation)
     const isTest = isTestTransaction(name)
 
@@ -215,8 +213,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         !isStableCoin(ccyCode) &&
         hasValidCurrencyAmount
     ) {
-        const formattedCurrencyAmount = formatNumberForDisplay(transaction.currency.amount, { maxDecimals: 2 })
-        currencyDisplayAmount = `≈ ${ccyCode} ${formattedCurrencyAmount}`
+        currencyDisplayAmount = `≈ ${ccyCode} ${formatAmountNumber(transaction.currency.amount)}`
     } else if (
         tokenSymbolUpper &&
         tokenSymbolUpper !== 'USD' &&
@@ -224,7 +221,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         transaction.tokenAmount
     ) {
         const formattedTokenAmount = formatNumberForDisplay(transaction.tokenAmount, { maxDecimals: 6 })
-        currencyDisplayAmount = `≈ ${formattedTokenAmount} ${tokenSymbolUpper}`
+        currencyDisplayAmount = `≈ ${formattedTokenAmount} ${tokenSymbolForDisplay(transaction.tokenSymbol ?? tokenSymbolUpper)}`
     }
 
     // States board 17966:12128 amount treatment — the single place both the
@@ -289,8 +286,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         <TransactionAvatarBadge
             initials={initials}
             userName={userNameForAvatar}
-            avatarName={avatarNameForAvatar}
-            avatarKey={transaction.avatarKey}
+            person={transaction.peer}
             isPeer={transaction.isPeerActuallyUser}
             isLinkTransaction={isLinkTx}
             transactionType={type}
@@ -307,9 +303,9 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
         </div>
     ) : isPerkRewardEntry ? (
         <IconBubble {...CONCEPT_ICONS.rewards} size="s" />
-    ) : avatarUrl ? (
+    ) : rowAvatarUrl ? (
         <div className={'relative flex size-8 items-center justify-center rounded-full'}>
-            <Image src={avatarUrl} alt="Icon" className="size-8 object-contain" width={30} height={30} />
+            <Image src={rowAvatarUrl} alt="Icon" className="size-8 object-contain" width={30} height={30} />
         </div>
     ) : merchantLogo ? (
         <MerchantLogoIcon src={merchantLogo} fallback={genericBadge} />

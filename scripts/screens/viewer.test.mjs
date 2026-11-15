@@ -59,6 +59,7 @@ const elementIds = [
     'auth-gate',
     'google-sign-in',
     'comment-feed',
+    'comment-activity',
     'comment-panel',
     'votes',
     'votes-control',
@@ -68,8 +69,9 @@ const elementIds = [
 ]
 
 class Element {
-    constructor(id) {
+    constructor(id, tagName = '') {
         this.id = id
+        this.tagName = tagName.toUpperCase()
         this.children = []
         this.hidden = false
         this.open = false
@@ -96,6 +98,9 @@ class Element {
     append(...children) {
         this.children.push(...children)
     }
+    get lastElementChild() {
+        return this.children.at(-1) ?? null
+    }
     replaceChildren(...children) {
         this.children = children
         if (this.id === 'date-strip') this.scrollWidth = children.length * 70
@@ -107,7 +112,9 @@ class Element {
         this.open = true
     }
     close() {
+        if (!this.open) return
         this.open = false
+        this.dispatch('close')
     }
     scrollBy(options) {
         this.lastScrollOptions = options
@@ -177,9 +184,20 @@ test('legacy four-pixel false positives are hidden, counted as unchanged, and re
 
 async function loadLanding(
     pathname,
-    { ok = true, redirected = false, index = [], report, comparisonReport, search = '', hash = '', screenComments } = {}
+    {
+        ok = true,
+        redirected = false,
+        index = [],
+        report,
+        comparisonReport,
+        comparisonFailure = false,
+        search = '',
+        hash = '',
+        screenComments,
+    } = {}
 ) {
     const elements = new Map(elementIds.map((id) => [id, new Element(id)]))
+    elements.get('zoom').append(elements.get('zoom-images'))
     const brand = new Element('brand')
     const location = {
         pathname,
@@ -190,23 +208,74 @@ async function loadLanding(
         reload() {},
     }
     const historyCalls = []
+    const listeners = new Map()
+    const entries = [`${pathname}${search}${hash}`]
+    let historyIndex = 0
+    const applyUrl = (href) => {
+        const next = new URL(href, 'https://screens.example')
+        location.pathname = next.pathname
+        location.search = next.search
+        location.hash = next.hash
+        location.href = next.href
+    }
+    applyUrl(entries[0])
     const history = {
+        get length() {
+            return entries.length
+        },
         replaceState(_state, _title, href) {
             historyCalls.push(href)
-            const next = new URL(href, 'https://screens.example')
-            location.pathname = next.pathname
-            location.search = next.search
-            location.hash = next.hash
+            entries[historyIndex] =
+                new URL(href, location.href).pathname +
+                new URL(href, location.href).search +
+                new URL(href, location.href).hash
+            applyUrl(entries[historyIndex])
+        },
+        pushState(_state, _title, href) {
+            historyCalls.push(href)
+            const next = new URL(href, location.href)
+            entries.splice(historyIndex + 1, entries.length, next.pathname + next.search + next.hash)
+            historyIndex += 1
+            applyUrl(entries[historyIndex])
+        },
+        back() {
+            this.go(-1)
+        },
+        forward() {
+            this.go(1)
+        },
+        go(delta) {
+            const next = historyIndex + delta
+            if (next < 0 || next >= entries.length) return
+            historyIndex = next
+            applyUrl(entries[historyIndex])
+            for (const listener of listeners.get('popstate') ?? []) listener({ state: null })
         },
     }
+    const window = {
+        ...(screenComments ? { ScreenComments: screenComments } : {}),
+        addEventListener(type, listener) {
+            if (!listeners.has(type)) listeners.set(type, [])
+            listeners.get(type).push(listener)
+        },
+        removeEventListener(type, listener) {
+            listeners.set(
+                type,
+                (listeners.get(type) ?? []).filter((entry) => entry !== listener)
+            )
+        },
+        location,
+        history,
+    }
     elements.location = location
+    elements.history = history
     elements.historyCalls = historyCalls
     let resolveResponse
     const response = new Promise((resolve) => {
         resolveResponse = resolve
     })
     const document = {
-        createElement: () => new Element(),
+        createElement: (tag) => new Element(undefined, tag),
         getElementById: (id) => elements.get(id),
         querySelector: (selector) => (selector === '.brand' ? brand : null),
     }
@@ -215,15 +284,24 @@ async function loadLanding(
         console,
         document,
         URLSearchParams,
+        URL,
+        AbortController,
+        DOMException,
+        setTimeout,
+        clearTimeout,
         fetch: (url) =>
             url.endsWith('/index.json')
                 ? Promise.resolve({ ok: true, status: 200, json: async () => index })
-                : comparisonReport && url.includes('/screen-data/reports/')
-                  ? Promise.resolve({ ok: true, status: 200, json: async () => comparisonReport })
+                : (comparisonReport || comparisonFailure) && url.includes('/screen-data/reports/')
+                  ? Promise.resolve({
+                        ok: !comparisonFailure,
+                        status: comparisonFailure ? 503 : 200,
+                        json: async () => comparisonReport,
+                    })
                   : response,
         history,
         location,
-        window: screenComments ? { ScreenComments: screenComments } : {},
+        window,
     })
     vm.runInContext(viewer, context, {
         filename: 'public/screen-library/viewer.js',
@@ -237,6 +315,62 @@ async function loadLanding(
     await new Promise((resolve) => setImmediate(resolve))
     return elements
 }
+
+test('changed cards open pixel evidence directly in both layouts, including older reports', async () => {
+    const before = { image: 'a'.repeat(64) + '.png' }
+    const after = { image: 'b'.repeat(64) + '.png' }
+    const diff = 'c'.repeat(64) + '.png'
+    const base = { name: 'Argentina', flow: 'Add money', kind: 'route', before, after, diff, percent: 0.12 }
+    const report = {
+        schema: 1,
+        type: 'comparison',
+        locale: 'en',
+        complete: true,
+        before: { width: 393, height: 852 },
+        after: { width: 393, height: 852 },
+        screens: [
+            {
+                ...base,
+                id: 'moved',
+                status: 'changed',
+                changeBounds: { x: 140, y: 84, width: 112, height: 24 },
+                translation: { dx: 0, dy: 2 },
+            },
+            { ...base, id: 'old', status: 'changed' },
+            { ...base, id: 'same', status: 'unchanged' },
+            { ...base, id: 'unavailable', status: 'changed', diff: undefined },
+            {
+                ...base,
+                id: 'invalid-region',
+                status: 'changed',
+                changeBounds: { x: 393, y: 0, width: 2, height: 2 },
+                translation: { dx: 0, dy: 2 },
+            },
+        ],
+    }
+    for (const layout of ['', '&layout=paired']) {
+        const elements = await loadLanding('/screens/2026-10-02/pr-3558/en/' + 'b'.repeat(40) + '/', {
+            report,
+            search: '?view=all' + layout,
+        })
+        const cards = elements.get('screens').children
+        assert.match(elementText(cards[0]), /Shifted down 2 px/)
+        assert.doesNotMatch(elementText(cards[1]), /Shifted/)
+        assert.doesNotMatch(elementText(cards[4]), /Shifted/)
+        const action = (card) =>
+            card.lastElementChild.children.find((child) => child.textContent === 'Pixel difference')
+        assert.equal(action(cards[2]), undefined)
+        assert.equal(action(cards[3]), undefined)
+        action(cards[1]).onclick()
+        assert.equal(elements.get('zoom').open, true)
+        assert.equal(elements.get('difference')['aria-pressed'], 'true')
+        assert.ok(imageSources(elements.get('zoom-images')).some((src) => src.endsWith(diff)))
+        elements.get('zoom-next').onclick()
+        elements.get('zoom-next').onclick()
+        assert.equal(elements.get('difference').hidden, true)
+        assert.ok(!imageSources(elements.get('zoom-images')).some((src) => src.endsWith(diff)))
+    }
+})
 
 test('PR report heading and tab title retain PR and branch context across view and filter changes', async () => {
     const path = `2026-10-09/pr-3593/en/${'a'.repeat(40)}/run-37911623740-1`
@@ -524,6 +658,27 @@ test('landing groups versions by date and exposes a shareable horizontal date fi
     assert.equal(restored.location.search, '?source=synthetic&locale=en')
 })
 
+test('release previews stay visible with zero changes and open a full paired comparison', async () => {
+    const date = '2026-09-14'
+    const releasePath = `${date}/pr-42/en/${'a'.repeat(40)}`
+    const featurePath = `${date}/pr-43/en/${'b'.repeat(40)}`
+    const entry = { date, locale: 'en', reportType: 'comparison', changedScreens: 0, complete: true }
+    const elements = await loadLanding('/', {
+        index: [
+            { ...entry, path: releasePath, branch: 'dev', prNumber: 42, releasePreview: true },
+            { ...entry, path: featurePath, branch: 'feature', prNumber: 43 },
+        ],
+    })
+    assert.equal(elements.get('screen-updates-only').checked, true)
+    const links = versionLinks(elements)
+    assert.equal(links.length, 1)
+    assert.equal(links[0].children[0].children[1].textContent, 'Release preview')
+    const url = new URL(links[0].href, 'https://screens.example')
+    assert.equal(url.pathname, `/screens/${releasePath}/`)
+    assert.equal(url.searchParams.get('view'), 'all')
+    assert.equal(url.searchParams.get('layout'), 'paired')
+})
+
 test('date navigator pages without exposing a native scrollbar', async () => {
     const elements = await loadLanding('/', {
         index: [
@@ -652,7 +807,27 @@ test('changed mode shows only visual changes and can switch to the full catalogu
     assert.equal(elements.get('view-mode').checked, true)
     assert.equal(elements.get('screens').children.length, 1)
     assert.equal(elements.get('screens').children[0].id, 'failed')
-    assert.equal(elements.location.search, '?source=synthetic&locale=en&status=failed&view=all')
+    assert.equal(
+        elements.location.search,
+        '?source=synthetic&locale=en&status=failed&view=all&preview=changed&previewMode=side'
+    )
+
+    const paired = await loadLanding('/screens/2026-09-11/pr-1/en/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/', {
+        report,
+        search: '?view=all&layout=paired',
+    })
+    assert.equal(paired.get('view-mode').checked, true)
+    assert.equal(paired.get('screens').className, 'changed-screens')
+    const unchanged = paired.get('screens').children.find(({ id }) => id === 'unchanged')
+    assert.equal(unchanged.children[1].className, 'pair')
+    assert.equal(imageSources(unchanged).length, 2)
+    unchanged.children[1].children[0].children[1].onclick()
+    assert.equal(imageSources(paired.get('zoom-images')).length, 2)
+    assert.equal(paired.get('zoom-controls').hidden, false)
+    assert.equal(
+        paired.location.search,
+        '?source=synthetic&locale=en&view=all&layout=paired&preview=unchanged&previewMode=side'
+    )
 })
 
 for (const channel of ['pr-3392', 'compare-main'])
@@ -1415,6 +1590,49 @@ test('curated collection pages preserve order, notes and switch locale in place'
     assert.equal(elements.location.search, '?locale=pt-BR')
 })
 
+test('flow pages keep section and step order with distinct links for reused images', async () => {
+    const image = (letter) => `${letter.repeat(64)}.png`
+    const report = {
+        schema: 1,
+        type: 'collection',
+        title: 'Review flows',
+        locales: ['en'],
+        complete: true,
+        items: ['home', 'profile'].map((id, order) => ({
+            id,
+            name: id,
+            flow: 'Catalogue label',
+            order,
+            variants: { en: { status: 'captured', image: image(order ? 'b' : 'a') } },
+        })),
+        flows: [
+            { title: 'Getting started', items: [{ id: 'profile' }, { id: 'home', note: 'First visit' }] },
+            { title: '<script>Returning</script>', items: [{ id: 'home', note: 'Same image, different step' }] },
+        ],
+    }
+    const elements = await loadLanding('/collections/review-flows/', { report })
+    const sections = elements.get('screens').children
+    assert.deepEqual(
+        sections.map((section) => section.children[0].textContent),
+        ['Getting started', '<script>Returning</script>']
+    )
+    const [first, second] = sections.map((section) => section.lastElementChild.children)
+    assert.deepEqual(
+        first.map((tile) => tile.id),
+        ['profile', 'home']
+    )
+    assert.equal(second.length, 1)
+    assert.notEqual(second[0].id, 'home')
+    assert.match(elementText(second[0]), /Same image, different step/)
+    assert.deepEqual(imageSources(first[1]), imageSources(second[0]))
+    assert.equal(second[0].lastElementChild.children[0].href, `#${second[0].id}`)
+
+    elements.get('flow').value = 'Getting started'
+    elements.get('flow').dispatch('input')
+    assert.equal(elements.get('screens').children.length, 1)
+    assert.equal(elements.get('screens').children[0].children[0].textContent, 'Getting started')
+})
+
 test('a custom collection can show its selected screens side by side across two revisions', async () => {
     const beforeImage = 'a'.repeat(64) + '.webp'
     const afterImage = 'b'.repeat(64) + '.webp'
@@ -2012,4 +2230,451 @@ test('unknown totals never hide a card that is already on screen', async () => {
     assert.deepEqual(renderedIds(elements), ['loved', 'disliked', 'split'])
     screenComments.settleVote('split', undefined)
     assert.deepEqual(renderedIds(elements), ['loved', 'disliked', 'split'])
+})
+
+// Public preview URL contract: exercise only the rendered UI and browser navigation.
+const previewPath = `/screens/2026-09-11/pr-1/en/${'a'.repeat(40)}/`
+const previewImage = (letter) => `${letter.repeat(64)}.png`
+const previewCapture = (count = 2) => ({
+    schema: 1,
+    type: 'capture',
+    locale: 'en',
+    complete: true,
+    width: 393,
+    height: 852,
+    screens: Array.from({ length: count }, (_, i) => ({
+        id: `preview-${i}`,
+        name: `Preview ${i}`,
+        flow: i === 0 ? 'Home' : 'Send',
+        kind: 'route',
+        status: 'captured',
+        image: previewImage(i % 2 ? 'b' : 'a'),
+    })),
+})
+const openCapture = (tile) => tile.children[1].children[0].children[1].onclick()
+const previewParams = (elements) => new URLSearchParams(elements.location.search)
+
+test('preview links: open pushes one entry, navigation replaces it, Back and Forward restore the preview', async () => {
+    const elements = await loadLanding(previewPath, { report: previewCapture(), search: '?source=synthetic&locale=en' })
+    const initialLength = elements.history.length
+    const firstTile = elements.get('screens').children[0]
+    openCapture(firstTile)
+    assert.equal(previewParams(elements).get('preview'), 'preview-0')
+    assert.equal(elements.history.length, initialLength + 1)
+    openCapture(firstTile)
+    assert.equal(previewParams(elements).get('preview'), 'preview-0')
+    assert.equal(elements.history.length, initialLength + 1, 'reopening the same preview adds no history entry')
+    assert.equal(previewParams(elements).get('source'), 'synthetic')
+    assert.equal(previewParams(elements).get('locale'), 'en')
+    assert.equal(elements.location.pathname, previewPath)
+    elements.get('zoom-next').onclick()
+    assert.equal(previewParams(elements).get('preview'), 'preview-1')
+    assert.equal(elements.history.length, initialLength + 1)
+    elements.get('zoom').dispatch('keydown', { key: 'ArrowLeft' })
+    assert.equal(previewParams(elements).get('preview'), 'preview-0')
+    assert.equal(elements.history.length, initialLength + 1)
+    elements.history.back()
+    assert.equal(elements.get('zoom').open, false)
+    assert.equal(previewParams(elements).has('preview'), false)
+    elements.history.forward()
+    assert.equal(elements.get('zoom').open, true)
+    assert.equal(elements.get('zoom-title').textContent, 'Preview 0')
+})
+
+test('preview links: direct links resolve past pagination and filters without changing the requested filter', async () => {
+    const elements = await loadLanding(previewPath, {
+        report: previewCapture(30),
+        search: '?source=synthetic&locale=en&q=Preview%200&preview=preview-29',
+    })
+    assert.equal(elements.get('zoom').open, true)
+    assert.equal(elements.get('zoom-title').textContent, 'Preview 29')
+    assert.equal(elements.get('search').value, 'Preview 0')
+    assert.equal(previewParams(elements).get('q'), 'Preview 0')
+    assert.deepEqual(renderedIds(elements), ['preview-0'])
+    elements.get('close').onclick()
+    assert.equal(elements.get('zoom').open, false)
+    assert.equal(previewParams(elements).has('preview'), false)
+    assert.equal(previewParams(elements).get('q'), 'Preview 0')
+})
+
+test('preview links: Escape and explicit close remove parameters for direct links', async () => {
+    for (const close of [
+        (elements) => elements.get('close').onclick(),
+        (elements) => elements.get('zoom').dispatch('keydown', { key: 'Escape' }),
+        (elements) => elements.get('zoom').dispatch('cancel'),
+    ]) {
+        const elements = await loadLanding(previewPath, {
+            report: previewCapture(),
+            search: '?locale=en&preview=preview-0&previewMode=screen',
+        })
+        assert.equal(elements.get('zoom').open, true)
+        close(elements)
+        assert.equal(elements.get('zoom').open, false)
+        assert.equal(previewParams(elements).has('preview'), false)
+        assert.equal(previewParams(elements).has('previewMode'), false)
+        assert.equal(previewParams(elements).get('locale'), 'en')
+    }
+})
+
+test('preview links: comparison modes round trip and changing mode replaces the current entry', async () => {
+    const before = previewImage('a'),
+        after = previewImage('b'),
+        diff = previewImage('c')
+    const report = comparisonReportWith([
+        { ...comparisonScreen({ id: 'compare-target' }), before: { image: before }, after: { image: after }, diff },
+    ])
+    for (const [mode, expected] of [
+        ['side', [before, after]],
+        ['overlay', [before, after]],
+        ['difference', [diff]],
+        ['before', [before]],
+        ['after', [after]],
+    ]) {
+        const elements = await loadLanding(previewPath, {
+            report,
+            search: `?view=all&preview=compare-target&previewMode=${mode}`,
+        })
+        assert.equal(elements.get('zoom').open, true, mode)
+        const sources = imageSources(elements.get('zoom-images'))
+        for (const image of expected)
+            assert.ok(
+                sources.some((src) => src.endsWith(image)),
+                mode
+            )
+        if (['side', 'overlay', 'difference'].includes(mode))
+            assert.equal(elements.get(mode)['aria-pressed'], 'true', mode)
+    }
+    const elements = await loadLanding(previewPath, {
+        report,
+        search: '?view=all&preview=compare-target&previewMode=side',
+    })
+    const count = elements.history.length
+    elements.get('overlay').onclick()
+    assert.equal(previewParams(elements).get('previewMode'), 'overlay')
+    assert.equal(elements.history.length, count)
+})
+
+test('preview links: unknown IDs are harmless and unknown modes normalize to a usable screen', async () => {
+    for (const id of ['', 'missing', '<script>alert(1)</script>']) {
+        const elements = await loadLanding(previewPath, {
+            report: previewCapture(),
+            search: `?preview=${encodeURIComponent(id)}`,
+        })
+        assert.equal(elements.get('zoom').open, false)
+        openCapture(elements.get('screens').children[0])
+        assert.equal(elements.get('zoom').open, true)
+        assert.equal(previewParams(elements).get('preview'), 'preview-0')
+    }
+    const elements = await loadLanding(previewPath, {
+        report: previewCapture(),
+        search: '?preview=preview-0&previewMode=unknown',
+    })
+    assert.equal(elements.get('zoom').open, true)
+    assert.equal(elements.get('zoom-title').textContent, 'Preview 0')
+    assert.ok([null, 'screen'].includes(previewParams(elements).get('previewMode')))
+})
+
+test('preview links: repeated flow placements retain their distinct rendered ID', async () => {
+    const report = {
+        schema: 1,
+        type: 'collection',
+        title: 'Review flows',
+        locales: ['en'],
+        complete: true,
+        items: [
+            {
+                id: 'shared-screen',
+                name: 'Shared',
+                flow: 'Home',
+                order: 0,
+                variants: { en: { status: 'captured', image: previewImage('a') } },
+            },
+        ],
+        flows: [
+            { title: 'First', items: [{ id: 'shared-screen' }] },
+            { title: 'Second', items: [{ id: 'shared-screen', note: 'Second placement' }] },
+        ],
+    }
+    const path = '/collections/review-flows/'
+    const elements = await loadLanding(path, { report, search: '?locale=en' })
+    const tile = elements.get('screens').children[1].lastElementChild.children[0]
+    assert.notEqual(tile.id, 'shared-screen')
+    openCapture(tile)
+    assert.equal(previewParams(elements).get('preview'), tile.id)
+    const shared = await loadLanding(path, { report, search: elements.location.search })
+    assert.equal(shared.get('zoom').open, true)
+    assert.equal(previewParams(shared).get('preview'), tile.id)
+})
+
+test('preview links: legacy hash alone does not open a modal', async () => {
+    const elements = await loadLanding(previewPath, { report: previewCapture(), hash: '#preview-0' })
+    assert.equal(elements.get('zoom').open, false)
+    assert.equal(elements.location.hash, '#preview-0')
+    assert.ok(renderedIds(elements).includes('preview-0'))
+})
+
+function trackingComments() {
+    const base = fakeComments()
+    const navigated = []
+    return {
+        navigated,
+        create(options) {
+            const client = base.create(options)
+            client.navigateThread = (...args) => {
+                navigated.push(args)
+            }
+            return client
+        },
+    }
+}
+
+test('preview links: moving from a comment-linked screen clears its thread before sharing and reload', async () => {
+    const thread = '11111111-1111-4111-8111-111111111111'
+    const comments = trackingComments()
+    const report = previewCapture()
+    const elements = await loadLanding(previewPath, {
+        report,
+        screenComments: comments,
+        search: `?source=synthetic&locale=en&preview=preview-0&comments=${thread}`,
+    })
+    await settle()
+    assert.equal(previewParams(elements).get('comments'), thread)
+    assert.equal(elements.get('zoom-title').textContent, 'Preview 0')
+    assert.equal(comments.navigated.length, 1)
+    elements.get('zoom-next').onclick()
+    assert.equal(previewParams(elements).get('preview'), 'preview-1')
+    assert.equal(previewParams(elements).has('comments'), false)
+    const refreshedComments = trackingComments()
+    const refreshed = await loadLanding(previewPath, {
+        report,
+        screenComments: refreshedComments,
+        search: elements.location.search,
+    })
+    await settle()
+    assert.equal(refreshed.get('zoom-title').textContent, 'Preview 1')
+    assert.equal(refreshedComments.navigated.length, 0)
+})
+
+test('preview links: explicitly opening another tile clears the unrelated comment thread', async () => {
+    const thread = '11111111-1111-4111-8111-111111111111'
+    const elements = await loadLanding(previewPath, {
+        report: previewCapture(),
+        screenComments: trackingComments(),
+        search: `?preview=preview-0&comments=${thread}`,
+    })
+    await settle()
+    assert.equal(previewParams(elements).get('comments'), thread)
+    openCapture(elements.get('screens').children[1])
+    assert.equal(previewParams(elements).get('preview'), 'preview-1')
+    assert.equal(previewParams(elements).has('comments'), false)
+})
+
+test('preview links: explicitly opening another pixel difference clears the unrelated comment thread', async () => {
+    const thread = '11111111-1111-4111-8111-111111111111'
+    const image = previewImage('a')
+    const report = comparisonReportWith(
+        ['first', 'second'].map((id) => ({
+            ...comparisonScreen({ id }),
+            diff: image,
+        }))
+    )
+    const elements = await loadLanding(previewPath, {
+        report,
+        screenComments: trackingComments(),
+        search: `?view=all&preview=first&previewMode=side&comments=${thread}`,
+    })
+    await settle()
+    assert.equal(previewParams(elements).get('comments'), thread)
+    const tile = elements.get('screens').children.find(({ id }) => id === 'second')
+    tile.lastElementChild.children.find((child) => child.textContent === 'Pixel difference').onclick()
+    assert.equal(previewParams(elements).get('preview'), 'second')
+    assert.equal(previewParams(elements).get('previewMode'), 'difference')
+    assert.equal(previewParams(elements).has('comments'), false)
+})
+
+// Sectioned flow pages: public contract, intentionally independent of viewer implementation.
+const sectionPath = '/collections/section-contract/'
+const sectionComparisonPath = `2026-10-10/compare-main/en/${'c'.repeat(40)}`
+const sectionFixture = (sections) => ({
+    schema: 1,
+    type: 'collection',
+    title: 'Section contract',
+    locales: ['en'],
+    source: { en: { commit: 'c'.repeat(40) } },
+    complete: true,
+    compareWith: 'main',
+    comparisons: {
+        en: {
+            path: sectionComparisonPath,
+            baseBranch: 'main',
+            beforeCommit: 'd'.repeat(40),
+            afterCommit: 'c'.repeat(40),
+        },
+    },
+    items: ['home', 'profile'].map((id, order) => ({
+        id,
+        name: id,
+        flow: 'Catalogue',
+        order,
+        variants: { en: { status: 'captured', image: previewImage(order ? 'b' : 'a') } },
+    })),
+    sections,
+    flows: sections.flatMap(({ flows }) => flows),
+})
+const sectionComparison = (screens) => ({
+    schema: 1,
+    type: 'comparison',
+    locale: 'en',
+    complete: true,
+    before: { commit: 'd'.repeat(40) },
+    after: { commit: 'c'.repeat(40) },
+    screens,
+})
+const descendants = (element) => [element, ...(element?.children ?? []).flatMap(descendants)]
+const sectionNodes = (elements) => elements.get('screens').children
+const disclosure = (section) =>
+    descendants(section).find((node) => node.tagName === 'DETAILS' || node['aria-expanded'] !== undefined)
+const expandSection = (section) => {
+    const control = disclosure(section)
+    assert.ok(control, 'section has an accessible disclosure')
+    if (control.tagName === 'DETAILS') {
+        control.open = true
+        control.dispatch('toggle')
+    } else if (control.onclick) control.onclick()
+    else control.dispatch('click')
+}
+
+test('section pages start collapsed and preserve nested flow order, repeated placements and notes', async () => {
+    const report = sectionFixture([
+        {
+            title: 'First section',
+            flows: [
+                {
+                    title: 'First flow',
+                    items: [
+                        { id: 'profile', note: 'Profile note' },
+                        { id: 'home', note: 'First home note' },
+                    ],
+                },
+                { title: 'Second flow', items: [{ id: 'home', note: 'Repeated home note' }] },
+            ],
+        },
+        {
+            title: 'Last section',
+            flows: [{ title: 'Last flow', items: [{ id: 'profile', note: 'Last profile note' }] }],
+        },
+    ])
+    const elements = await loadLanding(sectionPath, {
+        report,
+        comparisonReport: sectionComparison([]),
+        search: '?locale=en',
+    })
+    const sections = sectionNodes(elements)
+    assert.equal(sections.length, 2)
+    assert.match(elementText(sections[0]), /First section/)
+    assert.match(elementText(sections[1]), /Last section/)
+    for (const section of sections) {
+        const control = disclosure(section)
+        assert.ok(control, 'each section exposes a disclosure')
+        assert.ok(control.tagName === 'DETAILS' ? !control.open : control['aria-expanded'] === 'false')
+        expandSection(section)
+    }
+    const firstText = elementText(sections[0])
+    assert.ok(firstText.indexOf('First flow') < firstText.indexOf('Profile note'))
+    assert.ok(firstText.indexOf('Profile note') < firstText.indexOf('First home note'))
+    assert.ok(firstText.indexOf('First home note') < firstText.indexOf('Second flow'))
+    assert.ok(firstText.indexOf('Second flow') < firstText.indexOf('Repeated home note'))
+    assert.match(elementText(sections[1]), /Last flow.*Last profile note/)
+    const ids = descendants(elements.get('screens'))
+        .map(({ id }) => id)
+        .filter((id) => id && (id === 'home' || id.startsWith('home~')))
+    assert.equal(new Set(ids).size, 2, 'repeated placements have distinct links')
+    elements.get('search').dispatch('input')
+    assert.ok(
+        disclosure(sectionNodes(elements)[0]).tagName === 'DETAILS'
+            ? disclosure(sectionNodes(elements)[0]).open
+            : disclosure(sectionNodes(elements)[0])['aria-expanded'] === 'true',
+        'local rerender retains expansion'
+    )
+})
+
+test('section comparison opens the selected after image even when the pinned report has another after', async () => {
+    const report = sectionFixture([{ title: 'Review', flows: [{ title: 'Flow', items: [{ id: 'home' }] }] }])
+    const comparisonReport = sectionComparison([
+        {
+            id: 'home',
+            status: 'changed',
+            before: { image: previewImage('d') },
+            after: { image: previewImage('e') },
+            diff: previewImage('f'),
+            percent: 42,
+        },
+    ])
+    const elements = await loadLanding(sectionPath, { report, comparisonReport, search: '?locale=en', hash: '#home' })
+    const section = sectionNodes(elements)[0]
+    expandSection(section)
+    const tile = descendants(section).find(({ id }) => id === 'home')
+    assert.ok(tile)
+    assert.ok(imageSources(tile).some((src) => src.endsWith(previewImage('a'))))
+    openCapture(tile)
+    assert.equal(elements.get('zoom').open, true)
+    const images = imageSources(elements.get('zoom-images'))
+    assert.ok(
+        images.some((src) => src.endsWith(previewImage('d'))),
+        'before is main'
+    )
+    assert.ok(
+        images.some((src) => src.endsWith(previewImage('a'))),
+        'after is selected capture'
+    )
+    assert.ok(!images.some((src) => src.endsWith(previewImage('e')) || src.endsWith(previewImage('f'))))
+    assert.doesNotMatch(elementText(tile) + elementText(elements.get('zoom')), /42%|Pixel difference/)
+})
+
+test('section pages distinguish missing main from an unavailable comparison while retaining after content', async () => {
+    const report = sectionFixture([{ title: 'Review', flows: [{ title: 'Flow', items: [{ id: 'home' }] }] }])
+    for (const [options, expected] of [
+        [{ comparisonReport: sectionComparison([]) }, /No capture on main/i],
+        [{ comparisonFailure: true }, /comparison.*unavailable|unavailable.*comparison/i],
+    ]) {
+        const elements = await loadLanding(sectionPath, { report, search: '?locale=en', ...options })
+        expandSection(sectionNodes(elements)[0])
+        assert.ok(imageSources(elements.get('screens')).some((src) => src.endsWith(previewImage('a'))))
+        const tile = descendants(elements.get('screens')).find(({ id }) => id === 'home')
+        openCapture(tile)
+        assert.ok(imageSources(elements.get('zoom-images')).some((src) => src.endsWith(previewImage('a'))))
+        assert.match(elementText(elements.get('screens')) + elementText(elements.get('zoom')), expected)
+    }
+})
+
+test('the last repeated placement in hundreds of sections can be shared without changing a filter', async () => {
+    const sections = Array.from({ length: 220 }, (_, i) => ({
+        title: `Section ${i}`,
+        flows: [{ title: `Flow ${i}`, items: [{ id: 'home', note: `Placement ${i}` }] }],
+    }))
+    const report = sectionFixture(sections)
+    const elements = await loadLanding(sectionPath, {
+        report,
+        comparisonReport: sectionComparison([]),
+        search: '?locale=en',
+    })
+    assert.equal(sectionNodes(elements).length, 220)
+    const last = sectionNodes(elements).at(-1)
+    expandSection(last)
+    const tile = descendants(last).find(
+        (node) => node.id && node.id !== 'screens' && elementText(node).includes('Placement 219')
+    )
+    assert.ok(tile?.id, 'last placement has an addressable ID')
+    openCapture(tile)
+    const preview = previewParams(elements).get('preview')
+    assert.equal(preview, tile.id)
+    const shared = await loadLanding(sectionPath, {
+        report,
+        comparisonReport: sectionComparison([]),
+        search: `?locale=en&q=does-not-match&preview=${encodeURIComponent(preview)}`,
+    })
+    assert.equal(shared.get('zoom').open, true)
+    assert.equal(previewParams(shared).get('preview'), preview)
+    assert.equal(previewParams(shared).get('q'), 'does-not-match')
+    assert.equal(shared.get('search').value, 'does-not-match')
 })

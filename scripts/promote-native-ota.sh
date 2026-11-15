@@ -19,22 +19,28 @@ if [ "${#PLATFORMS[@]}" -eq 0 ]; then
   exit 0
 fi
 
-declare -A PREVIOUS=()
-for PLATFORM in "${PLATFORMS[@]}"; do
+# PREVIOUS[i] is the bundle PLATFORMS[i] served. Indexed, not associative:
+# macOS ships bash 3.2, which has no declare -A.
+PREVIOUS=()
+for i in "${!PLATFORMS[@]}"; do
+  PLATFORM="${PLATFORMS[$i]}"
   export PLATFORM
-  PREVIOUS[$PLATFORM]="$(node scripts/capgo-release-guard.mjs current-version)"
-  echo "$PLATFORM channel serves ${PREVIOUS[$PLATFORM]} before promotion"
+  PREVIOUS[i]="$(node scripts/capgo-release-guard.mjs current-version)"
+  echo "$PLATFORM channel serves ${PREVIOUS[$i]} before promotion"
 done
 
 PROMOTED=()
 restore_promoted() {
   local status=$?
   if [ "$status" -eq 0 ]; then return 0; fi
-  for PLATFORM in "${PROMOTED[@]}"; do
+  # PROMOTED is a prefix of PLATFORMS, so its indices also index PREVIOUS.
+  local i
+  for i in "${!PROMOTED[@]}"; do
+    PLATFORM="${PROMOTED[$i]}"
     export PLATFORM
-    echo "::error::promotion of $VERSION failed; returning the $PLATFORM channel to ${PREVIOUS[$PLATFORM]}" >&2
-    if ! PREVIOUS_VERSION="${PREVIOUS[$PLATFORM]}" node scripts/capgo-release-guard.mjs restore-production; then
-      echo "::error::could not return the $PLATFORM channel to ${PREVIOUS[$PLATFORM]}; fix it in Capgo before the next release" >&2
+    echo "::error::promotion of $VERSION failed; returning the $PLATFORM channel to ${PREVIOUS[$i]}" >&2
+    if ! PREVIOUS_VERSION="${PREVIOUS[$i]}" node scripts/capgo-release-guard.mjs restore-production; then
+      echo "::error::could not return the $PLATFORM channel to ${PREVIOUS[$i]}; fix it in Capgo before the next release" >&2
     fi
   done
   exit "$status"

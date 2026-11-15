@@ -36,6 +36,7 @@ export function SelfCustodySendScreen() {
                         sizes="(min-width: 1024px) 560px, (min-width: 768px) 480px, 80vw"
                         className="h-auto w-full"
                         priority
+                        fetchPriority="high"
                     />
                     {/* the press on the capture's "Send with Peanut" button */}
                     <span

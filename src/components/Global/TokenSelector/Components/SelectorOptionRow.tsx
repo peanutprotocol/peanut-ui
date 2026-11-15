@@ -21,8 +21,6 @@ interface SelectorOptionRowProps {
     iconUrl?: string
     body?: React.ReactNode
     isSelected: boolean
-    /** not selectable: the row stays visible, greyed, and ignores taps */
-    disabled?: boolean
     onClick: () => void
     position?: CardPosition
 }
@@ -32,7 +30,6 @@ const SelectorOptionRow: React.FC<SelectorOptionRowProps> = ({
     iconUrl,
     body,
     isSelected,
-    disabled = false,
     onClick,
     position = 'solo',
 }) => {
@@ -42,24 +39,19 @@ const SelectorOptionRow: React.FC<SelectorOptionRowProps> = ({
         <div
             role="option"
             aria-selected={isSelected}
-            aria-disabled={disabled || undefined}
-            tabIndex={disabled ? -1 : 0}
-            onClick={disabled ? undefined : onClick}
+            tabIndex={0}
+            onClick={onClick}
             onKeyDown={(event) => {
-                if (disabled || (event.key !== 'Enter' && event.key !== ' ')) return
+                if (event.key !== 'Enter' && event.key !== ' ') return
                 event.preventDefault()
                 onClick()
             }}
-            className={twMerge(
-                'focus-visible:outline-[3px] focus-visible:outline-action-focus',
-                disabled ? 'cursor-not-allowed' : 'cursor-pointer'
-            )}
+            className="cursor-pointer focus-visible:outline-[3px] focus-visible:outline-action-focus"
         >
             <ListItem
                 position={position}
-                disabled={disabled}
                 className={twMerge(
-                    !disabled && 'transition-colors duration-instant active:bg-background-disabled',
+                    'transition-colors duration-instant active:bg-background-disabled',
                     isSelected && 'bg-background-selection'
                 )}
                 leading={<DisplayIcon iconUrl={iconUrl} altText="" fallbackName={title} sizeClass="size-6" />}

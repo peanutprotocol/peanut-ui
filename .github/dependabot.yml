@@ -1,0 +1,12 @@
+version: 2
+updates:
+    # Keeps the SHA-pinned actions in .github/workflows current. Dependabot
+    # updates the SHA and its version comment together.
+    - package-ecosystem: github-actions
+      directory: /
+      target-branch: dev
+      schedule:
+          interval: weekly
+      # Supply-chain floor: a release must be 14 days old before we take it.
+      cooldown:
+          default-days: 14

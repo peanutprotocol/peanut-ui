@@ -1,4 +1,5 @@
 import posthog from 'posthog-js'
+import { markDeviceHadAccount } from '@/utils/returning-device'
 
 // A hash of the last user id and person properties sent. Persisted because
 // posthog-js only remembers its own last $set in memory, so every app open
@@ -41,6 +42,8 @@ function writeSent(value: string): void {
  * they differ from the last ones sent from this device.
  */
 export function identifyAnalyticsUser(userId: string, properties: Record<string, unknown>): void {
+    // Keep anonymous device history through logout, even when identification is deduped.
+    markDeviceHadAccount()
     const sent = fingerprint(`${userId}:${JSON.stringify(properties)}`)
     if (posthog.get_distinct_id() !== userId) {
         posthog.identify(userId, properties)

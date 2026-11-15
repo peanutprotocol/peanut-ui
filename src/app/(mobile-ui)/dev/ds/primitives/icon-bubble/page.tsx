@@ -19,14 +19,14 @@ const COLORS: { color: IconBubbleColor; icon: IconName; means: string; useFor: s
         color: 'blue',
         icon: 'bank',
         means: 'A method or plain information',
-        useFor: 'Bank, crypto, exchange, links, add money, withdraw, verification, other countries, support, info',
+        useFor: 'Bank, exchange, links, add money, withdraw, verification, other countries, support, info',
         never: 'A state',
     },
     {
         color: 'yellow',
         icon: 'credit-card',
         means: "Peanut's own, and attention",
-        useFor: 'The Peanut user, friends, card, rewards (the star), badges; in a modal or callout: pending, warnings, confirms',
+        useFor: 'Crypto, the Peanut user, friends, card, rewards (the star), badges; in a modal or callout: pending, warnings, confirms',
         never: 'An error',
     },
     {
@@ -107,14 +107,15 @@ export default function IconBubblePage() {
 
             <DocSection
                 title="Sizes"
-                description="xs=24 beside text, s=32 ListItem leading, m=48 the head above a title (the default), l=72 the empty or error hero. The bubble sets the glyph: 16, 16, 24, 40."
+                description="xs=24 beside text, s=32 ListItem leading, m=48 the head above a title (the default), l=72 the empty or error hero, xl=96 a bubble in a person's place in a 96 px header (the payment details header). The bubble sets the glyph: 16, 16, 24, 40, 48. A bubble in a person slot takes the avatar's size: s in rows, xl in the header."
             >
                 <DocSection.Content>
-                    <div className="flex items-end gap-4">
+                    <div className="flex flex-wrap items-end gap-4">
                         <IconBubble icon="check" size="xs" />
                         <IconBubble icon="check" size="s" />
                         <IconBubble icon="check" size="m" />
                         <IconBubble icon="check" size="l" />
+                        <IconBubble icon="check" size="xl" />
                     </div>
                 </DocSection.Content>
                 <DocSection.Code>
@@ -206,9 +207,9 @@ export default function IconBubblePage() {
                         ))}
                     </div>
                     <DesignNote type="info">
-                        Blue is a method or plain information, yellow is Peanut&apos;s own, pink is QR pay. Flags, chain
-                        logos and payment-brand marks (Pix, Mercado Pago) are not concepts: they keep their own image in
-                        the same slot.
+                        Blue is a method or plain information, yellow is Peanut&apos;s own, pink is QR pay. Pix is the
+                        one brand mark in the map: its logo is the whole circle, with no bubble behind it. Flags, chain
+                        logos and the Mercado Pago mark are not concepts: they keep their own image in the same slot.
                     </DesignNote>
                 </DocSection.Content>
                 <DocSection.Code>
@@ -238,7 +239,7 @@ export default function IconBubblePage() {
             <PropsTable
                 rows={[
                     { name: 'icon', type: 'IconName | ReactNode', default: '(required)' },
-                    { name: 'size', type: "'xs' | 's' | 'm' | 'l'", default: "'m'" },
+                    { name: 'size', type: "'xs' | 's' | 'm' | 'l' | 'xl'", default: "'m'" },
                     {
                         name: 'color',
                         type: "'green' | 'red' | 'yellow' | 'gray' | 'blue' | 'brand'",

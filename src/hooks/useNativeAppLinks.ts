@@ -21,6 +21,7 @@ import { EInviteType } from '@/services/services.types'
 import { badgeCampaignsFromSearchParams, queuePendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
 import { APP_ENTRY_QUERY_PARAM } from '@/constants/migration.consts'
 import { applyDeferredPayload, parseDeferredPayload } from '@/utils/deferred-link'
+import { sendMarketingQrAppOpening } from '@/features/marketing-qr/appOpening'
 
 /*
  * App-lifecycle + deep-link listeners (back button, appStateChange focus,
@@ -130,7 +131,11 @@ export function useNativeAppLinks() {
             // and navigates to its sanitized destination (or plain /home).
             try {
                 const parsed = new URL(url, 'https://peanut.me')
-                if (parsed.pathname === '/home' && parsed.searchParams.get(APP_ENTRY_QUERY_PARAM) === '1') {
+                if (
+                    parsed.pathname === '/home' &&
+                    parsed.searchParams.get(APP_ENTRY_QUERY_PARAM) === '1' &&
+                    !parsed.searchParams.has('tl')
+                ) {
                     const payload = parseDeferredPayload(parsed.search)
                     target = payload ? (applyDeferredPayload(payload).dest ?? '/home') : '/home'
                 }
@@ -155,6 +160,10 @@ export function useNativeAppLinks() {
                     const badgeCampaigns = badgeCampaignsFromSearchParams(parsed.searchParams)
                     if (badgeCampaigns.length > 0) queuePendingBadgeCampaigns(badgeCampaigns, 30)
                 }
+            } catch {}
+            // A landing-page QR that opened the app loaded no web page, so nothing recorded it yet.
+            try {
+                sendMarketingQrAppOpening(new URL(url, 'https://peanut.me'))
             } catch {}
             lastDispatchedUrl = url
             lastDispatchedAt = Date.now()

@@ -14,7 +14,11 @@ import { SEPA_PATH } from '@/components/AddWithdraw/bank-corridors'
 import { getFromLocalStorage } from '@/utils/general.utils'
 import { rewriteMethodPath, withdrawCountryUrl } from '@/utils/native-routes'
 import { mantecaWithdrawUrl, withdrawCountryFormUrl } from '@/features/withdraw/routes'
-import { soleLiveRailForCountry } from '@/features/destinations/country-rails'
+import { PIX_SEND_PATH, PIX_WITHDRAW_PATH } from '@/features/pix/pix.routes'
+import { EMPTY_PIX_WITHDRAW_DRAFT, keepPixWithdrawDraft } from '@/features/pix/pixWithdrawDraft'
+import { sendOffersPix, soleLiveRailForCountry } from '@/features/destinations/country-rails'
+import { isPixAccount } from '@/features/destinations/saved-destinations'
+import { usePixKeySend } from '@/features/pix/usePixKeySend'
 import { clearScannedDestination, withdrawTokenForChain } from '@/features/withdraw/destination'
 import { useWithdrawFlow } from '@/features/withdraw/WithdrawFlowContext'
 import { useSavedAddresses } from '@/hooks/useSavedAddresses'
@@ -92,6 +96,9 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, onE
     // The crypto address book belongs to the crypto rail, so it counts only
     // while crypto is still on offer (QA 2026-09-24: Send → Bank listed it).
     const offeredAddresses = bankRailChosen ? [] : savedAddresses
+    // what stops a Pix-key send, and whether it goes through the withdraw route (`pixKeySend`)
+    const pixKeySend = usePixKeySend()
+    const pixPayBlock = pixKeySend.block
     const savedAccounts = useMemo<Account[]>(() => {
         const bankAccounts =
             user?.accounts.filter(
@@ -103,11 +110,12 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, onE
                         acc.type === AccountType.CO_BANK_TRANSFER ||
                         acc.type === AccountType.MANTECA) &&
                     isUsableSavedAccount(acc) &&
-                    // Someone else's PIX key is paid from Send, never withdrawn to.
-                    (isBankFromSend || !acc.isPixRecipient)
+                    // Someone else's PIX key is paid from Send, never withdrawn to. Send lists a
+                    // saved Pix destination only while it offers Pix to this user (sendOffersPix).
+                    (isBankFromSend ? sendOffersPix(pixPayBlock) || !isPixAccount(acc) : !acc.isPixRecipient)
             ) ?? []
         return bankAccounts as unknown as Account[]
-    }, [user, isBankFromSend])
+    }, [user, isBankFromSend, pixPayBlock])
 
     // What the saved-destinations screen lists once no rail is picked. Only Send →
     // Bank leaves the address book out, so a Withdraw user whose only saved
@@ -262,16 +270,30 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, onE
                             // Manteca saved accounts skip the shared amount step — the
                             // manteca flow collects the amount in the local currency.
                             // preserve method param if coming from send flow
-                            router.push(
-                                mantecaWithdrawUrl({
-                                    country: countryPath,
+                            const ownBrazilWithdrawal = countryPath === 'brazil' && !isBankFromSend
+                            // a withdraw route on Avenia sends to a saved key on the same Pix-key form
+                            const pixFormSend =
+                                countryPath === 'brazil' && isBankFromSend && pixKeySend.via === 'withdraw'
+                            // the Pix key goes in the account's draft, never the URL (`pixWithdrawDraft`)
+                            if (ownBrazilWithdrawal || pixFormSend)
+                                keepPixWithdrawDraft(user?.user?.userId, ownBrazilWithdrawal ? 'withdraw' : 'send', {
+                                    ...EMPTY_PIX_WITHDRAW_DRAFT,
                                     destination: account.identifier,
-                                    isSavedAccount: 'true',
-                                    // A saved Brazil key in Send pays over PIX (the key screen),
-                                    // not the first-party BRL offramp a withdrawal uses.
-                                    method: isBankFromSend && countryPath === 'brazil' ? 'pix' : undefined,
-                                    sendMethod: isBankFromSend ? (methodParam ?? undefined) : undefined,
                                 })
+                            router.push(
+                                // Brazil's own-account withdrawal has one page, where the backend's route
+                                // picks the provider; a saved Brazil key in Send pays over Pix (the key screen).
+                                ownBrazilWithdrawal
+                                    ? PIX_WITHDRAW_PATH
+                                    : pixFormSend
+                                      ? PIX_SEND_PATH
+                                      : mantecaWithdrawUrl({
+                                            country: countryPath,
+                                            destination: account.identifier,
+                                            isSavedAccount: 'true',
+                                            method: isBankFromSend && countryPath === 'brazil' ? 'pix' : undefined,
+                                            sendMethod: isBankFromSend ? (methodParam ?? undefined) : undefined,
+                                        })
                             )
                             return
                         }

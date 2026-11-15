@@ -1,5 +1,6 @@
 import { APP_RELEASE } from '@/constants/app-release'
 import { getPlatform } from '@/utils/capacitor'
+import { getCachedBinaryVersion } from '@/utils/app-version'
 import { inferSentryEnvironment } from '@/utils/sentry-env'
 
 /**
@@ -35,4 +36,28 @@ export function isAnalyticsCaptureBuild(): boolean {
  */
 export function initialSuperProperties(): Record<string, string> {
     return { app_release: APP_RELEASE, platform: getPlatform() }
+}
+
+type ClientFlagProperties = {
+    client_platform: 'android' | 'ios' | 'web'
+    binary_version?: string
+}
+
+let lastClientFlagProperties: ClientFlagProperties | null = null
+
+export function currentClientFlagProperties(): ClientFlagProperties | null {
+    return lastClientFlagProperties
+}
+
+export async function clientFlagProperties(): Promise<ClientFlagProperties> {
+    const platform = getPlatform()
+    const props: ClientFlagProperties = {
+        client_platform: platform === 'android-native' ? 'android' : platform === 'ios-native' ? 'ios' : 'web',
+    }
+    if (props.client_platform !== 'web') {
+        const version = await getCachedBinaryVersion()
+        if (version) props.binary_version = version
+    }
+    lastClientFlagProperties = props
+    return props
 }

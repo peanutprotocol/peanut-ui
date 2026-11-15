@@ -6,20 +6,29 @@ import * as Sentry from '@sentry/nextjs'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
+import { useAuth } from '@/context/authContext'
+import { bindSignupDraft, saveSignupDraft, markSignupDraftInviteAccepted } from './signup-draft'
+import { settlePendingInviteAttribution } from '@/services/pending-invite-attribution'
+import { readInviteCode } from '@/utils/invite-stash'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useLogin } from '@/hooks/useLogin'
 import { postRegistrationScreen, useSetupFlow } from '@/hooks/useSetupFlow'
 import { useDeviceType } from '@/hooks/useGetDeviceType'
-import { isCapacitor, isIOSNativeBridge } from '@/utils/capacitor'
+import { isAndroidNativeBridge, isCapacitor, isIOSNativeBridge, openExternalUrl } from '@/utils/capacitor'
+import { keepWebSignupUrl } from '@/features/setup/keep-web-signup-url'
+import type { PasskeyProviderUnsupportedError } from '@/utils/passkey-registration-compatibility'
 import { apiFetch } from '@/utils/api-fetch'
 import { checkPasskeySupport } from '@/utils/passkeyPreflight'
 import { nativeErrorCode, nativePasskeyFailure } from '@/utils/native-passkey-errors'
 import { reportPasskeyFailure } from '@/utils/passkey-failure-reporting'
 import { isCeremonyGuardError } from '@/utils/passkeyCeremony.utils'
+import { latestCeremony } from '@/utils/webauthn-ceremony-telemetry'
+import { useSignupControl } from './useSignupControl'
 import {
     PASSKEY_NOT_SAVED_HELP,
     WebAuthnErrorName,
     classifyPasskeyError,
+    getPasskeyErrorCode,
     getPasskeyErrorSetupKey,
     getPasskeySetupKey,
     withWebAuthnRetry,
@@ -28,7 +37,7 @@ import {
 // A signup that failed client-side AFTER the server verified may have already
 // registered this username (user + passkey exist server-side, so login works).
 // Fail-open on network errors — the server's 409 is the backstop.
-const isUsernameTaken = async (username: string): Promise<boolean> => {
+const isUsernameTaken = async (username: string): Promise<boolean | null> => {
     try {
         // capacitorHttp doesn't support HEAD — use GET in native.
         // includeAuth: false — public pre-auth check, no session token involved.
@@ -36,14 +45,19 @@ const isUsernameTaken = async (username: string): Promise<boolean> => {
             method: isCapacitor() ? 'GET' : 'HEAD',
             includeAuth: false,
         })
-        return res.status === 200
+        return res.status === 200 ? true : res.status === 404 ? false : null
     } catch {
-        return false
+        return null
     }
 }
 
 // The first cancel is usually deliberate; the second on the same step usually means iOS refused to save.
 const IOS_CANCELS_BEFORE_HELP = 2
+// A sheet that closes this fast was never answered by a person: iOS refused
+// (no passcode, iCloud Passwords off, a wedged credential provider). Over 30
+// days of ceremonies a 1 s rule caught 1 of the 8 people who never recovered,
+// 2 s caught 4 (TASK-24017). `ceremony_ms` on the failure event recalibrates it.
+const IOS_FAST_CANCEL_MS = 2000
 
 const isProbablyPrivateMode = () => {
     try {
@@ -55,22 +69,42 @@ const isProbablyPrivateMode = () => {
     }
 }
 
-/**
- * Claiming a username creates the account: the passkey ceremony runs on the
- * username step, and a successful registration advances to residence and locks
- * the way back. Every failure keeps the user on the username step with the
- * same recovery the old passkey step offered: an inline message, the help
- * drawer for device problems, or Log in when the username already exists.
- */
+/** Registration and device recovery for the passkey screen. */
 export function useSignupPasskey(username: string) {
     const t = useTranslations('setup')
-    const { setNoBackLockScreenId, steps } = useSetupFlowContext()
-    const { handleNext } = useSetupFlow()
+    const context = useSetupFlowContext()
+    const { setNoBackLockScreenId, setRegistrationInProgress, setInviterAccepted, setRefusedUsername, steps } = context
+    const { handleNext, setScreenId } = useSetupFlow()
+    const { trackError } = useSignupControl()
+    const { user, fetchUser } = useAuth()
+    const userRef = useRef(user)
+    userRef.current = user
+    const referred = useRef(false)
+    const draftSnapshot = () => ({
+        screenId: 'passkey' as const,
+        featureScreenIds: context.featureScreenIds ?? undefined,
+        answers: {
+            username,
+            inviteSelection: context.inviteSelection,
+            residenceCountry: context.residenceCountry,
+            nationalityCountry: context.nationalityCountry,
+            fundingChannel: context.fundingChannel,
+            paymentChannel: context.paymentChannel,
+            notificationChoices: context.notificationChoices,
+            inviterAccepted: context.inviterAccepted,
+            sellScreensCountry: context.sellScreensCountry,
+        },
+    })
+    const snapshotRef = useRef(draftSnapshot())
+    snapshotRef.current = draftSnapshot()
     const { handleRegister, address, isRegistering } = useZeroDev()
     const { handleLoginClick, isLoggingIn } = useLogin()
     const { deviceType } = useDeviceType()
     const [helpErrorName, setHelpErrorName] = useState<string | null>(null)
     const [isHelpOpen, setIsHelpOpen] = useState(false)
+    // Set when signup refuses the passkey's layout; the platform picks the drawer's guidance.
+    const [providerUnsupportedPlatform, setProviderUnsupportedPlatform] = useState<'android-app' | 'other' | null>(null)
+    const [browserOpenFailed, setBrowserOpenFailed] = useState(false)
     const [preflightWarning, setPreflightWarning] = useState<string | null>(null)
     const [inlineError, setInlineError] = useState<string | null>(null)
     const [usernameTaken, setUsernameTaken] = useState(false)
@@ -79,6 +113,9 @@ export function useSignupPasskey(username: string) {
     // stale web-authn-key cookie (native cookie jar) can never pass for a fresh
     // registration and skip ahead.
     const registrationInitiatedRef = useRef(false)
+    const completedRef = useRef(false)
+    const uncertainRegistration = useRef(false)
+    const [isFinishing, setIsFinishing] = useState(false)
     /*
      * Synchronous latch around the WHOLE handler. `isRegistering` only flips once
      * handleRegister runs, and two awaits precede it (the live support re-check
@@ -90,19 +127,39 @@ export function useSignupPasskey(username: string) {
      */
     const inFlightRef = useRef(false)
     const iosCancelsRef = useRef(0)
+    const attemptsRef = useRef(0)
     // Covers those same awaits in the UI, so the button reads as busy, not dead.
     const [isPreparing, setIsPreparing] = useState(false)
 
     useEffect(() => {
+        let active = true
         void checkPasskeySupport().then((result) => {
-            if (!result.isSupported && result.warning) setPreflightWarning(result.warning)
+            if (active && !result.isSupported && result.warning) {
+                setPreflightWarning(result.warning)
+                trackError('create_passkey', 'PASSKEY_UNSUPPORTED')
+            }
         })
-    }, [])
+        return () => {
+            active = false
+        }
+    }, [trackError])
+
+    useEffect(() => {
+        trackError('username', usernameTaken ? 'taken' : null)
+    }, [usernameTaken, trackError])
 
     const register = async () => {
+        trackError('create_passkey', null)
+        trackError('username', null)
         setInlineError(null)
         setHelpErrorName(null)
         setUsernameTaken(false)
+
+        if (!/^[a-z][a-z0-9]{3,11}$/.test(username)) {
+            trackError('username', 'invalid')
+            setScreenId('signup')
+            return
+        }
 
         // Re-check support live: device state can change after mount, and a tap
         // must never silently no-op when passkeys are unavailable.
@@ -111,6 +168,7 @@ export function useSignupPasskey(username: string) {
             const message = support.warning ?? t('passkey.notAvailable')
             setPreflightWarning(message)
             setInlineError(message)
+            trackError('create_passkey', 'PASSKEY_UNSUPPORTED')
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED, {
                 device_type: deviceType,
                 error_name: 'PreflightUnsupported',
@@ -122,7 +180,13 @@ export function useSignupPasskey(username: string) {
         // Catch an already-registered username BEFORE the ceremony: retrying a
         // half-completed signup would otherwise create another credential in the
         // OS keychain and then 409 on the server.
-        if (await isUsernameTaken(username)) {
+        const taken = await isUsernameTaken(username)
+        if (taken === null && uncertainRegistration.current) {
+            setInlineError(t('passkey.serverUnreachable'))
+            trackError('create_passkey', 'NETWORK')
+            return
+        }
+        if (taken) {
             setUsernameTaken(true)
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED, {
                 device_type: deviceType,
@@ -134,22 +198,81 @@ export function useSignupPasskey(username: string) {
 
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_STARTED, { device_type: deviceType })
 
+        attemptsRef.current += 1
+        const attemptStartedAt = Date.now()
         registrationInitiatedRef.current = true
+        uncertainRegistration.current = true
+        setRegistrationInProgress(true)
+        referred.current = !!context.inviteSelection || !!readInviteCode()
+        saveSignupDraft(snapshotRef.current)
         try {
             await withWebAuthnRetry(() => handleRegister(username), 'passkey-registration')
             // success: the effect below advances once the wallet address appears
         } catch (error) {
             registrationInitiatedRef.current = false
+            setRegistrationInProgress(false)
             const err = error as Error
+            if (err.name === 'UsernameReserved') {
+                trackError('username', 'refused')
+                uncertainRegistration.current = false
+                setRefusedUsername(username)
+                setScreenId('signup')
+                return
+            }
+            const nativeReason = nativePasskeyFailure(err)
+            // The OS sheet's own duration, without the network calls around it.
+            const ceremony = latestCeremony('create', 'registration', attemptStartedAt)
+            // Layout facts only (TASK-24498): never the challenge or the origin.
+            const provider =
+                err.name === 'PasskeyProviderUnsupportedError' ? (err as PasskeyProviderUnsupportedError) : undefined
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED, {
                 device_type: deviceType,
                 error_name: err.name,
                 error_code: err.name === 'UsernameTaken' ? 'USERNAME_TAKEN' : classifyPasskeyError(err).code,
                 native_error_code: nativeErrorCode(err),
+                native_reason: nativeReason,
+                ceremony_ms: ceremony?.durationMs,
+                attempt: attemptsRef.current,
+                ...(provider && {
+                    challenge_offset: provider.challengeOffset,
+                    backup_eligible: provider.backupEligible,
+                    client_data_keys: provider.clientDataKeys,
+                }),
             })
+            trackError(
+                'create_passkey',
+                err.name === 'UsernameTaken' ? 'USERNAME_TAKEN' : classifyPasskeyError(err).code
+            )
 
             if (err.name === 'UsernameTaken') {
+                const registered = await isUsernameTaken(username)
+                if (registered === true) setUsernameTaken(true)
+                else if (registered === false) setScreenId('signup')
+                else {
+                    setInlineError(t('passkey.serverUnreachable'))
+                    trackError('create_passkey', 'NETWORK')
+                }
+                return
+            }
+            if (await isUsernameTaken(username)) {
                 setUsernameTaken(true)
+                return
+            }
+
+            // The phone's password manager writes the signed note in a layout the
+            // wallet validator cannot read, so this passkey could never sign. The
+            // constant message keeps every such phone in one Sentry issue.
+            if (provider) {
+                Sentry.captureMessage('Passkey provider writes an unsupported clientDataJSON layout', {
+                    level: 'warning',
+                    tags: {
+                        error_type: 'passkey_provider_unsupported',
+                        challenge_offset: provider.challengeOffset ?? 'unknown',
+                    },
+                    extra: { clientDataKeys: provider.clientDataKeys, backupEligible: provider.backupEligible },
+                })
+                setBrowserOpenFailed(false)
+                setProviderUnsupportedPlatform(isAndroidNativeBridge() ? 'android-app' : 'other')
                 return
             }
 
@@ -166,22 +289,45 @@ export function useSignupPasskey(username: string) {
                     setInlineError(t('passkey.notReady'))
                 } else if (error.name === 'CeremonyConflictError') {
                     setInlineError(t('passkey.interrupted'))
+                } else if (error.name === 'PasskeyRequestSettlingError') {
+                    setInlineError(t('passkey.settling'))
+                } else if (error.name === 'PasskeyCleanupPendingError') {
+                    setInlineError(t('passkey.stillOpen'))
                 } else {
                     setInlineError(t('passkey.deviceState'))
                 }
                 return
             }
 
+            // The passkey server answered the options request with an error
+            // body instead of a challenge, so the OS prompt never opened: no
+            // device help applies.
+            if (err.name === 'PasskeyServerError') {
+                Sentry.captureException(err, { tags: { error_type: 'passkey_server_failure' } })
+                setInlineError(t('passkey.serverUnreachable'))
+                return
+            }
+
+            // Android cannot create a passkey yet (no screen lock, no Google
+            // account, no credential provider). The plugin reports it as a
+            // cancel; the help drawer lists the fixes.
+            if (nativeReason === 'setup_required') {
+                reportPasskeyFailure(err, 'registration')
+                setHelpErrorName(WebAuthnErrorName.NotAllowed)
+                setIsHelpOpen(true)
+                return
+            }
+
             // The iOS app ends the ceremony as a plain cancel when iCloud
             // Passwords is off, even after its own prompt sent the user to
             // Settings. iPhone Safari keeps the browser path below.
-            const nativeReason = nativePasskeyFailure(err)
             const cancelled =
                 nativeReason === 'canceled' || (!nativeReason && err.name === WebAuthnErrorName.NotAllowed)
             if (cancelled && isIOSNativeBridge()) {
                 if (nativeReason) reportPasskeyFailure(err, 'registration')
                 iosCancelsRef.current += 1
-                if (iosCancelsRef.current >= IOS_CANCELS_BEFORE_HELP) {
+                const fastCancel = ceremony !== undefined && ceremony.durationMs < IOS_FAST_CANCEL_MS
+                if (fastCancel || iosCancelsRef.current >= IOS_CANCELS_BEFORE_HELP) {
                     setHelpErrorName(PASSKEY_NOT_SAVED_HELP)
                     setIsHelpOpen(true)
                 } else {
@@ -229,23 +375,33 @@ export function useSignupPasskey(username: string) {
     }
 
     const claim = async () => {
-        if (inFlightRef.current) return
+        if (inFlightRef.current || completedRef.current) return
         inFlightRef.current = true
+        setRegistrationInProgress(true)
         setIsPreparing(true)
         try {
             await register()
         } finally {
             inFlightRef.current = false
+            if (!registrationInitiatedRef.current || completedRef.current) setRegistrationInProgress(false)
             setIsPreparing(false)
         }
     }
 
     const logIn = async () => {
+        trackError('log_in', null)
         setInlineError(null)
         try {
             await handleLoginClick()
             // success: useLogin's effect redirects once the user is loaded
         } catch (error) {
+            trackError('log_in', getPasskeyErrorCode(error) ?? classifyPasskeyError(error).code)
+            // The taken username belongs to a deleted account, so only a new username can sign up.
+            if (getPasskeyErrorCode(error) === 'ACCOUNT_DELETED') {
+                setUsernameTaken(false)
+                setInlineError(t('passkey.accountDeletedChooseUsername'))
+                return
+            }
             const i18nKey = getPasskeyErrorSetupKey(error)
             setInlineError(i18nKey ? t(i18nKey) : (error as Error)?.message || t('loginFailed'))
         }
@@ -257,15 +413,40 @@ export function useSignupPasskey(username: string) {
     useEffect(() => {
         if (address && registrationInitiatedRef.current) {
             registrationInitiatedRef.current = false
+            completedRef.current = true
+            setIsFinishing(true)
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_SUCCEEDED, { device_type: deviceType })
             setNoBackLockScreenId(postRegistrationScreen(steps.map((step) => step.screenId)))
+            const userId = userRef.current?.user.userId
+            if (userId) {
+                void bindSignupDraft(userId, snapshotRef.current).then(() => {
+                    if (!referred.current) return
+                    void settlePendingInviteAttribution(userId, 'registration').then((outcome) => {
+                        if (userRef.current?.user.userId !== userId || outcome.status !== 'attributed') return
+                        markSignupDraftInviteAccepted(userId)
+                        setInviterAccepted(true)
+                        posthog.capture(ANALYTICS_EVENTS.SIGNUP_INVITER_ADDED)
+                        void fetchUser().catch(() => {})
+                    })
+                })
+            }
             void handleNext()
+            setRegistrationInProgress(false)
         }
-    }, [address, handleNext, deviceType, setNoBackLockScreenId, steps])
+    }, [
+        address,
+        handleNext,
+        deviceType,
+        setNoBackLockScreenId,
+        setRegistrationInProgress,
+        setInviterAccepted,
+        fetchUser,
+        steps,
+    ])
 
     return {
         claim,
-        isClaiming: isPreparing || isRegistering,
+        isClaiming: isPreparing || isRegistering || isFinishing,
         preflightWarning,
         inlineError,
         usernameTaken,
@@ -277,6 +458,25 @@ export function useSignupPasskey(username: string) {
         retryFromHelp: () => {
             setIsHelpOpen(false)
             void claim()
+        },
+        isProviderUnsupportedOpen: providerUnsupportedPlatform !== null,
+        providerUnsupportedPlatform: providerUnsupportedPlatform ?? 'other',
+        browserOpenFailed,
+        closeProviderUnsupported: () => setProviderUnsupportedPlatform(null),
+        retryFromProviderUnsupported: () => {
+            setProviderUnsupportedPlatform(null)
+            void claim()
+        },
+        signUpInBrowser: async () => {
+            setBrowserOpenFailed(false)
+            try {
+                await openExternalUrl(keepWebSignupUrl())
+                setProviderUnsupportedPlatform(null)
+            } catch (error) {
+                // The drawer stays open with the error, so retry and support still work.
+                Sentry.captureException(error, { tags: { error_type: 'passkey_provider_browser_open_failed' } })
+                setBrowserOpenFailed(true)
+            }
         },
         deviceType,
     }

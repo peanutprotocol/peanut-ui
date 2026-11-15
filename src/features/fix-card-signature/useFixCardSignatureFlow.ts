@@ -10,7 +10,12 @@ import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 
 /**
  * flow hook for the /fix-card-signature support page — owns the two-step
- * repair (fix wallet state, then re-grant auto-funding) so the page stays dumb.
+ * repair (fix wallet state, then re-grant the withdrawal permission) so the
+ * page stays dumb.
+ *
+ * This page only repairs WITHDRAWALS. The card funding permission has its own
+ * consent (the Home prompt), which needs the person's explicit boxes, so it is
+ * never signed from here.
  */
 export function useFixCardSignatureFlow() {
     const t = useTranslations('card')

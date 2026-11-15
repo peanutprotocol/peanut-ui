@@ -77,6 +77,34 @@ export function createSumsubSdkTracker(sdk: SumsubSdkKind) {
     }
 }
 
+const JAVA_CLASS = /^[A-Za-z0-9_.$]{1,160}$/
+
+function finiteNumber(value: unknown): number | null {
+    return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+/**
+ * PostHog properties for the SDK error behind a failed native close. Only
+ * codes and class names: `message` and `chain` can quote applicant input, so
+ * they go to Sentry alone.
+ */
+export function nativeErrorProperties(detail: SNSMobileSDKErrorDetail | null | undefined) {
+    if (!detail) return {}
+    const causes = Array.isArray(detail.causes)
+        ? detail.causes.filter((name): name is string => typeof name === 'string' && JAVA_CLASS.test(name))
+        : []
+    return {
+        error_source: sdkCode(detail.source),
+        error_causes: causes,
+        error_root_cause: causes.at(-1) ?? null,
+        error_http_code: finiteNumber(detail.httpCode),
+        error_code: finiteNumber(detail.errorCode),
+        error_name: sdkCode(detail.errorName),
+        error_correlation_id: sdkCode(detail.correlationId),
+        error_age_ms: finiteNumber(detail.ageMs),
+    }
+}
+
 /**
  * One per native launch result. `errorMsg` is left out on purpose: it is SDK
  * text that can quote the applicant's input; `errorType` is the SDK's code.

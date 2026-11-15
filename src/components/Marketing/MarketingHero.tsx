@@ -80,7 +80,7 @@ export function MarketingHero({
                     'USDT/USDC',
                 ]}
                 imageSrc={HandThumbsUp.src}
-                backgroundColor="bg-action-secondary"
+                backgroundColor="bg-background-accent-yellow"
             />
         </>
     )

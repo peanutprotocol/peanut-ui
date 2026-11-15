@@ -509,6 +509,9 @@ const SupportDrawer = () => {
                 role="dialog"
                 aria-label={t('supportDrawer.label')}
                 aria-modal={isSupportModalOpen}
+                // closed, the panel only slides off-screen: keep it out of the accessibility tree and the tab order
+                aria-hidden={!isSupportModalOpen || undefined}
+                inert={!isSupportModalOpen}
                 className={`fixed inset-x-0 z-[999999] flex flex-col rounded-t-2xl bg-background-page pt-2 ${
                     isSupportModalOpen ? 'pointer-events-auto translate-y-0' : 'pointer-events-none translate-y-full'
                 }`}

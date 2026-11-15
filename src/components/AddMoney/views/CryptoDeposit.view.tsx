@@ -1,5 +1,7 @@
 'use client'
 
+import { formatFiniteDisplay } from '@/utils/currency'
+
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import Card from '@/components/Global/Card'
@@ -20,6 +22,7 @@ import {
     NETWORK_LABELS,
     NETWORK_LOGOS,
     getSupportedTokens,
+    CHAIN_SCOPED_DEPOSIT_TOKENS,
 } from '@/constants/rhino.consts'
 import type {
     CreateDepositAddressResponse,
@@ -253,6 +256,23 @@ const CryptoDepositView = ({
                                             chainSymbol={token.logoUrl}
                                         />
                                     ))}
+                                    {isEvm &&
+                                        CHAIN_SCOPED_DEPOSIT_TOKENS.map((token) => (
+                                            <Tooltip
+                                                key={token.name}
+                                                // The default width runs off screen over a chip at the left edge.
+                                                contentClassName="max-w-40"
+                                                content={t(
+                                                    token.isEuro ? 'euroTokenOnlyOnNetwork' : 'tokenOnlyOnNetwork',
+                                                    { network: token.network }
+                                                )}
+                                            >
+                                                <ChainChip
+                                                    chainName={`${token.name} · ${token.network}`}
+                                                    chainSymbol={token.logoUrl}
+                                                />
+                                            </Tooltip>
+                                        ))}
                                 </div>
                             </div>
 
@@ -278,7 +298,7 @@ const CryptoDepositView = ({
                                     {t('minDepositFor', { network: amountLimitsLabel })}
                                 </p>
                                 <p className="text-label-l">
-                                    {depositAddressData.minDepositLimitUsd.toLocaleString()} USD
+                                    {formatFiniteDisplay(depositAddressData.minDepositLimitUsd)} USD
                                 </p>
                             </div>
                             <div className="flex w-full items-center justify-between">
@@ -286,7 +306,7 @@ const CryptoDepositView = ({
                                     {t('maxDepositFor', { network: amountLimitsLabel })}
                                 </p>
                                 <p className="text-label-l">
-                                    {depositAddressData.maxDepositLimitUsd.toLocaleString()} USD
+                                    {formatFiniteDisplay(depositAddressData.maxDepositLimitUsd)} USD
                                 </p>
                             </div>
                             <p className="pt-1 text-body-s text-foreground-secondary">

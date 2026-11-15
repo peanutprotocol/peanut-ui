@@ -1,5 +1,7 @@
 'use client'
 
+import { requirePaymentMoney } from '@/lib/money'
+
 import { reportPasskeyFailure } from '@/utils/passkey-failure-reporting'
 import { useCallback } from 'react'
 import { withCeremonyPurpose } from '@/utils/webauthn-ceremony-telemetry'
@@ -10,7 +12,7 @@ import {
     PEANUT_WALLET_TOKEN_DECIMALS,
     USER_OP_ENTRY_POINT,
 } from '@/constants/zerodev.consts'
-import { parseUnits, encodeFunctionData, erc20Abi } from 'viem'
+import { encodeFunctionData, erc20Abi } from 'viem'
 import type { Hex, Address } from 'viem'
 import { captureException } from '@sentry/nextjs'
 import { capturePasskeySignFailure } from '@/utils/webauthn.utils'
@@ -272,7 +274,7 @@ export const useSignUserOp = () => {
         ): Promise<SignedUserOpData> => {
             let txData: Hex
             try {
-                const amount = parseUnits(amountInUsd.replace(/,/g, ''), PEANUT_WALLET_TOKEN_DECIMALS)
+                const amount = requirePaymentMoney(amountInUsd, 'USDC', PEANUT_WALLET_TOKEN_DECIMALS).minorUnits
                 txData = encodeFunctionData({
                     abi: erc20Abi,
                     functionName: 'transfer',

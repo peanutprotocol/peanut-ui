@@ -8,6 +8,8 @@ import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { CountryList } from '@/components/Common/CountryList'
 import NavHeader from '@/components/Global/NavHeader'
 import { SearchInput } from '@/components/SearchInput'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { trackAddMoney } from '@/features/add-money/analytics'
 import { corridorTopUpHref } from '@/features/add-money/countryRoutes'
 import { useBankRows } from '@/hooks/useBankRows'
 import type { GateState } from '@/utils/capability-gate'
@@ -17,13 +19,15 @@ import type { UnlockRow } from '@/utils/unlock-payments.utils'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { parseAsStringEnum, useQueryStates } from 'nuqs'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { residenceAllows } from '../residenceGate'
 import type { ClaimableCorridor, DepositAccountView, DepositCorridor, UnavailableCorridor } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 import { useDepositAccountsEnabled } from '../useDepositAccountsEnabled'
 import { useDepositCountryRouting } from '../useDepositCountryRouting'
 import { useResidenceIso2s } from '../useResidenceIso2s'
 import { AccountsHubList } from './AccountsHubList'
+import { ClosedRowDrawer } from './ClosedRowDrawer'
 
 /** the crypto entry point, reached from this screen and from the home Add drawer */
 const CRYPTO_HREF = '/add-money/crypto'
@@ -46,6 +50,7 @@ const HUB_HREF = '/add-money?method=bank'
 // Follow-up: evaluate 1–2 included accounts and a Peanut Tier 2 unlock for more.
 // Billing and backend enforcement decisions: mono/projects/virtual-accounts/README.md, Next steps.
 export function DepositAccountsListScreen({
+    presentation = 'add-money',
     corridors,
     accounts,
     claimable,
@@ -59,6 +64,8 @@ export function DepositAccountsListScreen({
     onOpen,
     onRetry,
 }: {
+    /** Keep the originating Bank account list behind its corridor drawer. */
+    presentation?: 'add-money' | 'bank-account'
     /** the corridors this user has a rail for, in catalogue order */
     corridors: DepositCorridor[]
     accounts: Record<DepositCorridor, DepositAccountView | undefined>
@@ -81,6 +88,8 @@ export function DepositAccountsListScreen({
     onRetry: () => void
 }) {
     const { t } = useDepositAccountCopy()
+    const tProfile = useTranslations('profile.unlockPayments')
+    const bankAccount = presentation === 'bank-account'
     const tMethods = useTranslations('addMoney.methods')
     const tSearch = useTranslations('withdraw.currencyList')
     const router = useRouter()
@@ -101,8 +110,20 @@ export function DepositAccountsListScreen({
 
     // Transient UI: neither survives a refresh nor belongs in a shared link.
     const [countriesOpen, setCountriesOpen] = useState(false)
+    const [showArgentinaRestriction, setShowArgentinaRestriction] = useState(false)
+    const argentinaUnavailable = residenceIso2s.length > 0 && !residenceAllows('BANK_TRANSFER_AR', residenceIso2s)
+    useEffect(() => {
+        if (!argentinaUnavailable) setShowArgentinaRestriction(false)
+    }, [argentinaUnavailable])
+    const openResidenceSettings = () => router.push(withReturnTo('/settings/details?open=residence', HUB_HREF))
     const [search, setSearch] = useState('')
-    const term = search.trim().toLowerCase()
+    const term = bankAccount ? '' : search.trim().toLowerCase()
+    const viewed = useRef(false)
+    useEffect(() => {
+        if (bankAccount || viewed.current) return
+        viewed.current = true
+        trackAddMoney(ANALYTICS_EVENTS.ADD_MONEY_VIEWED)
+    }, [bankAccount])
 
     // A bank row opens the transfer the user sends themselves. The flow is a
     // page of its own, so it carries where the user came from — leaving
@@ -113,7 +134,7 @@ export function DepositAccountsListScreen({
     }
 
     const cryptoRow =
-        !method && (!term || tMethods('crypto').toLowerCase().includes(term)) ? (
+        !bankAccount && !method && (!term || tMethods('crypto').toLowerCase().includes(term)) ? (
             <ListItem
                 key="crypto"
                 title={tMethods('crypto')}
@@ -133,7 +154,25 @@ export function DepositAccountsListScreen({
             // the field above owns the search
             searchTerm={term}
             onCountryClick={openCountry}
+            onCountrySelect={(country, outcome) => {
+                if (!bankAccount) {
+                    trackAddMoney(ANALYTICS_EVENTS.ADD_MONEY_COUNTRY_SELECTED, {
+                        country: country.path,
+                        source: term ? 'search' : 'all_countries',
+                        outcome,
+                    })
+                }
+            }}
             isCountrySupported={isCountrySupported}
+            restrictedCountry={
+                argentinaUnavailable
+                    ? {
+                          id: 'AR',
+                          label: t('list.badgeNotOffered'),
+                          onExplain: () => setShowArgentinaRestriction(true),
+                      }
+                    : undefined
+            }
         />
     )
 
@@ -147,13 +186,22 @@ export function DepositAccountsListScreen({
             collapsible
             variant="detached"
             value={countriesOpen ? 'countries' : ''}
-            onValueChange={(value) => setCountriesOpen(!!value)}
+            onValueChange={(value) => {
+                const open = !!value
+                setCountriesOpen(open)
+                if (!bankAccount) {
+                    trackAddMoney(
+                        open
+                            ? ANALYTICS_EVENTS.ADD_MONEY_COUNTRY_LIST_OPENED
+                            : ANALYTICS_EVENTS.ADD_MONEY_COUNTRY_LIST_CLOSED
+                    )
+                }
+            }}
         >
             <Accordion.Item value="countries">
                 <Accordion.Trigger
                     leading={<IconBubble {...CONCEPT_ICONS.otherCountries} size="s" />}
                     title={t('list.countriesTitle')}
-                    body={t('list.countriesPitch')}
                     data-testid="other-countries-toggle"
                 />
                 <Accordion.Content flush>{countryList}</Accordion.Content>
@@ -162,16 +210,29 @@ export function DepositAccountsListScreen({
     )
 
     return (
-        <PageStack>
-            <NavHeader title={t('list.addTitle')} onPrev={onBack} />
+        <PageStack gap={bankAccount ? '6' : '8'} className={bankAccount ? 'pb-10' : undefined}>
+            <NavHeader
+                title={bankAccount ? tProfile('titles.bank') : t('list.addTitle')}
+                onPrev={() => {
+                    if (!bankAccount) {
+                        trackAddMoney(ANALYTICS_EVENTS.ADD_MONEY_BACK_TAPPED, {
+                            country_list_source: term ? 'search' : countriesOpen ? 'all_countries' : 'none',
+                        })
+                    }
+                    onBack()
+                }}
+                titleClassName={bankAccount ? 'py-2 text-heading-xs md:py-1 md:text-heading-s' : undefined}
+            />
             <div className="flex flex-col gap-4">
-                <SearchInput
-                    value={search}
-                    onChange={setSearch}
-                    onClear={() => setSearch('')}
-                    placeholder={tSearch('searchPlaceholder')}
-                    aria-label={tSearch('searchPlaceholder')}
-                />
+                {!bankAccount && (
+                    <SearchInput
+                        value={search}
+                        onChange={setSearch}
+                        onClear={() => setSearch('')}
+                        placeholder={tSearch('searchPlaceholder')}
+                        aria-label={tSearch('searchPlaceholder')}
+                    />
+                )}
                 <AccountsHubList
                     accounts={{
                         corridors,
@@ -189,12 +250,23 @@ export function DepositAccountsListScreen({
                     claimsEnabled={claimsEnabled}
                     bankRows={bankRows}
                     onBankRowClick={openTopUp}
-                    onChangeResidence={() => router.push(withReturnTo('/profile/accounts?open=residence', HUB_HREF))}
+                    onVerifyPix={
+                        bankAccount && gates.PIX_BR?.kind === 'needs-identity' ? () => onOpen('PIX_BR') : undefined
+                    }
+                    onChangeResidence={openResidenceSettings}
                     searchTerm={term}
                     extraRows={cryptoRow ? [cryptoRow] : []}
-                    footer={countries}
+                    footer={bankAccount ? undefined : countries}
                 />
             </div>
+            {!bankAccount && showArgentinaRestriction && argentinaUnavailable && (
+                <ClosedRowDrawer
+                    closed={{ kind: 'residence', corridor: 'BANK_TRANSFER_AR' }}
+                    onClose={() => setShowArgentinaRestriction(false)}
+                    onChangeResidence={openResidenceSettings}
+                    onPayQr={() => router.push('/qr-pay')}
+                />
+            )}
         </PageStack>
     )
 }

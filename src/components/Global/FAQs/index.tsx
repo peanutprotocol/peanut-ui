@@ -42,7 +42,7 @@ function linkifyText(text: string) {
                 key={match.index}
                 href={match[2]}
                 {...(isExternal ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-                className="text-foreground-primary underline hover:text-action-ghost-hover"
+                className="text-foreground-primary underline hover:text-action-ghost-press"
             >
                 {match[1]}
             </a>

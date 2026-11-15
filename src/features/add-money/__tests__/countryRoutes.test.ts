@@ -27,9 +27,7 @@ describe('addMoneyRoutesForCountry', () => {
      * between, with the accounts flag on or off.
      */
     it.each([[true], [false]])('sends Brazil to the Pix top-up (accounts flag %s)', (enabled) => {
-        expect(routes(BR, [], enabled)).toEqual([
-            { corridor: 'PIX_BR', kind: 'top-up', href: '/add-money/brazil/manteca' },
-        ])
+        expect(routes(BR, [], enabled)).toEqual([{ corridor: 'PIX_BR', kind: 'top-up', href: '/add-money/pix' }])
     })
 
     /**
@@ -145,7 +143,7 @@ describe('corridorTopUpHref', () => {
     })
 
     it('answers a corridor nobody can hold with its own flow', () => {
-        expect(corridorTopUpHref('PIX_BR')).toBe('/add-money/brazil/manteca')
+        expect(corridorTopUpHref('PIX_BR')).toBe('/add-money/pix')
         expect(corridorTopUpHref('BANK_TRANSFER_AR')).toBe('/add-money/argentina/manteca')
     })
 })

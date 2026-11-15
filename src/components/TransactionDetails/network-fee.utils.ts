@@ -38,6 +38,8 @@ export function networkFeeDetailsForEntry(extraData: HistoryEntryExtraData | und
  * there is one. A zero or missing quote is a plain Pending, never "≈ $0".
  */
 export function pendingNetworkFee(quotedFeeUsd: number | null | undefined): NetworkFeeDetails {
+    if (typeof quotedFeeUsd !== 'number' || !Number.isFinite(quotedFeeUsd) || quotedFeeUsd <= 0)
+        return { state: 'pending' }
     const estimate = formatNetworkFee(quotedFeeUsd ?? undefined, true)
     return estimate ? { state: 'pending', amountDisplay: estimate } : { state: 'pending' }
 }

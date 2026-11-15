@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useDebounce } from './useDebounce'
 import { useQuery } from '@tanstack/react-query'
 import { fetchDisplayRate, FxApiError } from '@/utils/fx.utils'
+import { checkedConversion, parsePositiveRate } from '@/lib/money'
 
 type InputValue = number | ''
 
@@ -31,7 +32,9 @@ export function useExchangeRate({
     enabled = true,
 }: UseExchangeRateProps): UseExchangeRateReturn {
     // State
-    const [sourceAmount, setSourceAmount] = useState<InputValue>(initialSourceAmount)
+    const [sourceAmount, setSourceAmount] = useState<InputValue>(
+        Number.isFinite(initialSourceAmount) ? initialSourceAmount : ''
+    )
     const [destinationAmount, setDestinationAmount] = useState<InputValue>('')
     const [destinationInputValue, setDestinationInputValue] = useState('')
     const [lastEditedField, setLastEditedField] = useState<'source' | 'destination' | null>(null)
@@ -41,7 +44,8 @@ export function useExchangeRate({
     const debouncedDestinationAmount = useDebounce(destinationAmount, 500)
 
     // Utility functions
-    const isValidAmount = (amount: InputValue): amount is number => typeof amount === 'number' && amount > 0
+    const isValidAmount = (amount: InputValue): amount is number =>
+        typeof amount === 'number' && Number.isFinite(amount) && amount > 0
 
     const clearDestinationFields = () => {
         setDestinationAmount('')
@@ -49,19 +53,24 @@ export function useExchangeRate({
     }
 
     const updateDestinationFromCalculation = (calculatedAmount: number) => {
+        if (!Number.isFinite(calculatedAmount)) {
+            clearDestinationFields()
+            return
+        }
         setDestinationAmount(calculatedAmount)
         setDestinationInputValue(calculatedAmount.toFixed(2))
     }
 
     // Handlers
     const handleSourceAmountChange = useCallback((amount: InputValue) => {
-        setSourceAmount(amount)
+        setSourceAmount(typeof amount === 'number' && !Number.isFinite(amount) ? '' : amount)
         setLastEditedField('source')
     }, [])
 
     const handleDestinationAmountChange = useCallback((inputValue: string, amount: InputValue) => {
-        setDestinationInputValue(inputValue)
-        setDestinationAmount(amount)
+        const valid = amount === '' || Number.isFinite(amount)
+        setDestinationInputValue(valid ? inputValue : '')
+        setDestinationAmount(valid ? amount : '')
         setLastEditedField('destination')
     }, [])
 
@@ -106,7 +115,7 @@ export function useExchangeRate({
     // background refetch fails. FX must fail closed instead: otherwise a
     // repeatedly failing refresh can leave an arbitrarily old conversion on
     // screen even though the query is in its terminal error state.
-    const exchangeRate = isError ? 0 : (rateData?.rate ?? 0)
+    const exchangeRate = isError || !rateData ? 0 : (parsePositiveRate(rateData.rate) ?? 0)
 
     // Recalculate amounts when debounced inputs or rate changes (no extra loading toggles)
     useEffect(() => {
@@ -124,8 +133,9 @@ export function useExchangeRate({
                 clearDestinationFields()
                 return
             }
-            const calculatedAmount = debouncedSourceAmount * exchangeRate
-            updateDestinationFromCalculation(calculatedAmount)
+            const calculatedAmount = checkedConversion(debouncedSourceAmount, exchangeRate, 1)
+            if (calculatedAmount === null) clearDestinationFields()
+            else updateDestinationFromCalculation(calculatedAmount)
             return
         }
 
@@ -134,21 +144,22 @@ export function useExchangeRate({
                 setSourceAmount('')
                 return
             }
-            const calculatedSourceAmount = debouncedDestinationAmount / exchangeRate
-            setSourceAmount(parseFloat(calculatedSourceAmount.toFixed(2)))
+            const calculatedSourceAmount = checkedConversion(debouncedDestinationAmount, 1, exchangeRate)
+            setSourceAmount(calculatedSourceAmount === null ? '' : Number(calculatedSourceAmount.toFixed(2)))
             return
         }
 
         // Initial load - calculate destination from source
         if (!lastEditedField && hasValidSource) {
-            const calculatedAmount = debouncedSourceAmount * exchangeRate
-            updateDestinationFromCalculation(calculatedAmount)
+            const calculatedAmount = checkedConversion(debouncedSourceAmount, exchangeRate, 1)
+            if (calculatedAmount === null) clearDestinationFields()
+            else updateDestinationFromCalculation(calculatedAmount)
         }
     }, [debouncedSourceAmount, debouncedDestinationAmount, lastEditedField, exchangeRate])
 
     // Update source amount when initial amount changes
     useEffect(() => {
-        setSourceAmount(initialSourceAmount)
+        setSourceAmount(Number.isFinite(initialSourceAmount) ? initialSourceAmount : '')
     }, [initialSourceAmount])
 
     return {

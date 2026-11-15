@@ -9,6 +9,10 @@ import MantecaWithdrawFlow from '../page'
 const mockPush = jest.fn()
 let mockParams = 'country=argentina&method=bank-transfer&isSavedAccount=true&destination=qa.account'
 let mockBalance: bigint | undefined = parseUnits('10', 6)
+// The first-use activation has its own tests; the amount screen behind it is what these cover.
+jest.mock('@/features/paperwork-verification/KycFeatureActivationGate', () => ({
+    KycFeatureActivationGate: ({ children }: { children: React.ReactNode }) => children,
+}))
 jest.mock('next/navigation', () => ({
     useSearchParams: () => new URLSearchParams(mockParams),
     useRouter: () => ({ push: mockPush, replace: mockPush, back: jest.fn() }),
@@ -32,7 +36,9 @@ jest.mock('@/hooks/useCurrency', () => ({
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({ setIsSupportModalOpen: jest.fn(), openSupportWithMessage: jest.fn() }),
 }))
-jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ rails: [], nextActions: [] }) }))
+jest.mock('@/hooks/useCapabilities', () => ({
+    useCapabilities: () => ({ rails: [], nextActions: [], capabilities: { routes: [] } }),
+}))
 jest.mock('@/hooks/useIdentityVerification', () => ({ useIdentityVerification: () => ({ isVerified: true }) }))
 jest.mock('@/hooks/wallet/usePendingTransactions', () => ({
     usePendingTransactions: () => ({ hasPendingTransactions: false }),
@@ -61,9 +67,15 @@ jest.mock('@/components/Global/NavHeader', () => ({
     ),
 }))
 jest.mock('@/features/withdraw/views/PixKeySendView', () => ({ __esModule: true, default: () => null }))
+let mockPixBlock: 'paused' | 'residence' | null = null
+jest.mock('@/features/pix/usePixPayBlock', () => ({ usePixPayBlock: () => mockPixBlock }))
+jest.mock('@/features/brazil-pause/components/BrazilPausedScreen', () => ({
+    BrazilPausedScreen: ({ block }: { block: string }) => <div data-testid="brazil-paused-screen" data-block={block} />,
+}))
 jest.mock('@/services/manteca', () => ({ mantecaApi: {} }))
 
 beforeEach(() => {
+    mockPixBlock = null
     mockBalance = parseUnits('10', 6)
     mockParams = 'country=argentina&method=bank-transfer&isSavedAccount=true&destination=qa.account'
 })
@@ -135,4 +147,69 @@ it('shows Send and returns to Send after a bank-origin handoff', async () => {
     expect(await screen.findByRole('heading', { name: 'Send' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Back' }))
     expect(mockPush).toHaveBeenCalledWith('/send')
+})
+
+// TASK-24197: the pause stops Brazil Pix sends and BRL withdrawals reached by a link or a back step
+describe('the Brazil pause', () => {
+    function render() {
+        renderWithIntl(
+            <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+                <NuqsTestingAdapter searchParams={mockParams}>
+                    <MantecaWithdrawFlow />
+                </NuqsTestingAdapter>
+            </QueryClientProvider>
+        )
+    }
+
+    test('shows the paused screen for a Pix send', () => {
+        mockPixBlock = 'paused'
+        mockParams = 'country=brazil&method=pix'
+        render()
+        expect(screen.getByTestId('brazil-paused-screen')).toHaveAttribute('data-block', 'paused')
+        expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+    })
+
+    // a BRL withdrawal to the own account lives on /withdraw/pix (features/pix/__tests__)
+    test('mounts no BRL withdrawal here and goes to the neutral Pix page', () => {
+        mockPush.mockClear()
+        mockParams = 'country=brazil&method=bank-transfer'
+        render()
+        expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+        expect(mockPush).toHaveBeenCalledWith('/withdraw/pix')
+    })
+
+    // the pay:PIX_BR route, not the app, refuses the residence
+    test('shows the residence words for a Pix send from Send the pay route refuses for the residence', () => {
+        mockPixBlock = 'residence'
+        mockParams = 'country=brazil&method=pix&sendMethod=bank'
+        render()
+        expect(screen.getByTestId('brazil-paused-screen')).toHaveAttribute('data-block', 'residence')
+    })
+
+    // live test on staging, 2026-11-12: outside Send the resident came to withdraw, and their
+    // own-account Pix is open on /withdraw/pix; the block screen was a dead end in front of it
+    test('sends a resident outside Send to the neutral Pix page, with no block screen', () => {
+        mockPush.mockClear()
+        mockPixBlock = 'residence'
+        mockParams = 'country=brazil&method=pix'
+        render()
+        expect(screen.queryByTestId('brazil-paused-screen')).not.toBeInTheDocument()
+        expect(mockPush).toHaveBeenCalledWith('/withdraw/pix')
+    })
+
+    // TASK-24724: the pay route the API sends a resident elsewhere is open, so the Pix-key send is too;
+    // their BRL withdrawal goes to /withdraw/pix, whose own route carries any pause (test above)
+    test('keeps a Pix-key send open while the pay route is open, whatever Brazil rails the account holds', () => {
+        mockPixBlock = null
+        mockParams = 'country=brazil&method=pix'
+        render()
+        expect(screen.queryByTestId('brazil-paused-screen')).not.toBeInTheDocument()
+    })
+
+    test('leaves Argentina open', () => {
+        mockPixBlock = 'paused'
+        render()
+        expect(screen.queryByTestId('brazil-paused-screen')).not.toBeInTheDocument()
+        expect(screen.getByRole('textbox')).toBeInTheDocument()
+    })
 })

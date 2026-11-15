@@ -15,7 +15,7 @@ export default function ShhhhhPage() {
     return (
         <LandingPageShell>
             <ShhhhhLandingPage />
-            <Footer />
+            <Footer showSiteDirectory={false} showLocaleSwitcher={false} />
         </LandingPageShell>
     )
 }

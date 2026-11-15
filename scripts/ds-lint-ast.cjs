@@ -1,6 +1,6 @@
 // File traversal and lexical scopes for the weight-stack metric.
 // Expression semantics and limits live in ds-lint-expressions.cjs.
-// The supported subset and counting policy are in ds-lint-contract.md.
+// The supported subset and counting policy: https://github.com/peanutprotocol/mono/blob/main/engineering/ui/ds-lint-contract.md
 const ts = require('typescript')
 const { alternatives, BUILDERS, OPAQUE, AnalysisError } = require('./ds-lint-expressions.cjs')
 const isClassNameProp = (name) => /[a-zA-Z]*[cC]lassName$/.test(name)
@@ -202,7 +202,7 @@ function weightStackSites(text, filename, { isToken, isWeight }) {
                 'UNSUPPORTED_CVA',
                 node,
                 ctx,
-                'CVA is outside the supported class-expression subset; see scripts/ds-lint-contract.md'
+                'CVA is outside the supported class-expression subset; see https://github.com/peanutprotocol/mono/blob/main/engineering/ui/ds-lint-contract.md'
             )
         }
         const scopes = []

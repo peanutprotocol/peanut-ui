@@ -10,7 +10,7 @@
 // CALL plus any `PEANUT_API_URL` reference in the same non-test source file.
 // That also catches URLs assembled in a variable before the call, and the
 // NEXT_PUBLIC_PEANUT_API_URL env var read. fetchWithSentry/fetch against
-// non-Peanut hosts (Uniswap, Mobula, JustaName health probes) is fine and
+// non-Peanut hosts (Uniswap, Rhino, JustaName health probes) is fine and
 // does not trip this. `apiFetch(`, `serverFetch(`, `refetch(` etc. do not
 // match the bare-fetch pattern (word boundary).
 //
@@ -39,6 +39,9 @@ const EXEMPT = new Set<string>([
     // harness-only reproduce bootstrap reading NEXT_PUBLIC_PEANUT_API_URL —
     // runs pre-session by design
     'context/ReproduceBootstrap.tsx',
+    // server-only public metadata lookup: no session or Sentry enrichment;
+    // its explicit 1.8-second deadline keeps acquisition redirects bounded
+    'features/tracked-links/server.ts',
     // the wrapper itself — apiFetch IS the one sanctioned fetchWithSentry(PEANUT_API_URL…) call
     'utils/api-fetch.ts',
     // transport canary: a BARE fetch against the API is the instrument here —

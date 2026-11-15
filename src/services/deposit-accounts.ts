@@ -1,5 +1,7 @@
 'use client'
 
+import { validateNumericResponse } from '@/lib/numeric-response'
+
 /**
  * Deposit accounts — bank details the user holds and hands to whoever pays
  * them.
@@ -85,5 +87,5 @@ export async function claimDepositAccount(method: string): Promise<DepositClaimR
         body: JSON.stringify({ method }),
     })
     if (!response.ok) throw await apiErrorFromResponse(response, 'Could not open the account')
-    return (await response.json()) as ClaimResponse
+    return validateNumericResponse(await response.json()) as ClaimResponse
 }

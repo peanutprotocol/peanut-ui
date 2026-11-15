@@ -260,17 +260,17 @@ toast({ message: 'Waiting for approval', duration: 'persistent' })`}
 
             <ProductUsage>
                 <ProductUsage.Example
-                    title="Receipt — copy link"
-                    path="src/components/TransactionDetails/ReceiptActions.tsx"
-                    description="The most common shape in the app: one line, success or error from the same call, no ID."
-                    code={`if (await copyTextToClipboard(receiptPageUrl)) toast.success(t('actions.linkCopied'))
-else toast.error(t('actions.linkCopyFailed'))`}
+                    title="Beta updates — copy device ID"
+                    path="src/components/Profile/components/BetaUpdatesCard.tsx"
+                    description="The most common shape in the app: one line, a confirmation or an error from the same call, no ID."
+                    code={`if (await copyTextToClipboard(deviceId)) toast.info(t('deviceCopied'))
+else toast.error(t('deviceCopyFailed'))`}
                 >
                     <div className="flex flex-wrap gap-2">
-                        <Button variant="secondary" size="small" onClick={() => success('Link copied')}>
+                        <Button variant="secondary" size="small" onClick={() => info('Device ID copied')}>
                             copy succeeded
                         </Button>
-                        <Button variant="secondary" size="small" onClick={() => error('Could not copy the link')}>
+                        <Button variant="secondary" size="small" onClick={() => error('Could not copy the device ID.')}>
                             copy failed
                         </Button>
                     </div>

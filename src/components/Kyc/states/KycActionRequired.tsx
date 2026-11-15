@@ -5,6 +5,7 @@ import { Callout } from '@/components/0_Bruddle/Callout'
 import { Button } from '@/components/0_Bruddle/Button'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import type { IconName } from '@/components/Global/Icons/Icon'
+import { useKycControl } from '@/features/paperwork-verification/analytics'
 
 // this component shows the identity-verification status when more action is needed
 // from the user. Prefers the per-label copy when reject labels are present (e.g.
@@ -43,20 +44,34 @@ export const KycActionRequired = ({
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
     const tProfile = useTranslations('profile')
+    const control = useKycControl('kyc-status', 'kyc_status')
 
     if (isEmailCollision) {
         return (
             <div className="space-y-4 p-1">
                 <KYCStatusDrawerItem status="pending" customText={t('actionNeeded')} />
                 <RejectLabelsList rejectLabels={rejectLabels} />
-                <Button className="w-full" shadowSize="4" onClick={() => onContactSupport?.()}>
+                <Button
+                    className="w-full"
+                    shadowSize="4"
+                    onClick={() => {
+                        control.track('support', 'tap')
+                        onContactSupport?.()
+                    }}
+                >
                     {tCommon('contactSupport')}
                 </Button>
                 {onLogOut && (
                     // tertiary (design.md); pt-2 on the stack's 16px keeps the
                     // 24px its hit area needs under the primary
                     <div className="flex justify-center pt-2">
-                        <LinkButton onClick={onLogOut} className="text-body-s text-foreground-primary">
+                        <LinkButton
+                            onClick={() => {
+                                control.track('log_out', 'tap')
+                                onLogOut()
+                            }}
+                            className="text-body-s text-foreground-primary"
+                        >
                             {tProfile('logOut')}
                         </LinkButton>
                     </div>
@@ -85,7 +100,10 @@ export const KycActionRequired = ({
                 icon={'retry' as IconName}
                 className="w-full"
                 shadowSize="4"
-                onClick={() => onResume()}
+                onClick={() => {
+                    control.track(isGenericAction ? 'continue' : 'resubmit', 'tap')
+                    onResume()
+                }}
                 disabled={isLoading}
             >
                 {isLoading ? tCommon('loading') : isGenericAction ? tCommon('continue') : t('resubmitVerification')}

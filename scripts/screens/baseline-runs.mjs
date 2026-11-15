@@ -48,11 +48,14 @@ export function verifiedExternalBaselineSource({
     expectedCommit,
     defaultBranch,
     locales = CAPTURE_LOCALES,
+    beforeHarnessMode = 'head',
 }) {
+    if (!['head', 'base'].includes(beforeHarnessMode)) throw new Error('Invalid before harness mode')
     if (trustedIntegrationBaselineRun(run, jobs, repository, expectedCommit, locales)) {
         const complete = completeBaselineArtifacts(artifacts, 'integration', expectedCommit, locales)
-        if (complete.length) return { kind: 'integration', artifacts: complete }
+        if (complete.length) return { kind: 'integration', artifacts: complete, harnessCommit: run.head_sha }
     }
+    if (beforeHarnessMode === 'base') return null
     if (trustedScheduledBaselineRun(run, repository, defaultBranch)) {
         const complete = completeBaselineArtifacts(artifacts, 'baseline', expectedCommit, locales)
         if (complete.length) return { kind: 'baseline', artifacts: complete }

@@ -84,6 +84,7 @@ describe('Recipient Validation', () => {
                 identifier: 'vitalik.eth',
                 recipientType: 'ENS',
                 resolvedAddress: '0x1234567890123456789012345678901234567890',
+                person: null,
             })
         })
 
@@ -98,11 +99,36 @@ describe('Recipient Validation', () => {
                 identifier: address,
                 recipientType: 'ADDRESS',
                 resolvedAddress: address,
+                person: null,
             })
         })
 
         it('should throw for invalid addresses', async () => {
             await expect(validateAndResolveRecipient('0xinvalid')).rejects.toThrow('Invalid address')
+        })
+
+        it('should resolve a Peanut username to its wallet and the person behind it', async () => {
+            const { fetchWithSentry } = require('@/utils/sentry.utils')
+            fetchWithSentry.mockResolvedValueOnce({
+                ok: true,
+                status: 200,
+                json: () =>
+                    Promise.resolve({
+                        userId: 'u-alice',
+                        username: 'alice',
+                        avatarKey: 'basic.cloud',
+                        accounts: [{ type: 'peanut-wallet', identifier: '0xa11ce' }],
+                    }),
+            })
+
+            const result = await validateAndResolveRecipient('Alice')
+
+            expect(result).toMatchObject({
+                identifier: 'alice',
+                recipientType: 'USERNAME',
+                resolvedAddress: '0xa11ce',
+                person: { userId: 'u-alice', username: 'alice', avatarKey: 'basic.cloud' },
+            })
         })
 
         it('should throw for invalid Peanut usernames', async () => {

@@ -149,11 +149,11 @@ export const Calendar = ({ selected, onSelect, defaultMonth, className }: Calend
                     // the page gutter and the arrow lines up with the right edge of the fields above
                     nav: 'absolute -right-2.5 top-0 flex h-10 items-center gap-1',
                     button_previous: twMerge(
-                        'relative flex size-10 items-center justify-center rounded-sm text-foreground-primary transition-colors duration-instant hover:text-action-ghost-hover active:text-action-ghost-hover aria-disabled:opacity-40 after:absolute after:-inset-0.5',
+                        'relative flex size-10 items-center justify-center rounded-sm text-foreground-primary transition-colors duration-instant hover:text-action-ghost-press active:text-action-ghost-press aria-disabled:opacity-40 after:absolute after:-inset-0.5',
                         focusRing
                     ),
                     button_next: twMerge(
-                        'relative flex size-10 items-center justify-center rounded-sm text-foreground-primary transition-colors duration-instant hover:text-action-ghost-hover active:text-action-ghost-hover aria-disabled:opacity-40 after:absolute after:-inset-0.5',
+                        'relative flex size-10 items-center justify-center rounded-sm text-foreground-primary transition-colors duration-instant hover:text-action-ghost-press active:text-action-ghost-press aria-disabled:opacity-40 after:absolute after:-inset-0.5',
                         focusRing
                     ),
                     chevron: 'size-5 fill-current',

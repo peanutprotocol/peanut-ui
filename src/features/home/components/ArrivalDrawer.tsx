@@ -8,44 +8,40 @@ import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } f
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { useModalsContext } from '@/context/ModalsContext'
-import { useOtherOpenOverlays } from '@/utils/overlay-visibility'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import posthog from 'posthog-js'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useSyncExternalStore } from 'react'
+import type { AskSurfaceProps } from '@/features/attention/types'
+import { currentArrival, dismissArrival, subscribeArrival } from '../arrival-session'
 import type { Arrival } from '../arrival.types'
-
-interface ArrivalDrawerProps {
-    arrival: Arrival
-    /** A Home prompt that outranks this one is up: wait for it. */
-    blocked: boolean
-    onDismiss: () => void
-}
 
 /**
  * What already works in the country the user just arrived in (TASK-23251):
  * a QR in Argentina or Brazil under the country's flag, the card elsewhere.
- * Moves into the attention registry once ui#3667 lands.
+ * Whether it shows is the attention manager's call (the `arrival` ask).
  */
-export default function ArrivalDrawer({ arrival, blocked, onDismiss }: ArrivalDrawerProps) {
+export default function ArrivalDrawer({ onActed, onDismissed }: AskSurfaceProps) {
     const t = useTranslations('home.arrival')
     const router = useRouter()
-    const { isQRScannerOpen, setIsQRScannerOpen } = useModalsContext()
-    const overlayOwner = useRef(Symbol('arrival'))
-    const otherOverlayOpen = useOtherOpenOverlays(overlayOwner.current)
-    const visible = !blocked && !otherOverlayOpen && !isQRScannerOpen
+    const { setIsQRScannerOpen } = useModalsContext()
+    const arrival = useSyncExternalStore(subscribeArrival, currentArrival, () => null)
     const trackedFor = useRef<Arrival | null>(null)
-    const isQr = arrival.prompt !== 'card'
 
     useEffect(() => {
-        if (!visible || trackedFor.current === arrival) return
+        if (!arrival || trackedFor.current === arrival) return
         trackedFor.current = arrival
         posthog.capture(ANALYTICS_EVENTS.ARRIVAL_PROMPT_SHOWN, { country: arrival.country, prompt: arrival.prompt })
-    }, [visible, arrival])
+    }, [arrival])
 
-    // Unmount while yielding: a closing drawer would keep its overlay over the other prompt.
-    if (!visible) return null
+    if (!arrival) return null
+    const isQr = arrival.prompt !== 'card'
+
+    const onDismiss = () => {
+        dismissArrival()
+        onDismissed()
+    }
 
     const handleCta = () => {
         posthog.capture(ANALYTICS_EVENTS.ARRIVAL_PROMPT_CTA_CLICKED, {
@@ -56,13 +52,13 @@ export default function ArrivalDrawer({ arrival, blocked, onDismiss }: ArrivalDr
         // Open it first, so Home sees it open in the same render the prompt clears.
         if (isQr) setIsQRScannerOpen(true)
         else router.push('/card')
-        onDismiss()
+        dismissArrival()
+        onActed()
     }
 
     return (
         <Drawer
             open
-            overlayOwner={overlayOwner.current}
             onOpenChange={(isOpen) => {
                 if (!isOpen) onDismiss()
             }}

@@ -27,8 +27,8 @@ export const MARKETING_PALETTE: PaletteEntry[] = [
     },
     {
         label: 'Yellow',
-        token: 'action-secondary',
-        swatchClass: 'bg-action-secondary',
+        token: 'background-accent-yellow',
+        swatchClass: 'bg-background-accent-yellow',
         role: 'Marquee (home only), Steps band, mascot body, doodles.',
     },
     {

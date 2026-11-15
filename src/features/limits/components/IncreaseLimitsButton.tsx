@@ -9,7 +9,9 @@ import { useLimits } from '@/hooks/useLimits'
 import { useSumsubActionFlow } from '@/hooks/useSumsubActionFlow'
 import { initiateIncreaseLimits } from '@/app/actions/increase-limits'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
-import { isBrUserEligibleForLimitIncrease } from '../utils'
+import { KycControlFlowProvider } from '@/features/paperwork-verification/analytics'
+import { useCapabilities } from '@/hooks/useCapabilities'
+import { isBrUserEligibleForLimitIncrease, mantecaBrlLimitApplies } from '../utils'
 
 const INCREASE_LIMITS_MESSAGE = 'Hi, I would like to increase my payment limits.'
 
@@ -19,12 +21,16 @@ const INCREASE_LIMITS_MESSAGE = 'Hi, I would like to increase my payment limits.
  *   (either auto-uploaded from Sumsub or collected via LATAM KYC SDK)
  * - Everyone else: opens support chat with prefilled message
  */
-export default function IncreaseLimitsButton() {
+export default function IncreaseLimitsButton({ variant = 'primary' }: { variant?: 'primary' | 'secondary' }) {
     const t = useTranslations('limits.increase')
     const { openSupportWithMessage } = useModalsContext()
     const { mantecaLimits, isLoading: isLimitsLoading, refetch } = useLimits()
 
-    const isEligibleForSelfService = isBrUserEligibleForLimitIncrease(mantecaLimits)
+    const { capabilities } = useCapabilities()
+    // Manteca's increase raises Manteca's BRL limit: offered exactly while Manteca still serves a BRL
+    // operation of the user (a QR payment outside Avenia's QR gate keeps Manteca's cap)
+    const isEligibleForSelfService =
+        mantecaBrlLimitApplies(capabilities.routes) && isBrUserEligibleForLimitIncrease(mantecaLimits)
 
     const actionFlow = useSumsubActionFlow({
         fetchToken: initiateIncreaseLimits,
@@ -47,8 +53,8 @@ export default function IncreaseLimitsButton() {
     return (
         <>
             <Button
+                variant={variant}
                 className="w-full"
-                shadowSize="4"
                 onClick={handleClick}
                 loading={actionFlow.isLoading || isLimitsLoading}
                 disabled={actionFlow.isLoading || isLimitsLoading}
@@ -58,14 +64,16 @@ export default function IncreaseLimitsButton() {
 
             {actionFlow.error && <p className="text-center text-body-xs text-foreground-error">{actionFlow.error}</p>}
 
-            <SumsubKycWrapper
-                visible={actionFlow.showWrapper}
-                accessToken={actionFlow.accessToken}
-                onClose={actionFlow.handleClose}
-                onComplete={actionFlow.handleSdkComplete}
-                onRefreshToken={actionFlow.refreshToken}
-                isMultiLevel
-            />
+            <KycControlFlowProvider value="kyc_provider_request">
+                <SumsubKycWrapper
+                    visible={actionFlow.showWrapper}
+                    accessToken={actionFlow.accessToken}
+                    onClose={actionFlow.handleClose}
+                    onComplete={actionFlow.handleSdkComplete}
+                    onRefreshToken={actionFlow.refreshToken}
+                    isMultiLevel
+                />
+            </KycControlFlowProvider>
         </>
     )
 }

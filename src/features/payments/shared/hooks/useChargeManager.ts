@@ -1,5 +1,7 @@
 'use client'
 
+import { requirePaymentMoney } from '@/lib/money'
+
 /**
  * hook for managing charge lifecycle (create, fetch, cache)
  *
@@ -89,6 +91,11 @@ export const useChargeManager = (): UseChargeManagerReturn => {
         setError(null)
 
         try {
+            requirePaymentMoney(params.tokenAmount, params.tokenSymbol, params.tokenDecimals)
+            if (params.currencyAmount !== undefined)
+                requirePaymentMoney(params.currencyAmount, params.currencyCode ?? '', 18)
+            if (!/^\d+$/.test(params.chainId) || BigInt(params.chainId) <= 0n)
+                throw new Error('Invalid payment network')
             // if requestId provided, validate it exists
             let validRequestId = params.requestId
             if (params.requestId) {

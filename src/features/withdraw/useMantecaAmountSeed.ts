@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { parseUsdAmount } from './amount-validation'
+import { checkedConversion } from '@/lib/money'
 
 /** Preserve an incoming amount without skipping destination or amount validation. */
 export function useMantecaAmountSeed({
@@ -20,9 +21,11 @@ export function useMantecaAmountSeed({
         if (seeded || !currencyPriceSell) return
         const normalized = parseUsdAmount(urlAmount)
         if (normalized === null) return
+        const converted = checkedConversion(normalized, currencyPriceSell, 1)
+        if (converted === null) return
         setSeeded(true)
         setUsdAmount(Number(normalized).toFixed(2))
-        setCurrencyAmount((Number(normalized) * currencyPriceSell).toFixed(2))
+        setCurrencyAmount(converted.toFixed(2))
     }, [seeded, urlAmount, currencyPriceSell, setUsdAmount, setCurrencyAmount])
     const resetSeed = useCallback(() => setSeeded(false), [])
     return { resetSeed }

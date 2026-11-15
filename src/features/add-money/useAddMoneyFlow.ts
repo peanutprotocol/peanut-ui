@@ -11,7 +11,7 @@ import { useEffect } from 'react'
 
 /**
  * flow hook for the /add-money root page — owns navigation, onramp-state reset
- * and the bare-root drawer redirect so the route page stays dumb.
+ * and the picker entry so the route page stays dumb.
  *
  * Where a country leads is NOT here: the bank screen is the deposit-accounts
  * hub, and `useDepositCountryRouting` answers that question for both entry
@@ -84,31 +84,13 @@ export function useAddMoneyFlow() {
         leaveFlow()
     }
 
-    // Bare /add-money (no method, no country) is not a screen of its own any
-    // more: it opens the home page's Add drawer through its nuqs url state
-    // (?drawer=add), so direct links and generic entries (checklists, CTAs,
-    // lifecycle emails) land on a surface that offers crypto AND bank. The
-    // hub lives on the explicit ?method=bank.
     const isBareRoot = !method && !countryFromQuery && !corridorFromQuery
-    useEffect(() => {
-        if (!isBareRoot) return
-        // carry the caller's origin through the drawer hop — dropping it here
-        // strands the exchange-rate widget's tested back contract on /home.
-        // readReturnTo, not the raw param: forwarding an unvalidated value
-        // from a trusted deep link is an open redirect (chip P16)
-        const params = new URLSearchParams({ drawer: 'add' })
-        const origin = readReturnTo({ get: (key) => (key === RETURN_TO_PARAM ? rawReturnTo : null) }, '/add-money')
-        if (origin) params.set(RETURN_TO_PARAM, origin)
-        // this redirect leaves the page (/home), so its params can't be written
-        // through this page's nuqs state — pathname+query built once, up front
-        const target = `/home?${params.toString()}`
-        router.replace(target)
-    }, [isBareRoot, router, rawReturnTo])
 
     return {
         countryFromQuery,
         viewFromQuery,
         isBareRoot,
+        returnTo,
         handleBack,
     }
 }

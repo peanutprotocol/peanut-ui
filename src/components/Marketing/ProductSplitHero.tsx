@@ -131,6 +131,7 @@ export function ProductSplitHero({
             src={Sparkle.src}
             alt=""
             aria-hidden
+            loading="lazy"
             initial={{ opacity: 0, scale: 0.4, rotate: -30 }}
             animate={{ opacity: 1, scale: 1, rotate: 0 }}
             transition={{ type: 'spring', damping: 10, delay: 0.6 }}
@@ -146,6 +147,7 @@ export function ProductSplitHero({
             src={Star.src}
             alt=""
             aria-hidden
+            loading="lazy"
             initial={{ opacity: 0, translateY: 20, translateX: 5 }}
             {...reveal({ opacity: 1, translateY: 0, translateX: 0 })}
             transition={{ type: 'spring', damping: 5 }}
@@ -185,6 +187,7 @@ export function ProductSplitHero({
                     src={Star.src}
                     alt=""
                     aria-hidden
+                    loading="lazy"
                     initial={{ opacity: 0, translateY: 28, translateX: -5 }}
                     {...reveal({ opacity: 1, translateY: 0, translateX: 0 })}
                     transition={{ type: 'spring', damping: 5, delay: 0.15 }}
@@ -197,6 +200,7 @@ export function ProductSplitHero({
                     src={Sparkle.src}
                     alt=""
                     aria-hidden
+                    loading="lazy"
                     initial={{ opacity: 0, scale: 0.4 }}
                     {...reveal({ opacity: 1, scale: 1 })}
                     transition={{ type: 'spring', damping: 8, delay: 0.3 }}

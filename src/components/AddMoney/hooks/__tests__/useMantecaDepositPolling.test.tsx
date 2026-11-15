@@ -53,6 +53,14 @@ describe('useMantecaDepositPolling', () => {
         await waitFor(() => expect(result.current.status).toBe('failed'))
     })
 
+    it('distinguishes a provider-confirmed expired order from other cancellations', async () => {
+        mockGetDepositStatus.mockResolvedValue({ data: { id: 'dep-3', status: 'CANCELLED', stage: 1, expired: true } })
+        const onComplete = jest.fn()
+        const { result } = renderHook(() => useMantecaDepositPolling('dep-3', onComplete), { wrapper })
+        await waitFor(() => expect(result.current.status).toBe('expired'))
+        expect(onComplete).not.toHaveBeenCalled()
+    })
+
     it('keeps "pending" on PROCESSING at stage 1 — QR live, user has NOT paid (the vanished-QR bug)', async () => {
         // Manteca flips the synthetic ACTIVE (→ intent PROCESSING) seconds after
         // creation; treating that as "settling" hid the QR before anyone could pay.

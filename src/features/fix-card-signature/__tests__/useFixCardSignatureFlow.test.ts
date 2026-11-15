@@ -7,6 +7,7 @@ import { useFixCardSignatureFlow } from '../useFixCardSignatureFlow'
 const mockDiagnose = jest.fn()
 const mockRepair = jest.fn()
 const mockGrant = jest.fn()
+const mockFundingGrant = jest.fn()
 
 let mockAddress: string | null = null
 let mockDiagnosis: { state: string; currentNonce?: string; validNonceFrom?: string } | null = null
@@ -36,6 +37,9 @@ jest.mock('@/hooks/wallet/useCardSignatureRepair', () => ({
 jest.mock('@/hooks/wallet/useGrantSessionKey', () => ({
     useGrantSessionKey: () => ({ grant: mockGrant, isGranting: false }),
 }))
+jest.mock('@/hooks/wallet/useRainFunding', () => ({
+    useRainFunding: () => ({ grant: mockFundingGrant }),
+}))
 
 describe('useFixCardSignatureFlow', () => {
     beforeEach(() => {
@@ -63,14 +67,28 @@ describe('useFixCardSignatureFlow', () => {
         expect(renderHook(() => useFixCardSignatureFlow()).result.current.needsRepair).toBe(false)
     })
 
-    it('flips grantDone on a successful re-grant', async () => {
+    // This page repairs WITHDRAWALS only. The card funding permission needs the
+    // person's own consent boxes, which live on the Home prompt.
+    it('is done after the withdrawal grant alone and never signs the funding permission', async () => {
         mockGrant.mockResolvedValue({ ok: true })
         const { result } = renderHook(() => useFixCardSignatureFlow())
         await act(async () => {
             await result.current.handleGrant()
         })
+        expect(mockGrant).toHaveBeenCalledTimes(1)
+        expect(mockFundingGrant).not.toHaveBeenCalled()
         expect(result.current.grantDone).toBe(true)
         expect(result.current.grantErrorMessage).toBeNull()
+    })
+
+    it('reports a failed withdrawal grant with the retry message', async () => {
+        mockGrant.mockResolvedValue({ ok: false, error: { kind: 'unexpected', message: 'AA23' } })
+        const { result } = renderHook(() => useFixCardSignatureFlow())
+        await act(async () => {
+            await result.current.handleGrant()
+        })
+        expect(result.current.grantDone).toBe(false)
+        expect(result.current.grantErrorMessage).toBe('fixSignature.regrantFailed')
     })
 
     it('surfaces the no-card message on a no-card grant failure', async () => {

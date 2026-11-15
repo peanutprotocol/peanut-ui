@@ -50,14 +50,14 @@ describe('ReceiptUnavailable', () => {
 
     // the bubble follows the state, same rule as an activity row (TASK-22452):
     // a dead link is terminal but nobody failed, a load that failed did.
-    test('gone shows a gray dead-link bubble, loadFailed a red alert', () => {
+    test('gone shows a neutral info bubble, loadFailed a red cancel bubble', () => {
         const { container, unmount } = renderVariant()
-        expect(container.querySelector('svg.lucide-unlink')).not.toBeNull()
+        expect(container.querySelector('svg.lucide-info')).not.toBeNull()
         expect(container.querySelector('.bg-background-icon-bubble-gray')).not.toBeNull()
         unmount()
 
         const failed = renderVariant('loadFailed')
-        expect(failed.container.querySelector('svg.lucide-triangle-alert')).not.toBeNull()
+        expect(failed.container.querySelector('svg.lucide-x')).not.toBeNull()
         expect(failed.container.querySelector('.bg-background-icon-bubble-red')).not.toBeNull()
     })
 })

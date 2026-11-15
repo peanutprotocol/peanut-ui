@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { useReturnTo } from '@/hooks/useSafeBack'
 import { useTranslations } from 'next-intl'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
-import GlobalCard from '@/components/Global/Card'
 import { Card } from '@/components/0_Bruddle/Card'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -22,12 +21,14 @@ import { useCardMarkupRate } from '@/hooks/useCardMarkupRate'
 import { useAuth } from '@/context/authContext'
 import { getShakeClass } from '@/utils/perk.utils'
 import { calculateSavingsInCents, hasCardMarkupComparison } from '@/utils/qr-payment.utils'
-import { formatNumberForDisplay } from '@/utils/general.utils'
-import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
+import { formatCurrency } from '@/utils/general.utils'
 import { REFERRAL_SOURCES } from '@/constants/analytics.consts'
+import { trackReceiptAction } from '@/components/TransactionDetails/receipt-action-analytics'
 import { useQrPayFlow } from '../QrPayFlowContext'
 import { useQrReceipt } from '../useQrReceipt'
 import { usePerkHoldToClaim } from '../usePerkHoldToClaim'
+import { PaidRewardCard } from '@/features/payments/shared/components/PaidRewardCard'
+import { HoldToClaimButton } from '@/features/payments/shared/components/HoldToClaimButton'
 
 export function QrPaySuccessView() {
     const t = useAppTranslations('qrPay')
@@ -38,12 +39,19 @@ export function QrPaySuccessView() {
     // earlier entries, so back from home re-entered the flow
     const leaveToHome = useReturnTo('/home')
     const { user } = useAuth()
-    const { qrPayment, setQrPayment, paymentLock, currency, usdAmount, pointsData, pointsDivRef, pixKeyOwner } =
-        useQrPayFlow()
-    // A looked-up PIX key names its owner, as the payment screen did.
-    const paidTo = pixKeyOwner?.name ?? qrPayment?.details.merchant.name ?? paymentLock?.paymentRecipientName ?? ''
+    const {
+        paidReward,
+        markRewardClaimed,
+        currency,
+        usdAmount,
+        pointsData,
+        pointsDivRef,
+        pixKeyOwner,
+        paidTo,
+        paidLocalAmount,
+    } = useQrPayFlow()
     const { rewardOffered, perkClaimed, holdProgress, isShaking, shakeIntensity, startHold, cancelHold } =
-        usePerkHoldToClaim(qrPayment, setQrPayment)
+        usePerkHoldToClaim(paidReward, markRewardClaimed)
     const { openTransactionDetails, isTransactionSelected, closeTransactionDetails } = useTransactionDetailsDrawer()
     const [showInviteFriendsModal, setShowInviteFriendsModal] = useState(false)
     // a double tap would push /request twice and leave a duplicate history entry
@@ -58,7 +66,7 @@ export function QrPaySuccessView() {
 
     // The payment settled but the response has not landed yet — one render at
     // most; the old page returned null from the same race.
-    if (!qrPayment || !currency) return null
+    if (!paidLocalAmount || !currency) return null
 
     // Show "saved $X vs card" only for currencies with a meaningful
     // card-vs-local-rail gap (ARS, BRL — see CARD_FX_MARKUP_BY_CURRENCY).
@@ -70,14 +78,14 @@ export function QrPaySuccessView() {
         ? savingsInCents < 100
             ? t('success.savedVsCardCents', { count: savingsInCents })
             : t('success.savedVsCardDollars', {
-                  amount: formatNumberForDisplay((savingsInCents / 100).toString(), { maxDecimals: 2 }),
+                  amount: formatCurrency(savingsInCents / 100),
               })
         : ''
 
     // `rewardOffered` is the hook's verdict (reserved AND not a failed payout);
     // `claimed` is a reveal flag (local hold or API), not payout settlement.
     // A failed payout is never revealed, whatever the flag says.
-    const rewardRevealed = rewardOffered && (perkClaimed || !!qrPayment?.perk?.claimed)
+    const rewardRevealed = rewardOffered && (perkClaimed || !!paidReward?.perk?.claimed)
     const rewardClaimable = rewardOffered && !rewardRevealed
 
     return (
@@ -99,15 +107,9 @@ export function QrPaySuccessView() {
                                 {t('success.youPaid', { merchant: paidTo })}
                             </h1>
                             <div className="text-heading-s">
-                                {currency.symbol}{' '}
-                                {formatNumberForDisplay(
-                                    qrPayment?.details.paymentAssetAmount ?? paymentLock?.paymentAssetAmount,
-                                    { maxDecimals: 2 }
-                                )}
+                                {currency.symbol} {formatCurrency(paidLocalAmount)}
                             </div>
-                            <div className="text-heading-card">
-                                ≈ {formatNumberForDisplay(usdAmount ?? undefined, { maxDecimals: 2 })} USD
-                            </div>
+                            <div className="text-heading-card">≈ {formatCurrency(usdAmount ?? undefined)} USD</div>
                             {/* Savings Message (Argentina Manteca only) */}
                             {showSavingsMessage && savingsMessage && (
                                 <p className="text-body-s text-foreground-secondary italic">{savingsMessage}</p>
@@ -116,49 +118,9 @@ export function QrPaySuccessView() {
                     </Card>
                 )}
 
-                {/* Reward Eligibility Card - Show before claiming */}
-                {rewardClaimable && (
-                    <GlobalCard ref={pointsDivRef} className="flex items-start gap-3 bg-background-default p-4">
-                        <IconBubble {...CONCEPT_ICONS.rewards} size="m" />
-                        <div className="flex flex-col gap-2">
-                            <h2 className="text-heading-card">{t('success.earnedRewardTitle')}</h2>
-                            <p className="text-body-s">
-                                {(() => {
-                                    const amountSponsored = qrPayment?.perk?.amountSponsored
-                                    if (amountSponsored && typeof amountSponsored === 'number') {
-                                        return t('success.earnedHoldToClaim', {
-                                            amount: amountSponsored.toFixed(2),
-                                        })
-                                    }
-
-                                    return t('success.holdToClaim')
-                                })()}
-                            </p>
-                        </div>
-                    </GlobalCard>
-                )}
-
-                {/* Reward Success Banner - Show after claiming */}
-                {rewardRevealed && (
-                    <GlobalCard className="flex items-start gap-3 bg-background-default p-4">
-                        <IconBubble {...CONCEPT_ICONS.rewards} size="m" />
-                        <div className="flex flex-col gap-2">
-                            <h2 className="text-heading-s">{t('success.earnedRewardTitle')}</h2>
-                            <p className="text-body-m">
-                                {(() => {
-                                    const amountSponsored = qrPayment?.perk?.amountSponsored
-
-                                    if (amountSponsored && typeof amountSponsored === 'number') {
-                                        return t('success.earnedInviteFriends', {
-                                            amount: amountSponsored.toFixed(2),
-                                        })
-                                    }
-
-                                    return t('success.inviteFriends')
-                                })()}
-                            </p>
-                        </div>
-                    </GlobalCard>
+                {/* the reward: hold to claim it, then its banner */}
+                {rewardOffered && (
+                    <PaidRewardCard reward={paidReward} revealed={rewardRevealed} cardRef={pointsDivRef} />
                 )}
 
                 {/* Points Display - ref used for confetti origin point */}
@@ -169,56 +131,7 @@ export function QrPaySuccessView() {
                 <div className="flex w-full flex-col gap-4">
                     {/* Show Claim Reward button if eligible and not claimed yet */}
                     {rewardClaimable ? (
-                        <Button
-                            onPointerDown={startHold}
-                            onPointerUp={cancelHold}
-                            onPointerLeave={cancelHold}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                    e.preventDefault()
-                                    startHold()
-                                }
-                            }}
-                            onKeyUp={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                    e.preventDefault()
-                                    cancelHold()
-                                }
-                            }}
-                            onContextMenu={(e) => {
-                                // Prevent context menu from appearing
-                                e.preventDefault()
-                            }}
-                            shadowSize="4"
-                            className="relative touch-manipulation overflow-hidden select-none"
-                            style={{
-                                WebkitTouchCallout: 'none',
-                                WebkitTapHighlightColor: 'transparent',
-                            }}
-                        >
-                            {/* progress fill from left to right */}
-                            <div
-                                className="absolute inset-0 bg-black transition-all duration-instant"
-                                style={{
-                                    width: `${holdProgress}%`,
-                                    left: 0,
-                                }}
-                            />
-                            {(() => {
-                                const label = t('success.claimReward')
-                                return (
-                                    <>
-                                        <span className="relative z-10">{label}</span>
-                                        <span
-                                            className="absolute inset-0 z-20 flex items-center justify-center text-white transition-all duration-instant"
-                                            style={{ clipPath: `inset(0 ${100 - holdProgress}% 0 0)` }}
-                                        >
-                                            {label}
-                                        </span>
-                                    </>
-                                )
-                            })()}
-                        </Button>
+                        <HoldToClaimButton holdProgress={holdProgress} startHold={startHold} cancelHold={cancelHold} />
                     ) : (
                         <>
                             {/* after claiming a reward, primary CTA is "Done" — not "Split this bill" */}
@@ -231,6 +144,7 @@ export function QrPaySuccessView() {
                                     onClick={() => {
                                         if (splitNavigatedRef.current) return
                                         splitNavigatedRef.current = true
+                                        trackReceiptAction('split', 'qr_success', 'QR_PAY')
                                         // same query-builder shape as withdraw's downstreamQuery —
                                         // /request seeds its form from these params
                                         // A person's name paid by PIX key stays out of the URL,

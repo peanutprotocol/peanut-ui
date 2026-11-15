@@ -26,10 +26,16 @@ test('open selectors are separate checkpoints and require a visible selected opt
     ]) {
         const screen = screens.find((screen) => screen.id === id)
         assert.ok(screen?.actions.length)
-        assert.match(screen.expectSelector, /\[aria-selected="true"\]/)
+        assert.match(screen.expectSelector, /\[aria-(selected|current)="true"\]/)
     }
     for (const screen of screens.filter((screen) => /Drawer\b/.test(screen.name) || screen.route.includes('drawer=')))
         assert.match(screen.expectSelector, /\[role="dialog"\]/)
+    for (const id of ['fixture-home-add-drawer', 'p41-home-add-drawer', '51-d-homeactiondrawers'])
+        assert.equal(
+            screens.find((screen) => screen.id === id)?.expectSelector,
+            '[role="dialog"][data-state="open"] [data-testid="home-drawer-add-more"]',
+            id
+        )
 })
 
 test('the actual screen catalogue produces valid capture manifests in every locale', () => {
@@ -92,29 +98,43 @@ test('canonical pages and interactive variants retain distinct gallery classific
 })
 
 test('account setup keeps distinct integer steps in the intended journey order', () => {
-    const setup = screens.filter(({ journey }) => journey === 'Account setup')
+    const setup = screens.filter(({ journey, flags }) => journey === 'Account setup' && !flags)
     assert.equal(new Set(setup.map(({ order }) => order)).size, setup.length)
     assert.ok(setup.every(({ order }) => Number.isInteger(order)))
     assert.deepEqual(
         setup.map(({ id }) => id),
         [
             '01-a-landing',
-            '06-b-invite',
-            '06-a-signup',
-            '08-a-passkeysetuphelpmodal',
-            '09-a-passkeyinfomodal',
-            '03-a-residence-select',
             '04-b-advantage-fees',
             '02-b-advantage-card',
+            '03-a-residence-select',
+            '03-b-residence-compare',
             '03-c-residence-congrats',
             '03-h-funding-methods',
             '03-i-payment-methods',
+            '06-a-signup',
+            '06-b-invite',
+            '06-c-passkey',
+            '08-a-passkeysetuphelpmodal',
+            '09-a-passkeyinfomodal',
             '07-c-notification-email',
             '07-d-notification-settings',
             '07-b-advantage-control',
             '05-a-signtesttransaction',
+            '05-b-signtesttransaction-network-busy',
             '07-e-setup-celebration',
             '20-a-setupnotificationsmodal',
         ]
     )
+})
+
+test('passkey capture uses the real view and an anonymous reservation fixture', () => {
+    const screen = screens.find(({ id }) => id === '06-c-passkey')
+    assert.equal(screen?.source, 'Setup/Views/Passkey.tsx')
+    assert.equal(screen?.route, '/dev/surfaces?s=06-c-passkey')
+    assert.equal(screen?.fixture, 'setup-passkey')
+    assert.ok(screen?.captureState.includes('username=kimchi'))
+    const fixture = screens.find(({ id }) => id === 'fixture-setup-passkey')
+    assert.equal(fixture?.route, screen?.route)
+    assert.equal(fixture?.fixture, 'setup-passkey')
 })

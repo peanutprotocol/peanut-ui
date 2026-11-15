@@ -1,5 +1,7 @@
 'use client'
 
+import { formatFiniteDisplay } from '@/utils/currency'
+
 import { useCountUp } from '@/hooks/useCountUp'
 import { useTranslations } from 'next-intl'
 import { formatPoints } from '@/utils/format.utils'
@@ -17,10 +19,18 @@ const InviteePointsBadge = ({ points, inView, lifetimeEarnedUsd }: InviteePoints
     const animated = useCountUp(points, { duration: 1.2, enabled: inView })
     const pointsLabel = t('pointsAbbrev', { count: points })
 
-    if (lifetimeEarnedUsd !== undefined && lifetimeEarnedUsd > 0) {
+    if (lifetimeEarnedUsd !== undefined && (lifetimeEarnedUsd > 0 || !Number.isFinite(lifetimeEarnedUsd))) {
         return (
             <div className="flex flex-col items-end">
-                <span className="font-semibold">${lifetimeEarnedUsd.toFixed(2)}</span>
+                <span className="font-semibold">
+                    {formatFiniteDisplay(lifetimeEarnedUsd, 'en-US', {
+                        style: 'currency',
+                        currency: 'USD',
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                        useGrouping: false,
+                    })}
+                </span>
                 <span className="text-body-s text-foreground-secondary">
                     +{formatPoints(animated)} {pointsLabel}
                 </span>

@@ -1,9 +1,9 @@
-'use client'
+import RouteAlias from '@/components/Global/RouteAlias'
 
-import AddMoneyBankDetails from '@/components/AddMoney/components/AddMoneyBankDetails'
-import { useSafeBack } from '@/hooks/useSafeBack'
-
-export default function USBankPage() {
-    const onBack = useSafeBack('/add-money')
-    return <AddMoneyBankDetails flow="add-money" onBack={onBack} />
+/**
+ * The old standalone US bank-details screen, retired 2026-11-03: the US route is
+ * /add-money/usa/bank. Old links and the QA harness still open this one.
+ */
+export default function USBankAlias() {
+    return <RouteAlias to="/add-money/usa/bank" />
 }

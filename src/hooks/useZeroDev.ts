@@ -5,6 +5,7 @@ import { PASSKEY_SERVER_URL } from '@/constants/zerodev.consts'
 import { WEB_AUTHN_COOKIE_KEY } from '@/constants/auth.consts'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { useAuth } from '@/context/authContext'
+import { getLoginRetryError } from '@/utils/passkey-auth-capture'
 import { useKernelClient } from '@/context/kernelClient.context'
 import { useZeroDevFlow, zeroDevFlowActions } from '@/hooks/useZeroDevFlow'
 import { removeFromCookie, saveToCookie, updateUserPreferences } from '@/utils/general.utils'
@@ -15,6 +16,7 @@ import {
     classifyPasskeyError,
     normalizeNativePasskeyError,
     normalizePasskeyServerError,
+    PasskeyServerError,
     withIOSPasskeyLoginRecovery,
     type PasskeyErrorCode,
 } from '@/utils/webauthn.utils'
@@ -51,6 +53,12 @@ import {
     signupAnalyticsState,
 } from '@/utils/signup-attribution'
 import { settlePendingInviteAttribution } from '@/services/pending-invite-attribution'
+import {
+    clearUsernameHoldToken,
+    getUsernameHoldToken,
+    releaseUsernameReservation,
+} from '@/features/setup/username-reservation'
+import { bindSignupDraft, discardSignupDraft, readSignupDraft } from '@/features/setup/signup-draft'
 import { AccountType } from '@/interfaces/interfaces'
 
 // types
@@ -133,6 +141,7 @@ export const useZeroDev = () => {
                 await restoreDeferredContext()
             }
             const signupAttribution = await ensureSignupAttributionForRegistration()
+            const usernameHold = await getUsernameHoldToken()
             // @capgo/capacitor-passkey shim patches navigator.credentials on native,
             // so toWebAuthnKey works on all platforms (web, android, ios).
             // Same TASK-21782 guard as login: native shim gate + 60s bound —
@@ -149,11 +158,14 @@ export const useZeroDev = () => {
                         passkeyServerHeaders: {
                             'x-accepted-legal': JSON.stringify(signupConsentDocuments()),
                             'x-signup-analytics-state': signupAnalyticsState(),
+                            'x-username-hold': usernameHold,
                         },
                         rpID: rpId,
                     })
                 )
             )
+
+            void clearUsernameHoldToken().catch(() => {})
 
             // Pin signup signing just like restored Android credentials. Otherwise
             // the OS can select a different peanut.me passkey for the test UserOp.
@@ -167,6 +179,7 @@ export const useZeroDev = () => {
             // Native cookies may disappear on restart; persist before any RPC-dependent build.
             const registeredUser = await hydrateLoginSession()
             updateUserPreferences(registeredUser.user.userId, { webAuthnKey })
+            await bindSignupDraft(registeredUser.user.userId)
             // Arm delivery only after hydration supplies the authoritative
             // registrant. An unbound marker could be consumed by a later login.
             if (signupAttribution) await markSignupAttributionPending(registeredUser.user.userId)
@@ -181,7 +194,7 @@ export const useZeroDev = () => {
             // Fail-open: a referral never blocks open signup. The shared
             // authenticated recovery path keeps the inviter until the server
             // confirms its immutable reward edge.
-            await settlePendingInviteAttribution(registeredUser.user.userId, 'registration')
+            void settlePendingInviteAttribution(registeredUser.user.userId, 'registration')
 
             // Campaign acquisition is independent from invite attribution. It
             // runs after authentication whether or not an invite was present,
@@ -231,7 +244,13 @@ export const useZeroDev = () => {
                 zeroDevFlowActions.setIsRegistering(false)
                 return
             }
-            const err = normalizeNativePasskeyError(e) as Error
+            // A /register/options error body throws the same decoder TypeError as
+            // login's; the verify-side wording differs, so only the server-request
+            // case is taken from the login normaliser.
+            const serverError = normalizePasskeyServerError(e)
+            const err = normalizeNativePasskeyError(
+                serverError instanceof PasskeyServerError ? serverError : e
+            ) as Error
             if (isCeremonyGuardError(err)) {
                 captureCeremonyGuardError(err, 'register')
             }
@@ -246,6 +265,11 @@ export const useZeroDev = () => {
 
     // login function
     const handleLogin = async () => {
+        const retryError = getLoginRetryError()
+        if (retryError) {
+            const { code, message } = classifyPasskeyError(retryError)
+            throw new PasskeyError(message, code)
+        }
         if (loginTransitionInFlight || currentCeremonyId() !== null) {
             const { code, message } = classifyPasskeyError(new CeremonyConflictError())
             throw new PasskeyError(message, code)
@@ -269,22 +293,23 @@ export const useZeroDev = () => {
             // app kill. Each automatic recovery gets a fresh bounded ceremony
             // window; a late result is discarded and its verify token is not
             // captured after that attempt's window closes.
-            const webAuthnKey = await withCeremonyPurpose('login', () =>
-                withIOSPasskeyLoginRecovery(() =>
-                    guardPasskeyCeremony(() =>
-                        toWebAuthnKey({
-                            passkeyName: '[]',
-                            passkeyServerUrl: PASSKEY_SERVER_URL as string,
-                            mode: WebAuthnMode.Login,
-                            passkeyServerHeaders,
-                            rpID: rpId,
-                        })
-                    )
+            const attempt = () =>
+                guardPasskeyCeremony(() =>
+                    toWebAuthnKey({
+                        passkeyName: '[]',
+                        passkeyServerUrl: PASSKEY_SERVER_URL as string,
+                        mode: WebAuthnMode.Login,
+                        passkeyServerHeaders,
+                        rpID: rpId,
+                    })
                 )
-            )
+            const webAuthnKey = await withCeremonyPurpose('login', () => withIOSPasskeyLoginRecovery(attempt))
 
             saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
             const loggedInUser = await hydrateLoginSession()
+            if (readSignupDraft()?.userId === loggedInUser.user.userId) await bindSignupDraft(loggedInUser.user.userId)
+            else discardSignupDraft()
+            void releaseUsernameReservation()
             updateUserPreferences(loggedInUser.user.userId, { webAuthnKey })
             setWebAuthnKey(webAuthnKey)
         } catch (e) {
@@ -299,7 +324,9 @@ export const useZeroDev = () => {
             // authenticated, so keep any existing state (no clearAuthState) and
             // report with a discriminating tag — this is the telemetry that
             // tells us WHERE native logins hang.
-            if (isCeremonyGuardError(err)) {
+            if (code === 'ACCOUNT_DELETED') {
+                // Expected state, not a fault: the server minted no session, so local state stays as it was.
+            } else if (isCeremonyGuardError(err)) {
                 captureCeremonyGuardError(err, 'login', { elapsedMs: Date.now() - ceremonyStartedAt })
             } else if (reportPasskeyFailure(err, 'login')) {
                 // Platform/device outcomes never invalidate an existing session.
@@ -411,7 +438,8 @@ export const useZeroDev = () => {
                     })
                     zeroDevFlowActions.setIsSendingUserOp(false)
                     if (user?.user.userId) updateUserPreferences(user.user.userId, { webAuthnKey: undefined })
-                    logoutUser()
+                    // this device's key is stale; the account's other sessions are fine
+                    logoutUser({ skipBackendCall: true })
                     throw createStaleSessionError(error)
                 }
 

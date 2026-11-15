@@ -26,7 +26,7 @@ export function useMarketingQrUrl({
     const locale = context?.locale
 
     useEffect(() => {
-        if (!enabled || !page || !placement || !locale || process.env.NEXT_PUBLIC_MARKETING_QR_TRACKING !== 'true') {
+        if (!enabled || !page || !placement || !locale) {
             setUrl(null)
             return
         }

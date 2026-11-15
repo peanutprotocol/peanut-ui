@@ -10,6 +10,10 @@ import { useCardSurfaceAccess } from '@/hooks/useCardSurfaceAccess'
 import { useForegroundPushRefresh } from '@/hooks/useForegroundPushRefresh'
 import { useSupportUnread } from '@/hooks/useSupportUnread'
 import { useAuth } from '@/context/authContext'
+import { DEPOSIT_ACCOUNTS_QUERY_KEY } from '@/features/deposit-accounts/useDepositAccounts'
+import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
+import { fetchDepositAccounts } from '@/services/deposit-accounts'
+import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
@@ -21,8 +25,8 @@ import { TAB_ORDER, type TabId } from './tab-order'
 /**
  * Bottom navigation from the figma navigation board (17802:61534, component
  * 17317:138477): a pill bar with home / card / support tabs plus the pink QR
- * circle button. The middle slot falls back to exchange rates for users the
- * card is not available to — see `middleTab` below and `useCardSurfaceAccess`.
+ * circle button. The middle slot falls back to Accounts for users the card is
+ * not available to — see `middleTab` below and `useCardSurfaceAccess`.
  * Active tab = white pill. Every pressable area is 68x52px
  * (24px/16px padding around a 20px icon) — over the 44px touch-target floor.
  *
@@ -81,6 +85,31 @@ type TabBox = { left: number; width: number }
 // its resting x is the tab's left minus that 1px
 const restingX = (box: TabBox) => box.left - 1
 
+const ACCOUNTS_HREF = '/profile/accounts'
+const PAYMENTS_HREF = '/profile/payments'
+
+/**
+ * Whether the user holds a bank account or can open one now. Until the answer
+ * arrives, and wherever deposit accounts are off, the tab opens payment methods.
+ */
+function useHasBankAccount(enabled: boolean): boolean {
+    const { user } = useAuth()
+    const userId = user?.user.userId
+    const accountsOn = useDepositAccountsEnabled()
+    const { data } = useQuery({
+        queryKey: [...DEPOSIT_ACCOUNTS_QUERY_KEY, userId],
+        queryFn: fetchDepositAccounts,
+        enabled: enabled && accountsOn && !!userId,
+        refetchInterval: false,
+        staleTime: 5 * 60_000,
+    })
+    return (
+        accountsOn &&
+        !!data &&
+        (data.accounts.some((account) => account.status !== 'revoked') || data.claimable.length > 0)
+    )
+}
+
 export const BottomNav = () => {
     const nativePlatform = useNativePlatform()
 
@@ -97,11 +126,12 @@ export const BottomNav = () => {
     // never mounts useNotifications (direct /card or /history load) still
     // gets the foreground-push event the badge listens for
     useForegroundPushRefresh()
-    // Existing card relationships stay accessible; prohibited residences get exchange rates.
+    // Existing card relationships stay accessible; prohibited residences get their bank accounts.
     const { showCardSurface, cardHref } = useCardSurfaceAccess()
+    const hasBankAccount = useHasBankAccount(!showCardSurface)
     const middleTab = showCardSurface
         ? ({ href: cardHref, icon: 'credit-card', label: t('card') } as const)
-        : ({ href: '/profile/exchange-rate', icon: 'exchange', label: t('exchangeRates') } as const)
+        : ({ href: hasBankAccount ? ACCOUNTS_HREF : PAYMENTS_HREF, icon: 'bank', label: t('accounts') } as const)
 
     const barRef = useRef<HTMLDivElement>(null)
     const tabRefs = useRef<Partial<Record<TabId, HTMLElement | null>>>({})
@@ -144,7 +174,9 @@ export const BottomNav = () => {
     // the /card prefix lights the pill only when the card tab exists: /card is
     // reachable for everyone, but it is a tab route only for users who see the card slot.
     const isMiddleRoute =
-        (showCardSurface && (pathname?.startsWith('/card') ?? false)) || isSameRoute(pathname, middleTab.href)
+        (showCardSurface && (pathname?.startsWith('/card') ?? false)) ||
+        (!showCardSurface && (isSameRoute(pathname, ACCOUNTS_HREF) || isSameRoute(pathname, PAYMENTS_HREF))) ||
+        isSameRoute(pathname, middleTab.href)
     const routeTab: TabId | null = isMiddleRoute ? 'middle' : isSameRoute(pathname, '/home') ? 'home' : null
 
     // Optimistic: taps retarget the pill in the same tick (the Link onClick

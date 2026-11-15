@@ -68,12 +68,18 @@ it('excludes missing locale files, drafts, redirects, and retired pages from cra
         expect(urls).not.toContain('https://peanut.me/en/united-kingdom')
         expect(run('ping-indexnow.ts', fixture, '--dry-run')).toEqual(urls)
 
-        const verify = () =>
-            spawnSync(
+        const verify = () => {
+            const result = spawnSync(
                 process.execPath,
                 [require.resolve('tsx/cli'), '--tsconfig', tsconfig, resolve('scripts/verify-content.ts')],
                 { cwd: fixture, encoding: 'utf8' }
-            ).stdout
+            )
+            // The summary is the last line: without it the report was cut short, and every
+            // missing-route assertion below would fail for the wrong reason.
+            expect(result.stdout).toMatch(/\nResult: \d+ errors, \d+ warnings\n$/)
+            expect(result.status).toBe(1)
+            return result.stdout
+        }
         const missingPress = 'Sitemap would emit URL with no matching static route: /en/press'
         const missingCareers = 'Sitemap would emit URL with no matching static route: /careers'
         const missingHomepage = 'Sitemap would emit URL with no matching static route: /\n'

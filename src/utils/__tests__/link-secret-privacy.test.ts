@@ -13,6 +13,7 @@ import { beforeSendHandler, beforeSendRouteAwareTransaction } from '../../../sen
 
 const SECRET = 'fakeClaimSecret0123'
 const CLAIM_PATH = '/claim?c=42161&v=v4.4&i=552'
+const PROOF = `1794009600.0x${'ab'.repeat(65)}`
 const claimUrls = [
     `https://peanut.me${CLAIM_PATH}#p=${SECRET}`,
     `capacitor://localhost${CLAIM_PATH.replace('/claim', '/claim/')}#p=${SECRET}`,
@@ -51,6 +52,26 @@ describe('stripLinkSecrets', () => {
         'Pay #3 of 4 with 100% of the balance',
     ])('leaves a value without a link secret unchanged: %s', (value) => {
         expect(stripLinkSecrets(value)).toBe(value)
+    })
+
+    it('keeps the proof key and drops its value from a send-link read', () => {
+        const read = `https://api.peanut.me/send-links/0xabc?c=42161&v=v4.4&i=552&proof=${PROOF}`
+        expect(stripLinkSecrets(read)).toBe(
+            'https://api.peanut.me/send-links/0xabc?c=42161&v=v4.4&i=552&proof=redacted'
+        )
+        expect(stripLinkSecrets(`/send-links/0xabc?proof=${PROOF}&x=1`)).toBe('/send-links/0xabc?proof=redacted&x=1')
+        expect(stripLinkSecrets('/request?disproof=1')).toBe('/request?disproof=1')
+        expect(stripLinkSecrets('the OTA liveness proof passed')).toBe('the OTA liveness proof passed')
+    })
+
+    it('drops the proof value when the read URL is percent-encoded', () => {
+        const read = `/send-links/0xabc?c=42161&proof=${PROOF}`
+        const once = `/setup?redirect_uri=${encodeURIComponent(read)}&step=1`
+        expect(stripLinkSecrets(once)).toBe(
+            `/setup?redirect_uri=${encodeURIComponent('/send-links/0xabc?c=42161&proof=')}redacted&step=1`
+        )
+        const twice = `/invite?redirect_uri=${encodeURIComponent(once)}`
+        expect(stripLinkSecrets(twice)).not.toContain(PROOF.split('.')[1])
     })
 
     it('drops any fragment from a URL', () => {
@@ -213,6 +234,18 @@ describe('Sentry', () => {
         expect(result).not.toBeNull()
         expect(JSON.stringify(result)).not.toContain(SECRET)
         expect(result?.request?.url).toBe(`https://peanut.me${CLAIM_PATH}`)
+    })
+
+    it('removes the read proof from a failed fetch breadcrumb', () => {
+        const url = `https://api.peanut.me/send-links/0xabc?c=42161&v=v4.4&i=552&proof=${PROOF}`
+        const event = {
+            message: `Send link read returned 500 for ${url}`,
+            breadcrumbs: [{ category: 'fetch', data: { method: 'GET', url, status_code: 500 } }],
+        } as unknown as ErrorEvent
+        const result = beforeSendHandler(event)
+        expect(result).not.toBeNull()
+        expect(JSON.stringify(result)).not.toContain(PROOF.split('.')[1])
+        expect(result?.breadcrumbs?.[0]?.data?.url).toContain('proof=redacted')
     })
 
     it('removes the secret from a transaction', () => {

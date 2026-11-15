@@ -1,6 +1,9 @@
 import { EHistoryUserRole, type HistoryEntry } from '@/hooks/useTransactionHistory'
+import { personFrom } from '@/lib/person/person'
 import { type TransactionStrategy, type TransactionStrategyOutput } from '../types'
 import { TRANSACTION_NAME_KEYS } from '@/components/TransactionDetails/transaction-name-keys'
+import { normalizeMerchantName } from '@/components/TransactionDetails/transaction-details.utils'
+import { formatPixKey } from '@/utils/pix-key-format.utils'
 
 const BANK_CLAIM: TransactionStrategyOutput = {
     direction: 'bank_claim',
@@ -35,7 +38,7 @@ export const fiatOfframp: TransactionStrategy = (entry: HistoryEntry): Transacti
                         ? undefined
                         : TRANSACTION_NAME_KEYS.recipient,
                 fullName: entry.recipientAccount?.fullName ?? '',
-                avatarKey: entry.recipientAccount?.avatarKey,
+                peer: personFrom(entry.recipientAccount),
                 isPeerActuallyUser: true,
                 isLinkTx: false,
             }
@@ -55,8 +58,23 @@ export const fiatOfframp: TransactionStrategy = (entry: HistoryEntry): Transacti
                 entry.senderAccount?.username || entry.senderAccount?.identifier
                     ? undefined
                     : TRANSACTION_NAME_KEYS.bankAccount,
-            avatarKey: entry.senderAccount?.avatarKey,
+            peer: personFrom(entry.senderAccount),
             isPeerActuallyUser: !!entry.senderAccount?.isUser,
+            isLinkTx: false,
+        }
+    }
+    // A Pix payout to another person's key (TASK-24947) is a send to them, as a Pix-key payment reads
+    // (`qrPay`): the holder the lookup named, owner only, with the key beside the name. A shared
+    // receipt carries no `pixPayout` and reads as a withdrawal.
+    const payout = entry.extraData?.pixPayout
+    if (payout?.ownAccount === false) {
+        const key = formatPixKey(payout.pixKey)
+        return {
+            direction: 'send',
+            transactionCardType: 'send',
+            nameForDetails: payout.holderName ? normalizeMerchantName(payout.holderName) : key,
+            nameDetail: payout.holderName ? key : undefined,
+            isPeerActuallyUser: false,
             isLinkTx: false,
         }
     }

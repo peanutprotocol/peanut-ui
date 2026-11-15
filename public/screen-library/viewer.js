@@ -381,7 +381,9 @@ const versionDetails = (entry) => {
             ? 'Real journey'
             : entry.reportType === 'capture' || channel === 'dev' || channel === 'main'
               ? 'Full library'
-              : 'Changed screens'
+              : pathPr && entry.releasePreview === true
+                ? 'Release preview'
+                : 'Changed screens'
     return { branch, prNumber, changedScreens, kind }
 }
 const asset = (name) => {
@@ -403,6 +405,7 @@ let rows = [],
     active,
     activeMode = 'screen',
     viewMode = 'all',
+    pairedLayout = false,
     showVariations = true,
     indexEntries = [],
     reportLocaleEntries = [],
@@ -410,18 +413,49 @@ let rows = [],
     filteredRows = [],
     renderedCount = 0
 let commentsReportPath = ''
+let automaticMainComparison = false
+let activeComparisonPath = ''
+let comparisonUnavailable = false
+let collectionLocaleGeneration = 0
+const sectionOpen = new Map()
+const sectionViews = new Map()
+const sectionedPage = () => report?.type === 'collection' && Array.isArray(report.sections)
+
+const activityPanel = $('comment-activity')
+const activityToggle = $('activity-toggle')
+const activityClose = $('activity-close')
 const comments =
     !offline && window.ScreenComments
         ? window.ScreenComments.create({
+              activity: activityPanel,
               feed: $('comment-feed'),
               panel: $('comment-panel'),
               dialog: $('zoom'),
+              toggle: $('zoom-comments'),
+              preview: $('zoom-preview'),
               onNavigate: navigateComment,
               onVotesReset: voteTotalsReset,
               onVotesChange: voteTotalsChanged,
               onVotesRefresh: voteTotalsRefreshed,
           })
         : null
+function setActivityOpen(open) {
+    activityPanel.hidden = !open
+    activityToggle.setAttribute('aria-expanded', String(open))
+    comments.activityChanged?.()
+    if (open) activityClose.focus()
+    else activityToggle.focus()
+}
+if (comments && activityPanel && activityToggle && activityClose) {
+    activityToggle.onclick = () => setActivityOpen(activityPanel.hidden)
+    activityClose.onclick = () => setActivityOpen(false)
+    document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape' || event.defaultPrevented || activityPanel.hidden || historyState || $('zoom').open)
+            return
+        event.preventDefault()
+        setActivityOpen(false)
+    })
+}
 function commentScopes(row) {
     if (!comments || !commentsReportPath) return []
     const manifest = activeComparison ?? report
@@ -431,8 +465,11 @@ function commentScopes(row) {
         if (!screenshot?.image || (manifest?.type !== 'comparison' && side !== 'after')) return []
         return [
             {
-                reportPath: commentsReportPath,
-                screenId: row.id,
+                reportPath:
+                    automaticMainComparison && side === 'before'
+                        ? `reports/${activeComparisonPath}`
+                        : commentsReportPath,
+                screenId: row.sourceScreenId ?? row.id,
                 name: row.name,
                 locale: capture?.locale ?? manifest?.locale ?? $('locale').value ?? 'en',
                 profile:
@@ -446,11 +483,14 @@ function commentScopes(row) {
     })
 }
 function openComments(row, scope, threadId) {
-    zoom(row, 'screen')
-    $('zoom-images').replaceChildren(
-        phonePreview(image(scope.image, row.name, { preview: false }), scope.side === 'before' ? 'Before' : 'After')
+    zoom(row, scope.side, 'auto', threadId)
+    const preview = phonePreview(
+        image(scope.image, `${row.name} screen preview`, { preview: false }),
+        scope.side === 'before' ? 'Before' : 'After',
+        { side: scope.side }
     )
-    previewFeedback([scope])
+    $('zoom-images').replaceChildren(preview)
+    previewVerdict(scope, preview)
     comments?.open(scope, threadId, commentScopes(row))
 }
 function openRetainedComment(scope, threadId) {
@@ -459,15 +499,18 @@ function openRetainedComment(scope, threadId) {
         name: `${scope.name || scope.screenId} · No longer in this report`,
         [scope.side]: { image: scope.image, status: 'captured' },
     }
-    zoom(row, 'screen')
-    $('zoom-images').replaceChildren(
-        phonePreview(image(scope.image, row.name, { preview: false }), scope.side === 'before' ? 'Before' : 'After')
+    zoom(row, 'screen', 'auto', threadId)
+    const preview = phonePreview(
+        image(scope.image, `${row.name} screen preview`, { preview: false }),
+        scope.side === 'before' ? 'Before' : 'After'
     )
+    $('zoom-images').replaceChildren(preview)
+    previewVerdict(scope, preview)
     $('zoom-position').textContent = 'No longer in this report'
     $('zoom-prev').disabled = true
     $('zoom-next').disabled = true
+    previewDiscussion([scope])
     if (threadId) comments.open(scope, threadId, [scope])
-    previewFeedback([scope])
 }
 // Comment feed items carry a threadId; vote activity opens the screen without a discussion.
 function navigateComment(scope, threadId) {
@@ -503,13 +546,14 @@ function navigateComment(scope, threadId) {
             name: `${row.name} · ${version}`,
             [scope.side]: { image: scope.image, status: 'captured' },
         }
-    zoom(row, scope.side === 'before' ? 'side' : 'screen')
-    if (scope.side === 'before')
+    zoom(row, scope.side, 'auto', threadId)
+    if (scope.side === 'before') {
         $('zoom-images').replaceChildren(
-            phonePreview(image(scope.image, row.name, { preview: false }), `Before · ${version}`)
+            phonePreview(image(scope.image, `${row.name} screen preview`, { preview: false }), `Before · ${version}`)
         )
-    if (threadId) comments.open(scope, threadId, [scope])
-    previewFeedback([scope])
+        previewVerdict(undefined)
+    }
+    if (threadId) comments.open(scope, threadId, commentScopes(row))
     const url = new URL(location.href)
     if (threadId) url.searchParams.set('comments', threadId)
     else url.searchParams.delete('comments')
@@ -567,7 +611,6 @@ async function openScreenHistory(row, push = true) {
         gaps: [],
     }
     historyState = state
-    if ($('zoom').open) $('zoom').close()
     document.body.classList.add('history-open')
     $('screen-history').hidden = false
     $('history-title').textContent = row.name
@@ -575,9 +618,10 @@ async function openScreenHistory(row, push = true) {
         ? `${scope.channel} · ${localeLabel(scope.locale)} · ${scope.profile.replace('x', ' × ')} · App states`
         : 'History is unavailable for this report context.'
     document.title = `${row.name} history · Peanut Screen library`
-    const href = shareableHref(location.pathname, { history: row.id })
+    const href = shareableHref(location.pathname, { history: row.id, preview: '' })
     if (push && typeof history.pushState === 'function') history.pushState(null, '', href)
     else if (!offline && typeof history.replaceState === 'function') history.replaceState(null, '', href)
+    if ($('zoom').open) closePreview()
     $('history-close').focus?.()
     if (!historyEligible(row)) {
         $('history-status').textContent = offline
@@ -737,7 +781,7 @@ function renderHistory(state) {
         thumbnail.onclick = () => choose('.history-thumbnail')
         thumbnail.append(
             version.image
-                ? phonePreview(image(version.image, version.name), '')
+                ? phonePreview(image(version.image, version.name), '', { capture: version.device })
                 : el('div', 'Confirmed absence in this revision', 'missing')
         )
         const reportLink = el('a', (version.commit || 'Report').slice(0, 8), 'history-report-link')
@@ -761,7 +805,7 @@ function renderHistory(state) {
 }
 function historyFrame(version, label) {
     if (!version.image) return el('div', 'Confirmed absence in this revision', 'missing')
-    return phonePreview(image(version.image, version.name), label)
+    return phonePreview(image(version.image, version.name), label, { capture: version.device })
 }
 function renderHistoryDetail(state) {
     const index = state.versions.findIndex((version) => historyVersionKey(version) === state.selected)
@@ -797,7 +841,7 @@ function renderHistoryDetail(state) {
             image(previous.image, 'Previous visual version'),
             image(version.image, 'Selected visual version')
         )
-        images.append(phonePreview(overlay, 'Previous / selected version'))
+        images.append(phonePreview(overlay, 'Previous / selected version', { capture: version.device, chrome: false }))
         $('history-slider').value = '50'
     } else if (previous && mode !== 'single')
         images.append(
@@ -846,12 +890,13 @@ if ($('screen-history'))
 if (typeof window.addEventListener === 'function') {
     window.addEventListener('popstate', () => {
         const id = requestedFilter('history')
-        if (!id) closeScreenHistory(false)
+        if (!id && historyState) closeScreenHistory(false)
         else if (historyState?.id !== id) {
             const row = rows.find((candidate) => candidate.id === id)
             if (row) openScreenHistory(row, false)
-            else closeScreenHistory(false)
+            else if (historyState) closeScreenHistory(false)
         }
+        restorePreview()
     })
     window.addEventListener('pagehide', () => historyState?.controller.abort())
 }
@@ -865,21 +910,17 @@ function newScreenPlaceholder(row) {
     if (row.before?.reason) placeholder.title = row.before.reason
     return placeholder
 }
-const comparisonMode = () => report?.type === 'comparison' || (report?.type === 'collection' && !!activeComparison)
+const comparisonMode = () =>
+    report?.type === 'comparison' || (report?.type === 'collection' && (!!activeComparison || automaticMainComparison))
+const singleScreenLayout = () =>
+    sectionedPage() || !comparisonMode() || (report?.type === 'comparison' && viewMode === 'all' && !pairedLayout)
 const availableScreen = (row) =>
-    [row?.after, row?.before].find((screen) => !unavailable(screen)) ??
-    (report?.type === 'collection' ? row?.after : undefined)
-const collectionRows = (collection, locale, comparison) =>
-    collection.items.map((item) => {
-        if (comparison) {
-            const matched = comparison.screens.find((screen) => screen.id === item.id)
-            return {
-                ...item,
-                ...(matched ?? { status: 'unavailable', before: null, after: null }),
-                order: item.order,
-                ...(item.note ? { note: item.note } : {}),
-            }
-        }
+    automaticMainComparison || sectionedPage()
+        ? row?.after
+        : ([row?.after, row?.before].find((screen) => !unavailable(screen)) ??
+          (report?.type === 'collection' ? row?.after : undefined))
+function collectionRows(collection, locale, comparison, preserveAfter = automaticMainComparison) {
+    const items = collection.items.map((item) => {
         const variant = item.variants?.[locale]
         const screen = {
             status: variant?.status === 'captured' ? 'captured' : 'unavailable',
@@ -887,8 +928,102 @@ const collectionRows = (collection, locale, comparison) =>
             thumbnail: variant?.thumbnail,
             reason: variant?.reason,
         }
+        if (comparison) {
+            const matched = comparison.screens.find((screen) => screen.id === item.id)
+            const row = {
+                ...item,
+                ...(matched ?? { status: 'unavailable', before: null, after: null }),
+                order: item.order,
+                ...(item.note ? { note: item.note } : {}),
+            }
+            if (preserveAfter) {
+                row.after = screen
+                // Pixel evidence belongs to the exact compared pair, not merely a commit.
+                if (!matched || matched.after?.image !== screen.image) {
+                    for (const key of ['diff', 'percent', 'pixels', 'belowThreshold', 'changeBounds', 'translation'])
+                        delete row[key]
+                    row.status = screen.status
+                }
+            }
+            return row
+        }
         return { ...item, status: screen.status, after: screen }
     })
+    if (!Array.isArray(collection.flows)) return items
+    const byId = new Map(items.map((item) => [item.id, item]))
+    const seen = new Set()
+    let order = 0,
+        flowIndex = 0
+    const groups = Array.isArray(collection.sections)
+        ? collection.sections.map((section, sectionIndex) => ({ ...section, sectionIndex }))
+        : [{ flows: collection.flows }]
+    return groups.flatMap((section) =>
+        section.flows.flatMap((flow) => {
+            const index = flowIndex++
+            return flow.items.flatMap((step, stepIndex) => {
+                const item = byId.get(step.id)
+                if (!item) return []
+                // Preserve existing canonical and repeated-placement deep links.
+                const id = seen.has(step.id) ? `${step.id}~${index + 1}-${stepIndex + 1}` : step.id
+                seen.add(step.id)
+                return [
+                    {
+                        ...item,
+                        id,
+                        sourceScreenId: step.id,
+                        flow: flow.title,
+                        flowIndex: index,
+                        sectionIndex: section.sectionIndex,
+                        section: section.title,
+                        note: step.note,
+                        order: order++,
+                    },
+                ]
+            })
+        })
+    )
+}
+async function pinnedMainComparison(locale) {
+    if (offline) throw new Error('Main comparison unavailable offline')
+    const pin = report.comparisons?.[locale]
+    if (
+        !pin ||
+        pin.baseBranch !== 'main' ||
+        !historyReportPath(pin.path) ||
+        !/^[a-f0-9]{40}$/.test(pin.beforeCommit ?? '') ||
+        !/^[a-f0-9]{40}$/.test(pin.afterCommit ?? '') ||
+        (report.source?.[locale]?.commit && report.source[locale].commit !== pin.afterCommit)
+    )
+        throw new Error('Main comparison unavailable: invalid pinned provenance')
+    const comparison = await historyRead(loadJSON, `/screen-data/reports/${pin.path}/manifest.json`)
+    if (
+        comparison?.schema !== 1 ||
+        comparison.type !== 'comparison' ||
+        comparison.locale !== locale ||
+        comparison.before?.commit !== pin.beforeCommit ||
+        comparison.after?.commit !== pin.afterCommit ||
+        !Array.isArray(comparison.screens)
+    )
+        throw new Error('Main comparison unavailable: incompatible report')
+    return { comparison: normalizeComparison(comparison), path: pin.path }
+}
+async function configureMainComparison(locale) {
+    const generation = ++collectionLocaleGeneration
+    activeComparison = undefined
+    activeComparisonPath = ''
+    comparisonUnavailable = false
+    try {
+        const loaded = await pinnedMainComparison(locale)
+        if (generation !== collectionLocaleGeneration) return false
+        activeComparison = loaded.comparison
+        activeComparisonPath = loaded.path
+    } catch (error) {
+        if (generation !== collectionLocaleGeneration) return false
+        if (error.authRequired) throw error
+        comparisonUnavailable = true
+    }
+    return true
+}
 const requestedCollectionLocale = (collection) => {
     const requested = requestedFilter('locale')
     return collection.locales.includes(requested) ? requested : collection.locales[0]
@@ -899,6 +1034,20 @@ const orderRows = (values) =>
         const rightOrder = Number.isSafeInteger(right.order) ? right.order : Number.MAX_SAFE_INTEGER
         return leftOrder - rightOrder
     })
+const requestAmountInputIds = new Set([
+    'numeric-request-amount-4000',
+    'numeric-request-rate-unavailable',
+    'numeric-request-amount-invalid',
+])
+function explicitSurfaceName(row) {
+    const suffix = ' (input only, no navigation)'
+    if (
+        !requestAmountInputIds.has(row.sourceScreenId ?? row.id) ||
+        (typeof row.name === 'string' && row.name.endsWith(suffix))
+    )
+        return row
+    return { ...row, name: `${row.name ?? 'Request amount'}${suffix}` }
+}
 const legacyVariationPageIds = new Set([
     'p02-backup-lose-phone',
     'p03-backup-change-phone',
@@ -935,7 +1084,8 @@ function isDefaultScreen(row) {
 const requestedFilter = (name) => new URLSearchParams(location.search ?? '').get(name) ?? ''
 function shareableParams(overrides = {}) {
     const params = new URLSearchParams()
-    if (requestedFilter('comments')) params.set('comments', requestedFilter('comments'))
+    const threadId = overrides.comments ?? requestedFilter('comments')
+    if (threadId) params.set('comments', threadId)
     const source = overrides.source ?? $('source').value
     const locale = overrides.locale ?? $('locale').value
     const profile = overrides.profile ?? $('profile').value
@@ -951,7 +1101,7 @@ function shareableParams(overrides = {}) {
         if (parseIsoDate(date)) params.set('date', date)
     }
     if (report) {
-        if (activeComparison) params.set('compare', requestedFilter('compare'))
+        if (activeComparison && !automaticMainComparison) params.set('compare', requestedFilter('compare'))
         const query = overrides.q ?? $('search').value.trim()
         const flow = overrides.flow ?? $('flow').value
         const status = overrides.status ?? $('status').value
@@ -963,16 +1113,31 @@ function shareableParams(overrides = {}) {
         if ((up || down) && myVotes()) params.set('by', 'me')
         if (report.type === 'comparison') {
             params.set('view', overrides.view ?? viewMode)
+            if ((overrides.layout ?? (pairedLayout ? 'paired' : '')) === 'paired') params.set('layout', 'paired')
             if ((overrides.scope ?? (showVariations ? 'all' : 'default')) === 'default') params.set('scope', 'default')
         }
+    } else if (overrides.view) {
+        params.set('view', overrides.view)
+        if (overrides.layout === 'paired') params.set('layout', overrides.layout)
     }
     const historyId = overrides.history ?? historyState?.id ?? requestedFilter('history')
     if (/^[a-z0-9][a-z0-9-]{0,119}$/.test(historyId)) params.set('history', historyId)
+    const previewId = overrides.preview ?? requestedFilter('preview')
+    const previewRow = previewId && rows.find((row) => row.id === previewId)
+    if (previewRow) {
+        params.set('preview', previewRow.id)
+        const mode = normalizePreviewMode(previewRow, overrides.previewMode ?? requestedFilter('previewMode'))
+        if (mode !== 'screen') params.set('previewMode', mode)
+    }
     return params
 }
 function shareableHref(pathname = location.pathname, overrides, hash = location.hash ?? '') {
     const params = shareableParams(overrides)
-    if (pathname !== location.pathname) params.delete('comments')
+    if (pathname !== location.pathname) {
+        params.delete('comments')
+        params.delete('preview')
+        params.delete('previewMode')
+    }
     const query = params.toString()
     return `${pathname}${query ? `?${query}` : ''}${hash}`
 }
@@ -980,8 +1145,8 @@ function syncShareableUrl() {
     if (!offline && typeof history !== 'undefined' && typeof history.replaceState === 'function')
         history.replaceState(null, '', shareableHref())
 }
-function previewDevice() {
-    const capture = activeComparison?.after ?? (report?.type === 'comparison' ? report.after : report)
+function previewDevice(side = 'after', source) {
+    const capture = source ?? activeComparison?.[side] ?? (report?.type === 'comparison' ? report[side] : report)
     const profile = `${capture?.profile ?? report?.profile ?? ''}`.toLowerCase()
     const profileSize = /(\d{3,4})x(\d{3,4})/.exec(profile)
     const width = Number(capture?.width ?? report?.width ?? profileSize?.[1] ?? 393)
@@ -999,7 +1164,10 @@ function previewDevice() {
         ['ios', 'android'].includes(declared?.platform) &&
         ['dynamic-island', 'punch-hole'].includes(declared?.cutout) &&
         ['top', 'right', 'bottom', 'left'].every(
-            (edge) => Number.isInteger(safeArea?.[edge]) && safeArea[edge] >= 0 && safeArea[edge] < height
+            (edge) =>
+                Number.isInteger(safeArea?.[edge]) &&
+                safeArea[edge] >= 0 &&
+                safeArea[edge] < (edge === 'top' || edge === 'bottom' ? height : width)
         )
     return {
         width,
@@ -1011,22 +1179,52 @@ function previewDevice() {
         verified,
     }
 }
-function phonePreview(content, label) {
-    const device = previewDevice()
+function phonePreview(content, label, { side, capture, bounds, chrome = Boolean(side || capture) } = {}) {
+    const device = previewDevice(side, capture)
+    const showChrome = chrome && device.verified
     const preview = el('figure', undefined, 'device-preview')
     const frame = el(
         'div',
         undefined,
-        `device-frame ${device.platform} ${device.verified ? `device-safe device-${device.cutout}` : 'device-legacy'}`
+        `device-frame ${device.platform} ${showChrome ? `device-safe device-${device.cutout}` : 'device-legacy'}`
     )
     frame.style.aspectRatio = `${device.width} / ${device.height}`
+    preview.style.setProperty?.('--device-ratio', String(device.width / device.height))
+    if (side) preview.dataset.previewSide = side
     frame.setAttribute(
         'aria-label',
-        `${device.label} preview at ${device.width} by ${device.height}${device.verified ? ', safe areas simulated in capture' : ', legacy capture without safe-area simulation'}`
+        `${device.label} preview at ${device.width} by ${device.height}${showChrome ? ', safe areas simulated in capture' : ''}`
     )
-    if (device.safeArea) frame.dataset.safeArea = Object.values(device.safeArea).join(',')
+    if (showChrome) {
+        const { top, right, bottom, left } = device.safeArea
+        frame.dataset.safeArea = [top, right, bottom, left].join(',')
+        const availableWidth = Math.max(0, device.width - left - right)
+        const ios = device.platform === 'iphone'
+        const cameraHeight = Math.min(ios ? 24 : 12, top * 0.65)
+        const homeHeight = Math.min(ios ? 4 : 3, bottom * 0.4)
+        const percent = (value, size) => `${(100 * value) / size}%`
+        for (const [name, value] of Object.entries({
+            'chrome-center': percent(left + availableWidth / 2, device.width),
+            'camera-width': percent(Math.min(ios ? 88 : cameraHeight, availableWidth), device.width),
+            'camera-height': percent(cameraHeight, device.height),
+            'camera-top': percent((top - cameraHeight) / 2, device.height),
+            'home-width': percent(Math.min(ios ? 104 : 88, availableWidth), device.width),
+            'home-height': percent(homeHeight, device.height),
+            'home-bottom': percent((bottom - homeHeight) / 2, device.height),
+        }))
+            frame.style.setProperty?.(`--${name}`, value)
+    }
     const screen = el('div', undefined, 'device-screen')
     screen.append(content)
+    if (bounds) {
+        const outline = el('span', undefined, 'diff-bounds')
+        outline.setAttribute('aria-hidden', 'true')
+        outline.style.left = `${(bounds.x / device.width) * 100}%`
+        outline.style.top = `${(bounds.y / device.height) * 100}%`
+        outline.style.width = `${(bounds.width / device.width) * 100}%`
+        outline.style.height = `${(bounds.height / device.height) * 100}%`
+        screen.append(outline)
+    }
     frame.append(
         el('span', undefined, 'device-button device-button-top'),
         el('span', undefined, 'device-button device-button-bottom'),
@@ -1044,51 +1242,116 @@ function activePreviewIndex() {
 function updatePreviewPosition() {
     const index = activePreviewIndex()
     const device = previewDevice()
-    $('zoom-position').textContent =
-        `${index + 1} of ${filteredRows.length} · ${device.label} · ${device.width} × ${device.height}`
-    const onlyOne = filteredRows.length <= 1
+    const position = index >= 0 ? `${index + 1} of ${filteredRows.length}` : 'Outside current filters'
+    $('zoom-position').textContent = `${position} · ${device.label} · ${device.width} × ${device.height}`
+    const onlyOne = !filteredRows.length || (filteredRows.length === 1 && index >= 0)
     $('zoom-prev').disabled = onlyOne
     $('zoom-next').disabled = onlyOne
 }
 // Votes are a verdict on the change, so only the After screenshot carries them.
 const verdictControls = (scope) => (scope?.side === 'after' ? comments?.voteControls?.(scope) : undefined)
-function feedback(scope, action) {
-    const group = el('div', undefined, 'screen-feedback')
-    const votes = verdictControls(scope)
-    if (votes) group.append(votes)
-    group.append(comments.badge(scope, action))
-    return group
-}
-function previewFor(scope) {
-    return [...$('zoom-images').querySelectorAll('.device-preview')].find((preview) => {
-        const images = preview.querySelectorAll('img')
-        return images.length === 1 && images[0].getAttribute('src') === asset(scope.image)
-    })
-}
-function previewFeedback(scopes) {
-    if (!comments) return
-    let fallback = $('zoom-feedback')
-    if (!fallback) {
-        fallback = el('div')
-        fallback.id = 'zoom-feedback'
-        $('zoom-images').after(fallback)
-    }
-    fallback.replaceChildren()
-    for (const scope of scopes) {
-        const item = feedback(scope, () => comments.open(scope, undefined, scopes))
-        const preview = previewFor(scope)
-        if (preview) {
-            preview.append(item)
-            continue
+function previewDiscussion(scopes) {
+    const toggle = $('zoom-comments')
+    const primary = scopes.find((scope) => scope.side === 'after') ?? scopes[0]
+    if (!comments || !toggle) return
+    toggle.hidden = !primary
+    if (!primary) {
+        if (comments.isOpen()) {
+            comments.close({ restoreFocus: false })
+            $('close').focus()
         }
-        if (scopes.length > 1) item.prepend(el('span', scope.side === 'before' ? 'Before' : 'After', 'feedback-side'))
-        fallback.append(item)
+        return
+    }
+    toggle.onclick = () => (comments.isOpen() ? comments.close() : comments.open(primary, undefined, scopes))
+    if (comments.isOpen()) {
+        const previous = comments.current()
+        const selected = scopes.find(
+            (scope) =>
+                scope.side === previous.side &&
+                scope.screenId === previous.screenId &&
+                scope.reportPath === previous.reportPath &&
+                scope.image === previous.image &&
+                scope.locale === previous.locale &&
+                scope.profile === previous.profile
+        )
+        if (!selected) comments.open(primary, undefined, scopes)
     }
 }
-function zoom(row, mode = 'side') {
+function previewVerdict(scope, afterPreview) {
+    const fallback = $('zoom-feedback')
+    fallback?.replaceChildren()
+    const votes = verdictControls(scope)
+    if (!votes) return
+    const group = el('div', undefined, 'screen-feedback')
+    group.append(votes)
+    const target = afterPreview ?? fallback
+    target?.append(group)
+}
+function diffBounds(row) {
+    const bounds = row.changeBounds
+    if (!bounds) return undefined
+    const { x, y, width, height } = bounds
+    const device = previewDevice()
+    return [x, y, width, height].every(Number.isSafeInteger) &&
+        x >= 0 &&
+        y >= 0 &&
+        width > 0 &&
+        height > 0 &&
+        x + width <= device.width &&
+        y + height <= device.height
+        ? bounds
+        : undefined
+}
+function translationLabel(row) {
+    const { dx, dy } = row.translation ?? {}
+    if (!diffBounds(row) || ![dx, dy].every(Number.isSafeInteger) || Math.max(Math.abs(dx), Math.abs(dy)) > 3) return ''
+    const parts = [
+        dx && `${dx < 0 ? 'left' : 'right'} ${Math.abs(dx)} px`,
+        dy && `${dy < 0 ? 'up' : 'down'} ${Math.abs(dy)} px`,
+    ].filter(Boolean)
+    return parts.length ? `Shifted ${parts.join(', ')}` : ''
+}
+function normalizePreviewMode(row, mode) {
+    if (!['screen', 'side', 'overlay', 'difference', 'before', 'after'].includes(mode)) return 'screen'
+    if (mode === 'before' || mode === 'after') return row[mode]?.image ? mode : 'screen'
+    if (!comparisonMode()) return 'screen'
+    if (mode === 'difference' && !(row.status === 'changed' && asset(row.diff)))
+        return singleScreenLayout() ? 'screen' : 'side'
+    return mode
+}
+function clearPreviewUrl() {
+    if (offline || typeof history === 'undefined' || typeof history.replaceState !== 'function') return
+    const params = new URLSearchParams(location.search ?? '')
+    if (!params.has('preview') && !params.has('previewMode')) return
+    params.delete('preview')
+    params.delete('previewMode')
+    const query = params.toString()
+    history.replaceState(null, '', `${location.pathname}${query ? `?${query}` : ''}${location.hash ?? ''}`)
+}
+function closePreview() {
+    clearPreviewUrl()
+    if ($('zoom').open) $('zoom').close()
+}
+function restorePreview() {
+    const id = requestedFilter('preview')
+    const row = id && rows.find((candidate) => candidate.id === id)
+    if (row) {
+        revealSectionPlacement(row)
+        zoom(
+            row,
+            requestedFilter('previewMode') || (automaticMainComparison ? 'side' : 'screen'),
+            'replace',
+            requestedFilter('comments')
+        )
+    } else closePreview()
+}
+function zoom(row, mode = 'side', urlAction = 'auto', threadId = '') {
+    const wasOpen = $('zoom').open
+    comments?.invalidateNavigation?.()
     active = row
-    const single = mode === 'screen' || !comparisonMode() || (report?.type === 'comparison' && viewMode === 'all')
-    if (single) mode = 'screen'
+    const hasDiff = row.status === 'changed' && Boolean(asset(row.diff))
+    mode = normalizePreviewMode(row, mode)
+    const single = ['screen', 'before', 'after'].includes(mode)
     activeMode = mode
     const historyButton = $('zoom-history')
     if (historyButton) {
@@ -1101,67 +1364,98 @@ function zoom(row, mode = 'side') {
     $('zoom-controls').hidden = single
     $('side').hidden = single
     $('overlay').hidden = single
-    $('difference').hidden = single
+    $('difference').hidden = single || !hasDiff
     for (const name of ['side', 'overlay', 'difference']) $(name).setAttribute('aria-pressed', String(name === mode))
     const before = row.before,
         after = row.after
-    if (mode === 'screen') {
-        const screen = availableScreen(row)
-        if (screen?.image)
-            $('zoom-images').append(phonePreview(image(screen.image, row.name, { preview: false }), 'Screen'))
-        else $('zoom-images').append(el('p', screen?.reason ?? 'No screenshot available.'))
+    let afterPreview
+    if (single) {
+        const screen = mode === 'screen' ? availableScreen(row) : row[mode]
+        if (screen?.image) {
+            const side = screen === before ? 'before' : 'after'
+            const preview = phonePreview(
+                image(screen.image, `${row.name} screen preview`, { preview: false }),
+                mode === 'before' ? 'Before' : mode === 'after' ? 'After' : 'Screen',
+                { side }
+            )
+            $('zoom-images').append(preview)
+            if (side === 'after') afterPreview = preview
+        } else $('zoom-images').append(el('p', screen?.reason ?? 'No screenshot available.'))
     } else if (mode === 'difference') {
         if (row.diff)
-            $('zoom-images').append(phonePreview(image(row.diff, 'Pixel difference', { preview: false }), 'Difference'))
+            $('zoom-images').append(
+                phonePreview(
+                    image(row.diff, 'Pixel difference with changed pixels highlighted in red', { preview: false }),
+                    translationLabel(row) || 'Changed pixels in red',
+                    { bounds: diffBounds(row) }
+                )
+            )
         else $('zoom-images').append(el('p', 'No pixel difference image available.'))
     } else if (mode === 'overlay' && !unavailable(before) && !unavailable(after)) {
         const n = el('div', undefined, 'overlay')
-        n.append(image(before.image, 'Before', { preview: false }), image(after.image, 'After', { preview: false }))
+        n.append(
+            image(before.image, 'Before screen preview', { preview: false }),
+            image(after.image, 'After screen preview', { preview: false })
+        )
         $('zoom-images').append(phonePreview(n, 'Before / after'))
         $('slider').value = '50'
     } else {
         for (const [label, s] of [
-            ['Before', before],
-            ['After', after],
+            [automaticMainComparison ? 'Before · main' : 'Before', before],
+            [automaticMainComparison ? 'After · page capture' : 'After', after],
         ])
-            if (s?.image) $('zoom-images').append(phonePreview(image(s.image, label, { preview: false }), label))
-            else if (label === 'Before' && newScreen(row)) {
+            if (s?.image) {
+                const side = label.startsWith('Before') ? 'before' : 'after'
+                const preview = phonePreview(image(s.image, `${label} screen preview`, { preview: false }), label, {
+                    side,
+                })
+                $('zoom-images').append(preview)
+                if (side === 'after') afterPreview = preview
+            } else if (automaticMainComparison && label.startsWith('Before')) {
+                const fig = el('figure', undefined, 'device-preview new-screen-shot')
+                fig.append(
+                    el('div', comparisonUnavailable ? 'Main comparison unavailable' : 'No capture on main', 'missing'),
+                    el('figcaption', label)
+                )
+                $('zoom-images').append(fig)
+            } else if (label === 'Before' && newScreen(row)) {
                 const fig = el('figure', undefined, 'device-preview new-screen-shot')
                 fig.append(newScreenPlaceholder(row), el('figcaption', label))
                 $('zoom-images').append(fig)
             }
     }
     const scopes = commentScopes(row)
-    const primary = scopes.find((scope) => scope.side === 'after') ?? scopes[0]
-    previewFeedback(
-        mode === 'screen'
-            ? scopes.filter(
-                  (scope) =>
-                      scope.image === availableScreen(row)?.image &&
-                      scope.side === (availableScreen(row) === row.before ? 'before' : 'after')
-              )
-            : scopes
-    )
-    if (comments && primary) {
-        let toggle = $('zoom-comments')
-        if (!toggle) {
-            toggle = el('button', 'Comments')
-            toggle.id = 'zoom-comments'
-            $('zoom-controls').after(toggle)
-        }
-        toggle.onclick = () => (comments.isOpen() ? comments.close() : comments.open(primary, undefined, scopes))
-        if (comments.isOpen()) comments.open(primary, undefined, scopes)
-    }
+    previewVerdict(!single || afterPreview ? scopes.find((scope) => scope.side === 'after') : undefined, afterPreview)
+    previewDiscussion(scopes)
     updatePreviewPosition()
     if (!$('zoom').open) {
         $('zoom').showModal()
         $('close').focus?.()
     }
+    if (!offline && typeof history !== 'undefined') {
+        // Retained comment images are not necessarily the current manifest's version.
+        const currentVersion = rows.includes(row)
+        const href = shareableHref(location.pathname, {
+            preview: currentVersion ? row.id : '',
+            previewMode: mode,
+            comments: threadId,
+        })
+        const current = `${location.pathname}${location.search ?? ''}${location.hash ?? ''}`
+        if (href !== current) {
+            const action = urlAction === 'replace' || wasOpen || !currentVersion ? 'replaceState' : 'pushState'
+            if (typeof history[action] === 'function') history[action](null, '', href)
+        }
+    }
 }
 function navigatePreview(direction) {
-    if (filteredRows.length <= 1) return
     const index = activePreviewIndex()
-    const next = (Math.max(0, index) + direction + filteredRows.length) % filteredRows.length
+    if (!filteredRows.length || (filteredRows.length === 1 && index >= 0)) return
+    const next =
+        index < 0
+            ? direction < 0
+                ? filteredRows.length - 1
+                : 0
+            : (index + direction + filteredRows.length) % filteredRows.length
     zoom(filteredRows[next], activeMode)
 }
 const voteFilter = { loading: false, error: '', requested: new Set(), stale: false, refreshing: false }
@@ -1313,12 +1607,12 @@ function renderTile(row) {
                   .join(' · ')
     head.append(
         el('span', row.status === 'new' ? 'New screen' : row.status, `tag ${row.status}`),
-        el('h2', row.name),
+        el(row.flowIndex === undefined ? 'h2' : 'h3', row.name),
         el('div', detail, 'meta')
     )
     if (row.note) head.append(el('p', row.note, 'collection-note'))
     tile.append(head)
-    const showSingle = !comparisonMode() || (report.type === 'comparison' && viewMode === 'all')
+    const showSingle = singleScreenLayout()
     const pair = el('div', undefined, `pair${showSingle ? ' single' : ''}`)
     for (const [label, s] of showSingle
         ? [['Screen', availableScreen(row)]]
@@ -1333,7 +1627,7 @@ function renderTile(row) {
             const b = el('button')
             b.setAttribute('aria-label', `Enlarge ${row.name}, ${label}`)
             b.append(image(s.image, row.name))
-            b.onclick = () => zoom(row, showSingle ? 'screen' : 'side')
+            b.onclick = () => zoom(row, automaticMainComparison ? 'side' : showSingle ? 'screen' : 'side')
             fig.append(b)
             const side =
                 label === 'Before' ? 'before' : label === 'After' ? 'after' : s === row.before ? 'before' : 'after'
@@ -1349,6 +1643,10 @@ function renderTile(row) {
     }
     tile.append(pair)
     const foot = el('div', undefined, 'tile-foot')
+    if (automaticMainComparison && !row.before?.image)
+        foot.append(
+            el('span', comparisonUnavailable ? 'Main comparison unavailable' : 'No capture on main', 'comparison-note')
+        )
     const link = el('a', 'Link to screen')
     link.href = `#${row.id}`
     foot.append(link)
@@ -1358,6 +1656,15 @@ function renderTile(row) {
         button.setAttribute('aria-label', `View history for ${row.name}`)
         button.onclick = () => openScreenHistory(row)
         foot.append(button)
+    }
+    if (row.status === 'changed' && asset(row.diff)) {
+        const button = el('button', 'Pixel difference', 'history-link')
+        button.type = 'button'
+        button.setAttribute('aria-label', `View pixel difference for ${row.name}`)
+        button.onclick = () => zoom(row, 'difference')
+        foot.append(button)
+        const label = translationLabel(row)
+        if (label) foot.append(el('span', label))
     }
     if (row.belowThreshold)
         foot.append(
@@ -1374,17 +1681,104 @@ function renderTile(row) {
     tile.append(foot)
     return tile
 }
+function renderSectionedPage() {
+    report.sections.forEach((section, sectionIndex) => {
+        const details = el('details', undefined, 'collection-section')
+        details.dataset.sectionIndex = String(sectionIndex)
+        details.open = sectionOpen.get(sectionIndex) ?? false
+        const summary = el('summary')
+        const sectionRows = filteredRows.filter((row) => row.sectionIndex === sectionIndex)
+        summary.append(
+            el('span', section.title, 'collection-section-name'),
+            el('span', undefined, 'collection-section-rule'),
+            el('span', `${sectionRows.length} screens`, 'collection-section-count'),
+            el('span', '›', 'collection-section-disclosure')
+        )
+        const body = el('div', undefined, 'collection-section-body')
+        details.append(summary, body)
+        const state = { details, body, rows: sectionRows, count: 0, flows: new Map(), more: null }
+        sectionViews.set(sectionIndex, state)
+        details.addEventListener('toggle', () => {
+            if (sectionViews.get(sectionIndex) !== state) return
+            sectionOpen.set(sectionIndex, details.open)
+            if (details.open && !state.count) appendSectionPage(state)
+        })
+        $('screens').append(details)
+        if (details.open) appendSectionPage(state)
+    })
+    renderedCount = filteredRows.length
+    $('screen-load-more').hidden = true
+}
+function appendSectionPage(state, throughId) {
+    const targetIndex = throughId ? state.rows.findIndex((row) => row.id === throughId) : -1
+    const end = Math.min(state.rows.length, Math.max(state.count + PAGE_SIZE, targetIndex + 1))
+    for (const row of state.rows.slice(state.count, end)) {
+        let flow = state.flows.get(row.flowIndex)
+        if (!flow) {
+            flow = el('section', undefined, 'collection-flow')
+            flow.dataset.flowIndex = String(row.flowIndex)
+            const heading = el('h2', row.flow)
+            heading.id = `collection-flow:${row.flowIndex}`
+            flow.setAttribute('aria-labelledby', heading.id)
+            flow.append(heading, el('div', undefined, 'collection-flow-screens single'))
+            state.flows.set(row.flowIndex, flow)
+        }
+        flow.lastElementChild.append(renderTile(row))
+    }
+    state.count = end
+    const children = [...state.flows.values()]
+    if (end < state.rows.length) {
+        const more = el('button', `Load more screens (${state.rows.length - end} remaining)`, 'section-load-more')
+        more.type = 'button'
+        more.onclick = () => appendSectionPage(state)
+        children.push(more)
+    } else if (!state.rows.length) children.push(el('p', 'No screens match these filters.', 'meta'))
+    state.body.replaceChildren(...children)
+}
+function revealSectionPlacement(row) {
+    if (!sectionedPage() || row?.sectionIndex === undefined) return
+    sectionOpen.set(row.sectionIndex, true)
+    const state = sectionViews.get(row.sectionIndex)
+    if (state) {
+        state.details.open = true
+        if (
+            state.rows.some((candidate) => candidate.id === row.id) &&
+            !state.rows.slice(0, state.count).some((candidate) => candidate.id === row.id)
+        )
+            appendSectionPage(state, row.id)
+    }
+}
 function appendNextPage() {
+    if (sectionedPage()) return
     if (renderedCount >= filteredRows.length) {
         $('screen-load-more').hidden = true
         return
     }
     const next = filteredRows.slice(renderedCount, renderedCount + PAGE_SIZE)
-    $('screens').append(...next.map(renderTile))
+    const screens = $('screens')
+    if (report?.type === 'collection' && Array.isArray(report.flows)) {
+        for (const row of next) {
+            const flowIndex = String(row.flowIndex)
+            let section = screens.lastElementChild
+            if (section?.dataset.flowIndex !== flowIndex) {
+                section = el('section', undefined, 'collection-flow')
+                section.dataset.flowIndex = flowIndex
+                const heading = el('h2', row.flow)
+                heading.id = `collection-flow:${flowIndex}`
+                section.setAttribute('aria-labelledby', heading.id)
+                const layout = singleScreenLayout() ? 'single' : 'paired'
+                section.append(heading, el('div', undefined, `collection-flow-screens ${layout}`))
+                screens.append(section)
+            }
+            section.lastElementChild.append(renderTile(row))
+        }
+    } else screens.append(...next.map(renderTile))
     renderedCount += next.length
     $('screen-load-more').hidden = renderedCount >= filteredRows.length
 }
 function render() {
+    for (const [index, state] of sectionViews) sectionOpen.set(index, state.details.open)
+    sectionViews.clear()
     const changedMode = report?.type === 'comparison' && viewMode === 'changed'
     if (report?.type === 'comparison')
         $('title').textContent = reportTitle || (changedMode ? 'See what changed.' : 'Every screen.')
@@ -1393,8 +1787,18 @@ function render() {
     filteredRows = voted.rows
     renderedCount = 0
     $('screens').className =
-        report?.type === 'journeys' ? 'all-screens journey-screens' : changedMode ? 'changed-screens' : 'all-screens'
+        report?.type === 'collection' && Array.isArray(report.flows)
+            ? 'flow-page'
+            : report?.type === 'journeys'
+              ? 'all-screens journey-screens'
+              : changedMode || (report?.type === 'comparison' && pairedLayout)
+                ? 'changed-screens'
+                : 'all-screens'
     $('screens').replaceChildren()
+    if (sectionedPage()) {
+        renderSectionedPage()
+        return
+    }
     if (!filteredRows.length) {
         const clearVotes = [
             'Clear vote filters',
@@ -1670,7 +2074,16 @@ function renderLanding() {
         for (const v of grouped.get(date)) {
             const details = versionDetails(v)
             const a = el('a', undefined, 'version')
-            a.href = shareableHref(`/screens/${v.path}/`, { source: selectedSource, locale: selected, date: '' }, '')
+            a.href = shareableHref(
+                `/screens/${v.path}/`,
+                {
+                    source: selectedSource,
+                    locale: selected,
+                    date: '',
+                    ...(details.kind === 'Release preview' ? { view: 'all', layout: 'paired' } : {}),
+                },
+                ''
+            )
             const top = el('div', undefined, 'version-top')
             top.append(
                 el('span', formatCaptureDate(v.date), 'version-card-date'),
@@ -1740,7 +2153,9 @@ async function configureReportLocales(reportPath) {
     $('branch-control').hidden = true
     $('screen-updates-control').hidden = true
     if (report.type === 'collection') {
-        reportLocaleEntries = (activeComparison ? [activeComparison.locale] : report.locales).map((locale) => ({
+        reportLocaleEntries = (
+            activeComparison && !automaticMainComparison ? [activeComparison.locale] : report.locales
+        ).map((locale) => ({
             locale,
         }))
         reportSourceEntries = []
@@ -1796,7 +2211,9 @@ async function start() {
     const collectionMatch = /^\/collections\/([a-z0-9][a-z0-9-]{0,119})\/?$/.exec(pathname)
     const path = isHostedIndex ? '' : pathname.replace(/^\/screens\/?/, '').replace(/\/$/, '')
     if (comments) {
-        $('comment-feed').hidden = false
+        if (activityToggle) activityToggle.hidden = false
+        else if (activityPanel) activityPanel.hidden = false
+        else if ($('comment-feed')) $('comment-feed').hidden = false
         comments.setContext({ prNumber: Number(/^\d{4}-\d{2}-\d{2}\/pr-([1-9]\d*)\//.exec(path)?.[1]) || undefined })
     }
     if (!offline && !path) {
@@ -1831,6 +2248,8 @@ async function start() {
         throw new Error('Unsupported report')
     const comparisonPath = collectionMatch ? requestedFilter('compare') : ''
     activeComparison = undefined
+    automaticMainComparison = report.type === 'collection' && report.compareWith === 'main' && !comparisonPath
+    if (automaticMainComparison) await configureMainComparison(requestedCollectionLocale(report))
     if (comparisonPath) {
         if (
             !/^\d{4}-\d{2}-\d{2}\/(?:compare-dev|compare-main|pr-[1-9][0-9]*|compare-main-\d{4}-\d{2}-\d{2})\/(?:en|es-419|es-ar|pt-br)\/[a-f0-9]{40}(?:\/run-[0-9]+-[0-9]+)?$/.test(
@@ -1848,12 +2267,14 @@ async function start() {
         )
             throw new Error('Unsupported comparison for this collection')
         activeComparison = normalizeComparison(comparison)
+        activeComparisonPath = comparisonPath
     }
-    commentsReportPath = activeComparison
-        ? `reports/${comparisonPath}`
-        : collectionMatch
-          ? `collections/${collectionMatch[1]}`
-          : `reports/${reportPath}`
+    commentsReportPath =
+        activeComparison && !automaticMainComparison
+            ? `reports/${comparisonPath}`
+            : collectionMatch
+              ? `collections/${collectionMatch[1]}`
+              : `reports/${reportPath}`
     if (report.type === 'comparison') report = normalizeComparison(report)
     $('dashboard-filters').hidden = true
     $('date-filter').hidden = true
@@ -1869,10 +2290,11 @@ async function start() {
                     status: s.status,
                 }))
               : report.screens
-    )
+    ).map(explicitSurfaceName)
     const before = activeComparison?.before ?? report.before,
         after = activeComparison?.after ?? (report.type === 'comparison' ? report.after : report)
     viewMode = report.type === 'comparison' ? 'changed' : 'all'
+    pairedLayout = report.type === 'comparison' && requestedFilter('layout') === 'paired'
     showVariations = report.type !== 'comparison' || requestedFilter('scope') !== 'default'
     $('view-mode').checked = viewMode === 'all'
     $('variations-mode').checked = showVariations
@@ -1888,6 +2310,17 @@ async function start() {
     $('description').replaceChildren()
     if (report.type === 'collection' && report.description) $('description').append(el('span', report.description), ' ')
     $('description').append(captureDate ? el('strong', captureDate) : el('span', ''))
+    if (automaticMainComparison && comparisonUnavailable)
+        $('description').append(
+            el('p', 'Main comparison unavailable. Page screenshots remain available.', 'comparison-note')
+        )
+    if ((activeComparison ?? report).beforeHarness?.mode === 'base')
+        $('description').append(
+            el(
+                'div',
+                "Before was captured with the base branch's own synthetic API because this PR changes it; differences can include synthetic-data changes."
+            )
+        )
     $('footer').textContent =
         report.type === 'collection'
             ? `${localeLabel(activeComparison?.locale ?? requestedCollectionLocale(report))} · ${activeComparison ? 'Curated before/after comparison' : 'Curated collection'} · Synthetic app states`
@@ -2000,7 +2433,17 @@ async function start() {
         $('view-mode').checked = true
     }
     render()
-    if (location.hash) {
+    if (sectionedPage() && location.hash && !requestedFilter('preview')) {
+        let id
+        try {
+            id = decodeURIComponent(location.hash.slice(1))
+        } catch {
+            id = location.hash.slice(1)
+        }
+        const row = rows.find((candidate) => candidate.id === id)
+        revealSectionPlacement(row)
+        document.getElementById(id)?.scrollIntoView?.()
+    } else if (location.hash && !requestedFilter('preview')) {
         viewMode = 'all'
         showVariations = true
         $('view-mode').checked = true
@@ -2012,6 +2455,7 @@ async function start() {
         document.getElementById(location.hash.slice(1))?.scrollIntoView()
     }
     syncShareableUrl()
+    restorePreview()
     const threadId = requestedFilter('comments')
     if (comments && /^[a-f0-9-]{36}$/.test(threadId)) comments.navigateThread(threadId)
     const historyRow = rows.find((row) => row.id === requestedFilter('history'))
@@ -2038,9 +2482,23 @@ $('status').addEventListener('input', () => {
     render()
     syncShareableUrl()
 })
-$('locale').addEventListener('change', () => {
+$('locale').addEventListener('change', async () => {
     if (report?.type === 'collection') {
-        rows = collectionRows(report, $('locale').value)
+        const locale = $('locale').value
+        closePreview()
+        if (automaticMainComparison) {
+            try {
+                const pending = configureMainComparison(locale)
+                // Discard the old locale's comparison scopes immediately while the next baseline loads.
+                rows = collectionRows(report, locale).map(explicitSurfaceName)
+                render()
+                if (!(await pending)) return
+            } catch (error) {
+                if (error.authRequired) showAuthGate()
+                return
+            }
+        }
+        rows = collectionRows(report, locale, activeComparison).map(explicitSurfaceName)
         renderCoverage()
         $('footer').textContent = `${localeLabel($('locale').value)} · Curated collection · Synthetic app states`
         $('flow').replaceChildren(el('option', 'All flows'))
@@ -2097,9 +2555,12 @@ $('variations-mode').addEventListener('change', () => {
     render()
     syncShareableUrl()
 })
-$('close').onclick = () => $('zoom').close()
+$('close').onclick = closePreview
 $('zoom').addEventListener('close', () => {
-    comments?.close()
+    if (!$('zoom').open) {
+        clearPreviewUrl()
+        comments?.close({ restoreFocus: false })
+    }
     if (voteFilter.stale) refreshVoteFilter()
 })
 $('side').onclick = () => zoom(active, 'side')
@@ -2107,12 +2568,18 @@ $('overlay').onclick = () => zoom(active, 'overlay')
 $('difference').onclick = () => zoom(active, 'difference')
 $('zoom-prev').onclick = () => navigatePreview(-1)
 $('zoom-next').onclick = () => navigatePreview(1)
+function dismissPreview(event) {
+    event.preventDefault()
+    if (comments?.isOpen()) comments.close()
+    else closePreview()
+}
+$('zoom').addEventListener('cancel', dismissPreview)
 $('zoom').addEventListener('keydown', (event) => {
     if (!$('zoom').open) return
     if (event.key === 'Escape') {
-        event.preventDefault()
-        $('zoom').close()
+        dismissPreview(event)
     } else if (
+        !$('comment-panel')?.contains?.(event.target) &&
         event.target !== $('slider') &&
         !event.target?.matches?.('input,textarea,select,[contenteditable]') &&
         (event.key === 'ArrowLeft' || event.key === 'ArrowRight')

@@ -168,6 +168,20 @@ test('different harness, fixtures or environment requires recapture', () => {
         assert.throws(() => compare(capture([screen('home')]), r, dir), /environments differ/)
     }
 })
+test('runner host kernel and Node patch do not split a comparison; the renderer does', () => {
+    const runner = (host, node, chromium = '145.0.7632.6') =>
+        `linux-x64-${host};node=${node};chromium=${chromium};dpr=1;locale=en;device=ios;browser=iPhone 15 Pro;safe-area=59,0,34,0;UTC;light;reduced-motion`
+    const azure = { ...capture([screen('home')]), environment: runner('7.0.0-1017-azure', 'v22.23.4') }
+    const aws = { ...capture([screen('home')]), environment: runner('7.0.0-1014-aws', 'v22.23.3') }
+    assert.equal(compare(azure, aws, dir).screens[0].status, 'unchanged')
+    for (const environment of [
+        runner('7.0.0-1014-aws', 'v22.23.4', '146.0.7700.1'),
+        runner('7.0.0-1014-aws', 'v22.23.4').replace('dpr=1', 'dpr=2'),
+        runner('7.0.0-1014-aws', 'v22.23.4').replace('linux-x64', 'linux-arm64'),
+        runner('7.0.0-1014-aws', 'v22.23.4').replace(';light', ';dark'),
+    ])
+        assert.throws(() => compare(azure, { ...aws, environment }, dir), /environments differ/)
+})
 test('captures from different locales cannot be compared', () => {
     const portuguese = { ...capture([screen('home')]), locale: 'pt-BR', profile: 'pt-BR-393x852' }
     assert.throws(() => compare(capture([screen('home')]), portuguese, dir), /environments differ/)
@@ -367,4 +381,43 @@ test('a forged inventory cannot hide missing scenario coverage', () => {
     assert.throws(() => validateCapture(input), /missing screens/)
     input.inventory = [{ route: '/new', status: 'excluded' }]
     assert.throws(() => validateCapture(input), /reason/)
+})
+test('flag overrides on a captured state survive validation; malformed ones are rejected', () => {
+    const variant = { ...screen('home-flag-card-promotion-disabled-true'), flags: { 'card-promotion-disabled': true } }
+    const experiment = { ...screen('settings-flag-switches'), flags: { 'signup-notification-switches': 'defaults_on' } }
+    const valid = validateCapture(capture([screen('home'), variant, experiment]))
+    assert.deepEqual(
+        valid.screens.map((s) => s.flags),
+        [undefined, { 'card-promotion-disabled': true }, { 'signup-notification-switches': 'defaults_on' }]
+    )
+    for (const flags of [{}, [], { 'Bad Key': true }, { flag: 3 }, { flag: '<script>' }])
+        assert.throws(() => validateCapture(capture([{ ...screen('home'), flags }])), /Invalid flag overrides/)
+})
+
+test('visual evidence uses only counted pixels and distinguishes local movement from a second edit', () => {
+    const image = new PNG({ width: 393, height: 852 })
+    const frame = (offset, secondEdit = false, insideNoise = false) => {
+        image.data.fill(255)
+        for (let y = 80 + offset; y < 100 + offset; y++) {
+            image.data.fill(0, (y * 393 + 60) * 4, (y * 393 + 90) * 4)
+            for (let x = 60; x < 90; x++) image.data[(y * 393 + x) * 4 + 3] = 255
+        }
+        if (offset) image.data[(300 * 393 + 200) * 4] = secondEdit ? 0 : 254
+        if (insideNoise) image.data[(95 * 393 + 65) * 4] = 1
+        return capture([screen('home', storeAsset(dir, PNG.sync.write(image)))])
+    }
+    const before = frame(0)
+    const moved = compare(before, frame(2), dir).screens[0]
+    assert.equal(moved.status, 'changed')
+    assert.equal(moved.pixels, 120)
+    assert.deepEqual(moved.changeBounds, { x: 60, y: 80, width: 30, height: 22 })
+    assert.deepEqual(moved.translation, { dx: 0, dy: 2 })
+    assert.ok(moved.diff)
+
+    const edited = compare(before, frame(2, true), dir).screens[0]
+    assert.equal(edited.pixels, 121)
+    assert.deepEqual(edited.changeBounds, { x: 60, y: 80, width: 141, height: 221 })
+    assert.equal(edited.translation, undefined)
+    assert.equal(compare(before, frame(2, false, true), dir).screens[0].translation, undefined)
+    assert.equal(compare(before, frame(4), dir).screens[0].translation, undefined)
 })

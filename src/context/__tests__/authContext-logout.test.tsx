@@ -15,11 +15,18 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 
 const mockClear = jest.fn()
+const mockCurrentClientFlagProperties = jest.fn()
+const mockClientFlagProperties = jest.fn()
+jest.mock('@/utils/posthog-setup', () => ({
+    currentClientFlagProperties: () => mockCurrentClientFlagProperties(),
+    clientFlagProperties: () => mockClientFlagProperties(),
+}))
 const mockCancelQueries = jest.fn().mockResolvedValue(undefined)
 const mockRefetch = jest.fn().mockResolvedValue({ data: null })
 const mockApiFetch = jest.fn().mockResolvedValue(undefined)
 const mockToastError = jest.fn()
 const mockClearSignupAttribution = jest.fn().mockResolvedValue(undefined)
+const mockLogoutNotificationIdentity = jest.fn().mockResolvedValue(undefined)
 
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: mockToastError }) }))
@@ -40,11 +47,14 @@ jest.mock('@/hooks/useUserAutoRefresh', () => ({ useUserAutoRefresh: jest.fn() }
 jest.mock('@/hooks/useAppLocked', () => ({ useAppLocked: () => false }))
 jest.mock('@/hooks/useZeroDevFlow', () => ({ zeroDevFlowActions: { reset: jest.fn() } }))
 jest.mock('@/utils/api-fetch', () => ({ apiFetch: (...args: unknown[]) => mockApiFetch(...args) }))
-jest.mock('@/utils/auth-token', () => ({ clearAuthToken: jest.fn().mockResolvedValue(undefined) }))
+jest.mock('@/utils/auth-token', () => ({
+    getClearEpoch: jest.fn(() => 0),
+    clearAuthToken: jest.fn().mockResolvedValue(undefined),
+}))
 jest.mock('@/utils/login-session', () => ({ recoverLoginSession: jest.fn() }))
 jest.mock('@/utils/cache.utils', () => ({ purgeCaches: jest.fn().mockResolvedValue(undefined) }))
 jest.mock('@/utils/crisp', () => ({ resetCrispProxySessions: jest.fn().mockResolvedValue(undefined) }))
-jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false }))
+jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false, isNativeBridge: () => false }))
 jest.mock('@/utils/sentry-lazy', () => ({ captureException: jest.fn(), setUser: jest.fn() }))
 jest.mock('@/i18n/app/locale-store', () => ({
     currentAppLocale: () => 'en',
@@ -52,6 +62,13 @@ jest.mock('@/i18n/app/locale-store', () => ({
     currentDeviceIdentity: () => ({}),
 }))
 jest.mock('@/services/step-up', () => ({ clearStepUpToken: jest.fn() }))
+jest.mock('@/services/onesignal/identity', () => ({
+    getNotificationLogoutVersion: () => 0,
+    logoutNotificationIdentity: () => mockLogoutNotificationIdentity(),
+    onNotificationIdentityLoginAvailable: () => () => {},
+    reconcileNotificationIdentity: jest.fn().mockResolvedValue(undefined),
+    resumeNotificationIdentity: jest.fn().mockResolvedValue(undefined),
+}))
 jest.mock('@/services/badge-campaigns', () => ({
     claimAndSettlePendingBadgeCampaigns: jest.fn(),
     isConfirmedBadgeCampaignClaim: () => false,
@@ -67,6 +84,10 @@ jest.mock('@/utils/signup-attribution', () => ({
 jest.mock('@/services/pending-invite-attribution', () => ({
     settlePendingInviteAttribution: jest.fn().mockResolvedValue({ status: 'none' }),
 }))
+const mockFlushLedgerSync = jest.fn().mockResolvedValue(undefined)
+jest.mock('@/features/attention/ledgerSync', () => ({
+    flushLedgerSync: (...args: unknown[]) => mockFlushLedgerSync(...args),
+}))
 jest.mock('posthog-js', () => ({
     __esModule: true,
     default: {
@@ -74,13 +95,19 @@ jest.mock('posthog-js', () => ({
         get_distinct_id: jest.fn(),
         setPersonProperties: jest.fn(),
         reset: jest.fn(),
+        setPersonPropertiesForFlags: jest.fn(),
         register: jest.fn(),
     },
 }))
 
 import { AuthProvider, useAuth } from '../authContext'
+import posthog from 'posthog-js'
 import { clearRedirectUrl, endIntentionalLogout, getRedirectUrl, saveRedirectUrl } from '@/utils/general.utils'
 import { clearSessionHeld, hasHeldSession, markSessionHeld } from '@/utils/session-presence'
+import { purgeCaches } from '@/utils/cache.utils'
+import { clearAuthToken } from '@/utils/auth-token'
+import { isReturningDevice } from '@/utils/returning-device'
+import { recordSignupRegistration, readSignupDraft, saveSignupDraft } from '@/features/setup/signup-draft'
 
 const wrapper = ({ children }: { children: ReactNode }) => <AuthProvider>{children}</AuthProvider>
 
@@ -104,9 +131,12 @@ const stubLocation = (onNavigate?: () => void) => {
 
 describe('logoutUser', () => {
     beforeEach(() => {
+        localStorage.clear()
         jest.clearAllMocks()
+        mockCurrentClientFlagProperties.mockReturnValue({ client_platform: 'android', binary_version: '1.23.0' })
         mockCancelQueries.mockResolvedValue(undefined)
         mockRefetch.mockResolvedValue({ data: null })
+        mockApiFetch.mockReset().mockResolvedValue({ status: 200, ok: true })
         mockClearSignupAttribution.mockResolvedValue(undefined)
         endIntentionalLogout()
         clearRedirectUrl()
@@ -119,6 +149,70 @@ describe('logoutUser', () => {
         endIntentionalLogout()
         clearRedirectUrl()
         clearSessionHeld()
+    })
+
+    it('clears the previous user’s bound signup draft along with credentials', async () => {
+        saveSignupDraft({
+            screenId: 'payment-plan',
+            answers: {
+                username: 'probe',
+                inviteSelection: 'alice',
+                residenceCountry: 'AR',
+                nationalityCountry: 'BR',
+                fundingChannel: 'arsBank',
+                paymentChannel: 'qr',
+                notificationChoices: null,
+                inviterAccepted: true,
+                sellScreensCountry: 'AR',
+            },
+        })
+        await recordSignupRegistration('u1', 'probe')
+        expect(readSignupDraft()?.userId).toBe('u1')
+        stubLocation()
+        const { result } = renderHook(() => useAuth(), { wrapper })
+
+        await act(async () => {
+            await result.current.logoutUser()
+        })
+
+        expect(clearAuthToken).toHaveBeenCalled()
+        expect(readSignupDraft()).toBeNull()
+    })
+
+    it('restores cached flag properties after reset without a fresh async lookup or duplicate reload', async () => {
+        stubLocation()
+        const { result } = renderHook(() => useAuth(), { wrapper })
+        await act(async () => {
+            await result.current.logoutUser()
+        })
+        expect(posthog.reset).toHaveBeenCalledTimes(1)
+        expect(posthog.setPersonPropertiesForFlags).toHaveBeenCalledTimes(1)
+        expect(posthog.setPersonPropertiesForFlags).toHaveBeenCalledWith(
+            {
+                client_platform: 'android',
+                binary_version: '1.23.0',
+            },
+            false
+        )
+        expect((posthog.reset as jest.Mock).mock.invocationCallOrder[0]).toBeLessThan(
+            (posthog.setPersonPropertiesForFlags as jest.Mock).mock.invocationCallOrder[0]
+        )
+        expect(mockClientFlagProperties).not.toHaveBeenCalled()
+    })
+
+    it('reads the latest cached flags at logout after a late binary result', async () => {
+        stubLocation()
+        mockCurrentClientFlagProperties.mockReturnValue({ client_platform: 'android' })
+        const { result } = renderHook(() => useAuth(), { wrapper })
+        mockCurrentClientFlagProperties.mockReturnValue({ client_platform: 'android', binary_version: '1.26.0' })
+        await act(async () => {
+            await result.current.logoutUser()
+        })
+        expect(posthog.setPersonPropertiesForFlags).toHaveBeenCalledWith(
+            { client_platform: 'android', binary_version: '1.26.0' },
+            false
+        )
+        expect(mockClientFlagProperties).not.toHaveBeenCalled()
     })
 
     it('arms the latch before the user cache is emptied', async () => {
@@ -145,6 +239,25 @@ describe('logoutUser', () => {
         expect(getRedirectUrl()).toBeNull()
     })
 
+    it("sends the user's pending attention-ledger write before the session is revoked", async () => {
+        const order: string[] = []
+        mockFlushLedgerSync.mockImplementationOnce(async () => {
+            order.push('flush')
+        })
+        mockApiFetch.mockImplementationOnce(async () => {
+            order.push('revoke')
+        })
+        stubLocation()
+        const { result } = renderHook(() => useAuth(), { wrapper })
+
+        await act(async () => {
+            await result.current.logoutUser()
+        })
+
+        expect(mockFlushLedgerSync).toHaveBeenCalledWith('u1')
+        expect(order).toEqual(['flush', 'revoke'])
+    })
+
     it('leaves this tab logged out, so a later deep link is intent again', async () => {
         markSessionHeld()
         stubLocation()
@@ -157,6 +270,47 @@ describe('logoutUser', () => {
         expect(hasHeldSession()).toBe(false)
     })
 
+    it('purges the cross-origin cache, where older workers stored API responses', async () => {
+        stubLocation()
+        const { result } = renderHook(() => useAuth(), { wrapper })
+
+        await act(async () => {
+            await result.current.logoutUser()
+        })
+
+        expect(purgeCaches).toHaveBeenCalledWith(expect.arrayContaining(['cross-origin', 'user-api']))
+    })
+
+    // the same account signing back in before the withdrawal settles still finds its guard;
+    // another account never reads it (the key is the account's)
+    it("keeps the account's pending Pix withdrawal marks", async () => {
+        const mark = JSON.stringify({ priceLockCode: 'lock-a', settleBy: Date.now() + 60_000 })
+        localStorage.setItem('pix-withdraw-pending:u1:lock-a', mark)
+        stubLocation()
+        const { result } = renderHook(() => useAuth(), { wrapper })
+
+        await act(async () => {
+            await result.current.logoutUser()
+        })
+
+        expect(localStorage.getItem('pix-withdraw-pending:u1:lock-a')).toBe(mark)
+    })
+
+    // a Pix withdraw form not yet sent holds the Pix key: the next user of this tab never sees it
+    it("forgets the account's Pix withdraw and send drafts", async () => {
+        sessionStorage.setItem('pix-withdraw-draft:u1', JSON.stringify({ destination: '09579927189' }))
+        sessionStorage.setItem('pix-send-draft:u1', JSON.stringify({ destination: '11144477735' }))
+        stubLocation()
+        const { result } = renderHook(() => useAuth(), { wrapper })
+
+        await act(async () => {
+            await result.current.logoutUser()
+        })
+
+        expect(sessionStorage.getItem('pix-withdraw-draft:u1')).toBeNull()
+        expect(sessionStorage.getItem('pix-send-draft:u1')).toBeNull()
+    })
+
     it('forgets the analytics identity fingerprint, so the next user starts clean', async () => {
         localStorage.setItem('posthog-person-properties-sent', 'abc123')
         stubLocation()
@@ -167,6 +321,37 @@ describe('logoutUser', () => {
         })
 
         expect(localStorage.getItem('posthog-person-properties-sent')).toBeNull()
+    })
+
+    it.each([false, true])(
+        'retains the device marker through logout (skipBackendCall: %s)',
+        async (skipBackendCall) => {
+            localStorage.removeItem('peanut-device-had-account')
+            stubLocation()
+            const { result } = renderHook(() => useAuth(), { wrapper })
+            expect(localStorage.getItem('peanut-device-had-account')).toBe('1')
+
+            await act(async () => {
+                await result.current.logoutUser({ skipBackendCall })
+            })
+
+            expect(posthog.reset).toHaveBeenCalledTimes(1)
+            expect(localStorage.getItem('posthog-person-properties-sent')).toBeNull()
+            expect(localStorage.getItem('peanut-device-had-account')).toBe('1')
+        }
+    )
+
+    it('still counts the device as returning when it signed out before the marker existed', async () => {
+        stubLocation()
+        const { result } = renderHook(() => useAuth(), { wrapper })
+
+        await act(async () => {
+            await result.current.logoutUser({ skipBackendCall: true })
+        })
+        localStorage.removeItem('peanut-device-had-account')
+
+        expect(document.cookie).not.toContain('web-authn-key=')
+        expect(isReturningDevice()).toBe(true)
     })
 
     it('releases the latch when the hard navigation never happens', async () => {
@@ -199,6 +384,80 @@ describe('logoutUser', () => {
         })
 
         expect(order).toEqual(['api:/users/logout', 'cache-cleared'])
+    })
+
+    it('signs out every device through /users/logout/all when asked', async () => {
+        const navigate = jest.fn()
+        stubLocation(navigate)
+        const { result } = renderHook(() => useAuth(), { wrapper })
+
+        await act(async () => {
+            await result.current.logoutUser({ allDevices: true })
+        })
+
+        expect(mockApiFetch.mock.calls.map(([path]) => path)).toEqual(['/users/logout/all'])
+        expect(clearAuthToken).toHaveBeenCalledTimes(1)
+        expect(navigate).toHaveBeenCalledTimes(1)
+    })
+
+    it('falls back to /users/logout, which revokes everything there, on an API without /all', async () => {
+        mockApiFetch.mockResolvedValueOnce({ status: 404, ok: false }).mockResolvedValueOnce({ status: 200, ok: true })
+        const navigate = jest.fn()
+        stubLocation(navigate)
+        const { result } = renderHook(() => useAuth(), { wrapper })
+
+        await act(async () => {
+            await result.current.logoutUser({ allDevices: true })
+        })
+
+        expect(mockApiFetch.mock.calls.map(([path]) => path)).toEqual(['/users/logout/all', '/users/logout'])
+        expect(clearAuthToken).toHaveBeenCalledTimes(1)
+        expect(navigate).toHaveBeenCalledTimes(1)
+    })
+
+    it.each(['HTTP 503', 'transport failure', 'legacy HTTP 503'])(
+        'keeps the current session and push identity after %s during all-device logout',
+        async (failure) => {
+            if (failure === 'legacy HTTP 503') mockApiFetch.mockResolvedValueOnce({ status: 404, ok: false })
+            if (failure === 'transport failure') {
+                mockApiFetch.mockRejectedValueOnce(new Error('connection interrupted'))
+            } else {
+                mockApiFetch.mockResolvedValueOnce({ status: 503, ok: false })
+            }
+            const navigate = jest.fn()
+            stubLocation(navigate)
+            const { result } = renderHook(() => useAuth(), { wrapper })
+
+            await act(async () => {
+                await result.current.logoutUser({ allDevices: true })
+            })
+
+            expect(mockToastError).toHaveBeenCalledWith('logoutFailed')
+            expect(result.current.isLoggingOut).toBe(false)
+            expect(clearAuthToken).not.toHaveBeenCalled()
+            expect(mockLogoutNotificationIdentity).not.toHaveBeenCalled()
+            expect(navigate).not.toHaveBeenCalled()
+        }
+    )
+
+    it('still allows logout on this device after all-device revocation fails', async () => {
+        mockApiFetch.mockResolvedValue({ status: 503, ok: false })
+        const navigate = jest.fn()
+        stubLocation(navigate)
+        const { result } = renderHook(() => useAuth(), { wrapper })
+
+        await act(async () => {
+            await result.current.logoutUser({ allDevices: true })
+        })
+        expect(clearAuthToken).not.toHaveBeenCalled()
+
+        await act(async () => {
+            await result.current.logoutUser()
+        })
+
+        expect(mockApiFetch.mock.calls.map(([path]) => path)).toEqual(['/users/logout/all', '/users/logout'])
+        expect(clearAuthToken).toHaveBeenCalledTimes(1)
+        expect(navigate).toHaveBeenCalledTimes(1)
     })
 
     it('awaits signup-attribution cleanup before leaving the account boundary', async () => {

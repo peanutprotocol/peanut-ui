@@ -42,8 +42,6 @@ const flow = {
     isFetchingCharge: false,
     selectedChainID: '8453',
     selectedTokenData: { symbol: 'USDC' },
-    urlToken: null,
-    isTokenDenominated: false,
     goBackToInitial: jest.fn(),
     executePayment: jest.fn(),
     prepareRoute: jest.fn(),

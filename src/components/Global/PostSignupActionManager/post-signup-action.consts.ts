@@ -1,24 +1,34 @@
 import { type IconName } from '../Icons/Icon'
 
+function isRequestDestination(destination: string): boolean {
+    if (!destination.startsWith('/') || destination.startsWith('//')) return false
+    try {
+        const url = new URL(destination, 'https://peanut.invalid')
+        const path = url.pathname.replace(/\/$/, '')
+        if (path === '/pay-request' || path === '/request/pay') {
+            return !!(url.searchParams.get('chargeId')?.trim() || url.searchParams.get('id')?.trim())
+        }
+        return /^\/[^/]+\/[^/]+$/.test(path) && !!url.searchParams.get('chargeId')?.trim()
+    } catch {
+        return false
+    }
+}
+
+/** `copyKey` picks the copy under `home.postVerification` in the app catalogs. */
 export const POST_SIGNUP_ACTIONS = [
     {
         // this regex will match any path that contains the word "claim", this helps in determing if the user is coming from a claim link
         pathPattern: /claim/,
         config: {
-            title: 'Verification complete!',
-            description: `Your identity has been successfully verified. You can now claim money directly to your bank account.`,
-            cta: 'Claim to bank',
+            copyKey: 'claim',
             icon: 'check' as IconName,
         },
     },
     {
-        // this regex will match any path that resembles the request link, this helps in determing if the user is coming from a request link
-        pathPattern: /^\/[^\/]+\/[^\/\?]+\?.*chargeId=/,
+        pathPattern: { test: isRequestDestination },
         config: {
-            title: 'Verification complete!',
-            description: `Your identity has been successfully verified. You can now send the money your friend requested!`,
-            cta: 'Send it!',
+            copyKey: 'request',
             icon: 'check' as IconName,
         },
     },
-]
+] as const

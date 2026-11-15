@@ -20,6 +20,7 @@ import { TransactionDetailsHeaderCard } from './TransactionDetailsHeaderCard'
 import { LocalRailNudge } from './provider-rows/LocalRailNudge'
 import { CardUsdAbroadNotice } from './provider-rows/CardUsdAbroadNotice'
 import { CardAdjustmentNotice } from './provider-rows/CardAdjustmentNotice'
+import { PixPayCodeNotice } from '@/features/pix/components/PixPayCodeNotice'
 import { PerkRewardReceipt } from './provider-receipts/PerkRewardReceipt'
 import {
     hasUserProfile,
@@ -30,6 +31,7 @@ import {
     isSendLinkEntry,
 } from './transaction-predicates'
 import { receiptHeadlineAmount, requestedInCurrency } from './transaction-details.utils'
+import { type ReceiptSurface } from './transaction-types'
 import { useReceiptViewModel } from './useReceiptViewModel'
 import { PublicReceiptIssuer } from './PublicReceiptIssuer'
 
@@ -65,9 +67,16 @@ export const TransactionDetailsReceipt = ({
     const t = useAppTranslations('transaction')
     const tRequest = useAppTranslations('request')
 
+    // Only the transaction details drawer passes setIsModalOpen: it keeps that
+    // drawer open while a nested drawer is up, and vaul's NestedRoot throws
+    // outside a drawer. Every other caller renders the receipt as a page. The
+    // surface is derived from the setter rather than passed beside it, so the
+    // two cannot disagree.
+    const surface: ReceiptSurface = setIsModalOpen ? 'drawer' : 'page'
+
     // All derived row-visibility / status / share-receipt state lives in the
     // hook so this component stays focused on composition.
-    const vm = useReceiptViewModel(transaction, { isPublic })
+    const vm = useReceiptViewModel(transaction, { isPublic, surface })
     const { formattedTotalAmountCollected } = vm
 
     if (!transaction) return null
@@ -111,12 +120,17 @@ export const TransactionDetailsReceipt = ({
     // sentence. The provider's text is never shown: the API stores Bridge's
     // `refund.reason` joined with its undocumented `risk_rejection_reason`,
     // and marks the result "for support, not for display" (QA-08, 2026-09-24).
+    const returnReasonCode = transaction.extraDataForDrawer?.returnReasonCode
     const returnReasonLine =
         transaction.actionLabelKey !== 'type.returnedToSender'
             ? undefined
-            : transaction.extraDataForDrawer?.returnReasonCode === 'third_party'
+            : returnReasonCode === 'third_party'
               ? t('returnedReasonThirdParty')
-              : t('returnedReason')
+              : returnReasonCode === 'too_many_recent'
+                ? t('returnedReasonTooManyRecent')
+                : returnReasonCode === 'name_mismatch'
+                  ? t('returnedReasonNameMismatch')
+                  : t('returnedReason')
     const minimumAmountDisplay = transaction.extraDataForDrawer?.minimumAmountDisplay
     // a request asked in euros says so under its dollar headline
     const requestedAmountDisplay = requestedInCurrency(transaction)
@@ -197,7 +211,7 @@ export const TransactionDetailsReceipt = ({
                 merchantLogo={
                     isCardPaymentEntry(transaction) ? transaction.extraDataForDrawer?.cardPayment?.merchantLogo : null
                 }
-                avatarKey={transaction.avatarKey}
+                person={transaction.peer}
                 isPeer={transaction.isPeerActuallyUser}
                 haveSentMoneyToUser={transaction.haveSentMoneyToUser}
                 isNameClickable={isNameClickable}
@@ -243,12 +257,11 @@ export const TransactionDetailsReceipt = ({
 
             {/* the one receipt-style card (dates, conversion, fee, memo,
                 provider rows, pot progress + contributors) */}
-            {/* only the drawer passes setIsModalOpen; vaul's nested root throws outside a drawer */}
             <ReceiptDetailsCard
                 transaction={transaction}
                 vm={vm}
                 shouldShowQrShare={shouldShowQrShare}
-                inDrawer={!!setIsModalOpen}
+                inDrawer={surface === 'drawer'}
                 isActive={isActive}
             />
 
@@ -269,6 +282,10 @@ export const TransactionDetailsReceipt = ({
                         onOpenChange={setIsModalOpen}
                     />
                 )}
+
+            {/* A Pix deposit whose code can still be paid. Not gated on isPublic: the API sends the
+                field to the owner only, so the field itself is the gate. */}
+            <PixPayCodeNotice transaction={transaction} />
 
             {/* Over-capture explainer — the words for the Initial hold /
                 Adjustment rows in the details card and the merchant-recourse

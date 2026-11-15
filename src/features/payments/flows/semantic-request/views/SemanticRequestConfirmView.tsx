@@ -25,6 +25,7 @@ import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import DisplayIcon from '@/components/Global/DisplayIcon'
 import { useSemanticRequestFlow } from '../useSemanticRequestFlow'
 import { formatAmount, isStableCoin } from '@/utils/general.utils'
+import { formatAmountNumber } from '@/utils/currency'
 import { useTokenChainIcons } from '@/hooks/useTokenChainIcons'
 import { useMemo } from 'react'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
@@ -55,20 +56,10 @@ export function SemanticRequestConfirmView() {
         isFetchingCharge,
         selectedChainID,
         selectedTokenData,
-        urlToken,
-        isTokenDenominated,
         goBackToInitial,
         executePayment,
         prepareRoute,
     } = useSemanticRequestFlow()
-
-    // get the display symbol for the requested amount
-    const displayTokenSymbol = useMemo(() => {
-        if (isTokenDenominated && urlToken) {
-            return urlToken.symbol.toUpperCase()
-        }
-        return '$'
-    }, [isTokenDenominated, urlToken])
 
     // icons for sending token (peanut wallet usdc)
     const {
@@ -97,14 +88,8 @@ export function SemanticRequestConfirmView() {
     // is cross-chain or different token
     const isCrossChainPayment = isXChain || isDiffToken
 
-    // format display values
-    // when token-denominated (e.g., eth), show the token amount, not usd amount
-    const displayAmount = useMemo(() => {
-        if (isTokenDenominated) {
-            return `${formatAmount(amount)}`
-        }
-        return `${formatAmount(usdAmount || amount)}`
-    }, [amount, usdAmount, isTokenDenominated])
+    // the requested amount is USD: a request is paid in USDC or USDT only (TASK-23850)
+    const displayAmount = formatAmountNumber(usdAmount || amount)
 
     // Receive amount from Rhino preview. Same-token bridges are 1:1 minus flat
     // fee (no slippage) — the preview value is deterministic, not a "minimum".
@@ -113,8 +98,9 @@ export function SemanticRequestConfirmView() {
         if (!calculatedReceiveAmount) {
             return `$ ${charge?.tokenAmount}`
         }
-        const amount = formatAmount(calculatedReceiveAmount)
-        return isStableCoin(requestedResolvedTokenSymbol) ? `$ ${amount}` : `${amount} ${requestedResolvedTokenSymbol}`
+        return isStableCoin(requestedResolvedTokenSymbol)
+            ? `$ ${formatAmountNumber(calculatedReceiveAmount)}`
+            : `${formatAmount(calculatedReceiveAmount)} ${requestedResolvedTokenSymbol}`
     }, [calculatedReceiveAmount, charge?.tokenDecimals, charge?.tokenAmount, requestedResolvedTokenSymbol])
 
     // error message (route expiry auto-retries)
@@ -157,12 +143,12 @@ export function SemanticRequestConfirmView() {
             <PageStack.Center className="gap-4 pb-4">
                 {recipient && recipient.recipientType && (
                     <PeanutActionDetailsCard
-                        avatarSize="m"
                         transactionType={'REQUEST_PAYMENT'}
                         recipientType={recipient?.recipientType as PeanutActionDetailsCardRecipientType}
                         recipientName={recipient?.identifier || recipient?.resolvedAddress || ''}
+                        person={recipient.person}
                         amount={displayAmount}
-                        tokenSymbol={displayTokenSymbol}
+                        tokenSymbol="$"
                         message={attachment?.message ?? ''}
                         fileUrl={attachment?.fileUrl ?? ''}
                     />

@@ -128,6 +128,8 @@ jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
 jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ gateFor: () => ({ kind: 'loading' }) }) }))
 jest.mock('@/hooks/useResidenceRestrictions', () => ({ useResidenceRestrictions: () => ({ banking: false }) }))
 jest.mock('@/utils/capability-gate', () => ({
+    gateRemedy: (...args: [never]) => jest.requireActual('@/utils/capability-gate').gateRemedy(...args),
+    isDuplicateAccountGate: () => false,
     getKycModalVariant: () => 'needs_kyc',
     getGateUserMessage: () => undefined,
     getGateReasonCode: () => undefined,
@@ -160,7 +162,10 @@ jest.mock('@/utils/withdraw.utils', () => ({ getCountryCodeForWithdraw: () => 'U
 jest.mock('@/utils/general.utils', () => ({ formatTokenAmount: (n: number) => String(n) }))
 jest.mock('@/services/sendLinks', () => ({ sendLinksApi: {} }))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
-jest.mock('next/navigation', () => ({ useSearchParams: () => new URLSearchParams() }))
+jest.mock('next/navigation', () => ({
+    useSearchParams: () => new URLSearchParams(),
+    useRouter: () => ({ push: jest.fn() }),
+}))
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 
 const LINK_SECRET = 'guest-bank-claim-secret'

@@ -61,7 +61,7 @@ export function RequestLinksOldReply() {
                             <span className={day}>Mon 10:15</span>
                             Here you go:
                             <RequestLinksAppLink to={REQUEST_LINKS_CLIENT_SEES_ID} className="mt-2">
-                                <span className="rl-lift shadow-2 block rounded border-2 border-border-default bg-yellow-500 px-2 py-2">
+                                <span className="rl-lift shadow-2 block rounded border-2 border-border-default bg-background-accent-yellow px-2 py-2">
                                     <span className="block text-body-m-semibold">{REQUEST_LINKS_STORY.amount}</span>
                                     <span className="block text-body-xs">{REQUEST_LINKS_STORY.note}</span>
                                 </span>

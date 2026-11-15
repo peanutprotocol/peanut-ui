@@ -1,14 +1,16 @@
 import { type IUserProfile } from '@/interfaces/interfaces'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useDeviceType } from '../useGetDeviceType'
 import { USER } from '@/constants/query.consts'
 import { apiFetch } from '@/utils/api-fetch'
 import { clearAuthToken, getAuthToken, getClearEpoch, setAuthToken } from '@/utils/auth-token'
 import { isDemoMode } from '@/utils/demo'
+import { normalizeUserProfile, type UserProfileWire } from '@/utils/residence-profile'
 import { DEMO_USER } from '@/constants/demo-data'
 import { useHydrationSnapshot } from '@/utils/native-platform'
+import { clearAccountQueries } from '@/utils/account-query-cache'
 
 // custom error class for backend errors (5xx) that should trigger retry
 export class BackendError extends Error {
@@ -21,6 +23,7 @@ export class BackendError extends Error {
 }
 
 export const useUserQuery = (dependsOn: boolean = true) => {
+    const queryClient = useQueryClient()
     const demoMode = useHydrationSnapshot(isDemoMode, () => false)
     const { deviceType } = useDeviceType()
 
@@ -33,12 +36,17 @@ export const useUserQuery = (dependsOn: boolean = true) => {
         if (isDemoMode()) {
             const { demoRespond } = await import('@/utils/demo-api')
             const payload: IUserProfile = await (await demoRespond('/users/me')).json()
-            return payload
+            return payload ? normalizeUserProfile(payload) : null
         }
 
         const epochAtRequest = getClearEpoch()
         const tokenAtRequest = getAuthToken()
-        const userResponse = await apiFetch('/users/me', { method: 'GET', signal })
+        const previousUserId = queryClient.getQueryData<IUserProfile | null>([USER])?.user.userId
+        const userResponse = await apiFetch('/users/me', {
+            method: 'GET',
+            signal,
+            headers: { 'x-residence-format': 'compact' },
+        })
         const assertCurrentSession = () => {
             if (signal.aborted || getClearEpoch() !== epochAtRequest || getAuthToken() !== tokenAtRequest) {
                 throw new Error('Session changed while fetching user')
@@ -46,13 +54,16 @@ export const useUserQuery = (dependsOn: boolean = true) => {
         }
         assertCurrentSession()
         if (userResponse.ok) {
-            const payload: (IUserProfile & { token?: string }) | null = await userResponse.json()
+            const payload: (UserProfileWire & { token?: string }) | null = await userResponse.json()
 
             assertCurrentSession()
 
-            // Sliding refresh: backend re-mints when the JWT crosses half its
-            // lifetime and ships the new one alongside the user payload. Swap
-            // it in client-side so active users never hit the 30d hard logout.
+            if (previousUserId && payload?.user.userId && previousUserId !== payload.user.userId)
+                clearAccountQueries(queryClient)
+
+            // Sliding refresh: backend re-mints once the JWT is a day old and
+            // ships the new one alongside the user payload. Swap it in
+            // client-side so active users never hit the 7d idle logout.
             // Strip `token` unconditionally so auth state never leaks into the
             // user store, even if the backend ever sends a falsy value.
             // epoch guard: if logout cleared the session while this request
@@ -70,13 +81,7 @@ export const useUserQuery = (dependsOn: boolean = true) => {
                     deviceType,
                 })
             }
-            return payload
-        }
-
-        // Temporary failures must preserve the cached session.
-        if (userResponse.status >= 500 || userResponse.status === 429 || userResponse.status === 408) {
-            console.error('Backend error fetching user:', userResponse.status)
-            throw new BackendError('Backend error fetching user', userResponse.status)
+            return payload ? normalizeUserProfile(payload) : null
         }
 
         // 401 (expired/invalid JWT) and 404 (user no longer exists — e.g. local
@@ -86,7 +91,11 @@ export const useUserQuery = (dependsOn: boolean = true) => {
         // await: the native Preferences.remove must be dispatched before the
         // redirect-to-/setup teardown, or the dead JWT survives into the next
         // cold start and re-enters the home→401→setup loop.
-        if (userResponse.status === 401 || userResponse.status === 404) {
+        const invalidIdentifier =
+            userResponse.status === 400 &&
+            (await userResponse.json().catch(() => null))?.error === 'Invalid user identifier format'
+        if (userResponse.status === 401 || userResponse.status === 404 || invalidIdentifier) {
+            assertCurrentSession()
             // A login that completed while this request was in flight stored a
             // fresh token (passkey sheet blur → refetchOnWindowFocus race). A
             // stale 401 for the OLD token must not wipe it or null the user —
@@ -94,12 +103,15 @@ export const useUserQuery = (dependsOn: boolean = true) => {
             if (getAuthToken() !== tokenAtRequest) {
                 throw new Error('auth token rotated mid-request')
             }
+            clearAccountQueries(queryClient)
             await clearAuthToken()
+            return null
         }
 
-        // 4xx = auth failure — resolve null so the layout redirects to /setup
-        console.warn('Failed to fetch user, status:', userResponse.status)
-        return null
+        // Unexpected HTTP errors do not establish that the session ended.
+        // Reject the refresh so the previous profile stays in the cache.
+        console.error('Backend error fetching user:', userResponse.status)
+        throw new BackendError('Backend error fetching user', userResponse.status)
     }
 
     return useQuery({

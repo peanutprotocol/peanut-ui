@@ -27,7 +27,6 @@ jest.mock('@/utils/general.utils', () => ({
     getUserPreferences: () => undefined,
     updateUserPreferences: jest.fn(),
 }))
-jest.mock('@/utils/migration.utils', () => ({ isPwaSunsetOn: () => false }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: 'user-1' } } }) }))
 const mockCapture = jest.fn()

@@ -23,6 +23,7 @@ import { FIXTURES } from '../../src/dev/fixtures/registry'
 import { blockExternal, FROZEN_NOW, openFixture, seenOnceModals, settle } from './fixture-page'
 import { fixtureHref } from '../../src/dev/fixtures/active'
 import { EXEMPT, findOverflows } from './overflow-check'
+import { freezeDate } from '../../scripts/screens/freeze-date.mjs'
 
 async function assertNoOverflow(page: Page, id: string, testInfo: TestInfo) {
     // the check walks the whole document, so pull below-fold content in too
@@ -103,7 +104,7 @@ for (const [locale, routes] of Object.entries(LANDING_ROUTES)) {
         test(`landing:${route}`, async ({ page }, testInfo) => {
             test.skip(testInfo.project.use.locale !== locale, `belongs to the ${locale} project`)
             await blockExternal(page)
-            await page.clock.setFixedTime(FROZEN_NOW)
+            await page.addInitScript(freezeDate, FROZEN_NOW.getTime())
             await page.goto(route, { waitUntil: 'domcontentloaded' })
             await settle(page)
             await assertNoOverflow(page, `landing:${route}`, testInfo)
@@ -116,7 +117,12 @@ for (const [locale, routes] of Object.entries(LANDING_ROUTES)) {
 
 // Render the actual signup form independently of entry gates; these tests
 // check translated layout, while setup-entry tests cover navigation decisions.
-const SETUP_ROUTES = ['/setup', fixtureHref('/dev/surfaces?s=06-a-signup', 'setup-payment-plan'), '/setup?step=login']
+const SETUP_ROUTES = [
+    '/setup',
+    fixtureHref('/dev/surfaces?s=06-a-signup', 'setup-payment-plan'),
+    fixtureHref('/dev/surfaces?s=06-c-passkey', 'setup-passkey'),
+    '/setup?step=login',
+]
 
 for (const route of SETUP_ROUTES) {
     test(`setup:${route}`, async ({ page }, testInfo) => {
@@ -134,7 +140,7 @@ for (const route of SETUP_ROUTES) {
         })
 
         await blockExternal(page)
-        await page.clock.setFixedTime(FROZEN_NOW)
+        await page.addInitScript(freezeDate, FROZEN_NOW.getTime())
         await page.addInitScript(seenOnceModals)
         await page.goto(route, { waitUntil: 'domcontentloaded' })
         await settle(page)
@@ -142,6 +148,10 @@ for (const route of SETUP_ROUTES) {
         // Prove the signup surface renders the real form before scanning its copy.
         if (route.includes('s=06-a-signup')) {
             await expect(page.locator('input:visible').first()).toBeVisible()
+        }
+
+        if (route.includes('s=06-c-passkey')) {
+            await expect(page.locator('[data-setup-footer] button').first()).toBeVisible()
         }
 
         // same catalog race as the fixture tests: scan only after the app

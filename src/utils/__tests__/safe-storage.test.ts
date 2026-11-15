@@ -4,7 +4,15 @@
  * SecurityError in restricted Android in-app browsers, which took out startup
  * locale detection and wagmi's module-scope createConfig.
  */
-import { readStoredValue, removeStoredValue, resilientWebStorage, webStorage, writeStoredValue } from '../safe-storage'
+import {
+    readStoredValue,
+    removeStoredValue,
+    resilientSessionStorage,
+    resilientWebStorage,
+    storedKeysWithPrefix,
+    webStorage,
+    writeStoredValue,
+} from '../safe-storage'
 
 const realStorage = Object.getOwnPropertyDescriptor(window, 'localStorage')!
 
@@ -21,6 +29,37 @@ it('reads and writes through a healthy localStorage', () => {
     expect(readStoredValue('k')).toBe('v')
     removeStoredValue('k')
     expect(readStoredValue('k')).toBeNull()
+})
+
+it("reads and writes this tab's session storage when asked, apart from localStorage", () => {
+    writeStoredValue('k', 'session', 'sessionStorage')
+    expect(readStoredValue('k', 'sessionStorage')).toBe('session')
+    expect(readStoredValue('k')).toBeNull()
+    removeStoredValue('k', 'sessionStorage')
+    expect(sessionStorage.getItem('k')).toBeNull()
+})
+
+it('lists only the stored keys with the prefix asked', () => {
+    writeStoredValue('mark:u1:a', '1')
+    writeStoredValue('mark:u1:b', '2')
+    writeStoredValue('mark:u10:c', '3')
+    expect(storedKeysWithPrefix('mark:u1:').sort()).toEqual(['mark:u1:a', 'mark:u1:b'])
+    localStorage.clear()
+})
+
+it('lists no keys where storage is missing or cannot be listed', () => {
+    stubLocalStorage(() => null)
+    expect(storedKeysWithPrefix('mark:')).toEqual([])
+    stubLocalStorage(
+        () =>
+            ({
+                length: 1,
+                key: () => {
+                    throw new DOMException('denied', 'SecurityError')
+                },
+            }) as unknown as Storage
+    )
+    expect(storedKeysWithPrefix('mark:')).toEqual([])
 })
 
 it('treats a null localStorage as empty instead of dereferencing it', () => {
@@ -60,4 +99,49 @@ it('survives storage methods that throw once reached', () => {
     expect(resilientWebStorage.getItem('k')).toBeNull()
     expect(() => resilientWebStorage.setItem('k', 'v')).not.toThrow()
     expect(() => resilientWebStorage.removeItem('k')).not.toThrow()
+})
+
+it('reads, writes and removes session data without using localStorage', () => {
+    localStorage.removeItem('session-k')
+    resilientSessionStorage.setItem('session-k', 'v')
+    expect(resilientSessionStorage.getItem('session-k')).toBe('v')
+    expect(localStorage.getItem('session-k')).toBeNull()
+    resilientSessionStorage.removeItem('session-k')
+    expect(resilientSessionStorage.getItem('session-k')).toBeNull()
+})
+
+it('survives a sessionStorage property getter that throws SecurityError', () => {
+    const hostile = {
+        get sessionStorage(): Storage {
+            throw new DOMException('The operation is insecure.', 'SecurityError')
+        },
+    }
+    expect(webStorage(hostile, 'sessionStorage')).toBeNull()
+})
+
+it('survives unavailable and throwing session storage', () => {
+    const descriptor = Object.getOwnPropertyDescriptor(window, 'sessionStorage')!
+    try {
+        for (const storage of [
+            null,
+            {
+                getItem: () => {
+                    throw new Error('denied')
+                },
+                setItem: () => {
+                    throw new Error('quota')
+                },
+                removeItem: () => {
+                    throw new Error('denied')
+                },
+            },
+        ]) {
+            Object.defineProperty(window, 'sessionStorage', { configurable: true, get: () => storage })
+            expect(resilientSessionStorage.getItem('k')).toBeNull()
+            expect(() => resilientSessionStorage.setItem('k', 'v')).not.toThrow()
+            expect(() => resilientSessionStorage.removeItem('k')).not.toThrow()
+        }
+    } finally {
+        Object.defineProperty(window, 'sessionStorage', descriptor)
+    }
 })

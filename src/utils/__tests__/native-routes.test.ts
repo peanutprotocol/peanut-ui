@@ -159,6 +159,17 @@ describe('native-routes', () => {
             it('should not rewrite /add-money/crypto or /add-money/us (static routes)', () => {
                 expect(rewriteMethodPath('/add-money/crypto')).toBe('/add-money/crypto')
                 expect(rewriteMethodPath('/add-money/us')).toBe('/add-money/us')
+                expect(rewriteMethodPath('/add-money/options?method=transfer', 'ready=1')).toBe(
+                    '/add-money/options?method=transfer&ready=1'
+                )
+            })
+
+            it('should not rewrite the neutral Pix pages or the retired new-key alias (static routes)', () => {
+                expect(rewriteMethodPath('/add-money/pix?step=showQR&intentId=d1')).toBe(
+                    '/add-money/pix?step=showQR&intentId=d1'
+                )
+                expect(rewriteMethodPath('/withdraw/pix')).toBe('/withdraw/pix')
+                expect(rewriteMethodPath('/withdraw/new-pix-key?intentId=w1')).toBe('/withdraw/new-pix-key?intentId=w1')
             })
 
             it('should append extraParams to rewritten add-money path', () => {
@@ -492,6 +503,19 @@ describe('native-routes', () => {
                 }
             )
 
+            it.each([
+                '/profile',
+                '/profile/details',
+                '/profile/edit',
+                '/profile?open=residence&returnTo=%2Fcard',
+                '/settings',
+                '/settings/details',
+                '/settings/language',
+                '/settings/notifications',
+            ])('keeps %s on its exported Settings page or compatibility alias', (route) => {
+                expect(deepLinkToNativePath(route)).toBe(route)
+            })
+
             it.each(['/rewards', '/history', '/badges', '/profile'])(
                 'leaves the reserved route %s alone even with a chargeId param',
                 (route) => {
@@ -708,6 +732,44 @@ describe('native-routes', () => {
             )
             mockIsCapacitor.mockReturnValue(false)
             expect(deepLinkToNativePath('https://peanut.me/app/anything')).toBe('/app')
+        })
+
+        it('runs a tracked /home handoff through the /app bootstrap with its continuation fields', () => {
+            expect(
+                deepLinkToNativePath(
+                    'https://peanut.me/home?app_entry=1&tl=alice&acq_invite=alice&tl_seen=1&pnutdl=1&wid=w&at=t'
+                )
+            ).toBe('/app?tl=alice&tl_seen=1&acq_invite=alice&pnutdl=1&at=t&wid=w')
+        })
+
+        it('runs the /go handoff with its passive inviter and drops every other field', () => {
+            expect(
+                deepLinkToNativePath(
+                    'https://peanut.me/home?app_entry=1&tl=alice&acq_invite=alice&invite=mallory&pnutdl=1&dest=%2Fsend'
+                )
+            ).toBe('/app?tl=alice&acq_invite=alice')
+        })
+
+        it('forwards only whitelisted, single-valued continuation fields', () => {
+            expect(
+                deepLinkToNativePath(
+                    'https://peanut.me/home?tl=alice&tl_seen=1&invite=bob&lang=es&dest=%2Fsend&code=mallory&at=1&at=2'
+                )
+            ).toBe('/app?tl=alice&tl_seen=1&lang=es&invite=bob')
+        })
+
+        it.each([
+            ['another peanut.me host', 'https://evil.peanut.me/home?tl=alice'],
+            ['an http origin', 'http://peanut.me/home?tl=alice'],
+            ['credentials in the URL', 'https://user:pass@peanut.me/home?tl=alice'],
+            ['two tl values', 'https://peanut.me/home?tl=alice&tl=bob'],
+            ['a slug that cannot be a username', 'https://peanut.me/home?tl=Al-ice'],
+        ])('opens no tracked handoff from %s', (_case, url) => {
+            expect(deepLinkToNativePath(url)).toBeNull()
+        })
+
+        it('has no native page for /go, which is not an associated path', () => {
+            expect(deepLinkToNativePath('https://peanut.me/go/alice')).toBeNull()
         })
     })
 })

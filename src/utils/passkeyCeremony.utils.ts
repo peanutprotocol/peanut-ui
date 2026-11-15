@@ -1,9 +1,10 @@
-import { beginAndroidPasskeyScope } from './android-passkey-scope'
+import { beginAndroidPasskeyScope, waitForExpiredAndroidPasskeyScope } from './android-passkey-scope'
+import { ANDROID_PASSKEY_SETTLE_GRACE_MS } from './android-passkey-controller'
 import { addBreadcrumb, captureException } from '@/utils/sentry-lazy'
 import { isCapacitor } from '@/utils/capacitor'
 import { setAuthToken } from '@/utils/auth-token'
 import { setCachedStepUpToken } from '@/services/step-up-cache'
-import { openCredentialCall } from '@/utils/webauthn-ceremony-telemetry'
+import { beginCeremonyTiming, openCredentialCall, type CeremonyTiming } from '@/utils/webauthn-ceremony-telemetry'
 
 /**
  * Guards for the passkey ceremony (TASK-21782).
@@ -58,6 +59,14 @@ export class CeremonyConflictError extends Error {
     }
 }
 
+/** The caller retired the ceremony (the user chose another way in); its late result is discarded. */
+export class CeremonyCancelledError extends Error {
+    constructor() {
+        super('passkey ceremony was cancelled by the caller')
+        this.name = 'CeremonyCancelledError'
+    }
+}
+
 /** True for the pre-ceremony / timeout guard errors thrown by this module. */
 export const isCeremonyGuardError = (err: unknown): err is Error =>
     err instanceof Error &&
@@ -65,7 +74,8 @@ export const isCeremonyGuardError = (err: unknown): err is Error =>
         err.name === 'PasskeyShimNotReadyError' ||
         err.name === 'PasskeyShimFailedError' ||
         err.name === 'CeremonyConflictError' ||
-        err.name === 'PasskeyCleanupPendingError')
+        err.name === 'PasskeyCleanupPendingError' ||
+        err.name === 'PasskeyRequestSettlingError')
 
 const GUARD_ERROR_TAG: Record<string, string> = {
     CeremonyTimeoutError: 'ceremony_timeout',
@@ -73,6 +83,7 @@ const GUARD_ERROR_TAG: Record<string, string> = {
     PasskeyShimFailedError: 'shim_failed',
     CeremonyConflictError: 'ceremony_conflict',
     PasskeyCleanupPendingError: 'cleanup_pending',
+    PasskeyRequestSettlingError: 'request_settling',
 }
 
 // A second tap while a ceremony owns the window is a rejected interaction, not
@@ -233,41 +244,101 @@ const cancelBrowserCeremony = (): void => {
  * when the ceremony resolves, so a ceremony reported as failed can never
  * leave a persisted token behind.
  */
-export const guardPasskeyCeremony = async <T>(startCeremony: () => Promise<T>): Promise<T> => {
+export const guardPasskeyCeremony = async <T>(
+    startCeremony: () => Promise<T>,
+    { cancel, timing: suppliedTiming }: { cancel?: AbortSignal; timing?: CeremonyTiming } = {}
+): Promise<T> => {
+    const startedAt = Date.now()
     const native = isCapacitor()
+    if (cancel?.aborted) throw new CeremonyCancelledError()
     if (activeCeremonyId !== null) throw new CeremonyConflictError()
-    if (native) await waitForPasskeyShim()
-    // re-check: another ceremony may have claimed the window during the wait
-    if (activeCeremonyId !== null) throw new CeremonyConflictError()
-    const androidScope = native ? beginAndroidPasskeyScope() : undefined
-    const ceremonyId = ++ceremonySeq
-    activeCeremonyId = ceremonyId
-    stashedVerifyToken = null
-    stashedStepUp = null
+    let timing = suppliedTiming
     try {
-        let operation: Promise<T>
+        timing ??= beginCeremonyTiming?.(startedAt)
+    } catch {}
+    let admitted = false
+    try {
+        if (native) await waitForPasskeyShim()
+        const expiredScope = native ? waitForExpiredAndroidPasskeyScope(ANDROID_PASSKEY_SETTLE_GRACE_MS) : undefined
+        if (expiredScope) await expiredScope
+        // re-check: another ceremony may have claimed the window, or the caller cancelled, during the wait
+        if (activeCeremonyId !== null) throw new CeremonyConflictError()
+        if (cancel?.aborted) throw new CeremonyCancelledError()
+        const androidScope = native ? beginAndroidPasskeyScope() : undefined
+        const ceremonyId = ++ceremonySeq
+        activeCeremonyId = ceremonyId
+        admitted = true
         try {
-            operation = startCeremony()
-        } catch (error) {
-            androidScope?.finish()
-            throw error
-        }
-        // Keep the scope after a UI timeout until the SDK continuation terminates.
-        // An options response arriving late cannot open another native prompt.
-        const scopedOperation = operation.finally(() => androidScope?.finish())
-        const result = await raceCeremonyTimeout(
-            scopedOperation,
-            native ? CEREMONY_TIMEOUT_MS : WEB_CEREMONY_TIMEOUT_MS,
-            native ? () => androidScope?.expire() : cancelBrowserCeremony
-        )
-        if (stashedVerifyToken !== null) setAuthToken(stashedVerifyToken)
-        const stepUp = takeStashedStepUp()
-        if (stepUp !== null) setCachedStepUpToken(stepUp.token, stepUp.expiresIn)
-        return result
-    } finally {
-        if (activeCeremonyId === ceremonyId) activeCeremonyId = null
-        reportedConflictCeremonies.delete(ceremonyId)
+            timing?.activate()
+        } catch {}
         stashedVerifyToken = null
         stashedStepUp = null
+        let stopListening = () => {}
+        try {
+            let operation: Promise<T>
+            try {
+                timing?.operationStarted()
+            } catch {}
+            try {
+                operation = startCeremony()
+            } catch (error) {
+                try {
+                    timing?.operationSettled()
+                } catch {}
+                androidScope?.finish()
+                throw error
+            }
+            // Keep the scope after a UI timeout until the SDK continuation terminates or the next
+            // ceremony retires it. An options response arriving late cannot open another native prompt.
+            const scopedOperation = operation.finally(() => {
+                try {
+                    timing?.operationSettled()
+                } catch {}
+                androidScope?.finish()
+            })
+            // Rejecting closes the window in `finally`, so an assertion that lands later can't commit a session.
+            const cancelled = cancel
+                ? new Promise<never>((_, reject) => {
+                      const onAbort = () => reject(new CeremonyCancelledError())
+                      cancel.addEventListener('abort', onAbort, { once: true })
+                      stopListening = () => cancel.removeEventListener('abort', onAbort)
+                  })
+                : undefined
+            const result = await raceCeremonyTimeout(
+                cancelled ? Promise.race([scopedOperation, cancelled]) : scopedOperation,
+                native ? CEREMONY_TIMEOUT_MS : WEB_CEREMONY_TIMEOUT_MS,
+                () => {
+                    try {
+                        timing?.timeout()
+                    } catch {}
+                    if (native) androidScope?.expire()
+                    else cancelBrowserCeremony()
+                }
+            )
+            // The ceremony can settle in the same turn as a retirement; a retired login must not commit a session.
+            if (cancel?.aborted) throw new CeremonyCancelledError()
+            if (stashedVerifyToken !== null) setAuthToken(stashedVerifyToken)
+            const stepUp = takeStashedStepUp()
+            if (stepUp !== null) setCachedStepUpToken(stepUp.token, stepUp.expiresIn)
+            return result
+        } finally {
+            stopListening()
+            if (activeCeremonyId === ceremonyId) activeCeremonyId = null
+            reportedConflictCeremonies.delete(ceremonyId)
+            stashedVerifyToken = null
+            stashedStepUp = null
+        }
+    } catch (error) {
+        try {
+            if (admitted) timing?.finish(error)
+        } catch {}
+        throw error
+    } finally {
+        try {
+            if (!suppliedTiming) {
+                if (admitted) timing?.finish()
+                timing?.dispose()
+            }
+        } catch {}
     }
 }

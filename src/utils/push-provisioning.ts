@@ -41,6 +41,7 @@ export interface AddCardToWalletResult {
 }
 
 interface PushProvisioningPlugin {
+    getGoogleWalletCardStatus(options: { cardId: string }): Promise<{ status: string }>
     isAvailable(options: { last4?: string }): Promise<PushProvisioningAvailability>
     rememberCard(options: { peanutCardId: string; last4: string; displayName?: string }): Promise<void>
     setWalletAuthorizationToken(options: { cardId: string; token: string; expiresIn: number }): Promise<void>
@@ -61,13 +62,34 @@ const PushProvisioning = nativeCapability<PushProvisioningPlugin>('PushProvision
 })
 
 /**
- * Can this device do one-tap wallet provisioning? Omit last4 on Android:
- * its suffix lookup cannot distinguish cards with the same last four digits.
- * The native addCard flow checks the exact card before provisioning.
+ * Can this device do one-tap wallet provisioning? `alreadyInWallet` is a
+ * last-four match, which can be another card with the same digits: confirm it
+ * before hiding the add action. The native addCard flow checks the exact card.
  * False on web, binaries without the SDK, or without required entitlements.
  */
 export async function getPushProvisioningAvailability(last4?: string): Promise<PushProvisioningAvailability> {
     return PushProvisioning.call('isAvailable', { last4 }, () => ({ available: false, alreadyInWallet: false }))
+}
+
+export type GoogleWalletCardStatus = 'present' | 'absent' | 'pending' | 'unknown' | 'unsupported'
+
+export async function getGoogleWalletCardStatus(cardId: string): Promise<GoogleWalletCardStatus> {
+    if (!cardId) return 'unknown'
+    const result = await PushProvisioning.call('getGoogleWalletCardStatus', { cardId }, (error) => ({
+        status:
+            error && typeof error === 'object' && 'code' in error && error.code === 'UNIMPLEMENTED'
+                ? 'unsupported'
+                : 'unknown',
+    }))
+    switch (result?.status) {
+        case 'present':
+        case 'absent':
+        case 'pending':
+        case 'unsupported':
+            return result.status
+        default:
+            return 'unknown'
+    }
 }
 
 /**

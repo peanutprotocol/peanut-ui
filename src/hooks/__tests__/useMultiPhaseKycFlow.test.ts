@@ -1,5 +1,13 @@
+import { withFeatureReport } from '@/test-utils/featureReport.fixture'
 jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
 
+jest.mock('@/app/actions/kyc-workflow', () => ({
+    getKycDocumentPlan: jest.fn(async () => ({ available: false, routes: [] })),
+    findKycDocumentPlan: jest.fn(async () => ({ available: false, routes: [] })),
+    getKycDocumentStatus: jest.fn(),
+    resumeKycDocumentAttempt: jest.fn(),
+    findKycReplacementPlan: jest.fn(async () => null),
+}))
 import { act } from '@testing-library/react'
 import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
 import posthog from 'posthog-js'
@@ -45,9 +53,18 @@ jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn(), repla
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false, isAndroidNative: () => false }))
 // the transitive useSumsubKycFlow reads user.user.username off the same useAuth
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ fetchUser: mockFetchUser, user: { user: { username: 'test' } } }),
+    useAuth: () => ({
+        fetchUser: mockFetchUser,
+        user: {
+            user: { username: 'test' },
+            capabilities: mockCapabilities,
+            identityVerification: mockIdentity,
+        },
+    }),
 }))
-jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ capabilities: undefined }) }))
+let mockCapabilities: unknown = undefined
+let mockIdentity: Record<string, unknown> = { status: 'verified' }
+jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ capabilities: mockCapabilities }) }))
 jest.mock('@/hooks/useSumsubReloadResume', () => ({ useSumsubReloadResume: jest.fn() }))
 jest.mock('@/hooks/useSubmissionWindow', () => ({ markSubmitted: jest.fn() }))
 jest.mock('@/utils/capability-gate', () => ({ deriveGate: () => ({ kind: 'none' }) }))
@@ -62,6 +79,106 @@ const mockCapture = posthog.capture as jest.MockedFunction<typeof posthog.captur
 
 const rejectedCaptures = () => mockCapture.mock.calls.filter(([event]) => event === ANALYTICS_EVENTS.KYC_REJECTED)
 
+/** TASK-24662: the address step is reviewed apart from the identity, like the residence change. */
+describe('useMultiPhaseKycFlow — the address step', () => {
+    const { startKycAction } = jest.requireMock('@/app/actions/sumsub') as { startKycAction: jest.Mock }
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockFetchUser.mockResolvedValue(null)
+        startKycAction.mockReset()
+        startKycAction.mockResolvedValue({
+            data: { token: 'address-token', levelName: 'provider-rfi-address', externalActionId: 'address-step-u-1' },
+        })
+    })
+
+    it.each([{ error: 'Launch unavailable' }, { data: { levelName: 'provider-rfi-address' } }])(
+        'keeps a failed or tokenless address launch retryable through the real flow',
+        async (response) => {
+            startKycAction.mockResolvedValueOnce(response)
+            const onKycApproved = jest.fn()
+            const onActionSubmitted = jest.fn()
+            const { result } = renderHook(() => useMultiPhaseKycFlow({ onKycApproved, onActionSubmitted }))
+            await act(async () => {
+                await result.current.handleStartAction('sumsub:address_of_residence')
+            })
+            expect(result.current.error).toBeTruthy()
+            expect(result.current.isLoading).toBe(false)
+            expect(result.current.showWrapper).toBe(false)
+            expect(result.current.accessToken).toBeNull()
+            expect(onKycApproved).not.toHaveBeenCalled()
+            expect(onActionSubmitted).not.toHaveBeenCalled()
+            await act(async () => {
+                await result.current.handleStartAction('sumsub:address_of_residence')
+            })
+            expect(result.current.error).toBeNull()
+            expect(result.current.showWrapper).toBe(true)
+            expect(result.current.accessToken).toBe('address-token')
+            expect(startKycAction).toHaveBeenCalledTimes(2)
+        }
+    )
+
+    it('does not open a late address SDK after the pending launch was dismissed', async () => {
+        let finish!: (response: unknown) => void
+        startKycAction.mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    finish = resolve
+                })
+        )
+        const { result } = renderHook(() => useMultiPhaseKycFlow({}))
+        let pending!: Promise<boolean>
+        act(() => {
+            pending = result.current.handleStartAction('sumsub:address_of_residence')
+        })
+        act(() => result.current.handleSdkClose())
+        await act(async () => {
+            finish({ data: { token: 'late-address-token', levelName: 'provider-rfi-address' } })
+            await pending
+        })
+        expect(result.current.showWrapper).toBe(false)
+        expect(result.current.accessToken).toBeNull()
+        expect(result.current.isModalOpen).toBe(false)
+    })
+
+    it('exposes a rejected launch promise without opening the SDK or reporting approval', async () => {
+        startKycAction.mockRejectedValueOnce(new Error('Launch unavailable'))
+        const onKycApproved = jest.fn()
+        const { result } = renderHook(() => useMultiPhaseKycFlow({ onKycApproved }))
+        await act(async () => {
+            await result.current.handleStartAction('sumsub:address_of_residence')
+        })
+        expect(result.current.error).toBe('Launch unavailable')
+        expect(result.current.isLoading).toBe(false)
+        expect(result.current.showWrapper).toBe(false)
+        expect(result.current.accessToken).toBeNull()
+        expect(onKycApproved).not.toHaveBeenCalled()
+    })
+
+    it('submission hands back to the screen that offered it: no identity events, no approval wait', async () => {
+        const onKycApproved = jest.fn()
+        const onActionSubmitted = jest.fn()
+        const { result } = renderHook(() => useMultiPhaseKycFlow({ onKycApproved, onActionSubmitted }))
+
+        await act(async () => {
+            await result.current.handleStartAction('sumsub:address_of_residence')
+        })
+        expect(result.current.showWrapper).toBe(true)
+
+        mockCapture.mockClear()
+        act(() => result.current.handleSdkSubmitted('sdk_submitted'))
+        act(() => result.current.handleSdkComplete())
+
+        expect(onActionSubmitted).toHaveBeenCalledWith('sumsub:address_of_residence')
+        expect(markSubmitted).toHaveBeenCalled()
+        expect(onKycApproved).not.toHaveBeenCalled()
+        expect(mockFetchUser).not.toHaveBeenCalled()
+        expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.KYC_SUBMITTED, expect.anything())
+        expect(result.current.showWrapper).toBe(false)
+        expect(result.current.isModalOpen).toBe(false)
+    })
+})
+
 describe('useMultiPhaseKycFlow — residence action composition', () => {
     beforeEach(() => {
         jest.clearAllMocks()
@@ -74,6 +191,50 @@ describe('useMultiPhaseKycFlow — residence action composition', () => {
                 targetCountry: 'PT',
             },
         })
+    })
+
+    it('refreshes an older residence action on provider review hold without opening the SDK or surfacing a failure', async () => {
+        mockResidenceChange.mockResolvedValueOnce({
+            error: 'This residence action is already under review.',
+            code: 'RESIDENCE_ACTION_REVIEW_PENDING',
+        })
+        const onKycApproved = jest.fn()
+        const { result } = renderHook(() => useMultiPhaseKycFlow({ onKycApproved }))
+        mockFetchUser.mockClear()
+
+        await act(async () => {
+            await result.current.handleResidenceChange('PT')
+        })
+
+        expect(mockResidenceChange).toHaveBeenCalledWith('PT')
+        expect(result.current.showWrapper).toBe(false)
+        expect(result.current.accessToken).toBeNull()
+        expect(result.current.error).toBeNull()
+        expect(mockFetchUser).toHaveBeenCalled()
+        expect(onKycApproved).not.toHaveBeenCalled()
+    })
+
+    it('ignores an older hold response after a new residence request starts', async () => {
+        let resolveFirst!: (value: Awaited<ReturnType<typeof startResidenceChangeVerification>>) => void
+        mockResidenceChange.mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    resolveFirst = resolve
+                })
+        )
+        const { result } = renderHook(() => useMultiPhaseKycFlow({}))
+        let first!: Promise<void>
+        await act(async () => {
+            first = result.current.handleResidenceChange('PT')
+            await result.current.handleResidenceChange('FR')
+        })
+        expect(result.current.showWrapper).toBe(true)
+        await act(async () => {
+            resolveFirst({ error: 'Under review', code: 'RESIDENCE_ACTION_REVIEW_PENDING' })
+            await first
+        })
+        expect(result.current.showWrapper).toBe(true)
+        expect(result.current.isResidenceReviewOpen).toBe(false)
     })
 
     it('submission closes the action without starting identity or rail approval orchestration', async () => {
@@ -92,7 +253,7 @@ describe('useMultiPhaseKycFlow — residence action composition', () => {
         act(() => result.current.handleSdkComplete())
 
         expect(markSubmitted).not.toHaveBeenCalled()
-        expect(mockFetchUser).not.toHaveBeenCalled()
+        expect(mockFetchUser).toHaveBeenCalledTimes(1)
         expect(onKycApproved).not.toHaveBeenCalled()
         expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.KYC_SUBMITTED, expect.anything())
         expect(result.current.showWrapper).toBe(false)
@@ -125,7 +286,7 @@ describe('useMultiPhaseKycFlow — residence action composition', () => {
         })
 
         expect(markSubmitted).not.toHaveBeenCalled()
-        expect(mockFetchUser).not.toHaveBeenCalled()
+        expect(mockFetchUser).toHaveBeenCalledTimes(1)
         expect(onKycApproved).not.toHaveBeenCalled()
         expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.KYC_APPROVED, expect.anything())
         expect(result.current.isModalOpen).toBe(false)
@@ -314,20 +475,23 @@ describe('deposit session regression contracts', () => {
         expect(markSubmitted).toHaveBeenCalled()
         expect(mockFetchUser).toHaveBeenCalled()
         const refreshed = {
-            capabilities: {
-                rails: [
-                    {
-                        provider: 'manteca',
-                        channel: 'bank',
-                        country: 'AR',
-                        currency: 'ARS',
-                        status: 'enabled',
-                        operations: { deposit: 'enabled' },
-                    },
-                ],
-                nextActions: [],
-                restrictions: [],
-            },
+            capabilities: withFeatureReport(
+                {
+                    rails: [
+                        {
+                            provider: 'manteca',
+                            channel: 'bank',
+                            country: 'AR',
+                            currency: 'ARS',
+                            status: 'enabled',
+                            operations: { deposit: 'enabled' },
+                        },
+                    ],
+                    nextActions: [],
+                    restrictions: [],
+                } as never,
+                { identity: { status: 'verified' } }
+            ),
         }
         mockFetchUser.mockResolvedValue(refreshed)
         await act(async () => {
@@ -364,7 +528,9 @@ describe('deposit session regression contracts', () => {
             await result.current.correctVerificationData()
         })
         expect(mockInitiate).toHaveBeenLastCalledWith(
-            expect.objectContaining({ regionIntent: 'LATAM', targetCountry: 'AR', correctSession: true })
+            expect.objectContaining({ regionIntent: 'LATAM', targetCountry: 'AR', correctSession: true }),
+            undefined,
+            expect.any(AbortSignal)
         )
         expect(result.current.showWrapper).toBe(true)
         ;(refreshVerificationSession as jest.Mock).mockResolvedValue('refreshed')
@@ -404,14 +570,17 @@ describe('deposit session regression contracts', () => {
     it.each(['blocked', 'requires-info', 'unavailable', 'pending'])(
         'a %s deposit rail cannot be success even when QR is enabled',
         (status) => {
-            const capabilities = {
-                rails: [
-                    { provider: 'bridge', channel: 'bank', country: 'EU', currency: 'EUR', status },
-                    { provider: 'manteca', channel: 'qr-only', country: 'AR', currency: 'ARS', status: 'enabled' },
-                ],
-                nextActions: [],
-                restrictions: [],
-            }
+            const capabilities = withFeatureReport(
+                {
+                    rails: [
+                        { provider: 'bridge', channel: 'bank', country: 'EU', currency: 'EUR', status },
+                        { provider: 'manteca', channel: 'qr-only', country: 'AR', currency: 'ARS', status: 'enabled' },
+                    ],
+                    nextActions: [],
+                    restrictions: [],
+                } as never,
+                { identity: { status: 'verified' } }
+            )
             expect(deriveCapabilityPhaseSignals(capabilities as never, 'EU').allSettled).toBe(false)
         }
     )
@@ -419,39 +588,48 @@ describe('deposit session regression contracts', () => {
         ['GB', 'GBP', 'EU'],
         ['MX', 'MXN', 'NA'],
     ] as const)('uses the requested %s bank jurisdiction', (country, currency, intent) => {
-        const capabilities = {
-            rails: [{ provider: 'bridge', channel: 'bank', country, currency, status: 'enabled' }],
-            nextActions: [],
-            restrictions: [],
-        }
+        const capabilities = withFeatureReport(
+            {
+                rails: [{ provider: 'bridge', channel: 'bank', country, currency, status: 'enabled' }],
+                nextActions: [],
+                restrictions: [],
+            } as never,
+            { identity: { status: 'verified' } }
+        )
         expect(deriveCapabilityPhaseSignals(capabilities as never, intent, country).allSettled).toBe(true)
-        const other = {
-            ...capabilities,
-            rails: [
-                {
-                    ...capabilities.rails[0],
-                    country: intent === 'EU' ? 'EU' : 'US',
-                    currency: intent === 'EU' ? 'EUR' : 'USD',
-                },
-            ],
-        }
+        const other = withFeatureReport(
+            {
+                ...capabilities,
+                rails: [
+                    {
+                        ...capabilities.rails[0],
+                        country: intent === 'EU' ? 'EU' : 'US',
+                        currency: intent === 'EU' ? 'EUR' : 'USD',
+                    },
+                ],
+            } as never,
+            { identity: { status: 'verified' } }
+        )
         expect(deriveCapabilityPhaseSignals(other as never, intent, country).allSettled).toBe(false)
     })
     it('an enabled account in another country cannot complete an AR deposit flow', () => {
-        const capabilities = {
-            rails: [
-                {
-                    provider: 'manteca',
-                    channel: 'bank',
-                    country: 'BR',
-                    currency: 'BRL',
-                    status: 'enabled',
-                    operations: { deposit: 'enabled' },
-                },
-            ],
-            nextActions: [],
-            restrictions: [],
-        }
+        const capabilities = withFeatureReport(
+            {
+                rails: [
+                    {
+                        provider: 'manteca',
+                        channel: 'bank',
+                        country: 'BR',
+                        currency: 'BRL',
+                        status: 'enabled',
+                        operations: { deposit: 'enabled' },
+                    },
+                ],
+                nextActions: [],
+                restrictions: [],
+            } as never,
+            { identity: { status: 'verified' } }
+        )
         expect(deriveCapabilityPhaseSignals(capabilities as never, 'LATAM', 'AR').allSettled).toBe(false)
     })
 })
@@ -654,6 +832,178 @@ describe('useMultiPhaseKycFlow — submission analytics per attempt', () => {
     })
 })
 
+// A Smart Paperwork Verification approval with bank accounts ticked parks Bridge until the
+// proof of address arrives on its supplement action (supplement:bridge).
+describe('useMultiPhaseKycFlow — the proof of address after the identity', () => {
+    const parked = {
+        capabilities: withFeatureReport(
+            {
+                rails: [
+                    {
+                        id: 'bridge.sepa_eu',
+                        provider: 'bridge',
+                        channel: 'bank',
+                        country: 'EU',
+                        currency: 'EUR',
+                        status: 'blocked',
+                        reason: { code: 'requirements_missing', userMessage: 'x' },
+                        blockingActions: ['supplement:bridge'],
+                        resolved: {
+                            status: 'fixable',
+                            nextAction: { key: 'supplement:bridge', kind: 'sumsub', purpose: 'requirements_missing' },
+                        },
+                    },
+                ],
+                nextActions: [{ key: 'supplement:bridge', kind: 'sumsub', purpose: 'requirements_missing' }],
+                restrictions: [],
+            } as never,
+            { identity: { status: 'verified' } }
+        ),
+    }
+    const reviewing = {
+        capabilities: withFeatureReport(
+            {
+                ...parked.capabilities,
+                rails: [
+                    {
+                        ...parked.capabilities.rails[0],
+                        status: 'pending',
+                        reason: {
+                            code: 'requirements_in_review',
+                            userMessage: "We're checking your proof of address. Bank accounts open once it's approved.",
+                        },
+                        blockingActions: [],
+                        resolved: { status: 'pending' },
+                    },
+                ],
+                nextActions: [],
+            } as never,
+            { identity: { status: 'verified' } }
+        ),
+    }
+    const mockStartAction = jest.requireMock('@/app/actions/sumsub').startKycAction as jest.Mock
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockFetchUser.mockResolvedValue(parked)
+        mockInitiate.mockResolvedValue({ data: { token: 'tok', applicantId: 'app', status: 'PENDING' } })
+        mockStartAction.mockResolvedValue({ data: { token: 'poa-token', levelName: 'provider-rfi-proof-of-address' } })
+    })
+
+    const approve = async (onKycSuccess = jest.fn()) => {
+        const view = renderHook(() => useMultiPhaseKycFlow({ onKycSuccess }))
+        await act(async () => {
+            await view.result.current.handleInitiateKyc('EU')
+        })
+        await act(async () => {
+            mockWs.handler?.('APPROVED')
+        })
+        return view
+    }
+
+    it('reads the supplement a parked rail carries', () => {
+        expect(deriveCapabilityPhaseSignals(parked.capabilities as never).supplementKey).toBe('supplement:bridge')
+        expect(
+            deriveCapabilityPhaseSignals(
+                withFeatureReport(
+                    { ...parked.capabilities, rails: [], nextActions: [] },
+                    { identity: { status: 'verified' } }
+                )
+            ).supplementKey
+        ).toBeUndefined()
+    })
+
+    it('does not infer a supplement from a parked rail whose proof of address is in review', async () => {
+        expect(deriveCapabilityPhaseSignals(reviewing.capabilities as never).supplementKey).toBeUndefined()
+        mockFetchUser.mockResolvedValue(reviewing)
+        const onKycSuccess = jest.fn()
+        const view = await approve(onKycSuccess)
+        expect(view.result.current.modalPhase).not.toBe('supplement')
+        expect(mockStartAction).not.toHaveBeenCalled()
+
+        mockCapabilities = reviewing.capabilities
+        view.rerender()
+        expect(view.result.current.modalPhase).not.toBe('supplement')
+        expect(mockStartAction).not.toHaveBeenCalled()
+        mockCapabilities = undefined
+    })
+
+    it('asks for the proof of address right after approval and starts it on the supplement action', async () => {
+        const onKycSuccess = jest.fn()
+        const { result } = await approve(onKycSuccess)
+
+        expect(result.current.modalPhase).toBe('supplement')
+        expect(result.current.isModalOpen).toBe(true)
+        expect(onKycSuccess).not.toHaveBeenCalled()
+
+        await act(async () => {
+            await result.current.handleStartSupplement()
+        })
+        expect(mockStartAction).toHaveBeenCalledWith('supplement:bridge')
+        expect(result.current.showWrapper).toBe(true)
+        expect(result.current.isModalOpen).toBe(false)
+    })
+
+    it('a submitted proof of address finishes the flow instead of reporting payments unavailable', async () => {
+        const onKycSuccess = jest.fn()
+        const { result } = await approve(onKycSuccess)
+        await act(async () => {
+            await result.current.handleStartSupplement()
+        })
+        await act(async () => {
+            result.current.handleSdkComplete()
+        })
+
+        expect(onKycSuccess).toHaveBeenCalledTimes(1)
+        expect(result.current.error).toBeNull()
+        expect(result.current.isTerminalError).toBe(false)
+        expect(result.current.modalPhase).not.toBe('supplement')
+    })
+
+    it('a rail that parks while the account is prepared asks for the proof of address, not support', async () => {
+        const provisioning = {
+            capabilities: withFeatureReport(
+                {
+                    ...parked.capabilities,
+                    rails: [
+                        {
+                            ...parked.capabilities.rails[0],
+                            status: 'pending',
+                            blockingActions: [],
+                            resolved: { status: 'pending' },
+                        },
+                    ],
+                    nextActions: [],
+                } as never,
+                { identity: { status: 'verified' } }
+            ),
+        }
+        mockFetchUser.mockResolvedValue(provisioning)
+        const onKycSuccess = jest.fn()
+        const view = await approve(onKycSuccess)
+        expect(view.result.current.modalPhase).toBe('preparing')
+
+        mockCapabilities = parked.capabilities
+        view.rerender()
+
+        expect(view.result.current.modalPhase).toBe('supplement')
+        expect(view.result.current.error).toBeNull()
+        expect(view.result.current.isTerminalError).toBe(false)
+        mockCapabilities = undefined
+    })
+
+    it('doing it later closes without reporting success', async () => {
+        const onKycSuccess = jest.fn()
+        const { result } = await approve(onKycSuccess)
+        act(() => result.current.handleSkipSupplement())
+
+        expect(result.current.isModalOpen).toBe(false)
+        expect(result.current.modalPhase).toBe('verifying')
+        expect(onKycSuccess).not.toHaveBeenCalled()
+        expect(mockStartAction).not.toHaveBeenCalled()
+    })
+})
+
 /**
  * Bridge's ToS page can record the signature and then move its own frame away
  * without reporting it (TASK-23881). The wrapper reports that as `returned`,
@@ -663,20 +1013,23 @@ describe('useMultiPhaseKycFlow — Bridge ToS page close', () => {
     const mockGetTosLink = getBridgeTosLink as jest.MockedFunction<typeof getBridgeTosLink>
     const mockConfirm = confirmBridgeTos as jest.MockedFunction<typeof confirmBridgeTos>
     const enabledBridgeRail = {
-        capabilities: {
-            rails: [
-                {
-                    provider: 'bridge',
-                    channel: 'bank',
-                    country: 'EU',
-                    currency: 'EUR',
-                    status: 'enabled',
-                    operations: { deposit: 'enabled' },
-                },
-            ],
-            nextActions: [],
-            restrictions: [],
-        },
+        capabilities: withFeatureReport(
+            {
+                rails: [
+                    {
+                        provider: 'bridge',
+                        channel: 'bank',
+                        country: 'EU',
+                        currency: 'EUR',
+                        status: 'enabled',
+                        operations: { deposit: 'enabled' },
+                    },
+                ],
+                nextActions: [],
+                restrictions: [],
+            } as never,
+            { identity: { status: 'verified' } }
+        ),
     }
 
     beforeEach(() => {
@@ -733,6 +1086,51 @@ describe('useMultiPhaseKycFlow — Bridge ToS page close', () => {
         expect(onKycSuccess).not.toHaveBeenCalled()
     })
 
+    it('does not complete on a signature message before the API confirms it', async () => {
+        mockConfirm.mockResolvedValue({ data: { accepted: false } })
+        const { result, onKycSuccess } = await openTerms()
+        await close(result, 'tos_accepted')
+        expect(mockConfirm).toHaveBeenCalledTimes(2)
+        expect(onKycSuccess).not.toHaveBeenCalled()
+    })
+
+    /*
+     * TASK-24909: Bridge has the signature while the account still asks for
+     * terms, or the confirm request failed. Neither is "the terms weren't
+     * accepted": the flow ends on the timed-out state, which asks for nothing.
+     */
+    it.each([
+        ['accepted, while the account still asks for terms', { data: { accepted: true } }],
+        ['a failed confirm request', { error: 'Failed to confirm Bridge ToS' }],
+    ])('ends without asking for the terms again after %s', async (_case, confirmation) => {
+        const terms = { key: 'bridge-tos', kind: 'accept-tos', purpose: 'unlock-bridge' } as const
+        const asksForTerms = { state: 'action_required', action: terms.key } as const
+        mockConfirm.mockResolvedValue(confirmation)
+        mockFetchUser.mockResolvedValue({
+            capabilities: {
+                rails: [],
+                restrictions: [],
+                nextActions: [terms],
+                features: {
+                    qr: { state: 'on' },
+                    card: { state: 'ready' },
+                    local: { state: 'pending', accounts: {} },
+                    bank: { ...asksForTerms, accounts: { USD: asksForTerms, EUR: asksForTerms } },
+                },
+            },
+        })
+        const { result, onKycSuccess } = await openTerms()
+        mockGetTosLink.mockClear()
+
+        await close(result, 'returned')
+
+        expect(result.current.preparingTimedOut).toBe(true)
+        expect(result.current.tosError).toBeNull()
+        expect(result.current.modalPhase).not.toBe('bridge_tos')
+        expect(mockGetTosLink).not.toHaveBeenCalled()
+        expect(onKycSuccess).not.toHaveBeenCalled()
+    })
+
     it('leaves a manual exit on the terms step without asking Bridge', async () => {
         const { result, onKycSuccess } = await openTerms()
 
@@ -742,5 +1140,41 @@ describe('useMultiPhaseKycFlow — Bridge ToS page close', () => {
         expect(result.current.tosError).toBeNull()
         expect(mockConfirm).not.toHaveBeenCalled()
         expect(onKycSuccess).not.toHaveBeenCalled()
+    })
+})
+
+describe('useMultiPhaseKycFlow — a final rejection (H9)', () => {
+    afterEach(() => {
+        mockIdentity = { status: 'verified' }
+    })
+
+    it('asks the user to contact support instead of starting a verification', async () => {
+        mockIdentity = { status: 'failed', canRetry: false }
+        const { result } = renderHook(() => useMultiPhaseKycFlow({}))
+
+        let opened: unknown
+        await act(async () => {
+            opened = await result.current.handleInitiateKyc('ROW')
+        })
+
+        expect(opened).toBe(false)
+        expect(mockInitiate).not.toHaveBeenCalled()
+        expect(result.current.showVerificationReview).toBe(true)
+        act(() => result.current.dismissVerificationReview())
+        expect(result.current.showVerificationReview).toBe(false)
+    })
+
+    it('a check that broke on our side still starts the verification', async () => {
+        mockIdentity = { status: 'failed', canRetry: true }
+        mockInitiate.mockResolvedValue({ error: 'unavailable' } as never)
+        const { result } = renderHook(() => useMultiPhaseKycFlow({}))
+
+        await act(async () => {
+            await result.current.handleInitiateKyc('ROW')
+        })
+
+        expect(mockInitiate).toHaveBeenCalled()
+        expect(result.current.showVerificationReview).toBe(false)
+        expect(result.current.blockIfFinal()).toBe(false)
     })
 })

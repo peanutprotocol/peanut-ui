@@ -9,10 +9,24 @@ import {
     PEANUT_WALLET_TOKEN_DECIMALS,
     PEANUT_WALLET_TOKEN_SYMBOL,
 } from '@/constants/zerodev.consts'
-import { DEMO_ADDRESS, DEMO_CONTACTS, DEMO_HISTORY_ENTRIES, DEMO_LIMITS, DEMO_USER } from '@/constants/demo-data'
+import {
+    DEMO_ADDRESS,
+    DEMO_PIX_BR_CODE,
+    DEMO_CONTACTS,
+    DEMO_HISTORY_ENTRIES,
+    DEMO_LIMITS,
+    DEMO_USER,
+} from '@/constants/demo-data'
 import { PEANUT_API_URL } from '@/constants/general.consts'
+import { parseResidenceRestrictionSets } from '@/utils/residence-restriction-sets'
+import { deriveResidenceRestrictionsFrom, isQrResidenceRestricted } from '@/utils/residence-restrictions'
+import { DEMO_RESIDENCE_RESTRICTIONS, KYC_USER_READS } from '@/utils/demo-kyc'
 import { CLAIMABLE_USD_PREVIEW, DEPOSIT_RAIL_POLICY } from '@/features/deposit-accounts/__fixtures__/railPolicy'
 import type { DepositAccount } from '@/features/deposit-accounts/types'
+import type { RainCardFunding, RainFundingAccess } from '@/services/rain'
+import type { NotificationPreferences } from '@/services/notifications'
+import type { KycIntents } from '@/hooks/useKycIntents'
+import { REQUIRED_API_CONTRACTS } from '@/constants/api-contracts.json'
 
 const CHAIN_ID = PEANUT_WALLET_CHAIN.id.toString()
 const CREATED_AT = '2026-01-01T00:00:00.000Z'
@@ -21,8 +35,7 @@ const PASSTHROUGH_TIMEOUT_MS = 10_000
 // Public read-only rate endpoints proxied to the real backend so demo shows live
 // FX rates. Best-effort: any failure falls through to the canned handler below.
 // /tokens/price is public too — the canned {} fallback is NOT a valid shape
-// for it. /tokens/wallet-portfolio is owner-only (session required), so it
-// gets a synthetic handler instead of a passthrough that would 401.
+// for it.
 const PASSTHROUGH_GET = new Set(['/bridge/exchange-rate', '/manteca/prices', '/fx/rate', '/tokens/price'])
 
 const EMPTY_GRAPH = {
@@ -33,6 +46,75 @@ const EMPTY_GRAPH = {
 }
 
 const soon = () => new Date(Date.now() + 120_000).toISOString()
+
+/** One demo Pix deposit whose code can be paid for `msLeft` more. */
+const demoPixDeposit = (msLeft: number) => ({
+    provider: 'avenia',
+    intentId: 'demo-pix-deposit',
+    status: 'AWAITING_USER_ACTION',
+    codePayable: true,
+    pixReceived: false,
+    expiresAt: new Date(Date.now() + msLeft).toISOString(),
+    amountBrl: '100.00',
+    usdcAmount: '17.940500',
+    fixedFeeBrl: '0.75',
+    brCode: DEMO_PIX_BR_CODE,
+    payerCpfMasked: '123.***.***-09',
+})
+
+const demoPixWithdrawDisplay = () => ({
+    amountBrl: '106.75',
+    pixKey: '12345678909',
+    ownAccount: true,
+    holderName: 'DEMO RECIPIENT',
+    bankName: 'Demo Bank',
+    withdrawUsd: '20.020325',
+    rate: '5.369543',
+    fixedFeeBrl: '0.75',
+    arrivalEstimateSeconds: 60,
+    provider: 'Avenia',
+})
+
+/** A Pix BR Code's own amount (EMV tag 54), or null for a code that leaves the amount to the payer. */
+function brCodeAmount(brCode: string): string | null {
+    for (let at = 0; at + 4 <= brCode.length; ) {
+        const tag = brCode.slice(at, at + 2)
+        const length = Number(brCode.slice(at + 2, at + 4))
+        if (!Number.isInteger(length)) return null
+        if (tag === '54') return brCode.slice(at + 4, at + 4 + length)
+        at += 4 + length
+    }
+    return null
+}
+
+/**
+ * The review of a merchant Pix code on the neutral pay routes, as the API answers it: the code's
+ * own amount, or the reais sent for a code without one (API-CONTRACT-M4 §2.1).
+ */
+const demoPixPayDisplay = (amountBrl: string, amountFixed: boolean) => {
+    const rate = 5.364547
+    const fixedFeeBrl = 0.75
+    return {
+        amountBrl: Number(amountBrl).toFixed(2),
+        amountFixed,
+        merchantName: 'PADARIA PAO DOURADO LTDA',
+        merchantTaxIdMasked: '12.345.678/0001-95',
+        bankName: 'Banco Inter S.A.',
+        withdrawUsd: ((Number(amountBrl) + fixedFeeBrl) / rate).toFixed(6),
+        rate: String(rate),
+        fixedFeeBrl: fixedFeeBrl.toFixed(2),
+        arrivalEstimateSeconds: 60,
+        provider: 'Avenia',
+    }
+}
+
+/** A code without an amount of its own is reviewed only with the reais the payer typed. */
+function demoPixPayReview(body: { brCode?: string; amountBrl?: string }) {
+    const own = brCodeAmount(body.brCode ?? '')
+    if (own) return demoPixPayDisplay(own, true)
+    if (body.amountBrl) return demoPixPayDisplay(body.amountBrl, false)
+    return json({ error: 'This Pix code has no amount', code: 'PAYMENT_DESTINATION_MISSING_AMOUNT' }, 400)
+}
 
 function json(data: unknown, status = 200): Response {
     return new Response(JSON.stringify(data ?? {}), {
@@ -455,6 +537,55 @@ const DEMO_DEPOSIT_ACCOUNT_EUR = {
     },
 } satisfies DepositAccount
 
+// Tab-scoped like the avatar: a switch flipped in demo survives the next read.
+let demoNotificationPreferences: NotificationPreferences = {
+    push: true,
+    email: true,
+    marketingPush: false,
+    emailUpdates: true,
+    pushPermission: 'granted',
+}
+
+const MANTECA_LOCAL_RESIDENCES = new Set(['AR', 'BR'])
+
+const DEMO_RESTRICTION_SETS = parseResidenceRestrictionSets(DEMO_RESIDENCE_RESTRICTIONS)!
+
+/**
+ * GET /config/kyc-intents for a residence (and the ID's issuing country), from
+ * the demo backend's own restriction answer: sanctioned residences close
+ * Manteca, the UK and banking-restricted residences close the bank, card-restricted
+ * ones close the card, and local transfers open only in AR and BR. A refused
+ * issuer closes everything else; a Russian ID closes the card.
+ */
+function demoKycIntents(residence: string, idCountry: string | undefined, offlineCapture: boolean): KycIntents {
+    const sets = DEMO_RESTRICTION_SETS
+    const restrictions = deriveResidenceRestrictionsFrom(sets, residence)
+    const sanctioned = isQrResidenceRestricted(sets, residence)
+    const documentRefused = !!idCountry && sets.refusedIdIssuers.has(idCountry)
+    const intent = (refusal: NonNullable<KycIntents['qr']['reason']> | null, documentRefusesCard = false) => {
+        const reason = refusal ?? (documentRefused || documentRefusesCard ? 'document_country_unsupported' : null)
+        return reason ? { available: false, reason } : { available: true }
+    }
+    const bank = intent(
+        residence === 'GB' ? 'uk_resident_blocked' : restrictions.banking ? 'residence_bank_restricted' : null
+    )
+    // Match the Brazil signup funding options in Screen Library captures.
+    const bankCurrencies = offlineCapture && residence === 'BR' && bank.available ? ['USD', 'EUR', 'GBP', 'MXN'] : []
+    return {
+        qr: intent(sanctioned ? 'residence_sanctioned' : null),
+        local: intent(
+            sanctioned
+                ? 'residence_sanctioned'
+                : MANTECA_LOCAL_RESIDENCES.has(residence)
+                  ? null
+                  : 'local_residence_unsupported'
+        ),
+        // a Russian ID verifies without the card (peanut.russian-document)
+        card: intent(restrictions.card ? 'geo-blocked' : null, idCountry === 'RU'),
+        bank: { ...bank, currencies: bankCurrencies },
+    }
+}
+
 const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     // user
     {
@@ -479,11 +610,18 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     // which is what the form fixtures exist to show. A fixture that wants the
     // prefilled form overrides this key with a synthetic address.
     { method: 'GET', pattern: '/users/me/verified-address', handler: () => ({}) },
+    { method: 'GET', pattern: '/ens/reverse/:address', handler: () => ({ name: null }) },
     // every avatar asks for the served art map; empty keeps the bundled art,
     // which is what prod serves while it has no art bucket
     { method: 'GET', pattern: '/avatars/art', handler: () => ({}) },
     // the app reads kill switches on start; empty keeps the built-in defaults
     { method: 'GET', pattern: '/config/kill-switches', handler: () => ({}) },
+    // the attention manager asks on every authed screen; no ranking and no verdicts leave the app's registry in charge
+    {
+        method: 'GET',
+        pattern: '/users/me/attention',
+        handler: () => ({ version: 1, ranking: [], verdicts: {}, nextAsk: null }),
+    },
     {
         method: 'GET',
         pattern: '/users/contacts',
@@ -495,7 +633,19 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     { method: 'GET', pattern: '/users/history', handler: () => ({ entries: DEMO_HISTORY_ENTRIES, hasMore: false }) },
     { method: 'GET', pattern: '/users/bridge-tos-link', handler: () => ({ tosLink: '' }) },
     { method: 'POST', pattern: '/users/bridge-tos-confirm', handler: () => ({ accepted: true }) },
-    { method: 'POST', pattern: '/users/initiate-kyc', handler: () => ({}) },
+    // The demo user verified before Smart Paperwork Verification, so the API keeps them on today's flow.
+    ...Object.entries(KYC_USER_READS).map(([key, read]) => {
+        const [method, pattern] = key.split(' ')
+        return { method, pattern, handler: () => read(DEMO_USER) }
+    }),
+    // Nothing newer than the stored status, so the profile's answer stands.
+    { method: 'POST', pattern: '/users/kyc/identity/refresh', handler: () => ({ status: null }) },
+    // The demo user's check is over, so no identity session reopens.
+    {
+        method: 'POST',
+        pattern: '/users/kyc/attempts/:attemptId/token',
+        handler: () => json({ code: 'verification_complete' }, 409),
+    },
     { method: 'POST', pattern: '/users/interaction-status', handler: () => ({}) },
     // No arrival prompt by default: the drawer shows only in the arrival-* fixtures.
     { method: 'POST', pattern: '/users/me/arrival', handler: () => ({ prompt: null }) },
@@ -667,10 +817,6 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         handler: () => json({ error: 'NO_CARD_MARKUP', message: 'No card markup to compare.' }, 404),
     },
 
-    // The demo wallet holds nothing to recover; the shape is what
-    // fetchWalletBalances reads.
-    { method: 'GET', pattern: '/tokens/wallet-portfolio', handler: () => ({ balances: [], totalBalance: 0 }) },
-
     // Without a handler this landed on defaultShape ({}), and the recovery page
     // called BigInt(undefined) during render.
     {
@@ -682,7 +828,6 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
             amountWei: '0',
             amountCents: '0',
             dustWei: '0',
-            autoBalanceEnabled: false,
             hasRecoverableCard: false,
         }),
     },
@@ -737,6 +882,11 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         }),
     },
     { method: 'POST', pattern: '/manteca/deposit', handler: () => demoMantecaDeposit() },
+    {
+        method: 'GET',
+        pattern: '/manteca/deposit/:depositId/status',
+        handler: ({ params }) => ({ id: params.depositId, status: 'PROCESSING', stage: 1, expired: false }),
+    },
     { method: 'PATCH', pattern: '/manteca/deposit/:depositId/cancel', handler: () => demoMantecaDeposit() },
     {
         method: 'POST',
@@ -805,6 +955,110 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         }),
     },
 
+    // avenia (Brazil Pix for residents). 200s, so a fixture can override any field.
+    // the demo user's Pix routes name Avenia (DEMO_PIX_ROUTES), so these answer as Avenia does
+    {
+        method: 'GET',
+        pattern: '/pix/deposit/rules',
+        handler: () => ({ minAmountBrl: '20', blockedBanks: [] }),
+    },
+    { method: 'POST', pattern: '/pix/deposit', handler: () => demoPixDeposit(600_000) },
+    { method: 'GET', pattern: '/pix/deposit/:intentId', handler: () => demoPixDeposit(120_000) },
+    {
+        method: 'POST',
+        pattern: '/pix/key',
+        handler: () => ({
+            provider: 'avenia',
+            holderName: 'DEMO RECIPIENT',
+            holderTaxIdMasked: '***.456.789-**',
+            bankName: 'Demo Bank',
+            ispb: '00000000',
+            ownAccount: true,
+            blocked: false,
+        }),
+    },
+    { method: 'POST', pattern: '/pix/withdraw/preview', handler: () => demoPixWithdrawDisplay() },
+    {
+        method: 'POST',
+        pattern: '/pix/withdraw',
+        handler: () => ({
+            provider: 'avenia',
+            intentId: 'demo-pix-withdraw',
+            display: demoPixWithdrawDisplay(),
+            sign: {
+                kind: 'deposit-with-id',
+                contractAddress: DEMO_ADDRESS,
+                tokenAddress: PEANUT_WALLET_TOKEN,
+                payAmount: '20.020325',
+                payAmountUnits: '20020325',
+                commitmentId: '6aeb17ea29f84d1e9b0c3a5d7e2f1c08',
+                quoteExpiresAt: soon(),
+                ticketExpiresAt: new Date(Date.now() + 600_000).toISOString(),
+            },
+        }),
+    },
+    { method: 'POST', pattern: '/pix/withdraw/:intentId/funded', handler: () => ({ status: 'PROCESSING' }) },
+    // a send's own read: paid, no QR reward issued (the reward fixtures answer one)
+    {
+        method: 'GET',
+        pattern: '/pix/withdraw/:intentId',
+        handler: ({ params }) => ({
+            provider: 'avenia',
+            intentId: params.intentId,
+            state: 'paid',
+            status: 'COMPLETED',
+            amountBrl: '100.00',
+            holderName: 'Bruno Lima',
+            ownAccount: false,
+            selfPay: false,
+            perk: null,
+        }),
+    },
+    // a merchant Pix code on the neutral pay routes (API-CONTRACT-M4)
+    {
+        method: 'POST',
+        pattern: '/pix/pay/preview',
+        handler: ({ options }) => demoPixPayReview(parseBody(options) as { brCode?: string; amountBrl?: string }),
+    },
+    {
+        method: 'POST',
+        pattern: '/pix/pay',
+        handler: ({ options }) => {
+            const display = demoPixPayReview(parseBody(options) as { brCode?: string; amountBrl?: string })
+            if (display instanceof Response) return display
+            return {
+                provider: 'avenia',
+                intentId: 'demo-pix-pay',
+                display,
+                sign: {
+                    kind: 'deposit-with-id',
+                    contractAddress: DEMO_ADDRESS,
+                    tokenAddress: PEANUT_WALLET_TOKEN,
+                    payAmount: display.withdrawUsd,
+                    payAmountUnits: String(Math.round(Number(display.withdrawUsd) * 1e6)),
+                    commitmentId: '6aeb17ea29f84d1e9b0c3a5d7e2f1c08',
+                    quoteExpiresAt: soon(),
+                    ticketExpiresAt: new Date(Date.now() + 600_000).toISOString(),
+                },
+            }
+        },
+    },
+    { method: 'POST', pattern: '/pix/pay/:intentId/funded', handler: () => ({ status: 'PROCESSING' }) },
+    {
+        method: 'GET',
+        pattern: '/pix/pay/:intentId',
+        handler: ({ params }) => ({
+            provider: 'avenia',
+            intentId: params.intentId,
+            state: 'paid',
+            status: 'COMPLETED',
+            amountBrl: '42.50',
+            merchantName: 'PADARIA PAO DOURADO LTDA',
+            selfPay: false,
+            perk: null,
+        }),
+    },
+
     // points / perks / rewards
     {
         method: 'GET',
@@ -860,6 +1114,24 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
     // notifications (support unread badge + mark-read only; the list page is gone)
     { method: 'GET', pattern: '/notifications/unread-count', handler: () => ({ count: 0 }) },
     { method: 'POST', pattern: '/notifications/mark-read', handler: () => ({}) },
+    { method: 'GET', pattern: '/notifications/preferences', handler: () => demoNotificationPreferences },
+    {
+        method: 'PUT',
+        pattern: '/notifications/preferences',
+        handler: ({ options }) => {
+            const { push, marketingPush, emailUpdates, pushPermission } = parseBody(
+                options
+            ) as Partial<NotificationPreferences>
+            demoNotificationPreferences = {
+                ...demoNotificationPreferences,
+                ...(push !== undefined && { push }),
+                ...(marketingPush !== undefined && { marketingPush }),
+                ...(emailUpdates !== undefined && { emailUpdates }),
+                ...(pushPermission !== undefined && { pushPermission }),
+            }
+            return demoNotificationPreferences
+        },
+    },
 
     // card
     {
@@ -877,6 +1149,37 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
             demoCardApplied
                 ? { status: { hasApplication: true, railStatus: 'PENDING' }, balance: null, cards: [] }
                 : { status: { hasApplication: false }, balance: null, cards: [] },
+    },
+    // Managed card funding state, read by the Home prompt for any ACTIVE card.
+    // The demo card's permission is ready, so no consent modal covers the
+    // screens that show a card; a fixture overrides `management` (and the
+    // rest) to show the prompt. Fake spender and signer: nothing is signed here.
+    {
+        method: 'GET',
+        pattern: '/rain/cards/funding',
+        handler: (): RainCardFunding => ({
+            chainId: CHAIN_ID,
+            tokenAddress: PEANUT_WALLET_TOKEN,
+            spenderAddress: '0x0000000000000000000000000000000000000001',
+            walletAddress: DEMO_ADDRESS,
+            allowance: '150000000',
+            sessionKeyAddress: '0x0000000000000000000000000000000000000002',
+            permission: {
+                scopeVersion: 2,
+                ceiling: '300000000',
+                termsVersion: 'rtf-2026-09-29',
+                authorizationText: 'I authorize transfers according to the Real-Time Funding Terms.',
+            },
+            management: { status: 'ready', reason: null, migration: null, stop: null },
+        }),
+    },
+    // The server's funding decision. The demo card is already on managed
+    // funding (its permission above is ready); a fixture overrides it to show
+    // the existing-permission or not-yet-accepted paths.
+    {
+        method: 'GET',
+        pattern: '/rain/cards/funding/access',
+        handler: (): RainFundingAccess => ({ fundingMode: 'managed', enrollmentAllowed: true }),
     },
     // per-card limits read — without this the card-limit fixture (and any
     // demo/capture render of /card/limit) 404s into the error state.
@@ -954,6 +1257,31 @@ export async function demoRespond(
     const method = (options?.method ?? 'GET').toUpperCase()
     const pathname = path.split('?')[0].replace(/\/+$/, '') || '/'
 
+    if (method === 'GET' && pathname === '/version') {
+        return json({
+            commit: '0000000',
+            branch: 'synthetic',
+            builtAt: null,
+            migrationsHead: null,
+            contracts: REQUIRED_API_CONTRACTS,
+        })
+    }
+
+    // Avenia's Pix quote names the minimum of the operation in its query: R$20 to add money, R$5 to
+    // withdraw or send (the owner's ruling of 15 Nov). Route handlers never see the query.
+    if (method === 'GET' && pathname === '/pix/quote') {
+        const operation = new URL(path, 'http://capture.invalid').searchParams.get('operation') ?? 'deposit'
+        return json({
+            provider: 'avenia',
+            operation,
+            amountBrl: '100.00',
+            usdcAmount: '18.237000',
+            rate: '5.442342',
+            fixedFeeBrl: '0.75',
+            minAmountBrl: operation === 'withdraw' ? '5' : '20',
+        })
+    }
+
     // The withdraw quote depends on its query, which route handlers never see:
     // answer it here at a synthetic 1:1 rate, so the USDC equals the typed amount.
     if (method === 'GET' && pathname === '/bridge/offramp/quote') {
@@ -964,6 +1292,23 @@ export async function demoRespond(
             rate: '1',
             updatedAt: CREATED_AT,
             ...(destinationAmount ? { destinationAmount, sourceAmount: destinationAmount } : {}),
+        })
+    }
+
+    if (method === 'GET' && pathname === '/config/residence-restrictions') return json(DEMO_RESIDENCE_RESTRICTIONS)
+
+    // What a residence can unlock depends on the residence in the query.
+    if (method === 'GET' && pathname === '/config/kyc-intents') {
+        const query = new URL(path, 'http://capture.invalid').searchParams
+        const [residence, idCountry] = [query.get('residence'), query.get('idCountry')].map((code) =>
+            code?.trim().toUpperCase()
+        )
+        if (!residence || ![residence, idCountry].every((code) => code === undefined || /^[A-Z]{2}$/.test(code)))
+            return json({ error: `Unknown country code: ${residence ?? ''}` }, 400)
+        return json({
+            residence,
+            ...(idCountry ? { idCountry } : {}),
+            intents: demoKycIntents(residence, idCountry, capture?.offline === true),
         })
     }
 

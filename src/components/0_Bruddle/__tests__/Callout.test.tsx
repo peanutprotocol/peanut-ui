@@ -280,6 +280,17 @@ describe('Callout support CTA', () => {
         }
     )
 
+    test.each([
+        ['Our support team needs to review your account. Message us and we will help.', 'Message us'],
+        ['Nuestro equipo de soporte necesita revisar tu cuenta. Escríbenos y te ayudaremos.', 'Escríbenos'],
+        ['Nuestro equipo de soporte necesita revisar tu cuenta. Escribinos y te ayudamos.', 'Escribinos'],
+        ['Nossa equipe de suporte precisa revisar sua conta. Fale com a gente e vamos te ajudar.', 'Fale com a gente'],
+    ])('a "message us" ask is the one support link: %s', (text, link) => {
+        renderInApp(<Callout priority="error">{text}</Callout>)
+        expect(screen.getAllByRole('button')).toHaveLength(1)
+        expect(screen.getByRole('button', { name: link })).toBeInTheDocument()
+    })
+
     test('a Portuguese ask links its own words: Fale com o suporte.', () => {
         renderInApp(<Callout priority="error">Fale com o suporte.</Callout>)
         expect(screen.getAllByRole('button')).toHaveLength(1)

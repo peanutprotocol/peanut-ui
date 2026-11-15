@@ -102,13 +102,8 @@ describe('action functions should NOT include apiKey in body', () => {
         expect(body).not.toHaveProperty('apiKey')
     })
 
-    it('should not include apiKey in getKycDetails body', async () => {
-        const { getKycDetails } = require('@/app/actions/users')
-        await getKycDetails({ endorsements: ['base'] })
-
-        const body = getLastCallBody()
-        expect(body).not.toBeNull()
-        expect(body).not.toHaveProperty('apiKey')
+    it('cannot send credentials through the removed legacy KYC action', () => {
+        expect(require('@/app/actions/users').getKycDetails).toBeUndefined()
     })
 
     it('should not include apiKey in addBankAccount body', async () => {

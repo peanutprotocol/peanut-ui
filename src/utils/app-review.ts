@@ -1,6 +1,7 @@
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { REVIEW_URL } from '@/constants/migration.consts'
+import { isAttentionInterruptOpen } from '@/features/attention/interruptState'
 import { isNativeBridge, openExternalUrl } from '@/utils/capacitor'
 import { hadRecentFriction } from '@/utils/app-review-friction'
 import { isDemoMode } from '@/utils/demo'
@@ -80,6 +81,8 @@ export async function requestAppReview(userId: string | undefined, trigger: AppR
 
     if (moments < MIN_QUALIFYING_MOMENTS) return
     if (hadRecentFriction()) return
+    // the OS sheet never stacks on a manager prompt; the moment stays banked for the next one
+    if (isAttentionInterruptOpen()) return
 
     const now = Date.now()
     const last = requestedAt.length ? Date.parse(requestedAt[requestedAt.length - 1]) : NaN

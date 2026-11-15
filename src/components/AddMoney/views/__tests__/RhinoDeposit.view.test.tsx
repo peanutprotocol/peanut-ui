@@ -31,9 +31,10 @@ jest.mock('@/components/Global/QRCodeWrapper', () => ({
 
 jest.mock('@/components/User/UserCard', () => ({
     __esModule: true,
-    default: () => <div data-testid="user-card" />,
+    default: ({ person }: { person?: unknown }) => <div data-testid="user-card" data-person={person ? 'yes' : 'no'} />,
 }))
 
+import { personFrom } from '@/lib/person/person'
 import RhinoDepositView from '../RhinoDeposit.view'
 import { rhinoApi } from '@/services/rhino'
 
@@ -124,9 +125,11 @@ describe('RhinoDepositView after a short deposit', () => {
         expect(onDone).toHaveBeenCalledTimes(1)
     })
 
-    it('clears the address status so the poll sees the next transfer', async () => {
-        renderView(58.51, { shortDeposit })
-        await waitFor(() => expect(rhinoApi.resetDepositAddressStatus).toHaveBeenCalledWith(DEPOSIT_ADDRESS))
+    it('clears the address status, with the charge id, so the poll sees the next transfer', async () => {
+        renderView(58.51, { shortDeposit, chargeId: 'charge-1' })
+        await waitFor(() =>
+            expect(rhinoApi.resetDepositAddressStatus).toHaveBeenCalledWith(DEPOSIT_ADDRESS, 'charge-1')
+        )
     })
 
     // Rhino can report a top-up before the API books it; the read-back then
@@ -159,9 +162,15 @@ describe('RhinoDepositView after a short deposit', () => {
     })
 
     it('leaves the status alone, and shows no Done, on an ordinary deposit', () => {
-        renderView(58.51, { showUserCard: true })
+        renderView(58.51, { showUserCard: true, identifier: 'alice', person: personFrom({ username: 'alice' }) })
         expect(rhinoApi.resetDepositAddressStatus).not.toHaveBeenCalled()
-        expect(screen.getByTestId('user-card')).toBeInTheDocument()
+        expect(screen.getByTestId('user-card')).toHaveAttribute('data-person', 'yes')
         expect(screen.queryByRole('button', { name: 'Done' })).not.toBeInTheDocument()
+    })
+
+    // the amount on the card is the payment: it never waits on a profile fetch
+    it('keeps the amount card for a handle with no person known', () => {
+        renderView(58.51, { showUserCard: true, identifier: 'alice' })
+        expect(screen.getByTestId('user-card')).toHaveAttribute('data-person', 'no')
     })
 })

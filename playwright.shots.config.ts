@@ -66,6 +66,8 @@ export default defineConfig({
         locale: 'en-US',
         timezoneId: 'UTC',
         colorScheme: 'light',
+        // Looping animations hold their still pose; the frozen Date no longer pins timers or frames.
+        contextOptions: { reducedMotion: 'reduce' },
     },
 
     projects: WIDTHS.map(({ width, height }) => ({

@@ -1,6 +1,6 @@
 'use client'
 
-import { Banner } from '@/components/Global/Banner'
+import { AttentionBanner } from '@/features/attention/AttentionBanner'
 import { useHasNavHeader } from '@/components/Global/Banner/navHeaderPresence'
 
 /**
@@ -11,5 +11,5 @@ import { useHasNavHeader } from '@/components/Global/Banner/navHeaderPresence'
 export function ShellBannerFallback() {
     const hasNavHeader = useHasNavHeader()
     if (hasNavHeader) return null
-    return <Banner />
+    return <AttentionBanner />
 }

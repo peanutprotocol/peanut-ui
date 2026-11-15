@@ -28,6 +28,8 @@ interface ProfileMenuItemProps {
     endIcon?: IconName
     endIconClassName?: string
     endText?: string
+    /** a second line under the label, for a value that must not crowd the badge */
+    description?: string
     showTooltip?: boolean
     toolTipText?: string
     badge?: string
@@ -46,6 +48,7 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
     endIcon,
     endIconClassName,
     endText,
+    description,
     showTooltip = false,
     toolTipText,
     badge,
@@ -53,23 +56,28 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
     const locale = useLocale()
     // min-h-6 + p-4 = the 56px DS ListItem row; the old py-1 made it 60px
     const content = (
-        <div className="flex min-h-6 items-center justify-between">
-            <div className="flex items-center gap-2">
+        <div className="flex min-h-6 items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2">
                 {typeof icon === 'string' ? (
                     <Icon name={icon as IconName} size={20} fill="black" className={iconClassName} />
                 ) : (
                     <div className="flex size-5 items-center justify-center">{icon}</div>
                 )}
-                <label className="text-body-m text-foreground-primary">{label}</label>
-                {badge && <Badge status="neutral" customText={badge} />}
-                {showTooltip && (
-                    <Tooltip content={toolTipText}>
-                        <Icon name="info" size={16} fill="black" />
-                    </Tooltip>
-                )}
+                <div className="flex min-w-0 flex-col">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <label className="text-body-m text-foreground-primary">{label}</label>
+                        {badge && <Badge status="neutral" customText={badge} />}
+                        {showTooltip && (
+                            <Tooltip content={toolTipText}>
+                                <Icon name="info" size={16} fill="black" />
+                            </Tooltip>
+                        )}
+                    </div>
+                    {description && <span className="text-body-s text-foreground-secondary">{description}</span>}
+                </div>
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="flex shrink-0 items-center gap-1">
                 {endText && <span className="text-body-s text-foreground-secondary">{endText}</span>}
                 {comingSoon ? (
                     <Badge status="soon" size="medium" />
@@ -82,7 +90,7 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
         </div>
     )
 
-    if (comingSoon || !href) {
+    if (comingSoon || (!href && !onClick)) {
         return (
             <Card position={position} className="bg-background-disabled p-4">
                 {content}
@@ -90,7 +98,7 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
         )
     }
 
-    if (isDocsLink) {
+    if (isDocsLink && href) {
         return (
             <Link href={localizeDocsHref(href, locale)} className="block">
                 <Card position={position} className="p-4 active:bg-background-disabled">
@@ -110,7 +118,7 @@ const ProfileMenuItem: React.FC<ProfileMenuItemProps> = ({
 
     return (
         <Link
-            href={href}
+            href={href!}
             className="block"
             target={isExternalLink ? '_blank' : undefined}
             rel={isExternalLink ? 'noopener noreferrer' : undefined}

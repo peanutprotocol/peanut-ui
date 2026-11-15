@@ -1,3 +1,4 @@
+import { normalizeResidence } from '@/utils/residence-profile'
 /**
  * The prompt names the account provider and links its terms before any consent
  * action, and its own button accepts nothing (TASK-23262, TASK-23295).
@@ -12,8 +13,13 @@ import React from 'react'
 import { render, screen, act } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import { BridgeTosStep } from '../BridgeTosStep'
-// type-only import — the module itself is mocked below
+// type-only imports — the modules themselves are mocked below
 import { type IframeCloseSource } from '@/components/Global/IframeWrapper'
+import type { resolveBridgeTosClose } from '@/hooks/useMultiPhaseKycFlow'
+import messages from '@/i18n/app/messages/en.json'
+
+type CloseOutcome = Awaited<ReturnType<typeof resolveBridgeTosClose>>
+const TOS = messages.kyc.bridgeTos
 
 const mockGetBridgeTosLink = jest.fn()
 jest.mock('@/app/actions/users', () => ({
@@ -23,11 +29,14 @@ jest.mock('@/app/actions/users', () => ({
 const mockFetchUser = jest.fn().mockResolvedValue(null)
 let mockVerifiedResidence: string | null = null
 jest.mock('@/context/authContext', () => {
-    const auth = () => ({ fetchUser: mockFetchUser, user: { residence: { verified: mockVerifiedResidence } } })
+    const auth = () => ({
+        fetchUser: mockFetchUser,
+        user: { residence: normalizeResidence({ verified: mockVerifiedResidence }) },
+    })
     return { useAuth: auth, useOptionalAuth: auth }
 })
 
-const mockResolveClose = jest.fn<Promise<boolean>, [unknown, IframeCloseSource]>()
+const mockResolveClose = jest.fn<Promise<CloseOutcome>, [unknown, IframeCloseSource]>()
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     resolveBridgeTosClose: (fetchUser: unknown, source: IframeCloseSource) => mockResolveClose(fetchUser, source),
 }))
@@ -113,7 +122,7 @@ describe('BridgeTosStep', () => {
     })
 
     it('completes when Bridge confirms the terms were signed', async () => {
-        mockResolveClose.mockResolvedValue(true)
+        mockResolveClose.mockResolvedValue('accepted')
         const { onComplete } = renderStep()
         await openTos()
 
@@ -123,25 +132,108 @@ describe('BridgeTosStep', () => {
         expect(mockResolveClose).toHaveBeenCalledWith(expect.anything(), 'returned')
     })
 
-    it('keeps the prompt up when the page closed by itself without a signature', async () => {
-        mockResolveClose.mockResolvedValue(false)
-        const { onComplete, onSkip } = renderStep()
+    it.each(['returned', 'tos_accepted'] as const)(
+        'keeps the prompt up when Bridge has no signature after the page closed as %s',
+        async (source) => {
+            mockResolveClose.mockResolvedValue('not-accepted')
+            const { onComplete, onSkip } = renderStep()
+            await openTos()
+
+            await act(async () => closeIframe?.(source))
+            expect(onComplete).not.toHaveBeenCalled()
+            expect(onSkip).not.toHaveBeenCalled()
+            expect(screen.getByText(TOS.notAcceptedYet)).toBeInTheDocument()
+        }
+    )
+
+    // TASK-24909: a failed request is not a missing signature; the retry is real
+    it('says the check failed when the confirm request failed, and offers a retry', async () => {
+        mockResolveClose.mockResolvedValue('failed')
+        const { onComplete } = renderStep()
         await openTos()
 
         await act(async () => closeIframe?.('returned'))
         expect(onComplete).not.toHaveBeenCalled()
-        expect(onSkip).not.toHaveBeenCalled()
-        expect(screen.getByText(/haven't been accepted yet/i)).toBeInTheDocument()
+        expect(screen.getByText(TOS.confirmError)).toBeInTheDocument()
+        expect(screen.queryByText(TOS.notAcceptedYet)).not.toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
     })
 
+    // the closed page may hold a signature: a new terms page would ask for it again
+    it('retries a failed confirm as a confirm, without a new terms page', async () => {
+        mockResolveClose.mockResolvedValueOnce('failed').mockResolvedValueOnce('accepted')
+        const { onComplete } = renderStep()
+        await openTos()
+        mockGetBridgeTosLink.mockClear()
+
+        await act(async () => closeIframe?.('returned'))
+        await act(async () => screen.getByRole('button', { name: 'Try again' }).click())
+        expect(mockResolveClose).toHaveBeenCalledTimes(2)
+        expect(mockResolveClose).toHaveBeenLastCalledWith(expect.anything(), 'returned')
+        expect(mockGetBridgeTosLink).not.toHaveBeenCalled()
+        expect(onComplete).toHaveBeenCalled()
+    })
+
+    it('opens a new terms page after Bridge confirms there is no signature', async () => {
+        mockResolveClose.mockResolvedValue('not-accepted')
+        renderStep()
+        await openTos()
+        mockGetBridgeTosLink.mockClear()
+
+        await act(async () => closeIframe?.('returned'))
+        await act(async () => screen.getByRole('button', { name: 'Try again' }).click())
+        expect(mockResolveClose).toHaveBeenCalledTimes(1)
+        expect(mockGetBridgeTosLink).toHaveBeenCalledTimes(1)
+    })
+
+    /*
+     * TASK-24909: Bridge has the signature, the account still asks for terms
+     * (one user accepted 30 times). The step says the acceptance was sent and
+     * offers no new terms page and no "try again".
+     */
+    it.each(['returned', 'tos_accepted'] as const)(
+        'ends on a sent acceptance Bridge has not confirmed yet, closed as %s',
+        async (source) => {
+            mockResolveClose.mockResolvedValue('unconfirmed')
+            const { onComplete, onSkip } = renderStep()
+            await openTos()
+            mockGetBridgeTosLink.mockClear()
+
+            await act(async () => closeIframe?.(source))
+            expect(onComplete).not.toHaveBeenCalled()
+            expect(screen.getByText(TOS.unconfirmedTitle)).toBeInTheDocument()
+            expect(screen.getByText(TOS.unconfirmedDescription)).toBeInTheDocument()
+            expect(screen.queryByText(TOS.confirmError)).not.toBeInTheDocument()
+            expect(screen.queryByText(TOS.notAcceptedYet)).not.toBeInTheDocument()
+            expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+            expect(screen.queryByRole('button', { name: 'Continue' })).not.toBeInTheDocument()
+
+            await act(async () => screen.getByRole('button', { name: 'Got it' }).click())
+            expect(onSkip).toHaveBeenCalled()
+            expect(mockGetBridgeTosLink).not.toHaveBeenCalled()
+        }
+    )
+
     it("completes on Bridge's own signature report", async () => {
-        mockResolveClose.mockResolvedValue(true)
+        mockResolveClose.mockResolvedValue('accepted')
         const { onComplete } = renderStep()
         await openTos()
 
         await act(async () => closeIframe?.('tos_accepted'))
         expect(onComplete).toHaveBeenCalled()
         expect(mockResolveClose).toHaveBeenCalledWith(expect.anything(), 'tos_accepted')
+    })
+
+    it('uses one confirmation for duplicate hosted-page callbacks', async () => {
+        mockResolveClose.mockResolvedValue('accepted')
+        const { onComplete } = renderStep()
+        await openTos()
+        const callback = closeIframe
+        await act(async () => {
+            await Promise.all([callback?.('tos_accepted'), callback?.('returned')])
+        })
+        expect(mockResolveClose).toHaveBeenCalledTimes(1)
+        expect(onComplete).toHaveBeenCalledTimes(1)
     })
 
     it('skips the step on a manual exit without asking Bridge', async () => {

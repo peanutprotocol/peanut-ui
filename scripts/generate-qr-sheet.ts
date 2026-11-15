@@ -1,3 +1,4 @@
+// Usage: https://github.com/peanutprotocol/mono/blob/main/engineering/ui/qr-sheet-generator.md
 import * as React from 'react'
 import * as ReactDOMServer from 'react-dom/server'
 import * as fs from 'fs'

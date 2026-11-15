@@ -28,13 +28,17 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
     }),
 }))
 
-jest.mock('@/hooks/useUserByUsername', () => ({
-    useUserByUsername: () => ({
-        user: { userId: 'u1', username: 'alice', fullName: 'Alice', isVerified: false },
-        isLoading: false,
-        error: null,
-    }),
-}))
+jest.mock('@/lib/person/usePerson', () => {
+    const profile = { userId: 'u1', username: 'alice', fullName: 'Alice', isVerified: false }
+    return {
+        usePerson: () => ({
+            person: jest.requireActual('@/lib/person/person').personFrom(profile),
+            profile,
+            isLoading: false,
+            error: null,
+        }),
+    }
+})
 
 jest.mock('@/hooks/useUserInteractions', () => ({
     useUserInteractions: () => ({ interactions: {} }),
@@ -172,6 +176,14 @@ describe('addressed requests', () => {
         mockAuth.user.accounts = []
         renderView()
         await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/setup/finish'))
+        expect(screen.queryByTestId('amount-input')).not.toBeInTheDocument()
+    })
+
+    test('sends an incomplete account with a username back through the signup steps', async () => {
+        mockAuth.user.accounts = []
+        mockAuth.user.user = { userId: 'sender', username: 'sender', email: 'sender@example.com' }
+        renderView()
+        await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/setup'))
         expect(screen.queryByTestId('amount-input')).not.toBeInTheDocument()
     })
 

@@ -2,10 +2,15 @@
 import { expect, test } from '@playwright/test'
 
 const locales = ['en', 'es-419', 'es-AR', 'pt-BR'] as const
+// Below 800px tall the compact plan sizes each picker to its label; at board size choosing never changes its width.
+const viewports = [320, 375, 393, 430].flatMap((width) => [
+    { width, height: 667, fixedWidth: false },
+    { width, height: 844, fixedWidth: true },
+])
 for (const locale of locales) {
-    for (const width of [320, 375, 393, 430]) {
-        test(`signup plan and drawers fit ${locale} at ${width}px`, async ({ page, context, baseURL }) => {
-            await page.setViewportSize({ width, height: 667 })
+    for (const { width, height, fixedWidth } of viewports) {
+        test(`signup plan and drawers fit ${locale} at ${width}x${height}`, async ({ page, context, baseURL }) => {
+            await page.setViewportSize({ width, height })
             await context.addCookies([{ name: 'app-locale', value: locale, url: baseURL! }])
             await page.addInitScript(() => {
                 sessionStorage.setItem('showNoMoreJailModal', 'true')
@@ -47,7 +52,9 @@ for (const locale of locales) {
                 new RegExp(`${selected!.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`)
             )
             await expect(funding).not.toContainText(/[()]/)
-            expect(await funding.evaluate((el) => el.getBoundingClientRect().width)).toBe(fundingWidth)
+            if (fixedWidth) {
+                expect(await funding.evaluate((el) => el.getBoundingClientRect().width)).toBe(fundingWidth)
+            }
             await funding.click()
             await expect(dialog.getByRole('button').nth(1)).toHaveClass(/\bbg-background-selection\b/)
             await page.keyboard.press('Escape')
@@ -59,7 +66,9 @@ for (const locale of locales) {
             await dialog.getByRole('button').nth(1).click()
             await expect(dialog).not.toBeVisible()
             await expect(payment).toHaveJSProperty('offsetHeight', 36)
-            expect(await payment.evaluate((el) => el.getBoundingClientRect().width)).toBe(paymentWidth)
+            if (fixedWidth) {
+                expect(await payment.evaluate((el) => el.getBoundingClientRect().width)).toBe(paymentWidth)
+            }
             await expect(continueButton).toBeEnabled()
             await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
             // The app permits vertical scrolling rather than clipping long translated copy.

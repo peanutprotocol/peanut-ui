@@ -40,6 +40,8 @@ jest.mock('@/hooks/useAppLocked', () => ({ useAppLocked: () => mockLocked }))
 jest.mock('@/hooks/useZeroDevFlow', () => ({ zeroDevFlowActions: { reset: jest.fn() } }))
 jest.mock('@/utils/api-fetch', () => ({ apiFetch: (...args: unknown[]) => mockApiFetch(...args) }))
 jest.mock('@/utils/auth-token', () => ({ clearAuthToken: jest.fn().mockResolvedValue(undefined) }))
+// sign-up geo delivery has its own tests; here it would read the token mock's missing epoch
+jest.mock('@/services/signup-geo', () => ({ resumeSignupGeo: () => undefined }))
 jest.mock('@/utils/login-session', () => ({
     recoverLoginSession: (...args: unknown[]) => mockRecoverLoginSession(...args),
 }))
@@ -236,6 +238,29 @@ describe('AuthProvider push identity public integration contract', () => {
         expect(mockLogoutIdentity).toHaveBeenCalledTimes(1)
         expect(mockNavigate).toHaveBeenCalledTimes(1)
     })
+    it('retired hydration cannot resume notification identity from a late profile', async () => {
+        const cancellation = new AbortController()
+        let finishHydration!: (profile: unknown) => void
+        mockRecoverLoginSession.mockReturnValueOnce(
+            new Promise((resolve) => {
+                finishHydration = resolve
+            })
+        )
+        const { result } = renderHook(() => useAuth(), { wrapper })
+        let hydration!: Promise<unknown>
+        act(() => {
+            hydration = result.current.hydrateLoginSession(cancellation.signal).catch((error: unknown) => error)
+        })
+        await waitFor(() => expect(mockRecoverLoginSession).toHaveBeenCalledTimes(1))
+        expect(mockRecoverLoginSession.mock.calls[0][2]).toBe(cancellation.signal)
+        cancellation.abort()
+        finishHydration({ user: { userId: 'retired-login', username: 'late' }, accounts: [] })
+        await act(async () => {
+            expect(await hydration).toMatchObject({ name: 'AbortError' })
+        })
+        expect(mockResumeIdentity).not.toHaveBeenCalled()
+    })
+
     it('login hydration started before logout cannot release the later logout boundary', async () => {
         let finishHydration!: (profile: unknown) => void
         mockRecoverLoginSession.mockReturnValueOnce(

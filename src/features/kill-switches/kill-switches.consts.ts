@@ -14,6 +14,8 @@ export const DEFAULT_KILL_SWITCHES: KillSwitches = {
     disableXchainWithdraw: false,
     disableXchainSend: true,
     pixBrazilOnrampMaintenance: false,
+    kycVerificationDown: false,
+    disabledAttentionAsks: [],
 }
 
 /** Page routes that stay open during full maintenance. */

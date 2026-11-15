@@ -10,6 +10,7 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { useFlowExit } from '@/features/payments/shared/hooks/useFlowExit'
 import { contributedAmount, isPartialContribution } from '@/utils/request-pot.utils'
 import { useTranslations } from 'next-intl'
+import { personFrom } from '@/lib/person/person'
 
 const ExternalWalletPaymentView = () => {
     const t = useTranslations('payment')
@@ -58,6 +59,7 @@ const ExternalWalletPaymentView = () => {
     return (
         <div className="flex flex-col gap-4">
             <RhinoDepositView
+                chargeId={charge?.uuid}
                 showUserCard
                 headerTitle={t('headers.pay')}
                 chainType={chainType}
@@ -70,6 +72,12 @@ const ExternalWalletPaymentView = () => {
                     request?.recipientAccount.type === 'peanut-wallet'
                         ? request?.recipientAccount.user.username
                         : request?.recipientAccount.identifier
+                }
+                // the requester the request names; the card must not wait on a fetch of its own
+                person={
+                    request?.recipientAccount.type === 'peanut-wallet'
+                        ? personFrom(request.recipientAccount.user)
+                        : null
                 }
                 amount={Number(amount)}
                 tokenAmount={charge ? `${charge.tokenAmount} ${charge.tokenSymbol}` : undefined}

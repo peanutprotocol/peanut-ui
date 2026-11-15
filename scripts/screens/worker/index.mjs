@@ -21,7 +21,7 @@ function safeGalleryReturn(value, origin) {
     if (
         path !== '/' &&
         path !== '/index.html' &&
-        !/^\/screen-library(?:\/|\/index\.html)?$/.test(path) &&
+        !/^\/screen-library(?:\/|\/index\.html|\/copy\.html)?$/.test(path) &&
         !/^\/screens(?:\/[a-z0-9-]+(?:\/[a-z0-9-]+)*\/?)?$/.test(path) &&
         !/^\/collections\/[a-z0-9][a-z0-9-]{0,119}\/?$/.test(path)
     )
@@ -50,7 +50,7 @@ export default {
         }
         if (!path.startsWith('/screen-data/')) return new Response('Not found', { status: 404 })
         const key = path.slice('/screen-data/'.length)
-        const reportManifest = /^reports\/[a-z0-9/-]+\/manifest\.json$/.test(key)
+        const reportManifest = /^reports\/[a-z0-9/-]+\/(?:manifest|copy-coverage)\.json$/.test(key)
         const collectionManifest = /^collections\/[a-z0-9][a-z0-9-]{0,119}\/manifest\.json$/.test(key)
         const archive = /^reports\/[a-z0-9/-]+\/offline\.tar\.gz$/.test(key)
         const asset = /^assets\/[a-f0-9]{64}\.(png|webp)$/.test(key)

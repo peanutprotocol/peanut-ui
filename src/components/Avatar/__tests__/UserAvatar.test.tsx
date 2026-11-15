@@ -1,6 +1,8 @@
 import { fireEvent, screen } from '@testing-library/react'
 import type { ComponentProps } from 'react'
+import { personFrom } from '@/lib/person/person'
 import { renderWithIntl as render } from '@/test-utils/intl'
+import { AvatarSticker } from '../AvatarSticker'
 import { UserAvatar } from '../UserAvatar'
 
 jest.mock('next/image', () => ({
@@ -17,7 +19,9 @@ beforeEach(() => {
 
 describe('UserAvatar', () => {
     it('renders the picked character on its palette', () => {
-        const { container } = render(<UserAvatar name="satoshi" avatarKey="basic.frog" />)
+        const { container } = render(
+            <UserAvatar person={personFrom({ username: 'satoshi', avatarKey: 'basic.frog' })} />
+        )
 
         expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/basic/frog.webp')
         expect(screen.getByRole('img', { name: 'Avatar for satoshi' })).toBeInTheDocument()
@@ -26,14 +30,14 @@ describe('UserAvatar', () => {
 
     // no pick → the initial as sticker art, not a letter in a circle
     it('falls back to the letter sticker without a pick', () => {
-        const { container } = render(<UserAvatar name="satoshi" avatarKey={null} />)
+        const { container } = render(<UserAvatar person={personFrom({ username: 'satoshi', avatarKey: null })} />)
 
         expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/letter/s.webp')
         expect(container).not.toHaveTextContent('S')
     })
 
     it('treats a key the manifest does not know as no pick', () => {
-        const { container } = render(<UserAvatar name="hal" avatarKey="badge.NOPE.x" />)
+        const { container } = render(<UserAvatar person={personFrom({ username: 'hal', avatarKey: 'badge.NOPE.x' })} />)
 
         expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/letter/h.webp')
     })
@@ -41,22 +45,17 @@ describe('UserAvatar', () => {
     // last resort: a name the letter set cannot draw keeps the first-letter
     // avatar (AvatarWithBadge firstLetterOnly, #2924)
     it('falls back to the first-letter avatar for a name outside a-z', () => {
-        const { container } = render(<UserAvatar name="0xf39Fd6" avatarKey={null} />)
+        const { container } = render(<UserAvatar person={personFrom({ username: '0xf39Fd6', avatarKey: null })} />)
 
         expect(container.querySelector('img')).toBeNull()
         expect(container).toHaveTextContent(/^0$/)
     })
 
-    it('shows the generic user glyph with no name at all', () => {
-        const { container } = render(<UserAvatar avatarKey={null} />)
-
-        expect(container.querySelector('svg')).toBeInTheDocument()
-        expect(container).toHaveTextContent('')
-    })
-
     // list rows show the name next to the avatar — announcing it twice is noise
     it('keeps the name for the letter but leaves the a11y tree when decorative', () => {
-        const { container } = render(<UserAvatar name="satoshi" avatarKey={null} decorative />)
+        const { container } = render(
+            <UserAvatar person={personFrom({ username: 'satoshi', avatarKey: null })} decorative />
+        )
 
         expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/letter/s.webp')
         expect(screen.queryByRole('img', { name: 'Avatar for satoshi' })).not.toBeInTheDocument()
@@ -64,7 +63,9 @@ describe('UserAvatar', () => {
     })
 
     it('hides the initials fallback too when decorative', () => {
-        const { container } = render(<UserAvatar name="0xf39Fd6" avatarKey={null} decorative />)
+        const { container } = render(
+            <UserAvatar person={personFrom({ username: '0xf39Fd6', avatarKey: null })} decorative />
+        )
 
         expect(container).toHaveTextContent(/^0$/)
         expect(container.firstElementChild).toHaveAttribute('aria-hidden', 'true')
@@ -75,10 +76,12 @@ describe('UserAvatar', () => {
             'basic.frog': 'https://api.peanut.me/badges/art/avatar-basic-frog.0123456789ab.webp',
             'badge.NEW_BADGE.owl': 'https://api.peanut.me/badges/art/avatar-badge-NEW_BADGE-owl.0123456789ab.webp',
         }
-        const { container, rerender } = render(<UserAvatar name="satoshi" avatarKey="basic.frog" />)
+        const { container, rerender } = render(
+            <UserAvatar person={personFrom({ username: 'satoshi', avatarKey: 'basic.frog' })} />
+        )
         expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/basic/frog.webp')
 
-        rerender(<UserAvatar name="satoshi" avatarKey="badge.NEW_BADGE.owl" />)
+        rerender(<UserAvatar person={personFrom({ username: 'satoshi', avatarKey: 'badge.NEW_BADGE.owl' })} />)
         expect(container.querySelector('img')).toHaveAttribute('src', mockArt['badge.NEW_BADGE.owl'])
     })
 
@@ -87,13 +90,32 @@ describe('UserAvatar', () => {
         mockArt = {
             'badge.NEW_BADGE.owl': 'https://api.peanut.me/badges/art/avatar-badge-NEW_BADGE-owl.0123456789ab.webp',
         }
-        const { container, rerender } = render(<UserAvatar name="satoshi" avatarKey="badge.NEW_BADGE.owl" />)
+        const { container, rerender } = render(
+            <UserAvatar person={personFrom({ username: 'satoshi', avatarKey: 'badge.NEW_BADGE.owl' })} />
+        )
 
         fireEvent.error(container.querySelector('img')!)
         expect(container.querySelector('img')).toBeNull()
         expect(container).toHaveTextContent(/^S$/i)
 
-        rerender(<UserAvatar name="satoshi" avatarKey="basic.cactus" />)
+        rerender(<UserAvatar person={personFrom({ username: 'satoshi', avatarKey: 'basic.cactus' })} />)
         expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/basic/cactus.webp')
+    })
+})
+
+describe('AvatarSticker', () => {
+    // the picker's candidate tiles are art, not a person: no letter, no label
+    it('shows the generic user glyph with no letter at all', () => {
+        const { container } = render(<AvatarSticker avatarKey={null} letterOf="" />)
+
+        expect(container.querySelector('svg')).toBeInTheDocument()
+        expect(container).toHaveTextContent('')
+    })
+
+    it('draws a candidate key without labelling it as anyone', () => {
+        const { container } = render(<AvatarSticker avatarKey="basic.frog" letterOf="" />)
+
+        expect(container.querySelector('img')).toHaveAttribute('src', '/avatars/basic/frog.webp')
+        expect(screen.queryByRole('img')).not.toBeInTheDocument()
     })
 })

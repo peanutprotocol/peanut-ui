@@ -5,6 +5,7 @@
  */
 import { act, renderHook } from '@testing-library/react'
 import type { ReactNode } from 'react'
+import { personFrom } from '@/lib/person/person'
 import type { ParsedURL } from '@/lib/url-parser/types/payment'
 import type { TRequestChargeResponse } from '@/services/services.types'
 import { SemanticRequestFlowProvider, useSemanticRequestFlowContext } from '../SemanticRequestFlowContext'
@@ -18,8 +19,10 @@ const OTHER_ADDRESS = '0x2222222222222222222222222222222222222222'
 const chargeTo = (recipientAddress: string) =>
     ({ uuid: 'charge-1', requestLink: { recipientAddress } }) as unknown as TRequestChargeResponse
 
+const alice = personFrom({ userId: 'u-alice', username: 'alice', avatarKey: 'basic.cloud' })
+
 const usernameUrl: ParsedURL = {
-    recipient: { identifier: 'alice', recipientType: 'USERNAME', resolvedAddress: ALICE_ADDRESS_LOWER },
+    recipient: { identifier: 'alice', recipientType: 'USERNAME', resolvedAddress: ALICE_ADDRESS_LOWER, person: alice },
     amount: '2',
     token: undefined,
     chain: undefined,
@@ -43,13 +46,19 @@ describe('SemanticRequestFlowContext recipient identity through the send lifecyc
             identifier: 'alice',
             recipientType: 'USERNAME',
             resolvedAddress: ALICE_ADDRESS_CHECKSUM,
+            person: alice,
         })
     })
 
     it('keeps an ENS name the same way', () => {
         const { result } = renderContext({
             ...usernameUrl,
-            recipient: { identifier: 'alice.eth', recipientType: 'ENS', resolvedAddress: ALICE_ADDRESS_LOWER },
+            recipient: {
+                identifier: 'alice.eth',
+                recipientType: 'ENS',
+                resolvedAddress: ALICE_ADDRESS_LOWER,
+                person: null,
+            },
         })
         act(() => result.current.setCharge(chargeTo(ALICE_ADDRESS_CHECKSUM)))
 
@@ -57,6 +66,7 @@ describe('SemanticRequestFlowContext recipient identity through the send lifecyc
             identifier: 'alice.eth',
             recipientType: 'ENS',
             resolvedAddress: ALICE_ADDRESS_CHECKSUM,
+            person: null,
         })
     })
 
@@ -68,6 +78,7 @@ describe('SemanticRequestFlowContext recipient identity through the send lifecyc
             identifier: OTHER_ADDRESS,
             recipientType: 'ADDRESS',
             resolvedAddress: OTHER_ADDRESS,
+            person: null,
         })
     })
 
@@ -81,6 +92,7 @@ describe('SemanticRequestFlowContext recipient identity through the send lifecyc
             identifier: OTHER_ADDRESS,
             recipientType: 'ADDRESS',
             resolvedAddress: OTHER_ADDRESS,
+            person: null,
         })
     })
 

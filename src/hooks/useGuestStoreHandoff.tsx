@@ -6,7 +6,6 @@ import ScanToDownloadModal from '@/components/Migration/ScanToDownloadModal'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { MIGRATION_SURFACES, type MigrationSurface } from '@/constants/migration.consts'
 import { useDeviceType } from '@/hooks/useGetDeviceType'
-import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { isCapacitor } from '@/utils/capacitor'
 import { openStore, storeForDevice, type StoreHandoff } from '@/utils/migration.utils'
 
@@ -21,7 +20,6 @@ export function useGuestStoreHandoff({
 }: { trackImpressionWhenGuest?: boolean; surface?: MigrationSurface } = {}) {
     const nativePlatform = useNativePlatform()
 
-    const migrationOn = useMigrationFlag()
     const { deviceType } = useDeviceType()
     // null closes the modal; an open modal without a handoff encodes bare /app.
     const [pending, setPending] = useState<{ handoff?: StoreHandoff } | null>(null)
@@ -29,13 +27,13 @@ export function useGuestStoreHandoff({
     // The caller waits for auth to settle so returning users do not count as guests.
     const impressionFired = useRef(false)
     useEffect(() => {
-        if (!trackImpressionWhenGuest || !migrationOn || isCapacitor() || impressionFired.current) return
+        if (!trackImpressionWhenGuest || isCapacitor() || impressionFired.current) return
         impressionFired.current = true
         posthog.capture(ANALYTICS_EVENTS.MIGRATION_GUEST_CTA_SHOWN, { surface })
-    }, [trackImpressionWhenGuest, migrationOn, surface])
+    }, [trackImpressionWhenGuest, surface])
 
     const interceptGuestCta = (handoff?: StoreHandoff): boolean => {
-        if (!migrationOn || isCapacitor()) return false
+        if (isCapacitor()) return false
         const store = storeForDevice(deviceType)
         if (!store) {
             setPending({ handoff })
@@ -57,8 +55,8 @@ export function useGuestStoreHandoff({
 
     // Whether the next interceptGuestCta call will handle the click. Call sites label
     // the button with it — "Download Peanut" must not be the copy on a button that
-    // still opens web signup because the flag is off or the app is native.
-    const handoffActive = migrationOn && !nativePlatform.isCapacitor
+    // still opens signup inside the native app.
+    const handoffActive = !nativePlatform.isCapacitor
 
     return { interceptGuestCta, storeHandoffModal, handoffActive }
 }

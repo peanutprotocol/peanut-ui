@@ -123,7 +123,7 @@ export async function GET() {
     const startTime = Date.now()
 
     try {
-        const services = ['mobula', 'zerodev', 'rpc', 'justaname', 'backend', 'manteca']
+        const services = ['zerodev', 'rpc', 'justaname', 'backend', 'manteca']
         const HEALTH_CHECK_TIMEOUT = 8000
 
         const healthChecks = await Promise.allSettled(

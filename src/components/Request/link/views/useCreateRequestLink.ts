@@ -1,11 +1,15 @@
 'use client'
 import { useAppOrigin } from '@/hooks/useAppOrigin'
-import { fetchTokenDetails } from '@/app/actions/tokens'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { toSupportedExchangeCurrency } from '@/constants/exchange-currencies.consts'
 import { harnessPasskeyBypass } from '@/constants/harness.consts'
 import { PUSH_PROMPT_TRIGGERS } from '@/constants/push-prompt.consts'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
+import {
+    PEANUT_WALLET_CHAIN,
+    PEANUT_WALLET_TOKEN,
+    PEANUT_WALLET_TOKEN_DECIMALS,
+    PEANUT_WALLET_TOKEN_SYMBOL,
+} from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { loadingStateContext } from '@/context/loadingStates.context'
@@ -19,12 +23,11 @@ import { useDepositAccounts } from '@/features/deposit-accounts/useDepositAccoun
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 import { firstPayableCorridor } from '@/features/deposit-accounts/rails'
 import { canShare } from '@/features/deposit-accounts/resolveScreen'
-import { type IToken } from '@/interfaces/interfaces'
 import { type IAttachmentOptions } from '@/interfaces/attachment'
 import { wireErrorCode, apiErrorStatus } from '@/services/api-error'
 import { requestsApi } from '@/services/requests'
 import { beginClipboardCopy } from '@/utils/clipboard.utils'
-import { fetchTokenSymbol, formatTokenAmount, getRequestLink, isNativeCurrency } from '@/utils/general.utils'
+import { formatTokenAmount, getRequestLink } from '@/utils/general.utils'
 import * as Sentry from '@sentry/nextjs'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { useQueryClient } from '@tanstack/react-query'
@@ -45,8 +48,7 @@ export const useCreateRequestLink = () => {
     const toast = useToast()
     const { address, isConnected } = useWallet()
     const { user } = useAuth()
-    const { selectedChainID, setSelectedChainID, selectedTokenAddress, setSelectedTokenAddress, selectedTokenData } =
-        useContext(tokenSelectorContext)
+    const { setSelectedChainID, setSelectedTokenAddress } = useContext(tokenSelectorContext)
     const { setLoadingState } = useContext(loadingStateContext)
     const queryClient = useQueryClient()
     // url params — nuqs per the url-as-state rule. `amount` and `merchant` are
@@ -148,11 +150,6 @@ export const useCreateRequestLink = () => {
     const createLinkAbortRef = useRef<AbortController | null>(null)
     const submissionKey = useSubmissionKey()
 
-    const _usdValue = useMemo(() => {
-        if (!selectedTokenData?.price || !tokenValue) return ''
-        return (parseFloat(tokenValue) * selectedTokenData.price).toString()
-    }, [tokenValue, selectedTokenData?.price])
-
     // Harness-only: when the playwright session sets the passkey-bypass flag,
     // fall back to the user's peanut-wallet identifier (seeded by the harness)
     // so Create doesn't block on wagmi connection state. HARNESS_ENABLED is
@@ -229,38 +226,19 @@ export const useCreateRequestLink = () => {
             setErrorState({ showError: false, errorMessage: '' })
 
             try {
-                let tokenData: Pick<IToken, 'chainId' | 'address' | 'decimals' | 'symbol'>
-                if (selectedTokenData) {
-                    tokenData = {
-                        chainId: selectedTokenData.chainId,
-                        address: selectedTokenData.address,
-                        decimals: selectedTokenData.decimals,
-                        symbol: selectedTokenData.symbol,
-                    }
-                } else {
-                    const tokenDetails = await fetchTokenDetails(selectedTokenAddress, selectedChainID)
-                    tokenData = {
-                        address: selectedTokenAddress,
-                        chainId: selectedChainID,
-                        symbol: (await fetchTokenSymbol(selectedTokenAddress, selectedChainID)) ?? '',
-                        decimals: tokenDetails.decimals,
-                    }
-                }
-
-                const tokenType = isNativeCurrency(tokenData.address)
-                    ? peanutInterfaces.EPeanutLinkType.native
-                    : peanutInterfaces.EPeanutLinkType.erc20
-
+                // A request is always for Peanut wallet USDC on Arbitrum, never the
+                // token another screen left in the shared selector: requests are
+                // paid in USDC or USDT only (TASK-23850).
                 const requestData = {
-                    chainId: tokenData.chainId,
+                    chainId: PEANUT_WALLET_CHAIN.id.toString(),
                     // For a non-USD request this is the client's estimate. The
                     // API ignores it and prices `requestedAmount` itself.
                     tokenAmount: tokenValue || undefined,
                     recipientAddress,
-                    tokenAddress: tokenData.address,
-                    tokenDecimals: tokenData.decimals.toString(),
-                    tokenType: tokenType.valueOf().toString(),
-                    tokenSymbol: tokenData.symbol,
+                    tokenAddress: PEANUT_WALLET_TOKEN,
+                    tokenDecimals: PEANUT_WALLET_TOKEN_DECIMALS.toString(),
+                    tokenType: peanutInterfaces.EPeanutLinkType.erc20.valueOf().toString(),
+                    tokenSymbol: PEANUT_WALLET_TOKEN_SYMBOL,
                     reference: attachmentOptions.message || undefined,
                     attachment: attachmentOptions.rawFile || undefined,
                     mimeType: attachmentOptions.rawFile?.type || undefined,
@@ -325,9 +303,6 @@ export const useCreateRequestLink = () => {
             tokenValue,
             requestAmount,
             currency,
-            selectedTokenData,
-            selectedTokenAddress,
-            selectedChainID,
             bankInstructionsShared,
             createErrorMessage,
             submissionKey,

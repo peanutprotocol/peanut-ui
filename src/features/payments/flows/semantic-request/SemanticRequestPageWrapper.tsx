@@ -13,11 +13,12 @@
  */
 
 import { SemanticRequestPage } from './SemanticRequestPage'
+import CenteredStatusCard from '@/components/Global/EmptyStates/CenteredStatusCard'
 import { chargesApi } from '@/services/charges'
-import EmptyState from '@/components/Global/EmptyStates/EmptyState'
-import { parsePaymentURL, type ParseUrlError } from '@/lib/url-parser/parser'
+import { EParseUrlError, parsePaymentURL, type ParseUrlError } from '@/lib/url-parser/parser'
 import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
+import { Button } from '@/components/0_Bruddle/Button'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useSafeBack } from '@/hooks/useSafeBack'
@@ -137,15 +138,26 @@ export function SemanticRequestPageWrapper({ recipient }: SemanticRequestPageWra
 
     // error state — centered card (ruled 2026-09-03: no more lone top banner)
     if (error || !parsedUrl) {
+        const unsupportedToken = error?.message === EParseUrlError.REQUEST_TOKEN_NOT_ACCEPTED
+        const description = unsupportedToken
+            ? t('errors.requestTokenNotAccepted', { symbol: error.token ?? '' })
+            : error?.message || t('errors.invalidPaymentUrlDescription')
         return (
             <PageStack>
                 <NavHeader title={t('headers.pay')} onPrev={onBack} />
                 <div className="flex flex-grow flex-col justify-center py-8">
-                    <EmptyState
-                        icon="link"
+                    <CenteredStatusCard
+                        tone={unsupportedToken ? 'error' : 'neutral'}
+                        pose="worried"
                         title={t('errors.invalidPaymentUrlTitle')}
-                        description={error?.message || t('errors.invalidPaymentUrlDescription')}
-                    />
+                        description={description}
+                    >
+                        {unsupportedToken && (
+                            <Button variant="primary" onClick={() => router.replace('/home')}>
+                                {t('success.backToHome')}
+                            </Button>
+                        )}
+                    </CenteredStatusCard>
                 </div>
             </PageStack>
         )

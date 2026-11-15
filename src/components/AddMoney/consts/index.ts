@@ -1,6 +1,7 @@
 import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { MANTECA_SUPPORTED_EXCHANGES, isMantecaCountry } from '@/constants/manteca.consts'
+import { PIX_ADD_MONEY_PATH, PIX_WITHDRAW_PATH } from '@/features/pix/pix.routes'
 
 // ISO-2 codes of our highest-volume corridors, surfaced at the top of the
 // add/withdraw country list (after the user's own country if geolocated).
@@ -52,7 +53,7 @@ const UPDATED_DEFAULT_ADD_MONEY_METHODS: SpecificPaymentMethod[] = [
     {
         id: 'pix-add',
         icon: PIX,
-        path: '/add-money/brazil/manteca',
+        path: PIX_ADD_MONEY_PATH,
         title: 'Pix',
         description: 'Instant transfers',
         isSoon: false,
@@ -2690,9 +2691,12 @@ countryData.forEach((country) => {
             withdrawList.push({
                 ...DEFAULT_BANK_WITHDRAW_METHOD,
                 id: `${countryCode.toLowerCase()}-default-bank-withdraw`,
-                path: isMantecaSupportedCountry
-                    ? `/withdraw/manteca?method=bank-transfer&country=${country.path}`
-                    : `/withdraw/${countryCode.toLowerCase()}/bank`,
+                path:
+                    countryCode === 'BR'
+                        ? PIX_WITHDRAW_PATH
+                        : isMantecaSupportedCountry
+                          ? `/withdraw/manteca?method=bank-transfer&country=${country.path}`
+                          : `/withdraw/${countryCode.toLowerCase()}/bank`,
                 isSoon: !isCountryEnabledForBankTransfer(countryCode, 'withdraw'),
             })
         }
@@ -2708,7 +2712,10 @@ countryData.forEach((country) => {
         }).map((m) => {
             const newMethod = { ...m }
             if (newMethod.id === 'bank-transfer-add') {
-                if (MANTECA_SUPPORTED_EXCHANGES[countryCode as keyof typeof MANTECA_SUPPORTED_EXCHANGES]) {
+                if (countryCode === 'BR') {
+                    // Brazil's bank transfer is Pix, on the neutral page the backend's route serves
+                    newMethod.path = PIX_ADD_MONEY_PATH
+                } else if (MANTECA_SUPPORTED_EXCHANGES[countryCode as keyof typeof MANTECA_SUPPORTED_EXCHANGES]) {
                     newMethod.path = `/add-money/${country.path}/manteca`
                 } else {
                     newMethod.path = `/add-money/${country.path}/bank`

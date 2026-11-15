@@ -7,6 +7,7 @@ import { type IconName } from '@/components/Global/Icons/Icon'
 import { type ButtonVariant } from '@/components/0_Bruddle/Button'
 import { useModalsContext } from '@/context/ModalsContext'
 import type { SumsubHelpModalVariant } from './sumsubSdk.types'
+import { useKycControl } from '@/features/paperwork-verification/analytics'
 
 interface SumsubHelpModalProps {
     visible: boolean
@@ -22,6 +23,7 @@ interface SumsubHelpModalProps {
  * Rendered outside the outer Modal to avoid pointer-events-none blocking clicks.
  */
 export function SumsubHelpModal({ visible, variant, onDismiss, onExit }: SumsubHelpModalProps) {
+    const { track } = useKycControl('id-check', 'kyc_legacy')
     const { setIsSupportModalOpen } = useModalsContext()
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
@@ -36,12 +38,21 @@ export function SumsubHelpModal({ visible, variant, onDismiss, onExit }: SumsubH
                 ctas: [
                     {
                         text: t('wrapper.chatWithSupport'),
-                        onClick: () => setIsSupportModalOpen(true),
+                        onClick: () => {
+                            track('support', 'tap')
+                            setIsSupportModalOpen(true)
+                        },
                         variant: 'primary' as ButtonVariant,
                         shadowSize: '4' as const,
                     },
                 ],
-                tertiaryCta: { text: tCommon('cancel'), onClick: () => onDismiss() },
+                tertiaryCta: {
+                    text: tCommon('cancel'),
+                    onClick: () => {
+                        track('cancel', 'tap')
+                        onDismiss()
+                    },
+                },
             }
         }
 
@@ -54,6 +65,7 @@ export function SumsubHelpModal({ visible, variant, onDismiss, onExit }: SumsubH
                 {
                     text: t('wrapper.exit'),
                     onClick: () => {
+                        track('exit', 'tap')
                         onDismiss()
                         onExit()
                     },
@@ -61,14 +73,23 @@ export function SumsubHelpModal({ visible, variant, onDismiss, onExit }: SumsubH
                     shadowSize: '4' as const,
                 },
             ],
-            tertiaryCta: { text: tCommon('continue'), onClick: () => onDismiss() },
+            tertiaryCta: {
+                text: tCommon('continue'),
+                onClick: () => {
+                    track('continue', 'tap')
+                    onDismiss()
+                },
+            },
         }
-    }, [variant, onDismiss, onExit, setIsSupportModalOpen, t, tCommon])
+    }, [variant, onDismiss, onExit, setIsSupportModalOpen, t, tCommon, track])
 
     return (
         <ActionModal
             visible={visible}
-            onClose={onDismiss}
+            onClose={() => {
+                track('help', 'dismiss')
+                onDismiss()
+            }}
             title={modalDetails.title}
             description={modalDetails.description}
             tone={modalDetails.tone}

@@ -4,6 +4,7 @@ import Image from 'next/image'
 import { Card } from '@/components/0_Bruddle/Card'
 import { BadgeImage } from '@/components/Badges/BadgeImage'
 import PeanutMascot from '@/components/Global/PeanutMascot'
+import { AVATAR_SIZE_CLASSES, type AvatarSize } from '@/components/Profile/avatar-size.consts'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { DesignNote } from '../../_components/DesignNote'
 import { DocHeader } from '../../_components/DocHeader'
@@ -12,8 +13,10 @@ import { DocSection } from '../../_components/DocSection'
 import { COLOR_TOKENS } from '../../foundations/tokens.generated'
 import {
     AVATAR_BADGE_ENTRIES,
+    AVATAR_BADGE_RULE,
     AVATAR_BASIC_ENTRIES,
     AVATAR_LETTER_ENTRIES,
+    AVATAR_SIZE_RULE,
     BADGE_ENTRIES,
     DOODLE_ENTRIES,
     EASTER_EGG_ENTRIES,
@@ -57,13 +60,13 @@ function PublicArtGrid({ entries, tile = 'h-10' }: { entries: PublicArtEntry[]; 
                         <Image
                             src={entry.src}
                             alt=""
-                            width={176}
-                            height={176}
+                            width={288}
+                            height={288}
                             unoptimized
                             className={`${tile} w-auto`}
                         />
                     </div>
-                    <p className="font-mono text-label-m">{entry.label}</p>
+                    <p className="font-mono text-label-m break-all">{entry.label}</p>
                     <p className="font-mono text-body-xs break-all text-foreground-secondary">{entry.src}</p>
                     <p className="text-body-xs text-foreground-secondary">{entry.usedIn}</p>
                 </Card>
@@ -72,17 +75,17 @@ function PublicArtGrid({ entries, tile = 'h-10' }: { entries: PublicArtEntry[]; 
     )
 }
 
-/** Many small tiles, no per-tile caption; hover a tile for its label. */
-function ContactSheet({ entries, size }: { entries: PublicArtEntry[]; size: 'h-6 w-6' | 'h-10 w-10' | 'h-12 w-12' }) {
+/** Many small tiles at an avatar size, no per-tile caption; hover a tile for its label. */
+function ContactSheet({ entries, size }: { entries: PublicArtEntry[]; size: AvatarSize }) {
     return (
         <div className="flex flex-wrap gap-2">
             {entries.map((entry) => (
-                <span key={entry.label} className={`inline-flex ${size}`} title={entry.label}>
+                <span key={entry.label} className={`inline-flex ${AVATAR_SIZE_CLASSES[size]}`} title={entry.label}>
                     <Image
                         src={entry.src}
                         alt=""
-                        width={176}
-                        height={176}
+                        width={288}
+                        height={288}
                         unoptimized
                         className="size-full object-contain"
                     />
@@ -107,7 +110,7 @@ export default function MarketingAssetsPage() {
 
             <DocSection
                 title="Mascot"
-                description={`10 poses. Body ${tokenValue('action-secondary')}, sneakers and accents ${tokenValue('action-primary')}.`}
+                description={`10 poses. Body ${tokenValue('background-accent-yellow')}, sneakers and accents ${tokenValue('action-primary')}.`}
             >
                 <DocSection.Content>
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -182,41 +185,30 @@ export default function MarketingAssetsPage() {
 
             <DocSection
                 title="Avatars"
-                description="Sticker avatars. Basics and badge-unlocked poses mirror the API manifest badge-assets.json; the a–z letters come from avatar.utils. Nothing is listed twice by hand."
+                description="Sticker avatars. Basics and badge avatars mirror the API manifest badge-assets.json; the a–z letters come from avatar.utils. Nothing is listed twice by hand. Each set is shown at the two avatar sizes."
             >
                 <DocSection.Content>
+                    <DesignNote type="info">{AVATAR_SIZE_RULE}</DesignNote>
+
                     <p className="text-label-m">Sticker set — {AVATAR_BASIC_ENTRIES.length}, every user</p>
-                    <ContactSheet entries={AVATAR_BASIC_ENTRIES} size="h-12 w-12" />
+                    <ContactSheet entries={AVATAR_BASIC_ENTRIES} size="s" />
+                    <ContactSheet entries={AVATAR_BASIC_ENTRIES} size="xl" />
                     <p className="font-mono text-body-xs text-foreground-secondary">
                         public/avatars/basic/&lt;slug&gt;.webp
                     </p>
 
                     <p className="text-label-m">Letter stickers — a–z, the day-0 initial</p>
-                    <ContactSheet entries={AVATAR_LETTER_ENTRIES} size="h-6 w-6" />
+                    <ContactSheet entries={AVATAR_LETTER_ENTRIES} size="s" />
+                    <ContactSheet entries={AVATAR_LETTER_ENTRIES} size="xl" />
                     <p className="font-mono text-body-xs text-foreground-secondary">
                         public/avatars/letter/&lt;a-z&gt;.webp
                     </p>
 
-                    <p className="text-label-m">
-                        Badge-unlocked poses — {AVATAR_BADGE_ENTRIES.length} badges,{' '}
-                        {AVATAR_BADGE_ENTRIES.reduce((n, entry) => n + entry.slugs.length, 0)} files
-                    </p>
-                    <ul className="space-y-1">
-                        {AVATAR_BADGE_ENTRIES.map(({ code, slugs, sample }) => (
-                            <li key={code} className="flex items-center gap-2 text-body-xs">
-                                <Image
-                                    src={sample}
-                                    alt=""
-                                    width={176}
-                                    height={176}
-                                    unoptimized
-                                    className="h-8 w-8 object-contain"
-                                />
-                                <span className="font-mono">{code}</span>
-                                <span className="text-foreground-secondary">{slugs.join(', ')}</span>
-                            </li>
-                        ))}
-                    </ul>
+                    <p className="text-label-m">Badge avatars — {AVATAR_BADGE_ENTRIES.length}, one per badge</p>
+                    <DesignNote type="info">{AVATAR_BADGE_RULE}</DesignNote>
+                    <ContactSheet entries={AVATAR_BADGE_ENTRIES} size="s" />
+                    <ContactSheet entries={AVATAR_BADGE_ENTRIES} size="xl" />
+                    <PublicArtGrid entries={AVATAR_BADGE_ENTRIES} tile="h-8" />
                     <p className="font-mono text-body-xs text-foreground-secondary">
                         public/avatars/badge/&lt;CODE&gt;/&lt;slug&gt;.webp
                     </p>
@@ -224,7 +216,7 @@ export default function MarketingAssetsPage() {
                 <DocSection.Code>
                     <CodeBlock
                         label="avatar"
-                        code={`import { UserAvatar } from '@/components/Avatar/UserAvatar'\n\n<UserAvatar name={user.username} avatarKey={user.avatarKey} size="m" />`}
+                        code={`import { UserAvatar } from '@/components/Avatar/UserAvatar'\nimport { personFrom } from '@/lib/person/person'\n\n// lists, rows and cards: 32 px (the default)\n<UserAvatar person={personFrom(user)} size="s" />\n\n// profiles and the payment details header: 96 px\n<UserAvatar person={personFrom(user)} size="xl" />`}
                     />
                 </DocSection.Code>
             </DocSection>

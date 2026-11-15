@@ -3,6 +3,7 @@ import { generateKeysFromString, getParamsFromLink } from '@/utils/peanut-link.u
 import type { SendLink } from '@/services/services.types'
 import { apiFetch, serverFetch } from '@/utils/api-fetch'
 import { apiErrorFromResponse } from '@/services/api-error'
+import { sendLinkReadProof } from '@/utils/send-link-proof.utils'
 
 export { ESendLinkStatus } from '@/services/services.types'
 export type { SendLinkStatus, SendLink } from '@/services/services.types'
@@ -17,6 +18,18 @@ const CLAIM_LINK_TTL_SECONDS = 7 * 24 * 60 * 60
 // replica/on-chain fallback. The fetch helper may retry a GET once, so the
 // caller-visible transport budget is still bounded to roughly two attempts.
 export const CLAIM_STATUS_TIMEOUT_MS = 5_000
+
+/**
+ * The query for GET /send-links/:pubKey and its /status twin: the deposit slot
+ * plus the link-key proof, which the API needs before it shows the note and
+ * the people on the link.
+ */
+async function sendLinkReadPath(link: string, suffix: '' | '/status'): Promise<string> {
+    const params = getParamsFromLink(link)
+    const { address: pubKey, privateKey } = generateKeysFromString(params.password)
+    const proof = await sendLinkReadProof(privateKey, pubKey, params.chainId)
+    return `/send-links/${pubKey}${suffix}?c=${params.chainId}&v=${params.contractVersion}&i=${params.depositIdx}&proof=${proof}`
+}
 
 /**
  * Resolve the link used to fetch + claim a send link, hardened against the
@@ -149,17 +162,12 @@ export const sendLinksApi = {
     },
 
     get: async (link: string): Promise<SendLink> => {
-        const params = getParamsFromLink(link)
-        const pubKey = generateKeysFromString(params.password).address
         // no-store instead of a Date.now() cache-buster: prevents cached 404s
         // during DB replication lag without defeating react-query dedupe
-        const response = await serverFetch(
-            `/send-links/${pubKey}?c=${params.chainId}&v=${params.contractVersion}&i=${params.depositIdx}`,
-            {
-                method: 'GET',
-                cache: 'no-store',
-            }
-        )
+        const response = await serverFetch(await sendLinkReadPath(link, ''), {
+            method: 'GET',
+            cache: 'no-store',
+        })
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`)
         }
@@ -168,17 +176,12 @@ export const sendLinksApi = {
     },
 
     getClaimStatus: async (link: string): Promise<SendLink> => {
-        const params = getParamsFromLink(link)
-        const pubKey = generateKeysFromString(params.password).address
-        const response = await serverFetch(
-            `/send-links/${pubKey}/status?c=${params.chainId}&v=${params.contractVersion}&i=${params.depositIdx}`,
-            {
-                method: 'GET',
-                cache: 'no-store',
-                timeoutMs: CLAIM_STATUS_TIMEOUT_MS,
-                silentTimeout: true,
-            }
-        )
+        const response = await serverFetch(await sendLinkReadPath(link, '/status'), {
+            method: 'GET',
+            cache: 'no-store',
+            timeoutMs: CLAIM_STATUS_TIMEOUT_MS,
+            silentTimeout: true,
+        })
         // Keep UI and API releases independently deployable while the status
         // route rolls out. The legacy endpoint is slower, but it is preferable
         // to leaving a settled claim stuck in the processing state.
@@ -208,17 +211,6 @@ export const sendLinksApi = {
                 method: 'GET',
             }
         )
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`)
-        }
-        const data: SendLink = jsonParse(await response.text())
-        return data
-    },
-
-    getByPubKey: async (pubKey: string): Promise<SendLink> => {
-        const response = await serverFetch(`/send-links/${pubKey}`, {
-            method: 'GET',
-        })
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`)
         }

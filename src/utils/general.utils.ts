@@ -1,29 +1,26 @@
+import { parseFiniteNumber } from '@/lib/money'
+import type { LedgerEntry } from '@/features/attention/types'
+import { reportInvalidNumeric } from '@/lib/numeric-telemetry'
 import { nativeCurrencyAddresses } from '@/constants/general.consts'
-import { supportedPeanutChains, peanutTokenDetails } from '@/constants/token-registry.consts'
 import { toInviteCode } from '@/utils/invite-code.utils'
 import { jsonStringify, jsonParse, saveToCookie, getFromCookie, sanitizeRedirectURL } from '@/utils/cookie-url.utils'
 import { STABLE_COINS, ENS_NAME_REGEX } from '@/constants/general.consts'
 import { payLinkUrl, shareableUrl } from '@/utils/url.utils'
+import { formatAmountNumber, formatFiniteDisplay } from '@/utils/currency'
 import { UTM_MEDIUMS, UTM_SOURCES, withUtm } from '@/utils/utm.utils'
 import { type ReferralSource } from '@/constants/analytics.consts'
 import { isCapacitor } from '@/utils/capacitor'
 import * as Sentry from '@/utils/sentry-lazy'
-import type { Address, TransactionReceipt } from 'viem'
-import { getAddress, isAddress, erc20Abi } from 'viem'
-import * as wagmiChains from 'wagmi/chains'
-/*
- * Type-only, so this module does not pull `actions/clients` — and through it
- * viem's ~700-chain registry (596 KB) — into every bundle that imports these
- * utils. `fetchTokenSymbol` below imports the client at call time instead.
- */
-import { type ChainId } from '@/app/actions/clients'
+import type { TransactionReceipt } from 'viem'
+import { getAddress, isAddress } from 'viem'
+import { getLoadedChain, loadChainRegistry } from '@/utils/chain-registry'
 import { type ChargeEntry } from '@/services/services.types'
 import { contributedAmount } from '@/utils/request-pot.utils'
+import { personFrom } from '@/lib/person/person'
 import { NATIVE_TOKEN_ADDRESS, NATIVE_TOKEN_PROXY_ADDRESS } from '@/constants/tokens.consts'
 import { toWebAuthnKey } from '@zerodev/passkey-validator'
 import { USER_OPERATION_REVERT_REASON_TOPIC } from '@/constants/userop.consts'
 import { CHAIN_LOGOS, TOKEN_LOGOS, type ChainName, type TokenName } from '@/constants/rhino.consts'
-import { resolveChainRegistryEntry } from '@/constants/chainRegistry.consts'
 import { type PushPromptTrigger } from '@/constants/push-prompt.consts'
 
 export const shortenAddress = (address?: string, chars?: number) => {
@@ -199,10 +196,14 @@ export const syncLocalStorageToCookie = (key: string) => {
  * that uses specific locales (e.g., 'es-AR' for '1.234,56').
  * This function standardizes on en-US for parsable input display.
  *
+ * Rounds half-up through `formatAmountNumber`, the one place a display amount
+ * is rounded. The input's own trailing zeros do not set the decimals: "1.5"
+ * and "1.50" format the same way.
+ *
  * @param {string | undefined} valueStr - The numeric string value to format.
  * @param {object} [options] - Optional formatting options.
  * @param {number} [options.maxDecimals] - The maximum number of decimals to display.
- * @param {number} [options.minDecimals] - The minimum number of decimals to display.
+ * @param {number} [options.minDecimals] - The minimum number of decimals to display when there is a fraction.
  * @returns {string} The formatted string for display with thousands separators (en-US).
  */
 export const formatNumberForDisplay = (
@@ -216,45 +217,39 @@ export const formatNumberForDisplay = (
     if (valueStr.endsWith('.') && (valueStr.match(/\./g) || []).length === 1) {
         // For inputs like "123.", format the numeric part "123"
         const numberPart = valueStr.slice(0, -1)
-        if (numberPart === '' || isNaN(Number(numberPart))) return valueStr // Avoid formatting " ." or invalid things like "abc."
-        const formattedNumberPart = Number(numberPart).toLocaleString('en-US', {
+        if (numberPart === '' || parseFiniteNumber(numberPart) === null) return '—' // Avoid formatting " ." or invalid things like "abc."
+        const formattedNumberPart = formatFiniteDisplay(numberPart, 'en-US', {
             minimumFractionDigits: 0, // Whole numbers don't get .00 unless typed
             maximumFractionDigits: options?.maxDecimals ?? 0, // Max decimals for the number part if any
         })
-        return formattedNumberPart + '.' // Append the dot back
+        return formattedNumberPart === '—' ? formattedNumberPart : formattedNumberPart + '.' // Append the dot back
     }
 
     // Validate the numeric string, allowing for numbers with or without decimal points.
     // Disallow multiple decimal points or non-numeric characters (except the single dot handled above).
     if (!/^\d*\.?\d*$/.test(valueStr) || (valueStr.match(/\./g) || []).length > 1) {
-        return '' // Return empty for invalid numeric strings not caught above
+        return '—' // Unavailable display data is distinct from an editable empty field
     }
 
     const num = Number(valueStr)
-    if (isNaN(num)) return ''
+    if (!Number.isFinite(num)) return '—'
 
-    const maxDecimals = options?.maxDecimals ?? 0 // Default to 0 if not specified, to avoid .00 for whole numbers
-    let minDecimals = options?.minDecimals ?? 0
-    const parts = valueStr.split('.')
-
-    if (parts.length === 2 && parts[1].length > 0) {
-        // If there's an actual decimal part in the input string (e.g., "1.2", "1.20"),
-        // set minDecimals to its length to preserve trailing zeros.
-        minDecimals = parts[1].length
-    }
-    // For whole numbers (e.g. "123"), minDecimals remains 0.
-
-    minDecimals = Math.min(minDecimals, maxDecimals) // Cap by maxDecimals
-
-    return num.toLocaleString('en-US', {
-        minimumFractionDigits: minDecimals,
-        maximumFractionDigits: maxDecimals,
-        roundingMode: 'trunc',
-    })
+    return formatAmountNumber(num, options?.maxDecimals ?? 0, options?.minDecimals ?? 0)
 }
 
-export function formatCurrency(valueStr: string | undefined, maxDecimals: number = 2, minDecimals: number = 2): string {
-    return formatNumberForDisplay(valueStr, { maxDecimals, minDecimals })
+/**
+ * A USD amount for display, without the "$": "1,234.56", "0.50", "1,234".
+ * Rounds half-up to the cent and drops ".00" on a round amount (design.md,
+ * copy → amounts). A spendable balance uses `formatUsdcBalance`, which rounds
+ * down instead.
+ */
+export function formatCurrency(
+    value: string | number | undefined,
+    maxDecimals: number = 2,
+    minDecimals: number = 2
+): string {
+    if (value === undefined || value === '') return ''
+    return formatAmountNumber(value, maxDecimals, minDecimals)
 }
 
 /**
@@ -262,18 +257,15 @@ export function formatCurrency(valueStr: string | undefined, maxDecimals: number
  * - displaying 2 significant digits for small numbers (<0.01)
  * - removing unnecessary trailing zeros after decimal point
  * - if all decimal places are zeros, returns the whole number
+ *
+ * For token amounts and URL segments only. It drops a trailing zero ("0.5"),
+ * so a money amount on screen uses `formatCurrency` or `formatBankAmount`.
  * @param amount - number or string to format
  * @returns formatted string representation of the number
  */
 export const formatAmount = (amount: string | number): string => {
-    // handle undefined, null, or empty string
-    if (!amount && amount !== 0) return '0'
-
-    // convert amount to number if not already
-    const num = typeof amount === 'string' ? Number(amount) : amount
-
-    // check for NaN after conversion
-    if (isNaN(num)) return '0'
+    const num = parseFiniteNumber(amount)
+    if (num === null) return '—'
 
     // handle small numbers differently
     if (Math.abs(num) < 0.01) {
@@ -308,35 +300,72 @@ export const formatAmount = (amount: string | number): string => {
 }
 
 export function floorFixed(value: number, decimals: number) {
-    return (Math.floor(value * 10 ** decimals) / 10 ** decimals).toFixed(decimals)
+    if (!Number.isFinite(value) || !Number.isInteger(decimals) || decimals < 0 || decimals > 100) return '—'
+    const scaled = value * 10 ** decimals
+    if (!Number.isFinite(scaled)) {
+        reportInvalidNumeric('format', 'overflow')
+        return '—'
+    }
+    return (Math.floor(scaled) / 10 ** decimals).toFixed(decimals)
 }
 
 export function formatAmountWithSignificantDigits(amount: number, significantDigits: number): string {
+    if (
+        !Number.isFinite(amount) ||
+        !Number.isInteger(significantDigits) ||
+        significantDigits < 0 ||
+        significantDigits > 100
+    )
+        return '—'
     if (amount === 0) return amount.toFixed(significantDigits)
-    let fractionDigits = Math.floor(Math.log10(1 / amount)) + significantDigits
+    let fractionDigits = Math.floor(Math.log10(1 / Math.abs(amount))) + significantDigits
     fractionDigits = fractionDigits < 0 ? 0 : fractionDigits
     return floorFixed(amount, fractionDigits)
+}
+
+// one separator before exactly 3 digits ("125.000", "1,000", "R$ 1.000") is a
+// thousand in es/pt and a decimal in en: a guess is a 1000x amount, so amount
+// fields refuse such user text (TASK-23499). not for numbers the app writes
+// itself: "133.333" from a slider is never a thousands group.
+export function isAmbiguousAmountText(text: string) {
+    return /^(?:[A-Za-z]{0,2}\p{Sc}\s*)?[1-9]\d{0,2}[.,]\d{3}(?:\s*\p{Sc})?$/u.test(text.trim())
 }
 
 export function formatTokenAmount(amount?: number | string, maxFractionDigits?: number, forInput: boolean = false) {
     if (amount === undefined) return undefined
     maxFractionDigits = maxFractionDigits ?? 6
+    if (!Number.isInteger(maxFractionDigits) || maxFractionDigits < 0 || maxFractionDigits > 100)
+        return forInput ? '' : undefined
 
     // For input mode, preserve progressive typing (e.g., "1.", "0.")
     if (forInput && typeof amount === 'string') {
         let s = amount.trim()
         if (s === '') return ''
 
+        // a copied amount often carries one sign ("R$ 1.234,56", "$12", "12,50 €").
+        // only that sign goes; anything else around the digits stays and is rejected.
+        const signed = s.match(/^[A-Za-z]{0,2}\p{Sc}\s*(.+)$/u) ?? s.match(/^(.+?)\s*\p{Sc}$/u)
+        if (signed) s = signed[1]
+        // spaces (and the no-break spaces Intl writes) are thousands only in clean
+        // 3-digit groups: "1 234,56" is 1234.56, but "12 5" is rejected, never 125
+        if (/^\d{1,3}([   ]\d{3})+([.,]\d*)?$/.test(s)) s = s.replace(/[   ]/g, '')
+
         // a lone comma is the decimal separator (es/pt): "0,125" is 0.125, never 125.
         // commas are thousands only in a well-formed group with a second signal:
         // a dot after them ("10,000.50") or more than one comma ("1,234,567").
+        // dots are thousands by the same rule mirrored: clean groups with a decimal
+        // comma after them ("1.000,50"). a dot with no comma stays a decimal point;
+        // user text like "125.000" is refused before it gets here (isAmbiguousAmountText).
         // anything else with a comma ("1,2,3") ends up invalid and is rejected.
         const loneComma = /^[^,.]*,[^,.]*$/.test(s)
         const isThousands = !loneComma && /^\d{1,3}(,\d{3})+(\.\d*)?$/.test(s)
-        s = isThousands ? s.replace(/,/g, '') : s.replace(/,/g, '.')
+        const isDotThousands = /^[1-9]\d{0,2}(\.\d{3})+,\d*$/.test(s)
+        if (isDotThousands) s = s.replace(/\./g, '').replace(',', '.')
+        else s = isThousands ? s.replace(/,/g, '') : s.replace(/,/g, '.')
 
         const m = s.match(/^(\d*)(?:\.(\d*))?$/)
         if (!m) return '' // invalid → empty
+        if (s !== '.' && parseFiniteNumber(s) === null) return ''
         const whole = m[1] ?? ''
         const fracRaw = m[2] // undefined ⇒ no dot; '' ⇒ dot present with no digits
         if (fracRaw === undefined) return whole
@@ -345,13 +374,16 @@ export function formatTokenAmount(amount?: number | string, maxFractionDigits?: 
         return `${whole}.${frac}`
     }
 
-    const amountNumber = typeof amount === 'string' ? parseFloat(amount) : amount
-
-    // check for NaN after conversion
-    if (isNaN(amountNumber)) return undefined
+    const amountNumber = parseFiniteNumber(amount)
+    if (amountNumber === null) return undefined
 
     // floor the amount
     const flooredAmount = Math.floor(amountNumber * Math.pow(10, maxFractionDigits)) / Math.pow(10, maxFractionDigits)
+
+    if (!Number.isFinite(flooredAmount)) {
+        reportInvalidNumeric('format', 'overflow')
+        return undefined
+    }
 
     // Convert number to string to count significant digits
     const amountString = flooredAmount.toFixed(maxFractionDigits)
@@ -361,19 +393,18 @@ export function formatTokenAmount(amount?: number | string, maxFractionDigits?: 
     const fractionDigits = Math.max(2 - significantDigits, 0)
 
     // Format the number with the calculated fraction digits
-    const formattedAmount = flooredAmount.toLocaleString('en-US', {
-        minimumFractionDigits: fractionDigits,
+    const formattedAmount = formatFiniteDisplay(flooredAmount, 'en-US', {
+        minimumFractionDigits: Math.min(fractionDigits, maxFractionDigits),
         maximumFractionDigits: maxFractionDigits,
     })
-    return formattedAmount
+    return formattedAmount === '—' ? undefined : formattedAmount
 }
 
-export const isTestnetChain = (chainId: string) => {
+export const isTestnetChain = async (chainId: string): Promise<boolean> => {
     // viem's chains carry a `testnet: true` flag; fall through to default
     // false for unknown chains so prod paths fail closed (treat as mainnet).
-    const all = Object.values(wagmiChains as unknown as Record<string, { id: number; testnet?: boolean }>)
-    const chain = all.find((c) => c?.id === Number(chainId))
-    return chain?.testnet === true
+    await loadChainRegistry()
+    return getLoadedChain(chainId)?.testnet === true
 }
 
 export const areEvmAddressesEqual = (address1: string, address2: string): boolean => {
@@ -405,6 +436,8 @@ export interface RecentMethod {
     path: string
 }
 
+export type AttentionLedgerEntry = LedgerEntry
+
 export type UserPreferences = {
     balanceHidden?: boolean
     /** Welcome card only: first usable Home render, Home visits, and permanent dismissal on this device. */
@@ -416,9 +449,8 @@ export type UserPreferences = {
     hasSeenBalanceWarning?: { value: boolean; expiry: number }
     /** tracks surprise moment claim count for referral CTA copy (rewards v2). 0=first, 1=second, 2+=normal */
     rewards_surprise_claim_count?: number
-    /** Home CTAs the user has dismissed, with the ISO timestamp of each dismissal.
-     *  A dismissal is permanent, except the allow-list in RECURRING_CAROUSEL_CTAS
-     *  (home-carousel.utils.ts). Legacy shape was `string[]`; both are accepted on read. */
+    /** Pre-manager Home carousel closes, with the ISO timestamp of each. Read once into the
+     *  attention ledger (features/attention/ledger.ts). Legacy shape was `string[]`; both are accepted on read. */
     dismissedCarouselCTAs?: string[] | Record<string, string>
     /** Last fully-settled spendable total (smart + Rain), in USDC base units as a
      *  string. DISPLAY-only seed so a cold start paints the previous number instead
@@ -437,6 +469,8 @@ export type UserPreferences = {
     /** App loads by this user on this device. The Home push fallback waits
      *  for the third one. */
     sessionCount?: number
+    /** the pre-manager closes above were copied into `attention` (and synced) once */
+    attentionLegacyPersisted?: boolean
     /** App-review nudge budget (see utils/app-review.ts). `moments` counts
      *  qualifying happy moments seen; `requestedAt` holds the ISO timestamps of
      *  past OS review requests, oldest first. */
@@ -455,6 +489,8 @@ export type UserPreferences = {
      *  rather than hiding it forever, and a genuinely new cap block is never
      *  suppressed by a stale local flag. */
     capNudgeSubmittedAt?: string
+    /** the attention manager's ledger (features/attention/ledger.ts): shown, dismissed and snoozed per ask */
+    attention?: Partial<Record<string, AttentionLedgerEntry>>
 }
 
 export const updateUserPreferences = (
@@ -470,8 +506,7 @@ export const updateUserPreferences = (
             ...currentPrefs,
             ...partialPrefs,
         }
-        saveToLocalStorage(`${userId}:user-preferences`, newPrefs)
-        return newPrefs
+        return saveToLocalStorage(`${userId}:user-preferences`, newPrefs) ? newPrefs : undefined
     } catch (error) {
         Sentry.captureException(error)
         console.error('Error updating user preferences:', error)
@@ -499,33 +534,6 @@ export const estimateIfIsStableCoinFromPrice = (tokenPrice: number) => {
     } else {
         return false
     }
-}
-
-export const getExplorerUrl = (chainId: string) => {
-    const explorers = supportedPeanutChains.find((detail) => detail.chainId === chainId)?.explorers
-    // if the explorers array has blockscout, return the blockscout url, else return the first one
-    if (explorers?.find((explorer) => explorer.url.includes('blockscout'))) {
-        return explorers?.find((explorer) => explorer.url.includes('blockscout'))?.url
-    } else {
-        return explorers?.[0].url
-    }
-}
-
-/** Build a transaction proof URL from any chain identifier the API emits.
- *  EVM chains keep using chain-details.json; non-EVM explorer shapes live in
- *  the canonical chain registry. */
-export const getTransactionExplorerUrl = (chainIdentifier: string, transactionHash: string) => {
-    const exactIdentifier = chainIdentifier.trim()
-    const chain = resolveChainRegistryEntry(exactIdentifier)
-    const aliasPrefix = chain?.aliasTransactionExplorerUrlPrefixes?.[exactIdentifier]
-    if (aliasPrefix) {
-        return `${aliasPrefix}${encodeURIComponent(transactionHash)}`
-    }
-    if (chain?.transactionExplorerUrlPrefix) {
-        return `${chain.transactionExplorerUrlPrefix}${encodeURIComponent(transactionHash)}`
-    }
-    const baseUrl = getExplorerUrl(chain?.id ?? exactIdentifier)
-    return baseUrl ? `${baseUrl}/tx/${transactionHash}` : undefined
 }
 
 export function formatDate(date: Date | null | undefined): string {
@@ -556,83 +564,16 @@ export const formatIban = (iban: string) => {
         .trim()
 }
 
-/** Gets the token decimals for a given token address and chain ID. */
-export function getTokenDecimals(tokenAddress: string, chainId: string): number | undefined {
-    return peanutTokenDetails
-        .find((chain) => chain.chainId === chainId)
-        ?.tokens.find((token) => areEvmAddressesEqual(token.address, tokenAddress))?.decimals
-}
-
-export function getTokenDetails({ tokenAddress, chainId }: { tokenAddress: Address; chainId: string }):
-    | {
-          symbol: string
-          name: string
-          decimals: number
-      }
-    | undefined {
-    const chainTokens = peanutTokenDetails.find((c) => c.chainId === chainId)?.tokens
-    if (!chainTokens) return undefined
-    const tokenDetails = chainTokens.find((token) => areEvmAddressesEqual(token.address, tokenAddress))
-    if (!tokenDetails) return undefined
-    return tokenDetails
-}
-
 /**
- * Gets the token symbol for a given token address and chain ID.
- *
- * From the sdk token list, if you need to be sure to get a token symbol you
- * should use the {@link fetchTokenSymbol} function.
- *
- * @returns The token symbol, or undefined if not found.
+ * Sync: names the wallet chain at once and any other chain once viem's
+ * registry has loaded (`useChainRegistry`, or `completeHistoryEntry` for
+ * history rows). Before that it returns undefined and starts the load.
  */
-export function getTokenSymbol(tokenAddress: string | undefined, chainId: string | undefined): string | undefined {
-    if (!tokenAddress || !chainId) return undefined
-
-    const chainTokens = peanutTokenDetails.find((chain) => chain.chainId === chainId)?.tokens
-    if (!chainTokens) return undefined
-
-    return chainTokens.find((token) => areEvmAddressesEqual(token.address, tokenAddress))?.symbol
-}
-
-/**
- * Fetches the token symbol for a given token address and chain ID.
- *
- * This function first checks the sdk token list, and if the token is not found
- * it fetches the token contract details and tries to get the symbol from the
- * contract. If you are ok with only checking the sdk token list, and don't want
- * to await you can use the {@link getTokenSymbol} function.
- *
- * @returns The token symbol, or undefined if not found.
- */
-export async function fetchTokenSymbol(tokenAddress: string, chainId: string): Promise<string | undefined> {
-    let tokenSymbol = getTokenSymbol(tokenAddress, chainId)
-    if (!tokenSymbol) {
-        try {
-            const { getPublicClient } = await import('@/app/actions/clients')
-            const client = getPublicClient(Number(chainId) as ChainId)
-            tokenSymbol = (await client.readContract({
-                address: tokenAddress as Address,
-                abi: erc20Abi,
-                functionName: 'symbol',
-                args: [],
-            })) as string
-        } catch (error) {
-            Sentry.captureException(error)
-            console.error('Error fetching token symbol:', error)
-        }
-    }
-    if (!tokenSymbol) {
-        console.error(`Failed to get token symbol for token ${tokenAddress} on chain ${chainId}`)
-    }
-    return tokenSymbol
-}
-
 export function getChainName(chainId: string): string | undefined {
     if (chainId === '0') {
         return 'Solana'
     }
-    const chain = Object.entries(wagmiChains).find(([, chain]) => chain.id === Number(chainId))?.[1]
-    return chain?.name ?? undefined
+    return getLoadedChain(chainId)?.name
 }
 
 /**
@@ -644,27 +585,22 @@ export function getChainName(chainId: string): string | undefined {
  */
 /**
  * Formats a number to use K, M, B, T suffixes if it exceeds 6 digits in length.
- * Uses the formatAmount function to format the number before adding a suffix.
+ * Below that it shows the full amount like any money amount ("1,234.50");
+ * a suffixed amount is compact ("12.5K").
  *
  * @param amount - The number or string to format.
  * @returns A formatted string with appropriate suffix.
  */
 export const formatExtendedNumber = (amount: string | number, minDigitsForFomatting: number = 6): string => {
-    // Handle null/undefined/invalid inputs
-    if (!amount && amount !== 0) return '0'
-
-    // Validate input type and convert to number
-    const num = typeof amount === 'string' ? parseFloat(amount) : amount
-
-    // Check for NaN values
-    if (isNaN(num)) return '0'
+    const num = parseFiniteNumber(amount)
+    if (num === null) return '—'
 
     // Count total digits by removing decimal point and negative sign
     const totalDigits = amount.toString().replace(/[.-]/g, '').length
 
-    // If 6 or fewer digits, just use formatAmount
+    // If 6 or fewer digits, show the amount in full, with its cents: "257.50", not "257.5"
     if (totalDigits <= minDigitsForFomatting) {
-        return formatAmount(num)
+        return formatAmountNumber(num)
     }
 
     // Get absolute value for comparison
@@ -696,7 +632,7 @@ export const formatExtendedNumber = (amount: string | number, minDigitsForFomatt
         }
     }
 
-    return formatAmount(num)
+    return formatAmountNumber(num)
 }
 
 export function getRequestLink(
@@ -783,6 +719,8 @@ export const beginIntentionalLogout = () => {
 export const endIntentionalLogout = () => {
     intentionalLogout = false
 }
+
+export const isIntentionalLogout = () => intentionalLogout
 
 /**
  * Why a post-auth destination was stored. `deep-link` is an intent of the
@@ -1196,8 +1134,10 @@ export const clearRedirectUrl = (expected?: StoredRedirect | null) => {
     }
 }
 
-export const getInitialsFromName = (name: string): string => {
-    const nameParts = name.trim().split(/\s+/)
+// A user who never finished signup has no username and no name; one such row
+// must not take down the screen that lists it.
+export const getInitialsFromName = (name: string | null | undefined): string => {
+    const nameParts = (name ?? '').trim().split(/\s+/)
     if (nameParts.length === 1) {
         return nameParts[0].substring(0, 2).toUpperCase()
     } else {
@@ -1330,7 +1270,7 @@ export const getContributorsFromCharge = (charges: ChargeEntry[]) => {
                 // charge/service.ts to immutable response building). Scoped separately.
                 isUserVerified: payerAccount?.user?.bridgeKycStatus === 'approved',
                 isPeanutUser,
-                avatarKey: payerAccount?.user?.avatarKey ?? null,
+                person: personFrom(payerAccount?.user),
             }
         })
         .filter((c): c is NonNullable<typeof c> => c !== null)

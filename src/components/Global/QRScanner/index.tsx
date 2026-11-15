@@ -1,8 +1,7 @@
 import { createPortal } from 'react-dom'
 import { useTranslations } from 'next-intl'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
-import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { NAV_CIRCLE_BUTTON_CLASSES } from '@/components/Global/NavHeader/navHeader.consts'
 import { MERCADO_PAGO, PIX } from '@/assets/payment-apps'
 import { LOGO } from '@/assets/brand'
@@ -16,10 +15,10 @@ import { useBackHandler } from '@/hooks/useBackHandler'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import CameraPermissionDrawer from './CameraPermissionDrawer'
 import { Clipboard } from '@capacitor/clipboard'
-import { clipboardHasStrings } from '@/utils/clipboard-detect'
-import { extractPaymentValue, readClipboard } from '@/utils/clipboard-extract.utils'
+import { isAddress } from 'viem'
+import { readClipboard } from '@/utils/clipboard-extract.utils'
 import { isAndroidNative } from '@/utils/capacitor'
-import { printableAddress } from '@/utils/general.utils'
+import { isPixEmvcoQr } from '@/utils/withdraw.utils'
 import { reportQrScanError } from './utils'
 
 // ============================================================================
@@ -43,22 +42,26 @@ const CORNER_POSITIONS = [
     { position: '-bottom-1 -right-1', rotation: '-rotate-180' },
 ] as const
 
-// Below 730px, use compact pills and anchored paste actions. Tracked in JS
-// (not CSS dual-render): rendering PasteActions twice put duplicate interactive
-// controls in the DOM and the a11y tree order could not be trusted.
+// Tracked in JS (not CSS dual-render): rendering the paste button twice put
+// duplicate interactive controls in the DOM and the a11y tree order could not
+// be trusted.
+// Under 730px the pills compact so pills and button clear the drawer peek.
 const SHORT_VIEWPORT_QUERY = '(max-height: 729px)'
+// Under 667px both no longer fit between the scan square and the drawer peek:
+// the pills go and the button anchors to the drawer.
+const TINY_VIEWPORT_QUERY = '(max-height: 666px)'
 
-function useIsShortViewport(): boolean {
-    const [isShort, setIsShort] = useState(false)
+function useMatchesMedia(query: string): boolean {
+    const [matches, setMatches] = useState(false)
     useEffect(() => {
         if (typeof window.matchMedia !== 'function') return
-        const mq = window.matchMedia(SHORT_VIEWPORT_QUERY)
-        const update = () => setIsShort(mq.matches)
+        const mq = window.matchMedia(query)
+        const update = () => setMatches(mq.matches)
         update()
         mq.addEventListener('change', update)
         return () => mq.removeEventListener('change', update)
-    }, [])
-    return isShort
+    }, [query])
+    return matches
 }
 
 // ============================================================================
@@ -73,6 +76,8 @@ export interface QRScannerProps {
      *  clear anything it floats above the scanner (the my-QR peek sits at
      *  z-60 and would cover the z-50 recovery sheet). */
     onPermissionDenied?: (denied: boolean) => void
+    /** Leaves Pix out of the accepted-method badges, for a user Pix is paused for. */
+    hidePix?: boolean
 }
 
 // ============================================================================
@@ -95,10 +100,20 @@ function PinkCorner({ className }: { className?: string }) {
 
 // Konrad's approved 06A treatment: informational network pills on the camera,
 // separate from the DS Badge's status colours and from selectable controls.
-function PaymentMethodPill({ src, name, compact }: { src: string; name: string; compact: boolean }) {
+function PaymentMethodPill({
+    src,
+    name,
+    compact,
+    className,
+}: {
+    src: string
+    name: string
+    compact: boolean
+    className?: string
+}) {
     return (
         <li
-            className={`flex min-w-0 items-center justify-center gap-1 rounded-full border border-foreground-inverse/25 bg-background-default/12 px-2 text-foreground-inverse backdrop-blur ${compact ? 'min-h-6 py-0.5 text-body-xs' : 'min-h-8 py-1 text-body-s'}`}
+            className={`flex min-w-0 items-center justify-center gap-1 rounded-full border border-foreground-inverse/25 bg-background-default/12 px-2 text-foreground-inverse backdrop-blur ${compact ? 'min-h-6 py-0.5 text-body-xs' : 'min-h-8 py-1 text-body-s'} ${className ?? ''}`}
         >
             <Image
                 src={src}
@@ -139,68 +154,49 @@ function ScannerControls({ onClose, onToggleCamera }: { onClose: () => void; onT
     )
 }
 
-function PasteActions({
+// One paste control, always present and never disabled: the app cannot know
+// what the clipboard holds before a tap (iOS reports at most "has text", web
+// nothing), so the tap reads it fresh and recognizeQr decides. Primary, not
+// secondary: on the dark camera ground the secondary's black shadow is lost.
+// The label names the copied thing only where the app already knows it
+// (Android, see the read at open); the tap still reads the clipboard fresh.
+type CopiedKind = 'pix' | 'address' | null
+
+const PASTE_LABEL_KEYS = {
+    pix: 'qrScanner.pastePixCode',
+    address: 'qrScanner.pasteAddress',
+} as const
+
+function PasteButton({
     onPaste,
-    detectedAddress,
-    onUseDetected,
-    showPasteChip,
-    onUsePasteChip,
+    copiedKind,
+    className,
 }: {
     onPaste: () => void
-    detectedAddress: string | null
-    onUseDetected: () => void
-    showPasteChip: boolean
-    onUsePasteChip: () => void
+    copiedKind: CopiedKind
+    className?: string
 }) {
     const t = useTranslations('global')
     return (
-        <>
-            {/* stays white: the link sits on the live camera feed, where the
-                secondary gray of the stock chrome would not read */}
-            <LinkButton onClick={onPaste} className="mx-auto mt-4 flex text-white hover:text-white active:text-white">
-                <Icon name="paste" fill="white" height={16} width={16} />
-                {t('qrScanner.clickToPaste')}
-            </LinkButton>
-            {detectedAddress ? (
-                <button
-                    onClick={onUseDetected}
-                    // mt-4: clear of the paste link's 14px extended hit area above
-                    className="mx-auto mt-4 flex items-center gap-1 rounded-full border border-white/40 px-3 py-2 text-white"
-                >
-                    <Icon name="wallet" fill="white" height={16} width={16} />
-                    <span className="text-label-l">{printableAddress(detectedAddress)}</span>
-                </button>
-            ) : showPasteChip ? (
-                <button
-                    onClick={onUsePasteChip}
-                    // mt-4: clear of the paste link's 14px extended hit area above
-                    className="mx-auto mt-4 flex items-center gap-1 rounded-full border border-white/40 px-3 py-2 text-white"
-                >
-                    <Icon name="paste" fill="white" height={16} width={16} />
-                    <span className="text-label-l">{t('qrScanner.useCopiedCode')}</span>
-                </button>
-            ) : null}
-        </>
+        <Button variant="primary" size="small" icon="paste" onClick={onPaste} className={`w-auto ${className ?? ''}`}>
+            {t(copiedKind ? PASTE_LABEL_KEYS[copiedKind] : 'qrScanner.paste')}
+        </Button>
     )
 }
 
 function ScanRegionOverlay({
     onPaste,
-    detectedAddress,
-    onUseDetected,
-    showPasteChip,
-    onUsePasteChip,
+    copiedKind,
+    hidePix,
 }: {
     onPaste: () => void
-    detectedAddress: string | null
-    onUseDetected: () => void
-    showPasteChip: boolean
-    onUsePasteChip: () => void
+    copiedKind: CopiedKind
+    hidePix?: boolean
 }) {
     const t = useTranslations('global')
-    const isShortViewport = useIsShortViewport()
-    const hasClipboardShortcut = Boolean(detectedAddress) || showPasteChip
-    const compactNetworks = isShortViewport || hasClipboardShortcut
+    const isShortViewport = useMatchesMedia(SHORT_VIEWPORT_QUERY)
+    const isTinyViewport = useMatchesMedia(TINY_VIEWPORT_QUERY)
+    const methods = PAYMENT_METHODS.filter((method) => !hidePix || method.name !== 'Pix')
     return (
         <>
             <div className="fixed left-1/2 flex h-64 w-64 -translate-x-1/2 translate-y-1/2 justify-center">
@@ -212,65 +208,55 @@ function ScanRegionOverlay({
                     ))}
                 </div>
 
-                {/* The pills stay on the camera. Compact screens retain the
-                    existing anchored paste actions below; when their clipboard
-                    shortcut needs the space, hide the informational group. */}
-                <div
-                    className={`pointer-events-auto absolute inset-x-0 top-full z-50 flex flex-col items-center ${isShortViewport ? 'mt-2' : 'mt-6'}`}
-                >
-                    {!(isShortViewport && hasClipboardShortcut) && (
-                        <div className="w-[calc(100vw-3rem)] max-w-80 [@media(max-height:666px)]:hidden">
-                            <p
-                                className={`text-center text-body-xs text-foreground-inverse ${compactNetworks ? 'mb-1' : 'mb-2'}`}
-                            >
-                                {t('qrScanner.supportedQrCodes')}
-                            </p>
-                            <ul
-                                aria-label={t('qrScanner.supportedQrCodes')}
-                                className={`grid grid-cols-2 gap-x-2 ${compactNetworks ? 'gap-y-1' : 'gap-y-2'}`}
-                            >
-                                {PAYMENT_METHODS.map((method) => (
-                                    <PaymentMethodPill
-                                        key={method.name ?? 'evm'}
-                                        src={method.src}
-                                        name={method.name ?? t('qrScanner.paymentMethods.evmName')}
-                                        compact={compactNetworks}
-                                    />
-                                ))}
-                            </ul>
-                        </div>
-                    )}
-                    {!isShortViewport && (
-                        <PasteActions
+                {/* Network pills (2-per-row grid) then the paste button, hanging
+                    below the scan square so the group reads as part of it. The
+                    tiny fallback below cannot live in this subtree, because the
+                    square's transform makes it the containing block for
+                    position:fixed — a bottom offset here would resolve against
+                    the 256px square, not the viewport. */}
+                {!isTinyViewport && (
+                    <div
+                        className={`pointer-events-auto absolute top-full left-1/2 z-50 flex w-[calc(100vw-3rem)] max-w-80 -translate-x-1/2 flex-col items-center ${isShortViewport ? 'mt-2' : 'mt-6'}`}
+                    >
+                        <ul
+                            aria-label={t('qrScanner.supportedQrCodes')}
+                            className={`grid w-full grid-cols-2 gap-x-2 ${isShortViewport ? 'gap-y-1' : 'gap-y-2'}`}
+                        >
+                            {/* an odd count (Pix left out) centres its last pill on its own row; four keep the 2×2 */}
+                            {methods.map((method, index) => (
+                                <PaymentMethodPill
+                                    key={method.name ?? 'evm'}
+                                    src={method.src}
+                                    name={method.name ?? t('qrScanner.paymentMethods.evmName')}
+                                    compact={isShortViewport}
+                                    className={
+                                        methods.length % 2 === 1 && index === methods.length - 1
+                                            ? 'col-span-2 w-1/2 justify-self-center'
+                                            : undefined
+                                    }
+                                />
+                            ))}
+                        </ul>
+                        <PasteButton
                             onPaste={onPaste}
-                            detectedAddress={detectedAddress}
-                            onUseDetected={onUseDetected}
-                            showPasteChip={showPasteChip}
-                            onUsePasteChip={onUsePasteChip}
+                            copiedKind={copiedKind}
+                            className={isShortViewport ? 'mt-3' : 'mt-4'}
                         />
-                    )}
-                </div>
+                    </div>
+                )}
             </div>
 
-            {/* Short-viewport fallback: a viewport-fixed sibling OUTSIDE the
-                transformed square, anchored a gap above the drawer peek (the
-                pre-#20 geometry) — inside the square's subtree the transform
-                would hijack the containing block for position:fixed. Exactly
-                one PasteActions copy renders (useIsShortViewport), never two. */}
-            {isShortViewport && (
+            {/* Tiny-viewport fallback: a viewport-fixed sibling OUTSIDE the
+                transformed square, anchored a gap above the drawer peek —
+                inside the square's subtree the transform would hijack the
+                containing block for position:fixed. Exactly one PasteButton
+                renders, never two. */}
+            {isTinyViewport && (
                 <div
                     className="pointer-events-none fixed inset-x-0 z-50 flex flex-col items-center"
                     style={{ bottom: QR_DRAWER_PEEK_PX + QR_DRAWER_PASTE_GAP_PX }}
                 >
-                    <div className="pointer-events-auto flex flex-col items-center">
-                        <PasteActions
-                            onPaste={onPaste}
-                            detectedAddress={detectedAddress}
-                            onUseDetected={onUseDetected}
-                            showPasteChip={showPasteChip}
-                            onUsePasteChip={onUsePasteChip}
-                        />
-                    </div>
+                    <PasteButton onPaste={onPaste} copiedKind={copiedKind} className="pointer-events-auto" />
                 </div>
             )}
         </>
@@ -317,7 +303,7 @@ function ErrorView({
 // Main Component
 // ============================================================================
 
-export default function QRScanner({ onScan, onClose, onPermissionDenied, isOpen = true }: QRScannerProps) {
+export default function QRScanner({ onScan, onClose, onPermissionDenied, isOpen = true, hidePix }: QRScannerProps) {
     const { error, isPermissionDenied, isScanning, isCameraReady, videoRef, close, toggleCamera, retryCamera } =
         useQRScanner(onScan, onClose, isOpen)
     // The scanner is an overlay, not a route: unhandled, Android back falls through to minimizeApp on Home.
@@ -332,38 +318,32 @@ export default function QRScanner({ onScan, onClose, onPermissionDenied, isOpen 
     }, [isPermissionDenied])
     const t = useTranslations('global')
     const toast = useToast()
-    const [detectedAddress, setDetectedAddress] = useState<string | null>(null)
-    const [showPasteChip, setShowPasteChip] = useState(false)
+    const [copiedKind, setCopiedKind] = useState<CopiedKind>(null)
+    const isPasting = useRef(false)
 
     /*
-     * Platform-split clipboard shortcut. Android native: read at open and
-     * preview the copied EVM address — the read only trips the system paste
-     * toast, nothing blocking. iOS native: an un-gestured Clipboard.read()
-     * raises the "Allow Paste" alert, which raced the camera permission dialog
-     * and blocked it (PEANUT-UI-PYW) — so only a prompt-free hasStrings check
-     * runs here, and the actual read happens on the chip tap (a real gesture).
-     * Web: no pre-read at all; "Paste code" remains.
+     * Android native only: read at open to name what was copied on the paste
+     * button — the read only trips the system paste toast, nothing blocking.
+     * iOS native: an un-gestured Clipboard.read() raises the "Allow Paste"
+     * alert, which raced the camera permission dialog and blocked it
+     * (PEANUT-UI-PYW). Web: a read needs a gesture. Both keep the plain label.
+     * The value read here only picks the label; it is never paid.
      */
     useEffect(() => {
-        if (!isScanning) {
-            setDetectedAddress(null)
-            setShowPasteChip(false)
+        if (!isScanning || !isAndroidNative()) {
+            setCopiedKind(null)
             return
         }
         let cancelled = false
-        if (isAndroidNative()) {
-            Clipboard.read()
-                .then(({ value }) => {
-                    if (!cancelled) setDetectedAddress(extractPaymentValue((value ?? '').trim(), 'evmAddress'))
-                })
-                .catch(() => {
-                    if (!cancelled) setDetectedAddress(null)
-                })
-        } else {
-            clipboardHasStrings().then((hasStrings) => {
-                if (!cancelled) setShowPasteChip(hasStrings)
+        Clipboard.read()
+            .then(({ value }) => {
+                if (cancelled) return
+                const text = (value ?? '').trim()
+                setCopiedKind(isPixEmvcoQr(text) ? 'pix' : isAddress(text) ? 'address' : null)
             })
-        }
+            .catch(() => {
+                if (!cancelled) setCopiedKind(null)
+            })
         return () => {
             cancelled = true
         }
@@ -392,27 +372,18 @@ export default function QRScanner({ onScan, onClose, onPermissionDenied, isOpen 
         }
     }
 
-    /*
-     * The iOS chip is a nudge, not a filter: hasStrings() reports only THAT the
-     * clipboard has text, never what it is. Extracting an EVM address here and
-     * rejecting everything else therefore turned the chip into a dead end for
-     * the payloads the scanner exists to accept — a pasted Pix copia-e-cola was
-     * refused as "not a wallet address". Hand the raw text to the same scan path
-     * as "Paste code" and let recognizeQr decide.
-     */
-    const handleUsePasteChip = async () => {
-        const text = await readClipboardText()
-        if (!text) {
-            setShowPasteChip(false)
-            return
-        }
-        await scanValue(text)
-    }
-
+    // No filter by type: recognizeQr accepts far more than the label can
+    // name, so the raw text goes down the same path as a camera scan. The
+    // in-flight ref stops a double tap from opening the payment twice.
     const handlePaste = async () => {
-        const text = await readClipboardText()
-        if (!text) return
-        await scanValue(text)
+        if (isPasting.current) return
+        isPasting.current = true
+        try {
+            const text = await readClipboardText()
+            if (text) await scanValue(text)
+        } finally {
+            isPasting.current = false
+        }
     }
 
     if (!isScanning) return null
@@ -432,13 +403,7 @@ export default function QRScanner({ onScan, onClose, onPermissionDenied, isOpen 
                 <CameraPermissionDrawer visible onRetry={retryCamera} onClose={close} />
             ) : error ? (
                 <ErrorView message={error} onClose={close} onRetry={retryCamera}>
-                    <PasteActions
-                        onPaste={handlePaste}
-                        detectedAddress={detectedAddress}
-                        onUseDetected={() => scanValue(detectedAddress!)}
-                        showPasteChip={showPasteChip}
-                        onUsePasteChip={handleUsePasteChip}
-                    />
+                    <PasteButton onPaste={handlePaste} copiedKind={copiedKind} className="mx-auto mt-4" />
                 </ErrorView>
             ) : (
                 <>
@@ -457,13 +422,7 @@ export default function QRScanner({ onScan, onClose, onPermissionDenied, isOpen 
                         </div>
                     )}
                     <ScannerControls onClose={close} onToggleCamera={toggleCamera} />
-                    <ScanRegionOverlay
-                        onPaste={handlePaste}
-                        detectedAddress={detectedAddress}
-                        onUseDetected={() => scanValue(detectedAddress!)}
-                        showPasteChip={showPasteChip}
-                        onUsePasteChip={handleUsePasteChip}
-                    />
+                    <ScanRegionOverlay onPaste={handlePaste} copiedKind={copiedKind} hidePix={hidePix} />
                 </>
             )}
         </div>,

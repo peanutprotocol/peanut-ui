@@ -7,6 +7,8 @@
  * nondeterministic by design.
  */
 
+import { HOME_ADD_DRAWER_CHECKPOINT } from '../../src/dev/screens/pages'
+
 export const MARKETING_LOCALES = ['en', 'es-419', 'es-ar', 'pt-br'] as const
 
 const COUNTRIES = [
@@ -303,7 +305,7 @@ export const EXTRA_APP_ROUTES: OverlayTarget[] = [
     { id: 'route-profile-about', route: '/profile/about' },
     { id: 'route-profile-exchange-rate', route: '/profile/exchange-rate' },
     { id: 'route-profile-view', route: '/profile/view?username=demo' },
-    // /qr (needs a claim code), /add-money/us/bank and /withdraw/{crypto,manteca}
+    // /qr (needs a claim code) and /withdraw/{crypto,manteca}
     // (need mid-flow state) bounce without deeper harness work — the withdraw
     // and add-money fixtures cover those screens' entry states
     { id: 'route-limits-bridge', route: '/limits/bridge' },
@@ -354,7 +356,12 @@ export const OVERLAY_TARGETS: OverlayTarget[] = [
         clickKeys: ['profile.backup.faq.exportKeys'],
         proof: '[data-vaul-drawer], [role="dialog"]',
     },
-    { id: 'home-add-drawer', route: '/home?drawer=add', proof: '[data-vaul-drawer], [role="dialog"]' },
+    {
+        id: 'home-add-drawer',
+        route: '/home?drawer=add',
+        fixture: 'home-add-drawer',
+        proof: HOME_ADD_DRAWER_CHECKPOINT,
+    },
     { id: 'home-send-drawer', route: '/home?drawer=send', proof: '[data-vaul-drawer], [role="dialog"]' },
     { id: 'add-money-bank-list', route: '/add-money?method=bank', fixture: 'add-money' },
     { id: 'profile-avatar-picker', route: '/profile?avatarPicker=true', proof: '[data-vaul-drawer], [role="dialog"]' },

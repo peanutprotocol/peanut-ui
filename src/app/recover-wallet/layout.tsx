@@ -11,6 +11,8 @@ export const metadata = {
         description: 'Recover funds from a Peanut wallet using your passkey.',
     }),
     robots: { index: false, follow: false },
+    // The support iframe must not inherit the recovery query in its referrer.
+    referrer: 'no-referrer' as const,
 }
 
 export default function RecoverWalletLayout({ children }: { children: React.ReactNode }) {

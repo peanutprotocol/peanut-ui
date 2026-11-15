@@ -1,4 +1,10 @@
-import { ceilToMinorUnit, minorUnitDigits } from '@/features/deposit-accounts/payerAmount'
+import { minorUnitDigits } from '@/features/deposit-accounts/payerAmount'
+import { convertDecimalAmount, parseFiniteNumber } from '@/lib/money'
+
+const fixedDecimal = (raw: string, decimals: number) => {
+    const [whole, fraction = ''] = raw.split('.')
+    return decimals ? `${whole}.${fraction.padEnd(decimals, '0')}` : whole
+}
 
 /**
  * The dollar side of a request asked in another currency, as a plain decimal
@@ -10,10 +16,11 @@ import { ceilToMinorUnit, minorUnitDigits } from '@/features/deposit-accounts/pa
  * @param unitsPerUsd how many units of the request currency one dollar buys
  */
 export function usdEquivalent(amount: string, unitsPerUsd: number): string {
-    const value = Number(amount)
-    if (!Number.isFinite(value) || value <= 0 || !(unitsPerUsd > 0)) return ''
+    const value = parseFiniteNumber(amount)
+    if (value === null || value <= 0) return ''
     // rounded up, as the API prices it: the requester sees the figure the payer will
-    return ceilToMinorUnit(value / unitsPerUsd, 'USD').toFixed(2)
+    const converted = convertDecimalAmount(amount, 1, unitsPerUsd, 2, true)
+    return converted === null ? '' : fixedDecimal(converted, 2)
 }
 
 /**
@@ -21,6 +28,7 @@ export function usdEquivalent(amount: string, unitsPerUsd: number): string {
  * field at ".5" or "100.", which the API refuses as not a valid amount.
  */
 export function toApiAmount(amount: string): string {
+    if (parseFiniteNumber(amount) === null) return ''
     const trimmed = amount.trim().replace(/\.$/, '')
     return trimmed.startsWith('.') ? `0${trimmed}` : trimmed
 }
@@ -53,8 +61,10 @@ export function requestAmountFromInput(sides: AmountInputSides, currency: string
         sides.displayed !== '' &&
         sides.displayed === sides.secondary &&
         sides.displayed !== sides.primary
-    if (!typedUsd) return sides.primary
+    if (!typedUsd) return parseFiniteNumber(sides.primary) === null ? '' : sides.primary
     const usd = Number(sides.displayed)
     if (!Number.isFinite(usd) || usd <= 0) return sides.primary
-    return ceilToMinorUnit(usd * unitsPerUsd, currency).toFixed(minorUnitDigits(currency))
+    const decimals = minorUnitDigits(currency)
+    const converted = convertDecimalAmount(sides.displayed, unitsPerUsd, 1, decimals, true)
+    return converted === null ? '' : fixedDecimal(converted, decimals)
 }

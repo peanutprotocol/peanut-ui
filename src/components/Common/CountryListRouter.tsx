@@ -13,6 +13,7 @@ import useSavedAccounts from '@/hooks/useSavedAccounts'
 import useClaimLink from '@/components/Claim/useClaimLink'
 import { useCallback, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
+import { personFrom } from '@/lib/person/person'
 
 interface ICountryListRouterViewProps {
     claimLinkData: ClaimLinkData
@@ -75,7 +76,7 @@ export const CountryListRouter = ({ claimLinkData, inputTitle }: ICountryListRou
                     transactionType="CLAIM_LINK"
                     recipientType="USERNAME"
                     recipientName={recipientName}
-                    avatarKey={claimLinkData?.sender?.avatarKey}
+                    person={personFrom(claimLinkData?.sender)}
                     amount={amount ?? '0'}
                     tokenSymbol={claimLinkData?.tokenSymbol ?? ''}
                 />

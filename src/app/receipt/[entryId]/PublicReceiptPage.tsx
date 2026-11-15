@@ -4,6 +4,8 @@ import type React from 'react'
 import { useSyncExternalStore } from 'react'
 import NavHeader from '@/components/Global/NavHeader'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
+import { AppShell } from '@/components/Global/AppShell'
 import { ReceiptUnavailable } from '@/components/TransactionDetails/ReceiptUnavailable'
 import { TransactionDetailsReceipt } from '@/components/TransactionDetails/TransactionDetailsReceipt'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
@@ -39,6 +41,23 @@ export function PublicReceiptPage({
     const isAuthenticated = authState === 'authenticated'
     const showPublicIssuer = authState === 'anonymous'
 
+    if (state) {
+        return (
+            <AppShell variant="app" contentClassName="flex flex-col" innerClassName="flex-1 items-stretch">
+                <PageStack className="receipt-page flex-1">
+                    {isAuthenticated && (
+                        <div className="print:hidden">
+                            <NavHeader titleKey="receipt" />
+                        </div>
+                    )}
+                    <PageStack.Center>
+                        <ReceiptUnavailable variant={state} />
+                    </PageStack.Center>
+                </PageStack>
+            </AppShell>
+        )
+    }
+
     return (
         <PageContainer className="receipt-page flex min-h-dvh flex-col items-center p-4">
             {isAuthenticated && (
@@ -47,11 +66,7 @@ export function PublicReceiptPage({
                 </div>
             )}
             <div className="flex min-h-0 flex-1 flex-col items-center py-4">
-                {state ? (
-                    <div className="m-auto">
-                        <ReceiptUnavailable variant={state} />
-                    </div>
-                ) : children ? (
+                {children ? (
                     <div className="my-auto w-full">{children}</div>
                 ) : transaction ? (
                     <div className="my-auto w-full">

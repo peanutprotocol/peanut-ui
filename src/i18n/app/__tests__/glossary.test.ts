@@ -55,7 +55,9 @@ const RULES: Record<Exclude<(typeof APP_LOCALES)[number], 'en'>, Rule[]> = {
         // pagás/enviá/pagá NOT accent-folded: "pagas"/"envia"/"paga" are legitimate tuteo forms
         {
             name: 'voseo is es-AR only',
-            pattern: word('vos|pod[eé]s|ten[eé]s|envi[aá]s|pagás|enviá|pagá|cargá|tocá|fijate'),
+            pattern: word(
+                'vos|pod[eé]s|ten[eé]s|envi[aá]s|pagás|enviá|pagá|cargá|tocá|fijate|agregá|volvé|esperá|completá|ingresá|elegí|intentá|contactá|reiniciá|pedí|pedile|reinstalala'
+            ),
         },
         { name: 'vosotros is es-ES only', pattern: word('vosotr[oa]s|podéis|tenéis|enviáis') },
         { name: '"computadora", never "ordenador" (Spain)', pattern: word('ordenador(?:es)?') },
@@ -87,6 +89,11 @@ const RULES: Record<Exclude<(typeof APP_LOCALES)[number], 'en'>, Rule[]> = {
         // stricter than glossary.pt-br.md (which allows one positively-framed body
         // use): app strings are short CTA-like copy — exempt per key if ever needed
         { name: '"sem CPF" framing is banned (trust rules)', pattern: word('sem\\s+CPF') },
+        // a product name keeps its head noun's gender, so "a Peanut Wallet" (carteira) stays
+        {
+            name: 'the brand is masculine: "o Peanut", never "a Peanut"',
+            pattern: word('(?:a|à|da|na|pela)\\s+Peanut(?!\\s+wallet)'),
+        },
         {
             name: 'no circumvention language (trust rules)',
             // "não/nem exige verificação" is the same claim as "sem verificação": a

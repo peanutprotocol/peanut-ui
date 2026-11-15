@@ -1,6 +1,7 @@
 /**
  * Card status screen, "needs more information" state: Rain tax-ID and
- * date-of-birth actions (TASK-23561).
+ * date-of-birth actions, and Rain's selfie-and-ID ask, which is the identity
+ * restart.
  *
  * Rendered through CardPage with the real capability read-model and the real
  * start-action server action; only the network edge (serverFetch) and the
@@ -13,22 +14,31 @@ import { act, fireEvent, render as rtlRender, screen, waitFor } from '@testing-l
 import { IntlWrapper } from '@/test-utils/intl'
 import { serverFetch } from '@/utils/api-fetch'
 import { initiateSelfHealResubmission } from '@/app/actions/sumsub'
+import { findKycReplacementPlan } from '@/app/actions/kyc-workflow'
+import type { KycDocumentPlan } from '@/app/actions/types/kyc-workflow.types'
 import type { NextAction, RailCapability } from '@/types/capabilities'
 import { CardPage } from '../CardPage'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 const mockSetSupportOpen = jest.fn()
 const mockHostedStart = jest.fn()
 let mockUser: Record<string, unknown>
 const mockSumsubInstances = new Map<string, Record<string, unknown>>()
+const mockPush = jest.fn()
 
 jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
 jest.mock('@/app/actions/sumsub', () => ({
     ...jest.requireActual('@/app/actions/sumsub'),
     initiateSelfHealResubmission: jest.fn(),
 }))
+jest.mock('@/app/actions/kyc-workflow', () => ({
+    ...jest.requireActual('@/app/actions/kyc-workflow'),
+    findKycReplacementPlan: jest.fn(),
+}))
 jest.mock('next/navigation', () => ({
     notFound: jest.fn(),
-    useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn() }),
+    useRouter: () => ({ push: mockPush, replace: jest.fn(), back: jest.fn() }),
     usePathname: () => '/card',
     useSearchParams: () => new URLSearchParams(),
 }))
@@ -46,6 +56,7 @@ jest.mock('@/services/rain', () => ({
 jest.mock('@/services/consent', () => ({ cardConsentDocuments: jest.fn(() => []) }))
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: mockUser, fetchUser: jest.fn(), isFetchingUser: false }),
+    useOptionalAuth: () => ({ user: mockUser }),
 }))
 jest.mock('@/hooks/useRainCardOverview', () => ({
     RAIN_CARD_OVERVIEW_QUERY_KEY: 'rain-card-overview',
@@ -61,7 +72,9 @@ jest.mock('@/components/Card/cardState.utils', () => ({
 }))
 jest.mock('@/components/Card/cardApply.utils', () => ({ pollUntilApplyAdvances: jest.fn(), pollUntilReady: jest.fn() }))
 jest.mock('@/hooks/wallet/useWallet', () => ({ useWallet: () => ({ hasSufficientSpendableBalance: () => true }) }))
+jest.mock('@/hooks/wallet/useRainFunding', () => ({ useRainFunding: () => ({ grant: jest.fn() }) }))
 jest.mock('@/hooks/wallet/useGrantSessionKey', () => ({ useGrantSessionKey: () => ({ serializeGrant: jest.fn() }) }))
+jest.mock('@/hooks/useZeroDev', () => ({ useZeroDev: () => ({ address: '0xA' }) }))
 jest.mock('@/hooks/useHostedVerification', () => ({
     useHostedVerification: () => ({ start: mockHostedStart, error: null, isStarting: false }),
 }))
@@ -86,14 +99,23 @@ jest.mock('next/image', () => ({
 }))
 jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({
     SumsubKycWrapper: function MockSumsubKycWrapper(props: Record<string, unknown>) {
+        const { useKycControl } = jest.requireActual('@/features/paperwork-verification/analytics')
+        const { track } = useKycControl('id-check', 'kyc_legacy')
         const id = String((props.sessionKey as string | undefined) ?? 'default')
         mockSumsubInstances.set(id, props)
-        return props.visible ? <div data-testid="sumsub-sdk" data-token={String(props.accessToken ?? '')} /> : null
+        return props.visible ? (
+            <div
+                data-testid="sumsub-sdk"
+                data-token={String(props.accessToken ?? '')}
+                onClick={() => track('help', 'open')}
+            />
+        ) : null
     },
 }))
 
 const mockFetch = serverFetch as jest.MockedFunction<typeof serverFetch>
 const mockSelfHeal = initiateSelfHealResubmission as jest.MockedFunction<typeof initiateSelfHealResubmission>
+const mockReplacementPlan = findKycReplacementPlan as jest.MockedFunction<typeof findKycReplacementPlan>
 
 const START_ACTION = '/users/kyc/start-action'
 const taxId: NextAction = {
@@ -115,13 +137,19 @@ const proofOfAddress: NextAction = {
     levelKey: 'proof_of_address',
 }
 const identityDocument: NextAction = { key: 'rain:hosted_identity', kind: 'rain-hosted', purpose: 'rain-card' }
+const identityRestart: NextAction = {
+    key: 'restart-identity',
+    kind: 'restart-identity',
+    purpose: 'identity_verification_required',
+}
+const RAIN_IDENTITY_ASK = { code: 'identity_verification_required', userMessage: 'Our card partner needs a selfie.' }
 
 const tokenFor: Record<string, string> = {
     [taxId.key]: 'tok_tax_id',
     [birthDate.key]: 'tok_birth_date',
 }
 
-function cardRail(blockingActions: string[]): RailCapability {
+function cardRail(blockingActions: string[], reason = mockCardReason): RailCapability {
     return {
         id: 'rain.card',
         provider: 'rain',
@@ -131,9 +159,11 @@ function cardRail(blockingActions: string[]): RailCapability {
         currency: 'USD',
         status: 'requires-info',
         blockingActions,
-        reason: { code: 'rain_requires_information', userMessage: 'Rain needs a few more details.' },
+        reason,
     }
 }
+const DEFAULT_CARD_REASON = { code: 'rain_requires_information', userMessage: 'Rain needs a few more details.' }
+let mockCardReason = DEFAULT_CARD_REASON
 
 function otherRail(blockingActions: string[]): RailCapability {
     return {
@@ -222,11 +252,44 @@ beforeEach(() => {
     jest.clearAllMocks()
     mockFetch.mockReset()
     mockSelfHeal.mockReset()
+    mockReplacementPlan.mockReset()
+    mockReplacementPlan.mockResolvedValue(null)
     mockSumsubInstances.clear()
+    mockCardReason = DEFAULT_CARD_REASON
     setCapabilities({})
 })
 
 describe('Rain tax-ID and date-of-birth actions on the requires-information card screen', () => {
+    it('scopes the Rain information SDK shell controls to provider-request without sending its token', async () => {
+        setCapabilities({ cardActions: [taxId] })
+        mockStartActionSuccess()
+        render()
+        fireEvent.click(newActionButtons()[0])
+        await waitFor(() => expect(openSdkTokens()).toEqual([tokenFor[taxId.key]]))
+        fireEvent.click(screen.getByTestId('sumsub-sdk'))
+        const capture = posthog.capture as jest.Mock
+        expect(capture.mock.calls.filter(([event]) => event === ANALYTICS_EVENTS.CONTROL_USED)).toEqual([
+            [
+                ANALYTICS_EVENTS.CONTROL_USED,
+                expect.objectContaining({
+                    screen_id: 'provider-request',
+                    flow: 'kyc_provider_request',
+                    control: 'tax_id',
+                    action: 'tap',
+                }),
+            ],
+            [
+                ANALYTICS_EVENTS.CONTROL_USED,
+                expect.objectContaining({
+                    screen_id: 'id-check',
+                    flow: 'kyc_provider_request',
+                    control: 'help',
+                    action: 'open',
+                }),
+            ],
+        ])
+        expect(JSON.stringify(capture.mock.calls)).not.toContain(tokenFor[taxId.key])
+    })
     it.each([
         ['tax ID', taxId],
         ['date of birth', birthDate],
@@ -416,5 +479,73 @@ describe('no tax-ID or date-of-birth action is available', () => {
         setCapabilities({ cardActions: [taxId, birthDate], knownActions: [birthDate] })
         render()
         expect(newActionButtons()).toHaveLength(1)
+    })
+})
+
+describe("Rain's selfie-and-ID ask (needsVerification) on the card", () => {
+    const newFlowPlan = {
+        available: true,
+        activeAttemptId: null,
+        policyVersion: 'v1',
+        routes: [],
+    } as never as KycDocumentPlan
+
+    beforeEach(() => {
+        mockCardReason = RAIN_IDENTITY_ASK
+        setCapabilities({ cardActions: [identityRestart] })
+    })
+
+    it('says why with the reason copy and offers the identity check', () => {
+        render()
+        expect(screen.getByText('Our card partner needs a new photo of your ID and a selfie.')).toBeInTheDocument()
+        expect(screen.getByText('Upload identity documents')).toBeInTheDocument()
+    })
+
+    it('opens the identity restart for a user verified in the new flow, never an upload of our own', async () => {
+        mockReplacementPlan.mockResolvedValue(newFlowPlan)
+        render()
+
+        fireEvent.click(screen.getByText('Upload identity documents'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/verify?step=id&restart=1'))
+        expect(mockSelfHeal).not.toHaveBeenCalled()
+        expect(mockHostedStart).not.toHaveBeenCalled()
+        expect(startActionKeys()).toEqual([])
+        expect(openSdkTokens()).toEqual([])
+    })
+
+    it('restarts a legacy identity in place through the restart route', async () => {
+        mockFetch.mockImplementation(async (url) =>
+            url === '/users/identity/restart'
+                ? respond(200, { token: 'tok_restart', levelName: 'general', applicantId: 'app-1' })
+                : respond(404, {})
+        )
+        render()
+
+        fireEvent.click(screen.getByText('Upload identity documents'))
+        await waitFor(() =>
+            expect(mockFetch).toHaveBeenCalledWith(
+                '/users/identity/restart',
+                expect.objectContaining({ method: 'POST' })
+            )
+        )
+        await waitFor(() => expect(openSdkTokens()).toContain('tok_restart'))
+        expect(mockSelfHeal).not.toHaveBeenCalled()
+        expect(startActionKeys()).toEqual([])
+    })
+
+    it('a proof-of-address start the API answers with the restart opens the restart instead', async () => {
+        mockReplacementPlan.mockResolvedValue(newFlowPlan)
+        setCapabilities({ cardActions: [proofOfAddress] })
+        mockSelfHeal.mockResolvedValue({
+            error: 'Take a selfie and a photo of your ID.',
+            code: 'restart_identity',
+            fallback: 'restart-identity',
+        })
+        render()
+
+        fireEvent.click(screen.getByText('Upload proof of address'))
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/verify?step=id&restart=1'))
+        expect(openSdkTokens()).toEqual([])
+        expect(screen.queryByText('Take a selfie and a photo of your ID.')).not.toBeInTheDocument()
     })
 })

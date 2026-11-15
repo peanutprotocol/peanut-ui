@@ -1,19 +1,29 @@
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({
+        user: {
+            user: { userId: 'legacy-user' },
+            capabilities: mockCapabilityBlock(),
+            identityVerification: { status: 'verified' },
+        },
+        fetchUser: jest.fn(),
+    }),
+}))
 /**
  * MantecaAddMoney — the settled-deposit exit contract.
  *
- * Both post-deposit screens (BRL/PIX QR and ARS/CVU details) are settled: the
- * deposit is already created. Their back/close and done controls must LEAVE the
- * flow, never return to the amount step — a return there lets the user start a
+ * The post-deposit screen (ARS/CVU details) is settled: the deposit is already
+ * created. Its back control must LEAVE the flow, never return to the amount step — a return there lets the user start a
  * second deposit. This is where those destinations get their meaning; everything
  * else is stubbed to the thinnest thing that lets the settled step render.
  */
 import React from 'react'
+import { withFeatureReport } from '@/test-utils/featureReport.fixture'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { IntlWrapper } from '@/test-utils/intl'
 
 const mockRouterReplace = jest.fn()
-let mockCountry = 'brazil'
+let mockCountry = 'argentina'
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: jest.fn(), replace: mockRouterReplace, back: jest.fn(), prefetch: jest.fn() }),
     useParams: () => ({ country: mockCountry }),
@@ -38,16 +48,6 @@ jest.mock('nuqs', () => ({
     parseAsStringEnum: () => ({}),
 }))
 
-// The children: surface each exit as a button so the test can fire it.
-jest.mock('@/components/AddMoney/components/MantecaPixQrDeposit', () => ({
-    __esModule: true,
-    default: ({ onBack, onDone }: { onBack: () => void; onDone: () => void }) => (
-        <div>
-            <button onClick={onDone}>child-done</button>
-            <button onClick={onBack}>child-back</button>
-        </div>
-    ),
-}))
 jest.mock('@/components/AddMoney/components/InputAmountStep', () => ({
     __esModule: true,
     default: ({ onSubmit }: { onSubmit: () => void }) => <button onClick={onSubmit}>submit-amount</button>,
@@ -64,18 +64,25 @@ const mockDeposit = jest.fn()
 jest.mock('@/services/manteca', () => ({ mantecaApi: { deposit: (...a: unknown[]) => mockDeposit(...a) } }))
 
 jest.mock('@/hooks/useCurrency', () => ({ useCurrency: () => ({ symbol: 'R$', price: 5 }) }))
-jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ rails: [] }) }))
-jest.mock('@/hooks/useBankRows', () => ({ useBankChipFor: () => () => 'unlock' }))
+const mockCapabilityBlock = () =>
+    withFeatureReport(
+        { rails: [], nextActions: [], restrictions: [] },
+        { identity: { status: 'verified' }, residence: mockResidence }
+    )
+jest.mock('@/hooks/useCapabilities', () => ({
+    useCapabilities: () => ({ capabilities: mockCapabilityBlock(), rails: [], nextActions: [], isLoading: false }),
+}))
+jest.mock('@/context/ModalsContext', () => ({
+    useModalsContext: () => ({ openSupportWithMessage: jest.fn() }),
+}))
 jest.mock('@/hooks/useIdentityVerification', () => ({ useIdentityVerification: () => ({ isVerified: true }) }))
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({ useMultiPhaseKycFlow: () => ({ isLoading: false, error: null }) }))
 jest.mock('@/features/limits/hooks/useLimitsValidation', () => ({
-    useLimitsValidation: () => ({ currency: 'BRL' }),
+    useLimitsValidation: () => ({ currency: 'ARS' }),
 }))
 jest.mock('@/utils/regions.utils', () => ({ isVerifiedForCountry: () => true }))
-// the real hook reads useAuth, which throws with no provider; residence is set
-// per test so Argentina clears its residence gate.
-let mockResidence = ['BR']
-jest.mock('@/features/deposit-accounts/useResidenceIso2s', () => ({ useResidenceIso2s: () => mockResidence }))
+// The API report is for this residence.
+let mockResidence = 'AR'
 jest.mock('@/utils/provider-rejection.utils', () => ({ deriveProviderRejection: () => ({ state: 'none' }) }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
@@ -97,44 +104,15 @@ const submitAmount = () => fireEvent.click(screen.getByText('submit-amount'))
 
 beforeEach(() => {
     jest.clearAllMocks()
-    mockCountry = 'brazil'
-    mockResidence = ['BR']
+    mockCountry = 'argentina'
+    mockResidence = 'AR'
     Object.keys(queryState).forEach((k) => delete queryState[k])
-    Object.assign(queryState, { amount: '250', currency: 'BRL' })
+    Object.assign(queryState, { amount: '250', currency: 'ARS' })
     mockDeposit.mockResolvedValue({ data: { id: 'syn-1', details: {}, stages: {} } })
-})
-
-describe('MantecaAddMoney — BRL/PIX exits', () => {
-    // The bug: a settled deposit's back sent the user to the amount input — i.e.
-    // into a new deposit — instead of out of the flow.
-    it('sends the user home when the PIX screen signals it is done', async () => {
-        renderFlow()
-        submitAmount()
-        await waitFor(() => expect(screen.getByText('child-done')).toBeInTheDocument())
-
-        fireEvent.click(screen.getByText('child-done'))
-
-        expect(mockReturnTo).toHaveBeenCalledWith('/home')
-        expect(setQueryState).not.toHaveBeenCalledWith({ step: 'inputAmount' })
-    })
-
-    it('leaves the flow on back — a settled deposit must not return to the amount step', async () => {
-        renderFlow()
-        submitAmount()
-        await waitFor(() => expect(screen.getByText('child-back')).toBeInTheDocument())
-
-        fireEvent.click(screen.getByText('child-back'))
-
-        expect(mockSafeBack).toHaveBeenCalled()
-        expect(setQueryState).not.toHaveBeenCalledWith({ step: 'inputAmount' })
-    })
 })
 
 describe('MantecaAddMoney — ARS/CVU exit', () => {
     it('leaves the flow on back from the deposit-details screen, not to the amount step', async () => {
-        mockCountry = 'argentina'
-        mockResidence = ['AR']
-        Object.assign(queryState, { currency: 'ARS' })
         renderFlow()
         submitAmount()
         await waitFor(() => expect(screen.getByText('details-back')).toBeInTheDocument())

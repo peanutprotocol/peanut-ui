@@ -93,8 +93,7 @@ export default function ShhhhhLandingPage() {
         }
     }
 
-    // The homepage door marquee already carries these five words, so the strip
-    // between sections here says the same thing in the same voice.
+    // The strip between sections repeats the card's five words.
     const marqueeWords = [
         t('marquee.peanutCard'),
         t('marquee.contactless'),
@@ -143,7 +142,7 @@ export default function ShhhhhLandingPage() {
             <Marquee message={marqueeWords} />
 
             {/* §2 — What it does (yellow) */}
-            <section className="relative overflow-hidden bg-yellow-500 px-4 py-16 text-center text-foreground-primary">
+            <section className="relative overflow-hidden bg-background-accent-yellow px-4 py-16 text-center text-foreground-primary">
                 <div className="mx-auto max-w-5xl">
                     <h2 className={`${sectionTitleClass} mx-auto max-w-3xl`}>
                         {t('whatItDoes.titleLine1')}

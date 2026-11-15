@@ -1,5 +1,8 @@
 'use client'
 
+import * as Sentry from '@/utils/sentry-lazy'
+import { criticalFlowTags } from '@/utils/sentry-critical-flow'
+
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useLocale } from 'next-intl'
 import posthog from 'posthog-js'
@@ -45,17 +48,21 @@ export function useSumsubWebSdk({
     visible,
     sessionKey,
     accessToken,
+    documentConfig,
     email,
     onComplete,
     onSubmitted,
     onError,
     onRefreshToken,
+    onIdentityStepCompleted,
     isMultiLevel,
 }: UseSumsubWebSdkArgs) {
     const accessTokenRef = useRef(accessToken)
     accessTokenRef.current = accessToken
     // Read the latest default at launch without restarting an active SDK,
     // which would discard edits made inside Sumsub.
+    const documentConfigRef = useRef(documentConfig)
+    documentConfigRef.current = documentConfig
     const emailRef = useRef(email)
     emailRef.current = email
     const hasAccessToken = !!accessToken
@@ -77,6 +84,7 @@ export function useSumsubWebSdk({
     const onSubmittedRef = useRef(onSubmitted)
     const onErrorRef = useRef(onError)
     const onRefreshTokenRef = useRef(onRefreshToken)
+    const onIdentityStepCompletedRef = useRef(onIdentityStepCompleted)
     const isMultiLevelRef = useRef(isMultiLevel)
     // flips to true as soon as any "the user finished something" event fires.
     // Drives the close-confirmation short-circuit: if the user has already
@@ -91,8 +99,9 @@ export function useSumsubWebSdk({
         onSubmittedRef.current = onSubmitted
         onErrorRef.current = onError
         onRefreshTokenRef.current = onRefreshToken
+        onIdentityStepCompletedRef.current = onIdentityStepCompleted
         isMultiLevelRef.current = isMultiLevel
-    }, [onComplete, onSubmitted, onError, onRefreshToken, isMultiLevel])
+    }, [onComplete, onSubmitted, onError, onRefreshToken, onIdentityStepCompleted, isMultiLevel])
 
     useEffect(() => {
         sumsubLocaleRef.current = toSumsubLocale(locale)
@@ -113,6 +122,9 @@ export function useSumsubWebSdk({
 
         const handleLoaded = () => setSdkLoaded(true)
         const handleError = () => {
+            Sentry.captureException(new Error('[sumsub] failed to load websdk script'), {
+                tags: { ...criticalFlowTags('kyc'), kyc_step: 'sdk_script' },
+            })
             console.error(new Error('[sumsub] failed to load websdk script'))
             setSdkLoadError(true)
         }
@@ -159,6 +171,7 @@ export function useSumsubWebSdk({
 
         // declared outside try so cleanup can access it
         let iframeObserver: MutationObserver | null = null
+        let launchActive = true
 
         try {
             // track sdk init time so we can ignore stale onApplicantStatusChanged events
@@ -169,6 +182,7 @@ export function useSumsubWebSdk({
             const tracker = createSumsubSdkTracker('web')
 
             const handleSubmitted = () => {
+                if (!launchActive) return
                 console.log('[sumsub] onApplicantSubmitted fired')
                 const isFirstSubmit = !hasSubmittedRef.current
                 hasSubmittedRef.current = true
@@ -194,6 +208,7 @@ export function useSumsubWebSdk({
             // submission swallowed the retry's own REJECTED. Only the SDK's
             // duplicate twin event is collapsed.
             const handleResubmitted = () => {
+                if (!launchActive) return
                 console.log('[sumsub] onApplicantResubmitted fired')
                 hasSubmittedRef.current = true
                 if (isMultiLevelRef.current) {
@@ -211,6 +226,7 @@ export function useSumsubWebSdk({
             // signal and the close button would keep warning about
             // abandonment after a successful action submission.
             const handleActionSubmitted = () => {
+                if (!launchActive) return
                 console.log('[sumsub] action submitted fired')
                 const isFirstSubmit = !hasSubmittedRef.current
                 hasSubmittedRef.current = true
@@ -224,6 +240,7 @@ export function useSumsubWebSdk({
             // emits onApplicantActionSubmitted, which handleActionSubmitted
             // closes. See evaluateSumsubStatusEvent for the early-guard rules.
             const handleStatusEvent = (eventName: string) => (payload: SumsubStatusEventPayload) => {
+                if (!launchActive) return
                 console.log(`[sumsub] ${eventName} fired`, payload)
                 const evaluation = evaluateSumsubStatusEvent({
                     payload,
@@ -240,18 +257,30 @@ export function useSumsubWebSdk({
                 })
                 if (evaluation.autoClose) stableOnComplete()
             }
-            const handleStep = (eventType: string) => (payload?: { idDocSetType?: unknown }) =>
-                tracker.step(eventType, payload?.idDocSetType)
+            const handleStep = (eventType: string) => (payload?: { idDocSetType?: unknown }) => {
+                if (launchActive) tracker.step(eventType, payload?.idDocSetType)
+            }
             const handleStepInitiated = handleStep('StepInitiated')
-            const handleStepCompleted = handleStep('StepCompleted')
+            const trackStepCompleted = handleStep('StepCompleted')
+            const handleStepCompleted = (payload?: { idDocSetType?: unknown }) => {
+                if (!launchActive) return
+                trackStepCompleted(payload)
+                if (payload?.idDocSetType === 'IDENTITY') onIdentityStepCompletedRef.current?.()
+            }
             const handleStatusChanged = handleStatusEvent('onApplicantStatusChanged')
             const handleActionCompleted = handleStatusEvent('onApplicantActionStatusChanged')
 
             const sdk = window.snsWebSdk
-                .init(accessTokenRef.current!, stableOnRefreshToken)
+                .init(accessTokenRef.current!, async () => {
+                    if (!launchActive) throw new Error('Verification session changed')
+                    const token = await stableOnRefreshToken()
+                    if (!launchActive) throw new Error('Verification session changed')
+                    return token
+                })
                 .withConf({
                     lang: sumsubLocaleRef.current,
                     theme: 'light',
+                    ...documentConfigRef.current,
                     ...(emailRef.current ? { email: emailRef.current } : {}),
                 })
                 .withOptions({ addViewportTag: false, adaptIframeHeight: true })
@@ -274,6 +303,8 @@ export function useSumsubWebSdk({
                 .on('idCheck.onStepInitiated', handleStepInitiated)
                 .on('idCheck.onStepCompleted', handleStepCompleted)
                 .on('onError', (error: unknown) => {
+                    if (!launchActive) return
+                    Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'sdk_error' } })
                     console.error('[sumsub] sdk error', error)
                     stableOnError(error)
                 })
@@ -307,6 +338,8 @@ export function useSumsubWebSdk({
                 existingIframe.allow = 'camera; microphone; fullscreen'
             }
         } catch (error) {
+            launchActive = false
+            Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'sdk_init' } })
             console.error('[sumsub] failed to initialize sdk', error)
             // surface the error UI — without this the modal stays blank
             setSdkLoadError(true)
@@ -317,6 +350,7 @@ export function useSumsubWebSdk({
         }
 
         return () => {
+            launchActive = false
             iframeObserver?.disconnect()
             if (sdkInstanceRef.current) {
                 try {
@@ -361,6 +395,9 @@ export function useSumsubWebSdk({
         if (!visible) return
         const timer = setTimeout(() => {
             if (hasLaunchedRef.current) return
+            Sentry.captureException(new Error('[sumsub] sdk launch timed out'), {
+                tags: { ...criticalFlowTags('kyc'), kyc_step: 'sdk_launch' },
+            })
             console.error('[sumsub] sdk never launched within timeout — surfacing error')
             posthog.capture(ANALYTICS_EVENTS.KYC_SDK_LAUNCH_TIMEOUT, {
                 timeoutMs: SDK_LAUNCH_TIMEOUT_MS,

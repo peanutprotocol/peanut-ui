@@ -31,6 +31,8 @@ type ValidatedInputProps = {
     smartPasteKind?: PasteFieldKind
     /** Fixed text before the value, such as the "@" of a username. */
     prefix?: string
+    /** The clear (×) button was tapped. */
+    onClear?: () => void
 }
 
 export type InputUpdate = {
@@ -58,6 +60,7 @@ const ValidatedInput = ({
     validationIsNeutral = false,
     smartPasteKind,
     prefix,
+    onClear,
 }: ValidatedInputProps) => {
     const t = useTranslations('global')
     const reduceMotion = useReducedMotion()
@@ -268,6 +271,7 @@ const ValidatedInput = ({
                                     aria-label={t('invitesGraph.clear')}
                                     onClick={(e) => {
                                         e.preventDefault()
+                                        onClear?.()
                                         onUpdate({ value: '', isValid: false, isChanging: false })
                                     }}
                                     className="relative flex h-full w-6 items-center justify-center pr-2 transition-opacity duration-instant after:absolute after:-inset-x-3 focus-visible:outline-[3px] focus-visible:outline-action-focus active:opacity-60 md:w-8 md:pr-0"

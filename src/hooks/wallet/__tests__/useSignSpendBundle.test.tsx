@@ -100,7 +100,13 @@ jest.mock('../useGrantSessionKey', () => ({
 }))
 const mockSignCallsUserOp = jest.fn(async () => ({ signedUserOp: { signature: '0xpasskey' } }))
 jest.mock('../useSignUserOp', () => ({ useSignUserOp: () => ({ signCallsUserOp: mockSignCallsUserOp }) }))
-jest.mock('@/utils/rainWithdraw.utils', () => ({ buildRainWithdrawTypedData: jest.fn(() => ({})) }))
+jest.mock('@/utils/rainWithdraw.utils', () => ({
+    ...jest.requireActual('@/utils/rainWithdraw.utils'),
+    buildRainWithdrawTypedData: jest.fn(() => ({})),
+    // The real signer builds typed data from a full prep; the account's own signer is what is under test.
+    signRainWithdrawAdmin: (account: { signTypedData: (data: unknown) => Promise<string> }) =>
+        account.signTypedData({}),
+}))
 jest.mock('@/services/rain', () => ({
     // Real shape: the engines narrow a cooldown with `instanceof`.
     RainCooldownError: class RainCooldownError extends Error {
@@ -171,7 +177,7 @@ describe('useSignSpendBundle — forceStrategy: collateral-only', () => {
                 requiredUsdcAmount: 150_000_000n, // $150
                 recipient: RECIPIENT,
                 rainSpendingPower: 200_000_000n, // $200 — sufficient
-                kind: 'AUTO_REBALANCE',
+                kind: 'CRYPTO_WITHDRAW',
                 forceStrategy: 'collateral-only',
             })
         })
@@ -198,6 +204,32 @@ describe('useSignSpendBundle — forceStrategy: collateral-only', () => {
         })
     })
 
+    // TASK-24722: the preflight migrates an unmigrated wallet and hands back a
+    // rebuilt client. A signature from the old client is checked by a validator
+    // that is no longer the on-chain root.
+    it('signs the admin EIP-712 with the client the preflight returns', async () => {
+        const rebuiltSignTypedData = jest.fn(async () => '0xrebuiltsig')
+        mockPreflight.mockResolvedValue({ account: { address: ACCOUNT, signTypedData: rebuiltSignTypedData } })
+        const { result } = renderHook(() => useSignSpendBundle(), { wrapper })
+        let artifact: Awaited<ReturnType<typeof result.current.signSpend>> | undefined
+        await act(async () => {
+            artifact = await result.current.signSpend({
+                requiredUsdcAmount: 150_000_000n,
+                recipient: RECIPIENT,
+                rainSpendingPower: 200_000_000n,
+                kind: 'QR_PAY',
+                forceStrategy: 'collateral-only',
+            })
+        })
+        expect(mockPreflight).toHaveBeenCalledWith(expect.objectContaining({ strategy: 'collateral-only' }))
+        expect(rebuiltSignTypedData).toHaveBeenCalledTimes(1)
+        expect(mockSignTypedData).not.toHaveBeenCalled()
+        expect(artifact).toEqual({
+            strategy: 'collateral-only',
+            rainWithdrawal: expect.objectContaining({ adminSignature: '0xrebuiltsig' }),
+        })
+    })
+
     it('insufficient collateral: captures the funnel event, refreshes the overview, throws', async () => {
         const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries')
         const { result } = renderHook(() => useSignSpendBundle(), { wrapper })
@@ -207,7 +239,7 @@ describe('useSignSpendBundle — forceStrategy: collateral-only', () => {
                     requiredUsdcAmount: 200_000_000n,
                     recipient: RECIPIENT,
                     rainSpendingPower: 150_000_000n, // short
-                    kind: 'AUTO_REBALANCE',
+                    kind: 'CRYPTO_WITHDRAW',
                     forceStrategy: 'collateral-only',
                 })
             ).rejects.toBeInstanceOf(InsufficientSpendableError)
@@ -235,7 +267,7 @@ describe('useSignSpendBundle — forceStrategy: collateral-only', () => {
                     requiredUsdcAmount: 150_000_000n,
                     recipient: RECIPIENT,
                     rainSpendingPower: 200_000_000n,
-                    kind: 'AUTO_REBALANCE',
+                    kind: 'CRYPTO_WITHDRAW',
                     forceStrategy: 'collateral-only',
                 })
             ).rejects.toThrow('ceremony dismissed')
@@ -677,7 +709,7 @@ describe('useSignSpendBundle — forced collateral-only', () => {
                 requiredUsdcAmount: 150_000_000n,
                 recipient: RECIPIENT,
                 rainSpendingPower: 200_000_000n,
-                kind: 'AUTO_REBALANCE',
+                kind: 'CRYPTO_WITHDRAW',
                 forceStrategy: 'collateral-only',
             })
         })

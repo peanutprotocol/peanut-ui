@@ -1,6 +1,5 @@
 'use client'
 
-import { MiniHeader } from '@/components/0_Bruddle/MiniHeader'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
 import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
@@ -35,25 +34,10 @@ export const OnrampConfirmationModal = ({ visible, onClose, onConfirm }: OnrampC
                         <IconBubble icon="alert" color="yellow" />
                         <DrawerTitle>{t('title')}</DrawerTitle>
                     </div>
-                    {/* The mismatch warning is the one Callout after the two
-                        plain-text topics; use the attention tone to match the
-                        yellow alert bubble above. */}
+                    {/* attention tone, to match the yellow alert bubble above */}
                     <div className="flex w-full flex-col gap-4 text-left">
-                        <div className="flex flex-col gap-1">
-                            <MiniHeader>{t('nextStep')}</MiniHeader>
-                            <p className="text-body-s text-foreground-primary">{t('bankDetailsItem')}</p>
-                            <p className="text-body-s text-foreground-primary">{t('referenceCodeItem')}</p>
-                        </div>
-
-                        <div className="flex flex-col gap-1">
-                            <MiniHeader>{t('youMust')}</MiniHeader>
-                            <p className="text-body-s text-foreground-primary">{t('copyReferenceCode')}</p>
-                            <p className="text-body-s text-foreground-primary">{t('pasteReference')}</p>
-                        </div>
-
-                        <Callout priority="attention" title={t('mismatchTitle')}>
-                            {t('mismatchDescription')}
-                        </Callout>
+                        <p className="text-body-s text-foreground-primary">{t('body')}</p>
+                        <Callout priority="attention">{t('missingReference')}</Callout>
                     </div>
                     {/* data-vaul-no-drag: the horizontal slide gesture must not start a drawer drag */}
                     <div className="mt-4 w-full" data-vaul-no-drag>

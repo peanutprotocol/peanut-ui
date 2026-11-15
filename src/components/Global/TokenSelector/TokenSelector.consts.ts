@@ -61,7 +61,9 @@ export const TOKEN_SELECTOR_SUPPORTED_NETWORK_IDS = networks
  *   (DepositAddressTokenOutNotSupported).
  */
 export const RHINO_WITHDRAW_SUPPORTED_TOKENS_BY_CHAIN: Record<string, readonly string[]> = Object.fromEntries(
-    CHAIN_REGISTRY.filter((c) => c.withdraw).map((c) => [c.id, c.withdraw!.tokens])
+    // upper-cased because callers match on token.symbol.toUpperCase(); the registry
+    // keeps Rhino's own spelling (USDe) for the quote
+    CHAIN_REGISTRY.filter((c) => c.withdraw).map((c) => [c.id, c.withdraw!.tokens.map((t) => t.toUpperCase())])
 )
 
 /** the withdraw destinations in registry order — the selector's network order */

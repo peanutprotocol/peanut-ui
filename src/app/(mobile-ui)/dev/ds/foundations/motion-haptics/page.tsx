@@ -3,7 +3,6 @@
 import { Card } from '@/components/0_Bruddle/Card'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
-import { Callout } from '@/components/0_Bruddle/Callout'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { DocHeader } from '../../_components/DocHeader'
 import { DocPage } from '../../_components/DocPage'
@@ -31,11 +30,6 @@ export default function MotionHapticsPage() {
                 title="Motion & haptics"
                 description="The current duration, easing, reduced-motion, and feedback rules from Mono design.md."
             />
-
-            <Callout priority="attention" title="Draft guidance">
-                The interaction-to-haptic mapping is not ruled yet. Match an existing flow and flag any new feedback
-                pattern for a design decision.
-            </Callout>
 
             <DocSection title="Duration tokens">
                 <Card className="divide-y divide-dashed divide-border-default px-4">

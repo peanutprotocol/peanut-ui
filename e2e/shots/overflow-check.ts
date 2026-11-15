@@ -35,7 +35,9 @@ export type Overflow = {
  *    keeps going — measured via the descendant's scroll extent)
  *  - an input/textarea whose placeholder or value is wider than its content
  *    box (inputs clip natively, scrollWidth does not see it — the original
- *    "Usuario*" bug)
+ *    "Usuario*" bug). A value the user can edit scrolls inside its input, so
+ *    only read-only and disabled values count; a placeholder cut with an
+ *    ellipsis is deliberate, as on any other element
  *  - a document wider than the viewport, which nothing above can see: the
  *    per-element scan only looks at elements that already clip, so an
  *    UNCLIPPED positioned child pushing past the right edge is invisible to it
@@ -114,6 +116,7 @@ export function findOverflows(exempt: string[]): Overflow[] {
 
         if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
             if (el.type === 'checkbox' || el.type === 'radio' || el.type === 'hidden') continue
+            if (el.value ? !el.readOnly && !el.disabled : cs.textOverflow === 'ellipsis') continue
             const text = (el.value || el.placeholder || '').trim()
             if (!text) continue
             ctx.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`

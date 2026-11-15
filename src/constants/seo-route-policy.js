@@ -108,6 +108,16 @@ function isProductionDomain(rawBaseUrl) {
     return rawBaseUrl?.replace(/\/$/, '') === 'https://peanut.me'
 }
 
+/**
+ * True for an app route: the same prefixes the noindex header rules match.
+ *
+ * @param {string} path URL pathname, e.g. '/home' or '/en/pricing'
+ * @returns {boolean}
+ */
+function isNoindexRoute(path) {
+    return NOINDEX_ROUTE_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`))
+}
+
 function buildNoindexHeaderRules() {
     return [
         ...NOINDEX_EXACT_ROUTES.map((source) => ({ source, headers: [NOINDEX_HEADER] })),
@@ -126,5 +136,6 @@ module.exports = {
     NOINDEX_ROUTE_PREFIXES,
     ROBOTS_DISALLOWED_PATHS,
     buildNoindexHeaderRules,
+    isNoindexRoute,
     isProductionDomain,
 }

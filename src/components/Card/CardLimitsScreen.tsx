@@ -1,4 +1,6 @@
 'use client'
+
+import { formatFiniteDisplay } from '@/utils/currency'
 import { type FC, useState } from 'react'
 import { Section } from '@/components/0_Bruddle/Section'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
@@ -20,7 +22,7 @@ interface Props {
 // surface them. Add back to this list if/when product wants more.
 const FREQUENCY = 'perAuthorization' as const
 
-const formatDollars = (cents: number) => `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: 0 })}`
+const formatDollars = (cents: number) => `$${formatFiniteDisplay(cents / 100, 'en-US', { minimumFractionDigits: 0 })}`
 
 const CardLimitsScreen: FC<Props> = ({ cardId, onPrev }) => {
     const t = useTranslations('card.limits')
@@ -48,8 +50,8 @@ const CardLimitsScreen: FC<Props> = ({ cardId, onPrev }) => {
                 {isLoading ? (
                     <ListItem
                         position="solo"
-                        title={<span className="h-5 w-32 animate-pulse rounded bg-foreground-primary/10" />}
-                        trailing={<span className="h-5 w-16 animate-pulse rounded bg-foreground-primary/10" />}
+                        title={<span className="h-5 w-32 animate-pulse rounded bg-background-skeleton" />}
+                        trailing={<span className="h-5 w-16 animate-pulse rounded bg-background-skeleton" />}
                         chevron
                     />
                 ) : error ? (

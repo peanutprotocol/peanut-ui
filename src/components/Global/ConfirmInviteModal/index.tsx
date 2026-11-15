@@ -1,15 +1,14 @@
 'use client'
 import { type FC } from 'react'
 import { useTranslations } from 'next-intl'
-import Image from 'next/image'
-import { LOGO, WORDMARK } from '@/assets/brand'
 import ActionModal from '@/components/Global/ActionModal'
 import PeanutMascot from '@/components/Global/PeanutMascot'
 
 interface ConfirmInviteModalProps {
     isOpen: boolean
     onClose: () => void
-    method: string
+    /** the sender, who gets rewards when the recipient signs up through the link */
+    username: string
     handleLoseInvite: () => void
     handleContinueWithPeanut: () => void
 }
@@ -17,7 +16,7 @@ interface ConfirmInviteModalProps {
 const ConfirmInviteModal: FC<ConfirmInviteModalProps> = ({
     isOpen,
     onClose,
-    method,
+    username,
     handleLoseInvite,
     handleContinueWithPeanut,
 }) => {
@@ -36,28 +35,19 @@ const ConfirmInviteModal: FC<ConfirmInviteModalProps> = ({
             contentContainerClassName="bg-background-default"
             visible={isOpen}
             onClose={onClose}
-            title={t('confirmInviteModal.title')}
-            description={t('confirmInviteModal.description', { method })}
+            title={t('confirmInviteModal.title', { username })}
+            description={t('confirmInviteModal.description')}
             ctaClassName="sm:flex-col"
             ctas={[
                 {
-                    text: '',
+                    text: t('confirmInviteModal.joinCta'),
                     shadowSize: '4',
                     variant: 'primary',
                     className: 'sm:flex-none',
                     onClick: handleContinueWithPeanut,
-                    children: (
-                        <>
-                            <div>{t('confirmInviteModal.joinCta')}</div>
-                            <div className="flex items-center gap-1">
-                                <Image src={LOGO} alt="Peanut Logo" className="size-5" />
-                                <Image src={WORDMARK} alt="Peanut Logo" className="h-3 w-auto" />
-                            </div>
-                        </>
-                    ),
                 },
                 {
-                    text: t('confirmInviteModal.continueWithMethod', { method }),
+                    text: t('confirmInviteModal.claimWithoutSignup'),
                     variant: 'secondary',
                     className: 'sm:flex-none',
                     onClick: handleLoseInvite,

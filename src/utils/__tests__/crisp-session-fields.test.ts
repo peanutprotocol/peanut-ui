@@ -41,6 +41,15 @@ describe('supportSessionFields', () => {
         expect(Object.fromEntries(sparse).balance).toBe('')
     })
 
+    // TASK-24046: support read one account while the case lived on two
+    it('names the other accounts in an email collision', () => {
+        const fields = Object.fromEntries(
+            supportSessionFields(userData({ sameEmailAccounts: 'holds_email @montenegroh user-a' }))
+        )
+        expect(fields.same_email_accounts).toBe('holds_email @montenegroh user-a')
+        expect(Object.fromEntries(supportSessionFields(userData())).same_email_accounts).toBe('')
+    })
+
     it('renders email_on_file as a word an agent can read, and distinguishes unknown', () => {
         expect(Object.fromEntries(supportSessionFields(userData({ emailOnFile: true }))).email_on_file).toBe('yes')
         expect(Object.fromEntries(supportSessionFields(userData({ emailOnFile: false }))).email_on_file).toBe('no')

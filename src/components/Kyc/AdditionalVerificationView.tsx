@@ -15,6 +15,7 @@ import { useHostedVerification } from '@/hooks/useHostedVerification'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { hasNativeBridgeStep, selectBridgeTasks } from '@/utils/bridge-tasks.utils'
+import { useKycControl } from '@/features/paperwork-verification/analytics'
 
 /**
  * "What to expect" screen in front of Bridge's hosted verification (Persona).
@@ -49,18 +50,25 @@ import { hasNativeBridgeStep, selectBridgeTasks } from '@/utils/bridge-tasks.uti
 const IDENTITY_ROUTE = '/profile/accounts'
 
 export const AdditionalVerificationView = (): React.JSX.Element => {
+    const { track } = useKycControl('hosted-check', 'kyc_provider_request')
     const t = useTranslations('kyc.hostedPrep')
     const tPrep = useTranslations('kyc.prep')
     const tCommon = useTranslations('common')
     const router = useRouter()
     const onBack = useSafeBack(IDENTITY_ROUTE)
-    const { nextActions, rails, isLoading: isLoadingCapabilities } = useCapabilities()
+    const handleBack = () => {
+        track('back', 'tap')
+        onBack()
+    }
+    const { nextActions, capabilities, isLoading: isLoadingCapabilities } = useCapabilities()
     // Same selection as the Home card: a hosted task stands down while a Bridge
     // rail carries a native step, so a deep link here reads the same truth.
-    const hostedTask = selectBridgeTasks(nextActions, rails ?? []).find((action) => action.kind === 'bridge-hosted')
+    const hostedTask = selectBridgeTasks(nextActions, capabilities.features).find(
+        (action) => action.kind === 'bridge-hosted'
+    )
     // The hosted task stood down because a Bridge rail carries a Sumsub step:
     // the document Bridge asked for is collected in the app, not at the vendor.
-    const nativeStepPending = !hostedTask && hasNativeBridgeStep(nextActions, rails ?? [])
+    const nativeStepPending = !hostedTask && hasNativeBridgeStep(nextActions, capabilities.features)
     const { start, isStarting, error, isSettling, stillPendingAfterReturn } = useHostedVerification('bridge-hosted', {
         taskPending: !!hostedTask,
     })
@@ -75,7 +83,7 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
         const panel = nativeStepPending ? 'nativeInstead' : 'done'
         return (
             <PageStack gap="6">
-                <NavHeader title={t('title')} onPrev={onBack} />
+                <NavHeader title={t('title')} onPrev={handleBack} />
                 <PageStack.Center>
                     <Card
                         className="flex flex-col items-center gap-3 p-4 text-center"
@@ -92,7 +100,10 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
                             variant="primary"
                             shadowSize="4"
                             className="mt-1"
-                            onClick={() => router.replace(IDENTITY_ROUTE)}
+                            onClick={() => {
+                                track('done', 'tap')
+                                router.replace(IDENTITY_ROUTE)
+                            }}
                         >
                             {t(`${panel}.cta`)}
                         </Button>
@@ -104,7 +115,7 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
 
     return (
         <PageStack gap="6">
-            <NavHeader title={t('title')} onPrev={onBack} />
+            <NavHeader title={t('title')} onPrev={handleBack} />
 
             <PageStack.Center>
                 {/* Bubble centered, prose not: the checklist right below is
@@ -115,7 +126,7 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
                     <p className="text-body-s text-foreground-secondary">
                         {isAdvisory ? t('descriptionAdvisory') : t('description')}
                     </p>
-                    <KycPrepChecklist path="hosted" />
+                    <KycPrepChecklist />
                     {/* Callout, not a bare <p>: it carries role="alert", so a
                         screen reader hears the failure instead of leaving focus on
                         a CTA that silently did nothing. */}
@@ -140,7 +151,10 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
                         icon="check-circle"
                         iconPosition="left"
                         disabled={isStarting || isSettling}
-                        onClick={start}
+                        onClick={() => {
+                            track('continue', 'tap')
+                            void start()
+                        }}
                     >
                         {isStarting ? tCommon('loading') : tPrep('startCta')}
                     </Button>
@@ -148,7 +162,10 @@ export const AdditionalVerificationView = (): React.JSX.Element => {
             </PageStack.Center>
 
             <PageStack.Footer>
-                <PeanutDoesntStoreAnyPersonalInformation className="w-full justify-center" />
+                <PeanutDoesntStoreAnyPersonalInformation
+                    className="w-full justify-center"
+                    onOpen={() => track('privacy_help', 'tap')}
+                />
             </PageStack.Footer>
         </PageStack>
     )

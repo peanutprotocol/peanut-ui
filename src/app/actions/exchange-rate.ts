@@ -1,3 +1,4 @@
+import { parsePositiveRate } from '@/lib/money'
 import { AccountType } from '@/interfaces/interfaces'
 import { serverFetch } from '@/utils/api-fetch'
 
@@ -37,7 +38,7 @@ export async function getExchangeRate(
         if (!response.ok) {
             return { error: data?.error || 'Failed to fetch exchange rate.', status: response.status, failure: 'http' }
         }
-        if (!data) {
+        if (!data || ['buy_rate', 'sell_rate'].some((field) => parsePositiveRate(data[field]) === null)) {
             return { error: 'Invalid exchange rate response.', status: response.status, failure: 'invalid_rate' }
         }
 

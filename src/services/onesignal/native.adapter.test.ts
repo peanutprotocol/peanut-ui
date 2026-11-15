@@ -122,3 +122,27 @@ describe('nativeOneSignalAdapter cold-start click buffering', () => {
         warn.mockRestore()
     })
 })
+
+describe('nativeOneSignalAdapter.requestPermission', () => {
+    const notifications = OneSignal.Notifications as unknown as Record<string, jest.Mock>
+
+    it('answers with the dialog’s own grant, even before the SDK reports the permission', async () => {
+        notifications.requestPermission.mockResolvedValueOnce(true)
+        notifications.hasPermission.mockResolvedValueOnce(false)
+        await expect(nativeOneSignalAdapter.requestPermission()).resolves.toBe('granted')
+        expect(notifications.requestPermission).toHaveBeenCalledWith(true)
+    })
+
+    it.each([
+        [false, 'denied'],
+        [true, 'default'],
+    ])(
+        'without a grant, reads whether it can still ask (%s) to tell a refusal from a dismissal',
+        async (canAsk, expected) => {
+            notifications.requestPermission.mockResolvedValueOnce(false)
+            notifications.hasPermission.mockResolvedValueOnce(false)
+            notifications.canRequestPermission.mockResolvedValueOnce(canAsk)
+            await expect(nativeOneSignalAdapter.requestPermission()).resolves.toBe(expected)
+        }
+    )
+})

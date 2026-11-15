@@ -278,7 +278,7 @@ export default function InvitesGraph(props: InvitesGraphProps) {
     if (!isMinimal && error) {
         return (
             <div className="flex flex-1 items-center justify-center p-4">
-                <div className="max-w-md rounded-2xl bg-red-50 p-8 text-center shadow-lg">
+                <div className="max-w-md rounded-2xl bg-background-badge-error p-8 text-center shadow-lg">
                     <div className="mb-4 text-heading-xl">⚠️</div>
                     <p className="mb-4 text-body-l font-medium text-red-600">{error}</p>
                     {props.onClose && (

@@ -5,7 +5,7 @@ import { StarLpFaq } from '@/components/Marketing/StarLp/StarLpFaq'
 import { StarLpHero } from '@/components/Marketing/StarLp/StarLpHero'
 import { StarLpMarquee } from '@/components/Marketing/StarLp/StarLpMarquee'
 import { TrustBand } from '@/components/Marketing/StarLp/TrustBand'
-import { STAR_LP_HREF, STAR_LP_TRUST_LINE } from '@/components/Marketing/StarLp/starLp.consts'
+import { STAR_LP_TRUST_LINE } from '@/components/Marketing/StarLp/starLp.consts'
 import type { StarLpFaqItem } from '@/components/Marketing/StarLp/starLp.types'
 import { fetchUsdArsRate } from '@/components/Marketing/StarLp/starLpFx'
 import { QrArgentinaClose } from './QrArgentinaClose'
@@ -74,7 +74,7 @@ export async function QrArgentinaLanding() {
                 art={<QrArgentinaHeroArt />}
                 artLabel="The Peanut scanner reading a QR code"
                 cta={
-                    <StarLpCta qrPlacement="hero" href={STAR_LP_HREF.signup} ground="pink">
+                    <StarLpCta qrPlacement="hero" ground="pink">
                         Create an account
                     </StarLpCta>
                 }

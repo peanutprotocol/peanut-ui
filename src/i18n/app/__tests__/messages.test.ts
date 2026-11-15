@@ -14,6 +14,20 @@ const CATALOGS = { en, 'es-419': es419, 'es-AR': esAR, 'pt-BR': ptBR } as const
 const DELTA_LOCALES: readonly AppLocale[] = ['es-AR']
 const FULL_LOCALES = APP_LOCALES.filter((locale) => !DELTA_LOCALES.includes(locale))
 
+describe('test-build ribbon copy', () => {
+    it.each(APP_LOCALES)('%s resolves the test-build message with its branch', async (locale) => {
+        const messages = await loadMessages(locale)
+        const t = createTranslator({ locale, messages, namespace: 'global' })
+
+        expect(t('testBuild', { branch: 'feature/example' })).toContain('feature/example')
+    })
+
+    it('uses the approved Portuguese feedback wording', async () => {
+        const messages = await loadMessages('pt-BR')
+        expect(messages.global.feedbackBanner).toContain('o Peanut')
+    })
+})
+
 /**
  * English strings that legitimately carry more than one translation. Spanish and
  * Portuguese make distinctions English collapses, so these keys must NOT be merged
@@ -28,6 +42,7 @@ const CONTEXT_DIVERGENT: Record<string, string> = {
     Claim: 'nav verb vs. transaction-type noun (Reclamar / Reclamo)',
     Receive: 'action verb vs. transaction-type noun (Recibir / Recepción)',
     Join: 'standalone CTA vs. sentence fragment completed by a team name',
+    'Open Wallet App': 'iPhone app (Carteira) vs. Android app (Carteira do Google) in pt-BR',
     Processing: 'generic in-flight status vs. KYC under-review status (En proceso)',
     Failed: 'generic status vs. KYC status agreeing with "verificación" (Fallido / Fallida)',
     Verified: 'badge/KYC status vs. residence chip agreeing with "residencia" (Verificado / Verificada)',
@@ -43,6 +58,8 @@ const CONTEXT_DIVERGENT: Record<string, string> = {
     'Log in': 'button label in the infinitive vs. the invite page imperative (Iniciar sesión / Inicia sesión)',
     'Pay a QR code':
         'button label in the infinitive vs. checklist hint in the imperative like its sibling hints (Pagar / Paga un código QR)',
+    'Peanut Card':
+        'product name stays "Peanut Card" (shhhhh wordmark), menu and nav labels stay translated (Tarjeta Peanut / Cartão Peanut), TASK-24037',
 }
 
 describe('deepMerge fallback', () => {
@@ -270,4 +287,15 @@ describe('card partner review reason copy', () => {
         expect(leafPaths(esAR)).not.toContain(key)
         expect(leafValue(await loadMessages('es-AR'), key)).toBe(leafValue(es419, key))
     })
+})
+
+describe('Argentine Spanish inherits unchanged funding copy', () => {
+    it.each(['card.funding.body', 'home.fundingSetup.descriptionUpdateReadyReturn'])(
+        '%s stays out of the delta catalog and resolves to Latin American Spanish',
+        async (key) => {
+            expect(leafPaths(esAR)).not.toContain(key)
+            const resolved = await loadMessages('es-AR')
+            expect(leafValue(resolved as unknown as Record<string, unknown>, key)).toBe(leafValue(es419, key))
+        }
+    )
 })

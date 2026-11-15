@@ -16,6 +16,14 @@ import type { WithdrawAddressFamily } from '@/lib/validation/addressFamily'
  */
 export interface ScannedRecipient {
     addressFamily: WithdrawAddressFamily
+    /**
+     * The network the scan named (a payment request's chain, or the chain a
+     * Solana or Tron address belongs to). The withdrawal goes there or not at
+     * all. Absent for an EVM address that names no network.
+     */
+    chainId?: string
+    /** The exact contract a payment request asks to be paid in. Absent when it named no asset. */
+    tokenAddress?: string
 }
 
 /**

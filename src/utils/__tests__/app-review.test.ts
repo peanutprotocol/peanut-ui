@@ -6,6 +6,7 @@ import { getUserPreferences, updateUserPreferences } from '../general.utils'
 import { isNativeBridge } from '../capacitor'
 import { isDemoMode } from '../demo'
 import { hadRecentFriction } from '../app-review-friction'
+import { isAttentionInterruptOpen } from '@/features/attention/interruptState'
 import posthog from 'posthog-js'
 
 const requestReview = jest.fn<Promise<void>, []>()
@@ -16,6 +17,7 @@ jest.mock('@capgo/capacitor-in-app-review', () => ({
 jest.mock('../capacitor', () => ({ isNativeBridge: jest.fn(), openExternalUrl: jest.fn() }))
 jest.mock('../demo', () => ({ isDemoMode: jest.fn() }))
 jest.mock('../app-review-friction', () => ({ hadRecentFriction: jest.fn() }))
+jest.mock('@/features/attention/interruptState', () => ({ isAttentionInterruptOpen: jest.fn() }))
 jest.mock('../general.utils', () => ({ getUserPreferences: jest.fn(), updateUserPreferences: jest.fn() }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
@@ -37,7 +39,17 @@ describe('requestAppReview', () => {
         ;(isNativeBridge as jest.Mock).mockReturnValue(true)
         ;(isDemoMode as jest.Mock).mockReturnValue(false)
         ;(hadRecentFriction as jest.Mock).mockReturnValue(false)
+        ;(isAttentionInterruptOpen as jest.Mock).mockReturnValue(false)
         given(1)
+    })
+
+    it('never asks over a manager prompt, and keeps the moment for the next ask', async () => {
+        ;(isAttentionInterruptOpen as jest.Mock).mockReturnValue(true)
+
+        await requestAppReview(USER, 'payment_completed')
+
+        expect(requestReview).not.toHaveBeenCalled()
+        expect(lastWrite()).toEqual({ moments: 2, requestedAt: [] })
     })
 
     it('asks once the engagement floor is met', async () => {

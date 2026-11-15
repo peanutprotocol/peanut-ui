@@ -12,7 +12,7 @@ import { useAppLocale } from '@/i18n/app/locale-context'
 export const LanguageView = () => {
     const t = useTranslations('settings.language')
     const { locale, setLocale } = useAppLocale()
-    const onBack = useSafeBack('/profile')
+    const onBack = useSafeBack('/settings')
     const [switching, setSwitching] = useState<AppLocale | null>(null)
 
     const select = async (next: AppLocale) => {

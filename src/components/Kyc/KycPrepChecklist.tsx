@@ -3,88 +3,45 @@
 import { Callout } from '@/components/0_Bruddle/Callout'
 import Card from '@/components/Global/Card'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
-import { ProviderRow } from '@/components/Provider/ProviderRow'
-import type { ProviderId } from '@/types/provider.types'
 import { useTranslations } from 'next-intl'
 
-export type KycPrepPath = 'standard' | 'extended' | 'hosted'
+const ITEMS = ['id', 'selfie', 'proofOfAddress'] as const
 
 /**
- * The "before you start" prep content shown before the verification SDK
- * opens: what to have ready and the heads-up that a
- * follow-up document can be requested. The extended path (Manteca BR/AR)
- * adds the tax ID and the regulatory questions the provider asks there.
- * Rendered inside the unlock/initiate modals, never as its own route, so
- * every entry into the SDK passes through it.
+ * What to have ready before Bridge's hosted flow (Persona), which runs outside
+ * the app and — unlike the Sumsub SDK — keeps no partial progress: a user who
+ * leaves to find a document restarts from the first step. The single-session
+ * warning sits AFTER the list so it reads as the consequence of not having
+ * those documents rather than as a preamble to them.
  *
- * The hosted path is Bridge's hosted flow (Persona), which runs outside the
- * app and — unlike the Sumsub SDK — keeps no partial progress: a user who
- * leaves to find a document restarts from the first step. It trades the
- * "we'll ask later if we need more" note for a single-session warning, placed
- * AFTER the list so it reads as the consequence of not having those documents
- * rather than as a preamble to them.
+ * The Sumsub starts show /verify's steps instead (IdentityCheckIntroScreen).
  */
-const KycPrepChecklist = ({
-    path,
-    taxIdCountry,
-    providerId,
-    nested,
-}: {
-    path: KycPrepPath
-    taxIdCountry?: 'AR' | 'BR'
-    /** the account provider the check unlocks; its row heads the card (TASK-23295) */
-    providerId?: ProviderId | null
-    /** set inside a drawer, so the provider sheet stacks on top */
-    nested?: boolean
-}) => {
+const KycPrepChecklist = () => {
     const t = useTranslations('kyc.prep')
-    const isHosted = path === 'hosted'
-    const items =
-        path === 'extended'
-            ? (['id', 'selfie', 'taxId', 'questions'] as const)
-            : isHosted
-              ? (['id', 'selfie', 'proofOfAddress'] as const)
-              : (['id', 'selfie'] as const)
-    // The tax-ID row lists one country's document. The extended path is Manteca-
-    // only, so the caller knows whether it is Argentina or Brazil — name that
-    // country's tax ID instead of the both-countries string that showed a
-    // Brazilian CPF inside the Argentina drawer.
-    const taxIdBodyKey =
-        taxIdCountry === 'AR' ? 'items.taxId.bodyAR' : taxIdCountry === 'BR' ? 'items.taxId.bodyBR' : 'items.taxId.body'
 
     return (
         <div className="flex w-full flex-col gap-3 text-left" data-testid="kyc-prep-checklist">
-            {!isHosted && <p className="text-body-s">{t(`intro.${path}`)}</p>}
             {/* The requirements are label + value pairs, not claims, so they read
                 as DataRows in a card rather than a tinted checklist. The label is
                 the short document name so the value has room, and what counts as
                 that document stays on screen under its row — it is the part a
                 user gets wrong, so it does not belong behind a tooltip. */}
             <Card position="solo" className="divide-y divide-dashed divide-border-default px-4 py-0">
-                {providerId && (
-                    <ProviderRow providerId={providerId} label="accountProvider" nested={nested} prospective />
-                )}
-                {items.map((item) => (
+                {ITEMS.map((item) => (
                     <div key={item} className="pb-3">
                         <DataRow label={t(`items.${item}.label`)} value={t(`items.${item}.title`)} />
-                        <p className="text-body-xs text-foreground-secondary">
-                            {t(item === 'taxId' ? taxIdBodyKey : `items.${item}.body`)}
-                        </p>
+                        <p className="text-body-xs text-foreground-secondary">{t(`items.${item}.body`)}</p>
                     </div>
                 ))}
             </Card>
-            {isHosted && (
-                <Callout priority="attention" title={t('singleSession.title')} data-testid="kyc-prep-single-session">
-                    {/* The banner's own body step is text-body-m, which reads
-                        louder than the requirement titles right above it. */}
-                    <span className="flex flex-col gap-2 text-body-s">
-                        <span>{t('singleSession.body')}</span>
-                        <span>{t('howLong.hosted')}</span>
-                    </span>
-                </Callout>
-            )}
-            {/* The extra-document note qualifies the requirements list. */}
-            {!isHosted && <p className="text-body-xs text-foreground-secondary">{t('extraDocNote')}</p>}
+            <Callout priority="attention" title={t('singleSession.title')} data-testid="kyc-prep-single-session">
+                {/* The banner's own body step is text-body-m, which reads
+                    louder than the requirement titles right above it. */}
+                <span className="flex flex-col gap-2 text-body-s">
+                    <span>{t('singleSession.body')}</span>
+                    <span>{t('howLong.hosted')}</span>
+                </span>
+            </Callout>
         </div>
     )
 }

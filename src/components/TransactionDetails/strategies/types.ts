@@ -14,6 +14,7 @@ import {
 import { type TransactionNameKey } from '@/components/TransactionDetails/transaction-name-keys'
 import { type IconStatusType } from '@/components/Global/Badges/Badge'
 import { type HistoryEntry } from '@/hooks/useTransactionHistory'
+import type { Person } from '@/lib/person/person.types'
 
 export interface TransactionStrategyOutput {
     direction: TransactionDirection
@@ -36,12 +37,12 @@ export interface TransactionStrategyOutput {
     fullName?: string
     showFullName?: boolean
     /**
-     * The counterparty's picked profile avatar, taken from whichever account
-     * this strategy already reads for the name. Only set on branches with a
-     * real person behind them; the transformer drops it again whenever
+     * The counterparty as a Peanut user, built from whichever account this
+     * strategy already reads for the name. Only set on branches with a real
+     * person behind them; the transformer drops it again whenever
      * `isPeerActuallyUser` turns out false.
      */
-    avatarKey?: string | null
+    peer?: Person | null
     /** Optional override; most strategies leave status mapping to the global mapper. */
     uiStatus?: IconStatusType
 }

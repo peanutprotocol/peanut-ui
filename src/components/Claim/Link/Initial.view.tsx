@@ -21,6 +21,7 @@ import { GuestVerificationModal } from '@/components/Global/GuestVerificationMod
 import { useInitialClaimFlow } from './useInitialClaimFlow'
 import { badgeCampaignForLegacyWire } from '@/components/Invites/badge-campaign-context'
 import { useSearchParams } from 'next/navigation'
+import { personFrom } from '@/lib/person/person'
 
 export const InitialClaimLinkView = (props: IClaimScreenProps) => {
     // `/claim` remains a published singular campaignTag wire. resolved here from
@@ -121,11 +122,10 @@ export const InitialClaimLinkView = (props: IClaimScreenProps) => {
             )}
             <PageStack.Center className="gap-4">
                 <PeanutActionDetailsCard
-                    avatarSize="m"
                     transactionType="CLAIM_LINK"
                     recipientType="USERNAME"
                     recipientName={senderDisplay.displayName}
-                    avatarKey={claimLinkData.sender?.avatarKey}
+                    person={personFrom(claimLinkData.sender)}
                     amount={
                         isReward
                             ? formatTokenAmount(Number(formatUnits(claimLinkData.amount, claimLinkData.tokenDecimals)))!

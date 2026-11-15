@@ -1,5 +1,5 @@
 import { BASE_URL, ENS_NAME_REGEX } from '@/constants/general.consts'
-import { getTokenSymbol, getTokenDecimals } from '@/utils/general.utils'
+import { getTokenSymbol, getTokenDecimals } from '@/utils/token.utils'
 import { validatePixKey, isPixEmvcoQr, isPixRecurringCode } from '@/utils/withdraw.utils'
 import { isSupportedEnsName } from '@/lib/validation/ens'
 import { isArgentinePaymentAlias } from '@/lib/validation/argentine-alias'

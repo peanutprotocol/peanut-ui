@@ -117,7 +117,7 @@ function packagingFixture(run) {
         ])
             mkdirSync(join(source, folder), { recursive: true })
         writeFileSync(join(source, 'public/screen-library/index.html'), entryHtml)
-        for (const file of ['viewer.js', 'viewer.css', 'comments.js', 'votes.js'])
+        for (const file of ['viewer.js', 'viewer.css', 'comments.js', 'votes.js', 'copy.html', 'copy.js', 'copy.css'])
             writeFileSync(join(source, 'public/screen-library', file), `fixture:${file}`)
         for (const file of ['index.mjs', 'comments.mjs', 'comments-auth.mjs', 'comments-shared.mjs', 'votes.mjs'])
             writeFileSync(join(source, 'scripts/screens/worker', file), `fixture:${file}`)
@@ -141,7 +141,7 @@ function packagingFixture(run) {
 test('prepared Worker includes comment assets, backend, additive migrations and isolated dependencies', () => {
     packagingFixture(({ source, target }) => {
         prepareWorker(target, { ...gallery, ...comments })
-        for (const file of ['viewer.js', 'viewer.css', 'comments.js', 'votes.js'])
+        for (const file of ['viewer.js', 'viewer.css', 'comments.js', 'votes.js', 'copy.html', 'copy.js', 'copy.css'])
             assert.equal(readFileSync(join(target, 'assets/screen-library', file), 'utf8'), `fixture:${file}`)
         for (const file of ['assets/index.html', 'assets/screen-library/index.html']) {
             const html = readFileSync(join(target, file), 'utf8')

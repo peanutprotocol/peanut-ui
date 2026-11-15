@@ -15,7 +15,11 @@
  * See engineering/projects/kyc-2.0/capabilities-rehaul-plan.md.
  */
 
-export type ProviderCode = 'bridge' | 'manteca' | 'rain'
+import type { paths } from '@/types/api.generated'
+
+/** A rail's provider code, as the capabilities schema enumerates it: a new provider arrives with the API's types. */
+export type ProviderCode =
+    paths['/users/capabilities']['get']['responses'][200]['content']['application/json']['capabilities']['rails'][number]['provider']
 
 /** Capability status of a single rail, provider-neutral. */
 export type RailCapabilityStatus =
@@ -96,8 +100,8 @@ export interface RailCapability {
      */
     resolved?: ResolvedRail
     /**
-     * ISO timestamp of the last change to a `pending` rail; absent on every
-     * other status, and on an API deployed before the field. A pending rail
+     * ISO timestamp of the last change to a pending or Bridge-review rail;
+     * absent on an API deployed before the field. A pending rail
      * untouched for a day is stuck, not provisioning — the processing drawer
      * stops promising a quick setup past that.
      */
@@ -150,6 +154,8 @@ export interface ResolvedRail {
  *                           on; exchange the key for a URL via
  *                           startHostedVerification(), same handoff as
  *                           bridge-hosted.
+ *   - `questions`         — a provider waits on an answer the app asks: open
+ *                           the add-later questions of `feature`.
  */
 export type NextActionKind =
     | 'sumsub'
@@ -160,6 +166,7 @@ export type NextActionKind =
     | 'provide-email'
     | 'bridge-hosted'
     | 'rain-hosted'
+    | 'questions'
 
 export interface NextAction {
     key: string // stable id, referenced by RailCapability.blockingActions
@@ -175,8 +182,9 @@ export interface NextAction {
      * absent on current/blocking actions. The FE renders a skippable "complete before {date}" pre-empt.
      */
     effectiveDate?: string
-    /** Advisory actions only — the provider requirement key, for telemetry / FE branching. */
+    /** The provider requirement key, for telemetry / FE branching. */
     requirementKey?: string
+    requirementKeys?: string[]
     /**
      * The rail currency this action unlocks (e.g. 'USD' | 'EUR' | 'GBP' | 'MXN'),
      * set on the `bridge-hosted` catch-all so the task copy can NAME the corridor
@@ -184,6 +192,14 @@ export interface NextAction {
      * "bank transfers". Absent when no single rail scopes the action.
      */
     currency?: string
+    /**
+     * `restart-identity` after a plan refusal only: the providers the plan
+     * closed, each with its reason code. A refused provider was never
+     * enrolled, so no rail names it.
+     */
+    refused?: { provider: ProviderCode; reason: string }[]
+    /** for kind:'questions' — the feature whose open questions the app shows. */
+    feature?: 'bank' | 'card' | 'local'
 }
 
 export interface CapabilityRestriction {
@@ -192,11 +208,56 @@ export interface CapabilityRestriction {
     userMessage: string
 }
 
+/**
+ * Which provider serves an operation on a method for this user, and what the
+ * user's step is there (api `routing/route-for.ts`). The backend picks the
+ * provider; the app mounts that provider's screens and decides nothing.
+ * Typed from the generated contract.
+ */
+export type CapabilityRoute =
+    paths['/users/capabilities']['get']['responses'][200]['content']['application/json']['capabilities']['routes'][number]
+
 /** The block embedded in /get-user (top-level) and returned by GET /users/capabilities. */
 export interface UserCapabilities {
     rails: RailCapability[]
     nextActions: NextAction[]
     restrictions: CapabilityRestriction[]
+    /** One route per operation and method a provider serves (today PIX_BR deposit and withdraw). Absent on an older API. */
+    routes?: CapabilityRoute[]
+    /** The one answer to "what can this user do", per feature. The app renders it and decides nothing. */
+    features?: FeatureReport
+}
+
+/**
+ * The state of one feature, or of one bank account by currency (api
+ * `kyc/feature-report.ts`):
+ *   - on              — it moves money now
+ *   - setting_up      — the provider is opening it; `action` is the wait marker while it reviews
+ *   - action_required — the user has a step: `action` is a `nextActions` key, or `verify` (identity first)
+ *   - refused         — closed; `action` names the only way out (support, a new identity check), if any
+ *   - ready           — allowed and not opened yet; `activate` when its first use opens it
+ *   - pending         — the API could not tell yet
+ */
+export type FeatureReportState = 'on' | 'setting_up' | 'action_required' | 'refused' | 'ready' | 'pending'
+
+export interface FeatureReportEntry {
+    state: FeatureReportState
+    reason?: string
+    message?: string
+    action?: string
+    since?: string
+}
+
+export interface FeatureAccountsEntry extends FeatureReportEntry {
+    /** By currency: USD EUR GBP MXN for bank, BRL ARS for local. */
+    accounts: Record<string, FeatureReportEntry>
+}
+
+export interface FeatureReport {
+    qr: FeatureReportEntry
+    local: FeatureAccountsEntry
+    bank: FeatureAccountsEntry
+    card: FeatureReportEntry
 }
 
 /**
@@ -209,6 +270,7 @@ export interface UserCapabilities {
 export type IdentityVerificationStatus = 'not_started' | 'processing' | 'verified' | 'action_required' | 'failed'
 
 export interface IdentityVerification {
+    oneShot?: boolean
     status: IdentityVerificationStatus
     /** present for action_required / failed — friendly, display-ready, provider-neutral. */
     actionMessage?: string

@@ -1,0 +1,23 @@
+/* All cards stay in the grid to reserve the tallest translated card. Only
+   the copy moves; the sticker's outline and shadow stay in place. */
+@media (prefers-reduced-motion: no-preference) {
+    .active > * {
+        animation: persona-copy-in var(--transition-duration-moderate) var(--ease-sharp) both;
+    }
+
+    @keyframes persona-copy-in {
+        from {
+            opacity: 0;
+            transform: translateY(16px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+}
+
+.card {
+    min-width: 0;
+}

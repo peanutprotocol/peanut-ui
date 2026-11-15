@@ -23,7 +23,7 @@ const mockAdapter = {
 jest.mock('@/services/onesignal', () => ({ getOneSignalAdapter: async () => mockAdapter }))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: null }) }))
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: 'user-1' } } }) }))
 jest.mock('@/utils/general.utils', () => ({ getUserPreferences: jest.fn(), updateUserPreferences: jest.fn() }))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 jest.mock('@sentry/nextjs', () => ({

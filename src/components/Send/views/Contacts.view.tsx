@@ -20,6 +20,7 @@ import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { usersApi } from '@/services/users'
+import { personFrom } from '@/lib/person/person'
 
 export default function ContactsView({ onPrev }: { onPrev: () => void }) {
     const t = useTranslations('send')
@@ -223,12 +224,7 @@ export default function ContactsView({ onPrev }: { onPrev: () => void }) {
                                                 }
                                                 body={`@${contact.username}`}
                                                 leading={
-                                                    <UserAvatar
-                                                        size="s"
-                                                        name={contact.username}
-                                                        avatarKey={contact.avatarKey}
-                                                        decorative
-                                                    />
+                                                    <UserAvatar person={personFrom(contact)} size="s" decorative />
                                                 }
                                                 chevron
                                                 onClick={() => handleUserSelect(contact.username)}

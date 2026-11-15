@@ -1,22 +1,32 @@
 import { useMemo } from 'react'
-import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
+import {
+    mapTransactionDataForDrawer,
+    type TransactionDetails,
+} from '@/components/TransactionDetails/transactionTransformer'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
+import { useHistoryEntry } from '@/hooks/useHistoryEntry'
+import { withPublicReceipt } from '@/utils/history.utils'
 import { qrPaymentDisplayStatus } from '@/utils/qr-payment.utils'
 import { useQrPayFlow } from './QrPayFlowContext'
 import { formatBrTaxId } from '@/utils/br-tax-id.utils'
 import { normalizeMerchantName } from '@/components/TransactionDetails/transaction-details.utils'
 
 export function useQrReceipt() {
-    const { qrPayment, currency, usdAmount, methodIcon, pixKeyOwner, pixKeyLabel } = useQrPayFlow()
+    const { qrPayment, currency, usdAmount, methodIcon, pixKeyOwner, pixKeyLabel, pixPayEntry } = useQrPayFlow()
+    // the receipt is built here, before Activity has it, so only the history
+    // entry can say whether it has a public link to share
+    const { data: entry } = useHistoryEntry(qrPayment?.id, 'QR_PAY')
     // receipt transaction for the success drawer — built up-front (not in the
     // cta's onClick) because the drawer opens off the url's `?tx=` match.
     const receiptTransaction: TransactionDetails | null = useMemo(() => {
+        // a payment on the Pix pay routes is its own history entry: the receipt Activity shows
+        if (pixPayEntry) return mapTransactionDataForDrawer(pixPayEntry).transactionDetails
         if (!qrPayment || !currency) return null
         const now = new Date()
         // A PIX key the payer looked up: the owner, with the key beside the name,
         // as activity shows it.
         const counterparty = pixKeyOwner ? normalizeMerchantName(pixKeyOwner.name) : qrPayment.details.merchant.name
-        return {
+        const receipt: TransactionDetails = {
             // Manteca synthetic id — the only key /receipt/<id>
             // resolves, and what Activity rows already carry.
             // `externalId` is UUID-shaped, so it slips past the
@@ -48,7 +58,8 @@ export function useQrReceipt() {
             },
             totalAmountCollected: Number(usdAmount),
         }
-    }, [qrPayment, currency, usdAmount, methodIcon, pixKeyOwner, pixKeyLabel])
+        return withPublicReceipt(receipt, entry)
+    }, [pixPayEntry, qrPayment, currency, usdAmount, methodIcon, pixKeyOwner, pixKeyLabel, entry])
 
     return receiptTransaction
 }

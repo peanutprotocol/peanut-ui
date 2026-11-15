@@ -3,6 +3,7 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { renderWithIntl } from '@/test-utils/intl'
+import { onSignupScreen, signupControls } from '@/test-utils/signup-controls'
 import { setupScreenIds } from '@/components/Setup/Setup.consts'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { USER } from '@/constants/query.consts'
@@ -10,32 +11,22 @@ import { DEMO_USER } from '@/constants/demo-data'
 import { disableDemoMode, isDemoMode } from '@/utils/demo'
 import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import SignupStep from '../Signup'
+import en from '@/i18n/app/messages/en.json'
 
 const mockSetScreenId = jest.fn()
+const mockHandleNext = jest.fn(async () => {})
+const mockReserveUsername = jest.fn()
 const mockApiFetch = jest.fn()
-const mockClaim = jest.fn(async () => {})
-const mockPasskey = {
-    claim: mockClaim,
-    isClaiming: false,
-    preflightWarning: null as string | null,
-    inlineError: null as string | null,
-    usernameTaken: false,
-    logIn: jest.fn(),
-    isLoggingIn: false,
-    helpErrorName: null as string | null,
-    isHelpOpen: false,
-    closeHelp: jest.fn(),
-    retryFromHelp: jest.fn(),
-    deviceType: 'web',
-}
-const mockUseSignupPasskey = jest.fn((_username: string) => mockPasskey)
+const mockUseSignupPasskey = jest.fn()
 
 jest.mock('@/hooks/useSetupFlow', () => ({
-    useSetupFlow: () => ({ isLoading: false, setScreenId: mockSetScreenId }),
+    useSetupFlow: () => ({ isLoading: false, setScreenId: mockSetScreenId, handleNext: mockHandleNext }),
 }))
-// the passkey ceremony has its own suite (useSignupPasskey.test.tsx); this one owns the step's UI
 jest.mock('@/features/setup/useSignupPasskey', () => ({
     useSignupPasskey: (username: string) => mockUseSignupPasskey(username),
+}))
+jest.mock('@/features/setup/username-reservation', () => ({
+    reserveUsername: (username: string) => mockReserveUsername(username),
 }))
 jest.mock('@/hooks/useDebounce', () => ({ useDebounce: (value: string) => value }))
 jest.mock('@/utils/api-fetch', () => ({ apiFetch: (...args: unknown[]) => mockApiFetch(...args) }))
@@ -55,57 +46,62 @@ const renderSignup = () => {
     const view = renderWithIntl(
         <QueryClientProvider client={queryClient}>
             <SetupFlowProvider masterScreenIds={setupScreenIds}>
-                <SignupStep />
+                {onSignupScreen('signup', <SignupStep />)}
                 <FlowState />
             </SetupFlowProvider>
         </QueryClientProvider>
     )
     return { ...view, queryClient }
 }
-const claimButton = () => screen.getByRole('button', { name: 'Claim' })
+const claimButton = () => screen.getByRole('button', { name: /Claim$/ })
 const usernameField = () => screen.getByRole('textbox', { name: 'Username' })
 
 beforeEach(() => {
     jest.clearAllMocks()
     disableDemoMode()
-    Object.assign(mockPasskey, {
-        isClaiming: false,
-        preflightWarning: null,
-        inlineError: null,
-        usernameTaken: false,
-        isLoggingIn: false,
-        helpErrorName: null,
-        isHelpOpen: false,
-    })
+    mockReserveUsername.mockResolvedValue('reserved')
     mockApiFetch.mockResolvedValue({ status: 404 })
 })
 afterEach(() => disableDemoMode())
 
 describe('Claim username', () => {
-    it('claims a valid, available username by starting the passkey sign-up', async () => {
+    it('reports the same validation category again after the field error was cleared by editing', async () => {
+        renderSignup()
+        fireEvent.change(usernameField(), { target: { value: 'ab' } })
+        await screen.findByText('Use at least 4 characters.')
+        fireEvent.change(usernameField(), { target: { value: 'abc' } })
+        await waitFor(() =>
+            expect(
+                signupControls(posthog.capture as jest.Mock).filter((event) => event === 'username:error:too_short')
+            ).toHaveLength(2)
+        )
+    })
+    it('reserves a valid, available username and advances without a passkey ceremony', async () => {
         renderSignup()
         expect(claimButton()).toBeDisabled()
         fireEvent.change(usernameField(), { target: { value: 'newuser' } })
         await waitFor(() => expect(claimButton()).toBeEnabled())
         expect(mockApiFetch).toHaveBeenCalledWith('/users/username/newuser', expect.any(Object))
-        expect(mockUseSignupPasskey).toHaveBeenLastCalledWith('newuser')
         fireEvent.click(claimButton())
-        await waitFor(() => expect(mockClaim).toHaveBeenCalledTimes(1))
+        await waitFor(() => expect(mockHandleNext).toHaveBeenCalledTimes(1))
+        expect(mockReserveUsername).toHaveBeenCalledWith('newuser')
+        expect(mockUseSignupPasskey).not.toHaveBeenCalled()
         expect(mockSetScreenId).not.toHaveBeenCalled()
     })
 
     it('shows the username rules before any error, and an error in their place', async () => {
         renderSignup()
-        const rules = '4–12 characters. Start with a letter. Letters and numbers only.'
+        const rules =
+            '4–12 characters. Start with a letter. Letters and numbers only. Can’t include “peanut” or be a reserved name.'
         expect(screen.getByText(rules)).toBeInTheDocument()
         fireEvent.change(usernameField(), { target: { value: 'abc' } })
         expect(await screen.findByText('Use at least 4 characters.')).toBeInTheDocument()
         expect(screen.queryByText(rules)).not.toBeInTheDocument()
         expect(mockApiFetch).not.toHaveBeenCalled()
         expect(claimButton()).toBeDisabled()
+        // the category only: what the person typed stays out of analytics
         expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_USERNAME_INVALID, {
             error_type: 'too_short',
-            username: 'abc',
         })
     })
 
@@ -120,8 +116,27 @@ describe('Claim username', () => {
         expect(mockApiFetch).not.toHaveBeenCalled()
         expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_USERNAME_INVALID, {
             error_type: errorType,
-            username: value,
         })
+        expect(signupControls(posthog.capture as jest.Mock)).toEqual(['username:change', `username:error:${errorType}`])
+    })
+
+    it.each(['teampeanut', 'Official'])('refuses %s and recovers after editing', async (username) => {
+        renderSignup()
+        fireEvent.change(usernameField(), { target: { value: username } })
+        expect(await screen.findByText(en.setup.signupStep.errors.reserved)).toBeInTheDocument()
+        expect(claimButton()).toBeDisabled()
+        fireEvent.click(claimButton())
+        expect(signupControls(posthog.capture as jest.Mock)).toContain('username:error:refused')
+        expect(mockReserveUsername).not.toHaveBeenCalled()
+        expect(mockHandleNext).not.toHaveBeenCalled()
+        expect(mockSetScreenId).not.toHaveBeenCalled()
+
+        fireEvent.change(usernameField(), { target: { value: 'kimchi' } })
+        await waitFor(() => expect(claimButton()).toBeEnabled())
+        expect(screen.queryByText(en.setup.signupStep.errors.reserved)).not.toBeInTheDocument()
+        fireEvent.click(claimButton())
+        await waitFor(() => expect(mockHandleNext).toHaveBeenCalledTimes(1))
+        expect(mockReserveUsername).toHaveBeenCalledWith('kimchi')
     })
 
     it('keeps Claim disabled for a taken username', async () => {
@@ -131,12 +146,12 @@ describe('Claim username', () => {
         expect(await screen.findByText('Username already taken')).toBeInTheDocument()
         expect(claimButton()).toBeDisabled()
         fireEvent.click(claimButton())
-        expect(mockClaim).not.toHaveBeenCalled()
+        expect(mockUseSignupPasskey).not.toHaveBeenCalled()
     })
 
     it('shows the @ prefix, the role placeholder and the legal line under the pinned button, with no inviter UI', () => {
         renderSignup()
-        expect(usernameField()).toHaveAttribute('placeholder', 'batman')
+        expect(usernameField()).toHaveAttribute('placeholder', 'Username')
         expect(screen.getByText('@')).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: 'Who invited you?' })).not.toBeInTheDocument()
         expect(screen.queryByText(/Invited by/)).not.toBeInTheDocument()
@@ -148,26 +163,22 @@ describe('Claim username', () => {
         expect(legal.closest('[data-setup-footer]')).toContainElement(claimButton())
     })
 
-    it('stays disabled while the passkey sign-up runs', async () => {
-        mockPasskey.isClaiming = true
+    it('stays disabled while the reservation is pending and advances only after it settles', async () => {
+        let release: (value: string) => void = () => {}
+        mockReserveUsername.mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    release = resolve
+                })
+        )
         renderSignup()
         fireEvent.change(usernameField(), { target: { value: 'newuser' } })
-        await waitFor(() => expect(mockApiFetch).toHaveBeenCalled())
-        expect(screen.getAllByRole('button').find((b) => b.closest('[data-setup-footer]'))).toBeDisabled()
-    })
-
-    it('offers Log in when the username is already registered', () => {
-        mockPasskey.usernameTaken = true
-        renderSignup()
-        expect(screen.getByText(/This username is already registered/)).toBeInTheDocument()
-        fireEvent.click(screen.getByRole('button', { name: 'Log in' }))
-        expect(mockPasskey.logIn).toHaveBeenCalledTimes(1)
-    })
-
-    it('shows the passkey failure message on the step', () => {
-        mockPasskey.inlineError = 'Passkey verification wasn’t completed. Try again when ready.'
-        renderSignup()
-        expect(screen.getByText('Passkey verification wasn’t completed. Try again when ready.')).toBeInTheDocument()
+        await waitFor(() => expect(claimButton()).toBeEnabled())
+        fireEvent.click(claimButton())
+        expect(claimButton()).toBeDisabled()
+        expect(mockHandleNext).not.toHaveBeenCalled()
+        await act(async () => release('reserved'))
+        await waitFor(() => expect(mockHandleNext).toHaveBeenCalledTimes(1))
     })
 
     it('suggests ten handles after four idle seconds, then restores the placeholder', () => {
@@ -184,7 +195,7 @@ describe('Claim username', () => {
             }
             expect(screen.getByText('peanutpirate?')).toBeInTheDocument()
             act(() => jest.advanceTimersByTime(2000))
-            expect(username).toHaveAttribute('placeholder', 'batman')
+            expect(username).toHaveAttribute('placeholder', 'Username')
         } finally {
             jest.useRealTimers()
         }
@@ -235,7 +246,7 @@ describe('Claim username', () => {
                 })
             )
             expect(mockApiFetch).not.toHaveBeenCalled()
-            expect(mockClaim).not.toHaveBeenCalled()
+            expect(mockUseSignupPasskey).not.toHaveBeenCalled()
         }
     )
 
@@ -255,8 +266,45 @@ describe('Claim username', () => {
         await waitFor(() => expect(claimButton()).toBeEnabled())
         expect(mockApiFetch).toHaveBeenCalledWith('/users/username/demouser', expect.any(Object))
         fireEvent.click(claimButton())
-        await waitFor(() => expect(mockClaim).toHaveBeenCalledTimes(1))
+        await waitFor(() => expect(mockHandleNext).toHaveBeenCalledTimes(1))
         expect(isDemoMode()).toBe(false)
         expect(mockSetScreenId).not.toHaveBeenCalled()
     })
+})
+
+describe('Claim username — control analytics', () => {
+    const controls = () => signupControls(posthog.capture as jest.Mock)
+
+    it('reports the first edit, each new error category, the clear button and Claim, never the typed name', async () => {
+        mockApiFetch.mockResolvedValueOnce({ status: 200 })
+        renderSignup()
+        fireEvent.change(usernameField(), { target: { value: 'abc' } })
+        await screen.findByText('Use at least 4 characters.')
+        fireEvent.change(usernameField(), { target: { value: 'takenname' } })
+        await screen.findByText('Username already taken')
+        fireEvent.change(usernameField(), { target: { value: 'freename' } })
+        await waitFor(() => expect(claimButton()).toBeEnabled())
+        fireEvent.click(claimButton())
+        await waitFor(() => expect(mockHandleNext).toHaveBeenCalledTimes(1))
+        expect(controls()).toEqual(['username:change', 'username:error:too_short', 'username:error:taken', 'claim:tap'])
+        const sent = JSON.stringify((posthog.capture as jest.Mock).mock.calls)
+        expect(sent).not.toMatch(/takenname|freename/)
+    })
+})
+
+it('does not advance an old Claim form when its reservation resolves after leaving it', async () => {
+    let finish!: (result: string) => void
+    mockReserveUsername.mockReturnValue(
+        new Promise<string>((resolve) => {
+            finish = resolve
+        })
+    )
+    const view = renderSignup()
+    fireEvent.change(usernameField(), { target: { value: 'kimchi' } })
+    await waitFor(() => expect(claimButton()).toBeEnabled())
+    fireEvent.click(claimButton())
+    await waitFor(() => expect(mockReserveUsername).toHaveBeenCalledWith('kimchi'))
+    view.unmount()
+    await act(async () => finish('reserved'))
+    expect(mockHandleNext).not.toHaveBeenCalled()
 })

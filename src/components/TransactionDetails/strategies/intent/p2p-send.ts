@@ -3,6 +3,7 @@
 // branch — P2P_REQUEST_FULFILL via bridge renders as bank_request_fulfillment.
 
 import { EHistoryUserRole, type HistoryEntry } from '@/hooks/useTransactionHistory'
+import { personFrom } from '@/lib/person/person'
 import { type TransactionStrategy, type TransactionStrategyOutput } from '../types'
 import { TRANSACTION_NAME_KEYS } from '@/components/TransactionDetails/transaction-name-keys'
 
@@ -26,7 +27,7 @@ export const p2pSendOrRequestFulfill: TransactionStrategy = (entry: HistoryEntry
                     : TRANSACTION_NAME_KEYS.recipient,
             fullName: entry.recipientAccount?.fullName ?? '',
             showFullName: entry.recipientAccount?.showFullName,
-            avatarKey: entry.recipientAccount?.avatarKey,
+            peer: personFrom(entry.recipientAccount),
             isPeerActuallyUser: !!entry.recipientAccount?.isUser,
             isLinkTx: false,
         }
@@ -45,7 +46,7 @@ export const p2pSendOrRequestFulfill: TransactionStrategy = (entry: HistoryEntry
                         : TRANSACTION_NAME_KEYS.sender,
                 fullName: entry.senderAccount?.fullName ?? '',
                 showFullName: entry.senderAccount?.showFullName,
-                avatarKey: entry.senderAccount?.avatarKey,
+                peer: personFrom(entry.senderAccount),
                 isPeerActuallyUser: !!entry.senderAccount?.isUser,
                 isLinkTx: false,
             }
@@ -71,7 +72,7 @@ export const p2pSendOrRequestFulfill: TransactionStrategy = (entry: HistoryEntry
                 : TRANSACTION_NAME_KEYS.recipient,
         fullName: entry.recipientAccount?.fullName ?? '',
         showFullName: entry.recipientAccount?.showFullName,
-        avatarKey: entry.recipientAccount?.avatarKey,
+        peer: personFrom(entry.recipientAccount),
         isPeerActuallyUser: !!entry.recipientAccount?.isUser,
         isLinkTx: false,
     }

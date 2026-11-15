@@ -106,6 +106,7 @@ function bucket() {
             return objects.has(key) ? {} : null
         },
         async put(key, value, options = {}) {
+            if (options.onlyIf?.etagDoesNotMatch === '*' && objects.has(key)) return null
             if (options.onlyIf?.etagMatches) {
                 if (options.onlyIf.etagMatches.startsWith('"'))
                     throw new Error('Conditional ETag should not be wrapped in quotes')
@@ -150,6 +151,38 @@ const accessContext = {
         },
     },
 }
+
+test('flow pages use existing collection reads and reject absent published screenshot objects', async () => {
+    const REPORTS = bucket()
+    const env = {
+        REPORTS,
+        SCREEN_LIBRARY_ACCESS_AUD: 'screen-library-access',
+        SCREEN_LIBRARY_PUBLIC_URL: 'https://gallery.example',
+    }
+    const spec = { title: 'Review', flows: [{ title: 'Journey', items: [{ id: 'profile' }, { id: 'profile' }] }] }
+    const create = () =>
+        worker.fetch(
+            new Request('https://api.example/v1/flow-pages', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(spec),
+            }),
+            env,
+            accessContext
+        )
+    assert.equal((await create()).status, 400)
+    assert.ok(![...REPORTS.objects.keys()].some((key) => key.startsWith('collections/')))
+    REPORTS.objects.set('assets/' + image, 'fixture')
+    const response = await create()
+    assert.equal(response.status, 201)
+    const { id } = await response.json()
+    const request = new Request('https://api.example/v1/collections/' + id)
+    assert.equal((await worker.fetch(request, env)).status, 401)
+    const { collection } = await (await worker.fetch(request, env, accessContext)).json()
+    assert.deepEqual(collection.flows, spec.flows)
+    assert.equal(collection.items.length, 1)
+    assert.equal(collection.items[0].variants.en.image, image)
+})
 
 test('collection API requires Access identity or the private service token', async () => {
     const env = { REPORTS: bucket(), COLLECTION_SERVICE_TOKEN: 'secret' }

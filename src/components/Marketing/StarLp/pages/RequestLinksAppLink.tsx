@@ -3,9 +3,7 @@
 import Link from 'next/link'
 import type { MouseEvent } from 'react'
 import { useAppModal } from '@/components/Migration/AppModalProvider'
-import { STAR_LP_HREF } from '@/components/Marketing/StarLp/starLp.consts'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
-import { useMigrationFlag } from '@/hooks/useMigrationFlag'
 import { twMerge } from '@/utils/tw'
 import { REQUEST_LINKS_CLIENT_SEES_EVENT } from './requestLinks.consts'
 import type { RequestLinksAppLinkProps } from './requestLinks.types'
@@ -38,13 +36,12 @@ function goToFold(event: MouseEvent, id: string) {
 
 /**
  * Makes a request link or a real app screen on the page clickable. By default it
- * leads where the CTA leads (signup), with the same PWA-sunset handling as
- * LandingAppLink. With `to`, it scrolls to that fold instead (a request link
+ * leads where the CTA leads: /app and the download modal, as LandingAppLink
+ * does. With `to`, it scrolls to that fold instead (a request link
  * opens what the client sees). It repeats a visible CTA or fold, so it stays
  * out of the tab order.
  */
 export function RequestLinksAppLink({ children, className, to, sink = 'sm' }: RequestLinksAppLinkProps) {
-    const migrationOn = useMigrationFlag()
     const interceptAppCta = useAppModal()
     if (to) {
         return (
@@ -62,7 +59,7 @@ export function RequestLinksAppLink({ children, className, to, sink = 'sm' }: Re
     return (
         <Link
             prefetch={false}
-            href={migrationOn ? '/app' : STAR_LP_HREF.signup}
+            href="/app"
             tabIndex={-1}
             data-sink={sink}
             className={twMerge(LINK, className)}

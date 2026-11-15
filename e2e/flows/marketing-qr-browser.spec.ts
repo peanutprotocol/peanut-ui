@@ -78,7 +78,7 @@ function openingRequests(context: BrowserContext) {
 }
 
 async function isolateContinuation(context: BrowserContext) {
-    await context.route('**/home?**', (route) =>
+    await context.route('**/app?**', (route) =>
         route.fulfill({ contentType: 'text/html', body: '<p>Approved continuation reached.</p>' })
     )
 }
@@ -89,14 +89,14 @@ test.describe('marketing QR browser handoff', () => {
         baseURL,
     }) => {
         const arrivalLog = process.env.MARKETING_QR_REQUEST_LOG
-        // The observer's explicitly marked /home stub avoids the app layout.
+        // The observer's explicitly marked /app stub avoids the app layout.
         // Zero Playwright routes means the keepalive transport is unmodified.
         const context = arrivalLog
             ? await browser.newContext({
                   baseURL,
                   userAgent: desktopUA,
                   serviceWorkers: 'block',
-                  extraHTTPHeaders: { 'x-marketing-qr-qa-home-stub': '1' },
+                  extraHTTPHeaders: { 'x-marketing-qr-qa-continuation-stub': '1' },
               })
             : await guardedContext(browser, baseURL!)
         try {
@@ -108,7 +108,7 @@ test.describe('marketing QR browser handoff', () => {
                 ? undefined
                 : page.waitForResponse((response) => new URL(response.url()).pathname === capturePath)
             await page.goto(qrPath)
-            await expect(page).toHaveURL(/\/home\?app_entry=1/)
+            await expect(page).toHaveURL(/\/app\?marketing_qr=/)
             await expect.poll(() => requests.length).toBe(1)
             const request = requests[0]
             if (arrivalLog) {
@@ -182,7 +182,7 @@ test.describe('marketing QR browser handoff', () => {
                 const requests = openingRequests(context)
                 const page = await context.newPage()
                 await page.goto(qrPath)
-                await expect(page).toHaveURL(/\/home\?app_entry=1/)
+                await expect(page).toHaveURL(/\/app\?marketing_qr=/)
                 expect(requests).toHaveLength(0)
                 const next = new URL(page.url())
                 expect(next.searchParams.get('qr_analytics')).toBe('deny')
@@ -235,7 +235,7 @@ test.describe('marketing QR browser handoff', () => {
                 })
                 const page = await context.newPage()
                 await page.goto(qrPath)
-                await expect(page).toHaveURL(/\/home\?app_entry=1/, { timeout: 5000 })
+                await expect(page).toHaveURL(/\/app\?marketing_qr=/, { timeout: 5000 })
                 await expect.poll(() => requests.length, { timeout: 5000 }).toBe(1)
             } finally {
                 release?.()
@@ -255,7 +255,7 @@ test.describe('marketing QR browser handoff', () => {
             const page = await context.newPage()
             for (let i = 0; i < 2; i++) {
                 await page.goto(qrPath)
-                await expect(page).toHaveURL(/\/home\?app_entry=1/)
+                await expect(page).toHaveURL(/\/app\?marketing_qr=/)
                 await expect.poll(() => requests.length).toBe(i + 1)
             }
             const ids = requests.map((request) => request.postDataJSON().event_id)
@@ -281,7 +281,7 @@ test.describe('marketing QR browser handoff', () => {
                 const requests = openingRequests(context)
                 const page = await context.newPage()
                 await page.goto(`${qrPath}${suffix}`)
-                await expect(page).toHaveURL(/\/home\?app_entry=1/)
+                await expect(page).toHaveURL(/\/app\?marketing_qr=/)
                 expect(requests).toHaveLength(0)
                 expect(new URL(page.url()).searchParams.get('qr_analytics')).toBe('deny')
                 expect(page.url()).not.toContain('example.invalid')
@@ -307,7 +307,7 @@ test.describe('automated marketing QR navigation', () => {
                 const requests = openingRequests(context)
                 const page = await context.newPage()
                 await page.goto(qrPath)
-                await expect(page).toHaveURL(/\/home\?app_entry=1/)
+                await expect(page).toHaveURL(/\/app\?marketing_qr=/)
                 expect(new URL(page.url()).searchParams.get('qr_analytics')).toBe('deny')
                 expect(requests).toHaveLength(0)
             } finally {
@@ -332,7 +332,7 @@ test.describe('automated marketing QR navigation', () => {
                 Object.defineProperty(document, 'prerendering', { value: false })
                 document.dispatchEvent(new Event('prerenderingchange'))
             })
-            await expect(page).toHaveURL(/\/home\?app_entry=1/)
+            await expect(page).toHaveURL(/\/app\?marketing_qr=/)
             await expect.poll(() => requests.length).toBe(1)
         } finally {
             await context.close()
@@ -349,7 +349,6 @@ test.describe('rendered marketing QR', () => {
         let scanner: BrowserContext | undefined
         try {
             await desktop.addInitScript((key) => {
-                localStorage.setItem('pwa-sunset', 'true')
                 localStorage.setItem(key, '1')
             }, preferenceKey)
             const desktopJourney = '1508fc8b-ae6b-4a28-a9f0-d8bb85bd98fa'
@@ -390,7 +389,8 @@ test.describe('rendered marketing QR', () => {
             const decoded = await decodeQr(desktop, qr, baseURL!)
             const url = new URL(decoded)
             expect(url.origin).toBe(new URL(baseURL!).origin)
-            expect(url.pathname).toBe('/q/home-hero-en')
+            expect(url.pathname).toBe('/home')
+            expect(url.searchParams.get('mqr')).toBe('home-hero-en')
             expect(Buffer.byteLength(decoded)).toBeLessThanOrEqual(200)
             expect(url.searchParams.get('s')).toBe('google')
             expect(url.searchParams.get('m')).toBe('cpc')
@@ -405,7 +405,7 @@ test.describe('rendered marketing QR', () => {
             const events = openingRequests(scanner)
             const phone = await scanner.newPage()
             await phone.goto(decoded)
-            await expect(phone).toHaveURL(/\/home\?app_entry=1/)
+            await expect(phone).toHaveURL(/\/app\?marketing_qr=/)
             await expect.poll(() => events.length).toBe(1)
             expect(events[0].postDataJSON().utm_campaign).toBe('accounts-launch')
         } finally {
@@ -422,7 +422,6 @@ test.describe('rendered marketing QR', () => {
         let scanner: BrowserContext | undefined
         try {
             await desktop.addInitScript((key) => {
-                localStorage.setItem('pwa-sunset', 'true')
                 localStorage.setItem(key, '1')
             }, preferenceKey)
             const page = await desktop.newPage()
@@ -440,7 +439,7 @@ test.describe('rendered marketing QR', () => {
             const events = openingRequests(scanner)
             const phone = await scanner.newPage()
             await phone.goto(decoded)
-            await expect(phone).toHaveURL(/\/home\?app_entry=1/)
+            await expect(phone).toHaveURL(/\/app\?marketing_qr=/)
             await expect.poll(() => events.length).toBe(1)
             expect(events[0].postDataJSON()).toMatchObject({
                 utm_source: 'compare',
@@ -459,7 +458,6 @@ test.describe('rendered marketing QR', () => {
         const context = await guardedContext(browser, baseURL!)
         try {
             await context.addInitScript((key) => {
-                localStorage.setItem('pwa-sunset', 'true')
                 localStorage.setItem(key, '1')
             }, preferenceKey)
             const campaign = `${'autumn-'.repeat(8)}campaign`
@@ -491,7 +489,6 @@ test.describe('rendered marketing QR', () => {
             const context = await guardedContext(browser, baseURL!)
             try {
                 await context.addInitScript((key) => {
-                    localStorage.setItem('pwa-sunset', 'true')
                     localStorage.setItem(key, '1')
                 }, preferenceKey)
                 const page = await context.newPage()
@@ -506,12 +503,12 @@ test.describe('rendered marketing QR', () => {
                     const url = new URL(decoded)
                     expect(Buffer.byteLength(decoded)).toBeLessThanOrEqual(200)
                     const expectedIdPrefix = route.endsWith('argentina') ? 'qr-argentina' : 'qr-brazil'
-                    expect(url.pathname).toMatch(
-                        new RegExp(`^/q/${expectedIdPrefix}-(hero-sticker|close-sticker|ways-in)-en$`)
-                    )
-                    const expectedSlot = url.pathname.includes('hero-sticker')
+                    const qrId = url.searchParams.get('mqr') ?? ''
+                    expect(url.pathname).toBe('/home')
+                    expect(qrId).toMatch(new RegExp(`^${expectedIdPrefix}-(hero-sticker|close-sticker|ways-in)-en$`))
+                    const expectedSlot = qrId.includes('hero-sticker')
                         ? 'h'
-                        : url.pathname.includes('close-sticker')
+                        : qrId.includes('close-sticker')
                           ? 'c'
                           : 'w'
                     if (expectedSlot === 'h') await captureReviewShot(page, `inline-${expectedIdPrefix}`)
@@ -524,10 +521,10 @@ test.describe('rendered marketing QR', () => {
                         const events = openingRequests(scanner)
                         const phone = await scanner.newPage()
                         await phone.goto(decoded)
-                        await expect(phone).toHaveURL(/\/home\?app_entry=1/)
+                        await expect(phone).toHaveURL(/\/app\?marketing_qr=/)
                         await expect.poll(() => events.length).toBe(1)
                         expect(events[0].postDataJSON()).toMatchObject({
-                            qr_id: url.pathname.slice(3),
+                            qr_id: qrId,
                             utm_source: 'star-lp',
                             utm_medium: 'content',
                             utm_campaign: campaign,
@@ -555,7 +552,6 @@ test.describe('marketing store continuation', () => {
         const context = await guardedContext(browser, baseURL!, { userAgent: androidUA })
         try {
             await context.addInitScript((key) => {
-                localStorage.setItem('pwa-sunset', 'true')
                 localStorage.setItem(key, '1')
             }, preferenceKey)
             const page = await context.newPage()
@@ -581,7 +577,6 @@ test.describe('marketing store continuation', () => {
         try {
             await context.exposeBinding('__marketingQrClipboard', (_, text: string) => writes.push(text))
             await context.addInitScript((key) => {
-                localStorage.setItem('pwa-sunset', 'true')
                 localStorage.setItem(key, '1')
                 Object.defineProperty(navigator, 'clipboard', {
                     value: {
@@ -614,7 +609,6 @@ test.describe('marketing store continuation', () => {
         const context = await guardedContext(browser, baseURL!, { userAgent: androidUA })
         try {
             await context.addInitScript((key) => {
-                localStorage.setItem('pwa-sunset', 'true')
                 localStorage.setItem(key, '0')
             }, preferenceKey)
             const page = await context.newPage()

@@ -1,5 +1,6 @@
 import Image, { type StaticImageData } from 'next/image'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import handThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
 import handWaving from '@/assets/illustrations/hand-waving.svg'
 import handPeace from '@/assets/illustrations/hand-peace.svg'
@@ -8,6 +9,9 @@ import { DEFAULT_LOCALE, type Locale, type Translations } from '@/i18n/types'
 import type { LandingContentHrefs } from './landingContentHrefs'
 import { contentHrefsFor } from './landingContentHrefs.server'
 import { CTA_MOTION } from '@/components/Marketing/constants'
+import { Band } from '@/components/Marketing/StarLp/Band'
+import { PopIn } from '@/components/Marketing/StarLp/PopIn'
+import { getStarLpLink } from '@/components/Marketing/StarLp/starLpNavigation'
 
 interface Feature {
     id: number
@@ -48,11 +52,13 @@ function buildFeatures(i18n: Translations, contentHrefs: LandingContentHrefs): F
 
 export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }) {
     const i18n = getTranslations(locale)
-    const features = buildFeatures(i18n, contentHrefsFor(locale))
+    const contentHrefs = contentHrefsFor(locale)
+    const features = buildFeatures(i18n, contentHrefs)
+    const selfCustody = getStarLpLink('selfCustody', locale)
 
     return (
-        <section id="security" className="bg-background-brand px-6 py-16 text-foreground-primary md:px-4 md:py-24">
-            <div className="mx-auto max-w-7xl">
+        <Band ground="pink" id="security">
+            <div>
                 <div className="mb-12 text-center md:mb-16 md:text-left">
                     {/* h2, not h1: this h1 sat directly above the h3 feature
                         titles, and that h1 → h3 skip failed Lighthouse's
@@ -72,7 +78,7 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
                             className="my-2 flex flex-col items-start text-center md:my-0 md:text-left"
                         >
                             <div className="mb-4">
-                                <div className="flex h-10 w-10 items-center justify-center md:h-12 md:w-12">
+                                <PopIn className="flex h-10 w-10 items-center justify-center md:h-12 md:w-12">
                                     <Image
                                         src={feature.iconSrc}
                                         alt={feature.iconAlt}
@@ -80,9 +86,10 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
                                         height={40}
                                         className="max-h-full max-w-full object-contain md:h-12 md:w-12"
                                     />
-                                </div>
+                                </PopIn>
                             </div>
-                            <div>
+                            {/* a column that fills the row, so each Learn more sits on the same baseline */}
+                            <div className="flex w-full flex-1 flex-col">
                                 <div className="mb-4 w-full text-left md:text-left">
                                     <h3 className="font-roboto-flex-extrabold text-heading-s lg:text-heading-m">
                                         {feature.title}
@@ -92,13 +99,25 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
                                 <p className="font-roboto-flex w-full max-w-[360px] text-left text-body-l md:text-xl">
                                     {feature.description}
                                 </p>
+                                {feature.id === 2 && (
+                                    <p className="mt-6 text-left">
+                                        <LinkButton
+                                            href={selfCustody.href}
+                                            hrefLang={selfCustody.hrefLang}
+                                            className="text-foreground-over-color-primary"
+                                        >
+                                            {selfCustody.label}
+                                            {selfCustody.languageLabel && ` (${selfCustody.languageLabel})`} →
+                                        </LinkButton>
+                                    </p>
+                                )}
                                 {feature.learnMoreHref && (
                                     // max-w matches the paragraph above, so the link
-                                    // lands on that right edge instead of the wider cell
-                                    <p className="mt-4 w-full max-w-[360px] text-right">
+                                    // lands on that right edge instead of the wider cell; mt-auto pins it to the column foot
+                                    <p className="mt-auto w-full max-w-[360px] pt-4 text-right">
                                         <a
                                             href={feature.learnMoreHref}
-                                            className="font-roboto-flex text-body-m text-foreground-primary underline hover:no-underline md:text-body-l"
+                                            className="font-roboto-flex text-body-m text-foreground-primary underline hover:no-underline active:no-underline md:text-body-l"
                                         >
                                             {i18n.landingLearnMore} →
                                         </a>
@@ -108,7 +127,8 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
                                     <Button
                                         size="large"
                                         prefetch={false}
-                                        href="/support"
+                                        // /support only redirects to /en/help; the localized help page keeps es/pt readers in their language
+                                        href={contentHrefs.help}
                                         variant="secondary"
                                         className={`mt-6 w-fit ${CTA_MOTION}`}
                                     >
@@ -120,6 +140,6 @@ export function SecurityBuiltIn({ locale = DEFAULT_LOCALE }: { locale?: Locale }
                     ))}
                 </div>
             </div>
-        </section>
+        </Band>
     )
 }

@@ -24,6 +24,9 @@ import { ChatAppsLine } from '@/components/Global/PeanutActionCard/ChatAppsLine'
 import { isAddress } from 'viem'
 import dynamic from 'next/dynamic'
 import { useTranslations } from 'next-intl'
+import { openBrazilPausedDrawer } from '@/features/brazil-pause/brazil-paused-drawer-store'
+import { usePixKeySend } from '@/features/pix/usePixKeySend'
+import { PIX_SEND_PATH } from '@/features/pix/pix.routes'
 
 // Lazy — only needed for address/ENS recipients, and pulls the heavy
 // TokenSelector → wagmi config graph. Static-importing it bloats the common
@@ -42,6 +45,8 @@ export const SendRouterView = () => {
     const tCommon = useTranslations('common')
     const router = useRouter()
     const searchParams = useSearchParams()
+    // a withdraw route on Avenia sends to the key; else the pay:PIX_BR route says whether a Pix-key send can start
+    const pixKeySend = usePixKeySend()
     const isSendingByLink = searchParams.get('view') === 'link' || searchParams.get('createLink') === 'true'
     const isSendingToContacts = searchParams.get('view') === 'contacts'
     // direct send to a specific user — supports both:
@@ -98,6 +103,9 @@ export const SendRouterView = () => {
                 router.push('/withdraw/crypto?method=crypto')
                 break
             case 'pix':
+                // a withdraw route on Avenia pays any key: the Pix-key form of /withdraw/pix
+                if (pixKeySend.via === 'withdraw') return router.push(PIX_SEND_PATH)
+                if (pixKeySend.block) return openBrazilPausedDrawer(pixKeySend.block)
                 // navigate to pix send flow
                 router.push('/withdraw/manteca?method=pix&country=brazil')
                 break

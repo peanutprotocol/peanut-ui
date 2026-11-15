@@ -674,6 +674,13 @@
                 "symbol": "USDT",
                 "decimals": 6,
                 "logoURI": "https://assets.coingecko.com/coins/images/35001/thumb/logo.png?1706959346"
+            },
+            {
+                "address": "0x1abaea1f7c830bd89acc67ec4af516284b1bc33c",
+                "decimals": 6,
+                "name": "EURC",
+                "symbol": "EURC",
+                "logoURI": "https://assets.coingecko.com/coins/images/26045/standard/euro.png"
             }
         ]
     },
@@ -1071,6 +1078,13 @@
                 "name": "Ankr Network",
                 "symbol": "ANKR",
                 "logoURI": "https://market-data-images.s3.us-east-1.amazonaws.com/tokenImages/0xdeb1a2d5c820559afef11fa0051b0934a5bbc7372eb7a19c71148c4c1c9cfd86.png"
+            },
+            {
+                "address": "0xdcb612005417dc906ff72c87df732e5a90d49e11",
+                "decimals": 6,
+                "name": "EURC",
+                "symbol": "EURC",
+                "logoURI": "https://assets.coingecko.com/coins/images/26045/standard/euro.png"
             }
         ]
     },
@@ -1736,6 +1750,13 @@
                 "symbol": "TIG",
                 "decimals": 18,
                 "logoURI": "https://assets.coingecko.com/coins/images/50669/standard/TIG_Logo_-_200x200.png?1728670027"
+            },
+            {
+                "address": "0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42",
+                "decimals": 6,
+                "name": "EURC",
+                "symbol": "EURC",
+                "logoURI": "https://assets.coingecko.com/coins/images/26045/standard/euro.png"
             }
         ]
     },
@@ -1903,6 +1924,13 @@
                 "symbol": "USDT",
                 "decimals": 6,
                 "logoURI": "https://assets.coingecko.com/coins/images/35001/thumb/logo.png?1706959346"
+            },
+            {
+                "address": "0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34",
+                "decimals": 18,
+                "name": "USDe",
+                "symbol": "USDe",
+                "logoURI": "https://assets.coingecko.com/coins/images/33613/standard/USDE.png"
             }
         ]
     },

@@ -19,11 +19,13 @@ import { useReceiptDateFormatter } from '@/components/TransactionDetails/useRece
 import {
     bankAccountLabelKey,
     getAccountCopyValue,
+    isPixAccountType,
     receiptStatusDate,
     type BankAccountLabelKey,
     type ReceiptStatusDateKind,
 } from './transaction-details.utils'
 import {
+    isReturnedDeposit,
     isSettledConversion,
     receiptConversionLine,
     receiptConvertedAmount,
@@ -36,7 +38,8 @@ import { BridgeDepositInstructions } from './provider-rows/BridgeDepositInstruct
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { getTransactionSign } from '@/utils/history.utils'
 import { maskAccountIdentifier } from '@/utils/account-mask.utils'
-import { formatAmount } from '@/utils/general.utils'
+import { formatPixKey } from '@/utils/pix-key-format.utils'
+import { formatBankAmount } from '@/utils/currency'
 import { formatPoints } from '@/utils/format.utils'
 import { printableAddress, shortenAddress, shortenStringLong } from '@/utils/general.utils'
 import { RequestPotProgressRow } from './provider-rows/RequestPotProgressRow'
@@ -72,6 +75,7 @@ export function ReceiptDetailsCard({
 }) {
     const t = useAppTranslations('transaction')
     const tCommon = useTranslations('common')
+    const tWithdraw = useTranslations('withdraw')
     const router = useRouter()
     const formatDate = useReceiptDateFormatter()
     const { rowVisibilityConfig, isGuestBankClaim, isPeanutWalletToken, country } = vm
@@ -79,6 +83,7 @@ export function ReceiptDetailsCard({
     const bankAccountLabel = (type: string) => {
         const key = bankAccountLabelKey(type)
         if (key === 'address') return t('rows.address')
+        if (key === 'pixKey') return tWithdraw('pixKey.placeholder')
         return BANK_ACCOUNT_SCHEME_LABELS[key] ?? t('rows.accountNumber')
     }
 
@@ -112,12 +117,12 @@ export function ReceiptDetailsCard({
     const convertedAmount = receiptConvertedAmount(transaction)
     const exchangeRate = receiptExchangeRate(transaction)
 
-    const feeDisplay = transaction.fee !== undefined ? `$${formatAmount(transaction.fee as number)}` : 'N/A'
+    const feeDisplay = transaction.fee !== undefined ? formatBankAmount(transaction.fee, 'USD') : 'N/A'
 
     return (
         <Card position={shouldShowQrShare ? 'top' : 'solo'} className={receiptDataRowCardClassName}>
             {/* request pot: progress and contributors first (Activity/Request board) */}
-            <DataRowGroup>
+            <DataRowGroup className={vm.requestPotContributors.length === 0 ? 'border-b-0' : undefined}>
                 {transaction.isRequestPotLink && <RequestPotProgressRow transaction={transaction} />}
                 {vm.requestPotContributors.length > 0 && <RequestPotContributorRows vm={vm} />}
             </DataRowGroup>
@@ -159,7 +164,10 @@ export function ReceiptDetailsCard({
                             isGuestBankClaim
                                 ? transaction.bankAccountDetails.identifier
                                 : maskAccountIdentifier(
-                                      transaction.bankAccountDetails.identifier,
+                                      // a CPF, CNPJ or phone key reads punctuated; the copy keeps the key itself
+                                      isPixAccountType(transaction.bankAccountDetails.type)
+                                          ? formatPixKey(transaction.bankAccountDetails.identifier)
+                                          : transaction.bankAccountDetails.identifier,
                                       transaction.bankAccountDetails.type
                                   )
                         }
@@ -187,7 +195,7 @@ export function ReceiptDetailsCard({
                     convertedAmount &&
                     (isSettledConversion(transaction) ? (
                         <DataRow
-                            label={t('rows.converted')}
+                            label={isReturnedDeposit(transaction) ? tCommon('exchangeRate') : t('rows.converted')}
                             value={
                                 <span className="flex flex-col items-end">
                                     <span>{receiptConversionLine(transaction, getTransactionSign(transaction))}</span>
@@ -224,7 +232,7 @@ export function ReceiptDetailsCard({
                 {rowVisibilityConfig.recipientReceives && (
                     <DataRow
                         label={t('rows.recipientReceives')}
-                        value={`$${formatAmount(transaction.recipientReceivesUsd as number)}`}
+                        value={formatBankAmount(transaction.recipientReceivesUsd as number, 'USD')}
                     />
                 )}
 
@@ -237,7 +245,7 @@ export function ReceiptDetailsCard({
                 {rowVisibilityConfig.bankReceives && (
                     <DataRow
                         label={t('rows.bankReceives')}
-                        value={`$${formatAmount(transaction.payoutReceivedUsd as number)}`}
+                        value={formatBankAmount(transaction.payoutReceivedUsd as number, 'USD')}
                     />
                 )}
 

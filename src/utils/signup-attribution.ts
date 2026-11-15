@@ -4,6 +4,7 @@ import publicAttributionPaths from '@/constants/signup-attribution-paths.generat
 import { getFromCookie, saveToCookie } from './cookie-url.utils'
 import posthog from 'posthog-js'
 import { isAnalyticsCaptureBuild, posthogProjectKey } from './posthog-setup'
+import { isTrackedLinkEntry, trackedLinkAnalyticsAllowed } from '@/features/tracked-links/eligibility'
 
 export const SIGNUP_ATTRIBUTION_COOKIE = 'signupAttribution'
 export const SIGNUP_ATTRIBUTION_SCHEMA_VERSION = '1'
@@ -290,14 +291,61 @@ export function readSignupAttribution(): SignupAttributionContext | null {
     return stored
 }
 
+// document.referrer belongs to the loaded document, so only that document may use it.
+function isLoadedDocument(): boolean {
+    try {
+        const [entry] = performance.getEntriesByType('navigation')
+        return !!entry && new URL(entry.name).pathname === window.location.pathname
+    } catch {
+        return false
+    }
+}
+
+/** Whether this visit names a campaign (utm_*) or arrived from another site. */
+export function hasMarketingTouch(): boolean {
+    const touch = currentTouch(isLoadedDocument())
+    return !!(touch?.utmSource || touch?.utmMedium || touch?.utmCampaign || touch?.utmContent || touch?.referrerHost)
+}
+
 export function captureSignupAttribution({
     includeDocumentReferrer = false,
 }: { includeDocumentReferrer?: boolean } = {}): SignupAttributionContext | null {
-    if (!analyticsCollectionAvailable()) return null
+    if (!analyticsCollectionAvailable() || isTrackedLinkEntry(window.location)) return null
     const touch = currentTouch(includeDocumentReferrer)
     if (!touch) return null
 
-    const existing = readSignupAttribution()
+    return captureTouch(touch)
+}
+
+/** A tracked link carries no campaign tags: its touch is the opening itself, never URL input. */
+export async function captureTrackedLinkJourney(): Promise<SignupAttributionContext | null> {
+    if (!trackedLinkAnalyticsAllowed() || !analyticsCollectionAvailable()) return null
+    const existing = await boundedNativeContext(readSignupAttributionAsync())
+    // An unavailable native store must not replace a prior journey with a new one.
+    if (existing === undefined || !trackedLinkAnalyticsAllowed() || !analyticsCollectionAvailable()) return null
+    const context = captureTouch({ occurredAt: new Date().toISOString() }, existing)
+    if (context) await boundedNativeContext(persistNativeSignupAttribution(context))
+    return context
+}
+
+async function boundedNativeContext<T>(operation: Promise<T>): Promise<T | undefined> {
+    let timer: ReturnType<typeof setTimeout> | undefined
+    try {
+        return await Promise.race([
+            operation,
+            new Promise<undefined>((resolve) => {
+                timer = setTimeout(() => resolve(undefined), 500)
+            }),
+        ])
+    } finally {
+        if (timer !== undefined) clearTimeout(timer)
+    }
+}
+
+function captureTouch(
+    touch: SignupAttributionTouch,
+    existing = readSignupAttribution()
+): SignupAttributionContext | null {
     const context: SignupAttributionContext = {
         schemaVersion: SIGNUP_ATTRIBUTION_SCHEMA_VERSION,
         journeyId: existing?.journeyId ?? newJourneyId(),
@@ -321,6 +369,26 @@ export function captureSignupAttribution({
     if (!bounded) return null
     saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, bounded, SIGNUP_ATTRIBUTION_EXPIRY_DAYS)
     return bounded
+}
+
+type SignupAttributionCampaign = Pick<SignupAttributionTouch, 'utmSource' | 'utmMedium' | 'utmCampaign' | 'utmContent'>
+
+/** A new Android journey whose first touch is the campaign in a Play install referrer, or null without a usable tag. */
+export function installReferrerSignupAttribution(campaign: SignupAttributionCampaign): SignupAttributionContext | null {
+    const firstTouch: SignupAttributionTouch = { occurredAt: new Date().toISOString() }
+    for (const key of ['utmSource', 'utmMedium', 'utmCampaign', 'utmContent'] as const) {
+        const value = cleanMarketingValue(campaign[key])
+        if (value) firstTouch[key] = value
+    }
+    if (Object.keys(firstTouch).length === 1) return null
+    return canonicalSignupAttribution({
+        schemaVersion: SIGNUP_ATTRIBUTION_SCHEMA_VERSION,
+        journeyId: newJourneyId(),
+        platform: 'android',
+        analyticsState: 'enabled',
+        captureMethod: 'deferred_link',
+        firstTouch,
+    })
 }
 
 export function restoreSignupAttribution(context: SignupAttributionContext): SignupAttributionContext {

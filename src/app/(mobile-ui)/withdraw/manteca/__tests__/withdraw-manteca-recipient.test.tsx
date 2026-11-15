@@ -57,7 +57,7 @@ jest.mock('@/hooks/useIdentityVerification', () => ({
     useIdentityVerification: () => ({ isVerified: true }),
 }))
 jest.mock('@/hooks/useCapabilities', () => ({
-    useCapabilities: () => ({ rails: [], nextActions: [] }),
+    useCapabilities: () => ({ rails: [], nextActions: [], capabilities: { routes: [] } }),
 }))
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({ user: { user: { userId: 'user-1' } }, isAuthed: true, fetchUser: jest.fn() }),
@@ -105,6 +105,8 @@ jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({ SumsubKycWrapper: () => 
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/RateUnavailable/RateGateScreen', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/SoundPlayer', () => ({ SoundPlayer: () => null }))
+// the Brazil pause reads the signed-in user; it is off here (amount-guard covers it)
+jest.mock('@/features/pix/usePixPayBlock', () => ({ usePixPayBlock: () => null }))
 jest.mock('@/features/withdraw/views/PixKeySendView', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/Banner/MantecaTransfersMaintenanceView', () => ({
     MantecaTransfersMaintenanceView: () => null,

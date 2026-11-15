@@ -20,6 +20,26 @@ afterEach(() => {
 })
 
 describe('useGeoLocation', () => {
+    // first: an aborted lookup leaves the session cache empty for the tests below
+    it('a disabled lookup sends nothing until it is enabled', () => {
+        const fetchMock = jest.fn(
+            (_url: string, init?: RequestInit) =>
+                new Promise<Response>((_, reject) => {
+                    init?.signal?.addEventListener('abort', () => reject(new Error('aborted')))
+                })
+        )
+        global.fetch = fetchMock as unknown as typeof fetch
+
+        const { rerender, unmount } = renderHook(({ enabled }) => useGeoLocation({ enabled }), {
+            initialProps: { enabled: false },
+        })
+        expect(fetchMock).not.toHaveBeenCalled()
+
+        rerender({ enabled: true })
+        expect(fetchMock).toHaveBeenCalledTimes(1)
+        unmount()
+    })
+
     it('gives up after the timeout and answers unknown', async () => {
         jest.useFakeTimers()
         // a request that never answers until it is aborted

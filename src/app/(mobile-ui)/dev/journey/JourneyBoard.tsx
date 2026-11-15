@@ -124,7 +124,7 @@ export default function JourneyBoard({
                                         icon="bell"
                                         label="push"
                                         count={pushCount}
-                                        tint="bg-action-secondary/20"
+                                        tint="bg-background-accent-yellow/20"
                                     >
                                         {specError && <p className={EMPTY_NOTE}>{specError}</p>}
                                         {spec &&
@@ -141,7 +141,7 @@ export default function JourneyBoard({
                         })}
 
                         {unmappedStages.length > 0 && (
-                            <Card className="w-80 shrink-0 bg-action-secondary/40 p-3">
+                            <Card className="w-80 shrink-0 bg-background-accent-yellow/40 p-3">
                                 <div className="text-label-l">Unmapped spec stages</div>
                                 <p className="mt-1 text-body-xs leading-snug text-foreground-secondary">
                                     The API spec reports stages this board doesn&apos;t map to a column yet

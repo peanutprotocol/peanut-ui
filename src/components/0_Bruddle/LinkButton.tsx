@@ -10,6 +10,8 @@ interface LinkButtonProps extends React.AriaAttributes {
     children: React.ReactNode
     /** Renders a Next.js <Link>. Omit to render a <button> with onClick. */
     href?: string
+    /** Language of the linked page, when it differs from the surrounding copy. */
+    hrefLang?: string
     onClick?: () => void
     /** Shows the trailing arrow-up-right icon. */
     icon?: boolean

@@ -24,7 +24,7 @@ const TAP_WINDOW_MS = 2_000
 export const AboutView = ({ appVersion }: { appVersion: string }) => {
     useAboutHelpPreload()
     const t = useTranslations('profile.about')
-    const onBack = useSafeBack('/profile', { replace: true })
+    const onBack = useSafeBack('/settings', { replace: true })
     // the bundled version is only the web value and the pre-bridge fallback
     const version = useAppVersion(appVersion)
     const [betaRevealed, setBetaRevealed] = useState(false)

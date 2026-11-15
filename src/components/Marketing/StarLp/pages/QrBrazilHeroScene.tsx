@@ -36,6 +36,7 @@ export function QrBrazilHeroScene() {
                                 sizes="(min-width: 1024px) 430px, 300px"
                                 className="h-auto w-full"
                                 priority
+                                fetchPriority="high"
                             />
                             <div
                                 className="absolute overflow-hidden rounded-card"
@@ -56,7 +57,7 @@ export function QrBrazilHeroScene() {
             <div className="absolute top-[26%] left-0 z-10 w-[40%] -rotate-6 md:top-[25%]">
                 <div className="qr-br-wobble">
                     <QrBrazilAppLink>
-                        <QrBrazilPixSticker slot="hero-sticker" priority />
+                        <QrBrazilPixSticker slot="hero-sticker" />
                     </QrBrazilAppLink>
                 </div>
             </div>

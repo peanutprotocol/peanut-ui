@@ -88,7 +88,7 @@ export function withWalletChain(chains: Record<string, ChainWithTokens>): Record
 // stablecoins lead the token list, the rest follow alphabetically
 const TOKEN_RANK = ['USDC', 'USDT']
 const tokenRank = (symbol: string) => {
-    const i = TOKEN_RANK.indexOf(symbol)
+    const i = TOKEN_RANK.indexOf(symbol.toUpperCase())
     return i === -1 ? TOKEN_RANK.length : i
 }
 
@@ -126,9 +126,15 @@ export function buildTokenOptions(
         }
     }
 
-    return Array.from(bySymbol, ([symbol, networks]) => {
+    return Array.from(bySymbol.values(), (networks) => {
         const sorted = sortNetworks(networks)
-        return { symbol, name: sorted[0].token.name, logoURI: sorted[0].token.logoURI, networks: sorted }
+        // displayed as the record spells it (USDe), grouped and ranked upper-cased
+        return {
+            symbol: sorted[0].token.symbol,
+            name: sorted[0].token.name,
+            logoURI: sorted[0].token.logoURI,
+            networks: sorted,
+        }
     }).sort((a, b) => tokenRank(a.symbol) - tokenRank(b.symbol) || a.symbol.localeCompare(b.symbol))
 }
 
@@ -139,34 +145,43 @@ export function sortNetworks(networks: NetworkOption[]): NetworkOption[] {
     )
 }
 
-/** a row in the network drawer; `network` is undefined when the token is not on this chain */
+/**
+ * A row in the network drawer. `network` is what a tap selects: the selected
+ * token on this chain, or, when the chain does not carry it, the first
+ * offered token that it does (`otherToken`).
+ */
 export interface NetworkRow {
-    chainId: string
-    name: string
-    iconUrl: string
-    network?: NetworkOption
+    network: NetworkOption
+    otherToken: boolean
+    /** for an `otherToken` row: every offered token on this chain, in token order */
+    otherSymbols: string[]
 }
 
 /**
  * Every network the selector offers, for the network drawer: the token's own
- * networks first (in their order), then the networks that do not carry it, so
- * a missing network (Tron for USDC) reads as "not for this token", not "not
- * supported at all". Support comes from the token/chain list alone, never
- * from price data.
+ * networks first (in their order), then the networks that do not carry it.
+ * Those stay tappable and switch the token too (TASK-24035): a disabled Tron
+ * row under USDC was a dead end, with nothing saying USDT is the way there.
+ * Support comes from the token/chain list alone, never from price data.
  */
 export function networkRowsForToken(options: TokenOption[], option: TokenOption | undefined): NetworkRow[] {
-    const rows: NetworkRow[] = (option?.networks ?? []).map((n) => ({
-        chainId: n.chainId,
-        name: n.name,
-        iconUrl: n.iconUrl,
-        network: n,
+    const rows: NetworkRow[] = (option?.networks ?? []).map((network) => ({
+        network,
+        otherToken: false,
+        otherSymbols: [],
     }))
-    const seen = new Set(rows.map((r) => r.chainId))
+    const byChain = new Map(rows.map((r) => [r.network.chainId, r]))
+    // options are in token order, so a chain is selected with the first token it carries (USDC, USDT, then A-Z)
     for (const other of options) {
-        for (const n of other.networks) {
-            if (seen.has(n.chainId)) continue
-            seen.add(n.chainId)
-            rows.push({ chainId: n.chainId, name: n.name, iconUrl: n.iconUrl })
+        for (const network of other.networks) {
+            const row = byChain.get(network.chainId)
+            if (row) {
+                if (row.otherToken) row.otherSymbols.push(other.symbol)
+                continue
+            }
+            const added = { network, otherToken: true, otherSymbols: [other.symbol] }
+            byChain.set(network.chainId, added)
+            rows.push(added)
         }
     }
     return rows
@@ -222,7 +237,7 @@ export function fallbackSelection(
     const symbol = chains[chainId]?.tokens
         .find((t) => tokenAddress && sameAddress(t.address, tokenAddress))
         ?.symbol.toUpperCase()
-    const option = options.find((o) => o.symbol === symbol) ?? options[0]
+    const option = options.find((o) => o.symbol.toUpperCase() === symbol) ?? options[0]
     return { option, network: pickDefaultNetwork(option, chainId) }
 }
 
@@ -232,8 +247,8 @@ export function filterTokenOptions(options: TokenOption[], query: string): Token
     return options.filter((o) => o.symbol.toLowerCase().includes(q) || o.name.toLowerCase().includes(q))
 }
 
-export function filterNetworks<T extends { name: string }>(networks: T[], query: string): T[] {
+export function filterNetworks(rows: NetworkRow[], query: string): NetworkRow[] {
     const q = query.trim().toLowerCase()
-    if (!q) return networks
-    return networks.filter((n) => n.name.toLowerCase().includes(q))
+    if (!q) return rows
+    return rows.filter((r) => r.network.name.toLowerCase().includes(q))
 }

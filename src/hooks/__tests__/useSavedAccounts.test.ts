@@ -64,6 +64,19 @@ describe('useSavedAccounts', () => {
         expect(result.current.map((a) => a.identifier)).toEqual(['222'])
     })
 
+    it('drops an account support removed at the provider, so it can be added again', () => {
+        mockUseAuth.mockReturnValue({
+            user: {
+                accounts: [
+                    { ...acct(AccountType.GB, '12345678'), deactivationReason: 'removed_by_support' },
+                    { ...acct(AccountType.GB, '87654321') },
+                ],
+            },
+        })
+        const { result } = renderHook(() => useSavedAccounts())
+        expect(result.current.map((a) => a.identifier)).toEqual(['87654321'])
+    })
+
     it('excludes wallets and other non-bank account types', () => {
         mockUseAuth.mockReturnValue({
             user: { accounts: [acct(AccountType.PEANUT_WALLET, '0xabc'), acct(AccountType.EVM_ADDRESS, '0xdef')] },

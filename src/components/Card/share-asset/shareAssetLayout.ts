@@ -1,3 +1,4 @@
+import { formatFiniteDisplay } from '@/utils/currency'
 /**
  * Pure-function layout engine for the D3 share asset.
  *
@@ -360,10 +361,10 @@ export function buildStatColumns(stats: ShareAssetStats | undefined): StatColumn
         cols.push({ label: 'MOVED', value: formatUsd(stats.totalMovedUsd) })
     }
     if (typeof stats?.totalTxns === 'number' && stats.totalTxns > 0) {
-        cols.push({ label: 'TXNS', value: stats.totalTxns.toLocaleString('en-US') })
+        cols.push({ label: 'TXNS', value: formatFiniteDisplay(stats.totalTxns, 'en-US') })
     }
     if (typeof stats?.invitedCount === 'number' && stats.invitedCount > 0) {
-        cols.push({ label: 'INVITED', value: stats.invitedCount.toString() })
+        cols.push({ label: 'INVITED', value: formatFiniteDisplay(stats.invitedCount, 'en-US', { useGrouping: false }) })
     }
     return cols
 }
@@ -372,9 +373,11 @@ export function buildStatColumns(stats: ShareAssetStats | undefined): StatColumn
 // Different threshold than `formatExtendedNumber` (which compacts only past
 // 6 digits) — we want $12.5K to read on a stamp at thumbnail size.
 function formatUsd(n: number): string {
-    if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`
-    if (n >= 10_000) return `$${(n / 1_000).toFixed(1)}K`
-    return `$${n.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
+    if (n >= 1_000_000)
+        return `$${formatFiniteDisplay(n / 1_000_000, 'en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1, useGrouping: false })}M`
+    if (n >= 10_000)
+        return `$${formatFiniteDisplay(n / 1_000, 'en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1, useGrouping: false })}K`
+    return `$${formatFiniteDisplay(n, 'en-US', { maximumFractionDigits: 0 })}`
 }
 
 /** Sizing function for the username pill — auto-shrinks for long names.

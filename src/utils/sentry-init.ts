@@ -2,7 +2,7 @@ import { beforeSendHandler, redactSentryTelemetry } from '../../sentry.utils'
 import { posthogErrorMirror, withoutNoise } from '@/utils/sentry-posthog-mirror'
 import { inferSentryEnvironment, isSentryReportingEnvironment } from '@/utils/sentry-env'
 import { loadSentry } from '@/utils/sentry-lazy'
-import { isPaymentNetworkExplorerPath } from '@/utils/private-routes'
+import { isPrivateDataPath } from '@/utils/private-routes'
 
 export { withoutNoise }
 
@@ -40,7 +40,7 @@ function bufferEvent(event: ErrorEvent | PromiseRejectionEvent): void {
 
 export function initSentry(): void {
     if (!ENABLED || started || typeof window === 'undefined') return
-    if (isPaymentNetworkExplorerPath(window.location.pathname)) return
+    if (isPrivateDataPath(window.location.pathname)) return
     started = true
 
     void loadSentryOrRelease().then((Sentry) => {
@@ -77,10 +77,9 @@ export function initSentry(): void {
             attachStacktrace: true,
 
             // A client-side navigation can enter a private route after init.
-            beforeSend: (event) =>
-                isPaymentNetworkExplorerPath(window.location.pathname) ? null : beforeSendHandler(event),
+            beforeSend: (event) => (isPrivateDataPath(window.location.pathname) ? null : beforeSendHandler(event)),
             beforeSendTransaction: (event) =>
-                isPaymentNetworkExplorerPath(window.location.pathname) ? null : redactSentryTelemetry(event),
+                isPrivateDataPath(window.location.pathname) ? null : redactSentryTelemetry(event),
 
             integrations: [
                 /*

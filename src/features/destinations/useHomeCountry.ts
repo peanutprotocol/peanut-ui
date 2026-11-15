@@ -4,7 +4,7 @@ import { useGeoLocation } from '@/hooks/useGeoLocation'
 
 /**
  * The country to put at the top of a country list: the one KYC confirmed the
- * user lives in, and the IP lookup only when there is no confirmed one. A
+ * user lives in, then their declaration, then the IP lookup. A
  * verified residence is what the money rails are bound to, and it survives a
  * trip abroad or a VPN — both of which move the IP answer.
  *
@@ -14,7 +14,7 @@ import { useGeoLocation } from '@/hooks/useGeoLocation'
 export function useHomeCountry(): { countryCode: string | null } {
     const user = useOptionalAuth()?.user
     const geo = useGeoLocation()
-    const residence = user?.residence?.verified ?? null
+    const residence = user?.residence?.verified?.country || user?.residence?.declared?.country || null
     if (residence) return { countryCode: residence.toUpperCase() }
     return { countryCode: geo.countryCode }
 }

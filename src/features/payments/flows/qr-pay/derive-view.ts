@@ -10,6 +10,7 @@ export type QrPayView =
     | 'KYC_LOADING'
     | 'PROVIDER_REJECTION'
     | 'KYC_GATE'
+    | 'BRAZIL_PAUSED'
     | 'MAINTENANCE'
     | 'INIT_ERROR'
     | 'AWAITING_MERCHANT'
@@ -23,6 +24,8 @@ export type QrPayView =
 export interface QrPayViewInputs {
     kycGateState: QrKycState
     isProviderDisabled: boolean
+    /** a Pix code while the Brazil pause covers this user */
+    isBrazilPaused?: boolean
     errorInitiatingPayment: string | null
     waitingForMerchantAmount: boolean
     showOrderNotReadyModal: boolean
@@ -30,7 +33,8 @@ export interface QrPayViewInputs {
     rateUnavailable: boolean
     loadingState: LoadingStates
     isSuccess: boolean
-    isManteca: boolean
+    /** a provider pays this scan (an unknown code type has none, and no success) */
+    hasProcessor: boolean
     hasUnsettledPayment?: boolean
 }
 
@@ -41,6 +45,10 @@ export interface QrPayViewInputs {
  */
 export function deriveQrPayView(inputs: QrPayViewInputs): QrPayView {
     if (inputs.kycGateState === QrKycState.LOADING) return 'KYC_LOADING'
+
+    // Before the KYC screens: a paused user has nothing to verify for. A payment
+    // made before the pause started still shows its status.
+    if (inputs.isBrazilPaused && !inputs.hasUnsettledPayment && !inputs.isSuccess) return 'BRAZIL_PAUSED'
 
     if (
         inputs.kycGateState === QrKycState.PROVIDER_REJECTION_FIXABLE ||
@@ -80,7 +88,7 @@ export function deriveQrPayView(inputs: QrPayViewInputs): QrPayView {
 
     if (inputs.hasUnsettledPayment) return 'STATUS'
 
-    if (inputs.isSuccess && inputs.isManteca) return 'SUCCESS'
+    if (inputs.isSuccess && inputs.hasProcessor) return 'SUCCESS'
 
     return 'FORM'
 }

@@ -28,7 +28,6 @@ test.describe('marketing QR disabled build', () => {
     })
 
     test('new homepage QR pixels use the original app entry and renderer', async ({ page, context, baseURL }) => {
-        await page.addInitScript(() => localStorage.setItem('pwa-sunset', 'true'))
         await page.goto('/?utm_source=google&utm_medium=cpc&utm_campaign=accounts-launch')
         await page.getByTestId('landing-download-cta').getByRole('link').click()
         const dialog = page.getByRole('dialog')
@@ -50,33 +49,24 @@ test.describe('marketing QR disabled build', () => {
         expect(decoded.searchParams.has('marketing_qr')).toBe(false)
     })
 
-    for (const migrationOn of [false, true]) {
-        test(`issued QR follows the real app/store continuation with migration ${migrationOn ? 'on' : 'off'}`, async ({
-            page,
-            context,
-        }) => {
-            const openings: string[] = []
-            context.on('request', (request) => {
-                if (new URL(request.url()).pathname === '/api/marketing-qr/open') openings.push(request.url())
-            })
-            await page.addInitScript((on) => {
-                if (on) localStorage.setItem('pwa-sunset', 'true')
-                else localStorage.removeItem('pwa-sunset')
-            }, migrationOn)
-            await page.goto('/q/home-hero-en?s=google&m=cpc&c=accounts-launch&o=current_url&a=none')
-            await expect(page).toHaveURL(/\/app(?:\?|$)/)
-            const continuation = new URL(page.url())
-            expect(continuation.searchParams.get('marketing_qr')).toBe('home-hero-en')
-            expect(continuation.searchParams.get('qr_analytics')).toBe('deny')
-            expect([...continuation.searchParams.keys()].some((key) => key.startsWith('utm_'))).toBe(false)
-            await expect(page.getByRole('button', { name: 'App Store', exact: true })).toBeVisible()
-            await expect(page.getByRole('button', { name: 'Google Play', exact: true })).toBeVisible()
-            const storeRequest = page.waitForRequest((request) => new URL(request.url()).hostname === 'play.google.com')
-            await page.getByRole('button', { name: 'Google Play', exact: true }).click()
-            const storeUrl = new URL((await storeRequest).url())
-            expect(storeUrl.searchParams.get('id')).toBe('me.peanut.wallet')
-            expect(storeUrl.searchParams.has('referrer')).toBe(false)
-            expect(openings).toEqual([])
+    test('issued QR follows the real app/store continuation', async ({ page, context }) => {
+        const openings: string[] = []
+        context.on('request', (request) => {
+            if (new URL(request.url()).pathname === '/api/marketing-qr/open') openings.push(request.url())
         })
-    }
+        await page.goto('/q/home-hero-en?s=google&m=cpc&c=accounts-launch&o=current_url&a=none')
+        await expect(page).toHaveURL(/\/app(?:\?|$)/)
+        const continuation = new URL(page.url())
+        expect(continuation.searchParams.get('marketing_qr')).toBe('home-hero-en')
+        expect(continuation.searchParams.get('qr_analytics')).toBe('deny')
+        expect([...continuation.searchParams.keys()].some((key) => key.startsWith('utm_'))).toBe(false)
+        await expect(page.getByRole('button', { name: 'App Store', exact: true })).toBeVisible()
+        await expect(page.getByRole('button', { name: 'Google Play', exact: true })).toBeVisible()
+        const storeRequest = page.waitForRequest((request) => new URL(request.url()).hostname === 'play.google.com')
+        await page.getByRole('button', { name: 'Google Play', exact: true }).click()
+        const storeUrl = new URL((await storeRequest).url())
+        expect(storeUrl.searchParams.get('id')).toBe('me.peanut.wallet')
+        expect(storeUrl.searchParams.has('referrer')).toBe(false)
+        expect(openings).toEqual([])
+    })
 })

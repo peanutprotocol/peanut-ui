@@ -22,7 +22,15 @@ export const API_ERROR_CODES = {
     WITHDRAWAL_SIGNATURE_COOLDOWN: 'WITHDRAWAL_SIGNATURE_COOLDOWN',
     WITHDRAWAL_SIGNATURE_EXPIRED: 'WITHDRAWAL_SIGNATURE_EXPIRED',
     WITHDRAWAL_SUBMISSION_FAILED: 'WITHDRAWAL_SUBMISSION_FAILED',
+    /** A withdrawal for this user was sent and has not settled yet. Do not send
+     *  it (or another one) again until it has. */
+    WITHDRAWAL_PENDING_CONFIRMATION: 'WITHDRAWAL_PENDING_CONFIRMATION',
     STALE_CARD_APPROVAL: 'STALE_CARD_APPROVAL',
+    /** The card permission store refused an approval the chain would refuse:
+     *  its enable signature does not verify against the wallet's key at the
+     *  live nonce (another passkey, other signed bytes, an unreadable layout,
+     *  or a moved nonce). Nothing was stored. */
+    CARD_APPROVAL_SIGNATURE_REJECTED: 'CARD_APPROVAL_SIGNATURE_REJECTED',
     /** Rain rotated the controller (or the grant is bound to the old one), on an
      *  attempt with NO financial effect: refused by `/prepare` or by
      *  `verifyRainWithdrawal` before any order/claim/broadcast, or — for
@@ -35,12 +43,26 @@ export const API_ERROR_CODES = {
     NO_APPROVED_CARD: 'NO_APPROVED_CARD',
     NO_ACTIVE_CARD: 'NO_ACTIVE_CARD',
     NO_COLLATERAL_CONTRACT: 'NO_COLLATERAL_CONTRACT',
+    /** A card cancel waits: the provider holds part of the card balance back for
+     *  now (an unused withdrawal signature, or a deposit it has not counted).
+     *  Sent with 409 and `retryAfterSec`. */
+    CARD_RETURN_BLOCKED: 'CARD_RETURN_BLOCKED',
+    /** A card cancel waits: a return went through and part of the card balance
+     *  is still in the card. Sent with 409 and `retryAfterSec`. */
+    CARD_BALANCE_REMAINS: 'CARD_BALANCE_REMAINS',
+    /** The card balance could not be read, so a cancel is refused (502). Unknown
+     *  is never an empty card. */
+    CARD_BALANCE_UNREADABLE: 'CARD_BALANCE_UNREADABLE',
     CARD_SECRETS_RATE_LIMITED: 'CARD_SECRETS_RATE_LIMITED',
     MANTECA_KYC_REQUIRED: 'MANTECA_KYC_REQUIRED',
+    MANTECA_ACCOUNT_REJECTED: 'MANTECA_ACCOUNT_REJECTED',
     /** The pool-lock sender carried an id the provider refuses. The user is
      *  verified, so a KYC prompt is a dead end: support corrects the id on
      *  file. Deterministic, never retried. */
     MANTECA_SENDER_REJECTED: 'MANTECA_SENDER_REJECTED',
+    PAYER_BLOCKED: 'PAYER_BLOCKED',
+    MERCHANT_BLOCKED: 'MERCHANT_BLOCKED',
+    PIX_RESIDENCE_NOT_SUPPORTED: 'PIX_RESIDENCE_NOT_SUPPORTED',
     MANTECA_TEMPORARILY_UNAVAILABLE: 'MANTECA_TEMPORARILY_UNAVAILABLE',
     /** The provider refused a Manteca deposit or withdrawal for a reason of the
      *  user's account (a document it still needs, a bank account it does not
@@ -63,6 +85,34 @@ export const API_ERROR_CODES = {
     XCHAIN_WITHDRAW_DISABLED: 'XCHAIN_WITHDRAW_DISABLED',
     /** POST /charges on a request that is no longer OPEN. Sent with 409. */
     REQUEST_CLOSED: 'REQUEST_CLOSED',
+    /** The provider is down, paused or not set up on this deployment (503). Retry later. */
+    PROVIDER_UNAVAILABLE: 'PROVIDER_UNAVAILABLE',
+    /** A Pix deposit or withdrawal below the provider's minimum. Sent with 400. */
+    PIX_MIN_AMOUNT: 'PIX_MIN_AMOUNT',
+    /** The backend's route does not serve this operation for this user (the capability route says why). Sent with 403. */
+    ROUTE_NOT_AVAILABLE: 'ROUTE_NOT_AVAILABLE',
+    /** Manteca no longer serves the user's Pix: their pay route moved to another provider (409). */
+    PIX_PROVIDER_MOVED: 'PIX_PROVIDER_MOVED',
+    /** The Pix account's monthly limit has no room for this amount. */
+    PIX_LIMIT_EXCEEDED: 'PIX_LIMIT_EXCEEDED',
+    /** The withdrawal's quote had too little time left for the signature. Nothing moved; try again. */
+    PIX_QUOTE_EXPIRED: 'PIX_QUOTE_EXPIRED',
+    /** The key's bank is on the provider's payout deny-list. */
+    PIX_KEY_BLOCKED: 'PIX_KEY_BLOCKED',
+    /** One Pix key lookup per second per user. */
+    PIX_KEY_LOOKUP_THROTTLED: 'PIX_KEY_LOOKUP_THROTTLED',
+    /** The Pix directory has no such key. Sent with 422 by the withdraw routes, 404 by the key lookup. */
+    PIX_KEY_NOT_FOUND: 'PIX_KEY_NOT_FOUND',
+    /** A Pix BR Code sent where a key belongs (400): a code is paid from the scanner (`/pix/pay`). */
+    PIX_KEY_IS_QR_CODE: 'PIX_KEY_IS_QR_CODE',
+    /** A withdrawal sized by the balance would now take more than that balance. Sent with 409; quote again. */
+    PIX_QUOTE_CHANGED: 'PIX_QUOTE_CHANGED',
+    /** Another Pix withdrawal is still waiting for its signature. */
+    WITHDRAWAL_IN_PROGRESS: 'WITHDRAWAL_IN_PROGRESS',
+    /** A merchant QR code with its own amount was sent another amount. Sent with 400; review the code's amount. */
+    PIX_QR_AMOUNT_FIXED: 'PIX_QR_AMOUNT_FIXED',
+    /** A retried QR payment is past its signature: read the payment the refusal names (`intentId`). Sent with 409. */
+    PIX_PAYMENT_EXISTS: 'PIX_PAYMENT_EXISTS',
 } as const
 
 export type ApiErrorCode = (typeof API_ERROR_CODES)[keyof typeof API_ERROR_CODES]
@@ -82,13 +132,33 @@ export class ApiError extends Error {
     readonly code: string | undefined
     /** Seconds until a rate-limited or cooled-down action can be retried, when the backend sent one. */
     readonly retryAfterSec: number | undefined
+    /** The backend's machine `reason` beside `code`, when it sent one (e.g. a send-gate refusal). */
+    readonly reason: string | undefined
+    /** The least amount a refusal names (`minAmount` and `currency` beside `code`), when it names one. */
+    readonly minimum: { amount: string; currency: string } | undefined
+    /** The payment a refusal names (`PIX_PAYMENT_EXISTS`), to read instead of opening another. */
+    readonly intentId: string | undefined
 
-    constructor(message: string, opts: { status: number; code?: string; retryAfterSec?: number; cause?: unknown }) {
+    constructor(
+        message: string,
+        opts: {
+            status: number
+            code?: string
+            retryAfterSec?: number
+            reason?: string
+            minimum?: { amount: string; currency: string }
+            intentId?: string
+            cause?: unknown
+        }
+    ) {
         super(message, { cause: opts.cause })
         this.name = 'ApiError'
         this.status = opts.status
         this.code = opts.code
         this.retryAfterSec = opts.retryAfterSec
+        this.reason = opts.reason
+        this.minimum = opts.minimum
+        this.intentId = opts.intentId
     }
 }
 
@@ -132,6 +202,8 @@ export async function apiErrorFromResponse(response: Response, fallbackMessage: 
     let message = fallbackMessage
     let code: string | undefined
     let retryAfterSec: number | undefined
+    let minimum: { amount: string; currency: string } | undefined
+    let intentId: string | undefined
     try {
         const body = await response.text()
         const parsed = JSON.parse(body) as {
@@ -140,6 +212,9 @@ export async function apiErrorFromResponse(response: Response, fallbackMessage: 
             error?: unknown
             code?: unknown
             retryAfterSec?: unknown
+            minAmount?: unknown
+            currency?: unknown
+            intentId?: unknown
         }
         // `userMessage` is the copy written for users (the residence refusals,
         // api#1738), so it wins over the developer-facing fields.
@@ -156,8 +231,13 @@ export async function apiErrorFromResponse(response: Response, fallbackMessage: 
         ) {
             retryAfterSec = parsed.retryAfterSec
         }
+        // a minimum refusal names its figure as fields (the Pix routes' PIX_MIN_AMOUNT)
+        if (typeof parsed.minAmount === 'string' && parsed.minAmount && typeof parsed.currency === 'string') {
+            minimum = { amount: parsed.minAmount, currency: parsed.currency }
+        }
+        if (typeof parsed.intentId === 'string' && parsed.intentId) intentId = parsed.intentId
     } catch {
         // unreadable or non-JSON body — keep the fallback message
     }
-    return new ApiError(message, { status: response.status, code, retryAfterSec })
+    return new ApiError(message, { status: response.status, code, retryAfterSec, minimum, intentId })
 }

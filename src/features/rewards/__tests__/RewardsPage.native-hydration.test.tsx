@@ -1,10 +1,12 @@
 import React from 'react'
-import { act, waitFor } from '@testing-library/react'
+import { act, waitFor, render } from '@testing-library/react'
 import { hydrateRoot, type Root } from 'react-dom/client'
 import { renderToString } from 'react-dom/server'
 import { IntlWrapper } from '@/test-utils/intl'
 import { RewardsPage } from '@/features/rewards/RewardsPage'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
+
+let mockPendingUsd: unknown = 0
 
 jest.mock('react-dom/server', () => jest.requireActual('react-dom/server.node'))
 jest.mock('@tanstack/react-query', () => ({
@@ -15,7 +17,10 @@ jest.mock('@tanstack/react-query', () => ({
                 data: { totalPoints: 150, currentTier: 1, nextTierThreshold: 500, pointsToNextTier: 350 },
             },
             invites: { invitees: [] },
-            cashStatus: { totalEarned: 10 },
+            cashStatus: {
+                success: true,
+                data: { lifetimeEarned: 10, rewards: { pendingUsd: mockPendingUsd, lifetimeEarnedUsd: 10 } },
+            },
         }[String(queryKey[0])],
         isPending: false,
         isLoading: false,
@@ -99,6 +104,7 @@ describe('RewardsPage native hydration with actual app translations', () => {
     let root: Root | undefined
     let previousBridge: PropertyDescriptor | undefined
     beforeEach(() => {
+        mockPendingUsd = 0
         previousBridge = Object.getOwnPropertyDescriptor(window, 'Capacitor')
         Reflect.deleteProperty(window, 'Capacitor')
         container = document.createElement('div')
@@ -145,4 +151,16 @@ describe('RewardsPage native hydration with actual app translations', () => {
             expect(onRecoverableError).not.toHaveBeenCalled()
         }
     )
+
+    it.each([NaN, Infinity, null, undefined])('shows unknown pending rewards %s without claiming zero', (amount) => {
+        mockPendingUsd = amount
+        const result = render(
+            <IntlWrapper>
+                <RewardsPage />
+            </IntlWrapper>
+        )
+        expect(result.container.textContent).toContain('—')
+        expect(result.container.textContent).not.toMatch(/no pending rewards/i)
+        expect(result.container.textContent).not.toMatch(/NaN|Infinity|undefined|∞/)
+    })
 })

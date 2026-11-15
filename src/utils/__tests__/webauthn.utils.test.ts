@@ -12,6 +12,7 @@ import {
     withIOSPasskeyLoginRecovery,
 } from '../webauthn.utils'
 import { isIOSNative } from '@/utils/capacitor'
+import { PasskeyAccountDeletedError, PasskeyOptionsFailedError } from '../passkey-auth-capture'
 
 jest.mock('posthog-js', () => ({
     __esModule: true,
@@ -226,6 +227,42 @@ describe('normalizePasskeyServerError', () => {
         const raw = Object.assign(new Error('verification failed'), { name: 'NotAllowedError' })
         expect(normalizePasskeyServerError(raw)).toBe(raw)
         expect(normalizePasskeyServerError('not an error')).toBe('not an error')
+    })
+
+    test.each(['/passkeys/login/options', '/passkeys/register/options'])(
+        'maps a failed %s to a PasskeyServerError that classifies as NETWORK',
+        (path) => {
+            const raw = new PasskeyOptionsFailedError(path, 500)
+            const normalized = normalizePasskeyServerError(raw) as Error
+
+            expect(normalized.name).toBe('PasskeyServerError')
+            expect(normalized.cause).toBe(raw)
+            expect(classifyPasskeyError(normalized).code).toBe('NETWORK')
+            expect(classifyPasskeyError(raw).code).toBe('NETWORK')
+        }
+    )
+})
+
+describe('deleted account', () => {
+    test('classifies as ACCOUNT_DELETED, not LOGIN_ERROR, and keeps its own copy', () => {
+        const error = new PasskeyAccountDeletedError()
+
+        expect(normalizePasskeyServerError(error)).toBe(error)
+        expect(classifyPasskeyError(error)).toEqual({
+            code: 'ACCOUNT_DELETED',
+            message: 'This account was deleted. Sign up to create a new one.',
+        })
+        expect(
+            getPasskeyErrorSetupKey(Object.assign(new Error(), { name: 'PasskeyError', code: 'ACCOUNT_DELETED' }))
+        ).toBe('passkey.accountDeleted')
+    })
+
+    test('is never retried by the iOS login recovery', async () => {
+        mockIsIOSNative.mockReturnValueOnce(true)
+        const operation = jest.fn().mockRejectedValue(new PasskeyAccountDeletedError())
+
+        await expect(withIOSPasskeyLoginRecovery(operation)).rejects.toBeInstanceOf(PasskeyAccountDeletedError)
+        expect(operation).toHaveBeenCalledTimes(1)
     })
 })
 

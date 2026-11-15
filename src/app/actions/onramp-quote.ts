@@ -1,3 +1,5 @@
+import { parseFiniteNumber, parsePositiveRate } from '@/lib/money'
+import { validateNumericResponse } from '@/lib/numeric-response'
 import { apiFetch } from '@/utils/api-fetch'
 import { AccountType } from '@/interfaces/interfaces'
 
@@ -28,6 +30,8 @@ export async function getOnrampQuote(
     sourceAmount?: number
 ): Promise<{ data?: OnrampQuoteResponse; error?: string }> {
     try {
+        if (sourceAmount !== undefined && (!Number.isFinite(sourceAmount) || sourceAmount <= 0))
+            return { error: 'Invalid quote amount' }
         const params = new URLSearchParams({ accountType })
         if (sourceAmount !== undefined) {
             params.append('sourceAmount', String(sourceAmount))
@@ -41,7 +45,13 @@ export async function getOnrampQuote(
         if (!response.ok) {
             return { error: data.error || 'Failed to fetch onramp quote.' }
         }
-        return { data }
+        if (
+            parsePositiveRate(data?.netRate) === null ||
+            parsePositiveRate(data?.grossRate) === null ||
+            parseFiniteNumber(data?.peanutFee) === null
+        )
+            return { error: 'Rate is unavailable' }
+        return { data: validateNumericResponse(data) }
     } catch (error) {
         if (error instanceof Error) return { error: error.message }
         return { error: 'An unexpected error occurred.' }

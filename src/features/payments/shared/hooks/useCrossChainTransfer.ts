@@ -1,5 +1,7 @@
 'use client'
 
+import { requirePaymentMoney } from '@/lib/money'
+
 /**
  * Unified cross-chain transfer hook — Rhino SDA flow.
  *
@@ -23,10 +25,9 @@
 
 import { useCallback, useRef, useState } from 'react'
 import { captureException } from '@sentry/nextjs'
-import { encodeFunctionData, erc20Abi, parseUnits, type Address, type Hex } from 'viem'
+import { encodeFunctionData, erc20Abi, type Address, type Hex } from 'viem'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import { prepareRequestLinkFulfillmentTransaction } from '@/utils/peanut-claim.utils'
-import { estimateTransactionCostUsd } from '@/app/actions/tokens'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import {
     provisionSdaTransfer,
@@ -47,29 +48,14 @@ import {
     type BridgeStatusResponse,
 } from '@/services/rhino-bridge'
 import { chainIdToRhinoName } from '@/constants/rhino.consts'
-import { NON_EVM_WITHDRAW_CHAINS } from '@/constants/chainRegistry.consts'
-import { areEvmAddressesEqual, getTokenSymbol } from '@/utils/general.utils'
+import { NON_EVM_WITHDRAW_CHAINS, rhinoWithdrawTokenSymbol } from '@/constants/chainRegistry.consts'
+import { areEvmAddressesEqual } from '@/utils/general.utils'
+import { getTokenSymbol } from '@/utils/token.utils'
+import { encodeRhinoDepositWithId } from '@/utils/rhino-deposit.utils'
 
 /** Tokens Rhino's SDA primitive accepts as `tokenOut`. Anything else routes
  *  through the bridge quote/commit flow which supports the wider token set. */
 const SDA_SUPPORTED_TOKENS = new Set(['USDC', 'USDT'])
-
-/** Minimal fragment of Rhino's DVFDepositContract used for cross-chain
- *  bridge / cross-chain swap deposits. Source: rhino.fi SDK
- *  (adapters/evm/abis/DVFDepositContract). */
-const DVF_DEPOSIT_WITH_ID_ABI = [
-    {
-        type: 'function',
-        name: 'depositWithId',
-        stateMutability: 'nonpayable',
-        inputs: [
-            { name: 'tokenAddress', type: 'address' },
-            { name: 'amount', type: 'uint256' },
-            { name: 'commitmentId', type: 'uint256' },
-        ],
-        outputs: [],
-    },
-] as const
 
 export interface CrossChainSourceInfo {
     address: Address
@@ -94,7 +80,7 @@ export interface CrossChainDestinationInfo {
     tokenDecimals: number
     tokenType: number
     chainId: string
-    /** Rhino-friendly token symbol — 'USDC' or 'USDT'. Falls back from tokenAddress if omitted. */
+    /** Token symbol as Rhino spells it ('USDe', not 'USDE'). Falls back from tokenAddress if omitted. */
     tokenSymbol?: RhinoSupportedToken
 }
 
@@ -158,7 +144,6 @@ interface CalculateInput {
     contextId: string
     /** Optional peanut-wallet sender — threaded through for pay-request attribution. */
     senderPeanutWalletAddress?: Address
-    skipGasEstimate?: boolean
 }
 
 function inferTokenSymbol(chainId: string, tokenAddress: string): RhinoSupportedToken | undefined {
@@ -172,8 +157,9 @@ function inferTokenSymbol(chainId: string, tokenAddress: string): RhinoSupported
     // backend forwards it to Rhino, which validates against its own per-route
     // supported-tokens map. Native ETH on EVM uses the SAME 'ETH' symbol —
     // address differs by chain (proxy 0xeee… or zero), but Rhino keys on the
-    // symbol.
-    return getTokenSymbol(tokenAddress as Address, chainId)?.toUpperCase()
+    // symbol, exactly as Rhino spells it (see rhinoWithdrawTokenSymbol).
+    const symbol = getTokenSymbol(tokenAddress as Address, chainId)
+    return symbol && rhinoWithdrawTokenSymbol(chainId, symbol)
 }
 
 export function useCrossChainTransfer(): UseCrossChainTransferReturn {
@@ -246,14 +232,7 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
     )
 
     const calculate = useCallback(
-        async ({
-            source,
-            destination,
-            context,
-            contextId,
-            senderPeanutWalletAddress,
-            skipGasEstimate,
-        }: CalculateInput) => {
+        async ({ source, destination, context, contextId, senderPeanutWalletAddress }: CalculateInput) => {
             const generation = ++quoteGenerationRef.current
             const isCurrent = () => generation === quoteGenerationRef.current
             /** Wrap a setter so a superseded quote cannot write through it. */
@@ -289,10 +268,8 @@ export function useCrossChainTransfer(): UseCrossChainTransferReturn {
                         destination,
                         setTransactions: live(setTransactions),
                         setEstimatedGasCostUsd: live(setEstimatedGasCostUsd),
-                        setIsFeeEstimationError: live(setIsFeeEstimationError),
                         setReceiveAmount: live(setReceiveAmount),
                         setPayAmount: live(setPayAmount),
-                        skipGasEstimate,
                     })
                     if (isCurrent()) setPath('same-chain')
                     return
@@ -503,8 +480,8 @@ async function runBridgePath({
         recipient: destination.recipientAddress,
         depositor: source.address,
         mode,
-        // Names the charge so the API counts this bridge against the caller's
-        // cross-chain cap, same as the SDA path. claim-xchain has no charge.
+        // Names the charge so the API binds this bridge quote to it, same as
+        // the SDA path. claim-xchain has no charge.
         ...(context !== 'claim-xchain' ? { context, contextId } : {}),
     })
 
@@ -527,7 +504,7 @@ async function runBridgePath({
     // Under whichever names the API used — this build runs against an API from
     // either side of the 2026-09 quote rename, so deploy order doesn't matter.
     const { payAmount, receiveAmount } = quoteAmounts(quote)
-    const approveAmount = parseUnits(payAmount, STABLECOIN_DECIMALS)
+    const approveAmount = requirePaymentMoney(payAmount, 'USDC', STABLECOIN_DECIMALS).minorUnits
     // Approve USDC for Rhino's bridge contract — required for both same-chain
     // swap (the swap contract does transferFrom) and cross-chain depositWithId.
     const approveData = encodeFunctionData({
@@ -549,10 +526,10 @@ async function runBridgePath({
         // ourselves. Rhino's API doesn't return calldata for this path — the
         // SDK constructs it client-side via DVFDepositContract__factory.
         // commitmentId is hex-encoded BigInt of the quoteId.
-        const depositData = encodeFunctionData({
-            abi: DVF_DEPOSIT_WITH_ID_ABI,
-            functionName: 'depositWithId',
-            args: [source.tokenAddress, approveAmount, BigInt(`0x${commit.commitmentId}`)],
+        const depositData = encodeRhinoDepositWithId({
+            tokenAddress: source.tokenAddress,
+            amount: approveAmount,
+            commitmentId: commit.commitmentId,
         })
         bridgeCall = {
             to: commit.contractAddress as Address,
@@ -588,20 +565,16 @@ interface SameChainParams {
     destination: CrossChainDestinationInfo
     setTransactions: (tx: PreparedTransaction[] | null) => void
     setEstimatedGasCostUsd: (v: number | undefined) => void
-    setIsFeeEstimationError: (v: boolean) => void
     setReceiveAmount: (v: string | null) => void
     setPayAmount: (v: string | null) => void
-    skipGasEstimate?: boolean
 }
 
 async function buildSameChainTx({
     destination,
     setTransactions,
     setEstimatedGasCostUsd,
-    setIsFeeEstimationError,
     setReceiveAmount,
     setPayAmount,
-    skipGasEstimate,
 }: SameChainParams): Promise<void> {
     const tx = prepareRequestLinkFulfillmentTransaction({
         // same-chain is EVM-only by construction (source is the Arbitrum
@@ -625,22 +598,8 @@ async function buildSameChainTx({
     setReceiveAmount(destination.tokenAmount)
     // Same-chain, same-token: kernel pays exactly the principal.
     setPayAmount(destination.tokenAmount)
-    if (!skipGasEstimate && tx.unsignedTx.from && tx.unsignedTx.to && tx.unsignedTx.data) {
-        try {
-            const gasCost = await estimateTransactionCostUsd(
-                tx.unsignedTx.from as Address,
-                tx.unsignedTx.to as Address,
-                tx.unsignedTx.data as Hex,
-                destination.chainId
-            )
-            setEstimatedGasCostUsd(gasCost)
-        } catch (gasError) {
-            captureException(gasError)
-            setIsFeeEstimationError(true)
-        }
-    } else {
-        setEstimatedGasCostUsd(0)
-    }
+    // gas is sponsored by the paymaster on every Peanut wallet send
+    setEstimatedGasCostUsd(0)
 }
 
 interface RhinoResultParams {
@@ -678,7 +637,7 @@ function applyRhinoResult({
     // the Peanut wallet token as source — Circle USDC on Arbitrum (Arb Sepolia
     // in the sandbox), 6 decimals. Destination USDC can differ (BNB Chain is 18).
     const STABLECOIN_DECIMALS = 6
-    const payAmountBaseUnits = parseUnits(preview.payAmount, STABLECOIN_DECIMALS)
+    const payAmountBaseUnits = requirePaymentMoney(preview.payAmount, 'USDC', STABLECOIN_DECIMALS).minorUnits
 
     const transferData = encodeFunctionData({
         abi: erc20Abi,

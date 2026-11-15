@@ -7,9 +7,11 @@
 import Cookies from 'js-cookie'
 import posthog from 'posthog-js'
 import { APP_RELEASE } from '@/constants/app-release'
+import { getBinaryInfo, getCachedBinaryInfo } from '@/utils/app-version'
+import { clientFlagProperties } from '@/utils/posthog-setup'
 import { getPlatform, isCapacitor, isNativeBridge } from '@/utils/capacitor'
 import { resolveDeviceIdentity, type DeviceIdentity } from '@/utils/device-identity'
-import { readStoredValue, writeStoredValue } from '@/utils/safe-storage'
+import { readStoredValue, removeStoredValue, writeStoredValue } from '@/utils/safe-storage'
 import { resolveLocale, resolveLocaleOrNull, type AppLocale } from './config'
 
 const LOCALE_KEY = 'app-locale'
@@ -112,14 +114,24 @@ type DeviceContext = {
 } & Partial<DeviceIdentity>
 
 let deviceContext: DeviceContext | null = null
+let deviceContextPending: Promise<void> | null = null
 
 /** Last device context registered — for re-register after posthog.reset() on logout. */
 export function currentDeviceContext(): DeviceContext | null {
     return deviceContext
 }
 
-export async function emitDeviceContextToAnalytics(): Promise<void> {
-    if (deviceContext) return
+export function emitDeviceContextToAnalytics(): Promise<void> {
+    if (deviceContext) return Promise.resolve()
+    if (!deviceContextPending) {
+        deviceContextPending = registerDeviceContext().finally(() => {
+            deviceContextPending = null
+        })
+    }
+    return deviceContextPending
+}
+
+async function registerDeviceContext(): Promise<void> {
     try {
         const tag = await rawDeviceTag()
         const context: DeviceContext = {
@@ -131,18 +143,42 @@ export async function emitDeviceContextToAnalytics(): Promise<void> {
             // along with the rest of this context.
             app_release: APP_RELEASE,
         }
-        if (isNativeBridge()) {
-            const { getBinaryInfo } = await import('@/utils/app-version')
-            const binary = await getBinaryInfo()
-            if (binary) {
-                context.binary_version = binary.appVersion
-                context.binary_build = binary.appBuild
-            }
+        const native = isNativeBridge()
+        const binary = native ? await getCachedBinaryInfo() : null
+        if (binary) {
+            context.binary_version = binary.appVersion
+            context.binary_build = binary.appBuild
         }
         posthog.register(context)
         // set only after a successful register — a throw leaves this null so a
         // later call can retry, instead of silently disabling the emit forever
         deviceContext = context
+        const flagProperties = await clientFlagProperties()
+        try {
+            posthog.setPersonPropertiesForFlags(flagProperties)
+        } catch {
+            // A flag SDK failure must not discard the registered device context.
+        }
+        if (native && (!binary || !flagProperties.binary_version)) {
+            void getBinaryInfo()
+                .then(async (lateBinary) => {
+                    if (!lateBinary) return
+                    if (!binary) {
+                        const fields = { binary_version: lateBinary.appVersion, binary_build: lateBinary.appBuild }
+                        if (deviceContext) deviceContext = { ...deviceContext, ...fields }
+                        try {
+                            posthog.register(fields)
+                        } catch {
+                            // A context SDK failure must not prevent the flag refresh.
+                        }
+                    }
+                    if (!flagProperties.binary_version) {
+                        const latest = await clientFlagProperties()
+                        if (latest.binary_version) posthog.setPersonPropertiesForFlags(latest)
+                    }
+                })
+                .catch(() => undefined)
+        }
     } catch {
         // analytics failure degrades to missing data, never a broken app
     }
@@ -272,10 +308,31 @@ export function localeReady(): Promise<AppLocale> {
 
 let explicitlyChosen = false
 
+// Web only: an explicit pick the account has not saved yet. Stored, so a pick
+// made signed out or before a reload still reaches the account as a pick after
+// sign-in; also held in memory, so a pick still counts in this document when
+// storage is unavailable. The phone app sends its language anyway.
+const PENDING_PICK_KEY = 'app-locale-pick-pending'
+let pendingPick: AppLocale | null = null
+
 /** An explicit choice (switcher, suggestion banner): outranks the startup write. */
 export function persistLocale(locale: AppLocale): void {
     explicitlyChosen = true
+    if (!isCapacitor()) {
+        pendingPick = locale
+        writeStoredValue(PENDING_PICK_KEY, locale)
+    }
     writeLocale(locale)
+}
+
+/** Web: the explicit pick the account has not saved yet, or null. */
+export function pendingLocalePick(): string | null {
+    return pendingPick ?? readStoredValue(PENDING_PICK_KEY)
+}
+
+export function clearPendingLocalePick(): void {
+    pendingPick = null
+    removeStoredValue(PENDING_PICK_KEY)
 }
 
 function writeLocale(locale: AppLocale): void {

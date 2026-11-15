@@ -17,14 +17,20 @@
 import type { Metric } from 'web-vitals'
 import posthog from 'posthog-js'
 
-const FLUSH_DELAY_MS = 5000
+/*
+ * How long a batch waits for more metrics before it is sent; posthog-js's own
+ * web vitals use the same delay (instrumentation-client). LCP is only final at
+ * the first input or when the page is hidden, and a visitor who taps a store
+ * badge leaves within seconds, so the 5 s default lost most landing-page LCPs.
+ */
+export const WEB_VITALS_FLUSH_DELAY_MS = 2000
 // Matches PostHog's own ceiling: an LCP over fifteen minutes is a broken clock,
 // not a slow page.
 const MAX_PLAUSIBLE_VALUE_MS = 15 * 60 * 1000
 
 const WEB_VITALS_ENABLED_SERVER_SIDE = '$web_vitals_enabled_server_side'
 const WEB_VITALS_ALLOWED_METRICS = '$web_vitals_allowed_metrics'
-const DEFAULT_ALLOWED_METRICS = ['CLS', 'FCP', 'INP', 'LCP']
+const DEFAULT_ALLOWED_METRICS = ['CLS', 'FCP', 'INP', 'LCP', 'TTFB']
 
 /** True when posthog-js captures vitals itself and the shim must stay out. */
 export function postHogCapturesWebVitals(protocol: string | undefined): boolean {
@@ -97,7 +103,7 @@ export function createWebVitalsReporter(options: {
         if (buffered && buffered.url !== url) flush()
         if (!buffered) {
             buffered = { url, metrics: [] }
-            flushTimer = setTimeout(flush, FLUSH_DELAY_MS)
+            flushTimer = setTimeout(flush, WEB_VITALS_FLUSH_DELAY_MS)
         }
         buffered.metrics.push(metric)
     }
@@ -148,6 +154,18 @@ export function postHogWebVitalsSettings(): WebVitalsSettings {
     }
 }
 
+/**
+ * Sends the open batch when the page is hidden or unloaded. On `hidden` the
+ * flush waits one task: web-vitals reports LCP, CLS and INP from its own
+ * visibilitychange listener, which runs after this one.
+ */
+export function flushWhenHidden(flush: () => void): void {
+    window.addEventListener('pagehide', flush)
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') setTimeout(flush, 0)
+    })
+}
+
 let started = false
 
 export function startWebVitalsShim(): void {
@@ -163,14 +181,15 @@ export function startWebVitalsShim(): void {
 
     // A metric that arrives as the app goes away would otherwise sit in the
     // buffer until a flush timer the native WebView never runs.
-    window.addEventListener('pagehide', flush)
+    flushWhenHidden(flush)
 
     void import('web-vitals')
-        .then(({ onCLS, onFCP, onINP, onLCP }) => {
+        .then(({ onCLS, onFCP, onINP, onLCP, onTTFB }) => {
             onCLS(record)
             onFCP(record)
             onINP(record)
             onLCP(record)
+            onTTFB(record)
         })
         .catch(() => {
             started = false

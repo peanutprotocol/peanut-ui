@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Screen wordiness budget. Counts the English copy each screen can show and
 // ratchets it against scripts/screen-wordiness-baseline.json. Rules and
-// rationale: scripts/screen-wordiness.md.
+// rationale: https://github.com/peanutprotocol/mono/blob/main/engineering/ui/screen-wordiness.md
 //
 // usage:
 //   node scripts/screen-wordiness.mjs                    # table of the heaviest screens
@@ -74,7 +74,7 @@ const lines = [
     '## Screen wordiness',
     '',
     `Budget: ${budget} per screen. Score = English words the screen can show; callout words count twice. ` +
-        `${over} of ${screens.length} screens are over budget. Rules: \`scripts/screen-wordiness.md\`.`,
+        `${over} of ${screens.length} screens are over budget. Rules: https://github.com/peanutprotocol/mono/blob/main/engineering/ui/screen-wordiness.md`,
     '',
 ]
 if (regressions.length) {

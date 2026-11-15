@@ -109,11 +109,19 @@ const roboto = Roboto_Flex({
 // axis the CSS uses — the full 13-axis variable TTF was 1.6 MB, this is 53 KB).
 // The OG image routes still read the .ttf files at runtime (satori needs TTF),
 // so don't delete those.
+// Knerd swaps in late on `/` (no preload), so the hero headline first paints in
+// the fallback and stays readable meanwhile. adjustFontFallback: 'Arial' (the
+// next/font default, spelled out so it is not switched off) emits a size-adjusted
+// "knerd* Fallback" face: measured at the hero's 68px, GLOBALLY is 324 px wide in
+// it against 320 px in Knerd, the same height, so the swap barely moves the
+// headline. 'Times New Roman' is the only other choice next/font supports, and a
+// serif is further from Knerd's block letters.
 const knerdOutline = localFont({
     src: '../assets/fonts/knerd-outline.woff2',
     variable: '--font-knerd-outline',
     display: 'swap',
     preload: false,
+    adjustFontFallback: 'Arial',
 })
 
 const knerdFilled = localFont({
@@ -121,6 +129,7 @@ const knerdFilled = localFont({
     variable: '--font-knerd-filled',
     display: 'swap',
     preload: false,
+    adjustFontFallback: 'Arial',
 })
 
 const robotoFlexBold = localFont({
@@ -182,7 +191,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     />
                 )}
 
-                {/* Register early for browser caching, notifications, and cache invalidation. */}
+                {/* Listen for updates early; register once the page has loaded and gone idle. */}
                 {process.env.NODE_ENV !== 'development' && (
                     <Script id="sw-registration" strategy="beforeInteractive">
                         {`
@@ -198,7 +207,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                                     .catch(() => {});
                             }
                             if ('serviceWorker' in navigator && !window.Capacitor) {
-                                window.addEventListener('load', async () => {
+                                /*
+                                 * Register after load plus idle, so the worker's install
+                                 * never competes with a first-time visitor's LCP or first
+                                 * tap. Nothing awaits serviceWorker.ready or .controller,
+                                 * and web push runs on OneSignal's own /onesignal/ worker,
+                                 * so a later registration is safe on every route.
+                                 */
+                                const registerSW = async () => {
                                     try {
                                         const registration = await navigator.serviceWorker.register('/sw.js', {
                                             scope: '/',
@@ -219,6 +235,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                                         // Online use can continue without the optional SW.
                                         // Keep a breadcrumb without creating an app-crash event.
                                         console.warn('SW registration failed:', error);
+                                    }
+                                };
+                                window.addEventListener('load', () => {
+                                    if ('requestIdleCallback' in window) {
+                                        window.requestIdleCallback(registerSW, { timeout: 5000 });
+                                    } else {
+                                        setTimeout(registerSW, 2000);
                                     }
                                 });
 

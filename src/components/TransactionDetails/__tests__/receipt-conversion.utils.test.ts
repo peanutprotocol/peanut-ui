@@ -35,6 +35,9 @@ describe('receiptConvertedAmount', () => {
 
     it('falls back to a non-stable destination token with full decimals', () => {
         expect(receiptConvertedAmount({ tokenSymbol: 'eth', tokenAmount: '0.000416666' })).toBe('0.000416666 ETH')
+        // a mixed-case symbol keeps its real spelling; old lower-case records do not
+        expect(receiptConvertedAmount({ tokenSymbol: 'USDe', tokenAmount: '10.086357' })).toBe('10.086357 USDe')
+        expect(receiptConvertedAmount({ tokenSymbol: 'EURC', tokenAmount: '8.900320' })).toBe('8.900320 EURC')
     })
 
     it('is no conversion for USD or a USD stablecoin', () => {
@@ -82,7 +85,15 @@ describe('receiptConversionLine', () => {
     it('reads balance → fiat for money going out', () => {
         expect(
             receiptConversionLine(eurDeposit({ amount: -33.25, currency: { code: 'ARS', amount: '30000' } }), '-')
-        ).toBe('33.25 USD → ARS 30,000.00')
+        ).toBe('33.25 USD → ARS 30,000')
+    })
+
+    // A Pix payment of 1.127608 USDC: the headline rounds half-up to "-$1.13",
+    // so the conversion row must say 1.13 too, never a truncated 1.12.
+    it('rounds the balance side half-up, like the headline', () => {
+        expect(
+            receiptConversionLine(eurDeposit({ amount: -1.127608, currency: { code: 'BRL', amount: '6.00' } }), '-')
+        ).toBe('1.13 USD → BRL 6')
     })
 
     it('is nothing when there is no conversion', () => {

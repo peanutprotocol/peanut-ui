@@ -1,3 +1,13 @@
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({
+        user: {
+            user: { userId: 'legacy-user' },
+            capabilities: mockCapabilityBlock(),
+            identityVerification: { status: mockIsIdentityVerified ? 'verified' : 'not_started' },
+        },
+        fetchUser: mockFetchUser,
+    }),
+}))
 /**
  * MantecaAddMoney — denomination defaulting + URL round-trip.
  *
@@ -10,9 +20,13 @@
  * own logic is under test.
  */
 import React from 'react'
-import { act, render as rtlRender, screen } from '@testing-library/react'
+import { withFeatureReport } from '@/test-utils/featureReport.fixture'
+import type { FeatureReportEntry, NextAction, RailCapability } from '@/types/capabilities'
+import { act, fireEvent, render as rtlRender, screen, within } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
+import { MantecaAccountUnavailable } from '@/components/Common/MantecaAccountUnavailable'
+import { LOCAL_SERVED_ELSEWHERE_REASON } from '@/features/kyc-features/report'
 // jest.mock calls are hoisted above this import, so the mocks below apply to it
 import MantecaAddMoney from '../MantecaAddMoney'
 
@@ -42,6 +56,7 @@ jest.mock('nuqs', () => ({
 
 jest.mock('@tanstack/react-query', () => ({
     useQueryClient: () => ({ invalidateQueries: jest.fn() }),
+    useQuery: () => ({ data: undefined }),
 }))
 
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn(), useReturnTo: () => jest.fn() }))
@@ -66,20 +81,51 @@ jest.mock('@/hooks/useCurrency', () => ({
 }))
 
 let mockCapabilitiesLoading = false
+let mockResidence: string | null = null
+let mockRails: RailCapability[] = []
+let mockClosedCountries = new Set<string>()
+let mockCapabilityRevision = 0
+const mockCapabilityListeners = new Set<() => void>()
+const mockSubscribeCapabilities = (listener: () => void) => {
+    mockCapabilityListeners.add(listener)
+    return () => {
+        mockCapabilityListeners.delete(listener)
+    }
+}
+let mockApiArs: FeatureReportEntry | null = null
+let mockNextActions: NextAction[] = []
+const mockCapabilityBlock = () => {
+    const block = withFeatureReport(
+        { rails: mockRails, nextActions: mockNextActions, restrictions: [] },
+        {
+            identity: { status: mockIsIdentityVerified ? 'verified' : 'not_started' },
+            residence: mockResidence,
+            mantecaClosedCountries: mockClosedCountries,
+        }
+    )
+    if (mockApiArs && block.features)
+        block.features = {
+            ...block.features,
+            local: { ...block.features.local, accounts: { ...block.features.local.accounts, ARS: mockApiArs } },
+        }
+    return block
+}
+const mockFetchUser = jest.fn(async () => {
+    mockClosedCountries = new Set([mockParams.country === 'brazil' ? 'BR' : 'AR'])
+    mockCapabilityRevision += 1
+    mockCapabilityListeners.forEach((listener) => listener())
+    return { capabilities: mockCapabilityBlock() }
+})
 jest.mock('@/hooks/useCapabilities', () => ({
-    useCapabilities: () => ({ rails: [], isLoading: mockCapabilitiesLoading }),
-}))
-// Default to a resident of both countries so the amount/KYC cases render the
-// amount step whichever top-up they open; the residence-gate cases override
-// it. The real hook reads useAuth, which throws with no provider.
-let mockResidenceIso2s: string[] = ['AR', 'BR']
-jest.mock('@/features/deposit-accounts/useResidenceIso2s', () => ({
-    useResidenceIso2s: () => mockResidenceIso2s,
-}))
-// The per-currency bank chip the Accounts rows read; `active` = the rail moves money today.
-let mockBankChips: Record<string, string> = {}
-jest.mock('@/hooks/useBankRows', () => ({
-    useBankChipFor: () => (key: string) => mockBankChips[key] ?? 'unlock',
+    useCapabilities: () => {
+        jest.requireActual('react').useSyncExternalStore(mockSubscribeCapabilities, () => mockCapabilityRevision)
+        return {
+            capabilities: mockCapabilityBlock(),
+            rails: mockRails,
+            nextActions: mockNextActions,
+            isLoading: mockCapabilitiesLoading,
+        }
+    },
 }))
 let mockIsIdentityVerified = true
 jest.mock('@/hooks/useIdentityVerification', () => ({
@@ -90,8 +136,10 @@ jest.mock('@/utils/regions.utils', () => ({ isVerifiedForCountry: () => mockIsVe
 let mockRejection: Record<string, unknown> = { state: 'happy' }
 jest.mock('@/utils/provider-rejection.utils', () => ({ deriveProviderRejection: () => mockRejection }))
 const mockKycFlow = {
-    error: null,
+    error: null as string | null,
     isLoading: false,
+    showWrapper: false,
+    isModalOpen: false,
     handleFixableRejection: jest.fn(),
     handleSelfHealResubmit: jest.fn(),
     handleRestartIdentity: jest.fn(),
@@ -106,32 +154,54 @@ jest.mock('@/features/limits/hooks/useLimitsValidation', () => ({
 
 const mockDeposit = jest.fn()
 jest.mock('@/services/manteca', () => ({ mantecaApi: { deposit: (...args: unknown[]) => mockDeposit(...args) } }))
+const mockSetIsSupportModalOpen = jest.fn()
+const mockOpenSupportWithMessage = jest.fn()
+jest.mock('@/context/ModalsContext', () => ({
+    useModalsContext: () => ({
+        setIsSupportModalOpen: mockSetIsSupportModalOpen,
+        openSupportWithMessage: mockOpenSupportWithMessage,
+    }),
+    useModalsContextOptional: () => null,
+}))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 
-jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))
+jest.mock('@/components/Kyc/SumsubKycModals', () => ({
+    SumsubKycModals: ({ flow }: { flow: { isModalOpen: boolean; showWrapper: boolean } }) => (
+        <>
+            {flow.isModalOpen && <div role="dialog" aria-label="Verification in progress" />}
+            {flow.showWrapper && <div data-testid="verification-sdk" />}
+        </>
+    ),
+}))
+jest.mock('@/components/Kyc/modals/KycFailedModal', () => ({
+    KycFailedModal: ({ visible }: { visible: boolean }) =>
+        visible ? <div data-testid="identity-failed-modal" /> : null,
+}))
 // captures the KYC modal wiring so a test can drive its CTA
 type KycModalProps = {
     visible: boolean
     variant?: string
     reasonCode?: string
-    regionName?: string
+    taxIdCountry?: string
+    error?: string | null
     onClose: () => void
-    onVerify: () => Promise<void>
+    onVerify: () => Promise<unknown>
 }
 let lastKycModalProps: KycModalProps | null = null
 jest.mock('@/components/Kyc/InitiateKycModal', () => ({
     InitiateKycModal: (props: KycModalProps) => {
         lastKycModalProps = props
-        return null
+        return props.visible ? (
+            <div role="dialog" aria-label="Identity verification">
+                {props.error && <div role="alert">{props.error}</div>}
+                <button onClick={() => void props.onVerify()}>Start verification</button>
+            </div>
+        ) : null
     },
 }))
 jest.mock('@/components/AddMoney/components/MantecaDepositShareDetails', () => ({
     __esModule: true,
     default: () => <div data-testid="share-details" />,
-}))
-jest.mock('@/components/AddMoney/components/MantecaPixQrDeposit', () => ({
-    __esModule: true,
-    default: () => <div data-testid="pix-qr" />,
 }))
 
 // records the props MantecaAddMoney hands to the amount step
@@ -163,10 +233,23 @@ beforeEach(() => {
     mockIsVerifiedForCountry = true
     mockIsIdentityVerified = true
     mockCapabilitiesLoading = false
-    mockResidenceIso2s = ['AR', 'BR']
-    mockBankChips = {}
+    mockResidence = null
+    mockRails = []
+    mockApiArs = null
+    mockNextActions = []
+    mockClosedCountries = new Set()
+    mockFetchUser.mockClear()
     mockRejection = { state: 'happy' }
     Object.values(mockKycFlow).forEach((v) => typeof v === 'function' && (v as jest.Mock).mockClear())
+    mockKycFlow.error = null
+    mockKycFlow.isModalOpen = false
+    mockKycFlow.showWrapper = false
+    mockKycFlow.handleInitiateKyc.mockReset().mockResolvedValue(true)
+    mockKycFlow.handleRestartIdentity.mockReset().mockResolvedValue(true)
+    mockKycFlow.handleFixableRejection.mockReset().mockResolvedValue(true)
+    mockDeposit.mockReset()
+    mockOpenSupportWithMessage.mockReset()
+    mockSetIsSupportModalOpen.mockReset()
 })
 
 describe('denomination default', () => {
@@ -175,13 +258,6 @@ describe('denomination default', () => {
         render(<MantecaAddMoney />)
 
         expect(screen.getByTestId('input-amount-step')).toHaveAttribute('data-denomination', 'ARS')
-    })
-
-    test('Brazil opens in BRL (local currency)', () => {
-        setCountry('brazil')
-        render(<MantecaAddMoney />)
-
-        expect(screen.getByTestId('input-amount-step')).toHaveAttribute('data-denomination', 'BRL')
     })
 
     test('an explicit ?currency=USD deep-link still wins', () => {
@@ -194,27 +270,15 @@ describe('denomination default', () => {
 })
 
 describe('provider fine print', () => {
-    test.each([
-        ['argentina', 'manteca-ar'],
-        ['brazil', 'manteca-br'],
-    ])('%s names the matching Manteca entity under the amount', (path, providerId) => {
-        setCountry(path)
+    test('Argentina names the Argentine Manteca entity under the amount', () => {
+        setCountry('argentina')
         render(<MantecaAddMoney />)
 
-        expect(lastInputStepProps!.providerFinePrint?.props.providerId).toBe(providerId)
+        expect(lastInputStepProps!.providerFinePrint?.props.providerId).toBe('manteca-ar')
     })
 })
 
 describe('denomination change → URL write-back', () => {
-    test("Brazil maps AmountInput's display symbol R$ to the ISO code BRL", () => {
-        setCountry('brazil')
-        render(<MantecaAddMoney />)
-
-        lastInputStepProps!.setCurrentDenomination('R$')
-
-        expect(mockSetQueryState).toHaveBeenCalledWith({ currency: 'BRL' })
-    })
-
     test('toggling to USD writes USD', () => {
         setCountry('argentina')
         render(<MantecaAddMoney />)
@@ -270,12 +334,71 @@ describe('KYC modal — fixable Manteca rejection', () => {
     })
 })
 
+// The rail the API sends when Manteca's onboarding ID check failed or the ID expired: a step, carrying the restart.
+describe('KYC modal — Manteca asks for a new ID', () => {
+    const { deriveProviderRejection } = jest.requireActual('@/utils/provider-rejection.utils')
+    const mantecaIdRequest = (reason: string, resolved: boolean): RailCapability => {
+        const restart = { key: 'restart-identity', kind: 'restart-identity' as const, purpose: reason }
+        return {
+            id: 'manteca.bank_transfer_ar',
+            provider: 'manteca',
+            method: 'BANK_TRANSFER_AR',
+            channel: 'bank',
+            country: 'AR',
+            currency: 'ARS',
+            status: 'requires-info',
+            blockingActions: [restart.key],
+            reason: { code: reason, userMessage: 'Your ID has expired.' },
+            ...(resolved
+                ? {
+                      resolved: {
+                          status: 'blocked' as const,
+                          blocking: {
+                              code: reason,
+                              userMessage: 'Your ID has expired.',
+                              selfHealable: true,
+                              selfHealKind: 'restart-identity' as const,
+                          },
+                          nextAction: restart,
+                      },
+                  }
+                : {}),
+        }
+    }
+
+    test.each([
+        ['id_expired', true],
+        ['id_verification_failed', true],
+        ['id_expired', false],
+    ])(
+        'an ID Manteca asks for again (%s, verdict sent: %s) opens the identity restart, never a resubmit',
+        async (reason, resolved) => {
+            setCountry('argentina')
+            mockIsVerifiedForCountry = false
+            mockRejection = deriveProviderRejection([mantecaIdRequest(reason, resolved)], 'MANTECA', [
+                { key: 'restart-identity', kind: 'restart-identity', purpose: reason },
+            ])
+            render(<MantecaAddMoney />)
+
+            expect(lastKycModalProps!.visible).toBe(true)
+            expect(lastKycModalProps!.variant).toBe('restart_identity')
+            expect(lastKycModalProps!.reasonCode).toBe(reason)
+            await act(() => lastKycModalProps!.onVerify())
+
+            expect(mockKycFlow.handleRestartIdentity).toHaveBeenCalled()
+            expect(mockKycFlow.handleFixableRejection).not.toHaveBeenCalled()
+            expect(mockKycFlow.handleSelfHealResubmit).not.toHaveBeenCalled()
+            expect(mockKycFlow.handleInitiateKyc).not.toHaveBeenCalled()
+        }
+    )
+})
+
 /**
  * The gate comes BEFORE the amount. Manteca mints a CVU/QR for an exact locked
  * amount, so the amount screen has to stay first among the coordinates — but a
  * user who cannot deposit should learn it on arrival, not after typing a number.
  * The amount step stays mounted underneath so a dismissed drawer leaves a screen
- * that explains itself. Title copy is covered in InitiateKycModal.countryPayments.
+ * that explains itself. The intro it opens is covered in InitiateKycModal.intro.
  */
 describe('identity gate on arrival', () => {
     test('an unverified user lands on the amount step with the gate already open', () => {
@@ -286,9 +409,10 @@ describe('identity gate on arrival', () => {
 
         expect(lastKycModalProps!.visible).toBe(true)
         expect(lastKycModalProps!.variant).toBe('country_payments')
-        expect(lastKycModalProps!.regionName).toBe('Argentina')
+        expect(lastKycModalProps!.taxIdCountry).toBe('AR')
         // the amount input is underneath, not replaced
         expect(screen.getByTestId('input-amount-step')).toBeInTheDocument()
+        expect(mockDeposit).not.toHaveBeenCalled()
     })
 
     test('a verified user sees no gate', () => {
@@ -333,6 +457,214 @@ describe('identity gate on arrival', () => {
     })
 })
 
+describe('KYC start failure recovery', () => {
+    test.each([
+        ['ordinary onboarding', { state: 'happy' }, 'handleInitiateKyc'],
+        [
+            'identity restart',
+            { state: 'restart-identity', provider: 'MANTECA', reasonCode: 'id_expired' },
+            'handleRestartIdentity',
+        ],
+        [
+            'fixable provider rejection',
+            { state: 'fixable', reasonCode: 'source_of_funds', actionKey: 'sumsub:source_of_funds' },
+            'handleFixableRejection',
+        ],
+    ] as const)('%s keeps its drawer open with the start error', async (_label, rejection, action) => {
+        setCountry('argentina')
+        mockIsVerifiedForCountry = false
+        mockIsIdentityVerified = false
+        mockRejection = rejection
+        const startError = 'Verification could not start. Please try again.'
+        mockKycFlow[action].mockImplementation(async () => {
+            mockKycFlow.error = startError
+            return false
+        })
+        const view = render(<MantecaAddMoney />)
+        expect(screen.getByRole('dialog', { name: 'Identity verification' })).toBeVisible()
+
+        await act(async () => {
+            await lastKycModalProps!.onVerify()
+        })
+        view.rerender(<MantecaAddMoney />)
+
+        expect(mockKycFlow[action]).toHaveBeenCalledTimes(1)
+        const dialog = screen.getByRole('dialog', { name: 'Identity verification' })
+        expect(dialog).toBeVisible()
+        expect(within(dialog).getByRole('alert')).toHaveTextContent(startError)
+        expect(screen.queryByRole('dialog', { name: 'Verification in progress' })).not.toBeInTheDocument()
+        expect(screen.queryByTestId('verification-sdk')).not.toBeInTheDocument()
+    })
+
+    test.each([
+        [
+            'identity restart',
+            { state: 'restart-identity', provider: 'MANTECA', reasonCode: 'id_expired' },
+            'handleRestartIdentity',
+        ],
+        [
+            'fixable provider rejection',
+            {
+                state: 'fixable',
+                reasonCode: 'source_of_funds',
+                actionKey: 'sumsub:source_of_funds',
+                userMessage: 'We need information about your source of funds.',
+            },
+            'handleFixableRejection',
+        ],
+    ] as const)(
+        '%s closes only after SDK start succeeds and stays closed after SDK closure',
+        async (_label, rejection, action) => {
+            setCountry('argentina')
+            mockIsVerifiedForCountry = false
+            mockRejection = rejection
+            let finishStart!: (success: boolean) => void
+            mockKycFlow[action].mockImplementation(
+                () =>
+                    new Promise<boolean>((resolve) => {
+                        finishStart = resolve
+                    })
+            )
+            const view = render(<MantecaAddMoney />)
+            expect(screen.getByRole('dialog', { name: 'Identity verification' })).toBeVisible()
+            let verification!: Promise<unknown>
+            act(() => {
+                verification = lastKycModalProps!.onVerify()
+            })
+            expect(screen.getByRole('dialog', { name: 'Identity verification' })).toBeVisible()
+
+            await act(async () => {
+                mockKycFlow.showWrapper = true
+                finishStart(true)
+                await verification
+            })
+            expect(mockKycFlow[action]).toHaveBeenCalledTimes(1)
+            expect(screen.queryByRole('dialog', { name: 'Identity verification' })).not.toBeInTheDocument()
+            expect(screen.getByTestId('input-amount-step')).toBeInTheDocument()
+            expect(screen.queryByText('We need information about your source of funds.')).not.toBeInTheDocument()
+
+            mockKycFlow.showWrapper = false
+            view.rerender(<MantecaAddMoney />)
+            expect(screen.queryByRole('dialog', { name: 'Identity verification' })).not.toBeInTheDocument()
+            expect(screen.getByTestId('input-amount-step')).toBeInTheDocument()
+        }
+    )
+
+    test('waits for ordinary start to succeed before closing its drawer', async () => {
+        setCountry('argentina')
+        mockIsVerifiedForCountry = false
+        mockIsIdentityVerified = false
+        let finishStart!: (success: boolean) => void
+        mockKycFlow.handleInitiateKyc.mockImplementation(
+            () =>
+                new Promise<boolean>((resolve) => {
+                    finishStart = resolve
+                })
+        )
+        render(<MantecaAddMoney />)
+        let verification!: Promise<unknown>
+        act(() => {
+            verification = lastKycModalProps!.onVerify()
+        })
+        expect(screen.getByRole('dialog', { name: 'Identity verification' })).toBeVisible()
+
+        await act(async () => {
+            finishStart(true)
+            await verification
+        })
+
+        expect(mockKycFlow.handleInitiateKyc).toHaveBeenCalledTimes(1)
+        expect(screen.queryByRole('dialog', { name: 'Identity verification' })).not.toBeInTheDocument()
+    })
+})
+
+describe('Manteca account rejection during deposit', () => {
+    test.each([undefined, 'invalid'])('keeps generic closure guidance for country %s', (countryCode) => {
+        render(
+            <MantecaAccountUnavailable
+                title="Add money"
+                countryCode={countryCode}
+                onBack={jest.fn()}
+                onSupport={jest.fn()}
+            />
+        )
+
+        expect(screen.getByText(en.errors.mantecaAccountRejected)).toBeInTheDocument()
+    })
+
+    test('shows the account rejection and opens support without entering KYC or creating deposit details', async () => {
+        setCountry('argentina')
+        mockQueryState.amount = '100'
+        mockDeposit.mockRejectedValue(
+            Object.assign(
+                new Error('KYC_REQUIRED: Manteca closed this account for deposits and withdrawals in this country'),
+                {
+                    code: 'MANTECA_ACCOUNT_REJECTED',
+                    status: 403,
+                }
+            )
+        )
+        render(<MantecaAddMoney />)
+
+        await act(() => lastInputStepProps!.onSubmit())
+
+        expect(screen.getByText(/You can’t add or withdraw money in Argentina/i)).toBeInTheDocument()
+        expect(screen.getByText(/QR payments still work/i)).toBeInTheDocument()
+        expect(lastKycModalProps!.visible).toBe(false)
+        expect(mockKycFlow.handleInitiateKyc).not.toHaveBeenCalled()
+        expect(mockDeposit).toHaveBeenCalledTimes(1)
+        expect(mockFetchUser).toHaveBeenCalledTimes(1)
+        expect(screen.queryByTestId('share-details')).not.toBeInTheDocument()
+
+        const support = screen.getByRole('button', { name: /contact support/i })
+        await act(() => support.click())
+        expect(mockOpenSupportWithMessage).toHaveBeenCalled()
+    })
+
+    test('a resolved API error body with code gets the same rejection handling, and capability refresh cannot reopen KYC', async () => {
+        setCountry('argentina')
+        mockQueryState.amount = '100'
+        mockDeposit.mockResolvedValue({
+            error: 'KYC_REQUIRED: Manteca closed this account for deposits and withdrawals in this country',
+            code: 'MANTECA_ACCOUNT_REJECTED',
+        })
+        const view = render(<MantecaAddMoney />)
+
+        await act(() => lastInputStepProps!.onSubmit())
+
+        expect(screen.getByText(/You can’t add or withdraw money in Argentina/i)).toBeInTheDocument()
+        expect(lastKycModalProps!.visible).toBe(false)
+        expect(mockKycFlow.handleInitiateKyc).not.toHaveBeenCalled()
+        expect(mockDeposit).toHaveBeenCalledTimes(1)
+        expect(mockFetchUser).toHaveBeenCalledTimes(1)
+        mockRejection = { state: 'fixable', userMessage: 'Please verify your identity.' }
+        view.rerender(<MantecaAddMoney />)
+        expect(lastKycModalProps!.visible).toBe(false)
+        expect(mockKycFlow.handleInitiateKyc).not.toHaveBeenCalled()
+        expect(mockDeposit).toHaveBeenCalledTimes(1)
+        expect(mockFetchUser).toHaveBeenCalledTimes(1)
+    })
+
+    test('rejection guidance is scoped to the country that returned it', async () => {
+        setCountry('argentina')
+        mockQueryState.amount = '100'
+        mockDeposit.mockResolvedValue({
+            error: 'Manteca closed this account for deposits and withdrawals in this country',
+            code: 'MANTECA_ACCOUNT_REJECTED',
+        })
+        const view = render(<MantecaAddMoney />)
+        await act(() => lastInputStepProps!.onSubmit())
+        expect(screen.getByText(/You can’t add or withdraw money in Argentina/i)).toBeInTheDocument()
+
+        setCountry('brazil')
+        view.rerender(<MantecaAddMoney />)
+
+        expect(screen.queryByText(/You can’t add or withdraw money in .+/i)).not.toBeInTheDocument()
+        expect(screen.getByTestId('input-amount-step')).toBeInTheDocument()
+        expect(lastKycModalProps!.visible).toBe(false)
+    })
+})
+
 // An already-verified user opening a country they have not been uplifted for is
 // still gated — with the cross-region copy, not the first-time one.
 test('a verified user missing the regional uplift gets the cross-region gate', () => {
@@ -354,7 +686,7 @@ test('a verified user missing the regional uplift gets the cross-region gate', (
 describe('residence gate — Argentina', () => {
     test('a non-resident sees the residence screen, not the amount step or KYC gate', () => {
         setCountry('argentina')
-        mockResidenceIso2s = ['DE']
+        mockResidence = 'DE'
         render(<MantecaAddMoney />)
 
         expect(screen.queryByTestId('input-amount-step')).not.toBeInTheDocument()
@@ -366,34 +698,7 @@ describe('residence gate — Argentina', () => {
 
     test('an Argentine resident reaches the amount step', () => {
         setCountry('argentina')
-        mockResidenceIso2s = ['AR']
-        render(<MantecaAddMoney />)
-
-        expect(screen.getByTestId('input-amount-step')).toBeInTheDocument()
-    })
-})
-
-/**
- * Brazil carries the same rule (2026-09-22): the Pix top-up needs a first-party
- * Manteca account, which asks for a CPF, and a Brazilian residence is the
- * stand-in the app checks first. The rule is client-side; the backend does not
- * gate this corridor on residence.
- */
-describe('residence gate — Brazil', () => {
-    test('a non-resident sees the residence screen, with the Pix QR way in', () => {
-        setCountry('brazil')
-        mockResidenceIso2s = ['PT']
-        render(<MantecaAddMoney />)
-
-        expect(screen.queryByTestId('input-amount-step')).not.toBeInTheDocument()
-        expect(lastKycModalProps).toBeNull()
-        expect(screen.getByText(/only legal residents of brazil/i)).toBeInTheDocument()
-        expect(screen.getByTestId('corridor-qr-pay')).toHaveAttribute('href', '/qr-pay')
-    })
-
-    test('a Brazilian resident reaches the amount step', () => {
-        setCountry('brazil')
-        mockResidenceIso2s = ['BR']
+        mockResidence = 'AR'
         render(<MantecaAddMoney />)
 
         expect(screen.getByTestId('input-amount-step')).toBeInTheDocument()
@@ -403,17 +708,23 @@ describe('residence gate — Brazil', () => {
 /**
  * Audit C4: the gate keeps non-residents out of a flow Manteca refuses (ui#3349),
  * but a user whose rail already moves money is not refused by Manteca. The
- * Accounts row reads Available for them, so the top-up opens too — one rule
- * (`residenceCloses`) for both.
+ * Accounts row reads Available for them, so the top-up opens too — the API report supplies the same answer to both.
  */
 describe('residence gate — a rail that already works', () => {
-    test.each([
-        ['brazil', 'brl'],
-        ['argentina', 'ars'],
-    ])('a non-resident with a working %s rail reaches the amount step', (country, key) => {
-        setCountry(country)
-        mockResidenceIso2s = ['PT']
-        mockBankChips = { [key]: 'active' }
+    test('a non-resident with a working ars rail reaches the amount step', () => {
+        setCountry('argentina')
+        mockResidence = 'PT'
+        mockRails = [
+            {
+                id: 'manteca.ars',
+                provider: 'manteca',
+                method: 'BANK_TRANSFER_AR',
+                channel: 'bank',
+                country: 'AR',
+                currency: 'ARS',
+                status: 'enabled',
+            },
+        ]
         render(<MantecaAddMoney />)
 
         expect(screen.getByTestId('input-amount-step')).toBeInTheDocument()
@@ -421,17 +732,27 @@ describe('residence gate — a rail that already works', () => {
     })
 
     test('a rail still in progress does not lift the gate', () => {
-        setCountry('brazil')
-        mockResidenceIso2s = ['PT']
-        mockBankChips = { brl: 'processing' }
+        setCountry('argentina')
+        mockResidence = 'PT'
+        mockRails = [
+            {
+                id: 'manteca.ars',
+                provider: 'manteca',
+                method: 'BANK_TRANSFER_AR',
+                channel: 'bank',
+                country: 'AR',
+                currency: 'ARS',
+                status: 'pending',
+            },
+        ]
         render(<MantecaAddMoney />)
 
-        expect(screen.getByText(/only legal residents of brazil/i)).toBeInTheDocument()
+        expect(screen.getByText(/only legal residents of argentina/i)).toBeInTheDocument()
     })
 
     test('the gate waits for the rails instead of refusing a depositor while they load', () => {
-        setCountry('brazil')
-        mockResidenceIso2s = ['PT']
+        setCountry('argentina')
+        mockResidence = 'PT'
         mockCapabilitiesLoading = true
         render(<MantecaAddMoney />)
 
@@ -468,4 +789,143 @@ describe('provider refusal', () => {
 
         expect(lastInputStepProps!.error).toBe('Failed to create on-ramp transfer for guest.')
     })
+})
+
+describe('refused local accounts retain their own reason and remedy', () => {
+    const setRefusal = (entry: FeatureReportEntry) => {
+        setCountry('argentina')
+        mockResidence = 'AR'
+        mockApiArs = entry
+        mockNextActions = [
+            { key: 'contact-support', kind: 'contact-support', purpose: 'kyc-support' } as NextAction,
+            {
+                key: 'restart-identity',
+                kind: 'restart-identity',
+                purpose: 'document_country_unsupported',
+            } as NextAction,
+        ]
+    }
+    const expectRefused = () => {
+        expect(screen.queryByText(/only legal residents of argentina/i)).not.toBeInTheDocument()
+        expect(screen.queryByTestId('input-amount-step')).not.toBeInTheDocument()
+        expect(mockDeposit).not.toHaveBeenCalled()
+    }
+
+    test('a rejected identity opens the identity failure explanation', () => {
+        setRefusal({ state: 'refused', reason: 'identity_rejected', action: 'identity' })
+        render(<MantecaAddMoney />)
+        expectRefused()
+        expect(screen.getByTestId('identity-failed-modal')).toBeInTheDocument()
+    })
+
+    test('a document refusal opens the identity restart remedy', async () => {
+        setRefusal({ state: 'refused', reason: 'document_country_unsupported', action: 'restart-identity' })
+        render(<MantecaAddMoney />)
+        expectRefused()
+        expect(lastKycModalProps).toMatchObject({
+            visible: true,
+            variant: 'restart_identity',
+            reasonCode: 'document_country_unsupported',
+        })
+        await act(() => lastKycModalProps!.onVerify())
+        expect(mockKycFlow.handleRestartIdentity).toHaveBeenCalled()
+        expect(mockKycFlow.handleSelfHealResubmit).not.toHaveBeenCalled()
+    })
+
+    test.each(['duplicate_account', 'verification_blocked'] as const)(
+        '%s shows localized support guidance',
+        (reason) => {
+            setRefusal({
+                state: 'refused',
+                reason,
+                ...(reason === 'verification_blocked' ? { action: 'contact-support' } : {}),
+            })
+            render(<MantecaAddMoney />)
+            expectRefused()
+            expect(screen.getByText(en.identity.reasons[reason])).toBeInTheDocument()
+            fireEvent.click(screen.getByRole('button', { name: /contact support/i }))
+            expect(mockSetIsSupportModalOpen.mock.calls.length + mockOpenSupportWithMessage.mock.calls.length).toBe(1)
+            expect(mockKycFlow.handleInitiateKyc).not.toHaveBeenCalled()
+        }
+    )
+
+    test('a generic refusal uses its localized reason without opening amount entry', () => {
+        setRefusal({
+            state: 'refused',
+            reason: 'compliance_block',
+            message: 'Provider English must not replace localized copy.',
+        })
+        render(<MantecaAddMoney />)
+        expectRefused()
+        expect(screen.getByText(en.identity.reasons.compliance_block)).toBeInTheDocument()
+        expect(screen.queryByText('Provider English must not replace localized copy.')).not.toBeInTheDocument()
+        expect(mockKycFlow.handleInitiateKyc).not.toHaveBeenCalled()
+    })
+
+    // another entry serving the residence (Brazil's Pix) is the residence's answer for Argentina too
+    test.each(['local_residence_unsupported', LOCAL_SERVED_ELSEWHERE_REASON])(
+        'a residence refusal (%s) keeps the residence explanation',
+        (reason) => {
+            setCountry('argentina')
+            mockApiArs = { state: 'refused', reason }
+            render(<MantecaAddMoney />)
+            expect(screen.getByText(/only legal residents of argentina/i)).toBeInTheDocument()
+            expect(screen.queryByTestId('input-amount-step')).not.toBeInTheDocument()
+        }
+    )
+})
+
+describe('no-token verification status handoff', () => {
+    test.each([
+        ['ordinary onboarding', { state: 'happy' }, 'handleInitiateKyc'],
+        [
+            'identity restart',
+            { state: 'restart-identity', provider: 'MANTECA', reasonCode: 'id_expired' },
+            'handleRestartIdentity',
+        ],
+        [
+            'fixable provider rejection',
+            { state: 'fixable', reasonCode: 'source_of_funds', actionKey: 'sumsub:source_of_funds' },
+            'handleFixableRejection',
+        ],
+    ] as const)(
+        '%s replaces the gate with progress when no SDK token is returned',
+        async (_label, rejection, action) => {
+            let finishStart!: (success: boolean) => void
+            mockKycFlow[action].mockImplementation(
+                () =>
+                    new Promise<boolean>((resolve) => {
+                        finishStart = resolve
+                    })
+            )
+            setCountry('argentina')
+            mockIsVerifiedForCountry = false
+            mockIsIdentityVerified = false
+            mockRejection = rejection
+            const view = render(<MantecaAddMoney />)
+            expect(screen.getByRole('dialog', { name: 'Identity verification' })).toBeVisible()
+            let verification!: Promise<unknown>
+            act(() => {
+                verification = lastKycModalProps!.onVerify()
+            })
+            expect(screen.getByRole('dialog', { name: 'Identity verification' })).toBeVisible()
+
+            // The hook publishes its status-modal state on a later render; false means no SDK token.
+            await act(async () => {
+                finishStart(false)
+                await verification
+            })
+            mockKycFlow.isModalOpen = true
+            view.rerender(<MantecaAddMoney />)
+
+            expect(mockKycFlow[action]).toHaveBeenCalledTimes(1)
+            expect(screen.queryByRole('dialog', { name: 'Identity verification' })).not.toBeInTheDocument()
+            expect(screen.getByRole('dialog', { name: 'Verification in progress' })).toBeVisible()
+            expect(screen.queryByTestId('verification-sdk')).not.toBeInTheDocument()
+
+            view.rerender(<MantecaAddMoney />)
+            expect(screen.queryByRole('dialog', { name: 'Identity verification' })).not.toBeInTheDocument()
+            expect(screen.getByRole('dialog', { name: 'Verification in progress' })).toBeVisible()
+        }
+    )
 })

@@ -6,7 +6,9 @@ export type PageCapture = {
     /** Fixture to serve this capture. Defaults to FIXTURE (the demo baseline). */
     fixture?: string
     entryRoute?: string
-    actions?: Array<{ click: string } | { clickSelector: string } | { fill: { selector: string; value: string } }>
+    actions?: Array<
+        { click: string } | { clickSelector: string } | { tap: string } | { fill: { selector: string; value: string } }
+    >
     /** Prove the requested overlay is open, including its selected row. */
     expectSelector?: string
     routePattern?: string
@@ -17,6 +19,8 @@ export type PageCapture = {
     /** Canonical page after navigation, even when navigation needs setup actions. */
     defaultScreen?: boolean
 }
+
+export const HOME_ADD_DRAWER_CHECKPOINT = '[role="dialog"][data-state="open"] [data-testid="home-drawer-add-more"]'
 
 export const PAGE_CAPTURES: PageCapture[] = [
     // The page you flagged, then each of its three inline FAQ sheets.
@@ -41,8 +45,14 @@ export const PAGE_CAPTURES: PageCapture[] = [
     },
 
     { id: 'p05-home', name: 'Home', route: '/home' },
-    { id: 'p06-profile', name: 'Profile', route: '/profile' },
-    { id: 'p07-profile-edit', name: 'Profile — edit', route: '/profile/edit' },
+    { id: 'p06-profile', name: 'Settings', route: '/settings' },
+    {
+        id: 'p07-profile-edit',
+        name: 'Profile details - email settings',
+        route: '/settings/details',
+        actions: [{ clickSelector: '[data-testid="profile-email-settings"]' }],
+        expectSelector: '[data-testid="profile-email-settings"][aria-expanded="true"]',
+    },
     { id: 'p08-profile-view', name: 'Profile — public view', route: '/profile/view?username=demo' },
     { id: 'p09-profile-about', name: 'Profile — about', route: '/profile/about' },
     { id: 'p10-exchange-rate', name: 'Exchange rate', route: '/profile/exchange-rate' },
@@ -60,7 +70,57 @@ export const PAGE_CAPTURES: PageCapture[] = [
     { id: 'p15-withdraw-crypto', name: 'Withdraw — crypto', route: '/withdraw/crypto?amount=50' },
     { id: 'p16-withdraw-manteca', name: 'Withdraw — Manteca', route: '/withdraw/manteca?country=argentina&amount=50' },
     { id: 'p17-add-money', name: 'Add money', route: '/add-money?method=bank' },
+    {
+        id: 'add-money-method-picker',
+        name: 'Add money — method picker',
+        route: '/add-money',
+        entryRoute: '/home',
+        fixture: 'add-money-picker-first-time',
+        // Home's Add action, not the checklist row: capture shows the demo wallet
+        // balance whatever the fixture's `balance` says, so the row reads "Money
+        // received", is done and does not open anything. For a first-time user the
+        // Add action links straight to this picker.
+        actions: [{ clickSelector: '[data-testid="home-submenu-add"]' }],
+        expectSelector: '[data-testid="add-money-method-crypto"]',
+        defaultScreen: true,
+    },
+    {
+        id: 'add-money-account-currencies',
+        name: 'Add money — bank account currencies',
+        route: '/add-money/options?method=account',
+        fixture: 'add-money-picker-first-time',
+        expectSelector: '[data-testid="deposit-account-SEPA_EU"]',
+    },
+    {
+        id: 'add-money-transfer-currencies',
+        name: 'Add money — one-time transfer currencies',
+        route: '/add-money/options?method=transfer',
+        fixture: 'add-money-picker-first-time',
+        expectSelector: '[data-testid="add-money-option-GBP"]',
+    },
+    {
+        id: 'add-money-pix-currency',
+        name: 'Add money — Pix currency',
+        route: '/add-money/options?method=pix',
+        fixture: 'add-money-picker-first-time',
+        expectSelector: '[data-testid="add-money-option-BRL"]',
+    },
     { id: 'p18-add-money-crypto', name: 'Add money — crypto', route: '/add-money/crypto' },
+    {
+        id: 'add-money-crypto-euro-token-network',
+        name: 'Add money — euro token network tooltip',
+        route: '/add-money/crypto?network=EVM',
+        // the chip names the credited variant, as the deposit token list does (rhino.consts EURe v2)
+        actions: [{ tap: 'EURe v2 · Gnosis' }],
+        expectSelector: '[role="tooltip"]',
+    },
+    {
+        id: 'add-money-crypto-token-network',
+        name: 'Add money — network-specific token tooltip',
+        route: '/add-money/crypto?network=EVM',
+        actions: [{ tap: 'USDS · Base' }],
+        expectSelector: '[role="tooltip"]',
+    },
     { id: 'p19-add-money-us-bank', name: 'Add money — US bank', route: '/add-money/usa/bank' },
 
     { id: 'p20-qr-pay', name: 'QR Pay', route: '/qr-pay' },
@@ -100,7 +160,13 @@ export const PAGE_CAPTURES: PageCapture[] = [
     },
     { id: 'p39-language', name: 'Language', route: '/settings/language', fixture: 'settings-language' },
     { id: 'p40-withdraw', name: 'Withdraw — saved accounts', route: '/withdraw', fixture: 'withdraw' },
-    { id: 'p41-home-add-drawer', name: 'Home — Add money drawer', route: '/home?drawer=add' },
+    {
+        id: 'p41-home-add-drawer',
+        name: 'Home — Add money drawer',
+        route: '/home?drawer=add',
+        fixture: 'home-add-drawer',
+        expectSelector: HOME_ADD_DRAWER_CHECKPOINT,
+    },
     { id: 'p42-home-send-drawer', name: 'Home — Send drawer (no mark)', route: '/home?drawer=send' },
 ]
 
@@ -191,14 +257,14 @@ PAGE_CAPTURES.push(
     },
     {
         id: 'p75-residence-country-dropdown',
-        name: 'Residence — open country dropdown, selected country',
+        name: 'Residence — open country list, selected country',
         route: '/dev/surfaces?s=03-a-residence-select',
         actions: [
-            { clickSelector: '[role="combobox"]' },
-            { clickSelector: '[role="listbox"] [role="option"]' },
-            { clickSelector: '[role="combobox"]' },
+            { clickSelector: '[data-testid="setup-residence-country"]' },
+            { clickSelector: '[role="dialog"] [role="button"][aria-label]' },
+            { clickSelector: '[data-testid="setup-residence-country"]' },
         ],
-        expectSelector: '[role="listbox"] [role="option"][aria-selected="true"]',
+        expectSelector: '[role="dialog"] [role="button"][aria-current="true"]',
     },
     {
         id: 'p76-exchange-currency-dropdown',
@@ -218,5 +284,48 @@ PAGE_CAPTURES.push(
         ],
         expectSelector: '[role="listbox"] [role="option"][aria-selected="true"]',
     },
-    { id: 'p78-statements', name: 'Statements', route: '/profile/statements' }
+    { id: 'p78-statements', name: 'Statements', route: '/profile/statements' },
+    {
+        id: 'p79-notifications',
+        name: 'Notifications settings',
+        route: '/settings/notifications',
+        fixture: 'settings-notifications',
+    },
+    // Pix states that follow a tap; the fixture answers the call the tap makes.
+    {
+        id: 'p81-pix-deposit-limit',
+        name: 'Pix deposit — over the monthly limit',
+        route: '/add-money/pix?amount=100&currency=BRL',
+        fixture: 'pix-deposit-amount',
+        clicks: ['Continue'],
+        expectSelector: '[role="alert"]',
+    },
+    {
+        id: 'p84-pix-provider-sheet',
+        name: "Pix review — the provider's legal details",
+        // the key and amount come from the fixture's session draft, never the URL
+        route: '/withdraw/pix?step=review',
+        fixture: 'pix-withdraw-review',
+        // the (?) is an icon: "About Avenia" is its aria-label, not text a click by text finds
+        actions: [{ clickSelector: '[data-testid="provider-help"]' }],
+        expectSelector: '[role="dialog"][data-state="open"]',
+    },
+    // Manteca's two entities, as the statement's provider page names them: Argentina's money, and Pix
+    // for accounts that do not use Avenia yet
+    {
+        id: 'p85-manteca-ar-provider-sheet',
+        name: "Argentina's add money — the provider's legal details",
+        route: '/add-money/argentina/manteca?step=inputAmount&amount=10000&currency=ARS',
+        fixture: 'add-money-provider-rejected',
+        actions: [{ clickSelector: '[data-testid="provider-help"]' }],
+        expectSelector: '[role="dialog"][data-state="open"]',
+    },
+    {
+        id: 'p86-pix-manteca-provider-sheet',
+        name: "Pix review on Manteca's route — the provider's legal details",
+        route: '/withdraw/pix?step=review',
+        fixture: 'pix-manteca-withdraw-review',
+        actions: [{ clickSelector: '[data-testid="provider-help"]' }],
+        expectSelector: '[role="dialog"][data-state="open"]',
+    }
 )

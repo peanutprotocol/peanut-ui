@@ -11,8 +11,9 @@
  * used by: /send/[...username] route
  */
 
-import { useUserByUsername } from '@/hooks/useUserByUsername'
-import EmptyState from '@/components/Global/EmptyStates/EmptyState'
+import { personFrom } from '@/lib/person/person'
+import { usePerson } from '@/lib/person/usePerson'
+import CenteredStatusCard from '@/components/Global/EmptyStates/CenteredStatusCard'
 import { AccountType } from '@/interfaces/interfaces'
 import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
@@ -30,24 +31,24 @@ interface DirectSendPageWrapperProps {
 export function DirectSendPageWrapper({ username }: DirectSendPageWrapperProps) {
     const onBack = useSafeBack('/home')
     const t = useTranslations('payment')
-    const { user, isLoading, error } = useUserByUsername(username)
+    const { profile, isLoading, error } = usePerson(username)
 
     // resolve user to recipient
     const recipient = useMemo<DirectSendRecipient | null>(() => {
-        if (!user) return null
+        if (!profile) return null
 
         // find peanut wallet address
-        const walletAccount = user.accounts.find((acc) => acc.type === AccountType.PEANUT_WALLET)
+        const walletAccount = profile.accounts.find((acc) => acc.type === AccountType.PEANUT_WALLET)
         if (!walletAccount) return null
 
         return {
-            username: user.username,
+            username: profile.username,
             address: walletAccount.identifier as Address,
-            userId: user.userId,
-            fullName: user.fullName,
-            avatarKey: user.avatarKey ?? null,
+            userId: profile.userId,
+            fullName: profile.fullName,
+            person: personFrom(profile),
         }
-    }, [user])
+    }, [profile])
 
     // loading state
     if (isLoading) {
@@ -67,10 +68,9 @@ export function DirectSendPageWrapper({ username }: DirectSendPageWrapperProps) 
             <div className="flex min-h-inherit w-full flex-col gap-4">
                 <NavHeader title={t('headers.send')} onPrev={onBack} />
                 <div className="flex flex-grow flex-col justify-center py-8">
-                    <EmptyState
-                        icon="user"
+                    <CenteredStatusCard
                         title={t('errors.userNotFoundTitle')}
-                        description={error || t('errors.userNotFoundDescription', { username })}
+                        description={t('errors.userNotFoundDescription', { username })}
                     />
                 </div>
             </div>

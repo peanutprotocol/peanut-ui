@@ -24,13 +24,21 @@ import { PaymentConfirmingView } from '@/features/payments/shared/components/Pay
 
 export function ContributePotSuccessView() {
     const t = useTranslations('payment')
-    const { usdAmount, recipient, attachment, charge, payment, resetContributePotFlow, isExternalWalletPayment } =
-        useContributePotFlow()
+    const {
+        usdAmount,
+        recipient,
+        attachment,
+        charge,
+        payment,
+        resetContributePotFlow,
+        isExternalWalletPayment,
+        isPaymentStatusUnknown,
+    } = useContributePotFlow()
 
     const paidAmount = charge ? contributedAmount(charge) : usdAmount
     // An external-wallet charge the API had not booked when the read-back gave
     // up: nothing is sent yet, so nothing is claimed and no points are estimated.
-    const isAwaitingBooking = isExternalWalletPayment && isChargeAwaitingBooking(charge)
+    const isAwaitingBooking = isPaymentStatusUnknown || (isExternalWalletPayment && isChargeAwaitingBooking(charge))
 
     // calculate points for the contribution
     const { pointsData } = usePointsCalculation(
@@ -57,11 +65,7 @@ export function ContributePotSuccessView() {
             type="SEND"
             headerTitle={t('headers.contribute')}
             recipientType="USERNAME"
-            user={
-                recipient
-                    ? { username: recipient.username, fullName: recipient.fullName, avatarKey: recipient.avatarKey }
-                    : undefined
-            }
+            recipient={recipient?.person}
             amount={paidAmount}
             usdAmount={paidAmount}
             message={attachment.message}

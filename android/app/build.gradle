@@ -41,6 +41,7 @@ def resolvedVersionCode = (System.getenv('ANDROID_VERSION_CODE')?.isInteger()
 android {
     namespace = "me.peanut.wallet"
     compileSdk = rootProject.ext.compileSdkVersion
+    ndkVersion = rootProject.ext.ndkVersion
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
@@ -140,6 +141,9 @@ dependencies {
 
     // play install referrer — deferred deep linking (InstallReferrerPlugin.java)
     implementation "com.android.installreferrer:installreferrer:2.2"
+
+    // Current Play country for transient product availability (not install attribution).
+    implementation "com.android.billingclient:billing:8.3.0"
 
     // sentry native crash reporting (TASK-20964) — configured via AndroidManifest
     // meta-data, auto-inits before Application. deliberately the aggregate

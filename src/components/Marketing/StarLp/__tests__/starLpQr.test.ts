@@ -2,22 +2,10 @@
 import { STAR_LP_QR_LEVEL, starLpQrUrl } from '@/components/Marketing/StarLp/starLpQr.utils'
 
 describe('starLpQrUrl', () => {
-    it('sends a scan to web signup, tagged with the page and slot, while the PWA sunset is off', () => {
-        expect(
-            starLpQrUrl({
-                origin: 'https://peanut.me',
-                migrationOn: false,
-                campaign: 'qr-argentina',
-                slot: 'hero-sticker',
-            })
-        ).toBe('https://peanut.me/setup?utm_source=star-lp&utm_medium=content&utm_campaign=qr-ar&utm_content=h')
-    })
-
-    it('uses the app-entry path DownloadQR uses once the sunset is on', () => {
+    it('uses the app-entry path DownloadQR uses, tagged with the page and slot', () => {
         const url = new URL(
             starLpQrUrl({
                 origin: 'http://192.168.0.9:8765',
-                migrationOn: true,
                 campaign: 'qr-brazil',
                 slot: 'ways-in',
             })
@@ -25,19 +13,25 @@ describe('starLpQrUrl', () => {
         expect(url.origin).toBe('http://192.168.0.9:8765')
         expect(url.pathname).toBe('/home')
         expect(url.searchParams.get('app_entry')).toBe('1')
+        expect(url.searchParams.get('utm_source')).toBe('star-lp')
+        expect(url.searchParams.get('utm_medium')).toBe('content')
         expect(url.searchParams.get('utm_campaign')).toBe('qr-br')
         expect(url.searchParams.get('utm_content')).toBe('w')
     })
 
-    it('fits QR version 5 at level L on prod, flag on or off (byte capacity 106)', () => {
-        for (const migrationOn of [false, true]) {
-            const url = starLpQrUrl({
-                origin: 'https://peanut.me',
-                migrationOn,
-                campaign: 'qr-argentina',
-                slot: 'close-sticker',
-            })
-            expect(url.length).toBeLessThanOrEqual(106)
+    it('tags the homepage stickers with their own one-letter slot', () => {
+        const url = new URL(
+            starLpQrUrl({ origin: 'https://peanut.me', campaign: 'qr-argentina', slot: 'home-sticker' })
+        )
+        expect(url.searchParams.get('utm_campaign')).toBe('qr-ar')
+        expect(url.searchParams.get('utm_content')).toBe('m')
+    })
+
+    it('fits QR version 5 at level L on prod (byte capacity 106)', () => {
+        for (const slot of ['hero-sticker', 'close-sticker', 'ways-in', 'home-sticker'] as const) {
+            for (const campaign of ['qr-argentina', 'qr-brazil'] as const) {
+                expect(starLpQrUrl({ origin: 'https://peanut.me', campaign, slot }).length).toBeLessThanOrEqual(106)
+            }
         }
         expect(STAR_LP_QR_LEVEL).toBe('L')
     })

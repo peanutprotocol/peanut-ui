@@ -106,7 +106,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         usages: 0,
         status: 'duplicate',
         source: 'src/styles/globals.css:33',
-        notes: 'Darker pink used for hover. Superseded by --color-action-primary-hover (#FFA3EC). 3 call sites left; migrate and delete.',
+        notes: 'Darker pink used for hover. Superseded by --color-action-primary-press (#FFA3EC). 3 call sites left; migrate and delete.',
     },
     {
         name: 'primary-3 (#EFE4FF — lavender)',
@@ -139,7 +139,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         usages: 16,
         status: 'canonical',
         source: 'src/styles/globals.css:37',
-        notes: 'Canonical LEGACY accent yellow. EXACT dup of yellow-1 (#FFC900, 23x). Semantic successor --color-action-secondary (6x). Used by .btn-yellow. Re-typed raw #FFC900 14x.',
+        notes: 'Canonical LEGACY accent yellow. EXACT dup of yellow-1 (#FFC900, 23x). Semantic successor --color-background-accent-yellow (6x). Used by .btn-yellow. Re-typed raw #FFC900 14x.',
     },
     {
         name: 'secondary-2 (#E99898)',
@@ -359,7 +359,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         usages: 0,
         status: 'duplicate',
         source: 'src/styles/globals.css:63',
-        notes: 'EXACT dup of secondary-1 (#FFC900). 23 vs 33 — two names for the same accent yellow, both still live. Semantic successor --color-action-secondary.',
+        notes: 'EXACT dup of secondary-1 (#FFC900). 23 vs 33 — two names for the same accent yellow, both still live. Semantic successor --color-background-accent-yellow.',
     },
     {
         name: 'yellow-2 (#f5ff7c)',
@@ -879,7 +879,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         notes: 'The brand pink #FF90E8 as an action role. Used by .btn-purple and 16 files. Successor to primary-1 (89x).',
     },
     {
-        name: '--color-action-primary-hover',
+        name: '--color-action-primary-press',
         cat: 'colors',
         catLabel: 'Colour tokens',
         layer: 'tokens',
@@ -890,7 +890,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         notes: '#FFA3EC. Only 3 sites; two of them are the .btn-purple recipe in globals.css. Supersedes primary-2.',
     },
     {
-        name: '--color-action-secondary',
+        name: '--color-background-accent-yellow',
         cat: 'colors',
         catLabel: 'Colour tokens',
         layer: 'tokens',
@@ -901,7 +901,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         notes: '#FFC900. Only 6 sites vs 33 for legacy secondary-1 and 23 for yellow-1 — the yellow migration has barely started.',
     },
     {
-        name: '--color-action-ghost-hover',
+        name: '--color-action-ghost-press',
         cat: 'colors',
         catLabel: 'Colour tokens',
         layer: 'tokens',
@@ -1349,7 +1349,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         usages: 153,
         status: 'adhoc',
         source: 'src/components, src/app, src/utils, src/hooks, src/constants',
-        notes: 'Down from 312. Probe counts quoted/bracketed literals only, so it excludes the @theme definitions in globals.css (0 matches there). Top recurring literals: #FFC900 14x (== secondary-1/yellow-1/action-secondary), #374151 12x (stock gray-700, untokenised), #FF90E8 11x + #FE91E6 5x (== primary-1/action-primary), #90A8ED 9x (== secondary-3), #FFFFFF 6x, #F9F4F0 6x (one digit off the app background #FAF4F0), #000000 6x. 46 files, plus 63 rgba() literals.',
+        notes: 'Down from 312. Probe counts quoted/bracketed literals only, so it excludes the @theme definitions in globals.css (0 matches there). Top recurring literals: #FFC900 14x (== secondary-1/yellow-1/background-accent-yellow), #374151 12x (stock gray-700, untokenised), #FF90E8 11x + #FE91E6 5x (== primary-1/action-primary), #90A8ED 9x (== secondary-3), #FFFFFF 6x, #F9F4F0 6x (one digit off the app background #FAF4F0), #000000 6x. 46 files, plus 63 rgba() literals.',
     },
     {
         name: 'text-heading-big-input',
@@ -3985,7 +3985,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         cat: 'pills',
         catLabel: 'Pills / badges / tags',
         layer: 'components',
-        role: 'Avatar circle (initials/icon) with optional verification-badge overlay, 5 sizes.',
+        role: 'Avatar circle (initials/icon) with optional verification-badge overlay, 2 sizes (s 32, xl 96).',
         usages: 22,
         status: 'variant',
         source: 'src/components/Profile/AvatarWithBadge.tsx',
@@ -4927,15 +4927,15 @@ export const AUDIT_ITEMS: AuditItem[] = [
         notes: "Unchanged by the consolidation and STILL MIS-NAMED: the JSDoc says 'optionally a verification badge' but no badge element exists in the JSX. The verification badge lives in VerifiedUserLabel. Rename to Avatar. It now overlaps the new IconBubble for the icon-in-a-circle case — decide which owns that.",
     },
     {
-        name: "AvatarSize type ('tiny'|'extra-small'|'small'|'medium'|'large')",
+        name: "AvatarSize type ('s'|'xl')",
         cat: 'avatars-icons',
         catLabel: 'Avatars / icons',
         layer: 'components',
-        role: 'The avatar size enum: h-6 / h-8 / h-12 / h-16 / h-24.',
+        role: 'The avatar size enum: s = h-8 (32, lists, rows and cards), xl = h-24 (96, profiles and the payment details header).',
         usages: 10,
         status: 'canonical',
-        source: 'src/components/Profile/AvatarWithBadge.tsx:8',
-        notes: "Now competes with IconBubble's cleaner xs/s/m/l scale (24/32/48/72) and with PerkIcon's own four-name scale. Three size vocabularies for round things is one too many — align AvatarSize to the IconBubble names when Avatar is renamed.",
+        source: 'src/components/Profile/avatar-size.consts.ts',
+        notes: "RESOLVED (TASK-24388, 2026-11-04): cut from five sizes (24/32/48/64/96) to two. The names are IconBubble's s and xl at the same px, so a bubble in a person slot takes the avatar's size as it is. PerkIcon keeps its own four-name scale.",
     },
     {
         name: 'TransactionAvatarBadge (TransactionDetails/)',
@@ -5001,7 +5001,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         usages: 4,
         status: 'variant',
         source: 'src/components/Global/IconStack.tsx',
-        notes: 'Legit distinct (avatar GROUP). But its inner circle is still a hardcoded 24px rounded-full recipe rather than Avatar tiny / IconBubble xs. Keep the stacking behaviour; have it render the primitive internally.',
+        notes: 'Legit distinct (avatar GROUP). But its inner circle is still a hardcoded 24px rounded-full recipe rather than IconBubble xs. Keep the stacking behaviour; have it render the primitive internally.',
     },
     {
         name: 'UserHeader (UserHeader/index.tsx)',
@@ -5518,9 +5518,9 @@ export const AUDIT_CLUSTERS: AuditCluster[] = [
         catLabel: 'Colour tokens',
         name: 'accent-yellow',
         from: 4,
-        rec: 'The least-migrated family. --color-action-secondary is only 6x while legacy secondary-1 (33x) and yellow-1 (23x) — the same #FFC900 under two names — are still the working tokens, plus 14 raw #FFC900 literals. Nine of the eleven legacy yellows are now 0x, so only the migration of the two live ones is left.',
+        rec: 'The least-migrated family. --color-background-accent-yellow is only 6x while legacy secondary-1 (33x) and yellow-1 (23x) — the same #FFC900 under two names — are still the working tokens, plus 14 raw #FFC900 literals. Nine of the eleven legacy yellows are now 0x, so only the migration of the two live ones is left.',
         collapses: [
-            '--color-action-secondary (#FFC900, 6x) [target]',
+            '--color-background-accent-yellow (#FFC900, 6x) [target]',
             'secondary-1 (#FFC900, 33x)',
             'yellow-1 (#FFC900, 23x)',
             'raw #FFC900 (14x)',
@@ -6465,7 +6465,7 @@ export const AUDIT_CLUSTERS: AuditCluster[] = [
         catLabel: 'Avatars / icons',
         name: 'Avatar + IconBubble (one circle primitive per job)',
         from: 6,
-        rec: "IconBubble now owns 'icon in a coloured circle' (17 sites, semantic colour tokens, xs/s/m/l). Finish the job: (1) rename AvatarWithBadge -> Avatar and let it own only the person/entity circle (logo > initials), dropping the dead 'badge' in its name; (2) migrate the ActionModal iconContainerClassName recipe (37 sites) and PerkIcon and KYCStatusIcon onto IconBubble; (3) have DisplayIcon and IconStack render the primitives instead of hand-rolling circles; (4) align AvatarSize to IconBubble's xs/s/m/l so there is one size vocabulary, not three.",
+        rec: "IconBubble now owns 'icon in a coloured circle' (17 sites, semantic colour tokens, xs/s/m/l). Finish the job: (1) rename AvatarWithBadge -> Avatar and let it own only the person/entity circle (logo > initials), dropping the dead 'badge' in its name; (2) migrate the ActionModal iconContainerClassName recipe (37 sites) and PerkIcon and KYCStatusIcon onto IconBubble; (3) have DisplayIcon and IconStack render the primitives instead of hand-rolling circles; (4) done: AvatarSize is two sizes, IconBubble's s and xl (TASK-24388).",
         collapses: [
             "AvatarWithBadge (rename to Avatar, drop the dead 'badge' name)",
             'DisplayIcon (double-wrapped logo-or-initials circle)',

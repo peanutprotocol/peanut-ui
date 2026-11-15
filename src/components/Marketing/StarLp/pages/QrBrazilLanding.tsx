@@ -7,7 +7,7 @@ import { StarLpHero } from '@/components/Marketing/StarLp/StarLpHero'
 import { StarLpMarquee } from '@/components/Marketing/StarLp/StarLpMarquee'
 import { fetchUsdBrlRate } from '@/components/Marketing/StarLp/starLpFx'
 import { TrustBand } from '@/components/Marketing/StarLp/TrustBand'
-import { STAR_LP_HREF, STAR_LP_TRUST_LINE } from '@/components/Marketing/StarLp/starLp.consts'
+import { STAR_LP_TRUST_LINE } from '@/components/Marketing/StarLp/starLp.consts'
 import { EN_LANDING_CONTENT_HREFS } from '@/components/LandingPage/landingContentHrefs'
 import type { StarLpFaqItem } from '@/components/Marketing/StarLp/starLp.types'
 import { QrBrazilClose } from './QrBrazilClose'
@@ -80,7 +80,7 @@ export async function QrBrazilLanding() {
                 subtitle="Pay shops and people with Pix in Brazil, from your dollars."
                 art={<QrBrazilHeroScene />}
                 cta={
-                    <StarLpCta qrPlacement="hero" href={STAR_LP_HREF.signup} ground="pink">
+                    <StarLpCta qrPlacement="hero" ground="pink">
                         Create an account
                     </StarLpCta>
                 }

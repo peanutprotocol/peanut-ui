@@ -1,4 +1,6 @@
 'use client'
+
+import { formatFiniteDisplay } from '@/utils/currency'
 import { type FC, useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useFormatter, useTranslations } from 'next-intl'
@@ -11,7 +13,6 @@ import { Callout } from '@/components/0_Bruddle/Callout'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { rainApi, type RainCardLimit, type RainLimitFrequency } from '@/services/rain'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
-import { useReturnExcessCollateral } from '@/hooks/wallet/useReturnExcessCollateral'
 
 export const CARD_LIMITS_QUERY_KEY = 'rain-card-limits'
 const MAX_CARD_LIMIT_CENTS = 2_147_483_647
@@ -29,15 +30,30 @@ const CardLimitEditDrawer: FC<Props> = ({ cardId, frequency, label, initialAmoun
     const t = useTranslations('card.limits')
     const format = useFormatter()
     const queryClient = useQueryClient()
-    const { returnExcess } = useReturnExcessCollateral()
-    const [value, setValue] = useState<string>(initialAmountCents != null ? (initialAmountCents / 100).toFixed(2) : '')
+    const [value, setValue] = useState<string>(
+        initialAmountCents != null && Number.isFinite(initialAmountCents)
+            ? formatFiniteDisplay(initialAmountCents / 100, 'en-US', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                  useGrouping: false,
+              })
+            : ''
+    )
     const [saving, setSaving] = useState(false)
     const [validationError, setValidationError] = useState<string | null>(null)
     const [apiError, setApiError] = useState<string | null>(null)
 
     useEffect(() => {
         if (isOpen) {
-            setValue(initialAmountCents != null ? (initialAmountCents / 100).toFixed(2) : '')
+            setValue(
+                initialAmountCents != null && Number.isFinite(initialAmountCents)
+                    ? formatFiniteDisplay(initialAmountCents / 100, 'en-US', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                          useGrouping: false,
+                      })
+                    : ''
+            )
             setValidationError(null)
             setApiError(null)
             posthog.capture(ANALYTICS_EVENTS.CARD_LIMIT_CHANGE_OPENED, {
@@ -70,33 +86,6 @@ const CardLimitEditDrawer: FC<Props> = ({ cardId, frequency, label, initialAmoun
         try {
             const payload: RainCardLimit[] = [{ amount: amountCents, frequency }]
             await rainApi.updateCardLimits(cardId, payload)
-            // The card's backing tracks the per-transaction limit. If it now
-            // holds more than the new limit, return the difference to the
-            // user's wallet — surfaced only as a passkey prompt. Ordering
-            // matters: the PATCH above must land first so the auto-balancer's
-            // target is already lowered and can't race the withdrawal by
-            // topping the collateral back up.
-            // Non-fatal: the limit change itself succeeded, the unified
-            // displayed balance is identical either way, and re-saving the
-            // limit retries the return — so a cancelled passkey or withdrawal
-            // cooldown never blocks the modal.
-            if (frequency === 'perAuthorization') {
-                try {
-                    const returnedCents = await returnExcess(amountCents)
-                    if (returnedCents > 0) {
-                        posthog.capture(ANALYTICS_EVENTS.CARD_LIMIT_EXCESS_RETURNED, {
-                            returned_cents: returnedCents,
-                            new_limit_cents: amountCents,
-                        })
-                    }
-                } catch (excessError) {
-                    posthog.capture(ANALYTICS_EVENTS.CARD_LIMIT_EXCESS_RETURN_FAILED, {
-                        new_limit_cents: amountCents,
-                        error_kind: (excessError as Error)?.name ?? 'unknown',
-                        error_message: (excessError as Error)?.message,
-                    })
-                }
-            }
             await Promise.all([
                 queryClient.invalidateQueries({ queryKey: [CARD_LIMITS_QUERY_KEY, cardId] }),
                 queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] }),

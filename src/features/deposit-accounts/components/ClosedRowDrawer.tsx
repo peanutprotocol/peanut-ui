@@ -4,13 +4,22 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
+import { useAuth } from '@/context/authContext'
 import { useModalsContext } from '@/context/ModalsContext'
+import { useCapabilities } from '@/hooks/useCapabilities'
+import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import { findPixRoute, pixRefusalCopy } from '@/features/pix/pixRoute.utils'
+import { usePixRouteRefusalLine } from '@/features/pix/usePixRouteRefusalLine'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { useTranslations } from 'next-intl'
 import { DRAWER_CLOSE_MS } from '../drawer'
 import type { ClosedRow } from '../hubRows'
 import { DEPOSIT_RAILS } from '../rails'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
+import { kycFeatureRefusalCopy } from '@/utils/kyc-feature-outcome.utils'
+import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
+import { buildContactSupportMessage } from '@/utils/contact-support.utils'
+import { identityRejection, rejectionSupportMessage } from '@/utils/identity-rejection.utils'
 
 /** the residence-gated corridors' own copy, keyed by corridor */
 const RESIDENCE_COPY = {
@@ -30,6 +39,7 @@ export function ClosedRowDrawer({
     closed,
     onClose,
     onChangeResidence,
+    onPayQr,
     onRetry,
 }: {
     /** the tapped row and why it is closed; null keeps the drawer shut */
@@ -37,14 +47,27 @@ export function ClosedRowDrawer({
     onClose: () => void
     /** opens the residence change, on this screen or on Accounts and payments */
     onChangeResidence: () => void
+    onPayQr?: () => void
     /** reads the accounts again, for a row the backend could not check */
     onRetry?: () => void
 }) {
     const { t } = useDepositAccountCopy()
     const tCommon = useTranslations('common')
+    const tRoot = useTranslations()
     const tAccounts = useTranslations('profile.unlockPayments')
+    const tKyc = useTranslations('kyc')
+    const tIdentity = useTranslations('identity')
+    const tActivation = useTranslations('home.activation')
     const { openSupportWithMessage } = useModalsContext()
     const restrictions = useResidenceRestrictions()
+    const { capabilities } = useCapabilities()
+    const pixRefusalLine = usePixRouteRefusalLine()
+    const { user } = useAuth()
+    // For a US residence the only card geo rule is rain.us-state; a pending change elsewhere can be the refusal.
+    const residences = [user?.residence?.verified?.country, user?.residence?.declared?.country].filter(Boolean)
+    const livesInUs =
+        residences.length > 0 && residences.every((country) => ['US', 'USA'].includes(country!.toUpperCase()))
+    const { identity } = useIdentityVerification()
 
     const content = closed ? drawerContent(closed) : null
 
@@ -63,6 +86,7 @@ export function ClosedRowDrawer({
                     // paying a QR code or a Pix key needs no residence, so that way stays open
                     body: `${t(`${base}.residenceRequired`)} ${t(`${base}.qrPay`)}`,
                     cta: { label: t('details.residenceCta'), act: onChangeResidence },
+                    link: onPayQr ? { label: t('details.qrPayCta'), act: onPayQr } : undefined,
                 }
             }
             case 'not-offered':
@@ -83,10 +107,35 @@ export function ClosedRowDrawer({
                     body: tAccounts(restrictions.card ? 'bankNotAvailableNote' : 'bankOnlyNotAvailableNote'),
                     cta: { label: tCommon('gotIt') },
                 }
+            // the route's own reason (an outage, the rollout, a pause), as the Pix pages word it; a refusal
+            // only support can lift offers support with the reason, as the Pix page does
+            case 'pix-route': {
+                const reason = findPixRoute(capabilities.routes, 'deposit')?.reason
+                const kind = pixRefusalCopy(reason)
+                return {
+                    title: t('list.badgeNotOffered'),
+                    body: pixRefusalLine(reason),
+                    cta:
+                        kind === 'rejected' || kind === 'setup-failed'
+                            ? {
+                                  label: tCommon('contactSupport'),
+                                  act: () =>
+                                      openSupportWithMessage(
+                                          buildContactSupportMessage({ reason, userId: user?.user?.userId })
+                                      ),
+                              }
+                            : { label: tCommon('gotIt') },
+                }
+            }
             case 'card-restricted':
                 return {
                     title: t('list.badgeNotOffered'),
-                    body: tAccounts('cardNotAvailableNote'),
+                    body:
+                        row.reason === 'geo-blocked'
+                            ? tAccounts(livesInUs ? 'cardNotAvailableStateNote' : 'cardNotAvailableNote')
+                            : reasonCodeKey(row.reason)
+                              ? tIdentity(reasonCodeKey(row.reason)!)
+                              : tKyc(kycFeatureRefusalCopy(row.reason), { feature: tKyc('documents.card') }),
                     cta: { label: tCommon('gotIt') },
                 }
             // the limit copy the claim step shows, so the two cannot drift
@@ -142,6 +191,35 @@ export function ClosedRowDrawer({
                     body: t('list.uncheckedBody'),
                     cta: { label: t('list.errorRetry'), act: onRetry },
                 }
+            // the Home "Verification issue" card's words and its support prefill
+            // the Home "Verification issue" card's words: why it failed and the way on
+            case 'identity-rejected': {
+                const reason = row.reason ?? identity.reason
+                const rejection = identityRejection({
+                    rejectLabels: identity.rejectLabels,
+                    reason,
+                    retryable: false,
+                })
+                const support = rejection.support
+                return {
+                    title: tActivation('verificationIssue.title'),
+                    body: tRoot(rejection.descriptionKey as never),
+                    cta: {
+                        label: tCommon('contactSupport'),
+                        act: () =>
+                            openSupportWithMessage(
+                                support
+                                    ? rejectionSupportMessage(
+                                          support,
+                                          tRoot(support.messageKey as never),
+                                          reason,
+                                          user?.user?.userId
+                                      )
+                                    : buildContactSupportMessage({ reason, userId: user?.user?.userId })
+                            ),
+                    },
+                }
+            }
             case 'verification-down':
                 return {
                     title: tAccounts('degraded.title'),

@@ -1,5 +1,8 @@
 'use client'
 
+import { MutationResponseTimeoutError } from '@/utils/connection-timeout-error'
+import { pixQrHost } from '@/utils/pix-qr-host'
+
 import { isPixKeyNotFound, recipientBankNameOf, verifiedPixKeyLabel } from '@/utils/pix.utils'
 import { usePixKeyOwner } from '@/hooks/usePixKeyOwner'
 import { usePixKeySavePrompt } from './usePixKeySavePrompt'
@@ -29,7 +32,11 @@ import { useSmartSpendPreparation } from '@/hooks/wallet/useSmartSpendPreparatio
 import { useRainControllerRepair } from '@/hooks/wallet/useRainControllerRepair'
 import { useSignedSpendRecovery } from '@/hooks/wallet/useSignedSpendRecovery'
 import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
-import { SessionKeyGrantRequiredError, type SpendStrategy } from '@/hooks/wallet/spendPreflight'
+import {
+    InsufficientSpendableError,
+    SessionKeyGrantRequiredError,
+    type SpendStrategy,
+} from '@/hooks/wallet/spendPreflight'
 import { friendlyError } from '@/utils/friendly-error.utils'
 import { isPasskeyBusyError, isPasskeyCleanupPendingError } from '@/utils/webauthn.utils'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
@@ -41,7 +48,7 @@ import { MANTECA_QR_DEPOSIT_ADDRESS_AR, MANTECA_QR_DEPOSIT_ADDRESS_NON_AR } from
 import { pickMantecaDepositAddress } from '@/utils/manteca.utils'
 import { MANTECA_QR_INIT_SCAN_TIMEOUT_MS } from '@/constants/manteca.consts'
 import { MIN_MANTECA_QR_PAYMENT_AMOUNT, MIN_PIX_AMOUNT_BRL } from '@/constants/payment.consts'
-import { isPixRecurringCode } from '@/utils/withdraw.utils'
+import { isPixRecurringCode, isPixEmvcoQr } from '@/utils/withdraw.utils'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { getCurrencyPrice } from '@/app/actions/currency'
 import { captureNetworkTriagedFailure, isNetworkLayerFailure } from '@/utils/network-triage'
@@ -54,6 +61,7 @@ import { usePointsConfetti } from '@/hooks/usePointsConfetti'
 import { useAppReviewNudge } from '@/hooks/useAppReviewNudge'
 import { usePointsCalculation } from '@/hooks/usePointsCalculation'
 import { useKillSwitches } from '@/features/kill-switches/useKillSwitches'
+import { usePixPayBlock } from '@/features/pix/usePixPayBlock'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import {
     classifyQrInitError,
@@ -65,20 +73,42 @@ import {
 import { useQrFailureCopy } from './useQrFailureCopy'
 import { useQrPayKycGate } from './useQrPayKycGate'
 import { deriveQrPayView } from './derive-view'
+import { largestLocalAmountWithinBalance, usdShortfall } from './quote-gap'
 import {
     boundedQrType,
     createQrPaymentAttemptTelemetry,
+    trackPixQrInitResult,
     type QrPaymentAttemptTelemetry,
     type QrPaymentStageOutcome,
 } from './qr-payment-telemetry'
-import type { QrPayFlowBag, QrPayScanParams } from './qr-pay-flow.types'
+import type { PaymentProcessor, QrPayFlowBag, QrPayScanParams } from './qr-pay-flow.types'
 import type { QrPaymentLock } from '@/services/manteca'
 import { isLockExpired, receiveLock } from '@/utils/price-lock.utils'
+import { QrKycState } from '@/constants/kyc.consts'
+import { pixMinimumBrl } from '@/features/pix/pixRoute.utils'
+import { isUnderPixMinimum } from '@/features/pix/pixQuote.utils'
+import { pixShownRate } from '@/features/pix/pixFlow.utils'
+import { useHistoryEntry } from '@/hooks/useHistoryEntry'
+import { formatBankAmount } from '@/utils/currency'
+import { pixProviderId } from '@/utils/provider.utils'
+import { brTaxIdKind } from '@/utils/br-tax-id.utils'
+import type { ProviderId } from '@/types/provider.types'
+import { usePixPayment, type PixPayOutcome } from './usePixPayment'
+import { pixPaidPerk, type PaidReward } from './paidReward'
+import { useQrPayRoute } from './useQrPayRoute'
 
 const MAX_QR_PAYMENT_AMOUNT = '2000'
 const MIN_QR_PAYMENT_AMOUNT = '0.1'
 
-type PaymentProcessor = 'MANTECA'
+/** What the status view says once a payment is no longer moving, or has waited past its arrival time. */
+export type QrPaymentStatus = ReturnType<typeof qrPaymentDisplayStatus>
+
+const PIX_PAY_STATUS: Record<Exclude<PixPayOutcome, 'paid'>, QrPaymentStatus> = {
+    processing: 'processing',
+    refunded: 'refunded',
+    cancelled: 'cancelled',
+    'needs-support': 'failed',
+}
 
 // Entity-aware deposit address served by the API (per-entity balances from
 // 2026-09-14) — the backend resolves the entity from the QR and the paying
@@ -104,7 +134,12 @@ function attemptOutcomeForStatus(status: ReturnType<typeof qrPaymentDisplayStatu
  * exactly ONCE, by `QrPayFlowProvider` — effects here must never run per-view.
  * Views read the result through `useQrPayFlow()`.
  */
-export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams) {
+export function useQrPayFlowController(
+    bag: QrPayFlowBag,
+    scan: QrPayScanParams,
+    /** Told whether a payment of this scan may exist, so the page keeps the flow mounted while it does. */
+    onPaymentPinned?: (pinned: boolean) => void
+) {
     const { qrCode, timestamp, qrType } = scan
     const pixKeyLabel = verifiedPixKeyLabel(qrCode, scan.pixKey ?? null)
     // Usually a cache hit: the key screen resolved it on Continue. A pasted key
@@ -115,6 +150,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     const isAwaitingPixKeyOwner = !!pixKeyLabel && isPixKeyOwnerPending
     const pixKeySave = usePixKeySavePrompt(pixKeyLabel, pixKeyOwner?.name)
     const tWithdraw = useTranslations('withdraw')
+    const tPix = useTranslations('pix')
     const t = useAppTranslations('qrPay')
     const tErrors = useTranslations('errors')
     const toFriendlyError = useFriendlyError()
@@ -139,7 +175,16 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
 
     // Controller-recovery quote handoff: neutral notice + a blocked Pay while
     // the replacement quote is being obtained, cancellable by leaving.
+    const submittedPaymentRef = useRef(false)
+    const [amountEntryRejection, setAmountEntryRejection] = useState<ReturnType<typeof classifyQrInitError>>(null)
+    useEffect(() => {
+        setAmountEntryRejection(null)
+        submittedPaymentRef.current = false
+    }, [scanIdempotencyKey])
     const [quoteUpdatedNotice, setQuoteUpdatedNotice] = useState<string | null>(null)
+    // Bumped when the flow itself replaces the typed amount: the amount field
+    // ignores a new initialAmount once the user has typed, so it must remount.
+    const [amountInputRevision, setAmountInputRevision] = useState(0)
     const [isQuoteRecovering, setIsQuoteRecovering] = useState(false)
     /** A replacement quote failed to mint: the payment did NOT fail, so Pay
      *  stays available and one more tap retries the whole thing. */
@@ -191,7 +236,10 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         setWaitingForMerchantAmount,
     } = bag
 
-    const paymentProcessor: PaymentProcessor | null = useMemo(() => {
+    // A Pix code whose pay route names the neutral routes is paid there (API-CONTRACT-M4 §1).
+    const { route: pixPayRoute, viaPixRoutes } = useQrPayRoute(qrCode, qrType)
+    const routeProcessor: PaymentProcessor | null = useMemo(() => {
+        if (viaPixRoutes) return 'PIX_PAY'
         switch (qrType) {
             case EQrType.MERCADO_PAGO:
             case EQrType.ARGENTINA_QR3:
@@ -200,7 +248,15 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             default:
                 return null
         }
-    }, [qrType])
+    }, [qrType, viaPixRoutes])
+    // While a payment of this scan may exist, the processor that opened it keeps the flow: a route that
+    // changes under it (a gate opening, the user read again) would reset that payment's screen and offer
+    // Pay again for a code already paid. Set below, once the payment's own state is known.
+    const [pinnedProcessor, setPinnedProcessor] = useState<PaymentProcessor | null>(null)
+    const paymentProcessor = pinnedProcessor ?? routeProcessor
+    // A Manteca signature began for this scan: from here a payment may exist on Manteca.
+    const [mantecaSigningStarted, setMantecaSigningStarted] = useState(false)
+    const isPixPay = paymentProcessor === 'PIX_PAY'
     const targetMantecaCountry = useMemo(() => {
         switch (qrType) {
             case EQrType.PIX:
@@ -213,14 +269,58 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         }
     }, [qrType])
 
-    // Check if this payment provider is under maintenance
+    // Check if this payment provider is under maintenance. The Pix pay routes carry their provider's
+    // pause on the route itself (the Brazil pause view below reads it).
     const { disabledPaymentProviders } = useKillSwitches()
     const isProviderDisabled = useMemo(() => {
-        return paymentProcessor ? disabledPaymentProviders.includes(paymentProcessor) : false
+        return paymentProcessor === 'MANTECA' ? disabledPaymentProviders.includes(paymentProcessor) : false
     }, [paymentProcessor, disabledPaymentProviders])
+    // the pay:PIX_BR route says whether a Pix payment can start: the Brazil pause, or a residence it does not serve
+    const pixBlock = usePixPayBlock()
+    const qrPixBlock = qrType === EQrType.PIX || isPixEmvcoQr(qrCode) ? pixBlock : null
+    const isBrazilPaused = qrPixBlock !== null
+    // Neither an outage nor the Brazil pause starts a payment. The view keeps them
+    // apart: a payment made before the pause still shows its status (TASK-24197).
+    const blocksNewPayment = isProviderDisabled || isBrazilPaused
 
-    const gate = useQrPayKycGate()
+    const qrGate = useQrPayKycGate()
+    // On the Pix pay routes the route is the gate: the page mounts this flow only once it is ready.
+    const gate = useMemo(
+        () => (isPixPay ? { ...qrGate, kycGateState: QrKycState.PROCEED_TO_PAY, shouldBlockPay: false } : qrGate),
+        [isPixPay, qrGate]
+    )
     const { kycGateState, shouldBlockPay } = gate
+
+    const pixPayMinimumBrl = isPixPay ? pixMinimumBrl(pixPayRoute) : null
+    const pixPayment = usePixPayment({
+        brCode: qrCode,
+        timestamp,
+        enabled: isPixPay,
+        canStart: !blocksNewPayment,
+        amountBrl: currencyAmount,
+        minimumBrl: pixPayMinimumBrl,
+        provider: pixPayRoute?.provider,
+    })
+    const pixPayReviewed = pixPayment.reviewed
+    const pixPayOutcome = pixPayment.outcome
+
+    // A Pix payment may exist from its open until a refusal says nothing opened (the phase is back to
+    // idle with no id); a Manteca one from its first signature until a failure that surely sent nothing
+    // (a dismissed passkey, a signing failure, a refusal before the send). An unknown send keeps it.
+    const paymentMayExist =
+        paymentProcessor === 'PIX_PAY'
+            ? pixPayment.phase !== 'idle' || !!pixPayment.intentId
+            : paymentProcessor === 'MANTECA' && (mantecaSigningStarted || !!qrPayment || isSuccess)
+    useEffect(() => {
+        setPinnedProcessor(paymentMayExist ? paymentProcessor : null)
+        onPaymentPinned?.(paymentMayExist)
+    }, [paymentMayExist, paymentProcessor, onPaymentPinned])
+    // the hold-to-claim reveal of a Pix pay-route payment's reward; Manteca's lives on its qrPayment
+    const [pixRewardClaimed, setPixRewardClaimed] = useState(false)
+    // the paid payment's entry: what left the wallet after a reload, and the receipt
+    const { data: pixPayEntry } = useHistoryEntry(pixPayment.intentId, 'QR_PAY', {
+        enabled: isPixPay && pixPayOutcome === 'paid',
+    })
 
     /*
      * The final, locked spend — only a fixed-amount QR has one before Pay. An
@@ -252,7 +352,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         enabled:
             !!lockedSpend &&
             !shouldBlockPay &&
-            !isProviderDisabled &&
+            !blocksNewPayment &&
             !isLoading &&
             !isSuccess &&
             !qrPayment &&
@@ -301,6 +401,10 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
 
     const [rateUnavailable, setRateUnavailable] = useState(false)
     const [rateAttempt, setRateAttempt] = useState(0)
+    // The rate of the last lock minted for a typed amount that the balance
+    // could not pay. The form converts at it after that, not at a fresh rate: a
+    // lower fresh rate would put the amount lowered to the balance back above it.
+    const lastLockRateRef = useRef<string | null>(null)
     const retryRate = useCallback(() => {
         setRateUnavailable(false)
         setRateAttempt((attempt) => attempt + 1)
@@ -318,7 +422,9 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             let price: number
             currencyCode = paymentLock.paymentAsset
             if (paymentLock.code === '') {
-                price = (await getCurrencyPrice(currencyCode)).sell
+                price = lastLockRateRef.current
+                    ? Number(lastLockRateRef.current)
+                    : (await getCurrencyPrice(currencyCode)).sell
             } else {
                 price = Number(paymentLock.paymentPrice)
             }
@@ -341,6 +447,49 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         }
     }, [paymentLock, paymentProcessor, setCurrency, rateAttempt])
 
+    // A code with its own amount fills the amount from its review, as a locked Manteca code does.
+    const pixPayFixedBrl = pixPayment.amountFixed ? pixPayReviewed?.amountBrl : undefined
+    const pixPayFixedUsd = pixPayment.amountFixed ? pixPayReviewed?.withdrawUsd : undefined
+    useEffect(() => {
+        if (!pixPayFixedBrl || !pixPayFixedUsd) return
+        setAmount(pixPayFixedUsd)
+        setCurrencyAmount(pixPayFixedBrl)
+    }, [pixPayFixedBrl, pixPayFixedUsd, setAmount, setCurrencyAmount])
+
+    // The reais convert to what leaves the wallet, every fee in, as the Pix withdrawal's field does; the
+    // rate row shows the all-in rate beside the flat fee row (`pixShownRate`). Before a review names
+    // them (an open amount not typed yet, a reload of an opened payment), the market rate stands in, as
+    // for Manteca's open-amount codes.
+    const pixPayPrice = pixPayReviewed ? Number(pixPayReviewed.amountBrl) / Number(pixPayReviewed.withdrawUsd) : null
+    const shownRate = isPixPay && pixPayReviewed ? Number(pixShownRate(pixPayReviewed)) : null
+    // An opened payment (`?intentId=`) shows its result from its own read: the reais it paid, and the
+    // USD from its history entry once paid. No live rate is asked for it, so an FX outage cannot hide
+    // a settled payment; the rate stands at the entry's own until the entry loads (0 = none yet).
+    const pixPayOpened = isPixPay && !!pixPayment.intentId
+    const pixPayEntryPrice =
+        pixPayEntry?.currency?.amount && Number(pixPayEntry.amount) > 0
+            ? Number(pixPayEntry.currency.amount) / Number(pixPayEntry.amount)
+            : null
+    useEffect(() => {
+        if (!pixPayOpened || pixPayPrice) return
+        setCurrency({ code: 'BRL', symbol: 'BRL', price: pixPayEntryPrice ?? 0 })
+    }, [pixPayOpened, pixPayPrice, pixPayEntryPrice, setCurrency])
+    useEffect(() => {
+        if (!isPixPay || (pixPayOpened && !pixPayPrice)) return
+        let cancelled = false
+        const price = pixPayPrice ? Promise.resolve(pixPayPrice) : getCurrencyPrice('BRL').then((p) => p.sell)
+        price
+            .then((value) => {
+                if (!cancelled) setCurrency({ code: 'BRL', symbol: 'BRL', price: value })
+            })
+            .catch(() => {
+                if (!cancelled) setRateUnavailable(true)
+            })
+        return () => {
+            cancelled = true
+        }
+    }, [isPixPay, pixPayOpened, pixPayPrice, setCurrency, rateAttempt])
+
     const isBlockingError = useMemo(() => {
         // The settling failure says "try again in a few seconds" — keep the Pay
         // button enabled so the user can retry, don't dead-end it like a hard error.
@@ -359,6 +508,8 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     }, [errorMessage, errorCode, requoteFailed])
 
     const usdAmount = useMemo(() => {
+        // what leaves the wallet: the paid entry's, else what this session signed, else the review's figure
+        if (isPixPay) return pixPayEntry?.amount ?? pixPayment.signedUsd ?? pixPayReviewed?.withdrawUsd ?? null
         if (!paymentLock) return null
         if (paymentLock.code === '') {
             // For static QR codes (user inputs amount), convert from local currency to USD
@@ -368,15 +519,16 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             // For dynamic QR codes, backend provides the USD amount
             return paymentLock.paymentAgainstAmount
         }
-    }, [paymentLock, amount])
+    }, [isPixPay, pixPayReviewed, pixPayEntry, pixPayment.signedUsd, paymentLock, amount])
 
     // Fetch points early to avoid latency penalty - fetch as soon as we have usdAmount
     // This way points are cached by the time success view shows
     // Use timestamp as uniqueId to prevent cache collisions between different QR scans
+    // An Avenia QR payment earns the QR lane's points as Manteca's does (API-CONTRACT-M5 §3)
     const { pointsData, pointsDivRef } = usePointsCalculation(
         PointsAction.MANTECA_QR_PAYMENT,
         usdAmount,
-        paymentProcessor === 'MANTECA',
+        paymentProcessor !== null,
         timestamp || undefined
     )
 
@@ -421,13 +573,24 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             if (paymentProcessor !== 'MANTECA' || !qrCode || !isPaymentProcessorQR(qrCode)) {
                 return null
             }
-            // stamped on arrival: the deadline counts from when the answer landed
-            return receiveLock(
-                await mantecaApi.initiateQrPayment(
-                    { qrCode, qrType: qrType ?? undefined, idempotencyKey: scanIdempotencyKey },
-                    { timeoutMs: MANTECA_QR_INIT_SCAN_TIMEOUT_MS }
+            try {
+                const lock = receiveLock(
+                    await mantecaApi.initiateQrPayment(
+                        { qrCode, qrType: qrType ?? undefined, idempotencyKey: scanIdempotencyKey },
+                        { timeoutMs: MANTECA_QR_INIT_SCAN_TIMEOUT_MS }
+                    )
                 )
-            )
+                if (qrType === EQrType.PIX) trackPixQrInitResult(pixQrHost(qrCode), 'ready', 'manteca')
+                return lock
+            } catch (error) {
+                if (qrType === EQrType.PIX)
+                    trackPixQrInitResult(
+                        pixQrHost(qrCode),
+                        isNonRetryableQrInitError(error) ? 'refused' : 'unavailable',
+                        'manteca'
+                    )
+                throw error
+            }
         },
         enabled:
             paymentProcessor === 'MANTECA' &&
@@ -435,12 +598,13 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             isPaymentProcessorQR(qrCode) &&
             // Composite Automático codes also match isPaymentProcessorQR — without
             // this the entry guard shows its error but the doomed init still fires.
+            !entryGuardError &&
             !isPixRecurringCode(qrCode) &&
             !paymentLock &&
             !shouldBlockPay &&
             // The maintenance kill-switch is render-only below; without this the
             // doomed /init still fires on every scan during a provider outage.
-            !isProviderDisabled,
+            !blocksNewPayment,
         retry: (failureCount, error) => {
             /*
              * One predicate over one table (`init-error-classifier`), reading
@@ -489,13 +653,31 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     const errorInitiatingPayment = useMemo(
         () =>
             entryGuardError ??
+            (amountEntryRejection ? scanFailureCopy[amountEntryRejection.code] : null) ??
             // A pasted key the PIX directory does not know: paying it can only fail.
             (isPixKeyNotFound(pixKeyOwnerError) ? tWithdraw('pixKey.notFound') : null) ??
-            (scanOutcome.kind === 'failed' ? scanFailureCopy[scanOutcome.reason] : null),
-        [entryGuardError, pixKeyOwnerError, tWithdraw, scanOutcome, scanFailureCopy]
+            // Manteca's scan only: a Pix code the route has since moved to the pay routes leaves it behind
+            (paymentProcessor === 'MANTECA' && scanOutcome.kind === 'failed'
+                ? scanFailureCopy[scanOutcome.reason]
+                : null) ??
+            // the provider's read of a code refused it: unpayable, as a refused Manteca scan
+            pixPayment.codeRefusal,
+        [
+            entryGuardError,
+            amountEntryRejection,
+            pixKeyOwnerError,
+            tWithdraw,
+            paymentProcessor,
+            scanOutcome,
+            scanFailureCopy,
+            pixPayment.codeRefusal,
+        ]
     )
     // The generic init card has no support entry; these refusals need one.
-    const initErrorNeedsSupport = scanOutcome.kind === 'failed' && SUPPORT_ACTIONABLE_FAILURES.has(scanOutcome.reason)
+    const initErrorNeedsSupport =
+        (amountEntryRejection && SUPPORT_ACTIONABLE_FAILURES.has(amountEntryRejection.code)) ||
+        (scanOutcome.kind === 'failed' && SUPPORT_ACTIONABLE_FAILURES.has(scanOutcome.reason)) ||
+        false
     // The API refused the scan for identity, whatever the capabilities said:
     // the card offers the verification step instead of only "Go back".
     const initErrorNeedsVerification = scanOutcome.kind === 'failed' && scanOutcome.reason === QR_INIT_CODE.KYC
@@ -505,6 +687,20 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     useEffect(() => {
         if (initErrorNeedsVerification) void fetchUser()
     }, [initErrorNeedsVerification, fetchUser])
+    // Manteca's init refused a Pix code because Manteca no longer serves it for this user: moved to
+    // another provider, its BRL switched off (503), or the route's refusal (403). The capabilities are
+    // read again, and the page follows the route: the pay routes, the pause, or the refusal (M5).
+    const pixInitRouteChanged =
+        paymentProcessor === 'MANTECA' &&
+        (qrType === EQrType.PIX || isPixEmvcoQr(qrCode)) &&
+        [
+            API_ERROR_CODES.PIX_PROVIDER_MOVED,
+            API_ERROR_CODES.PROVIDER_UNAVAILABLE,
+            API_ERROR_CODES.ROUTE_NOT_AVAILABLE,
+        ].some((code) => code === wireErrorCode(paymentLockError ?? paymentLockFailureReason))
+    useEffect(() => {
+        if (pixInitRouteChanged) void fetchUser()
+    }, [pixInitRouteChanged, fetchUser])
 
     // Side effects only. Everything the screen RENDERS is derived above.
     useEffect(() => {
@@ -603,12 +799,39 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         [errorCode, setErrorMessage, setCurrencyAmount]
     )
 
+    const pixPayMerchant = pixPayment.merchant
     const merchantName = useMemo(() => {
+        // a code without an amount names its merchant once the reais typed are reviewed; "Pix" until then
+        if (isPixPay) return pixPayMerchant?.merchantName ?? 'Pix'
         if (!paymentLock) return null
         return pixKeyOwner?.name ?? pixKeyLabel ?? paymentLock.paymentRecipientName
-    }, [paymentLock, pixKeyLabel, pixKeyOwner])
+    }, [isPixPay, pixPayMerchant, paymentLock, pixKeyLabel, pixKeyOwner])
+    // the merchant's tax id as the provider read it from the code (a CNPJ in full, a CPF masked)
+    const merchantTaxIdMasked = isPixPay ? (pixPayMerchant?.merchantTaxIdMasked ?? null) : null
+    // a CNPJ comes punctuated in full, which the kind reads only bare
+    const merchantTaxIdKind = merchantTaxIdMasked ? brTaxIdKind(merchantTaxIdMasked.replace(/[.\-/]/g, '')) : null
+    const merchantTaxId =
+        merchantTaxIdMasked && merchantTaxIdKind ? { kind: merchantTaxIdKind, value: merchantTaxIdMasked } : null
 
-    const recipientBankName = recipientBankNameOf(paymentLock)
+    const recipientBankName = isPixPay ? (pixPayMerchant?.bankName ?? null) : recipientBankNameOf(paymentLock)
+    // The provider's flat fee, for the form's "Provider fee" row (shared with the Pix withdrawal,
+    // where Avenia charges R$0.75). The Manteca lock carries none (`QrPaymentLock`), so no row.
+    const pixPayFee = pixPayReviewed?.fixedFeeBrl
+    const providerFee: string | null =
+        isPixPay && pixPayFee && Number(pixPayFee) > 0 ? formatBankAmount(pixPayFee, 'BRL') : null
+    // the legal record behind the provider row: the opened payment's provider (a route that changed since
+    // names another), else the route's, or Manteca's entity for the code's country
+    const providerId: ProviderId | null = isPixPay
+        ? pixProviderId(pixPayment.intentId ? pixPayment.payment?.provider : pixPayRoute?.provider)
+        : paymentProcessor === 'MANTECA' && targetMantecaCountry
+          ? targetMantecaCountry === 'BR'
+              ? 'manteca-br'
+              : 'manteca-ar'
+          : null
+    // the code fixes the amount: the field cannot change it
+    const amountFixed = isPixPay
+        ? pixPayment.amountFixed === true
+        : paymentProcessor === 'MANTECA' && paymentLock?.code !== ''
 
     /*
      * Controller-rotation handoff. Nothing moved and no provider order exists
@@ -622,7 +845,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         async (recovery: SpendRecoveryQuoteReviewError) => {
             if (!qrCode) return
             // One refresh at a time: a second entry would race two quotes.
-            if (quoteRecoveryInFlightRef.current) return
+            if (quoteRecoveryInFlightRef.current || isBrazilPaused) return
             quoteRecoveryInFlightRef.current = true
             quoteRecoveryCancelledRef.current = false
             setIsSuccess(false)
@@ -683,6 +906,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         [
             qrCode,
             qrType,
+            isBrazilPaused,
             timestamp,
             currencyAmount,
             t,
@@ -708,7 +932,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     }, [cancelQuoteRecovery, onBack])
 
     const handleMantecaPayment = useCallback(async () => {
-        if (!paymentLock || !qrCode || !currencyAmount) return
+        if (!paymentLock || !qrCode || !currencyAmount || isBrazilPaused || amountEntryRejection) return
         // A refresh already owns the flow (cooldown wait or init in flight).
         if (isQuoteRecovering) return
         // The previous re-quote never landed: this tap retries the QUOTE only —
@@ -728,6 +952,8 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         // reports too), the scanner's type as the fallback — bounded either way.
         const telemetry = createQrPaymentAttemptTelemetry({
             qrType: boundedQrType(paymentLock.type) ?? boundedQrType(qrType),
+            pixQrHost: pixQrHost(qrCode),
+            provider: 'manteca',
         })
         attemptTelemetryRef.current = telemetry
         telemetry.stage('pay_clicked')
@@ -762,6 +988,12 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                     ...(deterministic ? { failureCode: deterministic.code } : {}),
                 })
                 if (deterministic) {
+                    if (
+                        [QR_INIT_CODE.PAYER_BLOCKED, QR_INIT_CODE.MERCHANT_BLOCKED, QR_INIT_CODE.PIX_RESIDENCE].some(
+                            (code) => code === deterministic.code
+                        )
+                    )
+                        setAmountEntryRejection(deterministic)
                     // Deterministic rejection — actionable copy, not a
                     // Sentry-worthy surprise.
                     /*
@@ -848,10 +1080,15 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         }
 
         let signedArtifact
+        // From here a payment may exist on Manteca, so the flow stays on it whatever the Pix route says
+        // next. Each path that surely sent nothing releases it, and the page follows the route again.
+        setMantecaSigningStarted(true)
         try {
             signedArtifact = await signSpend(signSpendInput())
             telemetry.stage('signature_ready', { outcome: 'success' })
         } catch (error) {
+            // nothing is submitted before the signature returns
+            setMantecaSigningStarted(false)
             // Controller-recovery control flow (nothing signed, nothing sent):
             // back to the same review screen, with a refreshed quote when the
             // replacement could not be prepared inside the current lock.
@@ -862,6 +1099,33 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
             if (error instanceof SpendRecoveryAbortedError) {
                 setIsSuccess(false)
                 setLoadingState('Idle')
+                return
+            }
+            // The lock this tap minted for a typed amount needs more than the
+            // balance (TASK-24621). Nothing was signed: the form goes back to
+            // the open amount, which stays the user's to change.
+            if (error instanceof InsufficientSpendableError && paymentLock.code === '') {
+                const fittedAmount = largestLocalAmountWithinBalance({
+                    localAmount: currencyAmount,
+                    shownUsd: amount,
+                    lockedUsdc: error.required,
+                    availableUsdc: error.available,
+                })
+                lastLockRateRef.current = finalPaymentLock.paymentPrice
+                setPaymentLock(paymentLock)
+                setAmount(amount)
+                setCurrencyAmount(fittedAmount ?? currencyAmount)
+                if (fittedAmount) {
+                    // Waiting cannot help. The field shows the largest amount
+                    // that fits, and the next tap pays it.
+                    setAmountInputRevision((revision) => revision + 1)
+                    setErrorMessage(null)
+                } else {
+                    setErrorMessage(tErrors('balanceSettling'), 'balanceSettling')
+                }
+                setIsSuccess(false)
+                setLoadingState('Idle')
+                finishAttempt('failed')
                 return
             }
             // Route through the shared classifier so backend wire codes reach this
@@ -879,7 +1143,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                 // kept as-is so this screen's matching doesn't narrow.
                 setErrorMessage(t('errors.confirmTransaction'), 'confirmTransaction')
             } else if (isPasskeyCleanupPendingError(error)) {
-                // Blocking on purpose: the controller refuses every retry until a restart.
+                // Retryable: the next tap asks native again; tagged apart from busy so its rate stays visible.
                 void captureNetworkTriagedFailure(error, {
                     tags: {
                         ...criticalFlowTags('qr-pay'),
@@ -887,7 +1151,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                         qr_pay_failure: 'passkey_cleanup_pending',
                     },
                 })
-                setErrorMessage(t('errors.passkeyRestart'))
+                setErrorMessage(t('errors.passkeyStillOpen'), 'signRetryable')
             } else if (isPasskeyBusyError(error)) {
                 // an earlier passkey prompt still owns the authenticator; nothing was signed.
                 // still reported, tagged apart, so the busy rate stays visible
@@ -924,6 +1188,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         }
 
         if (quoteExpired()) {
+            setMantecaSigningStarted(false)
             await handleQuoteRecovery(new SpendRecoveryQuoteReviewError(new Error('quote expired while signing')))
             return
         }
@@ -941,6 +1206,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                     ? ({
                           kind: 'rainWithdrawal' as const,
                           clientPaymentAttemptId: telemetry.attemptId,
+                          ...(boundedQrType(finalPaymentLock.type) === 'PIX' ? { pixQrHost: pixQrHost(qrCode) } : {}),
                           paymentLockCode: finalPaymentLock.code,
                           qrType: qrType ?? undefined,
                           signedRainWithdrawal: artifact.rainWithdrawal,
@@ -949,6 +1215,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                     : ({
                           kind: 'userOp' as const,
                           clientPaymentAttemptId: telemetry.attemptId,
+                          ...(boundedQrType(finalPaymentLock.type) === 'PIX' ? { pixQrHost: pixQrHost(qrCode) } : {}),
                           paymentLockCode: finalPaymentLock.code,
                           qrType: qrType ?? undefined,
                           signedUserOp: artifact.signedUserOp.signedUserOp,
@@ -967,6 +1234,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                 // in between.
                 (candidate) => {
                     if (quoteExpired()) throw new SpendRecoveryQuoteReviewError(new Error('quote expired before send'))
+                    submittedPaymentRef.current = true
                     return mantecaApi.completeQrPaymentWithSignedTx(requestBody(candidate))
                 },
                 {
@@ -1016,6 +1284,14 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
                 flow: 'sign-only',
             })
         } catch (error) {
+            if (error instanceof MutationResponseTimeoutError) {
+                telemetry.stage('response_received', { outcome: 'unknown' })
+                void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+                setErrorMessage(t('errors.paymentStatusUnknown'))
+                setIsSuccess(false)
+                finishAttempt('unknown')
+                return
+            }
             // `response_received` is HTTP-level: an error response is still a
             // response. A transport failure (timeout, offline) received
             // nothing, so that stage is not reported at all. The money
@@ -1029,12 +1305,25 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
              * Nothing is submitted under refreshed terms without that tap.
              */
             if (error instanceof SpendRecoveryQuoteReviewError) {
+                submittedPaymentRef.current = false
+                setMantecaSigningStarted(false)
                 await handleQuoteRecovery(error)
                 return
             }
             if (error instanceof SpendRecoveryAbortedError) {
+                submittedPaymentRef.current = false
+                setMantecaSigningStarted(false)
                 setIsSuccess(false)
                 setLoadingState('Idle')
+                return
+            }
+            if (wireErrorCode(error) === API_ERROR_CODES.PIX_RESIDENCE_NOT_SUPPORTED) {
+                submittedPaymentRef.current = false
+                setMantecaSigningStarted(false)
+                setAmountEntryRejection({ code: QR_INIT_CODE.PIX_RESIDENCE, amountRetryable: false })
+                setErrorMessage(scanFailureCopy[QR_INIT_CODE.PIX_RESIDENCE])
+                setIsSuccess(false)
+                finishAttempt('failed')
                 return
             }
             if (wireErrorCode(error) === API_ERROR_CODES.MANTECA_TEMPORARILY_UNAVAILABLE) {
@@ -1079,6 +1368,8 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         }
     }, [
         queryClient,
+        amountEntryRejection,
+        isBrazilPaused,
         tErrors,
         handleQuoteRecovery,
         isQuoteRecovering,
@@ -1090,6 +1381,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         recoverSignedSpend,
         rainCardOverview,
         qrCode,
+        amount,
         currencyAmount,
         scanFailureCopy,
         amountEntryFailureCopy,
@@ -1101,6 +1393,8 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         toFriendlyError,
         setErrorMessage,
         setIsSuccess,
+        setAmount,
+        setCurrencyAmount,
         setPaymentLock,
         setQrPayment,
     ])
@@ -1111,15 +1405,32 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     // provider, so it starts unlocked.
     // a re-quote is awaited inside the attempt, so the latch also covers it
     const payInFlightRef = useRef(false)
+    const { pay: payThroughPixRoutes } = pixPayment
     const payQR = useCallback(async () => {
-        if (paymentProcessor !== 'MANTECA' || payInFlightRef.current) return
+        if (!paymentProcessor || payInFlightRef.current) return
         payInFlightRef.current = true
         try {
-            await handleMantecaPayment()
+            if (paymentProcessor === 'PIX_PAY') await payThroughPixRoutes()
+            else await handleMantecaPayment()
         } finally {
             payInFlightRef.current = false
         }
-    }, [paymentProcessor, handleMantecaPayment])
+    }, [paymentProcessor, payThroughPixRoutes, handleMantecaPayment])
+
+    // The Pix pay routes report where the payment stands; the shared screens read it the way they
+    // read Manteca's: the app-wide loading state while it opens, signs and pays, then success or status.
+    const pixPayPhase = pixPayment.phase
+    const pixPayProcessing = pixPayOutcome === 'processing' && !pixPayment.pastArrival
+    useEffect(() => {
+        if (!isPixPay) return
+        if (pixPayPhase === 'opening') setLoadingState('Preparing transaction')
+        else if (pixPayPhase === 'signing') setLoadingState('Approve transaction')
+        else if (pixPayProcessing) setLoadingState('Paying')
+        else setLoadingState('Idle')
+    }, [isPixPay, pixPayPhase, pixPayProcessing, setLoadingState])
+    useEffect(() => {
+        if (isPixPay) setIsSuccess(pixPayOutcome === 'paid')
+    }, [isPixPay, pixPayOutcome, setIsSuccess])
 
     // A payment that went through saves its key, and so does one still
     // settling: the flow does not follow it to its end, and the user asked to
@@ -1136,6 +1447,12 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
      * could only ever restate these inputs.
      */
     const balanceErrorMessage = useMemo(() => {
+        // The pay route's minimum, checked before any call (Aleks, 2026-11-14), then the review's refusal
+        // of the amount typed. Both name the amount, so both sit under the amount field.
+        if (isPixPay && pixPayMinimumBrl && isUnderPixMinimum(currencyAmount, pixPayMinimumBrl)) {
+            return tPix('deposit.minimum', { amount: formatBankAmount(pixPayMinimumBrl, 'BRL') })
+        }
+        if (isPixPay && pixPayment.amountRefusal) return pixPayment.amountRefusal
         if (
             (!Number(usdAmount) && !Number(currencyAmount)) ||
             !usdAmount ||
@@ -1168,14 +1485,45 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         }
         if (!isAmountWithinBalance(usdAmount, balance)) {
             // gate on the displayed total; an in-transit shortfall passes here and
-            // fails late with the settling message at execution.
+            // fails late with the settling message at execution. A locked amount
+            // cannot be lowered here, so the copy says how much is missing.
+            if (paymentLock?.code) {
+                return tErrors('balanceShortBy', { amount: usdShortfall(paymentAmount, balance) })
+            }
             return tErrors('notEnoughBalanceAddFunds')
         }
         return null
-    }, [usdAmount, balance, paymentProcessor, currency?.code, currencyAmount, pixKeyLabel, t, tErrors])
+    }, [
+        isPixPay,
+        pixPayMinimumBrl,
+        pixPayment.amountRefusal,
+        tPix,
+        usdAmount,
+        balance,
+        paymentProcessor,
+        paymentLock?.code,
+        currency?.code,
+        currencyAmount,
+        pixKeyLabel,
+        t,
+        tErrors,
+    ])
 
+    // "Try again in a few seconds" is untrue once the refreshed balance cannot
+    // cover the amount: the field error says what is short instead.
+    const flowErrorMessage = isPixPay
+        ? pixPayment.error
+        : errorCode === 'balanceSettling' && balanceErrorMessage
+          ? null
+          : errorMessage
+
+    // A Pix pay-route payment to the user's own account earns no points (API `selfPay`): no points line
+    const shownPointsData = isPixPay && pixPayment.payment?.selfPay === true ? undefined : pointsData
     // Use points confetti hook for animation - must be called unconditionally
-    usePointsConfetti(isSuccess && pointsData?.estimatedPoints ? pointsData.estimatedPoints : undefined, pointsDivRef)
+    usePointsConfetti(
+        isSuccess && shownPointsData?.estimatedPoints ? shownPointsData.estimatedPoints : undefined,
+        pointsDivRef
+    )
 
     useEffect(() => {
         if (isSuccess) {
@@ -1223,11 +1571,29 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     }, [qrType])
 
     // check if we're still loading payment data before showing anything
-    const isLoadingPaymentData = (paymentProcessor === 'MANTECA' && !paymentLock) || !currency
+    const isLoadingPaymentData = isPixPay
+        ? !currency || (pixPayment.intentId ? !pixPayOutcome : pixPayment.isReadingCode)
+        : (paymentProcessor === 'MANTECA' && !paymentLock) || !currency
 
+    // Where a payment that is no longer on the form stands, for the status view.
+    const paymentStatus: QrPaymentStatus | null = isPixPay
+        ? pixPayOutcome && pixPayOutcome !== 'paid'
+            ? PIX_PAY_STATUS[pixPayOutcome]
+            : null
+        : qrPayment
+          ? qrPaymentDisplayStatus(qrPayment.status)
+          : null
+
+    // The API refused Pix for the user's residence although the app had let the scan through.
+    const refusedForResidence =
+        amountEntryRejection?.code === QR_INIT_CODE.PIX_RESIDENCE ||
+        (scanOutcome.kind === 'failed' && scanOutcome.reason === QR_INIT_CODE.PIX_RESIDENCE)
     const view = deriveQrPayView({
         kycGateState,
         isProviderDisabled,
+        // a residence that turns Brazil mid-payment leaves the submitted payment on screen
+        isBrazilPaused:
+            refusedForResidence || (isBrazilPaused && !submittedPaymentRef.current && loadingState !== 'Paying'),
         errorInitiatingPayment,
         waitingForMerchantAmount,
         showOrderNotReadyModal,
@@ -1235,12 +1601,38 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         rateUnavailable,
         loadingState,
         isSuccess,
-        hasUnsettledPayment: !!qrPayment && qrPaymentDisplayStatus(qrPayment.status) !== 'completed',
-        isManteca: paymentProcessor === 'MANTECA',
+        hasUnsettledPayment: !!paymentStatus && paymentStatus !== 'completed',
+        hasProcessor: !!paymentProcessor,
     })
+
+    // The paid payment's reward, whatever the provider: the success view shows one reward UI
+    const paidReward: PaidReward | null = useMemo(() => {
+        if (isPixPay) {
+            const payment = pixPayment.payment
+            const perk = pixPaidPerk(payment)
+            if (!payment || !pixPayment.intentId) return null
+            return {
+                paymentId: pixPayment.intentId,
+                merchantName: payment.merchantName ?? undefined,
+                perk: perk && pixRewardClaimed ? { ...perk, claimed: true } : perk,
+            }
+        }
+        if (!qrPayment) return null
+        return {
+            paymentId: qrPayment.externalId,
+            merchantName: qrPayment.details?.merchant?.name,
+            perk: qrPayment.perk ?? null,
+        }
+    }, [isPixPay, pixPayment.payment, pixPayment.intentId, pixRewardClaimed, qrPayment])
+    const markRewardClaimed = useCallback(() => {
+        if (isPixPay) setPixRewardClaimed(true)
+        else if (qrPayment?.perk) setQrPayment({ ...qrPayment, perk: { ...qrPayment.perk, claimed: true } })
+    }, [isPixPay, qrPayment, setQrPayment])
 
     return {
         view,
+        /** What the BRAZIL_PAUSED view says: the API's refusal for the residence, else the pay route's block. */
+        pixPayBlock: refusedForResidence ? ('residence' as const) : qrPixBlock,
         // scan identity
         qrCode,
         timestamp,
@@ -1258,7 +1650,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         currencyAmount,
         currency,
         isSuccess,
-        errorMessage,
+        errorMessage: flowErrorMessage,
         errorInitiatingPayment,
         initErrorNeedsSupport,
         initErrorNeedsVerification,
@@ -1266,8 +1658,9 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         balanceErrorMessage,
         rateUnavailable,
         retryRate,
-        // controller-rotation quote handoff
-        quoteUpdatedNotice,
+        amountInputRevision,
+        // controller-rotation quote handoff; on the Pix pay routes, a quote that moved before the signature
+        quoteUpdatedNotice: isPixPay ? pixPayment.notice : quoteUpdatedNotice,
         isQuoteRecovering,
         cancelQuoteRecovery,
         // the wallet's spendable balance, surfaced here so views read ONE flow
@@ -1275,7 +1668,25 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         balance,
         usdAmount,
         merchantName,
+        merchantTaxId,
         recipientBankName,
+        providerFee,
+        providerId,
+        amountFixed,
+        /** The rate row's figure where it differs from the field's price: the Pix pay routes' all-in rate. */
+        shownRate,
+        paymentStatus,
+        /** A person at Peanut is looking at the payment: the status view offers support. */
+        paymentNeedsSupport: isPixPay && pixPayOutcome === 'needs-support',
+        /** Who was paid and the reais they got, for the success view. */
+        paidTo: isPixPay
+            ? (pixPayment.payment?.merchantName ?? pixPayMerchant?.merchantName ?? '')
+            : (pixKeyOwner?.name ?? qrPayment?.details.merchant.name ?? paymentLock?.paymentRecipientName ?? ''),
+        paidLocalAmount: isPixPay
+            ? (pixPayment.payment?.amountBrl ?? pixPayReviewed?.amountBrl)
+            : (qrPayment?.details.paymentAssetAmount ?? paymentLock?.paymentAssetAmount),
+        /** The paid Pix pay-route payment's history entry: its receipt. */
+        pixPayEntry: isPixPay ? (pixPayEntry ?? null) : null,
         pixKeyLabel,
         pixKeyOwner,
         isAwaitingPixKeyOwner,
@@ -1286,9 +1697,11 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         // loading
         isLoading,
         loadingState,
-        // points
-        pointsData,
+        // points and the QR reward
+        pointsData: shownPointsData,
         pointsDivRef,
+        paidReward,
+        markRewardClaimed,
         // actions
         onBack: onBackFromQrPay,
         payQR,

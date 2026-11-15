@@ -2,6 +2,7 @@
 
 import { useSearchParams } from 'next/navigation'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
 import NavHeader from '@/components/Global/NavHeader'
 import Loading from '@/components/Global/Loading'
 import { TransactionDetailsReceipt } from '@/components/TransactionDetails/TransactionDetailsReceipt'
@@ -29,6 +30,24 @@ export default function NativeReceiptPage() {
     // silent bounce to /home.
     const unavailable = !entryId || !kind ? 'gone' : isError && !entry ? 'loadFailed' : undefined
 
+    if (unavailable) {
+        return (
+            <PageContainer className="receipt-page">
+                <PageStack className="p-4">
+                    <div className="md:hidden print:hidden">
+                        <NavHeader titleKey="receipt" />
+                    </div>
+                    <PageStack.Center>
+                        <ReceiptUnavailable
+                            variant={unavailable}
+                            onRetry={unavailable === 'loadFailed' ? () => void refetch() : undefined}
+                        />
+                    </PageStack.Center>
+                </PageStack>
+            </PageContainer>
+        )
+    }
+
     return (
         <PageContainer className="receipt-page flex min-h-dvh flex-col items-center p-4">
             {/* app chrome: mobile only, and never on the printed/PDF receipt */}
@@ -36,14 +55,7 @@ export default function NativeReceiptPage() {
                 <NavHeader titleKey="receipt" />
             </div>
             <div className="flex min-h-0 flex-1 flex-col items-center py-4">
-                {unavailable ? (
-                    <div className="m-auto">
-                        <ReceiptUnavailable
-                            variant={unavailable}
-                            onRetry={unavailable === 'loadFailed' ? () => void refetch() : undefined}
-                        />
-                    </div>
-                ) : isLoading || !entry ? (
+                {isLoading || !entry ? (
                     <div className="m-auto">
                         <Loading variant="mascot" />
                     </div>

@@ -6,6 +6,7 @@ import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { SetupDocLink } from '@/components/Setup/components/SetupDocsDrawer'
 import { LINK_BUTTON_CLASSES } from '@/components/0_Bruddle/LinkButton'
+import { useSignupControl } from '@/features/setup/useSignupControl'
 import { useTranslations } from 'next-intl'
 
 /**
@@ -17,12 +18,15 @@ import { useTranslations } from 'next-intl'
 const PasskeyInfoDrawer = ({ visible, onClose }: { visible: boolean; onClose: () => void }) => {
     const t = useTranslations('setup.passkey.info')
     const tCommon = useTranslations('common')
+    const { track } = useSignupControl()
 
     return (
         <Drawer
             open={visible}
             onOpenChange={(isOpen) => {
-                if (!isOpen) onClose()
+                if (isOpen) return
+                track('passkey_info', 'dismiss')
+                onClose()
             }}
         >
             <DrawerContent>
@@ -41,7 +45,15 @@ const PasskeyInfoDrawer = ({ visible, onClose }: { visible: boolean; onClose: ()
                             <p>{t('backup')}</p>
                             <p>{t('privacy')}</p>
                         </div>
-                        <Button variant="primary" shadowSize="4" className="w-full justify-center" onClick={onClose}>
+                        <Button
+                            variant="primary"
+                            shadowSize="4"
+                            className="w-full justify-center"
+                            onClick={() => {
+                                track('passkey_info_got_it', 'tap')
+                                onClose()
+                            }}
+                        >
                             {tCommon('gotIt')}
                         </Button>
                         <p className="text-center">

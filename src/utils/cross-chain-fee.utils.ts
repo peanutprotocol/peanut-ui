@@ -12,11 +12,14 @@
 
 /**
  * The network-fee row value for a quoted transfer. `null` when the user pays
- * nothing on top (same-chain, no quote yet, or a zero quote) — the caller
- * shows the sponsored label; '< $0.01' below a cent; otherwise '$X.XX'.
+ * nothing on top (same-chain or a zero quote) — the caller shows the sponsored
+ * label. Missing/invalid quotes are unavailable; '< $0.01' below a cent;
+ * otherwise '$X.XX'.
  */
 export function formatNetworkFee(feeUsd: number | undefined, isCrossChain: boolean): string | null {
-    if (!isCrossChain || feeUsd === undefined || !Number.isFinite(feeUsd) || feeUsd <= 0) return null
+    if (!isCrossChain) return null
+    if (feeUsd === undefined || !Number.isFinite(feeUsd) || feeUsd < 0) return '—'
+    if (feeUsd === 0) return null
     return feeUsd < 0.01 ? '< $0.01' : `$${feeUsd.toFixed(2)}`
 }
 

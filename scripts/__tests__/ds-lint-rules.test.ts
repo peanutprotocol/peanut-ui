@@ -16,9 +16,18 @@ import {
     FONT_KNERD_RE,
     countOffFocusColorClasses,
     countOffFocusColorCss,
+    isProductionSource,
 } from '../ds-lint-rules.cjs'
 
 const countMatches = (text: string, re: RegExp) => (text.match(re) ?? []).length
+
+describe('design-system scan scope', () => {
+    it('scans product source but excludes test files and helpers', () => {
+        expect(isProductionSource('components/Card/YourCardScreen.tsx')).toBe(true)
+        expect(isProductionSource('features/card/__tests__/fixture-helper.tsx')).toBe(false)
+        expect(isProductionSource('features/card/example.test.tsx')).toBe(false)
+    })
+})
 
 describe('offScaleSpacing', () => {
     it('flags off-scale steps across every spacing family, logical ps/pe/ms/me included', () => {

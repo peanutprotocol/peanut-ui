@@ -46,6 +46,24 @@ const labels = (model: ReturnType<typeof buildReceiptPdfModel>) => model.rows.ma
 const row = (model: ReturnType<typeof buildReceiptPdfModel>, label: string) =>
     model.rows.find((r) => r.label === label)?.value
 
+// review finding 8: a Pix payout to another person's key reads as a send (TASK-24947) and is still
+// a payout, whose Transfer ID support asks for; a bank send-link claimed by a Peanut user is not
+describe('buildReceiptPdfModel — the Transfer ID of a payout that reads as a send', () => {
+    test('prints it for a Pix payout to another person', () => {
+        const model = buildReceiptPdfModel(withOverrides({ direction: 'send' }, { provider: 'AVENIA' }), t, 'en')
+        expect(row(model, 'transaction.rows.transferId')).toBe(baseTx.id)
+    })
+
+    test('leaves it out of a bank send-link claimed by a Peanut user', () => {
+        const model = buildReceiptPdfModel(
+            withOverrides({ direction: 'send' }, { bridgeFlow: 'BANK_SEND_LINK_CLAIM' }),
+            t,
+            'en'
+        )
+        expect(labels(model)).not.toContain('transaction.rows.transferId')
+    })
+})
+
 describe('buildReceiptPdfModel — completed bank withdraw', () => {
     const model = buildReceiptPdfModel(baseTx, t, 'en')
 
@@ -91,7 +109,7 @@ describe('buildReceiptPdfModel — completed bank withdraw', () => {
         expect(row(model, 'transaction.officialReceipt.pdf.type')).toBe('transaction.type.bank_withdraw')
         expect(row(model, 'transaction.officialReceipt.pdf.status')).toBe('common.status.completed')
         expect(row(model, 'transaction.rows.to')).toBe('kkonrad')
-        expect(row(model, 'transaction.rows.fee')).toBe('0.5')
+        expect(row(model, 'transaction.rows.fee')).toBe('$0.50')
         expect(row(model, 'transaction.rows.txId')).toBe(baseTx.txHash)
         expect(row(model, 'transaction.rows.transferId')).toBe(baseTx.id)
         expect(labels(model).slice(-2)).toEqual(['transaction.rows.txId', 'transaction.rows.transferId'])
@@ -139,7 +157,7 @@ describe('buildReceiptPdfModel — variants', () => {
             'en'
         )
         expect(model.convertedAmountDisplay).toBe('ARS 113,250.75')
-        expect(row(model, 'common.exchangeRate')).toBe('1 USD = ARS 902.4')
+        expect(row(model, 'common.exchangeRate')).toBe('1 USD = ARS 902.40')
     })
 
     test('bank account identifiers are always masked — the PDF is shareable', () => {

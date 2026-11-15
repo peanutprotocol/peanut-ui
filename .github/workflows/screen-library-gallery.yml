@@ -72,32 +72,7 @@ jobs:
                   node-version: '22'
             - name: Prepare bounded deployment progress helper
               if: steps.current.outputs.current == 'true'
-              run: |
-                  cat > /tmp/screen-deploy-operation <<'BASH'
-                  #!/usr/bin/env bash
-                  set -euo pipefail
-                  phase=$1
-                  shift
-                  started=$SECONDS
-                  printf 'phase=%s completed=0/1 elapsed=0s retry=0\n' "$phase"
-                  timeout --signal=TERM --kill-after=10s 270s "$@" &
-                  operation_pid=$!
-                  (
-                      while sleep 45; do
-                          printf 'phase=%s completed=0/1 elapsed=%ss retry=0\n' "$phase" "$((SECONDS - started))"
-                      done
-                  ) &
-                  progress_pid=$!
-                  cleanup() {
-                      kill "$progress_pid" 2>/dev/null || true
-                      kill "$operation_pid" 2>/dev/null || true
-                  }
-                  trap cleanup EXIT
-                  trap 'exit 143' TERM
-                  trap 'exit 130' INT
-                  wait "$operation_pid"
-                  printf 'phase=%s completed=1/1 elapsed=%ss retry=0\n' "$phase" "$((SECONDS - started))"
-                  BASH
+              run: install -m 700 scripts/screens/deploy-operation.sh /tmp/screen-deploy-operation
             - name: Verify deployment credentials
               if: steps.current.outputs.current == 'true'
               env:
@@ -118,7 +93,7 @@ jobs:
                   SCREEN_LIBRARY_PUBLIC_URL: ${{ vars.SCREEN_LIBRARY_PUBLIC_URL }}
                   SCREEN_LIBRARY_COMMENTS_DATABASE_ID: ${{ vars.SCREEN_LIBRARY_COMMENTS_DATABASE_ID }}
                   SCREEN_LIBRARY_COMMENTS_DATABASE_NAME: ${{ vars.SCREEN_LIBRARY_COMMENTS_DATABASE_NAME }}
-                  SCREEN_LIBRARY_ACCESS_AUD: ${{ vars.SCREEN_LIBRARY_ACCESS_AUD }}
+                  SCREEN_LIBRARY_ACCESS_AUD: ${{ vars.SCREEN_LIBRARY_GALLERY_ACCESS_AUD }}
                   SCREEN_LIBRARY_ACCESS_TEAM_DOMAIN: ${{ vars.SCREEN_LIBRARY_ACCESS_TEAM_DOMAIN }}
               run: node scripts/screens/worker/prepare.mjs /tmp/screen-gallery
             - name: Apply additive comments migrations
