@@ -61,12 +61,34 @@ describe('useLimitsValidation: a BRL operation reads the limits of the provider 
     it('a Manteca user whose Manteca limits could not be read gets no limit check, never the foreign QR cap', () => {
         mockRoutes = pixRoutes('manteca')
         mockRails = [MANTECA_RAIL]
-        mockLimits = { manteca: null, bridge: null, avenia: null }
+        mockLimits = { manteca: null, bridge: null, avenia: null, unavailable: ['manteca'] }
         const { result } = renderHook(() =>
             useLimitsValidation({ flowType: 'qr-payment', amount: '5000', currency: 'ARS' })
         )
         expect(result.current.isBlocking).toBe(false)
         expect(result.current.remainingLimit).toBeNull()
+        expect(result.current.limitsUnavailable).toBe(true)
+    })
+
+    // review 2, finding 3: the API answers manteca: null for a user with only a Manteca QR pool rail too
+    it('a Manteca rail whose limits the API does not list as unreadable has no Manteca limits: the foreign QR cap', () => {
+        mockRoutes = pixRoutes('manteca')
+        mockRails = [MANTECA_RAIL]
+        mockLimits = { manteca: null, bridge: null, avenia: null, unavailable: [] }
+        const { result } = renderHook(() =>
+            useLimitsValidation({ flowType: 'qr-payment', amount: '5000', currency: 'ARS' })
+        )
+        expect(result.current.limitsUnavailable).toBe(false)
+        expect(result.current.isBlocking).toBe(true)
+    })
+
+    it('an Avenia operation whose room the API could not read checks nothing here and says so', () => {
+        mockRoutes = pixRoutes('avenia')
+        mockLimits = { manteca: null, bridge: null, avenia: null, unavailable: ['avenia'] }
+        const { result } = renderHook(() =>
+            useLimitsValidation({ flowType: 'qr-payment', amount: '5000', currency: 'BRL' })
+        )
+        expect(result.current.isBlocking).toBe(false)
         expect(result.current.limitsUnavailable).toBe(true)
     })
 

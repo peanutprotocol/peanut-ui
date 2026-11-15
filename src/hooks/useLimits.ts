@@ -27,14 +27,14 @@ export function useLimits(options: UseLimitsOptions = {}) {
         await authReady()
         const token = getAuthToken()
         if (!isCapacitor() && !token && !isDemoMode()) {
-            return { manteca: null, bridge: null, avenia: null }
+            return { manteca: null, bridge: null, avenia: null, unavailable: [] }
         }
 
         const response = await serverFetch('/users/limits', { method: 'GET' })
 
         // 400 means user has no kyc - return empty limits
         if (response.status === 400) {
-            return { manteca: null, bridge: null, avenia: null }
+            return { manteca: null, bridge: null, avenia: null, unavailable: [] }
         }
 
         if (!response.ok) {

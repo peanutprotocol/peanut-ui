@@ -449,7 +449,15 @@ export interface UserLimitsResponse {
     bridge: BridgeLimits | null
     /** Null with no Avenia account, or when its limits could not be read; absent on an API before M5. */
     avenia?: AveniaLimits | null
+    /**
+     * The providers the user holds whose limits could not be read now. A null limit whose provider is not
+     * listed means no account there. Absent on an older API: read as empty.
+     */
+    unavailable?: LimitsProvider[]
 }
+
+/** A provider `GET /users/limits` may name as unreadable. */
+export type LimitsProvider = 'manteca' | 'avenia'
 
 /** Flow-level error banner state (`showError` + copy) — the one shared shape
  * for flow contexts (withdraw, onramp; TASK-21462 dedup). Field-level

@@ -12,7 +12,7 @@ import {
 import { formatExtendedNumber } from '@/utils/general.utils'
 import {
     brlLimitsProvider,
-    mantecaLimitsUnread,
+    limitsUnavailable,
     mapToLimitCurrency,
     monthlyRoomValidation,
     type LimitCurrency,
@@ -53,9 +53,9 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
     // Manteca's limits could not be read for a user who holds Manteca: a local operation checks nothing
     // here (the API still refuses over the limit), and a QR payment never falls to the foreign cap
     const mantecaUnread =
-        mantecaLimitsUnread(limits, capabilities.rails ?? []) &&
-        !servedByAvenia &&
-        (flowType === 'qr-payment' || currency !== 'USD')
+        limitsUnavailable(limits, 'manteca') && !servedByAvenia && (flowType === 'qr-payment' || currency !== 'USD')
+    // Avenia's room could not be read for an operation it serves: nothing to check here either
+    const aveniaUnread = servedByAvenia && limitsUnavailable(limits, 'avenia')
 
     // determine if user is "local" (has manteca limits = enabled manteca rails)
     const isLocalUser = hasMantecaLimits
@@ -346,7 +346,7 @@ export function useLimitsValidation({ flowType, amount, currency: currencyInput 
         isBridgeUser: hasBridgeLimits,
         // the operation's limits are Avenia's: Manteca's limit increase does not apply to it
         servedByAvenia,
-        // Manteca's limits are not available right now (not "no limit")
-        limitsUnavailable: mantecaUnread,
+        // the serving provider's limits are not available right now (not "no limit")
+        limitsUnavailable: mantecaUnread || aveniaUnread,
     }
 }

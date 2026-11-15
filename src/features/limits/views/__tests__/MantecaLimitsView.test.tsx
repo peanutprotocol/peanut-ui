@@ -64,16 +64,38 @@ describe('the LATAM limits screen shows the limits of the provider that serves e
         mockRails = []
     })
 
-    // API review 2 (8208ebba5): Manteca's failed read answers manteca: null for a user who holds Manteca
+    // API review 2 (8208ebba5, cf71f739c): the API lists a provider whose limits it could not read
     it('says the limits could not load when Manteca’s read failed, and still shows Avenia’s room', () => {
         mockRails = [MANTECA_RAIL]
-        mockLimits = { manteca: null, bridge: null, avenia: AVENIA }
+        mockLimits = { manteca: null, bridge: null, avenia: AVENIA, unavailable: ['manteca'] }
         mockRoutes = pixRoutes('avenia')
         render(<MantecaLimitsView />)
 
         expect(screen.getByText('Couldn’t load limits')).toBeInTheDocument()
         expect(screen.getByText('BRL left this month')).toBeInTheDocument()
         expect(screen.queryByText('Limits data not available')).not.toBeInTheDocument()
+    })
+
+    // review 2, finding 3: a Manteca QR pool rail alone holds no Manteca limits
+    it.each([
+        ['an empty list', []],
+        ['no list (an older API)', undefined],
+    ])('a Manteca rail with no Manteca limits and %s is no error: Avenia’s room shows', (_label, unavailable) => {
+        mockRails = [MANTECA_RAIL]
+        mockLimits = { manteca: null, bridge: null, avenia: AVENIA, unavailable }
+        mockRoutes = pixRoutes('avenia')
+        render(<MantecaLimitsView />)
+
+        expect(screen.queryByText('Couldn’t load limits')).not.toBeInTheDocument()
+        expect(screen.getByText('BRL left this month')).toBeInTheDocument()
+    })
+
+    it('says the limits could not load when Avenia’s room, which this page shows, could not be read', () => {
+        mockLimits = { manteca: [limit('ARS', 'ARG')], bridge: null, avenia: null, unavailable: ['avenia'] }
+        mockRoutes = pixRoutes('avenia')
+        render(<MantecaLimitsView />)
+
+        expect(screen.getByText('Couldn’t load limits')).toBeInTheDocument()
     })
 
     it('shows Avenia’s monthly room for BRL in place of Manteca’s BRL card, and keeps ARS on Manteca', () => {

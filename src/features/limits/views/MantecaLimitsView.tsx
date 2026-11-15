@@ -19,7 +19,7 @@ import {
     formatAmountWithCurrency,
     getFlagUrlForCurrency,
     aveniaServesBrl,
-    mantecaLimitsUnread,
+    limitsUnavailable,
     type LimitsPeriod,
 } from '../utils'
 import MonthlyRoomCard from '../components/MonthlyRoomCard'
@@ -54,8 +54,9 @@ const MantecaLimitsView = () => {
     const aveniaRoom = brlOnAvenia ? aveniaLimits : null
     const aveniaDeposits = findPixRoute(capabilities.routes, 'deposit')?.provider === 'avenia'
     const hasLimits = (mantecaLimits?.length ?? 0) > 0 || !!aveniaRoom
-    // Manteca's read failed for a user who holds Manteca: the screen's error, as when the whole read failed
-    const mantecaUnread = mantecaLimitsUnread(limits, capabilities.rails ?? [])
+    // A provider whose limits this page shows could not be read: the screen's error, as when the whole
+    // read failed. A null limit the API does not list is no account there, and shows nothing.
+    const mantecaUnread = limitsUnavailable(limits, 'manteca') || (brlOnAvenia && limitsUnavailable(limits, 'avenia'))
     const [period, setPeriod] = useState<LimitsPeriod>('monthly')
     const [capNudgeCtaShown, setCapNudgeCtaShown] = useState(false)
 

@@ -1,7 +1,7 @@
 'use client'
 
-import type { MantecaLimit, MonthlyRoom, UserLimitsResponse } from '@/interfaces/interfaces'
-import type { CapabilityRoute, ProviderCode, RailCapability, RailOperation } from '@/types/capabilities'
+import type { LimitsProvider, MantecaLimit, MonthlyRoom, UserLimitsResponse } from '@/interfaces/interfaces'
+import type { CapabilityRoute, ProviderCode, RailOperation } from '@/types/capabilities'
 import { findPixRoute, PIX_METHOD } from '@/features/pix/pixRoute.utils'
 import { SYMBOLS_BY_CURRENCY_CODE } from '@/constants/currency-symbols.consts'
 import { getCurrencyFlagUrl } from '@/constants/countryCurrencyMapping'
@@ -95,16 +95,12 @@ export function brlLimitsProvider(
 }
 
 /**
- * Whether Manteca's limits are unknown right now: the user holds an enabled Manteca rail, and the
- * limits read answered `manteca: null` because Manteca's read failed (API review 2, 8208ebba5; it
- * used to fail the whole read). That is "not available right now", never "no limit".
+ * Whether a provider's limits are unknown right now: the API lists it in `unavailable` (the user holds
+ * it, and its read failed). That is "not available right now", never "no limit". A null limit whose
+ * provider is not listed means the user has no limits there (a Manteca QR pool rail alone has none).
  */
-export function mantecaLimitsUnread(limits: UserLimitsResponse | null, rails: readonly RailCapability[]): boolean {
-    return (
-        !!limits &&
-        limits.manteca === null &&
-        rails.some((rail) => rail.provider === 'manteca' && rail.status === 'enabled')
-    )
+export function limitsUnavailable(limits: UserLimitsResponse | null, provider: LimitsProvider): boolean {
+    return !!limits?.unavailable?.includes(provider)
 }
 
 /** Whether any of the user's Pix routes names Avenia: Manteca's BRL limits then stand for nothing the user does. */

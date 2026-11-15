@@ -316,4 +316,5 @@ export const DEMO_LIMITS: UserLimitsResponse = {
             availableMonthlyLimit: '950000',
         },
     ],
+    unavailable: [],
 }
