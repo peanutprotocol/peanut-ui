@@ -101,10 +101,16 @@ describe('initiateSumsubKyc — backend refusals', () => {
         respondWith(404, { error: 'No provider rejection found' })
         const result = await initiateSelfHealResubmission('BRIDGE')
         expect(result.error).not.toMatch(/no provider rejection found/i)
-        expect(result.code).toBe('resubmit_failed')
+        // TASK-24909: nothing to answer, so the copy offers no retry
+        expect(result.code).toBe('resubmit_unavailable')
 
         respondWith(400, { error: 'No identity verification found', userMessage: 'Start the ID check first.' })
         expect((await initiateSelfHealResubmission('BRIDGE')).error).toBe('Start the ID check first.')
+    })
+
+    it('keeps the retry copy for a resubmit that failed on our side', async () => {
+        respondWith(500, {})
+        expect((await initiateSelfHealResubmission('BRIDGE')).code).toBe('resubmit_failed')
     })
 
     it('falls back to canned copy with a code when the backend says nothing', async () => {
