@@ -26,6 +26,8 @@ export type PixWithdrawOpened = Json<paths['/pix/withdraw']['post']['responses']
 export type PixWithdrawSign = PixWithdrawOpened['sign']
 export type PixWithdrawSubmitRequest = Json<paths['/pix/withdraw/submit']['post']['requestBody']>
 export type PixWithdrawSubmitted = Json<paths['/pix/withdraw/submit']['post']['responses'][200]>
+/** One withdrawal or send to a Pix key: where it stands, whom it paid, and a send's QR reward. */
+export type PixWithdrawal = Json<paths['/pix/withdraw/{intentId}']['get']['responses'][200]>
 
 /** A merchant QR payment (a Pix BR Code) on the neutral pay routes: its review, the payment it opens, and its read. */
 export type PixPayPreviewRequest = Json<paths['/pix/pay/preview']['post']['requestBody']>
@@ -108,6 +110,10 @@ export const pixApi = {
             post({ txHash }),
             'Could not report the payment'
         ),
+
+    /** Owner only. A paid send to another person's key carries its QR reward (`perk`, null until issued). */
+    readWithdrawal: (intentId: string) =>
+        call<PixWithdrawal>(`/pix/withdraw/${encodeURIComponent(intentId)}`, GET, 'Could not read the withdrawal'),
 
     readPayment: (intentId: string) =>
         call<PixPayment>(`/pix/pay/${encodeURIComponent(intentId)}`, GET, 'Could not read the payment'),

@@ -1,6 +1,6 @@
 /** @jest-environment jsdom */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { act, screen } from '@testing-library/react'
+import { act, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
 import { PAYMENT_LOADING_WORD_KEYS } from '@/components/Global/Loading/words'
@@ -59,6 +59,15 @@ jest.mock('@/hooks/usePointsConfetti', () => ({ usePointsConfetti: () => undefin
 jest.mock('@/hooks/useAppReviewNudge', () => ({ useAppReviewNudge: () => undefined }))
 jest.mock('@/hooks/useAppHaptic', () => ({ useAppHaptic: () => ({ triggerHaptic: jest.fn() }) }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => false }))
+// a send's own read (its QR reward) and the QR lane's points estimate (ruling of 15 Nov)
+const mockReadWithdrawal = jest.fn()
+jest.mock('@/services/pix', () => ({ pixApi: { readWithdrawal: (id: string) => mockReadWithdrawal(id) } }))
+const mockCalculatePoints = jest.fn()
+jest.mock('@/services/points', () => ({ pointsApi: { calculatePoints: (r: unknown) => mockCalculatePoints(r) } }))
+jest.mock('@/components/Common/PointsCard', () => ({
+    __esModule: true,
+    default: ({ points }: { points: number }) => <div>points {points}</div>,
+}))
 
 import { PixWithdrawOutcome } from '../components/PixWithdrawOutcome'
 
@@ -299,5 +308,84 @@ describe('PixWithdrawOutcome failure endings', () => {
         renderOutcome(null, 'manteca-br')
 
         expect(screen.queryByText(/^provider /)).toBeNull()
+    })
+})
+
+// The owner's ruling of 15 Nov: a send to another person's key earns what Manteca's key send earned,
+// shown with the QR success's reward card and hold-to-claim (GET /pix/withdraw/:intentId's `perk`)
+describe("PixWithdrawOutcome: a send's QR reward", () => {
+    const perk = {
+        eligible: true as const,
+        discountPercentage: 0,
+        claimed: false as const,
+        sponsoredUsd: 1,
+        reason: 'Pix cashback',
+        usageId: 'usage-1',
+        payoutStatus: 'pending' as const,
+    }
+    const read = (state: string, withPerk: Record<string, unknown> | null = perk) => ({
+        provider: 'avenia',
+        intentId: 'w1',
+        state,
+        status: 'COMPLETED',
+        amountBrl: '503.00',
+        holderName: 'Bruno Lima',
+        ownAccount: false,
+        perk: withPerk,
+    })
+    const toBruno = { phase: 'funded' as const, display: { ...display, ownAccount: false, holderName: 'Bruno Lima' } }
+    // the hold's label is drawn twice (under and over its fill)
+    const holdButton = () => screen.queryAllByText(en.qrPay.success.claimReward)[0] ?? null
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockEntry.mockReturnValue(entry('COMPLETED'))
+        mockCalculatePoints.mockResolvedValue({ estimatedPoints: 46 })
+    })
+
+    it('a paid send with a reward: the reward card and the hold, in place of the points and the other CTAs', async () => {
+        mockReadWithdrawal.mockResolvedValue(read('paid'))
+        renderOutcome(toBruno)
+
+        expect(await screen.findByText(en.qrPay.success.earnedRewardTitle)).toBeInTheDocument()
+        expect(mockReadWithdrawal).toHaveBeenCalledWith('w1')
+        expect(holdButton()).toBeInTheDocument()
+        expect(screen.queryByText('points 46')).toBeNull()
+        expect(screen.queryByRole('button', { name: en.payment.success.backToHome })).toBeNull()
+    })
+
+    it('a reward already paid out reads as claimed: its banner, no hold', async () => {
+        mockReadWithdrawal.mockResolvedValue(read('paid', { ...perk, payoutStatus: 'completed', txHash: '0xab' }))
+        renderOutcome(toBruno)
+
+        expect(await screen.findByText(en.qrPay.success.earnedRewardTitle)).toBeInTheDocument()
+        expect(holdButton()).toBeNull()
+        expect(screen.getByRole('button', { name: en.payment.success.backToHome })).toBeInTheDocument()
+    })
+
+    it('a send whose read is not paid (refunded) shows no reward, only its points', async () => {
+        mockReadWithdrawal.mockResolvedValue(read('refunded'))
+        renderOutcome(toBruno)
+
+        expect(await screen.findByText('points 46')).toBeInTheDocument()
+        expect(screen.queryByText(en.qrPay.success.earnedRewardTitle)).toBeNull()
+        expect(holdButton()).toBeNull()
+    })
+
+    it('a paid send no campaign rewards shows the QR lane points', async () => {
+        mockReadWithdrawal.mockResolvedValue(read('paid', null))
+        renderOutcome(toBruno)
+
+        expect(await screen.findByText('points 46')).toBeInTheDocument()
+        expect(mockCalculatePoints).toHaveBeenCalledWith({ actionType: 'MANTECA_QR_PAYMENT', usdAmount: 92.50431 })
+    })
+
+    it('a payout to the user’s own key reads no reward and shows no QR points', async () => {
+        renderOutcome(funded)
+
+        expect(await screen.findByText(en.payment.success.withdrew)).toBeInTheDocument()
+        await waitFor(() => expect(mockReadWithdrawal).not.toHaveBeenCalled())
+        expect(mockCalculatePoints).not.toHaveBeenCalled()
+        expect(screen.queryByText(en.qrPay.success.earnedRewardTitle)).toBeNull()
     })
 })

@@ -998,6 +998,21 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         }),
     },
     { method: 'POST', pattern: '/pix/withdraw/:intentId/funded', handler: () => ({ status: 'PROCESSING' }) },
+    // a send's own read: paid, no QR reward issued (the reward fixtures answer one)
+    {
+        method: 'GET',
+        pattern: '/pix/withdraw/:intentId',
+        handler: ({ params }) => ({
+            provider: 'avenia',
+            intentId: params.intentId,
+            state: 'paid',
+            status: 'COMPLETED',
+            amountBrl: '100.00',
+            holderName: 'Bruno Lima',
+            ownAccount: false,
+            perk: null,
+        }),
+    },
     // a merchant Pix code on the neutral pay routes (API-CONTRACT-M4)
     {
         method: 'POST',

@@ -2370,6 +2370,23 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'The last step of a Pix send after a reload, once Avenia paid it: Sent, to the holder by name.',
         responses: aveniaResponses('enabled', { [`GET /history/${AVENIA_SEND_ID}`]: aveniaSend('COMPLETED') }),
     },
+    'pix-send-arrived-reward': {
+        route: `${aveniaOutcomeRoute(AVENIA_SEND_ID)}&sendMethod=bank`,
+        about: "A paid Pix send to another person's key that earned the QR reward (ruling of 15 Nov): the QR success's reward card and hold-to-claim.",
+        responses: aveniaResponses('enabled', {
+            [`GET /history/${AVENIA_SEND_ID}`]: aveniaSend('COMPLETED'),
+            [`GET /pix/withdraw/${AVENIA_SEND_ID}`]: {
+                provider: 'avenia',
+                intentId: AVENIA_SEND_ID,
+                state: 'paid',
+                status: 'COMPLETED',
+                amountBrl: '100.00',
+                holderName: 'Bruno Lima',
+                ownAccount: false,
+                perk: AVENIA_QR_PERK,
+            },
+        }),
+    },
     'pix-receipt-send': {
         route: `/history?tx=${AVENIA_SEND_ID}`,
         about: "The receipt of a Pix send to another person's key: the holder by name, the Pix key row punctuated, the raw key copied.",

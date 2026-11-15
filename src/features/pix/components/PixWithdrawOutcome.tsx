@@ -14,6 +14,9 @@ import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import { pixWithdrawOutcome } from '@/features/pix/pixFlow.utils'
+import { usePixSendReward } from '@/features/pix/usePixSendReward'
+import { usePointsCalculation } from '@/hooks/usePointsCalculation'
+import { PointsAction } from '@/services/services.types'
 import { depositMaybeSent } from '@/features/pix/pixWithdrawSent'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useHistoryEntry } from '@/hooks/useHistoryEntry'
@@ -89,6 +92,18 @@ export function PixWithdrawOutcome({
     const payout = entry.data?.extraData?.pixPayout
     const toOtherPerson = sent ? sent.display.ownAccount === false : payout?.ownAccount === false
 
+    // A paid send to another person earns what Manteca's key send earned (ruling of 15 Nov): the QR
+    // lane's points and, where a campaign grants it, the QR reward, shown as the QR success shows them.
+    const paidSend = outcome === 'arrived' && toOtherPerson
+    const { reward: sendReward, markClaimed: markSendRewardClaimed } = usePixSendReward(intentId, paidSend)
+    const sentUsd = sent?.display.withdrawUsd ?? entry.data?.amount
+    const { pointsData } = usePointsCalculation(
+        PointsAction.MANTECA_QR_PAYMENT,
+        sentUsd,
+        paidSend,
+        intentId ?? undefined
+    )
+
     // the receipt behind "See receipt": the landed withdrawal's entry, mapped the way Activity maps it
     const receipt = useMemo(
         () => (outcome === 'arrived' && entry.data ? mapTransactionDataForDrawer(entry.data).transactionDetails : null),
@@ -115,7 +130,7 @@ export function PixWithdrawOutcome({
         const holder = sent?.display.holderName ?? payout?.holderName ?? entry.data?.recipientAccount?.fullName
         // after a reload the entry's payout names the bank; one opened before M3 names none, and the line carries the key alone
         const bank = sent?.display.bankName ?? payout?.bankName
-        const amountUsd = sent?.display.withdrawUsd ?? entry.data?.amount
+        const amountUsd = sentUsd
         // The view is the page shell: it renders the header with its cancel (as the crypto withdrawal
         // mounts it), and both the cancel and Back to home leave to home, then `onDone`. A shell around
         // it would stack two min-h-inherit regions and push the card down (Chip, 37aafd073).
@@ -141,6 +156,9 @@ export function PixWithdrawOutcome({
                 transactionDetails={receipt}
                 providerId={openedBy ?? undefined}
                 onComplete={onDone}
+                points={paidSend ? pointsData?.estimatedPoints : undefined}
+                paidReward={paidSend ? sendReward : null}
+                onRewardClaimed={markSendRewardClaimed}
             />
         )
     }

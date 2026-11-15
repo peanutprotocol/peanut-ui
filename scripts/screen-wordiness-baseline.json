@@ -79,6 +79,7 @@
         "features/payments/flows/qr-pay/views/QrPaySuccessView.tsx": 74,
         "features/payments/flows/semantic-request/views/SemanticRequestInputView.tsx": 62,
         "features/payments/flows/semantic-request/views/SemanticRequestReceiptView.tsx": 810,
+        "features/payments/shared/components/PaymentSuccessView.tsx": 66,
         "features/withdraw/views/BridgeBankWithdrawView.tsx": 195,
         "features/withdraw/views/ConfirmWithdrawView.tsx": 137,
         "features/withdraw/views/WithdrawAmountView.tsx": 74,
