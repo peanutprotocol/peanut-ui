@@ -95,4 +95,18 @@ describe('useQrPayRoute: which flow a scanned code mounts (API-CONTRACT-M4 §1)'
         mockRoutes = [payRoute({ state: 'action_required', action: 'activate' })]
         expect(renderRoute(PIX_CODE, 'PIX', '?intentId=pay-1').step).toBe('flow')
     })
+
+    // Chip on 01140e4de: an opened payment is read where it was opened, whatever the route says now
+    it.each([
+        ['turned to Manteca', [payRoute({ provider: 'manteca' })]],
+        ['is gone', []],
+    ])('a Pix payment already opened stays on the neutral pay routes when the route %s', (_label, routes) => {
+        mockRoutes = routes
+        expect(renderRoute(PIX_CODE, 'PIX', '?intentId=pay-1')).toMatchObject({ viaPixRoutes: true, step: 'flow' })
+    })
+
+    it('an id in the URL never moves an Argentine code to the Pix routes', () => {
+        mockRoutes = [payRoute({ provider: 'manteca' })]
+        expect(renderRoute(MP_CODE, 'MERCADO_PAGO', '?intentId=pay-1').viaPixRoutes).toBe(false)
+    })
 })

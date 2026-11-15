@@ -769,9 +769,10 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     const pixPayFee = pixPayReviewed?.fixedFeeBrl
     const providerFee: string | null =
         isPixPay && pixPayFee && Number(pixPayFee) > 0 ? formatBankAmount(pixPayFee, 'BRL') : null
-    // the legal record behind the provider row: the route's provider, or Manteca's entity for the code's country
+    // the legal record behind the provider row: the opened payment's provider (a route that changed since
+    // names another), else the route's, or Manteca's entity for the code's country
     const providerId: ProviderId | null = isPixPay
-        ? pixProviderId(pixPayRoute?.provider)
+        ? pixProviderId(pixPayment.intentId ? pixPayment.payment?.provider : pixPayRoute?.provider)
         : paymentProcessor === 'MANTECA' && targetMantecaCountry
           ? targetMantecaCountry === 'BR'
               ? 'manteca-br'

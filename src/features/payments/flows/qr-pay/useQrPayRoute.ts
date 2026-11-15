@@ -43,13 +43,18 @@ export function qrPayRouteStep(input: {
  * The route a scanned code is paid on. A Pix code goes through the neutral pay routes when the
  * pay:PIX_BR route says so (`pixPaysThroughPayRoutes`); every other code, and a Pix code on any other
  * route, keeps its provider's QR flow (API-CONTRACT-M4 §1).
+ *
+ * A payment already opened stays on the rail that opened it: only the neutral pay routes put its id in
+ * the URL (`?intentId=`), so the flow reads that payment there whatever the route says now (a gate
+ * flip, the BRL switch, a route that is gone). Moving it to Manteca's flow would offer a second
+ * payment for the same scan while the first one exists.
  */
 export function useQrPayRoute(qrCode: string, qrType: string | null) {
     const { capabilities, isLoading } = useCapabilities()
     const [intentId] = useQueryState('intentId', parseAsString)
     const isPixCode = qrType === EQrType.PIX || isPixEmvcoQr(qrCode)
     const route = isPixCode ? findPixRoute(capabilities.routes, 'pay') : undefined
-    const viaPixRoutes = pixPaysThroughPayRoutes(route)
+    const viaPixRoutes = isPixCode && (!!intentId || pixPaysThroughPayRoutes(route))
     return {
         route,
         viaPixRoutes,
