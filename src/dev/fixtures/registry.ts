@@ -2538,6 +2538,12 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Avenia Pix withdrawal: the form before an amount, in reais estimated with the Pix quote, R$5 minimum.',
         responses: aveniaResponses('enabled'),
     },
+    'pix-withdraw-under-minimum': {
+        route: `${AVENIA_WITHDRAW_ROUTE}?step=review`,
+        sessionStorage: pixWithdrawForm({ destination: AVENIA_OWN_KEY, amountBrl: '3' }),
+        about: 'Avenia Pix withdrawal of R$3: under the R$5 minimum (ruling of 15 Nov), the form says so and asks no quote.',
+        responses: aveniaResponses('enabled'),
+    },
     'pix-withdraw-quote-failed': {
         route: `${AVENIA_WITHDRAW_ROUTE}?step=review`,
         sessionStorage: pixWithdrawForm({ destination: AVENIA_OWN_KEY }),

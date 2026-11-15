@@ -2461,6 +2461,11 @@
         "route": "/withdraw/pix?step=review"
     },
     {
+        "id": "fixture-pix-withdraw-under-minimum",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix?step=review"
+    },
+    {
         "id": "fixture-pix-withdraw-quote-failed",
         "flow": "Withdraw",
         "route": "/withdraw/pix?step=review"
