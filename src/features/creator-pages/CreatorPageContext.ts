@@ -6,9 +6,11 @@ import type { CreatorPageProps } from './types'
 
 export type CreatorPageContextValue = {
     page: CreatorPageProps
+    /** From the server's experiments.ts, so the cookie and the event name the experiment that picked this variant. */
+    experimentId: string | null
     /** True on the dev preview route: no event, no cookie. */
     preview: boolean
-    /** `other` during server render and hydration, because the server never sees the user agent here. */
+    /** Decided on the server from the request's user agent. It picks the label and the store icon, nothing else. */
     deviceOs: DeviceOs
 }
 

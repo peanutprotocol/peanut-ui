@@ -4,7 +4,8 @@
 import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 import type { ComponentType } from 'react'
-import { CREATOR_PAGE_EXPERIMENTS } from './experiments'
+import { creatorPageExperiment } from './experiments'
+import { creatorPageComponent } from './page-components'
 import { pickVariant } from './pick-variant'
 import type { CreatorPageProps } from './types'
 import { variantCookieName } from './variant-cookie'
@@ -30,12 +31,11 @@ export async function selectCreatorPage(creator: {
 }): Promise<CreatorPageSelection | null> {
     // Keyed by username, not linkId as the contract first said (deviation announced in the go-links
     // coordination notes): a link id differs per environment, so a linkId key would show the page in one only.
-    // hasOwn: a username such as `constructor` must not resolve to an Object.prototype member.
-    if (!Object.hasOwn(CREATOR_PAGE_EXPERIMENTS, creator.username)) return null
-    const experiment = CREATOR_PAGE_EXPERIMENTS[creator.username]
+    const experiment = creatorPageExperiment(creator.username)
+    if (!experiment) return null
     const cookieValue = (await cookies()).get(variantCookieName(creator.username))?.value
     // One draw per request. Drawing inside the lookup re-rolled for every variant and skewed the split.
-    const variantId = pickVariant(experiment, cookieValue)
-    const variant = experiment.variants.find(({ id }) => id === variantId)
-    return variant ? { variant: variant.id, experimentId: experiment.id, Page: variant.Page } : null
+    const variant = pickVariant(experiment, cookieValue)
+    const Page = variant && creatorPageComponent(creator.username, variant)
+    return Page ? { variant, experimentId: experiment.id, Page } : null
 }

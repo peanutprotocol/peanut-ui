@@ -1,5 +1,5 @@
-// Local copy of the engine contract (mono inbox/go-links/coordination.md, FROZEN v1).
-// Replace it by imports from '@/features/tracked-links/contract' when this branch stacks on the go-links PRs.
+// Local copy of the /go engine's contract types, v1. The engine owns them: delete this file and
+// import from '@/features/tracked-links/contract' when this branch stacks on the go-links PRs.
 
 export type GoPlacement = 'ig' | 'x' | 'tt' | 'yt' | 'fb' | 'th' | 'wa' | 'tg' | 'li' | 'dc' | 'em' | 'qr'
 

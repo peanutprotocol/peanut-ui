@@ -1,22 +1,25 @@
-'use client'
-
 import { notFound } from 'next/navigation'
-import { use } from 'react'
 import { creatorPageFixture } from '@/features/creator-pages/creator-page-fixture'
-import { CreatorPagePreviewContext } from '@/features/creator-pages/CreatorPageContext'
-import { CREATOR_PAGE_EXPERIMENTS } from '@/features/creator-pages/experiments'
+import { CreatorPagePreview } from '@/features/creator-pages/CreatorPagePreview'
+import { creatorPageComponent } from '@/features/creator-pages/page-components'
 
-/** One variant from a fixture. The preview context switches the events and the cookie off. */
-export default function CreatorPagePreview({ params }: { params: Promise<{ creator: string; variant: string }> }) {
-    const { creator, variant } = use(params)
-    const found = Object.hasOwn(CREATOR_PAGE_EXPERIMENTS, creator)
-        ? CREATOR_PAGE_EXPERIMENTS[creator].variants.find(({ id }) => id === variant)
-        : undefined
-    if (!found) notFound()
+/**
+ * One variant from a fixture. A server component that looks the page up and renders it, the way
+ * /go does after selectCreatorPage, so the preview crosses the same server-to-client boundary.
+ * CreatorPagePreview switches the events and the cookie off.
+ */
+export default async function CreatorPagePreviewRoute({
+    params,
+}: {
+    params: Promise<{ creator: string; variant: string }>
+}) {
+    const { creator, variant } = await params
+    const Page = creatorPageComponent(creator, variant)
+    if (!Page) notFound()
 
     return (
-        <CreatorPagePreviewContext.Provider value={true}>
-            <found.Page {...creatorPageFixture(creator, variant)} />
-        </CreatorPagePreviewContext.Provider>
+        <CreatorPagePreview>
+            <Page {...creatorPageFixture(creator, variant)} />
+        </CreatorPagePreview>
     )
 }

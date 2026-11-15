@@ -13,7 +13,9 @@ describe('creatorPageEventProperties', () => {
                 referrerHost: 'l.instagram.com',
             },
         }
-        expect(creatorPageEventProperties(page, { deviceOs: 'ios', inAppBrowser: 'instagram' })).toEqual({
+        expect(
+            creatorPageEventProperties(page, 'nita-2026-11-a', { deviceOs: 'ios', inAppBrowser: 'instagram' })
+        ).toEqual({
             link_id: 'invite_' + '0'.repeat(64),
             placement: 'ig',
             code: 7,
@@ -41,7 +43,7 @@ describe('creatorPageEventProperties', () => {
                 referrerHost: null,
             },
         }
-        const properties = creatorPageEventProperties(page, { deviceOs: 'other', inAppBrowser: 'none' })
+        const properties = creatorPageEventProperties(page, null, { deviceOs: 'other', inAppBrowser: 'none' })
         expect(properties).toMatchObject({ page_experiment: null, placement: null, referrer_host: null })
         expect(JSON.stringify(properties)).not.toContain('/home')
     })

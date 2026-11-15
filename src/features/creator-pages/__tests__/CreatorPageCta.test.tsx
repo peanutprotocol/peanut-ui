@@ -3,40 +3,59 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import posthog from 'posthog-js'
 import { trackedLinkAnalyticsAllowed } from '@/features/tracked-links/eligibility'
 import { creatorPageFixture } from '../creator-page-fixture'
-import { CreatorPagePreviewContext } from '../CreatorPageContext'
 import { CreatorPageCta } from '../CreatorPageCta'
-import { CreatorPageShell } from '../CreatorPageShell'
+import { CreatorPagePreview } from '../CreatorPagePreview'
+import { CreatorPageProvider } from '../CreatorPageProvider'
+import type { DeviceOs } from '../environment'
 import { USER_AGENTS } from './user-agents'
 
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 jest.mock('@/features/tracked-links/eligibility', () => ({ trackedLinkAnalyticsAllowed: jest.fn() }))
 jest.mock('@/utils/signup-attribution', () => ({
-    signupAttributionPosthogProperties: () => ({ signup_journey_id: '11111111-1111-4111-8111-111111111111' }),
+    signupAttributionPosthogProperties: () => ({
+        signup_journey_id: '11111111-1111-4111-8111-111111111111',
+        signup_platform: 'web',
+        signup_attribution_capture_method: 'tracked_link',
+    }),
 }))
 
 const capture = posthog.capture as jest.Mock
 const page = creatorPageFixture('juanacervio', 'a1')
 const labels = { ios: 'Abrir en App Store', android: 'Abrir en Google Play', other: 'Bajar Peanut' }
 
-function renderCta(userAgent: string, props: Partial<Parameters<typeof CreatorPageCta>[0]> = {}) {
-    Object.defineProperty(navigator, 'userAgent', { configurable: true, value: userAgent })
+function renderCta(deviceOs: DeviceOs, props: Partial<Parameters<typeof CreatorPageCta>[0]> = {}) {
     return render(
-        <CreatorPageShell page={page} lang="es-AR">
-            <CreatorPageCta labels={labels} className="cta" {...props} />
-        </CreatorPageShell>
+        <CreatorPageProvider page={page} experimentId="nita-2026-11-a" deviceOs={deviceOs}>
+            <CreatorPageCta labels={labels} className="cta" position="hero" {...props} />
+        </CreatorPageProvider>
     )
+}
+
+/** Clicks the link and reports whether the component prevented the navigation. */
+function clickLink(): boolean {
+    let preventedByComponent: boolean | undefined
+    // React's handler runs at the root container, before this listener on document. The listener
+    // records what the component did, then cancels the navigation itself, which jsdom cannot perform.
+    const afterReact = (event: MouseEvent) => {
+        preventedByComponent = event.defaultPrevented
+        event.preventDefault()
+    }
+    document.addEventListener('click', afterReact)
+    fireEvent.click(screen.getByRole('link'))
+    document.removeEventListener('click', afterReact)
+    if (preventedByComponent === undefined) throw new Error('the click did not reach document')
+    return preventedByComponent
 }
 
 beforeEach(() => {
     capture.mockClear()
     ;(trackedLinkAnalyticsAllowed as jest.Mock).mockReturnValue(true)
-    // jsdom logs "not implemented: navigation" for a followed link; the test only needs the click.
-    document.addEventListener('click', (event) => event.preventDefault(), { once: true })
+    Object.defineProperty(navigator, 'userAgent', { configurable: true, value: USER_AGENTS.instagramAndroid })
 })
 
 describe('CreatorPageCta', () => {
     it('is a same-tab link to the engine href, unchanged', () => {
-        renderCta(USER_AGENTS.instagramIos)
+        renderCta('ios')
         const link = screen.getByRole('link', { name: 'Abrir en App Store' })
         expect(link.getAttribute('href')).toBe(page.ctaHref)
         expect(link).not.toHaveAttribute('target')
@@ -44,62 +63,68 @@ describe('CreatorPageCta', () => {
     })
 
     it.each([
-        [USER_AGENTS.instagramAndroid, 'Abrir en Google Play'],
-        [USER_AGENTS.chromeMac, 'Bajar Peanut'],
-    ])('labels the button for the device', (userAgent, label) => {
-        renderCta(userAgent)
+        ['android', 'Abrir en Google Play'],
+        ['other', 'Bajar Peanut'],
+    ] as const)('labels the button for the device the server found', (deviceOs, label) => {
+        renderCta(deviceOs)
         expect(screen.getByRole('link', { name: label })).toBeInTheDocument()
     })
 
-    it('shows a store icon only when asked and only on a phone', () => {
-        expect(renderCta(USER_AGENTS.instagramIos).container.querySelector('svg')).toBeNull()
-        expect(
-            renderCta(USER_AGENTS.instagramIos, { showStoreIcon: true }).container.querySelector('svg')
-        ).not.toBeNull()
-        expect(renderCta(USER_AGENTS.chromeMac, { showStoreIcon: true }).container.querySelector('svg')).toBeNull()
+    it('shows a store icon only when asked and only on a phone, at a size .btn cannot override', () => {
+        expect(renderCta('ios').container.querySelector('svg')).toBeNull()
+        expect(renderCta('other', { showStoreIcon: true }).container.querySelector('svg')).toBeNull()
+        const icon = renderCta('ios', { showStoreIcon: true }).container.querySelector('svg')!
+        // `custom-size` is the opt-out of `.btn svg:not(.custom-size)` in globals.css.
+        expect(icon).toHaveClass('custom-size')
+        expect(icon).toHaveAttribute('width', '24')
+        expect(icon).toHaveAttribute('height', '24')
     })
 
-    it('sends the click event with its position and does not block the navigation', () => {
-        renderCta(USER_AGENTS.instagramAndroid, { position: 'sticky' })
-        const notPrevented = fireEvent.click(screen.getByRole('link'))
+    it('sends the tap as a beacon with exactly the agreed properties and does not block the navigation', () => {
+        renderCta('android', { position: 'sticky' })
+        expect(clickLink()).toBe(false)
         expect(capture.mock.calls).toEqual([
             [
                 'creator_page_cta_clicked',
-                expect.objectContaining({
-                    creator_username: 'juanacervio',
+                {
                     link_id: page.creator.linkId,
                     placement: 'ig',
+                    code: null,
+                    utm_source: null,
+                    utm_medium: null,
+                    utm_campaign: null,
+                    utm_content: null,
+                    referrer_host: 'l.instagram.com',
                     page_variant: 'a1',
                     page_experiment: 'nita-2026-11-a',
+                    creator_username: 'juanacervio',
                     device_os: 'android',
                     in_app_browser: 'instagram',
                     cta_position: 'sticky',
                     signup_journey_id: '11111111-1111-4111-8111-111111111111',
-                }),
+                },
+                { transport: 'sendBeacon', send_instantly: true },
             ],
         ])
-        // Only the test's own document listener prevents the default; the component's handler must not.
-        expect(notPrevented).toBe(false)
         expect(screen.getByRole('link').getAttribute('href')).toBe(page.ctaHref)
     })
 
     it('sends no click event when analytics are not allowed', () => {
         ;(trackedLinkAnalyticsAllowed as jest.Mock).mockReturnValue(false)
-        renderCta(USER_AGENTS.instagramIos)
-        fireEvent.click(screen.getByRole('link'))
+        renderCta('ios')
+        expect(clickLink()).toBe(false)
         expect(capture).not.toHaveBeenCalled()
     })
 
     it('sends no click event in the dev preview', () => {
-        Object.defineProperty(navigator, 'userAgent', { configurable: true, value: USER_AGENTS.instagramIos })
         render(
-            <CreatorPagePreviewContext.Provider value={true}>
-                <CreatorPageShell page={page} lang="es-AR">
-                    <CreatorPageCta labels={labels} />
-                </CreatorPageShell>
-            </CreatorPagePreviewContext.Provider>
+            <CreatorPagePreview>
+                <CreatorPageProvider page={page} experimentId="nita-2026-11-a" deviceOs="ios">
+                    <CreatorPageCta labels={labels} position="hero" />
+                </CreatorPageProvider>
+            </CreatorPagePreview>
         )
-        fireEvent.click(screen.getByRole('link'))
+        expect(clickLink()).toBe(false)
         expect(capture).not.toHaveBeenCalled()
     })
 })

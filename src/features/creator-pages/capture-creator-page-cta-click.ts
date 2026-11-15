@@ -7,13 +7,28 @@ import { creatorPageEventProperties, type CtaPosition } from './events'
 import type { CreatorPageProps } from './types'
 
 /** Same consent rule as tracked_link_visit: nothing leaves under DNT, GPC or a PostHog opt-out. */
-export function captureCreatorPageCtaClick(page: CreatorPageProps, position: CtaPosition | undefined): void {
+export function captureCreatorPageCtaClick(
+    page: CreatorPageProps,
+    experimentId: string | null,
+    position: CtaPosition
+): void {
     if (!trackedLinkAnalyticsAllowed()) return
+    // Read at tap time, in the browser: these two are event values, unlike the label's server-side guess.
     const userAgent = navigator.userAgent
-    posthog.capture(ANALYTICS_EVENTS.CREATOR_PAGE_CTA_CLICKED, {
-        ...creatorPageEventProperties(page, { deviceOs: deviceOs(userAgent), inAppBrowser: inAppBrowser(userAgent) }),
-        cta_position: position ?? null,
-        // Gives signup_journey_id, the join to tracked_link_visit and to the sign-up.
-        ...signupAttributionPosthogProperties(),
-    })
+    posthog.capture(
+        ANALYTICS_EVENTS.CREATOR_PAGE_CTA_CLICKED,
+        {
+            ...creatorPageEventProperties(page, experimentId, {
+                deviceOs: deviceOs(userAgent),
+                inAppBrowser: inAppBrowser(userAgent),
+            }),
+            cta_position: position,
+            // The join to tracked_link_visit and to the sign-up. Only this key of the journey is agreed
+            // for the event. `goVisitPosthogProperties(page)` supplies it at the rebase; delete this read then.
+            signup_journey_id: signupAttributionPosthogProperties().signup_journey_id ?? null,
+        },
+        // The tap unloads the page. PostHog's batch queue (3 s) would rely on the unload flush, which
+        // in-app browsers often skip; a beacon leaves at once and survives the navigation.
+        { transport: 'sendBeacon', send_instantly: true }
+    )
 }

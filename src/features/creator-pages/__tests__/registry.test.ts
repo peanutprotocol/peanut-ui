@@ -1,6 +1,6 @@
 /** @jest-environment node */
-import { CREATOR_PAGE_EXPERIMENT_IDS } from '../experiment-ids'
 import { CREATOR_PAGE_EXPERIMENTS } from '../experiments'
+import { CREATOR_PAGE_COMPONENTS } from '../page-components'
 import { selectCreatorPage } from '../registry'
 
 const mockCookies = new Map<string, string>()
@@ -24,14 +24,14 @@ describe('selectCreatorPage', () => {
     })
 
     it('keeps the variant from the cookie and never sets a cookie', async () => {
-        const { id, variants } = CREATOR_PAGE_EXPERIMENTS.juanacervio
+        const { id } = CREATOR_PAGE_EXPERIMENTS.juanacervio
         jest.spyOn(Math, 'random').mockReturnValue(0)
         mockCookies.set('cpv_juanacervio', `${id}.e1`)
         const selection = await selectCreatorPage(creator('juanacervio'))
         expect(selection).toEqual({
             variant: 'e1',
             experimentId: 'nita-2026-11-a',
-            Page: variants.find((variant) => variant.id === 'e1')!.Page,
+            Page: CREATOR_PAGE_COMPONENTS.juanacervio.e1,
         })
         expect(mockSet).not.toHaveBeenCalled()
     })
@@ -68,11 +68,9 @@ describe('selectCreatorPage', () => {
 })
 
 describe('CREATOR_PAGE_EXPERIMENTS', () => {
-    it('has valid ids, live weights and one experiment id per creator', () => {
-        expect(Object.keys(CREATOR_PAGE_EXPERIMENTS).sort()).toEqual(Object.keys(CREATOR_PAGE_EXPERIMENT_IDS).sort())
+    it('has valid ids and weights', () => {
         for (const [username, experiment] of Object.entries(CREATOR_PAGE_EXPERIMENTS)) {
             expect(username).toMatch(/^[a-z0-9]{1,64}$/)
-            expect(experiment.id).toBe(CREATOR_PAGE_EXPERIMENT_IDS[username])
             expect(experiment.id).toMatch(/^[a-z0-9][a-z0-9-]{0,31}$/)
             const ids = experiment.variants.map((variant) => variant.id)
             expect(new Set(ids).size).toBe(ids.length)

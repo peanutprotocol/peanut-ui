@@ -1,81 +1,49 @@
 /** @jest-environment jsdom */
-import { StrictMode } from 'react'
 import { render, screen } from '@testing-library/react'
-import posthog from 'posthog-js'
-import { trackedLinkAnalyticsAllowed } from '@/features/tracked-links/eligibility'
 import { creatorPageFixture } from '../creator-page-fixture'
-import { CreatorPagePreviewContext } from '../CreatorPageContext'
+import { CreatorPageCta } from '../CreatorPageCta'
 import { CreatorPageShell } from '../CreatorPageShell'
+import { USER_AGENTS } from './user-agents'
 
+let mockUserAgent: string | null = null
+jest.mock('next/headers', () => ({
+    headers: async () => new Headers(mockUserAgent === null ? {} : { 'user-agent': mockUserAgent }),
+}))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
-jest.mock('@/features/tracked-links/eligibility', () => ({ trackedLinkAnalyticsAllowed: jest.fn() }))
+jest.mock('@/features/tracked-links/eligibility', () => ({ trackedLinkAnalyticsAllowed: () => false }))
 
-const page = creatorPageFixture('juanacervio', 'g2')
-const STICKY = 'cpv_juanacervio=nita-2026-11-a.g2; Max-Age=2592000; Path=/go; SameSite=Lax; Secure'
-// jsdom drops a Secure cookie on its http origin, so the assignment itself is what the test reads.
-const cookieWrites: string[] = []
+const labels = { ios: 'Abrir en App Store', android: 'Abrir en Google Play', other: 'Bajar Peanut' }
 
-beforeEach(() => {
-    ;(posthog.capture as jest.Mock).mockClear()
-    cookieWrites.length = 0
-    ;(trackedLinkAnalyticsAllowed as jest.Mock).mockReturnValue(true)
-    Object.defineProperty(document, 'cookie', { configurable: true, get: () => '', set: (v) => cookieWrites.push(v) })
-})
+/** The shell is an async server component: resolve it as the server does, then mount what it returns. */
+async function renderShell(userAgent: string | null) {
+    mockUserAgent = userAgent
+    return render(
+        await CreatorPageShell({
+            page: creatorPageFixture('juanacervio', 'g2'),
+            lang: 'es-AR',
+            className: 'shell',
+            children: <CreatorPageCta labels={labels} showStoreIcon position="hero" />,
+        })
+    )
+}
 
 describe('CreatorPageShell', () => {
-    it('renders <main> in the page language and writes the sticky cookie', () => {
-        // StrictMode replays effects the way a development build does; the same value twice is harmless.
-        render(
-            <StrictMode>
-                <CreatorPageShell page={page} lang="es-AR" className="shell">
-                    <p>hola</p>
-                </CreatorPageShell>
-            </StrictMode>
-        )
+    it('renders <main> in the page language', async () => {
+        await renderShell(USER_AGENTS.instagramIos)
         const main = screen.getByRole('main')
         expect(main).toHaveAttribute('lang', 'es-AR')
         expect(main).toHaveClass('shell')
-        expect(main).toHaveTextContent('hola')
-        expect(new Set(cookieWrites)).toEqual(new Set([STICKY]))
     })
 
-    it('sends no event of its own: the engine counts the view', () => {
-        render(
-            <CreatorPageShell page={page} lang="es-AR">
-                <p>hola</p>
-            </CreatorPageShell>
-        )
-        expect(posthog.capture).not.toHaveBeenCalled()
-    })
-
-    it('writes nothing when analytics are not allowed', () => {
-        ;(trackedLinkAnalyticsAllowed as jest.Mock).mockReturnValue(false)
-        render(
-            <CreatorPageShell page={page} lang="es-AR">
-                <p>hola</p>
-            </CreatorPageShell>
-        )
-        expect(screen.getByRole('main')).toHaveTextContent('hola')
-        expect(cookieWrites).toEqual([])
-    })
-
-    it('writes nothing in the dev preview', () => {
-        render(
-            <CreatorPagePreviewContext.Provider value={true}>
-                <CreatorPageShell page={page} lang="es-AR">
-                    <p>hola</p>
-                </CreatorPageShell>
-            </CreatorPagePreviewContext.Provider>
-        )
-        expect(cookieWrites).toEqual([])
-    })
-
-    it('writes nothing for a creator without an experiment', () => {
-        render(
-            <CreatorPageShell page={creatorPageFixture('someoneelse', 'a1')} lang="es-AR">
-                <p>hola</p>
-            </CreatorPageShell>
-        )
-        expect(cookieWrites).toEqual([])
+    // jsdom's own navigator.userAgent names no phone, so a matching label can only come from the request header.
+    it.each([
+        [USER_AGENTS.instagramIos, 'Abrir en App Store', true],
+        [USER_AGENTS.instagramAndroid, 'Abrir en Google Play', true],
+        [USER_AGENTS.safariIpad, 'Bajar Peanut', false],
+        [null, 'Bajar Peanut', false],
+    ])('labels the button from the request user agent', async (userAgent, label, hasIcon) => {
+        const { container } = await renderShell(userAgent)
+        expect(screen.getByRole('link', { name: label })).toBeInTheDocument()
+        expect(container.querySelector('svg') !== null).toBe(hasIcon)
     })
 })
