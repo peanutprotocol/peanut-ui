@@ -326,3 +326,20 @@ describe('an opened Pix payment stays on the rail that opened it', () => {
         expect(pixProviderId('avenia')).not.toBe(pixProviderId('manteca'))
     })
 })
+describe('an opened payment shows its outcome without a live rate', () => {
+    it.each([
+        ['paid', 'COMPLETED', 'Payment success'],
+        ['refunded', 'REFUNDED', 'Payment status'],
+        ['cancelled', 'CANCELLED', 'Payment status'],
+        ['needs_support', 'PROCESSING', 'Payment status'],
+    ])('a %s payment shows its result while the rate is down, and asks no rate', async (state, status, screenText) => {
+        mockRoutes = [payRoute('avenia')]
+        mockGetCurrencyPrice.mockRejectedValue(new Error('fx down'))
+        mockEntry = { uuid: 'pay-1', amount: '8.062211', currency: { amount: '42.50', code: 'BRL' } }
+        mockPixApi.readPayment.mockResolvedValue(read(state, status))
+        renderOpenedPayment()
+
+        expect(await screen.findByText(screenText)).toBeInTheDocument()
+        expect(mockGetCurrencyPrice).not.toHaveBeenCalled()
+    })
+})

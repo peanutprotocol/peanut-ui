@@ -442,8 +442,20 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
     // for Manteca's open-amount codes.
     const pixPayPrice = pixPayReviewed ? Number(pixPayReviewed.amountBrl) / Number(pixPayReviewed.withdrawUsd) : null
     const shownRate = isPixPay && pixPayReviewed ? Number(pixShownRate(pixPayReviewed)) : null
+    // An opened payment (`?intentId=`) shows its result from its own read: the reais it paid, and the
+    // USD from its history entry once paid. No live rate is asked for it, so an FX outage cannot hide
+    // a settled payment; the rate stands at the entry's own until the entry loads (0 = none yet).
+    const pixPayOpened = isPixPay && !!pixPayment.intentId
+    const pixPayEntryPrice =
+        pixPayEntry?.currency?.amount && Number(pixPayEntry.amount) > 0
+            ? Number(pixPayEntry.currency.amount) / Number(pixPayEntry.amount)
+            : null
     useEffect(() => {
-        if (!isPixPay) return
+        if (!pixPayOpened || pixPayPrice) return
+        setCurrency({ code: 'BRL', symbol: 'BRL', price: pixPayEntryPrice ?? 0 })
+    }, [pixPayOpened, pixPayPrice, pixPayEntryPrice, setCurrency])
+    useEffect(() => {
+        if (!isPixPay || (pixPayOpened && !pixPayPrice)) return
         let cancelled = false
         const price = pixPayPrice ? Promise.resolve(pixPayPrice) : getCurrencyPrice('BRL').then((p) => p.sell)
         price
@@ -456,7 +468,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         return () => {
             cancelled = true
         }
-    }, [isPixPay, pixPayPrice, setCurrency, rateAttempt])
+    }, [isPixPay, pixPayOpened, pixPayPrice, setCurrency, rateAttempt])
 
     const isBlockingError = useMemo(() => {
         // The settling failure says "try again in a few seconds" — keep the Pay
