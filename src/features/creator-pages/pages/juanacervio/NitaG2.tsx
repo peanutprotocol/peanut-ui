@@ -1,5 +1,4 @@
 import Image from 'next/image'
-import { Icon } from '@/components/Global/Icons/Icon'
 import { CreatorPageCta } from '../../CreatorPageCta'
 import { CreatorPageShell } from '../../CreatorPageShell'
 import type { CreatorPageProps } from '../../types'
@@ -17,7 +16,6 @@ export function NitaG2(props: CreatorPageProps) {
                         alt={copy.reelAlt}
                         fill
                         priority
-                        fetchPriority="high"
                         sizes="(min-width: 480px) 480px, 100vw"
                         className={styles.reelImage}
                     />
@@ -38,13 +36,13 @@ export function NitaG2(props: CreatorPageProps) {
                         showStoreIcon
                         position="hero"
                     />
-                    <p className={styles.invite}>
-                        <span className={styles.check} aria-hidden>
-                            <Icon name="check" size={12} />
-                        </span>
-                        {copy.invite}
-                    </p>
-                    <p className={styles.legal}>{copy.legal}</p>
+                    <div className={styles.foot}>
+                        <p className={styles.invite}>{copy.invite}</p>
+                        <p className={styles.legal}>
+                            <span>{copy.disclosure}</span>
+                            <span>{copy.legal}</span>
+                        </p>
+                    </div>
                 </section>
             </div>
         </CreatorPageShell>
