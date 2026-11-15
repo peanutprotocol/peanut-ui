@@ -111,15 +111,21 @@ function mapDeepLink(url: string): string | null {
         if (!isAcquisitionSlug(slug) || parsed.searchParams.getAll('tl').length > 1) return null
         const params = new URLSearchParams({ tl: slug })
         // The /go handoff names its passive inviter; only the browser's own continuation
-        // (tl_seen) also carries the deferred fields. Nothing else in the link reaches /app.
+        // (tl_seen) also carries the deferred fields. Nothing else but the /go tags reaches /app.
         const continuation = parsed.searchParams.get('tl_seen') === '1'
         if (continuation) params.set('tl_seen', '1')
+        // The tags are labels the bootstrap checks again; they never choose the inviter.
+        const tags = ['tl_s', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'tl_r', 'tl_v', 'tl_e']
         const keys = continuation
-            ? ['acq_invite', 'pnutdl', 'at', 'attribution', 'wid', 'lang', 'invite']
-            : ['acq_invite']
+            ? ['acq_invite', 'pnutdl', 'at', 'attribution', 'wid', 'lang', 'invite', ...tags]
+            : ['acq_invite', ...tags]
         for (const key of keys) {
             if (parsed.searchParams.getAll(key).length === 1) params.set(key, parsed.searchParams.get(key)!)
         }
+        // The badge queue travels as repeated keys; restore sanitizes and caps it.
+        if (continuation)
+            for (const campaign of parsed.searchParams.getAll('badge_campaign'))
+                params.append('badge_campaign', campaign)
         return `/app?${params}`
     }
 

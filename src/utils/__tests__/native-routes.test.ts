@@ -750,6 +750,21 @@ describe('native-routes', () => {
             ).toBe('/app?tl=alice&acq_invite=alice')
         })
 
+        it('keeps the /go tags on a direct handoff', () => {
+            expect(
+                deepLinkToNativePath(
+                    'https://peanut.me/home?tl=a&acq_invite=a&tl_s=ig&utm_campaign=x&tl_r=h.com&tl_v=a1&tl_e=n1&utm_term=t'
+                )
+            ).toBe('/app?tl=a&acq_invite=a&tl_s=ig&utm_campaign=x&tl_r=h.com&tl_v=a1&tl_e=n1')
+        })
+
+        it('keeps every badge campaign on a continuation', () => {
+            const mapped = deepLinkToNativePath(
+                'https://peanut.me/home?tl=a&tl_seen=1&acq_invite=a&pnutdl=1&badge_campaign=nita&badge_campaign=other'
+            )
+            expect(new URLSearchParams(mapped!.split('?')[1]).getAll('badge_campaign')).toEqual(['nita', 'other'])
+        })
+
         it('forwards only whitelisted, single-valued continuation fields', () => {
             expect(
                 deepLinkToNativePath(

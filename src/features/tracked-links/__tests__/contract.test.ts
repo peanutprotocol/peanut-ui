@@ -146,6 +146,24 @@ describe('goTouch', () => {
         ).toEqual({ utmSource: 'meta', utmMedium: 'ambassador', utmCampaign: 'go', utmContent: 'c7' })
     })
 
+    const utm = (overrides: Partial<GoVisit['utm']>) => ({ ...bareGoVisit('alice').utm, ...overrides })
+    it.each<[keyof ReturnType<typeof goTouch>, Partial<GoVisit>, string | undefined]>([
+        ['utmSource', { placement: 'tt' }, 'tiktok'],
+        ['utmSource', { utm: utm({ source: 'meta' }) }, 'meta'],
+        ['utmSource', {}, undefined],
+        ['utmMedium', { utm: utm({ medium: 'cpc' }) }, 'cpc'],
+        ['utmMedium', {}, 'ambassador'],
+        ['utmCampaign', { utm: utm({ campaign: 'ar-push' }) }, 'ar-push'],
+        ['utmCampaign', {}, 'go'],
+        ['utmContent', { code: 12 }, 'c12'],
+        ['utmContent', { utm: utm({ content: 'reel' }) }, 'reel'],
+        ['utmContent', {}, undefined],
+        ['referrerHost', { referrerHost: 't.co' }, 't.co'],
+        ['referrerHost', {}, undefined],
+    ])('sets %s from %j to %p', (field, overrides, expected) => {
+        expect(goTouch(visit(overrides))[field]).toBe(expected)
+    })
+
     it('uses the query content when the path has no code', () => {
         expect(
             goTouch(visit({ utm: { source: null, medium: null, campaign: null, content: 'reel' } })).utmContent
