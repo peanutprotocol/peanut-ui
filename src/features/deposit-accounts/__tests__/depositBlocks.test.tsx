@@ -183,6 +183,19 @@ describe('what a block does to the gate view', () => {
         expect(depositGateView(rejected, terms()).notice?.action).toBe('support')
     })
 
+    // TASK-24968: the backend sentence is English; the drawer words Bridge's final refusals itself.
+    it.each(['duplicate_customer_detected', 'bridge_terminal_rejection'])(
+        'passes the %s code so the drawer shows its translated line',
+        (code) => {
+            const rejected = {
+                kind: 'blocked-rejection',
+                reason: { code, userMessage: 'English sentence' },
+                userMessage: 'English sentence',
+            } as GateState
+            expect(depositGateView(rejected).notice).toMatchObject({ action: 'support', reasonCode: code })
+        }
+    )
+
     it('keeps a blocked corridor off the claim step', () => {
         expect(resolveScreen('claim', DEPOSIT_RAILS[CORRIDOR], undefined, READY, terms('account-limit'))).toBe('list')
         expect(resolveScreen('claim', DEPOSIT_RAILS[CORRIDOR], undefined, READY, terms())).toBe('claim')

@@ -706,6 +706,11 @@
         "route": "/home"
     },
     {
+        "id": "fixture-paperwork-verification-verified-bank-refused",
+        "flow": "Home and shared states",
+        "route": "/verify"
+    },
+    {
         "id": "p05-home",
         "flow": "Home and shared states",
         "route": "/home"
@@ -2686,6 +2691,11 @@
         "id": "fixture-withdraw-long-destination-names",
         "flow": "Withdraw",
         "route": "/withdraw"
+    },
+    {
+        "id": "fixture-withdraw-bank-bridge-duplicate",
+        "flow": "Withdraw",
+        "route": "/withdraw/us/bank"
     },
     {
         "id": "p14-withdraw",

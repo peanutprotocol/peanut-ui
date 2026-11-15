@@ -48,6 +48,46 @@ const STATES = [
     'questions_missing',
 ] as const
 
+const BRIDGE_DUPLICATE_SUPPORT = {
+    key: 'contact-support:bridge-duplicate',
+    kind: 'contact-support',
+    purpose: 'bridge-duplicate-review',
+} as const
+const BRIDGE_DUPLICATE_REASON = {
+    code: 'duplicate_customer_detected',
+    userMessage:
+        'Your details are already linked to another Peanut account, so Bridge, our account provider, can’t open bank accounts on this one. If the other account is yours, sign in to it or contact support.',
+}
+/** The `/users/me` of a verify-once user Bridge refused as a duplicate customer (the API's terminal branch). */
+const BRIDGE_DUPLICATE_USER = {
+    identityVerification: { status: 'verified', oneShot: true },
+    capabilities: {
+        rails: [
+            ['ACH_US', 'US', 'USD'],
+            ['SEPA_EU', 'EU', 'EUR'],
+            ['FASTER_PAYMENTS_GB', 'GB', 'GBP'],
+            ['SPEI_MX', 'MX', 'MXN'],
+        ].map(([method, country, currency]) => ({
+            id: `bridge.${method.toLowerCase()}`,
+            provider: 'bridge',
+            method,
+            channel: 'bank',
+            country,
+            currency,
+            status: 'blocked',
+            reason: BRIDGE_DUPLICATE_REASON,
+            blockingActions: [BRIDGE_DUPLICATE_SUPPORT.key],
+            resolved: {
+                status: 'blocked',
+                blocking: { ...BRIDGE_DUPLICATE_REASON, selfHealable: false },
+                nextAction: BRIDGE_DUPLICATE_SUPPORT,
+            },
+        })),
+        nextActions: [BRIDGE_DUPLICATE_SUPPORT],
+        restrictions: [],
+    },
+}
+
 const KYC_FEATURE_ACTIVATION_FIXTURES: Record<string, Fixture> = Object.fromEntries(
     Object.entries(ROUTES).flatMap(([feature, route]) =>
         STATES.map((state) => {
@@ -5882,6 +5922,21 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: {
             ...KYC_FEATURE_ACTIVATION_FIXTURES['feature-activation-local-refused'].responses,
             'POST /users/kyc/features/local/activate': { state: 'refused', reason: 'local_served_elsewhere' },
+        },
+    },
+    // TASK-24968: Bridge refused the customer as a duplicate; the bank screens name it and offer support.
+    'withdraw-bank-bridge-duplicate': {
+        route: '/withdraw/us/bank',
+        about: 'Verify-once user whose bank accounts Bridge refused as a duplicate customer: the reason, then support.',
+        balance: '20',
+        responses: { 'GET /users/me': BRIDGE_DUPLICATE_USER },
+    },
+    'paperwork-verification-verified-bank-refused': {
+        route: '/verify',
+        about: 'Approved, but Bridge refused the bank accounts as a duplicate customer: the verified screen says so.',
+        responses: {
+            ...PAPERWORK_VERIFICATION_FIXTURES['paperwork-verification-verified'].responses,
+            'GET /users/me': BRIDGE_DUPLICATE_USER,
         },
     },
 }

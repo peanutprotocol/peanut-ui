@@ -22,6 +22,7 @@ import { findKycDocumentPlan, getKycDocumentStatus, refreshKycIdentityStatus } f
 import { KycFlowHandedBackError } from '@/app/actions/kyc-flow-hand-back'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import { PaperworkVerificationFlow } from '../PaperworkVerificationFlow'
+import { withFeatureReport } from '@/test-utils/featureReport.fixture'
 import {
     PAPERWORK_VERIFICATION_PLAN_QUERY_KEY,
     PAPERWORK_VERIFICATION_QUESTIONS_QUERY_KEY,
@@ -31,6 +32,7 @@ const mockPush = jest.fn()
 const mockReplace = jest.fn()
 const mockExit = jest.fn()
 let mockAuthUserId = 'user-a'
+let mockCapabilities: unknown = undefined
 jest.mock('@/utils/confetti', () => ({ confettiPresets: { success: jest.fn() } }))
 jest.mock('@/components/Setup/components/SetupLanguageSwitcher', () => ({ SetupLanguageSwitcher: () => null }))
 jest.mock('@/features/paperwork-verification/components/IdCardScanAnimation', () => ({
@@ -55,7 +57,10 @@ jest.mock('@/app/actions/kyc-workflow', () => ({
 }))
 jest.mock('@/context/authContext', () => ({
     useOptionalAuth: () => ({ user: { user: { userId: mockAuthUserId } } }),
-    useAuth: () => ({ user: { user: { userId: mockAuthUserId, username: 'tester' } }, fetchUser: jest.fn() }),
+    useAuth: () => ({
+        user: { user: { userId: mockAuthUserId, username: 'tester' }, capabilities: mockCapabilities },
+        fetchUser: jest.fn(),
+    }),
 }))
 jest.mock('@/hooks/useWebSocket', () => ({ useWebSocket: jest.fn() }))
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => mockExit }))
@@ -1305,6 +1310,43 @@ describe('PaperworkVerificationFlow', () => {
         renderFlow()
         expect(await screen.findByText('Add a proof of address')).toBeInTheDocument()
         expect(screen.getByText(/^Your ID isn’t from/)).toBeInTheDocument()
+    })
+
+    // TASK-24968: Bridge refused the bank accounts for good; the timeline must not read as all unlocked.
+    it('a verified user whose bank accounts Bridge refused sees why above the button', async () => {
+        const support = {
+            key: 'contact-support:bridge-duplicate',
+            kind: 'contact-support',
+            purpose: 'bridge-duplicate-review',
+        } as const
+        const reason = { code: 'duplicate_customer_detected', userMessage: 'Linked to another account' }
+        mockCapabilities = withFeatureReport({
+            rails: [
+                {
+                    id: 'bridge.ach_us',
+                    provider: 'bridge',
+                    method: 'ACH_US',
+                    channel: 'bank',
+                    country: 'US',
+                    currency: 'USD',
+                    status: 'blocked',
+                    reason,
+                    blockingActions: [support.key],
+                    resolved: { status: 'blocked', blocking: { ...reason, selfHealable: false }, nextAction: support },
+                },
+            ],
+            nextActions: [support],
+        })
+        mockStatus.mockResolvedValue('APPROVED')
+        mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
+        try {
+            renderFlow()
+            const notice = await screen.findByTestId('verify-bank-refused')
+            expect(notice).toHaveTextContent(/already linked to another Peanut account/)
+            expect(screen.getByTestId('verify-verified-payments')).toBeInTheDocument()
+        } finally {
+            mockCapabilities = undefined
+        }
     })
 
     // A temporary protection sheet is the residence's own, so "your ID isn't from here" would be wrong.
