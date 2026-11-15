@@ -77,6 +77,11 @@ const fixtureCapture: Record<string, Pick<Screen, 'actions' | 'expectSelector'>>
         expectSelector: '[role="dialog"][data-state="open"][data-testid="closed-row-drawer"]',
     },
     'add-money-picker-first-time': { expectSelector: '[data-testid="add-money-method-crypto"]' },
+    // the refusal answers the tap on Pay
+    'qr-pay-avenia-amount-held': {
+        actions: [{ clickSelector: 'button:text-is("Pay"):enabled' }],
+        expectSelector: '[data-testid="error-alert"]',
+    },
     'add-money-argentina-deposit-pending': { actions: [{ click: 'Continue' }] },
     'add-money-argentina-deposit-expired': { actions: [{ click: 'Continue' }] },
     'paperwork-verification-bridge-postal-correction': {

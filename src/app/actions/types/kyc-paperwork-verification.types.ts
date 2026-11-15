@@ -1,3 +1,8 @@
+import type { paths } from '@/types/api.generated'
+
+type GeneratedQuestionField =
+    paths['/users/kyc/questions']['get']['responses'][200]['content']['application/json']['steps'][number]['fields'][number]
+
 export type PaperworkVerificationStepId =
     | 'purpose'
     | 'work'
@@ -8,6 +13,13 @@ export type PaperworkVerificationStepId =
     | 'declarations'
     | 'tax'
 export type PaperworkVerificationFeature = 'bank' | 'card' | 'local'
+/**
+ * The feature a question read or save names (`?feature=`). `pix` asks what Avenia's Pix account
+ * still needs (API-CONTRACT-M3 section 4): it opens at the first Pix send and is no plan feature.
+ */
+export type PaperworkQuestionsFeature = NonNullable<
+    NonNullable<paths['/users/kyc/questions']['get']['parameters']['query']>['feature']
+>
 export type PaperworkVerificationFieldKind =
     | 'choice'
     | 'select'
@@ -26,6 +38,8 @@ export interface PaperworkVerificationField {
     required: boolean
     minAddressLineLength?: number
     options?: string[]
+    /** The name to show for each option, where the API names them (Brazil's states: `{ PB: 'Paraíba' }`); the code is what is saved. */
+    optionLabels?: GeneratedQuestionField['optionLabels']
     format?: PaperworkVerificationTaxFormat
     /** A tax number's stdnum validators (`de.idnr`), any one of which must accept it; the API runs them too. */
     checks?: string[]

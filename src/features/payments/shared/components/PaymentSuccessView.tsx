@@ -63,6 +63,11 @@ import {
 import { useHistoryEntry } from '@/hooks/useHistoryEntry'
 import { withPublicReceipt } from '@/utils/history.utils'
 import { pendingNetworkFee } from '@/components/TransactionDetails/network-fee.utils'
+import { getShakeClass } from '@/utils/perk.utils'
+import type { PaidReward } from '@/features/payments/flows/qr-pay/paidReward'
+import { usePerkHoldToClaim } from '@/features/payments/flows/qr-pay/usePerkHoldToClaim'
+import { PaidRewardCard } from '@/features/payments/shared/components/PaidRewardCard'
+import { HoldToClaimButton } from '@/features/payments/shared/components/HoldToClaimButton'
 
 type DirectSuccessViewProps = {
     /** The Peanut user who got the money (TASK-23756). Absent or null: the charge names them, if anyone. */
@@ -113,7 +118,16 @@ type DirectSuccessViewProps = {
      * own send just confirmed.
      */
     receiptStatus?: IconStatusType
+    /**
+     * The QR reward the payment earned (a Pix send to another person's key earns Manteca's key-send
+     * reward): the same card and hold-to-claim as the QR payment's success. Absent for every other flow.
+     */
+    paidReward?: PaidReward | null
+    /** The hold revealed the reward. */
+    onRewardClaimed?: () => void
 }
+
+const NO_REWARD_CLAIM = () => {}
 
 const PaymentSuccessView = ({
     recipient,
@@ -139,6 +153,8 @@ const PaymentSuccessView = ({
     transactionDetails: transactionDetailsProp,
     providerId,
     receiptStatus = 'completed',
+    paidReward = null,
+    onRewardClaimed = NO_REWARD_CLAIM,
 }: DirectSuccessViewProps) => {
     const router = useRouter()
     const origin = useAppOrigin()
@@ -292,6 +308,13 @@ const PaymentSuccessView = ({
 
     const pointsDivRef = useRef<HTMLDivElement>(null)
     usePointsConfetti(points, pointsDivRef)
+    // The reward's rules are the QR success's: offered (reserved, not a failed payout), then revealed by
+    // the hold or read as claimed. While offered it takes the points card's place; while it waits for
+    // its hold, the hold is the only CTA.
+    const { rewardOffered, perkClaimed, holdProgress, isShaking, shakeIntensity, startHold, cancelHold } =
+        usePerkHoldToClaim(paidReward, onRewardClaimed)
+    const rewardRevealed = rewardOffered && (perkClaimed || !!paidReward?.perk?.claimed)
+    const rewardClaimable = rewardOffered && !rewardRevealed
 
     useEffect(() => {
         if (points) {
@@ -346,7 +369,7 @@ const PaymentSuccessView = ({
     useAppReviewNudge(authUser?.user.userId, 'payment_completed', type !== 'REQUEST')
 
     return (
-        <PageStack>
+        <PageStack className={getShakeClass(isShaking, shakeIntensity)}>
             {type !== 'REQUEST' && <SoundPlayer sound="success" />}
             {(type === 'SEND' || type === 'DEPOSIT') && (
                 <NavHeader icon="cancel" title={headerTitle} onPrev={handleDone} />
@@ -396,17 +419,23 @@ const PaymentSuccessView = ({
                     </div>
                 </Card>
 
-                {points && <PointsCard points={points} pointsDivRef={pointsDivRef} />}
+                {rewardOffered ? (
+                    <PaidRewardCard reward={paidReward} revealed={rewardRevealed} cardRef={pointsDivRef} />
+                ) : (
+                    points && <PointsCard points={points} pointsDivRef={pointsDivRef} />
+                )}
 
                 <div className="flex w-full flex-col gap-4">
-                    {!!authUser?.user.userId ? (
+                    {rewardClaimable ? (
+                        <HoldToClaimButton holdProgress={holdProgress} startHold={startHold} cancelHold={cancelHold} />
+                    ) : !!authUser?.user.userId ? (
                         <Button onClick={handleDone} shadowSize="4">
                             {t('success.backToHome')}
                         </Button>
                     ) : (
                         <CreateAccountButton onClick={() => router.push('/setup')} />
                     )}
-                    {!isExternalWalletFlow && receiptTransaction && (
+                    {!isExternalWalletFlow && receiptTransaction && !rewardClaimable && (
                         <Button
                             variant="secondary"
                             shadowSize="4"

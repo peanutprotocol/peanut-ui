@@ -38,7 +38,11 @@ describe('brTaxIdKind', () => {
         ['a masked CPF as the Pix directory punctuates it', '095.***.***-89', 'CPF'],
         ['a masked CNPJ as the Pix directory punctuates it', '11.***.***/****-81', 'CNPJ'],
         ['an 11-digit number that fails the CPF check', '12345678900', null],
+        // review finding 9: Avenia's mask can hide the first digits
+        ["Avenia's masked CPF", '***.456.789-**', 'CPF'],
+        ["Avenia's masked CNPJ", '12.***.***/0001-**', 'CNPJ'],
         ['a mask of another length', '20********87', null],
+        ['asterisks alone', '***********', null],
         ['an email key', 'maria@silva.com.br', null],
     ])('classifies %s', (_label, value, kind) => {
         expect(brTaxIdKind(value)).toBe(kind)

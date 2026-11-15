@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { useRouter } from 'next/navigation'
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
@@ -15,7 +14,9 @@ import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import { mapTransactionDataForDrawer } from '@/components/TransactionDetails/transactionTransformer'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
 import { pixWithdrawOutcome } from '@/features/pix/pixFlow.utils'
-import { pixNewKeyUrl } from '@/features/pix/pixRecovery'
+import { usePixSendReward } from '@/features/pix/usePixSendReward'
+import { usePointsCalculation } from '@/hooks/usePointsCalculation'
+import { PointsAction } from '@/services/services.types'
 import { depositMaybeSent } from '@/features/pix/pixWithdrawSent'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useHistoryEntry } from '@/hooks/useHistoryEntry'
@@ -23,6 +24,8 @@ import { useReturnTo } from '@/hooks/useSafeBack'
 import type { PixWithdrawDisplay } from '@/services/pix'
 import type { ProviderId } from '@/types/provider.types'
 import { formatBankAmount } from '@/utils/currency'
+import { formatPixKey } from '@/utils/pix-key-format.utils'
+import { pixProviderId } from '@/utils/provider.utils'
 
 /** How long the payout may stay open before the loader gives way, when no quote states an arrival time (a reload). */
 const FALLBACK_ARRIVAL_SECONDS = 90
@@ -37,7 +40,9 @@ const FALLBACK_ARRIVAL_SECONDS = 90
  * It ends like every other withdrawal (ruling 2026-11-12): the shared payment
  * loader while the provider pays, the shared success view once the Pix landed.
  * The loader lasts at most the quoted arrival time ("About 1 minute" on the
- * review); a payout still open after it reads as on its way, with Done.
+ * review); a payout still open after it reads as on its way, with Done. A
+ * payout to another person's key (the quote's `ownAccount` false) reads as a
+ * send to them, by the name the provider looked up (TASK-24947).
  */
 export function PixWithdrawOutcome({
     title,
@@ -50,7 +55,7 @@ export function PixWithdrawOutcome({
     title: string
     /** Null when the submit could not name the withdrawal: the screen then shows what was signed. */
     intentId: string | null
-    /** The provider the route names, for its row and sheet; null shows no row. */
+    /** The provider the route names now: only for a withdrawal this session signed, until its entry names its own. */
     providerId: ProviderId | null
     sent: { phase: 'funded' | 'unconfirmed'; display: PixWithdrawDisplay } | null
     /** Nothing left the wallet: a new withdrawal. */
@@ -59,9 +64,7 @@ export function PixWithdrawOutcome({
     onDone: () => void
 }) {
     const t = useTranslations('pix.withdraw')
-    const tShared = useTranslations('pix')
     const tCommon = useTranslations('common')
-    const router = useRouter()
     const returnHome = useReturnTo('/home')
     const leaveToHome = () => {
         onDone()
@@ -69,6 +72,9 @@ export function PixWithdrawOutcome({
     }
     const { setIsSupportModalOpen } = useModalsContext()
     const entry = useHistoryEntry(intentId, 'OFFRAMP')
+    // The provider that opened this withdrawal, from its entry: the route can name another one by now
+    // (a gate or route change), and it decides only a new withdrawal. Null shows no provider row.
+    const openedBy = pixProviderId(entry.data?.extraData?.provider) ?? (sent ? providerId : null)
     const outcome = pixWithdrawOutcome(
         sent?.phase ?? (intentId && depositMaybeSent(intentId) ? 'unconfirmed' : 'unsigned'),
         entry.data
@@ -81,6 +87,24 @@ export function PixWithdrawOutcome({
         const timer = setTimeout(() => setPastArrival(true), arrivalMs)
         return () => clearTimeout(timer)
     }, [outcome, arrivalMs])
+
+    // another person's key: a send to them, from the quote this session signed, else the entry
+    const payout = entry.data?.extraData?.pixPayout
+    const toOtherPerson = sent ? sent.display.ownAccount === false : payout?.ownAccount === false
+
+    // A paid send to another person earns what Manteca's key send earned (ruling of 15 Nov): the QR
+    // lane's points and, where a campaign grants it, the QR reward, shown as the QR success shows them.
+    const paidSend = outcome === 'arrived' && toOtherPerson
+    const { reward: sendReward, markClaimed: markSendRewardClaimed, selfPay } = usePixSendReward(intentId, paidSend)
+    // points only once the read says the send was not to the user's own account (selfPay earns none)
+    const showsSendPoints = paidSend && selfPay === false
+    const sentUsd = sent?.display.withdrawUsd ?? entry.data?.amount
+    const { pointsData } = usePointsCalculation(
+        PointsAction.MANTECA_QR_PAYMENT,
+        sentUsd,
+        showsSendPoints,
+        intentId ?? undefined
+    )
 
     // the receipt behind "See receipt": the landed withdrawal's entry, mapped the way Activity maps it
     const receipt = useMemo(
@@ -103,10 +127,12 @@ export function PixWithdrawOutcome({
     }
 
     if (outcome === 'arrived') {
-        const pixKey = sent?.display.pixKey ?? entry.data?.recipientAccount?.identifier
-        // the entry names no bank: after a reload the line carries the key alone
-        const bank = sent?.display.bankName
-        const amountUsd = sent?.display.withdrawUsd ?? entry.data?.amount
+        const rawKey = sent?.display.pixKey ?? payout?.pixKey ?? entry.data?.recipientAccount?.identifier
+        const pixKey = rawKey && formatPixKey(rawKey)
+        const holder = sent?.display.holderName ?? payout?.holderName ?? entry.data?.recipientAccount?.fullName
+        // after a reload the entry's payout names the bank; one opened before M3 names none, and the line carries the key alone
+        const bank = sent?.display.bankName ?? payout?.bankName
+        const amountUsd = sentUsd
         // The view is the page shell: it renders the header with its cancel (as the crypto withdrawal
         // mounts it), and both the cancel and Back to home leave to home, then `onDone`. A shell around
         // it would stack two min-h-inherit regions and push the card down (Chip, 37aafd073).
@@ -115,29 +141,36 @@ export function PixWithdrawOutcome({
                 type="SEND"
                 headerTitle={title}
                 isWithdrawFlow
+                // a send to another person reads "Sent", to them by name
+                isFromSendFlow={toOtherPerson}
                 currencyAmount={amountBrl ? formatBankAmount(amountBrl, 'BRL') : undefined}
                 secondaryAmount={amountUsd ? formatBankAmount(amountUsd, 'USD') : undefined}
                 // the view prefixes it with "to" (payment.success.toPrefix), as for every withdrawal
                 message={
-                    pixKey
-                        ? bank
-                            ? t('withdrawnTo', { key: pixKey, bank })
-                            : t('withdrawnToKey', { key: pixKey })
-                        : undefined
+                    toOtherPerson
+                        ? (holder ?? pixKey)
+                        : pixKey
+                          ? bank
+                              ? t('withdrawnTo', { key: pixKey, bank })
+                              : t('withdrawnToKey', { key: pixKey })
+                          : undefined
                 }
                 transactionDetails={receipt}
-                providerId={providerId ?? undefined}
+                providerId={openedBy ?? undefined}
                 onComplete={onDone}
+                points={showsSendPoints ? pointsData?.estimatedPoints : undefined}
+                paidReward={paidSend ? sendReward : null}
+                onRewardClaimed={markSendRewardClaimed}
             />
         )
     }
 
-    const to = sent ? [sent.display.bankName, sent.display.holderName].filter(Boolean).join(' · ') : ''
+    const paid = sent?.display ?? payout
+    const to = paid ? [paid.bankName, paid.holderName].filter(Boolean).join(' · ') : ''
     const failed = outcome === 'not-sent' || outcome === 'refunded' || outcome === 'stuck'
     const description = {
         'on-its-way': to ? t('sentTo', { destination: to }) : t('sent'),
         unconfirmed: t('unconfirmed'),
-        'needs-key': tShared('recovery.notice'),
         refunded: t('refunded'),
         'not-sent': t('notSent'),
         stuck: t('stuck'),
@@ -148,28 +181,13 @@ export function PixWithdrawOutcome({
             <NavHeader title={title} hideBackBtn />
             <PageStack.Center className="items-center text-center">
                 {/* a funded withdrawal is a wait, not a success, until the provider's payout completes the entry */}
-                <IconBubble
-                    icon={failed || outcome === 'needs-key' ? 'alert' : 'clock'}
-                    size="l"
-                    color={failed ? 'red' : 'yellow'}
-                />
+                <IconBubble icon={failed ? 'alert' : 'clock'} size="l" color={failed ? 'red' : 'yellow'} />
                 <TitleBlock
                     align="center"
                     title={amountBrl ? formatBankAmount(amountBrl, 'BRL') : title}
                     description={description}
                 />
-                {outcome === 'needs-key' ? (
-                    <>
-                        <Button
-                            variant="primary"
-                            className="w-full"
-                            onClick={() => intentId && router.push(pixNewKeyUrl(intentId))}
-                        >
-                            {tShared('recovery.addKey')}
-                        </Button>
-                        <LinkButton onClick={leaveToHome}>{tCommon('done')}</LinkButton>
-                    </>
-                ) : outcome === 'stuck' ? (
+                {outcome === 'stuck' ? (
                     <>
                         <Button variant="primary" className="w-full" onClick={() => setIsSupportModalOpen(true)}>
                             {tCommon('contactSupport')}
@@ -188,7 +206,7 @@ export function PixWithdrawOutcome({
                         {tCommon('done')}
                     </Button>
                 )}
-                {providerId && <ProviderFinePrint providerId={providerId} />}
+                {openedBy && <ProviderFinePrint providerId={openedBy} />}
             </PageStack.Center>
         </PageStack>
     )

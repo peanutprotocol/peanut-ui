@@ -33,13 +33,13 @@ jest.mock('@/components/Provider/ProviderHelp', () => ({
 let mockProviderFee: string | null = null
 jest.mock('../../QrPayFlowContext', () => ({
     useQrPayFlow: () => ({
-        paymentProcessor: 'MANTECA',
-        targetMantecaCountry: 'BR',
-        paymentLock: { code: 'lock-1' },
         qrPayment: null,
         merchantName: 'Ana Souza',
+        merchantTaxId: null,
         recipientBankName: 'Banco Inter',
         providerFee: mockProviderFee,
+        providerId: 'manteca-br',
+        amountFixed: true,
         pixKeyLabel: '09579927189',
         pixKeyOwner: { name: 'Ana Souza', legalIdMasked: null },
         isAwaitingPixKeyOwner: false,

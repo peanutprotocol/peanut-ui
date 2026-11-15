@@ -17,6 +17,7 @@ import {
     type TransactionDirection,
 } from '@/components/TransactionDetails/transaction-types'
 import { hasPublicReceipt } from '@/components/TransactionDetails/transaction-predicates'
+import { isPixAccountType } from '@/components/TransactionDetails/transaction-details.utils'
 
 export enum EHistoryUserRole {
     SENDER = 'SENDER',
@@ -87,18 +88,18 @@ export type HistoryEntryType = 'TRANSACTION_INTENT'
 export type HistoryUserRole = `${EHistoryUserRole}`
 export type HistoryStatus = `${EHistoryStatus}`
 
-/** A Pix withdrawal's recovery as `GET /history/:entryId` sends it (api `PixRecoveryView`). */
-export type PixRecoveryView = NonNullable<
-    NonNullable<
-        paths['/history/{entryId}']['get']['responses'][200]['content']['application/json']['extraData']
-    >['pixRecovery']
->
-
 /** The intent's own status as `GET /history/:entryId` sends it, before `status` folds it into PENDING. */
 export type HistoryIntentStatus = NonNullable<
     NonNullable<
         paths['/history/{entryId}']['get']['responses'][200]['content']['application/json']['extraData']
     >['intentStatus']
+>
+
+/** Who a Pix payout paid, as `GET /history/:entryId` sends it, to its owner only (API-CONTRACT-M3 section 8). */
+export type PixPayoutView = NonNullable<
+    NonNullable<
+        paths['/history/{entryId}']['get']['responses'][200]['content']['application/json']['extraData']
+    >['pixPayout']
 >
 
 /** A Pix deposit's code state as `GET /history/:entryId` sends it, to its owner only. */
@@ -126,11 +127,11 @@ export type PixDepositView = NonNullable<
  * reading one on the FE, remove it here.
  */
 export interface HistoryEntryExtraData {
-    /** On a Pix withdrawal only: its recovery after the payout failed or came back, null when it has none.
-     *  The shape is the API's (`GET /history/:entryId`); read it through `awaitsNewPixKey`. */
-    pixRecovery?: PixRecoveryView | null
     /** On a Pix deposit only: whether its code can still be paid. Read it through `pixCodePayable`. */
     pixDeposit?: PixDepositView
+    /** On an Avenia Pix withdrawal only, to its owner: the raw key it paid and who was paid.
+     *  `ownAccount` false: a send to another person. */
+    pixPayout?: PixPayoutView
     /** The intent's own status, which `status` folds into PENDING (a Pix withdrawal is
      *  AWAITING_USER_ACTION until it is signed, PROCESSING after). */
     intentStatus?: HistoryIntentStatus
@@ -422,6 +423,16 @@ export function getAvatarUrl(transaction: TransactionDetails): string | undefine
     // Historical QR_PAY rows from removed providers (e.g. DEPRECATED_SIMPLEFI)
     // fall through to undefined → the generic default avatar.
     return undefined
+}
+
+/**
+ * The logo in the leading slot of an Activity row. A payout to a Pix key shows the Pix logo, as a
+ * Manteca Pix payment does. The receipt drawer's header reads `getAvatarUrl` alone, so it keeps the
+ * person or the bank.
+ */
+export function getActivityRowAvatarUrl(transaction: TransactionDetails): string | undefined {
+    const account = transaction.bankAccountDetails
+    return getAvatarUrl(transaction) ?? (account && isPixAccountType(account.type) ? PIX : undefined)
 }
 
 // Whether each status's amount carries the +/- sign. Sign-less statuses are

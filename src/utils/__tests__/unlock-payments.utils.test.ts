@@ -408,7 +408,8 @@ describe('withPixSend', () => {
             expect.objectContaining({
                 chip: 'active',
                 note: 'pixSendNote',
-                href: '/withdraw/manteca?method=pix&country=brazil',
+                // review finding 5: the link marks a send, so Avenia's Pix-key form opens titled Send
+                href: '/withdraw/manteca?method=pix&country=brazil&sendMethod=bank',
             })
         )
         expect(brl(rows).unavailableBecause).toBeUndefined()
@@ -440,7 +441,8 @@ describe('withPixSend', () => {
             expect.objectContaining({
                 chip: 'active',
                 note: 'pixSendNote',
-                href: '/withdraw/manteca?method=pix&country=brazil',
+                // review finding 5: the link marks a send, so Avenia's Pix-key form opens titled Send
+                href: '/withdraw/manteca?method=pix&country=brazil&sendMethod=bank',
             })
         )
         expect(brl(rows).unavailableBecause).toBeUndefined()

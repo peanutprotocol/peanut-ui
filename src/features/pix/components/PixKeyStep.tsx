@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
-import { Callout } from '@/components/0_Bruddle/Callout'
 import { Field } from '@/components/0_Bruddle/Field'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
@@ -11,38 +10,31 @@ import Badge from '@/components/Global/Badges/Badge'
 import NavHeader from '@/components/Global/NavHeader'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
-import { completePixKey, maskedTaxIdKind } from '@/features/pix/pixFlow.utils'
+import { completePixKey } from '@/features/pix/pixFlow.utils'
 import { usePixKeyLookup, type PixKeyLookup } from '@/features/pix/usePixKeyLookup'
 import type { PixKeyInfo } from '@/services/pix'
+import { brTaxIdKind } from '@/utils/br-tax-id.utils'
 import { isPixEmvcoQr, normalizePixInput } from '@/utils/withdraw.utils'
 
 /**
- * The Pix key of a withdrawal, or the new key for a refused payout. A complete
- * key is resolved to its holder and bank before Continue. A provider that
- * checks the holder pays only an account under the user's own CPF, so anyone
- * else's key shows as such and cannot continue; where the provider cannot tell
- * (`unchecked`), the key continues with no ownership badge.
+ * The Pix key of a withdrawal or a send. A
+ * complete key is resolved to its holder, bank and masked tax id before
+ * Continue, so the user sees whom the money goes to. Any key continues, the
+ * user's own or another person's (TASK-24947), except a bank the provider does
+ * not pay. "Own account" shows only where the provider says the key is the
+ * user's own.
  */
 export function PixKeyStep({
     title,
     initialKey,
-    intro,
     onBack,
     onContinue,
-    isSubmitting = false,
-    refusal,
 }: {
     title: string
     initialKey: string
-    /** The line above the field; the withdrawal's own by default. */
-    intro?: string
     onBack: () => void
-    /** The normalized key and its holder, once it resolved to the user's own account. */
+    /** The normalized key and its holder, once it resolved to a key the provider pays. */
     onContinue: (key: string, info: PixKeyInfo) => void
-    /** Continue waits for the caller's answer. */
-    isSubmitting?: boolean
-    /** What the caller's submit refused: under the field when it names this key, else above Continue. */
-    refusal?: { message: string; key: string | null } | null
 }) {
     const t = useTranslations('pix.withdraw')
     const tWithdraw = useTranslations('withdraw')
@@ -54,18 +46,16 @@ export function PixKeyStep({
     const key = completePixKey(value)
     // an answer for a key the user has since changed says nothing about this one
     const current = result && key && result.key === key && !isChanging ? result : null
-    // the provider pays this key: the user's own, or one whose holder it does not check
-    const canPay = current?.status === 'found' && (current.verdict === 'own' || current.verdict === 'unchecked')
-    // a refusal for a key the user has since changed says nothing about this one
-    const refusedKey = refusal?.key && refusal.key === key ? refusal.message : undefined
-    const error = isPixEmvcoQr(value.trim()) ? t('notACode') : (keyError(current) ?? refusedKey)
+    // the provider pays any key, except one at a bank it will not pay
+    const canPay = current?.status === 'found' && !current.info.blocked
+    const error = isPixEmvcoQr(value.trim()) ? t('notACode') : keyError(current)
 
     function keyError(lookupResult: PixKeyLookup | null): string | undefined {
         if (!lookupResult) return undefined
         if (lookupResult.status === 'not-found') return tWithdraw('pixKey.notFound')
+        if (lookupResult.status === 'qr-code') return t('notACode')
         if (lookupResult.status === 'failed') return t('lookupFailed')
-        if (lookupResult.verdict === 'not-own') return t('keyNotOwn')
-        if (lookupResult.verdict === 'blocked') return t('keyBlocked')
+        if (lookupResult.info.blocked) return t('keyBlocked')
         return undefined
     }
 
@@ -73,7 +63,6 @@ export function PixKeyStep({
         <PageStack>
             <NavHeader title={title} onPrev={onBack} />
             <div className="flex flex-col gap-4">
-                <p className="text-body-s text-foreground-secondary">{intro ?? t('keyIntro')}</p>
                 <Field label={tWithdraw('pixKey.placeholder')} error={error}>
                     <ValidatedInput
                         value={value}
@@ -87,10 +76,7 @@ export function PixKeyStep({
                             const complete = completePixKey(input)
                             if (!complete) return false
                             const outcome = await lookup(complete)
-                            return (
-                                outcome.status === 'found' &&
-                                (outcome.verdict === 'own' || outcome.verdict === 'unchecked')
-                            )
+                            return outcome.status === 'found' && !outcome.info.blocked
                         }}
                         onUpdate={(update) => {
                             setValue(isPixEmvcoQr(update.value.trim()) ? update.value : normalizePixInput(update.value))
@@ -107,29 +93,28 @@ export function PixKeyStep({
                         body={[
                             current.info.bankName,
                             current.info.holderTaxIdMasked &&
-                                `${maskedTaxIdKind(current.info.holderTaxIdMasked)} ${current.info.holderTaxIdMasked}`,
+                                [brTaxIdKind(current.info.holderTaxIdMasked), current.info.holderTaxIdMasked]
+                                    .filter(Boolean)
+                                    .join(' '),
                         ]
                             .filter(Boolean)
                             .join(' · ')}
                         bodyWrap
-                        // whose account it is, from the directory: a deny-listed bank can still be the user's own
+                        // Whose account it is, from the directory. Another person's key needs no badge: the name says
+                        // whom the money goes to.
                         trailing={
-                            current.info.ownAccount === null ? undefined : current.info.ownAccount ? (
+                            current.info.ownAccount ? (
                                 <Badge status="completed" customText={t('ownAccount')} />
-                            ) : (
-                                <Badge status="failed" customText={t('someoneElses')} />
-                            )
+                            ) : undefined
                         }
                     />
                 )}
             </div>
             <PageStack.Footer>
-                {refusal && !refusal.key && <Callout priority="error">{refusal.message}</Callout>}
                 <Button
                     variant="primary"
                     className="w-full"
-                    loading={isSubmitting}
-                    disabled={!canPay || !key || isSubmitting || !!refusedKey}
+                    disabled={!canPay || !key}
                     onClick={() => key && current?.status === 'found' && onContinue(key, current.info)}
                 >
                     {tCommon('continue')}

@@ -167,7 +167,7 @@ describe('useSumsubKycFlow — cross-region routing', () => {
 
         expect(result.current.isTerminalError).toBe(true)
         expect(result.current.error).toBe(
-            "Bank transfers aren't available for residents of your country. Your funds are safe — you can withdraw them as crypto anytime."
+            "Bank transfers aren't available for residents of your country. Your funds are safe. You can withdraw them as crypto anytime."
         )
         expect(result.current.error).not.toMatch(/UK/)
     })

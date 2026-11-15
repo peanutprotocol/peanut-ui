@@ -47,6 +47,20 @@ export function isSplittable(transaction: TransactionDetails): boolean {
     return false
 }
 
+/**
+ * A payout to a bank account or a Pix key, whose intent id the receipt prints as the Transfer ID
+ * support asks for. A Pix payout to another person's key reads as a send (TASK-24947) and keeps
+ * it; a bank send-link claimed by a Peanut user is a send to them, not a payout.
+ */
+export function isFiatPayout(transaction: TransactionDetails): boolean {
+    if (transaction.direction === 'bank_withdraw' || transaction.direction === 'bank_claim') return true
+    return (
+        transaction.direction === 'send' &&
+        isKind(transaction, 'OFFRAMP') &&
+        transaction.extraDataForDrawer?.bridgeFlow !== 'BANK_SEND_LINK_CLAIM'
+    )
+}
+
 /** Kinds that move money across a fiat rail: bank on/off-ramps + QR pays.
  *  The anchor for the FX predicate (`isFxBearingFlow`). */
 export const FIAT_RAIL_KINDS: ReadonlySet<string> = new Set(['QR_PAY', 'ONRAMP', 'OFFRAMP'])

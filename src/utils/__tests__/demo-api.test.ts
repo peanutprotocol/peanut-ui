@@ -10,6 +10,7 @@ import { PEANUT_API_URL } from '@/constants/general.consts'
 import { parseResidenceRestrictionSets, setServerResidenceRestrictionSets } from '@/utils/residence-restriction-sets'
 import { DEMO_RESIDENCE_RESTRICTIONS } from '@/utils/demo-kyc'
 import { KYC_INTENTS_BY_COUNTRY } from '@/test-utils/kycIntents.fixture'
+import openapi from '@/types/api.openapi.json'
 
 // The web-safe test requires @/utils/demo → general.utils → app/actions/clients, whose
 // module-scope viem clients start 60s RPC-ranking timers (fallback rank) that keep the
@@ -106,15 +107,48 @@ describe('demoRespond — routing', () => {
     // The Pix screens call these; the screen-capture harness runs strict, so an
     // unmapped route would fail the pix-* fixtures on the dev Screen library run.
     it.each([
+        ['GET', '/pix/deposit/rules', { minAmountBrl: '20', blockedBanks: [] }],
         ['GET', '/pix/deposit/demo-pix-deposit', { status: 'AWAITING_USER_ACTION', pixReceived: false }],
-        ['POST', '/pix/key', { ownAccount: null, blocked: false }],
-        ['POST', '/pix/withdraw/preview', { provider: 'Manteca', ownAccount: null }],
-        ['POST', '/pix/withdraw', { intentId: null, sign: { kind: 'transfer-then-submit' } }],
-        ['POST', '/pix/withdraw/submit', { intentId: 'demo-pix-withdraw' }],
+        ['POST', '/pix/key', { ownAccount: true, blocked: false }],
+        ['POST', '/pix/withdraw/preview', { provider: 'Avenia', ownAccount: true }],
+        ['GET', '/pix/withdraw/demo-pix-withdraw', { state: 'paid', selfPay: false, perk: null }],
     ])('answers %s %s in strict capture mode', async (method, path, expected) => {
         const res = await demoRespond(path, { method }, { offline: true, strict: true })
         expect(res.status).toBe(200)
         expect(await res.json()).toMatchObject(expected)
+    })
+
+    // The owner's ruling of 15 Nov: R$5 to withdraw or send to a Pix key; adding money stays at R$20
+    it.each([
+        ['withdraw', '5'],
+        ['deposit', '20'],
+    ])('names the %s minimum on the Pix route and in the quote: R$%s', async (operation, minimum) => {
+        const me = await (await demoRespond('/users/me', { method: 'GET' }, { offline: true, strict: true })).json()
+        const route = me.capabilities.routes.find(
+            (r: { operation: string; method: string }) => r.operation === operation && r.method === 'PIX_BR'
+        )
+        expect(route.limits.minAmount).toBe(minimum)
+        const quote = await demoRespond(
+            `/pix/quote?operation=${operation}&amountBrl=100`,
+            { method: 'GET' },
+            {
+                offline: true,
+                strict: true,
+            }
+        )
+        expect(await quote.json()).toMatchObject({ operation, minAmountBrl: minimum })
+    })
+
+    // The QR flow reads the payment's reward from this answer; the snapshot makes `perk` required
+    // (null until the reward is issued), so the demo answer carries every field the snapshot names.
+    it('answers the Pix payment read with every field the API snapshot requires', async () => {
+        const schema = openapi.paths['/pix/pay/{intentId}'].get.responses['200'].content['application/json']
+            .schema as unknown as { required: string[] }
+        const res = await demoRespond('/pix/pay/demo-pix-pay', { method: 'GET' }, { offline: true, strict: true })
+        expect(res.status).toBe(200)
+        const data = await res.json()
+        expect(schema.required).toContain('perk')
+        for (const field of schema.required) expect(data).toHaveProperty(field)
     })
 
     it('answers the card markup read with "nothing to compare" in strict capture mode', async () => {

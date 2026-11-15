@@ -17,7 +17,8 @@ export function KycFeatureActivationGate({
     scope,
     selectedCurrency,
 }: {
-    feature: KycActivationFeature
+    /** `pix` opens with no gate in front: the Pix screens open it themselves (`PixAccountOpening`). */
+    feature: Exclude<KycActivationFeature, 'pix'>
     children: ReactNode
     scope?: ReportScope
     selectedCurrency?: string

@@ -6,6 +6,7 @@ import { useLimits } from '@/hooks/useLimits'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
+import { useCapabilities } from '@/hooks/useCapabilities'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { Tabs } from '@/components/0_Bruddle/Tabs'
 import ProgressBar from '@/components/0_Bruddle/ProgressBar'
@@ -16,8 +17,12 @@ import {
     getLimitColorClass,
     formatAmountWithCurrency,
     getFlagUrlForCurrency,
+    brlOperationsServedBy,
+    limitsUnavailable,
+    mantecaBrlLimitApplies,
     type LimitsPeriod,
 } from '../utils'
+import MonthlyRoomCard from '../components/MonthlyRoomCard'
 import { AttentionSlot } from '@/features/attention/AttentionSlot'
 import IncreaseLimitsButton from '../components/IncreaseLimitsButton'
 import { CapNudgeCtaContext } from '../cap-nudge-cta-context'
@@ -26,14 +31,35 @@ import LimitsDocsLink from '../components/LimitsDocsLink'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 
 /**
- * displays manteca limits for latam users
- * shows monthly/yearly limits per currency with remaining amounts
+ * displays the limits of latam users
+ * shows manteca's monthly/yearly limits per currency with remaining amounts; BRL shows, per operation,
+ * the limits of the provider that operation's Pix route names: Avenia's monthly room for what Avenia
+ * serves, Manteca's BRL card while Manteca still serves any of it (a QR payment outside Avenia's QR gate)
  */
 const MantecaLimitsView = () => {
     const t = useTranslations('limits.provider')
     const tPeriod = useTranslations('limits.period')
     const onBack = useSafeBack('/limits')
-    const { mantecaLimits, isLoading, error, refetch, isRefetching } = useLimits()
+    const {
+        limits,
+        mantecaLimits: allMantecaLimits,
+        aveniaLimits,
+        isLoading,
+        error,
+        refetch,
+        isRefetching,
+    } = useLimits()
+    const { capabilities } = useCapabilities()
+    const aveniaOperations = brlOperationsServedBy(capabilities.routes, 'avenia')
+    const mantecaLimits = mantecaBrlLimitApplies(capabilities.routes)
+        ? allMantecaLimits
+        : allMantecaLimits?.filter((limit) => limit.asset !== 'BRL')
+    const aveniaRoom = aveniaOperations.length > 0 ? aveniaLimits : null
+    const hasLimits = (mantecaLimits?.length ?? 0) > 0 || !!aveniaRoom
+    // A provider whose limits this page shows could not be read: the screen's error, as when the whole
+    // read failed. A null limit the API does not list is no account there, and shows nothing.
+    const limitsUnread =
+        limitsUnavailable(limits, 'manteca') || (aveniaOperations.length > 0 && limitsUnavailable(limits, 'avenia'))
     const [period, setPeriod] = useState<LimitsPeriod>('monthly')
     const [capNudgeCtaShown, setCapNudgeCtaShown] = useState(false)
 
@@ -43,13 +69,22 @@ const MantecaLimitsView = () => {
 
             {isLoading && <Loading variant="mascot" coverFullScreen />}
 
-            {error && <LimitsError onRetry={() => refetch()} isRetrying={isRefetching} />}
+            {(error || (!isLoading && limitsUnread)) && (
+                <LimitsError onRetry={() => refetch()} isRetrying={isRefetching} />
+            )}
 
-            {!isLoading && !error && mantecaLimits && mantecaLimits.length > 0 && (
+            {!isLoading && !error && hasLimits && (
                 <>
                     {/* limit cards per currency */}
                     <div className="space-y-4">
-                        {mantecaLimits.map((limit) => {
+                        {aveniaRoom && (
+                            <MonthlyRoomCard
+                                currency={aveniaRoom.currency}
+                                room={aveniaRoom}
+                                operations={aveniaOperations}
+                            />
+                        )}
+                        {(mantecaLimits ?? []).map((limit) => {
                             const limitData = getLimitData(limit, period)
                             // use centralized flag url utility
                             const flagUrl = getFlagUrlForCurrency(limit.asset)
@@ -121,9 +156,7 @@ const MantecaLimitsView = () => {
                 </>
             )}
 
-            {!isLoading && !error && (!mantecaLimits || mantecaLimits.length === 0) && (
-                <EmptyState title={t('noData')} icon="meter" />
-            )}
+            {!isLoading && !error && !hasLimits && !limitsUnread && <EmptyState title={t('noData')} icon="meter" />}
         </PageStack>
     )
 }

@@ -2,10 +2,13 @@
 import { act, renderHook } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
+import { decodeFunctionData, erc20Abi, parseAbi } from 'viem'
 import { ApiError } from '@/services/api-error'
 import { BALANCE_DECREASE, SEND_MONEY } from '@/constants/query.consts'
 
 const USDC = '0xaf88d065e77c8cC2239327C5EDb3A432268e5831'
+const BRIDGE = '0x10417734001162Ea139e8b044DFe28DbB8B28ad0'
+const MINED = `0x${'ab'.repeat(32)}`
 
 // general.utils reaches the viem clients, whose RPC-ranking timers keep the worker alive
 jest.mock('@/app/actions/clients', () => ({}))
@@ -57,47 +60,42 @@ jest.mock('@/hooks/useRainCardOverview', () => ({
 
 import { usePixWithdrawSubmit } from '../usePixWithdrawSubmit'
 
+const DEPOSIT_ABI = parseAbi(['function depositWithId(address tokenAddress, uint256 amount, uint256 commitmentId)'])
 const REQUEST = { pixKey: '09579927189', amountBrl: '503' }
 const display = {
     amountBrl: '503.00',
     pixKey: '09579927189',
-    ownAccount: null,
+    ownAccount: true as const,
+    holderTaxIdMasked: null,
     holderName: 'Ana Souza',
-    bankName: null,
+    bankName: 'Banco Inter',
     withdrawUsd: '92.504310',
-    rate: '5.437586',
-    fixedFeeBrl: '0',
-    arrivalEstimateSeconds: 300,
-    provider: 'Manteca' as const,
+    rate: '5.445692',
+    fixedFeeBrl: '0.75',
+    arrivalEstimateSeconds: 60,
+    provider: 'Avenia' as const,
 }
 const inAMinute = () => new Date(Date.now() + 60_000).toISOString()
 const units = (usd: string) => {
     const [whole, fraction = ''] = usd.split('.')
     return BigInt(whole + fraction.padEnd(6, '0').slice(0, 6)).toString()
 }
-// Manteca's kind: nothing is open until the API takes the signed transfer, opens the order and broadcasts
-const DEPOSIT_ADDRESS = '0x00000000000000000000000000000000000000d3'
-const transferInit = (overrides: Record<string, unknown> = {}, opened: Partial<typeof display> = {}) => ({
-    provider: 'manteca',
-    intentId: null,
+const initResponse = (overrides: Record<string, unknown> = {}, opened: Partial<typeof display> = {}) => ({
+    provider: 'avenia',
+    intentId: 'w1',
     display: { ...display, ...opened },
     sign: {
-        kind: 'transfer-then-submit',
-        depositAddress: DEPOSIT_ADDRESS,
+        kind: 'deposit-with-id',
+        contractAddress: BRIDGE,
         tokenAddress: USDC,
         payAmount: opened.withdrawUsd ?? display.withdrawUsd,
         payAmountUnits: units(opened.withdrawUsd ?? display.withdrawUsd),
-        priceLockCode: 'lock-1',
+        commitmentId: '6aeb17ea29f84d1e9b0c3a5d7e2f1c08',
         quoteExpiresAt: inAMinute(),
+        ticketExpiresAt: '2026-11-04T12:10:00.000Z',
         ...overrides,
     },
 })
-const signedUserOp = { sender: '0xabc', nonce: 1n, callData: '0x', signature: '0x1' }
-const artifact = {
-    strategy: 'smart-only',
-    signedUserOp: { signedUserOp, chainId: '42161', entryPointAddress: '0xe' },
-}
-const submitted = { provider: 'manteca', intentId: 'm1', status: 'PROCESSING' }
 
 describe('usePixWithdrawSubmit', () => {
     let queryClient: QueryClient
@@ -111,14 +109,54 @@ describe('usePixWithdrawSubmit', () => {
         mockReportFunding.mockResolvedValue({ status: 'PROCESSING' })
     })
 
-    it('submits as a balance-decreasing send, so the pending guard sees it', async () => {
-        window.localStorage.clear()
-        mockInit.mockResolvedValue(transferInit())
-        mockSignSpend.mockResolvedValue(artifact)
+    it("opens the ticket, signs Rhino's deposit for exactly the pay amount and reports the mined hash", async () => {
+        mockInit.mockResolvedValue(initResponse())
+        mockSendTransactions.mockResolvedValue({ receipt: { status: 'success', transactionHash: MINED, logs: [] } })
+        const { result } = renderHook(() => usePixWithdrawSubmit(), { wrapper })
+
+        await act(async () => {
+            await result.current.submit(REQUEST, display)
+        })
+
+        expect(mockInit).toHaveBeenCalledWith(REQUEST)
+        const [calls, options] = mockSendTransactions.mock.calls[0]
+        expect(options).toMatchObject({ chainId: '42161', requiredUsdcAmount: 92_504_310n, kind: 'FIAT_OFFRAMP' })
+        expect(calls[0].to).toBe(USDC)
+        expect(decodeFunctionData({ abi: erc20Abi, data: calls[0].data }).args).toEqual([BRIDGE, 92_504_310n])
+        expect(calls[1].to).toBe(BRIDGE)
+        expect(decodeFunctionData({ abi: DEPOSIT_ABI, data: calls[1].data }).args).toEqual([
+            USDC,
+            92_504_310n,
+            BigInt('0x6aeb17ea29f84d1e9b0c3a5d7e2f1c08'),
+        ])
+        expect(mockReportFunding).toHaveBeenCalledWith('w1', MINED)
+        expect(result.current.phase).toBe('funded')
+        expect(result.current.opened).toEqual({ intentId: 'w1', display })
+    })
+
+    it('hands the opened id to the flow before anything is signed', async () => {
+        mockInit.mockResolvedValue(initResponse())
+        const order: string[] = []
+        mockSendTransactions.mockImplementation(async () => {
+            order.push('sign')
+            return { receipt: { status: 'success', transactionHash: MINED, logs: [] } }
+        })
+        const onOpened = jest.fn((id: string | null) => order.push(`opened ${id}`))
+        const { result } = renderHook(() => usePixWithdrawSubmit({ onOpened }), { wrapper })
+
+        await act(async () => {
+            await result.current.submit(REQUEST, display)
+        })
+
+        expect(order).toEqual(['opened w1', 'sign'])
+    })
+
+    it('signs as a balance-decreasing send, so the pending guard sees it', async () => {
+        mockInit.mockResolvedValue(initResponse())
         let seen = 0
-        mockSubmitTransfer.mockImplementation(async () => {
+        mockSendTransactions.mockImplementation(async () => {
             seen = queryClient.isMutating({ mutationKey: [BALANCE_DECREASE] })
-            return submitted
+            return { receipt: { status: 'success', transactionHash: MINED, logs: [] } }
         })
         const { result } = renderHook(() => usePixWithdrawSubmit(), { wrapper })
 
@@ -148,9 +186,8 @@ describe('usePixWithdrawSubmit', () => {
     })
 
     it('reports an unexplained signing failure with the critical-flow tags', async () => {
-        window.localStorage.clear()
-        mockInit.mockResolvedValue(transferInit())
-        mockSignSpend.mockRejectedValue(new Error('bundler said no'))
+        mockInit.mockResolvedValue(initResponse())
+        mockSendTransactions.mockRejectedValue(new Error('bundler said no'))
         const { result } = renderHook(() => usePixWithdrawSubmit(), { wrapper })
 
         await act(async () => {
@@ -159,12 +196,12 @@ describe('usePixWithdrawSubmit', () => {
 
         expect(mockCaptureTriaged).toHaveBeenCalledWith(expect.any(Error), {
             tags: { critical_flow: 'withdraw-pix', withdraw_step: 'sign' },
-            extra: { intentId: null },
+            extra: { intentId: 'w1' },
         })
     })
 
     it("reports an init that failed without the API's refusal code, and not a refusal", async () => {
-        mockInit.mockRejectedValueOnce(new ApiError('refused', { status: 422, code: 'PIX_KEY_NOT_OWN' }))
+        mockInit.mockRejectedValueOnce(new ApiError('refused', { status: 422, code: 'PIX_KEY_BLOCKED' }))
         const { result } = renderHook(() => usePixWithdrawSubmit(), { wrapper })
         await act(async () => {
             await result.current.submit(REQUEST, display)
@@ -180,11 +217,24 @@ describe('usePixWithdrawSubmit', () => {
         })
     })
 
+    it('never calls a send with no receipt a success, and reports nothing it cannot prove', async () => {
+        mockInit.mockResolvedValue(initResponse())
+        mockSendTransactions.mockResolvedValue({ receipt: null })
+        const { result } = renderHook(() => usePixWithdrawSubmit(), { wrapper })
+
+        await act(async () => {
+            await result.current.submit(REQUEST, display)
+        })
+
+        expect(result.current.phase).toBe('unconfirmed')
+        expect(mockReportFunding).not.toHaveBeenCalled()
+    })
+
     it.each([
         ['PIX_LIMIT_EXCEEDED', 'withdraw.errors.limitExceeded'],
         ['WITHDRAWAL_IN_PROGRESS', 'withdraw.errors.inProgress'],
         ['PIX_QUOTE_EXPIRED', 'withdraw.errors.quoteExpired'],
-        ['PIX_KEY_NOT_OWN', 'withdraw.keyNotOwn'],
+        ['PIX_KEY_BLOCKED', 'withdraw.keyBlocked'],
         ['PROVIDER_REJECTED', 'providerRejected'],
         ['PROVIDER_UNAVAILABLE', 'unavailable'],
     ])('names a refused init (%s) and allows another try', async (code, message) => {
@@ -198,6 +248,22 @@ describe('usePixWithdrawSubmit', () => {
         expect(result.current.error).toBe(message)
         expect(result.current.lockedAfterInit).toBe(false)
         expect(result.current.phase).toBe('idle')
+        expect(mockSendTransactions).not.toHaveBeenCalled()
+    })
+
+    // API-CONTRACT-M5 §2 (Changed): a re-quote at init that moved the reais opens nothing
+    it('a quote that changed at init says so and reads the review again, so the next Confirm is for its figures', async () => {
+        mockInit.mockRejectedValue(new ApiError('changed', { status: 409, code: 'PIX_QUOTE_CHANGED' }))
+        const invalidate = jest.spyOn(queryClient, 'invalidateQueries')
+        const { result } = renderHook(() => usePixWithdrawSubmit(), { wrapper })
+
+        await act(async () => {
+            await result.current.submit(REQUEST, display)
+        })
+
+        expect(result.current.error).toBe('withdraw.errors.quoteChanged')
+        expect(result.current.phase).toBe('idle')
+        expect(invalidate).toHaveBeenCalledWith({ queryKey: ['pix-withdraw-preview'] })
         expect(mockSendTransactions).not.toHaveBeenCalled()
     })
 
@@ -229,23 +295,53 @@ describe('usePixWithdrawSubmit', () => {
         expect(result.current.phase).toBe('starting')
     })
 
-    it('refuses to sign for a token that is not the wallet USDC', async () => {
-        mockInit.mockResolvedValue(transferInit({ tokenAddress: '0x0000000000000000000000000000000000000bad' }))
+    it('never signs again once the ticket is open, even when the signature failed', async () => {
+        mockInit.mockResolvedValue(initResponse())
+        mockSendTransactions.mockRejectedValue(new Error('passkey cancelled'))
+        const { result } = renderHook(() => usePixWithdrawSubmit(), { wrapper })
+
+        await act(async () => {
+            await result.current.submit(REQUEST, display)
+        })
+        expect(result.current.error).toBe('friendly: passkey cancelled')
+        expect(result.current.lockedAfterInit).toBe(true)
+
+        await act(async () => {
+            await result.current.submit(REQUEST, display)
+        })
+        expect(mockInit).toHaveBeenCalledTimes(1)
+        expect(mockSendTransactions).toHaveBeenCalledTimes(1)
+    })
+
+    it('refuses to approve a token that is not the wallet USDC', async () => {
+        mockInit.mockResolvedValue(initResponse({ tokenAddress: '0x0000000000000000000000000000000000000bad' }))
         const { result } = renderHook(() => usePixWithdrawSubmit(), { wrapper })
 
         await act(async () => {
             await result.current.submit(REQUEST, display)
         })
 
-        expect(mockSignSpend).not.toHaveBeenCalled()
+        expect(mockSendTransactions).not.toHaveBeenCalled()
         expect(result.current.error).toBe('unavailable')
     })
 
+    it('treats a reverted deposit as a failure, not a sent withdrawal', async () => {
+        mockInit.mockResolvedValue(initResponse())
+        mockSendTransactions.mockResolvedValue({ receipt: { status: 'reverted', transactionHash: MINED, logs: [] } })
+        const { result } = renderHook(() => usePixWithdrawSubmit(), { wrapper })
+
+        await act(async () => {
+            await result.current.submit(REQUEST, display)
+        })
+
+        expect(result.current.phase).toBe('opened')
+        expect(result.current.lockedAfterInit).toBe(true)
+        expect(mockReportFunding).not.toHaveBeenCalled()
+    })
+
     it('signs nothing when the opened quote takes more USD than the review showed, until confirmed again', async () => {
-        window.localStorage.clear()
-        mockInit.mockResolvedValue(transferInit({}, { withdrawUsd: '93.100000' }))
-        mockSignSpend.mockResolvedValue(artifact)
-        mockSubmitTransfer.mockResolvedValue(submitted)
+        mockInit.mockResolvedValue(initResponse({}, { withdrawUsd: '93.100000' }))
+        mockSendTransactions.mockResolvedValue({ receipt: { status: 'success', transactionHash: MINED, logs: [] } })
         const { result } = renderHook(() => usePixWithdrawSubmit(), { wrapper })
 
         await act(async () => {
@@ -253,29 +349,27 @@ describe('usePixWithdrawSubmit', () => {
         })
         expect(result.current.phase).toBe('reconfirm')
         expect(result.current.opened?.display.withdrawUsd).toBe('93.100000')
-        expect(mockSignSpend).not.toHaveBeenCalled()
+        expect(mockSendTransactions).not.toHaveBeenCalled()
 
         await act(async () => {
             await result.current.confirmOpened()
         })
-        expect(mockSignSpend).toHaveBeenCalledTimes(1)
-        expect(mockSignSpend.mock.calls[0][0]).toMatchObject({ requiredUsdcAmount: 93_100_000n })
+        expect(mockSendTransactions).toHaveBeenCalledTimes(1)
+        expect(mockSendTransactions.mock.calls[0][1]).toMatchObject({ requiredUsdcAmount: 93_100_000n })
         expect(mockInit).toHaveBeenCalledTimes(1)
         expect(result.current.phase).toBe('funded')
     })
 
     it('asks again when the opened quote pays fewer reais, and signs at once when it is better', async () => {
-        window.localStorage.clear()
-        mockInit.mockResolvedValueOnce(transferInit({}, { amountBrl: '502.10' }))
+        mockInit.mockResolvedValueOnce(initResponse({}, { amountBrl: '502.10' }))
         const first = renderHook(() => usePixWithdrawSubmit(), { wrapper })
         await act(async () => {
             await first.result.current.submit(REQUEST, display)
         })
         expect(first.result.current.phase).toBe('reconfirm')
 
-        mockInit.mockResolvedValueOnce(transferInit({}, { withdrawUsd: '92.400000', amountBrl: '503.00' }))
-        mockSignSpend.mockResolvedValue(artifact)
-        mockSubmitTransfer.mockResolvedValue(submitted)
+        mockInit.mockResolvedValueOnce(initResponse({}, { withdrawUsd: '92.400000', amountBrl: '503.00' }))
+        mockSendTransactions.mockResolvedValue({ receipt: { status: 'success', transactionHash: MINED, logs: [] } })
         const second = renderHook(() => usePixWithdrawSubmit(), { wrapper })
         await act(async () => {
             await second.result.current.submit(REQUEST, display)
@@ -283,22 +377,149 @@ describe('usePixWithdrawSubmit', () => {
         expect(second.result.current.phase).toBe('funded')
     })
 
+    it("refuses to sign once Rhino's quote has expired", async () => {
+        mockInit.mockResolvedValue(
+            initResponse({ quoteExpiresAt: new Date(Date.now() - 1000).toISOString() }, { withdrawUsd: '93.1' })
+        )
+        const { result } = renderHook(() => usePixWithdrawSubmit(), { wrapper })
+
+        await act(async () => {
+            await result.current.submit(REQUEST, display)
+        })
+        await act(async () => {
+            await result.current.confirmOpened()
+        })
+
+        expect(mockSendTransactions).not.toHaveBeenCalled()
+        expect(result.current.error).toBe('withdraw.errors.quoteExpired')
+        expect(result.current.lockedAfterInit).toBe(true)
+    })
+
     it('signs nothing when the sign request asks for another amount than the opened quote shows', async () => {
-        mockInit.mockResolvedValue(transferInit({ payAmount: '95', payAmountUnits: '95000000' }))
+        mockInit.mockResolvedValue(initResponse({ payAmount: '95', payAmountUnits: '95000000' }))
         const { result } = renderHook(() => usePixWithdrawSubmit(), { wrapper })
 
         await act(async () => {
             await result.current.submit(REQUEST, display)
         })
 
-        expect(mockSignSpend).not.toHaveBeenCalled()
+        expect(mockSendTransactions).not.toHaveBeenCalled()
         expect(result.current.error).toBe('unavailable')
-        // nothing opens before the submit, so Confirm may open a new one
-        expect(result.current.lockedAfterInit).toBe(false)
+        expect(result.current.lockedAfterInit).toBe(true)
     })
 
-    describe('a transfer-then-submit withdrawal', () => {
+    describe('a signature that failed after the ticket opened', () => {
         const dismissed = () => Object.assign(new Error('The operation was not allowed.'), { name: 'NotAllowedError' })
+        const sentMark = () => window.localStorage.getItem('pix-withdraw-sent:w1')
+        beforeEach(() => window.localStorage.clear())
+
+        it('may be signed once more after a dismissed passkey, while the quote holds', async () => {
+            mockInit.mockResolvedValue(initResponse())
+            mockSendTransactions
+                .mockRejectedValueOnce(dismissed())
+                .mockResolvedValueOnce({ receipt: { status: 'success', transactionHash: MINED, logs: [] } })
+            const { result } = renderHook(() => usePixWithdrawSubmit(), { wrapper })
+
+            await act(async () => {
+                await result.current.submit(REQUEST, display)
+            })
+            expect(result.current.canSignOpened).toBe(true)
+            // nothing went out, so a reload may say so
+            expect(sentMark()).toBeNull()
+
+            await act(async () => {
+                await result.current.confirmOpened()
+            })
+            expect(mockSendTransactions).toHaveBeenCalledTimes(2)
+            expect(mockInit).toHaveBeenCalledTimes(1)
+            expect(result.current.phase).toBe('funded')
+            expect(sentMark()).toBe('1')
+        })
+
+        it('may be signed once more after a revert, and only once', async () => {
+            mockInit.mockResolvedValue(initResponse())
+            mockSendTransactions.mockResolvedValue({
+                receipt: { status: 'reverted', transactionHash: MINED, logs: [] },
+            })
+            const { result } = renderHook(() => usePixWithdrawSubmit(), { wrapper })
+
+            await act(async () => {
+                await result.current.submit(REQUEST, display)
+            })
+            expect(result.current.canSignOpened).toBe(true)
+            await act(async () => {
+                await result.current.confirmOpened()
+            })
+            expect(result.current.canSignOpened).toBe(false)
+            await act(async () => {
+                await result.current.confirmOpened()
+            })
+            expect(mockSendTransactions).toHaveBeenCalledTimes(2)
+        })
+
+        it('is never signed again after a failure that may have sent the deposit', async () => {
+            mockInit.mockResolvedValue(initResponse())
+            mockSendTransactions.mockRejectedValue(new Error('bundler said no'))
+            const { result } = renderHook(() => usePixWithdrawSubmit(), { wrapper })
+
+            await act(async () => {
+                await result.current.submit(REQUEST, display)
+            })
+            await act(async () => {
+                await result.current.confirmOpened()
+            })
+
+            expect(result.current.canSignOpened).toBe(false)
+            expect(mockSendTransactions).toHaveBeenCalledTimes(1)
+            // a reload keeps it unconfirmed, not "start again"
+            expect(sentMark()).toBe('1')
+        })
+
+        it('is not signed again once the quote has expired', async () => {
+            mockInit.mockResolvedValue(initResponse({ quoteExpiresAt: new Date(Date.now() + 50).toISOString() }))
+            mockSendTransactions.mockImplementationOnce(async () => {
+                await new Promise((resolve) => setTimeout(resolve, 60))
+                throw dismissed()
+            })
+            const { result } = renderHook(() => usePixWithdrawSubmit(), { wrapper })
+
+            await act(async () => {
+                await result.current.submit(REQUEST, display)
+            })
+            await act(async () => {
+                await result.current.confirmOpened()
+            })
+
+            expect(mockSendTransactions).toHaveBeenCalledTimes(1)
+            expect(result.current.error).toBe('withdraw.errors.quoteExpired')
+            expect(result.current.canSignOpened).toBe(false)
+        })
+    })
+
+    // Manteca's kind: nothing is open until the API takes the signed transfer, opens the order and broadcasts
+    describe('a transfer-then-submit withdrawal', () => {
+        const DEPOSIT_ADDRESS = '0x00000000000000000000000000000000000000d3'
+        const dismissed = () => Object.assign(new Error('The operation was not allowed.'), { name: 'NotAllowedError' })
+        const transferInit = (overrides: Record<string, unknown> = {}) => ({
+            provider: 'manteca',
+            intentId: null,
+            display: { ...display, fixedFeeBrl: '0', provider: 'Manteca' },
+            sign: {
+                kind: 'transfer-then-submit',
+                depositAddress: DEPOSIT_ADDRESS,
+                tokenAddress: USDC,
+                payAmount: display.withdrawUsd,
+                payAmountUnits: units(display.withdrawUsd),
+                priceLockCode: 'lock-1',
+                quoteExpiresAt: inAMinute(),
+                ...overrides,
+            },
+        })
+        const signedUserOp = { sender: '0xabc', nonce: 1n, callData: '0x', signature: '0x1' }
+        const artifact = {
+            strategy: 'smart-only',
+            signedUserOp: { signedUserOp, chainId: '42161', entryPointAddress: '0xe' },
+        }
 
         // this account's marks: one key per price lock
         const markLocks = () =>

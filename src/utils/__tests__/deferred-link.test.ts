@@ -1393,7 +1393,11 @@ describe('tracked-link handoff', () => {
             stashAcquisitionInvite(username)
             const encoded = buildDeferredPayload('/home', undefined, 'android', { trackedLink: username })
             expect(encodeURIComponent(encoded).length).toBeLessThanOrEqual(MAX_PLAY_REFERRER_LENGTH)
-            expect(parseDeferredPayload(encoded)).toMatchObject({ acquisitionInvite: username, trackedLink: username })
+            const parsed = parseDeferredPayload(encoded)!
+            expect(parsed).toMatchObject({ acquisitionInvite: username, trackedLink: username })
+            expect(parsed.attribution?.journeyId).toBe(journey.journeyId)
+            expect(parsed.attribution?.lastTouch).toBeUndefined()
+            expect(Object.keys(parsed.attribution!.firstTouch)).toEqual(['occurredAt'])
         })
 
         const playPayload = (touches: { firstTouch: object; lastTouch?: object }, username = 'juanacervio') => {
@@ -1465,6 +1469,86 @@ describe('tracked-link handoff', () => {
                 },
                 'a'.repeat(20)
             )
+        })
+
+        it('keeps the /go code and referrer host when the journey is reduced', () => {
+            const attribution = playPayload({
+                firstTouch: { ...adTouch, utmContent: 'brand-exact-es-ar-v2' },
+                lastTouch: {
+                    occurredAt: new Date().toISOString(),
+                    utmMedium: 'ambassador',
+                    utmCampaign: 'boost-nita-2026a',
+                    utmContent: 'c9999',
+                    referrerHost: 'l.instagram.com',
+                },
+            })
+            // The dropped ad content shows the reduced journey was the one sent.
+            expect(attribution.firstTouch.utmContent).toBeUndefined()
+            expect(attribution.lastTouch).toMatchObject({
+                utmMedium: 'ambassador',
+                utmCampaign: 'boost-nita-2026a',
+                utmContent: 'c9999',
+                referrerHost: 'l.instagram.com',
+            })
+        })
+    })
+
+    describe('Play referrer budget without a tracked link', () => {
+        const plainPayload = (context: object, badges: string[] = []) => {
+            saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, { ...journey, ...context })
+            if (badges.length) saveToCookie('campaignTagsV2', badges)
+            const encoded = buildDeferredPayload('/home', undefined, 'android')
+            expect(encodeURIComponent(encoded).length).toBeLessThanOrEqual(MAX_PLAY_REFERRER_LENGTH)
+            expect(new URLSearchParams(encoded).getAll('badge_campaign')).toEqual(badges)
+            return parseDeferredPayload(encoded)!.attribution
+        }
+        const at = (minutesAgo: number) => new Date(Date.now() - minutesAgo * 60_000).toISOString()
+
+        // A reduced last touch with no campaign would report blank last-touch fields instead of the first touch.
+        it('drops a referrer-only last touch from a reduced journey', () => {
+            const attribution = plainPayload({
+                firstTouch: {
+                    occurredAt: at(30),
+                    utmSource: 'google',
+                    utmMedium: 'cpc',
+                    utmCampaign: 'c'.repeat(64),
+                    utmContent: 'n'.repeat(64),
+                    referrerHost: 'www.google.com',
+                },
+                lastTouch: { occurredAt: at(1), referrerHost: 'www.reddit.com' },
+            })!
+            expect(attribution.firstTouch).toMatchObject({ utmSource: 'google', utmCampaign: 'c'.repeat(64) })
+            expect(attribution.firstTouch.utmContent).toBeUndefined()
+            expect(attribution.lastTouch).toBeUndefined()
+        })
+
+        it('keeps the content landing when it is the only touch with a campaign', () => {
+            const attribution = plainPayload(
+                {
+                    firstTouch: { occurredAt: at(30) },
+                    firstContentTouch: {
+                        occurredAt: at(20),
+                        utmSource: 'google',
+                        utmMedium: 'organic',
+                        utmCampaign: 'seo-camp',
+                        utmContent: 'n'.repeat(64),
+                    },
+                    lastTouch: { occurredAt: at(1), referrerHost: 'www.reddit.com' },
+                },
+                ['b'.repeat(40), 'd'.repeat(40), 'e'.repeat(40)]
+            )!
+            expect(attribution.firstContentTouch).toMatchObject({ utmCampaign: 'seo-camp' })
+            expect(attribution.firstContentTouch?.utmContent).toBeUndefined()
+        })
+
+        // Only a tracked link's visit event can join a bare journey; elsewhere it carries nothing.
+        it('never sends the bare journey', () => {
+            const long = { utmSource: 's'.repeat(64), utmMedium: 'cpc', utmCampaign: 'c'.repeat(64) }
+            const attribution = plainPayload({
+                firstTouch: { occurredAt: at(30), ...long },
+                lastTouch: { occurredAt: at(1), ...long, utmCampaign: 'd'.repeat(64) },
+            })
+            expect(attribution).toBeUndefined()
         })
     })
 

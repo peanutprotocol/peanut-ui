@@ -1522,7 +1522,7 @@ describe('MoneySettings', () => {
         const assertNoPixSend = () => {
             expect(screen.queryByText('Send to any Pix key')).not.toBeInTheDocument()
             expect(document.querySelector('a[href="/withdraw/manteca?method=pix&country=brazil"]')).toBeNull()
-            expect(mockPush).not.toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
+            expect(mockPush).not.toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil&sendMethod=bank')
         }
 
         beforeEach(() => {
@@ -1638,7 +1638,7 @@ describe('MoneySettings', () => {
                 within(screen.getByText('BRL').closest('.border') as HTMLElement).getByText('Send to any Pix key')
             ).toBeInTheDocument()
             fireEvent.click(screen.getByText('BRL'))
-            expect(mockPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
+            expect(mockPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil&sendMethod=bank')
             expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
         })
 
@@ -1649,7 +1649,7 @@ describe('MoneySettings', () => {
             const drawer = openBrlDrawer()
             expect(drawer.getByRole('link', { name: 'Send to any Pix key' })).toHaveAttribute(
                 'href',
-                '/withdraw/manteca?method=pix&country=brazil'
+                '/withdraw/manteca?method=pix&country=brazil&sendMethod=bank'
             )
             expect(drawer.getByText('Add and withdraw Brazilian reais with Pix.')).toBeInTheDocument()
 
@@ -1682,7 +1682,7 @@ describe('MoneySettings', () => {
                 const drawer = openBrlDrawer()
                 expect(drawer.getByRole('link', { name: 'Send to any Pix key' })).toHaveAttribute(
                     'href',
-                    '/withdraw/manteca?method=pix&country=brazil'
+                    '/withdraw/manteca?method=pix&country=brazil&sendMethod=bank'
                 )
                 expect(drawer.getByText('Add and withdraw Brazilian reais with Pix.')).toBeInTheDocument()
 
@@ -1919,7 +1919,7 @@ describe('a resident of neither country is not offered the Manteca bank rows', (
 
         expect(badgeFor('BRL').getByText('Active')).toBeInTheDocument()
         fireEvent.click(screen.getByText('BRL'))
-        expect(mockPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
+        expect(mockPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil&sendMethod=bank')
     })
 
     // Chip review on ui#3400, kept when the Pix key row left Payments
@@ -2060,19 +2060,77 @@ describe('card refusal rows follow the feature report', () => {
     })
 })
 
-// Aleks, 2026-11-12: an open Pix deposit route puts Pix first in Home's Add money drawer, so the BRL row
-// leaves Accounts rather than repeat it; only a refused route keeps the row, so the refusal has a place
+// Aleks, 2026-11-12 and 2026-11-14: a Pix deposit route on Avenia puts Pix first in Home's Add money
+// drawer, so the BRL row leaves Accounts rather than repeat it, and the Brazil pause takes it out too.
+// A Manteca route keeps the row as it was before the drawer row; a refused route keeps it, closed.
 describe('MoneySettings — the BRL row and the Pix deposit route', () => {
+    const TERMS_ACTION: NextAction = { key: 'accept-tos:avenia', kind: 'accept-tos', purpose: 'unlock-avenia' }
     const depositRoute = (step: Partial<CapabilityRoute>): CapabilityRoute => ({
         operation: 'deposit',
         method: 'PIX_BR',
-        provider: 'manteca',
+        provider: 'avenia',
         state: 'ready',
         candidates: [],
         ...step,
     })
 
-    it('drops the Pix key send row too for a verified user with an open route', () => {
+    it("drops the row on the provider's own step: the Pix setup is reached from Home", () => {
+        mockNextActions = [TERMS_ACTION]
+        mockRoutes = [
+            depositRoute({
+                state: 'action_required',
+                action: 'accept-tos:avenia',
+                reason: { code: 'terms_required', userMessage: 'Accept the terms to continue.' },
+            }),
+        ]
+        mockUser = { residence: normalizeResidence({ declared: 'BR', verified: null }), user: { userId: 'u1' } }
+        render()
+        expect(screen.queryByText('BRL')).not.toBeInTheDocument()
+        expect(mockInitiateKyc).not.toHaveBeenCalled()
+    })
+
+    it('keeps the BRL row for a verified user outside Brazil on a Manteca route, led by the Pix key send', () => {
+        mockRoutes = [depositRoute({ provider: 'manteca', state: 'action_required', action: 'activate' })]
+        mockUser = { residence: normalizeResidence({ declared: 'PT', verified: 'PT' }), user: { userId: 'u1' } }
+        mockIsKycApproved = true
+        mockIdentity = { status: 'verified' }
+        mockRails = [
+            {
+                id: 'manteca.pix_br',
+                provider: 'manteca',
+                channel: 'bank',
+                country: 'BR',
+                status: 'enabled',
+                operations: { pay: 'enabled', deposit: 'requires-info', withdraw: 'requires-info' },
+            },
+        ]
+        render()
+        const brl = within(screen.getByText('BRL').closest('.border') as HTMLElement)
+        expect(brl.getByText('Send to any Pix key')).toBeInTheDocument()
+        fireEvent.click(screen.getByText('BRL'))
+        const drawer = within(screen.getByRole('dialog'))
+        expect(drawer.getByRole('link', { name: 'Send to any Pix key' })).toHaveAttribute(
+            'href',
+            '/withdraw/manteca?method=pix&country=brazil&sendMethod=bank'
+        )
+        // the user's own BRL rail, with its own status, under the send
+        expect(drawer.getByText('Add and withdraw Brazilian reais with Pix.')).toBeInTheDocument()
+    })
+
+    it.each<[string, Partial<CapabilityRoute>]>([
+        ['a route on Avenia', { state: 'ready' }],
+        [
+            'the Brazil pause',
+            { provider: null, state: 'paused', reason: { code: 'residence_paused', userMessage: '' } },
+        ],
+    ])('drops the row for a resident of Brazil on %s', (_name, step) => {
+        mockRoutes = [depositRoute(step)]
+        mockUser = { residence: normalizeResidence({ declared: 'BR', verified: 'BR' }), user: { userId: 'u1' } }
+        render()
+        expect(screen.queryByText('BRL')).not.toBeInTheDocument()
+    })
+
+    it('drops the Pix key send row too for a verified user on a route on Avenia', () => {
         mockRoutes = [depositRoute({ state: 'ready' })]
         mockUser = { residence: normalizeResidence({ declared: 'PT', verified: 'PT' }), user: { userId: 'u1' } }
         mockIsKycApproved = true

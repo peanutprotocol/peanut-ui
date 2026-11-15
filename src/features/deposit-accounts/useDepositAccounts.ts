@@ -220,7 +220,8 @@ export function useDepositAccounts({
             if (result.outcome === 'endorsement_pending') trackEndorsementRequested(corridor)
             if (result.outcome === 'verification_required' && ownerAtClaim === claimOwner.current) {
                 if (result.nextAction?.kind === 'restart-identity') {
-                    onVerificationRequired?.(corridor, result.nextAction)
+                    // the API's schema still lists `hosted-identity`, which this build no longer handles
+                    onVerificationRequired?.(corridor, { ...result.nextAction, kind: result.nextAction.kind })
                 } else {
                     onVerificationRequired?.(corridor)
                 }

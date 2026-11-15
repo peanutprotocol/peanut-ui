@@ -11,6 +11,7 @@ import {
 import { getKycDocumentPlan } from '@/app/actions/kyc-workflow'
 import { AddFeatureFlow, AddFeatureQuestions } from '../AddFeatureFlow'
 import posthog from 'posthog-js'
+import en from '@/i18n/app/messages/en.json'
 
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
@@ -205,6 +206,34 @@ describe('AddFeatureQuestions', () => {
         expect(mockSaveFeatures).toHaveBeenCalledWith({ ...features, card: true }, features)
     })
 
+    // API-CONTRACT-M3 section 4: Avenia's Pix account asks its own step and joins no plan
+    it('pix saves its answers with feature=pix and ends without adding a plan feature', async () => {
+        mockQuestions.mockResolvedValue({
+            available: true,
+            attemptId: null,
+            residence: 'DE',
+            steps: [
+                {
+                    id: 'phone',
+                    features: ['pix'] as never,
+                    answered: false,
+                    fields: [{ key: 'phone', kind: 'phone', required: true, value: null }],
+                },
+            ],
+            firstUnanswered: 'phone',
+            progress: { done: 0, total: 1 },
+        })
+        mockSave.mockResolvedValue({ kind: 'saved', next: null })
+        const onDone = jest.fn()
+        renderWithIntl(<AddFeatureQuestions feature="pix" onBack={jest.fn()} onDone={onDone} />)
+        fireEvent.change(await screen.findByTestId('verify-input-phone'), { target: { value: '+49 151 2345 6789' } })
+        fireEvent.click(screen.getByTestId('verify-continue'))
+        await waitFor(() => expect(onDone).toHaveBeenCalled())
+        expect(mockQuestions).toHaveBeenCalledWith('pix')
+        expect(mockSave.mock.calls[0][2]).toBe('pix')
+        expect(mockSaveFeatures).not.toHaveBeenCalled()
+    })
+
     it('a card that owes only its application opens the card application', async () => {
         const answered = cardQuestions()
         answered.steps = answered.steps.map((s) => ({ ...s, answered: true }))
@@ -365,6 +394,37 @@ describe('AddFeatureQuestions: local transfers (Manteca)', () => {
             'user-a'
         )
         expect(mockSaveFeatures).toHaveBeenCalledWith({ ...features, local: true }, features)
+    })
+})
+
+// Aleks, 2026-11-14: the address step looks the same in every verification flow, whatever the
+// provider or feature; the feature title heads only a step with no heading of its own
+describe("AddFeatureQuestions: a step's own heading", () => {
+    it('shows the address step under its own heading and description, not the feature title', async () => {
+        mockQuestions.mockResolvedValue({
+            available: true,
+            attemptId: null,
+            residence: 'BR',
+            steps: [
+                {
+                    id: 'address',
+                    features: ['local'],
+                    answered: false,
+                    fields: [
+                        { key: 'street', kind: 'text', required: true, value: null },
+                        { key: 'town', kind: 'text', required: true, value: null },
+                        { key: 'postCode', kind: 'text', required: true, value: null },
+                        { key: 'country', kind: 'country', required: true, locked: true, value: 'BR' },
+                    ],
+                },
+            ],
+            firstUnanswered: 'address',
+            progress: { done: 1, total: 2 },
+        } as PaperworkVerificationQuestions)
+        renderWithIntl(<AddFeatureQuestions feature="local" onBack={jest.fn()} onDone={jest.fn()} />)
+        expect(await screen.findByText(en.kyc.paperworkVerification.titles.address)).toBeInTheDocument()
+        expect(screen.getByText(en.kyc.paperworkVerification.descriptions.address)).toBeInTheDocument()
+        expect(screen.queryByText('For local transfers')).not.toBeInTheDocument()
     })
 })
 

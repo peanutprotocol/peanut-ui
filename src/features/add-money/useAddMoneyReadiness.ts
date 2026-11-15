@@ -12,7 +12,7 @@ import {
 } from '@/features/deposit-accounts/rails'
 import { DEPOSIT_ACCOUNTS_QUERY_KEY } from '@/features/deposit-accounts/useDepositAccounts'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
-import { findPixRoute, pixRouteOpen } from '@/features/pix/pixRoute.utils'
+import { findPixRoute, pixDepositOffered, pixResidencePaused, pixRouteOpen } from '@/features/pix/pixRoute.utils'
 import { useResidenceIso2s } from '@/features/deposit-accounts/useResidenceIso2s'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { fetchDepositAccounts } from '@/services/deposit-accounts'
@@ -67,7 +67,8 @@ export function useAddMoneyReadiness(cryptoReady: boolean, readAccounts = true) 
         return topUpGates[corridor].kind === 'ready' ? [DEPOSIT_RAILS[corridor].currency] : []
     })
     const pixDepositRoute = findPixRoute(capabilities.routes, 'deposit')
-    const brazilPaused = pixDepositRoute?.state === 'paused'
+    // the Brazil pause by its reason: an outage of the provider keeps Pix, and the Pix page shows it
+    const brazilPaused = pixResidencePaused(pixDepositRoute)
     const resolved = resolveAddMoneyMethods({
         cryptoReady,
         standingEnabled,
@@ -76,7 +77,8 @@ export function useAddMoneyReadiness(cryptoReady: boolean, readAccounts = true) 
         activeAccounts,
         readyTopUps,
         firstPaymentAt: user?.user?.firstPaymentAt,
-        pixRouteOpen: pixRouteOpen(pixDepositRoute),
+        pixDepositOffered: pixDepositOffered(pixDepositRoute),
+        pixDepositRouteOpen: pixRouteOpen(pixDepositRoute) && pixDepositRoute?.state !== 'paused',
     })
     const isLoading = !userId || capabilitiesLoading || (readAccounts && standingEnabled && query.isLoading)
     return {
