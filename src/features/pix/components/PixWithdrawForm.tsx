@@ -15,6 +15,7 @@ import { PaymentDetailsCard } from '@/features/payments/shared/components/Paymen
 import { RecipientCard } from '@/features/payments/shared/components/RecipientCard'
 import { SaveRecipientCard, type SaveRecipientState } from '@/features/payments/shared/components/SaveRecipientCard'
 import { pixShownRate } from '@/features/pix/pixFlow.utils'
+import { pixRateAndFee, showsProviderRateAndFee, type PixRateAndFee } from '@/features/pix/pixRateAndFee'
 import type { PixWithdrawDisplay } from '@/services/pix'
 import type { ProviderId } from '@/types/provider.types'
 import { formatBankAmount } from '@/utils/currency'
@@ -73,6 +74,8 @@ export function PixWithdrawForm({
         seed: PixWithdrawAmountSeed | null
         /** BRL per USD the field converts with: the quote in hand's ratio for the amount as entered (payout per USD entered, or per USD debited for typed reais), else the indicative quote's; null while it loads. */
         price: number | null
+        /** The indicative quote's own rate and fee rows (`usePixQuoteCurrency`): undefined while it loads, null when it sends none. */
+        rateAndFee?: PixRateAndFee | null
         isLoading: boolean
         isError: boolean
         onRetry: () => void
@@ -108,15 +111,35 @@ export function PixWithdrawForm({
     const [seed] = useState(amount.seed)
     // as the payment form: the holder's name leads, the key and tax ID under it; an unnamed holder leaves the key as the heading
     const details = recipient.holderName ? pixKeyOwnerDetails(recipient.pixKey, recipient.taxIdMasked) : null
-    // the preview's all-in rate agrees with the fee row and the USD to the centavo; before it, the quote the field converts
-    // with, to the review's six decimals (the field itself keeps the exact ratio)
-    const rate = display
-        ? { price: Number(pixShownRate(display)), code: 'BRL' }
-        : amount.price !== null
-          ? { price: Number(amount.price.toFixed(6)), code: 'BRL' }
+    // Avenia (the owner, 15 Nov, "Option A"): its own rate, from the review once it answers and from the
+    // minimum's quote before it, and every fee as one row once the amount on screen is reviewed; neither
+    // row when the API sends neither, never a rate worked out from the amounts
+    const providerRows = showsProviderRateAndFee(providerId)
+    const reviewedPair = display ? pixRateAndFee(display) : null
+    const rate = providerRows
+        ? display
+            ? reviewedPair
+                ? { price: reviewedPair.exchangeRate, code: 'BRL' }
+                : undefined
+            : amount.rateAndFee === undefined
+              ? null
+              : amount.rateAndFee
+                ? { price: amount.rateAndFee.exchangeRate, code: 'BRL' }
+                : undefined
+        : // another provider: the preview's all-in rate once it answers, before it the quote the field converts with
+          display
+          ? { price: Number(pixShownRate(display)), code: 'BRL' }
+          : amount.price !== null
+            ? { price: amount.price, code: 'BRL' }
+            : null
+    const providerFee = providerRows
+        ? reviewedPair
+            ? formatBankAmount(reviewedPair.providerFeeBrl, 'BRL')
+            : null
+        : // the rate holds the percentage fees; a flat fee is its own line, and a provider that charges none shows no line
+          display && Number(display.fixedFeeBrl) > 0
+          ? formatBankAmount(display.fixedFeeBrl, 'BRL')
           : null
-    // the rate holds the percentage fees; a flat fee is its own line, and a provider that charges none shows no line
-    const providerFee = display && Number(display.fixedFeeBrl) > 0 ? formatBankAmount(display.fixedFeeBrl, 'BRL') : null
 
     return (
         <PageStack>

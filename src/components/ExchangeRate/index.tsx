@@ -1,4 +1,4 @@
-import { formatFiniteDisplay } from '@/utils/currency'
+import { formatFiatRate } from '@/utils/currency'
 import { useTranslations } from 'next-intl'
 import { AccountType } from '@/interfaces/interfaces'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
@@ -30,11 +30,7 @@ const ExchangeRate = ({ accountType }: Omit<IExchangeRate, 'enabled'>) => {
             loading={isFetchingRate}
             label={tCommon('exchangeRate')}
             moreInfoText={t('appliesWhenConverting', { currency })}
-            value={
-                exchangeRate
-                    ? `1 USD ≈ ${formatFiniteDisplay(exchangeRate, 'en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4, useGrouping: false })} ${currency}`
-                    : '-'
-            }
+            value={exchangeRate ? `1 USD ≈ ${formatFiatRate(exchangeRate)} ${currency}` : '-'}
         />
     )
 }

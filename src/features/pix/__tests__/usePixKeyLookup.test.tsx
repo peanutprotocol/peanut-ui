@@ -37,12 +37,12 @@ describe('usePixKeyLookup', () => {
 
         let first: Awaited<ReturnType<typeof result.current.lookup>> | undefined
         await act(async () => {
-            first = await result.current.lookup('09579927189')
-            await result.current.lookup('09579927189')
+            first = await result.current.lookup('11144477735')
+            await result.current.lookup('11144477735')
         })
 
         expect(first).toMatchObject({ status: 'found', info: { ownAccount: true } })
-        expect(result.current.result).toMatchObject({ key: '09579927189', status: 'found' })
+        expect(result.current.result).toMatchObject({ key: '11144477735', status: 'found' })
         expect(mockPixKeyInfo).toHaveBeenCalledTimes(1)
     })
 
@@ -87,7 +87,7 @@ describe('usePixKeyLookup', () => {
 
         let outcome: unknown
         await act(async () => {
-            const pending = result.current.lookup('09579927189').then((value) => (outcome = value))
+            const pending = result.current.lookup('11144477735').then((value) => (outcome = value))
             await jest.advanceTimersByTimeAsync(1100)
             await pending
         })

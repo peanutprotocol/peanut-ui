@@ -156,23 +156,90 @@ it.each([
     expect(optionsIn('Make a payment with')).toEqual(expected)
 })
 
-it.each([
-    ['BR', 'BRL'],
-    ['AR', 'ARS'],
-] as const)('keeps the %s funding text compact and its accessible label complete', async (country, currency) => {
-    renderWithIntl(ui(country))
+// The leading slot of a drawer row or the picker button: a Pix logo is a bare image, a bubble draws a fill.
+const leadingMark = (element: HTMLElement) => {
+    const slot = element.querySelector('.rounded-full') as HTMLElement
+    return { logo: !!slot.querySelector(':scope > img'), className: slot.className }
+}
+
+// The picker button sizes itself on every label in hidden spans; this is the one it shows.
+const shownLabel = (button: HTMLElement) => button.querySelector('span.truncate')?.textContent
+
+it('keeps the AR funding text compact and its accessible label complete', async () => {
+    renderWithIntl(ui('AR'))
     expect(optionsIn('Add money with')).toEqual([
-        `Bank transfer (${currency})`,
+        'Bank transfer (ARS)',
         'Bank transfer (USD, EUR, GBP, MXN)',
         'Crypto',
         'Receive from a Peanut user',
     ])
     const dialog = screen.getByRole('dialog')
-    fireEvent.click(within(dialog).getByRole('button', { name: `Bank transfer (${currency})` }))
+    const row = within(dialog).getByRole('button', { name: 'Bank transfer (ARS)' })
+    expect(leadingMark(row)).toEqual({ logo: false, className: expect.stringContaining('size-8') })
+    expect(leadingMark(row).className).toContain('bg-background-icon-bubble-green')
+    fireEvent.click(row)
     await waitFor(() => expect(dialog).toHaveAttribute('data-state', 'closed'))
     const funding = screen.getByTestId('setup-funding-channel')
-    expect(funding).toHaveAccessibleName(`Add money with: Bank transfer (${currency})`)
-    expect(funding).not.toHaveTextContent(/\(/)
+    expect(funding).toHaveAccessibleName('Add money with: Bank transfer (ARS)')
+    expect(shownLabel(funding)).toBe('Bank transfer')
+    expect(leadingMark(funding).className).toContain('bg-background-icon-bubble-green')
+    expect(screen.getByLabelText('Plan')).toHaveTextContent('arsBank/')
+})
+
+// TASK-24947, 2026-11-15: a resident of Brazil adds BRL by Pix, so the row says Pix and shows its mark.
+it('names the BRL funding row Pix with the Pix mark, and still saves brlBank', async () => {
+    // the first test's save never settles and saves queue per user, so this one saves for its own user
+    mockUserId = 'user-br'
+    renderWithIntl(ui('BR'))
+    expect(optionsIn('Add money with')).toEqual([
+        'Pix (BRL)',
+        'Bank transfer (USD, EUR, GBP, MXN)',
+        'Crypto',
+        'Receive from a Peanut user',
+    ])
+    const dialog = screen.getByRole('dialog')
+    const row = within(dialog).getByRole('button', { name: 'Pix (BRL)' })
+    const rowMark = leadingMark(row)
+    expect(rowMark.logo).toBe(true)
+    expect(rowMark.className).toContain('size-8')
+    expect(rowMark.className).not.toMatch(/\bbg-/)
+    // the other bank row keeps its green bank bubble
+    const bank = within(dialog).getByRole('button', { name: 'Bank transfer (USD, EUR, GBP, MXN)' })
+    expect(leadingMark(bank)).toEqual({
+        logo: false,
+        className: expect.stringContaining('bg-background-icon-bubble-green'),
+    })
+
+    fireEvent.click(row)
+    await waitFor(() => expect(dialog).toHaveAttribute('data-state', 'closed'))
+    const funding = screen.getByTestId('setup-funding-channel')
+    expect(funding).toHaveAccessibleName('Add money with: Pix (BRL)')
+    expect(shownLabel(funding)).toBe('Pix')
+    const buttonMark = leadingMark(funding)
+    expect(buttonMark.logo).toBe(true)
+    expect(buttonMark.className).toContain('size-6')
+    expect(buttonMark.className).not.toMatch(/\bbg-/)
+    expect(screen.getByLabelText('Plan')).toHaveTextContent('brlBank/')
+
+    await choose('Make a payment with', 'Choose', 'QR payments')
+    fireEvent.click(continueButton())
+    await waitFor(() =>
+        expect(mockUpdateUserById).toHaveBeenCalledWith({
+            userId: 'user-br',
+            signupPreferences: { fundingChannel: 'brlBank', paymentChannel: 'qr' },
+        })
+    )
+})
+
+it('keeps the green bank bubble and "Bank transfer" on the button for the Bridge bank row', async () => {
+    renderWithIntl(ui('PT'))
+    await choose('Add money with', 'Choose', 'Bank transfer (USD, EUR, GBP, MXN)')
+    const funding = screen.getByTestId('setup-funding-channel')
+    expect(shownLabel(funding)).toBe('Bank transfer')
+    expect(leadingMark(funding)).toEqual({
+        logo: false,
+        className: expect.stringContaining('bg-background-icon-bubble-green'),
+    })
 })
 
 // Slava, 2026-10-27: Brazil named its bank currencies, North Macedonia did not.

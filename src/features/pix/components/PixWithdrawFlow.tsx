@@ -360,6 +360,7 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
             amount={{
                 seed,
                 price,
+                rateAndFee: brl.rateAndFee,
                 isLoading: brl.isLoading,
                 isError: brl.isError,
                 onRetry: brl.refetch,

@@ -10886,6 +10886,13 @@
 													],
 													"description": "The intent’s own status, finer than the entry’s status. On a withdrawal: AWAITING_USER_ACTION is not signed yet, PROCESSING is signed and not confirmed."
 												},
+												"paymentMethod": {
+													"description": "How the money moved, where the intent records it exactly: PIX on an Avenia deposit, withdrawal, key send or QR payment, and on a Manteca BRL deposit or withdrawal or Pix QR payment, in every status. Absent on everything else, refunds included.",
+													"enum": [
+														"PIX"
+													],
+													"type": "string"
+												},
 												"pixDeposit": {
 													"description": "A Pix deposit, on a Pix deposit only and for its owner only. `codePayable`: the code can still be paid, so the receipt offers to open it again (GET /pix/deposit/:intentId).",
 													"properties": {
@@ -11026,6 +11033,10 @@
 															"type": "null"
 														}
 													]
+												},
+												"providerFeeBrl": {
+													"description": "On a settled Avenia Pix deposit, withdrawal, send or QR payment: every fee the providers took (Avenia’s fee lines and the bridge fee), in reais to the centavo. Sent only with `receipt.exchange_rate`, Avenia’s rate (BRL per USD, no fee in it), and only when both reconcile with the amounts. Deposit: (currency.amount − providerFeeBrl) ÷ rate = amount. Payout: amount × rate − providerFeeBrl = currency.amount.",
+													"type": "string"
 												}
 											},
 											"type": "object"
@@ -13999,12 +14010,14 @@
 									"amountBrl": "100.00",
 									"brCode": "00020101021226900014br.gov.bcb.pix2568pix.example.com/qr/v2/cobv/9d36b84f5204000053039865406100.005802BR5925PAYMENTS PARTNER LTDA6009SAO PAULO62070503***63041D3A",
 									"codePayable": true,
+									"exchangeRate": "5.500000",
 									"expiresAt": "2026-11-04T12:10:00.000Z",
 									"fixedFeeBrl": "0.75",
 									"intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
 									"payerCpfMasked": "123.***.***-09",
 									"pixReceived": false,
 									"provider": "avenia",
+									"providerFeeBrl": "1.44",
 									"status": "AWAITING_USER_ACTION",
 									"usdcAmount": "17.920175"
 								},
@@ -14027,6 +14040,10 @@
 										"codePayable": {
 											"description": "The code can still be paid: brCode and payerCpfMasked are sent only then.",
 											"type": "boolean"
+										},
+										"exchangeRate": {
+											"description": "BRL per USD, the provider’s own conversion rate with no fee in it (Avenia’s basePrice). Sent only with providerFeeBrl.",
+											"type": "string"
 										},
 										"expiresAt": {
 											"anyOf": [
@@ -14055,6 +14072,10 @@
 										},
 										"provider": {
 											"description": "The provider the route names, e.g. avenia. Data only: the app does not branch on it.",
+											"type": "string"
+										},
+										"providerFeeBrl": {
+											"description": "Every fee the providers take, in reais to the centavo: the provider’s fee lines and the bridge fee. Deposit: (amountBrl − providerFeeBrl) ÷ exchangeRate = usdcAmount. Withdrawal or payment: withdrawUsd × exchangeRate − providerFeeBrl = amountBrl. Sent only with exchangeRate, and only when the provider’s amounts show the fees deducted.",
 											"type": "string"
 										},
 										"status": {
@@ -14921,12 +14942,14 @@
 									"amountBrl": "100.00",
 									"brCode": "00020101021226900014br.gov.bcb.pix2568pix.example.com/qr/v2/cobv/9d36b84f5204000053039865406100.005802BR5925PAYMENTS PARTNER LTDA6009SAO PAULO62070503***63041D3A",
 									"codePayable": true,
+									"exchangeRate": "5.500000",
 									"expiresAt": "2026-11-04T12:10:00.000Z",
 									"fixedFeeBrl": "0.75",
 									"intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
 									"payerCpfMasked": "123.***.***-09",
 									"pixReceived": false,
 									"provider": "avenia",
+									"providerFeeBrl": "1.44",
 									"status": "AWAITING_USER_ACTION",
 									"usdcAmount": "17.920175"
 								},
@@ -14949,6 +14972,10 @@
 										"codePayable": {
 											"description": "The code can still be paid: brCode and payerCpfMasked are sent only then.",
 											"type": "boolean"
+										},
+										"exchangeRate": {
+											"description": "BRL per USD, the provider’s own conversion rate with no fee in it (Avenia’s basePrice). Sent only with providerFeeBrl.",
+											"type": "string"
 										},
 										"expiresAt": {
 											"anyOf": [
@@ -14977,6 +15004,10 @@
 										},
 										"provider": {
 											"description": "The provider the route names, e.g. avenia. Data only: the app does not branch on it.",
+											"type": "string"
+										},
+										"providerFeeBrl": {
+											"description": "Every fee the providers take, in reais to the centavo: the provider’s fee lines and the bridge fee. Deposit: (amountBrl − providerFeeBrl) ÷ exchangeRate = usdcAmount. Withdrawal or payment: withdrawUsd × exchangeRate − providerFeeBrl = amountBrl. Sent only with exchangeRate, and only when the provider’s amounts show the fees deducted.",
 											"type": "string"
 										},
 										"status": {
@@ -15615,10 +15646,12 @@
 										"amountFixed": true,
 										"arrivalEstimateSeconds": 60,
 										"bankName": "Banco Inter S.A.",
+										"exchangeRate": "5.400000",
 										"fixedFeeBrl": "0.75",
 										"merchantName": "PADARIA PAO DOURADO LTDA",
 										"merchantTaxIdMasked": "12.345.678/0001-90",
 										"provider": "Avenia",
+										"providerFeeBrl": "1.04",
 										"rate": "5.364547",
 										"withdrawUsd": "8.062211"
 									},
@@ -15643,10 +15676,12 @@
 												"amountFixed": true,
 												"arrivalEstimateSeconds": 60,
 												"bankName": "Banco Inter S.A.",
+												"exchangeRate": "5.400000",
 												"fixedFeeBrl": "0.75",
 												"merchantName": "PADARIA PAO DOURADO LTDA",
 												"merchantTaxIdMasked": "12.345.678/0001-90",
 												"provider": "Avenia",
+												"providerFeeBrl": "1.04",
 												"rate": "5.364547",
 												"withdrawUsd": "8.062211"
 											},
@@ -15672,6 +15707,10 @@
 															"type": "null"
 														}
 													]
+												},
+												"exchangeRate": {
+													"description": "BRL per USD, the provider’s own conversion rate with no fee in it (Avenia’s basePrice). Sent only with providerFeeBrl.",
+													"type": "string"
 												},
 												"fixedFeeBrl": {
 													"description": "The provider’s flat fee in reais, shown as its own line",
@@ -15701,6 +15740,10 @@
 												},
 												"provider": {
 													"description": "The payments partner’s name, for the review’s \"processed by\" line",
+													"type": "string"
+												},
+												"providerFeeBrl": {
+													"description": "Every fee the providers take, in reais to the centavo: the provider’s fee lines and the bridge fee. Deposit: (amountBrl − providerFeeBrl) ÷ exchangeRate = usdcAmount. Withdrawal or payment: withdrawUsd × exchangeRate − providerFeeBrl = amountBrl. Sent only with exchangeRate, and only when the provider’s amounts show the fees deducted.",
 													"type": "string"
 												},
 												"rate": {
@@ -16249,10 +16292,12 @@
 									"amountFixed": true,
 									"arrivalEstimateSeconds": 60,
 									"bankName": "Banco Inter S.A.",
+									"exchangeRate": "5.400000",
 									"fixedFeeBrl": "0.75",
 									"merchantName": "PADARIA PAO DOURADO LTDA",
 									"merchantTaxIdMasked": "12.345.678/0001-90",
 									"provider": "Avenia",
+									"providerFeeBrl": "1.04",
 									"rate": "5.364547",
 									"withdrawUsd": "8.062211"
 								},
@@ -16279,6 +16324,10 @@
 													"type": "null"
 												}
 											]
+										},
+										"exchangeRate": {
+											"description": "BRL per USD, the provider’s own conversion rate with no fee in it (Avenia’s basePrice). Sent only with providerFeeBrl.",
+											"type": "string"
 										},
 										"fixedFeeBrl": {
 											"description": "The provider’s flat fee in reais, shown as its own line",
@@ -16308,6 +16357,10 @@
 										},
 										"provider": {
 											"description": "The payments partner’s name, for the review’s \"processed by\" line",
+											"type": "string"
+										},
+										"providerFeeBrl": {
+											"description": "Every fee the providers take, in reais to the centavo: the provider’s fee lines and the bridge fee. Deposit: (amountBrl − providerFeeBrl) ÷ exchangeRate = usdcAmount. Withdrawal or payment: withdrawUsd × exchangeRate − providerFeeBrl = amountBrl. Sent only with exchangeRate, and only when the provider’s amounts show the fees deducted.",
 											"type": "string"
 										},
 										"rate": {
@@ -17724,7 +17777,7 @@
 		},
 		"/pix/quote": {
 			"get": {
-				"description": "For the provider the user’s Pix route names (capabilities.routes): what this amount would credit and take, with the percentage fees in the rate and the flat fee apart. Opens no ticket and looks up no Pix key; the deposit and the withdrawal review quote again. Send one amount.",
+				"description": "For the provider the user’s Pix route names (capabilities.routes): what this amount would credit and take: `exchangeRate` and `providerFeeBrl` as the rate and fee rows (the rate has no fee in it), and the legacy `rate` (percentage fees inside) with `fixedFeeBrl` apart. Before an amount, quote the minimum and show `exchangeRate`, never amountBrl ÷ usdcAmount. Opens no ticket and looks up no Pix key; the deposit and the withdrawal review quote again. Send one amount.",
 				"parameters": [
 					{
 						"in": "query",
@@ -17792,16 +17845,22 @@
 							"application/json": {
 								"example": {
 									"amountBrl": "106.75",
+									"exchangeRate": "5.400000",
 									"fixedFeeBrl": "0.75",
 									"minAmountBrl": "5",
 									"operation": "withdraw",
 									"provider": "avenia",
+									"providerFeeBrl": "1.36",
 									"rate": "5.369543",
 									"usdcAmount": "20.020325"
 								},
 								"schema": {
 									"properties": {
 										"amountBrl": {
+											"type": "string"
+										},
+										"exchangeRate": {
+											"description": "BRL per USD, the provider’s own conversion rate with no fee in it (Avenia’s basePrice). Sent only with providerFeeBrl.",
 											"type": "string"
 										},
 										"fixedFeeBrl": {
@@ -17830,6 +17889,10 @@
 										},
 										"provider": {
 											"description": "The provider the route names, e.g. avenia",
+											"type": "string"
+										},
+										"providerFeeBrl": {
+											"description": "Every fee the providers take, in reais to the centavo: the provider’s fee lines and the bridge fee. Deposit: (amountBrl − providerFeeBrl) ÷ exchangeRate = usdcAmount. Withdrawal or payment: withdrawUsd × exchangeRate − providerFeeBrl = amountBrl. Sent only with exchangeRate, and only when the provider’s amounts show the fees deducted.",
 											"type": "string"
 										},
 										"rate": {
@@ -18190,12 +18253,14 @@
 										"amountBrl": "106.75",
 										"arrivalEstimateSeconds": 60,
 										"bankName": "Nu Pagamentos S.A.",
+										"exchangeRate": "5.400000",
 										"fixedFeeBrl": "0.75",
 										"holderName": "Ana Souza",
 										"holderTaxIdMasked": "***.456.789-**",
 										"ownAccount": false,
 										"pixKey": "12345678909",
 										"provider": "Avenia",
+										"providerFeeBrl": "1.36",
 										"rate": "5.369543",
 										"withdrawUsd": "20.020325"
 									},
@@ -18233,6 +18298,10 @@
 															"type": "null"
 														}
 													]
+												},
+												"exchangeRate": {
+													"description": "BRL per USD, the provider’s own conversion rate with no fee in it (Avenia’s basePrice). Sent only with providerFeeBrl.",
+													"type": "string"
 												},
 												"fixedFeeBrl": {
 													"description": "The flat fee in reais, shown as its own line",
@@ -18276,6 +18345,10 @@
 												},
 												"provider": {
 													"description": "The payments partner’s name, for the review’s \"processed by\" line",
+													"type": "string"
+												},
+												"providerFeeBrl": {
+													"description": "Every fee the providers take, in reais to the centavo: the provider’s fee lines and the bridge fee. Deposit: (amountBrl − providerFeeBrl) ÷ exchangeRate = usdcAmount. Withdrawal or payment: withdrawUsd × exchangeRate − providerFeeBrl = amountBrl. Sent only with exchangeRate, and only when the provider’s amounts show the fees deducted.",
 													"type": "string"
 												},
 												"rate": {
@@ -18840,12 +18913,14 @@
 									"amountBrl": "106.75",
 									"arrivalEstimateSeconds": 60,
 									"bankName": "Nu Pagamentos S.A.",
+									"exchangeRate": "5.400000",
 									"fixedFeeBrl": "0.75",
 									"holderName": "Ana Souza",
 									"holderTaxIdMasked": "***.456.789-**",
 									"ownAccount": false,
 									"pixKey": "12345678909",
 									"provider": "Avenia",
+									"providerFeeBrl": "1.36",
 									"rate": "5.369543",
 									"withdrawUsd": "20.020325"
 								},
@@ -18868,6 +18943,10 @@
 													"type": "null"
 												}
 											]
+										},
+										"exchangeRate": {
+											"description": "BRL per USD, the provider’s own conversion rate with no fee in it (Avenia’s basePrice). Sent only with providerFeeBrl.",
+											"type": "string"
 										},
 										"fixedFeeBrl": {
 											"description": "The flat fee in reais, shown as its own line",
@@ -18911,6 +18990,10 @@
 										},
 										"provider": {
 											"description": "The payments partner’s name, for the review’s \"processed by\" line",
+											"type": "string"
+										},
+										"providerFeeBrl": {
+											"description": "Every fee the providers take, in reais to the centavo: the provider’s fee lines and the bridge fee. Deposit: (amountBrl − providerFeeBrl) ÷ exchangeRate = usdcAmount. Withdrawal or payment: withdrawUsd × exchangeRate − providerFeeBrl = amountBrl. Sent only with exchangeRate, and only when the provider’s amounts show the fees deducted.",
 											"type": "string"
 										},
 										"rate": {

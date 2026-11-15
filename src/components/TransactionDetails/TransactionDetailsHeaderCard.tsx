@@ -153,9 +153,14 @@ const getTitle = (
                 break
             case 'withdraw':
             case 'bank_withdraw':
-                titleText = t(status === 'completed' ? 'title.withdrewTo' : 'title.withdrawingTo', {
-                    name: sentenceName,
-                })
+                if (nameKey === TRANSACTION_NAME_KEYS.pix) {
+                    // Pix is the method, not a place the money went to: "Withdrew by Pix"
+                    titleText = t(status === 'completed' ? 'title.withdrewByPix' : 'title.withdrawingByPix')
+                } else {
+                    titleText = t(status === 'completed' ? 'title.withdrewTo' : 'title.withdrawingTo', {
+                        name: sentenceName,
+                    })
+                }
                 break
             case 'bank_claim':
                 titleText = displayName
@@ -164,6 +169,9 @@ const getTitle = (
             case 'bank_deposit':
                 if (isTest) {
                     titleText = t('enjoyPeanut')
+                } else if (nameKey === TRANSACTION_NAME_KEYS.pix) {
+                    // Pix is the method, not a place the money came from: "Added by Pix"
+                    titleText = t(status === 'completed' ? 'title.addedByPix' : 'title.addingByPix')
                 } else {
                     titleText = t(status === 'completed' ? 'title.addedFrom' : 'title.addingFrom', {
                         name: sentenceName,

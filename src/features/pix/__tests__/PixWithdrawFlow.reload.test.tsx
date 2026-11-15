@@ -5,6 +5,7 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import type { UrlUpdateEvent } from 'nuqs/adapters/testing'
 import { renderWithIntl } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
+import { PROVIDERS } from '@/constants/providers.consts'
 import type { CapabilityRoute } from '@/types/capabilities'
 import { ApiError } from '@/services/api-error'
 
@@ -60,6 +61,8 @@ const QUOTED = {
     code: 'BRL',
     symbol: 'R$',
     price: { sell: 5.4, buy: 5.5 },
+    rateAndFee: { exchangeRate: 5.37, providerFeeBrl: '0.98' },
+    quotesTypedAmount: false,
     isLoading: false,
     isError: false,
     refetch: jest.fn(),
@@ -147,7 +150,7 @@ const renderAt = (
     )
 
 // The form lives in the account's draft in this tab's session, never in the URL (`pixWithdrawDraft`).
-const KEY = '09579927189'
+const KEY = '11144477735'
 const REVIEW_FORM = { destination: KEY, amountBrl: '503' }
 const DRAFT_KEY = (userId = 'u1') => `pix-withdraw-draft:${userId}`
 const withForm = (fields: Partial<PixWithdrawDraft>, userId = 'u1') =>
@@ -298,7 +301,7 @@ describe('PixWithdrawFlow after a reload', () => {
     it('puts the opened id in the URL at Confirm and keeps the review while the new quote waits', async () => {
         const display = {
             amountBrl: '503.00',
-            pixKey: '09579927189',
+            pixKey: '11144477735',
             ownAccount: true as const,
             holderName: 'Ana Souza',
             bankName: 'Banco Inter',
@@ -350,7 +353,7 @@ describe('PixWithdrawFlow after a reload', () => {
     it('opens a transfer-then-submit withdrawal at its submit, then drops the form and shows the payment loader', async () => {
         const display = {
             amountBrl: '503.00',
-            pixKey: '09579927189',
+            pixKey: '11144477735',
             ownAccount: null,
             holderName: 'Ana Souza',
             bankName: null,
@@ -404,7 +407,7 @@ describe('PixWithdrawFlow after a reload with a submit that may have gone out', 
     const SUBMITTED_AT = Date.now() - 60_000
     const display = (amountBrl: string) => ({
         amountBrl,
-        pixKey: '09579927189',
+        pixKey: '11144477735',
         ownAccount: null,
         holderName: 'Ana Souza',
         bankName: null,
@@ -531,6 +534,9 @@ describe('PixWithdrawFlow form', () => {
         withdrawUsd: '92.504310',
         rate: '5.445692',
         fixedFeeBrl: '0.75',
+        // Avenia's own rate and every fee: 92.504310 × 5.46 − 2.07 = R$503.00
+        exchangeRate: '5.460000',
+        providerFeeBrl: '2.07',
         arrivalEstimateSeconds: 60,
         provider: 'Avenia' as const,
     }
@@ -589,7 +595,7 @@ describe('PixWithdrawFlow form', () => {
     })
 
     // the Pix-key payment form, with Withdrawing and Confirm (ruling 2026-11-12, providers are cattle)
-    it('is the payment form: Withdrawing, the holder and bank, the rate, the sponsored Peanut fee, the provider fee apart, no savings row', async () => {
+    it('is the payment form: Withdrawing, the holder and bank, Avenia’s rate, the sponsored Peanut fee, every provider fee as one row, no savings row', async () => {
         mockPreview.mockResolvedValue(display)
         withForm(REVIEW_FORM)
         renderAt('?step=review')
@@ -597,10 +603,11 @@ describe('PixWithdrawFlow form', () => {
         expect(screen.getByText(en.pix.withdraw.withdrawing)).toBeInTheDocument()
         expect(await screen.findByText('Ana Souza')).toBeInTheDocument()
         expect(screen.getByText('Banco Inter')).toBeInTheDocument()
-        expect(screen.getByText('1 USD = 5.445946 BRL')).toBeInTheDocument()
+        expect(await screen.findByText('1 USD = 5.46 BRL')).toBeInTheDocument()
         expect(screen.getByText(en.common.sponsoredByPeanut)).toBeInTheDocument()
         expect(screen.getByText(en.pix.withdraw.fee)).toBeInTheDocument()
-        expect(screen.getByText('R$0.75')).toBeInTheDocument()
+        expect(screen.getByText('R$2.07')).toBeInTheDocument()
+        expect(screen.queryByText('R$0.75')).toBeNull()
         expect(screen.queryByText(en.qrPay.info.saveVsCard)).toBeNull()
         expect(screen.queryByText(en.withdraw.bank.arrives)).toBeNull()
         // "Save to favorites", as the payment form offers it, named after the holder
@@ -658,14 +665,52 @@ describe('PixWithdrawFlow form', () => {
         expect(screen.getByText('$50')).toBeInTheDocument()
     })
 
-    // a provider whose fees all sit in the rate sends a zero flat fee: no fee row
-    it('shows no provider fee row for a quote without one', async () => {
-        mockPreview.mockResolvedValue({ ...display, fixedFeeBrl: '0', bankName: null, provider: 'Manteca' })
+    // Chip on ui#4106 (the QR review lost its rows while signing): the withdrawal's rows and provider come from
+    // the review and the route, so they stay while the passkey is open
+    it('keeps Avenia’s rate, its fee and the provider row while the passkey is open', async () => {
+        mockPreview.mockResolvedValue(display)
+        mockInit.mockResolvedValue({
+            intentId: 'w3',
+            display,
+            sign: {
+                kind: 'deposit-with-id',
+                contractAddress: '0x10417734001162Ea139e8b044DFe28DbB8B28ad0',
+                tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+                payAmount: '92.504310',
+                payAmountUnits: '92504310',
+                commitmentId: '6aeb17ea29f84d1e9b0c3a5d7e2f1c08',
+                quoteExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+                ticketExpiresAt: new Date(Date.now() + 600_000).toISOString(),
+            },
+        })
+        mockSendTransactions.mockReturnValue(new Promise(() => {}))
         withForm(REVIEW_FORM)
         renderAt('?step=review')
 
-        expect(await screen.findByText('1 USD = 5.437838 BRL')).toBeInTheDocument()
+        const confirm = await screen.findByRole('button', { name: en.common.confirm })
+        await waitFor(() => expect(confirm).toBeEnabled())
+        fireEvent.click(confirm)
+        await waitFor(() => expect(mockSendTransactions).toHaveBeenCalledTimes(1))
+        // the passkey prompt is open: the same figures and the same provider
+        expect(screen.getByText('1 USD = 5.46 BRL')).toBeInTheDocument()
+        expect(screen.getByText('R$2.07')).toBeInTheDocument()
+        expect(screen.getByText(PROVIDERS['avenia-br'].brand)).toBeInTheDocument()
+        expect(screen.queryByText('R$0.75')).toBeNull()
+    })
+
+    // the API sends the pair only where it is proven: Avenia's review then shows neither row, never the
+    // all-in rate or the flat fee alone
+    it('shows neither the rate nor the fee row for an Avenia review without the pair', async () => {
+        const { exchangeRate: _rate, providerFeeBrl: _fee, ...withoutPair } = display
+        mockPreview.mockResolvedValue(withoutPair)
+        withForm(REVIEW_FORM)
+        renderAt('?step=review')
+
+        expect(await screen.findByText('Ana Souza')).toBeInTheDocument()
+        await waitFor(() => expect(screen.getByText('$92.50')).toBeInTheDocument())
+        expect(screen.queryByText(/^1 USD =/)).toBeNull()
         expect(screen.queryByText(en.pix.withdraw.fee)).toBeNull()
+        expect(screen.queryByText('R$0.75')).toBeNull()
     })
 
     it('holds Confirm while the amount changes and until its quote arrives, then shows the exact total and keeps the amount', async () => {
@@ -800,7 +845,7 @@ describe('PixWithdrawFlow refused preview', () => {
 
             fireEvent.click(await screen.findByRole('button', { name: en.pix.withdraw.changeKey }))
 
-            expect(await screen.findByDisplayValue('09579927189')).toBeInTheDocument()
+            expect(await screen.findByDisplayValue('11144477735')).toBeInTheDocument()
             expect(urls.at(-1)).not.toContain('destination')
             expect(screen.queryByRole('button', { name: en.common.retry })).toBeNull()
         }
@@ -843,7 +888,7 @@ describe('PixWithdrawFlow form draft', () => {
     const OWN_KEY = {
         provider: 'avenia',
         holderName: 'Ana Souza',
-        holderTaxIdMasked: '095.***.***-89',
+        holderTaxIdMasked: '111.***.***-35',
         bankName: 'Banco Inter',
         ispb: '00416968',
         ownAccount: true,

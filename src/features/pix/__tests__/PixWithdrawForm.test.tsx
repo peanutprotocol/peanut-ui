@@ -15,7 +15,7 @@ import { PixWithdrawForm } from '../components/PixWithdrawForm'
 
 const display = {
     amountBrl: '503.00',
-    pixKey: '09579927189',
+    pixKey: '11144477735',
     ownAccount: true as const,
     holderTaxIdMasked: null,
     holderName: 'Ana Souza',
@@ -23,6 +23,9 @@ const display = {
     withdrawUsd: '92.504310',
     rate: '5.445692',
     fixedFeeBrl: '0.75',
+    // Avenia's own rate and every fee: 92.504310 × 5.46 − 2.07 = R$503.00
+    exchangeRate: '5.460000',
+    providerFeeBrl: '2.07',
     arrivalEstimateSeconds: 60,
     provider: 'Avenia' as const,
 }
@@ -31,6 +34,8 @@ const save = { savedName: null, isOffered: false, checked: false, nickname: '', 
 const amount = {
     seed: { amount: '503', denomination: 'BRL' as const },
     price: 5.4,
+    // the minimum's quote: Avenia's rate, and a fee that is not the user's
+    rateAndFee: { exchangeRate: 5.37, providerFeeBrl: '0.98' },
     isLoading: false,
     isError: false,
     onRetry: noop,
@@ -67,19 +72,21 @@ const renderForm = (props: Partial<Parameters<typeof PixWithdrawForm>[0]> = {}) 
 
 describe('PixWithdrawForm', () => {
     // the Pix-key payment form, with the withdrawal's lead word and button (ruling 2026-11-12)
-    it('leads with Withdrawing, the holder, their CPF and bank; then the rate with the fees in, the sponsored Peanut fee, the flat fee apart, the exact total and the provider', () => {
+    it('leads with Withdrawing, the holder, their CPF and bank; then Avenia’s rate, the sponsored Peanut fee, every provider fee as one row, the exact total and the provider', () => {
         renderForm()
         expect(screen.getByText(en.pix.withdraw.withdrawing)).toBeInTheDocument()
         expect(screen.getByText('Ana Souza')).toBeInTheDocument()
         // a CPF key is the holder's own tax ID: shown once, punctuated
-        expect(screen.getByText('CPF 095.799.271-89')).toBeInTheDocument()
+        expect(screen.getByText('CPF 111.444.777-35')).toBeInTheDocument()
         expect(screen.getByText('Banco Inter')).toBeInTheDocument()
-        // $92.50 × 5.445946 − R$0.75 = R$503.00: the three numbers agree to the centavo
-        expect(screen.getByText('1 USD = 5.445946 BRL')).toBeInTheDocument()
+        // Avenia's own rate, no fee in it (the owner, 15 Nov, "Option A"); not the all-in 5.45
+        expect(screen.getByText('1 USD = 5.46 BRL')).toBeInTheDocument()
         expect(screen.getByText(en.common.peanutFee)).toBeInTheDocument()
         expect(screen.getByText(en.common.sponsoredByPeanut)).toBeInTheDocument()
         expect(screen.getByText(en.pix.withdraw.fee)).toBeInTheDocument()
-        expect(screen.getByText('R$0.75')).toBeInTheDocument()
+        // every fee, not the flat R$0.75 alone
+        expect(screen.getByText('R$2.07')).toBeInTheDocument()
+        expect(screen.queryByText('R$0.75')).toBeNull()
         // the exact wallet debit the quote names, as the removed review showed it
         expect(screen.getByText(en.withdraw.confirm.youPay)).toBeInTheDocument()
         expect(screen.getByText('$92.50')).toBeInTheDocument()
@@ -99,12 +106,12 @@ describe('PixWithdrawForm', () => {
                 pixKey: '+5511912345678',
                 holderName: 'Ana Souza',
                 bankName: null,
-                taxIdMasked: '095.***.***-89',
+                taxIdMasked: '111.***.***-35',
                 ownAccount: true,
             },
         })
         expect(screen.getByText(/^11 91234-5678 ·$/)).toBeInTheDocument()
-        expect(screen.getByText('CPF 095.***.***-89')).toBeInTheDocument()
+        expect(screen.getByText('CPF 111.***.***-35')).toBeInTheDocument()
     })
 
     // TASK-24947: another person's key is a send to them
@@ -132,7 +139,7 @@ describe('PixWithdrawForm', () => {
             providerId: 'manteca-br',
         })
         expect(screen.queryByText(en.pix.withdraw.fee)).toBeNull()
-        expect(screen.getByText('1 USD = 5.437838 BRL')).toBeInTheDocument()
+        expect(screen.getByText('1 USD = 5.44 BRL')).toBeInTheDocument()
         expect(screen.getByText(PROVIDERS['manteca-br'].brand)).toBeInTheDocument()
     })
 
@@ -160,21 +167,58 @@ describe('PixWithdrawForm', () => {
         })
         expect(screen.getByText(en.pix.withdraw.errors.limitExceeded)).toBeInTheDocument()
         expect(screen.getByRole('button', { name: en.common.retry })).toBeInTheDocument()
-        expect(screen.getByText('1 USD = 5.4 BRL')).toBeInTheDocument()
+        expect(screen.getByText('1 USD = 5.37 BRL')).toBeInTheDocument()
         expect(screen.queryByText(en.pix.withdraw.fee)).toBeNull()
         expect(screen.queryByText(en.withdraw.confirm.youPay)).toBeNull()
         expect(screen.getByRole('button', { name: en.common.confirm })).toBeDisabled()
     })
 
-    // the indicative quote's ratio is a float: the rate row prints it to the review's six decimals, not all its digits
-    it('prints the indicative rate to six decimals before the review answers', () => {
+    // Aleks, 2026-11-15 (staging): before an amount the row read "1 USD = 4.94 BRL", R$5 over the USDC that pays
+    // the minimum with every fee in. It is the minimum quote's own rate, to two decimals, and no fee row yet.
+    it.each([
+        [5.299417064122946, '1 USD = 5.30 BRL'],
+        [5.728962, '1 USD = 5.73 BRL'],
+        [5.4, '1 USD = 5.40 BRL'],
+    ])(
+        'before the review, prints the indicative quote’s exchangeRate %s as %s, and no fee row',
+        (exchangeRate, shown) => {
+            renderForm({
+                display: null,
+                total: undefined,
+                canConfirm: false,
+                // the field still converts with amount ÷ USDC (4.94), never shown
+                amount: { ...amount, price: 4.941639, rateAndFee: { exchangeRate, providerFeeBrl: '0.98' } },
+            })
+            expect(screen.getByText(shown)).toBeInTheDocument()
+            expect(screen.queryByText('1 USD = 4.94 BRL')).toBeNull()
+            expect(screen.queryByText(en.pix.withdraw.fee)).toBeNull()
+        }
+    )
+
+    it('keeps the rate row, empty, while the indicative quote loads', () => {
         renderForm({
             display: null,
             total: undefined,
             canConfirm: false,
-            amount: { ...amount, price: 5.299417064122946 },
+            amount: { ...amount, rateAndFee: undefined },
         })
-        expect(screen.getByText('1 USD = 5.299417 BRL')).toBeInTheDocument()
+        expect(screen.getByText(en.qrPay.info.exchangeRate)).toBeInTheDocument()
+        expect(screen.queryByText(/^1 USD =/)).toBeNull()
+    })
+
+    // the API sends the pair only where it is proven: an Avenia screen then shows neither row, never a derived rate
+    it('shows neither the rate nor the fee row where Avenia’s answer carries no pair', () => {
+        const { exchangeRate: _rate, providerFeeBrl: _fee, ...withoutPair } = display
+        const view = renderForm({ display: withoutPair })
+        expect(screen.queryByText(en.qrPay.info.exchangeRate)).toBeNull()
+        expect(screen.queryByText(/^1 USD =/)).toBeNull()
+        expect(screen.queryByText(en.pix.withdraw.fee)).toBeNull()
+        expect(screen.queryByText('R$0.75')).toBeNull()
+        view.unmount()
+
+        renderForm({ display: null, total: undefined, canConfirm: false, amount: { ...amount, rateAndFee: null } })
+        expect(screen.queryByText(en.qrPay.info.exchangeRate)).toBeNull()
+        expect(screen.queryByText(/^1 USD =/)).toBeNull()
     })
 
     // the quote of the amount on screen is in flight: the Total row waits for it rather than showing an estimate

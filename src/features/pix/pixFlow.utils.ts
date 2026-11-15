@@ -204,8 +204,9 @@ export function pixWithdrawOutcome(
 /**
  * The exchange rate the withdraw review shows, in BRL per USD, to 6 decimals: the
  * reais that arrive plus the flat fee, over the USD as the screen rounds it (half-up
- * to the cent). The API's all-in rate is over the exact USD; over the rounded one, the
- * three numbers on screen agree to the centavo (USD × rate − fee = reais).
+ * to the cent). The API's all-in rate is over the exact USD; over the rounded one,
+ * USD × rate − fee = reais to the centavo. The screen prints it to two decimals
+ * (`formatFiatRate`), so that sum holds for this value, not for the printed rate.
  */
 export function pixShownRate(
     display: Pick<PixWithdrawDisplay, 'amountBrl' | 'fixedFeeBrl' | 'withdrawUsd' | 'rate'>

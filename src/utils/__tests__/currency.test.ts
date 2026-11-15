@@ -1,4 +1,4 @@
-import { formatAmountNumber, formatBankAmount, formatFiniteDisplay } from '@/utils/currency'
+import { formatAmountNumber, formatBankAmount, formatFiatRate, formatFiniteDisplay } from '@/utils/currency'
 
 // One formatter for every bank amount a person reads — the rule lines on a
 // virtual account, the "Recipient gets" row on a withdrawal, the request payer
@@ -59,5 +59,23 @@ describe('formatFiniteDisplay', () => {
         expect(formatFiniteDisplay(1, 'en-US', { maximumFractionDigits: -1 })).toBe('—')
         expect(formatBankAmount(1, '')).toBe('—')
         expect(formatAmountNumber(1, Infinity)).toBe('—')
+    })
+})
+
+// Aleks, 2026-11-15: no fiat value shows more than two decimals, and an exchange rate counts.
+describe('formatFiatRate', () => {
+    it.each([
+        [4.941639, '4.94'],
+        ['5.366005', '5.37'],
+        [5.4, '5.40'],
+        [5, '5.00'],
+        [0.8955, '0.90'],
+        [1450.255, '1,450.26'],
+    ])('prints %s as %s: half-up, always two decimals', (rate, shown) => {
+        expect(formatFiatRate(rate)).toBe(shown)
+    })
+
+    it('prints no number for a missing rate', () => {
+        expect(formatFiatRate('not a rate')).toBe('—')
     })
 })

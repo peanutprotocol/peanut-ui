@@ -58,6 +58,9 @@ const demoPixDeposit = (msLeft: number) => ({
     amountBrl: '100.00',
     usdcAmount: '17.940500',
     fixedFeeBrl: '0.75',
+    // Avenia's rate and every fee: (100.00 − 1.69) ÷ 5.48 = 17.94
+    exchangeRate: '5.480000',
+    providerFeeBrl: '1.69',
     brCode: DEMO_PIX_BR_CODE,
     payerCpfMasked: '123.***.***-09',
 })
@@ -71,6 +74,9 @@ const demoPixWithdrawDisplay = () => ({
     withdrawUsd: '20.020325',
     rate: '5.369543',
     fixedFeeBrl: '0.75',
+    // Avenia's rate and every fee: 20.020325 × 5.40 − 1.36 = 106.75
+    exchangeRate: '5.400000',
+    providerFeeBrl: '1.36',
     arrivalEstimateSeconds: 60,
     provider: 'Avenia',
 })
@@ -94,15 +100,20 @@ function brCodeAmount(brCode: string): string | null {
 const demoPixPayDisplay = (amountBrl: string, amountFixed: boolean) => {
     const rate = 5.364547
     const fixedFeeBrl = 0.75
+    const withdrawUsd = ((Number(amountBrl) + fixedFeeBrl) / rate).toFixed(6)
+    // Avenia's own rate, and every fee so that withdrawUsd × 5.40 − fee = the reais
+    const exchangeRate = 5.4
     return {
         amountBrl: Number(amountBrl).toFixed(2),
         amountFixed,
         merchantName: 'PADARIA PAO DOURADO LTDA',
         merchantTaxIdMasked: '12.345.678/0001-95',
         bankName: 'Banco Inter S.A.',
-        withdrawUsd: ((Number(amountBrl) + fixedFeeBrl) / rate).toFixed(6),
+        withdrawUsd,
         rate: String(rate),
         fixedFeeBrl: fixedFeeBrl.toFixed(2),
+        exchangeRate: exchangeRate.toFixed(6),
+        providerFeeBrl: (Number(withdrawUsd) * exchangeRate - Number(amountBrl)).toFixed(2),
         arrivalEstimateSeconds: 60,
         provider: 'Avenia',
     }
@@ -1278,6 +1289,10 @@ export async function demoRespond(
             usdcAmount: '18.237000',
             rate: '5.442342',
             fixedFeeBrl: '0.75',
+            // Avenia's rate and every fee: deposit (100 − 1.52) ÷ 5.40 = 18.237; withdraw 18.237 × 5.60 − 2.13 = 100
+            ...(operation === 'withdraw'
+                ? { exchangeRate: '5.600000', providerFeeBrl: '2.13' }
+                : { exchangeRate: '5.400000', providerFeeBrl: '1.52' }),
             minAmountBrl: operation === 'withdraw' ? '5' : '20',
         })
     }

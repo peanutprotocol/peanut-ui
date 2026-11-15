@@ -97,6 +97,10 @@
         "kyc.paperworkVerification.tax.label.cc": {
             "locales": ["es-419", "es-AR", "pt-BR"],
             "reason": "Colombia's ID document, an official Spanish name used as is in every locale"
+        },
+        "setup.paymentPlan.funding.brlBank": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "payment rail name and currency code (Pix (BRL)), the same in every language"
         }
     }
 }

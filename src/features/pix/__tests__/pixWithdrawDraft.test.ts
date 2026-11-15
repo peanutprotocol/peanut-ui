@@ -7,7 +7,7 @@ import {
     readPixWithdrawDraft,
 } from '../pixWithdrawDraft'
 
-const FORM = { ...EMPTY_PIX_WITHDRAW_DRAFT, destination: '09579927189', amountBrl: '503' }
+const FORM = { ...EMPTY_PIX_WITHDRAW_DRAFT, destination: '11144477735', amountBrl: '503' }
 
 describe('the Pix withdraw draft', () => {
     afterEach(() => {

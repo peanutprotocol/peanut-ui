@@ -296,6 +296,9 @@ const aveniaResponses = (stage: 'enabled' | 'first-use', overrides: Record<strin
         usdcAmount: '18.237000',
         rate: '5.442342',
         fixedFeeBrl: '0.75',
+        // Avenia's rate and every fee: (100.00 − 1.52) ÷ 5.40 = 18.237
+        exchangeRate: '5.400000',
+        providerFeeBrl: '1.52',
         minAmountBrl: '20',
     },
     ...overrides,
@@ -354,7 +357,7 @@ const mantecaPixResponses = (overrides: Record<string, unknown> = {}) => ({
 })
 const MANTECA_PIX_DEPOSIT_ID = 'fixture-pix-manteca-deposit'
 
-const AVENIA_OWN_KEY = '09579927189'
+const AVENIA_OWN_KEY = '11144477735'
 const AVENIA_OTHER_KEY = '+5511987654321'
 const AVENIA_WITHDRAW_ROUTE = '/withdraw/pix'
 /** The Pix withdraw form, which lives in the account's session draft and never in the URL. */
@@ -364,7 +367,7 @@ const pixWithdrawForm = (fields: Partial<PixWithdrawDraft>, flow: PixDraftFlow =
 const AVENIA_OWN_KEY_INFO = {
     provider: 'avenia',
     holderName: 'Ana Souza',
-    holderTaxIdMasked: '095.***.***-89',
+    holderTaxIdMasked: '111.***.***-35',
     bankName: 'Banco Inter',
     ispb: '00416968',
     ownAccount: true,
@@ -510,9 +513,10 @@ const aveniaWithdrawal = (status: string) => ({
     status,
     userRole: 'SENDER',
     senderAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
-    recipientAccount: { identifier: '+5511912345678', fullName: 'ANA SOUZA', type: 'PIX', isUser: false },
+    // the API names the Pix key paid, raw, with its holder for the owner (peanut-api-ts#2151)
+    recipientAccount: { identifier: '+5511912345678', type: 'BANK_PIX', isUser: false, fullName: 'ANA SOUZA' },
     currency: { amount: '503.00', code: 'BRL' },
-    extraData: { kind: 'OFFRAMP', provider: 'AVENIA', usdAmount: '92.50431', pixRecovery: null },
+    extraData: { kind: 'OFFRAMP', provider: 'AVENIA', usdAmount: '92.50431', pixRecovery: null, paymentMethod: 'PIX' },
 })
 /**
  * An Avenia Pix payout to another person's key (TASK-24947): the owner's entry names whom it paid
@@ -524,13 +528,14 @@ const aveniaSend = (status: string) => ({
     uuid: AVENIA_SEND_ID,
     timestamp: new Date('2026-11-06T10:00:00.000Z'),
     amount: '18.87',
-    recipientAccount: { identifier: AVENIA_OTHER_KEY, fullName: 'BRUNO LIMA', type: 'PIX', isUser: false },
+    recipientAccount: { identifier: AVENIA_OTHER_KEY, type: 'BANK_PIX', isUser: false, fullName: 'BRUNO LIMA' },
     currency: { amount: '100.00', code: 'BRL' },
     extraData: {
         kind: 'OFFRAMP',
         provider: 'AVENIA',
         usdAmount: '18.87',
         pixRecovery: null,
+        paymentMethod: 'PIX',
         pixPayout: { pixKey: AVENIA_OTHER_KEY, holderName: 'Bruno Lima', bankName: 'Nubank', ownAccount: false },
     },
 })
@@ -555,6 +560,9 @@ const AVENIA_SEND_PREVIEW = {
     withdrawUsd: '18.870000',
     rate: '5.339163',
     fixedFeeBrl: '0.75',
+    // Avenia's rate and every fee: 18.87 × 5.38 − 1.52 = 100.00
+    exchangeRate: '5.380000',
+    providerFeeBrl: '1.52',
     arrivalEstimateSeconds: 60,
     provider: 'Avenia',
 }
@@ -631,6 +639,9 @@ const aveniaNonResidentResponses = (stage: 'enabled' | 'first-use', overrides: R
         usdcAmount: '18.870000',
         rate: '5.339163',
         fixedFeeBrl: '0.75',
+        // Avenia's rate and every fee: 18.87 × 5.38 − 1.52 = 100.00
+        exchangeRate: '5.380000',
+        providerFeeBrl: '1.52',
         minAmountBrl: '5',
     },
     ...overrides,
@@ -649,6 +660,9 @@ const aveniaDepositRead = (overrides: Record<string, unknown> = {}) => ({
     amountBrl: '100.00',
     usdcAmount: '18.237000',
     fixedFeeBrl: '0.75',
+    // Avenia's rate and every fee: (100.00 − 1.52) ÷ 5.40 = 18.237
+    exchangeRate: '5.400000',
+    providerFeeBrl: '1.52',
     codePayable: false,
     ...overrides,
 })
@@ -663,14 +677,30 @@ const aveniaPayableDeposit = {
     tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
     status: 'PENDING',
     userRole: 'RECIPIENT',
-    senderAccount: { identifier: 'pix', type: 'PIX', isUser: false },
+    // a deposit names no sender, never the inflow address (peanut-api-ts#2151)
+    senderAccount: { identifier: '', type: 'address', isUser: false },
     recipientAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
     currency: { amount: '100.00', code: 'BRL' },
     extraData: {
         kind: 'ONRAMP',
         provider: 'AVENIA',
         usdAmount: '18.237',
+        paymentMethod: 'PIX',
         pixDeposit: { codePayable: true, expiresAt: null },
+    },
+}
+
+/** The same deposit once paid and credited: the code is spent. */
+const AVENIA_PAID_DEPOSIT = {
+    ...aveniaPayableDeposit,
+    uuid: 'fixture-avenia-deposit-paid',
+    status: 'COMPLETED',
+    extraData: {
+        ...aveniaPayableDeposit.extraData,
+        pixDeposit: { codePayable: false, expiresAt: null },
+        // settled: Avenia's rate and every fee, (100.00 − 1.52) ÷ 5.40 = 18.237
+        receipt: { exchange_rate: '5.400000' },
+        providerFeeBrl: '1.52',
     },
 }
 
@@ -763,7 +793,7 @@ const aveniaQrEntry = (status: string) => ({
     senderAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
     recipientAccount: { identifier: 'PADARIA PAO DOURADO LTDA', type: 'BANK_CBU', isUser: false },
     currency: { amount: '42.50', code: 'BRL' },
-    extraData: { kind: 'QR_PAY', provider: 'AVENIA', usdAmount: '8.062211' },
+    extraData: { kind: 'QR_PAY', provider: 'AVENIA', usdAmount: '8.062211', pixRecovery: null, paymentMethod: 'PIX' },
 })
 
 const PIX_FAVORITE = {
@@ -897,6 +927,16 @@ const EXPIRED_ARS_DEPOSIT_ENTRY = {
     extraData: { kind: 'ONRAMP', provider: 'MANTECA', usdAmount: '10', mantecaDepositExpired: true },
 }
 
+const PENDING_EUR_DEPOSIT_ENTRY = {
+    ...EXPIRED_ARS_DEPOSIT_ENTRY,
+    uuid: 'fixture-pending-eur-deposit',
+    status: 'PENDING',
+    amount: '24.32',
+    senderAccount: { identifier: 'bank', type: 'BANK_IBAN', isUser: true },
+    currency: { amount: '21.33', code: 'EUR' },
+    extraData: { kind: 'ONRAMP', provider: 'BRIDGE', usdAmount: '24.32' },
+}
+
 // A PIX-key payment the payer looked up first (TASK-23198): the API sends the
 // owner as fullName beside the key, to the payer only.
 const PIX_KEY_PAYMENT_ENTRY = {
@@ -912,7 +952,7 @@ const PIX_KEY_PAYMENT_ENTRY = {
     senderAccount: { identifier: 'demo', type: 'PEANUT_WALLET', isUser: true, username: 'demo' },
     recipientAccount: { identifier: 'maria@silva.com.br', fullName: 'MARIA DA SILVA', type: 'BANK_CBU', isUser: false },
     currency: { amount: '51.30', code: 'BRL' },
-    extraData: { kind: 'QR_PAY', provider: 'MANTECA', usdAmount: '10' },
+    extraData: { kind: 'QR_PAY', provider: 'MANTECA', usdAmount: '10', paymentMethod: 'PIX' },
 }
 
 // An in-person card tap at a coffee shop, settled in USD (same currency, so
@@ -2393,7 +2433,7 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: aveniaResponses('enabled', {
             'POST /pix/key': {
                 holderName: 'Ana Souza',
-                holderTaxIdMasked: '095.***.***-89',
+                holderTaxIdMasked: '111.***.***-35',
                 bankName: 'Banco Inter',
                 ispb: '00416968',
                 ownAccount: true,
@@ -2454,15 +2494,33 @@ export const FIXTURES: Record<string, Fixture> = {
             [`GET /history/${AVENIA_SEND_ID}`]: aveniaSend('REFUNDED'),
         },
     },
+    'pix-receipt-withdrawal': {
+        route: `/history?tx=${AVENIA_WITHDRAWAL_ID}`,
+        about: 'The receipt of a Pix withdrawal to the own key: titled by its method, "Withdrew by Pix", under the Pix logo.',
+        responses: {
+            'GET /users/history': { entries: [aveniaWithdrawal('COMPLETED')], hasMore: false },
+            [`GET /history/${AVENIA_WITHDRAWAL_ID}`]: aveniaWithdrawal('COMPLETED'),
+        },
+    },
+    'pix-receipt-withdrawal-pending': {
+        route: `/history?tx=${AVENIA_WITHDRAWAL_ID}`,
+        about: 'The receipt of a Pix withdrawal on its way: "Withdrawing by Pix".',
+        responses: {
+            'GET /users/history': { entries: [aveniaWithdrawal('PENDING')], hasMore: false },
+            [`GET /history/${AVENIA_WITHDRAWAL_ID}`]: aveniaWithdrawal('PENDING'),
+        },
+    },
     'pix-activity-payouts': {
         route: '/history',
-        about: 'Activity rows of Pix payouts: a send to another person, a withdrawal to the own key and a returned send, each with the Pix logo.',
+        about: 'Activity rows of Pix transactions, as the list sends them (the key paid, the merchant, no deposit sender): a send to another person, two QR payments, a withdrawal to the own key and a deposit, each with the Pix logo.',
         responses: {
             'GET /users/history': {
                 entries: [
                     aveniaSend('COMPLETED'),
+                    aveniaQrEntry('COMPLETED'),
+                    { ...aveniaQrEntry('REFUNDED'), uuid: 'fixture-qr-avenia-2' },
                     aveniaWithdrawal('COMPLETED'),
-                    { ...aveniaSend('REFUNDED'), uuid: 'fixture-pix-send-returned' },
+                    { ...AVENIA_PAID_DEPOSIT, timestamp: new Date('2026-11-04T10:00:00.000Z') },
                 ],
                 hasMore: false,
             },
@@ -2513,7 +2571,7 @@ export const FIXTURES: Record<string, Fixture> = {
     'pix-withdraw-review': {
         route: `${AVENIA_WITHDRAW_ROUTE}?step=review`,
         sessionStorage: pixWithdrawForm({ destination: AVENIA_OWN_KEY, amountBrl: '503' }),
-        about: "Avenia Pix withdrawal: the one form, the key's holder and bank, the reais over the USD, the rate with the fees in, the flat fee apart.",
+        about: "Avenia Pix withdrawal: the one form, the key's holder and bank, the reais over the USD, Avenia's own rate and every provider fee as one row.",
         responses: aveniaResponses('enabled', {
             'POST /pix/withdraw/preview': {
                 amountBrl: '503.00',
@@ -2524,6 +2582,9 @@ export const FIXTURES: Record<string, Fixture> = {
                 withdrawUsd: '92.504310',
                 rate: '5.445692',
                 fixedFeeBrl: '0.75',
+                // Avenia's rate and every fee: 92.504310 × 5.46 − 2.07 = 503.00
+                exchangeRate: '5.460000',
+                providerFeeBrl: '2.07',
                 arrivalEstimateSeconds: 60,
                 provider: 'Avenia',
             },
@@ -2539,14 +2600,29 @@ export const FIXTURES: Record<string, Fixture> = {
     // the code screen as ruled on 13 Nov: the amount, "You get ≈", the code, the timer badge under it
     'pix-deposit-code': {
         route: AVENIA_DEPOSIT_CODE_ROUTE,
-        about: 'A payable Avenia Pix code: the reais, what the balance gets, the code, then a pending badge with the time left; no fee line.',
+        about: "A payable Avenia Pix code: the reais, what the balance gets, the code, a pending badge with the time left, then Avenia's rate and every fee as one row.",
         responses: aveniaResponses('enabled', {
             [`GET /pix/deposit/${AVENIA_DEPOSIT_ID}`]: aveniaDepositRead({
                 codePayable: true,
                 brCode: DEMO_PIX_BR_CODE,
                 // the code lives 10 minutes from when the fixture loads, so the badge always reads a live timer
                 expiresAt: new Date(Date.now() + 10 * 60_000).toISOString(),
-                payerCpfMasked: '095.***.***-89',
+                payerCpfMasked: '111.***.***-35',
+            }),
+        }),
+    },
+    'pix-deposit-code-unpriced': {
+        route: AVENIA_DEPOSIT_CODE_ROUTE,
+        about: 'A payable Avenia Pix code whose bridge fee Rhino did not price: the API sends no rate and no fee, so neither row shows.',
+        responses: aveniaResponses('enabled', {
+            [`GET /pix/deposit/${AVENIA_DEPOSIT_ID}`]: aveniaDepositRead({
+                codePayable: true,
+                brCode: DEMO_PIX_BR_CODE,
+                expiresAt: new Date(Date.now() + 10 * 60_000).toISOString(),
+                payerCpfMasked: '111.***.***-35',
+                // the API leaves both out; null replaces the demo answer's pair
+                exchangeRate: null,
+                providerFeeBrl: null,
             }),
         }),
     },
@@ -2637,6 +2713,14 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: {
             'GET /users/history': { entries: [aveniaPayableDeposit], hasMore: false },
             [`GET /history/${AVENIA_DEPOSIT_ID}`]: aveniaPayableDeposit,
+        },
+    },
+    'pix-deposit-receipt-completed': {
+        route: `/history?tx=${AVENIA_PAID_DEPOSIT.uuid}`,
+        about: 'The receipt of a paid Pix deposit: titled by its method, "Added by Pix".',
+        responses: {
+            'GET /users/history': { entries: [AVENIA_PAID_DEPOSIT], hasMore: false },
+            [`GET /history/${AVENIA_PAID_DEPOSIT.uuid}`]: AVENIA_PAID_DEPOSIT,
         },
     },
     'pix-setup-verify': {
@@ -2936,7 +3020,7 @@ export const FIXTURES: Record<string, Fixture> = {
             'POST /pix/key': {
                 provider: 'manteca',
                 holderName: 'Ana Souza',
-                holderTaxIdMasked: '095.***.***-89',
+                holderTaxIdMasked: '111.***.***-35',
                 bankName: null,
                 ispb: null,
                 ownAccount: null,
@@ -4049,6 +4133,15 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/history',
         about: 'A USD wire withdrawal: its receipt shows the wire fee and what the bank received.',
         responses: { 'GET /users/history': { entries: [WIRE_WITHDRAWAL_ENTRY], hasMore: false } },
+    },
+    // a bank deposit still on its way keeps the bank wording; a Pix one reads "Adding by Pix"
+    'history-bank-deposit-pending': {
+        route: '/history?tx=fixture-pending-eur-deposit',
+        about: 'A SEPA deposit still on its way: the receipt reads "Adding from bank account".',
+        responses: {
+            'GET /users/history': { entries: [PENDING_EUR_DEPOSIT_ENTRY], hasMore: false },
+            'GET /history/fixture-pending-eur-deposit': PENDING_EUR_DEPOSIT_ENTRY,
+        },
     },
     'history-expired-ars-deposit': {
         route: '/history?tx=fixture-expired-ars-deposit',

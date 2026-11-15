@@ -88,6 +88,7 @@ import { QrKycState } from '@/constants/kyc.consts'
 import { pixMinimumBrl } from '@/features/pix/pixRoute.utils'
 import { isUnderPixMinimum } from '@/features/pix/pixQuote.utils'
 import { pixShownRate } from '@/features/pix/pixFlow.utils'
+import { pixRateAndFee, showsProviderRateAndFee } from '@/features/pix/pixRateAndFee'
 import { useHistoryEntry } from '@/hooks/useHistoryEntry'
 import { formatBankAmount } from '@/utils/currency'
 import { pixProviderId } from '@/utils/provider.utils'
@@ -456,12 +457,12 @@ export function useQrPayFlowController(
         setCurrencyAmount(pixPayFixedBrl)
     }, [pixPayFixedBrl, pixPayFixedUsd, setAmount, setCurrencyAmount])
 
-    // The reais convert to what leaves the wallet, every fee in, as the Pix withdrawal's field does; the
-    // rate row shows the all-in rate beside the flat fee row (`pixShownRate`). Before a review names
-    // them (an open amount not typed yet, a reload of an opened payment), the market rate stands in, as
-    // for Manteca's open-amount codes.
+    // The reais convert to what leaves the wallet, every fee in, as the Pix withdrawal's field does. The
+    // rate row (`shownRate` below) is Avenia's own rate; another pay-route provider's is the all-in rate
+    // (`pixShownRate`). Before a review names them (an open amount not typed yet, a reload of an opened
+    // payment), the field converts with the market rate, as for Manteca's open-amount codes.
     const pixPayPrice = pixPayReviewed ? Number(pixPayReviewed.amountBrl) / Number(pixPayReviewed.withdrawUsd) : null
-    const shownRate = isPixPay && pixPayReviewed ? Number(pixShownRate(pixPayReviewed)) : null
+    const allInRate = isPixPay && pixPayReviewed ? Number(pixShownRate(pixPayReviewed)) : null
     // An opened payment (`?intentId=`) shows its result from its own read: the reais it paid, and the
     // USD from its history entry once paid. No live rate is asked for it, so an FX outage cannot hide
     // a settled payment; the rate stands at the entry's own until the entry loads (0 = none yet).
@@ -814,20 +815,31 @@ export function useQrPayFlowController(
         merchantTaxIdMasked && merchantTaxIdKind ? { kind: merchantTaxIdKind, value: merchantTaxIdMasked } : null
 
     const recipientBankName = isPixPay ? (pixPayMerchant?.bankName ?? null) : recipientBankNameOf(paymentLock)
-    // The provider's flat fee, for the form's "Provider fee" row (shared with the Pix withdrawal,
-    // where Avenia charges R$0.75). The Manteca lock carries none (`QrPaymentLock`), so no row.
-    const pixPayFee = pixPayReviewed?.fixedFeeBrl
-    const providerFee: string | null =
-        isPixPay && pixPayFee && Number(pixPayFee) > 0 ? formatBankAmount(pixPayFee, 'BRL') : null
     // the legal record behind the provider row: the opened payment's provider (a route that changed since
     // names another), else the route's, or Manteca's entity for the code's country
     const providerId: ProviderId | null = isPixPay
-        ? pixProviderId(pixPayment.intentId ? pixPayment.payment?.provider : pixPayRoute?.provider)
+        ? pixProviderId(
+              pixPayment.intentId
+                  ? // the read, else the open while the passkey is open (the read is off then)
+                    (pixPayment.payment?.provider ?? pixPayment.openedProvider)
+                  : pixPayRoute?.provider
+          )
         : paymentProcessor === 'MANTECA' && targetMantecaCountry
           ? targetMantecaCountry === 'BR'
               ? 'manteca-br'
               : 'manteca-ar'
           : null
+    // Avenia (the owner, 15 Nov, "Option A"): the review's own rate and every fee as one row, or neither
+    // row before a review names them; never the market rate or the flat fee alone. Another pay-route
+    // provider keeps the all-in rate and its flat fee.
+    const providerRows = isPixPay && showsProviderRateAndFee(providerId)
+    const reviewedPair = providerRows ? pixRateAndFee(pixPayReviewed) : null
+    const shownRate = providerRows ? (reviewedPair?.exchangeRate ?? null) : allInRate
+    const hideRate = providerRows && !reviewedPair
+    const pixPayFee = providerRows ? reviewedPair?.providerFeeBrl : pixPayReviewed?.fixedFeeBrl
+    // the form's "Provider fee" row, shared with the Pix withdrawal; the Manteca lock carries none (`QrPaymentLock`)
+    const providerFee: string | null =
+        isPixPay && pixPayFee && Number(pixPayFee) > 0 ? formatBankAmount(pixPayFee, 'BRL') : null
     // the code fixes the amount: the field cannot change it
     const amountFixed = isPixPay
         ? pixPayment.amountFixed === true
@@ -1571,8 +1583,10 @@ export function useQrPayFlowController(
     }, [qrType])
 
     // check if we're still loading payment data before showing anything
+    // a payment this session is signing has no outcome yet: its review is on screen, not a loader
     const isLoadingPaymentData = isPixPay
-        ? !currency || (pixPayment.intentId ? !pixPayOutcome : pixPayment.isReadingCode)
+        ? !currency ||
+          (pixPayment.intentId && pixPayment.phase !== 'signing' ? !pixPayOutcome : pixPayment.isReadingCode)
         : (paymentProcessor === 'MANTECA' && !paymentLock) || !currency
 
     // Where a payment that is no longer on the form stands, for the status view.
@@ -1673,8 +1687,10 @@ export function useQrPayFlowController(
         providerFee,
         providerId,
         amountFixed,
-        /** The rate row's figure where it differs from the field's price: the Pix pay routes' all-in rate. */
+        /** The rate row's figure where it differs from the field's price: Avenia's own rate, another pay-route provider's all-in rate. */
         shownRate,
+        /** No rate row: Avenia's review names no rate of its own yet (`pixRateAndFee`). */
+        hideRate,
         paymentStatus,
         /** A person at Peanut is looking at the payment: the status view offers support. */
         paymentNeedsSupport: isPixPay && pixPayOutcome === 'needs-support',

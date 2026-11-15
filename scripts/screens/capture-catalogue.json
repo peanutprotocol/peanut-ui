@@ -287,6 +287,18 @@
         "source": "features/card/components/CardResidenceAddressScreen.tsx"
     },
     {
+        "id": "03-j-funding-methods-argentina",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=03-j-funding-methods-argentina",
+        "source": "Setup/Views/PaymentPlan.tsx"
+    },
+    {
+        "id": "03-k-funding-pix-chosen",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=03-k-funding-pix-chosen",
+        "source": "Setup/Views/PaymentPlan.tsx"
+    },
+    {
         "id": "07-d-notification-switches",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=07-d-notification-switches",
@@ -1177,6 +1189,11 @@
         "route": "/add-money/pix?step=showQR&intentId=fixture-pix-deposit"
     },
     {
+        "id": "fixture-pix-deposit-code-unpriced",
+        "flow": "Add money",
+        "route": "/add-money/pix?step=showQR&intentId=fixture-pix-deposit"
+    },
+    {
         "id": "fixture-pix-deposit-expired",
         "flow": "Add money",
         "route": "/add-money/pix?step=showQR&intentId=fixture-pix-deposit"
@@ -1212,6 +1229,11 @@
         "route": "/history?tx=fixture-pix-deposit"
     },
     {
+        "id": "fixture-pix-deposit-receipt-completed",
+        "flow": "Add money",
+        "route": "/history?tx=fixture-avenia-deposit-paid"
+    },
+    {
         "id": "fixture-pix-activation-refused",
         "flow": "Add money",
         "route": "/add-money/pix"
@@ -1225,6 +1247,11 @@
         "id": "fixture-pix-manteca-deposit-code",
         "flow": "Add money",
         "route": "/add-money/pix?step=showQR&intentId=fixture-pix-manteca-deposit"
+    },
+    {
+        "id": "fixture-history-bank-deposit-pending",
+        "flow": "Add money",
+        "route": "/history?tx=fixture-pending-eur-deposit"
     },
     {
         "id": "fixture-history-expired-ars-deposit",
@@ -2469,6 +2496,16 @@
         "id": "fixture-pix-send-arrived",
         "flow": "Withdraw",
         "route": "/withdraw/pix?step=success&intentId=fixture-pix-send&sendMethod=bank"
+    },
+    {
+        "id": "fixture-pix-receipt-withdrawal",
+        "flow": "Withdraw",
+        "route": "/history?tx=fixture-pix-withdrawal"
+    },
+    {
+        "id": "fixture-pix-receipt-withdrawal-pending",
+        "flow": "Withdraw",
+        "route": "/history?tx=fixture-pix-withdrawal"
     },
     {
         "id": "fixture-pix-nonresident-send-key",

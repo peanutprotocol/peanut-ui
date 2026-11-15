@@ -61,10 +61,10 @@ jest.mock('@/hooks/useRainCardOverview', () => ({
 import { usePixWithdrawSubmit } from '../usePixWithdrawSubmit'
 
 const DEPOSIT_ABI = parseAbi(['function depositWithId(address tokenAddress, uint256 amount, uint256 commitmentId)'])
-const REQUEST = { pixKey: '09579927189', amountBrl: '503' }
+const REQUEST = { pixKey: '11144477735', amountBrl: '503' }
 const display = {
     amountBrl: '503.00',
-    pixKey: '09579927189',
+    pixKey: '11144477735',
     ownAccount: true as const,
     holderTaxIdMasked: null,
     holderName: 'Ana Souza',

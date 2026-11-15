@@ -442,3 +442,175 @@ describe('a Pix payment that is opening keeps its processor when the route moves
         expect(mockMantecaApi.initiateQrPayment).not.toHaveBeenCalled()
     })
 })
+
+// Aleks, 2026-11-15 (staging, Avenia): the "Payment is processing … Check Activity" card showed behind the
+// passkey prompt. While this page waits for the passkey on the payment it just opened, the review stays
+// with Pay loading; the processing screen follows the signature; a dismissed passkey leaves Pay usable.
+describe('an Avenia payment waits on its review while the passkey is open', () => {
+    const USDC = '0xaf88d065e77c8cC2239327C5EDb3A432268e5831'
+    const opened = {
+        provider: 'avenia',
+        intentId: 'pay-1',
+        display: review,
+        sign: {
+            kind: 'deposit-with-id',
+            contractAddress: '0x10417734001162Ea139e8b044DFe28DbB8B28ad0',
+            tokenAddress: USDC,
+            payAmount: review.withdrawUsd,
+            payAmountUnits: '8062211',
+            commitmentId: '6aeb17ea29f84d1e9b0c3a5d7e2f1c08',
+            quoteExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+            ticketExpiresAt: new Date(Date.now() + 600_000).toISOString(),
+        },
+    }
+    const surface = () => mockSurface as unknown as { isLoading: boolean; loadingState: string; errorMessage: string }
+    let resolveSignature: (result: unknown) => void
+    let rejectSignature: (error: Error) => void
+    const sendTransactions = jest.fn()
+
+    beforeEach(() => {
+        localStorage.clear()
+        sessionStorage.clear()
+        mockRoutes = [payRoute('avenia')]
+        mockPixApi.previewPayment.mockResolvedValue(review)
+        mockPixApi.openPayment.mockResolvedValue(opened)
+        mockPixApi.readPayment.mockResolvedValue({ provider: 'avenia', intentId: 'pay-1', state: 'processing' })
+        mockPixApi.reportPaymentFunding.mockResolvedValue({ status: 'PROCESSING' })
+        sendTransactions.mockReset()
+        sendTransactions.mockImplementation(
+            () =>
+                new Promise((resolve, reject) => {
+                    resolveSignature = resolve
+                    rejectSignature = reject
+                })
+        )
+        mockUseWallet.mockReturnValue({
+            address: ACCOUNT,
+            balance: 100_000_000n,
+            spendableBalance: 100_000_000n,
+            sendTransactions,
+        })
+    })
+
+    const tapPay = async () => {
+        renderScan()
+        await screen.findByText('Payment form')
+        await waitFor(() => expect(mockPixApi.previewPayment).toHaveBeenCalled())
+        let payment!: Promise<void>
+        act(() => {
+            payment = mockSurface!.payQR()
+        })
+        await waitFor(() => expect(sendTransactions).toHaveBeenCalledTimes(1))
+        // wrapped: an async function returning the pending payment would wait for it
+        return { payment }
+    }
+
+    it('keeps the review with Pay loading until the passkey answers, then shows the processing screen', async () => {
+        const { payment } = await tapPay()
+        // the passkey prompt is open: the review stays, Pay is loading, no status card and no read yet
+        expect(screen.getByText('Payment form')).toBeInTheDocument()
+        expect(screen.queryByText('Payment status')).toBeNull()
+        expect(surface().isLoading).toBe(true)
+        expect(surface().loadingState).toBe('Approve transaction')
+        expect(mockPixApi.readPayment).not.toHaveBeenCalled()
+
+        await act(async () => {
+            resolveSignature({ receipt: { status: 'success', transactionHash: `0x${'ab'.repeat(32)}`, logs: [] } })
+            await payment
+        })
+        expect(await screen.findByText('Processing payment')).toBeInTheDocument()
+        expect(screen.queryByText('Payment status')).toBeNull()
+        expect(mockPixApi.reportPaymentFunding).toHaveBeenCalledWith('pay-1', `0x${'ab'.repeat(32)}`)
+    })
+
+    // Chip on ui#4106: while the passkey is open the payment read is off, so the provider must come from
+    // the open, or the review falls back to the all-in rate and the flat fee and loses its provider row
+    it('keeps Avenia’s rate, its fee and the provider row on the review while the passkey is open', async () => {
+        const priced = { ...review, exchangeRate: '5.400000', providerFeeBrl: '1.04' }
+        mockPixApi.previewPayment.mockResolvedValue(priced)
+        mockPixApi.openPayment.mockResolvedValue({ ...opened, display: priced })
+        const rows = () =>
+            mockSurface as unknown as {
+                providerId: string | null
+                shownRate: number | null
+                hideRate: boolean
+                providerFee: string | null
+            }
+        renderScan()
+        await screen.findByText('Payment form')
+        await waitFor(() => expect(rows().shownRate).toBe(5.4))
+        const before = { ...rows() }
+        expect(before).toMatchObject({ providerId: 'avenia-br', hideRate: false, providerFee: 'R$1.04' })
+
+        act(() => {
+            void mockSurface!.payQR()
+        })
+        await waitFor(() => expect(sendTransactions).toHaveBeenCalledTimes(1))
+        // the passkey prompt is open: the same figures and the same provider
+        expect(surface().loadingState).toBe('Approve transaction')
+        expect(rows().providerId).toBe('avenia-br')
+        expect(rows().shownRate).toBe(5.4)
+        expect(rows().hideRate).toBe(false)
+        expect(rows().providerFee).toBe('R$1.04')
+    })
+
+    it('a dismissed passkey returns to a usable review, and the next tap signs the same payment', async () => {
+        const { payment } = await tapPay()
+        const dismissed = Object.assign(new Error('The operation either timed out or was not allowed.'), {
+            name: 'NotAllowedError',
+        })
+        await act(async () => {
+            rejectSignature(dismissed)
+            await payment
+        })
+        expect(screen.getByText('Payment form')).toBeInTheDocument()
+        expect(screen.queryByText('Payment status')).toBeNull()
+        expect(surface().isLoading).toBe(false)
+        expect(surface().errorMessage).toBeTruthy()
+
+        let retry!: Promise<void>
+        act(() => {
+            retry = mockSurface!.payQR()
+        })
+        await waitFor(() => expect(sendTransactions).toHaveBeenCalledTimes(2))
+        // one key per scan and amount: the API answers the same payment, and nothing new is opened
+        const [first, second] = mockPixApi.openPayment.mock.calls.map(([request]) => request.idempotencyKey)
+        expect(second).toBe(first)
+        await act(async () => {
+            resolveSignature({ receipt: { status: 'success', transactionHash: `0x${'cd'.repeat(32)}`, logs: [] } })
+            await retry
+        })
+        expect(mockPixApi.reportPaymentFunding).toHaveBeenCalledTimes(1)
+        expect(mockPixApi.reportPaymentFunding).toHaveBeenCalledWith('pay-1', `0x${'cd'.repeat(32)}`)
+    })
+})
+
+// The owner, 15 Nov, "Option A": an Avenia QR review shows Avenia's own rate and every fee as one row, or
+// neither row; never the all-in rate, the market rate or the flat fee alone. Manteca's QR form is unchanged.
+describe("an Avenia QR review shows Avenia's rate and every fee", () => {
+    const rows = () =>
+        mockSurface as unknown as { shownRate: number | null; hideRate: boolean; providerFee: string | null }
+
+    beforeEach(() => {
+        mockRoutes = [payRoute('avenia')]
+    })
+
+    it('the review’s exchangeRate and providerFeeBrl, not the all-in rate and the flat fee', async () => {
+        // 8.062211 × 5.40 − 1.04 = R$42.50
+        mockPixApi.previewPayment.mockResolvedValue({ ...review, exchangeRate: '5.400000', providerFeeBrl: '1.04' })
+        renderScan()
+        await screen.findByText('Payment form')
+        await waitFor(() => expect(rows().shownRate).toBe(5.4))
+        expect(rows().hideRate).toBe(false)
+        expect(rows().providerFee).toBe('R$1.04')
+    })
+
+    it('neither row when the review carries no pair', async () => {
+        mockPixApi.previewPayment.mockResolvedValue(review)
+        renderScan()
+        await screen.findByText('Payment form')
+        await waitFor(() => expect(mockPixApi.previewPayment).toHaveBeenCalled())
+        await waitFor(() => expect(rows().hideRate).toBe(true))
+        expect(rows().providerFee).toBeNull()
+    })
+})

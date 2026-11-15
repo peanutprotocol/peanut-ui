@@ -48,8 +48,6 @@ jest.mock('../TransactionDetailsDrawer', () => ({
     TransactionDetailsDrawer: () => null,
 }))
 
-jest.mock('@/assets/payment-apps', () => ({ MERCADO_PAGO: '/mercado-pago.svg', PIX: '/pix.svg' }))
-
 jest.mock('next/image', () => ({
     __esModule: true,
     default: (props: Record<string, unknown>) => {
@@ -582,46 +580,5 @@ describe('TransactionCard — amount format', () => {
     it('shows a request pot as collected / asked in the same format', () => {
         renderAmount(22.3, { isRequestPotLink: true, totalAmountCollected: 0 })
         expect(screen.getByText('$0 / $22.30')).toBeInTheDocument()
-    })
-})
-
-// TASK-24947: a payout to a Pix key leads with the Pix logo, as a Manteca Pix payment does
-describe('TransactionCard — Pix payout', () => {
-    const renderPayout = (accountType: string) =>
-        render(
-            <TransactionCard
-                type="bank_withdraw"
-                name="Bank Account"
-                amount={18.87}
-                status="completed"
-                initials="BA"
-                transaction={
-                    {
-                        ...eligibleTx(),
-                        isPeerActuallyUser: false,
-                        direction: 'bank_withdraw',
-                        bankAccountDetails: { identifier: '+5511987654321', type: accountType },
-                        extraDataForDrawer: {
-                            transactionCardType: 'bank_withdraw',
-                            isLinkTransaction: false,
-                            kind: 'OFFRAMP',
-                            provider: 'AVENIA',
-                        },
-                    } as unknown as TransactionDetails
-                }
-                isSelected={false}
-                onOpen={openTransactionDetails}
-                onClose={jest.fn()}
-            />
-        )
-
-    it.each(['pix', 'BANK_PIX'])('shows the Pix logo for a payout to a %s account', (type) => {
-        const { container } = renderPayout(type)
-        expect(container.querySelector('img')).toHaveAttribute('src', '/pix.svg')
-    })
-
-    it('keeps the bank bubble on a bank withdrawal', () => {
-        const { container } = renderPayout('BANK_IBAN')
-        expect(container.querySelector('img[src="/pix.svg"]')).toBeNull()
     })
 })

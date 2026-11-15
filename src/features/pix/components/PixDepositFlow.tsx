@@ -14,6 +14,8 @@ import { useAuth } from '@/context/authContext'
 import { toApiDecimal } from '@/features/pix/pixFlow.utils'
 import { pixDepositQueryKey } from '@/features/pix/pixDepositCode'
 import { PixQrDeposit } from '@/features/pix/components/PixQrDeposit'
+import { PixRateAndFeeCard } from '@/features/pix/components/PixRateAndFeeCard'
+import { showsProviderRateAndFee } from '@/features/pix/pixRateAndFee'
 import { PixSetup } from '@/features/pix/components/PixSetup'
 import { usePixQuoteCurrency } from '@/features/pix/usePixQuoteCurrency'
 import { isUnderPixMinimum } from '@/features/pix/pixQuote.utils'
@@ -24,10 +26,12 @@ import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import type { CapabilityRoute } from '@/types/capabilities'
 import { formatBankAmount } from '@/utils/currency'
 import { pixProviderId } from '@/utils/provider.utils'
-import { readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
+import { originPastHubs, readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to.utils'
 
 type PixDepositStep = 'inputAmount' | 'showQR'
 type Denomination = 'USD' | 'BRL'
+// The Add picker and the method chooser send themselves as `returnTo` so Back reopens them
+const ADD_MONEY_HUBS = ['/add-money', '/add-money/options'] as const
 
 /**
  * Add money by Pix, for whichever provider the deposit route names: the
@@ -60,7 +64,8 @@ export function PixDepositFlow({ route }: { route: CapabilityRoute }) {
     const returnTo = readReturnTo(
         new URLSearchParams(urlState.returnTo ? { [RETURN_TO_PARAM]: urlState.returnTo } : {})
     )
-    const leaveToHome = useReturnTo(returnTo ?? '/home')
+    // Done after a paid deposit never reopens a hub or the paid code: Home, or the origin a caller stated
+    const leaveToHome = useReturnTo(originPastHubs(returnTo, ADD_MONEY_HUBS) ?? '/home')
     const onBack = useSafeBack(returnTo ?? '/add-money?method=bank')
     const step: PixDepositStep = urlState.step ?? 'inputAmount'
     const ready = route.state === 'ready'
@@ -79,6 +84,16 @@ export function PixDepositFlow({ route }: { route: CapabilityRoute }) {
     const currencyData = usePixQuoteCurrency('deposit', brlAmount, minimumBrl, ready && !intentId)
     const minimumLine = minimumBrl ? tDeposit('minimum', { amount: formatBankAmount(minimumBrl, 'BRL') }) : null
     const validationError = isUnderPixMinimum(brlAmount, minimumBrl) ? minimumLine : null
+    // Avenia's own rate (the minimum's quote before an amount), and the fee once the amount on screen is quoted;
+    // neither row when the quote sends neither
+    const rateAndFee = currencyData.rateAndFee
+    const rateRows =
+        showsProviderRateAndFee(providerId) && rateAndFee !== null ? (
+            <PixRateAndFeeCard
+                rate={rateAndFee?.exchangeRate ?? null}
+                providerFeeBrl={rateAndFee && currencyData.quotesTypedAmount ? rateAndFee.providerFeeBrl : null}
+            />
+        ) : undefined
 
     // the code step belongs to one deposit; without its id there is nothing to show
     useEffect(() => {
@@ -193,6 +208,7 @@ export function PixDepositFlow({ route }: { route: CapabilityRoute }) {
             onBack={onBack}
             // the code carries the amount and the bank app cannot change it
             amountFixedByCode
+            details={rateRows}
             providerFinePrint={providerId ? <ProviderFinePrint providerId={providerId} /> : undefined}
         />
     )

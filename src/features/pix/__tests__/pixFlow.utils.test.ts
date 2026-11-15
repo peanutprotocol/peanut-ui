@@ -83,14 +83,14 @@ describe('pixDepositPhase', () => {
 
 describe('completePixKey', () => {
     it('normalizes a complete key to the form the Pix directory holds', () => {
-        expect(completePixKey('095.799.271-89')).toBe('09579927189')
+        expect(completePixKey('111.444.777-35')).toBe('11144477735')
         expect(completePixKey('+55 11 98765 4321')).toBe('+5511987654321')
         expect(completePixKey('ana@example.com')).toBe('ana@example.com')
         expect(completePixKey('123e4567-e89b-12d3-a456-426614174000')).toBe('123e4567-e89b-12d3-a456-426614174000')
     })
 
     it('never sends an incomplete key or a Pix code to the lookup', () => {
-        expect(completePixKey('095.799')).toBeNull()
+        expect(completePixKey('111.444')).toBeNull()
         expect(completePixKey('ana@')).toBeNull()
         expect(completePixKey('')).toBeNull()
         expect(completePixKey(DEMO_PIX_BR_CODE)).toBeNull()

@@ -44,6 +44,7 @@ export function QrPayFormView() {
         providerId,
         amountFixed,
         shownRate,
+        hideRate,
         pixKeyLabel,
         pixKeyOwner,
         isAwaitingPixKeyOwner,
@@ -187,7 +188,7 @@ export function QrPayFormView() {
                     )}
 
                     <PaymentDetailsCard
-                        rate={{ price: shownRate ?? currency.price, code: currency.code }}
+                        rate={hideRate ? undefined : { price: shownRate ?? currency.price, code: currency.code }}
                         savings={savings}
                         providerFee={providerFee}
                         providerId={providerId}

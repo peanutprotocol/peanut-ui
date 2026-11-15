@@ -39,6 +39,8 @@ interface InputAmountStepProps {
     maintenanceBanner?: React.ReactNode
     // who provides the deposit, one line under the continue button (TASK-23295)
     providerFinePrint?: React.ReactNode
+    // the rate and fee rows a provider states for this amount, above the continue button
+    details?: React.ReactNode
     // a dynamic Pix code carries the amount, so the "must match" helper does not apply
     amountFixedByCode?: boolean
 }
@@ -60,6 +62,7 @@ const InputAmountStep = ({
     onBack,
     maintenanceBanner,
     providerFinePrint,
+    details,
     amountFixedByCode = false,
 }: InputAmountStepProps) => {
     const t = useTranslations('addMoney')
@@ -134,6 +137,8 @@ const InputAmountStep = ({
                 {limitsCardProps && (
                     <LimitsWarningCard {...limitsCardProps} flowType="onramp" currency={limitsCurrency} />
                 )}
+
+                {!rateUnavailable && details}
 
                 <Button
                     variant="primary"

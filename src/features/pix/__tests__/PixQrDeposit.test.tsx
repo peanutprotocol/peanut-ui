@@ -30,7 +30,7 @@ const read = (overrides: Partial<PixDeposit> = {}): PixDeposit => ({
     usdcAmount: '17.940500',
     codePayable: true,
     brCode: '00020101021226...',
-    payerCpfMasked: '095.***.***-89',
+    payerCpfMasked: '111.***.***-35',
     ...overrides,
 })
 const state = (phase: PixDepositPhase, deposit: PixDeposit | undefined = read()) =>
@@ -64,6 +64,40 @@ describe('PixQrDeposit', () => {
     })
 
     // a provider that sends no expiry or payer CPF: the code alone, with no line it cannot fill
+    // The owner, 15 Nov, "Option A", with his own R$20 deposit: Avenia's rate 5.728962 and every fee
+    // (0.75 + 0.22 + gas) as one row; (20.00 − 0.97) ÷ 5.728962 = 3.32 USDC
+    it("shows Avenia's own rate and every fee as one row, from the deposit answer", () => {
+        state(
+            'pending',
+            read({
+                amountBrl: '20.00',
+                usdcAmount: '3.320931',
+                fixedFeeBrl: '0.75',
+                exchangeRate: '5.728962',
+                providerFeeBrl: '0.97',
+            })
+        )
+        renderScreen()
+        expect(screen.getByText(en.common.exchangeRate)).toBeInTheDocument()
+        expect(screen.getByText('1 USD = 5.73 BRL')).toBeInTheDocument()
+        expect(screen.getByText(en.pix.withdraw.fee)).toBeInTheDocument()
+        expect(screen.getByText('R$0.97')).toBeInTheDocument()
+        expect(screen.queryByText('R$0.75')).toBeNull()
+        expect(screen.getByText('You get ≈ $3.32')).toBeInTheDocument()
+    })
+
+    it('shows neither row when the answer carries no pair, and none for another provider', () => {
+        state('pending', read({ fixedFeeBrl: '0.75' }))
+        const view = renderScreen()
+        expect(screen.queryByText(en.common.exchangeRate)).toBeNull()
+        expect(screen.queryByText(en.pix.withdraw.fee)).toBeNull()
+        view.unmount()
+
+        state('pending', read({ provider: 'manteca', exchangeRate: '5.728962', providerFeeBrl: '0.97' }))
+        renderScreen()
+        expect(screen.queryByText(en.common.exchangeRate)).toBeNull()
+    })
+
     it('draws a code with no expiry or payer as the code alone', () => {
         state('pending', read({ provider: 'manteca', expiresAt: null, payerCpfMasked: undefined }))
         renderScreen()

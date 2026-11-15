@@ -73,7 +73,7 @@ import { PixWithdrawOutcome } from '../components/PixWithdrawOutcome'
 
 const display = {
     amountBrl: '503.00',
-    pixKey: '09579927189',
+    pixKey: '11144477735',
     ownAccount: true as boolean | null,
     holderTaxIdMasked: null,
     holderName: 'Ana Souza',
@@ -203,7 +203,7 @@ describe('PixWithdrawOutcome once the Pix landed', () => {
         expect(screen.getByText(en.payment.success.withdrew)).toBeInTheDocument()
         expect(screen.getByText('R$503')).toBeInTheDocument()
         expect(screen.getByText('$92.50')).toBeInTheDocument()
-        expect(screen.getByText('to your Pix key 095.799.271-89 at Banco Inter')).toBeInTheDocument()
+        expect(screen.getByText('to your Pix key 111.444.777-35 at Banco Inter')).toBeInTheDocument()
         expect(screen.getAllByTestId('success-sound')).toHaveLength(1)
         expect(screen.getByRole('button', { name: en.payment.success.backToHome })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: en.payment.success.seeReceipt })).toBeInTheDocument()
@@ -228,7 +228,7 @@ describe('PixWithdrawOutcome once the Pix landed', () => {
         mockEntry.mockReturnValue(entry('COMPLETED'))
         renderOutcome({ phase: 'funded', display: { ...display, bankName: null, holderName: null } })
 
-        expect(screen.getByText('to your Pix key 095.799.271-89')).toBeInTheDocument()
+        expect(screen.getByText('to your Pix key 111.444.777-35')).toBeInTheDocument()
     })
 
     // TASK-24947: a payout to another person's key ends as a send to them

@@ -58,7 +58,7 @@ describe('the old Brazil URLs', () => {
     })
 
     it('send a withdrawal to the neutral Pix page', () => {
-        mockSearch.current = new URLSearchParams('country=brazil&destination=09579927189')
+        mockSearch.current = new URLSearchParams('country=brazil&destination=11144477735')
         render(<MantecaWithdrawPage />)
         expect(screen.getByTestId('alias')).toHaveTextContent('/withdraw/pix')
     })

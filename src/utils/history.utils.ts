@@ -17,7 +17,6 @@ import {
     type TransactionDirection,
 } from '@/components/TransactionDetails/transaction-types'
 import { hasPublicReceipt } from '@/components/TransactionDetails/transaction-predicates'
-import { isPixAccountType } from '@/components/TransactionDetails/transaction-details.utils'
 
 export enum EHistoryUserRole {
     SENDER = 'SENDER',
@@ -102,12 +101,24 @@ export type PixPayoutView = NonNullable<
     >['pixPayout']
 >
 
+/** How an entry's money moved, as `GET /history/:entryId` and the list send it ('PIX'). */
+export type PaymentMethodView = NonNullable<
+    NonNullable<
+        paths['/history/{entryId}']['get']['responses'][200]['content']['application/json']['extraData']
+    >['paymentMethod']
+>
+
 /** A Pix deposit's code state as `GET /history/:entryId` sends it, to its owner only. */
 export type PixDepositView = NonNullable<
     NonNullable<
         paths['/history/{entryId}']['get']['responses'][200]['content']['application/json']['extraData']
     >['pixDeposit']
 >
+
+/** A Pix withdrawal's or QR payment's recovery as the history sends it; null when it has none. */
+export type PixRecoveryView = NonNullable<
+    paths['/history/{entryId}']['get']['responses'][200]['content']['application/json']['extraData']
+>['pixRecovery']
 
 /**
  * Wire-shape extra-data carried on every HistoryEntry. Pre-this-type,
@@ -132,6 +143,11 @@ export interface HistoryEntryExtraData {
     /** On an Avenia Pix withdrawal only, to its owner: the raw key it paid and who was paid.
      *  `ownAccount` false: a send to another person. */
     pixPayout?: PixPayoutView
+    /** On an Avenia Pix withdrawal, send or QR payment only: its recovery, null when it has none. */
+    pixRecovery?: PixRecoveryView
+    /** How the money moved, on list and detail entries: 'PIX' on every Pix transaction of every
+     *  provider (peanut-api-ts#2151). Read it through `isPixEntry`. */
+    paymentMethod?: PaymentMethodView
     /** The intent's own status, which `status` folds into PENDING (a Pix withdrawal is
      *  AWAITING_USER_ACTION until it is signed, PROCESSING after). */
     intentStatus?: HistoryIntentStatus
@@ -196,6 +212,9 @@ export interface HistoryEntryExtraData {
     payoutFeeUsd?: number | null
     /** The rail a Bridge payout went out on ('ach_same_day', 'wire', …). */
     payoutRail?: string | null
+    /** A settled Avenia Pix entry: every fee the providers took, in reais, sent only with
+     *  `receipt.exchange_rate`, Avenia's rate with no fee in it (peanut-api-ts#2151). */
+    providerFeeBrl?: string | null
     /** Server-authenticated delivery proof from Rhino's BRIDGE_EXECUTED
      *  webhook. Both fields appear together and only after destination finality. */
     destinationTxHash?: string
@@ -408,6 +427,9 @@ export function getAvatarUrl(transaction: TransactionDetails): string | undefine
     if (transaction.extraDataForDrawer?.rewardData?.avatarUrl) {
         return transaction.extraDataForDrawer.rewardData.avatarUrl
     }
+    // A Pix transaction leads with the Pix logo, the Activity row and the receipt alike; the title
+    // keeps the person's or the merchant's name.
+    if (transaction.extraDataForDrawer?.isPix) return PIX
     const kind = transaction.extraDataForDrawer?.kind
     const provider = transaction.extraDataForDrawer?.provider
     if (kind === 'QR_PAY' && provider === 'MANTECA') {
@@ -423,16 +445,6 @@ export function getAvatarUrl(transaction: TransactionDetails): string | undefine
     // Historical QR_PAY rows from removed providers (e.g. DEPRECATED_SIMPLEFI)
     // fall through to undefined → the generic default avatar.
     return undefined
-}
-
-/**
- * The logo in the leading slot of an Activity row. A payout to a Pix key shows the Pix logo, as a
- * Manteca Pix payment does. The receipt drawer's header reads `getAvatarUrl` alone, so it keeps the
- * person or the bank.
- */
-export function getActivityRowAvatarUrl(transaction: TransactionDetails): string | undefined {
-    const account = transaction.bankAccountDetails
-    return getAvatarUrl(transaction) ?? (account && isPixAccountType(account.type) ? PIX : undefined)
 }
 
 // Whether each status's amount carries the +/- sign. Sign-less statuses are

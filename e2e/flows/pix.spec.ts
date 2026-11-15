@@ -74,11 +74,11 @@ test.describe('Pix on the Avenia route', () => {
     })
 
     test("the user's own key resolves to holder and bank, and continues", async ({ page }) => {
-        await open(page, `${WITHDRAW}?destination=09579927189&__fixture=pix-withdraw-key`)
+        await open(page, `${WITHDRAW}?destination=11144477735&__fixture=pix-withdraw-key`)
         const holder = page.getByTestId('pix-key-holder')
         await expect(holder).toBeVisible({ timeout: 60_000 })
         await expect(holder).toContainText('Ana Souza')
-        await expect(holder).toContainText('Banco Inter · CPF 095.***.***-89')
+        await expect(holder).toContainText('Banco Inter · CPF 111.***.***-35')
         await expect(holder).toContainText('Own account')
         await expect(page.getByRole('button', { name: 'Continue' })).toBeEnabled()
     })
@@ -132,20 +132,22 @@ test.describe('Pix on the Avenia route', () => {
     })
 
     // the Pix-key payment form, with Withdrawing and Confirm (ruling 2026-11-12)
-    test('the form leads with the key holder, offers to save the key, puts the fees in the rate and shows the flat fee apart', async ({
+    test('the form leads with the key holder, offers to save the key, shows Avenia’s own rate and every fee as one row', async ({
         page,
     }) => {
         await open(
             page,
-            `${WITHDRAW}?destination=09579927189&destinationAmount=503&step=review&__fixture=pix-withdraw-review`
+            `${WITHDRAW}?destination=11144477735&destinationAmount=503&step=review&__fixture=pix-withdraw-review`
         )
         await expect(page.getByText('Withdrawing')).toBeVisible({ timeout: 60_000 })
         await expect(page.getByText('Ana Souza')).toBeVisible()
         await expect(page.getByText('Banco Inter')).toBeVisible()
         await expect(page.getByText('Save to favorites')).toBeVisible()
         await expect(page.getByText('Provider fee', { exact: true })).toHaveCount(1)
-        await expect(page.getByText('R$0.75')).toBeVisible()
-        await expect(page.getByText('1 USD = 5.445946 BRL')).toBeVisible()
+        // the owner, 15 Nov, "Option A": every fee, not the flat R$0.75 alone, and Avenia's rate with no fee in it
+        await expect(page.getByText('R$2.07')).toBeVisible()
+        await expect(page.getByText('R$0.75')).toHaveCount(0)
+        await expect(page.getByText('1 USD = 5.46 BRL')).toBeVisible()
         await expect(page.getByText('Sponsored by Peanut!')).toBeVisible()
         // the exact wallet debit the quote names, never the field's estimate
         await expect(page.getByText('$92.50')).toBeVisible()
@@ -179,7 +181,7 @@ test.describe('Pix on the Manteca route', () => {
     })
 
     test('a key whose holder the provider cannot check shows no badge and continues', async ({ page }) => {
-        await open(page, `${WITHDRAW}?destination=09579927189&__fixture=pix-manteca-withdraw-key`)
+        await open(page, `${WITHDRAW}?destination=11144477735&__fixture=pix-manteca-withdraw-key`)
         const holder = page.getByTestId('pix-key-holder')
         await expect(holder).toBeVisible({ timeout: 60_000 })
         await expect(holder).toContainText('Ana Souza')
@@ -191,12 +193,12 @@ test.describe('Pix on the Manteca route', () => {
     test('the form shows no flat-fee line and names Manteca', async ({ page }) => {
         await open(
             page,
-            `${WITHDRAW}?destination=09579927189&destinationAmount=503&step=review&__fixture=pix-manteca-withdraw-review`
+            `${WITHDRAW}?destination=11144477735&destinationAmount=503&step=review&__fixture=pix-manteca-withdraw-review`
         )
         await expect(page.getByText('Withdrawing')).toBeVisible({ timeout: 60_000 })
         await expect(page.getByText('Ana Souza')).toBeVisible()
         await expect(page.getByText('Provider fee', { exact: true })).toHaveCount(0)
-        await expect(page.getByText('1 USD = 5.437838 BRL')).toBeVisible()
+        await expect(page.getByText('1 USD = 5.44 BRL')).toBeVisible()
         // exact: the fixture banner's name holds the word too
         await expect(page.getByText('Manteca', { exact: true })).toBeVisible()
         await expect(page.getByRole('button', { name: 'Confirm' })).toBeEnabled()

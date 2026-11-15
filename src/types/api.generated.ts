@@ -6095,6 +6095,11 @@ export interface paths {
                             extraData?: {
                                 /** @description The intent’s own status, finer than the entry’s status. On a withdrawal: AWAITING_USER_ACTION is not signed yet, PROCESSING is signed and not confirmed. */
                                 intentStatus?: "PENDING" | "AWAITING_USER_ACTION" | "AWAITING_SETTLEMENT" | "PROCESSING" | "COMPLETED" | "FAILED" | "CANCELLED" | "REFUNDED";
+                                /**
+                                 * @description How the money moved, where the intent records it exactly: PIX on an Avenia deposit, withdrawal, key send or QR payment, and on a Manteca BRL deposit or withdrawal or Pix QR payment, in every status. Absent on everything else, refunds included.
+                                 * @enum {string}
+                                 */
+                                paymentMethod?: "PIX";
                                 /** @description A Pix deposit, on a Pix deposit only and for its owner only. `codePayable`: the code can still be paid, so the receipt offers to open it again (GET /pix/deposit/:intentId). */
                                 pixDeposit?: {
                                     codePayable: boolean;
@@ -6113,6 +6118,8 @@ export interface paths {
                                     reason: "payout-failed" | "payout-reversed" | "late-deposit" | "deposit-delivery-failed";
                                     state: "in-progress" | "done";
                                 } | null;
+                                /** @description On a settled Avenia Pix deposit, withdrawal, send or QR payment: every fee the providers took (Avenia’s fee lines and the bridge fee), in reais to the centavo. Sent only with `receipt.exchange_rate`, Avenia’s rate (BRL per USD, no fee in it), and only when both reconcile with the amounts. Deposit: (currency.amount − providerFeeBrl) ÷ rate = amount. Payout: amount × rate − providerFeeBrl = currency.amount. */
+                                providerFeeBrl?: string;
                             } & {
                                 [key: string]: unknown;
                             };
@@ -7863,12 +7870,14 @@ export interface paths {
                          *       "amountBrl": "100.00",
                          *       "brCode": "00020101021226900014br.gov.bcb.pix2568pix.example.com/qr/v2/cobv/9d36b84f5204000053039865406100.005802BR5925PAYMENTS PARTNER LTDA6009SAO PAULO62070503***63041D3A",
                          *       "codePayable": true,
+                         *       "exchangeRate": "5.500000",
                          *       "expiresAt": "2026-11-04T12:10:00.000Z",
                          *       "fixedFeeBrl": "0.75",
                          *       "intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
                          *       "payerCpfMasked": "123.***.***-09",
                          *       "pixReceived": false,
                          *       "provider": "avenia",
+                         *       "providerFeeBrl": "1.44",
                          *       "status": "AWAITING_USER_ACTION",
                          *       "usdcAmount": "17.920175"
                          *     }
@@ -7879,6 +7888,8 @@ export interface paths {
                             brCode?: string;
                             /** @description The code can still be paid: brCode and payerCpfMasked are sent only then. */
                             codePayable: boolean;
+                            /** @description BRL per USD, the provider’s own conversion rate with no fee in it (Avenia’s basePrice). Sent only with providerFeeBrl. */
+                            exchangeRate?: string;
                             expiresAt: string | null;
                             /** @description The flat fee in reais, where the provider charges one */
                             fixedFeeBrl?: string;
@@ -7889,6 +7900,8 @@ export interface paths {
                             pixReceived: boolean;
                             /** @description The provider the route names, e.g. avenia. Data only: the app does not branch on it. */
                             provider: string;
+                            /** @description Every fee the providers take, in reais to the centavo: the provider’s fee lines and the bridge fee. Deposit: (amountBrl − providerFeeBrl) ÷ exchangeRate = usdcAmount. Withdrawal or payment: withdrawUsd × exchangeRate − providerFeeBrl = amountBrl. Sent only with exchangeRate, and only when the provider’s amounts show the fees deducted. */
+                            providerFeeBrl?: string;
                             /** @description The intent’s own status, as stored */
                             status: string;
                             /** @description USDC the wallet receives, after every fee */
@@ -8270,12 +8283,14 @@ export interface paths {
                          *       "amountBrl": "100.00",
                          *       "brCode": "00020101021226900014br.gov.bcb.pix2568pix.example.com/qr/v2/cobv/9d36b84f5204000053039865406100.005802BR5925PAYMENTS PARTNER LTDA6009SAO PAULO62070503***63041D3A",
                          *       "codePayable": true,
+                         *       "exchangeRate": "5.500000",
                          *       "expiresAt": "2026-11-04T12:10:00.000Z",
                          *       "fixedFeeBrl": "0.75",
                          *       "intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
                          *       "payerCpfMasked": "123.***.***-09",
                          *       "pixReceived": false,
                          *       "provider": "avenia",
+                         *       "providerFeeBrl": "1.44",
                          *       "status": "AWAITING_USER_ACTION",
                          *       "usdcAmount": "17.920175"
                          *     }
@@ -8286,6 +8301,8 @@ export interface paths {
                             brCode?: string;
                             /** @description The code can still be paid: brCode and payerCpfMasked are sent only then. */
                             codePayable: boolean;
+                            /** @description BRL per USD, the provider’s own conversion rate with no fee in it (Avenia’s basePrice). Sent only with providerFeeBrl. */
+                            exchangeRate?: string;
                             expiresAt: string | null;
                             /** @description The flat fee in reais, where the provider charges one */
                             fixedFeeBrl?: string;
@@ -8296,6 +8313,8 @@ export interface paths {
                             pixReceived: boolean;
                             /** @description The provider the route names, e.g. avenia. Data only: the app does not branch on it. */
                             provider: string;
+                            /** @description Every fee the providers take, in reais to the centavo: the provider’s fee lines and the bridge fee. Deposit: (amountBrl − providerFeeBrl) ÷ exchangeRate = usdcAmount. Withdrawal or payment: withdrawUsd × exchangeRate − providerFeeBrl = amountBrl. Sent only with exchangeRate, and only when the provider’s amounts show the fees deducted. */
+                            providerFeeBrl?: string;
                             /** @description The intent’s own status, as stored */
                             status: string;
                             /** @description USDC the wallet receives, after every fee */
@@ -8585,10 +8604,12 @@ export interface paths {
                          *         "amountFixed": true,
                          *         "arrivalEstimateSeconds": 60,
                          *         "bankName": "Banco Inter S.A.",
+                         *         "exchangeRate": "5.400000",
                          *         "fixedFeeBrl": "0.75",
                          *         "merchantName": "PADARIA PAO DOURADO LTDA",
                          *         "merchantTaxIdMasked": "12.345.678/0001-90",
                          *         "provider": "Avenia",
+                         *         "providerFeeBrl": "1.04",
                          *         "rate": "5.364547",
                          *         "withdrawUsd": "8.062211"
                          *       },
@@ -8613,10 +8634,12 @@ export interface paths {
                              *       "amountFixed": true,
                              *       "arrivalEstimateSeconds": 60,
                              *       "bankName": "Banco Inter S.A.",
+                             *       "exchangeRate": "5.400000",
                              *       "fixedFeeBrl": "0.75",
                              *       "merchantName": "PADARIA PAO DOURADO LTDA",
                              *       "merchantTaxIdMasked": "12.345.678/0001-90",
                              *       "provider": "Avenia",
+                             *       "providerFeeBrl": "1.04",
                              *       "rate": "5.364547",
                              *       "withdrawUsd": "8.062211"
                              *     }
@@ -8629,6 +8652,8 @@ export interface paths {
                                 /** @description About how long from the signature to the merchant paid */
                                 arrivalEstimateSeconds: number;
                                 bankName: string | null;
+                                /** @description BRL per USD, the provider’s own conversion rate with no fee in it (Avenia’s basePrice). Sent only with providerFeeBrl. */
+                                exchangeRate?: string;
                                 /** @description The provider’s flat fee in reais, shown as its own line */
                                 fixedFeeBrl: string;
                                 /** @description Who is paid, from the provider’s read of the code */
@@ -8637,6 +8662,8 @@ export interface paths {
                                 merchantTaxIdMasked: string | null;
                                 /** @description The payments partner’s name, for the review’s "processed by" line */
                                 provider: string;
+                                /** @description Every fee the providers take, in reais to the centavo: the provider’s fee lines and the bridge fee. Deposit: (amountBrl − providerFeeBrl) ÷ exchangeRate = usdcAmount. Withdrawal or payment: withdrawUsd × exchangeRate − providerFeeBrl = amountBrl. Sent only with exchangeRate, and only when the provider’s amounts show the fees deducted. */
+                                providerFeeBrl?: string;
                                 /** @description BRL per USDC that leaves the wallet, with the percentage fees inside: withdrawUsd × rate − fixedFeeBrl = amountBrl, to a centavo */
                                 rate: string;
                                 /** @description USDC that leaves the wallet */
@@ -8859,10 +8886,12 @@ export interface paths {
                          *       "amountFixed": true,
                          *       "arrivalEstimateSeconds": 60,
                          *       "bankName": "Banco Inter S.A.",
+                         *       "exchangeRate": "5.400000",
                          *       "fixedFeeBrl": "0.75",
                          *       "merchantName": "PADARIA PAO DOURADO LTDA",
                          *       "merchantTaxIdMasked": "12.345.678/0001-90",
                          *       "provider": "Avenia",
+                         *       "providerFeeBrl": "1.04",
                          *       "rate": "5.364547",
                          *       "withdrawUsd": "8.062211"
                          *     }
@@ -8875,6 +8904,8 @@ export interface paths {
                             /** @description About how long from the signature to the merchant paid */
                             arrivalEstimateSeconds: number;
                             bankName: string | null;
+                            /** @description BRL per USD, the provider’s own conversion rate with no fee in it (Avenia’s basePrice). Sent only with providerFeeBrl. */
+                            exchangeRate?: string;
                             /** @description The provider’s flat fee in reais, shown as its own line */
                             fixedFeeBrl: string;
                             /** @description Who is paid, from the provider’s read of the code */
@@ -8883,6 +8914,8 @@ export interface paths {
                             merchantTaxIdMasked: string | null;
                             /** @description The payments partner’s name, for the review’s "processed by" line */
                             provider: string;
+                            /** @description Every fee the providers take, in reais to the centavo: the provider’s fee lines and the bridge fee. Deposit: (amountBrl − providerFeeBrl) ÷ exchangeRate = usdcAmount. Withdrawal or payment: withdrawUsd × exchangeRate − providerFeeBrl = amountBrl. Sent only with exchangeRate, and only when the provider’s amounts show the fees deducted. */
+                            providerFeeBrl?: string;
                             /** @description BRL per USDC that leaves the wallet, with the percentage fees inside: withdrawUsd × rate − fixedFeeBrl = amountBrl, to a centavo */
                             rate: string;
                             /** @description USDC that leaves the wallet */
@@ -9451,7 +9484,7 @@ export interface paths {
         };
         /**
          * Indicative Pix quote for amount entry
-         * @description For the provider the user’s Pix route names (capabilities.routes): what this amount would credit and take, with the percentage fees in the rate and the flat fee apart. Opens no ticket and looks up no Pix key; the deposit and the withdrawal review quote again. Send one amount.
+         * @description For the provider the user’s Pix route names (capabilities.routes): what this amount would credit and take: `exchangeRate` and `providerFeeBrl` as the rate and fee rows (the rate has no fee in it), and the legacy `rate` (percentage fees inside) with `fixedFeeBrl` apart. Before an amount, quote the minimum and show `exchangeRate`, never amountBrl ÷ usdcAmount. Opens no ticket and looks up no Pix key; the deposit and the withdrawal review quote again. Send one amount.
          */
         get: {
             parameters: {
@@ -9481,16 +9514,20 @@ export interface paths {
                         /**
                          * @example {
                          *       "amountBrl": "106.75",
+                         *       "exchangeRate": "5.400000",
                          *       "fixedFeeBrl": "0.75",
                          *       "minAmountBrl": "5",
                          *       "operation": "withdraw",
                          *       "provider": "avenia",
+                         *       "providerFeeBrl": "1.36",
                          *       "rate": "5.369543",
                          *       "usdcAmount": "20.020325"
                          *     }
                          */
                         "application/json": {
                             amountBrl: string;
+                            /** @description BRL per USD, the provider’s own conversion rate with no fee in it (Avenia’s basePrice). Sent only with providerFeeBrl. */
+                            exchangeRate?: string;
                             /** @description The flat fee in reais, shown as its own line */
                             fixedFeeBrl: string;
                             /** @description The least amountBrl the provider takes for this operation; amount entry shows it */
@@ -9498,6 +9535,8 @@ export interface paths {
                             operation: "deposit" | "withdraw";
                             /** @description The provider the route names, e.g. avenia */
                             provider: string;
+                            /** @description Every fee the providers take, in reais to the centavo: the provider’s fee lines and the bridge fee. Deposit: (amountBrl − providerFeeBrl) ÷ exchangeRate = usdcAmount. Withdrawal or payment: withdrawUsd × exchangeRate − providerFeeBrl = amountBrl. Sent only with exchangeRate, and only when the provider’s amounts show the fees deducted. */
+                            providerFeeBrl?: string;
                             /** @description BRL per USDC with the percentage fees inside. Deposit: amountBrl − fixedFeeBrl = usdcAmount × rate. Withdraw: usdcAmount × rate − fixedFeeBrl = amountBrl. To a centavo. */
                             rate: string;
                             /** @description USDC the wallet receives, after the bridge fee (deposit), or that leaves it, the bridge fee included (withdraw) */
@@ -9665,12 +9704,14 @@ export interface paths {
                          *         "amountBrl": "106.75",
                          *         "arrivalEstimateSeconds": 60,
                          *         "bankName": "Nu Pagamentos S.A.",
+                         *         "exchangeRate": "5.400000",
                          *         "fixedFeeBrl": "0.75",
                          *         "holderName": "Ana Souza",
                          *         "holderTaxIdMasked": "***.456.789-**",
                          *         "ownAccount": false,
                          *         "pixKey": "12345678909",
                          *         "provider": "Avenia",
+                         *         "providerFeeBrl": "1.36",
                          *         "rate": "5.369543",
                          *         "withdrawUsd": "20.020325"
                          *       },
@@ -9695,6 +9736,8 @@ export interface paths {
                                 /** @description About how long from the signature to the Pix paid */
                                 arrivalEstimateSeconds: number;
                                 bankName: string | null;
+                                /** @description BRL per USD, the provider’s own conversion rate with no fee in it (Avenia’s basePrice). Sent only with providerFeeBrl. */
+                                exchangeRate?: string;
                                 /** @description The flat fee in reais, shown as its own line */
                                 fixedFeeBrl: string;
                                 /** @description Who is paid, from the provider’s lookup */
@@ -9706,6 +9749,8 @@ export interface paths {
                                 pixKey: string;
                                 /** @description The payments partner’s name, for the review’s "processed by" line */
                                 provider: string;
+                                /** @description Every fee the providers take, in reais to the centavo: the provider’s fee lines and the bridge fee. Deposit: (amountBrl − providerFeeBrl) ÷ exchangeRate = usdcAmount. Withdrawal or payment: withdrawUsd × exchangeRate − providerFeeBrl = amountBrl. Sent only with exchangeRate, and only when the provider’s amounts show the fees deducted. */
+                                providerFeeBrl?: string;
                                 /** @description BRL per USDC that leaves the wallet, with the percentage fees inside: withdrawUsd × rate − fixedFeeBrl = amountBrl, to a centavo */
                                 rate: string;
                                 /** @description USDC that leaves the wallet */
@@ -9930,12 +9975,14 @@ export interface paths {
                          *       "amountBrl": "106.75",
                          *       "arrivalEstimateSeconds": 60,
                          *       "bankName": "Nu Pagamentos S.A.",
+                         *       "exchangeRate": "5.400000",
                          *       "fixedFeeBrl": "0.75",
                          *       "holderName": "Ana Souza",
                          *       "holderTaxIdMasked": "***.456.789-**",
                          *       "ownAccount": false,
                          *       "pixKey": "12345678909",
                          *       "provider": "Avenia",
+                         *       "providerFeeBrl": "1.36",
                          *       "rate": "5.369543",
                          *       "withdrawUsd": "20.020325"
                          *     }
@@ -9946,6 +9993,8 @@ export interface paths {
                             /** @description About how long from the signature to the Pix paid */
                             arrivalEstimateSeconds: number;
                             bankName: string | null;
+                            /** @description BRL per USD, the provider’s own conversion rate with no fee in it (Avenia’s basePrice). Sent only with providerFeeBrl. */
+                            exchangeRate?: string;
                             /** @description The flat fee in reais, shown as its own line */
                             fixedFeeBrl: string;
                             /** @description Who is paid, from the provider’s lookup */
@@ -9957,6 +10006,8 @@ export interface paths {
                             pixKey: string;
                             /** @description The payments partner’s name, for the review’s "processed by" line */
                             provider: string;
+                            /** @description Every fee the providers take, in reais to the centavo: the provider’s fee lines and the bridge fee. Deposit: (amountBrl − providerFeeBrl) ÷ exchangeRate = usdcAmount. Withdrawal or payment: withdrawUsd × exchangeRate − providerFeeBrl = amountBrl. Sent only with exchangeRate, and only when the provider’s amounts show the fees deducted. */
+                            providerFeeBrl?: string;
                             /** @description BRL per USDC that leaves the wallet, with the percentage fees inside: withdrawUsd × rate − fixedFeeBrl = amountBrl, to a centavo */
                             rate: string;
                             /** @description USDC that leaves the wallet */

@@ -113,13 +113,13 @@ describe('resolveAddMoneyMethods', () => {
                 pixDepositRouteOpen: true,
             })
             expect(result.pickerMethods).toEqual(['pix', 'account', 'transfer', 'crypto'])
-            expect(result.drawerMethods).toEqual(['pix', 'account', 'transfer', 'crypto', 'more'])
+            expect(result.drawerMethods).toEqual(['pix', 'account', 'crypto', 'more'])
         })
 
         it('a ready Manteca Pix top-up shows after the bank methods on both lists', () => {
             const result = resolve({ ...returning, residenceIso2s: ['BR', 'US'], readyTopUps: ['BRL', 'USD'] })
             expect(result.pickerMethods).toEqual(['account', 'transfer', 'pix', 'crypto'])
-            expect(result.drawerMethods).toEqual(['account', 'transfer', 'pix', 'crypto', 'more'])
+            expect(result.drawerMethods).toEqual(['account', 'pix', 'crypto', 'more'])
         })
 
         it('a declared resident of Brazil with an open route gets the row, after the bank methods', () => {
@@ -163,8 +163,34 @@ describe('resolveAddMoneyMethods', () => {
             entry: 'drawer',
             ready: { account: [], transfer: ['USD'], pix: [] },
         })
-        expect(new Set(result.drawerMethods)).toEqual(new Set(['account', 'transfer', 'more']))
-        expect(result.drawerMethods).toHaveLength(3)
+        expect(new Set(result.drawerMethods)).toEqual(new Set(['account', 'more']))
+        expect(result.drawerMethods).toHaveLength(2)
+    })
+
+    // The owner, 15 Nov: a one-time bank transfer is never a drawer row, whoever the user is; it stays
+    // on the picker, which "More ways to add money" opens
+    describe('the one-time bank transfer', () => {
+        it('a ready transfer adds no drawer row, the picker still lists it, and the user is still returning', () => {
+            const result = resolve({ residenceIso2s: ['US'], readyTopUps: ['USD'] })
+            expect(result.ready.transfer).toEqual(['USD'])
+            expect(result.drawerMethods).not.toContain('transfer')
+            expect(result.drawerMethods).toEqual(['account', 'crypto', 'more'])
+            expect(result.pickerMethods).toEqual(['account', 'transfer', 'crypto'])
+            expect(result.entry).toBe('drawer')
+        })
+
+        it('a ready transfer that was the only usable method opens the picker, never an empty drawer', () => {
+            const result = resolve({
+                cryptoReady: false,
+                standingEnabled: false,
+                residenceIso2s: ['US'],
+                readyTopUps: ['USD'],
+            })
+            expect(result.ready.transfer).toEqual(['USD'])
+            expect(result.drawerMethods).toEqual([])
+            expect(result.entry).toBe('picker')
+            expect(result.pickerMethods).toContain('transfer')
+        })
     })
 
     it('makes ARS transfers available to an Argentine resident', () => {
@@ -202,7 +228,7 @@ describe('resolveAddMoneyMethods', () => {
         expect(result.ready.pix).toEqual(['BRL'])
         expect(result.drawerMethods).toEqual(['account', 'pix', 'crypto', 'more'])
         const withBank = resolve({ residenceIso2s: ['BR', 'US'], readyTopUps: ['BRL', 'USD'] })
-        expect(withBank.drawerMethods).toEqual(['account', 'transfer', 'pix', 'crypto', 'more'])
+        expect(withBank.drawerMethods).toEqual(['account', 'pix', 'crypto', 'more'])
     })
 
     it('drops ready Pix when Brazil is paused without hiding an unrelated ready transfer', () => {
@@ -215,8 +241,8 @@ describe('resolveAddMoneyMethods', () => {
             entry: 'drawer',
             ready: { account: [], transfer: ['USD'], pix: [] },
         })
-        expect(new Set(result.drawerMethods)).toEqual(new Set(['account', 'transfer', 'crypto', 'more']))
-        expect(result.drawerMethods).toHaveLength(4)
+        expect(new Set(result.drawerMethods)).toEqual(new Set(['account', 'crypto', 'more']))
+        expect(result.drawerMethods).toHaveLength(3)
     })
 
     it('does not activate Pix for a Brazilian resident without an exact ready Pix rail', () => {
