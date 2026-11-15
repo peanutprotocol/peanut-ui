@@ -41,6 +41,20 @@ export type CreatorPageProps = {
 /** The page selection a handoff carries as `tl_v` / `tl_e`. */
 export type GoPageVariant = { variant: string; experimentId: string }
 
+/** A page variant or experiment id: short, lowercase, safe in a URL and an event. */
+const GO_PAGE_LABEL = /^[a-z0-9][a-z0-9-]{0,31}$/
+
+export function isGoPageLabel(value: unknown): value is string {
+    return typeof value === 'string' && GO_PAGE_LABEL.test(value)
+}
+
+/** Reads `tl_v` / `tl_e` back from a handoff; both must be valid labels. */
+export function parseGoPageVariant(params: URLSearchParams): GoPageVariant | null {
+    const variant = params.get('tl_v')
+    const experimentId = params.get('tl_e')
+    return isGoPageLabel(variant) && isGoPageLabel(experimentId) ? { variant, experimentId } : null
+}
+
 /** Signup-attribution touch fields, without `occurredAt`. */
 export type GoTouch = {
     utmSource?: string
@@ -84,7 +98,11 @@ export function parseGoSegment(segment: string | null | undefined): Pick<GoVisit
 }
 
 /** Null only for an invalid username (a 404). The creator comes from the path alone. */
-export function parseGoRequest(request: Request, slug: string, segments: readonly string[] = []): GoVisit | null {
+export function parseGoRequest(
+    request: { url: string; headers: { get(name: string): string | null } },
+    slug: string,
+    segments: readonly string[] = []
+): GoVisit | null {
     const username = slug.toLowerCase()
     if (!isAcquisitionSlug(username)) return null
     const url = new URL(request.url)
