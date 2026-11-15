@@ -1472,6 +1472,11 @@
         "route": "/verify?feature=local"
     },
     {
+        "id": "fixture-feature-activation-local-served-elsewhere",
+        "flow": "Add money",
+        "route": "/add-money/argentina/manteca"
+    },
+    {
         "id": "p17-add-money",
         "flow": "Add money",
         "route": "/add-money?method=bank"
@@ -2058,6 +2063,16 @@
     },
     {
         "id": "fixture-qr-pay-avenia-quote-changed",
+        "flow": "Payments",
+        "route": "/qr-pay?qrCode=00020101021226680014br.gov.bcb.pix2546pix.example.com%2Fqr%2Fv2%2Fcobv%2Fpadaria-pao-dourado520400005303986540542.505802BR5924PADARIA%20PAO%20DOURADO%20LTDA6009SAO%20PAULO62070503***63043A47&type=PIX&t=1"
+    },
+    {
+        "id": "fixture-qr-pay-avenia-amount-held",
+        "flow": "Payments",
+        "route": "/qr-pay?qrCode=00020101021226680014br.gov.bcb.pix2546pix.example.com%2Fqr%2Fv2%2Fcobv%2Fpadaria-pao-dourado520400005303986540542.505802BR5924PADARIA%20PAO%20DOURADO%20LTDA6009SAO%20PAULO62070503***63043A47&type=PIX&t=1"
+    },
+    {
+        "id": "fixture-qr-pay-avenia-throttled",
         "flow": "Payments",
         "route": "/qr-pay?qrCode=00020101021226680014br.gov.bcb.pix2546pix.example.com%2Fqr%2Fv2%2Fcobv%2Fpadaria-pao-dourado520400005303986540542.505802BR5924PADARIA%20PAO%20DOURADO%20LTDA6009SAO%20PAULO62070503***63043A47&type=PIX&t=1"
     },

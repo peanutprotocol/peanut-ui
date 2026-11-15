@@ -3038,6 +3038,33 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         },
     },
+    'qr-pay-avenia-amount-held': {
+        route: qrPayRoute(PIX_QR_FIXED_AMOUNT),
+        about: 'A Pix code whose amount another open payment of the user still holds (409 WITHDRAWAL_IN_PROGRESS at Pay): the QR line that says so.',
+        responses: aveniaQrResponses(),
+        // the line sits under Pay, below the fold at 320
+        fullPage: true,
+        rejects: {
+            'POST /pix/pay': {
+                status: 409,
+                body: {
+                    code: 'WITHDRAWAL_IN_PROGRESS',
+                    error: 'Another payment of yours still holds this exact amount, and this code’s amount cannot change. Try again later.',
+                },
+            },
+        },
+    },
+    'qr-pay-avenia-throttled': {
+        route: qrPayRoute(PIX_QR_FIXED_AMOUNT),
+        about: "A Pix code read while the user's code-read budget is spent (429 PIX_KEY_LOOKUP_THROTTLED): the wait-a-moment line.",
+        responses: aveniaQrResponses(),
+        rejects: {
+            'POST /pix/pay/preview': {
+                status: 429,
+                body: { code: 'PIX_KEY_LOOKUP_THROTTLED', error: 'Too many lookups. Try again in a moment.' },
+            },
+        },
+    },
     'qr-pay-brl-switched-off': {
         route: qrPayRoute(PIX_QR_FIXED_AMOUNT),
         about: "Manteca's BRL switched off (disabledMantecaCurrencies BRL), outside Avenia's gates, no Avenia account: the pay route's pause, as an outage, never Manteca's flow.",
@@ -5658,4 +5685,14 @@ export const FIXTURES: Record<string, Fixture> = {
 
     ...PAPERWORK_VERIFICATION_FIXTURES,
     ...KYC_FEATURE_ACTIVATION_FIXTURES,
+    // The local account refused because the residence's Pix comes from its route (M5): the supplement says where
+    'feature-activation-local-served-elsewhere': {
+        ...KYC_FEATURE_ACTIVATION_FIXTURES['feature-activation-local-refused'],
+        // The Brazil local route sends a resident to the Pix page, so the line is captured on the family's own route.
+        about: "First use local: refused because the user's Pix route serves Pix (local_served_elsewhere): the line names what Pix covers.",
+        responses: {
+            ...KYC_FEATURE_ACTIVATION_FIXTURES['feature-activation-local-refused'].responses,
+            'POST /users/kyc/features/local/activate': { state: 'refused', reason: 'local_served_elsewhere' },
+        },
+    },
 }
