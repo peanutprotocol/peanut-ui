@@ -15,7 +15,8 @@ export function CurrencyRefusalScreen({
     message,
     onBack,
 }: {
-    currency: string
+    /** Absent when the refusal covers every bank account, not one currency. */
+    currency?: string
     reason: string | undefined
     message?: string
     onBack: () => void
@@ -28,12 +29,12 @@ export function CurrencyRefusalScreen({
     const modals = useModalsContextOptional()
     const reasonKey = reasonCodeKey(reason)
     const description =
-        reason === 'account_unavailable_in_residence'
+        currency && reason === 'account_unavailable_in_residence'
             ? tDeposit('list.residenceRestrictedBody', { currency })
             : reasonKey
               ? tIdentity(reasonKey)
               : (message ??
-                (!reason
+                (currency && !reason
                     ? tDeposit('list.notOfferedBody', { currency })
                     : tKyc(kycFeatureRefusalCopy(reason), { feature: tKyc('documents.bank') })))
     return (
@@ -42,7 +43,7 @@ export function CurrencyRefusalScreen({
             screenId="feature-status"
             pose="sad"
             onBack={onBack}
-            title={tDeposit('gate.blockedTitle', { currency })}
+            title={currency ? tDeposit('gate.blockedTitle', { currency }) : tDeposit('gate.blockedTitleAll')}
             description={description}
             footer={
                 <VerifyFooter

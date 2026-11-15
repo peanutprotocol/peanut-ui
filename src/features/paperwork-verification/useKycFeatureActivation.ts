@@ -10,7 +10,7 @@ import {
     type KycActivationFeature,
     type KycFeatureActivationResult,
 } from '@/app/actions/kyc-feature-activation'
-import { entryAction, reportEntry, type ReportScope } from '@/features/kyc-features/report'
+import { entryAction, reportEntry, supportRefusal, type ReportScope } from '@/features/kyc-features/report'
 import type { FeatureReportEntry } from '@/types/capabilities'
 import { paperworkVerificationFeaturePath } from './paperworkVerificationEntry'
 
@@ -82,6 +82,12 @@ export function useKycFeatureActivation(
                         selectedActionKind === 'accept-tos'))))
     const selectedWaiting =
         selected?.state === 'pending' || selected?.state === 'setting_up' || selectedActionKind === 'wait'
+    // Bank accounts a provider refused for good (a Bridge duplicate, TASK-24968): the report already
+    // says why, and a new activation would only answer "setting up".
+    const bankSupportRefusal =
+        feature === 'bank' && !selectedCurrency
+            ? supportRefusal(existing, user?.capabilities?.nextActions ?? [])
+            : undefined
     const selectedStatus: FeatureReportEntry | undefined =
         !handledByDepositFlow && selected
             ? selectedWaiting
@@ -89,7 +95,7 @@ export function useKycFeatureActivation(
                 : selected.state === 'refused' || selectedActionKind === 'contact-support'
                   ? { ...selected, state: 'refused' }
                   : undefined
-            : undefined
+            : bankSupportRefusal
     const alreadyOn = selectedCurrency ? selected?.state === 'on' || handledByDepositFlow : existing?.state === 'on'
     const ars =
         !selectedCurrency &&
