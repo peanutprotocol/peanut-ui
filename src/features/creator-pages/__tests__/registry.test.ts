@@ -1,4 +1,5 @@
 /** @jest-environment node */
+import { isAcquisitionSlug, isGoPageLabel } from '@/features/tracked-links/contract'
 import { CREATOR_PAGE_EXPERIMENTS } from '../experiments'
 import { CREATOR_PAGE_COMPONENTS } from '../page-components'
 import { selectCreatorPage } from '../registry'
@@ -70,12 +71,13 @@ describe('selectCreatorPage', () => {
 describe('CREATOR_PAGE_EXPERIMENTS', () => {
     it('has valid ids and weights', () => {
         for (const [username, experiment] of Object.entries(CREATOR_PAGE_EXPERIMENTS)) {
-            expect(username).toMatch(/^[a-z0-9]{1,64}$/)
-            expect(experiment.id).toMatch(/^[a-z0-9][a-z0-9-]{0,31}$/)
+            // The engine's own checks: it throws in development on a label it would not put in a handoff.
+            expect(isAcquisitionSlug(username)).toBe(true)
+            expect(isGoPageLabel(experiment.id)).toBe(true)
             const ids = experiment.variants.map((variant) => variant.id)
             expect(new Set(ids).size).toBe(ids.length)
             for (const variant of experiment.variants) {
-                expect(variant.id).toMatch(/^[a-z0-9][a-z0-9-]{0,31}$/)
+                expect(isGoPageLabel(variant.id)).toBe(true)
                 expect(variant.weight).toBeGreaterThanOrEqual(0)
             }
         }

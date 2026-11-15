@@ -1,5 +1,5 @@
-// The contract's pattern for a variant id and an experiment id.
-const ID = /^[a-z0-9][a-z0-9-]{0,31}$/
+import { isGoPageLabel } from '@/features/tracked-links/contract'
+
 const MAX_AGE_SECONDS = 30 * 24 * 60 * 60
 
 export type VariantCookie = { experimentId: string; variantId: string }
@@ -11,7 +11,8 @@ export function variantCookieName(username: string): string {
 /** Value format: `<experimentId>.<variantId>`. */
 export function parseVariantCookie(value: string | null | undefined): VariantCookie | null {
     const [experimentId, variantId, ...rest] = (value ?? '').split('.')
-    if (rest.length || !ID.test(experimentId) || !ID.test(variantId ?? '')) return null
+    // The engine's rule for a variant and an experiment id: a cookie it would refuse is not sticky.
+    if (rest.length || !isGoPageLabel(experimentId) || !isGoPageLabel(variantId)) return null
     return { experimentId, variantId }
 }
 

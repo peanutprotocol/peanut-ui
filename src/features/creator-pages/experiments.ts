@@ -2,10 +2,10 @@
 // Plain data, no components: the shell reads the experiment id from here, and the page components import the shell.
 
 export type CreatorPageExperiment = {
-    /** `^[a-z0-9][a-z0-9-]{0,31}$`. Recorded as `page_experiment`. Change it whenever the variants or weights below change: a new id re-randomises visitors and separates the results. */
+    /** Must pass the engine's `isGoPageLabel` (`^[a-z0-9][a-z0-9-]{0,31}$`). Recorded as `page_experiment`. Change it whenever the variants or weights below change: a new id re-randomises visitors and separates the results. */
     id: string
     variants: {
-        /** Same pattern. Recorded as `page_variant`. Its component is in page-components.ts. */
+        /** Same rule. Recorded as `page_variant`. Its component is in page-components.ts. */
         id: string
         /** Share of new visitors, relative to the other weights. 0 parks the variant. */
         weight: number

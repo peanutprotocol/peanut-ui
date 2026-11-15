@@ -12,9 +12,9 @@ import { variantCookieName } from './variant-cookie'
 
 /** The seam with the /go engine (go-links contract v1). The engine imports nothing else from this folder. */
 export type CreatorPageSelection = {
-    /** `^[a-z0-9][a-z0-9-]{0,31}$`, e.g. `a1`. The engine records it as `page_variant` on tracked_link_visit. */
+    /** Passes the engine's `isGoPageLabel`, e.g. `a1`. The engine records it as `page_variant` on tracked_link_visit. */
     variant: string
-    /** Same pattern. The engine records it as `page_experiment`. */
+    /** Same rule. The engine records it as `page_experiment`. */
     experimentId: string
     /** `null` is the contract's control arm (today's redirect). No experiment here uses one. */
     Page: ComponentType<CreatorPageProps> | null
