@@ -2,6 +2,7 @@
 import { randomUUID } from 'node:crypto'
 import posthog from 'posthog-js'
 import { Preferences } from '@capacitor/preferences'
+import { getPendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
 import { EInviteType } from '@/services/services.types'
 import { applyDeferredPayload, parseDeferredPayload } from '@/utils/deferred-link'
 import { bindInviteToUser, readInviteCode, readInviteIntent, readInviteUserId, stashInvite } from '@/utils/invite-stash'
@@ -11,6 +12,7 @@ import {
     captureTrackedLinkJourney,
     readSignupAttribution,
     readSignupAttributionAsync,
+    type SignupAttributionContext,
 } from '@/utils/signup-attribution'
 import { parseDeferredPayload as parseLegacyPayload } from '@/utils/__tests__/fixtures/legacy-native-attribution'
 import { bootstrapTrackedLinkEntry, EMPTY_TRACKED_LINK_BOOTSTRAP } from '../bootstrap'
@@ -235,6 +237,89 @@ it.each(['/app?tl=alice', '/app/?tl=alice', '/app?code=alice', '/app/?code=Alice
         expect(document.cookie).not.toContain('signupAttribution=')
     }
 )
+
+describe('/go tags', () => {
+    const tagged = () => `/app?tl=${slug}&acq_invite=${slug}&tl_s=ig&utm_campaign=release-check&tl_r=l.instagram.com`
+
+    it('writes the tags as the journey touch and sends them with the visit', async () => {
+        await bootstrapTrackedLinkEntry(visit(tagged()), false)
+        expect(readSignupAttribution()?.lastTouch).toEqual({
+            occurredAt: expect.any(String),
+            utmSource: 'instagram',
+            utmMedium: 'ambassador',
+            utmCampaign: 'release-check',
+            referrerHost: 'l.instagram.com',
+        })
+        expect(visits()[0].body).toMatchObject({
+            placement: 'ig',
+            code: null,
+            utm_source: null,
+            utm_medium: null,
+            utm_campaign: 'release-check',
+            utm_content: null,
+            referrer_host: 'l.instagram.com',
+        })
+    })
+
+    it('writes the default touch for a bare /go link', async () => {
+        await bootstrapTrackedLinkEntry(visit(`/app?tl=${slug}&acq_invite=${slug}`), false)
+        expect(readSignupAttribution()?.lastTouch).toEqual({
+            occurredAt: expect.any(String),
+            utmMedium: 'ambassador',
+            utmCampaign: 'go',
+        })
+    })
+
+    it('keeps the empty touch for a legacy /app?code= link', async () => {
+        visit('/?utm_source=google&utm_medium=cpc&utm_campaign=earlier')
+        const earlier = captureSignupAttribution()!
+        await bootstrapTrackedLinkEntry(visit('/app?code=alice&utm_campaign=forged'), false)
+        expect(readSignupAttribution()?.lastTouch).toEqual(earlier.lastTouch)
+    })
+
+    it('writes the tags of a direct app opening', async () => {
+        await bootstrapTrackedLinkEntry(openInApp(`https://peanut.me/home?app_entry=1&${tagged().slice(5)}`), true)
+        expect(readSignupAttribution()?.lastTouch).toMatchObject({ utmSource: 'instagram' })
+    })
+
+    // The handoff drops a last touch equal to the first, so restore may leave it out; a new touch would set one.
+    const expectRestored = (journey: SignupAttributionContext) => {
+        const restored = readSignupAttribution()!
+        expect(restored).toMatchObject({ journeyId: journey.journeyId, firstTouch: journey.firstTouch })
+        expect([undefined, journey.lastTouch]).toContainEqual(restored.lastTouch)
+    }
+
+    it('leaves the restored journey unchanged in the app, with tl_seen or with a deferred handoff', async () => {
+        const browser = await bootstrapTrackedLinkEntry(visit(tagged()), false)
+        const journey = readSignupAttribution()!
+        const at = new URLSearchParams(browser.iosPayload!).get('at')!
+        clearDevice()
+        await bootstrapTrackedLinkEntry(openInApp(browser.openAppHref!), true)
+        expectRestored(journey)
+
+        clearDevice()
+        await bootstrapTrackedLinkEntry(
+            new URLSearchParams(`tl=${slug}&acq_invite=${slug}&pnutdl=1&at=${at}&tl_s=x&utm_campaign=other`),
+            true
+        )
+        expectRestored(journey)
+    })
+
+    it.each([false, true])("queues the creator's badge campaign, also under DNT (dnt: %s)", async (dnt) => {
+        if (dnt) Object.defineProperty(navigator, 'doNotTrack', { configurable: true, value: '1' })
+        const result = await bootstrapTrackedLinkEntry(visit('/app?tl=juanacervio&acq_invite=juanacervio'), false)
+        expect(getPendingBadgeCampaigns()).toEqual(['nita'])
+        expect(new URLSearchParams(result.payload!).getAll('badge_campaign')).toEqual(['nita'])
+    })
+
+    it.each(['/app?tl=unmapped&acq_invite=unmapped', '/app?code=juanacervio', '/app?tl=constructor'])(
+        'queues no badge campaign for %s',
+        async (path) => {
+            await bootstrapTrackedLinkEntry(visit(path), false)
+            expect(getPendingBadgeCampaigns()).toEqual([])
+        }
+    )
+})
 
 it('keeps an earlier genuine first touch in the same journey', async () => {
     visit('/?utm_source=google&utm_medium=cpc&utm_campaign=earlier')

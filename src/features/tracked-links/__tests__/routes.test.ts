@@ -1,12 +1,23 @@
 /** @jest-environment node */
-import { GET as go } from '@/app/go/[slug]/route'
+import { GET as go } from '@/app/go/[slug]/[[...rest]]/route'
+import { GO_PLACEMENTS, parseGoRequest } from '@/features/tracked-links/contract'
 
 jest.mock('@/constants/general.consts', () => ({ PEANUT_API_URL: 'https://api.example.test' }))
+jest.mock('@/features/tracked-links/contract', () => {
+    const actual = jest.requireActual('@/features/tracked-links/contract')
+    return { ...actual, parseGoRequest: jest.fn(actual.parseGoRequest) }
+})
 const originalFetch = global.fetch
 const linkId = `invite_${'a'.repeat(64)}`
-const context = (slug: string) => ({ params: Promise.resolve({ slug }) })
-const open = (slug: string, query = '') => go(new Request(`https://peanut.me/go/${slug}${query}`), context(slug))
+const context = (slug: string, rest?: string[]) => ({ params: Promise.resolve({ slug, rest }) })
+const open = (slug: string, query = '', rest?: string[], headers?: Record<string, string>) =>
+    go(
+        new Request(`https://peanut.me/go/${[slug, ...(rest ?? [])].join('/')}${query}`, { headers }),
+        context(slug, rest)
+    )
 const location = (response: Response) => response.headers.get('location')
+const handoff = (response: Response) =>
+    Object.fromEntries(new URL(location(response)!, 'https://peanut.me').searchParams)
 // The lookup cache is module state; a fresh slug per test keeps each lookup observable.
 let n = 0
 const fresh = () => `creator${n++}`
@@ -34,11 +45,83 @@ it('hands a known creator to the app entry, dropping every incoming query parame
     )
 })
 
-it('redirects a capitalised username to its lowercase URL before any lookup', async () => {
-    const response = await open('Konrad', '?utm_source=x')
-    expect(response.status).toBe(308)
-    expect(location(response)).toBe('/go/konrad')
-    expect(global.fetch).not.toHaveBeenCalled()
+it('hands a capitalised username and placement straight to the lowercase creator, without a 308', async () => {
+    const slug = fresh()
+    const response = await open(slug.replace('creator', 'Creator'), '', ['IG'])
+    expect(response.status).toBe(307)
+    expect(handoff(response)).toEqual({ app_entry: '1', tl: slug, acq_invite: slug, tl_s: 'ig' })
+    expect(global.fetch).toHaveBeenCalledWith(
+        `https://api.example.test/tracked-links/invites/${slug}`,
+        expect.anything()
+    )
+})
+
+it.each(Object.keys(GO_PLACEMENTS))('carries placement %s as tl_s', async (placement) => {
+    expect(handoff(await open(fresh(), '', [placement])).tl_s).toBe(placement)
+})
+
+it.each(['1', '9999'])('carries code %s as tl_s', async (code) => {
+    expect(handoff(await open(fresh(), '', [code])).tl_s).toBe(code)
+})
+
+it.each([[['0']], [['07']], [['10000']], [['zz']], [['ig', '7']], [['%C4%80']], [['Ā']]])(
+    'treats suffix %j as the bare link, never a 404',
+    async (rest) => {
+        const slug = fresh()
+        const response = await open(slug, '', rest)
+        expect(response.status).toBe(307)
+        expect(handoff(response)).toEqual({ app_entry: '1', tl: slug, acq_invite: slug })
+    }
+)
+
+it('keeps the first of duplicate utm keys and only clean, allowlisted values', async () => {
+    const slug = fresh()
+    const response = await open(
+        slug,
+        `?utm_source=first&utm_source=second&utm_medium=banner&utm_campaign=${'a'.repeat(65)}&utm_content=a%40b.com`
+    )
+    expect(response.status).toBe(307)
+    expect(handoff(response)).toEqual({ app_entry: '1', tl: slug, acq_invite: slug, utm_source: 'first' })
+})
+
+it.each([
+    'utm_campaign=https%3A%2F%2Fevil.test',
+    'utm_campaign=123e4567-e89b-42d3-a456-426614174000',
+    'fbclid=x&utm_term=y&tl=mallory&acq_invite=mallory&invite=mallory&code=mallory&badge_campaign=nita',
+])('never carries %s into the handoff', async (query) => {
+    const slug = fresh()
+    expect(handoff(await open(slug, `?${query}`))).toEqual({ app_entry: '1', tl: slug, acq_invite: slug })
+})
+
+it('carries the allowlisted tags together', async () => {
+    const response = await open(fresh(), '?utm_medium=cpc&utm_campaign=ar-push&utm_content=reel', ['7'], {
+        referer: 'https://l.instagram.com/x',
+    })
+    expect(handoff(response)).toMatchObject({
+        tl_s: '7',
+        utm_medium: 'cpc',
+        utm_campaign: 'ar-push',
+        utm_content: 'reel',
+        tl_r: 'l.instagram.com',
+    })
+})
+
+it.each(['http://localhost:3000/', 'http://192.168.0.1/', 'https://peanut.me/invite', undefined])(
+    'records no referrer host for %p',
+    async (referer) => {
+        const response = await open(fresh(), '', undefined, referer ? { referer } : undefined)
+        expect(handoff(response).tl_r).toBeUndefined()
+    }
+)
+
+it('falls back to the v1 handoff without tags when parsing throws', async () => {
+    jest.mocked(parseGoRequest).mockImplementationOnce(() => {
+        throw new Error('parser bug')
+    })
+    const slug = fresh()
+    const response = await open(slug, '?utm_campaign=x', ['ig'], { referer: 'https://l.instagram.com/' })
+    expect(response.status).toBe(307)
+    expect(location(response)).toBe(`/home?app_entry=1&tl=${slug}&acq_invite=${slug}`)
 })
 
 it.each(['al-ice', 'a'.repeat(65), 'ali%2Fce'])(
