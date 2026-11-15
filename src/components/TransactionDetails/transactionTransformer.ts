@@ -520,7 +520,7 @@ export interface TransactionDetails {
             rainTransactionId: string | null
             isRefund: boolean
             /** Populated when Rain has fired any dispute.* webhook for this
-             *  spend. Status drives the drawer's "Disputed — <label>" badge;
+             *  spend. Status drives the drawer's "Disputed: <label>" badge;
              *  evidenceRequestedMessage prompts the user to upload docs. */
             dispute: {
                 status: DisputeStatus
@@ -686,7 +686,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     // / rejected / canceled) restore the underlying status: the chargeback
     // for accepted disputes arrives as a separate credit transaction; the
     // others left the original spend standing. Status discrimination beyond
-    // the pill lives on the "Disputed — <label>" sub-row.
+    // the pill lives on the "Disputed: <label>" sub-row.
     const disputeStatus = (entry.extraData?.dispute as { status?: string } | null | undefined)?.status
     if (disputeStatus === 'pending' || disputeStatus === 'inReview') {
         uiStatus = 'pending'

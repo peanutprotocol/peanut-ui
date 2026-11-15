@@ -560,7 +560,7 @@
             "details": {
                 "p2p": "Send and receive money with other Peanut users.",
                 "card": "Pay with the Peanut Card.",
-                "crypto": "Add or withdraw crypto from any wallet or exchange — no verification required.",
+                "crypto": "Add or withdraw crypto from any wallet or exchange. No verification required.",
                 "brl": "Add and withdraw Brazilian reais with Pix.",
                 "ars": "Add and withdraw Argentine pesos through your bank.",
                 "usd": "Add and withdraw dollars using US bank transfers.",
@@ -789,11 +789,11 @@
             "confirmCta": "Yes, delete it",
             "cancelCta": "Never mind, I'll stay",
             "blockedTitle": "Move money first",
-            "blockedDescription": "You still have ${amount} in your account. Deleting it is permanent — you can't get back in afterwards, and that money would stay out of reach. Send it to someone or withdraw it first.",
+            "blockedDescription": "You still have ${amount} in your account. Deleting it is permanent. You can't get back in afterwards, and that money would stay out of reach. Send it to someone or withdraw it first.",
             "blockedCta": "Move money",
             "blockedCancelCta": "Never mind",
             "doneTitle": "We'll miss you",
-            "doneDescription": "Your account is off and your data will be gone within 30 days. Thanks for cracking open Peanut with us — take care out there!",
+            "doneDescription": "Your account is off and your data will be gone within 30 days. Thanks for cracking open Peanut with us. Take care out there!",
             "doneCta": "Goodbye",
             "error": "Could not delete your account. Please try again.",
             "sadPeanutAlt": "Sad peanut",
@@ -862,7 +862,7 @@
         "capNudge": {
             "description": "You've hit your monthly limit. Verify your income to request a higher one.",
             "cta": "Verify income",
-            "underReview": "Income verification received — our team is reviewing your limit."
+            "underReview": "Income verification received. Our team is reviewing your limit."
         },
         "increase": {
             "cta": "Increase limits",
@@ -1215,9 +1215,9 @@
             },
             "info": {
                 "title": "What's a passkey?",
-                "what": "A passkey is a digital key your device creates for this app. Approve it with fingerprint, face, or screen lock — no password, nothing to type.",
+                "what": "A passkey is a digital key your device creates for this app. Approve it with fingerprint, face, or screen lock. No password, nothing to type.",
                 "backup": "Your password manager (iCloud Keychain, Google Password Manager, or similar) backs it up and syncs it to your next phone.",
-                "privacy": "Peanut never sees your fingerprint or face — your device only tells us you approved.",
+                "privacy": "Peanut never sees your fingerprint or face. Your device only tells us you approved.",
                 "fullGuide": "Read the full guide"
             },
             "unsupported": "Passkeys aren’t available on this device yet. Sign in to a Google account and update Google Play Services, then try again.",
@@ -1254,9 +1254,9 @@
         },
         "accountReady": {
             "worksNowTitle": "Works right now",
-            "worksNowBody": "Receive dollars, send to any @username, hold your balance — no ID needed.",
+            "worksNowBody": "Receive dollars, send to any @username, hold your balance. No ID needed.",
             "laterTitle": "For bank payments or a card",
-            "laterBody": "An ID check will be required — a few minutes, or 1–3 business days if a reviewer takes a thorough look.",
+            "laterBody": "An ID check will be required. It takes a few minutes, or 1–3 business days if a reviewer takes a thorough look.",
             "cta": "Go to account"
         },
         "email": {
@@ -1438,7 +1438,7 @@
             "cancelSuccess": "Link cancelled successfully!",
             "cancelSuccessRefresh": "Link cancelled! Refresh to see updated balance.",
             "cancelFailed": "Failed to cancel link. Please try again.",
-            "minFiatClaimWarning": "Amounts under ${amount} can't be claimed to a bank, Pix or Mercado Pago — the recipient can still claim to a Peanut account or crypto wallet."
+            "minFiatClaimWarning": "Amounts under ${amount} can't be claimed to a bank, Pix or Mercado Pago. The recipient can still claim to a Peanut account or crypto wallet."
         }
     },
     "request": {
@@ -1816,11 +1816,11 @@
         "errors": {
             "invalidQr": "Invalid QR code scanned",
             "pixMinAmount": "This Pix charge is below the {amount} BRL minimum for Pix payments.",
-            "pixRecurring": "This QR code is for a recurring payment (PIX Automático). Peanut doesn't support recurring PIX payments — please ask for a regular PIX QR code instead.",
+            "pixRecurring": "This QR code is for a recurring payment (PIX Automático). Peanut doesn't support recurring PIX payments. Please ask for a regular PIX QR code instead.",
             "pixDecode": "We could not decode this Pix QR code. Please ask the merchant to generate a new one.",
             "genericDecode": "We could not decode this particular QR code. Please ask the Merchant if they can generate a Mercado Pago QR",
             "providerIssues": "We are currently experiencing issues with {method} payments. We are working to fix it as soon as possible",
-            "connectionLost": "Your device seems to be offline. Check your connection and scan again — nothing has been charged.",
+            "connectionLost": "Your device seems to be offline. Check your connection and scan again. Nothing has been charged.",
             "monthlyCapReached": "This payment is over your remaining monthly limit, which is shared across deposits, withdrawals and QR payments. Try a smaller amount, or contact support to raise your limit.",
             "monthlyCapReachedFixedAmount": "This charge is over your remaining monthly limit, which is shared across deposits, withdrawals and QR payments. Ask for a smaller charge, or contact support to raise your limit.",
             "merchantNotAvailable": "We can't complete QR payments to this merchant right now. Try another payment method, or a different merchant.",
@@ -1961,7 +1961,7 @@
             "requiresInfoIdentityBody": "Upload your identity documents to finish your card application.",
             "requiresInfoWaitBody": "There's nothing else to do for now. Your application moves on once our card partner has reviewed your document.",
             "requiresSupportTitle": "Something went wrong on our side",
-            "requiresSupportBody": "We hit a snag while processing your card application. Our team needs to take a look — message support and we'll get you sorted.",
+            "requiresSupportBody": "We hit a snag while processing your card application. Our team needs to take a look. Message support and we'll get you sorted.",
             "rejectedTitle": "We couldn't issue a card",
             "rejectedBody": "You can still use Peanut freely to deposit, withdraw, and pay with crypto.",
             "geoBlockedTitle": "Cards aren't available in this region yet",
@@ -2019,15 +2019,15 @@
         "errors": {
             "balanceReturnFailed": "Could not return your card balance. Please try again or contact support.",
             "authorizationFailed": "Card authorization failed. Please try again or contact support.",
-            "walletNotReady": "Wallet not ready — please retry in a moment",
-            "unexpectedStrategy": "Unexpected withdrawal strategy — please contact support",
-            "cardDetailsLoading": "Card details still loading — please retry in a moment"
+            "walletNotReady": "Wallet not ready. Please retry in a moment.",
+            "unexpectedStrategy": "Unexpected withdrawal strategy. Please contact support.",
+            "cardDetailsLoading": "Card details still loading. Please retry in a moment."
         },
         "countryConfirm": {
             "noCandidatesTitle": "We need to check the details",
-            "noCandidatesBody": "We couldn't confirm your country of residence from your verification. Our team will sort it out — message support to continue.",
+            "noCandidatesBody": "We couldn't confirm your country of residence from your verification. Our team will sort it out. Message support to continue.",
             "title": "Confirm country of residence",
-            "description": "Your verification shows two different countries. Pick the one where you currently live — your card application is processed under its rules."
+            "description": "Your verification shows two different countries. Pick the one where you currently live. Your card application is processed under its rules."
         },
         "face": {
             "valid": "Valid",
@@ -2133,7 +2133,7 @@
             "balanceDueTitle": "{amount} outstanding on your card",
             "balanceDueBody": "A recent card payment ended up higher than the amount held at checkout. This happens with tips or updated totals. The difference is still owed. Contact support to settle it.",
             "payAsCreditTitle": "Pay as credit",
-            "payAsCreditBody": "When a terminal asks debit or credit, choose credit — your Peanut card runs on the credit network.",
+            "payAsCreditBody": "When a terminal asks debit or credit, choose credit. Your Peanut card runs on the credit network.",
             "managementTitle": "Card management",
             "pin": "PIN",
             "spendingLimit": "Spending limit",
@@ -2154,15 +2154,15 @@
             "applyFailed": "Failed to apply for card",
             "issueFailed": "Your application was approved, but we couldn't create your card. Please try again.",
             "confirmCountryFailed": "Failed to confirm country",
-            "setupCancelled": "Setup cancelled — please try again.",
-            "setupSignatureRejected": "The passkey signature for this card could not be verified — try again, and contact support if it happens again.",
-            "setupFailed": "Could not complete setup — please try again.",
+            "setupCancelled": "Setup cancelled. Please try again.",
+            "setupSignatureRejected": "The passkey signature for this card could not be verified. Try again, and contact support if it happens again.",
+            "setupFailed": "Could not complete setup. Please try again.",
             "verificationSlow": "Verification is taking longer than expected. Please try again."
         },
         "recovery": {
             "navTitle": "Card recovery",
             "previewFailed": "Could not load recovery preview",
-            "failed": "Recovery failed — please try again",
+            "failed": "Recovery failed. Please try again.",
             "doneTitle": "Funds sent to wallet",
             "doneBody": "{amount} USDC has been returned to your peanut wallet.",
             "viewTransaction": "View transaction",
@@ -2198,8 +2198,8 @@
             "waitingForConfirmation": "Waiting for confirmation…",
             "loadingCard": "Loading card…",
             "reEnablePermissions": "Restore permissions",
-            "noActiveCard": "No active card found on this account — please contact support.",
-            "regrantFailed": "Re-enabling did not complete — please try again or contact support.",
+            "noActiveCard": "No active card found on this account. Please contact support.",
+            "regrantFailed": "Re-enabling did not complete. Please try again or contact support.",
             "diagnostics": "Diagnostics: nonce {nonce} / floor {floor}"
         },
         "reveal": {
@@ -2282,7 +2282,7 @@
                 "step1": "Copy the deposit address above",
                 "step2": "Start a withdrawal from your wallet or exchange",
                 "step3": "Paste the address, pick a supported network",
-                "step4": "Confirm — funds arrive in minutes"
+                "step4": "Confirm. Funds arrive in minutes"
             }
         },
         "crypto": {
@@ -2311,7 +2311,7 @@
             "bridgingVarianceNote": "Deposits are bridged to Arbitrum and can vary slightly (±0.1%).",
             "bridgingVarianceNoteEvm": "USDC on Arbitrum arrives at the full amount. Deposits from other chains or tokens are bridged and can vary slightly (±0.1%).",
             "addressErrorTitle": "We couldn't prepare the deposit address",
-            "addressErrorDescription": "Nothing was sent. Please try again — if this keeps happening, contact support.",
+            "addressErrorDescription": "Nothing was sent. Please try again. If this keeps happening, contact support.",
             "marketMovedTitle": "Oops! Market moved",
             "marketMovedDescription": "The exchange rate changed too much to complete your deposit.",
             "marketMovedNote": "Your money is on its way back to your wallet.",
@@ -2430,7 +2430,7 @@
             "chainAlt": "chain",
             "to": "To",
             "networkFee": "Network fee",
-            "networkFeeInfo": "Delivering on this network is free — Peanut covers it. Some networks, like Ethereum, Tron and Solana, charge a fee that comes out of the amount received.",
+            "networkFeeInfo": "Delivering on this network is free. Peanut covers it. Some networks, like Ethereum, Tron and Solana, charge a fee that comes out of the amount received.",
             "networkFeeChargedInfo": "Networks charge different amounts to deliver. This one charges, and it comes out of the amount received. Others, like Arbitrum, are free.",
             "youPay": "Total",
             "highFeeWarning": "Note: the network fee is a large share of this withdrawal. Withdrawing a larger amount or choosing a cheaper network reduces it."
@@ -2444,7 +2444,7 @@
             "title": "Send with Pix",
             "heading": "Enter Pix key",
             "placeholder": "Pix key",
-            "info": "Send to any Pix key — email, phone (include +55), CPF/CNPJ or random key.",
+            "info": "Send to any Pix key: email, phone (include +55), CPF/CNPJ or random key.",
             "invalid": "Invalid Pix key",
             "notFound": "No Pix account found for this key. Check it and try again."
         },
@@ -2485,7 +2485,7 @@
             "payoutSenderWire": "The payment arrives from Bridge, not from your own name.",
             "bankAccount": "Bank account",
             "transferProcessing": "Transfer processing",
-            "confirmPending": "Your transfer is processing. Funds were sent on-chain successfully — this can take a few minutes to confirm. If you don't see the withdrawal in your activity within 30 minutes, please contact support."
+            "confirmPending": "Your transfer is processing. Funds were sent on-chain successfully. This can take a few minutes to confirm. If you don't see the withdrawal in your activity within 30 minutes, please contact support."
         },
         "manteca": {
             "youJustWithdrew": "Withdrawn",
@@ -2821,7 +2821,7 @@
         "belowMinimumNote": "This deposit was below the {min} minimum, so it can't be added or returned.",
         "perkBanner": {
             "title": "You earned a reward!",
-            "capped": "${amount} reward — campaign limit reached!",
+            "capped": "${amount} reward. Campaign limit reached!",
             "received": "You received a ${amount} reward!",
             "generic": "You received a Peanut reward!"
         },
@@ -2862,7 +2862,7 @@
             "cancelDepositFailed": "We couldn't cancel this deposit. Please try again or contact support.",
             "cancelConfirm": {
                 "title": "{kind, select, deposit {Cancel this deposit?} request {Cancel this request?} other {Cancel?}}",
-                "description": "This can't be undone. If you already sent the bank transfer, <strong>don't cancel</strong> — a cancelled deposit can no longer be matched to your account, and the money will be returned to your bank instead.",
+                "description": "This can't be undone. If you already sent the bank transfer, <strong>don't cancel</strong>. A cancelled deposit can no longer be matched to your account, and the money will be returned to your bank instead.",
                 "confirm": "{kind, select, deposit {Yes, cancel deposit} request {Yes, cancel request} other {Yes, cancel}}"
             },
             "nativeReceiptShareUnavailable": "Receipt sharing is unavailable in this version of Peanut. Update the app and try again.",
@@ -2878,9 +2878,9 @@
             "originalAmount": "Original amount",
             "declineReason": "Decline reason",
             "note": "Note",
-            "autoClosed": "Automatically cancelled — the merchant didn't complete it",
-            "authReversed": "Hold released — the merchant cancelled the authorization. Funds are back on your card.",
-            "authExpired": "Hold released — the merchant didn't capture the payment in time. Funds are back on your card.",
+            "autoClosed": "Automatically cancelled. The merchant didn't complete it.",
+            "authReversed": "Hold released. The merchant cancelled the authorization. Funds are back on your card.",
+            "authExpired": "Hold released. The merchant didn't capture the payment in time. Funds are back on your card.",
             "status": "Status",
             "pendingNote": "Authorized, awaiting settlement or reversal",
             "dispute": "Dispute",
@@ -2891,15 +2891,15 @@
             "settlementAdjustedNotice": "The final amount was {amount} higher than the initial hold. This is common with tips and updated totals. Don’t recognize it? Contact the merchant."
         },
         "dispute": {
-            "pending": "Disputed — Awaiting review",
-            "inReview": "Disputed — In review",
-            "accepted": "Disputed — Accepted (refund issued)",
-            "rejected": "Disputed — Rejected",
-            "canceled": "Disputed — Cancelled",
-            "resolvedByMerchant": "Disputed — Resolved by merchant refund"
+            "pending": "Disputed: awaiting review",
+            "inReview": "Disputed: in review",
+            "accepted": "Disputed: accepted (refund issued)",
+            "rejected": "Disputed: rejected",
+            "canceled": "Disputed: cancelled",
+            "resolvedByMerchant": "Disputed: resolved by merchant refund"
         },
         "decline": {
-            "limitTooLow": "Card limit reached — increase the limit",
+            "limitTooLow": "Card limit reached. Increase the limit",
             "insufficientBalance": "Insufficient balance",
             "spendingLimitReached": "Spending limit reached",
             "blockedMerchant": "This merchant isn't supported",
@@ -2911,7 +2911,7 @@
             "localRailTitle": "Pay like a local next time",
             "localRailDescription": "In {country}, paying with {rail} costs around {percent}% less than using your card.",
             "usdAbroadTitle": "Pay in local currency next time",
-            "usdAbroadDescription": "You were charged in US dollars. When a terminal offers to bill in dollars, choose the local currency instead — Peanut's exchange rate is usually better."
+            "usdAbroadDescription": "You were charged in US dollars. When a terminal offers to bill in dollars, choose the local currency instead. Peanut's exchange rate is usually better."
         },
         "bridge": {
             "depositMessage": "Deposit Message",
@@ -2938,7 +2938,7 @@
             },
             "perkBanner": {
                 "title": "You got a surprise!",
-                "capped": "${amount} received — campaign limit reached!",
+                "capped": "${amount} received. Campaign limit reached!",
                 "received": "You received ${amount}!",
                 "generic": "Peanut sent you a surprise!"
             },
@@ -3094,7 +3094,7 @@
             },
             "SECOND_INVITE": {
                 "name": "Second Invite",
-                "description": "Word's getting around — two friends in and rising."
+                "description": "Word's getting around. Two friends in and rising."
             },
             "THIRD_INVITE": {
                 "name": "Third Invite",
@@ -3114,7 +3114,7 @@
             },
             "DUNBAR": {
                 "name": "Dunbar",
-                "description": "150 — more people than you can remember. They hit Dunbar's number."
+                "description": "150 people, more than you can remember. They hit Dunbar's number."
             },
             "MOST_INVITES": {
                 "name": "Most Invites",
@@ -3142,7 +3142,7 @@
             },
             "CARD_SPENT_1K": {
                 "name": "$1K Club",
-                "description": "$1K swiped — you put your money where your card is."
+                "description": "$1K swiped. You put your money where your card is."
             },
             "CARD_PIONEER": {
                 "name": "Card Pioneer",
@@ -3162,7 +3162,7 @@
             },
             "BETA_TESTER": {
                 "name": "Beta Tester",
-                "description": "You broke things so others don't have to. Welcome to the chaos club — Beta Tester badge unlocked."
+                "description": "You broke things so others don't have to. Welcome to the chaos club. Beta Tester badge unlocked."
             },
             "OG_2025_10_12": {
                 "name": "OG",
@@ -3190,11 +3190,11 @@
             },
             "NOT_SO_SHHHH": {
                 "name": "Loud Mouth",
-                "description": "You couldn't keep it quiet — and you got paid for it."
+                "description": "You couldn't keep it quiet. And you got paid for it."
             },
             "ARBITRUM": {
                 "name": "Arbitrum Native",
-                "description": "Found on Arbitrum — mutual onboarding achieved."
+                "description": "Found on Arbitrum. Mutual onboarding achieved."
             },
             "FOUNDER_HOUSE": {
                 "name": "Founder Haus",
@@ -3274,7 +3274,7 @@
             },
             "MOST_PAYMENTS_DEVCON": {
                 "name": "Most Payments Devcon",
-                "description": "Money Machine - You move money like it's light work. Most payments made!"
+                "description": "Money Machine. You move money like it's light work. Most payments made!"
             },
             "BIGGEST_REQUEST_POT": {
                 "name": "Biggest Request Pot",
@@ -3364,7 +3364,7 @@
             "descriptionBlocked": "We couldn't confirm your ID. Please contact support for assistance.",
             "descriptionRestartIdentity": "This payment method needs a document from a supported country. You can verify with a different ID.",
             "descriptionProviderRejection": "We need more information from you to continue.",
-            "descriptionRegionUnavailable": "Due to UK regulations, bank transfers aren't available for UK residents. Your funds are safe — you can withdraw them as crypto anytime.",
+            "descriptionRegionUnavailable": "Due to UK regulations, bank transfers aren't available for UK residents. Your funds are safe. You can withdraw them as crypto anytime.",
             "titleBankUnavailable": "Not available in this country",
             "descriptionBankUnavailable": "Bank transfers aren't available in your country, so an ID check wouldn't unlock them. Your funds are safe, and you can still send and receive money with other people.",
             "ctaUploadDocument": "Upload document",
@@ -3381,8 +3381,8 @@
         "regionRestricted": {
             "title": "We can't verify IDs from this country",
             "description": "Our verification partner doesn't accept documents issued in your country. Re-uploading won't change the result.",
-            "stillAvailable": "Your funds are safe — you can still send and receive money with Peanut.",
-            "homeDescription": "Your funds are safe — you can still send and receive money with other people.",
+            "stillAvailable": "Your funds are safe. You can still send and receive money with Peanut.",
+            "homeDescription": "Your funds are safe. You can still send and receive money with other people.",
             "cta": "Send or request money"
         },
         "advisory": {
@@ -3416,7 +3416,7 @@
             "troubleDescription": "If the ID check isn't loading or working properly, our support team will help.",
             "chatWithSupport": "Chat with support",
             "exitForNowTitle": "Exit for now?",
-            "exitForNowDescription": "You can pick up where you left off later — your progress is saved.",
+            "exitForNowDescription": "You can pick up where you left off later. Your progress is saved.",
             "exitAndLoseProgressTitle": "Exit and lose progress?",
             "exitAndLoseProgressDescription": "If you exit now, you'll need to start the ID check again from scratch.",
             "exit": "Exit",
@@ -3432,7 +3432,7 @@
             "saving": "Saving...",
             "notNow": "Not now",
             "invalidEmail": "Please enter a valid email address.",
-            "stillLoading": "Still loading your account — please try again in a moment.",
+            "stillLoading": "Still loading your account. Please try again in a moment.",
             "saveFailed": "Something went wrong saving your email. Please try again."
         },
         "setup": {
@@ -3470,7 +3470,7 @@
         },
         "reverificationPending": {
             "title": "We're reviewing the details",
-            "description": "Your verification is being reviewed. No action needed — we'll notify you the moment it's done. Wait here, or head home."
+            "description": "Your verification is being reviewed. No action needed. We'll notify you the moment it's done. Wait here, or head home."
         },
         "rejectLabels": {
             "PROBLEMATIC_APPLICANT_DATA": {
@@ -3719,7 +3719,7 @@
             },
             "DUPLICATE_EMAIL": {
                 "title": "Email already in use",
-                "description": "This email is already linked to another Peanut account. If it's yours, sign in to that account to continue — otherwise contact support."
+                "description": "This email is already linked to another Peanut account. If it's yours, sign in to that account to continue. Otherwise, contact support."
             },
             "FALLBACK": {
                 "title": "Verification issue",
@@ -4346,23 +4346,23 @@
             "pep_documentation": "Because you or someone close to you holds public office, we need a sworn declaration of your assets and income, or a document showing where your money comes from.",
             "fep_documentation": "Because of your professional activity, we need proof of your UIF reporting status.",
             "email_required": "We need an email address to finish setting up this account. Add one to your profile and we'll retry automatically.",
-            "submission_failed": "We hit a snag finishing your verification on our side. We'll get you sorted — tap below to message support.",
-            "proof_of_address_review": "We sent your proof of address to our card partner — it's being reviewed.",
+            "submission_failed": "We hit a snag finishing your verification on our side. We'll get you sorted. Tap below to message support.",
+            "proof_of_address_review": "We sent your proof of address to our card partner. It's being reviewed.",
             "proof_of_address_received": "We received your proof of address and are passing it to our card partner.",
             "identity_verification_required": "Our card partner needs a new photo of your ID and a selfie.",
             "id_expired": "Your ID has expired. Add a valid one to keep your accounts working.",
             "id_verification_failed": "We couldn't verify your ID. Add a valid one to keep your accounts working.",
             "card_id_not_accepted": "The ID you verified with can't be used for the Peanut Card. Verify again with a different ID.",
-            "identity_verification_review": "We sent your selfie and ID to our card partner — they're being reviewed.",
+            "identity_verification_review": "We sent your selfie and ID to our card partner. They're being reviewed.",
             "identity_verification_received": "We received your selfie and ID and are passing them to our card partner.",
             "bridge_tos_required": "Accept our payment partner's terms to continue.",
             "bridge_tos_v2_required": "Accept the bank transfer provider's updated Terms of Service to enable euro and British pound bank transfers.",
             "bridge_processing": "Our payment partner is finishing your verification. This usually takes a few minutes.",
-            "verification_blocked": "Verification issue — contact support for help.",
+            "verification_blocked": "Verification issue. Contact support for help.",
             "invalid_bank_postal_code": "We couldn’t use the postal code on your verified address.",
-            "terminal_rejection": "Verification issue — contact support for help.",
+            "terminal_rejection": "Verification issue. Contact support for help.",
             "bridge_terminal_rejection": "Our payment partner didn't approve bank transfers for this account, and Peanut can't change that decision. Your funds on Peanut are not affected. If you think this is a mistake, message support.",
-            "duplicate_customer_detected": "Our payment partner flagged your account as a possible duplicate — message support to verify and unlock.",
+            "duplicate_customer_detected": "Our payment partner flagged your account as a possible duplicate. Message support to verify and unlock.",
             "duplicate_account": "Your email or ID is already linked to another Peanut account, so we can't finish setting up this one. If the other account is yours, sign in to it. Otherwise, contact support and we'll sort it out.",
             "imported_identity_rejected": "Our payment partner couldn't verify the ID from your earlier verification. They need a current government ID, and may also ask for a proof of address. Message support and we'll take it from here.",
             "region_block": "Peanut cards aren't available in your region yet.",
@@ -4375,8 +4375,8 @@
             "manteca_action_expired": "Your bank account setup timed out. Finish the short verification to unlock local deposits and withdrawals.",
             "manteca_action_correction_required": "Please correct the information for your bank account verification.",
             "tax_id_unresolved": "We couldn't read the tax ID that local deposits and withdrawals need. You can verify again to provide it. QR payments aren't affected.",
-            "uk_resident_blocked": "Due to UK regulations, bank transfers aren't available for UK residents. Your funds are safe — you can withdraw them as crypto anytime.",
-            "residence_bank_restricted": "Bank transfers aren't available for residents of your country. Your funds are safe — you can withdraw them as crypto anytime.",
+            "uk_resident_blocked": "Due to UK regulations, bank transfers aren't available for UK residents. Your funds are safe. You can withdraw them as crypto anytime.",
+            "residence_bank_restricted": "Bank transfers aren't available for residents of your country. Your funds are safe. You can withdraw them as crypto anytime.",
             "identity_region_restricted": "Our verification partner doesn't accept documents issued in your country. Re-uploading won't change the result.",
             "identity_document_missing": "We need an identity document and a selfie to complete your verification.",
             "document_country_unsupported": "This needs an ID issued by the country you live in. Verify again with that ID.",
@@ -4496,7 +4496,7 @@
             "openLink": "Open link",
             "unrecognized": "Sorry, this QR code couldn't be recognized.",
             "pixRecurringIntro": "This QR code is for a recurring payment (PIX Automático).",
-            "pixRecurringBody": "Peanut doesn't support recurring PIX payments — please ask for a regular PIX QR code instead.",
+            "pixRecurringBody": "Peanut doesn't support recurring PIX payments. Please ask for a regular PIX QR code instead.",
             "argentinaAliasIntro": "This looks like an Argentine payment alias.",
             "argentinaAliasBody": "You can't pay another person by alias. To pay a business, scan its payment QR code. To move money to your own account, use Withdraw.",
             "titleUnrecognized": "Unrecognized QR code",
@@ -4584,7 +4584,7 @@
             "title": "High balance",
             "congrats": "You're rich! Congrats on having a high balance.",
             "goodToKnow": "Good to know",
-            "selfCustody": "With Peanut, you're the only one who can access your funds. No bank, no company, no agency — not even our support team — can ever access them.",
+            "selfCustody": "With Peanut, you're the only one who can access your funds. No bank, company or agency can ever access them. Not even our support team.",
             "passkey": "Your biometric passkey is your key to full control and security. If it's lost, it can't be recovered because only you ever have access.",
             "learnMore": "Learn how to keep your passkey secure on <link>{platform}</link>.",
             "yourDevice": "your device",
@@ -4620,7 +4620,7 @@
             "title": "Re-enable the card",
             "description": "Your card needs to be re-enabled before you can withdraw. It only takes one passkey tap.",
             "successTitle": "Card re-enabled",
-            "successDescription": "Your card is ready — please try your withdrawal again.",
+            "successDescription": "Your card is ready. Please try your withdrawal again.",
             "cancelledError": "Re-enabling was cancelled. Tap Re-enable card to try again.",
             "rotatedError": "Your card was updated while we were saving. Tap Re-enable card once more.",
             "signatureRejectedError": "The passkey signature for this card could not be verified. Tap Re-enable card to try again, and contact support if it happens again.",
@@ -4805,7 +4805,7 @@
             "yourChoice": "Your choice",
             "sendExactAmount": "Send the exact amount!"
         },
-        "demoBanner": "Demo mode — you're previewing Peanut with a simulated wallet. Balances and transactions aren't real.",
+        "demoBanner": "Demo mode. You're previewing Peanut with a simulated wallet. Balances and transactions aren't real.",
         "rainCooldownPill": "Card cool-down",
         "easterEggImageAlt": "Easter egg illustration",
         "reConsent": {
@@ -4816,9 +4816,9 @@
             "acceptCta": "Accept & continue",
             "saving": "Saving…",
             "notNow": "Not now",
-            "saveError": "Could not save your acceptance — please try again."
+            "saveError": "Could not save your acceptance. Please try again."
         },
-        "maintenanceBanner": "Maintenance mode — some features are temporarily unavailable. Your funds are safe.",
+        "maintenanceBanner": "Maintenance mode. Some features are temporarily unavailable. Your funds are safe.",
         "maintenanceTitle": "Under maintenance",
         "maintenanceBody": "This feature is temporarily unavailable while we work on it. Your funds are safe and everything else works as usual.",
         "iosCopy": {
@@ -4864,13 +4864,13 @@
         "chainMismatch": "Failed to switch network. Try switching to the correct network manually.",
         "insufficientBalance": "You don't have enough balance.",
         "operationTimedOut": "Please confirm the transaction.",
-        "passkeyNotCompleted": "Your device didn't complete the passkey confirmation. Try again — if it keeps failing, unlock your password manager (e.g. 1Password) or restart your device.",
+        "passkeyNotCompleted": "Your device didn't complete the passkey confirmation. Try again. If it keeps failing, unlock your password manager (e.g. 1Password) or restart your device.",
         "claimLinkFailed": "Could not claim link, please refresh page. If problem persist confirm link with sender",
         "sendLinkAlreadyClaimed": "Send link already claimed",
         "lowLiquidity": "Low liquidity. Please try a smaller amount or different route.",
         "networkBusyTimeout": "The network is busy and your request timed out. Please try again in a moment.",
         "sessionExpired": "Your session has expired. Please log in again.",
-        "connectionTimeout": "Peanut is taking too long to respond — check your connection and try again.",
+        "connectionTimeout": "Peanut is taking too long to respond. Check your connection and try again.",
         "genericSupport": "There was an issue with your request. Please contact support.",
         "rainCooldownRetryShortly": "A previous card withdrawal is still active. Please try again shortly.",
         "rainCooldownRetryLive": "A previous card withdrawal is still active. Try again in {time}.",
@@ -4889,8 +4889,8 @@
         "bankAccountNotUsable": "This bank account can't be used anymore. Add it again.",
         "cardRateLimited": "Too many card requests. Please wait a moment and try again.",
         "linkTransactionHashFetch": "We couldn’t load this link’s transaction. Please refresh and try again.",
-        "cardApprovalCancelled": "Approval cancelled — you can retry anytime.",
-        "cardApprovalFailed": "Card approval failed — please try again.",
+        "cardApprovalCancelled": "Approval cancelled. You can retry anytime.",
+        "cardApprovalFailed": "Card approval failed. Please try again.",
         "logoutFailed": "Couldn’t log out. Please try again.",
         "loginIncomplete": "Login didn’t complete. Please try again.",
         "rateUnavailable": "Exchange rates are temporarily unavailable. Please try again in a moment.",
@@ -5302,7 +5302,7 @@
                 "arrivalShort": "Usually arrives in minutes (Pix)",
                 "railName": "Pix",
                 "residenceTitle": "Residence required",
-                "residenceRequired": "Only legal residents of Brazil can add money this way. Your nationality does not matter — where you live does.",
+                "residenceRequired": "Only legal residents of Brazil can add money this way. Your nationality does not matter. Where you live does.",
                 "qrPay": "You can still pay any Pix key or Pix QR code in Brazil from your balance."
             },
             "BANK_TRANSFER_AR": {
@@ -5310,7 +5310,7 @@
                 "arrivalShort": "Usually arrives in minutes",
                 "railName": "Bank or Mercado Pago",
                 "residenceTitle": "Residence required",
-                "residenceRequired": "Only legal residents of Argentina can add money this way. Your nationality does not matter — where you live does.",
+                "residenceRequired": "Only legal residents of Argentina can add money this way. Your nationality does not matter. Where you live does.",
                 "qrPay": "You can still pay a Mercado Pago QR code in Argentina from your balance."
             },
             "BANK_TRANSFER_CO": {

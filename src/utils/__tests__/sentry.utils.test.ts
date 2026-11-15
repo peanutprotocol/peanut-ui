@@ -255,7 +255,7 @@ describe('fetchWithSentry — expected-response suppression', () => {
         global.fetch = jest.fn().mockRejectedValue(abort())
 
         await expect(fetchWithSentry('https://api.peanut.me/users/me', { method: 'GET' })).rejects.toThrow(
-            'Peanut is taking too long to respond — check your connection and try again.'
+            'Peanut is taking too long to respond. Check your connection and try again.'
         )
 
         expect(global.fetch).toHaveBeenCalledTimes(2)
@@ -678,7 +678,7 @@ describe('fetch timeout budgets', () => {
 
             global.fetch = jest.fn().mockRejectedValue(abort())
             await expect(freshFetchWithSentry('https://api.peanut.me/users/me')).rejects.toThrow(
-                'Peanut is taking too long to respond — check your connection and try again.'
+                'Peanut is taking too long to respond. Check your connection and try again.'
             )
             expect(reportedTimeoutMs()).toBe(CLIENT_FETCH_TIMEOUT_MS)
         })
@@ -686,7 +686,7 @@ describe('fetch timeout budgets', () => {
         it('still lets a per-call timeoutMs win over the default', async () => {
             global.fetch = jest.fn().mockRejectedValue(abort())
             await expect(fetchWithSentry('https://api.peanut.me/users/me', {}, 1234)).rejects.toThrow(
-                'Peanut is taking too long to respond — check your connection and try again.'
+                'Peanut is taking too long to respond. Check your connection and try again.'
             )
             expect(reportedTimeoutMs()).toBe(1234)
         })

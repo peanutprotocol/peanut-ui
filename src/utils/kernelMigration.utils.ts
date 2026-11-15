@@ -46,7 +46,7 @@ export const buildMigrationNoopCall = (accountAddress: Address): { to: Hex; valu
 /** Transient: the migration hasn't been observed on-chain yet — retrying is correct. */
 export class KernelMigrationPendingError extends Error {
     constructor() {
-        super('Account security upgrade did not confirm in time — please retry in a moment')
+        super('Account security upgrade did not confirm in time. Please retry in a moment.')
         this.name = 'KernelMigrationPendingError'
     }
 }
@@ -54,7 +54,7 @@ export class KernelMigrationPendingError extends Error {
 /** Deterministic: the migration userOp reverted on-chain — retrying cannot succeed. */
 export class KernelMigrationFailedError extends Error {
     constructor() {
-        super('Account security upgrade failed — please contact support')
+        super('Account security upgrade failed. Please contact support.')
         this.name = 'KernelMigrationFailedError'
     }
 }

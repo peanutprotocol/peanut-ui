@@ -13,12 +13,12 @@ import { type DisputeStatus } from '@/components/TransactionDetails/transactionT
 const t = createTranslator({ locale: 'en', messages: en, namespace: 'transaction' })
 
 const CASES: Array<[DisputeStatus, string]> = [
-    ['pending', 'Disputed — Awaiting review'],
-    ['inReview', 'Disputed — In review'],
-    ['accepted', 'Disputed — Accepted (refund issued)'],
-    ['rejected', 'Disputed — Rejected'],
-    ['canceled', 'Disputed — Cancelled'],
-    ['resolvedByMerchant', 'Disputed — Resolved by merchant refund'],
+    ['pending', 'Disputed: awaiting review'],
+    ['inReview', 'Disputed: in review'],
+    ['accepted', 'Disputed: accepted (refund issued)'],
+    ['rejected', 'Disputed: rejected'],
+    ['canceled', 'Disputed: cancelled'],
+    ['resolvedByMerchant', 'Disputed: resolved by merchant refund'],
 ]
 
 describe('dispute status label', () => {
