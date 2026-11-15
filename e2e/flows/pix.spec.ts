@@ -132,7 +132,7 @@ test.describe('Pix on the Avenia route', () => {
     })
 
     // the Pix-key payment form, with Withdrawing and Confirm (ruling 2026-11-12)
-    test('the form leads with the key holder, offers to save the key, puts the fees in the rate and shows the flat fee apart', async ({
+    test('the form leads with the key holder, offers to save the key, shows Avenia’s own rate and every fee as one row', async ({
         page,
     }) => {
         await open(
@@ -144,8 +144,10 @@ test.describe('Pix on the Avenia route', () => {
         await expect(page.getByText('Banco Inter')).toBeVisible()
         await expect(page.getByText('Save to favorites')).toBeVisible()
         await expect(page.getByText('Provider fee', { exact: true })).toHaveCount(1)
-        await expect(page.getByText('R$0.75')).toBeVisible()
-        await expect(page.getByText('1 USD = 5.45 BRL')).toBeVisible()
+        // the owner, 15 Nov, "Option A": every fee, not the flat R$0.75 alone, and Avenia's rate with no fee in it
+        await expect(page.getByText('R$2.07')).toBeVisible()
+        await expect(page.getByText('R$0.75')).toHaveCount(0)
+        await expect(page.getByText('1 USD = 5.46 BRL')).toBeVisible()
         await expect(page.getByText('Sponsored by Peanut!')).toBeVisible()
         // the exact wallet debit the quote names, never the field's estimate
         await expect(page.getByText('$92.50')).toBeVisible()

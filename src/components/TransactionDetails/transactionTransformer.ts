@@ -488,6 +488,8 @@ export interface TransactionDetails {
         }
         depositInstructions?: DrawerDepositInstructions
         receipt?: DrawerReceipt
+        /** A settled Avenia Pix entry's fees in reais, beside `receipt.exchange_rate` (both or neither). */
+        providerFeeBrl?: string
         /** Card-payment specifics — populated for Rain CARD_SPEND / card-refund
          *  entries only. Drives the merchant hero, status timeline, decline
          *  reason, and "Adjusted from $X" settlement note in the drawer. */
@@ -928,6 +930,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                     ? (entry.extraData?.depositInstructions as DrawerDepositInstructions | undefined)
                     : undefined,
             receipt: entry.extraData?.receipt as DrawerReceipt | undefined,
+            providerFeeBrl: (entry.extraData?.receipt && entry.extraData.providerFeeBrl) || undefined,
         },
         sourceView: 'history',
         points: entry.points,

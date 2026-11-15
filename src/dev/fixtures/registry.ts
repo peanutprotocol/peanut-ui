@@ -296,6 +296,9 @@ const aveniaResponses = (stage: 'enabled' | 'first-use', overrides: Record<strin
         usdcAmount: '18.237000',
         rate: '5.442342',
         fixedFeeBrl: '0.75',
+        // Avenia's rate and every fee: (100.00 − 1.52) ÷ 5.40 = 18.237
+        exchangeRate: '5.400000',
+        providerFeeBrl: '1.52',
         minAmountBrl: '20',
     },
     ...overrides,
@@ -555,6 +558,9 @@ const AVENIA_SEND_PREVIEW = {
     withdrawUsd: '18.870000',
     rate: '5.339163',
     fixedFeeBrl: '0.75',
+    // Avenia's rate and every fee: 18.87 × 5.38 − 1.52 = 100.00
+    exchangeRate: '5.380000',
+    providerFeeBrl: '1.52',
     arrivalEstimateSeconds: 60,
     provider: 'Avenia',
 }
@@ -631,6 +637,9 @@ const aveniaNonResidentResponses = (stage: 'enabled' | 'first-use', overrides: R
         usdcAmount: '18.870000',
         rate: '5.339163',
         fixedFeeBrl: '0.75',
+        // Avenia's rate and every fee: 18.87 × 5.38 − 1.52 = 100.00
+        exchangeRate: '5.380000',
+        providerFeeBrl: '1.52',
         minAmountBrl: '5',
     },
     ...overrides,
@@ -649,6 +658,9 @@ const aveniaDepositRead = (overrides: Record<string, unknown> = {}) => ({
     amountBrl: '100.00',
     usdcAmount: '18.237000',
     fixedFeeBrl: '0.75',
+    // Avenia's rate and every fee: (100.00 − 1.52) ÷ 5.40 = 18.237
+    exchangeRate: '5.400000',
+    providerFeeBrl: '1.52',
     codePayable: false,
     ...overrides,
 })
@@ -679,7 +691,13 @@ const AVENIA_PAID_DEPOSIT = {
     ...aveniaPayableDeposit,
     uuid: 'fixture-avenia-deposit-paid',
     status: 'COMPLETED',
-    extraData: { ...aveniaPayableDeposit.extraData, pixDeposit: { codePayable: false, expiresAt: null } },
+    extraData: {
+        ...aveniaPayableDeposit.extraData,
+        pixDeposit: { codePayable: false, expiresAt: null },
+        // settled: Avenia's rate and every fee, (100.00 − 1.52) ÷ 5.40 = 18.237
+        receipt: { exchange_rate: '5.400000' },
+        providerFeeBrl: '1.52',
+    },
 }
 
 /** Merchant Pix codes (valid EMV and CRC): one that leaves the amount to the payer, one with R$42.50, one with R$3. */
@@ -2472,7 +2490,7 @@ export const FIXTURES: Record<string, Fixture> = {
     'pix-withdraw-review': {
         route: `${AVENIA_WITHDRAW_ROUTE}?step=review`,
         sessionStorage: pixWithdrawForm({ destination: AVENIA_OWN_KEY, amountBrl: '503' }),
-        about: "Avenia Pix withdrawal: the one form, the key's holder and bank, the reais over the USD, the rate with the fees in, the flat fee apart.",
+        about: "Avenia Pix withdrawal: the one form, the key's holder and bank, the reais over the USD, Avenia's own rate and every provider fee as one row.",
         responses: aveniaResponses('enabled', {
             'POST /pix/withdraw/preview': {
                 amountBrl: '503.00',
@@ -2483,6 +2501,9 @@ export const FIXTURES: Record<string, Fixture> = {
                 withdrawUsd: '92.504310',
                 rate: '5.445692',
                 fixedFeeBrl: '0.75',
+                // Avenia's rate and every fee: 92.504310 × 5.46 − 2.07 = 503.00
+                exchangeRate: '5.460000',
+                providerFeeBrl: '2.07',
                 arrivalEstimateSeconds: 60,
                 provider: 'Avenia',
             },

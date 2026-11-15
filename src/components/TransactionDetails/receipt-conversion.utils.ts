@@ -1,6 +1,6 @@
 import type { TransactionDetails } from './transactionTransformer'
 import { isFxBearingFlow } from './transaction-predicates'
-import { formatFiatRate } from '@/utils/currency'
+import { formatBankAmount, formatFiatRate } from '@/utils/currency'
 import { formatCurrency, isStableCoin } from '@/utils/general.utils'
 
 /**
@@ -42,6 +42,14 @@ export function receiptExchangeRate(transaction: TransactionDetails): string | u
     if (!rate || !code || code === 'USD' || isStableCoin(code)) return undefined
     if (!isFxBearingFlow(transaction) || transaction.status === 'cancelled') return undefined
     return `1 USD = ${code} ${formatFiatRate(rate)}`
+}
+
+/** "R$0.97": every fee a settled Avenia Pix entry's providers took, shown only beside its rate (the
+ *  API sends both or neither, and a rate with no fee row would not add up to the amounts). */
+export function receiptProviderFee(transaction: TransactionDetails): string | undefined {
+    const fee = transaction.extraDataForDrawer?.providerFeeBrl
+    if (!fee || !receiptExchangeRate(transaction)) return undefined
+    return formatBankAmount(fee, 'BRL')
 }
 
 /**

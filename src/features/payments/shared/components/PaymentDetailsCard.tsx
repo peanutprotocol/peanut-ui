@@ -14,11 +14,11 @@ import { formatFiatRate } from '@/utils/currency'
  * same card for the Pix-key payment and the Pix withdrawal (ruling
  * 2026-11-12, providers are cattle); each flow passes the rows it has:
  *
- * - Exchange rate (i): always.
+ * - Exchange rate (i): always, except where the provider states none (left out: no row).
  * - Savings vs card (i): the payment, when the card markup gives a saving.
  * - Peanut fee: always "Sponsored by Peanut!" (zero on both flows).
- * - Provider fee: when the quote carries a flat fee (Avenia's R$0.75); hidden
- *   when it does not (Manteca charges none).
+ * - Provider fee: every fee Avenia's quote names (`providerFeeBrl`); hidden
+ *   when it names none (Manteca charges none).
  * - Bank receives / Total: the withdrawal, the exact reais and the exact
  *   wallet debit its quote names; each row waits while the quote is in flight.
  * - Provider (?): when the route names one.
@@ -31,8 +31,8 @@ export function PaymentDetailsCard({
     total,
     providerId,
 }: {
-    /** The local currency per USD, as the quote gives it, and the currency's code; null while no quote is in hand. */
-    rate: { price: number; code: string } | null
+    /** The local currency per USD, as the quote gives it, and the currency's code; null while no quote is in hand, left out shows no row. */
+    rate: { price: number; code: string } | null | undefined
     /** The USD saved against a foreign card, formatted, with the currency the comparison is for. */
     savings?: { usd: string; currencyCode: string } | null
     /** The provider's flat fee, formatted ("R$0.75"); null or undefined shows no row. */
@@ -49,14 +49,15 @@ export function PaymentDetailsCard({
     const tPix = useTranslations('pix.withdraw')
     const tWithdraw = useTranslations('withdraw')
 
-    const rows: Array<{ key: string; label: ReactNode; value: ReactNode; moreInfoText?: string; loading?: boolean }> = [
-        {
+    const rows: Array<{ key: string; label: ReactNode; value: ReactNode; moreInfoText?: string; loading?: boolean }> =
+        []
+    if (rate !== undefined)
+        rows.push({
             key: 'rate',
             label: t('info.exchangeRate'),
             value: rate ? `1 USD = ${formatFiatRate(rate.price)} ${rate.code.toUpperCase()}` : '',
             moreInfoText: tCommon('exchangeRateInfo'),
-        },
-    ]
+        })
     if (savings) {
         rows.push({
             key: 'savings',

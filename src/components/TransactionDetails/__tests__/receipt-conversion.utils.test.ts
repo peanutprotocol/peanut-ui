@@ -4,6 +4,7 @@ import {
     receiptConversionLine,
     receiptConvertedAmount,
     receiptExchangeRate,
+    receiptProviderFee,
 } from '../receipt-conversion.utils'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import type { TransactionDetails } from '../transactionTransformer'
@@ -43,6 +44,30 @@ describe('receiptConvertedAmount', () => {
     it('is no conversion for USD or a USD stablecoin', () => {
         expect(receiptConvertedAmount({ currency: { code: 'USD', amount: '5' } })).toBeUndefined()
         expect(receiptConvertedAmount({ tokenSymbol: 'USDC', tokenAmount: '5' })).toBeUndefined()
+    })
+})
+
+describe('receiptProviderFee', () => {
+    const avenia = (drawer: Record<string, unknown>) =>
+        eurDeposit({
+            currency: { code: 'BRL', amount: '20.00' },
+            extraDataForDrawer: {
+                originalType: 'TRANSACTION_INTENT',
+                originalUserRole: EHistoryUserRole.RECIPIENT,
+                kind: 'ONRAMP',
+                ...drawer,
+            },
+        })
+
+    it('prints every fee in reais beside the rate', () => {
+        const tx = avenia({ receipt: { exchange_rate: '5.728962' }, providerFeeBrl: '0.97' })
+        expect(receiptExchangeRate(tx)).toBe('1 USD = BRL 5.73')
+        expect(receiptProviderFee(tx)).toBe('R$0.97')
+    })
+
+    it('prints no fee without the rate, nor a rate-only entry’s fee', () => {
+        expect(receiptProviderFee(avenia({ providerFeeBrl: '0.97' }))).toBeUndefined()
+        expect(receiptProviderFee(avenia({ receipt: { exchange_rate: '5.728962' } }))).toBeUndefined()
     })
 })
 

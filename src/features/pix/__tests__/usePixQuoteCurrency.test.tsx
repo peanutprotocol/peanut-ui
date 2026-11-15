@@ -42,6 +42,37 @@ describe('usePixQuoteCurrency', () => {
     )
     beforeEach(() => jest.clearAllMocks())
 
+    // The owner, 15 Nov, "Option A": the rate row is the quote's exchangeRate; the field still converts with
+    // amount ÷ USDC (R$5 ÷ 1.0118 = 4.94), and the fee is the user's only on the typed amount's quote
+    it('names the quote’s rate and fee apart from the price the field converts with', async () => {
+        mockQuote.mockImplementation(async (request: { amountBrl?: string }) =>
+            request.amountBrl === '106.75'
+                ? { ...TYPED, exchangeRate: '5.400000', providerFeeBrl: '1.36' }
+                : { ...WITHDRAW_MINIMUM, usdcAmount: '1.011800', exchangeRate: '5.370000', providerFeeBrl: '0.43' }
+        )
+        const { result, rerender } = renderHook(
+            ({ typed }: { typed?: string }) => usePixQuoteCurrency('withdraw', typed, '5', true),
+            { wrapper, initialProps: { typed: undefined as string | undefined } }
+        )
+        await waitFor(() => expect(result.current.rateAndFee).toEqual({ exchangeRate: 5.37, providerFeeBrl: '0.43' }))
+        expect(result.current.quotesTypedAmount).toBe(false)
+        expect(result.current.price!.sell).toBeCloseTo(4.9417, 3)
+
+        rerender({ typed: '106.75' })
+        await waitFor(() => expect(result.current.quotesTypedAmount).toBe(true))
+        expect(result.current.rateAndFee).toEqual({ exchangeRate: 5.4, providerFeeBrl: '1.36' })
+        expect(result.current.price!.sell).toBeCloseTo(106.75 / 20.020325, 6)
+    })
+
+    it('has no rate and fee while the quote loads, and null when it sends neither', async () => {
+        let answer!: (quote: unknown) => void
+        mockQuote.mockReturnValue(new Promise((resolve) => (answer = resolve)))
+        const { result } = renderHook(() => usePixQuoteCurrency('withdraw', undefined, '5', true), { wrapper })
+        expect(result.current.rateAndFee).toBeUndefined()
+        answer(WITHDRAW_MINIMUM)
+        await waitFor(() => expect(result.current.rateAndFee).toBeNull())
+    })
+
     it("prices the route's minimum before an amount is typed: no whole-balance quote, no eligibility read", async () => {
         mockQuote.mockResolvedValue(WITHDRAW_MINIMUM)
         const { result } = renderHook(() => usePixQuoteCurrency('withdraw', undefined, '5', true), { wrapper })

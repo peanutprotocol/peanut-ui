@@ -10,7 +10,9 @@ const mockRouter = { push: jest.fn(), replace: jest.fn(), back: jest.fn() }
 jest.mock('next/navigation', () => ({ useRouter: () => mockRouter }))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ fetchUser: jest.fn() }) }))
-jest.mock('@/features/pix/usePixQuoteCurrency', () => ({ usePixQuoteCurrency: () => null }))
+jest.mock('@/features/pix/usePixQuoteCurrency', () => ({
+    usePixQuoteCurrency: () => ({ code: 'BRL', price: null, rateAndFee: null, quotesTypedAmount: false }),
+}))
 jest.mock('@/components/Provider/ProviderFinePrint', () => ({ ProviderFinePrint: () => null }))
 jest.mock('@/components/AddMoney/components/InputAmountStep', () => ({ __esModule: true, default: () => null }))
 // the success screen of a paid code: its Done button is the flow's onDone

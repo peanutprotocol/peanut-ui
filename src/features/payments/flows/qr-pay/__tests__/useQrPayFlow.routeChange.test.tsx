@@ -553,3 +553,33 @@ describe('an Avenia payment waits on its review while the passkey is open', () =
         expect(mockPixApi.reportPaymentFunding).toHaveBeenCalledWith('pay-1', `0x${'cd'.repeat(32)}`)
     })
 })
+
+// The owner, 15 Nov, "Option A": an Avenia QR review shows Avenia's own rate and every fee as one row, or
+// neither row; never the all-in rate, the market rate or the flat fee alone. Manteca's QR form is unchanged.
+describe("an Avenia QR review shows Avenia's rate and every fee", () => {
+    const rows = () =>
+        mockSurface as unknown as { shownRate: number | null; hideRate: boolean; providerFee: string | null }
+
+    beforeEach(() => {
+        mockRoutes = [payRoute('avenia')]
+    })
+
+    it('the review’s exchangeRate and providerFeeBrl, not the all-in rate and the flat fee', async () => {
+        // 8.062211 × 5.40 − 1.04 = R$42.50
+        mockPixApi.previewPayment.mockResolvedValue({ ...review, exchangeRate: '5.400000', providerFeeBrl: '1.04' })
+        renderScan()
+        await screen.findByText('Payment form')
+        await waitFor(() => expect(rows().shownRate).toBe(5.4))
+        expect(rows().hideRate).toBe(false)
+        expect(rows().providerFee).toBe('R$1.04')
+    })
+
+    it('neither row when the review carries no pair', async () => {
+        mockPixApi.previewPayment.mockResolvedValue(review)
+        renderScan()
+        await screen.findByText('Payment form')
+        await waitFor(() => expect(mockPixApi.previewPayment).toHaveBeenCalled())
+        await waitFor(() => expect(rows().hideRate).toBe(true))
+        expect(rows().providerFee).toBeNull()
+    })
+})

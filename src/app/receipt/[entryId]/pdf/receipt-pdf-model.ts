@@ -11,6 +11,7 @@ import {
     isSettledConversion,
     receiptConvertedAmount,
     receiptExchangeRate,
+    receiptProviderFee,
 } from '@/components/TransactionDetails/receipt-conversion.utils'
 import { maskAccountIdentifier } from '@/utils/account-mask.utils'
 import { formatPixKey } from '@/utils/pix-key-format.utils'
@@ -162,6 +163,7 @@ export function buildReceiptPdfModel(
 
     // Money, the provider last (receipt-rows ruling)
     push(t('common.exchangeRate'), receiptExchangeRate(transaction))
+    push(t('pix.withdraw.fee'), receiptProviderFee(transaction))
 
     // The network fee a crypto withdrawal settled, and what arrived. Only a
     // charged fee is printed: the document records what happened, and a

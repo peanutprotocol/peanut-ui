@@ -60,6 +60,8 @@ const QUOTED = {
     code: 'BRL',
     symbol: 'R$',
     price: { sell: 5.4, buy: 5.5 },
+    rateAndFee: { exchangeRate: 5.37, providerFeeBrl: '0.98' },
+    quotesTypedAmount: false,
     isLoading: false,
     isError: false,
     refetch: jest.fn(),
@@ -531,6 +533,9 @@ describe('PixWithdrawFlow form', () => {
         withdrawUsd: '92.504310',
         rate: '5.445692',
         fixedFeeBrl: '0.75',
+        // Avenia's own rate and every fee: 92.504310 × 5.46 − 2.07 = R$503.00
+        exchangeRate: '5.460000',
+        providerFeeBrl: '2.07',
         arrivalEstimateSeconds: 60,
         provider: 'Avenia' as const,
     }
@@ -589,7 +594,7 @@ describe('PixWithdrawFlow form', () => {
     })
 
     // the Pix-key payment form, with Withdrawing and Confirm (ruling 2026-11-12, providers are cattle)
-    it('is the payment form: Withdrawing, the holder and bank, the rate, the sponsored Peanut fee, the provider fee apart, no savings row', async () => {
+    it('is the payment form: Withdrawing, the holder and bank, Avenia’s rate, the sponsored Peanut fee, every provider fee as one row, no savings row', async () => {
         mockPreview.mockResolvedValue(display)
         withForm(REVIEW_FORM)
         renderAt('?step=review')
@@ -597,10 +602,11 @@ describe('PixWithdrawFlow form', () => {
         expect(screen.getByText(en.pix.withdraw.withdrawing)).toBeInTheDocument()
         expect(await screen.findByText('Ana Souza')).toBeInTheDocument()
         expect(screen.getByText('Banco Inter')).toBeInTheDocument()
-        expect(screen.getByText('1 USD = 5.45 BRL')).toBeInTheDocument()
+        expect(await screen.findByText('1 USD = 5.46 BRL')).toBeInTheDocument()
         expect(screen.getByText(en.common.sponsoredByPeanut)).toBeInTheDocument()
         expect(screen.getByText(en.pix.withdraw.fee)).toBeInTheDocument()
-        expect(screen.getByText('R$0.75')).toBeInTheDocument()
+        expect(screen.getByText('R$2.07')).toBeInTheDocument()
+        expect(screen.queryByText('R$0.75')).toBeNull()
         expect(screen.queryByText(en.qrPay.info.saveVsCard)).toBeNull()
         expect(screen.queryByText(en.withdraw.bank.arrives)).toBeNull()
         // "Save to favorites", as the payment form offers it, named after the holder
@@ -658,14 +664,19 @@ describe('PixWithdrawFlow form', () => {
         expect(screen.getByText('$50')).toBeInTheDocument()
     })
 
-    // a provider whose fees all sit in the rate sends a zero flat fee: no fee row
-    it('shows no provider fee row for a quote without one', async () => {
-        mockPreview.mockResolvedValue({ ...display, fixedFeeBrl: '0', bankName: null, provider: 'Manteca' })
+    // the API sends the pair only where it is proven: Avenia's review then shows neither row, never the
+    // all-in rate or the flat fee alone
+    it('shows neither the rate nor the fee row for an Avenia review without the pair', async () => {
+        const { exchangeRate: _rate, providerFeeBrl: _fee, ...withoutPair } = display
+        mockPreview.mockResolvedValue(withoutPair)
         withForm(REVIEW_FORM)
         renderAt('?step=review')
 
-        expect(await screen.findByText('1 USD = 5.44 BRL')).toBeInTheDocument()
+        expect(await screen.findByText('Ana Souza')).toBeInTheDocument()
+        await waitFor(() => expect(screen.getByText('$92.50')).toBeInTheDocument())
+        expect(screen.queryByText(/^1 USD =/)).toBeNull()
         expect(screen.queryByText(en.pix.withdraw.fee)).toBeNull()
+        expect(screen.queryByText('R$0.75')).toBeNull()
     })
 
     it('holds Confirm while the amount changes and until its quote arrives, then shows the exact total and keeps the amount', async () => {
