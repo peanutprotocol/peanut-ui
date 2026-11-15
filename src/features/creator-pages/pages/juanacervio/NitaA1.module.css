@@ -1,0 +1,57 @@
+/* Variant A1: what Tailwind utilities do not cover — the pinned button bar, the safe-area insets and the narrowest phones. */
+
+.sticky {
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 30;
+    margin-inline: auto;
+    max-width: 30rem;
+    padding: 0.75rem 1rem calc(0.75rem + 0.25rem + env(safe-area-inset-bottom));
+    border-top: 2px solid var(--color-border-default);
+    background: var(--color-background-page);
+    transition:
+        transform var(--transition-duration-moderate) var(--ease-sharp),
+        visibility 0s;
+}
+
+/* Hidden: slid out, and out of the tab order once the slide ends. */
+.sticky[data-state='hidden'],
+.sticky[data-state='auto'] {
+    transform: translateY(100%);
+    visibility: hidden;
+    transition:
+        transform var(--transition-duration-moderate) var(--ease-sharp),
+        visibility 0s var(--transition-duration-moderate);
+}
+
+/* Before hydration: on a viewport too short to show the in-card button, the bar is there at first paint. */
+@media (max-height: 40rem) {
+    .sticky[data-state='auto'] {
+        transform: none;
+        visibility: visible;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sticky,
+    .sticky[data-state='hidden'],
+    .sticky[data-state='auto'] {
+        transition: none;
+    }
+}
+
+.closeFold {
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+}
+
+/* Under 360px the sitting mascot would cover the headline: it shrinks and the text keeps clear of it. */
+@media (max-width: 22.5rem) {
+    .mascot {
+        width: 4.5rem;
+    }
+
+    .besideMascot {
+        max-width: calc(100% - 5.5rem);
+    }
+}
