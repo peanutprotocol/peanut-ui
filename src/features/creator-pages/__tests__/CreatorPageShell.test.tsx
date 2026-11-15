@@ -12,7 +12,7 @@ jest.mock('next/headers', () => ({
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 jest.mock('@/features/tracked-links/eligibility', () => ({ trackedLinkAnalyticsAllowed: () => false }))
 
-const labels = { ios: 'Abrir en App Store', android: 'Abrir en Google Play', other: 'Bajar Peanut' }
+const labels = { ios: 'Abrir en el App Store', android: 'Abrir en Google Play', other: 'Bajar Peanut' }
 
 /** The shell is an async server component: resolve it as the server does, then mount what it returns. */
 async function renderShell(userAgent: string | null) {
@@ -22,7 +22,7 @@ async function renderShell(userAgent: string | null) {
             page: creatorPageFixture('juanacervio', 'g2'),
             lang: 'es-AR',
             className: 'shell',
-            children: <CreatorPageCta labels={labels} showStoreIcon position="hero" />,
+            children: <CreatorPageCta labels={labels} position="hero" />,
         })
     )
 }
@@ -37,7 +37,7 @@ describe('CreatorPageShell', () => {
 
     // jsdom's own navigator.userAgent names no phone, so a matching label can only come from the request header.
     it.each([
-        [USER_AGENTS.instagramIos, 'Abrir en App Store', true],
+        [USER_AGENTS.instagramIos, 'Abrir en el App Store', true],
         [USER_AGENTS.instagramAndroid, 'Abrir en Google Play', true],
         [USER_AGENTS.safariIpad, 'Bajar Peanut', false],
         [null, 'Bajar Peanut', false],

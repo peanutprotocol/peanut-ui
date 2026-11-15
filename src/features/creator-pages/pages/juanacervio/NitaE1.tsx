@@ -153,7 +153,6 @@ export function NitaE1(props: CreatorPageProps) {
                         <CreatorPageCta
                             className={`btn btn-primary ${styles.cta}`}
                             labels={copy.cta}
-                            showStoreIcon
                             position="sticky"
                         />
                         {dockNote}

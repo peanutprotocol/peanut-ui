@@ -21,7 +21,7 @@ jest.mock('@/utils/signup-attribution', () => ({
 
 const capture = posthog.capture as jest.Mock
 const page = creatorPageFixture('juanacervio', 'a1')
-const labels = { ios: 'Abrir en App Store', android: 'Abrir en Google Play', other: 'Bajar Peanut' }
+const labels = { ios: 'Abrir en el App Store', android: 'Abrir en Google Play', other: 'Bajar Peanut' }
 
 function renderCta(deviceOs: DeviceOs, props: Partial<Parameters<typeof CreatorPageCta>[0]> = {}) {
     return render(
@@ -56,7 +56,7 @@ beforeEach(() => {
 describe('CreatorPageCta', () => {
     it('is a same-tab link to the engine href, unchanged', () => {
         renderCta('ios')
-        const link = screen.getByRole('link', { name: 'Abrir en App Store' })
+        const link = screen.getByRole('link', { name: 'Abrir en el App Store' })
         expect(link.getAttribute('href')).toBe(page.ctaHref)
         expect(link).not.toHaveAttribute('target')
         expect(link).toHaveClass('cta')
@@ -70,10 +70,9 @@ describe('CreatorPageCta', () => {
         expect(screen.getByRole('link', { name: label })).toBeInTheDocument()
     })
 
-    it('shows a store icon only when asked and only on a phone, at a size .btn cannot override', () => {
-        expect(renderCta('ios').container.querySelector('svg')).toBeNull()
-        expect(renderCta('other', { showStoreIcon: true }).container.querySelector('svg')).toBeNull()
-        const icon = renderCta('ios', { showStoreIcon: true }).container.querySelector('svg')!
+    it('shows a store icon only on a phone, at a size .btn cannot override', () => {
+        expect(renderCta('other').container.querySelector('svg')).toBeNull()
+        const icon = renderCta('ios').container.querySelector('svg')!
         // `custom-size` is the opt-out of `.btn svg:not(.custom-size)` in globals.css.
         expect(icon).toHaveClass('custom-size')
         expect(icon).toHaveAttribute('width', '24')

@@ -77,7 +77,7 @@ describe('creator page variants', () => {
         '%s/%s has the store label and icon of the device in the server HTML',
         async (username, variant) => {
             const ios = await serverRender(username, variant, USER_AGENTS.instagramIos)
-            for (const link of ios.links) expect(link).toMatchObject({ text: 'Abrir en App Store', hasIcon: true })
+            for (const link of ios.links) expect(link).toMatchObject({ text: 'Abrir en el App Store', hasIcon: true })
             expect(ios.html).not.toContain('Google Play')
 
             const android = await serverRender(username, variant, USER_AGENTS.instagramAndroid)

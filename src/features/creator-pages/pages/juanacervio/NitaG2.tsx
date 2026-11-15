@@ -30,12 +30,7 @@ export function NitaG2(props: CreatorPageProps) {
                         <em className={styles.accent}>{copy.headlineAccent}</em>
                     </h1>
                     <p className={styles.benefit}>{copy.benefit}</p>
-                    <CreatorPageCta
-                        className={`btn btn-primary ${styles.cta}`}
-                        labels={copy.cta}
-                        showStoreIcon
-                        position="hero"
-                    />
+                    <CreatorPageCta className={`btn btn-primary ${styles.cta}`} labels={copy.cta} position="hero" />
                     <div className={styles.foot}>
                         <p className={styles.invite}>{copy.invite}</p>
                         <p className={styles.legal}>

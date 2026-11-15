@@ -12,12 +12,10 @@ import type { CtaPosition } from './events'
 export function CreatorPageCta({
     className,
     labels,
-    showStoreIcon = false,
     position,
 }: {
     className?: string
     labels: { ios: string; android: string; other: string }
-    showStoreIcon?: boolean
     /** Goes on the click event as `cta_position`. */
     position: CtaPosition
 }) {
@@ -34,7 +32,7 @@ export function CreatorPageCta({
                 if (!preview) captureCreatorPageCtaClick(page, experimentId, position)
             }}
         >
-            {showStoreIcon && StoreIcon && (
+            {StoreIcon && (
                 // `custom-size` opts out of `.btn svg:not(.custom-size)` in globals.css, which forces 18px
                 // and adds a margin. The mark is then 24px, the DS size for a large labelled button,
                 // and the page's own gap is the only space between it and the label.

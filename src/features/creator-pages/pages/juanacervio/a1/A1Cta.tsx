@@ -11,7 +11,6 @@ export function A1Cta({ position }: { position: CtaPosition }) {
         <CreatorPageCta
             className="btn btn-primary btn-large notranslate h-auto min-h-12 w-full gap-2 py-2 text-center no-underline transition-all duration-instant active:translate-x-1 active:translate-y-1 active:shadow-none"
             labels={copy.cta}
-            showStoreIcon
             position={position}
         />
     )
