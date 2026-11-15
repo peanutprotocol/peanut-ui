@@ -6095,6 +6095,11 @@ export interface paths {
                             extraData?: {
                                 /** @description The intent’s own status, finer than the entry’s status. On a withdrawal: AWAITING_USER_ACTION is not signed yet, PROCESSING is signed and not confirmed. */
                                 intentStatus?: "PENDING" | "AWAITING_USER_ACTION" | "AWAITING_SETTLEMENT" | "PROCESSING" | "COMPLETED" | "FAILED" | "CANCELLED" | "REFUNDED";
+                                /**
+                                 * @description How the money moved, where the intent records it exactly: PIX on an Avenia deposit, withdrawal, key send or QR payment, and on a Manteca BRL deposit or withdrawal or Pix QR payment, in every status. Absent on everything else, refunds included.
+                                 * @enum {string}
+                                 */
+                                paymentMethod?: "PIX";
                                 /** @description A Pix deposit, on a Pix deposit only and for its owner only. `codePayable`: the code can still be paid, so the receipt offers to open it again (GET /pix/deposit/:intentId). */
                                 pixDeposit?: {
                                     codePayable: boolean;
