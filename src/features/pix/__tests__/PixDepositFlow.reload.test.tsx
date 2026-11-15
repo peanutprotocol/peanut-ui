@@ -6,6 +6,7 @@ import { renderWithIntl } from '@/test-utils/intl'
 import type { CapabilityRoute } from '@/types/capabilities'
 import { pixDepositQueryKey } from '../pixDepositCode'
 import { ApiError } from '@/services/api-error'
+import en from '@/i18n/app/messages/en.json'
 
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn(), useReturnTo: () => jest.fn() }))
@@ -21,15 +22,18 @@ jest.mock('@/components/AddMoney/components/InputAmountStep', () => ({
         onSubmit,
         setCurrencyAmount,
         validationError,
+        error,
     }: {
         onSubmit: () => void
         setCurrencyAmount: (v: string) => void
         validationError?: string | null
+        error?: string | null
     }) => (
         <div data-testid="amount-step">
             <button onClick={() => setCurrencyAmount('100')}>type</button>
             <button onClick={onSubmit}>submit</button>
             {validationError && <p>{validationError}</p>}
+            {error && <p>{error}</p>}
         </div>
     ),
 }))
@@ -169,5 +173,22 @@ describe('PixDepositFlow and the URL', () => {
 
         await waitFor(() => expect(mockFetchUser).toHaveBeenCalled())
         expect(screen.queryByTestId('code-step')).toBeNull()
+    })
+
+    // ruled 2026-11-14: no BRL deposit for a resident of another country; the refusal names support (M5)
+    it('a deposit refused for the residence says so and names support, with no "try again"', async () => {
+        mockCreate.mockRejectedValue(
+            new ApiError('BRL deposits are not available in your country of residence.', {
+                status: 422,
+                code: 'PIX_RESIDENCE_NOT_SUPPORTED',
+            })
+        )
+        renderAt('')
+        fireEvent.click(screen.getByText('type'))
+        fireEvent.click(screen.getByText('submit'))
+
+        expect(await screen.findByText(en.pix.residenceNotServed)).toBeInTheDocument()
+        expect(en.pix.residenceNotServed).toMatch(/support/i)
+        expect(screen.queryByText(en.pix.unavailable)).toBeNull()
     })
 })

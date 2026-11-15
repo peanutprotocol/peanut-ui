@@ -1363,7 +1363,7 @@
         }
     },
     "pix": {
-        "residenceNotServed": "Pix no se ofrece donde vivís.",
+        "residenceNotServed": "Pix no se ofrece donde vivís. Escribinos a soporte si tenés preguntas.",
         "payResidence": "Los pagos con Pix aún no están disponibles donde vivís.",
         "unavailable": "Pix no está disponible en este momento. Intentá de nuevo pronto.",
         "setup": {
