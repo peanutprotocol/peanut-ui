@@ -2598,6 +2598,14 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/limits/manteca',
         about: "A user whose Pix routes name Avenia (M5): Avenia's monthly room for BRL, Pix in and Pix out, in place of Manteca's old BRL limit.",
         responses: aveniaResponses('enabled', {
+            // inside the QR gate too: every Pix route, the pay route included, names Avenia
+            'GET /users/me': {
+                ...aveniaResponses('enabled')['GET /users/me'],
+                capabilities: {
+                    ...aveniaResponses('enabled')['GET /users/me'].capabilities,
+                    routes: [...aveniaRoutes('enabled'), aveniaPayRoute({ state: 'ready' })],
+                },
+            },
             'GET /users/limits': {
                 manteca: [
                     {
