@@ -1,6 +1,7 @@
 import { SUPPORTED_LOCALES } from '@/i18n/types'
 import { LEGAL_POLICIES } from '@/constants/legal-policies'
 import publicAttributionPaths from '@/constants/signup-attribution-paths.generated.json'
+import { cleanHost, cleanMarketingValue, cleanValue } from './attribution-values'
 import { getFromCookie, saveToCookie } from './cookie-url.utils'
 import posthog from 'posthog-js'
 import { isAnalyticsCaptureBuild, posthogProjectKey } from './posthog-setup'
@@ -9,7 +10,6 @@ import { isTrackedLinkEntry, trackedLinkAnalyticsAllowed } from '@/features/trac
 export const SIGNUP_ATTRIBUTION_COOKIE = 'signupAttribution'
 export const SIGNUP_ATTRIBUTION_SCHEMA_VERSION = '1'
 const SIGNUP_ATTRIBUTION_EXPIRY_DAYS = 90
-const MAX_VALUE_LENGTH = 128
 const MAX_PATH_LENGTH = 512
 const MAX_SERIALIZED_ATTRIBUTION_LENGTH = 4096
 // Browser limits vary around 4 KiB and some count cookie attributes too.
@@ -20,10 +20,6 @@ const NATIVE_STORAGE_KEY = 'signup-attribution'
 const PENDING_SIGNUP_KEY = 'signup-attribution-pending'
 const MAX_TOUCH_AGE_MS = 180 * 24 * 60 * 60 * 1000
 const MAX_TOUCH_FUTURE_MS = 24 * 60 * 60 * 1000
-const MARKETING_VALUE_PATTERN = /^[A-Za-z0-9][-A-Za-z0-9 ._~+]*$/
-const UUID_VALUE_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-const WALLET_VALUE_PATTERN = /^0x[0-9a-f]{40}$/i
-const IPV4_VALUE_PATTERN = /^(?:\d{1,3}\.){3}\d{1,3}$/
 // Keep old serialized journeys readable when their article has since been retired.
 // New browser captures use the exact sitemap inventory below.
 const LEGACY_PUBLIC_PATH_PATTERN =
@@ -56,37 +52,6 @@ export interface SignupAttributionContext {
     firstTouch: SignupAttributionTouch
     firstContentTouch?: SignupAttributionTouch
     lastTouch?: SignupAttributionTouch
-}
-
-function cleanValue(value: string | null | undefined, maxLength = MAX_VALUE_LENGTH): string | undefined {
-    if (!value) return undefined
-    const cleaned = value.replace(/[\u0000-\u001f\u007f]/g, '').trim()
-    return cleaned.length > 0 && cleaned.length <= maxLength ? cleaned : undefined
-}
-
-function cleanMarketingValue(value: string | null | undefined): string | undefined {
-    const cleaned = cleanValue(value)
-    if (
-        !cleaned ||
-        !MARKETING_VALUE_PATTERN.test(cleaned) ||
-        cleaned.includes('@') ||
-        cleaned.includes('://') ||
-        cleaned.toLowerCase().startsWith('www.') ||
-        UUID_VALUE_PATTERN.test(cleaned) ||
-        WALLET_VALUE_PATTERN.test(cleaned)
-    )
-        return undefined
-    return cleaned
-}
-
-function cleanHost(value: string | null | undefined): string | undefined {
-    const cleaned = cleanValue(value, 255)?.toLowerCase()
-    if (!cleaned || !/^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?(?::\d{1,5})?$/.test(cleaned)) return undefined
-    const hostname = cleaned.replace(/:\d{1,5}$/, '')
-    if (UUID_VALUE_PATTERN.test(hostname) || WALLET_VALUE_PATTERN.test(hostname) || IPV4_VALUE_PATTERN.test(hostname)) {
-        return undefined
-    }
-    return cleaned
 }
 
 // Native bundles can predate an article or outlive its publication. Match the
