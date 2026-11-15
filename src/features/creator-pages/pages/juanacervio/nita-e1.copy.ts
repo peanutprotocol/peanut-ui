@@ -10,7 +10,8 @@ export const NITA_E1_COPY = {
     // "Nita × Peanut · for getting paid from abroad" (not first person: only the quoted post is in her voice)
     chip: 'Nita × Peanut · para cobrar de afuera',
     // "Get paid from / abroad in / USD and EUR" (three poster lines; the second is purple).
-    // The page draws these lines from outlines: after a change here, run e1/outline-lettering.mjs.
+    // The page draws these lines from outlines. After a change here, redraw them with the script in
+    // mono: engineering/ui/creator-pages/e1-lettering/README.md.
     headline: ['Cobrá de', 'afuera en', 'USD y EUR'] satisfies E1LetteringText[],
     // "Portrait of Nita" (alt text of the cut-out portrait)
     portraitAlt: 'Retrato de Nita',
@@ -48,8 +49,8 @@ export const NITA_E1_COPY = {
     // "Nita uses Peanut. Page made by Peanut." (the same line on all three of her pages; "recommends" would be
     // a claim her post does not make)
     disclosure: 'Nita usa Peanut. Página hecha por Peanut.',
-    // "Peanut is not a bank."
-    notABank: 'Peanut no es un banco.',
+    // "Peanut is not a bank." (the no-break space keeps "banco." off a line of its own)
+    notABank: 'Peanut no es un\u00a0banco.',
     how: {
         // "How it works"
         label: 'Cómo funciona',
@@ -65,9 +66,9 @@ export const NITA_E1_COPY = {
             {
                 // "You verify your identity"
                 title: 'Verificás tu identidad',
-                // "With that you can open your USD and EUR accounts and see the bank details."
-                // (verifying lets you open the accounts; it does not hand the details over)
-                body: 'Con eso podés abrir tus cuentas en USD y EUR y ver los datos bancarios.',
+                // "After that you can request your USD and EUR accounts and see the bank details."
+                // (verifying comes first; the accounts do not open at approval, you ask for them)
+                body: 'Después podés pedir tus cuentas en USD y EUR y ver los datos bancarios.',
             },
             {
                 // "You give the details to your client"
@@ -79,8 +80,8 @@ export const NITA_E1_COPY = {
             {
                 // "You spend in Argentina"
                 title: 'Gastás en Argentina',
-                // "You pay a Mercado Pago QR from your balance."
-                body: 'Pagás un QR de Mercado Pago desde el saldo.',
+                // "You pay a Mercado Pago QR with the balance." ("con el saldo", as on her other pages)
+                body: 'Pagás un QR de Mercado Pago con el\u00a0saldo.',
             },
         ],
     },
@@ -89,11 +90,16 @@ export const NITA_E1_COPY = {
         label: 'Este link',
         // "Nita's invitation"
         title: 'Invitación de Nita',
-        // "Download Peanut from here and you join with her invitation."
-        body: 'Bajá Peanut desde acá y entrás con su invitación.',
+        // "Download Peanut from here and the app already knows Nita invited you." (sign-up is open to
+        // everyone: the invitation is attribution, not a way in)
+        body: 'Bajá Peanut desde acá y la app ya sabe que te invitó\u00a0Nita.',
     },
-    // "Nita · Juana Cervio" (alt text of her wordmark)
-    wordmarkAlt: 'Nita · Juana Cervio',
+    // "Nita • Juana Cervio" (alt text of her wordmark; her display name as she writes it)
+    wordmarkAlt: 'Nita • Juana Cervio',
     // "To pay by QR you have to verify your identity."
     fine: 'Para pagar con QR tenés que verificar tu identidad.',
+    // "The quote is word for word, from a post by Nita on X (Nov 2026). Where it says […] it is cut.
+    // Peanut added the highlights."
+    quoteNote:
+        'La cita es textual, de un post de Nita en X (nov. 2026). Donde dice […] está recortada. Los resaltados los agregó Peanut.',
 }

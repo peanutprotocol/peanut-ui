@@ -4,11 +4,12 @@ import { CreatorPageCta } from '../../CreatorPageCta'
 import { CreatorPageShell } from '../../CreatorPageShell'
 import type { CreatorPageVariantProps } from '../../variant-props'
 import { E1Lettering } from './e1/E1Lettering'
+import tears from './e1/torn-edges.module.css'
 import { NITA_E1_COPY as copy } from './nita-e1.copy'
 import styles from './NitaE1.module.css'
 
 const ASSETS = '/creator-pages/juanacervio'
-const STEP_TEARS = [styles.tornStep, styles.tornStep2, styles.tornStep3]
+const STEP_TEARS = [tears.tornStep, tears.tornStep2, tears.tornStep3]
 
 /** Nita's page, variant E1: a poster in her own collage style, with her real post taped on it. */
 export function NitaE1(props: CreatorPageVariantProps) {
@@ -44,9 +45,9 @@ export function NitaE1(props: CreatorPageVariantProps) {
                     />
 
                     <figure className={styles.tweet}>
-                        <span className={`${styles.tapeShape} ${styles.tape} ${styles.tapeTweet}`} aria-hidden />
+                        <span className={`${tears.tapeShape} ${styles.tape} ${styles.tapeTweet}`} aria-hidden />
                         <figcaption className={styles.who}>
-                            <Image src={`${ASSETS}/e1-nita-avatar.webp`} alt="" width={96} height={96} />
+                            <Image src={`${ASSETS}/e1-nita-avatar.webp`} alt="" width={192} height={192} sizes="80px" />
                             <span>
                                 <b>{copy.post.name}</b>
                                 <i>{copy.post.meta}</i>
@@ -78,7 +79,7 @@ export function NitaE1(props: CreatorPageVariantProps) {
                             sizes="113px"
                             className={styles.sticker}
                         />
-                        <span className={`${styles.tapeShape} ${styles.tape} ${styles.tapeSticker}`} aria-hidden />
+                        <span className={`${tears.tapeShape} ${styles.tape} ${styles.tapeSticker}`} aria-hidden />
                         <div className={styles.guest}>
                             <Image src={LOGO_LOCKUP} alt={copy.peanutAlt} />
                         </div>
@@ -107,7 +108,7 @@ export function NitaE1(props: CreatorPageVariantProps) {
                                 <span className={`${styles.cond} ${styles.stepNumber}`} aria-hidden>
                                     {String(index + 1).padStart(2, '0')}
                                 </span>
-                                <b className={styles.cond}>{title}</b>
+                                <h3 className={styles.cond}>{title}</h3>
                                 <p>{body}</p>
                             </li>
                         ))}
@@ -141,13 +142,14 @@ export function NitaE1(props: CreatorPageVariantProps) {
                         {copy.disclosure} <b>{copy.notABank}</b>
                     </p>
                     <p className={styles.fine}>{copy.fine}</p>
+                    <p className={styles.fine}>{copy.quoteNote}</p>
                 </footer>
 
                 {/* Last in the column and sticky: pinned to the bottom of the visible viewport on every
                     screen of the scroll, and at rest it is the page's closing button. */}
                 <div className={styles.dock}>
                     <div className={styles.dockPaper} aria-hidden>
-                        <div className={styles.tornStrip} />
+                        <div className={tears.tornStrip} />
                     </div>
                     <div className={styles.dockIn}>
                         <CreatorPageCta
