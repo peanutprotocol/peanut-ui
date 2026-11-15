@@ -50,6 +50,11 @@ jest.mock('@/features/paperwork-verification/components/LoadScreens', () => ({
     VerificationOutage: () => <div>verification outage</div>,
 }))
 
+const mockOpenSupport = jest.fn()
+jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ openSupportWithMessage: mockOpenSupport }) }))
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: 'u1' } } }) }))
+jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn() }))
+
 import { PixAccountOpening } from '../components/PixAccountOpening'
 
 const renderOpening = () => renderWithIntl(<PixAccountOpening title="Add money" onBack={jest.fn()} />)
@@ -134,6 +139,19 @@ describe('PixAccountOpening', () => {
         mockActivation = { result }
         renderOpening()
         expect(screen.getByText(`activation status ${result.kind}`)).toBeInTheDocument()
+    })
+
+    // API-CONTRACT-M5 §8: the activation answers a user Avenia refused, or could not set up, at once
+    it.each([
+        ['provider_rejected', en.pix.rejected],
+        ['provider_setup_failed', en.pix.setup.notAvailable],
+    ])('a %s refusal shows the Pix refusal screen with Contact support, not a wait', (reason, line) => {
+        mockActivation = { result: { kind: 'report', report: { state: 'refused', reason } } }
+        renderOpening()
+        expect(screen.getByText(line)).toBeInTheDocument()
+        expect(screen.queryByText(/activation status/)).not.toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: en.common.contactSupport }))
+        expect(mockOpenSupport).toHaveBeenCalledWith(expect.stringContaining(reason))
     })
 
     it('shows the verification outage while the checks are degraded', () => {

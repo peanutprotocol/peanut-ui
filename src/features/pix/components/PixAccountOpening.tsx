@@ -9,12 +9,16 @@ import { AddFeatureQuestions } from '@/features/paperwork-verification/AddFeatur
 import { KycFeatureActivationStatus } from '@/features/paperwork-verification/KycFeatureActivationStatus'
 import { VerificationOutage } from '@/features/paperwork-verification/components/LoadScreens'
 import { PixVerifyScreen } from '@/features/pix/components/PixVerifyScreen'
+import { PixUnavailableScreen } from '@/features/pix/components/PixUnavailableScreen'
+import type { CapabilityRoute } from '@/types/capabilities'
 import { useKycFeatureActivation } from '@/features/paperwork-verification/useKycFeatureActivation'
 import { useKycDegraded } from '@/hooks/useKycDegraded'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
 
 // the account is being opened, or the API could not read the user's facts yet: both wait
 const WAITING = new Set(['setting_up', 'pending'])
+// the provider refused the user, or could not set the account up: only support can fix it (API-CONTRACT-M5 §8)
+const PROVIDER_REFUSALS = new Set(['provider_rejected', 'provider_setup_failed'])
 
 /**
  * The account the first Pix use opens, with no tap (Avenia, TASK-24947): the `pix` activation runs as
@@ -25,11 +29,20 @@ const WAITING = new Set(['setting_up', 'pending'])
  * asked the same way; the step just answered asked again shows the failure screen, since an answer
  * cannot change after approval and asking it again would loop. An identity the API does not count
  * as approved gets Pix's own verify screen, not a redirect: Back from /verify would land here and be
- * sent straight back. A failure or a refusal
- * shows the activation's own status screen, in local's words. The route turns ready once the
+ * sent straight back. A refusal by the provider (it rejected the user, or the account could not be
+ * set up) shows Pix's refusal screen with Contact support, at once: no wait, no fall-back to another
+ * provider. Any other failure or refusal shows the activation's own status screen, in local's words. The route turns ready once the
  * account is open, and the flow under the setup renders.
  */
-export function PixAccountOpening({ title, onBack }: { title: string; onBack: () => void }) {
+export function PixAccountOpening({
+    title,
+    route,
+    onBack,
+}: {
+    title: string
+    route?: CapabilityRoute
+    onBack: () => void
+}) {
     const t = useTranslations('pix.setup')
     const tLoading = useTranslations('loadingStates')
     const degraded = useKycDegraded()
@@ -62,6 +75,16 @@ export function PixAccountOpening({ title, onBack }: { title: string; onBack: ()
         )
     if (result?.kind === 'conflict' && result.code === 'identity_not_approved' && !activation.isLoading)
         return <PixVerifyScreen title={title} onBack={onBack} />
+    const refusal = result?.kind === 'report' && result.report.state === 'refused' ? result.report.reason : undefined
+    if (refusal && PROVIDER_REFUSALS.has(refusal) && !activation.isLoading)
+        return (
+            <PixUnavailableScreen
+                title={title}
+                route={route}
+                reason={{ code: refusal, userMessage: route?.reason?.userMessage ?? '' }}
+                onBack={onBack}
+            />
+        )
     if (!result || activation.isLoading || activation.allowed || waiting)
         return (
             <PageStack>

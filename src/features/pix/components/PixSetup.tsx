@@ -35,7 +35,8 @@ export function PixSetup({
     if (state === 'support')
         return <PixUnavailableScreen title={title} route={route} onBack={onBack} description={t('notAvailable')} />
 
-    if (state === 'activate' && pixOpensWithoutTap(route)) return <PixAccountOpening title={title} onBack={onBack} />
+    if (state === 'activate' && pixOpensWithoutTap(route))
+        return <PixAccountOpening title={title} route={route} onBack={onBack} />
 
     // The first use opens the provider's account for Pix; the route turns ready once it is open.
     if (state === 'activate') {
