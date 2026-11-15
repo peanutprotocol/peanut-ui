@@ -235,15 +235,6 @@ export function offScreenIsComment(path, text) {
 	return wholeLine || trailing
 }
 
-// Off-screen text made only of rule and border characters (an ASCII table edge `|`) cannot run: no
-// name, call or bracket. It paged Squirrel-Core on a plain-text site mockup on 2026-10-31.
-const BORDER_ONLY = /^[ \t|+\-=*#.:_~^\u2500-\u257F]+$/
-
-export function offScreenIsBorder(text) {
-	const gap = text.match(/[ \t]{60,}/)
-	return BORDER_ONLY.test(text.slice(gap.index + gap[0].length))
-}
-
 // A browser never runs `<script type="application/json">`: its body is data. Saved web pages carry
 // one inline, with long space runs inside its strings; App Store snapshots paged Konrad on
 // 2026-10-25. A body counts only when it parses as JSON, and `[^<]*` keeps it from closing its tag.
@@ -298,9 +289,9 @@ export function scanLines(lines, { allow = new Set() } = {}) {
 			const page = /\.html?$/i.test(entry.path)
 			const data = !tier && (/\.json$/i.test(entry.path) || (page && hidesOnlyInertJson(entry.text)))
 			const comment = offScreenIsComment(entry.path, entry.text)
-			const border = !tier && offScreenIsBorder(entry.text)
-			const what = data ? 'text' : comment ? 'comment' : border ? 'border' : 'code'
-			add(what === 'code' ? 'block' : 'warn', 'hidden-code', entry, `${run} spaces, then more ${what} off-screen`)
+			// No exception for ASCII borders: in JS a lone `|`, `+` or `-` off-screen joins the next line into one
+			// expression (`x = flags` + `|` + `ADMIN`), and `++` changes state (Chip on ui#4103, 2026-11-15).
+			add(data || comment ? 'warn' : 'block', 'hidden-code', entry, `${run} spaces, then more ${data ? 'text' : comment ? 'comment' : 'code'} off-screen`)
 		}
 		if (entry.text.length > LONG_LINE) {
 			add(tier ? 'block' : 'warn', 'very-long-line', entry, `${entry.text.length} characters on one line`)
