@@ -17,10 +17,7 @@ export function NitaE1(props: CreatorPageVariantProps) {
     const dockNote = (
         <div className={styles.note}>
             <p className={`${styles.mono} ${styles.invite}`}>{copy.invite}</p>
-            <p className={styles.disclosure}>
-                <span className={styles.sponsor}>{copy.disclosure} </span>
-                <b>{copy.notABank}</b>
-            </p>
+            <p className={styles.notABank}>{copy.notABank}</p>
         </div>
     )
 
@@ -139,7 +136,7 @@ export function NitaE1(props: CreatorPageVariantProps) {
                         className={styles.wordmark}
                     />
                     <p className={styles.fine}>
-                        {copy.disclosure} <b>{copy.notABank}</b>
+                        <b>{copy.notABank}</b>
                     </p>
                     <p className={styles.fine}>{copy.fine}</p>
                     <p className={styles.fine}>{copy.quoteNote}</p>

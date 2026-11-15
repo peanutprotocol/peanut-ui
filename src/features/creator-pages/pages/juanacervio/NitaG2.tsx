@@ -39,10 +39,7 @@ export function NitaG2(props: CreatorPageVariantProps) {
                     <CreatorPageCta className={`btn btn-primary ${styles.cta}`} labels={copy.cta} position="hero" />
                     <div className={styles.foot}>
                         <p className={styles.invite}>{copy.invite}</p>
-                        <p className={styles.legal}>
-                            <span>{copy.disclosure}</span>
-                            <span>{copy.legal}</span>
-                        </p>
+                        <p className={styles.legal}>{copy.legal}</p>
                     </div>
                 </section>
             </div>

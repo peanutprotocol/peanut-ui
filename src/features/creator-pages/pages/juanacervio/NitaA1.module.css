@@ -110,7 +110,7 @@
     height: auto;
 }
 
-/* Under the post: what Peanut added, who made the page, not a bank, the pointer down. */
+/* Under the post: what Peanut added, not a bank, the pointer down. */
 .hero > div:last-child {
     margin-top: 0.5rem;
     color: var(--color-foreground-over-color-primary);
@@ -127,10 +127,10 @@
 .hero > div:last-child > p:nth-child(2) {
     margin-top: 0.5rem;
 }
-.hero > div:last-child > p:nth-child(n + 3) {
+.hero > div:last-child > p:nth-child(n + 2) {
     font-weight: var(--text-body-s-semibold--font-weight);
 }
-.hero > div:last-child > p:nth-child(4) {
+.hero > div:last-child > p:nth-child(3) {
     margin-top: 1rem;
 }
 
@@ -473,8 +473,6 @@
 }
 .close > div > p:nth-child(2) {
     margin-top: 0.5rem;
-}
-.close > div > p:nth-child(3) {
     font-weight: 800;
 }
 

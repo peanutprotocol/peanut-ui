@@ -21,8 +21,6 @@ export const NITA_G2_COPY = {
     },
     // "With Nita's invitation" (not "saved", and no tick: no device check backs that claim)
     invite: 'Con la invitación de Nita',
-    // "Nita uses Peanut. Page made by Peanut." (the same line on all three pages)
-    disclosure: 'Nita usa Peanut. Página hecha por Peanut.',
     // "Peanut is not a bank." The non-breaking space keeps "banco." off a line of its own under large text.
     legal: 'Peanut no es un\u00a0banco.',
 }

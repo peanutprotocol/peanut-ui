@@ -57,6 +57,8 @@ describe('creator page variants', () => {
         expect(html).toMatch(/<main[^>]*\slang="es-AR"/)
         // A page may tie "banco." to the word before it with a non-breaking space.
         expect(html.replaceAll('\u00a0', ' ')).toContain('Peanut no es un banco.')
+        // No line says who made the page: the context makes it plain (owner ruling, 15 Nov 2026).
+        expect(html).not.toContain('hecha por')
 
         expect(links.length).toBeGreaterThan(0)
         for (const link of links) {

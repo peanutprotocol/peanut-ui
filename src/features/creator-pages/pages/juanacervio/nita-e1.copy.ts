@@ -46,9 +46,6 @@ export const NITA_E1_COPY = {
     },
     // "With Nita's invitation" (not "saved" or "already loaded": no device check backs that claim)
     invite: 'Con la invitación de Nita',
-    // "Nita uses Peanut. Page made by Peanut." (the same line on all three of her pages; "recommends" would be
-    // a claim her post does not make)
-    disclosure: 'Nita usa Peanut. Página hecha por Peanut.',
     // "Peanut is not a bank." (the no-break space keeps "banco." off a line of its own)
     notABank: 'Peanut no es un\u00a0banco.',
     how: {

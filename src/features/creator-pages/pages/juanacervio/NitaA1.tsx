@@ -63,7 +63,6 @@ export function NitaA1(props: CreatorPageVariantProps) {
 
                 <div>
                     <p>{copy.post.added}</p>
-                    <p>{copy.madeBy}</p>
                     <p>{copy.notABank}</p>
                     <p>{copy.more}</p>
                 </div>
@@ -143,7 +142,6 @@ export function NitaA1(props: CreatorPageVariantProps) {
                 <A1InviteLine />
                 <div>
                     <p>{close.legal}</p>
-                    <p>{copy.madeBy}</p>
                     <p>{copy.notABank}</p>
                 </div>
             </section>

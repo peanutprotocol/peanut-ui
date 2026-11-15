@@ -177,7 +177,3 @@
     font-size: var(--text-body-xs);
     line-height: var(--text-body-xs--line-height);
 }
-
-.legal span {
-    display: block;
-}

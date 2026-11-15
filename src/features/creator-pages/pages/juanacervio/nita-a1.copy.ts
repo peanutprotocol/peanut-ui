@@ -54,8 +54,6 @@ export const NITA_A1_COPY = {
     inviteName: 'invitación de Nita',
     // "↓ What she said, point by point"
     more: '↓ Lo que dijo, punto por punto',
-    // "Nita uses Peanut. Page made by Peanut." The same line on every variant; it claims no more than her post does.
-    madeBy: 'Nita usa Peanut. Página hecha por Peanut.',
     // "Peanut is not a bank." The non-breaking space keeps "banco." off a line of its own.
     notABank: 'Peanut no es un\u00a0banco.',
     proof: {
