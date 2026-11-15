@@ -1350,6 +1350,53 @@ describe('tracked-link handoff', () => {
         }
     )
 
+    describe('Play referrer budget for a tagged /go journey', () => {
+        const goJourney = () => ({
+            ...journey,
+            firstTouch: {
+                occurredAt: new Date().toISOString(),
+                utmSource: 'google',
+                utmMedium: 'cpc',
+                utmCampaign: 'ar-search-brand-2026',
+                referrerHost: 'www.google.com',
+            },
+            lastTouch: {
+                occurredAt: new Date().toISOString(),
+                utmSource: 'instagram',
+                utmMedium: 'ambassador',
+                utmCampaign: 'go',
+                utmContent: 'c9999',
+                referrerHost: 'l.instagram.com',
+            },
+        })
+
+        // A badge creator's longer name can push `at` out; the only mapped creator today is 11 characters.
+        it.each([
+            ['a'.repeat(20), []],
+            ['juanacervio', ['nita']],
+        ])('keeps the journey for an earlier ad touch and creator %s', (username, badges) => {
+            saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, goJourney())
+            if (badges.length) saveToCookie('campaignTagsV2', badges)
+            stashAcquisitionInvite(username)
+            const encoded = buildDeferredPayload('/home', undefined, 'android', { trackedLink: username })
+            expect(encodeURIComponent(encoded).length).toBeLessThanOrEqual(MAX_PLAY_REFERRER_LENGTH)
+            const parsed = parseDeferredPayload(encoded)!
+            expect(parsed.attribution?.lastTouch).toMatchObject({ utmSource: 'instagram', utmContent: 'c9999' })
+            expect(parsed.acquisitionInvite).toBe(username)
+            expect(new URLSearchParams(encoded).getAll('badge_campaign')).toEqual(badges)
+        })
+
+        it('keeps the inviter for a 64-character creator', () => {
+            const username = 'a'.repeat(64)
+            saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, goJourney())
+            saveToCookie('campaignTagsV2', ['nita'])
+            stashAcquisitionInvite(username)
+            const encoded = buildDeferredPayload('/home', undefined, 'android', { trackedLink: username })
+            expect(encodeURIComponent(encoded).length).toBeLessThanOrEqual(MAX_PLAY_REFERRER_LENGTH)
+            expect(parseDeferredPayload(encoded)).toMatchObject({ acquisitionInvite: username, trackedLink: username })
+        })
+    })
+
     it('trims Android payload bytes without downgrading the passive inviter', () => {
         saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, {
             ...journey,

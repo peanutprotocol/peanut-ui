@@ -3,6 +3,7 @@ import { after } from 'next/server'
 import { POST, OPTIONS, GET } from '@/app/api/tracked-links/open/route'
 import type { SignupAttributionContext } from '@/utils/signup-attribution'
 import { captureTrackedLinkVisit, parseTrackedLinkOpening } from '../capture'
+import { bareGoVisit } from '../contract'
 
 jest.mock('next/server', () => ({ after: jest.fn() }))
 jest.mock('@/constants/general.consts', () => ({ PEANUT_API_URL: 'https://api.example.test' }))
@@ -21,6 +22,29 @@ const opening = () => ({
     signup_journey_id: journey.journeyId,
     slug,
 })
+const NO_LABELS = {
+    placement: null,
+    code: null,
+    utm_source: null,
+    utm_medium: null,
+    utm_campaign: null,
+    utm_content: null,
+    referrer_host: null,
+    page_variant: null,
+    page_experiment: null,
+}
+// One path segment carries a placement or a code, never both.
+const LABELS = {
+    placement: 'ig',
+    code: null,
+    utm_source: 'meta',
+    utm_medium: 'cpc',
+    utm_campaign: 'ar-push',
+    utm_content: 'reel 2',
+    referrer_host: 'l.instagram.com',
+    page_variant: 'a1',
+    page_experiment: 'nita-2026-11-a',
+}
 const request = (body: unknown = opening(), headers: Record<string, string> = {}) =>
     new Request('https://peanut.me/api/tracked-links/open', {
         method: 'POST',
@@ -75,10 +99,11 @@ describe('open route', () => {
                 event: 'tracked_link_visit',
                 distinct_id: `tracked-link:${body.event_id}`,
                 properties: {
-                    schema_version: 1,
+                    schema_version: 2,
                     link_id: linkId,
                     signup_journey_id: body.signup_journey_id,
                     opened_in: 'web',
+                    ...NO_LABELS,
                     $process_person_profile: false,
                     $geoip_disable: true,
                 },
@@ -149,8 +174,68 @@ describe('open route', () => {
     })
 })
 
+describe('visit v2 labels', () => {
+    it('forwards every label exactly', async () => {
+        expect((await POST(request({ ...opening(), ...LABELS }))).status).toBe(204)
+        await runTasks()
+        expect(posthogBodies()[0].properties).toEqual({
+            schema_version: 2,
+            link_id: linkId,
+            signup_journey_id: journey.journeyId,
+            opened_in: 'web',
+            ...LABELS,
+            $process_person_profile: false,
+            $geoip_disable: true,
+        })
+    })
+
+    it('stores a bad label as null and still sends the event', async () => {
+        const bad = {
+            placement: 'zz',
+            code: 0,
+            utm_source: 'a@b.com',
+            utm_medium: 'banner',
+            utm_campaign: 'x'.repeat(65),
+            utm_content: 7,
+            referrer_host: 'localhost',
+            page_variant: 'A1',
+            page_experiment: 'https://evil.test',
+        }
+        expect((await POST(request({ ...opening(), ...bad }))).status).toBe(204)
+        await runTasks()
+        expect(posthogBodies()[0].properties).toMatchObject(NO_LABELS)
+    })
+
+    it.each([
+        ['code', '7'],
+        ['code', 1.5],
+        ['placement', 'constructor'],
+    ])('treats %s %p as no label', (key, value) => {
+        expect(parseTrackedLinkOpening({ ...opening(), [key]: value })).toMatchObject({ [key]: null })
+    })
+
+    it('fits the worst-case body under the 1,024-byte cap', async () => {
+        const worst = {
+            ...opening(),
+            slug: 'a'.repeat(64),
+            placement: 'ig',
+            code: 9999,
+            utm_source: 'a'.repeat(64),
+            utm_medium: 'ambassador',
+            utm_campaign: 'a'.repeat(64),
+            utm_content: 'a'.repeat(64),
+            referrer_host: `${'a'.repeat(63)}.${'b'.repeat(63)}.${'c'.repeat(63)}.${'d'.repeat(61)}`,
+            page_variant: 'a'.repeat(32),
+            page_experiment: 'a'.repeat(32),
+        }
+        expect(new TextEncoder().encode(JSON.stringify(worst)).length).toBeLessThan(1024)
+        expect(parseTrackedLinkOpening(worst)).toMatchObject({ referrer_host: worst.referrer_host })
+        expect((await POST(request(worst))).status).toBe(204)
+    })
+})
+
 describe('opening body', () => {
-    it.each(['userId', 'linkId', 'utm_source', 'raw_url', 'referrer', 'gclid', 'distinct_id'])(
+    it.each(['userId', 'linkId', 'utm_term', 'raw_url', 'referrer', 'gclid', 'distinct_id', 'username'])(
         'rejects untrusted client field %s',
         (field) => expect(parseTrackedLinkOpening({ ...opening(), [field]: 'private' })).toBeNull()
     )
@@ -175,6 +260,26 @@ describe('visit sender', () => {
         expect(parseTrackedLinkOpening(JSON.parse(init!.body as string))).toMatchObject({
             slug,
             signup_journey_id: journey.journeyId,
+            ...NO_LABELS,
+        })
+    })
+
+    it('sends the visit labels in the shape the route accepts', () => {
+        const visit = {
+            ...bareGoVisit(slug),
+            code: 7,
+            utm: { source: 'meta', medium: 'cpc', campaign: 'ar-push', content: null },
+            referrerHost: 'l.instagram.com',
+        }
+        captureTrackedLinkVisit(slug, { openedIn: 'web', seen: false, journey, visit })
+        expect(parseTrackedLinkOpening(JSON.parse(fetchMock.mock.calls[0][1]!.body as string))).toMatchObject({
+            placement: null,
+            code: 7,
+            utm_source: 'meta',
+            utm_medium: 'cpc',
+            utm_campaign: 'ar-push',
+            utm_content: null,
+            referrer_host: 'l.instagram.com',
         })
     })
 

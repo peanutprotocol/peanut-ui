@@ -60,11 +60,6 @@ export function isAcquisitionSlug(value: unknown): value is string {
     return typeof value === 'string' && /^[a-z0-9]{1,64}$/.test(value)
 }
 
-/** Query input never selects the inviter: the resolved slug is the only one carried. */
-export function acquisitionHandoffPath(slug: string): string {
-    return `/home?${new URLSearchParams({ app_entry: '1', tl: slug, acq_invite: slug })}`
-}
-
 export function bareGoVisit(username: string): GoVisit {
     return {
         username,

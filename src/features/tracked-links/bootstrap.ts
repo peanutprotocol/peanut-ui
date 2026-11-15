@@ -1,3 +1,4 @@
+import { queuePendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
 import {
     applyDeferredPayload,
     buildDeferredPayload,
@@ -7,7 +8,8 @@ import {
 import { stashAcquisitionInvite } from '@/utils/invite-stash'
 import { captureTrackedLinkJourney } from '@/utils/signup-attribution'
 import { captureTrackedLinkVisit } from './capture'
-import { isAcquisitionSlug, TRACKED_LINK_ORIGIN } from './contract'
+import { type GoVisit, goTouch, isAcquisitionSlug, parseGoVisitParams, TRACKED_LINK_ORIGIN } from './contract'
+import { creatorBadgeCampaign } from './creator-badges'
 
 export type TrackedLinkBootstrap = { payload: string | null; iosPayload: string | null; openAppHref?: string }
 export const EMPTY_TRACKED_LINK_BOOTSTRAP: TrackedLinkBootstrap = { payload: null, iosPayload: null }
@@ -25,24 +27,32 @@ export async function bootstrapTrackedLinkEntry(
     const slug = params.get('tl') ?? legacyCode
     if (!isAcquisitionSlug(slug)) return EMPTY_TRACKED_LINK_BOOTSTRAP
 
+    let restored = params.get('tl_seen') === '1'
     if (native) {
         // A browser-to-app continuation carries the browser's handoff; its explicit invite wins.
         const handoff = parseDeferredPayload(params.toString())
         if (handoff) {
             applyDeferredPayload(handoff)
             registerWebDistinctId(handoff)
+            restored ||= !!handoff.attribution
         }
     }
     // A tracked link's passive inviter is its own username; an edited pair stashes nothing.
     if (!params.has('tl') || params.get('acq_invite') === slug) stashAcquisitionInvite(slug)
+    const badgeCampaign = params.has('tl') ? creatorBadgeCampaign(slug) : undefined
+    // Functional like /invite's badge queue, so it runs without analytics consent too.
+    if (badgeCampaign) queuePendingBadgeCampaigns([badgeCampaign], 30)
 
-    const journey = await captureTrackedLinkJourney()
+    // A restored handoff already holds the browser's touch; legacy codes keep the bare opening.
+    const visit = params.has('tl') ? safeGoVisit(params) : null
+    const journey = await captureTrackedLinkJourney(visit && !restored ? goTouch(visit) : undefined)
     // Legacy codes predate the visit event, so only /go openings count as visits.
     if (params.has('tl'))
         captureTrackedLinkVisit(slug, {
             openedIn: native ? 'app' : 'web',
             seen: params.get('tl_seen') === '1',
             journey,
+            visit,
         })
     if (native) return EMPTY_TRACKED_LINK_BOOTSTRAP
 
@@ -57,4 +67,13 @@ export async function bootstrapTrackedLinkEntry(
     })
     openApp.searchParams.set('tl_seen', '1')
     return { payload, iosPayload, openAppHref: openApp.href }
+}
+
+/** Tags are optional: a bug reading them must not cost the creator's handoff. */
+function safeGoVisit(params: URLSearchParams): GoVisit | null {
+    try {
+        return parseGoVisitParams(params)
+    } catch {
+        return null
+    }
 }
