@@ -25,7 +25,11 @@
     z-index: 30;
     margin-inline: auto;
     max-width: 30rem;
-    padding: 0.75rem 1rem calc(0.75rem + 0.25rem + env(safe-area-inset-bottom));
+    /* The button sits high in the bar, with the invitation line under it: an in-app browser may draw
+       a toolbar of up to about 90px over the bottom of the page. 146px keeps 44px of the button above
+       such a toolbar and is 22% of a 667px screen. */
+    min-height: calc(9.125rem + env(safe-area-inset-bottom));
+    padding: 0.625rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
     border-top: 2px solid var(--color-border-default);
     background: var(--color-background-page);
     transition:

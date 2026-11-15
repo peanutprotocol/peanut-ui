@@ -12,7 +12,6 @@ import { A1Cta } from './a1/A1Cta'
 import { A1InviteLine } from './a1/A1InviteLine'
 import { A1Post } from './a1/A1Post'
 import { A1Proof } from './a1/A1Proof'
-import { A1SampleCopy } from './a1/A1SampleCopy'
 import { A1SampleBubble } from './a1/A1SampleBubble'
 import { A1SampleRow } from './a1/A1SampleRow'
 import { A1StickyCta } from './a1/A1StickyCta'
@@ -33,7 +32,7 @@ export function NitaA1(props: CreatorPageVariantProps) {
             lang="es-AR"
             className="mx-auto min-h-dvh w-full max-w-120 overflow-x-clip bg-background-page text-foreground-primary"
         >
-            <section className="border-b-2 border-border-default bg-background-marketing-sky px-4 pt-3 pb-6">
+            <section className="border-b-2 border-border-default bg-background-marketing-sky px-4 pt-3 pb-6 max-[359px]:pt-2">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                     <Image src={LOGO_LOCKUP} alt={copy.logoAlt} loading="eager" className="h-6 w-auto" />
                     <p className="flex items-center gap-2 rounded-full border border-border-button bg-background-default py-1 pr-3 pl-1 text-label-m">
@@ -49,10 +48,10 @@ export function NitaA1(props: CreatorPageVariantProps) {
                     </p>
                 </div>
 
-                <h1 className="mt-3 text-heading-m xs:text-heading-l">{copy.headline}</h1>
+                <h1 className="mt-2 text-heading-m xs:text-heading-l">{copy.headline}</h1>
                 {/* Benefit and mascot share one grid row, so the text wraps beside the mascot at any width or font size. */}
                 <div className={`mt-2 ${styles.lead}`}>
-                    <p className="pb-3 text-body-m-semibold">{copy.benefit}</p>
+                    <p className="pb-2 text-body-m-semibold max-[359px]:pb-1">{copy.benefit}</p>
                     <div className={styles.mascotSeat}>
                         {/* eslint-disable-next-line @next/next/no-img-element -- a small decorative SVG: nothing for the image optimizer to do */}
                         <img src={Star.src} alt="" aria-hidden className="absolute top-0 right-0 size-4" />
@@ -66,11 +65,11 @@ export function NitaA1(props: CreatorPageVariantProps) {
                     <A1InviteLine className="text-foreground-secondary" />
                 </A1Post>
 
-                <div className="mt-6 text-center text-body-s text-foreground-over-color-primary">
-                    <p className="text-body-s-semibold">{copy.more}</p>
-                    <p className="mt-2">
-                        {copy.madeBy} {copy.notABank}
-                    </p>
+                <div className="mt-2 text-center text-body-s text-foreground-over-color-primary">
+                    <p className="text-body-xs">{copy.post.added}</p>
+                    <p className="mt-2">{copy.madeBy}</p>
+                    <p className="text-body-s-semibold">{copy.notABank}</p>
+                    <p className="mt-4 text-body-s-semibold">{copy.more}</p>
                 </div>
             </section>
 
@@ -82,22 +81,20 @@ export function NitaA1(props: CreatorPageVariantProps) {
                     <A1SampleRow
                         leading={
                             <A1SampleBubble fillClassName="bg-background-icon-bubble-green">
-                                {sample.usdSign}
+                                {sample.usdCode}
                             </A1SampleBubble>
                         }
                         title={sample.usd}
                         note={sample.usdNumber}
-                        trailing={<A1SampleCopy />}
                     />
                     <A1SampleRow
                         leading={
                             <A1SampleBubble fillClassName="bg-background-icon-bubble-blue">
-                                {sample.eurSign}
+                                {sample.eurCode}
                             </A1SampleBubble>
                         }
                         title={sample.eur}
                         note={sample.eurNumber}
-                        trailing={<A1SampleCopy />}
                     />
                 </A1Proof>
 
@@ -170,10 +167,12 @@ export function NitaA1(props: CreatorPageVariantProps) {
                     className="mx-auto mt-2 size-28"
                 />
                 <A1Cta position="footer" />
-                <A1InviteLine className="text-foreground-over-color-secondary" />
-                <p className="mt-6 text-left text-body-xs text-foreground-over-color-primary">
-                    {copy.madeBy} <b className="font-extrabold">{copy.notABank}</b> {close.legal}
-                </p>
+                <A1InviteLine className="text-foreground-over-color-primary" />
+                <div className="mt-6 text-left text-body-xs text-foreground-over-color-primary">
+                    <p>{close.legal}</p>
+                    <p className="mt-2">{copy.madeBy}</p>
+                    <p className="font-extrabold">{copy.notABank}</p>
+                </div>
             </section>
 
             <A1StickyCta />

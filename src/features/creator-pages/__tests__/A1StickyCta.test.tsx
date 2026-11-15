@@ -6,12 +6,15 @@ import { creatorPageFixture } from '../preview-fixture'
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 jest.mock('@/features/tracked-links/eligibility', () => ({ trackedLinkAnalyticsAllowed: () => false }))
 
-/** Stands in for the browser's observer: the test says which buttons are on screen. */
+/** Stands in for the browser's observer: the test says how much of each button is on screen (0 to 1). */
 class FakeIntersectionObserver {
     static last: FakeIntersectionObserver | null = null
     observed: Element[] = []
     disconnected = false
-    constructor(private callback: IntersectionObserverCallback) {
+    constructor(
+        private callback: IntersectionObserverCallback,
+        readonly options?: IntersectionObserverInit
+    ) {
         FakeIntersectionObserver.last = this
     }
     observe(element: Element) {
@@ -24,8 +27,12 @@ class FakeIntersectionObserver {
     takeRecords() {
         return []
     }
-    report(changes: [Element, boolean][]) {
-        const entries = changes.map(([target, isIntersecting]) => ({ target, isIntersecting }))
+    report(changes: [Element, number][]) {
+        const entries = changes.map(([target, intersectionRatio]) => ({
+            target,
+            intersectionRatio,
+            isIntersecting: intersectionRatio > 0,
+        }))
         act(() => this.callback(entries as IntersectionObserverEntry[], this as unknown as IntersectionObserver))
     }
 }
@@ -54,33 +61,58 @@ describe('A1StickyCta', () => {
         expect(observer.observed).toEqual([hero, footer])
     })
 
+    it('asks the browser to report when a button is almost fully on screen', () => {
+        const { observer } = renderA1()
+        // A 48px button at this share shows at least 44px, the height a finger needs.
+        expect(Number(observer.options?.threshold) * 48).toBeGreaterThanOrEqual(44)
+    })
+
     it('starts hidden: the first screen holds the button in the post', () => {
         expect(renderA1().bar).toHaveAttribute('data-state', 'hidden')
     })
 
-    it('stays hidden while any in-page button is on screen, and shows when none is', () => {
+    it('carries the invitation line under its button', () => {
+        const { bar } = renderA1()
+        expect(bar.lastElementChild).toHaveTextContent('Con la invitación de Nita')
+    })
+
+    it('shows while only a part of the post button is on screen (a 320×568 phone at a large text size)', () => {
+        const { bar, hero, footer, observer } = renderA1()
+        observer.report([
+            [hero, 0.1],
+            [footer, 0],
+        ])
+        expect(bar).toHaveAttribute('data-state', 'shown')
+    })
+
+    it('hides only while an in-page button is fully on screen, so one whole button always shows and never two', () => {
         const { bar, hero, footer, observer } = renderA1()
 
         observer.report([
-            [hero, true],
-            [footer, false],
+            [hero, 1],
+            [footer, 0],
         ])
         expect(bar).toHaveAttribute('data-state', 'hidden')
 
-        // Scrolled past the post: no in-page button on screen.
-        observer.report([[hero, false]])
+        // The post button starts to leave the screen: 43 of its 48px are left, too little to count.
+        observer.report([[hero, 0.9]])
         expect(bar).toHaveAttribute('data-state', 'shown')
 
-        // The closing button comes into view.
-        observer.report([[footer, true]])
+        observer.report([[hero, 0]])
+        expect(bar).toHaveAttribute('data-state', 'shown')
+
+        // The closing button comes into view: the bar stays until that button is whole.
+        observer.report([[footer, 0.5]])
+        expect(bar).toHaveAttribute('data-state', 'shown')
+        observer.report([[footer, 1]])
         expect(bar).toHaveAttribute('data-state', 'hidden')
 
-        // Both on screen on a tall phone, then one leaves: still one on screen.
-        observer.report([[hero, true]])
-        observer.report([[footer, false]])
+        // Both whole on a tall phone, then one leaves: still one whole button on screen.
+        observer.report([[hero, 1]])
+        observer.report([[footer, 0.3]])
         expect(bar).toHaveAttribute('data-state', 'hidden')
 
-        observer.report([[hero, false]])
+        observer.report([[hero, 0.3]])
         expect(bar).toHaveAttribute('data-state', 'shown')
     })
 

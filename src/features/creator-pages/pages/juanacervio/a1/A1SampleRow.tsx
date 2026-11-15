@@ -10,7 +10,7 @@ export function A1SampleRow({
     leading: ReactNode
     title: string
     note: string
-    trailing: ReactNode
+    trailing?: ReactNode
 }) {
     return (
         <div className="flex items-center gap-3 border-border-disabled bg-background-default px-3 py-2 not-first:border-t">
@@ -19,7 +19,7 @@ export function A1SampleRow({
                 <p className="text-body-s-semibold">{title}</p>
                 <p className="text-body-xs text-foreground-secondary">{note}</p>
             </div>
-            <div className="ml-auto flex-none">{trailing}</div>
+            {trailing && <div className="ml-auto flex-none">{trailing}</div>}
         </div>
     )
 }

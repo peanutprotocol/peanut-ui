@@ -23,7 +23,9 @@ export function A1Proof({ item, number, children }: { item: ProofItem; number: n
                 <p className="text-body-l">
                     <span className="block text-label-m text-foreground-secondary">{copy.proof.source}</span>
                     {`“${item.before}`}
-                    <A1Mark highlight={item.highlight}>{item.phrase}</A1Mark>
+                    <A1Mark highlight={item.highlight} flushEnd>
+                        {item.phrase}
+                    </A1Mark>
                     {'”'}
                 </p>
             </div>

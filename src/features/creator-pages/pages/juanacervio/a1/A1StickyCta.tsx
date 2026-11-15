@@ -3,11 +3,19 @@
 import { useEffect, useRef, useState } from 'react'
 import styles from '../NitaA1.module.css'
 import { A1Cta } from './A1Cta'
+import { A1InviteLine } from './A1InviteLine'
 
 /**
- * The store button pinned to the bottom edge. One rule: it shows only while no part of an in-page
- * button is on screen. So it never covers an in-page button, and two store buttons never show at once.
- * It starts hidden, because the first screen normally holds the button in the post card.
+ * An in-page button counts as on screen from this share of its height. At 0.95 a 48px button
+ * shows at least 45px, above the 44px a finger needs; at 0.9 it would show 43px.
+ */
+const ON_SCREEN_RATIO = 0.95
+
+/**
+ * The store button pinned to the bottom edge. One rule: it shows unless an in-page button is
+ * (almost) fully on screen. So a whole, tappable store button is on screen at every scroll
+ * position, and never two whole ones. A sliver of an in-page button may show next to the bar.
+ * It starts hidden, because the first screen holds the button in the post card.
  */
 export function A1StickyCta() {
     const bar = useRef<HTMLDivElement>(null)
@@ -20,13 +28,16 @@ export function A1StickyCta() {
         if (!inPageButtons?.length) return
 
         const onScreen = new Set<Element>()
-        const observer = new IntersectionObserver((entries) => {
-            for (const entry of entries) {
-                if (entry.isIntersecting) onScreen.add(entry.target)
-                else onScreen.delete(entry.target)
-            }
-            setShown(onScreen.size === 0)
-        })
+        const observer = new IntersectionObserver(
+            (entries) => {
+                for (const entry of entries) {
+                    if (entry.intersectionRatio >= ON_SCREEN_RATIO) onScreen.add(entry.target)
+                    else onScreen.delete(entry.target)
+                }
+                setShown(onScreen.size === 0)
+            },
+            { threshold: ON_SCREEN_RATIO }
+        )
         inPageButtons.forEach((button) => observer.observe(button))
         return () => observer.disconnect()
     }, [])
@@ -34,6 +45,7 @@ export function A1StickyCta() {
     return (
         <div ref={bar} data-state={shown ? 'shown' : 'hidden'} className={styles.sticky}>
             <A1Cta position="sticky" />
+            <A1InviteLine className="text-foreground-secondary" />
         </div>
     )
 }
