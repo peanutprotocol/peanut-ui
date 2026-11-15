@@ -1249,6 +1249,11 @@
         "route": "/add-money/pix?step=showQR&intentId=fixture-pix-manteca-deposit"
     },
     {
+        "id": "fixture-history-bank-deposit-pending",
+        "flow": "Add money",
+        "route": "/history?tx=fixture-pending-eur-deposit"
+    },
+    {
         "id": "fixture-history-expired-ars-deposit",
         "flow": "Add money",
         "route": "/history?tx=fixture-expired-ars-deposit"

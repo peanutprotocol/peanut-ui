@@ -927,6 +927,16 @@ const EXPIRED_ARS_DEPOSIT_ENTRY = {
     extraData: { kind: 'ONRAMP', provider: 'MANTECA', usdAmount: '10', mantecaDepositExpired: true },
 }
 
+const PENDING_EUR_DEPOSIT_ENTRY = {
+    ...EXPIRED_ARS_DEPOSIT_ENTRY,
+    uuid: 'fixture-pending-eur-deposit',
+    status: 'PENDING',
+    amount: '24.32',
+    senderAccount: { identifier: 'bank', type: 'BANK_IBAN', isUser: true },
+    currency: { amount: '21.33', code: 'EUR' },
+    extraData: { kind: 'ONRAMP', provider: 'BRIDGE', usdAmount: '24.32' },
+}
+
 // A PIX-key payment the payer looked up first (TASK-23198): the API sends the
 // owner as fullName beside the key, to the payer only.
 const PIX_KEY_PAYMENT_ENTRY = {
@@ -4123,6 +4133,15 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/history',
         about: 'A USD wire withdrawal: its receipt shows the wire fee and what the bank received.',
         responses: { 'GET /users/history': { entries: [WIRE_WITHDRAWAL_ENTRY], hasMore: false } },
+    },
+    // a bank deposit still on its way keeps the bank wording; a Pix one reads "Adding by Pix"
+    'history-bank-deposit-pending': {
+        route: '/history?tx=fixture-pending-eur-deposit',
+        about: 'A SEPA deposit still on its way: the receipt reads "Adding from bank account".',
+        responses: {
+            'GET /users/history': { entries: [PENDING_EUR_DEPOSIT_ENTRY], hasMore: false },
+            'GET /history/fixture-pending-eur-deposit': PENDING_EUR_DEPOSIT_ENTRY,
+        },
     },
     'history-expired-ars-deposit': {
         route: '/history?tx=fixture-expired-ars-deposit',
