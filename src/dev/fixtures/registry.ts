@@ -3195,20 +3195,21 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     // A merchant-fixed amount a few cents above the balance (TASK-24621): the
     // amount cannot be lowered, so the field says how much is missing.
+    // The Screen Library answers the API outside the page, where a fixture's `balance` never applies:
+    // the amount sits a few cents above the demo balance ($1,250.75) instead.
     'qr-pay-fixed-amount-short': {
         route: PIX_QR_ROUTE,
         about: 'A fixed-amount Pix QR a few cents above the balance: the field error says how much is missing.',
         waitFor: '[data-testid="error-alert"]',
-        balance: '10',
         responses: {
             'GET /users/me': PIX_ELIGIBLE_USER,
             'POST /manteca/qr-payment/init': {
                 type: 'PIX',
                 paymentRecipientName: 'PADARIA CENTRAL',
                 paymentAsset: 'BRL',
-                paymentAssetAmount: '55.25',
+                paymentAssetAmount: '6879.40',
                 paymentAgainst: 'USDC',
-                paymentAgainstAmount: '10.04545454',
+                paymentAgainstAmount: '1250.80',
                 paymentPrice: '5.5',
             },
         },
@@ -4610,11 +4611,24 @@ export const FIXTURES: Record<string, Fixture> = {
     'profile-accounts-br-pix-refused': {
         route: '/profile/accounts',
         about: "Accounts page, a Brazilian resident whose Pix deposit route is refused: the BRL row stays, closed, and its drawer says the route's reason.",
-        responses: aveniaRouteResponses({
-            provider: null,
-            state: 'refused',
-            reason: { code: 'provider_unavailable', userMessage: 'This is not available right now.' },
-        }),
+        responses: (() => {
+            const refused = aveniaRouteResponses({
+                provider: null,
+                state: 'refused',
+                reason: { code: 'provider_unavailable', userMessage: 'This is not available right now.' },
+            })
+            // A resident of Brazil outside Avenia's QR gate: the pay route refuses the residence
+            // (API-CONTRACT-M4 §1), so the closed BRL row is not turned into the Pix key send.
+            return {
+                'GET /users/me': {
+                    ...refused['GET /users/me'],
+                    capabilities: {
+                        ...refused['GET /users/me'].capabilities,
+                        routes: [...refused['GET /users/me'].capabilities.routes, pixPayRoute('refused')],
+                    },
+                },
+            }
+        })(),
     },
     'get-paid-empty': {
         route: '/add-money?method=bank',
