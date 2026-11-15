@@ -159,8 +159,10 @@ export function usePixPayment({
                 // nothing was paid, or the quote lapsed: the payment starts again from the scan (API review 2)
                 case API_ERROR_CODES.PIX_QUOTE_EXPIRED:
                     return t('errors.restartScan')
-                case API_ERROR_CODES.PIX_MIN_AMOUNT:
+                // another open payment of the user holds this code's amount (API review 2): a QR line
                 case API_ERROR_CODES.WITHDRAWAL_IN_PROGRESS:
+                    return t('errors.amountHeld')
+                case API_ERROR_CODES.PIX_MIN_AMOUNT:
                 case API_ERROR_CODES.PROVIDER_REJECTED:
                     return refusalMessage(caught)
                 default:

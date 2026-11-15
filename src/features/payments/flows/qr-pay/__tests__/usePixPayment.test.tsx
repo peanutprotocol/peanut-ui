@@ -318,6 +318,20 @@ describe('usePixPayment', () => {
         expect(mockSendTransactions).not.toHaveBeenCalled()
     })
 
+    // API review 2 (dc2b6bc50): a second scan of a fixed-amount code while the first attempt holds its USDC
+    it('an amount another payment still holds says so in QR words, not the withdrawal line', async () => {
+        mockPreview.mockResolvedValue(FIXED)
+        mockOpen.mockRejectedValue(refusal(409, { code: 'WITHDRAWAL_IN_PROGRESS' }))
+        const { result } = render({ brCode: FIXED_CODE })
+        await waitFor(() => expect(result.current.reviewed).toEqual(FIXED))
+
+        await act(async () => {
+            await result.current.pay()
+        })
+        expect(result.current.error).toBe('errors.amountHeld')
+        expect(mockSendTransactions).not.toHaveBeenCalled()
+    })
+
     it('a refused review of the code is the scan refusal, in the QR copy', async () => {
         mockPreview.mockRejectedValue(refusal(422, { code: 'PIX_KEY_BLOCKED' }))
         const { result } = render({ brCode: FIXED_CODE })
