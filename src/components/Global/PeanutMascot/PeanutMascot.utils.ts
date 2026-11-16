@@ -19,6 +19,14 @@ export function getMascotPlacement(pose: MascotPose, hostWidth: number, hostHeig
     }
 }
 
+/** Fit the whole comp canvas in the host box, centred, at the rig's own scale. */
+export function getMascotCanvasPlacement(hostWidth: number, hostHeight: number): MascotPlacement {
+    const scale = Math.min(hostWidth / MASCOT_CANVAS_WIDTH, hostHeight / MASCOT_CANVAS_HEIGHT)
+    const width = MASCOT_CANVAS_WIDTH * scale
+    const height = MASCOT_CANVAS_HEIGHT * scale
+    return { width, height, left: (hostWidth - width) / 2, top: (hostHeight - height) / 2 }
+}
+
 /** Nudge the held frame to break up an even stutter. */
 export function jitterFrame(frame: number, totalFrames: number): number {
     if (MASCOT_JITTER_FRAMES === 0) return frame

@@ -88,6 +88,9 @@ jest.mock('../OnboardingAnimation', () => ({
     __esModule: true,
     default: ({ name }: { name: string }) => <div data-testid="loop" data-onboarding-animation={name} />,
 }))
+jest.mock('../ResidenceHero', () => ({
+    ResidenceHero: ({ alt }: { alt: string }) => <div data-testid="residence-hero" aria-label={alt} />,
+}))
 jest.mock('next/image', () => ({
     __esModule: true,
     default: ({ src, alt }: { src: string; alt: string }) => <img src={src} alt={alt} />,
@@ -239,13 +242,25 @@ describe('SetupWrapper transitions', () => {
 
     it('plays a sign-up loop in a box that may draw across the whole hero', () => {
         renderWithIntl(
-            <SetupWrapper layoutType="signup" screenId="residence" image={{ animation: 'residence' }}>
-                <div>Residence</div>
+            <SetupWrapper layoutType="signup" screenId="notification-email" image={{ animation: 'email' }}>
+                <div>Email</div>
             </SetupWrapper>
         )
         const box = screen.getByTestId('loop').parentElement
-        expect(screen.getByTestId('loop')).toHaveAttribute('data-onboarding-animation', 'residence')
+        expect(screen.getByTestId('loop')).toHaveAttribute('data-onboarding-animation', 'email')
         expect(box).toHaveClass('top-14', 'bottom-1')
+        expect(box?.closest('.setup-hero-background')).toHaveClass('overflow-hidden')
+    })
+
+    it('gives the residence hero the whole hero box, so its stickers can sit at the edges', () => {
+        renderWithIntl(
+            <SetupWrapper layoutType="signup" screenId="residence" image={{ hero: 'residence' }}>
+                <div>Residence</div>
+            </SetupWrapper>
+        )
+        const box = screen.getByTestId('residence-hero').parentElement
+        expect(box).toHaveClass('inset-x-0', 'inset-y-0')
+        expect(box).not.toHaveClass('top-16')
         expect(box?.closest('.setup-hero-background')).toHaveClass('overflow-hidden')
     })
 
@@ -516,14 +531,14 @@ describe('SetupWrapper transitions', () => {
         )
     })
 
-    it('removes the residence animation only while the country comparison is shown', () => {
+    it('removes the residence hero only while the country comparison is shown', () => {
         const wrapper = (children: React.ReactNode) => (
-            <SetupWrapper layoutType="signup" screenId="residence" image={{ animation: 'residence' }}>
+            <SetupWrapper layoutType="signup" screenId="residence" image={{ hero: 'residence' }}>
                 {children}
             </SetupWrapper>
         )
         const { container, rerender } = renderWithIntl(wrapper(<div>Country picker</div>))
-        expect(screen.getByTestId('loop')).toBeInTheDocument()
+        expect(screen.getByTestId('residence-hero')).toBeInTheDocument()
 
         rerender(
             wrapper(
@@ -538,7 +553,7 @@ describe('SetupWrapper transitions', () => {
             )
         )
         expect(container.querySelector('.setup-hero-background')).not.toBeInTheDocument()
-        expect(screen.queryByTestId('loop')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('residence-hero')).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: /Portugal/ })).toBeInTheDocument()
         expect(screen.getByRole('button', { name: /Brazil/ })).toBeInTheDocument()
         expect(document.documentElement.style.getPropertyValue('--setup-hero-background')).toBe(
@@ -546,7 +561,7 @@ describe('SetupWrapper transitions', () => {
         )
 
         rerender(wrapper(<div>Country picker</div>))
-        expect(screen.getByTestId('loop')).toBeInTheDocument()
+        expect(screen.getByTestId('residence-hero')).toBeInTheDocument()
         expect(document.documentElement.style.getPropertyValue('--setup-hero-background')).toBe(
             'var(--color-background-setup-hero)'
         )

@@ -11,7 +11,6 @@ import { LOOP_HOLD_MS, planLoop, stillFrame, type LoopMarker } from './loopPlayb
  */
 const loaders = {
     invite: () => import('@/assets/onboarding/invite.json'),
-    residence: () => import('@/assets/onboarding/residence.json'),
     'add-money': () => import('@/assets/onboarding/add-money.json'),
     accounts: () => import('@/assets/onboarding/accounts.json'),
     card: () => import('@/assets/onboarding/card.json'),

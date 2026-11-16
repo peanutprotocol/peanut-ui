@@ -1,5 +1,6 @@
 import { useNativePlatform } from '@/utils/native-platform'
 import OnboardingAnimation from './OnboardingAnimation'
+import { ResidenceHero } from './ResidenceHero'
 import { SetupLanguageSwitcher } from './SetupLanguageSwitcher'
 import SetupTitleBlock from './SetupTitleBlock'
 import WelcomeHeadlineTitleBlock from './WelcomeHeadlineTitleBlock'
@@ -246,7 +247,9 @@ const ImageSection = ({
               ? image.scene
               : 'animation' in image
                 ? image.animation
-                : image.src
+                : 'hero' in image
+                  ? image.hero
+                  : image.src
     const illustration =
         'pose' in image ? (
             <PeanutMascot
@@ -270,6 +273,8 @@ const ImageSection = ({
             />
         ) : 'animation' in image ? (
             <OnboardingAnimation name={image.animation} />
+        ) : 'hero' in image ? (
+            <ResidenceHero alt={t('illustrationAlt')} />
         ) : (
             <Image
                 src={image.src}
@@ -295,9 +300,12 @@ const ImageSection = ({
                 transition={prefersReducedMotion ? { duration: 0 } : ART_TRANSITION}
                 className={twMerge(
                     'absolute inset-x-0 flex items-center justify-center',
-                    'animation' in image
-                        ? 'top-14 bottom-1 md:top-20 md:bottom-8'
-                        : 'top-16 bottom-2 md:top-20 md:bottom-8'
+                    'hero' in image
+                        ? // The hero places its own mascot; its stickers use the whole box.
+                          'inset-y-0'
+                        : 'animation' in image
+                          ? 'top-14 bottom-1 md:top-20 md:bottom-8'
+                          : 'top-16 bottom-2 md:top-20 md:bottom-8'
                 )}
             >
                 {illustration}

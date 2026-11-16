@@ -38,7 +38,7 @@ export const setupSteps: ISetupStep[] = [
     {
         screenId: 'residence',
         layoutType: 'signup',
-        image: { animation: 'residence' },
+        image: { hero: 'residence' },
         component: ResidenceStep,
         showBackButton: true,
         // The heading is the sentence that holds the two country pickers, so the step renders it.

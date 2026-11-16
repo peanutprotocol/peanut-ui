@@ -2,12 +2,13 @@ import type { OnboardingAnimationName } from './components/OnboardingAnimation'
 import type { MascotPose } from '@/components/Global/PeanutMascot/PeanutMascot.types'
 import type { PeanutMascotSceneName } from '@/components/Global/PeanutMascot/PeanutMascotScene'
 
-/** A setup screen leads with a still, an animated pose, or a composed mascot scene. */
+/** A setup screen leads with a still, an animated pose, a composed mascot scene, a loop, or its own hero. */
 export type SetupIllustration =
     | { src: string }
     | { pose: MascotPose }
     | { scene: PeanutMascotSceneName }
     | { animation: OnboardingAnimationName }
+    | { hero: 'residence' }
 
 export type ScreenId =
     | 'landing'

@@ -1,6 +1,15 @@
 'use client'
 
-import React, { createContext, type ReactNode, useContext, useMemo, useState, useCallback } from 'react'
+import React, {
+    createContext,
+    type MutableRefObject,
+    type ReactNode,
+    useContext,
+    useMemo,
+    useRef,
+    useState,
+    useCallback,
+} from 'react'
 import type { ISetupStep, ScreenId } from '@/components/Setup/Setup.types'
 import type { SignupEntryFlow } from '@/features/setup/signup-analytics'
 
@@ -74,6 +83,12 @@ interface SetupFlowContextType {
     setSellScreensCountry: (country: string | null | undefined) => void
     residenceCountry: string
     setResidenceCountry: (country: string) => void
+    /**
+     * The Residence hero has finished its opening wave in this sign-up. A ref,
+     * because the hero unmounts for the compare view and on Back and must not
+     * wave again when it returns; nothing else re-renders on it.
+     */
+    residenceWaveDone: MutableRefObject<boolean>
     /** The nationality declared beside the residence; empty means the residence country itself. */
     nationalityCountry: string
     setNationalityCountry: (country: string) => void
@@ -117,6 +132,7 @@ export const SetupFlowProvider: React.FC<{
     const [inviterAccepted, setInviterAccepted] = useState(false)
     const [sellScreensCountry, setSellScreensCountry] = useState<string | null | undefined>(undefined)
     const [residenceCountry, setResidenceCountry] = useState('')
+    const residenceWaveDone = useRef(false)
     const [nationalityCountry, setNationalityCountry] = useState('')
     const [signupEntryFlow, setSignupEntryFlow] = useState<SignupEntryFlow>('default')
     const [noBackLockScreenId, setNoBackLockScreenId] = useState<ScreenId | null>(null)
@@ -139,6 +155,7 @@ export const SetupFlowProvider: React.FC<{
         setInviterAccepted(false)
         setSellScreensCountry(undefined)
         setResidenceCountry('')
+        residenceWaveDone.current = false
         setNationalityCountry('')
         setNoBackLockScreenId(null)
     }, [])
@@ -178,6 +195,7 @@ export const SetupFlowProvider: React.FC<{
             setSellScreensCountry,
             residenceCountry,
             setResidenceCountry,
+            residenceWaveDone,
             nationalityCountry,
             setNationalityCountry,
             signupEntryFlow,
