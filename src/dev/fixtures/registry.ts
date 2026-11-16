@@ -2115,11 +2115,17 @@ const cardStopFunding = (cause: 'card_locked' | 'card_canceled', state: 'pending
 // states a browser cannot reach (native passkey sheets, the OS prompt).
 // Contracts: mono _temp/signup-redesign/r2/r9/build/contract/.
 // ---------------------------------------------------------------------
+/** An account still at Confirm & finish: no Peanut wallet yet, so 11 does not send it home. */
+const AWAITING_WALLET = { 'GET /users/me': { accounts: [] } }
 const setupRedesign = (surface: string, about: string, extra: Partial<Fixture> = {}): Fixture => ({
     ...extra,
     route: `/dev/surfaces?s=setup-redesign-${surface}`,
     about,
-    responses: { 'GET /config/residence-restrictions': DEMO_RESIDENCE_RESTRICTIONS, ...extra.responses },
+    responses: {
+        'GET /config/residence-restrictions': DEMO_RESIDENCE_RESTRICTIONS,
+        ...(surface.startsWith('final') && AWAITING_WALLET),
+        ...extra.responses,
+    },
 })
 /** HEAD /users/username/:name answering 200: the name has an account. */
 const USERNAME_TAKEN_ANSWER = {}
