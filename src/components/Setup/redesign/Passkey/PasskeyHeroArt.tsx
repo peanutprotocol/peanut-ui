@@ -1,6 +1,7 @@
 'use client'
 
 import Image from 'next/image'
+import { useLayoutEffect, useRef, useState } from 'react'
 import sparkle from '@/assets/illustrations/sparkle.svg'
 import star from '@/assets/illustrations/star.svg'
 import { ArtPiece } from '@/components/Setup/redesign/shell/ArtPiece'
@@ -29,11 +30,44 @@ const LAYOUT = {
     },
 } as const
 
+/**
+ * The phone's bottom edge in both layouts: on a small phone a two-line headline scales the hero from this line
+ * (mock .pk-tall). The approved 390 stills keep the hero at full size under the two-line headline.
+ */
+const FEET_LINE = 434
+const TALL_SCALE = 0.9
+
+/** True while the screen's headline runs to more than one line (mock 03 watchTitle). */
+function useTwoLineTitle(enabled: boolean) {
+    const ref = useRef<HTMLDivElement>(null)
+    const [tall, setTall] = useState(false)
+    useLayoutEffect(() => {
+        const title = ref.current?.closest('[data-setup-art-layer]')?.querySelector('h1')
+        if (!enabled || !title) {
+            setTall(false)
+            return
+        }
+        const fit = () => setTall(title.offsetHeight > parseFloat(getComputedStyle(title).lineHeight) * 1.5)
+        fit()
+        const observer = new ResizeObserver(fit)
+        observer.observe(title)
+        return () => observer.disconnect()
+    }, [enabled])
+    return { ref, tall }
+}
+
 /** The 03 hero: the too-cool peanut in the face-scan brackets beside the small phone that asks for the passkey. */
 export function PasskeyHeroArt({ username, asking, flash }: { username: string; asking: boolean; flash: number }) {
-    const layout = LAYOUT[useShellDevice()]
+    const device = useShellDevice()
+    const layout = LAYOUT[device]
+    const { ref, tall } = useTwoLineTitle(device === 'sm')
     return (
-        <>
+        <div
+            ref={ref}
+            className="absolute inset-0"
+            style={{ transform: tall ? `scale(${TALL_SCALE})` : undefined, transformOrigin: `50% ${FEET_LINE}px` }}
+            data-passkey-hero
+        >
             <PasskeyBrackets {...layout.brackets} flash={flash} />
             <MascotStage pose="too-cool" {...layout.mascot} zIndex={6} />
             <PasskeyMiniPhone {...layout.phone} username={username} asking={asking} />
@@ -52,6 +86,6 @@ export function PasskeyHeroArt({ username, asking, flash }: { username: string; 
                     <Image src={piece.sparkle ? sparkle : star} alt="" className="h-auto w-full" />
                 </ArtPiece>
             ))}
-        </>
+        </div>
     )
 }

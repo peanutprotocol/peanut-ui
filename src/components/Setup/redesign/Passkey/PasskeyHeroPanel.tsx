@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { PasskeyInlineError } from './PasskeyInlineError'
+import { SETUP_LEAD_CLASS } from '@/components/Setup/redesign/shell/shell.consts'
 
 const POINTS = [
     { key: 'p1', icon: 'lock' },
@@ -14,7 +15,7 @@ export function PasskeyHeroPanel({ message }: { message: string | null }) {
     const t = useTranslations('setupRedesign.passkey.s1')
     return (
         <>
-            <p className="text-body-m text-pretty text-foreground-secondary">{t('lead')}</p>
+            <p className={`${SETUP_LEAD_CLASS} text-pretty`}>{t('lead')}</p>
             {message ? (
                 <PasskeyInlineError message={message} className="mt-4 signup-sm:mt-3" />
             ) : (

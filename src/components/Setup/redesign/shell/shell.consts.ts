@@ -23,6 +23,13 @@ export const GROUND_VAR: Record<SetupGround, string> = {
     pink: 'var(--color-background-brand)',
 }
 
+/**
+ * The panel's lead paragraph (mock core/shell.css `.desc`): 16/26 medium grey, 14/20 on a small phone. The DS
+ * body-m line height (20 px) packs the lead tighter than the mock and moves every field under it up.
+ */
+export const SETUP_LEAD_CLASS =
+    'text-body-m leading-[26px] text-foreground-secondary signup-sm:text-body-s signup-sm:leading-5'
+
 /** The step list's screens that carry no progress dot (the mock's landing). The celebration hides its dots itself. */
 export const NO_DOT_SCREENS: readonly string[] = ['landing']
 

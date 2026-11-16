@@ -11,6 +11,7 @@ import { UsernameProfileArt } from './UsernameProfileArt'
 import { usernameStateName } from './username-state'
 import { useUsernameClaim } from './useUsernameClaim'
 import { useUsernameField } from './useUsernameField'
+import { SETUP_LEAD_CLASS } from '@/components/Setup/redesign/shell/shell.consts'
 
 /**
  * 02 Username (step `signup`): pick a username, held for this device before the passkey screen creates the
@@ -49,7 +50,7 @@ export function UsernameScreen(_props: StepComponentProps) {
             }}
         >
             <div data-testid="setup-redesign-username">
-                <p className="text-body-m text-foreground-secondary">{t('desc')}</p>
+                <p className={SETUP_LEAD_CLASS}>{t('desc')}</p>
                 <UsernameField
                     value={value}
                     kind={kind}

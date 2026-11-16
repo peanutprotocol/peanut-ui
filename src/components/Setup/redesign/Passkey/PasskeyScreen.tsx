@@ -23,9 +23,10 @@ import { PasskeySteps } from './PasskeySteps'
 import { PasskeySupportLine } from './PasskeySupportLine'
 import { PasskeyTerms } from './PasskeyTerms'
 import { usePasskeyReservationRefresh } from './usePasskeyReservationRefresh'
+import { SETUP_LEAD_CLASS } from '@/components/Setup/redesign/shell/shell.consts'
 
 const NARROW_TITLE = 'max-w-[250px]'
-const LEAD = 'text-body-m text-foreground-secondary text-pretty'
+const LEAD = `${SETUP_LEAD_CLASS} text-pretty`
 
 /**
  * 03 Passkey (step `passkey`): creates the account with a passkey. The hero states ask for it; taken, failed and
