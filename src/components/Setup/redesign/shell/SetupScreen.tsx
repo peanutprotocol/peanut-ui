@@ -33,11 +33,17 @@ export type SetupScreenProps = {
     smScale?: number
     /** Hide the whole art box on small phones (the sentence screens). */
     smArt?: boolean
+    /** Art set beside the headline, not under it: regular phones keep scale 1 (mock), as the fit would shrink it. */
+    artBesideTitle?: boolean
+    /** Copy on the stage itself, unscaled, for `stage="full"` (no panel). The caller positions it in the shell. */
+    stageCopy?: ReactNode
     chrome?: SetupChrome
     /** The fixed footer, or null for none (the celebration, the web download-only landing). */
     footer: SetupFooterSpec | null
     /** The state shown, for tests and captures (`data-setup-state`). */
     state?: string
+    /** `data-testid` on the stage, next to `data-setup-state`. */
+    testId?: string
     /** The white panel's content. */
     children?: ReactNode
     panelClassName?: string
@@ -58,9 +64,12 @@ export function SetupScreen({
     smArtTop,
     smScale,
     smArt = true,
+    artBesideTitle = false,
+    stageCopy,
     chrome,
     footer,
     state,
+    testId,
     children,
     panelClassName,
 }: SetupScreenProps) {
@@ -70,7 +79,16 @@ export function SetupScreen({
     const device = useShellDevice()
     const stageBoxRef = useRef<HTMLDivElement>(null)
     const titleRef = useRef<HTMLHeadingElement>(null)
-    const scale = useArtScale({ stageRef: stageBoxRef, titleRef, stage, artTop, smArtTop, smScale, device })
+    const scale = useArtScale({
+        stageRef: stageBoxRef,
+        titleRef,
+        stage,
+        artTop,
+        smArtTop,
+        smScale,
+        artBesideTitle,
+        device,
+    })
 
     // Only the screen on show drives the shell; a leaving screen keeps its look while it slides out.
     useLayoutEffect(() => {
@@ -101,6 +119,7 @@ export function SetupScreen({
                 data-setup-stage
                 data-ground={ground}
                 data-setup-state={state}
+                data-testid={testId}
             >
                 <div
                     ref={stageBoxRef}
@@ -167,6 +186,7 @@ export function SetupScreen({
                         {title}
                     </h1>
                 )}
+                {stageCopy}
             </motion.div>
         </>
     )

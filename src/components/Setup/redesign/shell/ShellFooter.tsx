@@ -21,6 +21,7 @@ export function ShellFooter({ spec, reduced }: { spec: SetupFooterSpec | null; r
     const rootRef = useRef<HTMLDivElement>(null)
     const slotRef = useRef<HTMLDivElement>(null)
     const reserveRef = useRef<HTMLDivElement>(null)
+    const belowRef = useRef<HTMLDivElement>(null)
     const [noteLift, setNoteLift] = useState(false)
     const base: SetupFooterStack = spec?.secondary ? (spec.below ? '3' : '2') : '1'
 
@@ -35,7 +36,7 @@ export function ShellFooter({ spec, reduced }: { spec: SetupFooterSpec | null; r
             // in shell px without the lift: offsetTop ignores the transform, and so does a rect relative to the footer
             const rootTop = root.getBoundingClientRect().top
             let end = 0
-            for (const el of [slotRef.current, reserveRef.current]) {
+            for (const el of [slotRef.current, reserveRef.current, belowRef.current]) {
                 if (!el) continue
                 const range = document.createRange()
                 range.selectNodeContents(el)
@@ -121,6 +122,14 @@ export function ShellFooter({ spec, reduced }: { spec: SetupFooterSpec | null; r
                             className="pointer-events-none invisible absolute inset-x-0 top-0 flex min-h-[var(--sr-slot-h)] items-center justify-center text-center text-body-xs"
                         >
                             {spec.reserve}
+                        </div>
+                    )}
+                    {spec.below && (
+                        <div
+                            ref={belowRef}
+                            className="flex h-6 items-center justify-center text-center text-body-xs text-foreground-secondary"
+                        >
+                            {spec.below}
                         </div>
                     )}
                 </div>

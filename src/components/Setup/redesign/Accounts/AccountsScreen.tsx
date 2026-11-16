@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl'
 import type { StepComponentProps } from '@/components/Setup/Setup.types'
-import { StarDoodles, type StarSpec } from '@/components/Setup/redesign/Card/StarDoodles'
+import { StarDoodles, type StarSpec } from '@/components/Setup/redesign/shell/StarDoodles'
 import { ArtPiece } from '@/components/Setup/redesign/shell/ArtPiece'
 import { CoinCharacter } from '@/components/Setup/redesign/shell/CoinCharacter'
 import { SetupScreen } from '@/components/Setup/redesign/shell/SetupScreen'

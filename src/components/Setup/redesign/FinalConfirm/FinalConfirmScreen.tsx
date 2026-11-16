@@ -125,20 +125,20 @@ export function FinalConfirmScreen({ onComplete, showLogout }: FinalConfirmScree
                     {t.rich('final.what', { link: (chunks) => chunks })}
                 </LinkButton>
             )}
-            {showLogout && (
-                <LinkButton
-                    onClick={() => {
-                        track('log_out', 'tap')
-                        void f.logoutUser()
-                    }}
-                    disabled={f.isLoggingOut}
-                    data-testid="setup-redesign-below"
-                >
-                    {tProfile('logOut')}
-                </LinkButton>
-            )}
         </span>
     )
+    const below = showLogout ? (
+        <LinkButton
+            onClick={() => {
+                track('log_out', 'tap')
+                void f.logoutUser()
+            }}
+            disabled={f.isLoggingOut}
+            data-testid="setup-redesign-below"
+        >
+            {tProfile('logOut')}
+        </LinkButton>
+    ) : undefined
 
     return (
         <SetupScreen
@@ -149,7 +149,7 @@ export function FinalConfirmScreen({ onComplete, showLogout }: FinalConfirmScree
             title={t('final.title')}
             art={<FinalConfirmArt scanning={prompting} locked={success} />}
             state={state}
-            footer={{ primary, slot }}
+            footer={{ primary, slot, below }}
         >
             <div data-testid="setup-redesign-final-confirm" data-setup-state={state}>
                 <p className="text-body-m text-foreground-secondary">{t('final.desc')}</p>

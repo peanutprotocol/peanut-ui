@@ -1,13 +1,9 @@
 'use client'
 
-import { motion } from 'framer-motion'
-import { useContext, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import Loading from '@/components/Global/Loading'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { SetupScreen } from '@/components/Setup/redesign/shell/SetupScreen'
-import { SetupSlideContext, useSetupShell } from '@/components/Setup/redesign/shell/SetupShellContext'
-import { artVariants } from '@/components/Setup/redesign/shell/shell.motion'
 import { useAuth } from '@/context/authContext'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { twMerge } from '@/utils/tw'
@@ -23,9 +19,6 @@ export function CelebrationScreen() {
     const t = useTranslations('setupRedesign.done')
     const { signupCompleted, signupEntryFlow, username: draftUsername } = useSetupFlowContext()
     const { user } = useAuth()
-    const { reducedMotion } = useSetupShell()
-    const slide = useContext(SetupSlideContext)
-    const variants = useMemo(() => artVariants(reducedMotion), [reducedMotion])
     useCelebrationRedirect(signupCompleted)
 
     if (!signupCompleted) return null
@@ -34,55 +27,53 @@ export function CelebrationScreen() {
     const username = user?.user.username || draftUsername
 
     return (
-        <>
-            <SetupScreen
-                ground="pink"
-                stage="full"
-                artTop={104}
-                smScale={0.67}
-                chrome={{ back: false, dots: false, lang: false }}
-                art={<CelebrationArt claim={claim} />}
-                footer={null}
-                state={state}
-            />
-            {/* the copy sits on the stage, unscaled, anchored to the bottom so a longer headline grows upward */}
-            <motion.div
-                variants={variants}
-                custom={slide.direction}
-                className={twMerge(
-                    'pointer-events-none absolute inset-x-6 flex flex-col items-center text-center signup-sm:inset-x-5',
-                    claim ? 'bottom-20 signup-sm:bottom-10' : 'bottom-10 signup-sm:bottom-4'
-                )}
-                data-testid="setup-redesign-celebration"
-                data-setup-state={state}
-            >
-                <h1 className="text-heading-l text-balance signup-sm:text-heading-s">
-                    {t(claim ? 'claimTitle' : 'title')}
-                </h1>
-                {username && (
-                    <span
-                        className={`text-label-l ${twMerge(
-                            'shadow-2 mt-2.5 inline-flex h-7 -rotate-3 items-center gap-1.5 rounded-sm border border-border-default bg-background-default px-2.5 signup-sm:mt-2',
-                            !claim && 'mt-4'
-                        )}`}
-                    >
-                        <span className="flex size-5 items-center justify-center rounded-full bg-background-icon-bubble-green text-foreground-inverse">
-                            <Icon name="check" size={14} strokeWidth={3} />
-                        </span>
-                        {`@${username}`}
-                    </span>
-                )}
-                <p
-                    // ds text tokens stay outside twMerge: it reads them as colours and drops the size
-                    className={`text-body-m text-foreground-primary ${twMerge('mt-2.5 signup-sm:mt-2', !claim && 'mt-4')}`}
+        <SetupScreen
+            ground="pink"
+            stage="full"
+            artTop={104}
+            smScale={0.67}
+            chrome={{ back: false, dots: false, lang: false }}
+            art={<CelebrationArt claim={claim} />}
+            footer={null}
+            state={state}
+            stageCopy={
+                // anchored to the bottom so a longer headline grows upward
+                <div
+                    className={twMerge(
+                        'pointer-events-none absolute inset-x-6 flex flex-col items-center text-center signup-sm:inset-x-5',
+                        claim ? 'bottom-20 signup-sm:bottom-10' : 'bottom-10 signup-sm:bottom-4'
+                    )}
+                    data-testid="setup-redesign-celebration"
+                    data-setup-state={state}
                 >
-                    {t(claim ? 'claimSub' : 'sub')}
-                </p>
-                <p className="mt-4 flex h-9 items-center justify-center gap-2 text-body-s text-foreground-over-color-secondary signup-sm:mt-2.5">
-                    <Loading className="size-4 flex-none" />
-                    {t(claim ? 'claimGoing' : 'going')}
-                </p>
-            </motion.div>
-        </>
+                    <h1 className="text-heading-l text-balance signup-sm:text-heading-s">
+                        {t(claim ? 'claimTitle' : 'title')}
+                    </h1>
+                    {username && (
+                        <span
+                            className={`text-label-l ${twMerge(
+                                'shadow-2 mt-2.5 inline-flex h-7 -rotate-3 items-center gap-1.5 rounded-sm border border-border-default bg-background-default px-2.5 signup-sm:mt-2',
+                                !claim && 'mt-4'
+                            )}`}
+                        >
+                            <span className="flex size-5 items-center justify-center rounded-full bg-background-icon-bubble-green text-foreground-inverse">
+                                <Icon name="check" size={14} strokeWidth={3} />
+                            </span>
+                            {`@${username}`}
+                        </span>
+                    )}
+                    <p
+                        // ds text tokens stay outside twMerge: it reads them as colours and drops the size
+                        className={`text-body-m text-foreground-primary ${twMerge('mt-2.5 signup-sm:mt-2', !claim && 'mt-4')}`}
+                    >
+                        {t(claim ? 'claimSub' : 'sub')}
+                    </p>
+                    <p className="mt-4 flex h-9 items-center justify-center gap-2 text-body-s text-foreground-over-color-secondary signup-sm:mt-2.5">
+                        <Loading className="size-4 flex-none" />
+                        {t(claim ? 'claimGoing' : 'going')}
+                    </p>
+                </div>
+            }
+        />
     )
 }

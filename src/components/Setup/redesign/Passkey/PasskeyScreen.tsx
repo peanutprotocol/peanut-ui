@@ -142,7 +142,7 @@ export function PasskeyScreen(_props: StepComponentProps) {
                 : (['android1', 'android2', 'android3'] as const)
         screen = {
             stage: 'compact',
-            artTop: DESIGN_STAGE_PX.compact,
+            artBesideTitle: true,
             title: t('passkey.failedTitle'),
             titleClassName: NARROW_TITLE,
             art: <PasskeyFailureArt state={state} />,
@@ -159,7 +159,7 @@ export function PasskeyScreen(_props: StepComponentProps) {
     } else if (state === 'cannot-create') {
         screen = {
             stage: 'compact',
-            artTop: DESIGN_STAGE_PX.compact,
+            artBesideTitle: true,
             title: t('passkey.cannotTitle'),
             titleClassName: `${NARROW_TITLE} text-balance`,
             art: <PasskeyFailureArt state={state} />,

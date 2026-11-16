@@ -8,8 +8,8 @@ import { SetupScreen } from '@/components/Setup/redesign/shell/SetupScreen'
 import { useShellDevice } from '@/components/Setup/redesign/shell/useShellDevice'
 import { useSignupControl } from '@/features/setup/useSignupControl'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
-import { CardFace } from './CardFace'
-import { StarDoodles, type StarSpec } from './StarDoodles'
+import { CardFace } from '@/components/Setup/redesign/shell/CardFace'
+import { StarDoodles, type StarSpec } from '@/components/Setup/redesign/shell/StarDoodles'
 
 /** Mock 06-card/screen.js LAYOUT, in art-box design px. Small phones: a smaller card and peanut, no stars. */
 const LAYOUT = {
