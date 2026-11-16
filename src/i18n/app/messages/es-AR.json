@@ -824,7 +824,8 @@
             "clear": "Borrar",
             "cta": "Usar este usuario",
             "ctaNamed": "Usar @{name}",
-            "fieldAria": "Usuario"
+            "fieldAria": "Usuario",
+            "reserved": "Este nombre de usuario está reservado. Probá con otro."
         },
         "passkey": {
             "s1": {
@@ -855,7 +856,19 @@
             "cannot1": "Abrí Ajustes → Contraseñas, llaves de acceso y cuentas.",
             "cannot2": "Elegí el Administrador de contraseñas de Google y reintentá.",
             "cannotOther": "Usá otro administrador de contraseñas y volvé a intentarlo.",
-            "browser": "Registrate desde el navegador"
+            "browser": "Registrate desde el navegador",
+            "browserOpenFailed": "No se abrió el navegador. Volvé a intentarlo.",
+            "preflight": {
+                "nativeAndroid": "Las passkeys todavía no están disponibles. Iniciá sesión en una cuenta de Google y actualizá Google Play Services, después probá de nuevo.",
+                "nativeOther": "Las passkeys todavía no están disponibles en este dispositivo. Revisá los ajustes del dispositivo y probá de nuevo.",
+                "nativeCheckFailed": "No pudimos verificar si las passkeys funcionan. Revisá que tengas sesión iniciada en una cuenta de Google con Google Play Services actualizado y probá de nuevo.",
+                "insecure": "Las passkeys necesitan una conexión segura (HTTPS).",
+                "browserUnsupported": "Este navegador no admite passkeys.",
+                "chromeOutdated": "Actualizá Chrome para usar passkeys.",
+                "androidOutdated": "Tu versión de Android es muy vieja para las passkeys. Actualizá a Android 9 o posterior.",
+                "screenLock": "Activá el bloqueo de pantalla con PIN o biometría en los ajustes del dispositivo.",
+                "limitedSupport": "Tu dispositivo puede tener soporte limitado para passkeys. Si falla la configuración, probá actualizar Google Play Services."
+            }
         },
         "invite": {
             "title": "¿Llegaste por un amigo?",
