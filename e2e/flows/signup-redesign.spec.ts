@@ -1051,8 +1051,12 @@ test.describe('sign-up redesign journeys', () => {
                     const box = (await footer(page).getByRole('button').first().boundingBox())!
                     const x = box.x + box.width / 2
                     const y = box.y + box.height / 2
+                    // the gap runs from the first tap's start: a tap itself takes 50-100 ms on a busy box, and a
+                    // second tap past the 500 ms step is a deliberate tap that should step again
+                    const start = Date.now()
                     await page.touchscreen.tap(x, y)
-                    if (gap) await page.waitForTimeout(gap)
+                    const rest = gap - (Date.now() - start)
+                    if (rest > 0) await page.waitForTimeout(rest)
                     await page.touchscreen.tap(x, y)
                     await expect(page.locator('[data-setup-shell]')).not.toHaveAttribute('data-nav-locked')
                     await page.waitForTimeout(300)
