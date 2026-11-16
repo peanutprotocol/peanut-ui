@@ -1408,6 +1408,7 @@
             "title": "Alguém te convidou?",
             "desc": "Digite o usuário para vocês dois ganharem recompensas.",
             "placeholder": "Usuário",
+            "fieldLabel": "Usuário de quem convidou você",
             "found": "Encontramos @{name}.",
             "notFound": "Não encontramos esse usuário.",
             "isSelf": "Esse é o seu próprio usuário.",

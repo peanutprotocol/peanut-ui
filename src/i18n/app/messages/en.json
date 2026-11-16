@@ -1408,6 +1408,7 @@
             "title": "Invited by a friend?",
             "desc": "Enter their username so both of you get rewards.",
             "placeholder": "Username",
+            "fieldLabel": "Username of the person who invited you",
             "found": "Found @{name}.",
             "notFound": "We couldn’t find this user.",
             "isSelf": "That’s your own username.",
