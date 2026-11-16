@@ -29,8 +29,12 @@ const mockUpdater = {
 }
 const mockExitApp = jest.fn().mockResolvedValue(undefined)
 let mockStoreUpdateAvailable = true
-jest.mock('@/hooks/useStoreUpdateAvailable', () => ({
-    useStoreUpdateAvailable: (required: boolean) => required && mockStoreUpdateAvailable,
+let mockCutoffs: { android?: string } | undefined
+jest.mock('@/hooks/useStoreUpdateOffer', () => ({
+    useStoreUpdateOffer: () => ({
+        offer: mockStoreUpdateAvailable ? { platform: 'android', installedVersion: '1', availableVersion: '2' } : null,
+        cutoffs: mockCutoffs,
+    }),
 }))
 // splashVisible false by default: these cases are about a bundle staged while
 // the user is already in the app, where the launch apply deliberately stands
@@ -72,6 +76,7 @@ let error: jest.SpyInstance
 
 beforeEach(() => {
     mockStoreUpdateAvailable = true
+    mockCutoffs = undefined
     jest.useFakeTimers()
     window.localStorage.clear()
     platform.android = true
@@ -186,6 +191,15 @@ describe('native boot recovery includes the updater', () => {
 it('seeds the pending bundle from the plugin queue, so it survives a reload', async () => {
     const { result } = await withStagedBundle()
     expect(result.current.storeUpdateRequired).toBe(false)
+    expect(result.current.storeUpdatePrompt).toBeNull()
+})
+
+it('exposes a store prompt independently of compatibility debt when policy is current', async () => {
+    mockCutoffs = { android: '2' }
+    const { result } = await withStagedBundle()
+    expect(result.current.pendingBundle).toEqual(STAGED)
+    expect(result.current.storeUpdateRequired).toBe(false)
+    expect(result.current.storeUpdatePrompt).toEqual({ tier: 1, version: 'android:2', platform: 'android' })
 })
 
 it('flags a store update when the served bundle needs a newer binary', async () => {
@@ -195,6 +209,7 @@ it('flags a store update when the served bundle needs a newer binary', async () 
         await jest.advanceTimersByTimeAsync(5_000)
     })
     expect(result.current.storeUpdateRequired).toBe(true)
+    expect(result.current.storeUpdatePrompt).toBeNull()
     expect(window.localStorage.getItem('capgoUpdateFailureStreak')).toBeNull()
 })
 

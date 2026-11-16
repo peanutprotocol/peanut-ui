@@ -3,6 +3,7 @@
 // on web, use the normal path-based urls.
 
 import { couldBeRecipient, isPlausibleUsername, isReservedRoute } from '@/constants/routes'
+import { isAcquisitionSlug, TRACKED_LINK_ORIGIN } from '@/features/tracked-links/contract'
 import { LOTTIE_PROFILE_ENABLED } from '@/constants/dev-tools.consts'
 import { isCapacitor } from './capacitor'
 import { sanitizeRedirectURL } from './cookie-url.utils'
@@ -101,6 +102,32 @@ function mapDeepLink(url: string): string | null {
     // App Links carry the full URL. Both must resolve.
     const parsed = new URL(url, 'https://peanut.me')
     if (!APP_HOSTS.test(parsed.hostname)) return null
+
+    // A tracked handoff opening the app runs the exported /app bootstrap, which checks its fields
+    // exactly as the web page does. /go itself is not an associated path.
+    if (parsed.pathname.replace(/\/$/, '') === '/home' && parsed.searchParams.has('tl')) {
+        if (parsed.origin !== TRACKED_LINK_ORIGIN || parsed.username || parsed.password) return null
+        const slug = parsed.searchParams.get('tl')
+        if (!isAcquisitionSlug(slug) || parsed.searchParams.getAll('tl').length > 1) return null
+        const params = new URLSearchParams({ tl: slug })
+        // The /go handoff names its passive inviter; only the browser's own continuation
+        // (tl_seen) also carries the deferred fields. Nothing else but the /go tags reaches /app.
+        const continuation = parsed.searchParams.get('tl_seen') === '1'
+        if (continuation) params.set('tl_seen', '1')
+        // The tags are labels the bootstrap checks again; they never choose the inviter.
+        const tags = ['tl_s', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'tl_r', 'tl_v', 'tl_e']
+        const keys = continuation
+            ? ['acq_invite', 'pnutdl', 'at', 'attribution', 'wid', 'lang', 'invite', ...tags]
+            : ['acq_invite', ...tags]
+        for (const key of keys) {
+            if (parsed.searchParams.getAll(key).length === 1) params.set(key, parsed.searchParams.get(key)!)
+        }
+        // The badge queue travels as repeated keys; restore sanitizes and caps it.
+        if (continuation)
+            for (const campaign of parsed.searchParams.getAll('badge_campaign'))
+                params.append('badge_campaign', campaign)
+        return `/app?${params}`
+    }
 
     // The fragment is re-attached here rather than inside each branch below:
     // a claim link's password lives in `#p=<password>` and never reaches the
@@ -448,7 +475,7 @@ export function rewriteMethodPath(path: string, extraParams?: string, native = i
         const country = addMoneyMatch[1]
         const subView = addMoneyMatch[2] // bank, manteca, etc.
         // static routes, not [country] — same carve-out as withdraw below
-        if (country === 'crypto' || country === 'us' || country === 'options') {
+        if (country === 'crypto' || country === 'us' || country === 'pix' || country === 'options') {
             return extraParams ? `${path}${path.includes('?') ? '&' : '?'}${extraParams}` : path
         }
         let url = `/add-money?country=${country}`
@@ -461,8 +488,9 @@ export function rewriteMethodPath(path: string, extraParams?: string, native = i
     if (withdrawMatch) {
         const country = withdrawMatch[1]
         const subView = withdrawMatch[2]
-        // skip manteca (it's a static route, not dynamic)
-        if (country === 'manteca' || country === 'crypto') {
+        // static routes, not [country]
+        // new-pix-key: a retired page kept as an alias for links already delivered
+        if (country === 'manteca' || country === 'crypto' || country === 'pix' || country === 'new-pix-key') {
             return extraParams ? `${path}${path.includes('?') ? '&' : '?'}${extraParams}` : path
         }
         let url = `/withdraw?country=${country}`

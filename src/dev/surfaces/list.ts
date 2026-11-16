@@ -156,6 +156,17 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         shotClickTestId: 'setup-payment-channel',
         shotFixture: 'setup-payment-plan',
     },
+    '03-j-funding-methods-argentina': {
+        name: 'Setup — funding methods, resident of Argentina',
+        path: 'Setup/Views/PaymentPlan.tsx',
+        shotClickTestId: 'setup-funding-channel',
+        shotFixture: 'setup-payment-plan',
+    },
+    '03-k-funding-pix-chosen': {
+        name: 'Setup — Pix chosen to add money, resident of Brazil',
+        path: 'Setup/Views/PaymentPlan.tsx',
+        shotFixture: 'setup-payment-plan',
+    },
     '03-a-residence-select': { name: 'Residence — select', path: 'Setup/Views/Residence.tsx' },
     '03-b-residence-compare': {
         name: 'Residence — two countries compared',
@@ -199,6 +210,16 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         name: 'LoginRecoveryDrawer — web, no sign-up',
         path: 'Setup/Views/LoginRecoveryDrawer.tsx',
         captureState: ['platform=web', 'signup=omitted'],
+    },
+    '08-d-passkeyproviderunsupporteddrawer': {
+        name: 'PasskeyProviderUnsupportedDrawer',
+        path: 'Setup/Views/PasskeyProviderUnsupportedDrawer.tsx',
+        captureState: ['platform=android-app'],
+    },
+    '08-f-passkeyproviderunsupporteddrawer-other': {
+        name: 'PasskeyProviderUnsupportedDrawer — iOS and web',
+        path: 'Setup/Views/PasskeyProviderUnsupportedDrawer.tsx',
+        captureState: ['platform=other'],
     },
     '09-a-passkeyinfomodal': { name: 'PasskeyInfoDrawer', path: 'Setup/components/PasskeyInfoDrawer.tsx' },
     '10-a-confirminvitemodal': {
@@ -308,6 +329,11 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         name: 'Residence change under review',
         path: 'Profile/views/ResidenceChangeDrawer.tsx',
         captureState: ['pendingStatus=REVIEW_PENDING'],
+    },
+    '45-e-residence-manual-review': {
+        name: 'Residence change held for manual review',
+        path: 'Profile/views/ResidenceChangeDrawer.tsx',
+        captureState: ['pendingStatus=REVIEW_PENDING', 'pendingManualReview=true'],
     },
     '48-c-balancewarningmodal': { name: 'BalanceWarningDrawer', path: 'Global/BalanceWarningDrawer/index.tsx' },
     '50-d-transactiondetailsdrawer': {
@@ -497,6 +523,68 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         path: 'Common/MantecaAccountUnavailable.tsx',
         captureState: ['code=MANTECA_ACCOUNT_REJECTED', 'action=withdraw', 'country=AR', 'kyc=false'],
         expectSelector: '[data-testid="app-page-surface-content"] [role="alert"]',
+    },
+    '94-f-pix-deposit': {
+        name: 'Pix deposit — the dynamic code',
+        path: 'features/pix/components/PixQrDeposit.tsx',
+        captureState: ['amountBrl=100', 'expiresAt=+10 min'],
+        // the signed-in Brazilian resident the CPF line's avatar is drawn for
+        shotFixture: 'pix-deposit-amount',
+        expectSelector: '[data-testid="app-page-surface-content"] canvas, [data-testid="app-page-surface-content"] svg',
+    },
+    '94-g-pix-withdraw-on-its-way': {
+        name: 'Pix withdrawal — funded, the provider pays: the shared payment loader',
+        path: 'features/pix/components/PixWithdrawOutcome.tsx',
+        captureState: ['phase=funded', 'entry=PENDING', 'quoted arrival=60 s'],
+        shotFixture: 'pix-withdraw-unconfirmed',
+        expectSelector: '[data-testid="app-page-surface-content"] [role="status"]',
+    },
+    '94-h-pix-withdraw-arrived-to': {
+        name: 'Pix withdrawal — arrived: the shared success view, key and bank named',
+        path: 'features/pix/components/PixWithdrawOutcome.tsx',
+        captureState: ['phase=funded', 'entry=COMPLETED', 'key=11144477735', 'bank=Banco Inter'],
+        shotFixture: 'pix-withdraw-arrived',
+        expectSelector: '[data-testid="app-page-surface-content"] button',
+    },
+    '94-i-pix-withdraw-arrived-unnamed': {
+        name: 'Pix withdrawal — arrived, no bank named: the key alone',
+        path: 'features/pix/components/PixWithdrawOutcome.tsx',
+        captureState: ['phase=funded', 'entry=COMPLETED', 'key=11144477735', 'bank=none'],
+        shotFixture: 'pix-withdraw-arrived',
+        expectSelector: '[data-testid="app-page-surface-content"] button',
+    },
+    '94-j-pix-review-quote-moved': {
+        name: 'Pix withdrawal form — the opened quote moved, confirm again',
+        path: 'features/pix/components/PixWithdrawForm.tsx',
+        captureState: ['phase=reconfirm'],
+        expectSelector: '[data-testid="app-page-surface-content"] [role="alert"]',
+    },
+    '94-k-pix-review-after-init': {
+        name: 'Pix withdrawal form — the opened quote expired before the signature',
+        path: 'features/pix/components/PixWithdrawForm.tsx',
+        captureState: ['phase=idle', 'lockedAfterInit=true', 'error=quoteExpired'],
+        expectSelector: '[data-testid="app-page-surface-content"] [role="alert"]',
+    },
+    '94-l-pix-withdraw-stuck': {
+        name: 'Pix withdrawal — funded, but the withdrawal ended with no recovery',
+        path: 'features/pix/components/PixWithdrawOutcome.tsx',
+        captureState: ['phase=funded', 'entry=CANCELLED', 'outcome=stuck'],
+        shotFixture: 'pix-withdraw-not-sent',
+        expectSelector: '[data-testid="app-page-surface-content"] button',
+    },
+    '94-m-pix-withdraw-past-arrival': {
+        name: 'Pix withdrawal — still open past the quoted arrival time: on its way, with Done',
+        path: 'features/pix/components/PixWithdrawOutcome.tsx',
+        captureState: ['phase=funded', 'entry=PENDING', 'quoted arrival=0 s', 'destination=Banco Inter · Ana Souza'],
+        shotFixture: 'pix-withdraw-unconfirmed',
+        expectSelector: '[data-testid="app-page-surface-content"] button',
+    },
+    '94-n-pix-withdraw-past-arrival-unnamed': {
+        name: 'Pix withdrawal — still open past the quoted arrival time, no holder named',
+        path: 'features/pix/components/PixWithdrawOutcome.tsx',
+        captureState: ['phase=funded', 'entry=PENDING', 'quoted arrival=0 s', 'destination=none'],
+        shotFixture: 'pix-withdraw-unconfirmed',
+        expectSelector: '[data-testid="app-page-surface-content"] button',
     },
     '70-d-activationctas-outbound': {
         name: 'First-payment chooser',

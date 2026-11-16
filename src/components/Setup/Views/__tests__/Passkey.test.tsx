@@ -21,6 +21,11 @@ const mockPasskey = {
     isHelpOpen: false,
     closeHelp: jest.fn(),
     retryFromHelp: jest.fn(),
+    isProviderUnsupportedOpen: false,
+    providerUnsupportedPlatform: 'android-app',
+    closeProviderUnsupported: jest.fn(),
+    retryFromProviderUnsupported: jest.fn(),
+    signUpInBrowser: jest.fn(),
     deviceType: 'web',
 }
 const mockUseSignupPasskey = jest.fn((_username: string) => mockPasskey)
@@ -52,6 +57,7 @@ beforeEach(() => {
         isLoggingIn: false,
         helpErrorName: null,
         isHelpOpen: false,
+        isProviderUnsupportedOpen: false,
     })
     mockReserveUsername.mockResolvedValue('reserved')
 })
@@ -134,13 +140,22 @@ describe('Create passkey — control analytics', () => {
         expect(controls()).toEqual(['passkey_help:open', 'passkey_help:open'])
     })
 
-    it('shows an unsupported passkey provider inline, without a drawer', () => {
-        Object.assign(mockPasskey, {
-            inlineError: 'The password manager on this phone saved a passkey that Peanut can’t verify.',
-        })
+    it('reports the unsupported-provider drawer actions (TASK-24498)', () => {
+        Object.assign(mockPasskey, { isProviderUnsupportedOpen: true })
         renderPasskey()
-        expect(screen.getByText(/saved a passkey that Peanut can’t verify/)).toBeInTheDocument()
-        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Sign up at peanut.me in a browser' }))
+        fireEvent.click(screen.getByRole('link', { name: 'Still stuck?' }))
+        fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+        expect(controls()).toEqual([
+            'passkey_provider_retry:tap',
+            'passkey_provider_web_signup:tap',
+            'passkey_provider_support:tap',
+            'passkey_provider:dismiss',
+        ])
+        expect(mockPasskey.retryFromProviderUnsupported).toHaveBeenCalledTimes(1)
+        expect(mockPasskey.signUpInBrowser).toHaveBeenCalledTimes(1)
+        expect(mockPasskey.closeProviderUnsupported).toHaveBeenCalledTimes(1)
     })
 })
 

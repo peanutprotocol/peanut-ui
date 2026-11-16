@@ -12,7 +12,7 @@ const READY: QrPayViewInputs = {
     rateUnavailable: false,
     loadingState: 'Idle',
     isSuccess: false,
-    isManteca: true,
+    hasProcessor: true,
 }
 
 describe('deriveQrPayView: the Brazil pause', () => {

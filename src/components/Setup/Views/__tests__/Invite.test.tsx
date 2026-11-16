@@ -9,7 +9,7 @@ import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFl
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { EInviteType } from '@/services/services.types'
 import { disableDemoMode, isDemoMode } from '@/utils/demo'
-import { readInviteCode, stashInvite } from '@/utils/invite-stash'
+import { readInviteCode, stashAcquisitionInvite, stashInvite } from '@/utils/invite-stash'
 import InviteStep from '../Invite'
 
 const mockHandleNext = jest.fn(async () => {})
@@ -204,6 +204,13 @@ describe('Invited by a friend? (before registration)', () => {
         fireEvent.change(field(), { target: { value: 'ab' } })
         await waitFor(() => expect(continueButton()).toBeDisabled())
         expect(mockValidateInviter).not.toHaveBeenCalled()
+    })
+
+    it('keeps a passive tracked-link inviter when the person skips', () => {
+        stashAcquisitionInvite('alice')
+        renderInvite()
+        fireEvent.click(screen.getByRole('button', { name: 'Skip' }))
+        expect(readInviteCode()).toBe('alice')
     })
 
     it('skips without an accept and records the skip', () => {

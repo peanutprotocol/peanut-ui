@@ -211,7 +211,7 @@ export const useSignSpendBundle = () => {
                         flow: 'sign-only',
                     })
                     queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] })
-                    throw new InsufficientSpendableError()
+                    throw new InsufficientSpendableError(rainSpendingPower, requiredUsdcAmount)
                 }
                 strategy = 'collateral-only'
             } else {

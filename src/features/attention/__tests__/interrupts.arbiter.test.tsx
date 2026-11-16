@@ -65,6 +65,7 @@ const DAY_MS = 24 * 60 * 60 * 1000
 const NOW = Date.parse('2026-10-11T12:00:00Z')
 
 const INTERRUPT_ASKS: AskId[] = [
+    'app-update-important',
     'legal-reconsent',
     'balance-backup',
     'post-verification-action',
@@ -107,6 +108,26 @@ function stubFor(id: AskId): React.ComponentType<AskSurfaceProps> {
 }
 
 const allStubs = () => Object.fromEntries(INTERRUPT_ASKS.map((id) => [id, stubFor(id)])) as typeof mockSurfaces
+
+test('the update drawer yields away from Home and to an overlay, then resumes without settlement', async () => {
+    mockState = state({ deviceType: 'ios', storeUpdatePrompt: { tier: 1, version: 'ios:2', platform: 'ios' } })
+    const view = await mount()
+    expect(screen.queryByTestId('surface-app-update-important')).toBeTruthy()
+
+    mockState = { ...mockState, route: 'other' }
+    await rerender(view)
+    expect(screen.queryByTestId('surface-app-update-important')).toBeNull()
+    expect(readLedger('user-a')['app-update-important']?.snoozedUntil).toBeUndefined()
+
+    mockState = { ...mockState, route: 'home' }
+    mockOverlayOpen = true
+    await rerender(view)
+    expect(screen.queryByTestId('surface-app-update-important')).toBeNull()
+    mockOverlayOpen = false
+    await rerender(view)
+    expect(screen.queryByTestId('surface-app-update-important')).toBeTruthy()
+    expect(readLedger('user-a')['app-update-important']?.snoozedUntil).toBeUndefined()
+})
 
 /** Everything quiet: no ask wants a surface unless a test turns it on. */
 const state = (overrides: Record<string, unknown> = {}): JourneyState =>

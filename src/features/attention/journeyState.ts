@@ -8,6 +8,7 @@ import { useQuery } from '@tanstack/react-query'
 import { usePathname } from 'next/navigation'
 import { formatUnits } from 'viem'
 import { useAuth } from '@/context/authContext'
+import { useOtaUpdate } from '@/context/OtaUpdateContext'
 import { useKillSwitches } from '@/features/kill-switches/useKillSwitches'
 import { QrKycState } from '@/constants/kyc.consts'
 import { useActivationStatus } from '@/hooks/useActivationStatus'
@@ -187,6 +188,7 @@ export function hasPostSignupRedirect(destination: string | undefined): boolean 
 }
 
 export interface JourneyInputs {
+    storeUpdatePrompt?: JourneyState['storeUpdatePrompt']
     capNudge: JourneyState['capNudge']
     maintenance: JourneyState['maintenance']
     now: number
@@ -249,6 +251,7 @@ export function buildJourneyState(input: JourneyInputs): JourneyState {
                   documents,
               }
     return {
+        storeUpdatePrompt: input.storeUpdatePrompt ?? null,
         capNudge: input.capNudge,
         maintenance: input.maintenance,
         now: input.now,
@@ -322,6 +325,7 @@ export function buildJourneyState(input: JourneyInputs): JourneyState {
  * IP country) is fetched on Home only.
  */
 export function useJourneyState(): JourneyState {
+    const { storeUpdatePrompt } = useOtaUpdate()
     const { user, isFetchingUser } = useAuth()
     const userId = user?.user.userId ?? null
     const pathname = usePathname()
@@ -534,6 +538,7 @@ export function useJourneyState(): JourneyState {
         () =>
             applyServerFacts(
                 buildJourneyState({
+                    storeUpdatePrompt,
                     capNudge,
                     maintenance,
                     // the epoch stands for the localStorage reads below (stored redirect)
@@ -598,6 +603,7 @@ export function useJourneyState(): JourneyState {
             ),
         [
             serverAttention,
+            storeUpdatePrompt,
             capNudge,
             maintenance,
             userId,

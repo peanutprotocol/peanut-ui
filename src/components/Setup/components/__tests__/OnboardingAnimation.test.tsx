@@ -34,8 +34,8 @@ jest.mock('lottie-web/build/player/lottie_light', () => ({
     __esModule: true,
     default: { loadAnimation: (options: { container: HTMLElement }) => mockLoad(options) },
 }))
-// Residence carries the full beat: intro 0-36, idle 36-74, outro 74-86.
-jest.mock('@/assets/onboarding/residence.json', () => ({
+// Email carries the full beat: intro 0-36, idle 36-74, outro 74-86.
+jest.mock('@/assets/onboarding/email.json', () => ({
     markers: [
         { cm: 'intro', tm: 0, dr: 36 },
         { cm: 'idle', tm: 36, dr: 38 },
@@ -138,7 +138,7 @@ describe('planLoop', () => {
 
 describe('OnboardingAnimation', () => {
     it('plays the beat, holds the idle pose, then eases back and plays again', async () => {
-        await mount('residence')
+        await mount('email')
         expect(mockLoad).toHaveBeenCalledWith(expect.objectContaining({ loop: false, autoplay: false }))
         expect(mockAnimation.playSegments).toHaveBeenLastCalledWith([0, 36], true)
 
@@ -184,13 +184,13 @@ describe('OnboardingAnimation', () => {
 
     it('shows the held pose under reduced motion, and stops a running beat when it turns on', async () => {
         mockMotion.matches = true
-        await mount('residence')
+        await mount('email')
         expect(mockAnimation.goToAndStop).toHaveBeenCalledWith(36, true)
         expect(mockAnimation.playSegments).not.toHaveBeenCalled()
     })
 
     it('cancels the pending outro when reduced motion turns on mid-hold', async () => {
-        await mount('residence')
+        await mount('email')
         act(() => mockEvents.complete())
         act(() => {
             mockMotion.matches = true
@@ -202,7 +202,7 @@ describe('OnboardingAnimation', () => {
     })
 
     it('pauses while the page is hidden and stops its timers on unmount', async () => {
-        const view = await mount('residence')
+        const view = await mount('email')
         act(() => {
             mockHidden = true
             document.dispatchEvent(new Event('visibilitychange'))
@@ -220,7 +220,7 @@ describe('OnboardingAnimation', () => {
     })
 
     it('lets the loop draw past its comp box', async () => {
-        const view = await mount('residence')
+        const view = await mount('email')
         const svg = view.container.querySelector('svg')
         expect(svg?.style.overflow).toBe('visible')
         expect(svg?.querySelector('g[clip-path]')).toBeNull()

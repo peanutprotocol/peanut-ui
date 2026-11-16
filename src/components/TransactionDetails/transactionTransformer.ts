@@ -18,6 +18,8 @@ import { parseWireAmount, senderNoteText } from './transaction-details.utils'
 import { networkFeeDetailsForEntry } from './network-fee.utils'
 import { pipelineAlert } from '@/utils/pipelineAlerts'
 import { formatBankAmount } from '@/utils/currency'
+import { pixCodePayable } from '@/features/pix/pixDepositCode'
+import { isPixEntry } from '@/components/TransactionDetails/pix-entry'
 
 /** Sender account types that are not a payer's bank account. */
 const NON_BANK_SENDER_TYPES: ReadonlySet<string> = new Set(['peanut-wallet', 'evm-address', 'address'])
@@ -38,24 +40,12 @@ function isDisputeStatus(value: unknown): value is DisputeStatus {
     return typeof value === 'string' && DISPUTE_STATUSES.has(value)
 }
 
-// Mirror of peanut-api-ts `enum TransactionProvider`. Receipts that branch
-// on provider (e.g. Manteca-specific deposit-info row) use this typed
-// value via `extraDataForDrawer.provider` for positive identity rather
-// than inferring from the absence of other fields.
-//
-// Stays a string union (not an enum) so it stays interchangeable with the
-// wire string at runtime and so adding a value here forces TS-side updates
-// at every gate that switches on it. Deprecated values are kept so old
-// rows that still carry them on the wire don't blow up the type system.
-export type Provider =
-    | 'PEANUT'
-    | 'BRIDGE'
-    | 'MANTECA'
-    | 'RHINO'
-    | 'RAIN'
-    | 'ONCHAIN'
-    | 'DEPRECATED_SIMPLEFI'
-    | 'DEPRECATED_SQUID'
+// peanut-api-ts `enum TransactionProvider`, as a history row names it (BRIDGE, MANTECA, AVENIA,
+// RAIN, ...). The history schema types `extraData.provider` as a plain string, so the app reads a
+// string too: a new provider needs no change here, and its legal record comes from the registry
+// (`providerIdFor` in provider.utils). Receipts that branch on a provider compare this value for
+// positive identity rather than infer it from the absence of other fields.
+export type Provider = string
 
 /**
  * @fileoverview maps raw transaction history data from the api/hook to the format needed by ui components.
@@ -441,6 +431,10 @@ export interface TransactionDetails {
          *  `hasPublicReceipt`: it is the one gate for the receipt link, its
          *  share and the anonymous PDF. */
         publicReceipt?: boolean
+        /** A Pix deposit whose code can still be paid: the receipt opens it again. */
+        pixCodePayable?: boolean
+        /** Moved by Pix (`isPixEntry`): the Activity row and the receipt lead with the Pix logo. */
+        isPix?: boolean
         link?: string
         isLinkTransaction?: boolean
         transactionCardType?: TransactionCardType
@@ -461,6 +455,10 @@ export interface TransactionDetails {
         /** The provider reported the transfer as returned or refunded after
          *  it settled. */
         wasReturned?: boolean
+        /** A Pix deposit the provider received and gave back before it
+         *  converted it: Returned, but nothing was converted, so the receipt
+         *  keeps the estimate row. */
+        returnedBeforeConversion?: true
         /** Why the bank sent the deposit back; picks the receipt's reason line. */
         returnReasonCode?: DepositReturnReasonCode
         /** A bank deposit that never reaches the balance — a bank's
@@ -497,6 +495,8 @@ export interface TransactionDetails {
         }
         depositInstructions?: DrawerDepositInstructions
         receipt?: DrawerReceipt
+        /** A settled Avenia Pix entry's fees in reais, beside `receipt.exchange_rate` (both or neither). */
+        providerFeeBrl?: string
         /** Card-payment specifics — populated for Rain CARD_SPEND / card-refund
          *  entries only. Drives the merchant hero, status timeline, decline
          *  reason, and "Adjusted from $X" settlement note in the drawer. */
@@ -529,7 +529,7 @@ export interface TransactionDetails {
             rainTransactionId: string | null
             isRefund: boolean
             /** Populated when Rain has fired any dispute.* webhook for this
-             *  spend. Status drives the drawer's "Disputed — <label>" badge;
+             *  spend. Status drives the drawer's "Disputed: <label>" badge;
              *  evidenceRequestedMessage prompts the user to upload docs. */
             dispute: {
                 status: DisputeStatus
@@ -684,8 +684,15 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     // deposit never worked. It did work, and then the bank sent it back — a
     // different thing to know, and the only one that says what to do next.
     const returnedStatus = entry.status?.toUpperCase()
+    // A Pix deposit the provider gave back (Avenia: paid from an account not under the user's CPF)
+    // stays FAILED on the wire. `pixReturned` says so to every viewer, the shared receipt included;
+    // why (`returnReason`) goes to the owner only. Without the flag the row reads as it did: the
+    // status alone never says it was returned.
+    const isPixDepositReturned =
+        direction === 'bank_deposit' && returnedStatus === 'FAILED' && entry.extraData?.pixReturned === true
     const isDepositReturned =
-        direction === 'bank_deposit' && (returnedStatus === 'REFUNDED' || returnedStatus === 'RETURNED')
+        isPixDepositReturned ||
+        (direction === 'bank_deposit' && (returnedStatus === 'REFUNDED' || returnedStatus === 'RETURNED'))
     if (isDepositReturned) uiStatus = 'refunded'
 
     // Active dispute trumps the underlying spend's status — a card spend
@@ -695,7 +702,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     // / rejected / canceled) restore the underlying status: the chargeback
     // for accepted disputes arrives as a separate credit transaction; the
     // others left the original spend standing. Status discrimination beyond
-    // the pill lives on the "Disputed — <label>" sub-row.
+    // the pill lives on the "Disputed: <label>" sub-row.
     const disputeStatus = (entry.extraData?.dispute as { status?: string } | null | undefined)?.status
     if (disputeStatus === 'pending' || disputeStatus === 'inReview') {
         uiStatus = 'pending'
@@ -827,6 +834,8 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             provider: entry.extraData?.provider as Provider | undefined,
             bridgeFlow: entry.extraData?.bridgeFlow,
             publicReceipt: entry.extraData?.publicReceipt || undefined,
+            pixCodePayable: pixCodePayable(entry.extraData, Date.now()) || undefined,
+            isPix: isPixEntry(entry) || undefined,
             link: entry.extraData?.link,
             isLinkTransaction: isLinkTx,
             transactionCardType,
@@ -838,6 +847,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             // The bank sent the money back after it settled, so the
             // conversion happened even though the row reads as failed.
             wasReturned: returnedStatus === 'RETURNED' || returnedStatus === 'REFUNDED' || undefined,
+            returnedBeforeConversion: isPixDepositReturned || undefined,
             returnReasonCode: isDepositReturned ? entry.extraData?.returnReason?.code : undefined,
             payerName:
                 isDepositAccountDeposit || depositKind
@@ -936,6 +946,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
                     ? (entry.extraData?.depositInstructions as DrawerDepositInstructions | undefined)
                     : undefined,
             receipt: entry.extraData?.receipt as DrawerReceipt | undefined,
+            providerFeeBrl: (entry.extraData?.receipt && entry.extraData.providerFeeBrl) || undefined,
         },
         sourceView: 'history',
         points: entry.points,

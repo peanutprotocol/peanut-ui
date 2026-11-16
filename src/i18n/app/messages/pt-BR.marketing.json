@@ -74,6 +74,7 @@
     "errors": {
         "balanceSettling": "Seu saldo ainda não está totalmente disponível. Tente novamente em alguns segundos.",
         "notEnoughBalanceAddFunds": "Saldo insuficiente. Adicione fundos para continuar.",
+        "balanceShortBy": "Faltam ${amount} no seu saldo. Adicione dinheiro para continuar.",
         "insufficientFunds": "Você não tem fundos suficientes.",
         "userRejectedTransaction": "Confirme a transação na sua carteira.",
         "notDeployedOnChain": "O Bulk não está disponível nesta rede, tente outra rede.",
@@ -125,7 +126,7 @@
         "bankAccountNotUsable": "Esta conta bancária não pode mais ser usada. Adicione-a novamente.",
         "cardRateLimited": "Muitas solicitações com o cartão. Aguarde um momento e tente novamente.",
         "linkTransactionHashFetch": "Não conseguimos carregar a transação deste link. Atualize a página e tente novamente.",
-        "cardApprovalCancelled": "Aprovação cancelada — você pode tentar novamente quando quiser.",
+        "cardApprovalCancelled": "Aprovação cancelada. Você pode tentar novamente quando quiser.",
         "cardApprovalFailed": "Não foi possível aprovar o cartão. Tente novamente.",
         "logoutFailed": "Não foi possível sair da sua conta. Tente novamente.",
         "loginIncomplete": "O login não foi concluído. Tente novamente.",
@@ -161,6 +162,7 @@
         },
         "downloadNow": "Baixar agora",
         "smartLink": {
+            "openApp": "Abrir Peanut",
             "redirecting": "Abrindo a loja…",
             "pickStore": "Escolha sua loja e baixe o app."
         }

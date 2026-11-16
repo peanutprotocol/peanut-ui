@@ -4,6 +4,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import messages from '@/i18n/app/messages/en.json'
 import type { ProviderId } from '@/types/provider.types'
+import { PROVIDERS } from '@/constants/providers.consts'
 import { openExternalUrl } from '@/utils/capacitor'
 import { ProviderFinePrint } from '../ProviderFinePrint'
 import { ProviderRow } from '../ProviderRow'
@@ -153,6 +154,20 @@ describe('ProviderSheet rows', () => {
         ).toBeInTheDocument()
         expect(within(sheet).queryByRole('status')).not.toBeInTheDocument()
     })
+})
+
+// Each entry reads its own execution line: no entry borrows another's, so a new provider needs
+// only its registry entry and its copy.
+describe('ProviderSheet execution line', () => {
+    it.each(Object.values(PROVIDERS).map((record) => [record.id, record.role, record.brand] as const))(
+        '%s reads the execution line of its own role (%s)',
+        (id, role, brand) => {
+            withIntl(<ProviderRow providerId={id} />)
+            const line = (messages.provider.execution as Record<string, string>)[role]
+            expect(line).toBeDefined()
+            expect(within(openSheet(brand)).getByText(line.replace('{brand}', brand))).toBeInTheDocument()
+        }
+    )
 })
 
 describe('ProviderFinePrint', () => {

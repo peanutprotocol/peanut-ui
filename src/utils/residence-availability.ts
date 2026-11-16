@@ -1,6 +1,7 @@
 import { deriveResidenceRestrictionsFrom } from '@/utils/residence-restrictions'
 import { type ResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSets'
 import type { KycIntents } from '@/hooks/useKycIntents'
+import { LOCAL_SERVED_ELSEWHERE_REASON } from '@/features/kyc-features/report'
 
 /** What a residence can make available: a bank rail, bank transfers where supported, the card, P2P. */
 export type AvailabilityItemKey = 'p2p' | 'pix' | 'arQr' | 'spei' | 'usdAch' | 'eurSepa' | 'gbpFps' | 'bank' | 'card'
@@ -57,7 +58,9 @@ const LOCAL_FEATURE_RAIL: Readonly<Record<string, AvailabilityRailKey>> = { BR: 
 
 function railsFromIntents(code: string, intents: KycIntents): AvailabilityItemKey[] {
     const rails: AvailabilityItemKey[] = []
-    if (intents.local.available && LOCAL_FEATURE_RAIL[code]) rails.push(LOCAL_FEATURE_RAIL[code])
+    // another entry serving the residence (Brazil's Pix from its route) still offers the local rail
+    const localOffered = intents.local.available || intents.local.reason === LOCAL_SERVED_ELSEWHERE_REASON
+    if (localOffered && LOCAL_FEATURE_RAIL[code]) rails.push(LOCAL_FEATURE_RAIL[code])
     if (intents.bank.available) {
         const initialCount = rails.length
         for (const currency of intents.bank.currencies ?? []) {

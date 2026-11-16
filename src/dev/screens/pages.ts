@@ -98,18 +98,12 @@ export const PAGE_CAPTURES: PageCapture[] = [
         fixture: 'add-money-picker-first-time',
         expectSelector: '[data-testid="add-money-option-GBP"]',
     },
-    {
-        id: 'add-money-pix-currency',
-        name: 'Add money — Pix currency',
-        route: '/add-money/options?method=pix',
-        fixture: 'add-money-picker-first-time',
-        expectSelector: '[data-testid="add-money-option-BRL"]',
-    },
     { id: 'p18-add-money-crypto', name: 'Add money — crypto', route: '/add-money/crypto' },
     {
         id: 'add-money-crypto-euro-token-network',
         name: 'Add money — euro token network tooltip',
         route: '/add-money/crypto?network=EVM',
+        // the chip names the credited variant, as the deposit token list does (rhino.consts EURe v2)
         actions: [{ tap: 'EURe v2 · Gnosis' }],
         expectSelector: '[role="tooltip"]',
     },
@@ -289,5 +283,42 @@ PAGE_CAPTURES.push(
         name: 'Notifications settings',
         route: '/settings/notifications',
         fixture: 'settings-notifications',
+    },
+    // Pix states that follow a tap; the fixture answers the call the tap makes.
+    {
+        id: 'p81-pix-deposit-limit',
+        name: 'Pix deposit — over the monthly limit',
+        route: '/add-money/pix?amount=100&currency=BRL',
+        fixture: 'pix-deposit-amount',
+        clicks: ['Continue'],
+        expectSelector: '[role="alert"]',
+    },
+    {
+        id: 'p84-pix-provider-sheet',
+        name: "Pix review — the provider's legal details",
+        // the key and amount come from the fixture's session draft, never the URL
+        route: '/withdraw/pix?step=review',
+        fixture: 'pix-withdraw-review',
+        // the (?) is an icon: "About Avenia" is its aria-label, not text a click by text finds
+        actions: [{ clickSelector: '[data-testid="provider-help"]' }],
+        expectSelector: '[role="dialog"][data-state="open"]',
+    },
+    // Manteca's two entities, as the statement's provider page names them: Argentina's money, and Pix
+    // for users who do not live in Brazil
+    {
+        id: 'p85-manteca-ar-provider-sheet',
+        name: "Argentina's add money — the provider's legal details",
+        route: '/add-money/argentina/manteca?step=inputAmount&amount=10000&currency=ARS',
+        fixture: 'add-money-provider-rejected',
+        actions: [{ clickSelector: '[data-testid="provider-help"]' }],
+        expectSelector: '[role="dialog"][data-state="open"]',
+    },
+    {
+        id: 'p86-pix-manteca-provider-sheet',
+        name: "Pix review on Manteca's route — the provider's legal details",
+        route: '/withdraw/pix?step=review',
+        fixture: 'pix-manteca-withdraw-review',
+        actions: [{ clickSelector: '[data-testid="provider-help"]' }],
+        expectSelector: '[role="dialog"][data-state="open"]',
     }
 )

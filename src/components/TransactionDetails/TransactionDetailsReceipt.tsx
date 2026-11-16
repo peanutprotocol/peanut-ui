@@ -20,6 +20,7 @@ import { TransactionDetailsHeaderCard } from './TransactionDetailsHeaderCard'
 import { LocalRailNudge } from './provider-rows/LocalRailNudge'
 import { CardUsdAbroadNotice } from './provider-rows/CardUsdAbroadNotice'
 import { CardAdjustmentNotice } from './provider-rows/CardAdjustmentNotice'
+import { PixPayCodeNotice } from '@/features/pix/components/PixPayCodeNotice'
 import { PerkRewardReceipt } from './provider-receipts/PerkRewardReceipt'
 import {
     hasUserProfile,
@@ -65,6 +66,7 @@ export const TransactionDetailsReceipt = ({
 }) => {
     const t = useAppTranslations('transaction')
     const tRequest = useAppTranslations('request')
+    const tPixDeposit = useAppTranslations('pix.deposit')
 
     // Only the transaction details drawer passes setIsModalOpen: it keeps that
     // drawer open while a nested drawer is up, and vaul's NestedRoot throws
@@ -124,7 +126,13 @@ export const TransactionDetailsReceipt = ({
         transaction.actionLabelKey !== 'type.returnedToSender'
             ? undefined
             : returnReasonCode === 'third_party'
-              ? t('returnedReasonThirdParty')
+              ? // a Pix the provider gave back says what the deposit screen said: one sentence for both.
+                // It speaks to the payer ("your CPF"), so a shared receipt keeps the general line.
+                transaction.extraDataForDrawer?.isPix
+                  ? isPublic
+                      ? t('returnedReason')
+                      : tPixDeposit('returnedBody')
+                  : t('returnedReasonThirdParty')
               : returnReasonCode === 'too_many_recent'
                 ? t('returnedReasonTooManyRecent')
                 : returnReasonCode === 'name_mismatch'
@@ -281,6 +289,10 @@ export const TransactionDetailsReceipt = ({
                         onOpenChange={setIsModalOpen}
                     />
                 )}
+
+            {/* A Pix deposit whose code can still be paid. Not gated on isPublic: the API sends the
+                field to the owner only, so the field itself is the gate. */}
+            <PixPayCodeNotice transaction={transaction} />
 
             {/* Over-capture explainer — the words for the Initial hold /
                 Adjustment rows in the details card and the merchant-recourse

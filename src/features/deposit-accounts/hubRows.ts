@@ -6,7 +6,7 @@ import { dedupeHeldBankRows, type UnlockRow } from '@/utils/unlock-payments.util
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 import { localizedCurrencyName } from '@/utils/currency-name.utils'
 import { corridorsForCountry } from './countryCorridor'
-import { depositGateView, isDepositBlock, offersVerification, type DepositGateView } from './depositGate'
+import { depositGateView, isDepositBlock, isWaitView, offersVerification, type DepositGateView } from './depositGate'
 import { DEPOSIT_RAILS, DEPOSIT_RAIL_ORDER, isClaimable } from './rails'
 import { isHeld } from './resolveScreen'
 import type {
@@ -121,8 +121,9 @@ export function virtualAccountRows(
  * this corridor, where the gate speaks for the rail alone. Otherwise the row
  * opens when the account can be opened now, when the backend's terms block it
  * (the account cap, a provider review — the gate drawer explains each), when
- * the user can send themselves a transfer instead, or when a verification step
- * the user can take stands in the way.
+ * the gate only waits (its drawer says so), when the user can send themselves
+ * a transfer instead, or when a verification step the user can take stands in
+ * the way.
  */
 function isOpenable(
     corridor: DepositCorridor,
@@ -144,6 +145,7 @@ function isOpenable(
     return (
         view.claimable ||
         (view.notice !== undefined && isDepositBlock(view.notice.kind)) ||
+        isWaitView(view) ||
         canTopUp(corridor, gates) ||
         offersVerification(gates[corridor])
     )
@@ -225,6 +227,8 @@ export type ClosedRow =
     | { kind: 'not-offered'; corridor: DepositCorridor }
     | { kind: 'residence'; corridor: 'PIX_BR' | 'BANK_TRANSFER_AR' }
     | { kind: 'restricted-country' }
+    /** the BRL row's Pix route is refused for its own reason: the drawer says it as the Pix pages do */
+    | { kind: 'pix-route' }
     | { kind: 'card-restricted'; reason?: string }
     | { kind: 'verification-down' }
     /** at the account limit: nothing more opens until support raises it */
@@ -339,6 +343,7 @@ export function closedBankRow(
     if (row.chip === 'notAvailable') {
         if (row.unavailableBecause === 'account-residence' && row.corridor)
             return { kind: 'residence-restricted', corridor: row.corridor }
+        if (row.unavailableBecause === 'pix-route') return { kind: 'pix-route' }
         return row.unavailableBecause === 'residence' &&
             (row.corridor === 'PIX_BR' || row.corridor === 'BANK_TRANSFER_AR')
             ? { kind: 'residence', corridor: row.corridor }

@@ -46,6 +46,24 @@ const labels = (model: ReturnType<typeof buildReceiptPdfModel>) => model.rows.ma
 const row = (model: ReturnType<typeof buildReceiptPdfModel>, label: string) =>
     model.rows.find((r) => r.label === label)?.value
 
+// review finding 8: a Pix payout to another person's key reads as a send (TASK-24947) and is still
+// a payout, whose Transfer ID support asks for; a bank send-link claimed by a Peanut user is not
+describe('buildReceiptPdfModel — the Transfer ID of a payout that reads as a send', () => {
+    test('prints it for a Pix payout to another person', () => {
+        const model = buildReceiptPdfModel(withOverrides({ direction: 'send' }, { provider: 'AVENIA' }), t, 'en')
+        expect(row(model, 'transaction.rows.transferId')).toBe(baseTx.id)
+    })
+
+    test('leaves it out of a bank send-link claimed by a Peanut user', () => {
+        const model = buildReceiptPdfModel(
+            withOverrides({ direction: 'send' }, { bridgeFlow: 'BANK_SEND_LINK_CLAIM' }),
+            t,
+            'en'
+        )
+        expect(labels(model)).not.toContain('transaction.rows.transferId')
+    })
+})
+
 describe('buildReceiptPdfModel — completed bank withdraw', () => {
     const model = buildReceiptPdfModel(baseTx, t, 'en')
 
@@ -140,6 +158,29 @@ describe('buildReceiptPdfModel — variants', () => {
         )
         expect(model.convertedAmountDisplay).toBe('ARS 113,250.75')
         expect(row(model, 'common.exchangeRate')).toBe('1 USD = ARS 902.40')
+    })
+
+    // TASK-24967: a settled Avenia entry's rate holds the variable fees; the flat fee is its own row
+    test('a settled Avenia Pix entry prints its rate and the flat fee as the Provider fee row', () => {
+        const model = buildReceiptPdfModel(
+            withOverrides(
+                { currency: { amount: '20.00', code: 'BRL' } },
+                { receipt: { exchange_rate: '5.796567' }, providerFeeBrl: '0.75' }
+            ),
+            t,
+            'en'
+        )
+        expect(row(model, 'common.exchangeRate')).toBe('1 USD = BRL 5.80')
+        expect(row(model, 'pix.withdraw.fee')).toBe('R$0.75')
+    })
+
+    test('no Provider fee row on an entry that names no fee', () => {
+        const model = buildReceiptPdfModel(
+            withOverrides({ currency: { amount: '113250.75', code: 'ARS' } }, { receipt: { exchange_rate: '902.4' } }),
+            t,
+            'en'
+        )
+        expect(labels(model)).not.toContain('pix.withdraw.fee')
     })
 
     test('bank account identifiers are always masked — the PDF is shareable', () => {

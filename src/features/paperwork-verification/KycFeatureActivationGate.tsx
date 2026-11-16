@@ -17,7 +17,8 @@ export function KycFeatureActivationGate({
     scope,
     selectedCurrency,
 }: {
-    feature: KycActivationFeature
+    /** `pix` opens with no gate in front: the Pix screens open it themselves (`PixAccountOpening`). */
+    feature: Exclude<KycActivationFeature, 'pix'>
     children: ReactNode
     scope?: ReportScope
     selectedCurrency?: string
@@ -29,7 +30,8 @@ export function KycFeatureActivationGate({
     if (degraded) return <VerificationOutage onBack={onBack} />
     if (!activation.userReady) return <Loading variant="mascot" />
     const report = activation.selectedStatus ?? (activation.result?.kind === 'report' ? activation.result.report : null)
-    if (selectedCurrency && report?.state === 'refused')
+    // A bank refusal reads the same with or without a currency picked: the reason, then support.
+    if ((selectedCurrency || (feature === 'bank' && activation.selectedStatus)) && report?.state === 'refused')
         return (
             <CurrencyRefusalScreen
                 currency={selectedCurrency}

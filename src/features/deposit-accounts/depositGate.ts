@@ -1,6 +1,13 @@
 import { gateSupportCase, getGateReasonCode, type GateState } from '@/utils/capability-gate'
 import type { UnavailableCause, ClaimableCorridor } from './types'
 
+/** Reasons the drawer words itself (the backend sentence is English): a postal code and Bridge's final refusals. */
+const APP_WORDED_REASONS: ReadonlySet<string> = new Set([
+    'invalid_bank_postal_code',
+    'bridge_terminal_rejection',
+    'duplicate_customer_detected',
+])
+
 /**
  * What the corridor list does with the app's capability gate.
  *
@@ -140,6 +147,15 @@ export interface DepositGateView {
     }
 }
 
+/**
+ * A provider or our own setup acts next and the user only waits (`pending`,
+ * `waiting-on-provider`). Its row reads "Under review" and its tap opens the
+ * wait drawer, never "we cannot open" (TASK-24909).
+ */
+export function isWaitView(view: DepositGateView): boolean {
+    return view.notice?.action === 'none'
+}
+
 const ACTION_BY_BLOCK: Record<DepositBlock, DepositGateAction> = {
     'account-limit': 'account-limit',
     'endorsement-pending': 'pending-review',
@@ -212,8 +228,7 @@ export function depositGateView(gate: GateState, claimable?: ClaimableCorridor):
         notice: {
             kind: gate.kind,
             message: 'userMessage' in gate ? (gate.userMessage ?? null) : null,
-            // the app's own words for these two; the backend sentence is English
-            ...(supplementInReview || gateSupportCase(gate) || getGateReasonCode(gate) === 'invalid_bank_postal_code'
+            ...(supplementInReview || gateSupportCase(gate) || APP_WORDED_REASONS.has(getGateReasonCode(gate) ?? '')
                 ? { reasonCode: getGateReasonCode(gate) }
                 : {}),
             action: ACTION_BY_KIND[gate.kind],

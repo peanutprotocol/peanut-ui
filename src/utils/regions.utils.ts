@@ -169,7 +169,7 @@ export const providerForRegionIntent = (intent: KYCRegionIntent | undefined): 'b
  * after Sumsub-LATAM approval is `pending` before it enables). We treat a
  * mid-flight rail as "region unlocked" to preserve the old optimistic display.
  */
-const hasFunctionalRail = (rails: RailCapability[], provider: 'bridge' | 'manteca'): boolean =>
+const hasFunctionalRail = (rails: RailCapability[], provider: 'bridge' | 'manteca' | 'avenia'): boolean =>
     rails.some(
         (rail) =>
             rail.provider === provider &&
@@ -207,13 +207,15 @@ const hasFunctionalRail = (rails: RailCapability[], provider: 'bridge' | 'mantec
 export function deriveRegionAccess(rails: RailCapability[]): { unlockedRegions: Region[]; lockedRegions: Region[] } {
     const hasBridge = hasFunctionalRail(rails, 'bridge')
     const hasManteca = hasFunctionalRail(rails, 'manteca')
+    // LATAM is unlocked by any provider that serves it: Avenia's BRL account counts as Manteca's does
+    const hasLatam = hasManteca || hasFunctionalRail(rails, 'avenia')
     const isKycApproved = rails.some((rail) => rail.status === 'enabled')
     const isBridgeEnabled = rails.some((rail) => rail.provider === 'bridge' && rail.status === 'enabled')
 
     const isRegionUnlocked = (regionName: string): boolean => {
         if (regionName === REST_OF_THE_WORLD_REGION) return isKycApproved
         if (BRIDGE_SUPPORTED_REGIONS.includes(regionName)) return hasBridge
-        if (MANTECA_SUPPORTED_REGIONS.includes(regionName)) return hasManteca
+        if (MANTECA_SUPPORTED_REGIONS.includes(regionName)) return hasLatam
         return false
     }
 

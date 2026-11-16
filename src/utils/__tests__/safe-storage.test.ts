@@ -9,6 +9,7 @@ import {
     removeStoredValue,
     resilientSessionStorage,
     resilientWebStorage,
+    storedKeysWithPrefix,
     webStorage,
     writeStoredValue,
 } from '../safe-storage'
@@ -28,6 +29,37 @@ it('reads and writes through a healthy localStorage', () => {
     expect(readStoredValue('k')).toBe('v')
     removeStoredValue('k')
     expect(readStoredValue('k')).toBeNull()
+})
+
+it("reads and writes this tab's session storage when asked, apart from localStorage", () => {
+    writeStoredValue('k', 'session', 'sessionStorage')
+    expect(readStoredValue('k', 'sessionStorage')).toBe('session')
+    expect(readStoredValue('k')).toBeNull()
+    removeStoredValue('k', 'sessionStorage')
+    expect(sessionStorage.getItem('k')).toBeNull()
+})
+
+it('lists only the stored keys with the prefix asked', () => {
+    writeStoredValue('mark:u1:a', '1')
+    writeStoredValue('mark:u1:b', '2')
+    writeStoredValue('mark:u10:c', '3')
+    expect(storedKeysWithPrefix('mark:u1:').sort()).toEqual(['mark:u1:a', 'mark:u1:b'])
+    localStorage.clear()
+})
+
+it('lists no keys where storage is missing or cannot be listed', () => {
+    stubLocalStorage(() => null)
+    expect(storedKeysWithPrefix('mark:')).toEqual([])
+    stubLocalStorage(
+        () =>
+            ({
+                length: 1,
+                key: () => {
+                    throw new DOMException('denied', 'SecurityError')
+                },
+            }) as unknown as Storage
+    )
+    expect(storedKeysWithPrefix('mark:')).toEqual([])
 })
 
 it('treats a null localStorage as empty instead of dereferencing it', () => {

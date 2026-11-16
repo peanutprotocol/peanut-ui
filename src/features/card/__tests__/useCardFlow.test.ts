@@ -381,6 +381,23 @@ describe('useCardFlow', () => {
         })
     })
 
+    it('explains a rejected card permission signature', async () => {
+        const { ApiError } = jest.requireActual('@/services/api-error')
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+        mockApplyForCard.mockRejectedValue(
+            new ApiError('The passkey signature was not accepted — try again and pick your Peanut passkey', {
+                status: 400,
+                code: 'CARD_APPROVAL_SIGNATURE_REJECTED',
+            })
+        )
+        const { result } = renderHook(() => useCardFlow())
+        await act(async () => {
+            await result.current.handleApply()
+        })
+        expect(result.current.applyError).toBe('page.setupSignatureRejected')
+        consoleSpy.mockRestore()
+    })
+
     it('surfaces an apply failure as applyError', async () => {
         const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
         mockApplyForCard.mockRejectedValue(new Error('boom'))

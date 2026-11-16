@@ -1,6 +1,6 @@
 import { requirePaymentMoney } from '@/lib/money'
 import { validateNumericResponse } from '@/lib/numeric-response'
-import { jsonParse } from '@/utils/general.utils'
+import { isStableCoin, jsonParse } from '@/utils/general.utils'
 import {
     type TRequestChargeResponse,
     type PaymentCreationResponse,
@@ -15,7 +15,14 @@ export const chargesApi = {
     create: async (data: CreateChargeRequest): Promise<TCharge> => {
         if (data.pricing_type === 'fixed_price') {
             requirePaymentMoney(data.local_price?.amount, data.local_price?.currency ?? '', 18)
-            if (data.requestProps?.tokenAmount !== undefined)
+            // A withdrawal in a token that is not a dollar (ETH, EURC, USDe) has no
+            // destination amount to send: its charge stores '0' and the API books
+            // what Rhino delivered. Every other zero stays refused.
+            const noDestinationAmount =
+                data.transactionType === 'WITHDRAW' &&
+                data.requestProps?.tokenAmount === '0' &&
+                !isStableCoin(data.requestProps.tokenSymbol)
+            if (data.requestProps?.tokenAmount !== undefined && !noDestinationAmount)
                 requirePaymentMoney(
                     data.requestProps.tokenAmount,
                     data.requestProps.tokenSymbol,

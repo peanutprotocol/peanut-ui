@@ -15,6 +15,7 @@ import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDeposi
 import type { useAddMoneyReadiness } from '@/features/add-money/useAddMoneyReadiness'
 import { readReturnTo, RETURN_TO_PARAM, withReturnTo } from '@/utils/return-to.utils'
 import PIX from '@/assets/payment-apps/pix.svg'
+import { PIX_ADD_MONEY_PATH } from '@/features/pix/pix.routes'
 import Image from 'next/image'
 
 /**
@@ -25,13 +26,14 @@ import Image from 'next/image'
 export function HomeActionDrawers({
     addMoney,
 }: {
-    addMoney: Pick<ReturnType<typeof useAddMoneyReadiness>, 'entry' | 'drawerMethods' | 'isLoading'>
+    addMoney: Pick<ReturnType<typeof useAddMoneyReadiness>, 'entry' | 'drawerMethods' | 'ready' | 'isLoading'>
 }) {
     const [drawer, setDrawer] = useHomeDrawer()
     const t = useTranslations('home.drawers')
     const tMethods = useTranslations('addMoney.methods')
     const tNav = useTranslations('navigation')
-    const tProfile = useTranslations('profile.unlockPayments')
+    // "Bank accounts" (the owner, 15 Nov): the existing key that says exactly that
+    const tSaved = useTranslations('global.savedAccounts')
     const router = useRouter()
     // Carry origins from existing Add drawer links into the chosen destination.
     const [returnTo, setReturnTo] = useQueryState(RETURN_TO_PARAM, parseAsString)
@@ -61,14 +63,12 @@ export function HomeActionDrawers({
                   key: method,
                   title:
                       method === 'account'
-                          ? tProfile('titles.bank')
-                          : method === 'transfer'
-                            ? tMethods('oneTimeTransfer')
-                            : method === 'pix'
-                              ? tMethods('payPix')
-                              : method === 'crypto'
-                                ? tMethods('crypto')
-                                : tMethods('moreWays'),
+                          ? tSaved('bankSectionTitle')
+                          : method === 'pix'
+                            ? tMethods('pix')
+                            : method === 'crypto'
+                              ? tMethods('crypto')
+                              : tMethods('moreWays'),
                   leading:
                       method === 'pix' ? (
                           <Image src={PIX} alt="" width={32} height={32} />
@@ -82,7 +82,11 @@ export function HomeActionDrawers({
                           ? '/add-money'
                           : method === 'crypto'
                             ? '/add-money/crypto'
-                            : `/add-money/options?method=${method}&ready=1`,
+                            : // Pix has one currency, so it opens the Pix deposit, not a chooser of one row
+                              method === 'pix'
+                              ? PIX_ADD_MONEY_PATH
+                              : // only the ready ones where some are
+                                `/add-money/options?method=${method}${addMoney.ready[method as keyof typeof addMoney.ready].length ? '&ready=1' : ''}`,
               }))
             : (content ? homeDrawerOptions(content, depositAccounts) : []).map((option) => ({
                   key: option.key,

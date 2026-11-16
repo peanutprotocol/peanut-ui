@@ -335,6 +335,21 @@ export const mantecaApi = {
         }
     },
 
+    // the user's newest unpaid deposit order in this currency, so the app shows it
+    // again instead of creating a new one (Manteca cancels the older order)
+    getOpenDeposit: async (currency: string): Promise<{ data?: MantecaDepositResponseData | null; error?: string }> => {
+        try {
+            const response = await serverFetch(`/manteca/deposit/open?currency=${encodeURIComponent(currency)}`)
+            const data = await response.json()
+            if (!response.ok) {
+                return { error: data.error || 'Failed to fetch the open deposit order.' }
+            }
+            return { data: data.data ?? null }
+        } catch (error) {
+            return { error: error instanceof Error ? error.message : 'An unexpected error occurred.' }
+        }
+    },
+
     getDepositStatus: async (
         depositId: string
         // stage: 1 = QR live awaiting fiat, >= 2 = fiat received (settling), null = no snapshot

@@ -1,4 +1,5 @@
 import { EInviteType } from '@/services/services.types'
+import { isAcquisitionSlug } from '@/features/tracked-links/contract'
 
 /**
  * Invite hand-off between surfaces: a payment/claim/invite page, a deep link,
@@ -25,6 +26,9 @@ import { EInviteType } from '@/services/services.types'
 
 export const INVITE_STASH_STORAGE_KEY = 'peanut:invite-stash'
 
+/** The /setup query param that names a carried invite's type; a bare `code` is DIRECT. */
+export const INVITE_TYPE_PARAM = 'invite_type'
+
 /**
  * Long enough for install → first launch → signup, including app restarts;
  * short enough that a stale invite does not open /setup on the signup form
@@ -49,6 +53,8 @@ interface InviteStash {
     userId: string
     /** Epoch ms after which the stash is treated as absent. */
     expiresAt: number
+    /** Passive acquisition may first bind only at registration. Older records stay explicit. */
+    intent?: 'acquisition'
 }
 
 function isInviteType(value: unknown): value is EInviteType {
@@ -78,6 +84,7 @@ function readStash(): InviteStash | null {
             type: isInviteType(parsed.type) ? parsed.type : EInviteType.DIRECT,
             userId: typeof parsed.userId === 'string' ? parsed.userId : '',
             expiresAt: parsed.expiresAt,
+            ...(parsed.intent === 'acquisition' ? { intent: 'acquisition' as const } : {}),
         }
     } catch {
         writeStash(null)
@@ -107,6 +114,28 @@ export function stashInvite(code: string, type: EInviteType): void {
 
 export function readInviteCode(): string {
     return readStash()?.code ?? ''
+}
+
+/**
+ * The single trust boundary for passive inviters from URLs and store handoffs. A passive
+ * opening cannot replace a typed choice or an account's pending retry.
+ */
+export function stashAcquisitionInvite(code: string | null | undefined): void {
+    if (!isAcquisitionSlug(code)) return
+    const current = readStash()
+    if (current && (current.intent !== 'acquisition' || current.userId)) return
+    writeStash({
+        code,
+        type: EInviteType.DIRECT,
+        userId: '',
+        intent: 'acquisition',
+        expiresAt: Date.now() + INVITE_STASH_TTL_MS,
+    })
+}
+
+export function readInviteIntent(): 'explicit' | 'acquisition' | null {
+    const stash = readStash()
+    return stash ? (stash.intent ?? 'explicit') : null
 }
 
 export function readInviteType(): EInviteType {

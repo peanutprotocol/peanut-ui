@@ -8,6 +8,7 @@ type Surface = LazyExoticComponent<ComponentType<ZoneSurfaceProps>>
 
 /** Which component renders each ask's Home card. Every ask with a `zone` surface needs an entry (parity test). */
 export const ZONE_SURFACES: Partial<Record<AskId, Surface>> = {
+    'app-update-regular': lazy(() => importWithChunkRetry(() => import('./surfaces/zone/AppUpdateCard'))),
     'verification-due': lazy(() => importWithChunkRetry(() => import('./surfaces/zone/VerificationDueSurface'))),
     'blocked-card': lazy(() => importWithChunkRetry(() => import('./surfaces/zone/ChecklistSurface'))),
     checklist: lazy(() => importWithChunkRetry(() => import('./surfaces/zone/ChecklistSurface'))),

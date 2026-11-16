@@ -59,7 +59,44 @@ describe('identifyAnalyticsUser', () => {
         expect(ph.identify).toHaveBeenCalledWith('user-1', props)
     })
 
-    it('stores no profile field in the browser, and logout clears what it stores', () => {
+    it('marks the device before identification and repairs the marker before a deduped return', () => {
+        ph.get_distinct_id.mockReturnValue('anon-123')
+        ph.identify.mockImplementationOnce(() => {
+            expect(localStorage.getItem('peanut-device-had-account')).toBe('1')
+        })
+        identifyAnalyticsUser('user-1', props)
+        expect(localStorage.getItem('peanut-device-had-account')).toBe('1')
+
+        localStorage.removeItem('peanut-device-had-account')
+        ph.get_distinct_id.mockReturnValue('user-1')
+        identifyAnalyticsUser('user-1', props)
+
+        expect(localStorage.getItem('peanut-device-had-account')).toBe('1')
+        expect(ph.identify).toHaveBeenCalledTimes(1)
+        expect(ph.setPersonProperties).not.toHaveBeenCalled()
+    })
+
+    it('continues identification after a failed marker write and retries marking on refetch', () => {
+        ph.get_distinct_id.mockReturnValue('anon-123')
+        const write = jest.spyOn(Storage.prototype, 'setItem').mockImplementationOnce(() => {
+            throw new Error('storage unavailable')
+        })
+        try {
+            expect(() => identifyAnalyticsUser('user-1', props)).not.toThrow()
+            expect(ph.identify).toHaveBeenCalledWith('user-1', props)
+            expect(localStorage.getItem('peanut-device-had-account')).toBeNull()
+
+            ph.get_distinct_id.mockReturnValue('user-1')
+            identifyAnalyticsUser('user-1', props)
+            expect(localStorage.getItem('peanut-device-had-account')).toBe('1')
+            expect(ph.identify).toHaveBeenCalledTimes(1)
+            expect(ph.setPersonProperties).not.toHaveBeenCalled()
+        } finally {
+            write.mockRestore()
+        }
+    })
+
+    it('stores no profile fields and clears only the analytics fingerprint on logout', () => {
         ph.get_distinct_id.mockReturnValue('anon-123')
         identifyAnalyticsUser('user-1', { username: 'ana', kycStatus: 'approved' })
         const stored = Object.values({ ...localStorage }).join(' ')
@@ -68,6 +105,8 @@ describe('identifyAnalyticsUser', () => {
         expect(stored).not.toContain('user-1')
 
         clearAnalyticsIdentity()
-        expect(localStorage.length).toBe(0)
+        expect(localStorage.getItem('posthog-person-properties-sent')).toBeNull()
+        expect(localStorage.getItem('peanut-device-had-account')).toBe('1')
+        expect(localStorage.length).toBe(1)
     })
 })

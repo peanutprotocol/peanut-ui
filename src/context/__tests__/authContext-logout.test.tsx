@@ -106,6 +106,7 @@ import { clearRedirectUrl, endIntentionalLogout, getRedirectUrl, saveRedirectUrl
 import { clearSessionHeld, hasHeldSession, markSessionHeld } from '@/utils/session-presence'
 import { purgeCaches } from '@/utils/cache.utils'
 import { clearAuthToken } from '@/utils/auth-token'
+import { isReturningDevice } from '@/utils/returning-device'
 import { recordSignupRegistration, readSignupDraft, saveSignupDraft } from '@/features/setup/signup-draft'
 
 const wrapper = ({ children }: { children: ReactNode }) => <AuthProvider>{children}</AuthProvider>
@@ -280,6 +281,36 @@ describe('logoutUser', () => {
         expect(purgeCaches).toHaveBeenCalledWith(expect.arrayContaining(['cross-origin', 'user-api']))
     })
 
+    // the same account signing back in before the withdrawal settles still finds its guard;
+    // another account never reads it (the key is the account's)
+    it("keeps the account's pending Pix withdrawal marks", async () => {
+        const mark = JSON.stringify({ priceLockCode: 'lock-a', settleBy: Date.now() + 60_000 })
+        localStorage.setItem('pix-withdraw-pending:u1:lock-a', mark)
+        stubLocation()
+        const { result } = renderHook(() => useAuth(), { wrapper })
+
+        await act(async () => {
+            await result.current.logoutUser()
+        })
+
+        expect(localStorage.getItem('pix-withdraw-pending:u1:lock-a')).toBe(mark)
+    })
+
+    // a Pix withdraw form not yet sent holds the Pix key: the next user of this tab never sees it
+    it("forgets the account's Pix withdraw and send drafts", async () => {
+        sessionStorage.setItem('pix-withdraw-draft:u1', JSON.stringify({ destination: '12345678909' }))
+        sessionStorage.setItem('pix-send-draft:u1', JSON.stringify({ destination: '11144477735' }))
+        stubLocation()
+        const { result } = renderHook(() => useAuth(), { wrapper })
+
+        await act(async () => {
+            await result.current.logoutUser()
+        })
+
+        expect(sessionStorage.getItem('pix-withdraw-draft:u1')).toBeNull()
+        expect(sessionStorage.getItem('pix-send-draft:u1')).toBeNull()
+    })
+
     it('forgets the analytics identity fingerprint, so the next user starts clean', async () => {
         localStorage.setItem('posthog-person-properties-sent', 'abc123')
         stubLocation()
@@ -290,6 +321,37 @@ describe('logoutUser', () => {
         })
 
         expect(localStorage.getItem('posthog-person-properties-sent')).toBeNull()
+    })
+
+    it.each([false, true])(
+        'retains the device marker through logout (skipBackendCall: %s)',
+        async (skipBackendCall) => {
+            localStorage.removeItem('peanut-device-had-account')
+            stubLocation()
+            const { result } = renderHook(() => useAuth(), { wrapper })
+            expect(localStorage.getItem('peanut-device-had-account')).toBe('1')
+
+            await act(async () => {
+                await result.current.logoutUser({ skipBackendCall })
+            })
+
+            expect(posthog.reset).toHaveBeenCalledTimes(1)
+            expect(localStorage.getItem('posthog-person-properties-sent')).toBeNull()
+            expect(localStorage.getItem('peanut-device-had-account')).toBe('1')
+        }
+    )
+
+    it('still counts the device as returning when it signed out before the marker existed', async () => {
+        stubLocation()
+        const { result } = renderHook(() => useAuth(), { wrapper })
+
+        await act(async () => {
+            await result.current.logoutUser({ skipBackendCall: true })
+        })
+        localStorage.removeItem('peanut-device-had-account')
+
+        expect(document.cookie).not.toContain('web-authn-key=')
+        expect(isReturningDevice()).toBe(true)
     })
 
     it('releases the latch when the hard navigation never happens', async () => {

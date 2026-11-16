@@ -177,7 +177,10 @@ export const senderNoteText = (raw: string | null | undefined): string | undefin
 
 /** Which label a bank-account row carries. Callers map it to display text —
  *  this module stays copy-free. */
-export type BankAccountLabelKey = 'iban' | 'clabe' | 'accountNumber' | 'address'
+export type BankAccountLabelKey = 'iban' | 'clabe' | 'accountNumber' | 'address' | 'pixKey'
+
+/** A payout account that is a Pix key (wire `pix`, `BANK_PIX`): the key it paid. */
+export const isPixAccountType = (type: string): boolean => type.toLowerCase().endsWith('pix')
 
 /**
  * BE sends Prisma `AccountType` enum values like `BANK_IBAN` / `BANK_CLABE`
@@ -189,6 +192,7 @@ export const bankAccountLabelKey = (type: string): BankAccountLabelKey => {
     if (isCryptoAddressType(type)) return 'address'
     if (t.endsWith('iban')) return 'iban'
     if (t.endsWith('clabe')) return 'clabe'
+    if (isPixAccountType(type)) return 'pixKey'
     return 'accountNumber'
 }
 
@@ -202,7 +206,8 @@ export const bankAccountLabelKey = (type: string): BankAccountLabelKey => {
  * case-sensitive base58 into an unusable address.
  */
 export const getAccountCopyValue = (identifier: string, type: string) =>
-    isCryptoAddressType(type) ? identifier : formatIban(identifier)
+    // a Pix key is copied as the directory holds it: an email key read as an IBAN would come out upper case
+    isCryptoAddressType(type) || isPixAccountType(type) ? identifier : formatIban(identifier)
 
 /**
  * Recover a 2-letter ISO country code from a Rain merchant-country value.

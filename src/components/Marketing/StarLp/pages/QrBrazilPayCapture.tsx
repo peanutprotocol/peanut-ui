@@ -3,6 +3,7 @@ import payCapture from '@/assets/star-lp/qr-brazil-pay.webp'
 import payCaptureNoRate from '@/assets/star-lp/qr-brazil-pay-norate.webp'
 import { QR_BRAZIL_AMOUNT_BRL, QR_BRAZIL_PAY_CAPTURE } from './qrBrazil.consts'
 import { QrBrazilPayButtonPress } from './QrBrazilPayButtonPress'
+import { formatFiatRate } from '@/utils/currency'
 import { qrBrazilUsdFor } from './qrBrazil.utils'
 import type { QrBrazilPayCaptureProps } from './qrBrazil.types'
 
@@ -55,7 +56,7 @@ export function QrBrazilPayCapture({ usdBrl, pressed }: QrBrazilPayCaptureProps)
                     lineHeight: cqw(rate.lineHeight, 16),
                 }}
             >
-                1 USD = {usdBrl.rate} BRL
+                1 USD = {formatFiatRate(usdBrl.rate)} BRL
             </span>
             <QrBrazilPayButtonPress src={payCapture.src} variant="live" pressed={pressed} />
         </div>

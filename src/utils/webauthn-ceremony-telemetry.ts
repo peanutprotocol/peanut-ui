@@ -64,7 +64,8 @@ export type CeremonyRecord = {
     openFlows: number
     /**
      * Index of `"challenge":"` in the decoded clientDataJSON of a successful
-     * ceremony. The on-chain WebAuthn validator reads the challenge at a fixed
+     * ceremony, or of a registration refused for its layout (TASK-24498).
+     * The on-chain WebAuthn validator reads the challenge at a fixed
      * byte, so the standard layout gives 23 for `get` and 26 for `create`; a
      * provider that sorts the keys gives 41 on both, and its signatures fail as
      * AA24 (TASK-23931). Unset when clientDataJSON is empty or has no challenge.
@@ -790,6 +791,7 @@ export async function withCeremonyFlow<T>(
     }
 }
 
+/** The purpose stack of the ceremony running now, innermost last, e.g. `kernel_migration>user_op`. */
 export function currentCeremonyPurpose(): string {
     return purposeStack.length > 0 ? purposeStack.join('>') : 'unknown'
 }

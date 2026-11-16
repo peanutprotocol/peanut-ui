@@ -4,6 +4,7 @@ import {
     receiptConversionLine,
     receiptConvertedAmount,
     receiptExchangeRate,
+    receiptProviderFee,
 } from '../receipt-conversion.utils'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import type { TransactionDetails } from '../transactionTransformer'
@@ -35,6 +36,9 @@ describe('receiptConvertedAmount', () => {
 
     it('falls back to a non-stable destination token with full decimals', () => {
         expect(receiptConvertedAmount({ tokenSymbol: 'eth', tokenAmount: '0.000416666' })).toBe('0.000416666 ETH')
+        // a mixed-case symbol keeps its real spelling; old lower-case records do not
+        expect(receiptConvertedAmount({ tokenSymbol: 'USDe', tokenAmount: '10.086357' })).toBe('10.086357 USDe')
+        expect(receiptConvertedAmount({ tokenSymbol: 'EURC', tokenAmount: '8.900320' })).toBe('8.900320 EURC')
     })
 
     it('is no conversion for USD or a USD stablecoin', () => {
@@ -43,9 +47,33 @@ describe('receiptConvertedAmount', () => {
     })
 })
 
+describe('receiptProviderFee', () => {
+    const avenia = (drawer: Record<string, unknown>) =>
+        eurDeposit({
+            currency: { code: 'BRL', amount: '20.00' },
+            extraDataForDrawer: {
+                originalType: 'TRANSACTION_INTENT',
+                originalUserRole: EHistoryUserRole.RECIPIENT,
+                kind: 'ONRAMP',
+                ...drawer,
+            },
+        })
+
+    it('prints the flat fee in reais beside the rate', () => {
+        const tx = avenia({ receipt: { exchange_rate: '5.796567' }, providerFeeBrl: '0.75' })
+        expect(receiptExchangeRate(tx)).toBe('1 USD = BRL 5.80')
+        expect(receiptProviderFee(tx)).toBe('R$0.75')
+    })
+
+    it('prints no fee without the rate, nor a rate-only entry’s fee', () => {
+        expect(receiptProviderFee(avenia({ providerFeeBrl: '0.75' }))).toBeUndefined()
+        expect(receiptProviderFee(avenia({ receipt: { exchange_rate: '5.796567' } }))).toBeUndefined()
+    })
+})
+
 describe('receiptExchangeRate', () => {
     it('prints the rate for a fiat-rail entry', () => {
-        expect(receiptExchangeRate(eurDeposit())).toBe('1 USD = EUR 0.8769')
+        expect(receiptExchangeRate(eurDeposit())).toBe('1 USD = EUR 0.88')
     })
 
     it('prints nothing on a cancelled entry or without a rate', () => {

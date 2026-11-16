@@ -2,8 +2,17 @@ import { DEFAULT_KILL_SWITCHES, KILL_SWITCHES_STORAGE_KEY } from '../kill-switch
 import { maintenanceRedirectTarget } from '../kill-switches.utils'
 
 const mockApiFetch = jest.fn()
+let mockNative = false
+let mockAppState: ((state: { isActive: boolean }) => void) | undefined
 jest.mock('@/utils/api-fetch', () => ({ apiFetch: (...args: unknown[]) => mockApiFetch(...args) }))
-jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => false }))
+jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => mockNative }))
+jest.mock('@capacitor/app', () => ({
+    App: {
+        addListener: (_name: string, listener: NonNullable<typeof mockAppState>) => {
+            mockAppState = listener
+        },
+    },
+}))
 
 type Store = typeof import('../kill-switches-store')
 
@@ -22,20 +31,22 @@ const respond = (status: number, body: unknown) =>
 const saved = () => JSON.parse(localStorage.getItem(KILL_SWITCHES_STORAGE_KEY) ?? 'null')
 
 beforeEach(() => {
+    mockNative = false
+    mockAppState = undefined
     localStorage.clear()
     mockApiFetch.mockReset()
 })
 
 describe('kill-switches store', () => {
-    it('refreshes and persists both pause switches independently across reloads', async () => {
+    it('refreshes and persists two switches independently across reloads', async () => {
         localStorage.setItem(
             KILL_SWITCHES_STORAGE_KEY,
-            JSON.stringify({ kycVerificationDown: true, brazilServicesPaused: false })
+            JSON.stringify({ kycVerificationDown: true, pixBrazilOnrampMaintenance: false })
         )
         const store = loadStore()
         expect(store.getKillSwitches()).toEqual({ ...DEFAULT_KILL_SWITCHES, kycVerificationDown: true })
 
-        const server = { kycVerificationDown: false, brazilServicesPaused: true }
+        const server = { kycVerificationDown: false, pixBrazilOnrampMaintenance: true }
         respond(200, server)
         await store.refreshKillSwitches()
 
@@ -159,5 +170,55 @@ describe('kill-switches store', () => {
         await store.refreshKillSwitches()
 
         expect(seen).toEqual([true])
+    })
+
+    it('requires a current native foreground response and coalesces resumes behind a pending request', async () => {
+        mockNative = true
+        localStorage.setItem(KILL_SWITCHES_STORAGE_KEY, JSON.stringify({ appUpdateCutoffs: { android: '1' } }))
+        const store = loadStore()
+        expect(store.getNativeStoreUpdatePolicy()).toEqual({ foreground: null })
+        let finishOld!: (value: unknown) => void
+        let finishCurrent!: (value: unknown) => void
+        mockApiFetch
+            .mockImplementationOnce(() => new Promise((resolve) => (finishOld = resolve)))
+            .mockImplementationOnce(() => new Promise((resolve) => (finishCurrent = resolve)))
+        store.startKillSwitches()
+        const old = store.refreshKillSwitches()
+        await Promise.resolve()
+        await Promise.resolve()
+        expect(mockAppState).toBeDefined()
+        expect(store.getNativeStoreUpdatePolicy()).toEqual({ foreground: 1 })
+
+        mockAppState?.({ isActive: false })
+        mockAppState?.({ isActive: true })
+        mockAppState?.({ isActive: false })
+        mockAppState?.({ isActive: true })
+        mockAppState?.({ isActive: true })
+        expect(store.getNativeStoreUpdatePolicy()).toEqual({ foreground: 3 })
+        expect(mockApiFetch).toHaveBeenCalledTimes(1)
+
+        finishOld({ ok: true, json: async () => ({ appUpdateCutoffs: { android: '2' } }) })
+        await old
+        expect(mockApiFetch).toHaveBeenCalledTimes(2)
+        expect(store.getNativeStoreUpdatePolicy()).toEqual({ foreground: 3 })
+        const current = store.refreshKillSwitches()
+        finishCurrent({ ok: true, json: async () => ({ appUpdateCutoffs: {} }) })
+        await current
+        expect(store.getNativeStoreUpdatePolicy()).toEqual({ foreground: 3, cutoffs: {} })
+        expect(saved()).toEqual({})
+
+        mockAppState?.({ isActive: false })
+        expect(store.getNativeStoreUpdatePolicy()).toEqual({ foreground: null })
+        respond(503, {})
+        mockAppState?.({ isActive: true })
+        await store.refreshKillSwitches()
+        expect(store.getNativeStoreUpdatePolicy()).toEqual({ foreground: 4 })
+
+        respond(200, { appUpdateCutoffs: { android: '3' } })
+        await store.refreshKillSwitches()
+        expect(store.getNativeStoreUpdatePolicy()).toEqual({ foreground: 4, cutoffs: { android: '3' } })
+        respond(200, { appUpdateCutoffs: { android: 'invalid' } })
+        await store.refreshKillSwitches()
+        expect(store.getNativeStoreUpdatePolicy()).toEqual({ foreground: 4 })
     })
 })

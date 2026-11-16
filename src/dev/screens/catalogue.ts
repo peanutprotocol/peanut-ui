@@ -77,6 +77,11 @@ const fixtureCapture: Record<string, Pick<Screen, 'actions' | 'expectSelector'>>
         expectSelector: '[role="dialog"][data-state="open"][data-testid="closed-row-drawer"]',
     },
     'add-money-picker-first-time': { expectSelector: '[data-testid="add-money-method-crypto"]' },
+    // the refusal answers the tap on Pay
+    'qr-pay-avenia-amount-held': {
+        actions: [{ clickSelector: 'button:text-is("Pay"):enabled' }],
+        expectSelector: '[data-testid="error-alert"]',
+    },
     'add-money-argentina-deposit-pending': { actions: [{ click: 'Continue' }] },
     'add-money-argentina-deposit-expired': { actions: [{ click: 'Continue' }] },
     'paperwork-verification-bridge-postal-correction': {
@@ -155,12 +160,12 @@ const variationPageIds = new Set([
 const definitions: Screen[] = [
     {
         id: 'profile-brazil-bank-details',
-        name: 'Brazilian resident — BRL bank details without Pix-key sending',
+        name: "Brazilian resident — BRL row closed by its refused Pix route, the drawer says the route's reason",
         flow: 'Payments',
         kind: 'route',
         defaultScreen: false,
         route: '/profile/accounts',
-        fixture: 'profile-accounts-br-resident',
+        fixture: 'profile-accounts-br-pix-refused',
         clicks: [],
         clickTestIds: ['bank-row-brl'],
         // the open drawer's own title; a bare [role="dialog"] can match a hidden one first
@@ -211,6 +216,7 @@ const definitions: Screen[] = [
         fixture: id,
         waitFor: f.waitFor,
         geoCountry: f.geoCountry,
+        sessionStorage: f.sessionStorage,
         clicks: [],
         actions:
             fixtureCapture[id]?.actions ??
@@ -241,6 +247,8 @@ const definitions: Screen[] = [
     })),
     ...PAGE_CAPTURES.map((p) => ({
         ...p,
+        // a page capture served by a fixture opens with that fixture's session values too
+        sessionStorage: p.fixture ? FIXTURES[p.fixture]?.sessionStorage : undefined,
         flow: flow(p.route),
         kind: (p.route.startsWith('/dev/') ? 'component' : 'route') as Screen['kind'],
         defaultScreen:
@@ -270,6 +278,7 @@ const definitions: Screen[] = [
         expectsLoading: [
             '24-b-kycverificationinprogressmodal',
             '90-f-withdraw-review-processing',
+            '94-g-pix-withdraw-on-its-way',
             'deposit-address-launch-loading',
             'card-address-launch-loading',
             // an approved card still issuing: the spinner is the screen
@@ -336,7 +345,7 @@ const orderedDefinitions = definitions
 
 const BASE_SCREENS = orderedDefinitions.map((screen) => ({
     ...screen,
-    sessionStorage: screen.id === '17-a-nomorejailmodal' ? { showNoMoreJailModal: 'true' } : undefined,
+    sessionStorage: screen.id === '17-a-nomorejailmodal' ? { showNoMoreJailModal: 'true' } : screen.sessionStorage,
     expectText: screen.id === 'qr-camera-permission' ? 'Camera access needed' : readiness[screen.id],
     expectSelector:
         screen.expectSelector ??

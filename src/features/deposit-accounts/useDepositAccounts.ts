@@ -28,6 +28,7 @@ import {
 } from './rails'
 import { applyDepositPreviewGate } from './depositGate'
 import { closeRefusedCorridors } from './reportClosures'
+import { findPixRoute, pixRouteGate, withPixRoute } from '@/features/pix/pixRoute.utils'
 import { holdsSlot } from './resolveScreen'
 import type {
     ClaimableCorridor,
@@ -219,7 +220,8 @@ export function useDepositAccounts({
             if (result.outcome === 'endorsement_pending') trackEndorsementRequested(corridor)
             if (result.outcome === 'verification_required' && ownerAtClaim === claimOwner.current) {
                 if (result.nextAction?.kind === 'restart-identity') {
-                    onVerificationRequired?.(corridor, result.nextAction)
+                    // the API's schema still lists `hosted-identity`, which this build no longer handles
+                    onVerificationRequired?.(corridor, { ...result.nextAction, kind: result.nextAction.kind })
                 } else {
                     onVerificationRequired?.(corridor)
                 }
@@ -313,12 +315,16 @@ export function useDepositAccounts({
 
     const { claimable, unavailable } = useMemo(
         () =>
-            closeRefusedCorridors(capabilities.features, rails, {
-                accounts,
-                claimable: offeredClaimable,
-                unavailable: withheldUnavailable,
-            }),
-        [capabilities.features, rails, accounts, offeredClaimable, withheldUnavailable]
+            closeRefusedCorridors(
+                capabilities.features && withPixRoute(capabilities.features, capabilities.routes),
+                rails,
+                {
+                    accounts,
+                    claimable: offeredClaimable,
+                    unavailable: withheldUnavailable,
+                }
+            ),
+        [capabilities.features, capabilities.routes, rails, accounts, offeredClaimable, withheldUnavailable]
     )
 
     const { gates, staleReviewAction } = useMemo(() => {
@@ -331,8 +337,11 @@ export function useDepositAccounts({
             if (effectiveGate !== gate && cause === 'review-action') staleReviewAction = true
             gates[corridor] = effectiveGate
         }
+        // Pix is the route's, whichever provider serves it: a resident of Brazil has no local rail for it
+        const pixRoute = findPixRoute(capabilities.routes, 'deposit')
+        if (pixRoute) gates.PIX_BR = pixRouteGate(pixRoute)
         return { gates, staleReviewAction }
-    }, [gateFor, unavailable])
+    }, [gateFor, unavailable, capabilities.routes])
 
     useEffect(() => {
         // A withheld corridor cannot be tapped through to a claim. Fetch its

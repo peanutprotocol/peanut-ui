@@ -7,12 +7,16 @@ import NavHeader from '@/components/Global/NavHeader'
 export function QRPaymentStatusView({
     status,
     onViewActivity,
+    onContactSupport,
 }: {
     status: 'cancelled' | 'refunded' | 'failed' | 'processing'
     onViewActivity: () => void
+    /** A person at Peanut is looking at the payment: support is the way on, in place of Activity. */
+    onContactSupport?: () => void
 }) {
     const t = useTranslations('qrPay')
     const tNav = useTranslations('navigation')
+    const tCommon = useTranslations('common')
 
     return (
         <PageStack>
@@ -23,7 +27,11 @@ export function QRPaymentStatusView({
                     <p className="text-body-s">{t(`result.${status}.description`)}</p>
                 </Card>
             </PageStack.Center>
-            <Button onClick={onViewActivity}>{t('result.viewActivity')}</Button>
+            {onContactSupport ? (
+                <Button onClick={onContactSupport}>{tCommon('contactSupport')}</Button>
+            ) : (
+                <Button onClick={onViewActivity}>{t('result.viewActivity')}</Button>
+            )}
         </PageStack>
     )
 }

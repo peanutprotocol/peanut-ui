@@ -315,6 +315,92 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/avenia/webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Avenia webhook handler
+         * @description Signed Avenia events: tickets, KYC, limits, wallet qualification, deposit holds, KYT
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Base64 RSA-PSS signature of the raw body */
+                    signature: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        event: {
+                            accountId: string;
+                            createdAt?: string;
+                            data: {
+                                type: string;
+                            };
+                            id: string;
+                            subscription: string;
+                        };
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "received": true
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            received: true;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/badge/award": {
         parameters: {
             query?: never;
@@ -2128,6 +2214,10 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            appUpdateCutoffs?: {
+                                android?: string;
+                                ios?: string;
+                            };
                             brazilServicesPaused?: boolean;
                             disableXchainSend?: boolean;
                             disableXchainWithdraw?: boolean;
@@ -2210,24 +2300,24 @@ export interface paths {
                                 bank: {
                                     available: boolean;
                                     /** @enum {string} */
-                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported";
+                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported";
                                 } & {
                                     currencies: string[];
                                 };
                                 card: {
                                     available: boolean;
                                     /** @enum {string} */
-                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported";
+                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported";
                                 };
                                 local: {
                                     available: boolean;
                                     /** @enum {string} */
-                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported";
+                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported";
                                 };
                                 qr: {
                                     available: boolean;
                                     /** @enum {string} */
-                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported";
+                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported";
                                 };
                             };
                             residence: string;
@@ -5722,6 +5812,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/healthz/avenia": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "checkedAt": "2026-01-01T00:00:00.000Z",
+                         *       "provider": "avenia",
+                         *       "responseTime": 120,
+                         *       "status": "healthy",
+                         *       "timestamp": "2026-01-01T00:00:00.000Z"
+                         *     }
+                         */
+                        "application/json": {
+                            /** Format: date-time */
+                            checkedAt: string;
+                            provider: string;
+                            responseTime: number;
+                            /** @enum {string} */
+                            status: "healthy";
+                            /** Format: date-time */
+                            timestamp: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/healthz/bridge": {
         parameters: {
             query?: never;
@@ -5947,7 +6090,48 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            extraData?: {
+                                /** @description The intent’s own status, finer than the entry’s status. On a withdrawal: AWAITING_USER_ACTION is not signed yet, PROCESSING is signed and not confirmed. */
+                                intentStatus?: "PENDING" | "AWAITING_USER_ACTION" | "AWAITING_SETTLEMENT" | "PROCESSING" | "COMPLETED" | "FAILED" | "CANCELLED" | "REFUNDED";
+                                /**
+                                 * @description How the money moved, where the intent records it exactly: PIX on an Avenia deposit, withdrawal, key send or QR payment, and on a Manteca BRL deposit or withdrawal or Pix QR payment, in every status. Absent on everything else, refunds included.
+                                 * @enum {string}
+                                 */
+                                paymentMethod?: "PIX";
+                                /** @description A Pix deposit, on a Pix deposit only and for its owner only. `codePayable`: the code can still be paid, so the receipt offers to open it again (GET /pix/deposit/:intentId). */
+                                pixDeposit?: {
+                                    codePayable: boolean;
+                                    expiresAt: string | null;
+                                };
+                                /** @description Who a Pix withdrawal or send paid, from the key lookup at the review (owner only; never on a public receipt). Null holder and bank on a withdrawal opened before they were kept. */
+                                pixPayout?: {
+                                    bankName: string | null;
+                                    holderName: string | null;
+                                    ownAccount: boolean | null;
+                                    /** @description Raw: the app formats a CPF, a phone or a CNPJ */
+                                    pixKey: string;
+                                };
+                                pixRecovery?: {
+                                    failureCode: string | null;
+                                    reason: "payout-failed" | "payout-reversed" | "late-deposit" | "deposit-delivery-failed";
+                                    state: "in-progress" | "done";
+                                } | null;
+                                /**
+                                 * @description On a Pix deposit the provider gave back (Avenia: the intent FAILED because its ticket ended FAILED): the money went back to the payer. Every viewer, the shared receipt included; why is `returnReason`, owner only. Absent otherwise.
+                                 * @enum {boolean}
+                                 */
+                                pixReturned?: true;
+                                /** @description On a settled Avenia Pix deposit, withdrawal, send or QR payment: Avenia’s flat fee per Pix, in reais to the centavo. Sent only with `receipt.exchange_rate` (BRL per USD, every variable fee of the providers inside), and only when both reconcile with the amounts. Deposit: (currency.amount − providerFeeBrl) ÷ rate = amount. Payout: amount × rate − providerFeeBrl = currency.amount. */
+                                providerFeeBrl?: string;
+                            } & {
+                                [key: string]: unknown;
+                            };
+                        } & {
+                            [key: string]: unknown;
+                        };
+                    };
                 };
             };
         };
@@ -6629,7 +6813,7 @@ export interface paths {
         put?: never;
         /**
          * Save a PIX key to the address book
-         * @description Saves a PIX key as one of the user's bank accounts, named with the label, so it is offered under Send → Bank. The account carries isPixRecipient, so it is never offered as a withdrawal destination. Saving a key the user already has renames it.
+         * @description Saves a PIX key as one of the user's bank accounts, named with the label. The API decides whose key it is, once, with the directory lookup the Pix withdrawal uses, through the user's open Pix withdraw route: the user's own key is saved as a withdrawal destination; any other key, or any key while that route is closed, is saved as a recipient (isPixRecipient) for Send → Bank, never offered as a withdrawal destination. A recipient needs Pix payment eligibility; an own key needs only the open route. Where the open route's provider pays any key (Avenia), that provider saves the key with the holder and bank its lookup validated, own key or recipient; the lookup's refusals (those of POST /pix/key) answer instead. Saving a key the user already has renames it.
          */
         post: {
             parameters: {
@@ -6658,6 +6842,78 @@ export interface paths {
                 };
                 /** @description Default Response */
                 400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -6725,7 +6981,7 @@ export interface paths {
         put?: never;
         /**
          * Complete QR payment with signed transaction
-         * @description Completes Manteca payment first, then either broadcasts the signed UserOp or submits the signed Rain withdrawal via the session key. This prevents funds from being stuck if Manteca fails.
+         * @description Broadcasts the signed UserOp, or submits the signed Rain withdrawal via the session key, first; the Manteca payment is created only once the USDC mined at the QR deposit address and is claimed for this attempt. A payment that fails after that is recorded and its USDC refunded.
          */
         post: {
             parameters: {
@@ -6747,6 +7003,8 @@ export interface paths {
                         kind: "userOp";
                         /** @description The payment lock code from init */
                         paymentLockCode: string;
+                        /** @description Bounded client Pix host label for outcome telemetry; unrecognized values are ignored. */
+                        pixQrHost?: unknown;
                         /** @description Type of QR code (e.g. PIX, QR30, CODI). Used to select the correct fallback user for non-Manteca users. */
                         qrType?: string;
                         rainPreparationId?: string;
@@ -6775,6 +7033,8 @@ export interface paths {
                         kind: "rainWithdrawal";
                         /** @description The payment lock code from init */
                         paymentLockCode: string;
+                        /** @description Bounded client Pix host label for outcome telemetry; unrecognized values are ignored. */
+                        pixQrHost?: unknown;
                         qrType?: string;
                         signedRainWithdrawal: {
                             adminNonce: string;
@@ -6921,7 +7181,7 @@ export interface paths {
         put?: never;
         /**
          * Complete withdraw with signed transaction (sign-then-broadcast)
-         * @description Creates Manteca ramp-off order FIRST, then either broadcasts the signed UserOp or submits the signed Rain withdrawal via the session key. Prevents funds from being stuck if Manteca fails.
+         * @description Broadcasts the signed UserOp, or submits the signed Rain withdrawal via the session key, first; the Manteca ramp-off order opens once the USDC mined at the deposit address. An order that fails after that is recorded and its USDC refunded.
          */
         post: {
             parameters: {
@@ -7381,6 +7641,7 @@ export interface paths {
                 query?: never;
                 header?: {
                     "api-key"?: string;
+                    "x-username-hold"?: string;
                 };
                 path?: never;
                 cookie?: never;
@@ -7423,6 +7684,7 @@ export interface paths {
                 query?: never;
                 header?: {
                     "api-key"?: string;
+                    "x-username-hold"?: string;
                     "x-signup-analytics-state"?: "enabled" | "disabled" | "unknown";
                 };
                 path?: never;
@@ -7571,6 +7833,2990 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/pix/deposit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a Pix deposit (BRL → USDC)
+         * @description Opens a deposit with the provider the deposit route names and returns its Pix code for exactly this amount. The code lives a few minutes (expiresAt); GET /pix/deposit/{intentId} draws it again while codePayable.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description Reais, at most two decimals */
+                        amountBrl: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "amountBrl": "100.00",
+                         *       "brCode": "00020101021226900014br.gov.bcb.pix2568pix.example.com/qr/v2/cobv/9d36b84f5204000053039865406100.005802BR5925PAYMENTS PARTNER LTDA6009SAO PAULO62070503***63041D3A",
+                         *       "codePayable": true,
+                         *       "exchangeRate": "5.538450",
+                         *       "expiresAt": "2026-11-04T12:10:00.000Z",
+                         *       "fixedFeeBrl": "0.75",
+                         *       "intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
+                         *       "payerCpfMasked": "123.***.***-09",
+                         *       "pixReceived": false,
+                         *       "provider": "avenia",
+                         *       "providerFeeBrl": "0.75",
+                         *       "status": "AWAITING_USER_ACTION",
+                         *       "usdcAmount": "17.920175"
+                         *     }
+                         */
+                        "application/json": {
+                            amountBrl: string | null;
+                            /** @description The Pix code (copia e cola) for exactly this amount */
+                            brCode?: string;
+                            /** @description The code can still be paid: brCode and payerCpfMasked are sent only then. */
+                            codePayable: boolean;
+                            /** @description BRL per USD, every variable fee of the providers inside (Avenia’s percentage and gas lines, the bridge fee). Sent only with providerFeeBrl. */
+                            exchangeRate?: string;
+                            expiresAt: string | null;
+                            /** @description The flat fee in reais, where the provider charges one */
+                            fixedFeeBrl?: string;
+                            intentId: string;
+                            /** @description The CPF the Pix must come from, masked, where the provider requires one */
+                            payerCpfMasked?: string;
+                            /** @description The provider received the Pix; the USDC is on its way to the wallet */
+                            pixReceived: boolean;
+                            /** @description The provider the route names, e.g. avenia. Data only: the app does not branch on it. */
+                            provider: string;
+                            /** @description The provider’s flat fee per Pix, in reais to the centavo (Avenia’s In Fee or Out Fee). Deposit: (amountBrl − providerFeeBrl) ÷ exchangeRate = usdcAmount. Withdrawal or payment: withdrawUsd × exchangeRate − providerFeeBrl = amountBrl. Sent only with exchangeRate, and only when the provider’s amounts show the fees deducted. */
+                            providerFeeBrl?: string;
+                            /** @description The intent’s own status, as stored */
+                            status: string;
+                            /** @description USDC the wallet receives, after every fee */
+                            usdcAmount: string | null;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pix/deposit/rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Pix deposit rules for the amount step
+         * @description The least amount and the banks the user’s Pix provider refuses a deposit from, for the provider the deposit route names (capabilities.routes).
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "blockedBanks": [
+                         *         {
+                         *           "ispb": "00360305",
+                         *           "name": "Caixa Economica Federal"
+                         *         }
+                         *       ],
+                         *       "minAmountBrl": "20"
+                         *     }
+                         */
+                        "application/json": {
+                            /** @description Banks the provider refuses a Pix from: the app tells the user before they pay */
+                            blockedBanks: {
+                                ispb: string;
+                                name: string | null;
+                            }[];
+                            minAmountBrl: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pix/deposit/{intentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Pix deposit: its code while payable, then its status
+         * @description Owner only. Read-only: the provider’s webhook and poller move the deposit. After a reload the app draws the code again from here while codePayable is true, and the outcome after that. The deposit route in capabilities names the payable deposit (payableDepositIntentId).
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path: {
+                    intentId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "amountBrl": "100.00",
+                         *       "brCode": "00020101021226900014br.gov.bcb.pix2568pix.example.com/qr/v2/cobv/9d36b84f5204000053039865406100.005802BR5925PAYMENTS PARTNER LTDA6009SAO PAULO62070503***63041D3A",
+                         *       "codePayable": true,
+                         *       "exchangeRate": "5.538450",
+                         *       "expiresAt": "2026-11-04T12:10:00.000Z",
+                         *       "fixedFeeBrl": "0.75",
+                         *       "intentId": "6f1c2a90-3b8e-4d5f-9a71-2c4e8b0d1f35",
+                         *       "payerCpfMasked": "123.***.***-09",
+                         *       "pixReceived": false,
+                         *       "provider": "avenia",
+                         *       "providerFeeBrl": "0.75",
+                         *       "status": "AWAITING_USER_ACTION",
+                         *       "usdcAmount": "17.920175"
+                         *     }
+                         */
+                        "application/json": {
+                            amountBrl: string | null;
+                            /** @description The Pix code (copia e cola) for exactly this amount */
+                            brCode?: string;
+                            /** @description The code can still be paid: brCode and payerCpfMasked are sent only then. */
+                            codePayable: boolean;
+                            /** @description BRL per USD, every variable fee of the providers inside (Avenia’s percentage and gas lines, the bridge fee). Sent only with providerFeeBrl. */
+                            exchangeRate?: string;
+                            expiresAt: string | null;
+                            /** @description The flat fee in reais, where the provider charges one */
+                            fixedFeeBrl?: string;
+                            intentId: string;
+                            /** @description The CPF the Pix must come from, masked, where the provider requires one */
+                            payerCpfMasked?: string;
+                            /** @description The provider received the Pix; the USDC is on its way to the wallet */
+                            pixReceived: boolean;
+                            /** @description The provider the route names, e.g. avenia. Data only: the app does not branch on it. */
+                            provider: string;
+                            /** @description The provider’s flat fee per Pix, in reais to the centavo (Avenia’s In Fee or Out Fee). Deposit: (amountBrl − providerFeeBrl) ÷ exchangeRate = usdcAmount. Withdrawal or payment: withdrawUsd × exchangeRate − providerFeeBrl = amountBrl. Sent only with exchangeRate, and only when the provider’s amounts show the fees deducted. */
+                            providerFeeBrl?: string;
+                            /** @description The intent’s own status, as stored */
+                            status: string;
+                            /** @description USDC the wallet receives, after every fee */
+                            usdcAmount: string | null;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pix/key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resolve a Pix key to its holder and bank
+         * @description A directory read through the provider the withdrawal route names (or, while that route is closed, the provider that serves the user): holder, masked tax id, bank, whether the key looks like the user’s own, and whether the provider pays it. Moves no money. Rate limited per user.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        pixKey: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "bankName": "Nu Pagamentos S.A.",
+                         *       "blocked": false,
+                         *       "holderName": "Ana Souza",
+                         *       "holderTaxIdMasked": "***.456.789-**",
+                         *       "ispb": "18236120",
+                         *       "ownAccount": true,
+                         *       "provider": "avenia"
+                         *     }
+                         */
+                        "application/json": {
+                            bankName: string | null;
+                            /** @description The provider will not pay this key’s bank or holder */
+                            blocked: boolean;
+                            holderName: string | null;
+                            holderTaxIdMasked: string | null;
+                            ispb: string | null;
+                            /** @description Precheck: the holder looks like the user. Null when the provider cannot tell. */
+                            ownAccount: boolean | null;
+                            /** @description The provider the route names, e.g. avenia. Data only: the app does not branch on it. */
+                            provider: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pix/pay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Open a Pix QR payment
+         * @description Opens the payment with the provider the pay route names and returns what the wallet signs (sign.kind deposit-with-id: one bridge from the wallet, then the provider pays the code). Safe to retry with the same idempotencyKey: one key opens one payment.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description Reais, only for a code without an amount of its own. A code with its own amount is paid that amount; another one is refused. */
+                        amountBrl?: string;
+                        /** @description A Pix BR Code */
+                        brCode: string;
+                        /** @description One per payment the user means (a new one per scan and amount): a retried init with it never opens a second payment */
+                        idempotencyKey: string;
+                        /** @description The review’s withdrawUsd: the init refuses a fresh spend more than 1% above it (409 PIX_QUOTE_CHANGED) */
+                        maxSpendUsd: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "display": {
+                         *         "amountBrl": "42.50",
+                         *         "amountFixed": true,
+                         *         "arrivalEstimateSeconds": 60,
+                         *         "bankName": "Banco Inter S.A.",
+                         *         "exchangeRate": "5.364547",
+                         *         "fixedFeeBrl": "0.75",
+                         *         "merchantName": "PADARIA PAO DOURADO LTDA",
+                         *         "merchantTaxIdMasked": "12.345.678/0001-90",
+                         *         "provider": "Avenia",
+                         *         "providerFeeBrl": "0.75",
+                         *         "rate": "5.364547",
+                         *         "withdrawUsd": "8.062211"
+                         *       },
+                         *       "intentId": "4d2b7c1e-9a3f-4e81-b6d0-5c7e2a9f1b34",
+                         *       "provider": "avenia",
+                         *       "sign": {
+                         *         "commitmentId": "6aeb17ea29f84d1e9b0c3a5d7e2f1c08",
+                         *         "contractAddress": "0x10417734001162ea139e8b044dfe28dbb8b28ad0",
+                         *         "kind": "deposit-with-id",
+                         *         "payAmount": "8.062211",
+                         *         "payAmountUnits": "8062211",
+                         *         "quoteExpiresAt": "2026-11-15T12:03:00.000Z",
+                         *         "ticketExpiresAt": "2026-11-15T12:10:00.000Z",
+                         *         "tokenAddress": "0xaf88d065e77c8cc2239327c5edb3a432268e5831"
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            /**
+                             * @example {
+                             *       "amountBrl": "42.50",
+                             *       "amountFixed": true,
+                             *       "arrivalEstimateSeconds": 60,
+                             *       "bankName": "Banco Inter S.A.",
+                             *       "exchangeRate": "5.364547",
+                             *       "fixedFeeBrl": "0.75",
+                             *       "merchantName": "PADARIA PAO DOURADO LTDA",
+                             *       "merchantTaxIdMasked": "12.345.678/0001-90",
+                             *       "provider": "Avenia",
+                             *       "providerFeeBrl": "0.75",
+                             *       "rate": "5.364547",
+                             *       "withdrawUsd": "8.062211"
+                             *     }
+                             */
+                            display: {
+                                /** @description The headline: reais the merchant receives */
+                                amountBrl: string;
+                                /** @description The code fixes the amount: the user cannot change it */
+                                amountFixed: boolean;
+                                /** @description About how long from the signature to the merchant paid */
+                                arrivalEstimateSeconds: number;
+                                bankName: string | null;
+                                /** @description BRL per USD, every variable fee of the providers inside (Avenia’s percentage and gas lines, the bridge fee). Sent only with providerFeeBrl. */
+                                exchangeRate?: string;
+                                /** @description The provider’s flat fee in reais, shown as its own line */
+                                fixedFeeBrl: string;
+                                /** @description Who is paid, from the provider’s read of the code */
+                                merchantName: string | null;
+                                /** @description The merchant’s tax id as the provider sends it: a CNPJ in full, a CPF masked */
+                                merchantTaxIdMasked: string | null;
+                                /** @description The payments partner’s name, for the review’s "processed by" line */
+                                provider: string;
+                                /** @description The provider’s flat fee per Pix, in reais to the centavo (Avenia’s In Fee or Out Fee). Deposit: (amountBrl − providerFeeBrl) ÷ exchangeRate = usdcAmount. Withdrawal or payment: withdrawUsd × exchangeRate − providerFeeBrl = amountBrl. Sent only with exchangeRate, and only when the provider’s amounts show the fees deducted. */
+                                providerFeeBrl?: string;
+                                /** @description BRL per USDC that leaves the wallet, with the percentage fees inside: withdrawUsd × rate − fixedFeeBrl = amountBrl, to a centavo */
+                                rate: string;
+                                /** @description USDC that leaves the wallet */
+                                withdrawUsd: string;
+                            };
+                            /** @description The payment: read it at GET /pix/pay/{intentId} */
+                            intentId: string;
+                            /** @description The provider the route names, e.g. avenia. Data only: the app does not branch on it. */
+                            provider: string;
+                            /** @description How the wallet funds the withdrawal */
+                            sign: {
+                                commitmentId: string;
+                                contractAddress: string;
+                                /** @enum {string} */
+                                kind: "deposit-with-id";
+                                payAmount: string;
+                                payAmountUnits: string;
+                                quoteExpiresAt: string;
+                                ticketExpiresAt: string;
+                                tokenAddress: string;
+                            } | {
+                                depositAddress: string;
+                                /** @enum {string} */
+                                kind: "transfer-then-submit";
+                                payAmount: string;
+                                payAmountUnits: string;
+                                priceLockCode: string;
+                                quoteExpiresAt: string;
+                                tokenAddress: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pix/pay/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Review a Pix QR payment
+         * @description Reads the code with the provider the pay route names (who is paid, and the code’s own amount, if any) and quotes it. Opens nothing. Send amountBrl only for a code without an amount of its own.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description Reais, only for a code without an amount of its own. A code with its own amount is paid that amount; another one is refused. */
+                        amountBrl?: string;
+                        /** @description A Pix BR Code */
+                        brCode: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "amountBrl": "42.50",
+                         *       "amountFixed": true,
+                         *       "arrivalEstimateSeconds": 60,
+                         *       "bankName": "Banco Inter S.A.",
+                         *       "exchangeRate": "5.364547",
+                         *       "fixedFeeBrl": "0.75",
+                         *       "merchantName": "PADARIA PAO DOURADO LTDA",
+                         *       "merchantTaxIdMasked": "12.345.678/0001-90",
+                         *       "provider": "Avenia",
+                         *       "providerFeeBrl": "0.75",
+                         *       "rate": "5.364547",
+                         *       "withdrawUsd": "8.062211"
+                         *     }
+                         */
+                        "application/json": {
+                            /** @description The headline: reais the merchant receives */
+                            amountBrl: string;
+                            /** @description The code fixes the amount: the user cannot change it */
+                            amountFixed: boolean;
+                            /** @description About how long from the signature to the merchant paid */
+                            arrivalEstimateSeconds: number;
+                            bankName: string | null;
+                            /** @description BRL per USD, every variable fee of the providers inside (Avenia’s percentage and gas lines, the bridge fee). Sent only with providerFeeBrl. */
+                            exchangeRate?: string;
+                            /** @description The provider’s flat fee in reais, shown as its own line */
+                            fixedFeeBrl: string;
+                            /** @description Who is paid, from the provider’s read of the code */
+                            merchantName: string | null;
+                            /** @description The merchant’s tax id as the provider sends it: a CNPJ in full, a CPF masked */
+                            merchantTaxIdMasked: string | null;
+                            /** @description The payments partner’s name, for the review’s "processed by" line */
+                            provider: string;
+                            /** @description The provider’s flat fee per Pix, in reais to the centavo (Avenia’s In Fee or Out Fee). Deposit: (amountBrl − providerFeeBrl) ÷ exchangeRate = usdcAmount. Withdrawal or payment: withdrawUsd × exchangeRate − providerFeeBrl = amountBrl. Sent only with exchangeRate, and only when the provider’s amounts show the fees deducted. */
+                            providerFeeBrl?: string;
+                            /** @description BRL per USDC that leaves the wallet, with the percentage fees inside: withdrawUsd × rate − fixedFeeBrl = amountBrl, to a centavo */
+                            rate: string;
+                            /** @description USDC that leaves the wallet */
+                            withdrawUsd: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pix/pay/{intentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read a Pix QR payment
+         * @description Where the user’s payment stands. Owner only; read-only.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path: {
+                    intentId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "amountBrl": "42.50",
+                         *       "intentId": "4d2b7c1e-9a3f-4e81-b6d0-5c7e2a9f1b34",
+                         *       "merchantName": "PADARIA PAO DOURADO LTDA",
+                         *       "perk": null,
+                         *       "provider": "avenia",
+                         *       "selfPay": false,
+                         *       "state": "paid",
+                         *       "status": "COMPLETED"
+                         *     }
+                         */
+                        "application/json": {
+                            amountBrl: string | null;
+                            intentId: string;
+                            merchantName: string | null;
+                            /** @description The QR reward the paid payment earned, as Manteca’s QR answers it; null when none (yet) */
+                            perk: {
+                                /** @enum {boolean} */
+                                claimed: false;
+                                discountPercentage: number;
+                                /** @enum {boolean} */
+                                eligible: true;
+                                payoutStatus: "pending" | "completed" | "failed";
+                                reason: string | null;
+                                sponsoredUsd: number;
+                                txHash?: string;
+                                usageId: string;
+                            } | null;
+                            /** @description The provider the route names, e.g. avenia. Data only: the app does not branch on it. */
+                            provider: string;
+                            /** @description True when the code pays an account in the user’s own name (marked at init): the payment earns no points and no QR reward. False otherwise. */
+                            selfPay: boolean;
+                            /** @description Where the payment stands */
+                            state: "opening" | "awaiting_signature" | "processing" | "paid" | "refunding" | "refunded" | "cancelled" | "needs_support";
+                            /** @description The intent’s own status, as stored */
+                            status: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pix/pay/{intentId}/funded": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report a Pix QR payment’s funding
+         * @description The wallet broadcast the deposit. The API checks the receipt funds exactly this payment; the provider’s events move it after that. Idempotent, and optional for the money.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path: {
+                    intentId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        txHash: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "status": "PROCESSING"
+                         *     }
+                         */
+                        "application/json": {
+                            status: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pix/quote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Indicative Pix quote for amount entry
+         * @description For the provider the user’s Pix route names (capabilities.routes): what this amount would credit and take: `exchangeRate` and `providerFeeBrl` as the rate and fee rows (the variable fees inside the rate, the flat fee per Pix apart), and the legacy `rate` and `fixedFeeBrl`, the same split. Before an amount, quote the minimum and show `exchangeRate`, never amountBrl ÷ usdcAmount. Opens no ticket and looks up no Pix key; the deposit and the withdrawal review quote again. Send one amount.
+         */
+        get: {
+            parameters: {
+                query: {
+                    operation: "deposit" | "withdraw";
+                    /** @description Reais */
+                    amountBrl?: string;
+                    /** @description USDC to receive (deposit) or to convert (withdraw) */
+                    amountUsd?: string;
+                    /** @description Withdraw only: USDC to leave the wallet, the bridge fee included */
+                    spendUsd?: string;
+                };
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "amountBrl": "106.75",
+                         *       "exchangeRate": "5.369543",
+                         *       "fixedFeeBrl": "0.75",
+                         *       "minAmountBrl": "5",
+                         *       "operation": "withdraw",
+                         *       "provider": "avenia",
+                         *       "providerFeeBrl": "0.75",
+                         *       "rate": "5.369543",
+                         *       "usdcAmount": "20.020325"
+                         *     }
+                         */
+                        "application/json": {
+                            amountBrl: string;
+                            /** @description BRL per USD, every variable fee of the providers inside (Avenia’s percentage and gas lines, the bridge fee). Sent only with providerFeeBrl. */
+                            exchangeRate?: string;
+                            /** @description The flat fee in reais, shown as its own line */
+                            fixedFeeBrl: string;
+                            /** @description The least amountBrl the provider takes for this operation; amount entry shows it */
+                            minAmountBrl: string;
+                            operation: "deposit" | "withdraw";
+                            /** @description The provider the route names, e.g. avenia */
+                            provider: string;
+                            /** @description The provider’s flat fee per Pix, in reais to the centavo (Avenia’s In Fee or Out Fee). Deposit: (amountBrl − providerFeeBrl) ÷ exchangeRate = usdcAmount. Withdrawal or payment: withdrawUsd × exchangeRate − providerFeeBrl = amountBrl. Sent only with exchangeRate, and only when the provider’s amounts show the fees deducted. */
+                            providerFeeBrl?: string;
+                            /** @description BRL per USDC with the percentage fees inside. Deposit: amountBrl − fixedFeeBrl = usdcAmount × rate. Withdraw: usdcAmount × rate − fixedFeeBrl = amountBrl. To a centavo. */
+                            rate: string;
+                            /** @description USDC the wallet receives, after the bridge fee (deposit), or that leaves it, the bridge fee included (withdraw) */
+                            usdcAmount: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pix/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Open a Pix withdrawal
+         * @description Opens the withdrawal with the provider the withdrawal route names and returns what the wallet signs (sign.kind says how). Send one of amountUsd, amountBrl or spendUsd.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description Reais, at most two decimals */
+                        amountBrl?: string;
+                        /** @description USDC, at most six decimals */
+                        amountUsd?: string;
+                        pixKey: string;
+                        /** @description USDC to leave the wallet, every fee included ("Use balance"). Send one of the three amounts. */
+                        spendUsd?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "display": {
+                         *         "amountBrl": "106.75",
+                         *         "arrivalEstimateSeconds": 60,
+                         *         "bankName": "Nu Pagamentos S.A.",
+                         *         "exchangeRate": "5.369543",
+                         *         "fixedFeeBrl": "0.75",
+                         *         "holderName": "Ana Souza",
+                         *         "holderTaxIdMasked": "***.456.789-**",
+                         *         "ownAccount": false,
+                         *         "pixKey": "12345678909",
+                         *         "provider": "Avenia",
+                         *         "providerFeeBrl": "0.75",
+                         *         "rate": "5.369543",
+                         *         "withdrawUsd": "20.020325"
+                         *       },
+                         *       "intentId": "0b9e3c1d-7a2f-4e68-b5d4-91c0f3a2e7b6",
+                         *       "provider": "avenia",
+                         *       "sign": {
+                         *         "commitmentId": "6aeb17ea29f84d1e9b0c3a5d7e2f1c08",
+                         *         "contractAddress": "0x10417734001162ea139e8b044dfe28dbb8b28ad0",
+                         *         "kind": "deposit-with-id",
+                         *         "payAmount": "20.020325",
+                         *         "payAmountUnits": "20020325",
+                         *         "quoteExpiresAt": "2026-11-04T12:03:00.000Z",
+                         *         "ticketExpiresAt": "2026-11-04T12:10:00.000Z",
+                         *         "tokenAddress": "0xaf88d065e77c8cc2239327c5edb3a432268e5831"
+                         *       }
+                         *     }
+                         */
+                        "application/json": {
+                            display: {
+                                /** @description The headline: reais credited to the account */
+                                amountBrl: string;
+                                /** @description About how long from the signature to the Pix paid */
+                                arrivalEstimateSeconds: number;
+                                bankName: string | null;
+                                /** @description BRL per USD, every variable fee of the providers inside (Avenia’s percentage and gas lines, the bridge fee). Sent only with providerFeeBrl. */
+                                exchangeRate?: string;
+                                /** @description The flat fee in reais, shown as its own line */
+                                fixedFeeBrl: string;
+                                /** @description Who is paid, from the provider’s lookup */
+                                holderName: string | null;
+                                /** @description The holder’s masked tax id, as the provider sends it (its layout varies) */
+                                holderTaxIdMasked: string | null;
+                                /** @description The key looks like the user’s own: information, never a gate. Null when the provider cannot tell. */
+                                ownAccount: boolean | null;
+                                pixKey: string;
+                                /** @description The payments partner’s name, for the review’s "processed by" line */
+                                provider: string;
+                                /** @description The provider’s flat fee per Pix, in reais to the centavo (Avenia’s In Fee or Out Fee). Deposit: (amountBrl − providerFeeBrl) ÷ exchangeRate = usdcAmount. Withdrawal or payment: withdrawUsd × exchangeRate − providerFeeBrl = amountBrl. Sent only with exchangeRate, and only when the provider’s amounts show the fees deducted. */
+                                providerFeeBrl?: string;
+                                /** @description BRL per USDC that leaves the wallet, with the percentage fees inside: withdrawUsd × rate − fixedFeeBrl = amountBrl, to a centavo */
+                                rate: string;
+                                /** @description USDC that leaves the wallet */
+                                withdrawUsd: string;
+                            };
+                            /** @description The withdrawal, when the provider opens it now; a transfer-then-submit one opens at the submit */
+                            intentId: string | null;
+                            /** @description The provider the route names, e.g. avenia. Data only: the app does not branch on it. */
+                            provider: string;
+                            /** @description How the wallet funds the withdrawal */
+                            sign: {
+                                commitmentId: string;
+                                contractAddress: string;
+                                /** @enum {string} */
+                                kind: "deposit-with-id";
+                                payAmount: string;
+                                payAmountUnits: string;
+                                quoteExpiresAt: string;
+                                ticketExpiresAt: string;
+                                tokenAddress: string;
+                            } | {
+                                depositAddress: string;
+                                /** @enum {string} */
+                                kind: "transfer-then-submit";
+                                payAmount: string;
+                                payAmountUnits: string;
+                                priceLockCode: string;
+                                quoteExpiresAt: string;
+                                tokenAddress: string;
+                            };
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pix/withdraw/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Review a Pix withdrawal
+         * @description Checks the key with the provider the withdrawal route names and quotes the amount. Opens nothing. Send one of amountUsd, amountBrl or spendUsd.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description Reais, at most two decimals */
+                        amountBrl?: string;
+                        /** @description USDC, at most six decimals */
+                        amountUsd?: string;
+                        pixKey: string;
+                        /** @description USDC to leave the wallet, every fee included ("Use balance"). Send one of the three amounts. */
+                        spendUsd?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "amountBrl": "106.75",
+                         *       "arrivalEstimateSeconds": 60,
+                         *       "bankName": "Nu Pagamentos S.A.",
+                         *       "exchangeRate": "5.369543",
+                         *       "fixedFeeBrl": "0.75",
+                         *       "holderName": "Ana Souza",
+                         *       "holderTaxIdMasked": "***.456.789-**",
+                         *       "ownAccount": false,
+                         *       "pixKey": "12345678909",
+                         *       "provider": "Avenia",
+                         *       "providerFeeBrl": "0.75",
+                         *       "rate": "5.369543",
+                         *       "withdrawUsd": "20.020325"
+                         *     }
+                         */
+                        "application/json": {
+                            /** @description The headline: reais credited to the account */
+                            amountBrl: string;
+                            /** @description About how long from the signature to the Pix paid */
+                            arrivalEstimateSeconds: number;
+                            bankName: string | null;
+                            /** @description BRL per USD, every variable fee of the providers inside (Avenia’s percentage and gas lines, the bridge fee). Sent only with providerFeeBrl. */
+                            exchangeRate?: string;
+                            /** @description The flat fee in reais, shown as its own line */
+                            fixedFeeBrl: string;
+                            /** @description Who is paid, from the provider’s lookup */
+                            holderName: string | null;
+                            /** @description The holder’s masked tax id, as the provider sends it (its layout varies) */
+                            holderTaxIdMasked: string | null;
+                            /** @description The key looks like the user’s own: information, never a gate. Null when the provider cannot tell. */
+                            ownAccount: boolean | null;
+                            pixKey: string;
+                            /** @description The payments partner’s name, for the review’s "processed by" line */
+                            provider: string;
+                            /** @description The provider’s flat fee per Pix, in reais to the centavo (Avenia’s In Fee or Out Fee). Deposit: (amountBrl − providerFeeBrl) ÷ exchangeRate = usdcAmount. Withdrawal or payment: withdrawUsd × exchangeRate − providerFeeBrl = amountBrl. Sent only with exchangeRate, and only when the provider’s amounts show the fees deducted. */
+                            providerFeeBrl?: string;
+                            /** @description BRL per USDC that leaves the wallet, with the percentage fees inside: withdrawUsd × rate − fixedFeeBrl = amountBrl, to a centavo */
+                            rate: string;
+                            /** @description USDC that leaves the wallet */
+                            withdrawUsd: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pix/withdraw/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit a transfer-then-submit withdrawal’s signed funding
+         * @description For sign.kind transfer-then-submit: the API broadcasts the signed transfer first and opens the payout order for the locked price once the transfer mined; if the order then fails, the USDC goes back through the refund path.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description The sign step’s payAmount */
+                        amountUsd: string;
+                        funding: {
+                            chainId: string;
+                            entryPointAddress: string;
+                            /** @enum {string} */
+                            kind: "userOp";
+                            /** @description The mixed strategy: the UserOp also withdraws card collateral */
+                            rainPreparationId?: string;
+                            signedUserOp: {
+                                callData: string;
+                                callGasLimit: unknown;
+                                factory?: string;
+                                factoryData?: string;
+                                maxFeePerGas: unknown;
+                                maxPriorityFeePerGas: unknown;
+                                nonce: unknown;
+                                paymaster?: string;
+                                paymasterData?: string;
+                                paymasterPostOpGasLimit: unknown;
+                                paymasterVerificationGasLimit: unknown;
+                                preVerificationGas: unknown;
+                                sender: string;
+                                signature: string;
+                                verificationGasLimit: unknown;
+                            };
+                        } | {
+                            chainId: string;
+                            /** @enum {string} */
+                            kind: "rainWithdrawal";
+                            signedRainWithdrawal: {
+                                adminNonce: string;
+                                adminSalt: string;
+                                adminSignature: string;
+                                amount: string;
+                                directTransfer: boolean;
+                                executorSalt: string;
+                                executorSignature: string;
+                                expiresAt: number;
+                                /** Format: uuid */
+                                preparationId: string;
+                                preparedCoordinatorAddress?: string;
+                                recipientAddress: string;
+                            };
+                        };
+                        pixKey: string;
+                        /** @description The sign step’s priceLockCode */
+                        priceLockCode: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "intentId": "3c7a9e2b-5d14-4f8a-9b6c-0e2d4f6a8b1c",
+                         *       "provider": "manteca",
+                         *       "status": "PROCESSING"
+                         *     }
+                         */
+                        "application/json": {
+                            intentId: string | null;
+                            provider: string;
+                            status: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pix/withdraw/{intentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read a Pix withdrawal or send
+         * @description Where the user’s withdrawal or send stands, and the QR reward a paid send to another person’s key earned. Owner only; read-only.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path: {
+                    intentId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "amountBrl": "150.00",
+                         *       "holderName": "JOAO DA SILVA",
+                         *       "intentId": "9b1f3c2e-7a4d-4e8b-a1c6-2d5e8f0a4b17",
+                         *       "ownAccount": false,
+                         *       "perk": null,
+                         *       "provider": "avenia",
+                         *       "selfPay": false,
+                         *       "state": "paid",
+                         *       "status": "COMPLETED"
+                         *     }
+                         */
+                        "application/json": {
+                            amountBrl: string | null;
+                            /** @description Who the key paid, from the review; null for a withdrawal opened before M3 */
+                            holderName: string | null;
+                            intentId: string;
+                            /** @description The key was the user’s own account (a withdrawal); false for a send */
+                            ownAccount: boolean | null;
+                            /** @description The QR reward a paid send to another person’s key earned (Manteca paid such a send as a QR payment); null when none (yet), and always for a withdrawal to the user’s own key */
+                            perk: {
+                                /** @enum {boolean} */
+                                claimed: false;
+                                discountPercentage: number;
+                                /** @enum {boolean} */
+                                eligible: true;
+                                payoutStatus: "pending" | "completed" | "failed";
+                                reason: string | null;
+                                sponsoredUsd: number;
+                                txHash?: string;
+                                usageId: string;
+                            } | null;
+                            /** @description The provider the route names, e.g. avenia. Data only: the app does not branch on it. */
+                            provider: string;
+                            /** @description True only for a send to another person’s key whose holder bears the user’s own name (marked at init): it earns no points and no QR reward. False otherwise, also for a withdrawal to the user’s own key (which earns a withdrawal’s points). */
+                            selfPay: boolean;
+                            /** @description Where the payment stands */
+                            state: "opening" | "awaiting_signature" | "processing" | "paid" | "refunding" | "refunded" | "cancelled" | "needs_support";
+                            /** @description The intent’s own status, as stored */
+                            status: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pix/withdraw/{intentId}/funded": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report a deposit-with-id withdrawal’s funding
+         * @description For sign.kind deposit-with-id: the wallet broadcast the deposit. The API checks the receipt funds exactly this withdrawal; the provider’s events move it after that. Idempotent.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    Authorization: string;
+                };
+                path: {
+                    intentId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        txHash: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "status": "PROCESSING"
+                         *     }
+                         */
+                        "application/json": {
+                            status: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            currency?: "BRL" | "USDC";
+                            error: string;
+                            /** @description PIX_PAYMENT_EXISTS only: the payment a retried init repeats, to read instead */
+                            intentId?: string;
+                            /** @description PIX_MIN_AMOUNT only: the least amount the provider takes, in `currency` */
+                            minAmount?: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/points": {
         parameters: {
             query?: never;
@@ -7696,7 +10942,7 @@ export interface paths {
                 query?: {
                     limit?: number;
                     offset?: number;
-                    type?: "BRIDGE_FEE" | "MANTECA_FEE" | "RAIN_CARD_SPEND" | "CHARGE_FEE" | "P2P_SEND_LINK" | "P2P_REQUEST_PAYMENT" | "CRYPTO_WITHDRAW" | "SIGNUP" | "KYC_VERIFIED" | "TRANSITIVE_UPDATE" | "HANDSHAKE_BONUS" | "ADMIN_ADJUSTMENT" | "PERK_REDEMPTION" | "MIGRATION_FROM_OLD_SYSTEM" | "REFERRAL_REWARD_ACCRUAL";
+                    type?: "BRIDGE_FEE" | "MANTECA_FEE" | "AVENIA_FEE" | "RAIN_CARD_SPEND" | "CHARGE_FEE" | "P2P_SEND_LINK" | "P2P_REQUEST_PAYMENT" | "CRYPTO_WITHDRAW" | "SIGNUP" | "KYC_VERIFIED" | "TRANSITIVE_UPDATE" | "HANDSHAKE_BONUS" | "ADMIN_ADJUSTMENT" | "PERK_REDEMPTION" | "MIGRATION_FROM_OLD_SYSTEM" | "REFERRAL_REWARD_ACCRUAL";
                 };
                 header: {
                     Authorization: string;
@@ -9843,6 +13089,14 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            collateralReturn?: {
+                                cardCreditCents: number;
+                                heldCents: number;
+                                remainingCents: number;
+                                retryAfterSec?: number;
+                                returnedCents: number;
+                                state: "nothing" | "returned" | "required" | "waiting" | "failed" | "unknown";
+                            };
                             fundingStop: {
                                 reason: string | null;
                                 state: "pending" | "unavailable" | "not_applicable";
@@ -9884,6 +13138,7 @@ export interface paths {
                         "application/json": {
                             code?: string;
                             error: string;
+                            retryAfterSec?: number;
                         };
                     };
                 };
@@ -10205,6 +13460,14 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            collateralReturn?: {
+                                cardCreditCents: number;
+                                heldCents: number;
+                                remainingCents: number;
+                                retryAfterSec?: number;
+                                returnedCents: number;
+                                state: "nothing" | "returned" | "required" | "waiting" | "failed" | "unknown";
+                            };
                             fundingStop: {
                                 reason: string | null;
                                 state: "pending" | "unavailable" | "not_applicable";
@@ -10246,6 +13509,7 @@ export interface paths {
                         "application/json": {
                             code?: string;
                             error: string;
+                            retryAfterSec?: number;
                         };
                     };
                 };
@@ -12347,6 +15611,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/tracked-links/invites/{username}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Resolve a personal invite to a stable public link ID */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    username: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "linkId": "invite_0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+                         *     }
+                         */
+                        "application/json": {
+                            linkId: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            error: "Link not found";
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/unsubscribe": {
         parameters: {
             query?: never;
@@ -12415,6 +15736,7 @@ export interface paths {
                 query?: never;
                 header: {
                     Authorization: string;
+                    "x-username-hold"?: string;
                     "api-key"?: string;
                     "x-step-up-token"?: string;
                 };
@@ -12477,8 +15799,8 @@ export interface paths {
                          *     }
                          */
                         "application/json": {
-                            /** @enum {string} */
-                            code?: "PROFILE_NAME_READ_ONLY";
+                            /** @description PROFILE_NAME_READ_ONLY, EMAIL_VERIFICATION_REQUIRED or a validation code */
+                            code?: string;
                             error?: string;
                         };
                     };
@@ -12541,6 +15863,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            /** @enum {string} */
+                            code?: "EMAIL_CHANGE_UNAVAILABLE";
                             error: string;
                         };
                     };
@@ -12912,7 +16236,7 @@ export interface paths {
                                     levelKey?: string;
                                     purpose: string;
                                     refused?: {
-                                        provider: "bridge" | "manteca" | "rain";
+                                        provider: "bridge" | "manteca" | "rain" | "avenia";
                                         reason: string;
                                     }[];
                                     requirementKey?: string;
@@ -12934,7 +16258,7 @@ export interface paths {
                                     };
                                     /** @description ISO timestamp of the last change to a `pending` rail. Absent on every other status. A pending rail untouched for a day is stuck, not provisioning — the FE stops promising a quick setup past that. */
                                     pendingSince?: string;
-                                    provider: "bridge" | "manteca" | "rain";
+                                    provider: "bridge" | "manteca" | "rain" | "avenia";
                                     reason?: {
                                         code: string;
                                         details?: string;
@@ -12957,7 +16281,7 @@ export interface paths {
                                             levelKey?: string;
                                             purpose: string;
                                             refused?: {
-                                                provider: "bridge" | "manteca" | "rain";
+                                                provider: "bridge" | "manteca" | "rain" | "avenia";
                                                 reason: string;
                                             }[];
                                             requirementKey?: string;
@@ -12971,6 +16295,43 @@ export interface paths {
                                     affectedRailIds: string[];
                                     code: string;
                                     userMessage: string;
+                                }[];
+                                routes: {
+                                    /** @description The user's step: a `nextActions` key, `verify` (the identity check first) or `activate` (the provider's first use). */
+                                    action?: string;
+                                    /** @description Every provider that serves the operation on the method, best first, each with its reason. */
+                                    candidates: {
+                                        /** @description The user's step: a `nextActions` key, `verify` (the identity check first) or `activate` (the provider's first use). */
+                                        action?: string;
+                                        provider: "bridge" | "manteca" | "rain" | "avenia";
+                                        reason?: {
+                                            code: string;
+                                            details?: string;
+                                            userMessage: string;
+                                        };
+                                        state: "ready" | "action_required" | "pending" | "paused" | "refused";
+                                    }[];
+                                    /** @description The chosen provider’s limits for the operation, where it states them. The amount step checks a typed amount against them before any quote. */
+                                    limits?: {
+                                        /** @description The currency of the amount: the method’s, e.g. BRL */
+                                        currency: string;
+                                        /** @description The least amount the provider takes for this operation */
+                                        minAmount: string;
+                                    };
+                                    /** @description Rail method code, e.g. PIX_BR */
+                                    method: string;
+                                    /** @description pay: a QR payment on the method */
+                                    operation: "deposit" | "withdraw" | "pay";
+                                    /** @description Deposit routes only: the user's deposit whose payment code can still be paid. Open it again (GET /pix/deposit/{intentId}) instead of creating another. */
+                                    payableDepositIntentId?: string;
+                                    /** @description The provider the money routes use. Null when every candidate is refused. */
+                                    provider: ("bridge" | "manteca" | "rain" | "avenia") | null;
+                                    reason?: {
+                                        code: string;
+                                        details?: string;
+                                        userMessage: string;
+                                    };
+                                    state: "ready" | "action_required" | "pending" | "paused" | "refused";
                                 }[];
                             };
                         };
@@ -13502,7 +16863,7 @@ export interface paths {
                                 levelKey?: string;
                                 purpose: string;
                                 refused?: {
-                                    provider: "bridge" | "manteca" | "rain";
+                                    provider: "bridge" | "manteca" | "rain" | "avenia";
                                     reason: string;
                                 }[];
                                 requirementKey?: string;
@@ -13678,6 +17039,8 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            /** @enum {string} */
+                            code?: "EMAIL_CHANGE_UNAVAILABLE";
                             error: string;
                         };
                     };
@@ -14187,22 +17550,22 @@ export interface paths {
                             features?: {
                                 bank: {
                                     action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain" | "activate";
-                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
+                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable" | "provider_rejected" | "provider_setup_failed";
                                     state: "ready" | "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
                                 };
                                 card: {
                                     action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain" | "activate";
-                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
+                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable" | "provider_rejected" | "provider_setup_failed";
                                     state: "ready" | "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
                                 };
                                 local: {
                                     action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain" | "activate";
-                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
+                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable" | "provider_rejected" | "provider_setup_failed";
                                     state: "ready" | "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
                                 };
                                 qr: {
                                     action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain" | "activate";
-                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
+                                    reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable" | "provider_rejected" | "provider_setup_failed";
                                     state: "ready" | "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
                                 };
                             };
@@ -14250,6 +17613,96 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/kyc/accept-terms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept a payments partner’s terms
+         * @description Records the acceptance of the terms the step names (nextActions[].tosUrl) in the consent ledger, then enrols the user with that provider. The capabilities route shows the enrolment from then on. 409 when the user’s route does not name this step now.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description The route’s accept-tos step (capabilities.routes[].action), e.g. accept-tos:<provider> */
+                        key: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "accepted": true
+                         *     }
+                         */
+                        "application/json": {
+                            /** @enum {boolean} */
+                            accepted: true;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users/kyc/answers/{step}": {
         parameters: {
             query?: never;
@@ -14261,7 +17714,7 @@ export interface paths {
         put: {
             parameters: {
                 query?: {
-                    feature?: "bank" | "card" | "local";
+                    feature?: "bank" | "card" | "local" | "pix";
                 };
                 header?: never;
                 path: {
@@ -14780,6 +18233,13 @@ export interface paths {
                     content: {
                         /**
                          * @example {
+                         *       "address": {
+                         *         "buildingNumber": "12",
+                         *         "country": "PT",
+                         *         "postCode": "1100-053",
+                         *         "street": "Rua Augusta",
+                         *         "town": "Lisboa"
+                         *       },
                          *       "document": {
                          *         "country": "PT",
                          *         "type": "PASSPORT"
@@ -14798,10 +18258,19 @@ export interface paths {
                          *         "cityOfBirth": "Lisboa",
                          *         "countryOfBirth": "PT",
                          *         "dateOfBirth": "1992-06-15"
-                         *       }
+                         *       },
+                         *       "taxId": null
                          *     }
                          */
                         "application/json": {
+                            address: {
+                                buildingNumber?: string;
+                                country?: string;
+                                postCode?: string;
+                                state?: string;
+                                street?: string;
+                                town?: string;
+                            } | null;
                             document: {
                                 country: string;
                                 type: string;
@@ -14833,6 +18302,7 @@ export interface paths {
                                 sex?: string;
                                 sourceOfFunds?: string;
                             };
+                            taxId: string | null;
                         };
                     };
                 };
@@ -15009,7 +18479,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    feature: "qr" | "local" | "card" | "bank";
+                    feature: "qr" | "local" | "card" | "bank" | "pix";
                 };
                 cookie?: never;
             };
@@ -15028,7 +18498,7 @@ export interface paths {
                          */
                         "application/json": {
                             action?: "supplement:bridge" | "supplement:manteca" | "supplement:rain" | "activate";
-                            reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable";
+                            reason?: "under_minimum_age" | "residence_unknown" | "residence_sanctioned" | "uk_resident_blocked" | "residence_bank_restricted" | "us_state_unsupported" | "us_state_required" | "geo-blocked" | "local_residence_unsupported" | "local_served_elsewhere" | "manteca_us_nationality_restricted" | "local_tax_id_missing" | "document_country_unsupported" | "identity_document_insufficient" | "requirements_uncollectable" | "provider_rejected" | "provider_setup_failed";
                             state: "ready" | "on" | "setting_up" | "action_required" | "refused" | "not_requested" | "pending";
                         };
                     };
@@ -15348,8 +18818,8 @@ export interface paths {
                         "application/json": {
                             products: {
                                 available: boolean;
-                                product: "bridge.usd" | "bridge.eur" | "bridge.gbp" | "bridge.mxn" | "bridge.brl" | "rain.card" | "manteca.local" | "manteca.qr";
-                                provider: "BRIDGE" | "RAIN" | "MANTECA";
+                                product: "bridge.usd" | "bridge.eur" | "bridge.gbp" | "bridge.mxn" | "bridge.brl" | "rain.card" | "manteca.local" | "manteca.qr" | "avenia.pix";
+                                provider: "BRIDGE" | "RAIN" | "MANTECA" | "AVENIA";
                                 reason?: string;
                                 rule?: string;
                             }[];
@@ -15357,8 +18827,8 @@ export interface paths {
                                 collect: "before_identity" | "after_identity" | "when_asked";
                                 item: "residential_address" | "phone" | "tax_id" | "country_of_birth" | "city_of_birth" | "nationality" | "account_purpose" | "employment_status" | "occupation" | "source_of_funds" | "expected_monthly_payments" | "acting_as_intermediary" | "card_purpose" | "annual_salary" | "expected_monthly_spend" | "sex" | "marital_status" | "pep" | "fatca" | "fep" | "proof_of_address" | "source_of_funds_document";
                                 kind: "question" | "document";
-                                products: ("bridge.usd" | "bridge.eur" | "bridge.gbp" | "bridge.mxn" | "bridge.brl" | "rain.card" | "manteca.local" | "manteca.qr")[];
-                                requiredBy: ("BRIDGE" | "RAIN" | "MANTECA")[];
+                                products: ("bridge.usd" | "bridge.eur" | "bridge.gbp" | "bridge.mxn" | "bridge.brl" | "rain.card" | "manteca.local" | "manteca.qr" | "avenia.pix")[];
+                                requiredBy: ("BRIDGE" | "RAIN" | "MANTECA" | "AVENIA")[];
                                 rules: string[];
                             }[];
                         };
@@ -15497,7 +18967,8 @@ export interface paths {
                          *           "id": "eea"
                          *         }
                          *       ],
-                         *       "temporaryProtection": null
+                         *       "temporaryProtection": null,
+                         *       "terminal": null
                          *     }
                          */
                         "application/json": {
@@ -15529,7 +19000,7 @@ export interface paths {
                                     code: "IDENTITY";
                                     countries: string[];
                                     key: string;
-                                    requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN")[];
+                                    requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN" | "AVENIA")[];
                                     types: ("PASSPORT" | "ID_CARD" | "DRIVERS" | "RESIDENCE_PERMIT")[];
                                 }[];
                                 id: string;
@@ -15539,6 +19010,7 @@ export interface paths {
                                 proofOfAddress: boolean;
                                 until: string;
                             } | null;
+                            terminal?: "rejected" | null;
                         };
                     };
                 };
@@ -15716,7 +19188,7 @@ export interface paths {
                                         code: "IDENTITY";
                                         countries: string[];
                                         key: string;
-                                        requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN")[];
+                                        requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN" | "AVENIA")[];
                                         types: ("PASSPORT" | "ID_CARD" | "DRIVERS" | "RESIDENCE_PERMIT")[];
                                     }[];
                                     levelName?: string;
@@ -15726,7 +19198,7 @@ export interface paths {
                                         code: string;
                                         key: string;
                                         levelName: string;
-                                        requiredBy: ("BRIDGE" | "MANTECA" | "RAIN")[];
+                                        requiredBy: ("BRIDGE" | "MANTECA" | "RAIN" | "AVENIA")[];
                                     }[];
                                 };
                                 /** Format: date-time */
@@ -15735,7 +19207,7 @@ export interface paths {
                                 id: string;
                                 kind: "IDENTITY" | "SUPPLEMENTAL" | "ONBOARDING";
                                 policyVersion: string;
-                                provider: "SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN";
+                                provider: "SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN" | "AVENIA";
                                 reasonCode: string | null;
                                 requirements: ({
                                     code: string;
@@ -15746,20 +19218,20 @@ export interface paths {
                                     key: string;
                                     /** @enum {string} */
                                     kind: "DOCUMENT";
-                                    requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN")[];
+                                    requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN" | "AVENIA")[];
                                 } | {
                                     code: string;
                                     key: string;
                                     /** @enum {string} */
                                     kind: "QUESTIONNAIRE";
                                     questionnaireKey: string;
-                                    requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN")[];
+                                    requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN" | "AVENIA")[];
                                 } | {
                                     code: string;
                                     key: string;
                                     /** @enum {string} */
                                     kind: "CHECK";
-                                    requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN")[];
+                                    requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN" | "AVENIA")[];
                                 })[];
                                 reviewedAt: string | null;
                                 revision: number;
@@ -15825,6 +19297,7 @@ export interface paths {
                                     userMessage: string;
                                 };
                                 rejectLabels?: string[];
+                                rejectType?: "FINAL" | "RETRY" | null;
                                 reviewPending?: boolean;
                                 reviewedAt?: string;
                                 status: "not_started" | "processing" | "verified" | "action_required" | "failed";
@@ -15930,7 +19403,7 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
-                    feature?: "bank" | "card" | "local";
+                    feature?: "bank" | "card" | "local" | "pix";
                 };
                 header?: never;
                 path?: never;
@@ -16089,12 +19562,16 @@ export interface paths {
                                     kind: string;
                                     locked?: boolean;
                                     minAddressLineLength?: number;
+                                    optionLabels?: {
+                                        [key: string]: string;
+                                    };
                                     options?: string[];
                                     required: boolean;
                                     value: string | null;
                                 }[];
                                 id: "purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax";
                             }[];
+                            terminal?: "rejected" | null;
                         };
                     };
                 };
@@ -16415,7 +19892,7 @@ export interface paths {
                                     levelKey?: string;
                                     purpose: string;
                                     refused?: {
-                                        provider: "bridge" | "manteca" | "rain";
+                                        provider: "bridge" | "manteca" | "rain" | "avenia";
                                         reason: string;
                                     }[];
                                     requirementKey?: string;
@@ -16437,7 +19914,7 @@ export interface paths {
                                     };
                                     /** @description ISO timestamp of the last change to a `pending` rail. Absent on every other status. A pending rail untouched for a day is stuck, not provisioning — the FE stops promising a quick setup past that. */
                                     pendingSince?: string;
-                                    provider: "bridge" | "manteca" | "rain";
+                                    provider: "bridge" | "manteca" | "rain" | "avenia";
                                     reason?: {
                                         code: string;
                                         details?: string;
@@ -16460,7 +19937,7 @@ export interface paths {
                                             levelKey?: string;
                                             purpose: string;
                                             refused?: {
-                                                provider: "bridge" | "manteca" | "rain";
+                                                provider: "bridge" | "manteca" | "rain" | "avenia";
                                                 reason: string;
                                             }[];
                                             requirementKey?: string;
@@ -16474,6 +19951,43 @@ export interface paths {
                                     affectedRailIds: string[];
                                     code: string;
                                     userMessage: string;
+                                }[];
+                                routes: {
+                                    /** @description The user's step: a `nextActions` key, `verify` (the identity check first) or `activate` (the provider's first use). */
+                                    action?: string;
+                                    /** @description Every provider that serves the operation on the method, best first, each with its reason. */
+                                    candidates: {
+                                        /** @description The user's step: a `nextActions` key, `verify` (the identity check first) or `activate` (the provider's first use). */
+                                        action?: string;
+                                        provider: "bridge" | "manteca" | "rain" | "avenia";
+                                        reason?: {
+                                            code: string;
+                                            details?: string;
+                                            userMessage: string;
+                                        };
+                                        state: "ready" | "action_required" | "pending" | "paused" | "refused";
+                                    }[];
+                                    /** @description The chosen provider’s limits for the operation, where it states them. The amount step checks a typed amount against them before any quote. */
+                                    limits?: {
+                                        /** @description The currency of the amount: the method’s, e.g. BRL */
+                                        currency: string;
+                                        /** @description The least amount the provider takes for this operation */
+                                        minAmount: string;
+                                    };
+                                    /** @description Rail method code, e.g. PIX_BR */
+                                    method: string;
+                                    /** @description pay: a QR payment on the method */
+                                    operation: "deposit" | "withdraw" | "pay";
+                                    /** @description Deposit routes only: the user's deposit whose payment code can still be paid. Open it again (GET /pix/deposit/{intentId}) instead of creating another. */
+                                    payableDepositIntentId?: string;
+                                    /** @description The provider the money routes use. Null when every candidate is refused. */
+                                    provider: ("bridge" | "manteca" | "rain" | "avenia") | null;
+                                    reason?: {
+                                        code: string;
+                                        details?: string;
+                                        userMessage: string;
+                                    };
+                                    state: "ready" | "action_required" | "pending" | "paused" | "refused";
                                 }[];
                             };
                             depositAccounts: {
@@ -16531,6 +20045,7 @@ export interface paths {
                                     userMessage: string;
                                 };
                                 rejectLabels?: string[];
+                                rejectType?: "FINAL" | "RETRY" | null;
                                 reviewPending?: boolean;
                                 reviewedAt?: string;
                                 status: "not_started" | "processing" | "verified" | "action_required" | "failed";
@@ -16763,6 +20278,11 @@ export interface paths {
                          *           "tier": 1
                          *         },
                          *         {
+                         *           "id": "app-update-important",
+                         *           "rank": 8,
+                         *           "tier": 1
+                         *         },
+                         *         {
                          *           "id": "blocked-card",
                          *           "rank": 2,
                          *           "tier": 2
@@ -16835,6 +20355,11 @@ export interface paths {
                          *         {
                          *           "id": "add-email",
                          *           "rank": 3,
+                         *           "tier": 4
+                         *         },
+                         *         {
+                         *           "id": "app-update-regular",
+                         *           "rank": 4,
                          *           "tier": 4
                          *         },
                          *         {
@@ -17931,6 +21456,133 @@ export interface paths {
             };
         };
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/username/reservations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    "x-username-hold": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        username: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "expiresAt": "2026-11-12T18:30:00.000Z",
+                         *       "username": "lucia"
+                         *     }
+                         */
+                        "application/json": {
+                            /** Format: date-time */
+                            expiresAt: string;
+                            username: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            code: "HOLD_TOKEN_REQUIRED";
+                        } | {
+                            /** @enum {string} */
+                            code: "USERNAME_INVALID";
+                            reason: string;
+                        } | {
+                            /** @enum {string} */
+                            code: "USERNAME_RESERVED";
+                            reason: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code: "USERNAME_TAKEN" | "USERNAME_RESERVED";
+                        };
+                    };
+                };
+                /** @description Default Response */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            code: "RATE_LIMITED";
+                        };
+                    };
+                };
+            };
+        };
+        delete: {
+            parameters: {
+                query?: never;
+                header: {
+                    "x-username-hold": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            code: "HOLD_TOKEN_REQUIRED";
+                        };
+                    };
+                };
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;

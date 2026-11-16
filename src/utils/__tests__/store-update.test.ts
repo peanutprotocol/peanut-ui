@@ -1,6 +1,8 @@
 jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
 
-import { isStoreUpdateAvailable, STORE_UPDATE_TIMEOUT_MS } from '../store-update'
+import { compareStoreVersions, getStoreUpdateOffer, STORE_UPDATE_TIMEOUT_MS } from '../store-update'
+
+const isStoreUpdateAvailable = async () => Boolean(await getStoreUpdateOffer())
 
 const mockGetInfo = jest.fn()
 const mockCountry = jest.fn()
@@ -11,8 +13,8 @@ jest.mock('@capgo/capacitor-updater', () => ({
     AppUpdateAvailability: { UPDATE_AVAILABLE: 2 },
 }))
 jest.mock('@/utils/capacitor', () => ({
-    isCapacitor: () => platform.native,
-    isIOSNative: () => platform.ios,
+    isAndroidNativeBridge: () => platform.native && !platform.ios,
+    isIOSNativeBridge: () => platform.native && platform.ios,
 }))
 jest.mock('@/utils/store-country', () => ({ getStoreCountry: () => mockCountry() }))
 jest.mock('@capacitor/device', () => ({ Device: { getInfo: () => mockDevice() } }))
@@ -39,6 +41,14 @@ it('uses Play eligibility and native build codes, including a same-marketing-ver
     await expect(isStoreUpdateAvailable()).resolves.toBe(true)
     expect(mockGetInfo).toHaveBeenCalledWith()
     expect(mockCountry).not.toHaveBeenCalled()
+})
+
+it('returns the confirmed installed and offered Play codes', async () => {
+    await expect(getStoreUpdateOffer()).resolves.toEqual({
+        platform: 'android',
+        installedVersion: android.currentVersionCode,
+        availableVersion: android.availableVersionCode,
+    })
 })
 
 it.each([0, 1, 3, undefined])(
@@ -105,6 +115,24 @@ it('compares iOS release versions numerically', async () => {
     platform.ios = true
     mockGetInfo.mockResolvedValue({ ...ios, currentVersionName: '1.9.0', availableVersionName: '1.10.0' })
     await expect(isStoreUpdateAvailable()).resolves.toBe(true)
+})
+
+it('agrees with base-1000 ordering for 512 seeded iOS version pairs', () => {
+    let seed = 0x27c005
+    const nextPart = () => {
+        seed = (Math.imul(seed, 1_664_525) + 1_013_904_223) >>> 0
+        return seed % 1_000
+    }
+    const draw = () => [nextPart(), nextPart(), nextPart()]
+    const rank = (parts: number[]) => parts.reduce((total, part) => total * 1_000 + part, 0)
+
+    for (let i = 0; i < 512; i++) {
+        const left = draw()
+        const right = draw()
+        expect(Math.sign(compareStoreVersions('ios', left.join('.'), right.join('.')) ?? NaN)).toBe(
+            Math.sign(rank(left) - rank(right))
+        )
+    }
 })
 
 it('does no native work on web', async () => {

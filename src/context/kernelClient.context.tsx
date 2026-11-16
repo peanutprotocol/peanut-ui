@@ -34,6 +34,7 @@ import { onReconnect } from '@/utils/reconnect.utils'
 import { isStaleClientForUser, isStaleKeyError, createStaleSessionError } from '@/utils/walletCredential.utils'
 import { isAndroidNative, getNativeRpId } from '@/utils/capacitor'
 import { createNativeSignMessageCallback } from '@/utils/native-webauthn'
+import { withPasskeySignatureCheck } from '@/utils/passkey-signature-check'
 import { PUBLIC_CLIENTS_BY_CHAIN } from '@/app/actions/clients'
 import { sponsorUserOperationArgs } from '@/hooks/wallet/paymasterSponsorship'
 
@@ -74,11 +75,17 @@ export const createPasskeyValidator = async (
     webAuthnKey: WebAuthnKey,
     validatorContractVersion: PasskeyValidatorContractVersion = PasskeyValidatorContractVersion.V0_0_3_PATCHED
 ) => {
-    return await toPasskeyValidator(publicClient, {
+    const validator = await toPasskeyValidator(publicClient, {
         webAuthnKey,
         entryPoint: USER_OP_ENTRY_POINT,
         kernelVersion: ZERODEV_KERNEL_VERSION,
         validatorContractVersion,
+    })
+    // Every validator the app builds is made here, so every passkey signature passes this check.
+    return withPasskeySignatureCheck(validator, {
+        publicKey: { x: webAuthnKey.pubX, y: webAuthnKey.pubY },
+        chainId: publicClient.chain?.id,
+        entryPoint: USER_OP_ENTRY_POINT,
     })
 }
 

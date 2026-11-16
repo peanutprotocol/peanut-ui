@@ -19,7 +19,7 @@ import {
 import { useSetupStepAnalytics } from '@/features/setup/useSetupStepAnalytics'
 import { useSignupControl } from '@/features/setup/useSignupControl'
 import { MASCOT_ANIMATION_LOADERS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
-import { readInviteCode, stashInvite } from '@/utils/invite-stash'
+import { INVITE_TYPE_PARAM, readInviteIntent, stashAcquisitionInvite, stashInvite } from '@/utils/invite-stash'
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useSetupStepCopy } from '@/components/Setup/useSetupStepCopy'
 import { hasKnownDeviceCredentials, resolveSetupEntryStep } from '@/components/Setup/setup-entry'
@@ -125,6 +125,10 @@ function SetupPageContent() {
         const nextImage = steps[currentStepIndex + 1]?.image
         if (nextImage && 'pose' in nextImage) {
             void MASCOT_ANIMATION_LOADERS[nextImage.pose]().catch(() => {})
+        }
+        // The residence hero opens on the waving mascot.
+        if (nextImage && 'hero' in nextImage) {
+            void MASCOT_ANIMATION_LOADERS['waving-hello']().catch(() => {})
         }
     }, [steps, currentStepIndex])
     const stepCopy = useSetupStepCopy(step)
@@ -266,6 +270,10 @@ function SetupPageContent() {
     // object identity would re-run determineInitialStep mid-flow and bounce
     // the user back to the entry step.
     const inviteCodeParam = searchParams.get('code')
+    // Only the Android app's browser handoff sends it (keepWebSignupUrl).
+    const inviteTypeParam = searchParams.get(INVITE_TYPE_PARAM)
+    // The same handoff carries a passive tracked-link inviter, which must stay passive.
+    const acquisitionInviteParam = searchParams.get('acq_invite')
     const legacyStepParam = searchParams.get('step')
     const keepWebParam = searchParams.get(KEEP_WEB_COOKIE)
     const searchParamsString = searchParams.toString()
@@ -743,13 +751,18 @@ function SetupPageContent() {
              * ?code= arrives from an /invite deep link (native maps
              * peanut.me/invite?code=X here — see native-routes.ts). Stash it
              * like the web InvitesPage does, so it survives the multi-step
-             * signup and reaches registration.
+             * signup and reaches registration. A bare code is DIRECT; the
+             * browser handoff also names a PAYMENT_LINK invite's type.
              */
             const codeFromUrl = inviteCodeParam
             if (codeFromUrl && toInviteCode(codeFromUrl)) {
-                stashInvite(toInviteCode(codeFromUrl), EInviteType.DIRECT)
+                const inviteType =
+                    inviteTypeParam === EInviteType.PAYMENT_LINK ? EInviteType.PAYMENT_LINK : EInviteType.DIRECT
+                stashInvite(toInviteCode(codeFromUrl), inviteType)
             }
-            const userInviteCode = readInviteCode()
+            stashAcquisitionInvite(acquisitionInviteParam)
+            // Only a chosen invite skips Landing's Log In; a passive tracked-link inviter does not.
+            const hasChosenInvite = readInviteIntent() === 'explicit'
             // Web signup is closed (Landing hides Sign up), so the
             // ?step=signup / invite-code jump must not skip
             // past the landing gate — otherwise claim/invite links deep-link
@@ -758,7 +771,7 @@ function SetupPageContent() {
             // The link's own visit counts: its cookie is saved after this entry resolves.
             const webSignupClosed = !isCapacitor() && !hasKeepWebCookie() && !isKeepWebLink(keepWebParam)
             const entryInput = {
-                hasInviteCode: !!userInviteCode,
+                hasInviteCode: hasChosenInvite,
                 stepParam: legacyStepParam,
                 webSignupClosed,
                 knownDevice: hasKnownDeviceCredentials(),
@@ -799,6 +812,8 @@ function SetupPageContent() {
     }, [
         steps,
         inviteCodeParam,
+        inviteTypeParam,
+        acquisitionInviteParam,
         legacyStepParam,
         keepWebParam,
         profileFetchFailed,

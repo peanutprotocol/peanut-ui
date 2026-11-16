@@ -1,5 +1,5 @@
 import { featureReport } from '@/test-utils/featureReport.fixture'
-import { accountEntry, entryChip } from '@/features/kyc-features/report'
+import { accountEntry, entryChip, LOCAL_SERVED_ELSEWHERE_REASON } from '@/features/kyc-features/report'
 import { deriveResidenceRestrictionsFrom } from '@/hooks/useResidenceRestrictions'
 import { RESIDENCE_RESTRICTION_SETS } from '@/test-utils/residenceRestrictions.fixture'
 import {
@@ -194,6 +194,17 @@ describe('residenceAvailability from the server intents', () => {
     it('lists Brazil and Argentina their local rail and the bank accounts both', () => {
         expect(of('BR').available).toEqual(['pix', 'usdAch', 'eurSepa', 'gbpFps', 'spei', 'card', 'p2p'])
         expect(of('AR').available).toEqual(['arQr', 'usdAch', 'eurSepa', 'gbpFps', 'spei', 'card', 'p2p'])
+    })
+
+    // the API refuses a resident of Brazil the local feature because Pix comes from another entry, its route
+    it('lists Pix where another entry serves the residence, and not for a residence refusal', () => {
+        const brazil = (reason: string) =>
+            residenceAvailability(RESIDENCE_RESTRICTION_SETS, 'BR', {
+                ...KYC_INTENTS_BY_COUNTRY.BR,
+                local: { available: false, reason } as typeof KYC_INTENTS_BY_COUNTRY.BR.local,
+            }).available
+        expect(brazil(LOCAL_SERVED_ELSEWHERE_REASON)[0]).toBe('pix')
+        expect(brazil('local_residence_unsupported')).not.toContain('pix')
     })
 
     it('leads with the home currency in Mexico and the US', () => {

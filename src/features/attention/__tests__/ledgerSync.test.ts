@@ -53,6 +53,18 @@ test('an answer stamps updatedAt; a show does not', () => {
     expect(updatedAtOf(readLedger(USER_A).invite)).toBe(iso(T0 + 1000))
 })
 
+test('app update answers remain on the device in both directions', async () => {
+    const server = ledger({ 'app-update-important': { snoozedUntil: NEW, version: 'old' } })
+    expect(readLedger(USER_A, server)['app-update-important']).toBeUndefined()
+    ledgerActions.snoozed(USER_A, 'app-update-important', T0 + 5000, 'new')
+    ledgerActions.snoozed(USER_A, 'app-update-regular', T0 + 6000, 'new')
+    expect(readLedger(USER_A, server)['app-update-important']?.version).toBe('new')
+    await flushLedgerSyncForTests()
+    const sent = syncMock.mock.calls[0][0].attentionLedger
+    expect(sent['app-update-important']).toBeUndefined()
+    expect(sent['app-update-regular']).toBeUndefined()
+})
+
 test('a server-recorded show never erases a newer answer that has not synced yet', () => {
     // the phone said "Not now" at T0; the email job recorded its show later, on the server
     jest.setSystemTime(T0)

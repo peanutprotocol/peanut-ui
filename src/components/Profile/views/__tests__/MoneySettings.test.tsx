@@ -13,7 +13,7 @@ import { normalizeResidence } from '@/utils/residence-profile'
 import React from 'react'
 import { withFeatureReport } from '@/test-utils/featureReport.fixture'
 import { railVerdict } from '@/utils/capability-gate'
-import type { NextAction, RailCapability, IdentityVerificationStatus } from '@/types/capabilities'
+import type { CapabilityRoute, NextAction, RailCapability, IdentityVerificationStatus } from '@/types/capabilities'
 import { act, render as rtlRender, screen, fireEvent, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { IntlWrapper } from '@/test-utils/intl'
@@ -177,10 +177,28 @@ const mockCapabilityBlock = () => {
     )
     if (mockApiCard && block.features) block.features = { ...block.features, card: mockApiCard }
     if (mockApiBank && block.features) block.features = { ...block.features, bank: mockApiBank }
+    // the API's pay:PIX_BR route, which no provider serves for a resident of Brazil yet; the view reads it
+    if (residence === 'BR')
+        block.routes = [
+            {
+                operation: 'pay',
+                method: 'PIX_BR',
+                provider: null,
+                state: 'refused',
+                reason: {
+                    code: 'residence_not_served',
+                    userMessage: 'Pix payments are not available where you live yet.',
+                },
+                candidates: [],
+            },
+        ]
+    // routes a case adds to the API's (TASK-24841: the Pix deposit route on the provider's own step)
+    if (mockRoutes.length) block.routes = [...(block.routes ?? []), ...mockRoutes]
     if (mockApiLocal && block.features) block.features = { ...block.features, local: mockApiLocal }
     return block
 }
 let mockApiCard: import('@/types/capabilities').FeatureReportEntry | null = null
+let mockRoutes: import('@/types/capabilities').CapabilityRoute[] = []
 let mockApiBank: import('@/types/capabilities').FeatureAccountsEntry | null = null
 let mockApiLocal: import('@/types/capabilities').FeatureAccountsEntry | null = null
 jest.mock('@/context/authContext', () => {
@@ -335,6 +353,7 @@ beforeEach(() => {
     jest.clearAllMocks()
     mockRails = []
     mockNextActions = []
+    mockRoutes = []
     mockIsKycApproved = false
     mockRestrictions = { banking: false, card: false }
     mockUser = null
@@ -1474,9 +1493,7 @@ describe('MoneySettings', () => {
             const qrRow = screen.getByText('QR payments')
             fireEvent.click(qrRow)
             const drawer = screen.getByRole('dialog')
-            expect(
-                within(drawer).getByText('Pay in shops in Brazil and Argentina by scanning a QR code.')
-            ).toBeInTheDocument()
+            expect(within(drawer).getByText('Pay in shops by scanning a QR code.')).toBeInTheDocument()
             expect(mockInitiateKyc).not.toHaveBeenCalled()
         })
 
@@ -1505,7 +1522,7 @@ describe('MoneySettings', () => {
         const assertNoPixSend = () => {
             expect(screen.queryByText('Send to any Pix key')).not.toBeInTheDocument()
             expect(document.querySelector('a[href="/withdraw/manteca?method=pix&country=brazil"]')).toBeNull()
-            expect(mockPush).not.toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
+            expect(mockPush).not.toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil&sendMethod=bank')
         }
 
         beforeEach(() => {
@@ -1621,7 +1638,7 @@ describe('MoneySettings', () => {
                 within(screen.getByText('BRL').closest('.border') as HTMLElement).getByText('Send to any Pix key')
             ).toBeInTheDocument()
             fireEvent.click(screen.getByText('BRL'))
-            expect(mockPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
+            expect(mockPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil&sendMethod=bank')
             expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
         })
 
@@ -1632,7 +1649,7 @@ describe('MoneySettings', () => {
             const drawer = openBrlDrawer()
             expect(drawer.getByRole('link', { name: 'Send to any Pix key' })).toHaveAttribute(
                 'href',
-                '/withdraw/manteca?method=pix&country=brazil'
+                '/withdraw/manteca?method=pix&country=brazil&sendMethod=bank'
             )
             expect(drawer.getByText('Add and withdraw Brazilian reais with Pix.')).toBeInTheDocument()
 
@@ -1665,7 +1682,7 @@ describe('MoneySettings', () => {
                 const drawer = openBrlDrawer()
                 expect(drawer.getByRole('link', { name: 'Send to any Pix key' })).toHaveAttribute(
                     'href',
-                    '/withdraw/manteca?method=pix&country=brazil'
+                    '/withdraw/manteca?method=pix&country=brazil&sendMethod=bank'
                 )
                 expect(drawer.getByText('Add and withdraw Brazilian reais with Pix.')).toBeInTheDocument()
 
@@ -1902,7 +1919,7 @@ describe('a resident of neither country is not offered the Manteca bank rows', (
 
         expect(badgeFor('BRL').getByText('Active')).toBeInTheDocument()
         fireEvent.click(screen.getByText('BRL'))
-        expect(mockPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil')
+        expect(mockPush).toHaveBeenCalledWith('/withdraw/manteca?method=pix&country=brazil&sendMethod=bank')
     })
 
     // Chip review on ui#3400, kept when the Pix key row left Payments
@@ -2040,6 +2057,111 @@ describe('card refusal rows follow the feature report', () => {
             screen.queryByText("The Peanut card isn't available for residents of your country.")
         ).not.toBeInTheDocument()
         expect(mockPush).not.toHaveBeenCalled()
+    })
+})
+
+// Aleks, 2026-11-12 and 2026-11-14: a Pix deposit route on Avenia puts Pix first in Home's Add money
+// drawer, so the BRL row leaves Accounts rather than repeat it, and the Brazil pause takes it out too.
+// A Manteca route keeps the row as it was before the drawer row; a refused route keeps it, closed.
+describe('MoneySettings — the BRL row and the Pix deposit route', () => {
+    const TERMS_ACTION: NextAction = { key: 'accept-tos:avenia', kind: 'accept-tos', purpose: 'unlock-avenia' }
+    const depositRoute = (step: Partial<CapabilityRoute>): CapabilityRoute => ({
+        operation: 'deposit',
+        method: 'PIX_BR',
+        provider: 'avenia',
+        state: 'ready',
+        candidates: [],
+        ...step,
+    })
+
+    it("drops the row on the provider's own step: the Pix setup is reached from Home", () => {
+        mockNextActions = [TERMS_ACTION]
+        mockRoutes = [
+            depositRoute({
+                state: 'action_required',
+                action: 'accept-tos:avenia',
+                reason: { code: 'terms_required', userMessage: 'Accept the terms to continue.' },
+            }),
+        ]
+        mockUser = { residence: normalizeResidence({ declared: 'BR', verified: null }), user: { userId: 'u1' } }
+        render()
+        expect(screen.queryByText('BRL')).not.toBeInTheDocument()
+        expect(mockInitiateKyc).not.toHaveBeenCalled()
+    })
+
+    it('keeps the BRL row for a verified user outside Brazil on a Manteca route, led by the Pix key send', () => {
+        mockRoutes = [depositRoute({ provider: 'manteca', state: 'action_required', action: 'activate' })]
+        mockUser = { residence: normalizeResidence({ declared: 'PT', verified: 'PT' }), user: { userId: 'u1' } }
+        mockIsKycApproved = true
+        mockIdentity = { status: 'verified' }
+        mockRails = [
+            {
+                id: 'manteca.pix_br',
+                provider: 'manteca',
+                channel: 'bank',
+                country: 'BR',
+                status: 'enabled',
+                operations: { pay: 'enabled', deposit: 'requires-info', withdraw: 'requires-info' },
+            },
+        ]
+        render()
+        const brl = within(screen.getByText('BRL').closest('.border') as HTMLElement)
+        expect(brl.getByText('Send to any Pix key')).toBeInTheDocument()
+        fireEvent.click(screen.getByText('BRL'))
+        const drawer = within(screen.getByRole('dialog'))
+        expect(drawer.getByRole('link', { name: 'Send to any Pix key' })).toHaveAttribute(
+            'href',
+            '/withdraw/manteca?method=pix&country=brazil&sendMethod=bank'
+        )
+        // the user's own BRL rail, with its own status, under the send
+        expect(drawer.getByText('Add and withdraw Brazilian reais with Pix.')).toBeInTheDocument()
+    })
+
+    it.each<[string, Partial<CapabilityRoute>]>([
+        ['a route on Avenia', { state: 'ready' }],
+        [
+            'the Brazil pause',
+            { provider: null, state: 'paused', reason: { code: 'residence_paused', userMessage: '' } },
+        ],
+    ])('drops the row for a resident of Brazil on %s', (_name, step) => {
+        mockRoutes = [depositRoute(step)]
+        mockUser = { residence: normalizeResidence({ declared: 'BR', verified: 'BR' }), user: { userId: 'u1' } }
+        render()
+        expect(screen.queryByText('BRL')).not.toBeInTheDocument()
+    })
+
+    it('drops the Pix key send row too for a verified user on a route on Avenia', () => {
+        mockRoutes = [depositRoute({ state: 'ready' })]
+        mockUser = { residence: normalizeResidence({ declared: 'PT', verified: 'PT' }), user: { userId: 'u1' } }
+        mockIsKycApproved = true
+        mockIdentity = { status: 'verified' }
+        mockRails = [
+            {
+                id: 'manteca.pix_br',
+                provider: 'manteca',
+                channel: 'bank',
+                country: 'BR',
+                status: 'enabled',
+                operations: { pay: 'enabled', deposit: 'requires-info', withdraw: 'requires-info' },
+            },
+        ]
+        render()
+        expect(screen.queryByText('BRL')).not.toBeInTheDocument()
+        expect(screen.queryByText('Send to any Pix key')).not.toBeInTheDocument()
+    })
+
+    it('keeps the row for a refused route, closed for the route reason', () => {
+        mockRoutes = [
+            depositRoute({
+                provider: null,
+                state: 'refused',
+                reason: { code: 'provider_unavailable', userMessage: 'This is not available right now.' },
+            }),
+        ]
+        mockUser = { residence: normalizeResidence({ declared: 'BR', verified: 'BR' }), user: { userId: 'u1' } }
+        render()
+        const brl = within(screen.getByText('BRL').closest('.border') as HTMLElement)
+        expect(brl.getByText('Not available')).toBeInTheDocument()
     })
 })
 

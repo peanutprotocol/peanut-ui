@@ -17,9 +17,10 @@ const PAID_STAGE = 2
 type MantecaDepositPollStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'expired'
 
 /**
- * Poll a BRL PIX deposit intent until it settles. Read-only: the webhook/poller
- * post the actual credit — this just mirrors `intent.status` so the QR screen can
- * advance to a success state. Fires `onComplete` exactly once on COMPLETED.
+ * Poll a Manteca deposit intent (Argentina's bank transfer; Brazil's Pix has its
+ * own flow) until it settles. Read-only: the webhook/poller post the actual
+ * credit — this just mirrors `intent.status` so the details screen can advance,
+ * or say the order expired unpaid. Fires `onComplete` once per deposit on COMPLETED.
  */
 export function useMantecaDepositPolling(depositId: string | undefined, onComplete: () => void) {
     const completedDeposit = useRef<string | undefined>(undefined)

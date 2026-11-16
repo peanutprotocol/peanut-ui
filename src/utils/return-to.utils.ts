@@ -46,3 +46,20 @@ export const readReturnTo = (searchParams: ReadonlyParams, currentPathname?: str
 
     return sanitized
 }
+
+/**
+ * Where a finished flow leaves to: `returnTo`, unless it names one of `hubs`, a
+ * picker that sent itself so Back reopens it. A hub is never the target; its own
+ * `returnTo` is followed instead, so a flow that sent the user to the hub still
+ * gets them back. Null when no origin past the hubs is stated.
+ */
+export const originPastHubs = (returnTo: string | null, hubs: readonly string[]): string | null => {
+    let target = returnTo
+    // each hub wraps the one before it once (picker → chooser → flow); more is a loop
+    for (let depth = 0; target && depth <= hubs.length; depth++) {
+        const [path, query = ''] = target.split('#')[0].split('?')
+        if (!hubs.some((hub) => isSameRoute(path, hub))) return target
+        target = readReturnTo(new URLSearchParams(query), path)
+    }
+    return null
+}

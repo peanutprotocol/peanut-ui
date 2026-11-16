@@ -9,6 +9,7 @@ import { currentCeremonyId, stashCeremonyVerifyToken } from '@/utils/passkeyCere
 import {
     PasskeyAccountDeletedError,
     PasskeyOptionsFailedError,
+    PasskeyRateLimitedError,
     PasskeyVerifyRejectedError,
 } from '@/utils/passkey-auth-capture'
 import { getPasskeyErrorSetupKey } from '@/utils/webauthn.utils'
@@ -182,8 +183,8 @@ describe('useZeroDev handleLogin — passkey-server failures keep the session', 
             .mockReturnValue(new passkeyCapture.PasskeyVerifyRetryableError(429, Date.now() + 30000))
         try {
             const { result } = renderHook(() => useZeroDev())
-            await expect(result.current.handleLogin()).rejects.toMatchObject({ code: 'NETWORK' })
-            await expect(result.current.handleLogin()).rejects.toMatchObject({ code: 'NETWORK' })
+            await expect(result.current.handleLogin()).rejects.toMatchObject({ code: 'RATE_LIMITED' })
+            await expect(result.current.handleLogin()).rejects.toMatchObject({ code: 'RATE_LIMITED' })
             expect(mockToWebAuthnKey).not.toHaveBeenCalled()
             expect(clearAuthState).not.toHaveBeenCalled()
         } finally {
@@ -243,7 +244,7 @@ describe('useZeroDev handleLogin — passkey-server failures keep the session', 
                 retryAt: Date.now() + 5000,
             })
             const thrown = await loginRejectingWith(error)
-            expect(thrown.code).toBe('NETWORK')
+            expect(thrown.code).toBe(status === 429 ? 'RATE_LIMITED' : 'NETWORK')
             expect(clearAuthState).not.toHaveBeenCalled()
             expect(mockToWebAuthnKey).toHaveBeenCalledTimes(1)
             expect(mockHydrateLoginSession).not.toHaveBeenCalled()
@@ -491,6 +492,21 @@ describe('useZeroDev handleLogin — passkey-server failures keep the session', 
         expect(thrown.code).toBe('ACCOUNT_DELETED')
         expect(mockToWebAuthnKey).toHaveBeenCalledTimes(1)
     })
+
+    it.each(['/passkeys/login/options', '/passkeys/login/verify'])(
+        'shows rate-limit copy for a 429 from %s and keeps auth state (TASK-22431)',
+        async (path) => {
+            const thrown = await loginRejectingWith(new PasskeyRateLimitedError(path))
+
+            expect(thrown).toMatchObject({ name: 'PasskeyError', code: 'RATE_LIMITED' })
+            expect(getPasskeyErrorSetupKey(thrown)).toBe('passkey.rateLimited')
+            expect(clearAuthState).not.toHaveBeenCalled()
+            expect(mockCaptureException).toHaveBeenCalledWith(
+                expect.objectContaining({ name: 'PasskeyRateLimitedError' }),
+                expect.objectContaining({ tags: { error_type: 'passkey_rate_limited' } })
+            )
+        }
+    )
 
     it('reports a failed /login/options as a server failure and keeps auth state', async () => {
         const thrown = await loginRejectingWith(new PasskeyOptionsFailedError('/passkeys/login/options', 500))

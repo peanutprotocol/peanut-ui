@@ -18,7 +18,7 @@ import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import EasterEggDrawer from '@/components/Global/EasterEggDrawer'
 import { EASTER_EGG_COUNTRIES } from '@/components/Global/EasterEggDrawer/easter-egg-countries.consts'
 import { CountryWaitlist } from './CountryWaitlist'
-import { isSendToBankCountry, liveRailsForCountry } from '@/features/destinations/country-rails'
+import { isSendToBankCountry, liveRailsForCountry, sendOffersPix } from '@/features/destinations/country-rails'
 import Loading from '../Global/Loading'
 import { useSearchParams } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
@@ -27,6 +27,7 @@ import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 import { matchesCountryQuery } from './country-search'
 import { hasBridgeBankCorridor } from '@/components/AddWithdraw/bank-corridors'
+import type { PixPayBlock } from '@/features/pix/pixRoute.utils'
 
 interface CountryListViewProps {
     inputTitle?: string
@@ -43,6 +44,11 @@ interface CountryListViewProps {
     restrictedCountry?: { id: string; label: string; onExplain: () => void }
     // Send has stricter country support than own-account withdrawal.
     enforceSupportedCountries?: boolean
+    /**
+     * The user's Pix pay block (`usePixPayBlock`), read by the Send gate. A prop,
+     * because this list also renders where no user is signed in.
+     */
+    pixPayBlock?: PixPayBlock | null
     showLoadingState?: boolean
     /**
      * Whether a country has anything behind its row, when the caller knows
@@ -96,6 +102,7 @@ export const CountryList = ({
     getRightContent,
     restrictedCountry,
     enforceSupportedCountries,
+    pixPayBlock = null,
     showLoadingState = true, // true by default to show loading state when clicking a country
     isCountrySupported,
     searchTerm: controlledSearchTerm,
@@ -122,10 +129,16 @@ export const CountryList = ({
     const [easterEggCountry, setEasterEggCountry] = useState<string | null>(null)
     const [waitlistCountry, setWaitlistCountry] = useState<CountryData | null>(null)
 
-    const supportedCountries = useMemo(
-        () => countries ?? countryData.filter((country) => country.type === 'country'),
-        [countries]
-    )
+    // Send lists Brazil only while it offers this user Pix (sendOffersPix, the rule that took the
+    // BRL row out of the currency list): a resident's Brazil row would open the waitlist for the
+    // country they live in (Aleks, 2026-11-12). Add money and own-account withdraw keep the row.
+    const supportedCountries = useMemo(() => {
+        const listed = countries ?? countryData.filter((country) => country.type === 'country')
+        if (enforceSupportedCountries && !sendOffersPix(pixPayBlock)) {
+            return listed.filter((country) => country.path !== 'brazil')
+        }
+        return listed
+    }, [countries, enforceSupportedCountries, pixPayBlock])
 
     // catalog titles are English; the displayed name comes from Intl.DisplayNames
     const countryName = useCallback((country: CountryData) => localizedCountryTitle(locale, country), [locale])
@@ -240,7 +253,7 @@ export const CountryList = ({
                             // send->bank has a stricter gate (Argentina stays out) —
                             // see isSendToBankCountry
                             if (enforceSupportedCountries) {
-                                isSupported = isSendToBankCountry(country)
+                                isSupported = isSendToBankCountry(country, pixPayBlock)
                             } else {
                                 isSupported = liveRailsForCountry(country.id, flow ?? 'withdraw').length > 0
                             }

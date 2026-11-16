@@ -25,12 +25,42 @@ describe('BrazilPausedDrawer', () => {
                 <BrazilPausedDrawer />
             </NextIntlClientProvider>
         )
-        act(() => openBrazilPausedDrawer())
+        act(() => openBrazilPausedDrawer('paused'))
 
         expect(screen.getByText(messages.brazilPause.title)).toBeInTheDocument()
         expect(screen.getByText(messages.brazilPause.body)).toBeInTheDocument()
 
         fireEvent.click(screen.getByRole('button', { name: messages.common.gotIt }))
         expect(isBrazilPausedDrawerOpen()).toBe(false)
+    })
+
+    // the pay:PIX_BR route refuses the residence: one sentence, no claim that deposits are down
+    it.each(APP_LOCALES)('says Pix payments do not serve the residence yet in %s', async (locale) => {
+        const messages = await loadMessages(locale)
+        render(
+            <NextIntlClientProvider locale={locale} messages={messages} timeZone="UTC">
+                <BrazilPausedDrawer />
+            </NextIntlClientProvider>
+        )
+        act(() => openBrazilPausedDrawer('residence'))
+
+        expect(screen.getByText(messages.pix.unavailableTitle)).toBeInTheDocument()
+        expect(screen.getByText(messages.pix.payResidence)).toBeInTheDocument()
+        expect(screen.queryByText(messages.brazilPause.body)).not.toBeInTheDocument()
+    })
+
+    // TASK-24947 M5: Manteca's BRL switched off pauses Pix for everyone, not only residents of Brazil
+    it.each(APP_LOCALES)('says Pix is down for a moment when its provider is paused, in %s', async (locale) => {
+        const messages = await loadMessages(locale)
+        render(
+            <NextIntlClientProvider locale={locale} messages={messages} timeZone="UTC">
+                <BrazilPausedDrawer />
+            </NextIntlClientProvider>
+        )
+        act(() => openBrazilPausedDrawer('outage'))
+
+        expect(screen.getByText(messages.pix.unavailableTitle)).toBeInTheDocument()
+        expect(screen.getByText(messages.pix.unavailable)).toBeInTheDocument()
+        expect(screen.queryByText(messages.brazilPause.body)).not.toBeInTheDocument()
     })
 })

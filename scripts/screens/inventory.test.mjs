@@ -25,6 +25,7 @@ test('the current catalogue accounts for every app route', () => {
         '/profile/accounts-and-payments',
         '/profile/accounts-and-payments/additional',
         '/add-money/us/bank',
+        '/withdraw/new-pix-key',
     ])
     const aliases = result.filter((entry) => routingAliases.has(entry.route))
     assert.equal(aliases.length, routingAliases.size)
@@ -43,4 +44,8 @@ test('the current catalogue accounts for every app route', () => {
     const setupFinish = result.find((entry) => entry.route === '/setup/finish')
     assert.equal(setupFinish?.status, 'excluded')
     assert.match(setupFinish?.reason ?? '', /05-a-signtesttransaction/)
+
+    const goLink = result.find((entry) => entry.route === '/go/[slug]/[[...rest]]')
+    assert.equal(goLink?.status, 'excluded')
+    assert.match(goLink?.reason ?? '', /creator link/i)
 })

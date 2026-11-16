@@ -26,6 +26,20 @@ export type KycFeature = keyof FeatureReport
 /** Manteca closed this country's account; only support can reopen it. */
 export const MANTECA_ACCOUNT_REJECTED_REASON = 'manteca_account_rejected'
 
+/**
+ * The local feature refused because another entry serves the residence: a resident of Brazil gets
+ * Pix from its route, not a Manteca account. Nothing is closed; the Pix screens read the route.
+ */
+export const LOCAL_SERVED_ELSEWHERE_REASON = 'local_served_elsewhere'
+
+/**
+ * A local refusal that is the residence's answer, not a closed account: no account for this
+ * residence (`local_residence_unsupported`), or another entry serves it.
+ */
+export function isLocalResidenceRefusal(reason: string | undefined): boolean {
+    return reason === 'local_residence_unsupported' || reason === LOCAL_SERVED_ELSEWHERE_REASON
+}
+
 /** A report the API has not sent: nothing is offered and nothing is refused until it arrives. */
 const UNKNOWN: FeatureReportEntry = { state: 'pending' }
 export const UNKNOWN_REPORT: FeatureReport = {
@@ -105,7 +119,11 @@ export function reportEntry(
     const account =
         (method ? METHOD_ACCOUNTS[method] : undefined) ??
         (railAccount
-            ? { feature: railAccount.provider === 'manteca' ? 'local' : 'bank', currency: railAccount.currency }
+            ? {
+                  // Brazil's Pix account is the local one on either provider
+                  feature: railAccount.provider === 'manteca' || railAccount.provider === 'avenia' ? 'local' : 'bank',
+                  currency: railAccount.currency,
+              }
             : undefined) ??
         (country ? COUNTRY_ACCOUNTS[country] : undefined)
     if (account) return accountEntry(report, account.feature as 'bank' | 'local', account.currency)
@@ -120,6 +138,14 @@ export function reportEntry(
 /** The descriptor behind an entry's action, when it is a `nextActions` key. */
 export function entryAction(entry: FeatureReportEntry, nextActions: readonly NextAction[]): NextAction | undefined {
     return entry.action ? nextActions.find((action) => action.key === entry.action) : undefined
+}
+
+/** The entry when it is refused and only support can lift it (a provider's final rejection); else undefined. */
+export function supportRefusal(
+    entry: FeatureReportEntry | undefined,
+    nextActions: readonly NextAction[]
+): FeatureReportEntry | undefined {
+    return entry?.state === 'refused' && entryAction(entry, nextActions)?.kind === 'contact-support' ? entry : undefined
 }
 
 /** Why an entry is refused; undefined while it is not. */

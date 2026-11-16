@@ -191,6 +191,7 @@ jest.mock('@/features/withdraw/views/ScannedDestinationPayView', () => ({
         onBack: () => void
         addressFamily: string
         amountError?: string
+        continueDisabled: boolean
         error: { errorMessage: string }
     }) => (
         <>
@@ -200,7 +201,11 @@ jest.mock('@/features/withdraw/views/ScannedDestinationPayView', () => ({
             <button data-testid="pay-back" onClick={props.onBack}>
                 Back
             </button>
-            <button data-testid="pay-cta" onClick={() => props.onContinue({ ...withdrawData })}>
+            <button
+                data-testid="pay-cta"
+                data-continue-disabled={String(props.continueDisabled)}
+                onClick={() => props.onContinue({ ...withdrawData })}
+            >
                 Send with Peanut
             </button>
         </>
@@ -212,6 +217,7 @@ jest.mock('@/features/withdraw/views/WithdrawAmountView', () => ({
         walletBalance: string
         onContinue: () => void
         onBack: () => void
+        continueDisabled: boolean
         error: { errorMessage: string }
     }) => (
         <>
@@ -220,7 +226,11 @@ jest.mock('@/features/withdraw/views/WithdrawAmountView', () => ({
             <button data-testid="back-amount" onClick={props.onBack}>
                 Back
             </button>
-            <button data-testid="review-cta" onClick={props.onContinue}>
+            <button
+                data-testid="review-cta"
+                data-continue-disabled={String(props.continueDisabled)}
+                onClick={props.onContinue}
+            >
                 Review
             </button>
         </>
@@ -770,6 +780,12 @@ describe('crypto withdraw preparation', () => {
         ['56', 'BNB', undefined],
         ['42161', 'USDC', '50'],
         ['1', 'USDT', '50'],
+        // A token that is not a dollar: '0', never the $50, and the API books what
+        // Rhino delivered. Omitting it would make the API store the USD amount.
+        ['8453', 'EURC', '0'],
+        ['1', 'EURC', '0'],
+        ['10', 'EURC', '0'],
+        ['43114', 'USDe', '0'],
     ] as const)('posts the correct charge amount for %s %s', async (chainId, symbol, tokenAmount) => {
         const chain = (await getSupportedChainsAndTokens())[chainId]
         const token = chain.tokens.find((candidate) => candidate.symbol === symbol)!
@@ -1826,6 +1842,92 @@ describe('crypto withdraw — a scanned destination opens the pay screen', () =>
     it('the scan is forgotten when the page unmounts, with the rest of the transient state', () => {
         render(<WithdrawCryptoPage />).unmount()
         expect(mockSetScannedRecipient).toHaveBeenCalledWith(null)
+    })
+})
+
+// TASK-23878: the route minimum is checked as the amount changes, so Continue
+// is disabled and the message shows under the input before any tap.
+describe('crypto withdraw — the network minimum is checked live', () => {
+    const TRON_USDT = { address: 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t', symbol: 'USDT', decimals: 6 }
+    const TRON = { chainId: 'tron', networkName: 'Tron' }
+    const original = { token: withdrawData.token, chain: withdrawData.chain }
+
+    afterEach(() => {
+        Object.assign(withdrawData, original)
+    })
+
+    const openAmountStep = () => {
+        mockStepper.step = 'recipient'
+        render(<WithdrawCryptoPage />)
+        fireEvent.click(screen.getByTestId('destination-cta'))
+    }
+
+    it('disables Continue and shows the minimum while the amount is below it', () => {
+        Object.assign(withdrawData, { token: TRON_USDT, chain: TRON })
+        mockUrlAmount = '5'
+        openAmountStep()
+
+        expect(screen.getByRole('alert')).toHaveTextContent('Minimum withdrawal is $10.10.')
+        expect(screen.getByTestId('review-cta')).toHaveAttribute('data-continue-disabled', 'true')
+    })
+
+    it('still blocks a tap below the minimum before any request or charge exists', async () => {
+        Object.assign(withdrawData, { token: TRON_USDT, chain: TRON })
+        mockUrlAmount = '5'
+        openAmountStep()
+        fireEvent.click(screen.getByTestId('review-cta'))
+
+        await waitFor(() => expect(mockSetPaymentError).toHaveBeenCalledWith('Minimum withdrawal is $10.10.'))
+        expect(chargesApi.create).not.toHaveBeenCalled()
+    })
+
+    it('enables Continue at the minimum', () => {
+        Object.assign(withdrawData, { token: TRON_USDT, chain: TRON })
+        mockUrlAmount = '10.1'
+        openAmountStep()
+
+        expect(screen.queryByRole('alert')).toBeNull()
+        expect(screen.getByTestId('review-cta')).toHaveAttribute('data-continue-disabled', 'false')
+    })
+
+    it('keeps same-chain USDC exempt: no minimum', () => {
+        mockUrlAmount = '0.1'
+        openAmountStep()
+
+        expect(screen.queryByRole('alert')).toBeNull()
+        expect(screen.getByTestId('review-cta')).toHaveAttribute('data-continue-disabled', 'false')
+    })
+
+    describe('on the scanned pay screen, the minimum follows the network picker', () => {
+        beforeEach(() => {
+            mockWithdrawFlow.scannedRecipient = { addressFamily: 'evm' }
+            mockStepper.step = 'recipient'
+        })
+
+        const renderPayScreen = (selectedChainID: string, selectedTokenAddress: string) =>
+            render(
+                <tokenSelectorContext.Provider
+                    value={{ resetTokenContextProvider: jest.fn(), selectedChainID, selectedTokenAddress } as never}
+                >
+                    <WithdrawCryptoPage />
+                </tokenSelectorContext.Provider>
+            )
+
+        it('disables Continue below the picked network minimum', () => {
+            mockUrlAmount = '3'
+            renderPayScreen('1', '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48')
+
+            expect(screen.getByRole('alert')).toHaveTextContent('Minimum withdrawal is $5.05.')
+            expect(screen.getByTestId('pay-cta')).toHaveAttribute('data-continue-disabled', 'true')
+        })
+
+        it('has no minimum for USDC on the wallet chain', () => {
+            mockUrlAmount = '0.1'
+            renderPayScreen('42161', withdrawData.token.address)
+
+            expect(screen.queryByRole('alert')).toBeNull()
+            expect(screen.getByTestId('pay-cta')).toHaveAttribute('data-continue-disabled', 'false')
+        })
     })
 })
 

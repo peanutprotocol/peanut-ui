@@ -8,6 +8,7 @@
 import * as Sentry from '@/utils/sentry-lazy'
 import { currentCeremonyId, stashCeremonyStepUpToken, stashCeremonyVerifyToken } from './passkeyCeremony.utils'
 import { currentAndroidPasskeyScope, registerScopeChallenge } from './android-passkey-scope'
+import { PasskeyProviderUnsupportedError } from './passkey-registration-compatibility'
 import { observePasskeyOptions, timingForPasskeyRequest } from './webauthn-ceremony-telemetry'
 
 // ZeroDev swallows the status/body of these fetches, so a rejected ceremony
@@ -80,6 +81,18 @@ export class PasskeyOptionsFailedError extends Error {
         super(`Passkey ${path} failed with status ${status}`)
         this.name = 'PasskeyOptionsFailedError'
         this.status = status
+    }
+}
+
+/**
+ * The API rate-limited a passkey request (429). Its body names no reason, so the
+ * status is the signal. Nothing was authenticated, so the user only has to wait;
+ * the window can be up to an hour (signup verify cap), so the copy names no duration.
+ */
+export class PasskeyRateLimitedError extends Error {
+    constructor(path: string) {
+        super(`Passkey ${path} was rate limited`)
+        this.name = 'PasskeyRateLimitedError'
     }
 }
 
@@ -188,6 +201,18 @@ export function installPasskeyVerifyCapture(): void {
             }
         }
 
+        // The API refuses a passkey whose signed note the wallet validator cannot
+        // read (TASK-24498). The app refuses it first on Android; this covers any
+        // client that does not, so signup still shows the guidance, not ZeroDev's
+        // "Registration not verified".
+        if (response.status === 400 && passkeyPath === '/passkeys/register/verify') {
+            const body = await response
+                .clone()
+                .json()
+                .catch(() => null)
+            if (body?.code === 'PASSKEY_PROVIDER_UNSUPPORTED') throw new PasskeyProviderUnsupportedError()
+        }
+
         let failure: Error | null = null
         try {
             if (passkeyPath && !response.ok) {
@@ -225,6 +250,8 @@ export function installPasskeyVerifyCapture(): void {
                 ) {
                     loginRetryError = new PasskeyVerifyRetryableError(response.status, retryAt(response))
                     failure = loginRetryError
+                } else if (response.status === 429) {
+                    failure = new PasskeyRateLimitedError(passkeyPath)
                 } else if (passkeyPath.endsWith('/options')) {
                     failure = new PasskeyOptionsFailedError(passkeyPath, response.status)
                 }

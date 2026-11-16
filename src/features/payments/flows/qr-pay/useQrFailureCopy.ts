@@ -13,7 +13,7 @@ import { QR_INIT_CODE, type QrScanFailure } from './init-error-classifier'
  */
 export function useQrFailureCopy(qrType: string | null, qrMethodName: string) {
     const t = useAppTranslations('qrPay')
-    const tBrazilPause = useTranslations('brazilPause')
+    const tPix = useTranslations('pix')
 
     // Shown wherever the backend rejects a Pix payment below the rail minimum
     // (typed 400 PIX_MIN_AMOUNT — fires at lock-init for merchant-encoded amounts
@@ -39,7 +39,8 @@ export function useQrFailureCopy(qrType: string | null, qrMethodName: string) {
             [QR_INIT_CODE.SENDER_REJECTED]: t('errors.senderRejected'),
             [QR_INIT_CODE.PAYER_BLOCKED]: t('errors.payerBlocked'),
             [QR_INIT_CODE.MERCHANT_BLOCKED]: t('errors.merchantBlocked'),
-            [QR_INIT_CODE.PIX_RESIDENCE]: tBrazilPause('body'),
+            // the residence is not served yet; deposits and withdrawals to the user's own account still work
+            [QR_INIT_CODE.PIX_RESIDENCE]: tPix('payResidence'),
             [QR_INIT_CODE.PIX_MIN_AMOUNT]: pixMinAmountErrorMessage,
             [QR_INIT_CODE.PIX_RECURRING]: pixRecurringErrorMessage,
             [QR_INIT_CODE.MISSING_AMOUNT]: t('errors.genericQrDetails'),
@@ -47,6 +48,8 @@ export function useQrFailureCopy(qrType: string | null, qrMethodName: string) {
             [QR_INIT_CODE.EXPIRED]: t('errors.merchantChargeExpired'),
             [QR_INIT_CODE.DECODE]: qrType === EQrType.PIX ? t('errors.pixDecode') : t('errors.genericDecode'),
             [QR_INIT_CODE.PROVIDER_UNAVAILABLE]: t('errors.providerIssues', { method: qrMethodName }),
+            // shown only until the capabilities are read again and the page follows the route
+            [QR_INIT_CODE.PROVIDER_MOVED]: tPix('unavailable'),
             [QR_INIT_CODE.IN_PROGRESS]: t('errors.providerIssues', { method: qrMethodName }),
             /*
              * Never expected from this screen — it derives a key per (scan,
@@ -61,7 +64,7 @@ export function useQrFailureCopy(qrType: string | null, qrMethodName: string) {
             'provider-issues': t('errors.providerIssues', { method: qrMethodName }),
             rejected: t('errors.initiateUnexpected'),
         }),
-        [t, tBrazilPause, pixMinAmountErrorMessage, pixRecurringErrorMessage, qrType, qrMethodName]
+        [t, tPix, pixMinAmountErrorMessage, pixRecurringErrorMessage, qrType, qrMethodName]
     )
 
     /*

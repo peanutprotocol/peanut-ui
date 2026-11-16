@@ -1,4 +1,4 @@
-import { RETURN_TO_PARAM, readReturnTo, withReturnTo } from '../return-to.utils'
+import { RETURN_TO_PARAM, originPastHubs, readReturnTo, withReturnTo } from '../return-to.utils'
 
 const params = (entries: Record<string, string>) => new URLSearchParams(entries)
 
@@ -58,5 +58,27 @@ describe('readReturnTo', () => {
     it('tolerates a missing search params object', () => {
         expect(readReturnTo(null, '/add-money')).toBeNull()
         expect(readReturnTo(undefined, '/add-money')).toBeNull()
+    })
+})
+
+describe('originPastHubs', () => {
+    const hubs = ['/add-money', '/add-money/options']
+
+    it('keeps an origin that is not a hub', () => {
+        expect(originPastHubs('/request/abc', hubs)).toBe('/request/abc')
+    })
+
+    it('never returns a hub: a chooser without an origin of its own leaves nothing', () => {
+        expect(originPastHubs('/add-money/options?method=pix&ready=1', hubs)).toBeNull()
+        expect(originPastHubs(withReturnTo('/add-money/options?method=pix', '/add-money'), hubs)).toBeNull()
+    })
+
+    it('follows a hub to the origin it carries, through the picker and the chooser', () => {
+        const chooser = withReturnTo('/add-money/options?method=pix', withReturnTo('/add-money', '/request/abc'))
+        expect(originPastHubs(chooser, hubs)).toBe('/request/abc')
+    })
+
+    it('is null without a returnTo', () => {
+        expect(originPastHubs(null, hubs)).toBeNull()
     })
 })

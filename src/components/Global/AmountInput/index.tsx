@@ -1,6 +1,6 @@
 'use client'
 
-import { formatTokenAmount } from '@/utils/general.utils'
+import { formatTokenAmount, isAmbiguousAmountText } from '@/utils/general.utils'
 import { formatAmountNumber, formatFiniteDisplay } from '@/utils/currency'
 import { convertDecimalAmount } from '@/lib/money'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -417,13 +417,23 @@ const AmountInput = ({
                             className={`h-16 max-w-80 bg-transparent text-heading-big-input text-foreground-primary caret-action-primary transition-colors outline-none placeholder:text-foreground-secondary disabled:text-foreground-secondary disabled:opacity-100 disabled:[-webkit-text-fill-color:var(--color-foreground-secondary)]`}
                             placeholder={'0.00'}
                             onChange={(e) => {
-                                isEditingRef.current = true
                                 let value = e.target.value
+                                // a digit typed after a point the field already shows is not
+                                // ambiguous: "1.23" then "4" is 1.234 to someone who sees the point
+                                const typedAfterPoint =
+                                    shownValue.includes('.') &&
+                                    value.length === shownValue.length + 1 &&
+                                    value.startsWith(shownValue)
+                                if (!typedAfterPoint && isAmbiguousAmountText(value)) return
                                 const maxDecimals = denominations[displaySymbol].decimals
                                 const formattedAmount = formatTokenAmount(value, maxDecimals, true)
                                 if (formattedAmount !== undefined) {
                                     value = formattedAmount === '.' ? '.' : finiteInput(formattedAmount)
                                 }
+                                // text the parser rejects leaves the field, and who owns it, as it
+                                // was: one stray letter used to wipe the whole amount (TASK-23499)
+                                if (value === '' && e.target.value.trim() !== '') return
+                                isEditingRef.current = true
                                 if (value === shownValue) return
                                 onAmountTyped?.(displaySymbol)
                                 // a payer who emptied the field takes the next suggestion

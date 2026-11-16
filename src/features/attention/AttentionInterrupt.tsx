@@ -44,7 +44,13 @@ function InterruptHost({ attention }: { attention: AttentionContextValue }) {
 
     // The announcement yields to a user-opened overlay without settling or
     // spending a second interrupt when it resumes.
-    if (!id || !Surface || (id === 'early-user' && attention.session.busy)) return null
+    if (
+        !id ||
+        !Surface ||
+        (id === 'early-user' && attention.session.busy) ||
+        (id === 'app-update-important' && (attention.session.busy || attention.session.route !== 'home'))
+    )
+        return null
     return (
         <AttentionSurfaceContext.Provider value={true}>
             {/* keyed by user too: a surface never carries the previous account's state */}

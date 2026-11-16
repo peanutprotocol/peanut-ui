@@ -5,6 +5,7 @@ import { saveToCookie } from '../cookie-url.utils'
 import {
     buildSignupAttributionHeader,
     captureSignupAttribution,
+    captureTrackedLinkJourney,
     clearSignupAttribution,
     clearPendingSignupAttribution,
     ensureSignupAttributionForRegistration,
@@ -444,6 +445,35 @@ describe('signup attribution context', () => {
 
         expect(mockPreferencesRemove).toHaveBeenCalledWith({ key: 'signup-attribution-pending' })
         expect(mockPreferencesRemove).toHaveBeenCalledWith({ key: 'signup-attribution' })
+    })
+
+    it('writes a tracked-link touch as the last touch, and keeps the last touch without one', async () => {
+        const savedKey = process.env.NEXT_PUBLIC_POSTHOG_KEY
+        process.env.NEXT_PUBLIC_POSTHOG_KEY = 'phc_tracked_test'
+        try {
+            window.history.replaceState({}, '', '/?utm_source=google&utm_medium=cpc&utm_campaign=earlier')
+            const earlier = captureSignupAttribution()!
+            const tagged = await captureTrackedLinkJourney({
+                utmSource: 'instagram',
+                utmMedium: 'ambassador',
+                utmCampaign: 'go',
+                utmContent: 'c7',
+                referrerHost: 'l.instagram.com',
+            })
+            expect(tagged).toMatchObject({ journeyId: earlier.journeyId, firstTouch: earlier.firstTouch })
+            expect(tagged?.lastTouch).toEqual({
+                occurredAt: expect.any(String),
+                utmSource: 'instagram',
+                utmMedium: 'ambassador',
+                utmCampaign: 'go',
+                utmContent: 'c7',
+                referrerHost: 'l.instagram.com',
+            })
+            expect((await captureTrackedLinkJourney())?.lastTouch).toEqual(tagged?.lastTouch)
+        } finally {
+            if (savedKey === undefined) delete process.env.NEXT_PUBLIC_POSTHOG_KEY
+            else process.env.NEXT_PUBLIC_POSTHOG_KEY = savedKey
+        }
     })
 
     it('limits authenticated finalization retries to a completed signup marker', async () => {

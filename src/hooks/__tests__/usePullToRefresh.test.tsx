@@ -264,6 +264,21 @@ describe('useShouldPullToRefresh', () => {
         replacement.scrollTop = 0
         expect(result.current()).toBe(true)
     })
+
+    it('uses the setup panel as the scroll boundary while it is mounted', () => {
+        const panel = document.createElement('div')
+        panel.dataset.setupScrollPanel = ''
+        document.body.appendChild(panel)
+        const { result } = renderHook(() => useShouldPullToRefresh('[data-setup-scroll-panel]'))
+
+        panel.scrollTop = 30
+        expect(result.current()).toBe(false)
+        panel.scrollTop = 0
+        expect(result.current()).toBe(true)
+
+        panel.remove()
+        expect(result.current()).toBe(true)
+    })
 })
 
 describe('overlay gesture isolation', () => {

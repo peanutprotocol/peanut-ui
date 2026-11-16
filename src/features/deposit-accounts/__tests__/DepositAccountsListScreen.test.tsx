@@ -30,7 +30,6 @@ import { accountEntry, entryChip } from '@/features/kyc-features/report'
 import type { BankRowKey } from '@/utils/unlock-payments.utils'
 import type { IdentityVerificationStatus, RailCapability } from '@/types/capabilities'
 import { withReturnTo } from '@/utils/return-to.utils'
-import { closeBrazilPausedDrawer, isBrazilPausedDrawerOpen } from '@/features/brazil-pause/brazil-paused-drawer-store'
 
 /** the hub the top-ups return to — the origin every top-up push carries */
 const HUB_RETURN = '/add-money?method=bank'
@@ -150,14 +149,9 @@ jest.mock('@/hooks/useBankRows', () => ({
 // the drawer names card issuing from the same restrictions the rows read
 jest.mock('@/hooks/useResidenceRestrictions', () => ({ useResidenceRestrictions: () => mockBankInput.restrictions }))
 
-let brazilPaused = false
-jest.mock('@/features/brazil-pause/useBrazilServicesPaused', () => ({ useBrazilServicesPaused: () => brazilPaused }))
-
 beforeEach(() => {
     jest.clearAllMocks()
     mockIdentity = undefined
-    brazilPaused = false
-    closeBrazilPausedDrawer()
     depositAccountsEnabled = true
     residenceIso2s = []
     mockIsCountrySupported.mockReturnValue(true)
@@ -655,6 +649,35 @@ describe('an account the user could open', () => {
         }
     )
 
+    // TASK-24909: Bridge reviewing the customer read as a refusal with a support button
+    // "Under review" when a provider acts next; our own setup in flight is "Setting up" (design.md, rows)
+    it.each([
+        ['waiting-on-provider', { kind: 'waiting-on-provider', userMessage: null }, LIST.badgeUnderReview],
+        [
+            'pending in review',
+            { kind: 'pending', userMessage: null, reason: { code: 'requirements_in_review', userMessage: '' } },
+            LIST.badgeUnderReview,
+        ],
+        ['pending', { kind: 'pending', userMessage: null }, LIST.badgeSettingUp],
+    ] as const)(
+        'opens the wait drawer where the backend lists the corridor nowhere and the gate reads %s',
+        (_, gate, badge) => {
+            const onOpen = jest.fn()
+            const { container } = list(false, {
+                gates: { ...allGates(), BANK_TRANSFER_CO: gate as unknown as GateState },
+                onOpen,
+            })
+
+            const row = rowOf(container, 'BANK_TRANSFER_CO') as HTMLElement
+            expect(within(row).getByText(badge)).toBeInTheDocument()
+            expect(within(row).queryByText(LIST.badgeNotOffered)).not.toBeInTheDocument()
+            fireEvent.click(row)
+            // the claim step's wait drawer explains it; the closed-row drawer never opens
+            expect(onOpen).toHaveBeenCalledWith('BANK_TRANSFER_CO')
+            expect(screen.queryByTestId('closed-row-drawer')).not.toBeInTheDocument()
+        }
+    )
+
     it('points at support where the backend says only a person can open it', () => {
         const onOpen = jest.fn()
         const { container } = list(false, {
@@ -1142,27 +1165,7 @@ describe('the other ways in', () => {
         list(false)
 
         fireEvent.click(bankRow('brl'))
-        expect(mockPush).toHaveBeenCalledWith(withReturnTo('/add-money/brazil/manteca', HUB_RETURN))
-    })
-
-    it('opens the Brazil paused drawer instead of the BRL transfer while the pause covers the user', () => {
-        brazilPaused = true
-        list(false)
-
-        fireEvent.click(bankRow('brl'))
-        expect(isBrazilPausedDrawerOpen()).toBe(true)
-        expect(mockPush).not.toHaveBeenCalled()
-    })
-
-    it('keeps every other bank row open during the Brazil pause', () => {
-        brazilPaused = true
-        residenceIso2s = ['AR']
-        mockBankInput = { ...mockBankInput, residenceIso2: 'AR' }
-        list(false)
-
-        fireEvent.click(bankRow('ars'))
-        expect(isBrazilPausedDrawerOpen()).toBe(false)
-        expect(mockPush).toHaveBeenCalledWith(withReturnTo('/add-money/argentina/manteca', HUB_RETURN))
+        expect(mockPush).toHaveBeenCalledWith(withReturnTo('/add-money/pix', HUB_RETURN))
     })
 
     it('drops the bank row an active virtual account already covers', () => {

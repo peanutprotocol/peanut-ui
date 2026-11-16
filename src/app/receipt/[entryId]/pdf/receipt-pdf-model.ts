@@ -1,6 +1,6 @@
 import { EHistoryUserRole, getTransactionSign } from '@/utils/history.utils'
 import { type TransactionDetails } from '@/components/TransactionDetails/transactionTransformer'
-import { isSendLinkEntry } from '@/components/TransactionDetails/transaction-predicates'
+import { isFiatPayout, isSendLinkEntry } from '@/components/TransactionDetails/transaction-predicates'
 import {
     bankAccountLabelKey,
     receiptHeadlineAmount,
@@ -11,8 +11,10 @@ import {
     isSettledConversion,
     receiptConvertedAmount,
     receiptExchangeRate,
+    receiptProviderFee,
 } from '@/components/TransactionDetails/receipt-conversion.utils'
 import { maskAccountIdentifier } from '@/utils/account-mask.utils'
+import { formatPixKey } from '@/utils/pix-key-format.utils'
 import { printableAddress } from '@/utils/general.utils'
 import { formatBankAmount } from '@/utils/currency'
 import { RECEIPT_COMPANY } from '@/components/TransactionDetails/receipt-company'
@@ -124,7 +126,13 @@ export function buildReceiptPdfModel(
     const cardType = drawer?.transactionCardType
     push(t('transaction.officialReceipt.pdf.type'), cardType ? t(`transaction.type.${cardType}`) : undefined)
 
-    const statusLabel = status ? t(`common.status.${status}`) : undefined
+    // a deposit sent back to the payer is Returned, never Refunded, as on the screen (design.md status words)
+    const statusLabel =
+        transaction.actionLabelKey === 'type.returnedToSender'
+            ? t('transaction.returnedStatus')
+            : status
+              ? t(`common.status.${status}`)
+              : undefined
     push(t('transaction.officialReceipt.pdf.status'), statusLabel)
 
     // Counterparty: FE-generated labels localize via nameKey; raw counterparty
@@ -152,15 +160,16 @@ export function buildReceiptPdfModel(
         const label =
             labelKey === 'address'
                 ? t('transaction.rows.address')
-                : (BANK_ACCOUNT_SCHEME_LABELS[labelKey] ?? t('transaction.rows.accountNumber'))
-        push(
-            label,
-            maskAccountIdentifier(transaction.bankAccountDetails.identifier, transaction.bankAccountDetails.type)
-        )
+                : labelKey === 'pixKey'
+                  ? t('withdraw.pixKey.placeholder')
+                  : (BANK_ACCOUNT_SCHEME_LABELS[labelKey] ?? t('transaction.rows.accountNumber'))
+        const { identifier, type } = transaction.bankAccountDetails
+        push(label, maskAccountIdentifier(labelKey === 'pixKey' ? formatPixKey(identifier) : identifier, type))
     }
 
     // Money, the provider last (receipt-rows ruling)
     push(t('common.exchangeRate'), receiptExchangeRate(transaction))
+    push(t('pix.withdraw.fee'), receiptProviderFee(transaction))
 
     // The network fee a crypto withdrawal settled, and what arrived. Only a
     // charged fee is printed: the document records what happened, and a
@@ -192,11 +201,7 @@ export function buildReceiptPdfModel(
         push(t('transaction.rows.txId'), transaction.txHash)
     }
 
-    if (
-        (transaction.direction === 'bank_withdraw' || transaction.direction === 'bank_claim') &&
-        transaction.id &&
-        !isCancelled
-    ) {
+    if (isFiatPayout(transaction) && transaction.id && !isCancelled) {
         push(t('transaction.rows.transferId'), transaction.id)
     }
 

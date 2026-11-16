@@ -5,13 +5,14 @@
 // residence gate and return-to-hub only. Deliberate, tracked.
 import { type FC, useEffect, useMemo, useState, useCallback } from 'react'
 import MantecaDepositShareDetails from '@/components/AddMoney/components/MantecaDepositShareDetails'
-import MantecaPixQrDeposit from '@/components/AddMoney/components/MantecaPixQrDeposit'
 import { useMantecaDepositPolling } from '@/components/AddMoney/hooks/useMantecaDepositPolling'
-import ProcessingScreen from '@/components/Global/ProcessingScreen'
+import { useOpenMantecaDeposit } from '@/components/AddMoney/hooks/useOpenMantecaDeposit'
+import { Callout } from '@/components/0_Bruddle/Callout'
+import { formatCurrency } from '@/utils/general.utils'
 import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
 import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import { useParams } from 'next/navigation'
-import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import { countryData } from '@/components/AddMoney/consts'
 import { type MantecaDepositResponseData } from '@/types/manteca.types'
 import { useCurrency } from '@/hooks/useCurrency'
@@ -34,7 +35,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useTranslations } from 'next-intl'
 import { useBankEntryFor } from '@/hooks/useBankRows'
-import { isMantecaAccountClosed, refusalOf } from '@/features/kyc-features/report'
+import { isLocalResidenceRefusal, isMantecaAccountClosed, refusalOf } from '@/features/kyc-features/report'
 import { useAuth } from '@/context/authContext'
 import { ResidenceRequiredScreen } from '@/features/deposit-accounts/components/ResidenceRequiredScreen'
 import { withReturnTo, readReturnTo } from '@/utils/return-to.utils'
@@ -47,7 +48,7 @@ import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import NavHeader from '@/components/Global/NavHeader'
 
 // Step type for URL state
-type MantecaStep = 'inputAmount' | 'depositDetails' | 'showQR'
+type MantecaStep = 'inputAmount' | 'depositDetails'
 
 // Currency denomination type for URL state
 type CurrencyDenomination = 'USD' | 'ARS' | 'BRL' | 'MXN' | 'EUR'
@@ -61,9 +62,6 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     const tIdentity = useTranslations('identity')
     const { openSupportWithMessage, setIsSupportModalOpen } = useModalsContext()
     const { fetchUser } = useAuth()
-    // rewinds to home past every entry the flow pushed; a replace kept the
-    // earlier entries, so back from home re-entered the flow
-    const leaveToHome = useReturnTo(readReturnTo(searchParams) ?? '/home')
 
     // URL state - persisted in query params
     // Example: /add-money/argentina/manteca?step=inputAmount&amount=100&currency=ARS
@@ -74,7 +72,7 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     // amounts of this same screen instead of leaving it. The URL stays shareable either
     // way. Enforced by the no-restricted-syntax guard in eslint.config.js.
     const [urlState, setUrlState] = useQueryStates({
-        step: parseAsStringEnum<MantecaStep>(['inputAmount', 'depositDetails', 'showQR']),
+        step: parseAsStringEnum<MantecaStep>(['inputAmount', 'depositDetails']),
         amount: parseAsString,
         currency: parseAsStringEnum<CurrencyDenomination>(['USD', 'ARS', 'BRL', 'MXN', 'EUR']),
     })
@@ -111,20 +109,20 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     // route the user never knowingly opened.
     const onBack = useSafeBack(readReturnTo(searchParams) ?? '/add-money?method=bank')
     // Argentina's Manteca top-up mints a CVU per deposit, and Manteca rejects a
-    // non-resident only after amount + KYC; Brazil's asks for a CPF the same
-    // way. The API's answer for this country's account comes first: a closure
-    // by Manteca, or an account the residence does not get (B5).
+    // non-resident only after amount + KYC. The API's answer for this country's
+    // account comes first: a closure by Manteca, or an account the residence
+    // does not get (B5). Brazil's Pix lives on /add-money/pix.
     const bankEntryFor = useBankEntryFor()
-    const residenceGatedCountry =
-        selectedCountry?.id === 'AR' || selectedCountry?.id === 'BR' ? (selectedCountry.id as 'AR' | 'BR') : null
-    const arsDeposit = residenceGatedCountry === 'AR' && step === 'depositDetails' ? depositDetails : undefined
+    const residenceGatedCountry = selectedCountry?.id === 'AR' ? 'AR' : null
+    // an ARS transfer Manteca let lapse unpaid: the details screen says so and offers a new one
+    const arsDeposit = residenceGatedCountry && step === 'depositDetails' ? depositDetails : undefined
     const { status: arsDepositStatus } = useMantecaDepositPolling(arsDeposit?.id, () => {
         void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
     })
-    const localAccount = residenceGatedCountry ? bankEntryFor(residenceGatedCountry === 'AR' ? 'ars' : 'brl') : null
+    const localAccount = residenceGatedCountry ? bankEntryFor('ars') : null
     const accountRejected = isMantecaAccountClosed(localAccount ?? undefined)
     const refusal = refusalOf(localAccount ?? undefined)
-    const requiresResidenceGate = refusal === 'local_residence_unsupported'
+    const requiresResidenceGate = isLocalResidenceRefusal(refusal)
     // The pool→full upgrade gate asks "did the user clear ID verification?",
     // not "do they have an enabled rail elsewhere?" — read the identity
     // signal directly (Sumsub-cleared the human) instead of the old
@@ -156,6 +154,16 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     const isUserMantecaKycApprovedForCountry = selectedCountry
         ? isVerifiedForCountry(rails, selectedCountry.id, 'deposit')
         : false
+    const openDeposit = useOpenMantecaDeposit(
+        selectedCountry?.currency,
+        !!residenceGatedCountry && step === 'inputAmount' && isUserMantecaKycApprovedForCountry
+    )
+    const showOpenDeposit = useCallback(() => {
+        if (!openDeposit) return
+        setDepositDetails(openDeposit)
+        setLocalCurrencyAmount('')
+        void setUrlState({ step: 'depositDetails', amount: null })
+    }, [openDeposit, setUrlState])
 
     // The gate comes before the amount: a user who cannot deposit should learn it
     // on arrival, not after typing a number. The amount screen stays mounted
@@ -310,15 +318,8 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
                 method_type: 'manteca',
                 country: selectedCountryPath,
             })
-            // BRL deposits carry the dynamic PIX QR in the ramp-on synthetic's
-            // details → show the QR step. ARS/others show deposit details.
-            const data = depositData.data
-            setDepositDetails(data)
-            if (selectedCountry?.currency === 'BRL') {
-                setUrlState({ step: 'showQR' })
-            } else {
-                setUrlState({ step: 'depositDetails' })
-            }
+            setDepositDetails(depositData.data)
+            setUrlState({ step: 'depositDetails' })
         } catch (error) {
             if (wireErrorCode(error) === API_ERROR_CODES.MANTECA_ACCOUNT_REJECTED) {
                 setShowKycModal(false)
@@ -352,9 +353,6 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     // Redirect to inputAmount if depositDetails is accessed without required data (deep link / back navigation)
     useEffect(() => {
         if (step === 'depositDetails' && !depositDetails) {
-            setUrlState({ step: 'inputAmount' })
-        }
-        if (step === 'showQR' && !depositDetails) {
             setUrlState({ step: 'inputAmount' })
         }
     }, [step, depositDetails, setUrlState])
@@ -431,18 +429,6 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
         )
     }
 
-    // While the BRL PIX deposit request is in flight (the QR is being generated),
-    // show the branded processing screen — same as when a PIX payment is processing.
-    if (isCreatingDeposit && selectedCountry.currency === 'BRL') {
-        return (
-            <div className="my-auto flex min-h-inherit flex-col justify-center">
-                {/* the deposit request is in flight — title only, no
-                    "confirming" claim before any money moved (TASK-22452) */}
-                <ProcessingScreen title={t('processingDepositTitle')} />
-            </div>
-        )
-    }
-
     if (step === 'inputAmount') {
         // A document Manteca asks for takes the page, as on the bank Add money screen: nothing on
         // the amount step works until it is uploaded, so a drawer over it would sit on a dead screen.
@@ -456,7 +442,7 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
                     onContactSupport={documentRequest ? () => setIsSupportModalOpen(true) : undefined}
                     cooldownActive={!!sumsubFlow.errorCooldown}
                     prepPath="extended"
-                    taxIdCountry={selectedCountry?.id === 'BR' ? 'BR' : selectedCountry?.id === 'AR' ? 'AR' : undefined}
+                    taxIdCountry={residenceGatedCountry ?? undefined}
                     visible={showKycModal}
                     onClose={closeKycModal}
                     onVerify={async () => {
@@ -520,13 +506,22 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
                         limitsValidation={limitsValidation}
                         limitsCurrency={limitsValidation.currency}
                         onBack={onBack}
-                        providerFinePrint={
-                            residenceGatedCountry && (
-                                <ProviderFinePrint
-                                    providerId={residenceGatedCountry === 'AR' ? 'manteca-ar' : 'manteca-br'}
-                                />
+                        maintenanceBanner={
+                            openDeposit && (
+                                <Callout
+                                    priority="info"
+                                    title={t('manteca.openTransferTitle')}
+                                    ctas={[{ label: t('manteca.openTransferCta'), onClick: showOpenDeposit }]}
+                                    data-testid="open-deposit-callout"
+                                >
+                                    {t('manteca.openTransferDescription', {
+                                        currency: openDeposit.stages['1'].asset,
+                                        amount: formatCurrency(openDeposit.stages['1'].thresholdAmount),
+                                    })}
+                                </Callout>
                             )
                         }
+                        providerFinePrint={residenceGatedCountry && <ProviderFinePrint providerId="manteca-ar" />}
                     />
                 )}
             </>
@@ -541,7 +536,7 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
         return (
             <MantecaDepositShareDetails
                 depositDetails={depositDetails}
-                currencyAmount={localCurrencyAmount}
+                currencyAmount={localCurrencyAmount || undefined}
                 arsStatus={arsDeposit ? arsDepositStatus : undefined}
                 onStartOver={() => {
                     setDepositDetails(undefined)
@@ -551,26 +546,6 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
                 // way the input step does, not back to `inputAmount` (which would let
                 // the user start a second deposit).
                 onBack={onBack}
-            />
-        )
-    }
-
-    if (step === 'showQR') {
-        if (!depositDetails) {
-            return null
-        }
-        return (
-            <MantecaPixQrDeposit
-                depositDetails={depositDetails}
-                currencyAmount={localCurrencyAmount}
-                // Settled screen: the deposit is already created. Back leaves the flow
-                // the way the input step does, not to `inputAmount` (which would let the
-                // user start a second deposit).
-                onBack={onBack}
-                // Terminal exit — `replace` so device/browser back can't pop into the
-                // finished deposit (whose step=showQR would redirect to a new one).
-                onDone={leaveToHome}
-                onComplete={() => queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })}
             />
         )
     }

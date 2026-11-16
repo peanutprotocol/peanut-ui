@@ -124,6 +124,84 @@ describe('CountryList — enforceSupportedCountries (send->bank flow)', () => {
     })
 })
 
+// live test on staging, 2026-11-12: a resident of Brazil picked Brazil under Send and reached a
+// block screen with no way on. Their pay:PIX_BR route refuses the residence (`pixPayBlock`).
+describe('CountryList — the send gate for a resident of Brazil', () => {
+    const onCountryClick = jest.fn()
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        render(
+            <CountryList
+                inputTitle="How?"
+                viewMode="add-withdraw"
+                flow="withdraw"
+                enforceSupportedCountries
+                pixPayBlock="residence"
+                onCountryClick={onCountryClick}
+                showLoadingState={false}
+            />
+        )
+    })
+
+    // Aleks, 2026-11-12 (TASK-24583): the row leaves the picker the way the BRL row left the
+    // currency list, through the same rule (sendOffersPix). No row, so no waitlist for the
+    // country they live in.
+    test('Brazil is not listed under Other countries', () => {
+        expect(screen.queryByText('Brazil')).toBeNull()
+        expect(screen.queryByTestId('country-waitlist')).toBeNull()
+        expect(onCountryClick).not.toHaveBeenCalled()
+    })
+
+    test('a bridge country stays selectable', () => {
+        fireEvent.click(row('Germany'))
+        expect(onCountryClick).toHaveBeenCalledWith(expect.objectContaining({ path: 'germany' }))
+    })
+})
+
+describe('CountryList — the Brazil pause keeps Brazil a send destination', () => {
+    test('Brazil is selectable: the pause screen on the next page says why it waits', () => {
+        const onCountryClick = jest.fn()
+        render(
+            <CountryList
+                inputTitle="How?"
+                viewMode="add-withdraw"
+                flow="withdraw"
+                enforceSupportedCountries
+                pixPayBlock="paused"
+                onCountryClick={onCountryClick}
+                showLoadingState={false}
+            />
+        )
+        fireEvent.click(row('Brazil'))
+        expect(onCountryClick).toHaveBeenCalledWith(expect.objectContaining({ path: 'brazil' }))
+    })
+})
+
+describe('CountryList — Brazil leaves the Send picker for a resident only', () => {
+    const list = (props: { enforceSupportedCountries?: boolean; pixPayBlock: 'residence' | null }) =>
+        render(
+            <CountryList
+                inputTitle="How?"
+                viewMode="add-withdraw"
+                flow="withdraw"
+                onCountryClick={jest.fn()}
+                showLoadingState={false}
+                {...props}
+            />
+        )
+
+    test('a non-resident still sees Brazil under Other countries in Send', () => {
+        list({ enforceSupportedCountries: true, pixPayBlock: null })
+        expect(row('Brazil')).not.toHaveAttribute('aria-disabled')
+    })
+
+    test('own-account withdraw keeps the row for a resident: it opens their own Pix withdrawal', () => {
+        list({ pixPayBlock: 'residence' })
+        expect(row('Brazil')).toBeInTheDocument()
+    })
+})
+
 describe('CountryList — the tapped row', () => {
     const renderList = (onCountryClick: () => void | boolean) =>
         render(<CountryList inputTitle="How?" viewMode="add-withdraw" flow="add" onCountryClick={onCountryClick} />)

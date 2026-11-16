@@ -131,7 +131,11 @@ export function useNativeAppLinks() {
             // and navigates to its sanitized destination (or plain /home).
             try {
                 const parsed = new URL(url, 'https://peanut.me')
-                if (parsed.pathname === '/home' && parsed.searchParams.get(APP_ENTRY_QUERY_PARAM) === '1') {
+                if (
+                    parsed.pathname === '/home' &&
+                    parsed.searchParams.get(APP_ENTRY_QUERY_PARAM) === '1' &&
+                    !parsed.searchParams.has('tl')
+                ) {
                     const payload = parseDeferredPayload(parsed.search)
                     target = payload ? (applyDeferredPayload(payload).dest ?? '/home') : '/home'
                 }

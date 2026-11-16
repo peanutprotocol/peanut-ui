@@ -246,7 +246,11 @@ function baseStore(userId: string, prefs: UserPreferences | undefined): Attentio
 }
 
 /** Push permission is per device, so its ask's answers stay on the device. */
-const DEVICE_LOCAL_ASKS: ReadonlySet<AskId> = new Set(['push-home-fallback'])
+const DEVICE_LOCAL_ASKS: ReadonlySet<AskId> = new Set([
+    'push-home-fallback',
+    'app-update-important',
+    'app-update-regular',
+])
 
 /** What may cross devices: no device-local asks, and no zone rotation counters (they count this device's sessions). */
 function withoutDeviceState(store: AttentionLedgerStore): AttentionLedgerStore {

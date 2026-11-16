@@ -4,6 +4,7 @@ import {
     installPasskeyVerifyCapture,
     PasskeyAccountDeletedError,
     PasskeyOptionsFailedError,
+    PasskeyRateLimitedError,
     PasskeyVerifyRejectedError,
     getLoginRetryError,
 } from '../passkey-auth-capture'
@@ -156,11 +157,42 @@ describe('installPasskeyVerifyCapture', () => {
         }
     )
 
+    // login/verify 429 keeps its retry window (PasskeyVerifyRetryableError), tested below
+    it.each(['/passkeys/login/options', '/passkeys/register/options', '/passkeys/register/verify'])(
+        'surfaces a 429 from %s as rate limited, not a server or login failure (TASK-22431)',
+        async (path) => {
+            mockUnderlyingFetch.mockResolvedValueOnce(jsonResponse({ error: 'An unexpected error occurred' }, 429))
+
+            const pending = window.fetch(`https://api.peanut.me${path}`, { method: 'POST' })
+
+            await expect(pending).rejects.toBeInstanceOf(PasskeyRateLimitedError)
+            expect(stashCeremonyVerifyToken).not.toHaveBeenCalled()
+        }
+    )
+
     it('passes successful options responses through', async () => {
         const response = jsonResponse({ challenge: 'abc' })
         mockUnderlyingFetch.mockResolvedValueOnce(response)
 
         await expect(window.fetch('/passkeys/login/options', { method: 'POST' })).resolves.toBe(response)
+    })
+
+    it('turns the API refusal of a passkey layout into the typed signup error (TASK-24498)', async () => {
+        mockUnderlyingFetch.mockResolvedValueOnce(
+            jsonResponse({ error: 'Unsupported passkey', code: 'PASSKEY_PROVIDER_UNSUPPORTED' }, 400)
+        )
+
+        await expect(window.fetch('/passkeys/register/verify', { method: 'POST' })).rejects.toMatchObject({
+            name: 'PasskeyProviderUnsupportedError',
+            code: 'PASSKEY_PROVIDER_UNSUPPORTED',
+        })
+    })
+
+    it('leaves any other register/verify 400 to the existing classification', async () => {
+        const response = jsonResponse({ error: 'Invalid userId' }, 400)
+        mockUnderlyingFetch.mockResolvedValueOnce(response)
+
+        await expect(window.fetch('/passkeys/register/verify', { method: 'POST' })).resolves.toBe(response)
     })
 
     it.each([429, 500, 502, 503, 504])(

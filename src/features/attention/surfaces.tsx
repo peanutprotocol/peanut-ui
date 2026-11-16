@@ -12,6 +12,7 @@ type Surface = LazyExoticComponent<ComponentType<AskSurfaceProps>>
  * registry needs an entry here (a parity test pins it).
  */
 export const INTERRUPT_SURFACES: Partial<Record<AskId, Surface>> = {
+    'app-update-important': lazy(() => importWithChunkRetry(() => import('./surfaces/AppUpdateDrawer'))),
     arrival: lazy(() => importWithChunkRetry(() => import('@/features/home/components/ArrivalDrawer'))),
     'legal-reconsent': lazy(() => importWithChunkRetry(() => import('./surfaces/LegalReconsentSurface'))),
     'balance-backup': lazy(() => importWithChunkRetry(() => import('./surfaces/BalanceBackupSurface'))),

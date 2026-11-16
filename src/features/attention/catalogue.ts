@@ -110,8 +110,13 @@ export function asCatalogue(value: unknown): CatalogueEntry[] | undefined {
             ...(row.slots ? { slots: [...row.slots] as SlotId[] } : {}),
         })
     }
-    // A supported catalogue is an atomic replacement, never a mix of live and bundled rules.
-    if (DEFAULT_CATALOGUE.some((row) => !ids.has(row.id))) return undefined
+    // The immediately preceding API has neither client-only update ask.
+    const missing = DEFAULT_CATALOGUE.filter((row) => !ids.has(row.id)).map((row) => row.id)
+    if (
+        missing.length &&
+        !(missing.length === 2 && missing.includes('app-update-important') && missing.includes('app-update-regular'))
+    )
+        return undefined
     return rows
 }
 

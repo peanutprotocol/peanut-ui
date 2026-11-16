@@ -247,7 +247,11 @@ describe('analytics (failure 15)', () => {
     )
     it('reports flow version 2', () => {
         expect(SIGNUP_FLOW_VERSION).toBe(2)
-        expect(signupAnalyticsContext('default')).toEqual({ flow_version: 2, signup_entry_flow: 'default' })
+        expect(signupAnalyticsContext('default')).toEqual({
+            flow_version: 2,
+            signup_entry_flow: 'default',
+            returning_device: false,
+        })
     })
 
     it.each([
@@ -274,6 +278,7 @@ describe('analytics (failure 15)', () => {
                 nav_type: 'initial',
                 flow_version: 2,
                 signup_entry_flow: 'default',
+                returning_device: false,
             })
         }
     )

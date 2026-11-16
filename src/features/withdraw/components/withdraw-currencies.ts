@@ -3,6 +3,7 @@ import { countryData, type CountryData } from '@/components/AddMoney/consts'
 import { bankCorridorFor } from '@/components/AddWithdraw/bank-corridors'
 import countryCurrencyMappings from '@/constants/countryCurrencyMapping'
 import { isSendToBankCountry, liveRailsForCountry } from '@/features/destinations/country-rails'
+import type { PixPayBlock } from '@/features/pix/pixRoute.utils'
 import { localizedCountryTitle } from '@/utils/country-name.utils'
 import { localizedCurrencyName } from '@/utils/currency-name.utils'
 import { getCountryCodeForWithdraw } from '@/utils/withdraw.utils'
@@ -50,16 +51,19 @@ export function withdrawPayoutCurrency(country: CountryData): string | undefined
  * rail is absent rather than present-and-disabled — the same rule the country
  * list and the add-money hub read from `liveRailsForCountry`.
  *
- * `sendToBankOnly` is the send-to-bank flow: it keeps only the countries that
- * flow can pay, so a single-country row (ARS) cannot route past the gate the
- * country list applies.
+ * `sendToBank` is the send-to-bank flow: it keeps only the countries that
+ * flow can pay this user (`isSendToBankCountry`), so a single-country row (ARS,
+ * or BRL for a resident of Brazil) cannot route past the gate the country list
+ * applies.
  */
-export function liveWithdrawCurrencies({ sendToBankOnly = false } = {}): WithdrawCurrency[] {
+export function liveWithdrawCurrencies({
+    sendToBank = null,
+}: { sendToBank?: { pixPayBlock: PixPayBlock | null } | null } = {}): WithdrawCurrency[] {
     const byCurrency = new Map<string, CountryData[]>()
     for (const country of countryData) {
         if (country.type !== 'country') continue
         if (liveRailsForCountry(country.id, 'withdraw').length === 0) continue
-        if (sendToBankOnly && !isSendToBankCountry(country)) continue
+        if (sendToBank && !isSendToBankCountry(country, sendToBank.pixPayBlock)) continue
         const payoutCurrency = withdrawPayoutCurrency(country)
         if (!payoutCurrency) continue
         const list = byCurrency.get(payoutCurrency) ?? []

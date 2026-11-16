@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import Loading from '@/components/Global/Loading'
 import RateGateScreen from '@/components/Global/RateUnavailable/RateGateScreen'
@@ -17,11 +18,14 @@ import { QrPayProviderRejectionView } from './views/QrPayProviderRejectionView'
 import { QrPayBlockedView } from './views/QrPayBlockedView'
 import { QrPayPageLoading } from './views/QrPayPageLoading'
 import { QrPayProcessingView } from './views/QrPayProcessingView'
+import { PixSetup } from '@/features/pix/components/PixSetup'
+import { PixUnavailableScreen } from '@/features/pix/components/PixUnavailableScreen'
+import { useQrPayRoute } from './useQrPayRoute'
 
 // internal component that switches views — the precedence itself lives in
 // deriveQrPayView, so this stays a flat map from view to component
 function QrPayFlowContent() {
-    const { view, loadingState, retryRate } = useQrPayFlow()
+    const { view, loadingState, retryRate, pixPayBlock } = useQrPayFlow()
     const t = useAppTranslations('qrPay')
     const tNav = useTranslations('navigation')
     const tLoading = useTranslations('loadingStates')
@@ -35,7 +39,7 @@ function QrPayFlowContent() {
         case 'KYC_GATE':
             return <QrPayKycGateView />
         case 'BRAZIL_PAUSED':
-            return <BrazilPausedScreen />
+            return <BrazilPausedScreen block={pixPayBlock ?? 'paused'} />
         case 'MAINTENANCE':
         case 'INIT_ERROR':
         case 'ORDER_NOT_READY':
@@ -69,8 +73,26 @@ function QrPayFlowContent() {
 // exported page component with provider; the entry route keys this on the
 // scan (qrCode + timestamp) so a new scan starts from clean state
 export function QrPayPage({ qrCode, timestamp, qrType, pixKey }: QrPayScanParams) {
+    const tNav = useTranslations('navigation')
+    const onBack = useSafeBack('/home', { replace: true })
+    // a Pix code on the neutral pay routes first meets its route's step, as the other Pix pages do
+    const { route, step } = useQrPayRoute(qrCode, qrType)
+    // A payment of this scan that may exist keeps its flow on screen, whatever the route turns into:
+    // unmounting it mid-sign or after it paid would lose that payment's state.
+    const [paymentPinned, setPaymentPinned] = useState(false)
+    if (!paymentPinned) {
+        if (step === 'loading') return <Loading variant="mascot" />
+        if (step === 'support') return <PixUnavailableScreen title={tNav('pay')} route={route} onBack={onBack} />
+        if (step === 'setup') return <PixSetup title={tNav('pay')} onBack={onBack} route={route} />
+    }
     return (
-        <QrPayFlowProvider qrCode={qrCode} timestamp={timestamp} qrType={qrType} pixKey={pixKey}>
+        <QrPayFlowProvider
+            qrCode={qrCode}
+            timestamp={timestamp}
+            qrType={qrType}
+            pixKey={pixKey}
+            onPaymentPinned={setPaymentPinned}
+        >
             <QrPayFlowContent />
         </QrPayFlowProvider>
     )

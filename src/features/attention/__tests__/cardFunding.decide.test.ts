@@ -109,7 +109,10 @@ describe('finish-card-funding (dev FundingSetupPrompt)', () => {
     test('a T1 interrupt ranked right after finish-card-setup', () => {
         expect(finishCardFunding).toMatchObject({ tier: 1, rank: 7, surfaces: ['interrupt'], presentation: 'modal' })
         const tierOne = ASKS.filter((ask) => ask.tier === 1 && ask.surfaces.includes('interrupt'))
-        expect(Math.max(...tierOne.map((ask) => ask.rank))).toBe(finishCardFunding.rank)
+        expect(finishCardFunding.rank).toBe(finishCardSetup.rank + 1)
+        expect(tierOne.filter((ask) => ask.rank > finishCardFunding.rank).map((ask) => ask.id)).toEqual([
+            'app-update-important',
+        ])
         expect(tierOne.filter((ask) => ask.rank === finishCardFunding.rank)).toHaveLength(1)
     })
 

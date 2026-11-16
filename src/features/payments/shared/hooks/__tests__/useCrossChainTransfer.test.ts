@@ -38,15 +38,28 @@ jest.mock('@/hooks/useFriendlyError', () => ({
 }))
 jest.mock('@/constants/rhino.consts', () => ({
     chainIdToRhinoName: (chainId: string) =>
-        ({ '42161': 'ARBITRUM', '8453': 'BASE', '1': 'ETHEREUM', '56': 'BINANCE' })[chainId],
+        ({
+            '42161': 'ARBITRUM',
+            '8453': 'BASE',
+            '1': 'ETHEREUM',
+            '10': 'OPTIMISM',
+            '56': 'BINANCE',
+            '43114': 'AVALANCHE',
+            solana: 'SOLANA',
+        })[chainId],
 }))
-jest.mock('@/constants/chainRegistry.consts', () => ({ NON_EVM_WITHDRAW_CHAINS: {} }))
 jest.mock('@/utils/general.utils', () => ({
     areEvmAddressesEqual: (a: string, b: string) => a.toLowerCase() === b.toLowerCase(),
 }))
 jest.mock('@/utils/token.utils', () => ({
     ...jest.requireActual('@/utils/token.utils'),
-    getTokenSymbol: (address: string) => (address.startsWith('0xaf88') ? 'USDC' : 'ETH'),
+    getTokenSymbol: (address: string) =>
+        ({
+            '0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42': 'EURC',
+            '0x1abaea1f7c830bd89acc67ec4af516284b1bc33c': 'EURC',
+            '0xdcb612005417dc906ff72c87df732e5a90d49e11': 'EURC',
+            '0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34': 'USDe',
+        })[address.toLowerCase()] ?? (address.startsWith('0xaf88') ? 'USDC' : 'ETH'),
 }))
 jest.mock('@/utils/peanut-claim.utils', () => ({ prepareRequestLinkFulfillmentTransaction: jest.fn() }))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
@@ -418,4 +431,94 @@ describe('useCrossChainTransfer — bridge path names its charge', () => {
         expect(body).not.toHaveProperty('contextId')
         expect(mockCommitBridgeQuote.mock.calls[0][3]).toBeUndefined()
     })
+})
+
+// TASK-24704: EURC and USDe are not worth a dollar, so a deposit address (USDC/USDT
+// only) cannot deliver them and the amount is never the delivered token amount.
+describe('useCrossChainTransfer — non-USD withdraw tokens take the bridge route', () => {
+    const SOURCE = {
+        address: KERNEL as `0x${string}`,
+        tokenAddress: USDC_ARB as `0x${string}`,
+        chainId: '42161',
+        tokenAmount: '10',
+    }
+    const EVM_RECIPIENT = RECIPIENT
+    const SOLANA_RECIPIENT = 'Vote111111111111111111111111111111111111111'
+
+    const destination = (chainId: string, tokenAddress: string, recipientAddress: string, decimals: number) => ({
+        recipientAddress,
+        tokenAddress,
+        // the charge stores '0' for these: the amount is the source spend, below
+        tokenAmount: '0',
+        tokenDecimals: decimals,
+        tokenType: 1,
+        chainId,
+    })
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        mockCommitBridgeQuote.mockResolvedValue({
+            kind: 'deposit-with-id',
+            contractAddress: '0x4444444444444444444444444444444444444444',
+            commitmentId: 'ab',
+        })
+    })
+
+    it.each([
+        ['BASE', '8453', 'EURC', '0x60a3e35cc302bfa44cb288bc5a4f316fdb1adb42', EVM_RECIPIENT, 6],
+        ['ETHEREUM', '1', 'EURC', '0x1abaea1f7c830bd89acc67ec4af516284b1bc33c', EVM_RECIPIENT, 6],
+        ['OPTIMISM', '10', 'EURC', '0xdcb612005417dc906ff72c87df732e5a90d49e11', EVM_RECIPIENT, 6],
+        ['SOLANA', 'solana', 'EURC', 'HzwqbKZw8HxMN6bF2yFZNrht3c2iXXzpKcFu7uBEDKtr', SOLANA_RECIPIENT, 6],
+        // Rhino's spelling: a USDE quote fails where a USDe one succeeds
+        ['AVALANCHE', '43114', 'USDe', '0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34', EVM_RECIPIENT, 18],
+    ])(
+        '%s %s: quotes the bridge in pay mode by the USDC spend and shows the delivered token amount',
+        async (chainOut, chainId, tokenOut, tokenAddress, recipient, decimals) => {
+            mockGetBridgeQuote.mockResolvedValue({
+                quoteId: 'q-eurc',
+                isSwap: true,
+                payAmount: '10',
+                receiveAmount: '8.90032',
+                feeUsd: 0.03,
+                expiresAt: '2099-01-01T00:00:00.000Z',
+            })
+            const { result } = renderHook(() => useCrossChainTransfer())
+
+            await act(async () => {
+                await result.current.calculate({
+                    source: SOURCE,
+                    destination: destination(chainId, tokenAddress, recipient, decimals),
+                    context: 'withdraw',
+                    contextId: 'charge-eurc',
+                })
+            })
+
+            expect(result.current.error).toBeNull()
+            expect(result.current.path).toBe('bridge')
+            expect(mockPreviewSdaTransfer).not.toHaveBeenCalled()
+            expect(mockProvisionSdaTransfer).not.toHaveBeenCalled()
+            expect(mockGetBridgeQuote).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    amount: '10', // the USDC the user spends, never a delivered-token figure
+                    tokenIn: 'USDC',
+                    tokenOut,
+                    chainOut,
+                    recipient,
+                    mode: 'pay',
+                    context: 'withdraw',
+                    contextId: 'charge-eurc',
+                })
+            )
+            // what is shown is Rhino's delivered amount, in the delivered token
+            expect(result.current.receiveAmount).toBe('8.90032')
+            expect(result.current.feeUsd).toBe(0.03)
+            // and what is approved is the USDC spend at Arbitrum's 6 decimals
+            const approve = decodeFunctionData({
+                abi: erc20Abi,
+                data: result.current.transactions![0].data as `0x${string}`,
+            })
+            expect(approve.functionName).toBe('approve')
+            expect(approve.args[1]).toBe(parseUnits('10', 6))
+        }
+    )
 })

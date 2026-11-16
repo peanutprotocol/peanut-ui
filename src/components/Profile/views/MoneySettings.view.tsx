@@ -1,7 +1,7 @@
 'use client'
 
 import { buildContactSupportMessage } from '@/utils/contact-support.utils'
-import { useBrazilResident } from '@/features/brazil-pause/useBrazilPixPaused'
+import { usePixPayBlock } from '@/features/pix/usePixPayBlock'
 
 import NavHeader from '@/components/Global/NavHeader'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
@@ -42,7 +42,8 @@ import { useCapabilities } from '@/hooks/useCapabilities'
 import { selectQrKycGate } from '@/features/payments/flows/qr-pay/qrKycGate.utils'
 import { IDENTITY_DOCUMENT_MISSING_CODE, QrKycState } from '@/constants/kyc.consts'
 import { useLimits } from '@/hooks/useLimits'
-import { limitSummariesForRows, MethodLimits } from './MethodLimits'
+import { limitSummariesForRows, MethodLimits, type BrlRoom } from './MethodLimits'
+import { brlOperationsServedBy, mantecaBrlLimitApplies } from '@/features/limits/utils'
 import { rowStatusBadge, isRowTappable } from './RowStatusBadge'
 import { entryChip, entryAction, UNKNOWN_REPORT } from '@/features/kyc-features/report'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
@@ -112,7 +113,8 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
     const router = useRouter()
     const [openView] = useQueryState('open', parseAsString)
     const [selectedDetailsRow, setDetailsRow] = useState<UnlockRow | null>(null)
-    const pixResidenceBlocked = useBrazilResident()
+    // the pay:PIX_BR route, not the app, says whether Pix payments and sends serve this residence
+    const pixResidenceBlocked = usePixPayBlock() === 'residence'
     const {
         capabilities,
         rails,
@@ -128,7 +130,7 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
         isTerminalFailure: isIdentityFinallyRejected,
     } = useIdentityVerification()
     const isKycDegraded = useKycDegraded()
-    const { mantecaLimits, bridgeLimits } = useLimits()
+    const { mantecaLimits, bridgeLimits, aveniaLimits } = useLimits()
     const { openSupportWithMessage, setIsSupportModalOpen } = useModalsContext()
 
     const isSumsubApproved = isKycApproved
@@ -138,7 +140,7 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
 
     // ── list model ──────────────────────────────────────────────────────────
 
-    const { rows: bankRows, accountChip } = useBankRows()
+    const { rows: bankRows, accountChip, report: accountsReport } = useBankRows()
     // Copy only: which sentence a closed row's notes use. Whether a row is closed is the report's.
     const restrictions = useResidenceRestrictions()
     // Would a QR payment go through today? The gate /qr-pay itself enforces
@@ -196,22 +198,14 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
         () =>
             paymentMethodSections([
                 bankAccountRow(bankRows, accountChip, {
-                    features: capabilities.features ?? UNKNOWN_REPORT,
+                    features: accountsReport,
                     heldCorridors: accountCorridors.held,
                     openableCorridors: accountCorridors.open.filter((row) => row.openable).map((row) => row.corridor),
                 }),
                 ...(spendGroup?.rows ?? []),
                 ...(peanutGroup?.rows ?? []),
             ]),
-        [
-            bankRows,
-            accountChip,
-            capabilities.features,
-            accountCorridors.held,
-            accountCorridors.open,
-            spendGroup,
-            peanutGroup,
-        ]
+        [bankRows, accountChip, accountsReport, accountCorridors.held, accountCorridors.open, spendGroup, peanutGroup]
     )
     // A Spend row the user cannot use explains why on tap, like the bank rows
     // (hugo, 2026-09-24: "always show the rails, tell the user why").
@@ -469,7 +463,20 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
     // the BRL/ARS monthly bars and the P2P no-limit line — sat above the fold
     // and repeated what a tap already says. Same derivation, same formatting,
     // one tap down. The Limits block is hidden when a method publishes none.
-    const detailSummaries = detailsRow ? limitSummariesForRows([detailsRow], mantecaLimits, bridgeLimits, locale) : []
+    // BRL's limits are, per operation, the provider's that operation's Pix route names: Avenia's room for
+    // what Avenia serves, Manteca's BRL limit while Manteca still serves any of it
+    const aveniaBrlOperations = brlOperationsServedBy(capabilities.routes, 'avenia')
+    const brlRoom: BrlRoom | null =
+        aveniaBrlOperations.length > 0
+            ? {
+                  room: aveniaLimits,
+                  operations: aveniaBrlOperations,
+                  mantecaToo: mantecaBrlLimitApplies(capabilities.routes),
+              }
+            : null
+    const detailSummaries = detailsRow
+        ? limitSummariesForRows([detailsRow], mantecaLimits, bridgeLimits, locale, brlRoom)
+        : []
     const detailNoLimit = detailsRow?.labelKey === 'p2p' || detailsRow?.labelKey === 'crypto'
     const showDetailLimits = detailNoLimit || detailSummaries.length > 0
     // A BRL row that opens this drawer is a bank rail, not the Pix send

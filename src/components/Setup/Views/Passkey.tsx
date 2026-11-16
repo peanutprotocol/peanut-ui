@@ -14,6 +14,7 @@ import { reserveUsername } from '@/features/setup/username-reservation'
 import { useSignupControl } from '@/features/setup/useSignupControl'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { PasskeySetupHelpDrawer } from './PasskeySetupHelpDrawer'
+import { PasskeyProviderUnsupportedDrawer } from './PasskeyProviderUnsupportedDrawer'
 
 export default function PasskeyStep() {
     const t = useTranslations('setup')
@@ -135,6 +136,23 @@ export default function PasskeyStep() {
                     onSupport={() => track('passkey_help_support', 'tap')}
                 />
             )}
+            <PasskeyProviderUnsupportedDrawer
+                visible={passkey.isProviderUnsupportedOpen}
+                platform={passkey.providerUnsupportedPlatform}
+                onClose={() => {
+                    track('passkey_provider', 'dismiss')
+                    passkey.closeProviderUnsupported()
+                }}
+                onRetry={() => {
+                    track('passkey_provider_retry', 'tap')
+                    passkey.retryFromProviderUnsupported()
+                }}
+                onSignUpInBrowser={() => {
+                    track('passkey_provider_web_signup', 'tap')
+                    void passkey.signUpInBrowser()
+                }}
+                onSupport={() => track('passkey_provider_support', 'tap')}
+            />
         </>
     )
 }

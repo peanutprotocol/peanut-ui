@@ -54,6 +54,7 @@ describe('withdrawScanEntryUrl', () => {
     it.each([
         ['a USDC request', 'USDC', '10'],
         ['a USDT request, whatever the case', 'usdt', '2.5'],
+        ['a DAI request', 'DAI', '5'],
     ])('carries the amount of %s', (_case, tokenSymbol, amount) => {
         expect(entryAmount(tokenSymbol, amount)).toBe(amount)
     })
@@ -306,5 +307,28 @@ describe('withdrawTokenForRequest', () => {
         ['a list that has not arrived', undefined],
     ])('has no token for %s', (_case, tokens) => {
         expect(withdrawTokenForChain(tokens)).toBeUndefined()
+    })
+})
+
+// TASK-24704: a payment request for EURC or USDe is paid only on the pairs that
+// exist, and its amount never rides in the URL: the amount step takes USD, and
+// neither token is a dollar.
+describe('a payment request for a token that is not a dollar', () => {
+    it('is refused off the pairs the registry lists', () => {
+        expect(readWithdrawDestination(EVM_ADDRESS, '8453', 'EURC')).toMatchObject({
+            chainId: '8453',
+            tokenSymbol: 'EURC',
+        })
+        expect(readWithdrawDestination(EVM_ADDRESS, '43114', 'USDe')).toMatchObject({ tokenSymbol: 'USDe' })
+        // On-demand at Rhino, or not listed at all
+        expect(readWithdrawDestination(EVM_ADDRESS, '137', 'EURC')).toBeNull()
+        expect(readWithdrawDestination(EVM_ADDRESS, '8453', 'USDe')).toBeNull()
+        expect(readWithdrawDestination(EVM_ADDRESS, '1', 'USDe')).toBeNull()
+        expect(readWithdrawDestination(EVM_ADDRESS, '8453', 'EURe')).toBeNull()
+    })
+
+    it('never carries its amount into the USD amount step', () => {
+        const url = withdrawScanEntryUrl('scan-1', { tokenSymbol: 'EURC', amount: '100' })
+        expect(new URLSearchParams(url.split('?')[1]).has('amount')).toBe(false)
     })
 })

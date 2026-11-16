@@ -1,7 +1,6 @@
 'use client'
 
 import { useAuth } from '@/context/authContext'
-import { useBrazilServicesPaused } from '@/features/brazil-pause/useBrazilServicesPaused'
 import { applyDepositPreviewGate } from '@/features/deposit-accounts/depositGate'
 import {
     hasCompleteDepositInstructions,
@@ -13,6 +12,7 @@ import {
 } from '@/features/deposit-accounts/rails'
 import { DEPOSIT_ACCOUNTS_QUERY_KEY } from '@/features/deposit-accounts/useDepositAccounts'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
+import { findPixRoute, pixDepositOffered, pixResidencePaused, pixRouteOpen } from '@/features/pix/pixRoute.utils'
 import { useResidenceIso2s } from '@/features/deposit-accounts/useResidenceIso2s'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { fetchDepositAccounts } from '@/services/deposit-accounts'
@@ -25,7 +25,6 @@ export function useAddMoneyReadiness(cryptoReady: boolean, readAccounts = true) 
     const { user, userId } = useAuth()
     const { gateFor, capabilities, isLoading: capabilitiesLoading } = useCapabilities()
     const standingEnabled = useDepositAccountsEnabled()
-    const brazilPaused = useBrazilServicesPaused()
     const residenceIso2s = useResidenceIso2s()
     const query = useQuery({
         queryKey: [...DEPOSIT_ACCOUNTS_QUERY_KEY, userId],
@@ -67,6 +66,9 @@ export function useAddMoneyReadiness(cryptoReady: boolean, readAccounts = true) 
     const readyTopUps = DEPOSIT_RAIL_ORDER.flatMap((corridor) => {
         return topUpGates[corridor].kind === 'ready' ? [DEPOSIT_RAILS[corridor].currency] : []
     })
+    const pixDepositRoute = findPixRoute(capabilities.routes, 'deposit')
+    // the Brazil pause by its reason: an outage of the provider keeps Pix, and the Pix page shows it
+    const brazilPaused = pixResidencePaused(pixDepositRoute)
     const resolved = resolveAddMoneyMethods({
         cryptoReady,
         standingEnabled,
@@ -75,6 +77,8 @@ export function useAddMoneyReadiness(cryptoReady: boolean, readAccounts = true) 
         activeAccounts,
         readyTopUps,
         firstPaymentAt: user?.user?.firstPaymentAt,
+        pixDepositOffered: pixDepositOffered(pixDepositRoute),
+        pixDepositRouteOpen: pixRouteOpen(pixDepositRoute) && pixDepositRoute?.state !== 'paused',
     })
     const isLoading = !userId || capabilitiesLoading || (readAccounts && standingEnabled && query.isLoading)
     return {
