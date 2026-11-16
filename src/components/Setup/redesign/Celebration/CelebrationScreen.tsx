@@ -32,6 +32,8 @@ export function CelebrationScreen() {
             stage="full"
             artTop={104}
             smScale={0.67}
+            // scale 1 on a standard phone, as the mock: the fit would shrink the art by the bottom safe area
+            artBesideTitle
             chrome={{ back: false, dots: false, lang: false }}
             art={<CelebrationArt claim={claim} />}
             footer={null}

@@ -47,7 +47,7 @@ export function EmailScreen(_props: StepComponentProps) {
         <SetupScreen
             ground="yellow"
             stage="std"
-            artTop={172}
+            artTop={190}
             title={t('email.title')}
             chrome={{ back: false }}
             art={<EmailArt beat={beat} />}
