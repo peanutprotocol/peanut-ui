@@ -3,7 +3,7 @@ import { validateNumericResponse } from '@/lib/numeric-response'
  * Rain Card API Service
  *
  * Client-side service for every Rain card endpoint (overview, apply,
- * activate/lock/cancel, reveal, PIN, limits, physical waitlist,
+ * activate/lock/cancel, reveal, PIN, limits,
  * withdrawals, session-key grant). Uses the browser's JWT cookie directly
  * (via `js-cookie`) — matches the pattern in `services/manteca.ts`.
  */
@@ -351,11 +351,6 @@ export type RainLimitFrequency = 'perAuthorization' | 'per24HourPeriod' | 'per30
 export interface RainCardLimit {
     amount: number
     frequency: RainLimitFrequency
-}
-
-export interface PhysicalWaitlistState {
-    joinedAt: string | null
-    position: number | null
 }
 
 export class RainCardRateLimitError extends Error {
@@ -1161,22 +1156,6 @@ export const rainApi = {
             stepUp: true,
             body: { pin },
             noStore: true,
-        })
-    },
-
-    /** Get the physical-card waitlist state for this card. */
-    getPhysicalWaitlist: async (cardId: string): Promise<PhysicalWaitlistState> => {
-        return rainRequest<PhysicalWaitlistState>({
-            method: 'GET',
-            path: `/rain/cards/${cardId}/physical-waitlist`,
-        })
-    },
-
-    /** Join the physical-card waitlist (idempotent). */
-    joinPhysicalWaitlist: async (cardId: string): Promise<{ joinedAt: string; position: number }> => {
-        return rainRequest<{ joinedAt: string; position: number }>({
-            method: 'POST',
-            path: `/rain/cards/${cardId}/physical-waitlist`,
         })
     },
 }

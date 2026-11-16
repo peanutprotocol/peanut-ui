@@ -38,7 +38,7 @@ import {
     isUnavailableBadgeCampaignClaim,
 } from '@/services/badge-campaigns'
 import { getPendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
-import { settleShhhhhCampaignContinuation } from '@/app/shhhhh/shhhhh-acquisition'
+import { settleCardCampaignContinuation } from '@/features/card/card-campaign-acquisition'
 import { signupConsentDocuments } from '@/services/consent'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -202,7 +202,7 @@ export const useZeroDev = () => {
             // Re-read after `/invites/accept`: a confirmed legacy adapter may
             // have settled the same tag, while a malformed/missing result may
             // have queued it for an immediate canonical retry.
-            settleShhhhhCampaignContinuation()
+            settleCardCampaignContinuation()
             const pendingBadgeCampaigns = getPendingBadgeCampaigns()
             if (pendingBadgeCampaigns.length > 0) {
                 const batch = await claimAndSettlePendingBadgeCampaigns(pendingBadgeCampaigns)

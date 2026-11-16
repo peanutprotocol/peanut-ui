@@ -38,7 +38,6 @@ import { useAppHaptic } from '@/hooks/useAppHaptic'
 
 enum EModalType {
     QR_NOT_SUPPORTED = 'QR_NOT_SUPPORTED',
-    WILL_BE_NOTIFIED = 'WILL_BE_NOTIFIED',
     EXTERNAL_URL = 'EXTERNAL_URL',
     UNRECOGNIZED = 'UNRECOGNIZED',
     PIX_RECURRING = 'PIX_RECURRING',
@@ -51,7 +50,6 @@ interface QrResultModalProps {
     qrType: EQrType | undefined
     redirectTo: string | undefined
     onClose: () => void
-    onNotifyMe: () => void
 }
 
 interface QrResultModalContent {
@@ -62,7 +60,7 @@ interface QrResultModalContent {
     tertiaryCta?: ActionModalTertiaryCta
 }
 
-function QrResultModal({ visible, modalContent, qrType, redirectTo, onClose, onNotifyMe }: QrResultModalProps) {
+function QrResultModal({ visible, modalContent, qrType, redirectTo, onClose }: QrResultModalProps) {
     const t = useTranslations('global')
     const tCommon = useTranslations('common')
     const toast = useToast()
@@ -114,18 +112,7 @@ function QrResultModal({ visible, modalContent, qrType, redirectTo, onClose, onN
         [EModalType.QR_NOT_SUPPORTED]: {
             tone: 'info',
             title: t('qrScannerOverlay.titleNotSupported', { qrName }),
-            description: (
-                <>
-                    <p>{t('qrScannerOverlay.notSupportedWorking')}</p>
-                    <p>{t('qrScannerOverlay.notSupportedGetNotified')}</p>
-                </>
-            ),
-            ctas: [{ text: t('qrScannerOverlay.getNotifiedCta'), shadowSize: '4', onClick: onNotifyMe }],
-        },
-        [EModalType.WILL_BE_NOTIFIED]: {
-            tone: 'success',
-            title: t('qrScannerOverlay.titleWillBeNotified'),
-            description: t('qrScannerOverlay.willBeNotified', { qrName }),
+            description: t('qrScannerOverlay.notSupportedWorking'),
             ctas: [{ text: tCommon('close'), shadowSize: '4', onClick: onClose }],
         },
         // A payload that is not an http(s) link is not one the user can be asked
@@ -524,10 +511,6 @@ export default function QRScannerOverlay() {
                 qrType={qrType}
                 redirectTo={redirectTo}
                 onClose={() => setIsModalOpen(false)}
-                onNotifyMe={() => {
-                    setModalContent(EModalType.WILL_BE_NOTIFIED)
-                    posthog.capture(ANALYTICS_EVENTS.QR_NOTIFY_ME_CLICKED, { qr_type: qrType })
-                }}
             />
 
             {isQRScannerOpen && (

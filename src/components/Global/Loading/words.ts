@@ -21,8 +21,6 @@ export const PAYMENT_LOADING_WORD_KEYS = [
     'sayingHola',
     'dodgingFees',
     'outrunningYourBank',
-    'skippingTheLine',
-    'cuttingTheLine',
     'ditchingWires',
     'bypassingBorders',
     'sneakingPast',

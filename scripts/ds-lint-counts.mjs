@@ -134,7 +134,6 @@ const LEGACY_ALLOW = [
     'components/Marketing/',
     'components/Jobs/',
     'app/lp/',
-    'app/shhhhh/',
     'app/careers/',
     'app/jobs/',
     'app/m/',

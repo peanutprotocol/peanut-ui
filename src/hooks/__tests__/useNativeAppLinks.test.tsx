@@ -344,6 +344,13 @@ describe('document click interceptor', () => {
         return event
     }
 
+    it('opens a legacy /shhhhh link in the in-app browser, where the web redirects it to the card LP', async () => {
+        renderHook(() => useNativeAppLinks())
+        const event = clickAnchor({ href: '/shhhhh' })
+        expect(event.defaultPrevented).toBe(true)
+        expect(openExternalUrl).toHaveBeenCalledWith(`${BASE_URL}/shhhhh`)
+    })
+
     it('opens a web-only relative href in the in-app browser instead of client-navigating', async () => {
         renderHook(() => useNativeAppLinks())
         const event = clickAnchor({ href: '/en/help/fees-pricing' })
@@ -354,7 +361,7 @@ describe('document click interceptor', () => {
     it('leaves relative hrefs the native export ships alone', async () => {
         renderHook(() => useNativeAppLinks())
         const home = clickAnchor({ href: '/home' })
-        const card = clickAnchor({ href: '/shhhhh' })
+        const card = clickAnchor({ href: '/card' })
         expect(home.defaultPrevented).toBe(false)
         expect(card.defaultPrevented).toBe(false)
         expect(openExternalUrl).not.toHaveBeenCalled()

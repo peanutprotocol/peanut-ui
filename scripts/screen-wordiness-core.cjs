@@ -19,7 +19,6 @@ const EXCLUDED_ROUTE_PREFIXES = [
     'app/careers/',
     'app/m/',
     'app/app/',
-    'app/shhhhh/',
     'app/crisp-proxy/',
     'app/(mobile-ui)/quests/',
     'app/api/',

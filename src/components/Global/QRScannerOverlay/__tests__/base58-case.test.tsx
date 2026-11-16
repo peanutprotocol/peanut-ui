@@ -131,7 +131,7 @@ describe('QRScannerOverlay case handling', () => {
             expect(mockPush).not.toHaveBeenCalled()
         })
 
-        // Bitcoin, Lightning and XRP keep the notify-me path — they are not
+        // Bitcoin, Lightning and XRP get the not-supported modal — they are not
         // withdrawal destinations. Solana and Tron are.
         it.each([
             ['Solana', SOLANA_WITH_UPPERCASE_L, 'solana'],
@@ -160,6 +160,9 @@ describe('QRScannerOverlay case handling', () => {
         it('accepts an uppercase bech32 Bitcoin address', async () => {
             await scan(BECH32_UPPERCASE)
             expect(screen.getByText('Bitcoin not supported yet.')).toBeInTheDocument()
+            // No subscription backend exists, so the modal promises no notification (TASK-24171).
+            expect(screen.queryByText(/notif|on the list|let you know/i)).not.toBeInTheDocument()
+            expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument()
         })
 
         it('accepts an uppercase Lightning invoice', async () => {

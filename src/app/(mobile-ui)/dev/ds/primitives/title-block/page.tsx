@@ -114,30 +114,6 @@ export default function TitleBlockPage() {
                 </ProductUsage.Example>
 
                 <ProductUsage.Example
-                    title="Card — physical card waitlist"
-                    path="src/components/Card/PhysicalCardScreen.tsx"
-                    description="A screen hero: size s, centered, and the title is an <h1> so the page keeps one real heading. The block only sets the type token — the element stays the caller's choice."
-                    code={`<TitleBlock
-    title={<h1>{t('onListTitle')}</h1>}
-    description={t('onListBody')}
-    align="center"
-    size="s"
-/>`}
-                >
-                    <div className="flex flex-col gap-6">
-                        <TitleBlock
-                            title={<h1>You're on the waiting list</h1>}
-                            description="We'll tell you as soon as you can order it."
-                            align="center"
-                            size="s"
-                        />
-                        <Button variant="primary" className="w-full">
-                            Join the waitlist
-                        </Button>
-                    </div>
-                </ProductUsage.Example>
-
-                <ProductUsage.Example
                     title="Processing screen — qr-pay and add-money"
                     path="src/components/Global/ProcessingScreen.tsx"
                     description="The mascot loader over a centered TitleBlock at the default card size. Copy stays truthful: no invented durations, no progress bar."

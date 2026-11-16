@@ -97,7 +97,10 @@ describe('resolveContentHref', () => {
 
     it('keeps locale-neutral app routes bare — /{locale}/card would 404 in the country catch-all', () => {
         expect(resolveContentHref('/card', 'es-ar')).toBe('/card')
-        expect(resolveContentHref('/shhhhh?campaign=x', 'pt-br')).toBe('/shhhhh?campaign=x')
+        expect(resolveContentHref('/peanut-card', 'es-ar')).toBe('/peanut-card')
+        expect(resolveContentHref('https://peanut.me/peanut-card?utm_source=blog', 'pt-br')).toBe(
+            'https://peanut.me/peanut-card?utm_source=blog'
+        )
         expect(resolveContentHref('https://peanut.me/card', 'es-ar')).toBe('https://peanut.me/card')
         expect(resolveContentHref('https://peanut.me/en/card', 'es-ar')).toBe('https://peanut.me/card')
     })
@@ -163,8 +166,14 @@ describe('resolveContentHref', () => {
         )
     })
 
+    it('points retired /shhhhh content links straight at /peanut-card, keeping the query', () => {
+        expect(resolveContentHref('/shhhhh?campaign=x', 'pt-br')).toBe('/peanut-card?campaign=x')
+        expect(resolveContentHref('https://peanut.me/shhhhh?from=content#card', 'es-419')).toBe(
+            'https://peanut.me/peanut-card?from=content#card'
+        )
+    })
+
     it.each([
-        'https://peanut.me/shhhhh?from=content#card',
         'https://peanut.me/es-ar/help',
         'https://peanut.me.evil.com/es-419/terms',
         'https://peanut.me@evil.com/es-419/terms',

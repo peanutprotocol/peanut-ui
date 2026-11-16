@@ -65,8 +65,6 @@ export function getIndexablePages(): IndexablePage[] {
 
         // Public pages
         { path: '/careers', priority: 0.7, changeFrequency: 'monthly' },
-        // The legacy /lp/card URL redirects here.
-        { path: '/shhhhh', priority: 0.7, changeFrequency: 'weekly' },
         ...Object.values(STAR_LP_ROUTES).map((path) => ({
             path,
             priority: 0.8,

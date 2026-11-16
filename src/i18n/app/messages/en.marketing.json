@@ -262,7 +262,7 @@
             },
             "q8": {
                 "question": "Is a physical card available?",
-                "answer": "Peanut Card is virtual. You can register your interest in a physical card from the app."
+                "answer": "Peanut Card is virtual. A physical card is not available."
             }
         },
         "ready": {

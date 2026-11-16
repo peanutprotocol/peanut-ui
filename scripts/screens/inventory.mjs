@@ -59,7 +59,7 @@ export function inventory(root, catalogue) {
         const screens = byRoute.get(route) ?? []
         const reason =
             ROUTE_EXCLUSIONS.get(route) ??
-            (route.startsWith('/dev') || route === '/shhhhh'
+            (route.startsWith('/dev')
                 ? 'Developer tooling, outside the app catalogue'
                 : route.startsWith('/quests') ||
                     route.startsWith('/[locale]') ||

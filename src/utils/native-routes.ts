@@ -289,7 +289,7 @@ function mapDeepLinkPath(parsed: URL): string | null {
 
 /*
  * Route roots that exist in the native static export — src/app/(mobile-ui)/* +
- * /setup + /shhhhh, minus what scripts/native-build.js disables. Two tests in
+ * /setup, minus what scripts/native-build.js disables. Two tests in
  * __tests__/native-routes.test.ts pin it: the AASA drift test walks the App
  * Links path list against this mapper, and the export drift test walks src/app
  * against this set, so a root claimed for the app but missing here — or listed
@@ -321,9 +321,6 @@ export const NATIVE_EXPORT_ROOTS: ReadonlySet<string> = new Set([
     'send',
     'settings',
     'setup',
-    // card explainer — outside (mobile-ui) but not stripped by native-build,
-    // and linked from /profile, so it must resolve in-app
-    'shhhhh',
     'verify',
     'withdraw',
 ])

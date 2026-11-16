@@ -1095,16 +1095,6 @@
                     "applyCard": "Solicita tu tarjeta después de verificar tu identidad."
                 }
             },
-            "restricted": {
-                "title": "Atención",
-                "description": "Debido a regulaciones, las transferencias bancarias y la emisión de tarjetas no están disponibles para ti. Aún puedes tener dólares digitales, enviar a cualquier @usuario y retirar tu saldo cuando quieras.",
-                "continueAnyway": "Continuar de todos modos",
-                "notifyMe": "Avísame cuando esté disponible",
-                "emailPlaceholder": "tu@ejemplo.com",
-                "notifySubmit": "Avisarme",
-                "notifyDone": "Listo. Te enviaremos un correo cuando esté disponible.",
-                "changeCountry": "Elegir otro país"
-            },
             "compare": {
                 "selectCountry": "Elegir {country}",
                 "items": {
@@ -1375,8 +1365,6 @@
         "sayingHola": "Diciendo hola",
         "dodgingFees": "Esquivando comisiones",
         "outrunningYourBank": "Corriendo más que tu banco",
-        "skippingTheLine": "Saltando la fila",
-        "cuttingTheLine": "Colándonos en la fila",
         "ditchingWires": "Jubilando los giros",
         "bypassingBorders": "Cruzando fronteras",
         "sneakingPast": "Pasando de incógnito",
@@ -2093,21 +2081,6 @@
             "solicitation": "Reconozco que solicitar la tarjeta {partner} Spend no constituye una solicitud no autorizada.",
             "accountOpeningPrivacy": "Acepto el <link>Aviso de privacidad de apertura de cuenta</link>"
         },
-        "physical": {
-            "navTitle": "Tarjeta física",
-            "onListTitle": "Estás en la lista de espera",
-            "onListBody": "Te avisamos apenas puedas pedirla.",
-            "comingSoonTitle": "La tarjeta física está en camino",
-            "comingSoonBody": "Todavía no puedes pedirla. Así va a funcionar:",
-            "joinCta": "Unirme a la lista de espera",
-            "joinFailed": "No se pudo unir a la lista de espera",
-            "stepJoin": "Únete hoy a la lista de espera",
-            "stepNotify": "Te avisamos cuando se pueda pedir",
-            "stepShip": "Pídela y te la enviamos",
-            "notAvailableBadge": "Aún no disponible",
-            "positionBadge": "Eres el #{position} en la lista",
-            "onListBadge": "Estás en la lista"
-        },
         "yourCard": {
             "navTitle": "Tarjeta",
             "completeVerification": "Completar verificación",
@@ -2138,7 +2111,6 @@
             "managementTitle": "Gestión de la tarjeta",
             "pin": "PIN",
             "spendingLimit": "Límite de gasto",
-            "physicalCard": "Tarjeta física",
             "redZone": "Zona roja",
             "lockCard": "Congelar",
             "unlockCard": "Descongelar",
@@ -2208,8 +2180,6 @@
             "rateLimited": "Por ahora no se pueden mostrar los datos de la tarjeta. Inténtalo más tarde."
         },
         "eligibility": {
-            "navTitle": "La puerta",
-            "titleWithUsername": "A ver, @{username}…",
             "title": "Veamos si calificas",
             "description": "Mantén presionado el botón. Te estamos buscando.",
             "holdAriaLabel": "Mantén presionado para revisar si calificas",
@@ -3346,7 +3316,7 @@
         "processingUnfinishedDescription": "Está tardando más de lo normal. Si dejaste la verificación sin terminar, continúala ahora. Si ya la terminaste, contacta a soporte y lo revisamos.",
         "processingReviewDescription": "Está tardando más de lo normal. Nuestro socio de pagos todavía está revisando tus datos. Contacta a soporte y lo revisamos.",
         "continueVerification": "Continuar verificación",
-        "unsupportedRegionError": "Los depósitos bancarios aún no están disponibles en tu región. Te avisaremos apenas se habiliten.",
+        "unsupportedRegionError": "Los depósitos bancarios aún no están disponibles en tu región.",
         "railsUnavailableError": "Tu identidad está verificada, pero no podemos configurar los pagos para tu región en este momento. Contacta con soporte y lo resolvemos.",
         "sessionBlockedSubmissionError": "No pudimos terminar de configurar estos pagos. El problema es nuestro: contacta con soporte y lo terminamos.",
         "sessionBlockedDecisionError": "No podemos configurar estos pagos para esta cuenta. Contacta con soporte si crees que es un error.",
@@ -4416,11 +4386,11 @@
     "global": {
         "countryWaitlist": {
             "title": "Transferencias bancarias en {country}",
-            "body": "Las transferencias bancarias aún no están disponibles aquí. Únete a la lista y te avisaremos cuando lo estén.",
-            "join": "Avisarme",
-            "joinedTitle": "En la lista",
-            "joinedBody": "Te avisaremos cuando las transferencias bancarias estén disponibles en {country}.",
-            "error": "No se pudo actualizar la lista de espera. Inténtalo de nuevo."
+            "body": "Las transferencias bancarias aún no están disponibles aquí. Toca abajo para decirnos que las quieres.",
+            "join": "Las quiero",
+            "joinedTitle": "Gracias",
+            "joinedBody": "Anotamos que quieres transferencias bancarias en {country}.",
+            "error": "No se pudo guardar tu pedido. Inténtalo de nuevo."
         },
         "amountInput": {
             "balance": "Saldo:",
@@ -4494,9 +4464,6 @@
         },
         "qrScannerOverlay": {
             "notSupportedWorking": "Estamos trabajando en una integración.",
-            "notSupportedGetNotified": "¡Entérate cuando esté disponible!",
-            "getNotifiedCta": "¡Avísame!",
-            "willBeNotified": "Te avisaremos apenas {qrName} esté disponible.",
             "okay": "Entendido",
             "externalUrlIntro": "Peanut no admite este QR, pero puedes abrirlo con tu navegador.",
             "externalUrlTrust": "¡Asegúrate de confiar en este sitio web!",
@@ -4510,7 +4477,6 @@
             "titlePixRecurring": "PIX Automático no compatible",
             "titleArgentinaAlias": "No se puede pagar a un alias",
             "titleNotSupported": "{qrName} aún no es compatible.",
-            "titleWillBeNotified": "¡Estás en la lista!",
             "titleExternalUrl": "¡Este es un enlace externo!",
             "eip681ParseError": "Error al analizar la URL EIP-681",
             "notPeanutUrl": "El QR no se reconoce como una URL de Peanut",
@@ -5016,7 +4982,7 @@
             },
             "q8": {
                 "question": "¿Hay una tarjeta física?",
-                "answer": "Peanut Card es virtual. Puedes registrar tu interés en una tarjeta física desde la app."
+                "answer": "Peanut Card es virtual. No hay una tarjeta física disponible."
             }
         },
         "ready": {
