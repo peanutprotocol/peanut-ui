@@ -11,7 +11,8 @@ export const SETUP_CHANNEL_CONCEPTS: Record<SetupChannel, Concept> = {
     bank: 'bank',
     // a bank transfer into BRL is Pix in Brazil, so the row shows the Pix mark (TASK-24947)
     brlBank: 'pix',
-    arsBank: 'bank',
+    // Argentines add ARS from Mercado Pago, so the row shows its mark (TASK-25015)
+    arsBank: 'mercadoPago',
     qr: 'qrPay',
     card: 'card',
     crypto: 'crypto',

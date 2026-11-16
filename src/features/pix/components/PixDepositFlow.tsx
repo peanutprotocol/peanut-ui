@@ -30,8 +30,8 @@ import { originPastHubs, readReturnTo, RETURN_TO_PARAM } from '@/utils/return-to
 
 type PixDepositStep = 'inputAmount' | 'showQR'
 type Denomination = 'USD' | 'BRL'
-// The Add picker and the method chooser send themselves as `returnTo` so Back reopens them
-const ADD_MONEY_HUBS = ['/add-money', '/add-money/options'] as const
+// The Add picker sends itself as `returnTo` so Back reopens it
+const ADD_MONEY_HUBS = ['/add-money'] as const
 
 /**
  * Add money by Pix, for whichever provider the deposit route names: the

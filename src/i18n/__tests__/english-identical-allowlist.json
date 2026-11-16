@@ -113,6 +113,22 @@
         "setupRedesign.plan.fundBrlBank": {
             "locales": ["es-419", "es-AR", "pt-BR"],
             "reason": "payment rail name and currency code (Pix (BRL)), the same in every language"
+        },
+        "setupRedesign.plan.fundArsBank": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "brand name and currency code (Mercado Pago (ARS)), the same in every language (TASK-25015)"
+        },
+        "setupRedesign.plan.fundArsBankPill": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "brand name (Mercado Pago), the same in every language (TASK-25015)"
+        },
+        "setup.paymentPlan.funding.arsBank": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "brand name and currency code (Mercado Pago (ARS)), the same in every language"
+        },
+        "addMoney.methods.mercadoPago": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "brand name (Mercado Pago), the same in every language"
         }
     }
 }

@@ -48,6 +48,8 @@ export function PixKeyStep({
     const current = result && key && result.key === key && !isChanging ? result : null
     // the provider pays any key, except one at a bank it will not pay
     const canPay = current?.status === 'found' && !current.info.blocked
+    // the holder card continues too: it is what the user looks at once the key resolves (Aleks, 2026-11-16)
+    const continueWithKey = canPay && key ? () => onContinue(key, current.info) : undefined
     const error = isPixEmvcoQr(value.trim()) ? t('notACode') : keyError(current)
 
     function keyError(lookupResult: PixKeyLookup | null): string | undefined {
@@ -88,6 +90,12 @@ export function PixKeyStep({
                     <ListItem
                         data-testid="pix-key-holder"
                         position="solo"
+                        onClick={continueWithKey}
+                        aria-label={
+                            continueWithKey
+                                ? `${tCommon('continue')}, ${current.info.holderName ?? t('unknownHolder')}`
+                                : undefined
+                        }
                         leading={<AvatarWithBadge name={current.info.holderName ?? undefined} size="s" />}
                         title={current.info.holderName ?? t('unknownHolder')}
                         body={[
@@ -111,12 +119,7 @@ export function PixKeyStep({
                 )}
             </div>
             <PageStack.Footer>
-                <Button
-                    variant="primary"
-                    className="w-full"
-                    disabled={!canPay || !key}
-                    onClick={() => key && current?.status === 'found' && onContinue(key, current.info)}
-                >
+                <Button variant="primary" className="w-full" disabled={!continueWithKey} onClick={continueWithKey}>
                     {tCommon('continue')}
                 </Button>
             </PageStack.Footer>

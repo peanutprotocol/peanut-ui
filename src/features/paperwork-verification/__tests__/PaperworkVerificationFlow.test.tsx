@@ -1342,6 +1342,7 @@ describe('PaperworkVerificationFlow', () => {
         try {
             renderFlow()
             const notice = await screen.findByTestId('verify-bank-refused')
+            expect(notice).toHaveTextContent('Already have an account?')
             expect(notice).toHaveTextContent(/already linked to another Peanut account/)
             expect(screen.getByTestId('verify-verified-payments')).toBeInTheDocument()
         } finally {

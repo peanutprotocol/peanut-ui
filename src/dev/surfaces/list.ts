@@ -216,11 +216,6 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         path: 'Setup/Views/PasskeyProviderUnsupportedDrawer.tsx',
         captureState: ['platform=android-app'],
     },
-    '08-e-passkeyproviderunsupporteddrawer-browser-failed': {
-        name: 'PasskeyProviderUnsupportedDrawer — browser did not open',
-        path: 'Setup/Views/PasskeyProviderUnsupportedDrawer.tsx',
-        captureState: ['platform=android-app', 'browser=open-failed'],
-    },
     '08-f-passkeyproviderunsupporteddrawer-other': {
         name: 'PasskeyProviderUnsupportedDrawer — iOS and web',
         path: 'Setup/Views/PasskeyProviderUnsupportedDrawer.tsx',
@@ -334,6 +329,11 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         name: 'Residence change under review',
         path: 'Profile/views/ResidenceChangeDrawer.tsx',
         captureState: ['pendingStatus=REVIEW_PENDING'],
+    },
+    '45-e-residence-manual-review': {
+        name: 'Residence change held for manual review',
+        path: 'Profile/views/ResidenceChangeDrawer.tsx',
+        captureState: ['pendingStatus=REVIEW_PENDING', 'pendingManualReview=true'],
     },
     '48-c-balancewarningmodal': { name: 'BalanceWarningDrawer', path: 'Global/BalanceWarningDrawer/index.tsx' },
     '50-d-transactiondetailsdrawer': {

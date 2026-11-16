@@ -1238,6 +1238,24 @@ export const SURFACES: Record<string, Surface> = {
             />
         ),
     },
+    '45-e-residence-manual-review': {
+        ...SURFACE_META['45-e-residence-manual-review'],
+        render: () => (
+            <ResidenceChangeDrawer
+                visible
+                onClose={noop}
+                userId="demo-user"
+                declared="ES"
+                verified="BR"
+                pending="ES"
+                pendingStatus="REVIEW_PENDING"
+                pendingManualReview
+                onSaved={asyncNoop}
+                onReverify={noop}
+                onContactSupport={noop}
+            />
+        ),
+    },
     '48-c-balancewarningmodal': {
         name: 'BalanceWarningDrawer',
         path: 'Global/BalanceWarningDrawer/index.tsx',

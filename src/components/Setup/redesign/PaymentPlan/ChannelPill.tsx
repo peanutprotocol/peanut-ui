@@ -1,7 +1,6 @@
 'use client'
 
 import Image from 'next/image'
-import PIX from '@/assets/payment-apps/pix.svg'
 import { Button } from '@/components/0_Bruddle/Button'
 import { CONCEPT_ICONS, type ConceptIcon } from '@/components/0_Bruddle/conceptIcons'
 import { DrawerSelect } from '@/components/0_Bruddle/DrawerSelect'
@@ -16,11 +15,15 @@ import { CHANNEL_ICON } from './channelLabels'
 function PillIcon({ channel, loading }: { channel: SetupChannel | null; loading: boolean }) {
     if (loading) return <Loading className="size-4 text-foreground-secondary" />
     if (!channel) return <Icon name="question-mark" size={20} className="text-foreground-secondary" />
-    if (channel === 'brlBank') return <Image src={PIX} alt="" className="size-6" />
+    // a brand mark (Pix, Mercado Pago since TASK-25015) shows as itself
+    if (channel === 'brlBank' || channel === 'arsBank') {
+        const mark = CONCEPT_ICONS[SETUP_CHANNEL_CONCEPTS[channel]]
+        return 'logo' in mark ? <Image src={mark.logo} alt="" className="size-6" /> : null
+    }
     return <Icon name={CHANNEL_ICON[channel]} size={20} className="text-foreground-primary" />
 }
 
-/** The drawer row's icon bubble, as dev's ChannelIcon (a bank row is green, Pix is its mark). */
+/** The drawer row's icon bubble, as dev's ChannelIcon (a bank row is green, Pix and Mercado Pago are their mark). */
 function RowIcon({ channel }: { channel: SetupChannel }) {
     const concept = SETUP_CHANNEL_CONCEPTS[channel]
     const mark: ConceptIcon = CONCEPT_ICONS[concept]

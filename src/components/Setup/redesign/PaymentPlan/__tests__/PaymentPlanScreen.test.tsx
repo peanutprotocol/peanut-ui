@@ -329,13 +329,14 @@ describe('08 Payment plan', () => {
         expect(view.flow().fundingChannel).toBe('brlBank')
     })
 
-    it('P3-45 / K3 Argentina’s local bank pill reads "Banco ARS" in es-AR', async () => {
+    it('P3-45 / TASK-25015 Argentina’s local pill reads "Mercado Pago" with its mark in es-AR', async () => {
         const view = render({ residenceCountry: 'AR' }, { locale: 'es-AR' })
         expect(view.open('funding')[0]).toBe(label('fundArsBank', {}, 'es-AR'))
         fireEvent.keyDown(openDialog()!, { key: 'Escape' })
         await waitFor(() => expect(openDialog()).toBeNull())
         await view.choose('funding', label('fundArsBank', {}, 'es-AR'))
         expect(shownText(view.pill('funding'))).toBe(label('fundArsBankPill', {}, 'es-AR'))
+        expect(view.pill('funding').querySelector('img')).not.toBeNull()
         expect(view.flow().fundingChannel).toBe('arsBank')
     })
 
@@ -515,15 +516,13 @@ describe('08 Payment plan: dev cases kept', () => {
         ])
     })
 
-    it('P3-43 drawer row marks: local and Bridge bank rows a green bubble, Pix its bare logo', () => {
+    it('P3-43 drawer row marks: Bridge bank rows a green bubble, Pix and Mercado Pago their bare logo', () => {
         const ar = render({ residenceCountry: 'AR' })
         fireEvent.click(ar.pill('funding'))
         const arDialog = openDialog()!
         const ars = within(arDialog).getByRole('button', { name: textRx(label('fundArsBank')), hidden: true })
-        expect(rowMark(ars)).toEqual({
-            logo: false,
-            className: expect.stringContaining('bg-background-icon-bubble-green'),
-        })
+        expect(rowMark(ars).logo).toBe(true)
+        expect(rowMark(ars).className).not.toMatch(/\bbg-/)
         ar.unmount()
 
         const br = render({ residenceCountry: 'BR' })

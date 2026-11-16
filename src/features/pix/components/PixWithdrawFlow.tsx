@@ -198,8 +198,10 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
     const preview = useQuery({
         queryKey: [PIX_WITHDRAW_PREVIEW, request],
         queryFn: () => pixApi.previewWithdrawal(request!),
-        // the form shows it; once Confirm opened the ticket (`?intentId=`), the confirmed numbers stand
-        enabled: formOpen && !!request && !amountError && !intentId && !pending,
+        // The form shows it; once Confirm opened the ticket (`?intentId=`), the confirmed numbers stand.
+        // Only once the field settled: `amountError` reads the field and the request lags it, so typing
+        // over R$3 used to quote R$3 and show its refusal next to the minimum (Aleks, 16 Nov 2026).
+        enabled: formOpen && settled && !!request && !amountError && !intentId && !pending,
         retry: false,
         staleTime: 30_000,
     })
@@ -320,21 +322,27 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
                 return { label: tCommon('retry'), onClick: () => void preview.refetch() }
         }
     }
-    const formError = submit.error
-        ? // once the withdrawal is open, only a signature that surely sent nothing may be tried again
-          {
-              message:
-                  submit.lockedAfterInit && !submit.canSignOpened
-                      ? `${submit.error} ${t('errors.afterInit')}`
-                      : submit.error,
-          }
-        : preview.error
-          ? { message: refusalMessage(preview.error), action: previewAction(wireErrorCode(preview.error)) }
-          : fundsShort
-            ? { message: insufficient }
-            : reconfirm
-              ? { message: t('quoteMoved'), priority: 'attention' as const }
-              : null
+    // The form's one message, under the amount (Aleks, 16 Nov 2026). While the field can change
+    // (`idle`), its own error leads: it names the amount on screen, and no quote is asked while it
+    // stands, so a refusal or a failed Confirm is of an earlier amount. After Confirm the ladder decides.
+    const formError =
+        submit.phase === 'idle' && amountError
+            ? { message: amountError }
+            : submit.error
+              ? // once the withdrawal is open, only a signature that surely sent nothing may be tried again
+                {
+                    message:
+                        submit.lockedAfterInit && !submit.canSignOpened
+                            ? `${submit.error} ${t('errors.afterInit')}`
+                            : submit.error,
+                }
+              : preview.error
+                ? { message: refusalMessage(preview.error), action: previewAction(wireErrorCode(preview.error)) }
+                : fundsShort
+                  ? { message: insufficient }
+                  : reconfirm
+                    ? { message: t('quoteMoved'), priority: 'attention' as const }
+                    : null
 
     // the field starts from the amount already typed (a reload, or back from the key step), in its own denomination
     const seed: PixWithdrawAmountSeed | null =
@@ -365,7 +373,6 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
                 isError: brl.isError,
                 onRetry: brl.refetch,
                 disabled: submit.phase !== 'idle',
-                error: amountError,
                 walletBalance: spendableBalance !== undefined ? formattedSpendableBalance : undefined,
                 balanceFillAmount:
                     spendableBalanceDecimal !== undefined && price !== null

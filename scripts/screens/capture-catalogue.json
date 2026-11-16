@@ -329,12 +329,6 @@
         "source": "Setup/Views/PasskeyProviderUnsupportedDrawer.tsx"
     },
     {
-        "id": "08-e-passkeyproviderunsupporteddrawer-browser-failed",
-        "flow": "Setup and login",
-        "route": "/dev/surfaces?s=08-e-passkeyproviderunsupporteddrawer-browser-failed",
-        "source": "Setup/Views/PasskeyProviderUnsupportedDrawer.tsx"
-    },
-    {
         "id": "08-f-passkeyproviderunsupporteddrawer-other",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=08-f-passkeyproviderunsupporteddrawer-other",
@@ -350,6 +344,12 @@
         "id": "45-d-residence-review",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=45-d-residence-review",
+        "source": "Profile/views/ResidenceChangeDrawer.tsx"
+    },
+    {
+        "id": "45-e-residence-manual-review",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=45-e-residence-manual-review",
         "source": "Profile/views/ResidenceChangeDrawer.tsx"
     },
     {
@@ -1159,6 +1159,11 @@
         "route": "/add-money/argentina/manteca?step=inputAmount&amount=10000&currency=ARS"
     },
     {
+        "id": "fixture-add-money-argentina-deposit-open",
+        "flow": "Add money",
+        "route": "/add-money/argentina/manteca?step=inputAmount&currency=ARS"
+    },
+    {
         "id": "fixture-add-money-bank-liechtenstein",
         "flow": "Add money",
         "route": "/add-money/liechtenstein/bank?step=inputAmount&amount=100"
@@ -1237,6 +1242,16 @@
         "id": "fixture-pix-deposit-receipt-completed",
         "flow": "Add money",
         "route": "/history?tx=fixture-avenia-deposit-paid"
+    },
+    {
+        "id": "fixture-pix-deposit-receipt-returned",
+        "flow": "Add money",
+        "route": "/history?tx=fixture-avenia-deposit-returned"
+    },
+    {
+        "id": "fixture-pix-deposit-returned-row",
+        "flow": "Add money",
+        "route": "/history"
     },
     {
         "id": "fixture-pix-activation-refused",
@@ -1532,11 +1547,6 @@
         "id": "add-money-transfer-currencies",
         "flow": "Add money",
         "route": "/add-money/options?method=transfer"
-    },
-    {
-        "id": "add-money-pix-currency",
-        "flow": "Add money",
-        "route": "/add-money/options?method=pix"
     },
     {
         "id": "p18-add-money-crypto",

@@ -57,7 +57,7 @@ const BRIDGE_DUPLICATE_SUPPORT = {
 const BRIDGE_DUPLICATE_REASON = {
     code: 'duplicate_customer_detected',
     userMessage:
-        'Your details are already linked to another Peanut account, so Bridge, our account provider, can’t open bank accounts on this one. If the other account is yours, sign in to it or contact support.',
+        'Your details are already linked to another Peanut account. If you can, log in and use that account, otherwise contact support.',
 }
 /** The `/users/me` of a verify-once user Bridge refused as a duplicate customer (the API's terminal branch). */
 const BRIDGE_DUPLICATE_USER = {
@@ -335,11 +335,11 @@ const aveniaResponses = (stage: 'enabled' | 'first-use', overrides: Record<strin
         operation: 'deposit',
         amountBrl: '100.00',
         usdcAmount: '18.237000',
-        rate: '5.442342',
+        rate: '5.442233',
         fixedFeeBrl: '0.75',
-        // Avenia's rate and every fee: (100.00 − 1.52) ÷ 5.40 = 18.237
-        exchangeRate: '5.400000',
-        providerFeeBrl: '1.52',
+        // the variable fees in the rate, the flat fee as the row: (100.00 − 0.75) ÷ 5.442233 = 18.237
+        exchangeRate: '5.442233',
+        providerFeeBrl: '0.75',
         minAmountBrl: '20',
     },
     ...overrides,
@@ -601,9 +601,9 @@ const AVENIA_SEND_PREVIEW = {
     withdrawUsd: '18.870000',
     rate: '5.339163',
     fixedFeeBrl: '0.75',
-    // Avenia's rate and every fee: 18.87 × 5.38 − 1.52 = 100.00
-    exchangeRate: '5.380000',
-    providerFeeBrl: '1.52',
+    // the variable fees in the rate, the flat fee as the row: 18.87 × 5.339163 − 0.75 = 100.00
+    exchangeRate: '5.339163',
+    providerFeeBrl: '0.75',
     arrivalEstimateSeconds: 60,
     provider: 'Avenia',
 }
@@ -680,9 +680,9 @@ const aveniaNonResidentResponses = (stage: 'enabled' | 'first-use', overrides: R
         usdcAmount: '18.870000',
         rate: '5.339163',
         fixedFeeBrl: '0.75',
-        // Avenia's rate and every fee: 18.87 × 5.38 − 1.52 = 100.00
-        exchangeRate: '5.380000',
-        providerFeeBrl: '1.52',
+        // the variable fees in the rate, the flat fee as the row: 18.87 × 5.339163 − 0.75 = 100.00
+        exchangeRate: '5.339163',
+        providerFeeBrl: '0.75',
         minAmountBrl: '5',
     },
     ...overrides,
@@ -701,9 +701,9 @@ const aveniaDepositRead = (overrides: Record<string, unknown> = {}) => ({
     amountBrl: '100.00',
     usdcAmount: '18.237000',
     fixedFeeBrl: '0.75',
-    // Avenia's rate and every fee: (100.00 − 1.52) ÷ 5.40 = 18.237
-    exchangeRate: '5.400000',
-    providerFeeBrl: '1.52',
+    // the variable fees in the rate, the flat fee as the row: (100.00 − 0.75) ÷ 5.442233 = 18.237
+    exchangeRate: '5.442233',
+    providerFeeBrl: '0.75',
     codePayable: false,
     ...overrides,
 })
@@ -739,9 +739,32 @@ const AVENIA_PAID_DEPOSIT = {
     extraData: {
         ...aveniaPayableDeposit.extraData,
         pixDeposit: { codePayable: false, expiresAt: null },
-        // settled: Avenia's rate and every fee, (100.00 − 1.52) ÷ 5.40 = 18.237
-        receipt: { exchange_rate: '5.400000' },
-        providerFeeBrl: '1.52',
+        // settled: the variable fees in the rate, the flat fee as the row, (100.00 − 0.75) ÷ 5.442233 = 18.237
+        receipt: { exchange_rate: '5.442233' },
+        providerFeeBrl: '0.75',
+    },
+}
+
+/**
+ * A R$22 Pix deposit Avenia received and gave back: paid from an account not under the user's CPF.
+ * The wire status stays FAILED; `pixReturned` says it was returned, to every viewer, and
+ * `returnReason` (owner only) says why. Nothing was converted: the
+ * amount is the quoted USD and no rate or fee is sent.
+ */
+const AVENIA_RETURNED_DEPOSIT = {
+    ...aveniaPayableDeposit,
+    uuid: 'fixture-avenia-deposit-returned',
+    timestamp: new Date('2026-11-16T12:00:00.000Z'),
+    status: 'FAILED',
+    amount: '3.84',
+    currency: { amount: '22.00', code: 'BRL' },
+    extraData: {
+        ...aveniaPayableDeposit.extraData,
+        usdAmount: '3.84',
+        pixDeposit: { codePayable: false, expiresAt: null },
+        // returned, to every viewer; why, to the owner only
+        pixReturned: true,
+        returnReason: { code: 'third_party', text: null },
     },
 }
 
@@ -2574,6 +2597,25 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         ])
     ),
+    // A new order makes Manteca cancel the open one, so the amount step offers the open order back.
+    'add-money-argentina-deposit-open': {
+        route: '/add-money/argentina/manteca?step=inputAmount&currency=ARS',
+        geoCountry: 'AR',
+        about: 'ARS deposit with an unpaid order still open: the amount step offers its transfer details.',
+        responses: {
+            'GET /users/me': {
+                residence: { declared: 'AR', verified: 'AR', pending: null, declaredSecond: null },
+                capabilities: MANTECA_AR_CAPABILITIES,
+            },
+            'GET /manteca/deposit/open': { data: ARS_DEPOSIT },
+            'GET /manteca/deposit/fixture-ars-deposit/status': {
+                id: 'fixture-ars-deposit',
+                status: 'PROCESSING',
+                stage: 1,
+                expired: false,
+            },
+        },
+    },
     // TASK-23924: Liechtenstein banks in CHF, and a top-up pays EUR, so the
     // amount screen asks for a euro account, as it does for Switzerland.
     'add-money-bank-liechtenstein': {
@@ -2890,7 +2932,7 @@ export const FIXTURES: Record<string, Fixture> = {
     'pix-withdraw-review': {
         route: `${AVENIA_WITHDRAW_ROUTE}?step=review`,
         sessionStorage: pixWithdrawForm({ destination: AVENIA_OWN_KEY, amountBrl: '503' }),
-        about: "Avenia Pix withdrawal: the one form, the key's holder and bank, the reais over the USD, Avenia's own rate and every provider fee as one row.",
+        about: "Avenia Pix withdrawal: the one form, the key's holder and bank, the reais over the USD, the rate with Avenia's variable fees inside and its flat fee as the Provider fee row.",
         responses: aveniaResponses('enabled', {
             'POST /pix/withdraw/preview': {
                 amountBrl: '503.00',
@@ -2901,9 +2943,9 @@ export const FIXTURES: Record<string, Fixture> = {
                 withdrawUsd: '92.504310',
                 rate: '5.445692',
                 fixedFeeBrl: '0.75',
-                // Avenia's rate and every fee: 92.504310 × 5.46 − 2.07 = 503.00
-                exchangeRate: '5.460000',
-                providerFeeBrl: '2.07',
+                // the variable fees in the rate, the flat fee as the row: 92.504310 × 5.445692 − 0.75 = 503.00
+                exchangeRate: '5.445692',
+                providerFeeBrl: '0.75',
                 arrivalEstimateSeconds: 60,
                 provider: 'Avenia',
             },
@@ -2919,7 +2961,7 @@ export const FIXTURES: Record<string, Fixture> = {
     // the code screen as ruled on 13 Nov: the amount, "You get ≈", the code, the timer badge under it
     'pix-deposit-code': {
         route: AVENIA_DEPOSIT_CODE_ROUTE,
-        about: "A payable Avenia Pix code: the reais, what the balance gets, the code, a pending badge with the time left, then Avenia's rate and every fee as one row.",
+        about: "A payable Avenia Pix code: the reais, what the balance gets, the code, a pending badge with the time left, then the rate with Avenia's variable fees inside and its flat fee as the Provider fee row.",
         responses: aveniaResponses('enabled', {
             [`GET /pix/deposit/${AVENIA_DEPOSIT_ID}`]: aveniaDepositRead({
                 codePayable: true,
@@ -3040,6 +3082,22 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: {
             'GET /users/history': { entries: [AVENIA_PAID_DEPOSIT], hasMore: false },
             [`GET /history/${AVENIA_PAID_DEPOSIT.uuid}`]: AVENIA_PAID_DEPOSIT,
+        },
+    },
+    'pix-deposit-receipt-returned': {
+        route: `/history?tx=${AVENIA_RETURNED_DEPOSIT.uuid}`,
+        about: "The receipt of a Pix deposit Avenia gave back: Returned, with the deposit screen's reason, the estimate in reais, no rate or fee.",
+        responses: {
+            'GET /users/history': { entries: [AVENIA_RETURNED_DEPOSIT], hasMore: false },
+            [`GET /history/${AVENIA_RETURNED_DEPOSIT.uuid}`]: AVENIA_RETURNED_DEPOSIT,
+        },
+    },
+    'pix-deposit-returned-row': {
+        route: '/history',
+        about: 'The Activity row of a Pix deposit Avenia gave back: "Returned to sender", the amount struck through.',
+        waitFor: '[data-testid="transaction-card"]',
+        responses: {
+            'GET /users/history': { entries: [AVENIA_RETURNED_DEPOSIT, AVENIA_PAID_DEPOSIT], hasMore: false },
         },
     },
     'pix-setup-verify': {
@@ -6193,11 +6251,11 @@ export const FIXTURES: Record<string, Fixture> = {
 
     ...PAPERWORK_VERIFICATION_FIXTURES,
     ...KYC_FEATURE_ACTIVATION_FIXTURES,
-    // The local account refused because the residence's Pix comes from its route (M5): the supplement says where
+    // The local account refused because the residence's Pix comes from its route (M5): under the ARS title the
+    // line names the residence, not Pix (a Brazil resident on the Argentina page).
     'feature-activation-local-served-elsewhere': {
         ...KYC_FEATURE_ACTIVATION_FIXTURES['feature-activation-local-refused'],
-        // The Brazil local route sends a resident to the Pix page, so the line is captured on the family's own route.
-        about: "First use local: refused because the user's Pix route serves Pix (local_served_elsewhere): the line names what Pix covers.",
+        about: 'First use local on the ARS page: refused because the Pix route serves the residence (local_served_elsewhere): the line names the residence.',
         responses: {
             ...KYC_FEATURE_ACTIVATION_FIXTURES['feature-activation-local-refused'].responses,
             'POST /users/kyc/features/local/activate': { state: 'refused', reason: 'local_served_elsewhere' },

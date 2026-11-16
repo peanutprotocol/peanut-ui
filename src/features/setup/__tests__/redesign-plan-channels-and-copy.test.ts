@@ -123,9 +123,9 @@ describe('P3-56 catalog parity for 05–08', () => {
         expect(at(en, 'plan.fundBankCurrencies')).toMatch(/\{currencies\}/)
     })
 
-    it('the 08 es-AR bank pills are the ruled ones: "Banco USD/EUR" and "Banco ARS"', () => {
-        // ruled pill text (FLEET ruling 9 and the orchestrator's K3 ruling): the ruling is the copy
+    it('the 08 es-AR bank pills are the ruled ones: "Banco USD/EUR" and "Mercado Pago"', () => {
+        // ruled pill text (FLEET ruling 9); dev's TASK-25015 names Argentina's ARS row Mercado Pago
         expect(at(esAR, 'plan.fundBankPill')).toBe('Banco USD/EUR')
-        expect(at(esAR, 'plan.fundArsBankPill')).toBe('Banco ARS')
+        expect(at(esAR, 'plan.fundArsBankPill')).toBe('Mercado Pago')
     })
 })

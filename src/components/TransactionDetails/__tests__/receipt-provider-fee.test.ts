@@ -1,7 +1,7 @@
 /**
- * A settled Avenia Pix entry carries its own rate (`receipt.exchange_rate`) and every fee in reais
- * (`providerFeeBrl`), both or neither (peanut-api-ts#2151; the owner, 15 Nov, "Option A"). The
- * receipt prints the rate and one "Provider fee" row from those two fields, as the list entry sends them.
+ * A settled Avenia Pix entry carries its rate with the variable fees inside (`receipt.exchange_rate`)
+ * and its flat fee in reais (`providerFeeBrl`), both or neither (TASK-24967). The receipt prints the
+ * rate and one "Provider fee" row from those two fields, as the list entry sends them.
  */
 import { mapTransactionDataForDrawer } from '../transactionTransformer'
 import { receiptExchangeRate, receiptProviderFee } from '../receipt-conversion.utils'
@@ -28,16 +28,16 @@ const deposit = (extraData: Record<string, unknown>): HistoryEntry =>
 describe('a settled Avenia entry’s rate and provider fee on the receipt', () => {
     it('carries both fields from the entry, and they reconcile with its amounts', () => {
         const { transactionDetails } = mapTransactionDataForDrawer(
-            deposit({ receipt: { exchange_rate: '5.728962' }, providerFeeBrl: '0.97' })
+            deposit({ receipt: { exchange_rate: '5.796567' }, providerFeeBrl: '0.75' })
         )
-        expect(receiptExchangeRate(transactionDetails)).toBe('1 USD = BRL 5.73')
-        expect(receiptProviderFee(transactionDetails)).toBe('R$0.97')
-        // (20.00 − 0.97) ÷ 5.728962 = 3.32 USD credited
-        expect(((20 - 0.97) / 5.728962).toFixed(2)).toBe(Number(transactionDetails.amount).toFixed(2))
+        expect(receiptExchangeRate(transactionDetails)).toBe('1 USD = BRL 5.80')
+        expect(receiptProviderFee(transactionDetails)).toBe('R$0.75')
+        // (20.00 − 0.75) ÷ 5.796567 = 3.32 USD credited
+        expect(((20 - 0.75) / 5.796567).toFixed(2)).toBe(Number(transactionDetails.amount).toFixed(2))
     })
 
     it('drops a fee the entry sends without its rate', () => {
-        const { transactionDetails } = mapTransactionDataForDrawer(deposit({ providerFeeBrl: '0.97' }))
+        const { transactionDetails } = mapTransactionDataForDrawer(deposit({ providerFeeBrl: '0.75' }))
         expect(transactionDetails.extraDataForDrawer?.providerFeeBrl).toBeUndefined()
         expect(receiptProviderFee(transactionDetails)).toBeUndefined()
     })

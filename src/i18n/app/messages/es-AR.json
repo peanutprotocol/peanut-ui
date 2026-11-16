@@ -728,7 +728,7 @@
                 "crypto": "Cripto",
                 "bank": "Transferencia bancaria",
                 "brlBank": "Pix (BRL)",
-                "arsBank": "Transferencia bancaria (ARS)"
+                "arsBank": "Mercado Pago (ARS)"
             },
             "payment": {
                 "bank": "Transferencia bancaria",
@@ -817,7 +817,6 @@
             "cannot2": "Elegí el Administrador de contraseñas de Google y reintentá.",
             "cannotOther": "Usá otro administrador de contraseñas y volvé a intentarlo.",
             "browser": "Registrate desde el navegador",
-            "browserOpenFailed": "No se abrió el navegador. Volvé a intentarlo.",
             "preflight": {
                 "nativeAndroid": "Las passkeys todavía no están disponibles. Iniciá sesión en una cuenta de Google y actualizá Google Play Services, después probá de nuevo.",
                 "nativeOther": "Las passkeys todavía no están disponibles en este dispositivo. Revisá los ajustes del dispositivo y probá de nuevo.",
@@ -891,8 +890,8 @@
             "fundBank": "Transferencia bancaria",
             "fundBankCurrencies": "Transferencia bancaria ({currencies})",
             "fundBankPill": "Banco USD/EUR",
-            "fundArsBank": "Transferencia bancaria (ARS)",
-            "fundArsBankPill": "Banco ARS",
+            "fundArsBank": "Mercado Pago (ARS)",
+            "fundArsBankPill": "Mercado Pago",
             "fundBrlBank": "Pix (BRL)",
             "fundBrlBankPill": "Pix",
             "fundPeanut": "Recibir de un usuario de Peanut",
@@ -2113,7 +2112,7 @@
             "invalid_bank_postal_code": "No pudimos usar el código postal de tu domicilio verificado.",
             "terminal_rejection": "Problema de verificación: contactá a soporte para recibir ayuda.",
             "bridge_terminal_rejection": "Nuestro socio de pagos no aprobó las transferencias bancarias para esta cuenta, y Peanut no puede cambiar esa decisión. Tus fondos en Peanut no se ven afectados. Si creés que es un error, escribile a soporte.",
-            "duplicate_customer_detected": "Tus datos ya están vinculados a otra cuenta de Peanut, así que Bridge, nuestro proveedor de cuentas, no puede abrir cuentas bancarias en esta. Si la otra cuenta es tuya, iniciá sesión en ella o contactá a soporte.",
+            "duplicate_customer_detected": "Tus datos ya están vinculados a otra cuenta de Peanut. Si podés, iniciá sesión y usá esa cuenta. Si no, contactá a soporte.",
             "duplicate_account": "Tu correo o tu documento ya está vinculado a otra cuenta de Peanut, así que no podemos terminar de configurar esta. Si la otra cuenta es tuya, iniciá sesión en ella. Si no, contactá a soporte y lo resolvemos.",
             "imported_identity_rejected": "Nuestro socio de pagos no pudo verificar el documento de tu verificación anterior. Necesita un documento de identidad oficial vigente y puede pedirte también un comprobante de domicilio. Escribile a soporte y nos encargamos del resto.",
             "card_rejected": "No se pudo aprobar tu solicitud de tarjeta. Escribile a soporte si creés que es un error.",
@@ -2497,6 +2496,7 @@
             "emailCta": "Agregar email",
             "limitTitle": "{count, plural, one {# cuenta ya abierta} other {# cuentas ya abiertas}}",
             "limitBody": "Ese es tu límite actual. Si necesitás otra, soporte puede abrirla.",
+            "duplicateTitle": "¿Tenés otra cuenta?",
             "blockedBody": "No pudimos abrir esta cuenta y no es algo que puedas resolver desde la app. Contactá a soporte y lo revisamos.",
             "finishReviewSupportBody": "Tu identidad ya está verificada. Las cuentas en {currency} necesitan una revisión extra de nuestro socio de pagos, y no se puede iniciar desde la app para tu cuenta. Contactá a soporte y te ayudamos a completarla.",
             "actFailed": "No pudimos abrir la verificación. Probá de nuevo.",
