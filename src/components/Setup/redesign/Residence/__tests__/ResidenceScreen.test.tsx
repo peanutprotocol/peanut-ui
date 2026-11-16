@@ -25,6 +25,7 @@ import {
     textMatch,
     textRx,
     visibleText,
+    openDialog,
 } from '../../Accounts/__tests__/redesignHarness'
 
 // ---- boundaries -------------------------------------------------------------------------------------------
@@ -248,11 +249,11 @@ describe('07 Residence: sentence view', () => {
         (locale) => {
             const view = render({ residenceCountry: 'AR' }, { locale })
             expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
-                copyRx(`${K}.residenceTitle`, {}, locale)
+                copyRx(`${K}.sheetResidence`, {}, locale)
             )
             fireEvent.click(view.residencePill())
             expect(
-                within(screen.getByRole('dialog')).getByText(copyRx(`${K}.residenceTitle`, {}, locale))
+                within(screen.getByRole('dialog')).getByText(copyRx(`${K}.sheetResidence`, {}, locale))
             ).toBeInTheDocument()
         }
     )
@@ -260,14 +261,14 @@ describe('07 Residence: sentence view', () => {
     it('P3-15 the nationality drawer title is "What’s your nationality?"', () => {
         const view = render({ residenceCountry: 'AR' })
         fireEvent.click(view.nationalityPill())
-        expect(within(screen.getByRole('dialog')).getByText(copyRx(`${K}.nationalityTitle`))).toBeInTheDocument()
+        expect(within(screen.getByRole('dialog')).getByText(copyRx(`${K}.sheetNationality`))).toBeInTheDocument()
     })
 
     it('P3-15 the pills name their drawer in the accessible name (composed, as dev)', () => {
         const view = render({ residenceCountry: 'PT' })
-        expect(view.residencePill()).toHaveAccessibleName(textRx(`${copy(`${K}.residenceTitle`)}: ${labelOf('PT')}`))
+        expect(view.residencePill()).toHaveAccessibleName(textRx(`${copy(`${K}.sheetResidence`)}: ${labelOf('PT')}`))
         expect(view.nationalityPill()).toHaveAccessibleName(
-            textRx(`${copy(`${K}.nationalityTitle`)}: ${copy(`${K}.sameRow`)}, ${labelOf('PT')}`)
+            textRx(`${copy(`${K}.sheetNationality`)}: ${copy(`${K}.sameRow`)}, ${labelOf('PT')}`)
         )
         expect(view.residencePill()).toHaveAttribute('aria-haspopup', 'dialog')
     })
@@ -323,10 +324,10 @@ describe('07 Residence: sentence view', () => {
         const view = render({ residenceCountry: 'PT' })
         fireEvent.click(view.residencePill())
         fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
-        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+        await waitFor(() => expect(openDialog()).toBeNull())
         fireEvent.click(view.residencePill())
         fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: textRx(labelOf('BR')) }))
-        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+        await waitFor(() => expect(openDialog()).toBeNull())
         expect(view.flow().residenceCountry).toBe('BR')
         expect(controls()).toEqual([
             'residence_country:open',

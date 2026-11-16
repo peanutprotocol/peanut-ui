@@ -8,9 +8,9 @@
  *
  * Copy helpers read the real catalog: a test never hard-codes text a key holds.
  */
-import { act, render, type RenderResult } from '@testing-library/react'
+import { act, render, type RenderResult, screen } from '@testing-library/react'
 import { createTranslator, NextIntlClientProvider } from 'next-intl'
-import { type ReactNode, useLayoutEffect, useState } from 'react'
+import { cloneElement, isValidElement, type ReactNode, useLayoutEffect, useState } from 'react'
 import type { ScreenId } from '@/components/Setup/Setup.types'
 import { SetupShell } from '@/components/Setup/redesign/shell/SetupShell'
 import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
@@ -216,6 +216,8 @@ export function renderRedesign(ui: ReactNode, options: RedesignRenderOptions): R
         )
     }
 
+    // A fresh element on every render, so a rerender re-reads mocked hooks instead of bailing out.
+    const step = () => (isValidElement(ui) ? cloneElement(ui) : ui)
     const tree = () => (
         <Root>
             <SetupFlowProvider masterScreenIds={MASTER} onFinish={onFinish}>
@@ -227,10 +229,10 @@ export function renderRedesign(ui: ReactNode, options: RedesignRenderOptions): R
                             onBack={onBack}
                             progress={progress}
                         >
-                            {ui}
+                            {step()}
                         </SetupShell>
                     ) : (
-                        ui
+                        step()
                     )}
                 </Seeded>
             </SetupFlowProvider>
@@ -257,3 +259,12 @@ export const footer = (container: HTMLElement) => container.querySelector<HTMLEl
 /** The state the screen reports on its stage (`data-setup-state`). */
 export const setupState = (container: HTMLElement) =>
     container.querySelector('[data-setup-stage]')?.getAttribute('data-setup-state') ?? null
+
+/**
+ * The open dialog (a drawer), or null. A closed vaul drawer stays in the DOM with `data-state="closed"` while it
+ * animates out, so "closed" means no dialog whose state is not closed.
+ */
+export const openDialog = (name?: string | RegExp): HTMLElement | null =>
+    screen
+        .queryAllByRole('dialog', name ? { name, hidden: true } : { hidden: true })
+        .find((d) => d.getAttribute('data-state') !== 'closed') ?? null

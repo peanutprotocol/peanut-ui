@@ -31,6 +31,7 @@ import {
     setupState,
     textMatch,
     visibleText,
+    openDialog,
 } from '../../Accounts/__tests__/redesignHarness'
 
 jest.mock('@/services/signup-geo', () => ({ attachSignupGeo: jest.fn() }))
@@ -538,25 +539,19 @@ describe('11 Final confirm: passkey explainer', () => {
         }
         expect(visibleText(dialog).toLowerCase()).not.toMatch(/no password|example/)
         fireEvent.click(within(dialog).getByRole('button', { name: copyRx('setupRedesign.final.gotIt') }))
-        await waitFor(() =>
-            expect(screen.queryByRole('dialog', { name: copyRx('setupRedesign.final.infoTitle') })).toBeNull()
-        )
+        await waitFor(() => expect(openDialog(copyRx('setupRedesign.final.infoTitle'))).toBeNull())
 
         fireEvent.click(what())
         fireEvent.keyDown(await screen.findByRole('dialog', { name: copyRx('setupRedesign.final.infoTitle') }), {
             key: 'Escape',
         })
-        await waitFor(() =>
-            expect(screen.queryByRole('dialog', { name: copyRx('setupRedesign.final.infoTitle') })).toBeNull()
-        )
+        await waitFor(() => expect(openDialog(copyRx('setupRedesign.final.infoTitle'))).toBeNull())
 
         fireEvent.click(what())
         const again = await screen.findByRole('dialog', { name: copyRx('setupRedesign.final.infoTitle') })
         fireEvent.click(within(again).getByText(copyRx('setupRedesign.final.fullGuide')).closest('button, a')!)
         expect(await screen.findByRole('dialog', { name: 'Passkeys guide doc' })).toBeInTheDocument()
-        await waitFor(() =>
-            expect(screen.queryByRole('dialog', { name: copyRx('setupRedesign.final.infoTitle') })).toBeNull()
-        )
+        await waitFor(() => expect(openDialog(copyRx('setupRedesign.final.infoTitle'))).toBeNull())
 
         expect(signupControls(capture)).toEqual([
             'passkey_info:open',

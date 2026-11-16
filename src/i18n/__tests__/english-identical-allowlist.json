@@ -109,6 +109,10 @@
         "setupRedesign.plan.payCard": {
             "locales": ["es-419", "es-AR", "pt-BR"],
             "reason": "Peanut Card is the product name in every language (TASK-24037); the redesigned sign-up names it as the product"
+        },
+        "setupRedesign.plan.fundBrlBank": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "payment rail name and currency code (Pix (BRL)), the same in every language"
         }
     }
 }

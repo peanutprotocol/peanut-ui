@@ -18,7 +18,9 @@ import {
     footer,
     renderRedesign,
     setupState,
+    textRx,
     visibleText,
+    openDialog,
 } from '../../Accounts/__tests__/redesignHarness'
 
 // ---- boundaries -------------------------------------------------------------------------------------------
@@ -110,17 +112,19 @@ function render(seed: FlowSeed, options: { locale?: AppLocale; onFinish?: () => 
         onFinish: options.onFinish,
         showBackButton: true,
     })
-    const title = (kind: 'funding' | 'payment') => copy(`${K}.${kind}Title`, {}, locale)
+    const title = (kind: 'funding' | 'payment') =>
+        copy(`${K}.${kind === 'funding' ? 'sheetFunding' : 'sheetPayment'}`, {}, locale)
     const pill = (kind: 'funding' | 'payment') =>
         screen.getByRole('button', { name: new RegExp(`^${escapeRx(title(kind))}:`), hidden: true })
-    const continueButton = () =>
-        within(footer(view.container)!).getByRole('button', {
-            name: copyRx('setupRedesign.common.continue', {}, locale),
-            hidden: true,
-        })
+    // the footer primary; its name gains the spinner's "Loading..." while loading
+    const continueButton = () => {
+        const primary = within(footer(view.container)!).getAllByRole('button', { hidden: true })[0]
+        expect(primary).toHaveTextContent(copy('setupRedesign.common.continue', {}, locale))
+        return primary
+    }
     const rows = () =>
-        within(screen.getByRole('dialog'))
-            .getAllByRole('button')
+        within(openDialog()!)
+            .getAllByRole('button', { hidden: true })
             .map((b) => plain(b.getAttribute('aria-label') || visibleText(b)))
             .filter(Boolean)
     const open = (kind: 'funding' | 'payment') => {
@@ -129,9 +133,9 @@ function render(seed: FlowSeed, options: { locale?: AppLocale; onFinish?: () => 
     }
     const choose = async (kind: 'funding' | 'payment', label: string) => {
         fireEvent.click(pill(kind))
-        const dialog = screen.getByRole('dialog')
-        fireEvent.click(within(dialog).getByRole('button', { name: new RegExp(`^${escapeRx(label)}$`) }))
-        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+        const dialog = openDialog()!
+        fireEvent.click(within(dialog).getByRole('button', { name: textRx(label), hidden: true }))
+        await waitFor(() => expect(openDialog()).toBeNull())
     }
     return { ...view, title, pill, continueButton, rows, open, choose }
 }
@@ -165,7 +169,7 @@ describe('08 Payment plan', () => {
             expect(within(pill).getByRole('status', { hidden: true })).toBeInTheDocument()
             fireEvent.click(pill)
         }
-        expect(screen.queryByRole('dialog')).toBeNull()
+        expect(openDialog()).toBeNull()
         expect(controls()).toEqual([])
         expect(view.continueButton()).toBeDisabled()
     })
@@ -190,11 +194,11 @@ describe('08 Payment plan', () => {
             label('fundCrypto'),
             label('fundPeanut'),
         ])
-        fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
-        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+        fireEvent.keyDown(openDialog()!, { key: 'Escape' })
+        await waitFor(() => expect(openDialog()).toBeNull())
         expect(view.open('payment')).toEqual([label('payCard'), label('payQr')])
-        fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
-        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+        fireEvent.keyDown(openDialog()!, { key: 'Escape' })
+        await waitFor(() => expect(openDialog()).toBeNull())
 
         await view.choose('funding', label('fundBankCurrencies', { currencies: 'USD, EUR' }))
         expect(view.continueButton()).toBeDisabled()
@@ -250,14 +254,14 @@ describe('08 Payment plan', () => {
         async (locale) => {
             const view = render({ residenceCountry: 'PT' }, { locale })
             fireEvent.click(view.pill('funding'))
-            const dialog = screen.getByRole('dialog')
-            expect(within(dialog).getByText(copyRx(`${K}.fundingTitle`, {}, locale))).toBeInTheDocument()
+            const dialog = openDialog()!
+            expect(within(dialog).getByText(copyRx(`${K}.sheetFunding`, {}, locale))).toBeInTheDocument()
             const crypto = within(dialog).getByRole('button', { name: copyRx(`${K}.fundCrypto`, {}, locale) })
             expect(crypto.querySelector('.rounded-full')).not.toBeNull()
             fireEvent.click(crypto)
-            await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+            await waitFor(() => expect(openDialog()).toBeNull())
             fireEvent.click(view.pill('funding'))
-            const again = screen.getByRole('dialog')
+            const again = openDialog()!
             expect(within(again).getByRole('button', { name: copyRx(`${K}.fundCrypto`, {}, locale) })).toHaveClass(
                 'bg-background-selection'
             )
@@ -265,11 +269,9 @@ describe('08 Payment plan', () => {
                 'bg-background-selection'
             )
             fireEvent.keyDown(again, { key: 'Escape' })
-            await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+            await waitFor(() => expect(openDialog()).toBeNull())
             fireEvent.click(view.pill('payment'))
-            expect(
-                within(screen.getByRole('dialog')).getByText(copyRx(`${K}.paymentTitle`, {}, locale))
-            ).toBeInTheDocument()
+            expect(within(openDialog()!).getByText(copyRx(`${K}.sheetPayment`, {}, locale))).toBeInTheDocument()
         }
     )
 
@@ -283,8 +285,9 @@ describe('08 Payment plan', () => {
             } as KycIntents,
         }
         const view = render({ residenceCountry: 'DE' })
-        expect(view.open('funding')[0]).toBe(label('fundBankCurrencies', { currencies: 'USD, EUR, GBP, MXN' }))
-        expect(view.open('funding')[0]).toContain('USD, EUR, GBP, MXN')
+        const [bankRow] = view.open('funding')
+        expect(bankRow).toBe(label('fundBankCurrencies', { currencies: 'USD, EUR, GBP, MXN' }))
+        expect(bankRow).toContain('USD, EUR, GBP, MXN')
     })
 
     it('P3-44 after a failed intents read the bank row is plain "Bank transfer"', () => {
@@ -318,8 +321,8 @@ describe('08 Payment plan', () => {
     it('P3-45 Brazil’s local bank pill reads "Pix" with the Pix mark and saves brlBank', async () => {
         const view = render({ residenceCountry: 'BR' })
         expect(view.open('funding')[0]).toBe(label('fundBrlBank'))
-        fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
-        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+        fireEvent.keyDown(openDialog()!, { key: 'Escape' })
+        await waitFor(() => expect(openDialog()).toBeNull())
         await view.choose('funding', label('fundBrlBank'))
         expect(shownText(view.pill('funding'))).toBe(label('fundBrlBankPill'))
         expect(view.pill('funding').querySelector('img')).not.toBeNull()
@@ -329,8 +332,8 @@ describe('08 Payment plan', () => {
     it('P3-45 / K3 Argentina’s local bank pill reads "Banco ARS" in es-AR', async () => {
         const view = render({ residenceCountry: 'AR' }, { locale: 'es-AR' })
         expect(view.open('funding')[0]).toBe(label('fundArsBank', {}, 'es-AR'))
-        fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
-        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+        fireEvent.keyDown(openDialog()!, { key: 'Escape' })
+        await waitFor(() => expect(openDialog()).toBeNull())
         await view.choose('funding', label('fundArsBank', {}, 'es-AR'))
         expect(shownText(view.pill('funding'))).toBe(label('fundArsBankPill', {}, 'es-AR'))
         expect(view.flow().fundingChannel).toBe('arsBank')
@@ -340,8 +343,8 @@ describe('08 Payment plan', () => {
         const view = render({ residenceCountry: 'PT' })
         await view.choose('funding', label('fundCrypto'))
         fireEvent.click(view.pill('payment'))
-        fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
-        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+        fireEvent.keyDown(openDialog()!, { key: 'Escape' })
+        await waitFor(() => expect(openDialog()).toBeNull())
         await view.choose('payment', label('payQr'))
         fireEvent.click(view.continueButton())
         expect(controls()).toEqual([

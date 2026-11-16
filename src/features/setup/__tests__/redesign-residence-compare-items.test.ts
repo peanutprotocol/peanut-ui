@@ -1,11 +1,10 @@
 /**
  * P3-28 (unit): the 07 compare item builder, contract P3 § 3.3 "Changes over dev" and K1/K12.
  *
- * Seam the builder provides (Residence/compareItems.ts):
- *   buildCompareItems(available: readonly AvailabilityItemKey[], t: CompareItemsTranslate, locale: string): string[]
- *     `available` is `residenceAvailability(sets, iso2, intents).available` (utils/residence-availability.ts);
- *     `t` is `useTranslations('setupRedesign.residence')`; `locale` picks the disjunction list (English as en-GB).
- *   sameCompareItems(a: readonly string[], b: readonly string[]): boolean   // string-for-string equality
+ * Seam (Residence/compareItems.ts, as P3 built it): `compareItemsOf(available)` → items,
+ * `compareItemLabels(items, t, locale)` → visible lines, `sameLabels(a, b)` → string-for-string equality.
+ * `available` is `residenceAvailability(sets, iso2, intents).available`; `t` is scoped to
+ * `setupRedesign.residence`; `locale` picks the disjunction list (English as en-GB).
  */
 import { createTranslator } from 'next-intl'
 import type { KycIntents } from '@/hooks/useKycIntents'
@@ -23,10 +22,24 @@ type Builder = {
     sameCompareItems: (a: readonly string[], b: readonly string[]) => boolean
 }
 
+type CompareItemsModule = {
+    compareItemsOf: (available: readonly AvailabilityItemKey[]) => unknown[]
+    compareItemLabels: (
+        items: readonly unknown[],
+        t: (key: string, values?: Record<string, string>) => string,
+        locale: string
+    ) => string[]
+    sameLabels: (a: readonly string[], b: readonly string[]) => boolean
+}
+
 // Resolved at run time so a missing module fails these tests, not the whole compile.
 function loadBuilder(): Builder | null {
     try {
-        return require('@/components/Setup/redesign/Residence/compareItems') as Builder
+        const m = require('@/components/Setup/redesign/Residence/compareItems') as CompareItemsModule
+        return {
+            buildCompareItems: (available, t, locale) => m.compareItemLabels(m.compareItemsOf(available), t, locale),
+            sameCompareItems: m.sameLabels,
+        }
     } catch {
         return null
     }
