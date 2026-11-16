@@ -9,7 +9,7 @@
  */
 import { render } from '@testing-library/react'
 import { createTranslator, NextIntlClientProvider } from 'next-intl'
-import type { ReactElement, ReactNode } from 'react'
+import { cloneElement, type ReactElement, type ReactNode } from 'react'
 import en from '@/i18n/app/messages/en.json'
 import es419 from '@/i18n/app/messages/es-419.json'
 import esAR from '@/i18n/app/messages/es-AR.json'
@@ -46,7 +46,10 @@ export function msg(key: string, values: Record<string, string | number> = {}, l
     const t = createTranslator({ locale, messages: CATALOGS[locale] as never })
     const tags = Array.from(raw.matchAll(/<([a-zA-Z0-9]+)>/g)).map((match) => match[1])
     const markup = Object.fromEntries(tags.map((tag) => [tag, (chunks: string) => chunks]))
-    return (t.markup as (key: string, values: Record<string, unknown>) => string)(key, { ...values, ...markup })
+    return (t.markup as unknown as (key: string, values: Record<string, unknown>) => string)(key, {
+        ...values,
+        ...markup,
+    })
 }
 
 /** Plain-text equality that ignores the difference between a no-break space and a space. */
@@ -88,7 +91,9 @@ export function renderInShell(screenId: ScreenId, screen: ReactElement, options:
     const view = render(shellTree(screenId, screen, options))
     return {
         ...view,
-        rerenderInShell: (next: ReactElement = screen) => view.rerender(shellTree(screenId, next, options)),
+        /** A fresh element each time, so the screen re-renders and reads changed mock state. */
+        rerenderInShell: (next: ReactElement = screen) =>
+            view.rerender(shellTree(screenId, cloneElement(next), options)),
     }
 }
 
@@ -110,20 +115,17 @@ export const eventsOf = (capture: jest.Mock, event: string) =>
 
 /** Turns `prefers-reduced-motion: reduce` on for the rest of the test file (restore in afterEach). */
 export function setReducedMotion(on: boolean) {
-    Object.defineProperty(window, 'matchMedia', {
-        writable: true,
-        configurable: true,
-        value: (query: string) => ({
-            matches: on && query.includes('prefers-reduced-motion') && query.includes('reduce'),
-            media: query,
-            onchange: null,
-            addListener: jest.fn(),
-            removeListener: jest.fn(),
-            addEventListener: jest.fn(),
-            removeEventListener: jest.fn(),
-            dispatchEvent: jest.fn(),
-        }),
-    })
+    // jest.setup.ts defines matchMedia writable but not configurable, so assign rather than redefine.
+    window.matchMedia = ((query: string) => ({
+        matches: on && query.includes('prefers-reduced-motion') && query.includes('reduce'),
+        media: query,
+        onchange: null,
+        addListener: jest.fn(),
+        removeListener: jest.fn(),
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        dispatchEvent: jest.fn(),
+    })) as unknown as typeof window.matchMedia
 }
 
 /** Texts that no redesigned sign-up screen may show (FLEET-RULES ruling 9, contract banned lists). */
