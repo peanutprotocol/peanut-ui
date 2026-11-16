@@ -2295,6 +2295,25 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         ])
     ),
+    // A new order makes Manteca cancel the open one, so the amount step offers the open order back.
+    'add-money-argentina-deposit-open': {
+        route: '/add-money/argentina/manteca?step=inputAmount&currency=ARS',
+        geoCountry: 'AR',
+        about: 'ARS deposit with an unpaid order still open: the amount step offers its transfer details.',
+        responses: {
+            'GET /users/me': {
+                residence: { declared: 'AR', verified: 'AR', pending: null, declaredSecond: null },
+                capabilities: MANTECA_AR_CAPABILITIES,
+            },
+            'GET /manteca/deposit/open': { data: ARS_DEPOSIT },
+            'GET /manteca/deposit/fixture-ars-deposit/status': {
+                id: 'fixture-ars-deposit',
+                status: 'PROCESSING',
+                stage: 1,
+                expired: false,
+            },
+        },
+    },
     // TASK-23924: Liechtenstein banks in CHF, and a top-up pays EUR, so the
     // amount screen asks for a euro account, as it does for Switzerland.
     'add-money-bank-liechtenstein': {

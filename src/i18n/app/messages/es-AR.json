@@ -1254,6 +1254,8 @@
             "transferExpiredTitle": "La orden de depósito venció",
             "transferExpiredDescription": "¿Ya enviaste plata? Contactá a soporte.",
             "startNewDeposit": "Iniciar un nuevo depósito",
+            "openTransferTitle": "Tenés una transferencia abierta",
+            "openTransferDescription": "Tu orden de {currency} {amount} sigue esperando tu transferencia bancaria. Pagala con sus datos o ingresá un nuevo monto para reemplazarla.",
             "shareOwnAccountOnly": "Envialo solo desde una cuenta bancaria a mi nombre. Las transferencias desde cuentas de terceros no se pueden acreditar.",
             "etaInstant": "Normalmente en minutos"
         },

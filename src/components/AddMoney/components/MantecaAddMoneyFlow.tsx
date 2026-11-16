@@ -6,6 +6,9 @@
 import { type FC, useEffect, useMemo, useState, useCallback } from 'react'
 import MantecaDepositShareDetails from '@/components/AddMoney/components/MantecaDepositShareDetails'
 import { useMantecaDepositPolling } from '@/components/AddMoney/hooks/useMantecaDepositPolling'
+import { useOpenMantecaDeposit } from '@/components/AddMoney/hooks/useOpenMantecaDeposit'
+import { Callout } from '@/components/0_Bruddle/Callout'
+import { formatCurrency } from '@/utils/general.utils'
 import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
 import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import { useParams } from 'next/navigation'
@@ -151,6 +154,16 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     const isUserMantecaKycApprovedForCountry = selectedCountry
         ? isVerifiedForCountry(rails, selectedCountry.id, 'deposit')
         : false
+    const openDeposit = useOpenMantecaDeposit(
+        selectedCountry?.currency,
+        !!residenceGatedCountry && step === 'inputAmount' && isUserMantecaKycApprovedForCountry
+    )
+    const showOpenDeposit = useCallback(() => {
+        if (!openDeposit) return
+        setDepositDetails(openDeposit)
+        setLocalCurrencyAmount('')
+        void setUrlState({ step: 'depositDetails', amount: null })
+    }, [openDeposit, setUrlState])
 
     // The gate comes before the amount: a user who cannot deposit should learn it
     // on arrival, not after typing a number. The amount screen stays mounted
@@ -493,6 +506,21 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
                         limitsValidation={limitsValidation}
                         limitsCurrency={limitsValidation.currency}
                         onBack={onBack}
+                        maintenanceBanner={
+                            openDeposit && (
+                                <Callout
+                                    priority="info"
+                                    title={t('manteca.openTransferTitle')}
+                                    ctas={[{ label: t('manteca.openTransferCta'), onClick: showOpenDeposit }]}
+                                    data-testid="open-deposit-callout"
+                                >
+                                    {t('manteca.openTransferDescription', {
+                                        currency: openDeposit.stages['1'].asset,
+                                        amount: formatCurrency(openDeposit.stages['1'].thresholdAmount),
+                                    })}
+                                </Callout>
+                            )
+                        }
                         providerFinePrint={residenceGatedCountry && <ProviderFinePrint providerId="manteca-ar" />}
                     />
                 )}
@@ -508,7 +536,7 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
         return (
             <MantecaDepositShareDetails
                 depositDetails={depositDetails}
-                currencyAmount={localCurrencyAmount}
+                currencyAmount={localCurrencyAmount || undefined}
                 arsStatus={arsDeposit ? arsDepositStatus : undefined}
                 onStartOver={() => {
                     setDepositDetails(undefined)
