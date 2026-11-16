@@ -21,7 +21,9 @@
  * Real account creation is checked on staging and on a phone (DELIVERY-PLAN risk 3).
  *
  * HOW TO RUN (one worker: the stub is one module-level object)
- *   NEXT_PUBLIC_VERCEL_ENV=preview npm run build && npm run test:e2e:regression -- signup-redesign --workers=1
+ *   NEXT_PUBLIC_VERCEL_ENV=preview npm run build && \
+ *   REGRESSION_HOST=localhost npm run test:e2e:regression -- signup-redesign --workers=1
+ * REGRESSION_HOST=localhost is required: WebAuthn refuses 127.0.0.1 as the relying party.
  * The last step signs a UserOp through the ZeroDev bundler. A build without NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL stops it
  * at setup-failed, so 11 → 12 is checked only with SIGNUP_E2E_STUB_BUNDLER=1 and a build whose bundler and paymaster
  * URLs point at any host this spec routes, as mono _temp/signup-redesign/r2/r9/build/gate/gate.sh does:
@@ -509,8 +511,9 @@ async function addAuthenticator(page: Page, verified = true): Promise<Authentica
 }
 
 async function openSetup(page: Page, context: BrowserContext, baseURL: string, path = '/setup') {
-    // WebAuthn refuses an IP address as the relying party, so the app runs on localhost, not 127.0.0.1
-    const origin = baseURL.replace('//127.0.0.1', '//localhost')
+    // WebAuthn refuses an IP address as the relying party; without this every journey stops on 03's help drawer
+    if (new URL(baseURL).hostname !== 'localhost') throw new Error('run with REGRESSION_HOST=localhost (see header)')
+    const origin = baseURL
     const language = await page.evaluate(() => navigator.language)
     await context.addCookies([
         { name: KEEP_WEB_COOKIE, value: encodeURIComponent(JSON.stringify(KEEP_WEB_TOKEN)), url: origin },

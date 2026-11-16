@@ -20,7 +20,10 @@ import { defineConfig, devices } from '@playwright/test'
 
 // 3080-3089 only: other sessions own 3050, 3060 and 5050.
 const PORT = Number(process.env.REGRESSION_PORT ?? 3081)
-const BASE = `http://127.0.0.1:${PORT}`
+// WebAuthn rejects an IP address as the relying party ("This is an invalid domain"), so a spec that runs the
+// passkey ceremony (signup-redesign) needs REGRESSION_HOST=localhost.
+const HOST = process.env.REGRESSION_HOST ?? '127.0.0.1'
+const BASE = `http://${HOST}:${PORT}`
 
 export default defineConfig({
     testDir: './e2e/flows',
