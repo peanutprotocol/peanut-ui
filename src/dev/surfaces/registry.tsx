@@ -38,6 +38,8 @@ import { SetupShell } from '@/components/Setup/redesign/shell/SetupShell'
 import { NO_DOT_SCREENS } from '@/components/Setup/redesign/shell/shell.consts'
 import type { ScreenId } from '@/components/Setup/Setup.types'
 import type { SetupFundingChannel, SetupPaymentChannel } from '@/features/setup/paymentChannels'
+import type { SignupEntryFlow } from '@/features/setup/signup-analytics'
+import { FinalConfirmScreen } from '@/components/Setup/redesign/FinalConfirm/FinalConfirmScreen'
 
 import { PasskeySetupHelpDrawer } from '@/components/Setup/Views/PasskeySetupHelpDrawer'
 import { LoginRecoveryDrawer } from '@/components/Setup/Views/LoginRecoveryDrawer'
@@ -222,6 +224,87 @@ function SetupScreenBody({
             progress={showProgress && dotIndex >= 0 ? { index: dotIndex, total: dotSteps.length } : null}
         >
             {children ?? <View />}
+        </SetupShell>
+    )
+}
+
+/** What a redesigned sign-up step reads from the flow before it mounts (a username from 02, a residence from 07, …). */
+type RedesignSeed = {
+    username?: string
+    residenceCountry?: string
+    nationalityCountry?: string
+    fundingChannel?: SetupFundingChannel
+    paymentChannel?: SetupPaymentChannel
+    inviteSelection?: string
+    notificationEmail?: string
+    signupCompleted?: boolean
+    signupEntryFlow?: SignupEntryFlow
+}
+
+/**
+ * One redesigned sign-up step for the screen library and the visual gate (mono
+ * _temp/signup-redesign/r2/r9/build/gate): SetupShell around the step's entry in Setup.consts, with the flow
+ * seeded first, so the step renders the state a fixture asks for instead of an empty flow. `finishRoute` is
+ * /setup/finish: the final screen with its "Log out" line.
+ */
+function RedesignStepSurface({
+    screenId,
+    seed = {},
+    finishRoute = false,
+}: {
+    screenId: ScreenId
+    seed?: RedesignSeed
+    finishRoute?: boolean
+}) {
+    return (
+        <SetupFlowProvider masterScreenIds={setupScreenIds}>
+            <RedesignStepBody screenId={screenId} seed={seed} finishRoute={finishRoute} />
+        </SetupFlowProvider>
+    )
+}
+function RedesignStepBody({
+    screenId,
+    seed,
+    finishRoute,
+}: {
+    screenId: ScreenId
+    seed: RedesignSeed
+    finishRoute: boolean
+}) {
+    const flow = useSetupFlowContext()
+    const [seeded, setSeeded] = useState(false)
+    // Seed once, before the first paint of the step: a step that reads an empty flow on mount (02's check, 07's
+    // prefill) would otherwise start from the wrong state.
+    React.useLayoutEffect(() => {
+        if (seeded) return
+        flow.setSteps(setupSteps)
+        if (seed.username) flow.setUsername(seed.username)
+        if (seed.residenceCountry) flow.setResidenceCountry(seed.residenceCountry)
+        if (seed.nationalityCountry) flow.setNationalityCountry(seed.nationalityCountry)
+        if (seed.fundingChannel) flow.setFundingChannel(seed.fundingChannel)
+        if (seed.paymentChannel) flow.setPaymentChannel(seed.paymentChannel)
+        if (seed.inviteSelection) flow.setInviteSelection(seed.inviteSelection)
+        if (seed.notificationEmail) flow.setNotificationEmail(seed.notificationEmail)
+        if (seed.signupEntryFlow) flow.setSignupEntryFlow(seed.signupEntryFlow)
+        if (seed.signupCompleted) flow.setSignupCompleted(true)
+        setSeeded(true)
+    }, [flow, seed, seeded])
+    const step = setupSteps.find((entry) => entry.screenId === screenId)
+    if (!seeded || !step) return null
+    const View = step.component
+    const dotSteps = setupSteps.filter((entry) => !NO_DOT_SCREENS.includes(entry.screenId))
+    const dotIndex = dotSteps.indexOf(step)
+    return (
+        <SetupShell
+            screenId={finishRoute ? 'sign-test-transaction' : step.screenId}
+            showBackButton={step.showBackButton && !finishRoute}
+            progress={
+                dotIndex >= 0 && !seed.signupCompleted && !finishRoute
+                    ? { index: dotIndex, total: dotSteps.length }
+                    : null
+            }
+        >
+            {finishRoute ? <FinalConfirmScreen showLogout /> : <View />}
         </SetupShell>
     )
 }
@@ -1645,6 +1728,155 @@ export const SURFACES: Record<string, Surface> = {
         name: 'Backup FAQ — export keys',
         path: 'Profile/BackupFaqDrawers.tsx',
         render: () => <BackupFaqDrawers active="export-keys" onClose={noop} platform="ios" />,
+    },
+    // The redesigned sign-up (TASK-25016), one surface per step and seed. Fixtures `setup-redesign-<screen>--<state>`
+    // open these with the API answers for each contract state; the visual gate drives the rest.
+    'setup-redesign-landing': {
+        name: 'Sign-up redesign: 01 Landing',
+        path: 'Setup/redesign/Landing/LandingScreen.tsx',
+        render: () => <RedesignStepSurface screenId="landing" />,
+    },
+    'setup-redesign-username': {
+        name: 'Sign-up redesign: 02 Username',
+        path: 'Setup/redesign/Username/UsernameScreen.tsx',
+        render: () => <RedesignStepSurface screenId="signup" />,
+    },
+    'setup-redesign-username-return': {
+        name: 'Sign-up redesign: 02 Username, back with a name',
+        path: 'Setup/redesign/Username/UsernameScreen.tsx',
+        render: () => <RedesignStepSurface screenId="signup" seed={{ username: 'luckyotter' }} />,
+    },
+    'setup-redesign-passkey': {
+        name: 'Sign-up redesign: 03 Passkey',
+        path: 'Setup/redesign/Passkey/PasskeyScreen.tsx',
+        render: () => (
+            <RedesignStepSurface
+                screenId="passkey"
+                seed={{
+                    username: 'luckyotter',
+                    residenceCountry: 'AR',
+                    nationalityCountry: 'AR',
+                    fundingChannel: 'bank',
+                    paymentChannel: 'qr',
+                }}
+            />
+        ),
+    },
+    'setup-redesign-invite': {
+        name: 'Sign-up redesign: 04 Invite',
+        path: 'Setup/redesign/Invite/InviteScreen.tsx',
+        render: () => <RedesignStepSurface screenId="invite" seed={{ username: 'luckyotter' }} />,
+    },
+    'setup-redesign-invite-found': {
+        name: 'Sign-up redesign: 04 Invite, back with an inviter',
+        path: 'Setup/redesign/Invite/InviteScreen.tsx',
+        render: () => (
+            <RedesignStepSurface screenId="invite" seed={{ username: 'luckyotter', inviteSelection: 'fulano' }} />
+        ),
+    },
+    'setup-redesign-accounts': {
+        name: 'Sign-up redesign: 05 Accounts',
+        path: 'Setup/redesign/Accounts/AccountsScreen.tsx',
+        render: () => <RedesignStepSurface screenId="advantage-fees" />,
+    },
+    'setup-redesign-card': {
+        name: 'Sign-up redesign: 06 Card',
+        path: 'Setup/redesign/Card/CardScreen.tsx',
+        render: () => <RedesignStepSurface screenId="advantage-card" />,
+    },
+    'setup-redesign-residence': {
+        name: 'Sign-up redesign: 07 Residence',
+        path: 'Setup/redesign/Residence/ResidenceScreen.tsx',
+        render: () => <RedesignStepSurface screenId="residence" seed={{ residenceCountry: 'AR' }} />,
+    },
+    'setup-redesign-residence-empty': {
+        name: 'Sign-up redesign: 07 Residence, nothing chosen',
+        path: 'Setup/redesign/Residence/ResidenceScreen.tsx',
+        render: () => <RedesignStepSurface screenId="residence" />,
+    },
+    'setup-redesign-residence-differ': {
+        name: 'Sign-up redesign: 07 Residence, two countries',
+        path: 'Setup/redesign/Residence/ResidenceScreen.tsx',
+        render: () => (
+            <RedesignStepSurface screenId="residence" seed={{ residenceCountry: 'PT', nationalityCountry: 'BR' }} />
+        ),
+    },
+    'setup-redesign-residence-refused': {
+        name: 'Sign-up redesign: 07 Residence, refused passport',
+        path: 'Setup/redesign/Residence/ResidenceScreen.tsx',
+        render: () => (
+            <RedesignStepSurface screenId="residence" seed={{ residenceCountry: 'AR', nationalityCountry: 'CU' }} />
+        ),
+    },
+    'setup-redesign-plan': {
+        name: 'Sign-up redesign: 08 Payment plan',
+        path: 'Setup/redesign/PaymentPlan/PaymentPlanScreen.tsx',
+        render: () => <RedesignStepSurface screenId="payment-plan" seed={{ residenceCountry: 'AR' }} />,
+    },
+    'setup-redesign-plan-filled': {
+        name: 'Sign-up redesign: 08 Payment plan, both chosen',
+        path: 'Setup/redesign/PaymentPlan/PaymentPlanScreen.tsx',
+        render: () => (
+            <RedesignStepSurface
+                screenId="payment-plan"
+                seed={{ residenceCountry: 'AR', fundingChannel: 'bank', paymentChannel: 'qr' }}
+            />
+        ),
+    },
+    'setup-redesign-plan-single': {
+        name: 'Sign-up redesign: 08 Payment plan, one way to spend',
+        path: 'Setup/redesign/PaymentPlan/PaymentPlanScreen.tsx',
+        render: () => <RedesignStepSurface screenId="payment-plan" seed={{ residenceCountry: 'PT' }} />,
+    },
+    'setup-redesign-email': {
+        name: 'Sign-up redesign: 09 Email',
+        path: 'Setup/redesign/Email/EmailScreen.tsx',
+        render: () => <RedesignStepSurface screenId="notification-email" seed={{ username: 'luckyotter' }} />,
+    },
+    'setup-redesign-email-filled': {
+        name: 'Sign-up redesign: 09 Email, prefilled',
+        path: 'Setup/redesign/Email/EmailScreen.tsx',
+        render: () => (
+            <RedesignStepSurface
+                screenId="notification-email"
+                seed={{ username: 'luckyotter', notificationEmail: 'luckyotter@gmail.com' }}
+            />
+        ),
+    },
+    'setup-redesign-notifications': {
+        name: 'Sign-up redesign: 10 Notifications',
+        path: 'Setup/redesign/Notifications/NotificationsScreen.tsx',
+        render: () => <RedesignStepSurface screenId="notification-permission" />,
+    },
+    'setup-redesign-final': {
+        name: 'Sign-up redesign: 11 Final confirm',
+        path: 'Setup/redesign/FinalConfirm/FinalConfirmScreen.tsx',
+        render: () => <RedesignStepSurface screenId="advantage-control" seed={{ username: 'luckyotter' }} />,
+    },
+    'setup-redesign-final-finish': {
+        name: 'Sign-up redesign: 11 Final confirm on /setup/finish',
+        path: 'Setup/redesign/FinalConfirm/FinalConfirmScreen.tsx',
+        render: () => <RedesignStepSurface screenId="advantage-control" finishRoute />,
+    },
+    'setup-redesign-celebration': {
+        name: 'Sign-up redesign: 12 Celebration',
+        path: 'Setup/redesign/Celebration/CelebrationScreen.tsx',
+        render: () => (
+            <RedesignStepSurface
+                screenId="advantage-control"
+                seed={{ username: 'luckyotter', signupCompleted: true }}
+            />
+        ),
+    },
+    'setup-redesign-celebration-claim': {
+        name: 'Sign-up redesign: 12 Celebration after a claim link',
+        path: 'Setup/redesign/Celebration/CelebrationScreen.tsx',
+        render: () => (
+            <RedesignStepSurface
+                screenId="advantage-control"
+                seed={{ username: 'luckyotter', signupCompleted: true, signupEntryFlow: 'claim' }}
+            />
+        ),
     },
 }
 
