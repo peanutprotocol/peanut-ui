@@ -451,3 +451,107 @@ describe('08 Payment plan', () => {
         expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(copyRx(`${K}.title`, {}, locale))
     })
 })
+
+// ---- ported from dev's Views/__tests__/PaymentPlan.test.tsx (deleted with the old view) ---------------------
+
+describe('08 Payment plan: dev cases kept', () => {
+    // the leading slot of a drawer row: a Pix logo is a bare image, a bubble draws a fill
+    const rowMark = (row: HTMLElement) => {
+        const slot = row.querySelector('.rounded-full') as HTMLElement
+        return { logo: !!slot.querySelector(':scope > img'), className: slot.className }
+    }
+
+    it.each([
+        ['PT', ['payCard', 'payQr']],
+        ['BR', ['payCard', 'payQr']],
+        ['GB', ['payQr']],
+        ['UA', ['payQr']],
+    ])('P3-40 spending offers only the card and QR payments in %s', async (country, keys) => {
+        const view = render({ residenceCountry: country })
+        // a one-item list arrives filled, so its pill opens on the choice instead of Choose
+        await waitFor(() => expect(setupState(view.container)).not.toBe('loading'))
+        expect(view.open('payment')).toEqual(keys.map((key) => label(key)))
+    })
+
+    // Slava, 2026-10-27: the bank row names the currencies the server opens, in its order
+    it.each([
+        [
+            'MK',
+            [
+                label('fundBankCurrencies', { currencies: 'USD, EUR, GBP, MXN' }),
+                label('fundCrypto'),
+                label('fundPeanut'),
+            ],
+        ],
+        [
+            'MX',
+            [
+                label('fundBankCurrencies', { currencies: 'MXN, USD, EUR, GBP' }),
+                label('fundCrypto'),
+                label('fundPeanut'),
+            ],
+        ],
+        // Bridge takes no new customers here
+        ['KR', [label('fundCrypto'), label('fundPeanut')]],
+    ])('P3-44 funding rows for %s follow the served bank feature', (country, rows) => {
+        const view = render({ residenceCountry: country })
+        expect(view.open('funding')).toEqual(rows)
+    })
+
+    it('P3-44 a USD-only residence names only USD on the bank row', () => {
+        mockIntentsOverride = {
+            CF: {
+                qr: { available: true },
+                local: { available: false, reason: 'local_residence_unsupported' },
+                card: { available: true },
+                bank: { available: true, currencies: ['USD'] },
+            } as KycIntents,
+        }
+        const view = render({ residenceCountry: 'CF' })
+        expect(view.open('funding')).toEqual([
+            label('fundBankCurrencies', { currencies: 'USD' }),
+            label('fundCrypto'),
+            label('fundPeanut'),
+        ])
+    })
+
+    it('P3-43 drawer row marks: local and Bridge bank rows a green bubble, Pix its bare logo', () => {
+        const ar = render({ residenceCountry: 'AR' })
+        fireEvent.click(ar.pill('funding'))
+        const arDialog = openDialog()!
+        const ars = within(arDialog).getByRole('button', { name: textRx(label('fundArsBank')), hidden: true })
+        expect(rowMark(ars)).toEqual({
+            logo: false,
+            className: expect.stringContaining('bg-background-icon-bubble-green'),
+        })
+        ar.unmount()
+
+        const br = render({ residenceCountry: 'BR' })
+        fireEvent.click(br.pill('funding'))
+        const brDialog = openDialog()!
+        const pix = rowMark(within(brDialog).getByRole('button', { name: textRx(label('fundBrlBank')), hidden: true }))
+        expect(pix.logo).toBe(true)
+        expect(pix.className).not.toMatch(/\bbg-/)
+        const bank = within(brDialog).getByRole('button', {
+            name: textRx(label('fundBankCurrencies', { currencies: 'USD, EUR, GBP, MXN' })),
+            hidden: true,
+        })
+        expect(rowMark(bank)).toEqual({
+            logo: false,
+            className: expect.stringContaining('bg-background-icon-bubble-green'),
+        })
+    })
+
+    it('P3-40 with restriction lists unknown the served intents decide: the bank and card can be picked, no restricted report', async () => {
+        mockSetsSettled = false
+        const view = render({ residenceCountry: 'PT' })
+        expect(setupState(view.container)).not.toBe('loading')
+        await view.choose('funding', label('fundBankCurrencies', { currencies: 'USD, EUR, GBP, MXN' }))
+        await view.choose('payment', label('payCard'))
+        fireEvent.click(view.continueButton())
+        expect(mockHandleNext).toHaveBeenCalledTimes(1)
+        expect(
+            capture.mock.calls.filter(([e]) => e === ANALYTICS_EVENTS.SIGNUP_RESIDENCE_RESTRICTED_CONTINUED)
+        ).toEqual([])
+    })
+})
