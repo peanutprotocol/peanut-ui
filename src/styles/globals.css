@@ -906,10 +906,6 @@
     .signup-shell[data-fold='bar'] [data-setup-art-layer] h1 {
         visibility: hidden;
     }
-    /* The keyboard covers the home bar: no inset fill over the footer. */
-    .signup-shell[data-keyboard] ~ [data-setup-inset] {
-        display: none;
-    }
     /*
      * Standalone links in the footer (Skip, Not now, Log out): LinkButton already extends its hit area to 44 px tall;
      * this widens it to at least 44 px, centred, without changing how the link looks (R2-08, WCAG 2.5.8).

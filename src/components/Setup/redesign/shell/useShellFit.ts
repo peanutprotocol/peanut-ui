@@ -131,8 +131,7 @@ export function useShellFit({
         keyboard.current = open
         if (open) {
             shell.dataset.keyboard = ''
-            // the keyboard covers the home bar, so the bottom inset no longer counts
-            shell.style.setProperty('--sr-h', `calc(${height}px - var(--safe-top))`)
+            shell.style.setProperty('--sr-h', `calc(${height}px - var(--safe-top) - var(--safe-bottom))`)
         } else {
             delete shell.dataset.keyboard
             shell.style.removeProperty('--sr-h')
