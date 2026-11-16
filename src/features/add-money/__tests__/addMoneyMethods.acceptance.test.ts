@@ -245,6 +245,18 @@ describe('resolveAddMoneyMethods', () => {
         expect(result.drawerMethods).toHaveLength(3)
     })
 
+    it('keeps the picker for a new resident whose Avenia route is offered before verification', () => {
+        const result = resolve({
+            residenceIso2s: ['BR'],
+            firstPaymentAt: null,
+            pixDepositOffered: true,
+            pixDepositRouteOpen: true,
+        })
+        expect(result.entry).toBe('picker')
+        expect(result.pickerMethods[0]).toBe('pix')
+        expect(result.drawerMethods).not.toContain('more')
+    })
+
     it('does not activate Pix for a Brazilian resident without an exact ready Pix rail', () => {
         expect(resolve({ residenceIso2s: ['BR'] })).toMatchObject({
             entry: 'picker',
