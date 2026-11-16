@@ -42,6 +42,7 @@ export function ResidenceSentence({
     const sentenceClass = useSentenceFit(blockRef, {
         worst: { residence_country: longest, nationality_country: longest },
         remeasure: refusedPassport,
+        fitLabels: false,
     })
     return (
         <div ref={blockRef} data-setup-screen="residence">

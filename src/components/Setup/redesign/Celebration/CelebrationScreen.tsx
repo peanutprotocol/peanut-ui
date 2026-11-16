@@ -32,16 +32,21 @@ export function CelebrationScreen() {
             stage="full"
             artTop={104}
             smScale={0.67}
+            // scale 1 on a standard phone, as the mock: the fit would shrink the art by the bottom safe area
+            artBesideTitle
             chrome={{ back: false, dots: false, lang: false }}
             art={<CelebrationArt claim={claim} />}
             footer={null}
             state={state}
             stageCopy={
-                // anchored to the bottom so a longer headline grows upward
+                // anchored to the bottom so a longer headline grows upward. The mock measures 40 px (80 px after a claim
+                // link) from the phone's bottom edge, home bar included; the shell ends above the bottom safe area.
                 <div
                     className={twMerge(
                         'pointer-events-none absolute inset-x-6 flex flex-col items-center text-center signup-sm:inset-x-5',
-                        claim ? 'bottom-20 signup-sm:bottom-10' : 'bottom-10 signup-sm:bottom-4'
+                        claim
+                            ? 'bottom-[max(0px,calc(5rem-var(--safe-bottom)))] signup-sm:bottom-10'
+                            : 'bottom-[max(0px,calc(2.5rem-var(--safe-bottom)))] signup-sm:bottom-4'
                     )}
                     data-testid="setup-redesign-celebration"
                     data-setup-state={state}
@@ -63,8 +68,8 @@ export function CelebrationScreen() {
                         </span>
                     )}
                     <p
-                        // ds text tokens stay outside twMerge: it reads them as colours and drops the size
-                        className={`text-body-m text-foreground-primary ${twMerge('mt-2.5 signup-sm:mt-2', !claim && 'mt-4')}`}
+                        // ds text tokens stay outside twMerge: it reads them as colours and drops the size. Mock .sub: 16/26, 14/20 small
+                        className={`text-body-m leading-[1.625rem] text-foreground-primary signup-sm:text-body-s signup-sm:leading-5 ${twMerge('mt-2.5 signup-sm:mt-2', !claim && 'mt-4')}`}
                     >
                         {t(claim ? 'claimSub' : 'sub')}
                     </p>

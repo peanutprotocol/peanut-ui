@@ -26,10 +26,16 @@ export const longestLabel = (labels: readonly string[]) =>
  * sentence steps down to 24/36 when that copy would end closer than 16 px to the CTA, cuts a pill label, or pushes a
  * pill off its lead word's line. It only ever steps down during a visit. `remeasure` re-checks when the block below
  * the sentence comes or goes. Without the shell's footer (a screen rendered alone) it keeps the regular size.
+ * `fitLabels: false` checks the height only, as the 07 mock does: a country pill truncates on its own line anyway, and
+ * the full country list always holds a name longer than any line, which would force the small size on every phone.
  */
 export function useSentenceFit(
     blockRef: RefObject<HTMLElement | null>,
-    { worst = {}, remeasure }: { worst?: Record<string, string>; remeasure?: unknown } = {}
+    {
+        worst = {},
+        remeasure,
+        fitLabels = true,
+    }: { worst?: Record<string, string>; remeasure?: unknown; fitLabels?: boolean } = {}
 ): string {
     const [small, setSmall] = useState(false)
     const [fontsReady, setFontsReady] = useState(false)
@@ -69,10 +75,11 @@ export function useSentenceFit(
         const tooTall =
             probe.offsetHeight > 0 && rect.top + probe.offsetHeight > footer.getBoundingClientRect().top - CTA_GAP
         const cut =
-            [...probe.querySelectorAll<HTMLElement>(`[${FIT_LABEL}]`)].some(overflows) ||
-            [...probe.querySelectorAll<HTMLElement>(`[${FIT_GROUP}]`)].some(overflows)
+            fitLabels &&
+            ([...probe.querySelectorAll<HTMLElement>(`[${FIT_LABEL}]`)].some(overflows) ||
+                [...probe.querySelectorAll<HTMLElement>(`[${FIT_GROUP}]`)].some(overflows))
         probe.remove()
         if (tooTall || cut) setSmall(true)
-    }, [blockRef, remeasure, small, worstKey, fontsReady])
+    }, [blockRef, remeasure, small, worstKey, fontsReady, fitLabels])
     return small ? SENTENCE_CLASS.small : SENTENCE_CLASS.regular
 }

@@ -12,7 +12,8 @@ import { useEmailStep } from './useEmailStep'
 
 /**
  * 09 Email (step `notification-email`): Peanut needs an email, one field, Continue once the address is valid.
- * No back arrow: the account exists, so this is the back-lock screen (the page hides Back). Contract P4 § 2.
+ * No back arrow: the account exists, so this is the back-lock screen. The screen hides Back itself, so a resumed or
+ * rendered-alone 09 never shows it either. Contract P4 § 2, conflict 9.
  */
 export function EmailScreen(_props: StepComponentProps) {
     const t = useTranslations('setupRedesign')
@@ -46,8 +47,9 @@ export function EmailScreen(_props: StepComponentProps) {
         <SetupScreen
             ground="yellow"
             stage="std"
-            artTop={172}
+            artTop={190}
             title={t('email.title')}
+            chrome={{ back: false }}
             art={<EmailArt beat={beat} />}
             state={step.state}
             footer={
