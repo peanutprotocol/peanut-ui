@@ -1033,6 +1033,68 @@ test.describe('sign-up redesign journeys', () => {
             expect(stub.seen('POST', /^\/passkeys\/register\//)).toHaveLength(0)
         })
 
+        for (const gap of [0, 200, 400]) {
+            test(`a double tap ${gap} ms apart on 01, 05 and 06 goes exactly one screen each (R2-01)`, async ({
+                page,
+                context,
+                baseURL,
+            }) => {
+                await openSetup(page, context, baseURL!)
+                await expectScreen(page, 'landing', 'default', 30_000)
+                for (const [from, to] of [
+                    ['landing', 'advantage-fees'],
+                    ['advantage-fees', 'advantage-card'],
+                    ['advantage-card', 'residence'],
+                ] as const) {
+                    expect((await current(page)).screen).toBe(from)
+                    // the primary sits at the same pixel on every screen: the second tap lands on the next screen's button
+                    const box = (await footer(page).getByRole('button').first().boundingBox())!
+                    const x = box.x + box.width / 2
+                    const y = box.y + box.height / 2
+                    await page.touchscreen.tap(x, y)
+                    if (gap) await page.waitForTimeout(gap)
+                    await page.touchscreen.tap(x, y)
+                    await expect(page.locator('[data-setup-shell]')).not.toHaveAttribute('data-nav-locked')
+                    await page.waitForTimeout(300)
+                    expect((await current(page)).screen, `one tap gesture, one step from ${from}`).toBe(to)
+                }
+            })
+        }
+
+        for (const viewport of [
+            { width: 390, height: 844, keyboard: 336 },
+            { width: 320, height: 568, keyboard: 260 },
+        ]) {
+            test(`keyboard open on 02 at ${viewport.width}: the field and its help line stay above the button (R2-02)`, async ({
+                page,
+                context,
+                baseURL,
+            }) => {
+                await page.setViewportSize({ width: viewport.width, height: viewport.height })
+                await openSetup(page, context, baseURL!)
+                await landingToUsername(page, 'en')
+                const field = page.getByRole('textbox', { name: copy('en', 'setupRedesign.username.fieldAria') })
+                await field.focus()
+                await field.fill('mellowfox')
+                await expectScreen(page, 'signup', 'available')
+                // what the native apps do for the keyboard (adjustResize): the page gets shorter
+                await page.setViewportSize({ width: viewport.width, height: viewport.height - viewport.keyboard })
+                await expect(page.locator('[data-setup-shell]')).toHaveAttribute('data-keyboard', '')
+                await page.waitForTimeout(900)
+                const visible = viewport.height - viewport.keyboard
+                const button = (await footer(page).getByRole('button').first().boundingBox())!
+                const input = (await field.boundingBox())!
+                const help = (await panelOf(page)
+                    .getByText(copy('en', 'setupRedesign.username.available'), { exact: true })
+                    .first()
+                    .boundingBox())!
+                expect(input.y, 'the field is on screen').toBeGreaterThanOrEqual(0)
+                expect(input.y + input.height, 'the field ends above the button').toBeLessThanOrEqual(button.y)
+                expect(help.y + help.height, 'the help line ends above the button').toBeLessThanOrEqual(button.y)
+                expect(button.y + button.height, 'the button is above the keyboard').toBeLessThanOrEqual(visible)
+            })
+        }
+
         test('slow network on the username check: the button stays off until the answer, then turns on', async ({
             page,
             context,
