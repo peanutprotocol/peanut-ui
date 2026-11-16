@@ -14,6 +14,7 @@ import ATTENTION_POLICY from '@/features/attention/catalogue.generated.json'
 import { DOWNLOAD_PROMPT_FIXTURE } from './active'
 import type { RainCardFunding, RainFundingAccess, RainFundingManagementStatus } from '@/services/rain'
 import { DEMO_RESIDENCE_RESTRICTIONS } from '@/utils/demo-kyc'
+import { suggestionCandidates } from '@/features/setup/username-suggestions'
 import {
     CLAIMABLE_COP,
     CLAIMABLE_EUR,
@@ -2133,6 +2134,19 @@ const setupRedesign = (surface: string, about: string, extra: Partial<Fixture> =
         ...extra.responses,
     },
 })
+/**
+ * Every idea 02 can show first or roll to, free in both locales, so the hero card and the field show a checked
+ * suggestion (C-05). Without it every check reads taken and 02 opens on an empty field with no card.
+ */
+const suggestionIdeas = (locale: string) => {
+    const names = new Set<string>()
+    for (const name of suggestionCandidates(locale, 0)) {
+        if (names.has(name)) break
+        names.add(name)
+    }
+    return [...names]
+}
+const FREE_SUGGESTIONS = freeUsernames(...suggestionIdeas('en'), ...suggestionIdeas('es-AR'))
 /** HEAD /users/username/:name answering 200: the name has an account. */
 const USERNAME_TAKEN_ANSWER = {}
 
@@ -2148,15 +2162,28 @@ const SETUP_REDESIGN_FIXTURES: Record<string, Fixture> = {
         '01 Landing on the web without keep-web: the store buttons.'
     ),
 
-    'setup-redesign-username-default': setupRedesign('username', '02 Username: a checked suggestion, button off.'),
-    'setup-redesign-username-rolling': setupRedesign('username', '02 Username: the die is rolling.'),
-    'setup-redesign-username-rolled': setupRedesign('username', '02 Username: a rolled name landed, button on.'),
+    'setup-redesign-username-default': setupRedesign('username', '02 Username: a checked suggestion, button off.', {
+        rejects: FREE_SUGGESTIONS,
+    }),
+    'setup-redesign-username-rolling': setupRedesign('username', '02 Username: the die is rolling.', {
+        rejects: FREE_SUGGESTIONS,
+    }),
+    'setup-redesign-username-rolled': setupRedesign('username', '02 Username: a rolled name landed, button on.', {
+        rejects: FREE_SUGGESTIONS,
+    }),
     'setup-redesign-username-typing': setupRedesign(
         'username',
-        '02 Username: a short typed value, rule line and counter.'
+        '02 Username: a short typed value, rule line and counter.',
+        {
+            rejects: FREE_SUGGESTIONS,
+        }
     ),
-    'setup-redesign-username-too-long': setupRedesign('username', '02 Username: 14 letters, the extra two in red.'),
-    'setup-redesign-username-invalid': setupRedesign('username', '02 Username: starts with a digit.'),
+    'setup-redesign-username-too-long': setupRedesign('username', '02 Username: 14 letters, the extra two in red.', {
+        rejects: FREE_SUGGESTIONS,
+    }),
+    'setup-redesign-username-invalid': setupRedesign('username', '02 Username: starts with a digit.', {
+        rejects: FREE_SUGGESTIONS,
+    }),
     'setup-redesign-username-taken': setupRedesign(
         'username',
         '02 Username: @tiger is taken, two free names offered.',
@@ -2165,16 +2192,22 @@ const SETUP_REDESIGN_FIXTURES: Record<string, Fixture> = {
                 'HEAD /users/username/tiger': USERNAME_TAKEN_ANSWER,
                 'HEAD /users/username/tigre': USERNAME_TAKEN_ANSWER,
             },
+            rejects: FREE_SUGGESTIONS,
         }
     ),
     'setup-redesign-username-available': setupRedesign('username', '02 Username: a typed name is free, button on.', {
-        rejects: freeUsernames('mellowfox', 'lunamate'),
+        rejects: { ...FREE_SUGGESTIONS, ...freeUsernames('mellowfox', 'lunamate') },
     }),
     'setup-redesign-username-check-failed': setupRedesign('username', '02 Username: the check failed, support link.', {
+        rejects: FREE_SUGGESTIONS,
         fails: ['HEAD /users/username/mellowfox', 'HEAD /users/username/lunamate'],
     }),
-    'setup-redesign-username-reserved': setupRedesign('username', '02 Username: a reserved name (contains peanut).'),
-    'setup-redesign-username-claiming': setupRedesign('username', '02 Username: the reservation is in flight.'),
+    'setup-redesign-username-reserved': setupRedesign('username', '02 Username: a reserved name (contains peanut).', {
+        rejects: FREE_SUGGESTIONS,
+    }),
+    'setup-redesign-username-claiming': setupRedesign('username', '02 Username: the reservation is in flight.', {
+        rejects: FREE_SUGGESTIONS,
+    }),
     'setup-redesign-username-return-taken': setupRedesign(
         'username-return',
         '02 Username opened again on a name someone just registered: taken, field focused.',
