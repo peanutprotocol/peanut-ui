@@ -20,6 +20,7 @@ import { InviterSuggestions } from './InviterSuggestions'
 import { SAMPLE_FRIEND_HANDLE } from './invite-art.consts'
 import { CHIP_MARKERS, splitSuggestionLine } from './suggestion-line'
 import { useInviterSuggestions } from './useInviterSuggestions'
+import { SETUP_LEAD_CLASS } from '@/components/Setup/redesign/shell/shell.consts'
 
 const MISS: readonly InviteStatus[] = ['not-found', 'self', 'check-failed']
 const ERROR_KEY = { 'not-found': 'notFound', self: 'isSelf', 'check-failed': 'checkFailed' } as const
@@ -97,7 +98,7 @@ export function InviteScreen(_props: StepComponentProps) {
                 ),
             }}
         >
-            <p className="text-body-m text-foreground-secondary">{t('invite.desc')}</p>
+            <p className={SETUP_LEAD_CLASS}>{t('invite.desc')}</p>
             <InviteField
                 value={draft}
                 status={status}

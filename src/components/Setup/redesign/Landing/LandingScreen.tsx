@@ -11,6 +11,7 @@ import { LoginRecoveryDrawer } from '@/components/Setup/Views/LoginRecoveryDrawe
 import { useLandingLogin } from '@/features/setup/useLandingLogin'
 import { LandingWebBlock } from './LandingWebBlock'
 import { X1Hero } from './X1Hero'
+import { SETUP_LEAD_CLASS } from '@/components/Setup/redesign/shell/shell.consts'
 
 /**
  * 01 Landing (step `landing`), X1 "coin bridge" (mock scaffold screens/01-landing). The native app and keep-web users
@@ -34,7 +35,7 @@ export function LandingScreen(_props: StepComponentProps) {
             {tSetup('passkey.accountDeleted')}
         </Callout>
     )
-    const sub = <p className="text-body-m text-pretty text-foreground-secondary">{t('sub')}</p>
+    const sub = <p className={`${SETUP_LEAD_CLASS} text-pretty`}>{t('sub')}</p>
 
     return (
         <SetupScreen
