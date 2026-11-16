@@ -17,7 +17,7 @@ import { RESIDENCE_RESTRICTION_SETS } from '@/test-utils/residenceRestrictions.f
 import { VerifySetupPrelude } from '../components/VerifySetupPrelude'
 
 jest.mock('@/components/Setup/components/SetupWrapper', () => ({ useSetupFullScreen: jest.fn() }))
-// The real shell draws the footer and the top-bar Back; AnimatePresence is a passthrough (see framerMock).
+// The real shell draws the footer and the top-bar Back.
 jest.mock('framer-motion', () =>
     require('@/components/Setup/redesign/Accounts/__tests__/framerMock').framerMotionForShell()
 )
