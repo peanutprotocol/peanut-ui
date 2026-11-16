@@ -115,7 +115,9 @@ export default function PeanutMascot({ pose, className, alt, loop = true }: Pean
                     stop()
                     return
                 }
-                virtualFrame.current -= totalFrames
+                // Modulo, not one subtraction: a pose swap can carry over a frame from a
+                // longer animation, which one subtraction leaves past this one's end.
+                virtualFrame.current %= totalFrames
             }
             const heldFrame = Math.floor(virtualFrame.current / MASCOT_HOLD_FRAMES) * MASCOT_HOLD_FRAMES
             if (heldFrame === shownFrame) return
