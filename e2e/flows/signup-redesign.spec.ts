@@ -94,7 +94,7 @@ class SignupStub {
     inviters = new Set(['fulano'])
     /** Extra latency per `METHOD /path` key, in ms (the slow-network journey). */
     delays = new Map<string, number>()
-    registered: { username: string; email: string | null; residence: unknown } | null = null
+    registered: { username: string; email: string | null; residence: unknown; wallet: boolean } | null = null
     unhandled: string[] = []
 
     reset() {
@@ -118,7 +118,20 @@ class SignupStub {
             invitesSent: [],
             showEarlyUserModal: false,
             invitedBy: null,
-            accounts: [],
+            accounts: this.registered?.wallet
+                ? [
+                      {
+                          id: 'e2e-wallet',
+                          userId: E2E_USER_ID,
+                          type: 'peanut-wallet',
+                          identifier: E2E_ADDRESS,
+                          chainId: '42161',
+                          details: {},
+                          createdAt: '2026-11-16T00:00:00.000Z',
+                          updatedAt: '2026-11-16T00:00:00.000Z',
+                      },
+                  ]
+                : [],
             user: {
                 userId: E2E_USER_ID,
                 email: this.registered?.email ?? null,
@@ -193,6 +206,7 @@ class SignupStub {
                     username: passkeyName.replace(/\.peanut\.wallet$/, ''),
                     email: null,
                     residence: null,
+                    wallet: false,
                 }
                 return { status: 200, json: { verified: true, token: 'e2e-jwt' } }
             }
@@ -225,6 +239,11 @@ class SignupStub {
                 if ('residenceCountry' in update || 'nationality' in update) this.registered.residence = update
                 return { status: 200, json: this.user().user }
             }
+            case 'POST /add-account':
+                // the wallet the final step creates; the account is complete from here on
+                if (!this.registered) return { status: 401, json: { error: 'unauthorized' } }
+                this.registered.wallet = true
+                return { status: 200, json: { success: true } }
             case 'POST /invites/validate': {
                 const code = String((body as { inviteCode?: string })?.inviteCode ?? '').toLowerCase()
                 const handle = code.replace(/invitesyou$/, '')
@@ -401,7 +420,7 @@ function answerRpcBody(raw: string): string {
 // ---------------------------------------------------------------------------------------------------------------
 
 const API_PATH =
-    /^\/(users|invites|passkeys|config|update-user|get-user|notifications|history|version|badges|points|rewards|kyc|attention|onboarding|referrals|campaigns)(\/|$)/
+    /^\/(users|invites|passkeys|config|update-user|get-user|notifications|history|version|badges|points|rewards|kyc|attention|onboarding|referrals|campaigns|add-account|rain|user|avatars)(\/|$)/
 const CORS = {
     'access-control-allow-origin': '*',
     'access-control-allow-headers': '*',
@@ -808,7 +827,7 @@ test.describe('sign-up redesign journeys', () => {
             await createPasskey(page, 'en')
             await expectScreen(page, 'passkey', 'taken')
             await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-                copy('en', 'setupRedesign.passkey.takenTitle', { name: 'mellowfox' })
+                copy('en', 'setupRedesign.passkey.takenTitle', { name: '@mellowfox' })
             )
             expect(stub.seen('POST', '/passkeys/register/options'), 'no ceremony for a taken name').toHaveLength(0)
 
@@ -946,6 +965,7 @@ test.describe('sign-up redesign journeys', () => {
             context,
             baseURL,
         }) => {
+            await addAuthenticator(page)
             await openSetup(page, context, baseURL!)
             await landingToUsername(page, 'en')
             await claimUsername(page, 'en', 'luckyotter')
