@@ -12,7 +12,8 @@ import { fetchInviterSuggestions } from './inviter-suggestions'
  */
 export function useInviterSuggestions(code: string, missConfirmed: boolean): string[] {
     const isFlagOn = useFeatureFlags()
-    const enabled = isFlagOn('signup-rollout-inviter-suggestions')
+    // read only after a confirmed miss: the gate matters nowhere else on the step
+    const enabled = missConfirmed && isFlagOn('signup-rollout-inviter-suggestions')
     const { track } = useSignupControl()
     const [result, setResult] = useState<{ code: string; names: string[] }>({ code: '', names: [] })
 
