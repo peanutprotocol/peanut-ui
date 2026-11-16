@@ -131,7 +131,7 @@ const PASSKEY_LOGIN_MESSAGES = {
     PASSKEY_ORIGIN:
         'Passkeys aren’t available in this app right now. Update Peanut, or contact support if this continues.',
     NETWORK: 'Couldn’t reach Peanut’s servers. Check your connection and try again.',
-    RATE_LIMITED: 'Too many attempts. Wait a minute and try again.',
+    RATE_LIMITED: 'Too many attempts. Wait a bit and try again.',
     // flow-neutral wording — classifyPasskeyError also serves the signup ceremony
     CEREMONY_TIMEOUT: 'This is taking longer than it should. Please try again.',
     PASSKEY_NOT_READY: 'The app is still getting ready for passkeys. Wait a moment and try again.',

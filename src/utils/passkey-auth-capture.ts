@@ -86,8 +86,8 @@ export class PasskeyOptionsFailedError extends Error {
 
 /**
  * The API rate-limited a passkey request (429). Its body names no reason, so the
- * status is the signal. Nothing was authenticated, and the retry-after is at most
- * a minute: the user only has to wait.
+ * status is the signal. Nothing was authenticated, so the user only has to wait;
+ * the window can be up to an hour (signup verify cap), so the copy names no duration.
  */
 export class PasskeyRateLimitedError extends Error {
     constructor(path: string) {

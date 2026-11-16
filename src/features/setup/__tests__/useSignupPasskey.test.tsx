@@ -932,7 +932,7 @@ describe('Android failures that are not cancels', () => {
         )
         renderWithIntl(<Harness />)
         claim()
-        expect(await screen.findByRole('alert')).toHaveTextContent('Too many attempts. Wait a minute and try again.')
+        expect(await screen.findByRole('alert')).toHaveTextContent('Too many attempts. Wait a bit and try again.')
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
         expect(Sentry.captureException).toHaveBeenCalledWith(
             expect.anything(),

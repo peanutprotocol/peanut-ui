@@ -250,7 +250,7 @@ describe('rate limited', () => {
         expect(normalizePasskeyServerError(error)).toBe(error)
         expect(classifyPasskeyError(error)).toEqual({
             code: 'RATE_LIMITED',
-            message: 'Too many attempts. Wait a minute and try again.',
+            message: 'Too many attempts. Wait a bit and try again.',
         })
         expect(
             getPasskeyErrorSetupKey(Object.assign(new Error(), { name: 'PasskeyError', code: 'RATE_LIMITED' }))
