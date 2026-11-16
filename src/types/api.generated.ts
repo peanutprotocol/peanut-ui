@@ -6118,6 +6118,11 @@ export interface paths {
                                     reason: "payout-failed" | "payout-reversed" | "late-deposit" | "deposit-delivery-failed";
                                     state: "in-progress" | "done";
                                 } | null;
+                                /**
+                                 * @description On a Pix deposit the provider gave back (Avenia: the intent FAILED because its ticket ended FAILED): the money went back to the payer. Every viewer, the shared receipt included; why is `returnReason`, owner only. Absent otherwise.
+                                 * @enum {boolean}
+                                 */
+                                pixReturned?: true;
                                 /** @description On a settled Avenia Pix deposit, withdrawal, send or QR payment: every fee the providers took (Avenia’s fee lines and the bridge fee), in reais to the centavo. Sent only with `receipt.exchange_rate`, Avenia’s rate (BRL per USD, no fee in it), and only when both reconcile with the amounts. Deposit: (currency.amount − providerFeeBrl) ÷ rate = amount. Payout: amount × rate − providerFeeBrl = currency.amount. */
                                 providerFeeBrl?: string;
                             } & {
