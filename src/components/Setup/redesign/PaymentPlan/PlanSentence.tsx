@@ -10,8 +10,8 @@ import { FUNDING_PILL_KEY, FUNDING_SHEET_KEY, PAYMENT_PILL_KEY, PAYMENT_SHEET_KE
 
 /**
  * The 08 sentence in the white panel: "You'll first add money with [funding] / then spend with [payment]", the two
- * clauses 16 px apart (8 px on a small phone). Each lead word ("with", "con") shares its line with its pill. No hint
- * line.
+ * clauses 16 px apart (8 px on a small phone). Each lead word ("with", "con") shares its line with its pill, and that
+ * line holds nothing else, so the lines stay the same in every state (mock freezeLines). No hint line.
  */
 export function PlanSentence({
     funding,
@@ -35,10 +35,10 @@ export function PlanSentence({
 }) {
     const t = useTranslations('setupRedesign.plan')
     const blockRef = useRef<HTMLParagraphElement>(null)
-    const fundingSizers = Object.values(FUNDING_PILL_KEY).map((key) => t(key))
-    const paymentSizers = (['card', 'qr', 'peanut'] as const).map((channel) => t(PAYMENT_PILL_KEY[channel]))
+    const fundingPillLabels = Object.values(FUNDING_PILL_KEY).map((key) => t(key))
+    const paymentPillLabels = (['card', 'qr', 'peanut'] as const).map((channel) => t(PAYMENT_PILL_KEY[channel]))
     const sentenceClass = useSentenceFit(blockRef, {
-        worst: { funding: longestLabel(fundingSizers), payment: longestLabel(paymentSizers) },
+        worst: { funding: longestLabel(fundingPillLabels), payment: longestLabel(paymentPillLabels) },
     })
     const fundingLabel = (channel: SetupFundingChannel) =>
         channel === 'bank' && bankCurrencies.length
@@ -51,8 +51,9 @@ export function PlanSentence({
             data-setup-screen="payment-plan"
         >
             {t.rich('sentence', {
+                // a line of its own: a pill that hugs a shorter label never pulls its lead word up onto the line before
                 nw: (chunks) => (
-                    <span className="inline-flex max-w-full items-center align-middle whitespace-nowrap" data-fit-group>
+                    <span className="flex w-fit max-w-full items-center whitespace-nowrap" data-fit-group>
                         {chunks}
                     </span>
                 ),
@@ -63,7 +64,6 @@ export function PlanSentence({
                         title={t('sheetFunding')}
                         value={funding}
                         options={fundingOptions}
-                        sizers={fundingSizers}
                         label={fundingLabel}
                         pillLabel={(channel) => t(FUNDING_PILL_KEY[channel])}
                         placeholder={t('choose')}
@@ -77,7 +77,6 @@ export function PlanSentence({
                         title={t('sheetPayment')}
                         value={payment}
                         options={paymentOptions}
-                        sizers={paymentSizers}
                         label={(channel) => t(PAYMENT_SHEET_KEY[channel])}
                         pillLabel={(channel) => t(PAYMENT_PILL_KEY[channel])}
                         placeholder={t('choose')}

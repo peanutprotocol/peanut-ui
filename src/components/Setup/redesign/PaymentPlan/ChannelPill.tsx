@@ -30,17 +30,16 @@ function RowIcon({ channel }: { channel: SetupChannel }) {
 }
 
 /**
- * A channel pill in the 08 sentence, opening a DrawerSelect (dev's ChannelPicker). Every pill label of its kind sits
- * invisibly in one grid cell, so the widest one sizes the pill in every state and after every pick, and the
- * sentence never reflows; the pill shrinks to its line only when that is narrower. While options load the pill
- * waits with a spinner and cannot open.
+ * A channel pill in the 08 sentence, opening a DrawerSelect (dev's ChannelPicker). The pill hugs its label, as in
+ * the mock stills ("Choose" ~135 px at 390); the sentence keeps its lines because each lead word and its pill sit on
+ * a line of their own (PlanSentence). The pill shrinks to its line only when that is narrower. While options load the
+ * pill waits with a spinner and cannot open.
  */
 export function ChannelPill<C extends SetupChannel>({
     kind,
     title,
     value,
     options,
-    sizers,
     label,
     pillLabel,
     placeholder,
@@ -51,8 +50,6 @@ export function ChannelPill<C extends SetupChannel>({
     title: string
     value: C | null
     options: readonly C[]
-    /** Every pill label this kind can show, for the fixed width. */
-    sizers: readonly string[]
     /** The full label: drawer rows and the accessible name. */
     label: (channel: C) => string
     pillLabel: (channel: C) => string
@@ -93,15 +90,8 @@ export function ChannelPill<C extends SetupChannel>({
                     icon={<PillIcon channel={value} loading={loading} />}
                     iconContainerClassName="size-6"
                 >
-                    <span className="relative grid min-w-0 overflow-hidden text-left" title={shown}>
-                        {[...new Set([placeholder, ...sizers])].map((text) => (
-                            <span key={text} aria-hidden="true" className="invisible whitespace-nowrap [grid-area:1/1]">
-                                {text}
-                            </span>
-                        ))}
-                        <span className="block truncate [grid-area:1/1]" data-fit-label={kind}>
-                            {shown}
-                        </span>
+                    <span className="block min-w-0 truncate text-left" title={shown} data-fit-label={kind}>
+                        {shown}
                     </span>
                     <Icon name="chevron-down" size={20} className="shrink-0" />
                 </Button>
