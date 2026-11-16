@@ -356,6 +356,8 @@ export interface ResidenceProfile {
         status: 'UNVERIFIED' | 'COLLECTING' | 'REVIEW_PENDING' | 'REJECTED' | 'BLOCKED'
         updatedAt: string | null
         secondCountry: string | null
+        manualReview?: boolean
+        heldAt?: string | null
     } | null
     secondaryDeclaredCountry?: string | null
 }

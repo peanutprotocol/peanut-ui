@@ -515,6 +515,7 @@
                 "title": "Change residence",
                 "reviewTitle": "Under review",
                 "reviewBody": "We’re reviewing your residence documents.",
+                "manualReviewBody": "A person at our verification partner is checking your documents. This can take 1 to 3 business days.",
                 "description": "Pick the country where you legally live: the one your documents show.",
                 "countryPlaceholder": "Select country",
                 "verifiedMismatchNote": "Your verified residence stays unchanged until this passes a new verification. While it is pending, availability follows the stricter rules of both countries.",

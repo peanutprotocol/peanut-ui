@@ -514,6 +514,7 @@
             "changeModal": {
                 "reviewTitle": "Em análise",
                 "reviewBody": "Estamos analisando seus documentos de residência.",
+                "manualReviewBody": "Uma pessoa do nosso parceiro de verificação está analisando seus documentos. Isso pode levar de 1 a 3 dias úteis.",
                 "title": "Alterar residência",
                 "description": "Escolha o país onde você mora legalmente: o que aparece nos seus documentos.",
                 "countryPlaceholder": "Selecione o país",
