@@ -191,6 +191,18 @@ describe('02 Username — typed values (C.md § 3.1, § 4.1)', () => {
         expect(checksFor(mockApiFetch, 'luckyotterclub') + checksFor(mockApiFetch, 'luckyotterclu')).toBe(0)
     })
 
+    it.each(['  mellowfox  ', 'mellowfox\n', '@mellowfox', '@MellowFox '])(
+        'R2-11 a pasted "%s" is checked as "mellowfox"',
+        async (pasted) => {
+            await mount()
+            await type(pasted)
+            expect(field()).toHaveValue('mellowfox')
+            await advance(800)
+            expect(checksFor(mockApiFetch, 'mellowfox')).toBe(1)
+            expect(setupState()).toBe('available')
+        }
+    )
+
     it('R2-09 an invalid name past 12 letters is not marked as too long; the mirror shows it plain', async () => {
         await mount()
         await type('https://peanut.me/x')
