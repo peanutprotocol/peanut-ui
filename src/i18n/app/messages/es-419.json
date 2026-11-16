@@ -514,7 +514,7 @@
             "changeModal": {
                 "reviewTitle": "En revisión",
                 "reviewBody": "Estamos revisando tus documentos de residencia.",
-                "manualReviewBody": "Una persona de nuestro socio de verificación está revisando tus documentos. Puede tardar de 1 a 3 días hábiles.",
+                "manualReviewBody": "Una persona está revisando tus documentos. Puede tardar de 1 a 3 días hábiles.",
                 "title": "Cambiar residencia",
                 "description": "Elige el país donde vives legalmente: el que muestran tus documentos.",
                 "countryPlaceholder": "Selecciona el país",

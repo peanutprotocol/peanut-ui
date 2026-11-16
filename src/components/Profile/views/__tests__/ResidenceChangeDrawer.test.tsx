@@ -251,7 +251,7 @@ describe('ResidenceChangeDrawer', () => {
             pendingManualReview: true,
         })
         expect(screen.getByText(/under review/i)).toBeInTheDocument()
-        expect(screen.getByText(/A person at our verification partner/)).toBeInTheDocument()
+        expect(screen.getByText(/A person is checking your documents/)).toBeInTheDocument()
         expect(screen.getByText(/1 to 3 business days/)).toBeInTheDocument()
         expect(screen.queryByText('We’re reviewing your residence documents.')).not.toBeInTheDocument()
     })
