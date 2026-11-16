@@ -48,6 +48,32 @@ describe('useOpenMantecaDeposit', () => {
         expect(failed.result.current).toBeNull()
     })
 
+    it('never shows a cached order again while the lookup refreshes after leaving the amount step', async () => {
+        const orderA = { id: 'syn-a', stages: { '1': { asset: 'ARS', thresholdAmount: '5000.00' } } }
+        mockGetOpenDeposit.mockResolvedValueOnce({ data: orderA })
+        const { result, rerender } = renderHook(({ enabled }) => useOpenMantecaDeposit('ARS', enabled), {
+            wrapper,
+            initialProps: { enabled: true },
+        })
+        await waitFor(() => expect(result.current).toEqual(orderA))
+
+        // details step: the lookup is off and offers nothing
+        rerender({ enabled: false })
+        expect(result.current).toBeNull()
+
+        // back on the amount step after A expired: hold the refresh open and check A never shows
+        let settle: (value: { data: null }) => void = () => {}
+        mockGetOpenDeposit.mockReturnValueOnce(new Promise((resolve) => (settle = resolve)))
+        rerender({ enabled: true })
+        expect(result.current).toBeNull()
+        await waitFor(() => expect(mockGetOpenDeposit).toHaveBeenCalledTimes(2))
+        expect(result.current).toBeNull()
+
+        settle({ data: null })
+        await waitFor(() => expect(mockGetOpenDeposit).toHaveBeenCalledTimes(2))
+        expect(result.current).toBeNull()
+    })
+
     it('does not ask while disabled', () => {
         renderHook(() => useOpenMantecaDeposit('ARS', false), { wrapper })
         expect(mockGetOpenDeposit).not.toHaveBeenCalled()
