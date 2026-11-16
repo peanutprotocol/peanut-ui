@@ -208,7 +208,8 @@ describe('09 Email', () => {
         expect(setupState(container)).toBe('already-registered')
         expect(field()).toHaveAttribute('aria-invalid', 'true')
         const foot = within(footer(container)!)
-        expect(foot.getByRole('button', { name: copyRx('setupRedesign.email.useOther') })).toBeEnabled()
+        // the primary's label crossfades in 100 ms
+        expect(await foot.findByRole('button', { name: copyRx('setupRedesign.email.useOther') })).toBeEnabled()
         expect(foot.queryByRole('button', { name: copyRx('setupRedesign.common.continue') })).not.toBeInTheDocument()
         expect(foot.getByText(copyRx('setupRedesign.email.recover'))).toBeInTheDocument()
         expect(controls()).toContain('email:error:already_registered')
@@ -240,7 +241,7 @@ describe('09 Email', () => {
         fireEvent.click(link)
         expect(controls()).toContain('account-recovery_doc:open')
         fireEvent.click(
-            within(footer(container)!).getByRole('button', { name: copyRx('setupRedesign.email.useOther') })
+            await within(footer(container)!).findByRole('button', { name: copyRx('setupRedesign.email.useOther') })
         )
         expect(field()).toHaveValue('')
         expect(field()).toHaveFocus()

@@ -335,7 +335,8 @@ describe('11 Final confirm: states', () => {
         expect(alert).toHaveTextContent(copyRx('setupRedesign.final.setupFailed'))
         expect(setupState(container)).toBe('setup-failed')
         await waitFor(() => expect(primary(container)).toBeEnabled())
-        expect(label(primary(container))).toBe(copy('setupRedesign.final.retrySetup'))
+        // the primary's label crossfades in 100 ms
+        await waitFor(() => expect(label(primary(container))).toBe(copy('setupRedesign.final.retrySetup')))
         expect(signupControls(capture)).toContain('finish:error:testTransaction.errors.setupFailed')
         expect(onComplete).not.toHaveBeenCalled()
 
@@ -351,7 +352,8 @@ describe('11 Final confirm: states', () => {
         confirm(container)
         expect(await screen.findByText(textMatch(copy('setupRedesign.final.busy')))).toBeInTheDocument()
         await waitFor(() => expect(primary(container)).toBeEnabled())
-        expect(label(primary(container))).toBe(copy('setupRedesign.common.retry'))
+        // the primary's label crossfades in 100 ms
+        await waitFor(() => expect(label(primary(container))).toBe(copy('setupRedesign.common.retry')))
         expect(setupState(container)).toBe('network-busy-first')
         expect(footerControl(container, copyRx('setupRedesign.final.what'))).toBeInTheDocument()
         expect(queryFooterText(container, copyRx('setupRedesign.final.later'))).toBeNull()
@@ -852,7 +854,8 @@ describe('11 Final confirm: dev behaviour kept (ported from SignTestTransaction.
         confirm(container)
         await screen.findByText(textMatch(copy('setupRedesign.final.busy')))
         await waitFor(() => expect(primary(container)).toBeEnabled())
-        expect(label(primary(container))).toBe(copy('setupRedesign.common.retry'))
+        // the primary's label crossfades in 100 ms
+        await waitFor(() => expect(label(primary(container))).toBe(copy('setupRedesign.common.retry')))
 
         let rejectRetry: (error: unknown) => void = () => undefined
         mockSend.mockReturnValueOnce(new Promise((_, reject) => (rejectRetry = reject)))
@@ -864,7 +867,8 @@ describe('11 Final confirm: dev behaviour kept (ported from SignTestTransaction.
 
         mockSend.mockResolvedValueOnce({ userOpHash: HASH, reusedSignature: true, sends: 1, recovered: [] })
         await waitFor(() => expect(primary(container)).toBeEnabled())
-        expect(label(primary(container))).toBe(copy('setupRedesign.common.retry'))
+        // the primary's label crossfades in 100 ms
+        await waitFor(() => expect(label(primary(container))).toBe(copy('setupRedesign.common.retry')))
         confirm(container)
         await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1))
         expect(mockSend).toHaveBeenCalledTimes(3)

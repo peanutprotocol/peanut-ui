@@ -633,10 +633,13 @@ describe('07 Residence: compare view', () => {
 
     it.each(['en', 'es-AR'] as const)(
         'P3-32 compare buttons: residence primary, nationality secondary (%s)',
-        (locale) => {
+        async (locale) => {
             const view = openCompare({ residenceCountry: 'PT', nationalityCountry: 'BR' }, locale)
-            expect(view.selectButton('PT')).toHaveTextContent(
-                copyRx(`${K}.select`, { country: labelOf('PT', locale) }, locale)
+            // the primary keeps "Continue" until its 100 ms label crossfade ends
+            await waitFor(() =>
+                expect(view.selectButton('PT')).toHaveTextContent(
+                    copyRx(`${K}.select`, { country: labelOf('PT', locale) }, locale)
+                )
             )
             expect(view.selectButton('BR')).toHaveTextContent(
                 copyRx(`${K}.select`, { country: labelOf('BR', locale) }, locale)

@@ -237,7 +237,10 @@ describe('10 Notifications: control arm', () => {
         fireEvent.click(turnOn(view.container))
         await waitFor(() => expect(setupState(view.container)).toBe('denied'))
         expect(deniedNote()).toBeInTheDocument()
-        expect(primary(view.container)).toHaveAccessibleName(copyRx('setupRedesign.common.continue'))
+        // the primary's label crossfades in 100 ms
+        await waitFor(() =>
+            expect(primary(view.container)).toHaveAccessibleName(copyRx('setupRedesign.common.continue'))
+        )
         expect(view.flow().notificationChoices.push).toBe(false)
         expect(controls()).toContain('push_permission:error:denied')
         expect(answered()).toEqual([{ variant: 'control', answer: 'denied' }])
@@ -273,7 +276,8 @@ describe('10 Notifications: control arm', () => {
         const { container } = render()
         fireEvent.click(turnOn(container))
         await waitFor(() => expect(setupState(container)).toBe('denied'))
-        fireEvent.click(continueButton(container))
+        // the primary's label crossfades in 100 ms
+        fireEvent.click(await waitFor(() => continueButton(container)))
         await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
         expect(mockSave).not.toHaveBeenCalled()
         expect(controls()).toEqual(['push:toggle:on', 'push_permission:error:denied', 'continue:tap'])
