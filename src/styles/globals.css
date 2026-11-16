@@ -14,7 +14,12 @@
 /* The smallest phone viewports (an iPhone SE in Safari): the tightest sign-up panel. */
 @custom-variant tight (@media (max-width: 767px) and (max-height: 579px));
 /* The redesigned sign-up's small phone (the mock's 320x568 check): heading-s titles, tighter panel. Same query as .signup-shell's. */
-@custom-variant signup-sm (@media (max-height: 600px), (max-width: 340px));
+/* Block form: the one-line form splits the media list at its comma and emits a broken selector for the second query. */
+@custom-variant signup-sm {
+    @media (max-height: 600px), (max-width: 340px) {
+        @slot;
+    }
+}
 
 @theme {
     /* the v3 legacy palette is GONE — every token had its consumers migrated.
