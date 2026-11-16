@@ -116,6 +116,16 @@ export function SetupShell({ screenId, children, direction = 0, showBackButton, 
                     />
                     <ShellFooter spec={screen?.footer ?? null} latest={store.latestFooter} reduced={reducedMotion} />
                 </div>
+                {/* The home-bar inset under the shell continues what sits above it, as in the mock: the white panel, or the
+                    ground on a full stage. Above AppShell's own inset cover (z-40), which follows the platform, not the screen. */}
+                <div
+                    aria-hidden="true"
+                    className="pointer-events-none fixed inset-x-0 bottom-0 z-[41] mx-auto h-safe-bottom max-w-[480px]"
+                    style={{
+                        background: stage === 'full' && ground ? GROUND_VAR[ground] : 'var(--color-background-default)',
+                    }}
+                    data-setup-inset
+                />
             </SignupScreenContext.Provider>
         </SetupShellContext.Provider>
     )
