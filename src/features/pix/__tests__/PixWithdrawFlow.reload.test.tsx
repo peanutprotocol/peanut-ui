@@ -652,6 +652,31 @@ describe('PixWithdrawFlow form', () => {
         expect(screen.getByRole('button', { name: en.common.confirm })).toBeDisabled()
     })
 
+    // Aleks, 16 Nov 2026: R$1 showed the minimum twice, as the line under the amount and as the API's refusal
+    // of an amount the preview had quoted while the next one was typed
+    it('shows the minimum once, as the box under the amount, and quotes only the amount on screen', async () => {
+        const minimum = en.pix.deposit.minimum.replace('{amount}', 'R$5')
+        mockPreview.mockImplementation((request: { amountBrl?: string }) =>
+            request.amountBrl === '3'
+                ? Promise.reject(new ApiError('refused', { status: 422, code: 'PIX_MIN_AMOUNT' }))
+                : Promise.resolve(display)
+        )
+        withForm({ destination: KEY, amountBrl: '3' })
+        renderAt('?step=review', undefined, false, WITH_MINIMUM)
+        const field = screen.getByPlaceholderText('0.00')
+
+        fireEvent.change(field, { target: { value: '30' } })
+        await waitFor(() => expect(mockPreview).toHaveBeenCalledWith({ pixKey: KEY, amountBrl: '30' }))
+        await waitFor(() => expect(storedForm().amountBrl).toBe('30'))
+        fireEvent.change(field, { target: { value: '3' } })
+        await waitFor(() => expect(storedForm().amountBrl).toBe('3'))
+
+        expect(mockPreview).not.toHaveBeenCalledWith(expect.objectContaining({ amountBrl: '3' }))
+        expect(screen.getAllByText(minimum)).toHaveLength(1)
+        expect(screen.getByRole('alert')).toHaveTextContent(minimum)
+        expect(screen.getByRole('button', { name: en.common.confirm })).toBeDisabled()
+    })
+
     // the user typed USD: the reais are the quote's, so the form names them next to the total
     it('shows the exact reais the quote pays out for an amount typed in USD', async () => {
         mockPreview.mockResolvedValue({ ...display, amountBrl: '270.00', withdrawUsd: '50.000000' })

@@ -81,8 +81,6 @@ export function PixWithdrawForm({
         onRetry: () => void
         /** An opened withdrawal keeps its amount. */
         disabled: boolean
-        /** Under the field: the balance, or the provider's minimum. */
-        error?: string
         walletBalance?: string
         balanceFillAmount?: number
         onBrlChange: (value: string) => void
@@ -98,7 +96,7 @@ export function PixWithdrawForm({
     total?: string | null
     /** The provider the route names, for its row and sheet; null shows no row. */
     providerId: ProviderId | null
-    /** A refusal (error), or the opened quote that moved since the form (attention). */
+    /** The form's one message: the amount's own error (the balance, the provider's minimum) or a refusal (error), or the opened quote that moved since the form (attention). */
     error: { message: string; action?: { label: string; onClick: () => void }; priority?: 'error' | 'attention' } | null
     isSubmitting: boolean
     canConfirm: boolean
@@ -155,14 +153,6 @@ export function PixWithdrawForm({
                     bankName={recipient.bankName}
                 />
 
-                {/* A refusal, or the opened quote that moved: directly under the recipient, so it sits in the first
-                    viewport whatever cards the form carries (Chip, ui#4082: under the button it fell below the fold). */}
-                {error && (
-                    <Callout priority={error.priority ?? 'error'} ctas={error.action ? [error.action] : undefined}>
-                        {error.message}
-                    </Callout>
-                )}
-
                 <SaveRecipientCard save={save} />
 
                 {/* the quote failed (the route changed, the provider is down): retry here, not a spinner */}
@@ -184,8 +174,16 @@ export function PixWithdrawForm({
                         walletBalance={amount.walletBalance}
                         balanceFillAmount={amount.balanceFillAmount}
                         disabled={amount.disabled}
-                        error={amount.error}
                     />
+                )}
+
+                {/* The form's one message, in place of the field's own error line, so the minimum shows once
+                    (Aleks, 16 Nov 2026). Above the details card and Confirm, so it is read before Confirm
+                    (Chip, ui#4082: under the button it fell below the fold). */}
+                {error && (
+                    <Callout priority={error.priority ?? 'error'} ctas={error.action ? [error.action] : undefined}>
+                        {error.message}
+                    </Callout>
                 )}
 
                 <PaymentDetailsCard

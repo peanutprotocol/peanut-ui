@@ -153,7 +153,7 @@ describe('PixWithdrawForm', () => {
         expect(screen.getByText('$92.50')).toBeInTheDocument()
     })
 
-    // a refused quote has no numbers: the field converts with the indicative quote, the message and its action stand under Confirm
+    // a refused quote has no numbers: the field converts with the indicative quote, the message and its action stand under the amount
     it('shows a refused quote as its message and action, with Confirm off and no fee or total row', () => {
         renderForm({
             display: null,
@@ -228,21 +228,29 @@ describe('PixWithdrawForm', () => {
         expect(container.querySelector('.animate-spin')).not.toBeNull()
     })
 
-    // the notice must be read before Confirm: it sits under the recipient card, above the save card and the amount,
-    // so a 393×852 viewport shows it whatever cards the form carries
-    it('keeps the quote notice in the first viewport: under the recipient, above the save card and the amount', () => {
-        renderForm({
-            save: { ...save, isOffered: true, checked: true, nickname: 'Ana Souza' },
-            error: { message: en.pix.withdraw.quoteMoved, priority: 'attention' },
-        })
+    // Aleks, 16 Nov 2026: one message, as the box directly under the amount, and no error line of the field's own;
+    // above the details card and Confirm, so it is read before Confirm (Chip, ui#4082)
+    it.each([
+        ['the minimum', { message: en.pix.deposit.minimum.replace('{amount}', 'R$5') }],
+        ['the moved quote', { message: en.pix.withdraw.quoteMoved, priority: 'attention' as const }],
+    ])('shows %s once, under the amount box and above the details card and Confirm', (_, error) => {
+        renderForm({ save: { ...save, isOffered: true, checked: true, nickname: 'Ana Souza' }, error })
+        expect(screen.getAllByText(error.message)).toHaveLength(1)
         const notice = screen.getByRole('alert')
-        expect(notice).toHaveTextContent(en.pix.withdraw.quoteMoved)
+        expect(notice).toHaveTextContent(error.message)
         const follows = (node: Element) => !!(notice.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING)
-        expect(follows(screen.getByText(en.global.savedAddresses.savePrompt))).toBe(true)
-        expect(follows(screen.getByPlaceholderText('0.00'))).toBe(true)
-        expect(follows(screen.getByRole('button', { name: en.common.confirm }))).toBe(true)
-        // and the recipient card stays the lead
-        expect(follows(screen.getByText('Ana Souza'))).toBe(false)
+        for (const above of [
+            screen.getByText('Ana Souza'),
+            screen.getByText(en.global.savedAddresses.savePrompt),
+            screen.getByPlaceholderText('0.00'),
+        ])
+            expect(follows(above)).toBe(false)
+        for (const below of [
+            screen.getByText(en.qrPay.info.exchangeRate),
+            screen.getByText(en.withdraw.confirm.youPay),
+            screen.getByRole('button', { name: en.common.confirm }),
+        ])
+            expect(follows(below)).toBe(true)
     })
 
     it('offers to save the key under its holder, as the payment form does', () => {
