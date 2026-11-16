@@ -94,12 +94,12 @@ describe('01 Landing — render and copy', () => {
         // The three experiment modules throw on import (mocks above): a render that reaches them fails here.
         renderInShell('landing', <LandingScreen />)
         const text = loose(document.body.textContent ?? '')
-        const old = rawMessage('setup.steps.landing') as Record<string, unknown>
-        const variants = Object.values((old.variants ?? {}) as Record<string, { title: string; description: string }>)
-        const strings = [old.title, old.description, ...variants.flatMap((v) => [v.title, v.description])]
-        for (const string of strings) {
-            if (typeof string === 'string') expect(text).not.toContain(loose(string))
-        }
+        // dev's old landing copy (setup.steps.landing), pinned: the keys left the catalogs with the old view
+        const strings = [
+            'Earn anywhere. Spend worldwide.',
+            'Get paid in USD or EUR with bank details. Spend it by card or QR, wherever you are.',
+        ]
+        for (const string of strings) expect(text).not.toContain(loose(string))
     })
 
     it('P1-04 en and es-AR hold the 7 landing keys with the exact strings; es-419 and pt-BR hold the same keys', () => {

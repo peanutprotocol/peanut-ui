@@ -113,7 +113,6 @@ export function useSignupPasskey(username: string) {
     const [isHelpOpen, setIsHelpOpen] = useState(false)
     // Set when signup refuses the passkey's layout; the platform picks the drawer's guidance.
     const [providerUnsupportedPlatform, setProviderUnsupportedPlatform] = useState<'android-app' | 'other' | null>(null)
-    const [browserOpenFailed, setBrowserOpenFailed] = useState(false)
     const [preflightWarning, setPreflightWarning] = useState<string | null>(null)
     const [inlineError, setInlineError] = useState<string | null>(null)
     // Why the inline error shows, for a view that words a cancel its own way (the redesign's 03).
@@ -286,7 +285,6 @@ export function useSignupPasskey(username: string) {
                     },
                     extra: { clientDataKeys: provider.clientDataKeys, backupEligible: provider.backupEligible },
                 })
-                setBrowserOpenFailed(false)
                 setProviderUnsupportedPlatform(isAndroidNativeBridge() ? 'android-app' : 'other')
                 return
             }
@@ -495,21 +493,18 @@ export function useSignupPasskey(username: string) {
         },
         isProviderUnsupportedOpen: providerUnsupportedPlatform !== null,
         providerUnsupportedPlatform: providerUnsupportedPlatform ?? 'other',
-        browserOpenFailed,
         closeProviderUnsupported: () => setProviderUnsupportedPlatform(null),
         retryFromProviderUnsupported: () => {
             setProviderUnsupportedPlatform(null)
             void claim()
         },
         signUpInBrowser: async () => {
-            setBrowserOpenFailed(false)
             try {
                 await openExternalUrl(keepWebSignupUrl())
                 setProviderUnsupportedPlatform(null)
             } catch (error) {
-                // The drawer stays open with the error, so retry and support still work.
+                // The drawer stays open, so retry and support still work.
                 Sentry.captureException(error, { tags: { error_type: 'passkey_provider_browser_open_failed' } })
-                setBrowserOpenFailed(true)
             }
         },
         deviceType,

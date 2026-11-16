@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { BulletList } from '@/components/0_Bruddle/BulletList'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import type { CompareColumn } from './useCompareColumns'
+import { SETUP_LEAD_CLASS } from '@/components/Setup/redesign/shell/shell.consts'
 
 /**
  * The 07 compare panel: the picking rule, then the two countries side by side with what each unlocks, and the
@@ -26,7 +27,7 @@ export function ResidenceCompareView({
             className="flex max-h-[calc(var(--sr-panel-to-cta)-var(--sr-lift-2)-16px)] flex-col overflow-y-auto"
             data-setup-screen="residence"
         >
-            <p className="text-body-m text-foreground-secondary signup-sm:text-body-s">{t('compareRule')}</p>
+            <p className={SETUP_LEAD_CLASS}>{t('compareRule')}</p>
             <div className="mt-3.5 flex gap-4 signup-sm:mt-1.5 signup-sm:gap-3">
                 {columns.map(({ iso2, items }, index) => (
                     <div key={iso2} className="contents">

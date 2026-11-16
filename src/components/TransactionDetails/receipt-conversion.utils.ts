@@ -44,8 +44,8 @@ export function receiptExchangeRate(transaction: TransactionDetails): string | u
     return `1 USD = ${code} ${formatFiatRate(rate)}`
 }
 
-/** "R$0.97": every fee a settled Avenia Pix entry's providers took, shown only beside its rate (the
- *  API sends both or neither, and a rate with no fee row would not add up to the amounts). */
+/** "R$0.75": a settled Avenia Pix entry's flat fee, shown only beside its rate (the API sends both or
+ *  neither, and a rate with no fee row would not add up to the amounts). */
 export function receiptProviderFee(transaction: TransactionDetails): string | undefined {
     const fee = transaction.extraDataForDrawer?.providerFeeBrl
     if (!fee || !receiptExchangeRate(transaction)) return undefined
@@ -55,9 +55,11 @@ export function receiptProviderFee(transaction: TransactionDetails): string | un
 /**
  * Whether the conversion already happened: the entry settled, or it settled
  * and the money was sent back afterwards. Settled, the receipt states the
- * conversion; before that, it is an estimate.
+ * conversion; before that, it is an estimate. A Pix deposit given back before
+ * it was converted stays an estimate.
  */
 export function isSettledConversion(transaction: Pick<TransactionDetails, 'status' | 'extraDataForDrawer'>): boolean {
+    if (transaction.extraDataForDrawer?.returnedBeforeConversion) return false
     return (
         transaction.status === 'completed' ||
         transaction.status === 'refunded' ||

@@ -12,6 +12,7 @@ import { SetupScreen } from '@/components/Setup/redesign/shell/SetupScreen'
 import type { SwitchesVariant } from '@/features/setup/notificationsExperiment'
 import { NotificationsArt } from './NotificationsArt'
 import { type NotificationSwitch, useNotificationSwitches } from './useNotificationSwitches'
+import { SETUP_LEAD_CLASS } from '@/components/Setup/redesign/shell/shell.consts'
 
 const SWITCHES: { key: NotificationSwitch; icon: IconName; label: 'important' | 'offers' | 'email' }[] = [
     { key: 'push', icon: 'bell', label: 'important' },
@@ -60,7 +61,7 @@ export function NotificationsSwitchesScreen({ variant }: { variant: SwitchesVari
                 data-testid="setup-redesign-notifications"
                 data-setup-state={state}
             >
-                <p className="text-body-m text-foreground-secondary">{t('notif.desc')}</p>
+                <p className={SETUP_LEAD_CLASS}>{t('notif.desc')}</p>
                 {/* A toggle row sets a preference, so its bubble is blue (design.md icon bubble ruling). */}
                 <ListGroup>
                     {SWITCHES.map(({ key, icon, label }) => (

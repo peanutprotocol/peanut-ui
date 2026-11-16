@@ -47,7 +47,6 @@ type PasskeyState = {
     retryFromHelp: jest.Mock
     isProviderUnsupportedOpen: boolean
     providerUnsupportedPlatform: 'android-app' | 'other'
-    browserOpenFailed: boolean
     closeProviderUnsupported: jest.Mock
     retryFromProviderUnsupported: jest.Mock
     signUpInBrowser: jest.Mock
@@ -70,7 +69,6 @@ const BASE = (): PasskeyState => ({
     retryFromHelp: jest.fn(),
     isProviderUnsupportedOpen: false,
     providerUnsupportedPlatform: 'other',
-    browserOpenFailed: false,
     closeProviderUnsupported: jest.fn(),
     retryFromProviderUnsupported: jest.fn(),
     signUpInBrowser: jest.fn(async () => {}),
@@ -516,17 +514,6 @@ describe('03 Passkey — failure screens', () => {
         expect(mockPasskey.signUpInBrowser).toHaveBeenCalledTimes(1)
         expect(mockPasskey.closeProviderUnsupported).toHaveBeenCalledTimes(1)
         expect(mockSetScreenId).not.toHaveBeenCalled()
-    })
-
-    it('C-54 browser did not open: the error callout shows above the buttons, the buttons stay', async () => {
-        show({ ...cannot(), browserOpenFailed: true })
-        await flush()
-        const callout = screen.getByRole('alert')
-        expect(loose(callout.textContent ?? '')).toBe(loose(P('browserOpenFailed')))
-        const retry = button(msg('setupRedesign.common.retry'))
-        expect(callout.compareDocumentPosition(retry) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-        expect(button(P('browser'))).toBeEnabled()
-        expect(setupState()).toBe('cannot-create')
     })
 
     it('C-55 cannot-create-other: one lead, Try again, support; no browser button', async () => {

@@ -8,8 +8,9 @@ import { twMerge } from '@/utils/tw'
 export function AboveCta({ gap = 24, className, children }: { gap?: number; className?: string; children: ReactNode }) {
     return (
         <div
-            className={twMerge('absolute inset-x-[var(--sr-gutter)]', className)}
-            style={{ bottom: `calc(100% - var(--sr-panel-to-cta) + ${gap}px)` }}
+            className={twMerge('absolute inset-x-[var(--sr-gutter)] -translate-y-full', className)}
+            // from the panel's top edge (the stage edge): the panel's bottom now follows the footer and may scroll
+            style={{ top: `calc(var(--sr-panel-to-cta) + var(--sr-panel-pad) - ${gap}px)` }}
             data-setup-above-cta
         >
             {children}

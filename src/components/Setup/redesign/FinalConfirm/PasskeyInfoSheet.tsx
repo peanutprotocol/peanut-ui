@@ -25,16 +25,19 @@ export function PasskeyInfoSheet({ open, onClose }: { open: boolean; onClose: ()
                 onClose()
             }}
         >
-            <DrawerContent>
-                <div className="flex flex-col items-center pt-1 pb-6 text-center">
-                    <div className="mb-3 flex w-full flex-col items-center gap-4">
-                        <IconBubble icon="lock" color="blue" />
+            {/* The mock's spacing (11 `.fc-info`): the DS handle leaves 37 px above the content where the mock has 32 (22 on
+             * a small phone), so the scroll box moves up (a margin inside it would clip the bubble), and the safe-area
+             * inset already covers the mock's 32 px bottom padding. */}
+            <DrawerContent scrollAreaClassName="-mt-[5px] signup-sm:-mt-[15px]">
+                <div className="flex flex-col items-center text-center signup-sm:pb-4">
+                    <div className="mb-3 flex w-full flex-col items-center gap-3 signup-sm:mb-2 signup-sm:gap-2">
+                        <IconBubble icon="lock" color="blue" className="signup-sm:size-10" />
                         <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
                             <DrawerTitle>{t('infoTitle')}</DrawerTitle>
                         </DrawerHeader>
                     </div>
-                    <div className="flex w-full flex-col gap-4">
-                        <div className="flex flex-col gap-3 text-left text-body-s leading-relaxed text-foreground-primary">
+                    <div className="flex w-full flex-col gap-4 signup-sm:gap-3">
+                        <div className="flex flex-col gap-3 text-left text-body-s leading-[22px] text-foreground-primary signup-sm:gap-2 signup-sm:leading-5">
                             <p>{t('infoWhat')}</p>
                             <p>{t('infoBackup')}</p>
                             <p>{t('infoPrivacy')}</p>

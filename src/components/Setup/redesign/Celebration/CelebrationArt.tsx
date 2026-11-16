@@ -26,14 +26,16 @@ const STARS: [number, number, number, boolean][] = [
  */
 export function CelebrationArt({ claim }: { claim: boolean }) {
     const sm = useShellDevice() === 'sm'
-    // the mock moves the scaled art box in screen px; inside the box a small phone's 0.67 scale applies, so divide
+    // the mock moves the scaled art box in screen px; inside the box a small phone's 0.67 scale applies, so divide.
+    // On a standard phone the mock's box hangs from the phone's bottom edge, home bar included; the shell's stage ends
+    // above the bottom safe area, so the box moves down by it.
     const transform = claim
         ? sm
             ? `translateY(${Math.round(63 / 0.67)}px) scale(1.12)`
-            : 'translateY(97px) scale(1.1236)'
+            : 'translateY(calc(97px + var(--safe-bottom))) scale(1.1236)'
         : sm
           ? undefined
-          : 'translateY(-24px)'
+          : 'translateY(calc(var(--safe-bottom) - 24px))'
     return (
         <div
             className="absolute inset-0"

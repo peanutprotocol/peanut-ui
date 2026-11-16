@@ -14,7 +14,6 @@ import Badge from '@/components/Global/Badges/Badge'
 import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { openBrazilPausedDrawer } from '@/features/brazil-pause/brazil-paused-drawer-store'
 import { ClosedRowDrawer } from '@/features/deposit-accounts/components/ClosedRowDrawer'
 import { CorridorFlag } from '@/features/deposit-accounts/components/CorridorFlag'
 import { closedOpenRow, virtualAccountRows, type ClosedRow } from '@/features/deposit-accounts/hubRows'
@@ -38,7 +37,8 @@ import { trackAddMoney } from './analytics'
 import { corridorTopUpHref } from './countryRoutes'
 import { useAddMoneyReadiness } from './useAddMoneyReadiness'
 
-const FIAT_METHODS = ['account', 'transfer', 'pix'] as const
+// Pix is not a method here: it has one currency, so its rows open /add-money/pix directly
+const FIAT_METHODS = ['account', 'transfer'] as const
 const TRANSFER_COUNTRIES = countryData.flatMap((country) => {
     if (country.type !== 'country' || country.path === 'brazil') return []
     const href = liveRailsForCountry(country.id, 'add')[0]?.path
@@ -61,14 +61,14 @@ export function AddMoneyOptions() {
     const readiness = useAddMoneyReadiness(false, method === 'account' || readyOnly)
     const deposit = useDepositAccounts({ enabled: method === 'account' })
     const { isTerminalFailure } = useIdentityVerification()
-    const { residenceIso2s, brazilPaused, standingEnabled } = readiness
+    const { residenceIso2s, standingEnabled } = readiness
     const [countriesOpen, setCountriesOpen] = useState(false)
     const [countrySearch, setCountrySearch] = useState('')
     const locale = useLocale()
     const tSearch = useTranslations('withdraw.currencyList')
     const viewed = useRef(false)
     const [accountClosed, setAccountClosed] = useState<ClosedRow | null>(null)
-    const [restricted, setRestricted] = useState<'PIX_BR' | 'BANK_TRANSFER_AR' | null>(null)
+    const [restricted, setRestricted] = useState<'BANK_TRANSFER_AR' | null>(null)
 
     const fallback =
         origin?.split(/[?#]/)[0] === '/add-money' ? origin : origin ? withReturnTo('/add-money', origin) : '/add-money'
@@ -102,14 +102,7 @@ export function AddMoneyOptions() {
         if (country)
             trackAddMoney(ANALYTICS_EVENTS.DEPOSIT_METHOD_SELECTED, { method_type: 'bank', country: country.path })
     }
-    const title =
-        method === 'account'
-            ? readyOnly
-                ? tProfile('titles.bank')
-                : t('openAccount')
-            : method === 'transfer'
-              ? t('oneTimeTransfer')
-              : t('pix')
+    const title = method === 'account' ? (readyOnly ? tProfile('titles.bank') : t('openAccount')) : t('oneTimeTransfer')
     const { held, open } =
         method === 'account'
             ? virtualAccountRows(deposit, standingEnabled && !readyOnly, isTerminalFailure)
@@ -125,7 +118,7 @@ export function AddMoneyOptions() {
             ? []
             : DEPOSIT_RAIL_ORDER.flatMap((corridor) => {
                   const rail = DEPOSIT_RAILS[corridor]
-                  if ((method === 'pix') !== (corridor === 'PIX_BR')) return []
+                  if (corridor === 'PIX_BR') return []
                   if (readyOnly && !selected.includes(rail.currency)) return []
                   const href = corridorTopUpHref(corridor, residenceIso2s)
                   return href ? [{ corridor, rail, href }] : []
@@ -227,24 +220,16 @@ export function AddMoneyOptions() {
                     <ListGroup>
                         {transferRows.map(({ corridor, rail, href }) => {
                             const residenceRestricted = !residenceAllows(corridor, residenceIso2s)
-                            const paused = corridor === 'PIX_BR' && brazilPaused
                             return (
                                 <ListItem
                                     key={corridor}
                                     data-testid={`add-money-option-${rail.currency}`}
                                     title={rail.currency}
                                     leading={<CorridorFlag iso2={rail.flagIso2} />}
-                                    trailing={transferBadge(
-                                        readiness.topUpGates[corridor],
-                                        paused || residenceRestricted
-                                    )}
+                                    trailing={transferBadge(readiness.topUpGates[corridor], residenceRestricted)}
                                     chevron
                                     onClick={() => {
-                                        if (paused) return openBrazilPausedDrawer('paused')
-                                        if (
-                                            residenceRestricted &&
-                                            (corridor === 'PIX_BR' || corridor === 'BANK_TRANSFER_AR')
-                                        ) {
+                                        if (residenceRestricted && corridor === 'BANK_TRANSFER_AR') {
                                             setRestricted(corridor)
                                             return
                                         }
@@ -357,7 +342,7 @@ export function AddMoneyOptions() {
                         closed={{ kind: 'residence', corridor: restricted }}
                         onClose={() => setRestricted(null)}
                         onChangeResidence={changeResidence}
-                        onPayQr={restricted === 'BANK_TRANSFER_AR' ? () => router.push('/qr-pay') : undefined}
+                        onPayQr={() => router.push('/qr-pay')}
                     />
                 )}
             </div>

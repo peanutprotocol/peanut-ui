@@ -358,7 +358,9 @@ describe('11 Final confirm: states', () => {
         expect(footerControl(container, copyRx('setupRedesign.final.what'))).toBeInTheDocument()
         expect(queryFooterText(container, copyRx('setupRedesign.final.later'))).toBeNull()
         // dev's deferral helper line is dropped (P4 § 8.4)
-        expect(screen.queryByText(copyRx('setup.testTransaction.finishLaterDescription'))).toBeNull()
+        expect(
+            screen.queryByText('Finish signup now. We’ll retry when you reopen the app.', { exact: false })
+        ).toBeNull()
         // the shown copy is the redesign's, the tracked key stays dev's
         expect(screen.queryByText(copyRx('setup.testTransaction.errors.networkBusy'))).toBeNull()
         expect(signupControls(capture)).toContain('finish:error:testTransaction.errors.networkBusy')

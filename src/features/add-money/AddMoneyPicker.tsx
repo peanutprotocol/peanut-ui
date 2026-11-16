@@ -7,6 +7,7 @@ import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import NavHeader from '@/components/Global/NavHeader'
 import { useAddMoneyReadiness } from './useAddMoneyReadiness'
+import { PIX_ADD_MONEY_PATH } from '@/features/pix/pix.routes'
 import { withReturnTo } from '@/utils/return-to.utils'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
@@ -74,7 +75,12 @@ export function AddMoneyPicker({ onBack, origin }: { onBack: () => void; origin:
                         onClick={() =>
                             router.push(
                                 withReturnTo(
-                                    row.key === 'crypto' ? '/add-money/crypto' : `/add-money/options?method=${row.key}`,
+                                    // Pix has one currency, so it opens the Pix deposit, not a chooser of one row
+                                    row.key === 'crypto'
+                                        ? '/add-money/crypto'
+                                        : row.key === 'pix'
+                                          ? PIX_ADD_MONEY_PATH
+                                          : `/add-money/options?method=${row.key}`,
                                     picker
                                 )
                             )

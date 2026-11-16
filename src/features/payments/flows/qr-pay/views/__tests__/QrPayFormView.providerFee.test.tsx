@@ -119,14 +119,14 @@ describe('QrPayFormView', () => {
         expect(screen.getByText('R$0.75')).toBeInTheDocument()
     })
 
-    // Avenia (the owner, 15 Nov, "Option A"): its own rate, never the field's price
+    // Avenia: the rate the flow names (variable fees inside, TASK-24967), never the field's price
     it('prints the rate the flow names over the field’s price', () => {
-        mockShownRate = 5.728962
-        mockProviderFee = 'R$0.97'
+        mockShownRate = 5.796567
+        mockProviderFee = 'R$0.75'
         renderWithIntl(<QrPayFormView />)
-        expect(screen.getByText('1 USD = 5.73 BRL')).toBeInTheDocument()
+        expect(screen.getByText('1 USD = 5.80 BRL')).toBeInTheDocument()
         expect(screen.queryByText('1 USD = 5.40 BRL')).toBeNull()
-        expect(screen.getByText('R$0.97')).toBeInTheDocument()
+        expect(screen.getByText('R$0.75')).toBeInTheDocument()
     })
 
     it('shows no rate row where the flow hides it, and never falls back to the field’s price', () => {

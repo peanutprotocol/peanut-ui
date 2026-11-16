@@ -242,6 +242,20 @@ describe('ResidenceChangeDrawer', () => {
         expect(onReverify).not.toHaveBeenCalled()
     })
 
+    it('says a person is checking a held review and how long it can take', () => {
+        render({
+            declared: 'BR',
+            verified: 'BR',
+            pending: 'ES',
+            pendingStatus: 'REVIEW_PENDING',
+            pendingManualReview: true,
+        })
+        expect(screen.getByText(/under review/i)).toBeInTheDocument()
+        expect(screen.getByText(/A person is checking your documents/)).toBeInTheDocument()
+        expect(screen.getByText(/1 to 3 business days/)).toBeInTheDocument()
+        expect(screen.queryByText('We’re reviewing your residence documents.')).not.toBeInTheDocument()
+    })
+
     it.each([
         ['France', 'FR', 'Submit documents'],
         ['Brazil', 'BR', 'Save'],

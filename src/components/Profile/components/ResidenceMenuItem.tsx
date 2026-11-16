@@ -82,6 +82,7 @@ export default function ResidenceMenuItem() {
                 verified={residence?.verified?.country ?? null}
                 pending={pendingCountry}
                 pendingStatus={residence?.declared?.status}
+                pendingManualReview={residence?.declared?.manualReview === true}
                 onContactSupport={() => setIsSupportModalOpen(true)}
                 onSaved={async () => {
                     // Card eligibility and limits follow the declared country.

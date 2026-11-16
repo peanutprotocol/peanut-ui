@@ -4,6 +4,7 @@ import { AnimatePresence, useReducedMotion } from 'framer-motion'
 import {
     type CSSProperties,
     type ReactNode,
+    useCallback,
     useEffect,
     useLayoutEffect,
     useMemo,
@@ -25,6 +26,8 @@ import { ShellFooter } from './ShellFooter'
 import { ShellSlide } from './ShellSlide'
 import { ShellTopBar } from './ShellTopBar'
 import { SetupDesktopHero } from './SetupDesktopHero'
+import { useNavLock } from './useNavLock'
+import { useShellFit } from './useShellFit'
 
 const subscribeDesktop = (onChange: () => void) => {
     const media = window.matchMedia(DESKTOP_QUERY)
@@ -65,9 +68,19 @@ export function SetupShell({ screenId, children, direction = 0, showBackButton, 
     const reducedMotion = !!useReducedMotion()
     const [store] = useState(createShellStore)
     const screen = useSyncExternalStore(store.subscribe, store.get, () => null)
-    const context = useMemo(() => ({ store, reducedMotion }), [store, reducedMotion])
+    const shellRef = useRef<HTMLDivElement>(null)
+    const probeRef = useRef<HTMLDivElement>(null)
+    const markLocked = useCallback((locked: boolean) => {
+        if (locked) shellRef.current?.setAttribute('data-nav-locked', '')
+        else shellRef.current?.removeAttribute('data-nav-locked')
+    }, [])
+    const navLock = useNavLock({ screenId, store, onChange: markLocked })
+    const { onEntered, guard } = navLock
+    const context = useMemo(() => ({ store, reducedMotion, onEntered }), [store, reducedMotion, onEntered])
+    const back = useCallback(() => guard(() => onBack?.()), [guard, onBack])
 
     const stage = screen?.stage ?? 'std'
+    const { onFooterTop } = useShellFit({ shellRef, probeRef, stage, screenId })
     const ground = screen?.ground
     // Shrinking, the seam rises at once; growing, it drops at the end of the step, after the old panel text has gone.
     const previousStage = useRef(stage)
@@ -121,22 +134,29 @@ export function SetupShell({ screenId, children, direction = 0, showBackButton, 
                     )}
                     <div className="md:min-w-0 md:flex-1 md:bg-background-default">
                         <div
+                            ref={shellRef}
                             className={twMerge(
                                 'signup-shell relative mx-auto h-[var(--sr-h)] w-full max-w-[480px] overflow-hidden bg-background-default',
                                 desktopDownload && '[&_[data-setup-art-box]]:hidden'
                             )}
                             style={
                                 desktopDownload
-                                    ? ({ '--sr-stage-tall': 'var(--sr-stage-compact)' } as CSSProperties)
+                                    ? ({ '--sr-stage-tall-base': 'var(--sr-stage-compact-base)' } as CSSProperties)
                                     : undefined
                             }
                             data-setup-shell
                             data-setup-screen={screenId}
                         >
+                            {/* the unfolded stage height, for the fold check (useShellFit) */}
+                            <div
+                                ref={probeRef}
+                                aria-hidden="true"
+                                className="pointer-events-none invisible absolute top-0 left-0 w-0"
+                                style={{ height: `var(--sr-stage-${stage}-base)` }}
+                            />
                             <div className="absolute inset-0" data-setup-track>
-                                {/* presenceAffectsLayout off: on, every shell render hands the screen a new presence value
-                                    (framer-motion 11 memoizes it on Math.random()), the screen re-renders and writes the
-                                    store, and the shell renders again. */}
+                                {/* presenceAffectsLayout off: on, every shell render hands the screen a new presence value (framer-motion
+                            11 memoizes it on Math.random()), the screen re-renders and writes the store, and the shell renders again. */}
                                 <AnimatePresence
                                     initial={false}
                                     custom={direction}
@@ -162,7 +182,7 @@ export function SetupShell({ screenId, children, direction = 0, showBackButton, 
                             </div>
                             <ShellTopBar
                                 showBack={!!showBackButton && chrome.back !== false}
-                                onBack={onBack}
+                                onBack={back}
                                 progress={chrome.dots === false ? null : (progress ?? null)}
                                 showLanguage={chrome.lang !== false}
                                 reduced={reducedMotion}
@@ -171,6 +191,8 @@ export function SetupShell({ screenId, children, direction = 0, showBackButton, 
                                 spec={screen?.footer ?? null}
                                 latest={store.latestFooter}
                                 reduced={reducedMotion}
+                                guard={guard}
+                                onTop={onFooterTop}
                             />
                         </div>
                     </div>

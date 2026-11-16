@@ -7,7 +7,7 @@ import { formatBankAmount, formatFiatRate } from '@/utils/currency'
 
 /**
  * The provider's exchange rate and fee on a Pix deposit (`pixRateAndFee`), with the labels and rows
- * of the payment details card: "Exchange rate 1 USD = 5.73 BRL", "Provider fee R$0.97". `rate`
+ * of the payment details card: "Exchange rate 1 USD = 5.80 BRL", "Provider fee R$0.75". `rate`
  * null waits for the quote; `providerFeeBrl` null shows no fee row (a quote of the minimum names
  * no fee of the user's).
  */

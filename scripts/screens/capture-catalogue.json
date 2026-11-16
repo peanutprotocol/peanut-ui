@@ -3,43 +3,25 @@
         "id": "01-a-landing",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=01-a-landing",
-        "source": "Setup/Views/Landing.tsx"
-    },
-    {
-        "id": "01-a-landing-flag-welcome-headline-copy-every-border",
-        "flow": "Setup and login",
-        "route": "/dev/surfaces?s=01-a-landing",
-        "source": "Setup/Views/Landing.tsx"
-    },
-    {
-        "id": "01-a-landing-flag-welcome-headline-copy-whole-world",
-        "flow": "Setup and login",
-        "route": "/dev/surfaces?s=01-a-landing",
-        "source": "Setup/Views/Landing.tsx"
-    },
-    {
-        "id": "01-a-landing-flag-welcome-headline-copy-travels-free",
-        "flow": "Setup and login",
-        "route": "/dev/surfaces?s=01-a-landing",
-        "source": "Setup/Views/Landing.tsx"
+        "source": "Setup/redesign/Landing/LandingScreen.tsx"
     },
     {
         "id": "04-b-advantage-fees",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=04-b-advantage-fees",
-        "source": "Setup/Views/Advantage.tsx"
+        "source": "Setup/redesign/Accounts/AccountsScreen.tsx"
     },
     {
         "id": "02-b-advantage-card",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=02-b-advantage-card",
-        "source": "Setup/Views/Advantage.tsx"
+        "source": "Setup/redesign/Card/CardScreen.tsx"
     },
     {
         "id": "03-a-residence-select",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=03-a-residence-select",
-        "source": "Setup/Views/Residence.tsx"
+        "source": "Setup/redesign/Residence/ResidenceScreen.tsx"
     },
     {
         "id": "03-b-residence-compare",
@@ -51,37 +33,37 @@
         "id": "03-c-residence-congrats",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=03-c-residence-congrats",
-        "source": "Setup/Views/PaymentPlan.tsx"
+        "source": "Setup/redesign/PaymentPlan/PaymentPlanScreen.tsx"
     },
     {
         "id": "03-h-funding-methods",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=03-h-funding-methods",
-        "source": "Setup/Views/PaymentPlan.tsx"
+        "source": "Setup/redesign/PaymentPlan/PaymentPlanScreen.tsx"
     },
     {
         "id": "03-i-payment-methods",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=03-i-payment-methods",
-        "source": "Setup/Views/PaymentPlan.tsx"
+        "source": "Setup/redesign/PaymentPlan/PaymentPlanScreen.tsx"
     },
     {
         "id": "06-a-signup",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=06-a-signup",
-        "source": "Setup/Views/Signup.tsx"
+        "source": "Setup/redesign/Username/UsernameScreen.tsx"
     },
     {
         "id": "06-b-invite",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=06-b-invite",
-        "source": "Setup/Views/Invite.tsx"
+        "source": "Setup/redesign/Invite/InviteScreen.tsx"
     },
     {
         "id": "06-c-passkey",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=06-c-passkey",
-        "source": "Setup/Views/Passkey.tsx"
+        "source": "Setup/redesign/Passkey/PasskeyScreen.tsx"
     },
     {
         "id": "08-a-passkeysetuphelpmodal",
@@ -90,58 +72,52 @@
         "source": "Setup/Views/PasskeySetupHelpDrawer.tsx"
     },
     {
-        "id": "09-a-passkeyinfomodal",
-        "flow": "Setup and login",
-        "route": "/dev/surfaces?s=09-a-passkeyinfomodal",
-        "source": "Setup/components/PasskeyInfoDrawer.tsx"
-    },
-    {
         "id": "07-c-notification-email",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=07-c-notification-email",
-        "source": "Setup/Views/Email.tsx"
+        "source": "Setup/redesign/Email/EmailScreen.tsx"
     },
     {
         "id": "07-d-notification-settings",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=07-d-notification-settings",
-        "source": "Setup/Views/Notifications.tsx"
+        "source": "Setup/redesign/Notifications/NotificationsScreen.tsx"
     },
     {
         "id": "07-d-notification-settings-flag-signup-notification-switches-switches",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=07-d-notification-settings",
-        "source": "Setup/Views/Notifications.tsx"
+        "source": "Setup/redesign/Notifications/NotificationsSwitchesScreen.tsx"
     },
     {
         "id": "07-d-notification-settings-flag-signup-notification-switches-defaults-on",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=07-d-notification-settings",
-        "source": "Setup/Views/Notifications.tsx"
+        "source": "Setup/redesign/Notifications/NotificationsSwitchesScreen.tsx"
     },
     {
         "id": "07-b-advantage-control",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=07-b-advantage-control",
-        "source": "Setup/Views/Advantage.tsx"
+        "source": "Setup/redesign/FinalConfirm/FinalConfirmScreen.tsx"
     },
     {
         "id": "05-a-signtesttransaction",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=05-a-signtesttransaction",
-        "source": "Setup/Views/SignTestTransaction.tsx"
+        "source": "Setup/redesign/FinalConfirm/FinalConfirmScreen.tsx"
     },
     {
         "id": "05-b-signtesttransaction-network-busy",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=05-b-signtesttransaction-network-busy",
-        "source": "Setup/Views/SignTestTransaction.tsx"
+        "source": "Setup/redesign/FinalConfirm/FinalConfirmScreen.tsx"
     },
     {
         "id": "07-e-setup-celebration",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=07-e-setup-celebration",
-        "source": "Setup/Views/Success.tsx"
+        "source": "Setup/redesign/Celebration/CelebrationScreen.tsx"
     },
     {
         "id": "20-a-setupnotificationsmodal",
@@ -290,25 +266,25 @@
         "id": "03-j-funding-methods-argentina",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=03-j-funding-methods-argentina",
-        "source": "Setup/Views/PaymentPlan.tsx"
+        "source": "Setup/redesign/PaymentPlan/PaymentPlanScreen.tsx"
     },
     {
         "id": "03-k-funding-pix-chosen",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=03-k-funding-pix-chosen",
-        "source": "Setup/Views/PaymentPlan.tsx"
+        "source": "Setup/redesign/PaymentPlan/PaymentPlanScreen.tsx"
     },
     {
         "id": "07-d-notification-switches",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=07-d-notification-switches",
-        "source": "Setup/Views/Notifications.tsx"
+        "source": "Setup/redesign/Notifications/NotificationsSwitchesScreen.tsx"
     },
     {
         "id": "07-d-notification-defaults-on",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=07-d-notification-defaults-on",
-        "source": "Setup/Views/Notifications.tsx"
+        "source": "Setup/redesign/Notifications/NotificationsSwitchesScreen.tsx"
     },
     {
         "id": "08-b-loginrecoverydrawer",
@@ -323,24 +299,6 @@
         "source": "Setup/Views/LoginRecoveryDrawer.tsx"
     },
     {
-        "id": "08-d-passkeyproviderunsupporteddrawer",
-        "flow": "Setup and login",
-        "route": "/dev/surfaces?s=08-d-passkeyproviderunsupporteddrawer",
-        "source": "Setup/Views/PasskeyProviderUnsupportedDrawer.tsx"
-    },
-    {
-        "id": "08-e-passkeyproviderunsupporteddrawer-browser-failed",
-        "flow": "Setup and login",
-        "route": "/dev/surfaces?s=08-e-passkeyproviderunsupporteddrawer-browser-failed",
-        "source": "Setup/Views/PasskeyProviderUnsupportedDrawer.tsx"
-    },
-    {
-        "id": "08-f-passkeyproviderunsupporteddrawer-other",
-        "flow": "Setup and login",
-        "route": "/dev/surfaces?s=08-f-passkeyproviderunsupporteddrawer-other",
-        "source": "Setup/Views/PasskeyProviderUnsupportedDrawer.tsx"
-    },
-    {
         "id": "45-c-residencechangemodal",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=45-c-residencechangemodal",
@@ -353,6 +311,12 @@
         "source": "Profile/views/ResidenceChangeDrawer.tsx"
     },
     {
+        "id": "45-e-residence-manual-review",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=45-e-residence-manual-review",
+        "source": "Profile/views/ResidenceChangeDrawer.tsx"
+    },
+    {
         "id": "78-f-choice-guest-claim",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=78-f-choice-guest-claim",
@@ -362,7 +326,7 @@
         "id": "83-f-choice-residence-restricted",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=83-f-choice-residence-restricted",
-        "source": "Setup/Views/PaymentPlan.tsx"
+        "source": "Setup/redesign/PaymentPlan/PaymentPlanScreen.tsx"
     },
     {
         "id": "84-f-choice-public-profile-guest",
@@ -1159,6 +1123,11 @@
         "route": "/add-money/argentina/manteca?step=inputAmount&amount=10000&currency=ARS"
     },
     {
+        "id": "fixture-add-money-argentina-deposit-open",
+        "flow": "Add money",
+        "route": "/add-money/argentina/manteca?step=inputAmount&currency=ARS"
+    },
+    {
         "id": "fixture-add-money-bank-liechtenstein",
         "flow": "Add money",
         "route": "/add-money/liechtenstein/bank?step=inputAmount&amount=100"
@@ -1237,6 +1206,16 @@
         "id": "fixture-pix-deposit-receipt-completed",
         "flow": "Add money",
         "route": "/history?tx=fixture-avenia-deposit-paid"
+    },
+    {
+        "id": "fixture-pix-deposit-receipt-returned",
+        "flow": "Add money",
+        "route": "/history?tx=fixture-avenia-deposit-returned"
+    },
+    {
+        "id": "fixture-pix-deposit-returned-row",
+        "flow": "Add money",
+        "route": "/history"
     },
     {
         "id": "fixture-pix-activation-refused",
@@ -1532,11 +1511,6 @@
         "id": "add-money-transfer-currencies",
         "flow": "Add money",
         "route": "/add-money/options?method=transfer"
-    },
-    {
-        "id": "add-money-pix-currency",
-        "flow": "Add money",
-        "route": "/add-money/options?method=pix"
     },
     {
         "id": "p18-add-money-crypto",

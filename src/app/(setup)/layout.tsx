@@ -52,7 +52,7 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
         if (isCapacitor() || deviceType === DeviceType.IOS) setBottomInsetFill('bg-white')
     }, [deviceType])
 
-    // configure status bar for native. Start at the setup blue; SetupWrapper
+    // configure status bar for native. Start at the setup blue; SetupShell
     // updates it to each step's tint after the color transition. On
     // pre-edge-to-edge Android the OS paints this color; on Android 15+ it's a
     // no-op (edge-to-edge forced) and the CSS safe zone below handles it.

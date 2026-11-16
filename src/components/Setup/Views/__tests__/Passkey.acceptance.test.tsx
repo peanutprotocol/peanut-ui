@@ -308,9 +308,15 @@ const expectTakenScreen = async (username: string) => {
     expect(screen.getByRole('button', { name: PASSKEY_COPY.logIn })).toBeInTheDocument()
     expect(document.querySelector('[data-setup-state]')).toHaveAttribute('data-setup-state', 'taken')
 }
+/** The shell drops taps while a step slides in (one step per tap gesture, R2-01): act once it has come to rest. */
+const settled = () =>
+    waitFor(() => expect(document.querySelector('[data-setup-shell]')).not.toHaveAttribute('data-nav-locked'), {
+        timeout: 3000,
+    })
 const tap = async () => {
     // after Invite's Continue the shell slides 03 in, so wait for its footer button
     const button = await screen.findByRole('button', { name: /Create passkey$/, hidden: true })
+    await settled()
     await act(async () => {
         fireEvent.click(button)
     })
@@ -321,6 +327,7 @@ const selectInviter = async (value: string) => {
     const field = screen.getByRole('textbox', { name: 'Username of the person who invited you' })
     fireEvent.change(field, { target: { value } })
     await waitFor(() => expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled())
+    await settled()
     await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     })

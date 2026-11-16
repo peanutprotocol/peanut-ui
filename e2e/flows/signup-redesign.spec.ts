@@ -9,8 +9,8 @@
  * - The real WebAuthn ceremony in Chromium: a CDP virtual authenticator (`WebAuthn.addVirtualAuthenticator`) creates
  *   and signs with a P-256 credential, so the ZeroDev key import, the cancel path (user not verified) and the retry
  *   run the app's own code.
- * - Every request the app makes, from the browser and from Next server actions, reaches one recording stub, so a
- *   check can say "the API saw the residence once, after registration".
+ * - Every API request the page makes reaches one recording stub (routed in the page, whatever API host the build
+ *   bakes in), so a check can say "the API saw the residence once, after registration".
  *
  * WHAT IT DOES NOT PROVE
  * - That an account exists: the passkey server, the API, the database and the ZeroDev bundler are stubs. The stub
@@ -20,26 +20,26 @@
  * - Native passkey sheets (iOS, Android app), the OS notification prompt and the 15-second entry failure.
  * Real account creation is checked on staging and on a phone (DELIVERY-PLAN risk 3).
  *
- * HOW TO RUN (one worker; the stub is one process-wide server):
- *   NEXT_PUBLIC_VERCEL_ENV=preview NEXT_PUBLIC_PEANUT_API_URL=https://api.e2e.invalid \
- *     NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL=https://bundler.e2e.invalid/rpc \
- *     NEXT_PUBLIC_ZERO_DEV_PAYMASTER_URL=https://paymaster.e2e.invalid/rpc npm run build
- *   PEANUT_API_URL=http://127.0.0.1:3096 npx next start -p 3086 &   # server actions call the stub
- *   SIGNUP_STUB_PORT=3096 REGRESSION_PORT=3086 npx playwright test -c playwright.regression.config.ts \
- *     signup-redesign --workers=1
- * Without SIGNUP_STUB_PORT every journey is skipped: the Next server must use the stub as its API, which a plain
- * `test:e2e:regression` run does not arrange. mono _temp/signup-redesign/r2/r9/build/gate/gate.sh does.
+ * HOW TO RUN (one worker: the stub is one module-level object)
+ *   NEXT_PUBLIC_VERCEL_ENV=preview npm run build && \
+ *   REGRESSION_HOST=localhost npm run test:e2e:regression -- signup-redesign --workers=1
+ * REGRESSION_HOST=localhost is required: WebAuthn refuses 127.0.0.1 as the relying party.
+ * The last step signs a UserOp through the ZeroDev bundler. A build without NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL stops it
+ * at setup-failed, so 11 → 12 is checked only with SIGNUP_E2E_STUB_BUNDLER=1 and a build whose bundler and paymaster
+ * URLs point at any host this spec routes, as mono _temp/signup-redesign/r2/r9/build/gate/gate.sh does:
+ *   NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL=https://bundler.e2e.invalid/rpc \
+ *   NEXT_PUBLIC_ZERO_DEV_PAYMASTER_URL=https://paymaster.e2e.invalid/rpc
  */
 
 import { expect, test, type BrowserContext, type CDPSession, type Page, type Route } from '@playwright/test'
-import { createServer, type IncomingMessage, type Server } from 'node:http'
 import { randomBytes } from 'node:crypto'
 import en from '../../src/i18n/app/messages/en.json'
 import esAR from '../../src/i18n/app/messages/es-AR.json'
 import es419 from '../../src/i18n/app/messages/es-419.json'
 import { KEEP_WEB_COOKIE, KEEP_WEB_TOKEN } from '../../src/constants/migration.consts'
 
-const STUB_PORT = Number(process.env.SIGNUP_STUB_PORT ?? 0)
+/** The build sends the bundler to a host the spec answers, so the last step can sign and finish (see header). */
+const STUB_BUNDLER = !!process.env.SIGNUP_E2E_STUB_BUNDLER
 
 // ---------------------------------------------------------------------------------------------------------------
 // Copy: the catalog strings the screens render, so a check reads like the screen.
@@ -68,12 +68,11 @@ function copy(locale: Locale, key: string, values: Record<string, string> = {}):
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// The recording API stub: one answer table for the browser's calls (routed in-page) and the server actions' calls
-// (Next's PEANUT_API_URL points at the HTTP server below).
+// The recording API stub: one answer table for every API call the page makes (routed in the page).
 // ---------------------------------------------------------------------------------------------------------------
 
 type Recorded = {
-    origin: 'browser' | 'server'
+    origin: 'browser'
     method: string
     path: string
     body: unknown
@@ -94,7 +93,12 @@ class SignupStub {
     inviters = new Set(['fulano'])
     /** Extra latency per `METHOD /path` key, in ms (the slow-network journey). */
     delays = new Map<string, number>()
-    registered: { username: string; email: string | null; residence: unknown } | null = null
+    registered: {
+        username: string
+        email: string | null
+        residence: unknown
+        wallet: Record<string, unknown> | null
+    } | null = null
     unhandled: string[] = []
 
     reset() {
@@ -118,7 +122,22 @@ class SignupStub {
             invitesSent: [],
             showEarlyUserModal: false,
             invitedBy: null,
-            accounts: [],
+            // the final step's /add-account, as the API would store it: the wallet and the chosen plan
+            signupPreferences: this.registered?.wallet?.signupPreferences ?? null,
+            accounts: this.registered?.wallet
+                ? [
+                      {
+                          id: 'e2e-wallet',
+                          userId: E2E_USER_ID,
+                          type: this.registered.wallet.accountType ?? 'peanut-wallet',
+                          identifier: this.registered.wallet.accountIdentifier ?? E2E_ADDRESS,
+                          chainId: '42161',
+                          details: {},
+                          createdAt: '2026-11-16T00:00:00.000Z',
+                          updatedAt: '2026-11-16T00:00:00.000Z',
+                      },
+                  ]
+                : [],
             user: {
                 userId: E2E_USER_ID,
                 email: this.registered?.email ?? null,
@@ -170,7 +189,7 @@ class SignupStub {
                 return { status: 200, json: { token: 'e2e-hold' } }
             case 'POST /passkeys/register/options': {
                 const passkeyName = String((body as { username?: string })?.username ?? '')
-                const rpID = String((body as { rpID?: string })?.rpID ?? '127.0.0.1')
+                const rpID = String((body as { rpID?: string })?.rpID ?? 'localhost')
                 return {
                     status: 200,
                     json: {
@@ -193,11 +212,12 @@ class SignupStub {
                     username: passkeyName.replace(/\.peanut\.wallet$/, ''),
                     email: null,
                     residence: null,
+                    wallet: null,
                 }
                 return { status: 200, json: { verified: true, token: 'e2e-jwt' } }
             }
             case 'POST /passkeys/login/options': {
-                const rpID = String((body as { rpID?: string })?.rpID ?? '127.0.0.1')
+                const rpID = String((body as { rpID?: string })?.rpID ?? 'localhost')
                 return {
                     status: 200,
                     json: {
@@ -225,6 +245,11 @@ class SignupStub {
                 if ('residenceCountry' in update || 'nationality' in update) this.registered.residence = update
                 return { status: 200, json: this.user().user }
             }
+            case 'POST /add-account':
+                // the wallet the final step creates; the account is complete from here on
+                if (!this.registered) return { status: 401, json: { error: 'unauthorized' } }
+                this.registered.wallet = (body as Record<string, unknown>) ?? {}
+                return { status: 200, json: { success: true } }
             case 'POST /invites/validate': {
                 const code = String((body as { inviteCode?: string })?.inviteCode ?? '').toLowerCase()
                 const handle = code.replace(/invitesyou$/, '')
@@ -259,22 +284,6 @@ class SignupStub {
 const b64url = (bytes: Buffer) => bytes.toString('base64url')
 
 const stub = new SignupStub()
-let server: Server | undefined
-
-function readBody(req: IncomingMessage): Promise<unknown> {
-    return new Promise((resolve) => {
-        const chunks: Uint8Array[] = []
-        req.on('data', (chunk: Uint8Array) => chunks.push(chunk))
-        req.on('end', () => {
-            const text = Buffer.concat(chunks).toString('utf8')
-            try {
-                resolve(text ? JSON.parse(text) : undefined)
-            } catch {
-                resolve(text)
-            }
-        })
-    })
-}
 
 // ---------------------------------------------------------------------------------------------------------------
 // Chain RPC and the ZeroDev bundler: just enough for a counterfactual kernel account and one sponsored UserOp.
@@ -401,7 +410,7 @@ function answerRpcBody(raw: string): string {
 // ---------------------------------------------------------------------------------------------------------------
 
 const API_PATH =
-    /^\/(users|invites|passkeys|config|update-user|get-user|notifications|history|version|badges|points|rewards|kyc|attention|onboarding|referrals|campaigns)(\/|$)/
+    /^\/(users|invites|passkeys|config|update-user|get-user|notifications|history|version|badges|points|rewards|kyc|attention|onboarding|referrals|campaigns|add-account|rain|user|avatars)(\/|$)/
 const CORS = {
     'access-control-allow-origin': '*',
     'access-control-allow-headers': '*',
@@ -502,15 +511,18 @@ async function addAuthenticator(page: Page, verified = true): Promise<Authentica
 }
 
 async function openSetup(page: Page, context: BrowserContext, baseURL: string, path = '/setup') {
+    // WebAuthn refuses an IP address as the relying party; without this every journey stops on 03's help drawer
+    if (new URL(baseURL).hostname !== 'localhost') throw new Error('run with REGRESSION_HOST=localhost (see header)')
+    const origin = baseURL
     const language = await page.evaluate(() => navigator.language)
     await context.addCookies([
-        { name: KEEP_WEB_COOKIE, value: encodeURIComponent(JSON.stringify(KEEP_WEB_TOKEN)), url: baseURL },
-        { name: 'app-locale', value: language.startsWith('es') ? 'es-AR' : 'en', url: baseURL },
+        { name: KEEP_WEB_COOKIE, value: encodeURIComponent(JSON.stringify(KEEP_WEB_TOKEN)), url: origin },
+        { name: 'app-locale', value: language.startsWith('es') ? 'es-AR' : 'en', url: origin },
     ])
     await page.addInitScript(phoneInsets)
     await page.addInitScript(seedGeo)
-    await routeEverything(page, baseURL)
-    await page.goto(path, { waitUntil: 'domcontentloaded' })
+    await routeEverything(page, origin)
+    await page.goto(`${origin}${path}`, { waitUntil: 'domcontentloaded' })
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -574,7 +586,7 @@ async function landingToUsername(page: Page, locale: Locale) {
 
     // 07: the geo suggestion (AR) prefills the residence, the nationality reads "the same"
     await expectScreen(page, 'residence', 'default')
-    await expect(panelOf(page)).toContainText(t('setupRedesign.country.AR'))
+    await expect(panelOf(page)).toContainText('Argentina')
     await primary(page, t('setupRedesign.common.continue')).click()
 
     // 08: Argentina offers a bank and QR; pick both, then Continue
@@ -664,10 +676,15 @@ async function emailToFinal(page: Page, locale: Locale, email: string) {
 }
 
 async function confirmAndCelebrate(page: Page, locale: Locale, state: 'default' | 'claim-link' = 'default') {
+    if (!STUB_BUNDLER) {
+        test.info().annotations.push({ type: 'not checked', description: '11 → 12: no stub bundler in this build' })
+        return false
+    }
     await primary(page, copy(locale, 'setupRedesign.final.cta')).click()
     await expectScreen(page, 'advantage-control', state, 45_000)
     const title = copy(locale, state === 'claim-link' ? 'setupRedesign.done.claimTitle' : 'setupRedesign.done.title')
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(title)
+    return true
 }
 
 /** The three POSTs that turn a reserved name into an account, in order, for this username. */
@@ -684,22 +701,8 @@ function expectRegistered(username: string) {
 // ---------------------------------------------------------------------------------------------------------------
 
 test.describe('sign-up redesign journeys', () => {
-    test.skip(!STUB_PORT, 'needs SIGNUP_STUB_PORT and a Next server whose PEANUT_API_URL is that stub (see header)')
     test.describe.configure({ mode: 'default', retries: 0, timeout: 180_000 })
 
-    test.beforeAll(async () => {
-        server = createServer(async (req, res) => {
-            const body = await readBody(req)
-            const headers = Object.fromEntries(Object.entries(req.headers).map(([k, v]) => [k, String(v)]))
-            const answer = await stub.handle('server', req.method ?? 'GET', req.url ?? '/', body, headers)
-            res.writeHead(answer.status, { 'content-type': 'application/json', ...answer.headers })
-            res.end(req.method === 'HEAD' ? undefined : JSON.stringify(answer.json ?? {}))
-        })
-        await new Promise<void>((resolve) => server!.listen(STUB_PORT, '127.0.0.1', resolve))
-    })
-    test.afterAll(async () => {
-        await new Promise<void>((resolve) => (server ? server.close(() => resolve()) : resolve()))
-    })
     test.beforeEach(() => stub.reset())
     test.afterEach(async ({ page }, testInfo) => {
         // what the stub saw and could not answer is the first thing to read when a journey fails
@@ -753,10 +756,11 @@ test.describe('sign-up redesign journeys', () => {
                         .seen('POST', '/update-user')
                         .some((r) => (r.body as { email?: string })?.email === `${username}@gmail.com`)
                 ).toBe(true)
-                await confirmAndCelebrate(page, run.locale)
-                expect(stub.seen('RPC', /eth_sendUserOperation/), 'P4-50: one account-completion UserOp').toHaveLength(
-                    1
-                )
+                if (await confirmAndCelebrate(page, run.locale))
+                    expect(
+                        stub.seen('RPC', /eth_sendUserOperation/),
+                        'P4-50: one account-completion UserOp'
+                    ).toHaveLength(1)
             })
         })
     }
@@ -806,7 +810,7 @@ test.describe('sign-up redesign journeys', () => {
             await createPasskey(page, 'en')
             await expectScreen(page, 'passkey', 'taken')
             await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-                copy('en', 'setupRedesign.passkey.takenTitle', { name: 'mellowfox' })
+                copy('en', 'setupRedesign.passkey.takenTitle', { name: '@mellowfox' })
             )
             expect(stub.seen('POST', '/passkeys/register/options'), 'no ceremony for a taken name').toHaveLength(0)
 
@@ -865,7 +869,7 @@ test.describe('sign-up redesign journeys', () => {
             await inviteSkip(page, 'en')
             await createPasskey(page, 'en')
             await emailToFinal(page, 'en', 'luckyotter@gmail.com')
-            await confirmAndCelebrate(page, 'en', 'claim-link')
+            if (!(await confirmAndCelebrate(page, 'en', 'claim-link'))) return
             await expect(page.getByText(copy('en', 'setupRedesign.done.claimGoing'))).toBeVisible()
             await expect.poll(() => new URL(page.url()).pathname, { timeout: 15_000 }).toBe('/claim')
         })
@@ -944,6 +948,7 @@ test.describe('sign-up redesign journeys', () => {
             context,
             baseURL,
         }) => {
+            await addAuthenticator(page)
             await openSetup(page, context, baseURL!)
             await landingToUsername(page, 'en')
             await claimUsername(page, 'en', 'luckyotter')
@@ -1026,6 +1031,90 @@ test.describe('sign-up redesign journeys', () => {
             await expect(drawer(page)).toBeVisible()
             expect(stub.seen('POST', '/passkeys/login/options')).toHaveLength(2)
             expect(stub.seen('POST', /^\/passkeys\/register\//)).toHaveLength(0)
+        })
+
+        for (const gap of [0, 200, 400]) {
+            test(`a double tap ${gap} ms apart on 01, 05 and 06 goes exactly one screen each (R2-01)`, async ({
+                page,
+                context,
+                baseURL,
+            }) => {
+                await openSetup(page, context, baseURL!)
+                await expectScreen(page, 'landing', 'default', 30_000)
+                for (const [from, to] of [
+                    ['landing', 'advantage-fees'],
+                    ['advantage-fees', 'advantage-card'],
+                    ['advantage-card', 'residence'],
+                ] as const) {
+                    expect((await current(page)).screen).toBe(from)
+                    // the primary sits at the same pixel on every screen: the second tap lands on the next screen's button
+                    const box = (await footer(page).getByRole('button').first().boundingBox())!
+                    const x = box.x + box.width / 2
+                    const y = box.y + box.height / 2
+                    // the gap runs from the first tap's start: a tap itself takes 50-100 ms on a busy box, and a
+                    // second tap past the 500 ms step is a deliberate tap that should step again
+                    const start = Date.now()
+                    await page.touchscreen.tap(x, y)
+                    const rest = gap - (Date.now() - start)
+                    if (rest > 0) await page.waitForTimeout(rest)
+                    await page.touchscreen.tap(x, y)
+                    await expect(page.locator('[data-setup-shell]')).not.toHaveAttribute('data-nav-locked')
+                    await page.waitForTimeout(300)
+                    expect((await current(page)).screen, `one tap gesture, one step from ${from}`).toBe(to)
+                }
+            })
+        }
+
+        for (const viewport of [
+            { width: 390, height: 844, keyboard: 336 },
+            { width: 320, height: 568, keyboard: 260 },
+        ]) {
+            test(`keyboard open on 02 at ${viewport.width}: the field and its help line stay above the button (R2-02)`, async ({
+                page,
+                context,
+                baseURL,
+            }) => {
+                await page.setViewportSize({ width: viewport.width, height: viewport.height })
+                await openSetup(page, context, baseURL!)
+                await landingToUsername(page, 'en')
+                const field = page.getByRole('textbox', { name: copy('en', 'setupRedesign.username.fieldAria') })
+                await field.focus()
+                await field.fill('mellowfox')
+                await expectScreen(page, 'signup', 'available')
+                // what the native apps do for the keyboard (adjustResize): the page gets shorter
+                await page.setViewportSize({ width: viewport.width, height: viewport.height - viewport.keyboard })
+                await expect(page.locator('[data-setup-shell]')).toHaveAttribute('data-keyboard', '')
+                await page.waitForTimeout(900)
+                const visible = viewport.height - viewport.keyboard
+                const button = (await footer(page).getByRole('button').first().boundingBox())!
+                const input = (await field.boundingBox())!
+                const help = (await panelOf(page)
+                    .getByText(copy('en', 'setupRedesign.username.available'), { exact: true })
+                    .first()
+                    .boundingBox())!
+                expect(input.y, 'the field is on screen').toBeGreaterThanOrEqual(0)
+                expect(input.y + input.height, 'the field ends above the button').toBeLessThanOrEqual(button.y)
+                expect(help.y + help.height, 'the help line ends above the button').toBeLessThanOrEqual(button.y)
+                expect(button.y + button.height, 'the button is above the keyboard').toBeLessThanOrEqual(visible)
+            })
+        }
+
+        test('a desktop window made shorter with the field focused is not a keyboard: the stage stays', async ({
+            page,
+            context,
+            baseURL,
+        }) => {
+            await page.setViewportSize({ width: 1440, height: 900 })
+            await openSetup(page, context, baseURL!)
+            await landingToUsername(page, 'en')
+            const field = page.getByRole('textbox', { name: copy('en', 'setupRedesign.username.fieldAria') })
+            await field.focus()
+            await page.setViewportSize({ width: 1440, height: 740 })
+            await page.waitForTimeout(900)
+            const shell = page.locator('[data-setup-shell]')
+            await expect(shell).not.toHaveAttribute('data-keyboard')
+            await expect(shell).not.toHaveAttribute('data-fold')
+            await expect(page.locator('[data-setup-hero]')).toBeVisible()
         })
 
         test('slow network on the username check: the button stays off until the answer, then turns on', async ({

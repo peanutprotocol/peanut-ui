@@ -73,7 +73,7 @@ export function SetupScreen({
     children,
     panelClassName,
 }: SetupScreenProps) {
-    const { store, reducedMotion } = useSetupShell()
+    const { store, reducedMotion, onEntered } = useSetupShell()
     const slide = useContext(SetupSlideContext)
     const isPresent = useIsPresent()
     const device = useShellDevice()
@@ -116,6 +116,9 @@ export function SetupScreen({
                 variants={variants.stage}
                 custom={slide.direction}
                 className={twMerge('absolute inset-0', GROUND_CLASS[ground])}
+                onAnimationComplete={(definition) => {
+                    if (definition === 'center' && isPresent) onEntered?.(slide.key)
+                }}
                 data-setup-stage
                 data-ground={ground}
                 data-setup-state={state}
@@ -133,13 +136,17 @@ export function SetupScreen({
                     variants={variants.panel}
                     custom={slide.direction}
                     className={twMerge(
-                        'absolute inset-x-0 bottom-0 flex flex-col px-[var(--sr-gutter)]',
+                        // The panel ends at the footer's top edge and scrolls when its content does not fit (larger
+                        // system text, the keyboard, a small window): nothing ever sits under the footer (R2-02, R2-04).
+                        // Children keep their size so overflow scrolls instead of squeezing them.
+                        'absolute inset-x-0 flex flex-col overflow-x-hidden overflow-y-auto overscroll-contain px-[var(--sr-gutter)] pt-[var(--sr-panel-pad)] *:shrink-0',
                         !isPresent && 'pointer-events-none',
                         panelClassName
                     )}
                     style={
                         {
-                            top: `calc(${stageH} + var(--sr-panel-pad))`,
+                            top: stageH,
+                            bottom: 'calc(100% - var(--sr-footer-top, 100%))',
                             transition: `top ${layoutTransition}`,
                             '--sr-panel-to-cta': `calc(var(--sr-cta-top) - ${stageH} - var(--sr-panel-pad))`,
                         } as CSSProperties

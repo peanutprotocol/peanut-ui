@@ -8,7 +8,7 @@ import Badge from '@/components/Global/Badges/Badge'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { useTranslations } from 'next-intl'
-import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
+import { reasonCodeKey, refusalTitleKey } from '@/constants/capability-reason-labels.consts'
 import type { DepositGateView } from '../depositGate'
 import type { DepositRail } from '../types'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
@@ -172,7 +172,10 @@ export function CorridorGateDrawer({
             ? notice.ukResidence
                 ? tKyc('initiate.titleRegionUnavailable')
                 : t('gate.blockedTitle', { currency: rail.currency })
-            : t(TITLES[notice.action], { count: slotsHeld, currency: rail.currency })
+            : t(refusalTitleKey(notice.reasonCode) ?? TITLES[notice.action], {
+                  count: slotsHeld,
+                  currency: rail.currency,
+              })
     const labelKey = notice.action === 'residence-restricted' ? null : LABELS[notice.action]
     const label =
         notice.reasonCode === 'invalid_bank_postal_code' && rail.provider === 'bridge'

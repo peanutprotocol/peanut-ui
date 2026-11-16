@@ -42,6 +42,8 @@ interface ResidenceChangeDrawerProps {
     /** Requested country waiting on the separate residence action. */
     pending?: string | null
     pendingStatus?: string | null
+    /** Sumsub put the pending residence review on hold for a person to check. */
+    pendingManualReview?: boolean
     onContactSupport?: () => void
     /** refetch the user so active and pending residence stay in sync */
     onSaved: () => Promise<unknown> | void
@@ -65,6 +67,7 @@ const ResidenceChangeDrawer = ({
     verified,
     pending,
     pendingStatus,
+    pendingManualReview,
     onContactSupport,
     onSaved,
     onReverify,
@@ -201,7 +204,7 @@ const ResidenceChangeDrawer = ({
                         )}
                         {selectedUnderReview && (
                             <Callout priority="attention" title={t('reviewTitle')}>
-                                {t('reviewBody')}
+                                {pendingManualReview ? t('manualReviewBody') : t('reviewBody')}
                             </Callout>
                         )}
                         {lost.length > 0 ? (

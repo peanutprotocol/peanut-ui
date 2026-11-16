@@ -93,6 +93,11 @@ jest.mock('@/hooks/useKycIntents', () => ({
 const capture = posthog.capture as jest.Mock
 const controls = () => signupControls(capture)
 const K = 'setupRedesign.plan'
+/** dev's old 08 hint (setup.paymentPlan.hint; es-AR fell back to es-419), pinned: the key left with the old view. */
+const OLD_HINT = {
+    en: 'Options depend on your residence.',
+    'es-AR': 'Las opciones dependen de tu residencia.',
+} as const
 const escapeRx = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 const plain = (s: string | null | undefined) => (s ?? '').replace(/ /g, ' ').replace(/\s+/g, ' ').trim()
 
@@ -156,6 +161,18 @@ beforeEach(() => {
 })
 
 describe('08 Payment plan', () => {
+    // R1-13: the hero's QR tile only for the QR-payment residences (FLEET-RULES 9 "QR only Argentina and Brazil").
+    it.each([
+        ['AR', true],
+        ['BR', true],
+        ['US', false],
+        ['PT', false],
+        ['', false],
+    ])('the hero shows the QR tile for residence %p: %p', (residenceCountry, shown) => {
+        render({ residenceCountry })
+        expect(!!screen.queryByTestId('setup-redesign-plan-qr')).toBe(shown)
+    })
+
     it('P3-38 while the options load: both pills busy with a spinner on Choose, nothing opens, Continue off', () => {
         mockSetsSettled = false
         mockIntentsSettled = false
@@ -329,13 +346,14 @@ describe('08 Payment plan', () => {
         expect(view.flow().fundingChannel).toBe('brlBank')
     })
 
-    it('P3-45 / K3 Argentina’s local bank pill reads "Banco ARS" in es-AR', async () => {
+    it('P3-45 / TASK-25015 Argentina’s local pill reads "Mercado Pago" with its mark in es-AR', async () => {
         const view = render({ residenceCountry: 'AR' }, { locale: 'es-AR' })
         expect(view.open('funding')[0]).toBe(label('fundArsBank', {}, 'es-AR'))
         fireEvent.keyDown(openDialog()!, { key: 'Escape' })
         await waitFor(() => expect(openDialog()).toBeNull())
         await view.choose('funding', label('fundArsBank', {}, 'es-AR'))
         expect(shownText(view.pill('funding'))).toBe(label('fundArsBankPill', {}, 'es-AR'))
+        expect(view.pill('funding').querySelector('img')).not.toBeNull()
         expect(view.flow().fundingChannel).toBe('arsBank')
     })
 
@@ -362,6 +380,19 @@ describe('08 Payment plan', () => {
         expect(view.flow().fundingChannel).toBe('crypto')
         expect(mockHandleNext).toHaveBeenCalledTimes(1)
     })
+
+    it.each(['funding', 'payment'] as const)(
+        'R2-06 the %s drawer takes focus on open and Escape closes it',
+        async (kind) => {
+            const view = render({ residenceCountry: 'PT' })
+            view.pill(kind).focus()
+            fireEvent.click(view.pill(kind))
+            const dialog = openDialog()!
+            await waitFor(() => expect(document.activeElement).toBe(dialog))
+            fireEvent.keyDown(document.activeElement!, { key: 'Escape' })
+            await waitFor(() => expect(openDialog()).toBeNull())
+        }
+    )
 
     it('P3-47 a stored choice the residence no longer offers shows Choose and is cleared once settled', async () => {
         const view = render({ residenceCountry: 'US', fundingChannel: 'brlBank', paymentChannel: 'card' })
@@ -447,7 +478,7 @@ describe('08 Payment plan', () => {
         expect(visibleText(view.container)).not.toMatch(
             /platinum|cashback|bono|no password|sin contraseña|suggested|example|ejemplo/i
         )
-        expect(visibleText(view.container)).not.toContain(copy('setup.paymentPlan.hint', {}, locale))
+        expect(visibleText(view.container)).not.toContain(OLD_HINT[locale])
         expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(copyRx(`${K}.title`, {}, locale))
     })
 })
@@ -515,15 +546,13 @@ describe('08 Payment plan: dev cases kept', () => {
         ])
     })
 
-    it('P3-43 drawer row marks: local and Bridge bank rows a green bubble, Pix its bare logo', () => {
+    it('P3-43 drawer row marks: Bridge bank rows a green bubble, Pix and Mercado Pago their bare logo', () => {
         const ar = render({ residenceCountry: 'AR' })
         fireEvent.click(ar.pill('funding'))
         const arDialog = openDialog()!
         const ars = within(arDialog).getByRole('button', { name: textRx(label('fundArsBank')), hidden: true })
-        expect(rowMark(ars)).toEqual({
-            logo: false,
-            className: expect.stringContaining('bg-background-icon-bubble-green'),
-        })
+        expect(rowMark(ars).logo).toBe(true)
+        expect(rowMark(ars).className).not.toMatch(/\bbg-/)
         ar.unmount()
 
         const br = render({ residenceCountry: 'BR' })

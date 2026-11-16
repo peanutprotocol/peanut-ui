@@ -43,7 +43,6 @@ import { FinalConfirmScreen } from '@/components/Setup/redesign/FinalConfirm/Fin
 
 import { PasskeySetupHelpDrawer } from '@/components/Setup/Views/PasskeySetupHelpDrawer'
 import { LoginRecoveryDrawer } from '@/components/Setup/Views/LoginRecoveryDrawer'
-import PasskeyInfoDrawer from '@/components/Setup/components/PasskeyInfoDrawer'
 import ConfirmInviteModal from '@/components/Global/ConfirmInviteModal'
 import EarlyUserDrawer from '@/components/Global/EarlyUserDrawer'
 import EasterEggDrawer from '@/components/Global/EasterEggDrawer'
@@ -304,7 +303,8 @@ function RedesignStepBody({
                     : null
             }
         >
-            {finishRoute ? <FinalConfirmScreen showLogout /> : <View />}
+            {/* as /setup passes it: without it 11 treats the demo account as a log-in and leaves for /home */}
+            {finishRoute ? <FinalConfirmScreen showLogout /> : <View onComplete={noop} />}
         </SetupShell>
     )
 }
@@ -848,7 +848,10 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['06-b-invite'],
         render: () => <SetupScreen screenId="invite" />,
     },
-    '06-a-signup': { name: 'Signup', path: 'Setup/Views/Signup.tsx', render: () => <SetupScreen screenId="signup" /> },
+    '06-a-signup': {
+        ...SURFACE_META['06-a-signup'],
+        render: () => <SetupScreen screenId="signup" />,
+    },
     '06-c-passkey': {
         ...SURFACE_META['06-c-passkey'],
         render: () => (
@@ -935,11 +938,6 @@ export const SURFACES: Record<string, Surface> = {
     '08-c-loginrecoverydrawer-web': {
         ...SURFACE_META['08-c-loginrecoverydrawer-web'],
         render: () => <LoginRecoveryDrawer visible onClose={noop} onRetry={noop} onSupport={noop} platform="web" />,
-    },
-    '09-a-passkeyinfomodal': {
-        name: 'PasskeyInfoDrawer',
-        path: 'Setup/components/PasskeyInfoDrawer.tsx',
-        render: () => <PasskeyInfoDrawer visible onClose={noop} />,
     },
     '10-a-confirminvitemodal': {
         ...SURFACE_META['10-a-confirminvitemodal'],
@@ -1231,6 +1229,24 @@ export const SURFACES: Record<string, Surface> = {
                 verified="BR"
                 pending="ES"
                 pendingStatus="REVIEW_PENDING"
+                onSaved={asyncNoop}
+                onReverify={noop}
+                onContactSupport={noop}
+            />
+        ),
+    },
+    '45-e-residence-manual-review': {
+        ...SURFACE_META['45-e-residence-manual-review'],
+        render: () => (
+            <ResidenceChangeDrawer
+                visible
+                onClose={noop}
+                userId="demo-user"
+                declared="ES"
+                verified="BR"
+                pending="ES"
+                pendingStatus="REVIEW_PENDING"
+                pendingManualReview
                 onSaved={asyncNoop}
                 onReverify={noop}
                 onContactSupport={noop}

@@ -4,7 +4,6 @@ import { useTranslations } from 'next-intl'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 import type { StepComponentProps } from '@/components/Setup/Setup.types'
 import { PasskeySetupHelpDrawer } from '@/components/Setup/Views/PasskeySetupHelpDrawer'
-import { AboveCta } from '@/components/Setup/redesign/shell/AboveCta'
 import { SetupScreen, type SetupScreenProps } from '@/components/Setup/redesign/shell/SetupScreen'
 import { DESIGN_STAGE_PX } from '@/components/Setup/redesign/shell/useArtScale'
 import { useShellDevice } from '@/components/Setup/redesign/shell/useShellDevice'
@@ -178,16 +177,8 @@ export function PasskeyScreen(_props: StepComponentProps) {
                 below: support,
             },
         }
-        body = (
-            <>
-                <PasskeySteps steps={[t('passkey.cannot1'), t('passkey.cannot2')]} firstDelay={0.2} />
-                {passkey.browserOpenFailed && (
-                    <AboveCta gap={16}>
-                        <PasskeyInlineError message={t('passkey.browserOpenFailed')} />
-                    </AboveCta>
-                )}
-            </>
-        )
+        // dev dropped the "browser didn't open" box (TASK-24967); a failed open goes to Sentry, the buttons stay
+        body = <PasskeySteps steps={[t('passkey.cannot1'), t('passkey.cannot2')]} firstDelay={0.2} />
     } else if (state === 'cannot-create-other') {
         screen = {
             stage: sm ? 'compact' : 'std',

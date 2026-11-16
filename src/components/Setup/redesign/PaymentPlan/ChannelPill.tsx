@@ -1,7 +1,6 @@
 'use client'
 
 import Image from 'next/image'
-import PIX from '@/assets/payment-apps/pix.svg'
 import { Button } from '@/components/0_Bruddle/Button'
 import { CONCEPT_ICONS, type ConceptIcon } from '@/components/0_Bruddle/conceptIcons'
 import { DrawerSelect } from '@/components/0_Bruddle/DrawerSelect'
@@ -16,11 +15,15 @@ import { CHANNEL_ICON } from './channelLabels'
 function PillIcon({ channel, loading }: { channel: SetupChannel | null; loading: boolean }) {
     if (loading) return <Loading className="size-4 text-foreground-secondary" />
     if (!channel) return <Icon name="question-mark" size={20} className="text-foreground-secondary" />
-    if (channel === 'brlBank') return <Image src={PIX} alt="" className="size-6" />
+    // a brand mark (Pix, Mercado Pago since TASK-25015) shows as itself
+    if (channel === 'brlBank' || channel === 'arsBank') {
+        const mark = CONCEPT_ICONS[SETUP_CHANNEL_CONCEPTS[channel]]
+        return 'logo' in mark ? <Image src={mark.logo} alt="" className="size-6" /> : null
+    }
     return <Icon name={CHANNEL_ICON[channel]} size={20} className="text-foreground-primary" />
 }
 
-/** The drawer row's icon bubble, as dev's ChannelIcon (a bank row is green, Pix is its mark). */
+/** The drawer row's icon bubble, as dev's ChannelIcon (a bank row is green, Pix and Mercado Pago are their mark). */
 function RowIcon({ channel }: { channel: SetupChannel }) {
     const concept = SETUP_CHANNEL_CONCEPTS[channel]
     const mark: ConceptIcon = CONCEPT_ICONS[concept]
@@ -30,17 +33,16 @@ function RowIcon({ channel }: { channel: SetupChannel }) {
 }
 
 /**
- * A channel pill in the 08 sentence, opening a DrawerSelect (dev's ChannelPicker). Every pill label of its kind sits
- * invisibly in one grid cell, so the widest one sizes the pill in every state and after every pick, and the
- * sentence never reflows; the pill shrinks to its line only when that is narrower. While options load the pill
- * waits with a spinner and cannot open.
+ * A channel pill in the 08 sentence, opening a DrawerSelect (dev's ChannelPicker). The pill hugs its label, as in
+ * the mock stills ("Choose" ~135 px at 390); the sentence keeps its lines because each lead word and its pill sit on
+ * a line of their own (PlanSentence). The pill shrinks to its line only when that is narrower. While options load the
+ * pill waits with a spinner and cannot open.
  */
 export function ChannelPill<C extends SetupChannel>({
     kind,
     title,
     value,
     options,
-    sizers,
     label,
     pillLabel,
     placeholder,
@@ -51,8 +53,6 @@ export function ChannelPill<C extends SetupChannel>({
     title: string
     value: C | null
     options: readonly C[]
-    /** Every pill label this kind can show, for the fixed width. */
-    sizers: readonly string[]
     /** The full label: drawer rows and the accessible name. */
     label: (channel: C) => string
     pillLabel: (channel: C) => string
@@ -71,7 +71,16 @@ export function ChannelPill<C extends SetupChannel>({
                 track(control, 'select', channel)
                 onChange(channel)
             }}
-            onOpen={() => track(control, 'open')}
+            onOpen={() => {
+                track(control, 'open')
+                // vaul leaves focus on the pill behind the modal sheet, so Tab first walked the hidden page (review
+                // R2-06). DrawerSelect does not pass Radix's onOpenAutoFocus through, so move focus to the sheet once
+                // it is mounted; Radix then traps Tab inside and returns focus to the pill on close.
+                requestAnimationFrame(() => {
+                    const sheet = document.querySelector<HTMLElement>('[role="dialog"][data-state="open"]')
+                    if (sheet && !sheet.contains(document.activeElement)) sheet.focus()
+                })
+            }}
             onDismiss={() => track(control, 'dismiss')}
             options={options.map((channel) => ({
                 value: channel,
@@ -93,15 +102,8 @@ export function ChannelPill<C extends SetupChannel>({
                     icon={<PillIcon channel={value} loading={loading} />}
                     iconContainerClassName="size-6"
                 >
-                    <span className="relative grid min-w-0 overflow-hidden text-left" title={shown}>
-                        {[...new Set([placeholder, ...sizers])].map((text) => (
-                            <span key={text} aria-hidden="true" className="invisible whitespace-nowrap [grid-area:1/1]">
-                                {text}
-                            </span>
-                        ))}
-                        <span className="block truncate [grid-area:1/1]" data-fit-label={kind}>
-                            {shown}
-                        </span>
+                    <span className="block min-w-0 truncate text-left" title={shown} data-fit-label={kind}>
+                        {shown}
                     </span>
                     <Icon name="chevron-down" size={20} className="shrink-0" />
                 </Button>

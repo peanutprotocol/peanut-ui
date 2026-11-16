@@ -18,6 +18,7 @@ import {
 } from '@/components/Setup/redesign/Landing/__tests__/redesign-harness'
 import {
     availabilityStub,
+    card,
     checksFor,
     clearButton,
     counterText,
@@ -142,6 +143,17 @@ describe('02 Username — typed values (C.md § 3.1, § 4.1)', () => {
         expect(primary()).toBeDisabled()
     })
 
+    // Ported from dev's Signup.test "reports the same validation category again after … editing" (C § 6.1).
+    it('C-12 an edit clears the reported too_short, so the next settled short value reports it again', async () => {
+        await mount()
+        await type('ab')
+        await advance(750)
+        await type('abc')
+        await advance(750)
+        expect(controlsOf(capture()).filter((control) => control === 'username:error:too_short')).toHaveLength(2)
+        expect(invalidTypes()).toEqual(['too_short', 'too_short'])
+    })
+
     it.each([
         ['9lucky', 'invalidStart'],
         ['lu ky', 'invalidChars'],
@@ -177,6 +189,37 @@ describe('02 Username — typed values (C.md § 3.1, § 4.1)', () => {
         expect(counterText()).toBe('13/12')
         expect(screen.getByTestId('setup-redesign-username-overflow')).toHaveTextContent(/^u$/)
         expect(checksFor(mockApiFetch, 'luckyotterclub') + checksFor(mockApiFetch, 'luckyotterclu')).toBe(0)
+    })
+
+    it.each(['  mellowfox  ', 'mellowfox\n', '@mellowfox', '@MellowFox '])(
+        'R2-11 a pasted "%s" is checked as "mellowfox"',
+        async (pasted) => {
+            await mount()
+            await type(pasted)
+            expect(field()).toHaveValue('mellowfox')
+            await advance(800)
+            expect(checksFor(mockApiFetch, 'mellowfox')).toBe(1)
+            expect(setupState()).toBe('available')
+        }
+    )
+
+    it('R2-09 an invalid name past 12 letters is not marked as too long; the mirror shows it plain', async () => {
+        await mount()
+        await type('https://peanut.me/x')
+        await advance(800)
+        expect(setupState()).toBe('invalid')
+        expect(screen.queryByTestId('setup-redesign-username-overflow')).toBeNull()
+        expect(screen.getByTestId('username-mirror')).toHaveTextContent('https://peanut.me/x')
+    })
+
+    it('R2-09 the card shows the typed name and ends in an ellipsis past its smallest size, never cut bare', async () => {
+        await mount()
+        await type('abcdefghijklmnopqrst')
+        await advance(800)
+        const lines = card().querySelectorAll('span.block')
+        expect(lines[0]).toHaveTextContent('@abcdefghijklmnopqrst')
+        expect(lines[1]).toHaveTextContent('peanut.me/abcdefghijklmnopqrst')
+        for (const line of lines) expect(line).toHaveClass('overflow-hidden', 'text-ellipsis', 'whitespace-nowrap')
     })
 
     it.each(['teampeanut', 'official'])(

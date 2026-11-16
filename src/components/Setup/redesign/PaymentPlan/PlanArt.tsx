@@ -47,9 +47,10 @@ function Hop({ piece, hop, children }: { piece: 'card' | 'qr' | 'coin'; hop: Pla
 /**
  * The 08 hero (mock 08-payment-plan/screen.js): the card face and a QR tile (UI objects) with the USD coin character
  * between them, and stars. Positions are the mock's 440-high art box; the compact stage on a small phone (300 high)
- * moves everything up 140 px. The QR encodes peanut.me.
+ * moves everything up 140 px. The QR encodes peanut.me. The QR tile shows only to residents of the QR-payment
+ * countries (Argentina, Brazil; FLEET-RULES 9); elsewhere the same hero shows without it.
  */
-export function PlanArt({ compact, hop }: { compact: boolean; hop: PlanHop }) {
+export function PlanArt({ compact, hop, showQr }: { compact: boolean; hop: PlanHop; showQr: boolean }) {
     const dy = compact ? -140 : 0
     return (
         <>
@@ -58,18 +59,23 @@ export function PlanArt({ compact, hop }: { compact: boolean; hop: PlanHop }) {
                     <CardFace width={170} />
                 </Hop>
             </ArtPiece>
-            <ArtPiece left={258} top={262 + dy} rotate={6} entrance="deal" order={1} zIndex={6}>
-                <Hop piece="qr" hop={hop}>
-                    <div className="relative rounded-sm border-2 border-border-default bg-background-default p-1 shadow-4">
-                        <QRCode value="https://peanut.me" size={104} level="H" />
-                        <Image
-                            src={LOGO}
-                            alt=""
-                            className="absolute top-1/2 left-1/2 h-auto w-5 -translate-x-1/2 -translate-y-1/2"
-                        />
-                    </div>
-                </Hop>
-            </ArtPiece>
+            {showQr && (
+                <ArtPiece left={258} top={262 + dy} rotate={6} entrance="deal" order={1} zIndex={6}>
+                    <Hop piece="qr" hop={hop}>
+                        <div
+                            className="relative rounded-sm border-2 border-border-default bg-background-default p-1 shadow-4"
+                            data-testid="setup-redesign-plan-qr"
+                        >
+                            <QRCode value="https://peanut.me" size={104} level="H" />
+                            <Image
+                                src={LOGO}
+                                alt=""
+                                className="absolute top-1/2 left-1/2 h-auto w-5 -translate-x-1/2 -translate-y-1/2"
+                            />
+                        </div>
+                    </Hop>
+                </ArtPiece>
+            )}
             <ArtPiece left={166} top={252 + dy} width={100} height={100} rotate={-10} zIndex={8}>
                 <Hop piece="coin" hop={hop}>
                     <div className="relative size-[100px]">

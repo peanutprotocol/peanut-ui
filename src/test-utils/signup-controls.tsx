@@ -3,7 +3,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import type { SignupAnalyticsScreenId } from '@/features/setup/signup-analytics'
 import { SignupScreenContext } from '@/features/setup/useSignupControl'
 
-/** A step as SetupWrapper renders it: on a named sign-up screen. */
+/** A step as SetupShell renders it: on a named sign-up screen. */
 export const onSignupScreen = (screenId: SignupAnalyticsScreenId, node: ReactNode) => (
     <SignupScreenContext.Provider value={screenId}>{node}</SignupScreenContext.Provider>
 )

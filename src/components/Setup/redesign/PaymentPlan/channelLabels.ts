@@ -25,7 +25,7 @@ export const FUNDING_SHEET_KEY: Record<SetupFundingChannel, PlanLabelKey> = {
     peanut: 'fundPeanut',
 }
 
-/** The pill label of each way to add money: short enough for the sentence line (es-AR "Banco USD/EUR", "Banco ARS"). */
+/** The pill label of each way to add money: short enough for the sentence line (es-AR "Banco USD/EUR"). */
 export const FUNDING_PILL_KEY: Record<SetupFundingChannel, PlanLabelKey> = {
     bank: 'fundBankPill',
     arsBank: 'fundArsBankPill',
@@ -48,10 +48,9 @@ export const PAYMENT_PILL_KEY: Record<SetupPaymentChannel, PlanLabelKey> = {
     peanut: 'peanutPill',
 }
 
-/** The bare app icon a filled pill shows, in ink (mock r3). Pix shows its brand mark instead (`brlBank`). */
-export const CHANNEL_ICON: Record<Exclude<SetupChannel, 'brlBank'>, IconName> = {
+/** The bare app icon a filled pill shows, in ink (mock r3). Pix and Mercado Pago show their brand mark instead. */
+export const CHANNEL_ICON: Record<Exclude<SetupChannel, 'brlBank' | 'arsBank'>, IconName> = {
     bank: 'bank',
-    arsBank: 'bank',
     crypto: 'coins',
     peanut: 'users',
     card: 'credit-card',

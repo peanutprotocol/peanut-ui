@@ -6,7 +6,7 @@ import { renderInShell } from '@/components/Setup/redesign/Landing/__tests__/red
 
 jest.mock('@/components/Setup/components/SetupLanguageSwitcher', () => ({ SetupLanguageSwitcher: () => null }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
-jest.mock('@/components/Setup/components/OnboardingAnimation', () => ({
+jest.mock('@/components/Setup/redesign/shell/OnboardingAnimation', () => ({
     __esModule: true,
     default: ({ name }: { name: string }) => <div data-onboarding-animation={name} />,
 }))
@@ -71,7 +71,7 @@ describe('SetupShell on desktop', () => {
         setWidth(1440)
         renderStep('landing', 'tall')
         const shell = document.querySelector<HTMLElement>('[data-setup-shell]')!
-        expect(shell.style.getPropertyValue('--sr-stage-tall')).toBe('var(--sr-stage-compact)')
+        expect(shell.style.getPropertyValue('--sr-stage-tall-base')).toBe('var(--sr-stage-compact-base)')
     })
 
     it('keeps the tall stage for a landing with a footer (native, keep-web)', () => {
@@ -83,7 +83,7 @@ describe('SetupShell on desktop', () => {
             </SetupScreen>
         )
         const shell = document.querySelector<HTMLElement>('[data-setup-shell]')!
-        expect(shell.style.getPropertyValue('--sr-stage-tall')).toBe('')
+        expect(shell.style.getPropertyValue('--sr-stage-tall-base')).toBe('')
     })
 
     it('mounts no hero on a phone', () => {

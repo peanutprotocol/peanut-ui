@@ -14,7 +14,8 @@ import { useSetupShell } from '@/components/Setup/redesign/shell/SetupShellConte
 const CARD_ROTATE = -4
 const GLOVE_ROTATE = 12
 
-/** Shrinks the text to fit its box, never cutting it: from `max` down to `min` px. */
+/** Shrinks the text to fit its box: from `max` down to `min` px. Past `min` (a name over 12 letters) it ends in an
+ *  ellipsis, as the mock's card does, instead of being cut at the card edge (review R2-09). */
 function useFitText(text: string, max: number, min: number) {
     const ref = useRef<HTMLSpanElement>(null)
     useLayoutEffect(() => {
@@ -69,13 +70,13 @@ export function UsernameProfileArt({ name, rolls, rolling }: { name: string; rol
                     <span className="min-w-0 flex-1">
                         <span
                             ref={nameRef}
-                            className="block overflow-hidden leading-[26px] font-black whitespace-nowrap text-foreground-primary"
+                            className="block overflow-hidden leading-[26px] font-black text-ellipsis whitespace-nowrap text-foreground-primary"
                         >
                             {`@${name}`}
                         </span>
                         <span
                             ref={linkRef}
-                            className="block overflow-hidden leading-[18px] font-semibold whitespace-nowrap text-foreground-secondary"
+                            className="block overflow-hidden leading-[18px] font-semibold text-ellipsis whitespace-nowrap text-foreground-secondary"
                         >
                             {`peanut.me/${name}`}
                         </span>

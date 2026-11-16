@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
@@ -13,6 +13,7 @@ import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { normalizeSearch } from '@/features/paperwork-verification/occupations/search'
 import { useSignupControl } from '@/features/setup/useSignupControl'
 import type { ResidenceCountryOption } from '@/utils/residence-options'
+import { twMerge } from '@/utils/tw'
 
 function Flag({ country, size }: { country: string; size: 'xs' | 's' }) {
     return (
@@ -24,6 +25,21 @@ function Flag({ country, size }: { country: string; size: 'xs' | 's' }) {
             className={size === 'xs' ? 'size-6 rounded-full object-cover' : 'size-8 rounded-full object-cover'}
         />
     )
+}
+
+/** The mock's row heights: 56 px (44 on a small phone), the same-country row 64 (52). The flag stays 32 px. */
+const ROW = 'py-3 signup-sm:py-1.5'
+const SAME_ROW = 'py-[11px] signup-sm:py-[5px]'
+
+/**
+ * Opens the list at the chosen country, centred where the list allows it. Set directly, so the sheet does not
+ * visibly scroll while it slides in.
+ */
+function centreChosenRow(area: HTMLElement | null) {
+    const row = area?.querySelector<HTMLElement>('[aria-current]')
+    if (!area || !row) return
+    const top = row.getBoundingClientRect().top - area.getBoundingClientRect().top + area.scrollTop
+    area.scrollTop = Math.max(0, top - (area.clientHeight - row.offsetHeight) / 2)
 }
 
 /**
@@ -55,6 +71,7 @@ export function CountryPill({
     const t = useTranslations('setupRedesign.residence')
     const [open, setOpen] = useState(false)
     const [query, setQuery] = useState('')
+    const scrollArea = useRef<HTMLDivElement>(null)
     const { track, trackOnce, trackError } = useSignupControl()
     const labelOf = (country: string) => options.find((o) => o.value === country)?.label ?? country
     const isSame = !!same && !value
@@ -113,7 +130,17 @@ export function CountryPill({
                     <Icon name="chevron-down" size={20} className="shrink-0" />
                 </Button>
             </DrawerTrigger>
-            <DrawerContent>
+            <DrawerContent
+                scrollAreaRef={scrollArea}
+                // vaul leaves focus on the pill behind the modal sheet (its `autoFocus` is off), so Tab first walked
+                // the hidden page (review R2-06). Focus the sheet itself, not its search field, so a phone does not
+                // raise the keyboard on open; Radix then traps Tab inside and returns focus to the pill on close.
+                onOpenAutoFocus={(event) => {
+                    event.preventDefault()
+                    ;(event.currentTarget as HTMLElement).focus()
+                    centreChosenRow(scrollArea.current)
+                }}
+            >
                 {/* One height while results filter, so the sheet does not jump. */}
                 <div className="flex min-h-[75vh] flex-col gap-4 pb-4 signup-sm:gap-2">
                     <DrawerTitle>{title}</DrawerTitle>
@@ -124,7 +151,7 @@ export function CountryPill({
                                 body={labelOf(same)}
                                 leading={<Flag country={same} size="s" />}
                                 trailing={isSame ? <Icon name="check" size={20} /> : undefined}
-                                className={isSame ? 'bg-background-selection' : undefined}
+                                className={twMerge(SAME_ROW, isSame && 'bg-background-selection')}
                                 aria-label={`${t('sameRow')}, ${labelOf(same)}`}
                                 aria-current={isSame || undefined}
                                 onClick={() => choose('')}
@@ -153,7 +180,7 @@ export function CountryPill({
                                     title={option.label}
                                     leading={<Flag country={option.value} size="s" />}
                                     trailing={option.value === value ? <Icon name="check" size={20} /> : undefined}
-                                    className={option.value === value ? 'bg-background-selection' : undefined}
+                                    className={twMerge(ROW, option.value === value && 'bg-background-selection')}
                                     aria-label={option.label}
                                     aria-current={option.value === value || undefined}
                                     onClick={() => choose(option.value)}

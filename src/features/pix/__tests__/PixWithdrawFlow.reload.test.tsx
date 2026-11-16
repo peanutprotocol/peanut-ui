@@ -534,9 +534,9 @@ describe('PixWithdrawFlow form', () => {
         withdrawUsd: '92.504310',
         rate: '5.445692',
         fixedFeeBrl: '0.75',
-        // Avenia's own rate and every fee: 92.504310 × 5.46 − 2.07 = R$503.00
-        exchangeRate: '5.460000',
-        providerFeeBrl: '2.07',
+        // the variable fees in the rate, the flat fee as the row: 92.504310 × 5.445692 − 0.75 = R$503.00
+        exchangeRate: '5.445692',
+        providerFeeBrl: '0.75',
         arrivalEstimateSeconds: 60,
         provider: 'Avenia' as const,
     }
@@ -595,7 +595,7 @@ describe('PixWithdrawFlow form', () => {
     })
 
     // the Pix-key payment form, with Withdrawing and Confirm (ruling 2026-11-12, providers are cattle)
-    it('is the payment form: Withdrawing, the holder and bank, Avenia’s rate, the sponsored Peanut fee, every provider fee as one row, no savings row', async () => {
+    it('is the payment form: Withdrawing, the holder and bank, the rate, the sponsored Peanut fee, the flat provider fee, no savings row', async () => {
         mockPreview.mockResolvedValue(display)
         withForm(REVIEW_FORM)
         renderAt('?step=review')
@@ -603,11 +603,10 @@ describe('PixWithdrawFlow form', () => {
         expect(screen.getByText(en.pix.withdraw.withdrawing)).toBeInTheDocument()
         expect(await screen.findByText('Ana Souza')).toBeInTheDocument()
         expect(screen.getByText('Banco Inter')).toBeInTheDocument()
-        expect(await screen.findByText('1 USD = 5.46 BRL')).toBeInTheDocument()
+        expect(await screen.findByText('1 USD = 5.45 BRL')).toBeInTheDocument()
         expect(screen.getByText(en.common.sponsoredByPeanut)).toBeInTheDocument()
         expect(screen.getByText(en.pix.withdraw.fee)).toBeInTheDocument()
-        expect(screen.getByText('R$2.07')).toBeInTheDocument()
-        expect(screen.queryByText('R$0.75')).toBeNull()
+        expect(screen.getByText('R$0.75')).toBeInTheDocument()
         expect(screen.queryByText(en.qrPay.info.saveVsCard)).toBeNull()
         expect(screen.queryByText(en.withdraw.bank.arrives)).toBeNull()
         // "Save to favorites", as the payment form offers it, named after the holder
@@ -653,6 +652,31 @@ describe('PixWithdrawFlow form', () => {
         expect(screen.getByRole('button', { name: en.common.confirm })).toBeDisabled()
     })
 
+    // Aleks, 16 Nov 2026: R$1 showed the minimum twice, as the line under the amount and as the API's refusal
+    // of an amount the preview had quoted while the next one was typed
+    it('shows the minimum once, as the box under the amount, and quotes only the amount on screen', async () => {
+        const minimum = en.pix.deposit.minimum.replace('{amount}', 'R$5')
+        mockPreview.mockImplementation((request: { amountBrl?: string }) =>
+            request.amountBrl === '3'
+                ? Promise.reject(new ApiError('refused', { status: 422, code: 'PIX_MIN_AMOUNT' }))
+                : Promise.resolve(display)
+        )
+        withForm({ destination: KEY, amountBrl: '3' })
+        renderAt('?step=review', undefined, false, WITH_MINIMUM)
+        const field = screen.getByPlaceholderText('0.00')
+
+        fireEvent.change(field, { target: { value: '30' } })
+        await waitFor(() => expect(mockPreview).toHaveBeenCalledWith({ pixKey: KEY, amountBrl: '30' }))
+        await waitFor(() => expect(storedForm().amountBrl).toBe('30'))
+        fireEvent.change(field, { target: { value: '3' } })
+        await waitFor(() => expect(storedForm().amountBrl).toBe('3'))
+
+        expect(mockPreview).not.toHaveBeenCalledWith(expect.objectContaining({ amountBrl: '3' }))
+        expect(screen.getAllByText(minimum)).toHaveLength(1)
+        expect(screen.getByRole('alert')).toHaveTextContent(minimum)
+        expect(screen.getByRole('button', { name: en.common.confirm })).toBeDisabled()
+    })
+
     // the user typed USD: the reais are the quote's, so the form names them next to the total
     it('shows the exact reais the quote pays out for an amount typed in USD', async () => {
         mockPreview.mockResolvedValue({ ...display, amountBrl: '270.00', withdrawUsd: '50.000000' })
@@ -692,14 +716,13 @@ describe('PixWithdrawFlow form', () => {
         fireEvent.click(confirm)
         await waitFor(() => expect(mockSendTransactions).toHaveBeenCalledTimes(1))
         // the passkey prompt is open: the same figures and the same provider
-        expect(screen.getByText('1 USD = 5.46 BRL')).toBeInTheDocument()
-        expect(screen.getByText('R$2.07')).toBeInTheDocument()
+        expect(screen.getByText('1 USD = 5.45 BRL')).toBeInTheDocument()
+        expect(screen.getByText('R$0.75')).toBeInTheDocument()
         expect(screen.getByText(PROVIDERS['avenia-br'].brand)).toBeInTheDocument()
-        expect(screen.queryByText('R$0.75')).toBeNull()
     })
 
     // the API sends the pair only where it is proven: Avenia's review then shows neither row, never the
-    // all-in rate or the flat fee alone
+    // legacy rate or flat fee
     it('shows neither the rate nor the fee row for an Avenia review without the pair', async () => {
         const { exchangeRate: _rate, providerFeeBrl: _fee, ...withoutPair } = display
         mockPreview.mockResolvedValue(withoutPair)

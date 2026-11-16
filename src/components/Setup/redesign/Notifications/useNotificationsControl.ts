@@ -15,8 +15,9 @@ export type NotificationsControlState = 'default' | 'prompt' | 'denied'
 /**
  * The notifications experiment's control arm in the drawn one-button form, with dev's outcomes
  * (`Views/NotificationsControl.tsx`): "Turn on" is dev's toggle-on and its granted save in one tap, "Not now" is
- * dev's Continue with the switch untouched, and an OS refusal stays on the step (`denied`). Push only: control
- * never writes `marketingPush` or `emailUpdates` (App Store Review Guideline 4.5.4).
+ * dev's explicit opt-out (on, then off, then Continue: saves `push: false` and blocks on a failed save), and an OS
+ * refusal stays on the step (`denied`). Push only: control never writes `marketingPush` or `emailUpdates` (App
+ * Store Review Guideline 4.5.4).
  */
 export function useNotificationsControl() {
     const { notificationChoices, setNotificationChoices, setIsLoading: setSetupLoading } = useSetupFlowContext()
@@ -25,6 +26,7 @@ export function useNotificationsControl() {
     const [requesting, setRequesting] = useState(false)
     const [saving, setSaving] = useState(false)
     const [denied, setDenied] = useState(false)
+    const [saveFailed, setSaveFailed] = useState(false)
     const requestingRef = useRef(false)
     const savingRef = useRef(false)
     const captureSession = useSessionFence()
@@ -46,6 +48,7 @@ export function useNotificationsControl() {
             if (!session.current()) return
             track('push', 'toggle', 'on')
             trackError('notification_preferences', null)
+            setSaveFailed(false)
             setNotificationChoices({ ...notificationChoices, push: true })
             trackError('push_permission', null)
             let permission: PushPermission
@@ -93,7 +96,11 @@ export function useNotificationsControl() {
         }
     }
 
-    /** "Not now" and the denied Continue: push stays off and the account keeps its server default, so no write. */
+    /**
+     * "Not now" is an explicit opt-out and must be acknowledged before leaving: unset preferences default to
+     * subscribed on the server, so a later OS grant from settings would send account pushes the user declined.
+     * The denied Continue leaves the server default alone, as dev's OS refusal did.
+     */
     const goOn = async (control: 'not_now' | 'continue') => {
         if (requestingRef.current || savingRef.current) return
         const session = captureSession()
@@ -103,6 +110,23 @@ export function useNotificationsControl() {
         setSaving(true)
         setSetupLoading(true)
         try {
+            if (control === 'not_now') {
+                trackError('notification_preferences', null)
+                setSaveFailed(false)
+                setNotificationChoices({ ...notificationChoices, push: false })
+                if (session.ready) await session.ready
+                if (!session.current()) return
+                const saved = await notificationsApi.savePreferences({ push: false }, session.userId ?? undefined).then(
+                    () => true,
+                    () => false
+                )
+                if (!session.current()) return
+                if (!saved) {
+                    setSaveFailed(true)
+                    trackError('notification_preferences', 'save_failed')
+                    return
+                }
+            }
             await leave(session)
         } finally {
             savingRef.current = false
@@ -119,5 +143,5 @@ export function useNotificationsControl() {
     }
 
     const state: NotificationsControlState = denied ? 'denied' : requesting && !saving ? 'prompt' : 'default'
-    return { state, requesting, saving, turnOn, goOn, openSettings }
+    return { state, requesting, saving, saveFailed, turnOn, goOn, openSettings }
 }

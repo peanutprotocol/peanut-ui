@@ -58,3 +58,56 @@ describe('PixKeyStep holder card', () => {
         expect(continueButton()).toBeEnabled()
     })
 })
+
+// Aleks 2026-11-16: the holder card is what the user looks at once the key resolves, so tapping it continues
+describe('PixKeyStep holder card tap', () => {
+    // the same step serves every provider the withdraw route names: Avenia and Manteca
+    it.each(['avenia', 'manteca'])('continues like Continue when tapped, for %s', (provider) => {
+        mockResult = { key: KEY, status: 'found', info: { ...info, provider, ownAccount: false } }
+        const onContinue = jest.fn()
+        renderWithIntl(<PixKeyStep title="Send" initialKey={KEY} onBack={jest.fn()} onContinue={onContinue} />)
+
+        const holder = screen.getByRole('button', { name: `${en.common.continue}, Ana Souza` })
+        expect(holder).toBe(screen.getByTestId('pix-key-holder'))
+        fireEvent.click(holder)
+        fireEvent.click(continueButton())
+
+        expect(onContinue).toHaveBeenCalledTimes(2)
+        expect(onContinue.mock.calls[0]).toEqual([KEY, { ...info, provider, ownAccount: false }])
+        expect(onContinue.mock.calls[0]).toEqual(onContinue.mock.calls[1])
+    })
+
+    it('continues from the keyboard', () => {
+        mockResult = { key: KEY, status: 'found', info }
+        const onContinue = jest.fn()
+        renderWithIntl(<PixKeyStep title="Withdraw" initialKey={KEY} onBack={jest.fn()} onContinue={onContinue} />)
+
+        fireEvent.keyDown(screen.getByTestId('pix-key-holder'), { key: 'Enter' })
+        expect(onContinue).toHaveBeenCalledWith(KEY, info)
+    })
+
+    it('names a holder the provider cannot show with the card title', () => {
+        mockResult = { key: KEY, status: 'found', info: { ...info, holderName: null } }
+        renderWithIntl(<PixKeyStep title="Send" initialKey={KEY} onBack={jest.fn()} onContinue={jest.fn()} />)
+
+        expect(screen.getByRole('button', { name: `${en.common.continue}, ${en.pix.withdraw.unknownHolder}` })).toBe(
+            screen.getByTestId('pix-key-holder')
+        )
+    })
+
+    it('is not a button while Continue is disabled (a bank the provider does not pay)', () => {
+        mockResult = { key: KEY, status: 'found', info: { ...info, blocked: true } }
+        const onContinue = jest.fn()
+        renderWithIntl(<PixKeyStep title="Withdraw" initialKey={KEY} onBack={jest.fn()} onContinue={onContinue} />)
+
+        const holder = screen.getByTestId('pix-key-holder')
+        expect(continueButton()).toBeDisabled()
+        expect(holder).not.toHaveAttribute('role')
+        expect(holder).not.toHaveAttribute('tabindex')
+        expect(holder).not.toHaveAttribute('aria-label')
+
+        fireEvent.click(holder)
+        fireEvent.keyDown(holder, { key: 'Enter' })
+        expect(onContinue).not.toHaveBeenCalled()
+    })
+})

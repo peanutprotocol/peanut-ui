@@ -1,5 +1,5 @@
 import type { MascotPose } from '@/components/Global/PeanutMascot/PeanutMascot.types'
-import type { OnboardingAnimationName } from '@/components/Setup/components/OnboardingAnimation'
+import type { OnboardingAnimationName } from './OnboardingAnimation'
 import type { ScreenId } from '@/components/Setup/Setup.types'
 
 export type DesktopHeroArt = { pose: MascotPose } | { animation: OnboardingAnimationName } | { hero: 'residence' }

@@ -108,24 +108,24 @@ describe("ReceiptDetailsCard — deposit into the user's bank details", () => {
         expect(screen.queryByText('Exchange rate')).not.toBeInTheDocument()
     })
 
-    // The owner, 15 Nov, "Option A", his own R$20 deposit through Avenia: Avenia's rate 5.728962 under
-    // Converted, and every fee (0.75 + 0.22 + gas) as one row. (20.00 − 0.97) ÷ 5.728962 = 3.32 USD.
-    it('shows a settled Avenia deposit’s own rate under Converted, and every fee as one Provider fee row', () => {
+    // The first real R$20 deposit through Avenia (15 Nov) under TASK-24967: the rate under Converted
+    // holds the conversion and gas fees, the flat In Fee is the row. (20.00 − 0.75) ÷ 5.796567 = 3.32 USD.
+    it('shows a settled Avenia deposit’s rate under Converted, and the flat fee as the Provider fee row', () => {
         const avenia = vaDeposit(
             { amount: 3.320931, currency: { code: 'BRL', amount: '20.00' } },
-            { provider: 'AVENIA', receipt: { exchange_rate: '5.728962' }, providerFeeBrl: '0.97' }
+            { provider: 'AVENIA', receipt: { exchange_rate: '5.796567' }, providerFeeBrl: '0.75' }
         )
         renderWithIntl(<Card transaction={avenia} />)
         expect(screen.getByText('BRL 20 → 3.32 USD')).toBeInTheDocument()
-        expect(screen.getByText('1 USD = BRL 5.73')).toBeInTheDocument()
+        expect(screen.getByText('1 USD = BRL 5.80')).toBeInTheDocument()
         expect(screen.getByText('Provider fee')).toBeInTheDocument()
-        expect(screen.getByText('R$0.97')).toBeInTheDocument()
+        expect(screen.getByText('R$0.75')).toBeInTheDocument()
     })
 
     it('shows no fee row without the rate beside it (the API sends both or neither)', () => {
         const feeAlone = vaDeposit(
             { amount: 3.320931, currency: { code: 'BRL', amount: '20.00' } },
-            { provider: 'AVENIA', receipt: undefined, providerFeeBrl: '0.97' }
+            { provider: 'AVENIA', receipt: undefined, providerFeeBrl: '0.75' }
         )
         renderWithIntl(<Card transaction={feeAlone} />)
         expect(screen.queryByText('Provider fee')).not.toBeInTheDocument()
