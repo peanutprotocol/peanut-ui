@@ -12,7 +12,7 @@ import type { CreatorPageVariantProps } from './variant-props'
  * that only a script reveals. `selectCreatorPage` reads the request instead and passes the result in.
  */
 export function CreatorPageShell({
-    page: { deviceOs, ...page },
+    page: { deviceOs, liftCta, ...page },
     lang,
     className,
     children,
@@ -28,7 +28,9 @@ export function CreatorPageShell({
             experimentId={creatorPageExperiment(page.creator.username)?.id ?? null}
             deviceOs={deviceOs}
         >
-            <main lang={lang} className={className}>
+            {/* `data-lift-cta` is in the first HTML, so the button does not jump when scripts load.
+                Each page's stylesheet turns it into the extra space under its bottom button. */}
+            <main lang={lang} className={className} data-lift-cta={liftCta ? '' : undefined}>
                 {children}
             </main>
         </CreatorPageProvider>

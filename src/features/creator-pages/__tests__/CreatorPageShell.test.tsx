@@ -11,9 +11,9 @@ jest.mock('@/features/tracked-links/eligibility', () => ({ trackedLinkAnalyticsA
 
 const labels = { ios: 'Abrir en el App Store', android: 'Abrir en Google Play', other: 'Bajar Peanut' }
 
-function shell(deviceOs: DeviceOs) {
+function shell(deviceOs: DeviceOs, liftCta = false) {
     return CreatorPageShell({
-        page: { ...creatorPageFixture('juanacervio', 'g2'), deviceOs },
+        page: { ...creatorPageFixture('juanacervio', 'g2'), deviceOs, liftCta },
         lang: 'es-AR',
         className: 'shell',
         children: <CreatorPageCta labels={labels} position="hero" />,
@@ -31,6 +31,14 @@ describe('CreatorPageShell', () => {
         const main = screen.getByRole('main')
         expect(main).toHaveAttribute('lang', 'es-AR')
         expect(main).toHaveClass('shell')
+    })
+
+    it('marks <main> for the pages to lift their bottom buttons, and only when asked', () => {
+        const { unmount } = render(shell('ios', true))
+        expect(screen.getByRole('main')).toHaveAttribute('data-lift-cta')
+        unmount()
+        render(shell('ios'))
+        expect(screen.getByRole('main')).not.toHaveAttribute('data-lift-cta')
     })
 
     // jsdom's own navigator.userAgent names no phone, so a matching label can only come from the prop.

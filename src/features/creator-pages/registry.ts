@@ -6,7 +6,7 @@ import type { Metadata } from 'next'
 import { cookies, headers } from 'next/headers'
 import { createElement, type ComponentType } from 'react'
 import type { CreatorPageProps } from '@/features/tracked-links/contract'
-import { deviceOs } from './environment'
+import { coversPageBottom, deviceOs } from './environment'
 import { creatorPageExperiment } from './experiments'
 import { creatorPageComponent } from './page-components'
 import { pickVariant } from './pick-variant'
@@ -52,12 +52,15 @@ export async function selectCreatorPage(creator: {
     // The visitors are on phones in in-app browsers, where hydration is slow. Deciding the OS here
     // puts the right label and store icon in the first HTML, so nothing changes under the thumb.
     // Presentation only: the event reads the user agent in the browser, at tap time.
-    const os = deviceOs(requestHeaders.get('user-agent') ?? '')
+    // The same goes for the lift of the bottom button where the in-app browser covers the page's bottom edge.
+    const userAgent = requestHeaders.get('user-agent') ?? ''
+    const os = deviceOs(userAgent)
+    const liftCta = coversPageBottom(userAgent)
     return {
         variant,
         experimentId: experiment.id,
         // Made per request and rendered once, on the server: the engine's route is a server component.
-        Page: (props) => createElement(Variant, { ...props, deviceOs: os }),
+        Page: (props) => createElement(Variant, { ...props, deviceOs: os, liftCta }),
         metadata: { title: experiment.title },
     }
 }

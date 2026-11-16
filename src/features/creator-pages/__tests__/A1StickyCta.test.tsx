@@ -47,7 +47,7 @@ afterEach(() => {
 })
 
 function renderA1() {
-    const view = render(<NitaA1 {...creatorPageFixture('juanacervio', 'a1')} deviceOs="ios" />)
+    const view = render(<NitaA1 {...creatorPageFixture('juanacervio', 'a1')} deviceOs="ios" liftCta={false} />)
     const stickyButton = view.container.querySelector('[data-cta-position="sticky"]')!
     const bar = stickyButton.parentElement!
     const hero = view.container.querySelector('[data-cta-position="hero"]')!
@@ -69,7 +69,13 @@ describe('A1StickyCta', () => {
         expect(observer.options?.threshold).toBe(0.95)
     })
 
-    it('starts hidden: the first screen holds the button in the post', () => {
+    it('does not count a button in the bottom 100px of the screen as on screen', () => {
+        // An in-app browser can draw its controls over that part of the page, and the page cannot see
+        // them: a button there may be covered, so the bar stays up until the button is above it.
+        expect(renderA1().observer.options?.rootMargin).toBe('0px 0px -100px 0px')
+    })
+
+    it('starts hidden until the browser reports where the buttons are', () => {
         expect(renderA1().bar).toHaveAttribute('data-state', 'hidden')
     })
 
@@ -78,7 +84,7 @@ describe('A1StickyCta', () => {
         expect(bar.lastElementChild).toHaveTextContent('Con la invitación de Nita')
     })
 
-    it('shows while only a part of the post button is on screen (a 320×568 phone at a large text size)', () => {
+    it('shows while only a part of the post button is above the bottom 100px (the first screen of a 320×568 phone)', () => {
         const { bar, hero, footer, observer } = renderA1()
         observer.report([
             [hero, 0.1],

@@ -35,3 +35,14 @@ export function inAppBrowser(userAgent: string): InAppBrowser {
     if (/iPhone|iPad|iPod/.test(userAgent) && !/Safari\//.test(userAgent)) return 'other'
     return 'none'
 }
+
+/**
+ * True where the app draws its own controls over about the bottom 60px of the page: the in-app
+ * browsers of Instagram and Facebook on an iPhone. The web view keeps its full height there, so
+ * no viewport unit, safe-area inset or IntersectionObserver sees the cover; only the user agent
+ * tells. A page then lifts its bottom-anchored button (see CreatorPageShell).
+ */
+export function coversPageBottom(userAgent: string): boolean {
+    const browser = inAppBrowser(userAgent)
+    return deviceOs(userAgent) === 'ios' && (browser === 'instagram' || browser === 'facebook')
+}

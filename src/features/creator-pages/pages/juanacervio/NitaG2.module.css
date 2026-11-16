@@ -5,12 +5,18 @@
 .page {
     display: flex;
     min-height: 100vh;
-    min-height: 100dvh;
+    min-height: 100svh;
     align-items: center;
     justify-content: center;
     background: var(--color-gray-950);
     font-family: var(--font-roboto), ui-sans-serif, system-ui, sans-serif;
     color: var(--color-foreground-primary);
+}
+/* Instagram's and Facebook's in-app browsers on an iPhone draw their controls over about the bottom
+   60px of the page (CreatorPageShell sets the attribute from the user agent): the sheet's content
+   moves up by that much. */
+.page[data-lift-cta] {
+    --iab-bottom: 60px;
 }
 
 /* A minimum height, not a fixed one: with large system text the sheet grows and the
@@ -21,7 +27,7 @@
     width: 100%;
     max-width: 480px;
     min-height: 100vh;
-    min-height: 100dvh;
+    min-height: 100svh;
     flex-direction: column;
     overflow: hidden;
     background: var(--color-gray-950);
@@ -30,7 +36,7 @@
 /* Desktop: a phone-sized column on the dark ground. */
 @media (min-width: 481px) {
     .column {
-        min-height: min(100dvh, 932px);
+        min-height: min(100svh, 932px);
     }
 }
 
@@ -84,7 +90,7 @@
     border-radius: 28px 28px 0 0;
     background: var(--color-background-default);
     box-shadow: 0 -10px 40px rgb(0 0 0 / 0.35);
-    padding: 0 16px calc(env(safe-area-inset-bottom) + 12px);
+    padding: 0 16px calc(12px + var(--iab-bottom, 0px) + env(safe-area-inset-bottom));
     text-align: center;
 }
 

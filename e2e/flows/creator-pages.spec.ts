@@ -30,8 +30,8 @@ const VARIANTS = ['a1', 'g2', 'e1']
  * `<div hidden id="S:0">`, even when nothing in it suspends, and an inline script reveals it. A page
  * cannot opt out, so every page stays under that size.
  *
- * Sizes of `<main>` with the Instagram iPhone user agent, 15 Nov 2026: A1 10,182 bytes, E1 10,312,
- * G2 1,952. If a page grows past the limit its two checks below fail. Only list a variant here when
+ * Sizes of `<main>` with the Instagram iPhone user agent, 15 Nov 2026: A1 10,101 bytes, E1 10,072,
+ * G2 1,901. If a page grows past the limit its two checks below fail. Only list a variant here when
  * shipping it hidden-without-script is a decision, not an accident.
  */
 const HIDDEN_WITHOUT_SCRIPT: string[] = []

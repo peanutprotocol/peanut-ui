@@ -25,10 +25,26 @@
     -webkit-font-smoothing: antialiased;
     text-rendering: geometricPrecision;
 }
+/* Instagram's and Facebook's in-app browsers on an iPhone draw their controls over about the bottom
+   60px of the page (CreatorPageShell sets the attribute from the user agent): the strip's content
+   moves up by up to that much. It moves by less on a screen too short to give 60px: there the
+   poster would outgrow the screen and the strip would cover the end of her post. Without any lift
+   the button already ends 92px above the bottom edge, clear of those controls.
+   --poster-min is the poster's height with the headline at its smallest and no lift, measured at
+   320 to 480px wide (15 Nov 2026) and rounded up. Measure again when the poster's content changes. */
+.page {
+    --poster-min: calc(474 * var(--u) + 126px);
+}
+.page[data-lift-cta] {
+    --iab-bottom: clamp(0px, 100vh - var(--poster-min), 60px);
+}
 @supports (height: 100svh) {
     .page {
         --spare: clamp(0px, (100svh - 700 * var(--u)) * 0.3, 60 * var(--u));
         --sticker-w: clamp(60 * var(--u), (100svh - 470 * var(--u)) * 0.42, 92 * var(--u));
+    }
+    .page[data-lift-cta] {
+        --iab-bottom: clamp(0px, 100svh - var(--poster-min), 60px);
     }
 }
 
@@ -362,7 +378,7 @@
     justify-content: center;
     box-sizing: content-box;
     min-height: 74px;
-    padding: 10px 0 calc(10px + env(safe-area-inset-bottom, 0px));
+    padding: 10px 0 calc(10px + var(--iab-bottom, 0px) + env(safe-area-inset-bottom, 0px));
     gap: 6px;
     text-align: center;
 }
@@ -383,6 +399,10 @@
    lines under the button keep 92 px there and the whole button stays in reach above it. The room
    comes from the strip's top padding first; the strip takes up to 27% of the screen. */
 @media (max-height: 620px) {
+    /* The strip is 14 units and 2px shorter here. */
+    .page {
+        --poster-min: calc(460 * var(--u) + 124px);
+    }
     .dockIn {
         padding-top: calc(8 * var(--u));
     }

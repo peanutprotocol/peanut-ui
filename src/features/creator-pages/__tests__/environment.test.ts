@@ -1,4 +1,4 @@
-import { deviceOs, inAppBrowser } from '../environment'
+import { coversPageBottom, deviceOs, inAppBrowser } from '../environment'
 import { USER_AGENTS } from './user-agents'
 
 describe('environment', () => {
@@ -40,8 +40,30 @@ describe('environment', () => {
         expect(inAppBrowser(`${USER_AGENTS.chromeAndroid} Electrillium/1.0`)).toBe('none')
     })
 
+    it.each(['instagramIos', 'instagramIpad', 'facebookIos'] as const)(
+        '%s draws its controls over the bottom of the page',
+        (name) => {
+            expect(coversPageBottom(USER_AGENTS[name])).toBe(true)
+        }
+    )
+
+    it.each([
+        'instagramAndroid',
+        'facebookAndroid',
+        'safariIos',
+        'chromeIos',
+        'xIos',
+        'threadsIos',
+        'tiktokIos',
+        'webviewIos',
+        'chromeMac',
+    ] as const)('%s leaves the bottom of the page alone', (name) => {
+        expect(coversPageBottom(USER_AGENTS[name])).toBe(false)
+    })
+
     it('reads an empty user agent as other / none', () => {
         expect(deviceOs('')).toBe('other')
         expect(inAppBrowser('')).toBe('none')
+        expect(coversPageBottom('')).toBe(false)
     })
 })

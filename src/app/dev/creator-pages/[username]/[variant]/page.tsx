@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 import { CreatorPagePreview } from '@/features/creator-pages/CreatorPagePreview'
-import { deviceOs } from '@/features/creator-pages/environment'
+import { coversPageBottom, deviceOs } from '@/features/creator-pages/environment'
 import { creatorPageExperiment } from '@/features/creator-pages/experiments'
 import { creatorPageComponent } from '@/features/creator-pages/page-components'
 import { creatorPageFixture } from '@/features/creator-pages/preview-fixture'
@@ -29,12 +29,14 @@ export default async function CreatorPagePreviewRoute({ params }: RouteProps) {
     const [{ username, variant }, requestHeaders] = await Promise.all([params, headers()])
     const Page = creatorPageComponent(username, variant)
     if (!Page) notFound()
+    const userAgent = requestHeaders.get('user-agent') ?? ''
 
     return (
         <CreatorPagePreview>
             <Page
                 {...creatorPageFixture(username, variant)}
-                deviceOs={deviceOs(requestHeaders.get('user-agent') ?? '')}
+                deviceOs={deviceOs(userAgent)}
+                liftCta={coversPageBottom(userAgent)}
             />
         </CreatorPagePreview>
     )

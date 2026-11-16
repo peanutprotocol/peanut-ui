@@ -41,7 +41,7 @@ describe('selectCreatorPage', () => {
         const element = createElement(selection!.Page!, creatorPageFixture('juanacervio', 'e1'))
         const bound = (selection!.Page as (props: CreatorPageProps) => ReactElement)(element.props)
         expect(bound.type).toBe(CREATOR_PAGE_COMPONENTS.juanacervio.e1)
-        expect(bound.props).toEqual({ ...element.props, deviceOs: 'other' })
+        expect(bound.props).toEqual({ ...element.props, deviceOs: 'other', liftCta: false })
         expect(mockSet).not.toHaveBeenCalled()
     })
 

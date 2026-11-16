@@ -12,10 +12,18 @@ import { A1InviteLine } from './A1InviteLine'
 const ON_SCREEN_RATIO = 0.95
 
 /**
+ * The bottom 100px of the screen do not count as "on screen". An in-app browser can draw its own
+ * controls there (Instagram on an iPhone: about 60px) without telling the page, and the observer
+ * cannot see them: a button in that band may be covered, so the pinned bar must take over.
+ */
+const ON_SCREEN_MARGIN = '0px 0px -100px 0px'
+
+/**
  * The store button pinned to the bottom edge. One rule: it shows unless an in-page button is
- * (almost) fully on screen. So a whole, tappable store button is on screen at every scroll
- * position, and never two whole ones. A sliver of an in-page button may show next to the bar.
- * It starts hidden, because the first screen holds the button in the post card.
+ * (almost) fully on screen and clear of the bottom 100px. So a whole, tappable store button is
+ * on screen at every scroll position. An in-page button low on the screen may show above the bar.
+ * It starts hidden for the first HTML; on a short screen, where the post's button sits low,
+ * it shows as soon as the script runs.
  */
 export function A1StickyCta() {
     const bar = useRef<HTMLDivElement>(null)
@@ -36,7 +44,7 @@ export function A1StickyCta() {
                 }
                 setShown(onScreen.size === 0)
             },
-            { threshold: ON_SCREEN_RATIO }
+            { threshold: ON_SCREEN_RATIO, rootMargin: ON_SCREEN_MARGIN }
         )
         inPageButtons.forEach((button) => observer.observe(button))
         return () => observer.disconnect()

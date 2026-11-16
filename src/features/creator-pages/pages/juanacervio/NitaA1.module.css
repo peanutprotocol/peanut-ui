@@ -15,6 +15,12 @@
     background: var(--color-background-page);
     color: var(--color-foreground-primary);
 }
+/* Instagram's and Facebook's in-app browsers on an iPhone draw their controls over about the bottom
+   60px of the page (CreatorPageShell sets the attribute from the user agent). The pinned bar and the
+   page's end keep that much more room under them. */
+.a1[data-lift-cta] {
+    --iab-bottom: 60px;
+}
 .a1 b {
     font-weight: 800;
 }
@@ -440,7 +446,7 @@
 /* ---------- close: the quote again, the mascot, the store button, the legal lines ---------- */
 
 .close {
-    padding: 2rem 1rem calc(1.5rem + env(safe-area-inset-bottom));
+    padding: 2rem 1rem calc(1.5rem + var(--iab-bottom, 0px) + env(safe-area-inset-bottom));
     background: var(--color-background-marketing-sky);
     text-align: center;
 }
@@ -488,8 +494,8 @@
     /* The button sits high in the bar, with the invitation line under it: an in-app browser may draw
        a toolbar of up to about 90px over the bottom of the page. 146px keeps 44px of the button above
        such a toolbar and is 22% of a 667px screen. */
-    min-height: calc(9.125rem + env(safe-area-inset-bottom));
-    padding: 0.625rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+    min-height: calc(9.125rem + var(--iab-bottom, 0px) + env(safe-area-inset-bottom));
+    padding: 0.625rem 1rem calc(0.75rem + var(--iab-bottom, 0px) + env(safe-area-inset-bottom));
     border-top: 2px solid var(--color-border-default);
     background: var(--color-background-page);
     transition:

@@ -85,4 +85,17 @@ describe('creator page variants', () => {
             for (const link of desktop.links) expect(link).toMatchObject({ text: 'Bajar Peanut', hasIcon: false })
         }
     )
+
+    it.each(VARIANTS)(
+        '%s/%s lifts its bottom buttons only in Instagram and Facebook on an iPhone',
+        async (username, variant) => {
+            // Those two draw their controls over the bottom of the page. The mark is in the server
+            // HTML, so the lift is there before any script runs.
+            const lifted = /<main[^>]*\sdata-lift-cta(=""|[\s>])/
+            for (const name of ['instagramIos', 'facebookIos'] as const)
+                expect((await serverRender(username, variant, USER_AGENTS[name])).html).toMatch(lifted)
+            for (const name of ['instagramAndroid', 'safariIos', 'xIos', 'chromeMac'] as const)
+                expect((await serverRender(username, variant, USER_AGENTS[name])).html).not.toContain('data-lift-cta')
+        }
+    )
 })
