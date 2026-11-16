@@ -335,6 +335,11 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         path: 'Profile/views/ResidenceChangeDrawer.tsx',
         captureState: ['pendingStatus=REVIEW_PENDING'],
     },
+    '45-e-residence-manual-review': {
+        name: 'Residence change held for manual review',
+        path: 'Profile/views/ResidenceChangeDrawer.tsx',
+        captureState: ['pendingStatus=REVIEW_PENDING', 'pendingManualReview=true'],
+    },
     '48-c-balancewarningmodal': { name: 'BalanceWarningDrawer', path: 'Global/BalanceWarningDrawer/index.tsx' },
     '50-d-transactiondetailsdrawer': {
         name: 'TransactionDetailsDrawer',
