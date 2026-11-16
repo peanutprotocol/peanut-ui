@@ -4,7 +4,12 @@ jest.mock('@/utils/capacitor', () => ({ getPlatform: () => mockGetPlatform() }))
 jest.mock('@/utils/app-version', () => ({ getCachedBinaryVersion: () => mockGetCachedBinaryVersion() }))
 jest.mock('@/constants/app-release', () => ({ APP_RELEASE: 'abc123' }))
 
-import { initialSuperProperties, isAnalyticsCaptureBuild, posthogProjectKey } from '../posthog-setup'
+import {
+    initialSuperProperties,
+    isAnalyticsCaptureBuild,
+    posthogProjectKey,
+    unregisterRetiredSuperProperties,
+} from '../posthog-setup'
 
 describe('posthogProjectKey', () => {
     const original = process.env.NEXT_PUBLIC_POSTHOG_KEY
@@ -27,6 +32,14 @@ describe('posthogProjectKey', () => {
 describe('initialSuperProperties', () => {
     it('carries platform, so the first $pageview of a new visitor has it', () => {
         expect(initialSuperProperties()).toEqual({ app_release: 'abc123', platform: 'ios-native' })
+    })
+})
+
+describe('unregisterRetiredSuperProperties', () => {
+    it('drops the removed welcome-headline experiment variant from enrolled devices', () => {
+        const unregister = jest.fn()
+        unregisterRetiredSuperProperties({ unregister })
+        expect(unregister.mock.calls).toEqual([['welcome_variant']])
     })
 })
 

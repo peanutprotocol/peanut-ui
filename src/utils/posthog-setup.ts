@@ -38,6 +38,17 @@ export function initialSuperProperties(): Record<string, string> {
     return { app_release: APP_RELEASE, platform: getPlatform() }
 }
 
+/**
+ * Super properties a removed experiment registered. PostHog persists super properties on the device, so devices
+ * enrolled before the removal keep sending them on every event until they are unregistered. `welcome_variant`:
+ * the landing's `welcome-headline-copy` experiment, removed with the sign-up redesign (TASK-25016).
+ */
+const RETIRED_SUPER_PROPERTIES = ['welcome_variant'] as const
+
+export function unregisterRetiredSuperProperties(ph: { unregister: (property: string) => void }): void {
+    for (const property of RETIRED_SUPER_PROPERTIES) ph.unregister(property)
+}
+
 type ClientFlagProperties = {
     client_platform: 'android' | 'ios' | 'web'
     binary_version?: string

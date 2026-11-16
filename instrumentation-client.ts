@@ -27,7 +27,12 @@ import { isNativeFetchRejectionExceptionEvent } from '@/utils/native-fetch-rejec
 import { isExpectedExceptionChain } from '@/utils/expected-exception'
 import { installPaymentNetworkGoogleAnalyticsGuard, isPrivateDataPath } from '@/utils/private-routes'
 import { captureSignupAttribution, signupAttributionPosthogProperties } from '@/utils/signup-attribution'
-import { initialSuperProperties, isAnalyticsCaptureBuild, posthogProjectKey } from '@/utils/posthog-setup'
+import {
+    initialSuperProperties,
+    isAnalyticsCaptureBuild,
+    posthogProjectKey,
+    unregisterRetiredSuperProperties,
+} from '@/utils/posthog-setup'
 import {
     AUTOCAPTURE_SETTINGS,
     redactAutocapture,
@@ -91,6 +96,7 @@ if (
             // `platform`. `loaded` runs before that first capture.
             loaded: (ph) => {
                 ph.register({ ...initialSuperProperties(), ...signupAttributionPosthogProperties(signupAttribution) })
+                unregisterRetiredSuperProperties(ph)
                 trackAutocaptureSampleRate(ph)
             },
             capture_pageleave: true,
