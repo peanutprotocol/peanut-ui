@@ -198,11 +198,21 @@ describe('03 Passkey — hero states', () => {
         fireEvent.click(screen.getByRole('button', { name: tagText('setupRedesign.passkey.terms', 'terms') }))
         expect(await screen.findByRole('dialog')).toHaveTextContent('Terms doc')
         fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
-        await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+        // The DS drawer stays mounted, closed and inert, through its exit animation (Global/Drawer), so "closed"
+        // is data-state="closed" or gone.
+        await waitFor(() => {
+            const dialog = screen.queryByRole('dialog')
+            expect(dialog === null || dialog.getAttribute('data-state') === 'closed').toBe(true)
+        })
+        // Until that exit animation ends the modal keeps the page aria-hidden, hence `hidden: true` for the link.
         fireEvent.click(
-            screen.getByRole('button', { name: exact(loose(tagText('setupRedesign.passkey.terms', 'privacy'))) })
+            screen.getByRole('button', {
+                name: exact(loose(tagText('setupRedesign.passkey.terms', 'privacy'))),
+                hidden: true,
+            })
         )
-        expect(await screen.findByRole('dialog')).toHaveTextContent('Privacy doc')
+        await waitFor(() => expect(screen.getByRole('dialog')).toHaveTextContent('Privacy doc'))
+        expect(screen.getByRole('dialog')).toHaveAttribute('data-state', 'open')
 
         expect(controls()).toEqual(expect.arrayContaining(['terms_doc:open', 'terms_doc:dismiss', 'privacy_doc:open']))
         const opens = (posthog.capture as jest.Mock).mock.calls.filter(
@@ -355,7 +365,10 @@ describe('03 Passkey — taken', () => {
 
         Object.assign(mockPasskey, { isLoggingIn: true })
         view.rerenderInShell(<PasskeyScreen />)
-        expect(within(button(P('logIn'))).getByRole('status')).toBeInTheDocument()
+        // While logging in the DS button's name gains its spinner's "Loading..." label, so match the label's end.
+        const logInBusy = screen.getByRole('button', { name: (name) => loose(name).endsWith(loose(P('logIn'))) })
+        expect(within(logInBusy).getByRole('status')).toBeInTheDocument()
+        expect(logInBusy).toBeDisabled()
 
         Object.assign(mockPasskey, { isLoggingIn: false, inlineError: msg('setup.passkey.loginError') })
         view.rerenderInShell(<PasskeyScreen />)
@@ -568,7 +581,10 @@ describe('03 Passkey — es-AR', () => {
         expect(button(P('logIn', {}, 'es-AR'))).toBeInTheDocument()
         taken.unmount()
 
-        show({ isProviderUnsupportedOpen: true, providerUnsupportedPlatform: 'android-app' }, 'es-AR')
+        show(
+            { usernameTaken: false, isProviderUnsupportedOpen: true, providerUnsupportedPlatform: 'android-app' },
+            'es-AR'
+        )
         await flush()
         expect(button(P('browser', {}, 'es-AR'))).toBeInTheDocument()
     })

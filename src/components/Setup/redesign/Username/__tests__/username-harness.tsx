@@ -194,19 +194,36 @@ export function deferred<T>() {
 
 export const USERNAME_PATTERN = /^[a-z][a-z0-9]{3,11}$/
 
+/** Listeners framer-motion (and anyone else) registered on the reduced-motion query. */
+const motionListeners = new Set<(event: { matches: boolean }) => void>()
+let reduceMotion = false
+
 /**
- * Turns `prefers-reduced-motion: reduce` on or off. jest.setup.ts defines `window.matchMedia` writable but not
- * configurable, so it is assigned, not redefined.
+ * Turns `prefers-reduced-motion: reduce` on or off, the way the OS setting changes: the query's `matches` follows
+ * it and its listeners hear the change. framer-motion reads the query once per test run and then only listens, so
+ * swapping `matchMedia` without telling the listeners would leave it on the first value. jest.setup.ts defines
+ * `window.matchMedia` writable but not configurable, so it is assigned, not redefined.
  */
 export function setReducedMotion(on: boolean) {
-    window.matchMedia = ((query: string) => ({
-        matches: on && query.includes('prefers-reduced-motion') && query.includes('reduce'),
-        media: query,
-        onchange: null,
-        addListener: jest.fn(),
-        removeListener: jest.fn(),
-        addEventListener: jest.fn(),
-        removeEventListener: jest.fn(),
-        dispatchEvent: jest.fn(),
-    })) as unknown as typeof window.matchMedia
+    reduceMotion = on
+    window.matchMedia = ((query: string) => {
+        const reduceQuery = query.includes('prefers-reduced-motion')
+        const matches = () =>
+            reduceMotion && reduceQuery && (query.includes('reduce') || query === '(prefers-reduced-motion)')
+        const add = (listener: (event: { matches: boolean }) => void) => reduceQuery && motionListeners.add(listener)
+        const remove = (listener: (event: { matches: boolean }) => void) => motionListeners.delete(listener)
+        return {
+            get matches() {
+                return matches()
+            },
+            media: query,
+            onchange: null,
+            addListener: add,
+            removeListener: remove,
+            addEventListener: (_type: string, listener: (event: { matches: boolean }) => void) => add(listener),
+            removeEventListener: (_type: string, listener: (event: { matches: boolean }) => void) => remove(listener),
+            dispatchEvent: jest.fn(),
+        }
+    }) as unknown as typeof window.matchMedia
+    for (const listener of motionListeners) listener({ matches: on })
 }

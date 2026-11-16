@@ -239,6 +239,17 @@ describe('04 Invite: checking', () => {
     })
 })
 
+/** en values of `setup.signupStep.inviter*` and `setup.inviteStep.*` at origin/dev c985d250e (old Invite view). */
+const DEV_INVITER_COPY = [
+    'Username of the person who invited you',
+    'Friend’s username',
+    'We couldn’t find this user.',
+    'That’s your own username.',
+    'We couldn’t check this username. Try again.',
+    'Continue',
+    'Skip',
+]
+
 describe('04 Invite: states and copy', () => {
     it.each(['en', 'es-AR'] as const)(
         'P2-16 (%s) default: placeholder, empty help row, Continue off, Skip on, state default',
@@ -347,13 +358,9 @@ describe('04 Invite: states and copy', () => {
         const redesign = new Set(
             Object.values(rawMessage('setupRedesign.invite') as Record<string, string>).map((value) => loose(value))
         )
-        const dev = [
-            ...Object.entries(rawMessage('setup.signupStep') as Record<string, unknown>)
-                .filter(([key]) => key.startsWith('inviter'))
-                .map(([, value]) => value),
-            ...Object.values((rawMessage('setup.inviteStep') as Record<string, unknown>) ?? {}),
-        ]
-            .filter((value): value is string => typeof value === 'string')
+        // The old view's keys (`setup.signupStep.inviter*`, `setup.inviteStep.*`) left the catalogs with the old view,
+        // so the check reads their en values as pinned at origin/dev c985d250e.
+        const dev = DEV_INVITER_COPY.filter((value): value is string => typeof value === 'string')
             .map((value) => loose(value))
             .filter(
                 (value) =>
