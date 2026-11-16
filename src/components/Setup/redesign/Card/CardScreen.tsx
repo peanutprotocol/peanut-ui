@@ -10,6 +10,7 @@ import { useSignupControl } from '@/features/setup/useSignupControl'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { CardFace } from '@/components/Setup/redesign/shell/CardFace'
 import { StarDoodles, type StarSpec } from '@/components/Setup/redesign/shell/StarDoodles'
+import { SETUP_LEAD_CLASS } from '@/components/Setup/redesign/shell/shell.consts'
 
 /** Mock 06-card/screen.js LAYOUT, in art-box design px. Small phones: a smaller card and peanut, no stars. */
 const LAYOUT = {
@@ -70,7 +71,7 @@ export function CardScreen(_props: StepComponentProps) {
                 },
             }}
         >
-            <p className="text-body-m text-foreground-secondary" data-setup-screen="advantage-card">
+            <p className={SETUP_LEAD_CLASS} data-setup-screen="advantage-card">
                 {t.rich('card.desc', {
                     pink: (chunks) => (
                         <mark className="bg-background-brand px-1 text-foreground-primary">{chunks}</mark>

@@ -10,6 +10,7 @@ import { useSignupControl } from '@/features/setup/useSignupControl'
 import { FinalConfirmArt } from './FinalConfirmArt'
 import { PasskeyInfoSheet } from './PasskeyInfoSheet'
 import { useFinalConfirm } from './useFinalConfirm'
+import { SETUP_LEAD_CLASS } from '@/components/Setup/redesign/shell/shell.consts'
 
 export type FinalConfirmScreenProps = {
     /** Called once the account is set up; the step then shows the celebration. */
@@ -152,7 +153,7 @@ export function FinalConfirmScreen({ onComplete, showLogout }: FinalConfirmScree
             footer={{ primary, slot, below }}
         >
             <div data-testid="setup-redesign-final-confirm" data-setup-state={state}>
-                <p className="text-body-m text-foreground-secondary">{t('final.desc')}</p>
+                <p className={SETUP_LEAD_CLASS}>{t('final.desc')}</p>
                 {displayError && (
                     <Callout priority={busy ? 'attention' : 'error'} className="mt-3.5 signup-sm:mt-3">
                         {displayError}

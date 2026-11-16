@@ -8,6 +8,7 @@ import { SetupScreen } from '@/components/Setup/redesign/shell/SetupScreen'
 import { canOpenAppSettings } from '@/utils/native-settings'
 import { NotificationsArt } from './NotificationsArt'
 import { useNotificationsControl } from './useNotificationsControl'
+import { SETUP_LEAD_CLASS } from '@/components/Setup/redesign/shell/shell.consts'
 
 /** 10 Notifications, control arm: "Turn on notifications" and "Not now"; an OS refusal shows `denied`. */
 export function NotificationsControlScreen() {
@@ -69,7 +70,7 @@ export function NotificationsControlScreen() {
             }
         >
             <div data-testid="setup-redesign-notifications" data-setup-state={control.state}>
-                <p className="text-body-m text-foreground-secondary">{t('notif.desc')}</p>
+                <p className={SETUP_LEAD_CLASS}>{t('notif.desc')}</p>
                 {denied && (
                     <Callout priority="info" className="mt-3.5 signup-sm:mt-3">
                         {t('notif.denied')}

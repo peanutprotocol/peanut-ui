@@ -9,6 +9,7 @@ import { SetupScreen } from '@/components/Setup/redesign/shell/SetupScreen'
 import { EmailArt } from './EmailArt'
 import { EmailField } from './EmailField'
 import { useEmailStep } from './useEmailStep'
+import { SETUP_LEAD_CLASS } from '@/components/Setup/redesign/shell/shell.consts'
 
 /**
  * 09 Email (step `notification-email`): Peanut needs an email, one field, Continue once the address is valid.
@@ -104,7 +105,7 @@ export function EmailScreen(_props: StepComponentProps) {
                     void step.save()
                 }}
             >
-                <p className="text-body-m text-foreground-secondary">{t('email.desc')}</p>
+                <p className={SETUP_LEAD_CLASS}>{t('email.desc')}</p>
                 <EmailField
                     ref={inputRef}
                     label={t('email.label')}

@@ -11,6 +11,7 @@ import { useSignupControl } from '@/features/setup/useSignupControl'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { BankDetailsCard } from './BankDetailsCard'
 import { SAMPLE_BANK_DETAILS } from './sampleBankDetails'
+import { SETUP_LEAD_CLASS } from '@/components/Setup/redesign/shell/shell.consts'
 
 /** Mock 05-accounts/screen.js LAYOUT ([left, top, rotate] in art-box design px). Small phones: more overlap, no stars. */
 const LAYOUT = {
@@ -102,7 +103,7 @@ export function AccountsScreen(_props: StepComponentProps) {
                 },
             }}
         >
-            <p className="text-body-m text-foreground-secondary" data-setup-screen="advantage-fees">
+            <p className={SETUP_LEAD_CLASS} data-setup-screen="advantage-fees">
                 {t('accounts.desc')}
             </p>
         </SetupScreen>
