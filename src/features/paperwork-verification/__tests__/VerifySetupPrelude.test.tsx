@@ -78,6 +78,12 @@ const RESIDENCE_TITLE = () => copyRx('setupRedesign.residence.sheetResidence')
 const back = () => screen.getByRole('button', { name: copy('setup.navigation.goBack') })
 const continueButton = () => screen.getByRole('button', { name: copyRx('setupRedesign.common.continue'), hidden: true })
 
+/** The shell drops taps while a step slides in (one step per tap gesture, R2-01): tap once it has come to rest. */
+const settled = () =>
+    waitFor(() => expect(document.querySelector('[data-setup-shell]')).not.toHaveAttribute('data-nav-locked'), {
+        timeout: 3000,
+    })
+
 async function choose(kind: 'sheetFunding' | 'sheetPayment', choice: string) {
     const name = `${copy(`setupRedesign.plan.${kind}`)}: ${copy('setupRedesign.plan.choose')}`
     fireEvent.click(await screen.findByRole('button', { name, hidden: true }))
@@ -101,6 +107,7 @@ it('asks the residence, then the payment plan, saves both and reloads /verify', 
 
     await choose('sheetFunding', copy('setupRedesign.plan.fundBankCurrencies', { currencies: 'USD, EUR, GBP, MXN' }))
     await choose('sheetPayment', copy('setupRedesign.plan.payQr'))
+    await settled()
     await act(async () => {
         fireEvent.click(continueButton())
     })
