@@ -360,6 +360,51 @@ describe('07 Residence: sentence view', () => {
         }
     )
 
+    it.each([
+        ['residence', 'PT'],
+        ['nationality', 'BR'],
+    ] as const)('FXE the %s drawer opens with the chosen country centred in the list', async (which, chosen) => {
+        // jsdom lays nothing out: the chosen row sits 2000 px down a 600 px list, every row is 56 px tall
+        const rect = jest.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (
+            this: HTMLElement
+        ) {
+            return { top: this.hasAttribute('aria-current') ? 2000 : 0 } as DOMRect
+        })
+        const client = jest.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(600)
+        const offset = jest.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(56)
+        const scrolled = new Map<Element, number>()
+        const scrollTop = jest.spyOn(Element.prototype, 'scrollTop', 'set').mockImplementation(function (
+            this: Element,
+            top: number
+        ) {
+            scrolled.set(this, top)
+        })
+        try {
+            const view = render({ residenceCountry: 'PT', nationalityCountry: 'BR' })
+            fireEvent.click(which === 'residence' ? view.residencePill() : view.nationalityPill())
+            const dialog = await waitFor(() => openDialog()!)
+            const row = within(dialog).getByRole('button', { name: textRx(labelOf(chosen)) })
+            expect(row).toHaveAttribute('aria-current')
+            const area = row.closest<HTMLElement>('.overflow-auto')!
+            await waitFor(() => expect(scrolled.get(area)).toBe(2000 - (600 - 56) / 2))
+        } finally {
+            scrollTop.mockRestore()
+            rect.mockRestore()
+            client.mockRestore()
+            offset.mockRestore()
+        }
+    })
+
+    it('FXE country rows take the mock heights: 56 px (py-3), 44 on a small phone; the same-country row 64 (52)', () => {
+        const view = render({ residenceCountry: 'PT' })
+        fireEvent.click(view.nationalityPill())
+        const dialog = screen.getByRole('dialog')
+        const row = within(dialog).getByRole('button', { name: textRx(labelOf('BR')) })
+        expect(row).toHaveClass('py-3', 'signup-sm:py-1.5')
+        const same = within(dialog).getByRole('button', { name: new RegExp(`^${copy(`${K}.sameRow`)}`) })
+        expect(same).toHaveClass('py-[11px]', 'signup-sm:py-[5px]', 'bg-background-selection')
+    })
+
     it('P3-19 a refused ID issuer as nationality shows the residence-card callout and reports it once', () => {
         mockSets = {
             ...jest.requireActual('@/test-utils/residenceRestrictions.fixture').RESIDENCE_RESTRICTION_SETS,
