@@ -13,6 +13,9 @@ import { RESIDENCE_STICKERS, residenceStickerSrc } from './residence-stickers.co
 /** The mascot waves this long after the screen arrives before it may celebrate. */
 export const RESIDENCE_WAVE_MS = 2000
 
+/** The slap waits this long at most for the three sticker files; a failed fetch never holds it longer. */
+export const RESIDENCE_STICKER_LOAD_MS = 1500
+
 /*
  * Order, size and tilt of the five decorations, from the approved mock: star,
  * sparkle, star, star, sparkle. The last sparkle is mirrored (Konrad). The
@@ -25,33 +28,64 @@ const DECORATIONS = [star, sparkle, star, star, sparkle]
  * of the sticker countries it cheers, the country's three stickers are slapped
  * on one after another, and five landing-page stars and sparkles pop in.
  *
- * The celebration never starts before RESIDENCE_WAVE_MS after the hero mounts,
- * so a residence prefilled from geo gets the wave first, while a country picked
- * by hand (always later than that) celebrates at once. The layer is keyed by
- * country, so another sticker country replays the slap with its own stickers.
+ * The celebration never starts before RESIDENCE_WAVE_MS after the hero first
+ * mounts, so a residence prefilled from geo gets the wave first, while a country
+ * picked by hand (always later than that) celebrates at once. The wave happens
+ * once per sign-up: the hero unmounts for the compare view and on Back, and
+ * celebrates at once when it returns. The sticker layer mounts only when its
+ * three files have loaded, so the slap never plays on empty boxes; it is keyed
+ * by country, so another sticker country replays the slap with its own stickers.
  * All of it is decoration: hidden from assistive tech and never a tap target.
  */
 export function ResidenceHero({ alt }: { alt: string }) {
-    const { residenceCountry } = useSetupFlowContext()
+    const { residenceCountry, residenceWaveDone } = useSetupFlowContext()
     const prefersReducedMotion = useReducedMotion()
-    const [waved, setWaved] = useState(false)
+    const [waved, setWaved] = useState(() => residenceWaveDone.current)
+    const [loadedCountry, setLoadedCountry] = useState<string | null>(null)
     const stickers = RESIDENCE_STICKERS[residenceCountry]
     const celebrating = !!stickers && (waved || !!prefersReducedMotion)
+    // Nothing moves under reduced motion, so there is no slap to hold back.
+    const stickersReady = !!prefersReducedMotion || loadedCountry === residenceCountry
 
     useEffect(() => {
-        const timer = setTimeout(() => setWaved(true), RESIDENCE_WAVE_MS)
-        // The cheering pose is its own chunk: fetch it during the wave so the swap has no empty frame.
-        void MASCOT_ANIMATION_LOADERS.cheering().catch(() => {})
+        if (waved) return
+        const timer = setTimeout(() => {
+            residenceWaveDone.current = true
+            setWaved(true)
+        }, RESIDENCE_WAVE_MS)
         return () => clearTimeout(timer)
-    }, [])
+    }, [waved, residenceWaveDone])
 
-    // Fetch a waiting country's stickers during the wave, so the slap does not start on empty boxes.
     useEffect(() => {
-        if (!stickers || celebrating) return
-        stickers.forEach((file) => {
-            new window.Image().src = residenceStickerSrc(file)
+        if (!stickers) return
+        // The cheering pose is its own chunk: fetch it ahead so the swap has no empty frame.
+        void MASCOT_ANIMATION_LOADERS.cheering().catch(() => {})
+
+        let pending = stickers.length
+        const ready = () => setLoadedCountry(residenceCountry)
+        // A failed or slow fetch must not hold the celebration back.
+        const fallback = setTimeout(ready, RESIDENCE_STICKER_LOAD_MS)
+        const settle = () => {
+            pending -= 1
+            if (pending > 0) return
+            clearTimeout(fallback)
+            ready()
+        }
+        const images = stickers.map((file) => {
+            const image = new window.Image()
+            image.onload = settle
+            image.onerror = settle
+            image.src = residenceStickerSrc(file)
+            return image
         })
-    }, [stickers, celebrating])
+        return () => {
+            clearTimeout(fallback)
+            images.forEach((image) => {
+                image.onload = null
+                image.onerror = null
+            })
+        }
+    }, [stickers, residenceCountry])
 
     return (
         <div className="absolute inset-0" data-residence-hero={celebrating ? residenceCountry : 'waving'}>
@@ -62,7 +96,7 @@ export function ResidenceHero({ alt }: { alt: string }) {
                     className="relative h-full max-w-full"
                 />
             </div>
-            {celebrating && (
+            {celebrating && stickersReady && (
                 <div key={residenceCountry} aria-hidden="true" className="residence-stickers">
                     {DECORATIONS.map((src, index) => (
                         <Image
