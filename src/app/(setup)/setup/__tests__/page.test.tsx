@@ -204,7 +204,6 @@ jest.mock('@sentry/nextjs', () => ({
 const landing: ISetupStep = {
     screenId: 'landing',
     layoutType: 'signup',
-    image: { src: '' },
     component: () => <div>Landing step</div>,
 }
 const advance = async (ms: number) => {

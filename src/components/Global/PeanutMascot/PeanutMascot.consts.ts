@@ -90,7 +90,7 @@ export const MASCOT_ANIMATION_LOADERS: Record<MascotPose, () => Promise<{ defaul
  * decouples it from how tall the white content panel below happens to be: the panel varies
  * per screen, which is what made the mascot shrink on the landing and finish steps.
  *
- * 47dvh matches the signup image container's own floor (see SetupWrapper), so the mascot
+ * 47dvh matches the signup image container's own floor, so the mascot
  * never asks that container for more room than it already reserves.
  */
 export const MASCOT_HERO_CLASS = 'relative h-[47dvh] max-w-full md:h-[65dvh]'

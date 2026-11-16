@@ -8,7 +8,7 @@ import {
     type SignupControlAction,
 } from '@/features/setup/signup-analytics'
 
-/** The screen a control sits on. SetupWrapper sets it, so shared setup controls need no prop. */
+/** The screen a control sits on. SetupShell sets it, so shared setup controls need no prop. */
 export const SignupScreenContext = createContext<SignupAnalyticsScreenId | null>(null)
 
 /**

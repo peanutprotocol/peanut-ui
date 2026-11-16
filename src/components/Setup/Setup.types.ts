@@ -1,15 +1,3 @@
-import type { OnboardingAnimationName } from './components/OnboardingAnimation'
-import type { MascotPose } from '@/components/Global/PeanutMascot/PeanutMascot.types'
-import type { PeanutMascotSceneName } from '@/components/Global/PeanutMascot/PeanutMascotScene'
-
-/** A setup screen leads with a still, an animated pose, a composed mascot scene, a loop, or its own hero. */
-export type SetupIllustration =
-    | { src: string }
-    | { pose: MascotPose }
-    | { scene: PeanutMascotSceneName }
-    | { animation: OnboardingAnimationName }
-    | { hero: 'residence' }
-
 export type ScreenId =
     | 'landing'
     | 'welcome'
@@ -66,28 +54,6 @@ export interface StepComponentProps {
 export interface ISetupStep {
     screenId: ScreenId
     layoutType: LayoutType
-    /** Hero for the old SetupWrapper chrome; the redesigned screens draw their own (redesign/shell). */
-    image?: SetupIllustration
-    /** Full-page checklist or final confirmation, without the split illustration hero. */
-    fullScreen?: boolean
     component: React.ComponentType<StepComponentProps>
     showBackButton?: boolean
-    showSkipButton?: boolean
-    /**
-     * The step component renders the description itself (e.g. only on one of
-     * its sub-views), so the chrome must not also render it.
-     */
-    descriptionInView?: boolean
-    /**
-     * Same contract for the title: the step renders its own <h1> per sub-view
-     * (each view must keep exactly one top-level heading).
-     */
-    titleInView?: boolean
-    /** Sell screens lead with the larger heading. */
-    titleSize?: 's' | 'm'
-    /** The description continues the heading as a second statement. */
-    descriptionInTitle?: boolean
-    imageClassName?: string
-    titleClassName?: string
-    contentClassName?: string
 }

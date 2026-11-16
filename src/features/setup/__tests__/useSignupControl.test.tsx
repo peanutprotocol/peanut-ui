@@ -54,7 +54,7 @@ it('does nothing off a sign-up screen, so shared controls can call it anywhere',
     expect(capture).not.toHaveBeenCalled()
 })
 
-it('takes an explicit screen for surfaces outside SetupWrapper', () => {
+it('takes an explicit screen for surfaces outside SetupShell', () => {
     const { result } = renderHook(() => useSignupControl('setup-error'))
     result.current.track('try_again', 'tap')
     expect(capture.mock.calls[0][1]).toEqual(expect.objectContaining({ screen_id: 'setup-error' }))

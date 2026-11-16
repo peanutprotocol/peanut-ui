@@ -12,7 +12,6 @@ import { type ResidenceRestrictionSets } from '@/hooks/useResidenceRestrictionSe
 import { useKycIntents } from '@/hooks/useKycIntents'
 import { type AvailabilityItemKey, residenceAvailability } from '@/utils/residence-availability'
 import SetupFooter from './SetupFooter'
-import { useSetupFullScreen } from './SetupWrapper'
 
 /** The per-currency bank rails, shown together as one "Bank account" item. */
 const BANK_ACCOUNT_CURRENCY = {
@@ -54,7 +53,6 @@ export function ResidenceCompare({
     title?: string
     description?: string
 }) {
-    useSetupFullScreen(true)
     const t = useTranslations('setup.residenceStep.compare')
     const locale = useLocale()
     // What a column lists: the bank rails merged into one "Bank account" item at the

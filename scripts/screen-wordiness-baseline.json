@@ -55,7 +55,6 @@
         "components/Send/link/views/Initial.link.send.view.tsx": 68,
         "components/Send/views/Contacts.view.tsx": 96,
         "components/Send/views/SendRouter.view.tsx": 75,
-        "components/Setup/components/PasskeyInfoDrawer.tsx": 68,
         "components/Setup/Views/PasskeySetupHelpDrawer.tsx": 121,
         "components/TransactionDetails/TransactionDetailsDrawer.tsx": 822,
         "features/add-money/views/BridgeBankOnrampView.tsx": 495,
