@@ -17,7 +17,7 @@ import {
     getMascotPlacement,
     subscribeToMascotClock,
 } from '@/components/Global/PeanutMascot/PeanutMascot.utils'
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 
 const mockAnimation = {
     totalFrames: 20,
@@ -134,6 +134,44 @@ describe('getMascotCanvasPlacement', () => {
         expect(placement.width).toBeCloseTo((200 * MASCOT_CANVAS_WIDTH) / MASCOT_CANVAS_HEIGHT, 5)
         expect(placement.top).toBeCloseTo(0, 5)
         expect(placement.left).toBeCloseTo((300 - placement.width) / 2, 5)
+    })
+})
+
+describe('PeanutMascot pose swap', () => {
+    // The frame clock outlives a pose swap. Coming from a longer animation it can sit more
+    // than one loop past the shorter one's end, where a single subtraction is not enough.
+    it('wraps a frame carried over from a longer pose into the new pose', async () => {
+        const pending: FrameRequestCallback[] = []
+        const raf = jest.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => pending.push(cb))
+        const caf = jest.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => void pending.splice(0))
+        let now = performance.now()
+        // Each frame arrives a second late, so the clock advances by its capped step.
+        const runFrames = (count: number) =>
+            act(() => {
+                for (let i = 0; i < count; i++) pending.shift()?.((now += 1000))
+            })
+
+        try {
+            const long = { ...mockAnimation, totalFrames: 60, goToAndStop: jest.fn() }
+            const short = { ...mockAnimation, totalFrames: 20, goToAndStop: jest.fn() }
+            mockLoadAnimation.mockReturnValueOnce(long).mockReturnValueOnce(short)
+            const { container, rerender } = render(<PeanutMascot pose="waving-hello" className="h-60 w-60" />)
+            const ready = () => expect(container.querySelector('[data-lottie-ready="true"]')).not.toBeNull()
+            await waitFor(ready)
+            runFrames(15)
+            const carried = Math.max(...long.goToAndStop.mock.calls.map(([frame]) => frame as number))
+            expect(carried).toBeGreaterThan(40)
+
+            rerender(<PeanutMascot pose="cheering" className="h-60 w-60" />)
+            await waitFor(() => expect(mockLoadAnimation).toHaveBeenCalledTimes(2))
+            await waitFor(ready)
+            runFrames(3)
+            expect(short.goToAndStop).toHaveBeenCalled()
+            short.goToAndStop.mock.calls.forEach(([frame]) => expect(frame).toBeLessThan(short.totalFrames))
+        } finally {
+            raf.mockRestore()
+            caf.mockRestore()
+        }
     })
 })
 
