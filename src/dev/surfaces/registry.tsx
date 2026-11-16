@@ -304,7 +304,8 @@ function RedesignStepBody({
                     : null
             }
         >
-            {finishRoute ? <FinalConfirmScreen showLogout /> : <View />}
+            {/* as /setup passes it: without it 11 treats the demo account as a log-in and leaves for /home */}
+            {finishRoute ? <FinalConfirmScreen showLogout /> : <View onComplete={noop} />}
         </SetupShell>
     )
 }
