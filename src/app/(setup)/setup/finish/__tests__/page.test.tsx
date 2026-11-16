@@ -11,6 +11,8 @@ jest.mock('@/features/setup/SetupFlowContext', () => ({
     useOptionalSetupFlow: () => null,
 }))
 jest.mock('@/hooks/useBackHandler', () => ({ useBackHandler: jest.fn() }))
+// the shell's top bar draws the language switcher, which needs the page's locale provider
+jest.mock('@/components/Setup/components/SetupLanguageSwitcher', () => ({ SetupLanguageSwitcher: () => null }))
 jest.mock('@/components/Setup/redesign/FinalConfirm/FinalConfirmScreen', () => ({
     FinalConfirmScreen: () => <button>Confirm and finish</button>,
 }))
