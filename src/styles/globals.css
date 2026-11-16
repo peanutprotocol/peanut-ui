@@ -2315,8 +2315,9 @@ html[data-crisp-launcher='hidden'] .crisp-client {
     inset: 0;
     container-type: size;
     pointer-events: none;
-    /* The back button and the language switcher end here. */
-    --bar: calc(var(--safe-top) + 3.5rem);
+    /* The back button and the language switcher end here. The hero box already
+       starts below the safe-area inset (AppShell reserves it), so no inset here. */
+    --bar: 3.5rem;
     /* A quarter of the hero's width, less when the hero is too short for two stacked. */
     --stk: min(25cqw, calc((100cqh - var(--bar)) * 0.47), 11rem);
 }
