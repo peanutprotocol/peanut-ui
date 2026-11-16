@@ -36,7 +36,11 @@ export function ResidenceCompareView({
                                 className="w-0 shrink-0 border-l border-dashed border-border-default"
                             />
                         )}
-                        <section className="min-w-0 flex-1" data-compare-column={iso2}>
+                        <section
+                            className="min-w-0 flex-1"
+                            data-compare-column={iso2}
+                            data-testid={`setup-redesign-residence-column-${iso2}`}
+                        >
                             <h2 className="flex flex-col items-start gap-1.5 text-heading-card break-words signup-sm:flex-row signup-sm:items-center">
                                 <Image
                                     src={getFlagUrl(iso2.toLowerCase())}

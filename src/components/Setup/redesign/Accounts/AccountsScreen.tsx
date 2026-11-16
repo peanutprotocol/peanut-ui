@@ -71,7 +71,11 @@ export function AccountsScreen(_props: StepComponentProps) {
                             order={index * 2}
                             zIndex={5 + index}
                         >
-                            <BankDetailsCard header={header} rows={rows} />
+                            <BankDetailsCard
+                                header={header}
+                                rows={rows}
+                                testId={`setup-redesign-accounts-card-${coin}`}
+                            />
                             <CoinCharacter
                                 coin={coin}
                                 left={COIN.left}
