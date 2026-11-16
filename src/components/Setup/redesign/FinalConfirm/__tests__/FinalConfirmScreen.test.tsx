@@ -397,8 +397,16 @@ describe('11 Final confirm: art', () => {
         expect(frameEl).not.toBeNull()
         const frame = box(frameEl)
         expect(frame).toEqual({ left: 120, top: 196, right: 270, bottom: 372 })
-        const usd = box(container.querySelector('[data-coin-still="usd"]'))
-        const eur = box(container.querySelector('[data-coin-still="eur"]'))
+        // The coin's drawn face, not its square box: the rig PNG pads the face (USD fills 191/240 of the box, EUR
+        // 172/240, mock 11 `coinBox`). The mock places the EUR box at 268, 2 px over the frame's right edge, with
+        // its face 12 px clear of it; the mock wins over P4-40's "boxes" wording (FIX2.md).
+        const face = (coin: 'usd' | 'eur') => {
+            const b = box(container.querySelector(`[data-coin-still="${coin}"]`))
+            const inset = ((b.right - b.left) * (1 - (coin === 'usd' ? 191 : 172) / 240)) / 2
+            return { left: b.left + inset, top: b.top + inset, right: b.right - inset, bottom: b.bottom - inset }
+        }
+        const usd = face('usd')
+        const eur = face('eur')
         expect(intersects(usd, frame)).toBe(false)
         expect(intersects(eur, frame)).toBe(false)
         expect(usd.right).toBeLessThanOrEqual(frame.left)
