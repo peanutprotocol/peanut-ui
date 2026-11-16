@@ -1,6 +1,6 @@
 import posthog from 'posthog-js'
 import { CHUNK_RELOAD_REPORT_KEY } from '@/utils/chunk-error-recovery'
-import * as Sentry from '@/utils/sentry-lazy'
+import { captureMessage, withScope } from '@/utils/sentry-lazy'
 
 export function reportChunkReloadRecovery(): void {
     if (typeof window === 'undefined') return
@@ -35,13 +35,13 @@ export function reportChunkReloadRecovery(): void {
     if (reloadMs > 300_000) return
 
     try {
-        Sentry.withScope((scope) => {
+        withScope((scope) => {
             scope.setFingerprint(['chunk-reload-recovered'])
             scope.setTag('chunk_reload.source', source)
             scope.setTag('chunk_reload.path', path)
             scope.setExtra('message', message)
             scope.setExtra('seconds_elapsed', reloadMs / 1000)
-            Sentry.captureMessage('Chunk load error recovered by reload', 'warning')
+            captureMessage('Chunk load error recovered by reload', 'warning')
         })
     } catch {}
     try {
