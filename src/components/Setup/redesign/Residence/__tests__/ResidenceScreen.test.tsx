@@ -343,6 +343,23 @@ describe('07 Residence: sentence view', () => {
         )
     })
 
+    it.each(['residence', 'nationality'] as const)(
+        'R2-06 the %s drawer takes focus on open (the sheet, not its search field) and Escape closes it',
+        async (which) => {
+            const view = render({ residenceCountry: 'PT', nationalityCountry: 'BR' })
+            const pill = which === 'residence' ? view.residencePill() : view.nationalityPill()
+            pill.focus()
+            fireEvent.click(pill)
+            const dialog = await waitFor(() => openDialog()!)
+            await waitFor(() => expect(document.activeElement).toBe(dialog))
+            expect(screen.getByRole('searchbox', { hidden: true })).not.toHaveFocus()
+            fireEvent.keyDown(document.activeElement!, { key: 'Escape' })
+            await waitFor(() => expect(openDialog()).toBeNull())
+            // Focus going back to the pill is Radix's close behaviour; jsdom keeps the closing sheet mounted, so it is
+            // not asserted here (R2 saw it work in Chromium).
+        }
+    )
+
     it('P3-19 a refused ID issuer as nationality shows the residence-card callout and reports it once', () => {
         mockSets = {
             ...jest.requireActual('@/test-utils/residenceRestrictions.fixture').RESIDENCE_RESTRICTION_SETS,

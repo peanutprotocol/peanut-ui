@@ -381,6 +381,19 @@ describe('08 Payment plan', () => {
         expect(mockHandleNext).toHaveBeenCalledTimes(1)
     })
 
+    it.each(['funding', 'payment'] as const)(
+        'R2-06 the %s drawer takes focus on open and Escape closes it',
+        async (kind) => {
+            const view = render({ residenceCountry: 'PT' })
+            view.pill(kind).focus()
+            fireEvent.click(view.pill(kind))
+            const dialog = openDialog()!
+            await waitFor(() => expect(document.activeElement).toBe(dialog))
+            fireEvent.keyDown(document.activeElement!, { key: 'Escape' })
+            await waitFor(() => expect(openDialog()).toBeNull())
+        }
+    )
+
     it('P3-47 a stored choice the residence no longer offers shows Choose and is cleared once settled', async () => {
         const view = render({ residenceCountry: 'US', fundingChannel: 'brlBank', paymentChannel: 'card' })
         expect(view.pill('funding')).toHaveAccessibleName(`${view.title('funding')}: ${label('choose')}`)
