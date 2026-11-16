@@ -24,16 +24,10 @@ export const FLAGS: Record<string, { values: ReadonlyArray<FlagValue>; baseline:
     'user-interviews-invite': { values: [true, false], baseline: true },
     'signup-rollout-inviter-suggestions': { values: [true, false], baseline: false },
     'signup-notification-switches': { values: ['control', 'switches', 'defaults_on'], baseline: 'control' },
-    'welcome-headline-copy': {
-        values: ['control', 'every_border', 'whole_world', 'travels_free'],
-        baseline: 'control',
-    },
 }
 
 /** Flags no capture can show, and why. */
 export const FLAG_EXEMPTIONS: Record<string, string> = {
-    'welcome-headline-copy':
-        'The landing no longer reads it: the redesigned landing has one headline (owner ruling, 16 Nov 2026). The flag code goes with the old views.',
     session_key_spend_sign: 'Changes how a spend is signed; nothing on screen differs.',
     'push-provisioning-apple': 'Add-to-wallet exists only in the native apps; captures run the web build.',
     'push-provisioning-google': 'Add-to-wallet exists only in the native apps; captures run the web build.',

@@ -9,9 +9,8 @@ jest.mock('@/features/setup/SetupFlowContext', () => ({
     useSetupFlowContext: () => ({ signupEntryFlow: 'card' }),
 }))
 jest.mock('@/hooks/useBackHandler', () => ({ useBackHandler: jest.fn() }))
-jest.mock('@/components/Setup/Views/SignTestTransaction', () => ({
-    __esModule: true,
-    default: () => <button>Confirm and finish</button>,
+jest.mock('@/components/Setup/redesign/FinalConfirm/FinalConfirmScreen', () => ({
+    FinalConfirmScreen: () => <button>Confirm and finish</button>,
 }))
 
 beforeEach(() => jest.clearAllMocks())
