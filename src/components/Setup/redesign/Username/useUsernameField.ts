@@ -231,6 +231,8 @@ export function useUsernameField() {
 
     const onRoll = async () => {
         if (kind === 'rolling') return
+        // Blur first: its handler may refill an emptied field, and the roll's state below must land after it.
+        inputRef.current?.blur()
         const at = nextToken()
         track('username_die', 'tap')
         impactHaptic()
@@ -239,7 +241,6 @@ export function useUsernameField() {
         setRolls((count) => count + 1)
         setKind('rolling')
         setAlternatives([])
-        inputRef.current?.blur()
         const started = Date.now()
         const found = await nextFreeSuggestion()
         const wait = ROLL_MIN_MS - (Date.now() - started)
