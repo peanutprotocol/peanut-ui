@@ -7,6 +7,8 @@ export type SetupShellContextValue = {
     store: ShellStore
     /** The OS asks for less motion: every step is a 200 ms crossfade, art shows its hold frame. */
     reducedMotion: boolean
+    /** The entering screen's slide has come to rest (releases the navigation lock). */
+    onEntered?: (slideKey: string) => void
 }
 
 export const SetupShellContext = createContext<SetupShellContextValue | null>(null)
