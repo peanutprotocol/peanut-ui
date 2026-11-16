@@ -5953,11 +5953,11 @@ export const FIXTURES: Record<string, Fixture> = {
 
     ...PAPERWORK_VERIFICATION_FIXTURES,
     ...KYC_FEATURE_ACTIVATION_FIXTURES,
-    // The local account refused because the residence's Pix comes from its route (M5): the supplement says where
+    // The local account refused because the residence's Pix comes from its route (M5): under the ARS title the
+    // line names the residence, not Pix (a Brazil resident on the Argentina page).
     'feature-activation-local-served-elsewhere': {
         ...KYC_FEATURE_ACTIVATION_FIXTURES['feature-activation-local-refused'],
-        // The Brazil local route sends a resident to the Pix page, so the line is captured on the family's own route.
-        about: "First use local: refused because the user's Pix route serves Pix (local_served_elsewhere): the line names what Pix covers.",
+        about: 'First use local on the ARS page: refused because the Pix route serves the residence (local_served_elsewhere): the line names the residence.',
         responses: {
             ...KYC_FEATURE_ACTIVATION_FIXTURES['feature-activation-local-refused'].responses,
             'POST /users/kyc/features/local/activate': { state: 'refused', reason: 'local_served_elsewhere' },

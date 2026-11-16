@@ -8,6 +8,7 @@ import { useKycControl } from '@/features/paperwork-verification/analytics'
 import { ReplacementDocumentAction } from '@/features/paperwork-verification/ReplacementDocumentAction'
 import { VerifyFooter, VerifyHeroLayout } from '@/features/paperwork-verification/components/VerifyLayout'
 import { kycFeatureRefusalCopy } from '@/utils/kyc-feature-outcome.utils'
+import { isLocalResidenceRefusal } from '@/features/kyc-features/report'
 
 export function CurrencyRefusalScreen({
     currency,
@@ -28,8 +29,10 @@ export function CurrencyRefusalScreen({
     const controls = useKycControl('feature-status', 'kyc_status')
     const modals = useModalsContextOptional()
     const reasonKey = reasonCodeKey(reason)
+    // A local refusal for the residence names the residence under a currency title: the Pix line
+    // (`local_served_elsewhere`) answers a Brazil resident on the ARS page with Pix (TASK-24947).
     const description =
-        currency && reason === 'account_unavailable_in_residence'
+        currency && (reason === 'account_unavailable_in_residence' || isLocalResidenceRefusal(reason))
             ? tDeposit('list.residenceRestrictedBody', { currency })
             : reasonKey
               ? tIdentity(reasonKey)
