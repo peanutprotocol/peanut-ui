@@ -7,7 +7,8 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { NuqsTestingAdapter, type UrlUpdateEvent } from 'nuqs/adapters/testing'
 import posthog from 'posthog-js'
-import type { ReactNode } from 'react'
+import { type ReactNode, useState } from 'react'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { USER } from '@/constants/query.consts'
 import { signupControls } from '@/test-utils/signup-controls'
 import { dispatchBackPress, resetBackHandlersForTests } from '@/utils/back-handler'
@@ -313,6 +314,11 @@ describe('09 Email', () => {
             expect(field()).toHaveValue('current@mail.com')
             expect(setupState(container)).toBe('kept-current')
             expect(controls()).toContain(`email:error:${kind}`)
+            // ported from dev Email.test.tsx: a protected failure is still reported, with its kind
+            expect(reportEmailSaveFailure).toHaveBeenCalledTimes(1)
+            expect(reportEmailSaveFailure).toHaveBeenCalledWith(
+                expect.objectContaining({ failureKind: kind, status: failure.status, attempt: 1 })
+            )
             expect(continueButton(container)).toBeEnabled()
             expect(mockNext).not.toHaveBeenCalled()
             fireEvent.click(continueButton(container))
@@ -351,6 +357,8 @@ describe('09 Email', () => {
         await waitFor(() => expect(captureException).toHaveBeenCalledWith(navError))
         expect(screen.queryByRole('alert')).not.toBeInTheDocument()
         expect(setupState(container)).not.toBe('save-failed')
+        // ported from dev NotificationSetup.test.tsx: the step does not stay stuck in saving
+        await waitFor(() => expect(continueButton(container)).toBeEnabled())
     })
 
     it('P4-16 email:change once per mount however many keystrokes; no control property carries the address', async () => {
@@ -361,6 +369,9 @@ describe('09 Email', () => {
         await screen.findByRole('alert')
         expect(controls().filter((c) => c === 'email:change')).toHaveLength(1)
         expect(controls()).toEqual(['email:change', 'continue:tap', 'email:error:already_registered'])
+        const controlCalls = capture.mock.calls.filter(([event]) => event === ANALYTICS_EVENTS.CONTROL_USED)
+        for (const [, props] of controlCalls)
+            expect(props).toEqual(expect.objectContaining({ screen_id: 'notification-email' }))
         expect(JSON.stringify(capture.mock.calls)).not.toMatch(/private|mail\.com/)
     })
 
@@ -382,5 +393,127 @@ describe('09 Email', () => {
         expect(
             screen.getByRole('textbox', { name: copyRx('setupRedesign.email.label', {}, 'es-AR') })
         ).toBeInTheDocument()
+    })
+})
+
+/** Cases ported from dev's Views/__tests__/Email.test.tsx and NotificationSetup.test.tsx (email part). */
+describe('09 Email: ported dev cases', () => {
+    it.each([
+        { status: 429, error: 'Too many requests' },
+        { status: 500, error: 'Internal server error' },
+        { status: 503, error: 'Service unavailable' },
+    ])('P4-13 a generic HTTP $status keeps the step retryable and never advances', async (failure) => {
+        mockUser = { user: { userId: 'new-user', email: 'current@mail.com' } }
+        mockUpdateUser.mockResolvedValue(failure)
+        const { container } = render()
+        type('new@mail.com')
+        fireEvent.click(continueButton(container))
+        await waitFor(() => expect(mockUpdateUser).toHaveBeenCalledTimes(1))
+        await waitFor(() => expect(continueButton(container)).toBeEnabled())
+        expect(setupState(container)).toBe('save-failed')
+        // a 503 without the replacement wording is not a protected failure: no kept-current note
+        expect(screen.queryByText(textMatch(copy('setup.notifications.changeAnytime')))).toBeNull()
+        expect(field()).toHaveValue('new@mail.com')
+        expect(mockFetchUser).not.toHaveBeenCalled()
+        expect(mockNext).not.toHaveBeenCalled()
+        fireEvent.click(continueButton(container))
+        await waitFor(() => expect(mockUpdateUser).toHaveBeenCalledTimes(2))
+        expect(mockNext).not.toHaveBeenCalled()
+    })
+
+    it.each([
+        ['network', { error: 'Something went wrong. Please try again.', failureKind: 'network' }, undefined],
+        ['http', { error: 'Internal error', failureKind: 'http', status: 500 }, 500],
+        ['other', undefined, undefined],
+    ] as const)(
+        'P4-13 a %s failure is reported with its kind, and a second press counts as attempt 2',
+        async (kind, result, status) => {
+            if (result) mockUpdateUser.mockResolvedValueOnce(result)
+            else mockUpdateUser.mockRejectedValueOnce(new Error('boom'))
+            mockUpdateUser.mockResolvedValueOnce({ error: 'Internal error', failureKind: 'http', status: 503 })
+            const { container } = render()
+            type('money@mail.com')
+            fireEvent.click(continueButton(container))
+            await waitFor(() => expect(reportEmailSaveFailure).toHaveBeenCalledTimes(1))
+            expect(reportEmailSaveFailure).toHaveBeenLastCalledWith({ failureKind: kind, status, attempt: 1 })
+            await waitFor(() => expect(continueButton(container)).toBeEnabled())
+            fireEvent.click(continueButton(container))
+            await waitFor(() => expect(reportEmailSaveFailure).toHaveBeenCalledTimes(2))
+            expect(reportEmailSaveFailure).toHaveBeenLastCalledWith({ failureKind: 'http', status: 503, attempt: 2 })
+            expect(mockNext).not.toHaveBeenCalled()
+            expect(JSON.stringify(jest.mocked(reportEmailSaveFailure).mock.calls)).not.toContain('money@mail.com')
+        }
+    )
+
+    it.each(
+        [null, '', '   '].flatMap((email) => [
+            { email, status: 400, error: 'Email changes require a verification code' },
+            { email, status: 503, error: 'Email replacement is temporarily disabled' },
+        ])
+    )(
+        'P4-15 with account email $email a protected $status is a plain save failure on every attempt',
+        async ({ email, status, error }) => {
+            mockUser = { user: { userId: 'new-user', email } }
+            mockUpdateUser.mockResolvedValue({ status, error })
+            const { container } = render()
+            type('new@mail.com')
+            for (const attempt of [1, 2]) {
+                fireEvent.click(continueButton(container))
+                await waitFor(() => expect(reportEmailSaveFailure).toHaveBeenCalledTimes(attempt))
+                await waitFor(() => expect(continueButton(container)).toBeEnabled())
+                expect(screen.getByRole('alert')).toHaveTextContent(copyRx('setupRedesign.email.saveFailed'))
+                expect(setupState(container)).toBe('save-failed')
+                expect(screen.queryByText(textMatch(copy('setup.notifications.changeAnytime')))).toBeNull()
+                expect(mockNext).not.toHaveBeenCalled()
+            }
+            expect(mockUpdateUser).toHaveBeenCalledTimes(2)
+        }
+    )
+
+    it('P4-11 editing the address clears the duplicate line and brings Continue back', async () => {
+        mockUpdateUser.mockResolvedValueOnce({ status: 409, code: 'EMAIL_IN_USE', error: 'x' })
+        const { container } = render()
+        type('existing@mail.com')
+        fireEvent.click(continueButton(container))
+        expect(await screen.findByRole('alert')).toHaveTextContent(copyRx('setupRedesign.email.taken'))
+        expect(mockFetchUser).not.toHaveBeenCalled()
+        expect(field()).toHaveValue('existing@mail.com')
+        type('new@mail.com')
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+        expect(field()).not.toHaveAttribute('aria-invalid')
+        expect(within(footer(container)!).queryByText(copyRx('setupRedesign.email.recover'))).toBeNull()
+        expect(setupState(container)).toBe('filled')
+        fireEvent.click(continueButton(container))
+        await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+        expect(mockUpdateUser).toHaveBeenLastCalledWith({ userId: 'new-user', email: 'new@mail.com' })
+    })
+
+    it('P4-14 with no signed-in user at all: the not-ready line, no request, no advance', async () => {
+        mockUser = null
+        const { container } = render()
+        type('money@mail.com')
+        fireEvent.click(continueButton(container))
+        expect(await screen.findByRole('alert')).toHaveTextContent(copyRx('setup.email.notReady'))
+        expect(setupState(container)).toBe('not-ready')
+        expect(mockUpdateUser).not.toHaveBeenCalled()
+        expect(mockNext).not.toHaveBeenCalled()
+    })
+
+    it('P4-05 Next then Back remounts the step with the trimmed address from the draft', async () => {
+        function RoundTrip() {
+            const [next, setNext] = useState(false)
+            mockNext.mockImplementation(async () => setNext(true))
+            return next ? <button onClick={() => setNext(false)}>Back to email</button> : <EmailScreen />
+        }
+        const wrap = (node: ReactNode) => (
+            <NuqsTestingAdapter onUrlUpdate={(event) => urlUpdates.push(event)}>
+                <QueryClientProvider client={queryClient}>{node}</QueryClientProvider>
+            </NuqsTestingAdapter>
+        )
+        const { container } = renderRedesign(wrap(<RoundTrip />), { screenId: 'notification-email' })
+        type('  money@mail.com  ')
+        fireEvent.click(continueButton(container))
+        fireEvent.click(await screen.findByRole('button', { name: 'Back to email' }))
+        expect(field()).toHaveValue('money@mail.com')
     })
 })
