@@ -455,6 +455,10 @@ export interface TransactionDetails {
         /** The provider reported the transfer as returned or refunded after
          *  it settled. */
         wasReturned?: boolean
+        /** A Pix deposit the provider received and gave back before it
+         *  converted it: Returned, but nothing was converted, so the receipt
+         *  keeps the estimate row. */
+        returnedBeforeConversion?: true
         /** Why the bank sent the deposit back; picks the receipt's reason line. */
         returnReasonCode?: DepositReturnReasonCode
         /** A bank deposit that never reaches the balance — a bank's
@@ -680,8 +684,15 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     // deposit never worked. It did work, and then the bank sent it back — a
     // different thing to know, and the only one that says what to do next.
     const returnedStatus = entry.status?.toUpperCase()
+    // A Pix deposit the provider gave back (Avenia: paid from an account not under the user's CPF)
+    // stays FAILED on the wire. `pixReturned` says so to every viewer, the shared receipt included;
+    // why (`returnReason`) goes to the owner only. Without the flag the row reads as it did: the
+    // status alone never says it was returned.
+    const isPixDepositReturned =
+        direction === 'bank_deposit' && returnedStatus === 'FAILED' && entry.extraData?.pixReturned === true
     const isDepositReturned =
-        direction === 'bank_deposit' && (returnedStatus === 'REFUNDED' || returnedStatus === 'RETURNED')
+        isPixDepositReturned ||
+        (direction === 'bank_deposit' && (returnedStatus === 'REFUNDED' || returnedStatus === 'RETURNED'))
     if (isDepositReturned) uiStatus = 'refunded'
 
     // Active dispute trumps the underlying spend's status — a card spend
@@ -836,6 +847,7 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
             // The bank sent the money back after it settled, so the
             // conversion happened even though the row reads as failed.
             wasReturned: returnedStatus === 'RETURNED' || returnedStatus === 'REFUNDED' || undefined,
+            returnedBeforeConversion: isPixDepositReturned || undefined,
             returnReasonCode: isDepositReturned ? entry.extraData?.returnReason?.code : undefined,
             payerName:
                 isDepositAccountDeposit || depositKind

@@ -744,6 +744,29 @@ const AVENIA_PAID_DEPOSIT = {
     },
 }
 
+/**
+ * A R$22 Pix deposit Avenia received and gave back: paid from an account not under the user's CPF.
+ * The wire status stays FAILED; `pixReturned` says it was returned, to every viewer, and
+ * `returnReason` (owner only) says why. Nothing was converted: the
+ * amount is the quoted USD and no rate or fee is sent.
+ */
+const AVENIA_RETURNED_DEPOSIT = {
+    ...aveniaPayableDeposit,
+    uuid: 'fixture-avenia-deposit-returned',
+    timestamp: new Date('2026-11-16T12:00:00.000Z'),
+    status: 'FAILED',
+    amount: '3.84',
+    currency: { amount: '22.00', code: 'BRL' },
+    extraData: {
+        ...aveniaPayableDeposit.extraData,
+        usdAmount: '3.84',
+        pixDeposit: { codePayable: false, expiresAt: null },
+        // returned, to every viewer; why, to the owner only
+        pixReturned: true,
+        returnReason: { code: 'third_party', text: null },
+    },
+}
+
 /** Merchant Pix codes (valid EMV and CRC): one that leaves the amount to the payer, one with R$42.50, one with R$3. */
 const PIX_QR_OPEN_AMOUNT =
     '00020101021226680014br.gov.bcb.pix2546pix.example.com/qr/v2/cobv/padaria-pao-dourado5204000053039865802BR5924PADARIA PAO DOURADO LTDA6009SAO PAULO62070503***630409BC'
@@ -2761,6 +2784,22 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: {
             'GET /users/history': { entries: [AVENIA_PAID_DEPOSIT], hasMore: false },
             [`GET /history/${AVENIA_PAID_DEPOSIT.uuid}`]: AVENIA_PAID_DEPOSIT,
+        },
+    },
+    'pix-deposit-receipt-returned': {
+        route: `/history?tx=${AVENIA_RETURNED_DEPOSIT.uuid}`,
+        about: "The receipt of a Pix deposit Avenia gave back: Returned, with the deposit screen's reason, the estimate in reais, no rate or fee.",
+        responses: {
+            'GET /users/history': { entries: [AVENIA_RETURNED_DEPOSIT], hasMore: false },
+            [`GET /history/${AVENIA_RETURNED_DEPOSIT.uuid}`]: AVENIA_RETURNED_DEPOSIT,
+        },
+    },
+    'pix-deposit-returned-row': {
+        route: '/history',
+        about: 'The Activity row of a Pix deposit Avenia gave back: "Returned to sender", the amount struck through.',
+        waitFor: '[data-testid="transaction-card"]',
+        responses: {
+            'GET /users/history': { entries: [AVENIA_RETURNED_DEPOSIT, AVENIA_PAID_DEPOSIT], hasMore: false },
         },
     },
     'pix-setup-verify': {

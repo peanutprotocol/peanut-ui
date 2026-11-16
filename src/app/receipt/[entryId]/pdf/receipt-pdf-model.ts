@@ -126,7 +126,13 @@ export function buildReceiptPdfModel(
     const cardType = drawer?.transactionCardType
     push(t('transaction.officialReceipt.pdf.type'), cardType ? t(`transaction.type.${cardType}`) : undefined)
 
-    const statusLabel = status ? t(`common.status.${status}`) : undefined
+    // a deposit sent back to the payer is Returned, never Refunded, as on the screen (design.md status words)
+    const statusLabel =
+        transaction.actionLabelKey === 'type.returnedToSender'
+            ? t('transaction.returnedStatus')
+            : status
+              ? t(`common.status.${status}`)
+              : undefined
     push(t('transaction.officialReceipt.pdf.status'), statusLabel)
 
     // Counterparty: FE-generated labels localize via nameKey; raw counterparty

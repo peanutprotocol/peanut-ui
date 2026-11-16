@@ -66,6 +66,7 @@ export const TransactionDetailsReceipt = ({
 }) => {
     const t = useAppTranslations('transaction')
     const tRequest = useAppTranslations('request')
+    const tPixDeposit = useAppTranslations('pix.deposit')
 
     // Only the transaction details drawer passes setIsModalOpen: it keeps that
     // drawer open while a nested drawer is up, and vaul's NestedRoot throws
@@ -125,7 +126,13 @@ export const TransactionDetailsReceipt = ({
         transaction.actionLabelKey !== 'type.returnedToSender'
             ? undefined
             : returnReasonCode === 'third_party'
-              ? t('returnedReasonThirdParty')
+              ? // a Pix the provider gave back says what the deposit screen said: one sentence for both.
+                // It speaks to the payer ("your CPF"), so a shared receipt keeps the general line.
+                transaction.extraDataForDrawer?.isPix
+                  ? isPublic
+                      ? t('returnedReason')
+                      : tPixDeposit('returnedBody')
+                  : t('returnedReasonThirdParty')
               : returnReasonCode === 'too_many_recent'
                 ? t('returnedReasonTooManyRecent')
                 : returnReasonCode === 'name_mismatch'
