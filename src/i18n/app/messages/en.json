@@ -4082,7 +4082,7 @@
                 },
                 "label": {
                     "ssn": "Social Security number",
-                    "cuit": "CUIT or CUIL",
+                    "cuit": "CUIT, CUIL or DNI",
                     "cpf": "CPF",
                     "rut": "RUT",
                     "curp": "CURP",
@@ -4100,7 +4100,7 @@
                 },
                 "help": {
                     "ssn": "9 digits. ITINs aren’t accepted.",
-                    "cuit": "11 digits, from your tax registration.",
+                    "cuit": "11 digits for CUIT or CUIL, 7 or 8 for DNI.",
                     "cpf": "11 digits.",
                     "rut": "With the check digit at the end.",
                     "curp": "18 characters.",

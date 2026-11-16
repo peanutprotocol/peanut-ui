@@ -4082,7 +4082,7 @@
                 },
                 "label": {
                     "ssn": "Número do Seguro Social",
-                    "cuit": "CUIT ou CUIL",
+                    "cuit": "CUIT, CUIL ou DNI",
                     "cpf": "CPF",
                     "rut": "RUT",
                     "curp": "CURP",
@@ -4100,7 +4100,7 @@
                 },
                 "help": {
                     "ssn": "9 dígitos. ITIN não é aceito.",
-                    "cuit": "11 dígitos, da sua inscrição fiscal.",
+                    "cuit": "11 dígitos para CUIT ou CUIL, 7 ou 8 para DNI.",
                     "cpf": "11 dígitos.",
                     "rut": "Com o dígito verificador no final.",
                     "curp": "18 caracteres.",

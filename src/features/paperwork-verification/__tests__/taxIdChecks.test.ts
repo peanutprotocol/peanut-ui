@@ -28,7 +28,7 @@ describe('loadTaxIdChecker', () => {
     it('refuses a whole number with a wrong check digit or part', async () => {
         expect((await loadTaxIdChecker(['de.idnr']))!('36574261808')).toBe('invalid')
         expect((await loadTaxIdChecker(['ar.cuit']))!('20-12345678-8')).toBe('invalid')
-        // Mod-11 valid, but 21 is no CUIT type: the API refuses it too.
+        // Mod-11 valid, but 21 is no CUIT type: Manteca refuses it.
         expect((await loadTaxIdChecker(['ar.cuit']))!('21-12345678-2')).toBe('invalid')
         expect((await loadTaxIdChecker(['br.cpf']))!('529.982.247-24')).toBe('invalid')
     })
@@ -41,6 +41,7 @@ describe('loadTaxIdChecker', () => {
     it('checks the fixed formats the API names as their masks write them', async () => {
         expect((await loadTaxIdChecker(['us.ssn']))!('123-45-6789')).toBe('valid')
         expect((await loadTaxIdChecker(['ar.cuit']))!('20-12345678-6')).toBe('valid')
+        expect((await loadTaxIdChecker(['ar.cuit']))!('12345678')).toBe('valid')
         expect((await loadTaxIdChecker(['br.cpf']))!('529.982.247-25')).toBe('valid')
         expect((await loadTaxIdChecker(['cl.rut']))!('12.345.678-5')).toBe('valid')
         expect((await loadTaxIdChecker(['mx.curp']))!('AAAA000101HDFBBB01')).toBe('valid')

@@ -116,7 +116,19 @@ async function loadValidator(check: string): Promise<StdnumValidator | null> {
     const load = COUNTRY_MODULES[country]
     if (!load) return null
     const validator = ((await load()) as Record<string, StdnumValidator | undefined>)[name]
-    return typeof validator?.validate === 'function' ? validator : null
+    if (typeof validator?.validate !== 'function') return null
+    return check === 'ar.cuit' ? acceptingDni(validator) : validator
+}
+
+// Argentina also takes a 7–8 digit DNI, as the API does; 11 digits stay a full CUIT/CUIL check.
+function acceptingDni(cuit: StdnumValidator): StdnumValidator {
+    return {
+        validate: (value) => {
+            const digits = value.replace(/\D/g, '')
+            if (digits.length === 7 || digits.length === 8) return { isValid: true }
+            return cuit.validate(digits)
+        },
+    }
 }
 
 /**
