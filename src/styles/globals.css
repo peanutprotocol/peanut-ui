@@ -2310,16 +2310,44 @@ html[data-crisp-launcher='hidden'] .crisp-client {
  * real box: stickers start under the top bar and shrink with a short hero.
  * Curves and durations are the mock's own, kept as approved.
  */
-.residence-stickers {
+.residence-hero {
     position: absolute;
     inset: 0;
     container-type: size;
+}
+/* The picture is laid out in a box centred in the hero and never much taller
+   than wide (the approved mock's hero is about square), so on a tall desktop
+   column the stickers stay around the mascot instead of at the column's ends. */
+.residence-scene {
+    position: absolute;
+    inset-inline: 0;
+    top: 50%;
+    --scene: min(100cqh, 105cqw);
+    height: var(--scene);
+    transform: translateY(-50%);
+    /* The back button and the language switcher end 3.5rem below the hero's top
+       (the hero already starts below the safe-area inset; AppShell reserves it).
+       Less of that reaches into the scene when the scene is shorter than the hero. */
+    --bar: max(0px, 3.5rem - (100cqh - var(--scene)) / 2);
+    /* The mascot's canvas, both poses: as tall as fits under the top bar, and
+       at most the mock's 80% of the width. */
+    --cv: min(var(--scene) - var(--bar) + 0.5rem, 80cqw);
+    /* A quarter of the width as in the mock, less on a short hero so that the
+       mascot stays the centre of the picture. */
+    --stk: min(25cqw, var(--cv) * 0.4, 11rem);
+}
+.residence-mascot {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    height: var(--cv);
+    aspect-ratio: 1050 / 1000;
+    transform: translateX(-50%);
+}
+.residence-stickers {
+    position: absolute;
+    inset: 0;
     pointer-events: none;
-    /* The back button and the language switcher end here. The hero box already
-       starts below the safe-area inset (AppShell reserves it), so no inset here. */
-    --bar: 3.5rem;
-    /* A quarter of the hero's width, less when the hero is too short for two stacked. */
-    --stk: min(25cqw, calc((100cqh - var(--bar)) * 0.47), 11rem);
 }
 .residence-sticker {
     position: absolute;

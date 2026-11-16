@@ -3,10 +3,13 @@ import fs from 'fs'
 import path from 'path'
 import React from 'react'
 import { act, render, screen } from '@testing-library/react'
-import { RESIDENCE_STICKER_LOAD_MS, RESIDENCE_WAVE_MS, ResidenceHero } from '../ResidenceHero'
+import { RESIDENCE_PICK_DELAY_MS, RESIDENCE_STICKER_LOAD_MS, RESIDENCE_WAVE_MS, ResidenceHero } from '../ResidenceHero'
 
 const mockFlow = { residenceCountry: '', residenceWaveDone: { current: false } }
-const mockLoadCheering = jest.fn(() => Promise.resolve({ default: {} }))
+// The cheering chunk, settled by hand like the sticker files below. A plain
+// thenable keeps the tests synchronous.
+let mockPoseLoads: (() => void)[] = []
+const mockLoadCheering = jest.fn(() => ({ then: (done: () => void) => void mockPoseLoads.push(done) }))
 const mockReducedMotion = { value: false }
 
 jest.mock('@/features/setup/SetupFlowContext', () => ({ useSetupFlowContext: () => mockFlow }))
@@ -64,13 +67,15 @@ class MockPreloadImage {
         preloads.push(this)
     }
 }
-/** Settles every pending sticker fetch; `fail` makes them errors. */
-const loadStickers = (fail = false) =>
+/** Settles every pending sticker fetch and the cheering chunk; `fail` makes the stickers errors. */
+const loadStickers = (fail = false, { pose = true } = {}) =>
     act(() => {
         const pending = preloads
         preloads = []
         pending.forEach((image) => (fail ? image.onerror : image.onload)?.())
+        if (pose) mockPoseLoads.splice(0).forEach((done) => done())
     })
+const pickerCloses = () => act(() => jest.advanceTimersByTime(RESIDENCE_PICK_DELAY_MS))
 
 describe('ResidenceHero', () => {
     let realImage: typeof window.Image
@@ -81,6 +86,7 @@ describe('ResidenceHero', () => {
         mockFlow.residenceWaveDone = { current: false }
         mockReducedMotion.value = false
         mockLoadCheering.mockClear()
+        mockPoseLoads = []
         preloads = []
         realImage = window.Image
         window.Image = MockPreloadImage as unknown as typeof window.Image
@@ -128,17 +134,20 @@ describe('ResidenceHero', () => {
         expect(stickers(container)).toEqual([])
     })
 
-    it('celebrates at once when a sticker country is picked after the wave', () => {
+    it('celebrates as soon as the picker has closed when a sticker country is picked after the wave', () => {
         mockFlow.residenceCountry = 'JP'
         const { container, rerender } = render(<ResidenceHero alt="Peanut mascot" />)
         wave()
         mockFlow.residenceCountry = 'US'
         rerender(<ResidenceHero alt="Peanut mascot" />)
-        // The mascot cheers at once; the slap waits for the three files.
-        expect(pose()).toBe('cheering')
+        loadStickers()
+        // The files are there, but the picker is still closing over the hero.
+        act(() => jest.advanceTimersByTime(RESIDENCE_PICK_DELAY_MS - 1))
+        expect(pose()).toBe('waving-hello')
         expect(stickers(container)).toEqual([])
         expect(decorations(container)).toEqual([])
-        loadStickers()
+        act(() => jest.advanceTimersByTime(1))
+        expect(pose()).toBe('cheering')
         expect(stickers(container)).toEqual([
             '/residence-stickers/us-hotdog.webp',
             '/residence-stickers/us-baseball.webp',
@@ -157,9 +166,13 @@ describe('ResidenceHero', () => {
         mockFlow.residenceCountry = 'BR'
         rerender(<ResidenceHero alt="Peanut mascot" />)
         expect(pose()).toBe('cheering')
-        // The old country's stickers leave at once; the new ones wait for their files.
+        // The old country's stickers leave at once; the new ones wait for their files
+        // and the picker, while the mascot keeps cheering.
         expect(stickers(container)).toEqual([])
         loadStickers()
+        expect(stickers(container)).toEqual([])
+        pickerCloses()
+        expect(pose()).toBe('cheering')
         expect(stickers(container)).toEqual([
             '/residence-stickers/br-brigadeiro.webp',
             '/residence-stickers/br-tucano.webp',
@@ -225,6 +238,28 @@ describe('ResidenceHero', () => {
         act(() => jest.advanceTimersByTime(RESIDENCE_STICKER_LOAD_MS - 1))
         expect(stickers(container)).toEqual([])
         act(() => jest.advanceTimersByTime(1))
+        expect(stickers(container)).toHaveLength(3)
+    })
+
+    it('keeps waving until the cheering pose has loaded, so the mascot never blanks', () => {
+        mockFlow.residenceCountry = 'AR'
+        const { container } = render(<ResidenceHero alt="Peanut mascot" />)
+        loadStickers(false, { pose: false })
+        act(() => jest.advanceTimersByTime(RESIDENCE_STICKER_LOAD_MS - 1))
+        expect(stickers(container)).toEqual([])
+        loadStickers()
+        wave()
+        expect(pose()).toBe('cheering')
+        expect(stickers(container)).toHaveLength(3)
+    })
+
+    it('draws the final state at once when a country arrives under reduced motion', () => {
+        mockReducedMotion.value = true
+        const { container, rerender } = render(<ResidenceHero alt="Peanut mascot" />)
+        expect(pose()).toBe('waving-hello')
+        mockFlow.residenceCountry = 'AR'
+        rerender(<ResidenceHero alt="Peanut mascot" />)
+        expect(pose()).toBe('cheering')
         expect(stickers(container)).toHaveLength(3)
     })
 
