@@ -41,7 +41,7 @@ export function UsernameScreen(_props: StepComponentProps) {
             footer={{
                 primary: {
                     label: ready ? t('ctaNamed', { name: value.trim() }) : t('cta'),
-                    disabled: !ready,
+                    disabled: !ready || isClaiming,
                     loading: isClaiming,
                     onClick: () => void claim(),
                     testId: 'username-claim',

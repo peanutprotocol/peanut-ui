@@ -97,6 +97,7 @@ export function InviteField({
                 <motion.span
                     key={`pop-${foundBeat}`}
                     className="mr-2 flex-none"
+                    data-testid="setup-redesign-invite-found-avatar"
                     initial={false}
                     animate={reducedMotion ? undefined : { scaleX: [1.35, 0.92, 1], scaleY: [0.8, 1.08, 1] }}
                     transition={{ duration: 0.24, delay: 0.38, ease: 'easeOut' }}

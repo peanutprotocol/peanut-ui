@@ -26,6 +26,7 @@ export function ContactCard({
     beat,
     dimmed = false,
     zIndex,
+    testId,
 }: {
     handle: string
     left: number
@@ -37,6 +38,7 @@ export function ContactCard({
     beat: number
     dimmed?: boolean
     zIndex: number
+    testId?: string
 }) {
     const { reducedMotion } = useSetupShell()
     const person = personFrom({ username: handle })
@@ -59,7 +61,11 @@ export function ContactCard({
     }, [beat, reducedMotion, swing, five, spin])
     return (
         <ArtPiece left={left} top={top} rotate={rotate} entrance="deal" delay={delay} zIndex={zIndex}>
-            <div className="transition-opacity duration-fast" style={{ opacity: dimmed ? 0.5 : 1 }}>
+            <div
+                className="transition-opacity duration-fast"
+                style={{ opacity: dimmed ? 0.5 : 1 }}
+                data-testid={testId}
+            >
                 <motion.div animate={five} className="relative">
                     <div className="flex items-center gap-2.5 rounded-sm border-2 border-border-default bg-background-default py-2.5 pr-3.5 pl-2.5 whitespace-nowrap shadow-4">
                         {person && <UserAvatar person={person} decorative className="size-11" />}

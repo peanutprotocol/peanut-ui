@@ -19,7 +19,10 @@ export function InviterSuggestions({
     onPick: (name: string, position: number) => void
 }) {
     return (
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-body-xs text-foreground-secondary signup-sm:mt-1">
+        <div
+            className="mt-2 flex flex-wrap items-center gap-2 text-body-xs text-foreground-secondary signup-sm:mt-1"
+            data-testid="setup-redesign-invite-suggestions"
+        >
             {lead && <span>{lead}</span>}
             {parts.map((part, i) =>
                 'text' in part ? (

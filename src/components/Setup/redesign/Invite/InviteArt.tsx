@@ -65,6 +65,7 @@ export function InviteArt({
             </div>
             <ContactCard
                 handle={friendHandle}
+                testId="setup-redesign-invite-friend-card"
                 left={layout.friend[0]}
                 top={layout.friend[1]}
                 rotate={layout.friend[2]}

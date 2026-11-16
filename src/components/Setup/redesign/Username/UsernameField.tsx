@@ -97,6 +97,7 @@ export function UsernameField({
                             {over && (
                                 <motion.span
                                     key={over.length}
+                                    data-testid="setup-redesign-username-overflow"
                                     className="inline-block bg-background-surface-error text-foreground-error underline decoration-2 underline-offset-4"
                                     animate={reducedMotion ? undefined : { x: [0, -3, 3, -3, 3, 0] }}
                                     transition={{ duration: 0.26, ease: 'linear' }}
