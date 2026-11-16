@@ -55,9 +55,11 @@ export function receiptProviderFee(transaction: TransactionDetails): string | un
 /**
  * Whether the conversion already happened: the entry settled, or it settled
  * and the money was sent back afterwards. Settled, the receipt states the
- * conversion; before that, it is an estimate.
+ * conversion; before that, it is an estimate. A Pix deposit given back before
+ * it was converted stays an estimate.
  */
 export function isSettledConversion(transaction: Pick<TransactionDetails, 'status' | 'extraDataForDrawer'>): boolean {
+    if (transaction.extraDataForDrawer?.returnedBeforeConversion) return false
     return (
         transaction.status === 'completed' ||
         transaction.status === 'refunded' ||
