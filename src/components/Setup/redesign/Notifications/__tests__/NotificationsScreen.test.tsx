@@ -338,7 +338,9 @@ describe('10 Notifications: control opt-out (dev ports)', () => {
     })
 
     it('"Not now" after an earlier grant saves the opt-out and turns push off', async () => {
-        const view = render({ notificationChoices: { push: true, marketingPush: false, emailUpdates: false } })
+        const view = render({
+            notificationChoices: { push: true, marketingPush: false, emailUpdates: false, cascaded: false },
+        })
         fireEvent.click(notNow(view.container))
         await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
         expect(mockSave.mock.calls).toEqual([[{ push: false }, 'new-user']])
