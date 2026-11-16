@@ -18,28 +18,7 @@ jest.mock('lottie-web/build/player/lottie_light', () => require('./landing-state
 jest.mock('@/components/Setup/components/SetupLanguageSwitcher', () =>
     require('./landing-state').languageSwitcherModule()
 )
-// P1-03: the landing must import nothing from the welcome-headline experiment (ruling 7).
-jest.mock(
-    '@/features/setup/welcomeHeadlineExperiment',
-    () => {
-        throw new Error('P1-03: the landing imported welcomeHeadlineExperiment.ts')
-    },
-    { virtual: true }
-)
-jest.mock(
-    '@/features/setup/WelcomeHeadlineExperimentProvider',
-    () => {
-        throw new Error('P1-03: the landing imported WelcomeHeadlineExperimentProvider.tsx')
-    },
-    { virtual: true }
-)
-jest.mock(
-    '@/components/Setup/components/WelcomeHeadlineTitleBlock',
-    () => {
-        throw new Error('P1-03: the landing imported WelcomeHeadlineTitleBlock.tsx')
-    },
-    { virtual: true }
-)
+// P1-03: the welcome-headline experiment's three modules are deleted, so the landing cannot import them.
 
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { LandingScreen } from '@/components/Setup/redesign/Landing/LandingScreen'
