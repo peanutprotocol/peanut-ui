@@ -3122,7 +3122,7 @@
             },
             "CARD_PIONEER": {
                 "name": "Card Pioneer",
-                "description": "One of the first people to back the Peanut Card."
+                "description": "You backed the Peanut Card from the start."
             },
             "FOUNDING_PIONEER": {
                 "name": "Founding Pioneer",
@@ -3146,7 +3146,7 @@
             },
             "CARD_CLOSED_BETA": {
                 "name": "Card Early Tester",
-                "description": "IYKYK. They were testing the card before you knew it existed."
+                "description": "IYKYK. You were testing the card before anyone knew it existed."
             },
             "CARD_ALPHA": {
                 "name": "Closed Alpha Tester",
@@ -3258,7 +3258,7 @@
             },
             "WAITLIST_SKIP": {
                 "name": "Early Pass",
-                "description": "You joined Peanut early with a pass from a friend."
+                "description": "You joined Peanut with an early pass."
             }
         },
         "toastAvatars": "{count, plural, one {# new avatar unlocked} other {# new avatars unlocked}}",

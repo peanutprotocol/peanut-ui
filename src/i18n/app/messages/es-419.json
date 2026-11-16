@@ -3121,8 +3121,8 @@
                 "description": "$1K gastados: apostaste donde estaba tu dinero."
             },
             "CARD_PIONEER": {
-                "name": "Pionero de la tarjeta",
-                "description": "Una de las primeras personas en apoyar la Peanut Card."
+                "name": "Vanguardia de la tarjeta",
+                "description": "Creíste en la Peanut Card desde el principio."
             },
             "FOUNDING_PIONEER": {
                 "name": "Pionero fundador",
@@ -3145,8 +3145,8 @@
                 "description": "Un OG de verdad. Estabas con Peanut antes de que fuera moda."
             },
             "CARD_CLOSED_BETA": {
-                "name": "Tester inicial de la tarjeta",
-                "description": "IYKYK. Probaron la tarjeta antes de que supieras que existía."
+                "name": "Antes que nadie",
+                "description": "Probaste la tarjeta antes de que nadie supiera que existía. Quien sabe, sabe."
             },
             "CARD_ALPHA": {
                 "name": "Tester del alfa cerrado",
@@ -3258,7 +3258,7 @@
             },
             "WAITLIST_SKIP": {
                 "name": "Pase anticipado",
-                "description": "Llegaste temprano a Peanut con un pase de un amigo."
+                "description": "Llegaste a Peanut con un pase anticipado."
             }
         },
         "toastAvatars": "{count, plural, one {# avatar nuevo desbloqueado} other {# avatares nuevos desbloqueados}}",
