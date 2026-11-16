@@ -195,6 +195,10 @@ export const ANALYTICS_EVENTS = {
     // is the iOS stash loss of Oct 2026 — it used to leave no trace at all.
     INVITE_ATTRIBUTION_SETTLED: 'invite_attribution_settled',
 
+    // ── Creator pages (/go/<username>) ──
+    // The view count is the engine's tracked_link_visit. Read-out: mono engineering/ui/creator-pages.md
+    CREATOR_PAGE_CTA_CLICKED: 'creator_page_cta_clicked',
+
     // ── Points / Rewards ──
     POINTS_PAGE_VIEWED: 'points_page_viewed',
     POINTS_EARNED: 'points_earned',

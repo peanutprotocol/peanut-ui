@@ -68,6 +68,9 @@ const ITEMS_TO_DISABLE = [
     // Team-only desktop web tool. force-dynamic cannot be statically exported, and
     // pruneExportedAssets() deletes /dev from the export anyway, so building it is waste.
     { path: '(mobile-ui)/dev/payment-graph', type: 'dir' },
+    // Web-only preview of the /go creator pages. A dynamic route without generateStaticParams
+    // cannot be statically exported.
+    { path: 'dev/creator-pages', type: 'dir' },
 ]
 
 module.exports = { ITEMS_TO_DISABLE }
