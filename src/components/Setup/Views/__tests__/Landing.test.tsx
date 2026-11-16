@@ -224,7 +224,7 @@ describe('Landing — recovery after a failed login (TASK-24017)', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'I’m new, create an account' }))
         expect(mockNext).toHaveBeenCalledTimes(1)
-        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_CLICKED, { welcome_variant: 'control' })
+        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_CLICKED)
         expect(recoveryActions()).toEqual(['retry', 'signup'])
     })
 
@@ -261,7 +261,7 @@ describe('Landing — test-build web sign-up', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Sign up on web' }))
 
         expect(mockNext).toHaveBeenCalledTimes(1)
-        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_CLICKED, { welcome_variant: 'control' })
+        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_CLICKED)
     })
 
     it('keeps the normal sign-up in the native app, with no test row', () => {
@@ -331,7 +331,7 @@ describe('Landing — control analytics', () => {
         await logIn()
         await waitFor(() => expect(mockLogin).toHaveBeenCalledTimes(1))
         expect(controls()).toEqual(['sign_up:tap', 'log_in:tap'])
-        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_CLICKED, { welcome_variant: 'control' })
+        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.SIGNUP_CLICKED)
     })
 
     it('reports each recovery drawer action and a dismissal', async () => {
