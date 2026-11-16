@@ -215,8 +215,8 @@ export interface HistoryEntryExtraData {
     payoutFeeUsd?: number | null
     /** The rail a Bridge payout went out on ('ach_same_day', 'wire', …). */
     payoutRail?: string | null
-    /** A settled Avenia Pix entry: every fee the providers took, in reais, sent only with
-     *  `receipt.exchange_rate`, Avenia's rate with no fee in it (peanut-api-ts#2151). */
+    /** A settled Avenia Pix entry: its flat fee in reais, sent only with `receipt.exchange_rate`,
+     *  which holds the variable fees (TASK-24967). */
     providerFeeBrl?: string | null
     /** Server-authenticated delivery proof from Rhino's BRIDGE_EXECUTED
      *  webhook. Both fields appear together and only after destination finality. */

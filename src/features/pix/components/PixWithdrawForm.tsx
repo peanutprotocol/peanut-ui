@@ -111,9 +111,9 @@ export function PixWithdrawForm({
     const [seed] = useState(amount.seed)
     // as the payment form: the holder's name leads, the key and tax ID under it; an unnamed holder leaves the key as the heading
     const details = recipient.holderName ? pixKeyOwnerDetails(recipient.pixKey, recipient.taxIdMasked) : null
-    // Avenia (the owner, 15 Nov, "Option A"): its own rate, from the review once it answers and from the
-    // minimum's quote before it, and every fee as one row once the amount on screen is reviewed; neither
-    // row when the API sends neither, never a rate worked out from the amounts
+    // Avenia: the API's rate, from the review once it answers and from the minimum's quote before it,
+    // and the flat fee row once the amount on screen is reviewed (TASK-24967); neither row when the API
+    // sends neither, never a rate worked out from the amounts
     const providerRows = showsProviderRateAndFee(providerId)
     const reviewedPair = display ? pixRateAndFee(display) : null
     const rate = providerRows

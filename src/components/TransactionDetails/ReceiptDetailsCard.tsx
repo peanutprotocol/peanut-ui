@@ -118,7 +118,7 @@ export function ReceiptDetailsCard({
 
     const convertedAmount = receiptConvertedAmount(transaction)
     const exchangeRate = receiptExchangeRate(transaction)
-    // Avenia: every fee as one row beside its rate (the owner, 15 Nov, "Option A")
+    // Avenia: the flat fee as its own row beside the rate, the variable fees inside it (TASK-24967)
     const providerFee = receiptProviderFee(transaction)
 
     const feeDisplay = transaction.fee !== undefined ? formatBankAmount(transaction.fee, 'USD') : 'N/A'

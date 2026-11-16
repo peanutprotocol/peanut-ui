@@ -23,9 +23,9 @@ const display = {
     withdrawUsd: '92.504310',
     rate: '5.445692',
     fixedFeeBrl: '0.75',
-    // Avenia's own rate and every fee: 92.504310 × 5.46 − 2.07 = R$503.00
-    exchangeRate: '5.460000',
-    providerFeeBrl: '2.07',
+    // the variable fees in the rate, the flat fee as the row: 92.504310 × 5.445692 − 0.75 = R$503.00
+    exchangeRate: '5.445692',
+    providerFeeBrl: '0.75',
     arrivalEstimateSeconds: 60,
     provider: 'Avenia' as const,
 }
@@ -34,7 +34,7 @@ const save = { savedName: null, isOffered: false, checked: false, nickname: '', 
 const amount = {
     seed: { amount: '503', denomination: 'BRL' as const },
     price: 5.4,
-    // the minimum's quote: Avenia's rate, and a fee that is not the user's
+    // the minimum's quote: its rate, and a fee that is not the user's
     rateAndFee: { exchangeRate: 5.37, providerFeeBrl: '0.98' },
     isLoading: false,
     isError: false,
@@ -72,21 +72,20 @@ const renderForm = (props: Partial<Parameters<typeof PixWithdrawForm>[0]> = {}) 
 
 describe('PixWithdrawForm', () => {
     // the Pix-key payment form, with the withdrawal's lead word and button (ruling 2026-11-12)
-    it('leads with Withdrawing, the holder, their CPF and bank; then Avenia’s rate, the sponsored Peanut fee, every provider fee as one row, the exact total and the provider', () => {
+    it('leads with Withdrawing, the holder, their CPF and bank; then the rate, the sponsored Peanut fee, the flat provider fee, the exact total and the provider', () => {
         renderForm()
         expect(screen.getByText(en.pix.withdraw.withdrawing)).toBeInTheDocument()
         expect(screen.getByText('Ana Souza')).toBeInTheDocument()
         // a CPF key is the holder's own tax ID: shown once, punctuated
         expect(screen.getByText('CPF 111.444.777-35')).toBeInTheDocument()
         expect(screen.getByText('Banco Inter')).toBeInTheDocument()
-        // Avenia's own rate, no fee in it (the owner, 15 Nov, "Option A"); not the all-in 5.45
-        expect(screen.getByText('1 USD = 5.46 BRL')).toBeInTheDocument()
+        // the review's rate, the variable fees inside (TASK-24967)
+        expect(screen.getByText('1 USD = 5.45 BRL')).toBeInTheDocument()
         expect(screen.getByText(en.common.peanutFee)).toBeInTheDocument()
         expect(screen.getByText(en.common.sponsoredByPeanut)).toBeInTheDocument()
         expect(screen.getByText(en.pix.withdraw.fee)).toBeInTheDocument()
-        // every fee, not the flat R$0.75 alone
-        expect(screen.getByText('R$2.07')).toBeInTheDocument()
-        expect(screen.queryByText('R$0.75')).toBeNull()
+        // the flat fee alone
+        expect(screen.getByText('R$0.75')).toBeInTheDocument()
         // the exact wallet debit the quote names, as the removed review showed it
         expect(screen.getByText(en.withdraw.confirm.youPay)).toBeInTheDocument()
         expect(screen.getByText('$92.50')).toBeInTheDocument()
