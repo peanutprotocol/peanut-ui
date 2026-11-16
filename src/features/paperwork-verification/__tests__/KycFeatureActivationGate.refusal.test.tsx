@@ -50,7 +50,7 @@ it('bank with no currency: names the duplicate and offers support', () => {
             <div>bank flow</div>
         </KycFeatureActivationGate>
     )
-    expect(screen.getByText('Do you have another account?')).toBeInTheDocument()
+    expect(screen.getByText('Already have an account?')).toBeInTheDocument()
     expect(
         screen.getByText(
             'Your details are already linked to another Peanut account. If you can, log in and use that account, otherwise contact support.'
@@ -68,7 +68,7 @@ it('one currency asks about the other account too', () => {
             <div>bank flow</div>
         </KycFeatureActivationGate>
     )
-    expect(screen.getByText('Do you have another account?')).toBeInTheDocument()
+    expect(screen.getByText('Already have an account?')).toBeInTheDocument()
     expect(screen.queryByText('We cannot open a USD account')).toBeNull()
     expect(screen.getByText(messages.identity.reasons.duplicate_customer_detected)).toBeInTheDocument()
 })

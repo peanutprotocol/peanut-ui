@@ -146,7 +146,7 @@ describe('a corridor Bridge refused for good', () => {
 
     it('asks a duplicate customer about the other account', () => {
         renderFlow(flowProps({ gate: refused('duplicate_customer_detected'), withTerms: false }))
-        expect(screen.getByRole('heading', { name: 'Do you have another account?' })).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: 'Already have an account?' })).toBeInTheDocument()
         expect(drawer()).toHaveTextContent(messages.identity.reasons.duplicate_customer_detected)
         expect(screen.getByTestId('corridor-gate-support')).toHaveTextContent(GATE.supportCta)
     })

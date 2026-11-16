@@ -5337,7 +5337,7 @@
             "waitBody": "Nothing for you to do. This page updates by itself.",
             "blockedTitle": "We cannot open a {currency} account",
             "blockedTitleAll": "We cannot open your bank accounts",
-            "duplicateTitle": "Do you have another account?",
+            "duplicateTitle": "Already have an account?",
             "supportCta": "Contact support",
             "emailTitle": "We need an email address",
             "emailBody": "Your identity is verified. We never got an email address to pass on, so the account cannot be opened until you add one.",
