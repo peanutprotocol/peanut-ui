@@ -15,11 +15,10 @@ import { savePaperworkVerificationFeatures } from '@/app/actions/kyc-paperwork-v
 import { RESIDENCE_RESTRICTION_SETS } from '@/test-utils/residenceRestrictions.fixture'
 import { VerifySetupPrelude } from '../components/VerifySetupPrelude'
 
-jest.mock('@/components/Setup/components/SetupWrapper', () => ({
-    useSetupFullScreen: jest.fn(),
-    SetupWrapper: ({ title, onBack, children }: { title?: ReactNode; onBack?: () => void; children: ReactNode }) => (
+jest.mock('@/components/Setup/components/SetupWrapper', () => ({ useSetupFullScreen: jest.fn() }))
+jest.mock('@/components/Setup/redesign/shell/SetupShell', () => ({
+    SetupShell: ({ onBack, children }: { onBack?: () => void; children: ReactNode }) => (
         <div>
-            {title && <h2>{title}</h2>}
             <button onClick={onBack}>setup-back</button>
             {children}
         </div>

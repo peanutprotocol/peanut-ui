@@ -1,5 +1,5 @@
 /** @jest-environment jsdom */
-import { StrictMode, type ReactNode } from 'react'
+import { StrictMode } from 'react'
 import { renderWithIntl } from '@/test-utils/intl'
 import posthog from 'posthog-js'
 import FinishSetupPage from '../page'
@@ -9,9 +9,6 @@ jest.mock('@/features/setup/SetupFlowContext', () => ({
     useSetupFlowContext: () => ({ signupEntryFlow: 'card' }),
 }))
 jest.mock('@/hooks/useBackHandler', () => ({ useBackHandler: jest.fn() }))
-jest.mock('@/components/Setup/components/SetupWrapper', () => ({
-    SetupWrapper: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-}))
 jest.mock('@/components/Setup/Views/SignTestTransaction', () => ({
     __esModule: true,
     default: () => <button>Confirm and finish</button>,

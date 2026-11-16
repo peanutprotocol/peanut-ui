@@ -132,8 +132,8 @@ jest.mock('@/hooks/useGetDeviceType', () => ({
     useDeviceType: () => ({ deviceType: 'android' }),
 }))
 jest.mock('@/hooks/usePullToRefresh', () => ({ usePullToRefresh: jest.fn(), useShouldPullToRefresh: () => false }))
-jest.mock('@/components/Setup/components/SetupWrapper', () => ({
-    SetupWrapper: ({ screenId, showBackButton }: { screenId: string; showBackButton?: boolean }) => (
+jest.mock('@/components/Setup/redesign/shell/SetupShell', () => ({
+    SetupShell: ({ screenId, showBackButton }: { screenId: string; showBackButton?: boolean }) => (
         <div>
             <span data-testid="page-screen">{screenId}</span>
             {showBackButton && <button>Go back</button>}

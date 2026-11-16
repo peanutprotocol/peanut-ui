@@ -176,8 +176,8 @@ jest.mock('@/components/Setup/setup-entry', () => ({
     hasKnownDeviceCredentials: () => false,
     resolveSetupEntryStep: (...args: unknown[]) => mockResolve(...args),
 }))
-jest.mock('@/components/Setup/components/SetupWrapper', () => ({
-    SetupWrapper: ({
+jest.mock('@/components/Setup/redesign/shell/SetupShell', () => ({
+    SetupShell: ({
         children,
         showLogoutButton,
         showBackButton,

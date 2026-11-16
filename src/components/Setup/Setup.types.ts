@@ -66,7 +66,8 @@ export interface StepComponentProps {
 export interface ISetupStep {
     screenId: ScreenId
     layoutType: LayoutType
-    image: SetupIllustration
+    /** Hero for the old SetupWrapper chrome; the redesigned screens draw their own (redesign/shell). */
+    image?: SetupIllustration
     /** Full-page checklist or final confirmation, without the split illustration hero. */
     fullScreen?: boolean
     component: React.ComponentType<StepComponentProps>

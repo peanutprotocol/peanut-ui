@@ -36,8 +36,8 @@ import { SetupConfirmationView } from '@/components/Setup/Views/SignTestTransact
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { SetupNotificationsPrompt } from '@/components/Notifications/SetupNotificationsModal'
 import { setupScreenIds, setupSteps } from '@/components/Setup/Setup.consts'
-import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
-import { useSetupStepCopy } from '@/components/Setup/useSetupStepCopy'
+import { SetupShell } from '@/components/Setup/redesign/shell/SetupShell'
+import { NO_DOT_SCREENS } from '@/components/Setup/redesign/shell/shell.consts'
 import type { ScreenId } from '@/components/Setup/Setup.types'
 import type { SetupFundingChannel, SetupPaymentChannel } from '@/features/setup/paymentChannels'
 
@@ -109,16 +109,15 @@ import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestr
 import { buildResidenceCountryOptions } from '@/utils/residence-options'
 
 /**
- * A setup step exactly as /setup renders it — SetupWrapper driven by the step's
- * own entry in Setup.consts, so the hero, clouds, title, back/skip and progress
- * are the app's, not the harness's. Mounting the view bare (which this harness
+ * A setup step exactly as /setup renders it — SetupShell around the step's own
+ * entry in Setup.consts, so the stage, title, back and progress dots are the
+ * app's, not the harness's. Mounting the view bare (which this harness
  * did first) drops all of that and photographs a naked form.
  */
 function SetupScreen({
     screenId,
     children,
     showProgress = true,
-    forceFullScreen = false,
     residenceCountry,
     nationalityCountry,
     username,
@@ -128,7 +127,6 @@ function SetupScreen({
     screenId: ScreenId
     children?: React.ReactNode
     showProgress?: boolean
-    forceFullScreen?: boolean
     residenceCountry?: string
     nationalityCountry?: string
     username?: string
@@ -140,7 +138,6 @@ function SetupScreen({
             <SetupScreenBody
                 screenId={screenId}
                 showProgress={showProgress}
-                forceFullScreen={forceFullScreen}
                 residenceCountry={residenceCountry}
                 nationalityCountry={nationalityCountry}
                 username={username}
@@ -156,7 +153,6 @@ function SetupScreenBody({
     screenId,
     children,
     showProgress = true,
-    forceFullScreen = false,
     residenceCountry,
     nationalityCountry,
     username,
@@ -166,7 +162,6 @@ function SetupScreenBody({
     screenId: ScreenId
     children?: React.ReactNode
     showProgress?: boolean
-    forceFullScreen?: boolean
     residenceCountry?: string
     nationalityCountry?: string
     username?: string
@@ -211,7 +206,6 @@ function SetupScreenBody({
         currentPayment,
     ])
     const step = setupSteps.find((entry) => entry.screenId === screenId)
-    const stepCopy = useSetupStepCopy(step)
     if (
         !step ||
         (residenceCountry && currentResidence !== residenceCountry) ||
@@ -222,22 +216,16 @@ function SetupScreenBody({
     )
         return null
     const View = step.component
+    const dotSteps = setupSteps.filter((entry) => !NO_DOT_SCREENS.includes(entry.screenId))
+    const dotIndex = dotSteps.indexOf(step)
     return (
-        <SetupWrapper
-            fullScreen={forceFullScreen || step.fullScreen}
-            showProgress={showProgress}
-            layoutType={step.layoutType}
+        <SetupShell
             screenId={step.screenId}
-            image={step.image}
-            {...stepCopy}
             showBackButton={step.showBackButton}
-            showSkipButton={step.showSkipButton}
-            imageClassName={step.imageClassName}
-            contentClassName={step.contentClassName}
-            step={setupSteps.indexOf(step)}
+            progress={showProgress && dotIndex >= 0 ? { index: dotIndex, total: dotSteps.length } : null}
         >
             {children ?? <View />}
-        </SetupWrapper>
+        </SetupShell>
     )
 }
 
@@ -844,7 +832,7 @@ export const SURFACES: Record<string, Surface> = {
     '07-e-setup-celebration': {
         ...SURFACE_META['07-e-setup-celebration'],
         render: () => (
-            <SetupScreen screenId="advantage-control" showProgress={false} forceFullScreen>
+            <SetupScreen screenId="advantage-control" showProgress={false}>
                 <SetupCelebrationView />
             </SetupScreen>
         ),
