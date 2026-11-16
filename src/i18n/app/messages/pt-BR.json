@@ -4389,7 +4389,7 @@
             "identity_document_missing": "Precisamos de um documento de identidade e uma selfie para concluir sua verificação.",
             "document_country_unsupported": "Isso exige um documento de identidade emitido pelo país onde você mora. Verifique novamente com esse documento.",
             "card_unavailable_for_verification": "Indisponível com a verificação atual",
-            "local_tax_id_missing": "Precisa de um número fiscal: CPF no Brasil, CUIT ou CUIL na Argentina",
+            "local_tax_id_missing": "Precisa de um número fiscal: CPF no Brasil, CUIT, CUIL ou DNI na Argentina",
             "under_minimum_age": "Somente a partir de 18 anos",
             "bridge_processing_slow": "Está demorando mais que o normal. Nosso parceiro de pagamentos ainda está analisando seus dados. Fale com o suporte e a gente confere.",
             "questions_missing": "Responda mais uma pergunta para terminar de configurar."
