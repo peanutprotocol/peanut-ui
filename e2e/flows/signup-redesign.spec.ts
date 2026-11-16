@@ -9,8 +9,8 @@
  * - The real WebAuthn ceremony in Chromium: a CDP virtual authenticator (`WebAuthn.addVirtualAuthenticator`) creates
  *   and signs with a P-256 credential, so the ZeroDev key import, the cancel path (user not verified) and the retry
  *   run the app's own code.
- * - Every request the app makes, from the browser and from Next server actions, reaches one recording stub, so a
- *   check can say "the API saw the residence once, after registration".
+ * - Every API request the page makes reaches one recording stub (routed in the page, whatever API host the build
+ *   bakes in), so a check can say "the API saw the residence once, after registration".
  *
  * WHAT IT DOES NOT PROVE
  * - That an account exists: the passkey server, the API, the database and the ZeroDev bundler are stubs. The stub
@@ -20,26 +20,24 @@
  * - Native passkey sheets (iOS, Android app), the OS notification prompt and the 15-second entry failure.
  * Real account creation is checked on staging and on a phone (DELIVERY-PLAN risk 3).
  *
- * HOW TO RUN (one worker; the stub is one process-wide server):
- *   NEXT_PUBLIC_VERCEL_ENV=preview NEXT_PUBLIC_PEANUT_API_URL=https://api.e2e.invalid \
- *     NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL=https://bundler.e2e.invalid/rpc \
- *     NEXT_PUBLIC_ZERO_DEV_PAYMASTER_URL=https://paymaster.e2e.invalid/rpc npm run build
- *   PEANUT_API_URL=http://127.0.0.1:3096 npx next start -p 3086 &   # server actions call the stub
- *   SIGNUP_STUB_PORT=3096 REGRESSION_PORT=3086 npx playwright test -c playwright.regression.config.ts \
- *     signup-redesign --workers=1
- * Without SIGNUP_STUB_PORT every journey is skipped: the Next server must use the stub as its API, which a plain
- * `test:e2e:regression` run does not arrange. mono _temp/signup-redesign/r2/r9/build/gate/gate.sh does.
+ * HOW TO RUN (one worker: the stub is one module-level object)
+ *   NEXT_PUBLIC_VERCEL_ENV=preview npm run build && npm run test:e2e:regression -- signup-redesign --workers=1
+ * The last step signs a UserOp through the ZeroDev bundler. A build without NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL stops it
+ * at setup-failed, so 11 → 12 is checked only with SIGNUP_E2E_STUB_BUNDLER=1 and a build whose bundler and paymaster
+ * URLs point at any host this spec routes, as mono _temp/signup-redesign/r2/r9/build/gate/gate.sh does:
+ *   NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL=https://bundler.e2e.invalid/rpc \
+ *   NEXT_PUBLIC_ZERO_DEV_PAYMASTER_URL=https://paymaster.e2e.invalid/rpc
  */
 
 import { expect, test, type BrowserContext, type CDPSession, type Page, type Route } from '@playwright/test'
-import { createServer, type IncomingMessage, type Server } from 'node:http'
 import { randomBytes } from 'node:crypto'
 import en from '../../src/i18n/app/messages/en.json'
 import esAR from '../../src/i18n/app/messages/es-AR.json'
 import es419 from '../../src/i18n/app/messages/es-419.json'
 import { KEEP_WEB_COOKIE, KEEP_WEB_TOKEN } from '../../src/constants/migration.consts'
 
-const STUB_PORT = Number(process.env.SIGNUP_STUB_PORT ?? 0)
+/** The build sends the bundler to a host the spec answers, so the last step can sign and finish (see header). */
+const STUB_BUNDLER = !!process.env.SIGNUP_E2E_STUB_BUNDLER
 
 // ---------------------------------------------------------------------------------------------------------------
 // Copy: the catalog strings the screens render, so a check reads like the screen.
@@ -68,12 +66,11 @@ function copy(locale: Locale, key: string, values: Record<string, string> = {}):
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// The recording API stub: one answer table for the browser's calls (routed in-page) and the server actions' calls
-// (Next's PEANUT_API_URL points at the HTTP server below).
+// The recording API stub: one answer table for every API call the page makes (routed in the page).
 // ---------------------------------------------------------------------------------------------------------------
 
 type Recorded = {
-    origin: 'browser' | 'server'
+    origin: 'browser'
     method: string
     path: string
     body: unknown
@@ -278,22 +275,6 @@ class SignupStub {
 const b64url = (bytes: Buffer) => bytes.toString('base64url')
 
 const stub = new SignupStub()
-let server: Server | undefined
-
-function readBody(req: IncomingMessage): Promise<unknown> {
-    return new Promise((resolve) => {
-        const chunks: Uint8Array[] = []
-        req.on('data', (chunk: Uint8Array) => chunks.push(chunk))
-        req.on('end', () => {
-            const text = Buffer.concat(chunks).toString('utf8')
-            try {
-                resolve(text ? JSON.parse(text) : undefined)
-            } catch {
-                resolve(text)
-            }
-        })
-    })
-}
 
 // ---------------------------------------------------------------------------------------------------------------
 // Chain RPC and the ZeroDev bundler: just enough for a counterfactual kernel account and one sponsored UserOp.
@@ -685,10 +666,15 @@ async function emailToFinal(page: Page, locale: Locale, email: string) {
 }
 
 async function confirmAndCelebrate(page: Page, locale: Locale, state: 'default' | 'claim-link' = 'default') {
+    if (!STUB_BUNDLER) {
+        test.info().annotations.push({ type: 'not checked', description: '11 → 12: no stub bundler in this build' })
+        return false
+    }
     await primary(page, copy(locale, 'setupRedesign.final.cta')).click()
     await expectScreen(page, 'advantage-control', state, 45_000)
     const title = copy(locale, state === 'claim-link' ? 'setupRedesign.done.claimTitle' : 'setupRedesign.done.title')
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(title)
+    return true
 }
 
 /** The three POSTs that turn a reserved name into an account, in order, for this username. */
@@ -705,22 +691,8 @@ function expectRegistered(username: string) {
 // ---------------------------------------------------------------------------------------------------------------
 
 test.describe('sign-up redesign journeys', () => {
-    test.skip(!STUB_PORT, 'needs SIGNUP_STUB_PORT and a Next server whose PEANUT_API_URL is that stub (see header)')
     test.describe.configure({ mode: 'default', retries: 0, timeout: 180_000 })
 
-    test.beforeAll(async () => {
-        server = createServer(async (req, res) => {
-            const body = await readBody(req)
-            const headers = Object.fromEntries(Object.entries(req.headers).map(([k, v]) => [k, String(v)]))
-            const answer = await stub.handle('server', req.method ?? 'GET', req.url ?? '/', body, headers)
-            res.writeHead(answer.status, { 'content-type': 'application/json', ...answer.headers })
-            res.end(req.method === 'HEAD' ? undefined : JSON.stringify(answer.json ?? {}))
-        })
-        await new Promise<void>((resolve) => server!.listen(STUB_PORT, '127.0.0.1', resolve))
-    })
-    test.afterAll(async () => {
-        await new Promise<void>((resolve) => (server ? server.close(() => resolve()) : resolve()))
-    })
     test.beforeEach(() => stub.reset())
     test.afterEach(async ({ page }, testInfo) => {
         // what the stub saw and could not answer is the first thing to read when a journey fails
@@ -774,10 +746,11 @@ test.describe('sign-up redesign journeys', () => {
                         .seen('POST', '/update-user')
                         .some((r) => (r.body as { email?: string })?.email === `${username}@gmail.com`)
                 ).toBe(true)
-                await confirmAndCelebrate(page, run.locale)
-                expect(stub.seen('RPC', /eth_sendUserOperation/), 'P4-50: one account-completion UserOp').toHaveLength(
-                    1
-                )
+                if (await confirmAndCelebrate(page, run.locale))
+                    expect(
+                        stub.seen('RPC', /eth_sendUserOperation/),
+                        'P4-50: one account-completion UserOp'
+                    ).toHaveLength(1)
             })
         })
     }
@@ -886,7 +859,7 @@ test.describe('sign-up redesign journeys', () => {
             await inviteSkip(page, 'en')
             await createPasskey(page, 'en')
             await emailToFinal(page, 'en', 'luckyotter@gmail.com')
-            await confirmAndCelebrate(page, 'en', 'claim-link')
+            if (!(await confirmAndCelebrate(page, 'en', 'claim-link'))) return
             await expect(page.getByText(copy('en', 'setupRedesign.done.claimGoing'))).toBeVisible()
             await expect.poll(() => new URL(page.url()).pathname, { timeout: 15_000 }).toBe('/claim')
         })

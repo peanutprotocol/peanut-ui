@@ -2215,14 +2215,30 @@ const SETUP_REDESIGN_FIXTURES: Record<string, Fixture> = {
     'setup-redesign-invite-default': setupRedesign('invite', '04 Invite: empty field, Skip under Continue.'),
     'setup-redesign-invite-typing': setupRedesign('invite', '04 Invite: a short value, no lookup yet.'),
     'setup-redesign-invite-checking': setupRedesign('invite', '04 Invite: the lookup is in flight.'),
-    'setup-redesign-invite-found': setupRedesign('invite-found', '04 Invite: @fulano found, Continue on.'),
-    'setup-redesign-invite-not-found': setupRedesign('invite', '04 Invite: nobody by that name.'),
+    'setup-redesign-invite-found': setupRedesign('invite-found', '04 Invite: @fulano found, Continue on.', {
+        responses: {
+            'POST /invites/validate': {
+                success: true,
+                username: 'fulano',
+                attributionResolved: true,
+                onboardingResolved: true,
+            },
+        },
+    }),
+    'setup-redesign-invite-not-found': setupRedesign('invite', '04 Invite: nobody by that name.', {
+        rejects: { 'POST /invites/validate': { status: 404, body: { error: 'Invite not found' } } },
+    }),
     'setup-redesign-invite-not-found-two': setupRedesign(
         'invite',
-        '04 Invite: not found with two suggestions (flag on).'
+        '04 Invite: not found with two suggestions (flag on).',
+        {
+            rejects: { 'POST /invites/validate': { status: 404, body: { error: 'Invite not found' } } },
+        }
     ),
     'setup-redesign-invite-self': setupRedesign('invite', '04 Invite: the person typed their own username.'),
-    'setup-redesign-invite-check-failed': setupRedesign('invite', '04 Invite: the lookup failed.'),
+    'setup-redesign-invite-check-failed': setupRedesign('invite', '04 Invite: the lookup failed.', {
+        fails: ['POST /invites/validate'],
+    }),
     'setup-redesign-invite-continuing': setupRedesign('invite', '04 Invite: Continue tapped, the step advances.'),
 
     'setup-redesign-accounts-default': setupRedesign('accounts', '05 Accounts: USD and EUR bank details.'),
@@ -2273,8 +2289,14 @@ const SETUP_REDESIGN_FIXTURES: Record<string, Fixture> = {
     'setup-redesign-email-default': setupRedesign('email', '09 Email: empty field, Continue off.'),
     'setup-redesign-email-filled': setupRedesign('email-filled', '09 Email: a valid address, Continue on.'),
     'setup-redesign-email-invalid': setupRedesign('email', '09 Email: an address without a domain, after blur.'),
-    'setup-redesign-email-already-registered': setupRedesign('email-filled', '09 Email: the address has an account.'),
-    'setup-redesign-email-save-failed': setupRedesign('email-filled', '09 Email: the save failed, Continue retries.'),
+    'setup-redesign-email-already-registered': setupRedesign('email-filled', '09 Email: the address has an account.', {
+        rejects: {
+            'POST /update-user': { status: 409, body: { code: 'EMAIL_IN_USE', message: 'Email already in use' } },
+        },
+    }),
+    'setup-redesign-email-save-failed': setupRedesign('email-filled', '09 Email: the save failed, Continue retries.', {
+        fails: ['POST /update-user'],
+    }),
     'setup-redesign-email-saving': setupRedesign('email-filled', '09 Email: the save is in flight.'),
     'setup-redesign-email-not-ready': setupRedesign('email-filled', '09 Email: Continue before the account loaded.'),
     'setup-redesign-email-kept-current': setupRedesign('email-filled', '09 Email: the change needs a verification.'),
