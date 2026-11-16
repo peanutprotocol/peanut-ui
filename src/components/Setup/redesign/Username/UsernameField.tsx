@@ -48,6 +48,7 @@ export function UsernameField({
     onBlur,
     onClear,
     onRoll,
+    onSubmit,
 }: {
     value: string
     kind: UsernameKind
@@ -61,6 +62,8 @@ export function UsernameField({
     onBlur: () => void
     onClear: () => void
     onRoll: () => void
+    /** Enter or the keyboard's Go key: the screen's primary button, which decides whether it is on. */
+    onSubmit: () => void
 }) {
     const t = useTranslations('setupRedesign.username')
     const { reducedMotion } = useSetupShell()
@@ -134,6 +137,12 @@ export function UsernameField({
                     value={rolling ? '' : value}
                     readOnly={rolling}
                     onChange={(event) => onInput(event.target.value)}
+                    onKeyDown={(event) => {
+                        if (event.key !== 'Enter' || event.nativeEvent.isComposing) return
+                        event.preventDefault()
+                        onSubmit()
+                    }}
+                    enterKeyHint="go"
                     onScroll={syncMirror}
                     onSelect={syncMirror}
                     onFocus={onFocus}

@@ -112,6 +112,10 @@ export function InviteScreen(_props: StepComponentProps) {
                 reducedMotion={reducedMotion}
                 onChange={onChange}
                 onClear={onClear}
+                // as the Continue button: only while it is on (review R2-10)
+                onSubmit={() => {
+                    if (canContinue) void onContinue()
+                }}
             />
             <div className="mt-1 flex min-h-5 items-center text-body-xs" aria-live="polite">
                 <motion.div
