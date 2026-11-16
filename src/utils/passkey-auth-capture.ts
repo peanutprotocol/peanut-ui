@@ -84,6 +84,18 @@ export class PasskeyOptionsFailedError extends Error {
     }
 }
 
+/**
+ * The API rate-limited a passkey request (429). Its body names no reason, so the
+ * status is the signal. Nothing was authenticated, so the user only has to wait;
+ * the window can be up to an hour (signup verify cap), so the copy names no duration.
+ */
+export class PasskeyRateLimitedError extends Error {
+    constructor(path: string) {
+        super(`Passkey ${path} was rate limited`)
+        this.name = 'PasskeyRateLimitedError'
+    }
+}
+
 function errorCodeOf(body: string): unknown {
     try {
         return (JSON.parse(body) as { error?: unknown } | null)?.error
@@ -238,6 +250,8 @@ export function installPasskeyVerifyCapture(): void {
                 ) {
                     loginRetryError = new PasskeyVerifyRetryableError(response.status, retryAt(response))
                     failure = loginRetryError
+                } else if (response.status === 429) {
+                    failure = new PasskeyRateLimitedError(passkeyPath)
                 } else if (passkeyPath.endsWith('/options')) {
                     failure = new PasskeyOptionsFailedError(passkeyPath, response.status)
                 }

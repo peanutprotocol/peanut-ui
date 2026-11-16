@@ -4,6 +4,7 @@ import {
     installPasskeyVerifyCapture,
     PasskeyAccountDeletedError,
     PasskeyOptionsFailedError,
+    PasskeyRateLimitedError,
     PasskeyVerifyRejectedError,
     getLoginRetryError,
 } from '../passkey-auth-capture'
@@ -153,6 +154,19 @@ describe('installPasskeyVerifyCapture', () => {
 
             await expect(pending).rejects.toBeInstanceOf(PasskeyOptionsFailedError)
             await expect(pending).rejects.toMatchObject({ status: 500 })
+        }
+    )
+
+    // login/verify 429 keeps its retry window (PasskeyVerifyRetryableError), tested below
+    it.each(['/passkeys/login/options', '/passkeys/register/options', '/passkeys/register/verify'])(
+        'surfaces a 429 from %s as rate limited, not a server or login failure (TASK-22431)',
+        async (path) => {
+            mockUnderlyingFetch.mockResolvedValueOnce(jsonResponse({ error: 'An unexpected error occurred' }, 429))
+
+            const pending = window.fetch(`https://api.peanut.me${path}`, { method: 'POST' })
+
+            await expect(pending).rejects.toBeInstanceOf(PasskeyRateLimitedError)
+            expect(stashCeremonyVerifyToken).not.toHaveBeenCalled()
         }
     )
 

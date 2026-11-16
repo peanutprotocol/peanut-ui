@@ -99,6 +99,54 @@ it('shows existing ARS provisioning without starting paperwork when QR already w
     expect(result.current.allowed).toBe(true)
 })
 
+// TASK-24968: the bank screen of a verify-once user Bridge refused as a duplicate.
+it('bank refused for good shows the refusal from the report and never activates', async () => {
+    const refused = {
+        state: 'refused',
+        reason: 'duplicate_customer_detected',
+        message: 'Linked to another account',
+        action: 'contact-support:bridge-duplicate',
+    }
+    jest.mocked(useAuth).mockReturnValue({
+        user: {
+            user: { userId: 'a' },
+            identityVerification: { oneShot: true, status: 'verified' },
+            capabilities: {
+                features: { bank: { ...refused, accounts: { USD: refused } } },
+                nextActions: [
+                    {
+                        key: 'contact-support:bridge-duplicate',
+                        kind: 'contact-support',
+                        purpose: 'bridge-duplicate-review',
+                    },
+                ],
+            },
+        },
+    } as unknown as ReturnType<typeof useAuth>)
+    const { result } = renderActivation(() => useKycFeatureActivation('bank'))
+    expect(result.current.allowed).toBe(false)
+    expect(result.current.selectedStatus).toEqual({ ...refused, accounts: { USD: refused } })
+    await flush()
+    expect(activateKycFeature).not.toHaveBeenCalled()
+})
+
+it('a bank refusal without a support action still asks the activation route', async () => {
+    jest.mocked(useAuth).mockReturnValue({
+        user: {
+            user: { userId: 'a' },
+            identityVerification: { oneShot: true, status: 'verified' },
+            capabilities: {
+                features: { bank: { state: 'refused', reason: 'geo-blocked', accounts: {} } },
+                nextActions: [],
+            },
+        },
+    } as unknown as ReturnType<typeof useAuth>)
+    const { result } = renderActivation(() => useKycFeatureActivation('bank'))
+    expect(result.current.selectedStatus).toBeUndefined()
+    await flush()
+    expect(activateKycFeature).toHaveBeenCalledTimes(1)
+})
+
 it.each(['on', 'ready'])('starts blocked and allows a confirmed %s report', async (state) => {
     const request = deferred()
     jest.mocked(activateKycFeature).mockReturnValue(request.promise)

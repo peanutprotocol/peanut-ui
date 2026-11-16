@@ -1164,6 +1164,7 @@
             "settling": "La última solicitud de passkey todavía se está cerrando. Espera unos segundos e inténtalo de nuevo.",
             "stillOpen": "La última solicitud de passkey sigue abierta en este teléfono. Cierra cualquier ventana de passkey e inténtalo de nuevo. Si sigue pasando, cierra y vuelve a abrir la app.",
             "serverUnreachable": "No pudimos conectar con los servidores de Peanut. Revisa tu conexión e inténtalo de nuevo.",
+            "rateLimited": "Demasiados intentos. Espera un momento y vuelve a intentarlo.",
             "accountDeleted": "Esta cuenta fue eliminada. Regístrate para crear una nueva.",
             "accountDeletedChooseUsername": "Esta cuenta fue eliminada. Elige otro nombre de usuario para crear una nueva.",
             "usernameTaken": "Este nombre de usuario no está disponible ahora. Si ya te registraste con él en este dispositivo, tu passkey está lista: solo inicia sesión.",
@@ -4367,7 +4368,7 @@
             "invalid_bank_postal_code": "No pudimos usar el código postal de tu domicilio verificado.",
             "terminal_rejection": "Problema de verificación: contacta a soporte para recibir ayuda.",
             "bridge_terminal_rejection": "Nuestro socio de pagos no aprobó las transferencias bancarias para esta cuenta, y Peanut no puede cambiar esa decisión. Tus fondos en Peanut no se ven afectados. Si crees que es un error, escribe a soporte.",
-            "duplicate_customer_detected": "Nuestro socio de pagos marcó tu cuenta como posible duplicado. Escríbele a soporte para verificarla y desbloquearla.",
+            "duplicate_customer_detected": "Tus datos ya están vinculados a otra cuenta de Peanut, así que Bridge, nuestro proveedor de cuentas, no puede abrir cuentas bancarias en esta. Si la otra cuenta es tuya, inicia sesión en ella o contacta a soporte.",
             "duplicate_account": "Tu correo o tu documento ya está vinculado a otra cuenta de Peanut, así que no podemos terminar de configurar esta. Si la otra cuenta es tuya, inicia sesión en ella. Si no, contacta a soporte y lo resolvemos.",
             "imported_identity_rejected": "Nuestro socio de pagos no pudo verificar el documento de tu verificación anterior. Necesita un documento de identidad oficial vigente y puede pedirte también un comprobante de domicilio. Escríbele a soporte y nos encargamos del resto.",
             "region_block": "La Peanut Card todavía no está disponible en tu región.",
@@ -4448,7 +4449,10 @@
         },
         "qrScanner": {
             "scanToPay": "Escanea para pagar",
-            "clickToPaste": "Toca para pegar",
+            "paste": "Pegar",
+            "pastePixCode": "Pegar código Pix",
+            "pasteAddress": "Pegar dirección",
+            "supportedQrCodes": "Códigos QR compatibles",
             "clipboardEmpty": "El portapapeles está vacío",
             "clipboardUnavailable": "No se pudo acceder al portapapeles",
             "startingCamera": "Iniciando la cámara…",
@@ -4484,10 +4488,8 @@
                     "androidStep3": "Elige Permitir en Cámara"
                 }
             },
-            "useCopiedCode": "Usar código copiado",
             "paymentMethods": {
-                "evmName": "ETH y EVMs",
-                "evmAlt": "Ethereum y EVMs"
+                "evmName": "ETH y EVMs"
             }
         },
         "qrScannerOverlay": {
@@ -5333,6 +5335,7 @@
             "waitTitle": "Estamos preparando la cuenta en {currency}",
             "waitBody": "No tienes que hacer nada. Esta pantalla se actualiza sola.",
             "blockedTitle": "No podemos abrir una cuenta en {currency}",
+            "blockedTitleAll": "No podemos abrir tus cuentas bancarias",
             "supportCta": "Contactar soporte",
             "emailTitle": "Necesitamos un correo electrónico",
             "emailBody": "Tu identidad está verificada. Nunca recibimos un correo para reenviar, así que no podemos abrir la cuenta hasta que agregues uno.",

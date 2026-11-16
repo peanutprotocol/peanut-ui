@@ -1164,6 +1164,7 @@
             "settling": "The last passkey prompt is still closing. Wait a few seconds and try again.",
             "stillOpen": "The last passkey request is still open on this phone. Close any passkey window and try again. If it keeps happening, close and reopen the app.",
             "serverUnreachable": "Couldn’t reach Peanut’s servers. Check your connection and try again.",
+            "rateLimited": "Too many attempts. Wait a bit and try again.",
             "accountDeleted": "This account was deleted. Sign up to create a new one.",
             "accountDeletedChooseUsername": "This account was deleted. Choose a different username to create a new one.",
             "usernameTaken": "This username isn’t available right now. If you already signed up with it on this device, your passkey is ready: just log in.",
@@ -4367,7 +4368,7 @@
             "invalid_bank_postal_code": "We couldn’t use the postal code on your verified address.",
             "terminal_rejection": "Verification issue. Contact support for help.",
             "bridge_terminal_rejection": "Our payment partner didn't approve bank transfers for this account, and Peanut can't change that decision. Your funds on Peanut are not affected. If you think this is a mistake, message support.",
-            "duplicate_customer_detected": "Our payment partner flagged your account as a possible duplicate. Message support to verify and unlock.",
+            "duplicate_customer_detected": "Your details are already linked to another Peanut account, so Bridge, our account provider, can't open bank accounts on this one. If the other account is yours, sign in to it or contact support.",
             "duplicate_account": "Your email or ID is already linked to another Peanut account, so we can't finish setting up this one. If the other account is yours, sign in to it. Otherwise, contact support and we'll sort it out.",
             "imported_identity_rejected": "Our payment partner couldn't verify the ID from your earlier verification. They need a current government ID, and may also ask for a proof of address. Message support and we'll take it from here.",
             "region_block": "Peanut cards aren't available in your region yet.",
@@ -4448,7 +4449,10 @@
         },
         "qrScanner": {
             "scanToPay": "Scan to pay",
-            "clickToPaste": "Click to paste",
+            "paste": "Paste",
+            "pastePixCode": "Paste Pix code",
+            "pasteAddress": "Paste address",
+            "supportedQrCodes": "Supported QR codes",
             "clipboardEmpty": "Clipboard is empty",
             "clipboardUnavailable": "Could not access clipboard",
             "startingCamera": "Starting camera…",
@@ -4484,10 +4488,8 @@
                     "androidStep3": "Set Camera to Allow"
                 }
             },
-            "useCopiedCode": "Use copied code",
             "paymentMethods": {
-                "evmName": "ETH & EVMs",
-                "evmAlt": "Ethereum and EVMs"
+                "evmName": "ETH & EVMs"
             }
         },
         "qrScannerOverlay": {
@@ -5333,6 +5335,7 @@
             "waitTitle": "We are setting up the {currency} account",
             "waitBody": "Nothing for you to do. This page updates by itself.",
             "blockedTitle": "We cannot open a {currency} account",
+            "blockedTitleAll": "We cannot open your bank accounts",
             "supportCta": "Contact support",
             "emailTitle": "We need an email address",
             "emailBody": "Your identity is verified. We never got an email address to pass on, so the account cannot be opened until you add one.",
