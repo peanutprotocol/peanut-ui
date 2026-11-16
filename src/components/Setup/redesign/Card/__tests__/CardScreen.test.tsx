@@ -74,8 +74,11 @@ describe('06 Card', () => {
             )
             const desc = screen.getByText(textMatch(copy('setupRedesign.card.desc', {}, locale)))
             const pink = within(desc).getByText(tagCopy('setupRedesign.card.desc', 'pink', locale))
-            // the brand-pink text token on the word's own element, as dev's `pink` tag (useSetupStepCopy.tsx)
-            expect(pink).toHaveClass('text-foreground-brand')
+            // orchestrator ruling (16 Nov, the mock wins over P3-07's wording): the word is a pink highlight
+            // (mock `mark.pk`: brand-pink background, ink text), never pink text on pink
+            expect(pink).toHaveClass('bg-background-brand')
+            expect(pink).toHaveClass('text-foreground-primary')
+            expect(pink).not.toHaveClass('text-foreground-brand')
         }
     )
 
