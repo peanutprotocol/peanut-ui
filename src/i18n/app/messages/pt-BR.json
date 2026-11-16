@@ -1325,6 +1325,192 @@
             "pushLabel": "Notificações push"
         }
     },
+    "setupRedesign": {
+        "common": {
+            "continue": "Continuar",
+            "skip": "Pular",
+            "notNow": "Agora não",
+            "retry": "Tentar de novo",
+            "support": "Still stuck? <link>Contact support</link>"
+        },
+        "landing": {
+            "title": "Get paid from the US and Europe.",
+            "sub": "Receive from abroad. Pay by QR in Argentina and Brazil, or anywhere Visa is accepted.",
+            "cardReceived": "Money received!",
+            "cardAmount": "USD 1,200",
+            "cta": "Criar conta",
+            "loginBtn": "Entrar",
+            "recover": "Need to recover a Peanut account?"
+        },
+        "username": {
+            "title": "Claim a username.",
+            "desc": "It’s how people find and pay you.",
+            "dice": "Jogar o dado",
+            "rolling": "Finding an open one…",
+            "checkFailed": "We couldn’t check this username. Try again or <link>contact support</link>.",
+            "tooLong": "{n, plural, one {12 max. Remove 1 letter.} other {12 max. Remove # letters.}}",
+            "taken": "@{name} is taken.",
+            "takenLead": "Available:",
+            "invalidStart": "Start with a letter.",
+            "invalidChars": "Only letters and numbers. No spaces or accents.",
+            "rule": "4–12 letters or numbers. No spaces or accents.",
+            "available": "Disponível",
+            "clear": "Limpar",
+            "cta": "Use this username",
+            "ctaNamed": "Use @{name}",
+            "fieldAria": "Usuário"
+        },
+        "passkey": {
+            "s1": {
+                "title": "Your passkey manages your account.",
+                "lead": "It sits in your phone’s secure chip. Face, fingerprint or screen lock opens it.",
+                "p1": "Passkey never sent to Peanut",
+                "p2": "Peanut never sees the scan",
+                "cta": "Criar passkey"
+            },
+            "terms": "By signing up, you agree to Peanut’s <terms>terms</terms> and <privacy>privacy policy</privacy>.",
+            "cancelled": "Passkey setup was cancelled. Try again when ready.",
+            "takenTitle": "{name} was just taken.",
+            "takenLead": "This username now has an account. If you signed up on this phone before, log in: your passkey is ready. If not, pick another one.",
+            "takenCta": "Pick another username",
+            "logIn": "Entrar",
+            "ask": "Create a passkey?",
+            "yes": "Sim",
+            "no": "Não",
+            "failedTitle": "The passkey wasn’t created.",
+            "failedLead": "Check these, then try again:",
+            "android1": "Sign in to a Google account on this phone.",
+            "android2": "Update Google Play Services.",
+            "android3": "Turn on a screen lock: Settings → Security.",
+            "ios1": "Open Settings and tap your name at the top.",
+            "ios2": "Tap iCloud, then Passwords, and turn on Sync this iPhone.",
+            "ios3": "Make sure a passcode is set in Settings → Face ID & Passcode.",
+            "cannotTitle": "This phone can’t save a Peanut passkey.",
+            "cannot1": "Open Settings → Passwords, passkeys and accounts.",
+            "cannot2": "Pick Google Password Manager, then try again.",
+            "cannotOther": "Use another password manager, then try again.",
+            "browser": "Criar conta em peanut.me no navegador"
+        },
+        "invite": {
+            "title": "Invited by a friend?",
+            "desc": "Enter their username so both of you get rewards.",
+            "placeholder": "Usuário",
+            "found": "Found @{name}.",
+            "notFound": "We couldn’t find this user.",
+            "isSelf": "That’s your own username.",
+            "clearAria": "Limpar",
+            "suggestOne": "Did you mean: {a}",
+            "suggestTwo": "Did you mean: {a} or {b}",
+            "checkFailed": "We couldn’t check this username. Try again."
+        },
+        "accounts": {
+            "title": "USD and EUR bank details.",
+            "desc": "Share them with clients or employers abroad. Free to open.",
+            "holder": "Holder",
+            "holderName": "Jane Doe",
+            "account": "Account",
+            "routing": "Routing"
+        },
+        "card": {
+            "title": "Peanut Card. In dollars.",
+            "desc": "A virtual Visa to spend the balance wherever Visa is accepted. Oh, and it’s <pink>pink</pink>."
+        },
+        "residence": {
+            "sentence": "I live <nw>in {residence}</nw> and <nw>I’m from</nw> <nw>{nationality}.</nw>",
+            "choose": "Escolher",
+            "sheetResidence": "Where do you live?",
+            "sheetNationality": "What’s your nationality?",
+            "sameRow": "O mesmo país",
+            "search": "Buscar países",
+            "refusedPassport": "We can’t verify passports or ID cards from {nationality}. Use your residence card from {residence} when you verify your identity.",
+            "compareTitle": "Pick one country.",
+            "compareRule": "Have a residence permit? Pick that country. If not, pick the one that issued your ID.",
+            "itemPix": "Pix payments and transfers",
+            "itemArQr": "QR payments and own-account transfers",
+            "itemBankAccount": "Bank account: USD or EUR",
+            "itemCard": "Cartão Peanut",
+            "itemP2p": "Peanut para Peanut",
+            "select": "Escolher {country}"
+        },
+        "country": {
+            "AR": "Argentina",
+            "BR": "Brasil",
+            "CU": "Cuba",
+            "PT": "Portugal",
+            "US": "Estados Unidos"
+        },
+        "plan": {
+            "title": "How will you use Peanut?",
+            "sentence": "You’ll first add money <nw>with {funding}</nw><gap></gap>then spend <nw>with {payment}</nw>",
+            "choose": "Escolher",
+            "sheetFunding": "Adicionar dinheiro com",
+            "sheetPayment": "Spend with",
+            "fundBank": "Bank transfer (USD, EUR)",
+            "fundBankPill": "Transferência bancária",
+            "fundPeanut": "Receive from a Peanut user",
+            "fundCrypto": "Cripto",
+            "payQr": "Pagamentos QR",
+            "payCard": "Cartão Peanut",
+            "payPeanut": "Pagar um usuário do Peanut",
+            "peanutPill": "Outro usuário do Peanut"
+        },
+        "email": {
+            "title": "Peanut needs an email.",
+            "desc": "Needed to open your USD and EUR accounts.",
+            "label": "E-mail",
+            "saveFailed": "We couldn’t save your email. Try again.",
+            "placeholder": "E-mail",
+            "note": "You can turn off news and offers anytime.",
+            "invalid": "Enter a valid email address.",
+            "taken": "This email already has a Peanut account.",
+            "useOther": "Use another email",
+            "recover": "How to recover that account",
+            "recoverLog": "would open the account recovery guide",
+            "clearAria": "Limpar"
+        },
+        "notif": {
+            "title": "Know when money arrives.",
+            "desc": "We’ll tell you when money arrives, when a payment goes through, or when the account needs attention.",
+            "cta": "Ative as notificações",
+            "push1Title": "Money received!",
+            "push1Body": "USD 1,200 · ACH",
+            "push2Title": "Payment approved",
+            "push2Body": "Corner Café · EUR 4.50",
+            "osTitle": "Allow Peanut to send you notifications?",
+            "osAllow": "Allow",
+            "osDeny": "Don’t allow",
+            "denied": "Notifications are off in your device settings.",
+            "openSettings": "<link>Open settings</link>"
+        },
+        "final": {
+            "title": "One last step.",
+            "desc": "Only your face, fingerprint or screen lock controls your account. Try it now.",
+            "setupFailed": "We couldn’t complete your account setup. Try again.",
+            "retrySetup": "Tentar configurar a conta de novo",
+            "infoTitle": "What’s a passkey?",
+            "infoWhat": "A passkey is a digital key your device creates for this app. Approve it with fingerprint, face, or screen lock.",
+            "infoBackup": "Your password manager (iCloud Keychain, Google Password Manager, or similar) backs it up and syncs it to your next phone.",
+            "infoPrivacy": "Peanut never sees your fingerprint or face. Your device only tells us you approved.",
+            "gotIt": "Entendi",
+            "fullGuide": "Ler o guia completo",
+            "ask": "Use your passkey?",
+            "cta": "Confirmar e concluir",
+            "what": "<link>What’s a passkey?</link>",
+            "busy": "We couldn’t confirm yet. Try again in a moment.",
+            "later": "<link>Confirm later</link>"
+        },
+        "done": {
+            "title": "You’re ready to verify your identity and add money.",
+            "sub": "Your Peanut account is created. Verifying usually takes a few minutes.",
+            "going": "Taking you to the account…",
+            "claimTitle": "Tudo pronto!",
+            "claimSub": "Your Peanut account is created.",
+            "claimGoing": "Taking you back to your link…"
+        },
+        "celebration": {
+            "replay": "Replay"
+        }
+    },
     "loadingStates": {
         "idle": "Inativo",
         "loading": "Carregando",
