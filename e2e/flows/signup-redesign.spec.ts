@@ -584,15 +584,46 @@ async function landingToUsername(page: Page, locale: Locale) {
         .getByRole('button', { name: t('setupRedesign.plan.choose') })
         .first()
         .click()
-    await drawer(page).getByText(t('setupRedesign.plan.fundBank')).click()
+    await drawer(page).getByText(t('setupRedesign.plan.fundBank'), { exact: true }).click()
     await panel
         .getByRole('button', { name: t('setupRedesign.plan.choose') })
         .first()
         .click()
-    await drawer(page).getByText(t('setupRedesign.plan.payQr')).click()
+    await drawer(page).getByText(t('setupRedesign.plan.payQr'), { exact: true }).click()
     await expectScreen(page, 'payment-plan', 'filled')
     await primary(page, t('setupRedesign.common.continue')).click()
 
+    await expectScreen(page, 'signup')
+}
+
+/**
+ * Steps to 02 from wherever an entry lands (an invite or claim link may skip the landing as dev's entry rules
+ * decide): the same taps as landingToUsername, without asserting the order.
+ */
+async function anyEntryToUsername(page: Page, locale: Locale) {
+    const t = (key: string) => copy(locale, key)
+    await expect.poll(async () => (await current(page)).screen, { timeout: 30_000 }).not.toBeNull()
+    for (let step = 0; step < 8; step++) {
+        const { screen } = await current(page)
+        if (screen === 'signup') return
+        await page.waitForTimeout(600)
+        if (screen === 'landing') await primary(page, t('setupRedesign.landing.cta')).click()
+        else if (screen === 'payment-plan') {
+            const panel = panelOf(page)
+            await panel
+                .getByRole('button', { name: t('setupRedesign.plan.choose') })
+                .first()
+                .click()
+            await drawer(page).getByText(t('setupRedesign.plan.fundBank'), { exact: true }).click()
+            await panel
+                .getByRole('button', { name: t('setupRedesign.plan.choose') })
+                .first()
+                .click()
+            await drawer(page).getByText(t('setupRedesign.plan.payQr'), { exact: true }).click()
+            await primary(page, t('setupRedesign.common.continue')).click()
+        } else await primary(page, t('setupRedesign.common.continue')).click()
+        await expect.poll(async () => (await current(page)).screen).not.toBe(screen)
+    }
     await expectScreen(page, 'signup')
 }
 
@@ -809,7 +840,7 @@ test.describe('sign-up redesign journeys', () => {
                 100
             )
             try {
-                await landingToUsername(page, 'en')
+                await anyEntryToUsername(page, 'en')
                 await claimUsername(page, 'en', 'luckyotter')
                 await expectScreen(page, 'passkey', 'default')
                 // Back from Passkey goes to Username when Invite is hidden (C-62)
@@ -829,7 +860,7 @@ test.describe('sign-up redesign journeys', () => {
             await addAuthenticator(page)
             const claim = '/claim?c=42161&v=v4.3&i=7#p=e2e'
             await openSetup(page, context, baseURL!, `/setup?redirect_uri=${encodeURIComponent(claim)}`)
-            await landingToUsername(page, 'en')
+            await anyEntryToUsername(page, 'en')
             await claimUsername(page, 'en', 'luckyotter')
             await inviteSkip(page, 'en')
             await createPasskey(page, 'en')

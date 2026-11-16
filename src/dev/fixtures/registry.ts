@@ -2117,6 +2117,12 @@ const cardStopFunding = (cause: 'card_locked' | 'card_canceled', state: 'pending
 // ---------------------------------------------------------------------
 /** An account still at Confirm & finish: no Peanut wallet yet, so 11 does not send it home. */
 const AWAITING_WALLET = { 'GET /users/me': { accounts: [] } }
+/**
+ * The demo API routes GET /users/username/:name only, so the app's HEAD check falls through to a 200 and every
+ * name reads as taken. A state that needs a free name says which names are free.
+ */
+const freeUsernames = (...names: string[]) =>
+    Object.fromEntries(names.map((name) => [`HEAD /users/username/${name}`, { status: 404, body: {} }]))
 const setupRedesign = (surface: string, about: string, extra: Partial<Fixture> = {}): Fixture => ({
     ...extra,
     route: `/dev/surfaces?s=setup-redesign-${surface}`,
@@ -2161,7 +2167,9 @@ const SETUP_REDESIGN_FIXTURES: Record<string, Fixture> = {
             },
         }
     ),
-    'setup-redesign-username-available': setupRedesign('username', '02 Username: a typed name is free, button on.'),
+    'setup-redesign-username-available': setupRedesign('username', '02 Username: a typed name is free, button on.', {
+        rejects: freeUsernames('mellowfox', 'lunamate'),
+    }),
     'setup-redesign-username-check-failed': setupRedesign('username', '02 Username: the check failed, support link.', {
         fails: ['HEAD /users/username/mellowfox', 'HEAD /users/username/lunamate'],
     }),
@@ -2173,11 +2181,18 @@ const SETUP_REDESIGN_FIXTURES: Record<string, Fixture> = {
         { responses: { 'HEAD /users/username/luckyotter': USERNAME_TAKEN_ANSWER } }
     ),
 
-    'setup-redesign-passkey-default': setupRedesign('passkey', '03 Passkey: create the passkey for @luckyotter.'),
-    'setup-redesign-passkey-prompt': setupRedesign('passkey', '03 Passkey: the OS sheet is open (button busy).'),
+    'setup-redesign-passkey-default': setupRedesign('passkey', '03 Passkey: create the passkey for @luckyotter.', {
+        rejects: freeUsernames('luckyotter', 'tigrefeliz'),
+    }),
+    'setup-redesign-passkey-prompt': setupRedesign('passkey', '03 Passkey: the OS sheet is open (button busy).', {
+        rejects: freeUsernames('luckyotter', 'tigrefeliz'),
+    }),
     'setup-redesign-passkey-error-inline': setupRedesign(
         'passkey',
-        '03 Passkey: the ceremony was cancelled, inline callout.'
+        '03 Passkey: the ceremony was cancelled, inline callout.',
+        {
+            rejects: freeUsernames('luckyotter', 'tigrefeliz'),
+        }
     ),
     'setup-redesign-passkey-taken': setupRedesign('passkey', '03 Passkey: the name was registered meanwhile.', {
         responses: { 'HEAD /users/username/luckyotter': USERNAME_TAKEN_ANSWER },
