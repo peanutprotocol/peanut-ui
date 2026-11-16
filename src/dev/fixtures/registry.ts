@@ -2115,8 +2115,8 @@ const cardStopFunding = (cause: 'card_locked' | 'card_canceled', state: 'pending
 // states a browser cannot reach (native passkey sheets, the OS prompt).
 // Contracts: mono _temp/signup-redesign/r2/r9/build/contract/.
 // ---------------------------------------------------------------------
-/** An account still at Confirm & finish: no Peanut wallet yet, so 11 does not send it home. */
-const AWAITING_WALLET = { 'GET /users/me': { accounts: [] } }
+/** An account that has not saved an email yet (the demo user has one, which 09 would prefill). */
+const NO_EMAIL = { 'GET /users/me': { user: { email: null } } }
 /**
  * The demo API routes GET /users/username/:name only, so the app's HEAD check falls through to a 200 and every
  * name reads as taken. A state that needs a free name says which names are free.
@@ -2129,7 +2129,7 @@ const setupRedesign = (surface: string, about: string, extra: Partial<Fixture> =
     about,
     responses: {
         'GET /config/residence-restrictions': DEMO_RESIDENCE_RESTRICTIONS,
-        ...(surface.startsWith('final') && AWAITING_WALLET),
+        ...(surface === 'email' && NO_EMAIL),
         ...extra.responses,
     },
 })

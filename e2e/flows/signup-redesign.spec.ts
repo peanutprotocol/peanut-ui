@@ -170,7 +170,7 @@ class SignupStub {
                 return { status: 200, json: { token: 'e2e-hold' } }
             case 'POST /passkeys/register/options': {
                 const passkeyName = String((body as { username?: string })?.username ?? '')
-                const rpID = String((body as { rpID?: string })?.rpID ?? '127.0.0.1')
+                const rpID = String((body as { rpID?: string })?.rpID ?? 'localhost')
                 return {
                     status: 200,
                     json: {
@@ -197,7 +197,7 @@ class SignupStub {
                 return { status: 200, json: { verified: true, token: 'e2e-jwt' } }
             }
             case 'POST /passkeys/login/options': {
-                const rpID = String((body as { rpID?: string })?.rpID ?? '127.0.0.1')
+                const rpID = String((body as { rpID?: string })?.rpID ?? 'localhost')
                 return {
                     status: 200,
                     json: {
@@ -502,15 +502,17 @@ async function addAuthenticator(page: Page, verified = true): Promise<Authentica
 }
 
 async function openSetup(page: Page, context: BrowserContext, baseURL: string, path = '/setup') {
+    // WebAuthn refuses an IP address as the relying party, so the app runs on localhost, not 127.0.0.1
+    const origin = baseURL.replace('//127.0.0.1', '//localhost')
     const language = await page.evaluate(() => navigator.language)
     await context.addCookies([
-        { name: KEEP_WEB_COOKIE, value: encodeURIComponent(JSON.stringify(KEEP_WEB_TOKEN)), url: baseURL },
-        { name: 'app-locale', value: language.startsWith('es') ? 'es-AR' : 'en', url: baseURL },
+        { name: KEEP_WEB_COOKIE, value: encodeURIComponent(JSON.stringify(KEEP_WEB_TOKEN)), url: origin },
+        { name: 'app-locale', value: language.startsWith('es') ? 'es-AR' : 'en', url: origin },
     ])
     await page.addInitScript(phoneInsets)
     await page.addInitScript(seedGeo)
-    await routeEverything(page, baseURL)
-    await page.goto(path, { waitUntil: 'domcontentloaded' })
+    await routeEverything(page, origin)
+    await page.goto(`${origin}${path}`, { waitUntil: 'domcontentloaded' })
 }
 
 // ---------------------------------------------------------------------------------------------------------------
