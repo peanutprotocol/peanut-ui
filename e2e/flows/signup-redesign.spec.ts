@@ -94,7 +94,13 @@ class SignupStub {
     inviters = new Set(['fulano'])
     /** Extra latency per `METHOD /path` key, in ms (the slow-network journey). */
     delays = new Map<string, number>()
-    registered: { username: string; email: string | null; residence: unknown } | null = null
+    registered: {
+        username: string
+        email: string | null
+        residence: unknown
+        accounts: { type: string; identifier: string }[]
+        signupPreferences: unknown
+    } | null = null
     unhandled: string[] = []
 
     reset() {
@@ -118,7 +124,8 @@ class SignupStub {
             invitesSent: [],
             showEarlyUserModal: false,
             invitedBy: null,
-            accounts: [],
+            accounts: this.registered?.accounts ?? [],
+            signupPreferences: this.registered?.signupPreferences ?? null,
             user: {
                 userId: E2E_USER_ID,
                 email: this.registered?.email ?? null,
@@ -193,6 +200,8 @@ class SignupStub {
                     username: passkeyName.replace(/\.peanut\.wallet$/, ''),
                     email: null,
                     residence: null,
+                    accounts: [],
+                    signupPreferences: null,
                 }
                 return { status: 200, json: { verified: true, token: 'e2e-jwt' } }
             }
@@ -224,6 +233,17 @@ class SignupStub {
                 }
                 if ('residenceCountry' in update || 'nationality' in update) this.registered.residence = update
                 return { status: 200, json: this.user().user }
+            }
+            case 'POST /add-account': {
+                // P4-50: the final step adds the smart account, then reads the profile back to confirm it
+                const add = body as { accountIdentifier?: string; accountType?: string; signupPreferences?: unknown }
+                if (!this.registered) return { status: 401, json: { error: 'unauthorized' } }
+                this.registered.accounts.push({
+                    type: String(add.accountType),
+                    identifier: String(add.accountIdentifier),
+                })
+                if (add.signupPreferences) this.registered.signupPreferences = add.signupPreferences
+                return { status: 200, json: {} }
             }
             case 'POST /invites/validate': {
                 const code = String((body as { inviteCode?: string })?.inviteCode ?? '').toLowerCase()
@@ -401,7 +421,7 @@ function answerRpcBody(raw: string): string {
 // ---------------------------------------------------------------------------------------------------------------
 
 const API_PATH =
-    /^\/(users|invites|passkeys|config|update-user|get-user|notifications|history|version|badges|points|rewards|kyc|attention|onboarding|referrals|campaigns)(\/|$)/
+    /^\/(users|invites|passkeys|config|update-user|get-user|add-account|notifications|history|version|badges|points|rewards|kyc|attention|onboarding|referrals|campaigns)(\/|$)/
 const CORS = {
     'access-control-allow-origin': '*',
     'access-control-allow-headers': '*',
