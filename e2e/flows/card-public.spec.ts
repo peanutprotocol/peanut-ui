@@ -395,4 +395,6 @@ test('the legacy /shhhhh link lands on /peanut-card and opens Google Play with t
     await expect(store).toHaveURL(/^https:\/\/play\.google\.com\/store\/apps\/details\?/)
     const referrer = new URL(store.url()).searchParams.get('referrer') ?? ''
     expect(new URLSearchParams(referrer).get('dest')).toBe('/card')
+    // The campaign from the old /shhhhh link rides the deferred install.
+    expect(new URLSearchParams(referrer).getAll('badge_campaign')).toContain('event-alumni')
 })

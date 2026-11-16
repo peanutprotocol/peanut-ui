@@ -14,6 +14,9 @@ import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import { claimAndSettlePendingBadgeCampaigns, isConfirmedBadgeCampaignClaim } from '@/services/badge-campaigns'
 import type { PeanutCardCtaPlacement } from './peanutCard.types'
 
+// The page mounts several CTAs (hero, hero card, close): one claim at a time across all of them.
+let claimInFlight = false
+
 /**
  * The card CTA's routing, shared by the buttons and the hero card: signed-in
  * visitors go straight to /card; guests get the store (or the desktop QR
@@ -44,6 +47,7 @@ export function usePeanutCardCta(placement: PeanutCardCtaPlacement) {
     const href = user ? STAR_LP_HREF.cardSignedIn : STAR_LP_HREF.cardGuest
 
     const claimThenOpenCard = async (campaigns: string[]) => {
+        claimInFlight = true
         setClaiming(true)
         try {
             const batch = await claimAndSettlePendingBadgeCampaigns(campaigns)
@@ -63,6 +67,7 @@ export function usePeanutCardCta(placement: PeanutCardCtaPlacement) {
         } catch (error) {
             captureException(error, { tags: { error_type: 'campaign_claim_unexpected_failure' } })
         } finally {
+            claimInFlight = false
             setClaiming(false)
             router.push(STAR_LP_HREF.cardSignedIn)
         }
@@ -70,7 +75,7 @@ export function usePeanutCardCta(placement: PeanutCardCtaPlacement) {
 
     // Returns true when the click was handled here and the link must not navigate.
     const go = (): boolean => {
-        if (claiming) return true
+        if (claimInFlight) return true
         const campaigns = badgeCampaignsFromSearchParams(new URLSearchParams(window.location.search))
         posthog.capture(ANALYTICS_EVENTS.CARD_APPLICATION_CTA_CLICKED, {
             signed_in: !!user,

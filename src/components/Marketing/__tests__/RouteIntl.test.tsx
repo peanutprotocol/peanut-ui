@@ -10,17 +10,18 @@ import { RouteIntl } from '../RouteIntl'
 import { useTranslations } from 'next-intl'
 import en from '@/i18n/app/messages/en.marketing.json'
 import es419 from '@/i18n/app/messages/es-419.marketing.json'
-import esAR from '@/i18n/app/messages/es-AR.marketing.json'
 import ptBR from '@/i18n/app/messages/pt-BR.marketing.json'
 
 jest.mock('next/dynamic', () => () => () => null)
 
-type Messages = Record<string, Record<string, unknown>> & { shhhhh: { hero: { tagline: string } } }
+type Messages = Record<string, Record<string, unknown>> & {
+    shhhhh: { faq: { q1: { question: string } } & Record<string, unknown> }
+}
 type Props = { locale: string; messages?: Messages }
 
-/** Reads one /shhhhh hero line through next-intl, as the /shhhhh page does. */
-function ShhhhhPitchProbe() {
-    return <p>{useTranslations('shhhhh.hero')('pitch')}</p>
+/** Reads one card FAQ line through next-intl. */
+function CardFaqProbe() {
+    return <p>{useTranslations('shhhhh.faq')('q1.question')}</p>
 }
 
 async function routeIntl(locale: Parameters<typeof RouteIntl>[0]['locale'], children: React.ReactNode = null) {
@@ -34,13 +35,13 @@ const NEEDED = Object.keys(en).filter((ns) => ns !== 'errors')
 
 describe('RouteIntl', () => {
     it.each([
-        ['pt-br', 'pt-BR', ptBR.shhhhh.hero.tagline],
-        ['es-419', 'es-419', es419.shhhhh.hero.tagline],
-        ['es-ar', 'es-AR', esAR.shhhhh.hero.tagline],
+        ['pt-br', 'pt-BR', ptBR.shhhhh.faq.q1.question],
+        ['es-419', 'es-419', es419.shhhhh.faq.q1.question],
+        ['es-ar', 'es-AR', es419.shhhhh.faq.q1.question],
     ])('%s sends the %s catalog with every namespace but errors', async (segment, appLocale, tagline) => {
         const { props } = await routeIntl(segment as 'pt-br')
         expect(props.locale).toBe(appLocale)
-        expect(props.messages?.shhhhh.hero.tagline).toBe(tagline)
+        expect(props.messages?.shhhhh.faq.q1.question).toBe(tagline)
         for (const ns of NEEDED) expect(Object.keys(props.messages?.[ns] ?? {}).length).toBeGreaterThan(0)
         // app-only weight stays out of the page payload
         expect(props.messages).not.toHaveProperty('errors')
@@ -48,7 +49,7 @@ describe('RouteIntl', () => {
 
     it('es-ar is an overlay: keys it does not override come from es-419', async () => {
         const { props } = await routeIntl('es-ar')
-        expect(props.messages?.shhhhh.hero).toHaveProperty('wordmark', es419.shhhhh.hero.wordmark)
+        expect(props.messages?.shhhhh.faq).toHaveProperty('q1', es419.shhhhh.faq.q1)
     })
 
     it('sends no catalog for English (the client already has marketingBase)', async () => {
@@ -58,11 +59,11 @@ describe('RouteIntl', () => {
     })
 
     it.each([
-        ['pt-br', ptBR.shhhhh.hero.pitch],
-        ['en', 'One balance. 150 million places to spend it.'],
+        ['pt-br', ptBR.shhhhh.faq.q1.question],
+        ['en', 'What is Peanut Card?'],
     ])('the card page copy renders %s with no missing keys', async (segment, pitch) => {
         const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
-        render(await routeIntl(segment as 'en', <ShhhhhPitchProbe />))
+        render(await routeIntl(segment as 'en', <CardFaqProbe />))
         expect(screen.getByText(pitch)).toBeInTheDocument()
         expect(warn).not.toHaveBeenCalled()
         warn.mockRestore()

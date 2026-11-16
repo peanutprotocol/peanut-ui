@@ -1886,11 +1886,6 @@
         "route": "/card-recovery"
     },
     {
-        "id": "p43-card-physical",
-        "flow": "Card",
-        "route": "/card/physical"
-    },
-    {
         "id": "p44-card-add-to-wallet",
         "flow": "Card",
         "route": "/card/add-to-wallet"
