@@ -196,12 +196,14 @@ describe('10 Notifications: control arm', () => {
         expect(screen.queryByRole('alert')).not.toBeInTheDocument()
     })
 
-    it('P4-22 "Not now" asks nothing, saves nothing, advances once', async () => {
+    // Orchestrator ruling on R1-04: "Not now" is dev's explicit opt-out and saves `push: false` before advancing.
+    it('P4-22 "Not now" asks nothing, saves exactly the push opt-out, then advances once', async () => {
         const view = render()
         fireEvent.click(notNow(view.container))
         await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
         expect(mockPermission).not.toHaveBeenCalled()
-        expect(mockSave).not.toHaveBeenCalled()
+        expect(mockSave.mock.calls).toEqual([[{ push: false }, 'new-user']])
+        expect(mockSave.mock.invocationCallOrder[0]).toBeLessThan(mockNext.mock.invocationCallOrder[0])
         expect(controls()).toEqual(['not_now:tap'])
         expect(view.flow().notificationChoices.push).toBe(false)
     })
@@ -291,6 +293,150 @@ describe('10 Notifications: control arm', () => {
             expect(body).not.toHaveProperty('marketingPush')
             expect(body).not.toHaveProperty('emailUpdates')
         }
+    })
+})
+
+/**
+ * Dev's control-arm cases (`Views/__tests__/NotificationSetup.test.tsx` "control: the single push switch" and the
+ * control cases of `Notifications.analytics.test.tsx`), ported to the one-button form: dev's switch on is "Turn on",
+ * dev's on-then-off opt-out is "Not now".
+ */
+describe('10 Notifications: control opt-out (dev ports)', () => {
+    const saveFailedLine = () => screen.queryByText(textMatch(copy('setup.notifications.saveFailed')))
+    const errors = () => controls().filter((c) => c.split(':')[1] === 'error')
+
+    it('starts with push off and asks or saves nothing until a tap', () => {
+        const view = render()
+        expect(view.flow().notificationChoices.push).toBe(false)
+        expect(screen.queryAllByRole('switch')).toHaveLength(0)
+        expect(mockPermission).not.toHaveBeenCalled()
+        expect(mockSave).not.toHaveBeenCalled()
+        expect(controls()).toEqual([])
+    })
+
+    it('asks the OS inside the "Turn on" tap, records the answer, and saves the grant', async () => {
+        const view = render()
+        fireEvent.click(turnOn(view.container))
+        expect(mockPermission).toHaveBeenCalledTimes(1)
+        await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+        expect(answered()).toEqual([{ variant: 'control', answer: 'granted' }])
+        expect(mockSave.mock.calls).toEqual([[{ push: true, pushPermission: 'granted' }, 'new-user']])
+    })
+
+    it.each([
+        ['denied', 'denied'],
+        ['default', 'dismissed'],
+    ])('an OS answer of %s turns push back off and saves nothing', async (answer, recorded) => {
+        mockPermission.mockResolvedValueOnce(answer)
+        const view = render()
+        fireEvent.click(turnOn(view.container))
+        await waitFor(() => expect(answered()).toEqual([{ variant: 'control', answer: recorded }]))
+        await waitFor(() => expect(setupState(view.container)).toBe(answer === 'denied' ? 'denied' : 'default'))
+        expect(view.flow().notificationChoices.push).toBe(false)
+        expect(mockSave).not.toHaveBeenCalled()
+        expect(mockNext).not.toHaveBeenCalled()
+    })
+
+    it('"Not now" after an earlier grant saves the opt-out and turns push off', async () => {
+        const view = render({
+            notificationChoices: { push: true, marketingPush: false, emailUpdates: false, cascaded: false },
+        })
+        fireEvent.click(notNow(view.container))
+        await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+        expect(mockSave.mock.calls).toEqual([[{ push: false }, 'new-user']])
+        expect(view.flow().notificationChoices.push).toBe(false)
+        expect(mockPermission).not.toHaveBeenCalled()
+    })
+
+    it('blocks on a failed opt-out save, retries one save at a time, and advances on the acknowledgement', async () => {
+        mockSave.mockRejectedValueOnce(new Error('network'))
+        let acknowledge!: () => void
+        mockSave.mockReturnValueOnce(new Promise<void>((resolve) => (acknowledge = resolve)))
+        const view = render()
+        fireEvent.click(notNow(view.container))
+        await waitFor(() => expect(saveFailedLine()).toBeInTheDocument())
+        expect(mockNext).not.toHaveBeenCalled()
+        expect(view.flow().notificationChoices.push).toBe(false)
+        expect(mockSave).toHaveBeenCalledTimes(1)
+        await waitFor(() => expect(notNow(view.container)).toBeEnabled())
+        fireEvent.click(notNow(view.container))
+        fireEvent.click(notNow(view.container))
+        await waitFor(() => expect(mockSave).toHaveBeenCalledTimes(2))
+        expect(saveFailedLine()).not.toBeInTheDocument()
+        expect(mockNext).not.toHaveBeenCalled()
+        expect(mockSave.mock.calls).toEqual([
+            [{ push: false }, 'new-user'],
+            [{ push: false }, 'new-user'],
+        ])
+        await act(async () => acknowledge())
+        await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+        expect(mockPermission).not.toHaveBeenCalled()
+    })
+
+    it('"Turn on" after a failed opt-out clears the failure', async () => {
+        mockSave.mockRejectedValueOnce(new Error('network'))
+        const view = render()
+        fireEvent.click(notNow(view.container))
+        await waitFor(() => expect(saveFailedLine()).toBeInTheDocument())
+        await waitFor(() => expect(turnOn(view.container)).toBeEnabled())
+        fireEvent.click(turnOn(view.container))
+        await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+        expect(saveFailedLine()).not.toBeInTheDocument()
+        expect(mockSave.mock.calls[1]).toEqual([{ push: true, pushPermission: 'granted' }, 'new-user'])
+    })
+
+    it('reports "Turn on" and "Not now" once each, with the common context', async () => {
+        mockPermission.mockResolvedValueOnce('default')
+        const view = render()
+        fireEvent.click(turnOn(view.container))
+        await waitFor(() => expect(setupState(view.container)).toBe('default'))
+        await waitFor(() => expect(notNow(view.container)).toBeEnabled())
+        fireEvent.click(notNow(view.container))
+        await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+        expect(controls()).toEqual(['push:toggle:on', 'push_permission:error:dismissed', 'not_now:tap'])
+        const calls = capture.mock.calls.filter(([event]) => event === ANALYTICS_EVENTS.CONTROL_USED)
+        for (const [, props] of calls)
+            expect(props).toEqual(expect.objectContaining({ flow: 'signup', screen_id: 'notification-permission' }))
+    })
+
+    it('reports "Not now" once without a value', async () => {
+        const view = render()
+        fireEvent.click(notNow(view.container))
+        await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+        const taps = capture.mock.calls
+            .filter(([event]) => event === ANALYTICS_EVENTS.CONTROL_USED)
+            .map(([, props]) => props)
+            .filter((props) => props.action === 'tap')
+        expect(taps).toHaveLength(1)
+        expect(taps[0]).toEqual(expect.objectContaining({ control: 'not_now', action: 'tap' }))
+        expect(taps[0]).not.toHaveProperty('value')
+    })
+
+    it('reports an opt-out save failure once, never with its message, and clears it for a good retry', async () => {
+        mockSave.mockRejectedValueOnce(new Error('private opt-out failure'))
+        const view = render()
+        fireEvent.click(notNow(view.container))
+        await waitFor(() => expect(saveFailedLine()).toBeInTheDocument())
+        expect(errors()).toEqual(['notification_preferences:error:save_failed'])
+        view.rerenderSame()
+        expect(errors()).toHaveLength(1)
+        await waitFor(() => expect(notNow(view.container)).toBeEnabled())
+        fireEvent.click(notNow(view.container))
+        await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+        expect(errors()).toHaveLength(1)
+        expect(mockSave).toHaveBeenCalledTimes(2)
+        expect(JSON.stringify(capture.mock.calls)).not.toContain('private opt-out failure')
+    })
+
+    it('an account change during the opt-out save does not advance', async () => {
+        let finish!: () => void
+        mockSave.mockReturnValueOnce(new Promise<void>((resolve) => (finish = resolve)))
+        const view = render()
+        fireEvent.click(notNow(view.container))
+        await waitFor(() => expect(mockSave).toHaveBeenCalledTimes(1))
+        otherAccount()
+        await act(async () => finish())
+        expect(mockNext).not.toHaveBeenCalled()
     })
 })
 

@@ -161,6 +161,18 @@ beforeEach(() => {
 })
 
 describe('08 Payment plan', () => {
+    // R1-13: the hero's QR tile only for the QR-payment residences (FLEET-RULES 9 "QR only Argentina and Brazil").
+    it.each([
+        ['AR', true],
+        ['BR', true],
+        ['US', false],
+        ['PT', false],
+        ['', false],
+    ])('the hero shows the QR tile for residence %p: %p', (residenceCountry, shown) => {
+        render({ residenceCountry })
+        expect(!!screen.queryByTestId('setup-redesign-plan-qr')).toBe(shown)
+    })
+
     it('P3-38 while the options load: both pills busy with a spinner on Choose, nothing opens, Continue off', () => {
         mockSetsSettled = false
         mockIntentsSettled = false

@@ -13,6 +13,7 @@ import { SETUP_LEAD_CLASS } from '@/components/Setup/redesign/shell/shell.consts
 /** 10 Notifications, control arm: "Turn on notifications" and "Not now"; an OS refusal shows `denied`. */
 export function NotificationsControlScreen() {
     const t = useTranslations('setupRedesign')
+    const tNotifications = useTranslations('setup.notifications')
     const control = useNotificationsControl()
     const [ring, setRing] = useState(0)
     const busy = control.requesting || control.saving
@@ -74,6 +75,11 @@ export function NotificationsControlScreen() {
                 {denied && (
                     <Callout priority="info" className="mt-3.5 signup-sm:mt-3">
                         {t('notif.denied')}
+                    </Callout>
+                )}
+                {control.saveFailed && (
+                    <Callout priority="error" className="mt-3.5 signup-sm:mt-3">
+                        {tNotifications('saveFailed')}
                     </Callout>
                 )}
             </div>
