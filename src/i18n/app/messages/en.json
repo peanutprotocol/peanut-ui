@@ -3122,7 +3122,7 @@
             },
             "CARD_PIONEER": {
                 "name": "Card Pioneer",
-                "description": "You reserved your spot for the Peanut Card. Pioneer perks await!"
+                "description": "One of the first people to back the Peanut Card."
             },
             "FOUNDING_PIONEER": {
                 "name": "Founding Pioneer",
@@ -3145,7 +3145,7 @@
                 "description": "You are a real OG. You were with Peanut before it was cool."
             },
             "CARD_CLOSED_BETA": {
-                "name": "Closed Beta",
+                "name": "Card Early Tester",
                 "description": "IYKYK. They were testing the card before you knew it existed."
             },
             "CARD_ALPHA": {
@@ -3257,8 +3257,8 @@
                 "description": "High Roller or Master Beggar? You created the pot with the highest number of contributors."
             },
             "WAITLIST_SKIP": {
-                "name": "Skip Pass",
-                "description": "You skipped the waitlist. A friend handed you the key and you walked right in."
+                "name": "Early Pass",
+                "description": "You joined Peanut early with a pass from a friend."
             }
         },
         "toastAvatars": "{count, plural, one {# new avatar unlocked} other {# new avatars unlocked}}",
@@ -5057,7 +5057,7 @@
                 "shush": "Secret Shush"
             },
             "WAITLIST_SKIP": {
-                "key": "Waitlist Key"
+                "key": "Early Pass Key"
             }
         },
         "cast": {

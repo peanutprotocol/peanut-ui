@@ -94,7 +94,7 @@ const BADGE_SHARE_LINES: Readonly<Record<string, string>> = {
     EVENT_ALUMNI: 'Old school. I was in the room before most of you 🎟️',
     ETHFLORIPA_HUB: 'Ilha da Magia, baby. Coconuts and consensus 🥥',
     IRL_NOMADS: 'Nomad mode on. My office is wherever the wifi is ☕',
-    WAITLIST_SKIP: "Got the skip pass. It's not what you know, it's who invites you 🔑",
+    WAITLIST_SKIP: 'I joined Peanut early with a pass from a friend 🔑',
     ENS: 'One ENS name, no address to copy. Money still landed 🔷',
 }
 

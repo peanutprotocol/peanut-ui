@@ -3122,7 +3122,7 @@
             },
             "CARD_PIONEER": {
                 "name": "Pioneiro do cartão",
-                "description": "Você garantiu seu lugar no Peanut Card. As vantagens de pioneiro vêm aí!"
+                "description": "Uma das primeiras pessoas a apoiar o Peanut Card."
             },
             "FOUNDING_PIONEER": {
                 "name": "Pioneiro fundador",
@@ -3145,7 +3145,7 @@
                 "description": "Você é OG de verdade. Estava com Peanut antes de virar moda."
             },
             "CARD_CLOSED_BETA": {
-                "name": "Beta fechado",
+                "name": "Tester inicial do cartão",
                 "description": "IYKYK. Testou o cartão antes de você saber que ele existia."
             },
             "CARD_ALPHA": {
@@ -3257,8 +3257,8 @@
                 "description": "Alto rolê ou mestre do pedido? Você criou a vaquinha com mais participantes."
             },
             "WAITLIST_SKIP": {
-                "name": "Passe livre",
-                "description": "Você pulou a lista de espera. Um amigo te deu a chave e você entrou direto."
+                "name": "Passe antecipado",
+                "description": "Você chegou cedo ao Peanut com um passe de um amigo."
             }
         },
         "toastAvatars": "{count, plural, one {# avatar novo desbloqueado} other {# avatares novos desbloqueados}}",
@@ -5057,7 +5057,7 @@
                 "shush": "Shhh secreto"
             },
             "WAITLIST_SKIP": {
-                "key": "Chave da fila"
+                "key": "Chave do passe"
             }
         },
         "cast": {
