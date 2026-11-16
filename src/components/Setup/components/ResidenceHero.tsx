@@ -33,7 +33,7 @@ const DECORATIONS = [star, sparkle, star, star, sparkle]
  *
  * The celebration never starts before RESIDENCE_WAVE_MS after the hero first
  * mounts, so a residence prefilled from geo gets the wave first, while a country
- * picked by hand (always later than that) celebrates at once. The wave happens
+ * picked by hand celebrates once the picker has closed. The wave happens
  * once per sign-up: the hero unmounts for the compare view and on Back, and
  * celebrates at once when it returns. The mascot keeps waving until the
  * cheering pose has loaded, with no time limit, so it never blanks. The slap
@@ -87,8 +87,9 @@ export function ResidenceHero({ alt }: { alt: string }) {
         let cancelled = false
         // The three stickers and the cheering pose, which is its own chunk.
         let pending = stickers.length + 1
-        // A country that arrives after the wave was picked by hand: the picker is still closing.
-        let held = residenceWaveDone.current && residenceCountry !== mountedCountry
+        // A country that arrives after the mount may have been picked by hand, with the picker
+        // still closing. During the wave too: a pick just before its end must not slap early.
+        let held = residenceCountry !== mountedCountry
         const ready = () => setLoadedCountry(residenceCountry)
         // A failed or slow fetch must not hold the stickers back. The pose is not on this clock.
         const fallback = setTimeout(ready, RESIDENCE_STICKER_LOAD_MS)
@@ -131,7 +132,7 @@ export function ResidenceHero({ alt }: { alt: string }) {
                 image.onerror = null
             })
         }
-    }, [stickers, residenceCountry, residenceWaveDone, mountedCountry, hideSticker])
+    }, [stickers, residenceCountry, mountedCountry, hideSticker])
 
     return (
         <div className="residence-hero" data-residence-hero={cheering ? residenceCountry : 'waving'}>

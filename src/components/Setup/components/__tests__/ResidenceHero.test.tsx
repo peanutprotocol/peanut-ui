@@ -155,6 +155,22 @@ describe('ResidenceHero', () => {
         ])
     })
 
+    it('waits for the picker to close when a country is picked just before the wave ends', () => {
+        mockFlow.residenceCountry = 'JP'
+        const { container, rerender } = render(<ResidenceHero alt="Peanut mascot" />)
+        act(() => jest.advanceTimersByTime(RESIDENCE_WAVE_MS - 100))
+        mockFlow.residenceCountry = 'US'
+        rerender(<ResidenceHero alt="Peanut mascot" />)
+        loadStickers()
+        // The wave ends, but the picker opened 100 ms ago is still closing.
+        act(() => jest.advanceTimersByTime(RESIDENCE_PICK_DELAY_MS - 1))
+        expect(pose()).toBe('waving-hello')
+        expect(stickers(container)).toEqual([])
+        act(() => jest.advanceTimersByTime(1))
+        expect(pose()).toBe('cheering')
+        expect(stickers(container)).toHaveLength(3)
+    })
+
     it('swaps the stickers on a change of country, replaying the slap on a fresh layer', () => {
         mockFlow.residenceCountry = 'AR'
         const { container, rerender } = render(<ResidenceHero alt="Peanut mascot" />)
