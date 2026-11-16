@@ -1352,7 +1352,7 @@
             "holder": "Titular",
             "holderName": "João Silva",
             "account": "Conta",
-            "routing": "Routing"
+            "routing": "Nº de roteamento"
         },
         "card": {
             "title": "Peanut Card. Em dólares.",
