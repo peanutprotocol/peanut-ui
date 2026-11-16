@@ -46,7 +46,8 @@ import { useLayoutEffect, useState } from 'react'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { renderWithIntl } from '@/test-utils/intl'
-import { onSignupScreen, signupControls } from '@/test-utils/signup-controls'
+import { signupControls } from '@/test-utils/signup-controls'
+import { SetupShell } from '@/components/Setup/redesign/shell/SetupShell'
 import { setupScreenIds, setupSteps } from '@/components/Setup/Setup.consts'
 import type { ScreenId } from '@/components/Setup/Setup.types'
 import { SetupDocsProvider, type SetupDocuments } from '@/components/Setup/components/SetupDocsDrawer'
@@ -154,7 +155,12 @@ jest.mock('@sentry/nextjs', () => ({
     captureMessage: jest.fn(),
     addBreadcrumb: jest.fn(),
 }))
-jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
+// useFeatureFlags (the 04 inviter-suggestions gate) subscribes to flag loads and reads flags.
+jest.mock('posthog-js', () => ({
+    __esModule: true,
+    default: { capture: jest.fn(), onFeatureFlags: jest.fn(() => () => {}), isFeatureEnabled: jest.fn(() => false) },
+}))
+jest.mock('@/components/Setup/components/SetupLanguageSwitcher', () => ({ SetupLanguageSwitcher: () => null }))
 
 const PASSKEY = 'passkey' as ScreenId
 const RESERVATIONS = '/users/username/reservations'
@@ -257,7 +263,10 @@ function Host() {
                 <section>
                     {copy.title && <h1>{copy.title}</h1>}
                     {copy.description && <div>{copy.description}</div>}
-                    {onSignupScreen(id as ScreenId, <Step />)}
+                    {/* As the page renders a step: the shell draws the screen's footer (Continue, Skip, Create passkey). */}
+                    <SetupShell screenId={id as ScreenId}>
+                        <Step />
+                    </SetupShell>
                 </section>
             )}
         </>
