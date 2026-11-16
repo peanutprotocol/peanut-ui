@@ -160,18 +160,18 @@ describe('buildReceiptPdfModel — variants', () => {
         expect(row(model, 'common.exchangeRate')).toBe('1 USD = ARS 902.40')
     })
 
-    // The owner, 15 Nov, "Option A": a settled Avenia entry's rate, and every fee as one row
-    test('a settled Avenia Pix entry prints its own rate and every fee as one Provider fee row', () => {
+    // TASK-24967: a settled Avenia entry's rate holds the variable fees; the flat fee is its own row
+    test('a settled Avenia Pix entry prints its rate and the flat fee as the Provider fee row', () => {
         const model = buildReceiptPdfModel(
             withOverrides(
                 { currency: { amount: '20.00', code: 'BRL' } },
-                { receipt: { exchange_rate: '5.728962' }, providerFeeBrl: '0.97' }
+                { receipt: { exchange_rate: '5.796567' }, providerFeeBrl: '0.75' }
             ),
             t,
             'en'
         )
-        expect(row(model, 'common.exchangeRate')).toBe('1 USD = BRL 5.73')
-        expect(row(model, 'pix.withdraw.fee')).toBe('R$0.97')
+        expect(row(model, 'common.exchangeRate')).toBe('1 USD = BRL 5.80')
+        expect(row(model, 'pix.withdraw.fee')).toBe('R$0.75')
     })
 
     test('no Provider fee row on an entry that names no fee', () => {

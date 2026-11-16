@@ -136,6 +136,28 @@ describe.each([
     })
 })
 
+// TASK-24967: Bridge's duplicate refusal asks about the other account; its other final refusal keeps "We cannot open".
+describe('a corridor Bridge refused for good', () => {
+    const refused = (code: string): GateState => ({
+        kind: 'blocked-rejection',
+        userMessage: 'English sentence',
+        reason: { code, userMessage: 'English sentence' },
+    })
+
+    it('asks a duplicate customer about the other account', () => {
+        renderFlow(flowProps({ gate: refused('duplicate_customer_detected'), withTerms: false }))
+        expect(screen.getByRole('heading', { name: 'Already have an account?' })).toBeInTheDocument()
+        expect(drawer()).toHaveTextContent(messages.identity.reasons.duplicate_customer_detected)
+        expect(screen.getByTestId('corridor-gate-support')).toHaveTextContent(GATE.supportCta)
+    })
+
+    it('keeps the currency title for a terminal rejection', () => {
+        renderFlow(flowProps({ gate: refused('bridge_terminal_rejection'), withTerms: false }))
+        expect(screen.getByRole('heading', { name: 'We cannot open a EUR account' })).toBeInTheDocument()
+        expect(drawer()).not.toHaveTextContent(GATE.duplicateTitle)
+    })
+})
+
 // Chip on ui#3456: verify, terms and email gates have a button yet drew the
 // inactive gray. A wait is yellow; a reason with a way forward is blue.
 describe.each([

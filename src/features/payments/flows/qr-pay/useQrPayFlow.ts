@@ -829,8 +829,8 @@ export function useQrPayFlowController(
               ? 'manteca-br'
               : 'manteca-ar'
           : null
-    // Avenia (the owner, 15 Nov, "Option A"): the review's own rate and every fee as one row, or neither
-    // row before a review names them; never the market rate or the flat fee alone. Another pay-route
+    // Avenia: the review's rate and fee rows (TASK-24967: the variable fees in the rate, the flat fee as
+    // the row), or neither row before a review names them; never the market rate. Another pay-route
     // provider keeps the all-in rate and its flat fee.
     const providerRows = isPixPay && showsProviderRateAndFee(providerId)
     const reviewedPair = providerRows ? pixRateAndFee(pixPayReviewed) : null

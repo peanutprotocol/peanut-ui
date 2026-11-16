@@ -139,7 +139,6 @@ export default function PasskeyStep() {
             <PasskeyProviderUnsupportedDrawer
                 visible={passkey.isProviderUnsupportedOpen}
                 platform={passkey.providerUnsupportedPlatform}
-                browserOpenFailed={passkey.browserOpenFailed}
                 onClose={() => {
                     track('passkey_provider', 'dismiss')
                     passkey.closeProviderUnsupported()

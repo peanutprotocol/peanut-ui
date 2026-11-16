@@ -59,15 +59,15 @@ describe('receiptProviderFee', () => {
             },
         })
 
-    it('prints every fee in reais beside the rate', () => {
-        const tx = avenia({ receipt: { exchange_rate: '5.728962' }, providerFeeBrl: '0.97' })
-        expect(receiptExchangeRate(tx)).toBe('1 USD = BRL 5.73')
-        expect(receiptProviderFee(tx)).toBe('R$0.97')
+    it('prints the flat fee in reais beside the rate', () => {
+        const tx = avenia({ receipt: { exchange_rate: '5.796567' }, providerFeeBrl: '0.75' })
+        expect(receiptExchangeRate(tx)).toBe('1 USD = BRL 5.80')
+        expect(receiptProviderFee(tx)).toBe('R$0.75')
     })
 
     it('prints no fee without the rate, nor a rate-only entry’s fee', () => {
-        expect(receiptProviderFee(avenia({ providerFeeBrl: '0.97' }))).toBeUndefined()
-        expect(receiptProviderFee(avenia({ receipt: { exchange_rate: '5.728962' } }))).toBeUndefined()
+        expect(receiptProviderFee(avenia({ providerFeeBrl: '0.75' }))).toBeUndefined()
+        expect(receiptProviderFee(avenia({ receipt: { exchange_rate: '5.796567' } }))).toBeUndefined()
     })
 })
 

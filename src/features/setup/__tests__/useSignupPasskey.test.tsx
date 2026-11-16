@@ -111,7 +111,6 @@ function PasskeyHarness({ username }: { username: string }) {
                     aria-label="Unsupported passkey provider"
                     data-platform={passkey.providerUnsupportedPlatform}
                 >
-                    {passkey.browserOpenFailed && <p>The browser did not open</p>}
                     <button onClick={passkey.retryFromProviderUnsupported}>Retry with another provider</button>
                     <button onClick={passkey.signUpInBrowser}>Sign up in a browser</button>
                 </div>
@@ -833,7 +832,7 @@ describe('Android failures that are not cancels', () => {
         )
     })
 
-    it('keeps the drawer open with the error when the browser does not open', async () => {
+    it('keeps the drawer open, with no error box, when the browser does not open', async () => {
         const open = jest.spyOn(window, 'open').mockImplementation(() => {
             throw new Error('No Activity found to handle Intent')
         })
@@ -844,13 +843,14 @@ describe('Android failures that are not cancels', () => {
             claim()
             fireEvent.click(await screen.findByRole('button', { name: 'Sign up in a browser' }))
 
-            expect(await screen.findByText('The browser did not open')).toBeInTheDocument()
+            await waitFor(() =>
+                expect(Sentry.captureException).toHaveBeenCalledWith(expect.any(Error), {
+                    tags: { error_type: 'passkey_provider_browser_open_failed' },
+                })
+            )
             expect(screen.getByRole('dialog', { name: 'Unsupported passkey provider' })).toBeInTheDocument()
-            expect(Sentry.captureException).toHaveBeenCalledWith(expect.any(Error), {
-                tags: { error_type: 'passkey_provider_browser_open_failed' },
-            })
 
-            // A second tap that works closes the drawer and clears the error.
+            // A second tap that works closes the drawer.
             open.mockReturnValue(window)
             fireEvent.click(screen.getByRole('button', { name: 'Sign up in a browser' }))
             await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())

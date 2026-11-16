@@ -44,15 +44,6 @@ describe('PasskeyProviderUnsupportedDrawer', () => {
         expect(screen.getByRole('link', { name: 'Still stuck?' })).toHaveAttribute('href', 'https://peanut.me/support')
     })
 
-    it('says the browser did not open, and keeps every way out', () => {
-        renderDrawer({ browserOpenFailed: true })
-
-        expect(screen.getByText('The browser didn’t open. Try again.')).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'Sign up at peanut.me in a browser' })).toBeInTheDocument()
-        expect(screen.getByRole('link', { name: 'Still stuck?' })).toBeInTheDocument()
-    })
-
     it('outside the Android app, names another password manager and offers no browser signup or Android steps', () => {
         renderDrawer({ platform: 'other' })
 

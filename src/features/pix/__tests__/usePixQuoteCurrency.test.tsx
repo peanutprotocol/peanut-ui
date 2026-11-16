@@ -70,8 +70,8 @@ describe('usePixQuoteCurrency', () => {
         expect(result.current.quotesTypedAmount).toBe(false)
     })
 
-    // The owner, 15 Nov, "Option A": the rate row is the quote's exchangeRate; the field still converts with
-    // amount ÷ USDC (R$5 ÷ 1.0118 = 4.94), and the fee is the user's only on the typed amount's quote
+    // the rate row is the quote's exchangeRate; the field still converts with amount ÷ USDC
+    // (R$5 ÷ 1.0118 = 4.94), and the fee is the user's only on the typed amount's quote
     it('names the quote’s rate and fee apart from the price the field converts with', async () => {
         mockQuote.mockImplementation(async (request: { amountBrl?: string }) =>
             request.amountBrl === '106.75'

@@ -23,9 +23,9 @@ const display = {
     withdrawUsd: '92.504310',
     rate: '5.445692',
     fixedFeeBrl: '0.75',
-    // Avenia's own rate and every fee: 92.504310 × 5.46 − 2.07 = R$503.00
-    exchangeRate: '5.460000',
-    providerFeeBrl: '2.07',
+    // the variable fees in the rate, the flat fee as the row: 92.504310 × 5.445692 − 0.75 = R$503.00
+    exchangeRate: '5.445692',
+    providerFeeBrl: '0.75',
     arrivalEstimateSeconds: 60,
     provider: 'Avenia' as const,
 }
@@ -34,7 +34,7 @@ const save = { savedName: null, isOffered: false, checked: false, nickname: '', 
 const amount = {
     seed: { amount: '503', denomination: 'BRL' as const },
     price: 5.4,
-    // the minimum's quote: Avenia's rate, and a fee that is not the user's
+    // the minimum's quote: its rate, and a fee that is not the user's
     rateAndFee: { exchangeRate: 5.37, providerFeeBrl: '0.98' },
     isLoading: false,
     isError: false,
@@ -72,21 +72,20 @@ const renderForm = (props: Partial<Parameters<typeof PixWithdrawForm>[0]> = {}) 
 
 describe('PixWithdrawForm', () => {
     // the Pix-key payment form, with the withdrawal's lead word and button (ruling 2026-11-12)
-    it('leads with Withdrawing, the holder, their CPF and bank; then Avenia’s rate, the sponsored Peanut fee, every provider fee as one row, the exact total and the provider', () => {
+    it('leads with Withdrawing, the holder, their CPF and bank; then the rate, the sponsored Peanut fee, the flat provider fee, the exact total and the provider', () => {
         renderForm()
         expect(screen.getByText(en.pix.withdraw.withdrawing)).toBeInTheDocument()
         expect(screen.getByText('Ana Souza')).toBeInTheDocument()
         // a CPF key is the holder's own tax ID: shown once, punctuated
         expect(screen.getByText('CPF 111.444.777-35')).toBeInTheDocument()
         expect(screen.getByText('Banco Inter')).toBeInTheDocument()
-        // Avenia's own rate, no fee in it (the owner, 15 Nov, "Option A"); not the all-in 5.45
-        expect(screen.getByText('1 USD = 5.46 BRL')).toBeInTheDocument()
+        // the review's rate, the variable fees inside (TASK-24967)
+        expect(screen.getByText('1 USD = 5.45 BRL')).toBeInTheDocument()
         expect(screen.getByText(en.common.peanutFee)).toBeInTheDocument()
         expect(screen.getByText(en.common.sponsoredByPeanut)).toBeInTheDocument()
         expect(screen.getByText(en.pix.withdraw.fee)).toBeInTheDocument()
-        // every fee, not the flat R$0.75 alone
-        expect(screen.getByText('R$2.07')).toBeInTheDocument()
-        expect(screen.queryByText('R$0.75')).toBeNull()
+        // the flat fee alone
+        expect(screen.getByText('R$0.75')).toBeInTheDocument()
         // the exact wallet debit the quote names, as the removed review showed it
         expect(screen.getByText(en.withdraw.confirm.youPay)).toBeInTheDocument()
         expect(screen.getByText('$92.50')).toBeInTheDocument()
@@ -154,7 +153,7 @@ describe('PixWithdrawForm', () => {
         expect(screen.getByText('$92.50')).toBeInTheDocument()
     })
 
-    // a refused quote has no numbers: the field converts with the indicative quote, the message and its action stand under Confirm
+    // a refused quote has no numbers: the field converts with the indicative quote, the message and its action stand under the amount
     it('shows a refused quote as its message and action, with Confirm off and no fee or total row', () => {
         renderForm({
             display: null,
@@ -229,21 +228,29 @@ describe('PixWithdrawForm', () => {
         expect(container.querySelector('.animate-spin')).not.toBeNull()
     })
 
-    // the notice must be read before Confirm: it sits under the recipient card, above the save card and the amount,
-    // so a 393×852 viewport shows it whatever cards the form carries
-    it('keeps the quote notice in the first viewport: under the recipient, above the save card and the amount', () => {
-        renderForm({
-            save: { ...save, isOffered: true, checked: true, nickname: 'Ana Souza' },
-            error: { message: en.pix.withdraw.quoteMoved, priority: 'attention' },
-        })
+    // Aleks, 16 Nov 2026: one message, as the box directly under the amount, and no error line of the field's own;
+    // above the details card and Confirm, so it is read before Confirm (Chip, ui#4082)
+    it.each([
+        ['the minimum', { message: en.pix.deposit.minimum.replace('{amount}', 'R$5') }],
+        ['the moved quote', { message: en.pix.withdraw.quoteMoved, priority: 'attention' as const }],
+    ])('shows %s once, under the amount box and above the details card and Confirm', (_, error) => {
+        renderForm({ save: { ...save, isOffered: true, checked: true, nickname: 'Ana Souza' }, error })
+        expect(screen.getAllByText(error.message)).toHaveLength(1)
         const notice = screen.getByRole('alert')
-        expect(notice).toHaveTextContent(en.pix.withdraw.quoteMoved)
+        expect(notice).toHaveTextContent(error.message)
         const follows = (node: Element) => !!(notice.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING)
-        expect(follows(screen.getByText(en.global.savedAddresses.savePrompt))).toBe(true)
-        expect(follows(screen.getByPlaceholderText('0.00'))).toBe(true)
-        expect(follows(screen.getByRole('button', { name: en.common.confirm }))).toBe(true)
-        // and the recipient card stays the lead
-        expect(follows(screen.getByText('Ana Souza'))).toBe(false)
+        for (const above of [
+            screen.getByText('Ana Souza'),
+            screen.getByText(en.global.savedAddresses.savePrompt),
+            screen.getByPlaceholderText('0.00'),
+        ])
+            expect(follows(above)).toBe(false)
+        for (const below of [
+            screen.getByText(en.qrPay.info.exchangeRate),
+            screen.getByText(en.withdraw.confirm.youPay),
+            screen.getByRole('button', { name: en.common.confirm }),
+        ])
+            expect(follows(below)).toBe(true)
     })
 
     it('offers to save the key under its holder, as the payment form does', () => {
