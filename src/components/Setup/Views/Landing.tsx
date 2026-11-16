@@ -32,7 +32,6 @@ import { isCapacitor } from '@/utils/capacitor'
 import { useSignupControl } from '@/features/setup/useSignupControl'
 import { useOptionalSetupFlow } from '@/features/setup/SetupFlowContext'
 import { discardSignupDraft, readSignupDraft } from '@/features/setup/signup-draft'
-import { useWelcomeHeadlineExperiment } from '@/features/setup/WelcomeHeadlineExperimentProvider'
 
 // One cancel is often deliberate. On iOS and the web a phone with no Peanut
 // passkey closes the sheet the same way, so the recovery drawer waits for the repeat.
@@ -57,7 +56,6 @@ const LandingStep = () => {
     const { handleLoginClick, isLoggingIn } = useLogin()
     const toast = useToast()
     const { track, trackError } = useSignupControl()
-    const { variant: welcomeVariant, cancelPending: cancelWelcomePending } = useWelcomeHeadlineExperiment()
     const [isRecoveryOpen, setIsRecoveryOpen] = useState(false)
     const [loginFailed, setLoginFailed] = useState(false)
     const [isAccountDeleted, setIsAccountDeleted] = useState(false)
@@ -136,12 +134,11 @@ const LandingStep = () => {
             discardSignupDraft()
             flow?.resetSetupFlow()
         }
-        posthog.capture(ANALYTICS_EVENTS.SIGNUP_CLICKED, { welcome_variant: welcomeVariant ?? 'control' })
+        posthog.capture(ANALYTICS_EVENTS.SIGNUP_CLICKED)
         handleNext()
     }
 
     const onSignUpClick = () => {
-        cancelWelcomePending()
         track('sign_up', 'tap')
         signUp()
     }

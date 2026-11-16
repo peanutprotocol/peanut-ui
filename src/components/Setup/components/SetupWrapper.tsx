@@ -3,8 +3,6 @@ import OnboardingAnimation from './OnboardingAnimation'
 import { ResidenceHero } from './ResidenceHero'
 import { SetupLanguageSwitcher } from './SetupLanguageSwitcher'
 import SetupTitleBlock from './SetupTitleBlock'
-import WelcomeHeadlineTitleBlock from './WelcomeHeadlineTitleBlock'
-import { WelcomeHeadlineExperimentProvider } from '@/features/setup/WelcomeHeadlineExperimentProvider'
 import { Button } from '@/components/0_Bruddle/Button'
 import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
 import { Icon } from '@/components/Global/Icons/Icon'
@@ -456,7 +454,6 @@ export const SetupWrapper = memo(function SetupWrapper({
     // left a big gap above the QR) and center the copy on desktop to match the
     // centered store content. The native landing is untouched.
     const sunsetLanding = screenId === 'landing' && !nativePlatform.isCapacitor && !hasKeepWebBypass
-    const TitleBlock = screenId === 'landing' ? WelcomeHeadlineTitleBlock : SetupTitleBlock
 
     // Match the server panel first, then start the mobile landing rise after hydration.
     const mountedOnLanding = useRef(screenId === 'landing').current
@@ -519,10 +516,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                             prefersReducedMotion={!!prefersReducedMotion}
                             className="col-start-1 row-start-1 mx-auto flex w-full min-w-0 flex-col bg-white"
                         >
-                            <WelcomeHeadlineExperimentProvider
-                                enabled={screenId === 'landing'}
-                                sunsetLanding={sunsetLanding}
-                            >
+                            <>
                                 {fullScreen && showProgress && (
                                     // Keeps the content clear of the fixed top bar.
                                     <div aria-hidden="true" className="my-4 h-11 shrink-0" />
@@ -560,7 +554,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                                         {/* Renders nothing when the step owns its heading (titleInView +
                                     descriptionInView): an empty, height-capped slot would push
                                     the content down on desktop. */}
-                                        <TitleBlock
+                                        <SetupTitleBlock
                                             title={title}
                                             description={description}
                                             size={titleSize}
@@ -590,7 +584,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                                         </div>
                                     </div>
                                 </motion.div>
-                            </WelcomeHeadlineExperimentProvider>
+                            </>
                         </TransitioningContent>
                     </AnimatePresence>
                 </div>

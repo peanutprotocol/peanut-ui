@@ -7,9 +7,6 @@ type FlagValue = boolean | string
  * the screen never reads the flag.
  */
 export const FLAG_VARIANTS: ReadonlyArray<{ base: string; flag: string; value: FlagValue }> = [
-    { base: '01-a-landing', flag: 'welcome-headline-copy', value: 'every_border' },
-    { base: '01-a-landing', flag: 'welcome-headline-copy', value: 'whole_world' },
-    { base: '01-a-landing', flag: 'welcome-headline-copy', value: 'travels_free' },
     { base: '07-d-notification-settings', flag: 'signup-notification-switches', value: 'switches' },
     { base: '07-d-notification-settings', flag: 'signup-notification-switches', value: 'defaults_on' },
     // The checklist's first-payment row drops the card and offers only QR.
@@ -34,6 +31,8 @@ export const FLAGS: Record<string, { values: ReadonlyArray<FlagValue>; baseline:
 
 /** Flags no capture can show, and why. */
 export const FLAG_EXEMPTIONS: Record<string, string> = {
+    'welcome-headline-copy':
+        'The landing no longer reads it: the redesigned landing has one headline (owner ruling, 16 Nov 2026). The flag code goes with the old views.',
     session_key_spend_sign: 'Changes how a spend is signed; nothing on screen differs.',
     'push-provisioning-apple': 'Add-to-wallet exists only in the native apps; captures run the web build.',
     'push-provisioning-google': 'Add-to-wallet exists only in the native apps; captures run the web build.',
