@@ -7,6 +7,7 @@ import type { StepComponentProps } from '@/components/Setup/Setup.types'
 import { SetupScreen } from '@/components/Setup/redesign/shell/SetupScreen'
 import { useShellDevice } from '@/components/Setup/redesign/shell/useShellDevice'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { useAuth } from '@/context/authContext'
 import { setupChannelsForResidence } from '@/features/setup/paymentChannels'
 import { saveSignupPaymentPlan } from '@/features/setup/saveSignupAnswers'
@@ -85,7 +86,14 @@ export function PaymentPlanScreen(_props: StepComponentProps) {
             smScale={0.55}
             state={state}
             title={t('plan.title')}
-            art={<PlanArt compact={compact} hop={hop} />}
+            art={
+                <PlanArt
+                    compact={compact}
+                    hop={hop}
+                    // QR payments run on Manteca: Argentina and Brazil only (FLEET-RULES 9)
+                    showQr={isMantecaSupportedCountryCode(residenceCountry)}
+                />
+            }
             footer={{
                 primary: {
                     label: t('common.continue'),
