@@ -2,7 +2,6 @@ import redirects from '../../../../redirects.json'
 import { resolvePermanentRedirectPath } from '../redirects'
 
 // Next's own matcher for `source` patterns; the compiled copy ships without types.
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const { match } = require('next/dist/compiled/path-to-regexp') as {
     match: (pattern: string, options?: { decode?: (value: string) => string }) => (path: string) => unknown
 }
