@@ -1,7 +1,6 @@
 'use client'
 
 import { Button } from '@/components/0_Bruddle/Button'
-import { Callout } from '@/components/0_Bruddle/Callout'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import { NumberedList } from '@/components/0_Bruddle/NumberedList'
@@ -12,8 +11,6 @@ interface PasskeyProviderUnsupportedDrawerProps {
     visible: boolean
     /** Only the Android app can change the phone's provider in Settings and hand signup to a browser. */
     platform: 'android-app' | 'other'
-    /** The browser did not open: the drawer stays, with this error above its actions. */
-    browserOpenFailed?: boolean
     onClose: () => void
     onRetry: () => void
     onSignUpInBrowser: () => void
@@ -33,7 +30,6 @@ interface PasskeyProviderUnsupportedDrawerProps {
 export const PasskeyProviderUnsupportedDrawer = ({
     visible,
     platform,
-    browserOpenFailed,
     onClose,
     onRetry,
     onSignUpInBrowser,
@@ -66,7 +62,6 @@ export const PasskeyProviderUnsupportedDrawer = ({
                         ) : (
                             <p className="text-body-s text-foreground-secondary">{t('useAnotherManager')}</p>
                         )}
-                        {browserOpenFailed && <Callout priority="error">{t('browserOpenFailed')}</Callout>}
                         <div className="flex w-full flex-col items-center gap-4">
                             <Button icon="retry" onClick={onRetry} className="w-full justify-center">
                                 {tCommon('retry')}

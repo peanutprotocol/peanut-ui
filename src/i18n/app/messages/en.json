@@ -1033,8 +1033,7 @@
                 "chooseGoogle": "Set Google Password Manager as the preferred service, then retry."
             },
             "signUpInBrowser": "Sign up at peanut.me in a browser",
-            "useAnotherManager": "Use another password manager, then retry.",
-            "browserOpenFailed": "The browser didn’t open. Try again."
+            "useAnotherManager": "Use another password manager, then retry."
         },
         "waitlist": {
             "loginCanceled": "Login was canceled. Please try again.",

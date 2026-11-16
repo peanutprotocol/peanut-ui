@@ -1033,8 +1033,7 @@
                 "chooseGoogle": "Elige el Administrador de contraseñas de Google como servicio preferido y vuelve a intentarlo."
             },
             "signUpInBrowser": "Crear cuenta en peanut.me desde el navegador",
-            "useAnotherManager": "Usa otro administrador de contraseñas y vuelve a intentarlo.",
-            "browserOpenFailed": "No se abrió el navegador. Vuelve a intentarlo."
+            "useAnotherManager": "Usa otro administrador de contraseñas y vuelve a intentarlo."
         },
         "waitlist": {
             "loginCanceled": "El inicio de sesión fue cancelado. Inténtalo de nuevo.",
