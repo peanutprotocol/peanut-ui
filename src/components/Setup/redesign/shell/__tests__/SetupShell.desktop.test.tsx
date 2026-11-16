@@ -67,6 +67,25 @@ describe('SetupShell on desktop', () => {
         expect(hero()!.querySelector('[data-clouds]')).not.toBeNull()
     })
 
+    it('gives the web download landing (no footer) the compact stage and leaves its art to the side hero', () => {
+        setWidth(1440)
+        renderStep('landing', 'tall')
+        const shell = document.querySelector<HTMLElement>('[data-setup-shell]')!
+        expect(shell.style.getPropertyValue('--sr-stage-tall')).toBe('var(--sr-stage-compact)')
+    })
+
+    it('keeps the tall stage for a landing with a footer (native, keep-web)', () => {
+        setWidth(1440)
+        renderInShell(
+            'landing',
+            <SetupScreen ground="sky" stage="tall" footer={{ primary: { label: 'Sign up', onClick: () => {} } }}>
+                <p>panel</p>
+            </SetupScreen>
+        )
+        const shell = document.querySelector<HTMLElement>('[data-setup-shell]')!
+        expect(shell.style.getPropertyValue('--sr-stage-tall')).toBe('')
+    })
+
     it('mounts no hero on a phone', () => {
         setWidth(767)
         renderStep('advantage-fees')

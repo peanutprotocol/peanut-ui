@@ -1,7 +1,16 @@
 'use client'
 
 import { AnimatePresence, useReducedMotion } from 'framer-motion'
-import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import {
+    type CSSProperties,
+    type ReactNode,
+    useEffect,
+    useLayoutEffect,
+    useMemo,
+    useRef,
+    useState,
+    useSyncExternalStore,
+} from 'react'
 import { SignupScreenContext } from '@/features/setup/useSignupControl'
 import type { ScreenId } from '@/components/Setup/Setup.types'
 import { isCapacitor } from '@/utils/capacitor'
@@ -94,6 +103,10 @@ export function SetupShell({ screenId, children, direction = 0, showBackButton, 
     // load its art. Dev's full-page steps had no hero: the celebration (full stage) and the residence comparison.
     const desktop = useSyncExternalStore(subscribeDesktop, isDesktop, serverIsDesktop)
     const desktopHero = desktop && stage !== 'full' && !(screenId === 'residence' && stage === 'compact')
+    // Dev's desktop download landing showed the headline, the store QR, both store buttons and Log in at once, with the
+    // mascot in the side hero. Under the tall stage the QR block falls below the fold, so on desktop the web landing
+    // (no footer) takes the compact stage and leaves its art to the side hero.
+    const desktopDownload = desktop && screenId === 'landing' && screen?.footer === null
 
     const chrome = screen?.chrome ?? {}
     return (
@@ -108,7 +121,15 @@ export function SetupShell({ screenId, children, direction = 0, showBackButton, 
                     )}
                     <div className="md:min-w-0 md:flex-1 md:bg-background-default">
                         <div
-                            className="signup-shell relative mx-auto h-[var(--sr-h)] w-full max-w-[480px] overflow-hidden bg-background-default"
+                            className={twMerge(
+                                'signup-shell relative mx-auto h-[var(--sr-h)] w-full max-w-[480px] overflow-hidden bg-background-default',
+                                desktopDownload && '[&_[data-setup-art-box]]:hidden'
+                            )}
+                            style={
+                                desktopDownload
+                                    ? ({ '--sr-stage-tall': 'var(--sr-stage-compact)' } as CSSProperties)
+                                    : undefined
+                            }
                             data-setup-shell
                             data-setup-screen={screenId}
                         >
