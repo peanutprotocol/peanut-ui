@@ -15,6 +15,7 @@ import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDeposi
 import type { useAddMoneyReadiness } from '@/features/add-money/useAddMoneyReadiness'
 import { readReturnTo, RETURN_TO_PARAM, withReturnTo } from '@/utils/return-to.utils'
 import PIX from '@/assets/payment-apps/pix.svg'
+import { PIX_ADD_MONEY_PATH } from '@/features/pix/pix.routes'
 import Image from 'next/image'
 
 /**
@@ -81,8 +82,11 @@ export function HomeActionDrawers({
                           ? '/add-money'
                           : method === 'crypto'
                             ? '/add-money/crypto'
-                            : // only the ready ones where some are; a Pix row a resident can still start opens the chooser
-                              `/add-money/options?method=${method}${addMoney.ready[method as keyof typeof addMoney.ready].length ? '&ready=1' : ''}`,
+                            : // Pix has one currency, so it opens the Pix deposit, not a chooser of one row
+                              method === 'pix'
+                              ? PIX_ADD_MONEY_PATH
+                              : // only the ready ones where some are
+                                `/add-money/options?method=${method}${addMoney.ready[method as keyof typeof addMoney.ready].length ? '&ready=1' : ''}`,
               }))
             : (content ? homeDrawerOptions(content, depositAccounts) : []).map((option) => ({
                   key: option.key,

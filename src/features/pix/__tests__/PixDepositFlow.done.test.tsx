@@ -51,10 +51,9 @@ describe('Done after a completed Pix deposit', () => {
     })
 
     it.each([
-        ['the Home drawer', '/add-money/options?method=pix&ready=1'],
-        ['the Add picker', withReturnTo('/add-money/options?method=pix', '/add-money')],
-        ['a deep link', undefined],
-    ])('goes Home in place of the success entry when the chooser was reached from %s', (_from, returnTo) => {
+        ['the Home drawer', undefined],
+        ['the Add picker', '/add-money'],
+    ])('goes Home in place of the success entry when Pix was opened from %s', (_from, returnTo) => {
         doneFrom(returnTo)
         expect(mockRouter.replace).toHaveBeenCalledWith('/home')
         expect(mockRouter.push).not.toHaveBeenCalled()
@@ -62,16 +61,16 @@ describe('Done after a completed Pix deposit', () => {
     })
 
     it('goes back to an origin a flow stated when it sent the user to add money', () => {
-        doneFrom(withReturnTo('/add-money/options?method=pix', withReturnTo('/add-money', '/request/abc')))
+        doneFrom(withReturnTo('/add-money', '/request/abc'))
         expect(mockRouter.replace).toHaveBeenCalledWith('/request/abc')
     })
 
-    it('rewinds to Home when Home is behind it, so Back does not reopen the code or the chooser', () => {
+    it('rewinds to Home when Home is behind it, so Back does not reopen the code', () => {
         const go = jest.spyOn(window.history, 'go').mockImplementation(() => undefined)
         window.history.pushState(null, '', '/home')
-        window.history.pushState(null, '', '/add-money/options?method=pix&ready=1')
+        window.history.pushState(null, '', '/add-money/pix')
         window.history.pushState(null, '', '/add-money/pix?step=showQR&intentId=d1')
-        doneFrom('/add-money/options?method=pix&ready=1')
+        doneFrom()
         expect(go).toHaveBeenCalledWith(-2)
         expect(mockRouter.replace).not.toHaveBeenCalled()
         go.mockRestore()

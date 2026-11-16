@@ -5514,7 +5514,7 @@
             "thirdNational": "Emissor do cartão, subsidiária da Rain",
             "bridgeEea": "Provedor de depósitos, saques e IBANs virtuais em moeda fiduciária",
             "mantecaAr": "Depósitos, saques e pagamentos por QR na Argentina",
-            "mantecaBr": "Pix para contas que ainda não usam a Avenia",
+            "mantecaBr": "Pagamentos e transferências por Pix para quem não mora no Brasil",
             "aveniaBr": "Depósitos por Pix para residentes no Brasil, e saques, transferências e pagamentos por QR via Pix para usuários de qualquer país"
         },
         "about": "Sobre a {brand}",
