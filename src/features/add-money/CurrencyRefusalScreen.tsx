@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useModalsContextOptional } from '@/context/ModalsContext'
-import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
+import { reasonCodeKey, refusalTitleKey } from '@/constants/capability-reason-labels.consts'
 import { useKycControl } from '@/features/paperwork-verification/analytics'
 import { ReplacementDocumentAction } from '@/features/paperwork-verification/ReplacementDocumentAction'
 import { VerifyFooter, VerifyHeroLayout } from '@/features/paperwork-verification/components/VerifyLayout'
@@ -29,6 +29,7 @@ export function CurrencyRefusalScreen({
     const controls = useKycControl('feature-status', 'kyc_status')
     const modals = useModalsContextOptional()
     const reasonKey = reasonCodeKey(reason)
+    const titleKey = refusalTitleKey(reason)
     // A local refusal for the residence names the residence under a currency title: the Pix line
     // (`local_served_elsewhere`) answers a Brazil resident on the ARS page with Pix (TASK-24947).
     const description =
@@ -46,7 +47,13 @@ export function CurrencyRefusalScreen({
             screenId="feature-status"
             pose="sad"
             onBack={onBack}
-            title={currency ? tDeposit('gate.blockedTitle', { currency }) : tDeposit('gate.blockedTitleAll')}
+            title={
+                titleKey
+                    ? tDeposit(titleKey)
+                    : currency
+                      ? tDeposit('gate.blockedTitle', { currency })
+                      : tDeposit('gate.blockedTitleAll')
+            }
             description={description}
             footer={
                 <VerifyFooter

@@ -56,7 +56,7 @@ const BRIDGE_DUPLICATE_SUPPORT = {
 const BRIDGE_DUPLICATE_REASON = {
     code: 'duplicate_customer_detected',
     userMessage:
-        'Your details are already linked to another Peanut account, so Bridge, our account provider, can’t open bank accounts on this one. If the other account is yours, sign in to it or contact support.',
+        'Your details are already linked to another Peanut account. If you can, log in and use that account, otherwise contact support.',
 }
 /** The `/users/me` of a verify-once user Bridge refused as a duplicate customer (the API's terminal branch). */
 const BRIDGE_DUPLICATE_USER = {
