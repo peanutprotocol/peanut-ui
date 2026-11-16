@@ -1,5 +1,6 @@
 'use client'
 
+import { Fragment } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import type { SuggestionPart } from './suggestion-line'
 
@@ -24,23 +25,30 @@ export function InviterSuggestions({
             data-testid="setup-redesign-invite-suggestions"
         >
             {lead && <span>{lead}</span>}
+            {/* The spaces between the pieces only matter to text (screen readers, copy): the flex gap lays them out. */}
             {parts.map((part, i) =>
                 'text' in part ? (
-                    <span key={i}>{part.text}</span>
+                    <Fragment key={i}>
+                        {(lead || i > 0) && ' '}
+                        <span>{part.text}</span>
+                    </Fragment>
                 ) : (
-                    <span key={i} className="inline-flex items-center gap-1 whitespace-nowrap">
-                        <Button
-                            variant="secondary"
-                            size="compact"
-                            shadowSize="2"
-                            className="notranslate"
-                            translate="no"
-                            onClick={() => onPick(names[part.chip], part.chip + 1)}
-                        >
-                            {`@${names[part.chip]}`}
-                        </Button>
-                        {part.suffix && <span>{part.suffix}</span>}
-                    </span>
+                    <Fragment key={i}>
+                        {(lead || i > 0) && ' '}
+                        <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                            <Button
+                                variant="secondary"
+                                size="compact"
+                                shadowSize="2"
+                                className="notranslate"
+                                translate="no"
+                                onClick={() => onPick(names[part.chip], part.chip + 1)}
+                            >
+                                {`@${names[part.chip]}`}
+                            </Button>
+                            {part.suffix && <span>{part.suffix}</span>}
+                        </span>
+                    </Fragment>
                 )
             )}
         </div>
