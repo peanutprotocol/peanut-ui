@@ -12,7 +12,11 @@ import {
     MASCOT_CANVAS_HEIGHT,
     MASCOT_CANVAS_WIDTH,
 } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
-import { getMascotPlacement, subscribeToMascotClock } from '@/components/Global/PeanutMascot/PeanutMascot.utils'
+import {
+    getMascotCanvasPlacement,
+    getMascotPlacement,
+    subscribeToMascotClock,
+} from '@/components/Global/PeanutMascot/PeanutMascot.utils'
 import { render, screen, waitFor } from '@testing-library/react'
 
 const mockAnimation = {
@@ -122,6 +126,17 @@ describe('getMascotPlacement', () => {
     })
 })
 
+describe('getMascotCanvasPlacement', () => {
+    it('fits the whole canvas in the box, centred, the same for every pose', () => {
+        // A box wider than the canvas: height-bound, centred sideways.
+        const placement = getMascotCanvasPlacement(300, 200)
+        expect(placement.height).toBeCloseTo(200, 5)
+        expect(placement.width).toBeCloseTo((200 * MASCOT_CANVAS_WIDTH) / MASCOT_CANVAS_HEIGHT, 5)
+        expect(placement.top).toBeCloseTo(0, 5)
+        expect(placement.left).toBeCloseTo((300 - placement.width) / 2, 5)
+    })
+})
+
 describe('subscribeToMascotClock', () => {
     // The loop is module-level shared state, so a leak here burns a rAF on every page for
     // the rest of the session. A ticker that unsubscribes from inside its own tick (what a
@@ -189,6 +204,14 @@ describe('MASCOT_ART_BOXES', () => {
 
 describe('mascot sizing', () => {
     type Pose = keyof typeof MASCOT_ART_BOXES
+
+    it('leaves the box to the call site when it fits the canvas, so two poses can share one box', async () => {
+        const { container } = render(<PeanutMascot pose="cheering" fit="canvas" className="size-full" />)
+
+        await waitFor(() => expect(mockLoadAnimation).toHaveBeenCalled())
+        const host = container.firstElementChild as HTMLElement
+        expect(host).not.toHaveClass(MASCOT_ASPECT_CLASSES.cheering)
+    })
 
     it('gives the host the pose art aspect, so a height-only box fits the pose', async () => {
         const { container } = render(<PeanutMascot pose="waving-chill" className="h-[35dvh]" />)
