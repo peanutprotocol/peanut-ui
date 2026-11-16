@@ -2,19 +2,18 @@
 jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
 
 /**
- * QRScanner clipboard shortcut — platform split (PEANUT-UI-PYW regression pin).
+ * QRScanner paste button — platform split (PEANUT-UI-PYW regression pin).
  *
  * The load-bearing claim: `Clipboard.read()` must NEVER run at scanner open
  * off Android-native. An un-gestured read raises the iOS "Allow Paste" alert,
- * which raced (and blocked) the camera permission dialog. iOS native only
- * probes prompt-free `hasStrings` and reads on the chip TAP; web does
- * neither.
+ * which raced (and blocked) the camera permission dialog. iOS native and web
+ * read only on the button TAP. Android reads at open, but only to name what
+ * was copied on the button; the tap reads again and pays the fresh value.
  */
 import React from 'react'
-import { render as rtlRender, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { render as rtlRender, screen, fireEvent, act, waitFor } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import { Clipboard } from '@capacitor/clipboard'
-import { clipboardHasStrings } from '@/utils/clipboard-detect'
 import { isAndroidNative } from '@/utils/capacitor'
 import { captureException } from '@sentry/nextjs'
 import { dispatchBackPress, resetBackHandlersForTests } from '@/utils/back-handler'
@@ -22,12 +21,21 @@ import { dispatchBackPress, resetBackHandlersForTests } from '@/utils/back-handl
 const mockToastError = jest.fn()
 
 jest.mock('@capacitor/clipboard', () => ({ Clipboard: { read: jest.fn() } }))
-jest.mock('@/utils/clipboard-detect', () => ({ clipboardHasStrings: jest.fn() }))
-jest.mock('@/utils/capacitor', () => ({ isAndroidNative: jest.fn() }))
+const mockAppListeners: Array<(state: { isActive: boolean }) => void> = []
+const mockRemoveAppListener = jest.fn()
+jest.mock('@capacitor/app', () => ({
+    App: {
+        addListener: jest.fn(async (_event: string, cb: (state: { isActive: boolean }) => void) => {
+            mockAppListeners.push(cb)
+            return { remove: mockRemoveAppListener }
+        }),
+    },
+}))
+// isCapacitor: the DS Button's haptic asks on every tap
+jest.mock('@/utils/capacitor', () => ({ isAndroidNative: jest.fn(), isCapacitor: () => false }))
 jest.mock('@sentry/nextjs', () => ({ captureException: jest.fn() }))
-// general.utils transitively imports env-requiring constants; passthrough keeps
-// the chip text assertable as the full address.
-jest.mock('@/utils/general.utils', () => ({ printableAddress: (a: string) => a }))
+// general.utils transitively imports env-requiring constants; the scanner uses none of it
+jest.mock('@/utils/general.utils', () => ({}))
 jest.mock('@/components/0_Bruddle/Toast', () => ({
     useToast: () => ({ error: mockToastError, info: jest.fn() }),
 }))
@@ -45,7 +53,7 @@ jest.mock('../CameraPermissionDrawer', () => ({
         <div>
             <button onClick={onRetry}>{'Try again'}</button>
             <button onClick={onClose}>{'Dismiss'}</button>
-            {onPaste && <button onClick={onPaste}>{'Click to paste'}</button>}
+            {onPaste && <button onClick={onPaste}>{'Paste'}</button>}
         </div>
     ),
 }))
@@ -69,14 +77,12 @@ const render = (ui: React.ReactElement, options?: Omit<Parameters<typeof rtlRend
     rtlRender(ui, { wrapper: IntlWrapper, ...options })
 
 const mockRead = Clipboard.read as jest.MockedFunction<typeof Clipboard.read>
-const mockHasStrings = clipboardHasStrings as jest.MockedFunction<typeof clipboardHasStrings>
 const mockIsAndroidNative = isAndroidNative as jest.MockedFunction<typeof isAndroidNative>
 const mockCaptureException = captureException as jest.MockedFunction<typeof captureException>
 
 // all-lowercase: viem isAddress enforces checksum on mixed-case forms
 const ADDRESS = '0xab5801a7d398351b8be11c439e05c5b3259aec9b'
-const CHIP_LABEL = 'Use copied code'
-// a Pix "copia e cola" payload — the pasted-payment shape the chip used to refuse
+// a Pix "copia e cola" payload
 const PIX_CODE =
     '00020126580014BR.GOV.BCB.PIX0136123e4567-e12b-3456-7890-123456789abc5204000053039865802BR5913Fulano de Tal6008BRASILIA62070503***63041D3D'
 const PIX_PAYLOAD = '00020101021226' + '0014br.gov.bcb.pix' + 'x'.repeat(68)
@@ -102,13 +108,12 @@ describe('camera unavailable: paste stays reachable', () => {
     it('pastes a Pix code without a working camera', async () => {
         Object.assign(cameraState, { isPermissionDenied: false, error: 'Camera unavailable' })
         mockIsAndroidNative.mockReturnValue(false)
-        mockHasStrings.mockResolvedValue(false)
         mockRead.mockResolvedValue({ value: PIX_CODE, type: 'text/plain' })
 
         const onScan = renderScanner()
 
         await act(async () => {
-            fireEvent.click(await screen.findByText('Click to paste'))
+            fireEvent.click(await screen.findByText('Paste'))
         })
         expect(onScan).toHaveBeenCalledWith(PIX_CODE)
     })
@@ -118,205 +123,308 @@ describe('camera permission denied: the modal keeps one primary + Dismiss', () =
     it('offers Try again and Dismiss, and no paste CTA', async () => {
         Object.assign(cameraState, { isPermissionDenied: true, error: null })
         mockIsAndroidNative.mockReturnValue(false)
-        mockHasStrings.mockResolvedValue(false)
 
         renderScanner()
 
         expect(await screen.findByText('Try again')).toBeInTheDocument()
         expect(screen.getByText('Dismiss')).toBeInTheDocument()
-        expect(screen.queryByText('Click to paste')).toBeNull()
+        expect(screen.queryByText('Paste')).toBeNull()
     })
 })
 
 describe('Android hardware back', () => {
     it('closes the scanner instead of falling through to minimizeApp', async () => {
         mockIsAndroidNative.mockReturnValue(false)
-        mockHasStrings.mockResolvedValue(false)
 
         renderScanner()
 
         expect(dispatchBackPress()).toBe(true)
         expect(mockClose).toHaveBeenCalledTimes(1)
-        await waitFor(() => expect(mockHasStrings).toHaveBeenCalled())
     })
 })
 
-it('web: never reads the clipboard at open and shows no chip', async () => {
+const tapPaste = async (label = 'Paste') => {
+    const button = await screen.findByRole('button', { name: label })
+    await act(async () => {
+        fireEvent.click(button)
+    })
+}
+
+it('web and iOS: never reads the clipboard at open; the read happens on the tap', async () => {
     mockIsAndroidNative.mockReturnValue(false)
-    mockHasStrings.mockResolvedValue(false)
-
-    renderScanner()
-
-    await waitFor(() => expect(mockHasStrings).toHaveBeenCalledTimes(1))
-    expect(mockRead).not.toHaveBeenCalled()
-    expect(screen.queryByText(CHIP_LABEL)).toBeNull()
-})
-
-it('iOS native: probes hasStrings only at open; the read happens on chip tap', async () => {
-    mockIsAndroidNative.mockReturnValue(false)
-    mockHasStrings.mockResolvedValue(true)
     mockRead.mockResolvedValue({ value: ADDRESS, type: 'text/plain' })
 
     const onScan = renderScanner()
 
-    const chip = await screen.findByText(CHIP_LABEL)
+    await screen.findByRole('button', { name: 'Paste' })
     expect(mockRead).not.toHaveBeenCalled() // the PYW pin: no read before the tap
 
-    await act(async () => {
-        fireEvent.click(chip)
-    })
+    await tapPaste()
     expect(mockRead).toHaveBeenCalledTimes(1)
     expect(onScan).toHaveBeenCalledWith(ADDRESS)
 })
 
-it('iOS native: the chip hands a pasted Pix code straight to the scan path', async () => {
+it('a pasted Pix code reaches onScan verbatim', async () => {
     mockIsAndroidNative.mockReturnValue(false)
-    mockHasStrings.mockResolvedValue(true)
     mockRead.mockResolvedValue({ value: PIX_CODE, type: 'text/plain' })
 
     const onScan = renderScanner()
 
-    const chip = await screen.findByText(CHIP_LABEL)
-    await act(async () => {
-        fireEvent.click(chip)
-    })
-    // hasStrings cannot say WHAT was copied, so the chip must not filter on
-    // evmAddress — that refused every Pix copia-e-cola as "not a wallet address"
+    await tapPaste()
+    // the button must not filter by type: recognizeQr decides what is payable
     expect(onScan).toHaveBeenCalledWith(PIX_CODE)
     expect(mockToastError).not.toHaveBeenCalled()
 })
 
-it('"Click to paste": a pasted Pix code reaches onScan verbatim', async () => {
+it('is one enabled control, with no second paste chip', async () => {
     mockIsAndroidNative.mockReturnValue(false)
-    mockHasStrings.mockResolvedValue(false)
+
+    renderScanner()
+
+    const buttons = (await screen.findAllByRole('button')).filter((button) => /paste|copied/i.test(button.textContent!))
+    expect(buttons).toHaveLength(1)
+    expect(buttons[0]).toBeEnabled()
+})
+
+describe('Android native: the button names what was copied', () => {
+    it('names a copied Pix code', async () => {
+        mockIsAndroidNative.mockReturnValue(true)
+        mockRead.mockResolvedValue({ value: PIX_CODE, type: 'text/plain' })
+
+        renderScanner()
+
+        expect(await screen.findByRole('button', { name: 'Paste Pix code' })).toBeInTheDocument()
+    })
+
+    it('names a copied address', async () => {
+        mockIsAndroidNative.mockReturnValue(true)
+        mockRead.mockResolvedValue({ value: ADDRESS, type: 'text/plain' })
+
+        renderScanner()
+
+        expect(await screen.findByRole('button', { name: 'Paste address' })).toBeInTheDocument()
+    })
+
+    it('keeps the plain label for unrelated text', async () => {
+        mockIsAndroidNative.mockReturnValue(true)
+        mockRead.mockResolvedValueOnce({ value: 'milk, bread, coffee', type: 'text/plain' })
+
+        renderScanner()
+
+        await act(async () => {})
+        expect(mockRead).toHaveBeenCalledTimes(1)
+        expect(screen.getByRole('button', { name: 'Paste' })).toBeEnabled()
+    })
+
+    // The stale-value bug this replaces: the old chip paid the address read at
+    // open even after the user copied something else.
+    it('pays what the clipboard holds at the tap, not what it held at open', async () => {
+        mockIsAndroidNative.mockReturnValue(true)
+        mockRead.mockResolvedValueOnce({ value: ADDRESS, type: 'text/plain' })
+
+        const onScan = renderScanner()
+        await screen.findByRole('button', { name: 'Paste address' })
+
+        mockRead.mockResolvedValueOnce({ value: PIX_CODE, type: 'text/plain' })
+        await tapPaste('Paste address')
+
+        expect(onScan).toHaveBeenCalledTimes(1)
+        expect(onScan).toHaveBeenCalledWith(PIX_CODE)
+    })
+})
+
+it('a double tap opens the payment once', async () => {
+    mockIsAndroidNative.mockReturnValue(false)
     mockRead.mockResolvedValue({ value: PIX_CODE, type: 'text/plain' })
 
     const onScan = renderScanner()
 
+    const button = await screen.findByRole('button', { name: 'Paste' })
     await act(async () => {
-        fireEvent.click(await screen.findByText('Click to paste'))
+        fireEvent.click(button)
+        fireEvent.click(button)
     })
-    expect(onScan).toHaveBeenCalledWith(PIX_CODE)
+    expect(onScan).toHaveBeenCalledTimes(1)
+
+    // and the guard releases: a later tap works again
+    await tapPaste()
+    expect(onScan).toHaveBeenCalledTimes(2)
 })
 
-it('Android native: keeps the read-at-open address preview', async () => {
-    mockIsAndroidNative.mockReturnValue(true)
-    mockRead.mockResolvedValue({ value: ADDRESS, type: 'text/plain' })
-
-    renderScanner()
-
-    expect(await screen.findByText(ADDRESS)).toBeTruthy()
-    expect(mockRead).toHaveBeenCalledTimes(1)
-    expect(mockHasStrings).not.toHaveBeenCalled()
-})
-
-it('chip tap: onScan failure is not misreported as a clipboard error', async () => {
+it('onScan failure is not misreported as a clipboard error', async () => {
     mockIsAndroidNative.mockReturnValue(false)
-    mockHasStrings.mockResolvedValue(true)
-    mockRead.mockResolvedValue({ value: ADDRESS, type: 'text/plain' })
-
-    const error = new Error('routing exploded')
-    const onScan = jest.fn().mockRejectedValue(error)
-    renderScanner(onScan)
-
-    const chip = await screen.findByText(CHIP_LABEL)
-    await act(async () => {
-        fireEvent.click(chip)
-    })
-    expect(mockToastError).toHaveBeenCalledWith('Error processing QR code')
-    expect(mockToastError).not.toHaveBeenCalledWith('Could not access clipboard')
-    // The failure stays searchable without copying the scanned value.
-    expect(mockCaptureException).toHaveBeenCalledWith(
-        new Error('QR scan processing failed'),
-        expect.objectContaining({
-            tags: { error_type: 'qr_scan_processing' },
-            extra: { qrLengthBucket: '1-63', qrKind: 'other' },
-        })
-    )
-})
-
-it('"Click to paste": onScan failure is not misreported as a clipboard error', async () => {
-    mockIsAndroidNative.mockReturnValue(false)
-    mockHasStrings.mockResolvedValue(false)
     mockRead.mockResolvedValue({ value: PIX_PAYLOAD, type: 'text/plain' })
 
     const onScan = jest.fn().mockRejectedValue(new Error('routing exploded'))
     renderScanner(onScan)
 
-    const paste = await screen.findByText('Click to paste')
-    await act(async () => {
-        fireEvent.click(paste)
-    })
+    await tapPaste()
     expect(onScan).toHaveBeenCalledWith(PIX_PAYLOAD)
     expect(mockToastError).toHaveBeenCalledWith('Error processing QR code')
     expect(mockToastError).not.toHaveBeenCalledWith('Could not access clipboard')
-    // Only the coarse payload family and length bucket are sent.
+    // The failure stays searchable without copying the scanned value: only the
+    // coarse payload family and length bucket are sent.
     expect(mockCaptureException).toHaveBeenCalledWith(
-        expect.any(Error),
+        new Error('QR scan processing failed'),
         expect.objectContaining({
+            tags: { error_type: 'qr_scan_processing' },
             extra: { qrLengthBucket: '64-255', qrKind: 'pix' },
         })
     )
 })
 
-it('Android chip: onScan failure surfaces a processing error instead of rejecting unhandled', async () => {
-    mockIsAndroidNative.mockReturnValue(true)
-    mockRead.mockResolvedValue({ value: ADDRESS, type: 'text/plain' })
-
-    const onScan = jest.fn().mockRejectedValue(new Error('routing exploded'))
-    renderScanner(onScan)
-
-    const chip = await screen.findByText(ADDRESS)
-    await act(async () => {
-        fireEvent.click(chip)
-    })
-    expect(onScan).toHaveBeenCalledWith(ADDRESS)
-    expect(mockToastError).toHaveBeenCalledWith('Error processing QR code')
-})
-
-it('chip tap: empty clipboard maps to the same copy as "Click to paste"', async () => {
+it('empty clipboard: says so and keeps the button', async () => {
     mockIsAndroidNative.mockReturnValue(false)
-    mockHasStrings.mockResolvedValue(true)
     mockRead.mockRejectedValue(new Error('There is no data on the clipboard'))
 
-    renderScanner()
+    const onScan = renderScanner()
 
-    const chip = await screen.findByText(CHIP_LABEL)
-    await act(async () => {
-        fireEvent.click(chip)
-    })
+    await tapPaste()
     expect(mockToastError).toHaveBeenCalledWith('Clipboard is empty')
-    await waitFor(() => expect(screen.queryByText(CHIP_LABEL)).toBeNull())
+    expect(onScan).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: 'Paste' })).toBeEnabled()
 })
 
 /*
- * Ruled 2026-09-02 (TASK-22121 #20): the paste link hangs off the scan square
- * (top-full + mt-6), no longer off the drawer peek. jsdom has no layout, so
- * what is pinned here is the anchoring: the link lives inside the square's
- * container and is positioned from its bottom edge.
+ * The pills and the paste button hang off the scan square (top-full + mt-6),
+ * not off the drawer peek. jsdom has no layout, so what is pinned here is the
+ * anchoring: the group lives inside the square's container and is positioned
+ * from its bottom edge.
  */
-it('paste actions hang below the scan square', async () => {
+it('pills and paste button hang below the scan square', async () => {
     mockIsAndroidNative.mockReturnValue(false)
-    mockHasStrings.mockResolvedValue(false)
 
     renderScanner()
 
-    const link = await screen.findByText('Click to paste')
-    const anchored = link.closest('.top-full') as HTMLElement | null
+    const button = await screen.findByRole('button', { name: 'Paste' })
+    const anchored = button.closest('.top-full') as HTMLElement | null
     expect(anchored).not.toBeNull()
-    // one XL section gap below the square, positioned off the square not the viewport
     expect(anchored!.className).toContain('mt-6')
     expect(anchored!.className).toContain('absolute')
+    // the pills come first, the button after them
+    const list = screen.getByRole('list', { name: 'Supported QR codes' })
+    expect(anchored).toContainElement(list)
+    expect(list.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 })
 
-describe('Pix offer before scan', () => {
-    it('leaves Pix out of the accepted methods when Pix is paused for the user', () => {
-        render(<QRScanner onScan={jest.fn()} hidePix />)
-        expect(screen.queryByAltText('PIX')).not.toBeInTheDocument()
-        expect(screen.getByAltText('Mercado Pago')).toBeInTheDocument()
-    })
-    it('offers Pix otherwise', () => {
+describe('network pills', () => {
+    const pill = (name: string) => screen.getByText(name).closest('li')!
+
+    it('shows no visible caption: the pills are labelled for screen readers only', () => {
+        mockIsAndroidNative.mockReturnValue(false)
         renderScanner()
-        expect(screen.getByAltText('PIX')).toBeInTheDocument()
+        expect(screen.queryByText('Supported QR codes')).toBeNull()
+        expect(screen.getByRole('list', { name: 'Supported QR codes' })).toBeInTheDocument()
     })
+
+    it('are informational, not controls', () => {
+        mockIsAndroidNative.mockReturnValue(false)
+        renderScanner()
+        for (const name of ['Peanut', 'Mercado Pago', 'Pix', 'ETH & EVMs']) {
+            expect(pill(name).closest('button, a')).toBeNull()
+        }
+    })
+
+    it('leaves Pix out when Pix is paused for the user', () => {
+        mockIsAndroidNative.mockReturnValue(false)
+        render(<QRScanner onScan={jest.fn()} hidePix />)
+        expect(screen.queryByText('Pix')).not.toBeInTheDocument()
+        expect(screen.getByText('Mercado Pago')).toBeInTheDocument()
+    })
+
+    // three pills: the odd last one spans both columns and centres itself, instead of hanging left
+    it('centres the last of three pills on its own row', () => {
+        mockIsAndroidNative.mockReturnValue(false)
+        render(<QRScanner onScan={jest.fn()} hidePix />)
+        const pills = ['Peanut', 'Mercado Pago', 'ETH & EVMs'].map(pill)
+        expect(pills.slice(0, 2).map((item) => item.className)).not.toContainEqual(
+            expect.stringContaining('col-span-2')
+        )
+        expect(pills[2].className).toContain('col-span-2')
+        expect(pills[2].className).toContain('justify-self-center')
+    })
+
+    it('keeps four pills in the 2×2 grid, none spanning a row', () => {
+        mockIsAndroidNative.mockReturnValue(false)
+        renderScanner()
+        for (const name of ['Peanut', 'Mercado Pago', 'Pix', 'ETH & EVMs']) {
+            expect(pill(name).className).not.toContain('col-span-2')
+        }
+    })
+})
+
+describe('short phones', () => {
+    const stubViewport = (matching: string[]) => {
+        window.matchMedia = ((query: string) => ({
+            matches: matching.includes(query),
+            addEventListener: jest.fn(),
+            removeEventListener: jest.fn(),
+        })) as unknown as typeof window.matchMedia
+    }
+    afterEach(() => {
+        // jsdom ships no matchMedia; put that back for the other tests
+        delete (window as { matchMedia?: unknown }).matchMedia
+    })
+
+    it('under 730px: pills compact, still one paste button below them', async () => {
+        mockIsAndroidNative.mockReturnValue(false)
+        stubViewport(['(max-height: 729px)'])
+
+        renderScanner()
+
+        expect(await screen.findAllByRole('button', { name: 'Paste' })).toHaveLength(1)
+        expect(screen.getByText('Pix').closest('li')!.className).toContain('min-h-6')
+    })
+
+    it('under 667px: no pills, one paste button anchored above the drawer peek', async () => {
+        mockIsAndroidNative.mockReturnValue(false)
+        stubViewport(['(max-height: 729px)', '(max-height: 666px)'])
+        mockRead.mockResolvedValue({ value: PIX_CODE, type: 'text/plain' })
+
+        const onScan = renderScanner()
+
+        const buttons = await screen.findAllByRole('button', { name: 'Paste' })
+        expect(buttons).toHaveLength(1)
+        expect(screen.queryByRole('list')).toBeNull()
+        // outside the transformed square, or position:fixed would resolve against it
+        expect(buttons[0].closest('.top-full')).toBeNull()
+        expect((buttons[0].closest('.fixed') as HTMLElement).style.bottom).toBe('166px')
+
+        await tapPaste()
+        expect(onScan).toHaveBeenCalledWith(PIX_CODE)
+    })
+})
+
+it('Android: re-reads the label when the user comes back to the app', async () => {
+    mockIsAndroidNative.mockReturnValue(true)
+    mockRead.mockResolvedValueOnce({ value: ADDRESS, type: 'text/plain' })
+
+    renderScanner()
+    await screen.findByRole('button', { name: 'Paste address' })
+
+    mockRead.mockResolvedValueOnce({ value: PIX_CODE, type: 'text/plain' })
+    await act(async () => {
+        document.dispatchEvent(new Event('visibilitychange'))
+    })
+
+    expect(await screen.findByRole('button', { name: 'Paste Pix code' })).toBeInTheDocument()
+})
+
+it('Android: re-reads the label on native resume, and stops listening on close', async () => {
+    mockIsAndroidNative.mockReturnValue(true)
+    mockAppListeners.length = 0
+    mockRead.mockResolvedValueOnce({ value: ADDRESS, type: 'text/plain' })
+
+    const { unmount } = render(<QRScanner onScan={jest.fn()} />)
+    await screen.findByRole('button', { name: 'Paste address' })
+    await waitFor(() => expect(mockAppListeners).toHaveLength(1))
+
+    mockRead.mockResolvedValueOnce({ value: PIX_CODE, type: 'text/plain' })
+    await act(async () => {
+        mockAppListeners[0]({ isActive: true })
+    })
+    expect(await screen.findByRole('button', { name: 'Paste Pix code' })).toBeInTheDocument()
+
+    unmount()
+    expect(mockRemoveAppListener).toHaveBeenCalled()
 })

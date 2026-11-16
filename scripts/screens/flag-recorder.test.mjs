@@ -4,10 +4,11 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { runInNewContext } from 'node:vm'
+import ts from 'typescript'
 import { FLAG_READERS, FLAG_RECORDER_MARKER, installFlagRecorder, patchFlagReader } from './flag-recorder.mjs'
 import { prepare } from './prepare.mjs'
 
-test('both flag readers in the app carry the anchor the capture patch needs', () => {
+test('all flag readers in the app carry the anchor the capture patch needs', () => {
     for (const reader of FLAG_READERS) {
         const source = readFileSync(reader.path, 'utf8')
         const patched = patchFlagReader(reader, source)
@@ -58,4 +59,32 @@ test('the page hook records the first value each flag read and answers with the 
         'user-interviews-invite': true,
         'signup-notification-switches': 'control',
     })
+})
+
+test('capture-only welcome overrides render every arm without exposing ineligible users', () => {
+    const reader = FLAG_READERS.find(({ path }) => path.endsWith('/welcomeHeadlineExperiment.ts'))
+    const source = readFileSync(reader.path, 'utf8')
+    const { outputText } = ts.transpileModule(patchFlagReader(reader, source), {
+        compilerOptions: { module: ts.ModuleKind.CommonJS },
+    })
+    let exposures = 0
+    const context = {
+        exports: {},
+        require: (name) => {
+            if (name === 'posthog-js') return { default: { getFeatureFlag: () => exposures++ } }
+            if (name === '@/utils/featureFlag.utils') return { areFeatureFlagsLoaded: () => false }
+            throw new Error(`Unexpected import: ${name}`)
+        },
+    }
+    runInNewContext(outputText, context)
+    assert.equal(context.exports.readWelcomeHeadlineVariant(false), 'control')
+    for (const arm of ['control', 'every_border', 'whole_world', 'travels_free']) {
+        context.__screenCaptureFlag = (key, value) => {
+            assert.equal(key, 'welcome-headline-copy')
+            assert.equal(value, 'control')
+            return arm
+        }
+        assert.equal(context.exports.readWelcomeHeadlineVariant(false), arm)
+    }
+    assert.equal(exposures, 0)
 })

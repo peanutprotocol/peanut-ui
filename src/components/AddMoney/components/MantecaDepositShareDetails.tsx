@@ -20,6 +20,7 @@ import {
     MANTECA_COUNTRIES_CONFIG,
 } from '@/constants/manteca.consts'
 import { shortenStringLong, formatCurrency } from '@/utils/general.utils'
+import { formatFiatRate } from '@/utils/currency'
 import { useLocale, useTranslations } from 'next-intl'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { ProviderHelp } from '@/components/Provider/ProviderHelp'
@@ -179,7 +180,7 @@ const MantecaDepositShareDetails = ({
                     )}
                     <PaymentInfoRow
                         label={t('manteca.exchangeRate')}
-                        value={`1 USD = ${exchangeRate} ${currencySymbol}`}
+                        value={`1 USD = ${formatFiatRate(exchangeRate)} ${currencySymbol}`}
                     />
                     <PaymentInfoRow
                         label={t('manteca.providerFees')}

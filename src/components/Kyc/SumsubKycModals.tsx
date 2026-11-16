@@ -8,6 +8,7 @@ import { KycFailedModal } from '@/components/Kyc/modals/KycFailedModal'
 import IframeWrapper, { type IframeCloseSource } from '@/components/Global/IframeWrapper'
 import { type useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { KycControlFlowProvider, useKycControl } from '@/features/paperwork-verification/analytics'
+import { ResidenceReviewModal } from './ResidenceReviewModal'
 
 interface SumsubKycModalsProps {
     flow: ReturnType<typeof useMultiPhaseKycFlow>
@@ -36,6 +37,7 @@ export const SumsubKycModals = ({ flow, onCooldownClose }: SumsubKycModalsProps)
     const t = useTranslations('kyc.correction')
     return (
         <KycControlFlowProvider value={controlFlow}>
+            {flow.isResidenceReviewOpen && <ResidenceReviewModal onClose={flow.dismissResidenceReview} />}
             <ActionModal
                 visible={flow.showCorrection === true}
                 onClose={() => {

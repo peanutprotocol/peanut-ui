@@ -106,6 +106,8 @@ import { clearRedirectUrl, endIntentionalLogout, getRedirectUrl, saveRedirectUrl
 import { clearSessionHeld, hasHeldSession, markSessionHeld } from '@/utils/session-presence'
 import { purgeCaches } from '@/utils/cache.utils'
 import { clearAuthToken } from '@/utils/auth-token'
+import { isReturningDevice } from '@/utils/returning-device'
+import { recordSignupRegistration, readSignupDraft, saveSignupDraft } from '@/features/setup/signup-draft'
 
 const wrapper = ({ children }: { children: ReactNode }) => <AuthProvider>{children}</AuthProvider>
 
@@ -129,6 +131,7 @@ const stubLocation = (onNavigate?: () => void) => {
 
 describe('logoutUser', () => {
     beforeEach(() => {
+        localStorage.clear()
         jest.clearAllMocks()
         mockCurrentClientFlagProperties.mockReturnValue({ client_platform: 'android', binary_version: '1.23.0' })
         mockCancelQueries.mockResolvedValue(undefined)
@@ -146,6 +149,34 @@ describe('logoutUser', () => {
         endIntentionalLogout()
         clearRedirectUrl()
         clearSessionHeld()
+    })
+
+    it('clears the previous user’s bound signup draft along with credentials', async () => {
+        saveSignupDraft({
+            screenId: 'payment-plan',
+            answers: {
+                username: 'probe',
+                inviteSelection: 'alice',
+                residenceCountry: 'AR',
+                nationalityCountry: 'BR',
+                fundingChannel: 'arsBank',
+                paymentChannel: 'qr',
+                notificationChoices: null,
+                inviterAccepted: true,
+                sellScreensCountry: 'AR',
+            },
+        })
+        await recordSignupRegistration('u1', 'probe')
+        expect(readSignupDraft()?.userId).toBe('u1')
+        stubLocation()
+        const { result } = renderHook(() => useAuth(), { wrapper })
+
+        await act(async () => {
+            await result.current.logoutUser()
+        })
+
+        expect(clearAuthToken).toHaveBeenCalled()
+        expect(readSignupDraft()).toBeNull()
     })
 
     it('restores cached flag properties after reset without a fresh async lookup or duplicate reload', async () => {
@@ -266,8 +297,9 @@ describe('logoutUser', () => {
     })
 
     // a Pix withdraw form not yet sent holds the Pix key: the next user of this tab never sees it
-    it("forgets the account's Pix withdraw draft", async () => {
-        sessionStorage.setItem('pix-withdraw-draft:u1', JSON.stringify({ destination: '09579927189' }))
+    it("forgets the account's Pix withdraw and send drafts", async () => {
+        sessionStorage.setItem('pix-withdraw-draft:u1', JSON.stringify({ destination: '12345678909' }))
+        sessionStorage.setItem('pix-send-draft:u1', JSON.stringify({ destination: '11144477735' }))
         stubLocation()
         const { result } = renderHook(() => useAuth(), { wrapper })
 
@@ -276,6 +308,7 @@ describe('logoutUser', () => {
         })
 
         expect(sessionStorage.getItem('pix-withdraw-draft:u1')).toBeNull()
+        expect(sessionStorage.getItem('pix-send-draft:u1')).toBeNull()
     })
 
     it('forgets the analytics identity fingerprint, so the next user starts clean', async () => {
@@ -288,6 +321,37 @@ describe('logoutUser', () => {
         })
 
         expect(localStorage.getItem('posthog-person-properties-sent')).toBeNull()
+    })
+
+    it.each([false, true])(
+        'retains the device marker through logout (skipBackendCall: %s)',
+        async (skipBackendCall) => {
+            localStorage.removeItem('peanut-device-had-account')
+            stubLocation()
+            const { result } = renderHook(() => useAuth(), { wrapper })
+            expect(localStorage.getItem('peanut-device-had-account')).toBe('1')
+
+            await act(async () => {
+                await result.current.logoutUser({ skipBackendCall })
+            })
+
+            expect(posthog.reset).toHaveBeenCalledTimes(1)
+            expect(localStorage.getItem('posthog-person-properties-sent')).toBeNull()
+            expect(localStorage.getItem('peanut-device-had-account')).toBe('1')
+        }
+    )
+
+    it('still counts the device as returning when it signed out before the marker existed', async () => {
+        stubLocation()
+        const { result } = renderHook(() => useAuth(), { wrapper })
+
+        await act(async () => {
+            await result.current.logoutUser({ skipBackendCall: true })
+        })
+        localStorage.removeItem('peanut-device-had-account')
+
+        expect(document.cookie).not.toContain('web-authn-key=')
+        expect(isReturningDevice()).toBe(true)
     })
 
     it('releases the latch when the hard navigation never happens', async () => {

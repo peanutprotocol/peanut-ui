@@ -20,7 +20,7 @@ const read = (overrides: Record<string, unknown> = {}) => ({
     usdcAmount: '17.94',
     codePayable: true,
     brCode: 'code',
-    payerCpfMasked: '095.***.***-89',
+    payerCpfMasked: '111.***.***-35',
     ...overrides,
 })
 

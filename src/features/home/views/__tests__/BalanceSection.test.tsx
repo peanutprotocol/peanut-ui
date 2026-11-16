@@ -13,10 +13,19 @@ jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({
     useDepositAccountsEnabled: () => depositAccountsEnabled,
 }))
 
-const renderSection = (onUrlUpdate?: (e: UrlUpdateEvent) => void) =>
-    render(<BalanceSection balance={0n} isFetching={false} isHidden={false} onToggleVisibility={() => {}} />, {
-        wrapper: withNuqsTestingAdapter({ searchParams: '', onUrlUpdate }),
-    })
+const renderSection = (onUrlUpdate?: (e: UrlUpdateEvent) => void, addMoneyEntry: 'picker' | 'drawer' = 'picker') =>
+    render(
+        <BalanceSection
+            addMoneyEntry={addMoneyEntry}
+            balance={0n}
+            isFetching={false}
+            isHidden={false}
+            onToggleVisibility={() => {}}
+        />,
+        {
+            wrapper: withNuqsTestingAdapter({ searchParams: '', onUrlUpdate }),
+        }
+    )
 
 describe('BalanceSection submenu', () => {
     it('request opens its drawer while it offers two ways to be paid', async () => {
@@ -42,11 +51,18 @@ describe('BalanceSection submenu', () => {
         expect(urlUpdates).toHaveLength(0)
     })
 
-    it('add and send keep their drawers either way', () => {
-        depositAccountsEnabled = false
+    it('opens the full picker directly when setup is needed', () => {
         renderSection()
-
-        expect(screen.getByTestId('home-submenu-add').tagName).toBe('BUTTON')
+        expect(screen.getByTestId('home-submenu-add')).toHaveAttribute('href', '/add-money')
         expect(screen.getByTestId('home-submenu-send').tagName).toBe('BUTTON')
+    })
+
+    it('opens the Add drawer for a returning user with a usable method', async () => {
+        const urlUpdates: UrlUpdateEvent[] = []
+        renderSection((event) => urlUpdates.push(event), 'drawer')
+        const add = screen.getByTestId('home-submenu-add')
+        expect(add.tagName).toBe('BUTTON')
+        fireEvent.click(add)
+        await waitFor(() => expect(urlUpdates.at(-1)?.searchParams.get('drawer')).toBe('add'))
     })
 })

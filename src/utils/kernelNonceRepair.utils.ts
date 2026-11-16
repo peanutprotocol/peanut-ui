@@ -36,7 +36,7 @@ const MAX_NONCE_INCREMENT_SIZE = 10
 /** Transient: the repair op hasn't been observed on-chain yet — retrying is correct. */
 export class KernelNonceRepairPendingError extends Error {
     constructor() {
-        super('Wallet repair did not confirm in time — please retry in a moment')
+        super('Wallet repair did not confirm in time. Please retry in a moment.')
         this.name = 'KernelNonceRepairPendingError'
     }
 }

@@ -20,7 +20,14 @@ import {
     ensureSignupAttributionForRegistration,
     readSignupAttribution,
 } from '../signup-attribution'
-import { readInviteCode, stashInvite } from '../invite-stash'
+import {
+    bindInviteToUser,
+    readInviteCode,
+    readInviteIntent,
+    readInviteUserId,
+    stashAcquisitionInvite,
+    stashInvite,
+} from '../invite-stash'
 import { EInviteType } from '@/services/services.types'
 import publicAttributionPaths from '@/constants/signup-attribution-paths.generated.json'
 import {
@@ -1234,5 +1241,328 @@ describe('web visitor identity hand-off', () => {
         expect(restored).not.toHaveProperty('web_distinct_id')
         expect(posthogRegisterOnce).not.toHaveBeenCalled()
         expect(posthogAlias).not.toHaveBeenCalled()
+    })
+})
+
+// A /go opening stashes a passive inviter and may carry a strict-consent journey.
+describe('tracked-link handoff', () => {
+    const WEB_ID = '44444444-4444-4444-8444-444444444444'
+    const savedKey = process.env.NEXT_PUBLIC_POSTHOG_KEY
+    const journey = {
+        schemaVersion: '1',
+        journeyId: '33333333-3333-4333-8333-333333333333',
+        platform: 'web',
+        analyticsState: 'enabled',
+        captureMethod: 'browser',
+        firstTouch: { occurredAt: new Date().toISOString() },
+    }
+    const deny = (condition: 'dnt' | 'gpc' | 'declined') => {
+        if (condition === 'dnt') Object.defineProperty(navigator, 'doNotTrack', { configurable: true, value: '1' })
+        if (condition === 'gpc')
+            Object.defineProperty(navigator, 'globalPrivacyControl', { configurable: true, value: true })
+        if (condition === 'declined') localStorage.setItem('__ph_opt_in_out_phc_tracked', '0')
+    }
+    beforeEach(() => {
+        process.env.NEXT_PUBLIC_POSTHOG_KEY = 'phc_tracked'
+        posthogDistinctId.mockReturnValue(WEB_ID)
+        posthogIsIdentified.mockReturnValue(false)
+    })
+    afterEach(() => {
+        Reflect.deleteProperty(navigator, 'doNotTrack')
+        Reflect.deleteProperty(navigator, 'globalPrivacyControl')
+        posthogDistinctId.mockReset()
+        posthogIsIdentified.mockReset()
+        if (savedKey === undefined) delete process.env.NEXT_PUBLIC_POSTHOG_KEY
+        else process.env.NEXT_PUBLIC_POSTHOG_KEY = savedKey
+    })
+
+    it.each(['android', 'ios'] as const)(
+        'carries a passive inviter as acq_invite, which installed apps never accept (%s)',
+        (store) => {
+            stashAcquisitionInvite('alice')
+            const encoded = buildDeferredPayload('/home', undefined, store, { trackedLink: 'alice' })
+            expect(new URLSearchParams(encoded).has('invite')).toBe(false)
+            expect(parseLegacyDeferredPayload(encoded)?.invite).toBeUndefined()
+            expect(parseDeferredPayload(encoded)).toMatchObject({ acquisitionInvite: 'alice', trackedLink: 'alice' })
+            localStorage.clear()
+            applyDeferredPayload(parseDeferredPayload(encoded)!)
+            expect(readInviteCode()).toBe('alice')
+            expect(readInviteIntent()).toBe('acquisition')
+        }
+    )
+
+    it('lets a payload invite win over a passive one on restore', () => {
+        stashAcquisitionInvite('creator')
+        applyDeferredPayload(parseDeferredPayload('pnutdl=1&tl=creator&invite=friend&acq_invite=creator')!)
+        expect(readInviteCode()).toBe('friend')
+        expect(readInviteIntent()).toBe('explicit')
+    })
+
+    it.each(['explicit', 'explicit-owned', 'passive-owned'] as const)(
+        'never lets a passive payload replace a %s stash',
+        (state) => {
+            if (state === 'passive-owned') stashAcquisitionInvite('dave')
+            else stashInvite('dave', EInviteType.DIRECT)
+            if (state !== 'explicit') bindInviteToUser('account-a')
+            applyDeferredPayload(parseDeferredPayload('pnutdl=1&tl=alice&acq_invite=alice')!)
+            expect(readInviteCode()).toBe('dave')
+            expect(readInviteUserId()).toBe(state === 'explicit' ? '' : 'account-a')
+        }
+    )
+
+    it('drops a passive inviter that is not a username', () => {
+        applyDeferredPayload(parseDeferredPayload('pnutdl=1&tl=alice&acq_invite=al%2Fice')!)
+        expect(readInviteCode()).toBe('')
+    })
+
+    it.each(['dnt', 'gpc', 'declined'] as const)(
+        'keeps the passive inviter but leaves the journey and web id behind under %s',
+        (condition) => {
+            saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, journey)
+            stashAcquisitionInvite('alice')
+            deny(condition)
+            const parsed = parseDeferredPayload(
+                buildDeferredPayload('/home', undefined, 'ios', { trackedLink: 'alice' })
+            )!
+            expect(parsed.acquisitionInvite).toBe('alice')
+            expect(parsed.attribution).toBeUndefined()
+            expect(parsed.webDistinctId).toBeUndefined()
+        }
+    )
+
+    it.each([true, false])(
+        'restores the journey and web id only under tracked consent (allowed: %s)',
+        async (allowed) => {
+            saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, journey)
+            stashAcquisitionInvite('alice')
+            const referrer = buildDeferredPayload('/home', undefined, 'android', { trackedLink: 'alice' })
+            expect(parseDeferredPayload(referrer)).toMatchObject({ webDistinctId: WEB_ID, trackedLink: 'alice' })
+            localStorage.clear()
+            clearCookies()
+            if (!allowed) deny('dnt')
+            mockIsAndroidNative.mockReturnValue(true)
+            getReferrer.mockResolvedValue({ referrer })
+            await restoreDeferredContext()
+            expect(readInviteCode()).toBe('alice')
+            expect(readSignupAttribution()?.journeyId).toBe(allowed ? journey.journeyId : undefined)
+            if (allowed) expect(posthogRegisterOnce).toHaveBeenCalledWith({ web_distinct_id: WEB_ID })
+            else expect(posthogRegisterOnce).not.toHaveBeenCalled()
+        }
+    )
+
+    describe('Play referrer budget for a tagged /go journey', () => {
+        const goJourney = () => ({
+            ...journey,
+            firstTouch: {
+                occurredAt: new Date().toISOString(),
+                utmSource: 'google',
+                utmMedium: 'cpc',
+                utmCampaign: 'ar-search-brand-2026',
+                referrerHost: 'www.google.com',
+            },
+            lastTouch: {
+                occurredAt: new Date().toISOString(),
+                utmSource: 'instagram',
+                utmMedium: 'ambassador',
+                utmCampaign: 'go',
+                utmContent: 'c9999',
+                referrerHost: 'l.instagram.com',
+            },
+        })
+
+        // A badge creator's longer name can push `at` out; the only mapped creator today is 11 characters.
+        it.each([
+            ['a'.repeat(20), []],
+            ['juanacervio', ['nita']],
+        ])('keeps the journey for an earlier ad touch and creator %s', (username, badges) => {
+            saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, goJourney())
+            if (badges.length) saveToCookie('campaignTagsV2', badges)
+            stashAcquisitionInvite(username)
+            const encoded = buildDeferredPayload('/home', undefined, 'android', { trackedLink: username })
+            expect(encodeURIComponent(encoded).length).toBeLessThanOrEqual(MAX_PLAY_REFERRER_LENGTH)
+            const parsed = parseDeferredPayload(encoded)!
+            expect(parsed.attribution?.lastTouch).toMatchObject({ utmSource: 'instagram', utmContent: 'c9999' })
+            expect(parsed.acquisitionInvite).toBe(username)
+            expect(new URLSearchParams(encoded).getAll('badge_campaign')).toEqual(badges)
+        })
+
+        it('keeps the inviter for a 64-character creator', () => {
+            const username = 'a'.repeat(64)
+            saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, goJourney())
+            saveToCookie('campaignTagsV2', ['nita'])
+            stashAcquisitionInvite(username)
+            const encoded = buildDeferredPayload('/home', undefined, 'android', { trackedLink: username })
+            expect(encodeURIComponent(encoded).length).toBeLessThanOrEqual(MAX_PLAY_REFERRER_LENGTH)
+            const parsed = parseDeferredPayload(encoded)!
+            expect(parsed).toMatchObject({ acquisitionInvite: username, trackedLink: username })
+            expect(parsed.attribution?.journeyId).toBe(journey.journeyId)
+            expect(parsed.attribution?.lastTouch).toBeUndefined()
+            expect(Object.keys(parsed.attribution!.firstTouch)).toEqual(['occurredAt'])
+        })
+
+        const playPayload = (touches: { firstTouch: object; lastTouch?: object }, username = 'juanacervio') => {
+            saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, { ...journey, ...touches })
+            saveToCookie('campaignTagsV2', ['nita'])
+            stashAcquisitionInvite(username)
+            const encoded = buildDeferredPayload('/home', undefined, 'android', { trackedLink: username })
+            expect(encodeURIComponent(encoded).length).toBeLessThanOrEqual(MAX_PLAY_REFERRER_LENGTH)
+            const parsed = parseDeferredPayload(encoded)!
+            expect(parsed).toMatchObject({ acquisitionInvite: username, badgeCampaigns: ['nita'] })
+            expect(parsed.attribution?.journeyId).toBe(journey.journeyId)
+            return parsed.attribution!
+        }
+        const adTouch = {
+            occurredAt: new Date().toISOString(),
+            utmSource: 'google',
+            utmMedium: 'cpc',
+            utmCampaign: 'ar-search-brand-2026',
+            referrerHost: 'www.google.com',
+        }
+
+        it('keeps the tags of a tagged boost after an earlier ad touch', () => {
+            const attribution = playPayload({
+                firstTouch: adTouch,
+                lastTouch: {
+                    occurredAt: new Date().toISOString(),
+                    utmSource: 'instagram',
+                    utmMedium: 'cpc',
+                    utmCampaign: 'nita-boost-2026-11-ar',
+                    utmContent: 'reel-a-es',
+                    referrerHost: 'l.instagram.com',
+                },
+            })
+            expect(attribution.firstTouch).toMatchObject({ utmSource: 'google', utmCampaign: 'ar-search-brand-2026' })
+            expect(attribution.lastTouch).toMatchObject({
+                utmSource: 'instagram',
+                utmMedium: 'cpc',
+                utmCampaign: 'nita-boost-2026-11-ar',
+            })
+        })
+
+        it('keeps the campaign of a single touch with a 64-character campaign', () => {
+            const attribution = playPayload({
+                firstTouch: {
+                    occurredAt: new Date().toISOString(),
+                    utmSource: 'instagram',
+                    utmMedium: 'cpc',
+                    utmCampaign: 'c'.repeat(64),
+                    utmContent: 'n'.repeat(30),
+                    referrerHost: 'l.instagram.com',
+                },
+            })
+            expect(attribution.firstTouch).toMatchObject({ utmSource: 'instagram', utmCampaign: 'c'.repeat(64) })
+        })
+
+        // The visit event holds every tag under the journey ID, so the bare journey still joins them.
+        it('keeps the journey for an earlier ad touch and four 64-character go tags', () => {
+            playPayload(
+                {
+                    firstTouch: adTouch,
+                    lastTouch: {
+                        occurredAt: new Date().toISOString(),
+                        utmSource: 's'.repeat(64),
+                        utmMedium: 'cpc',
+                        utmCampaign: 'c'.repeat(64),
+                        utmContent: 'n'.repeat(64),
+                        referrerHost: `${'r'.repeat(60)}.com`,
+                    },
+                },
+                'a'.repeat(20)
+            )
+        })
+
+        it('keeps the /go code and referrer host when the journey is reduced', () => {
+            const attribution = playPayload({
+                firstTouch: { ...adTouch, utmContent: 'brand-exact-es-ar-v2' },
+                lastTouch: {
+                    occurredAt: new Date().toISOString(),
+                    utmMedium: 'ambassador',
+                    utmCampaign: 'boost-nita-2026a',
+                    utmContent: 'c9999',
+                    referrerHost: 'l.instagram.com',
+                },
+            })
+            // The dropped ad content shows the reduced journey was the one sent.
+            expect(attribution.firstTouch.utmContent).toBeUndefined()
+            expect(attribution.lastTouch).toMatchObject({
+                utmMedium: 'ambassador',
+                utmCampaign: 'boost-nita-2026a',
+                utmContent: 'c9999',
+                referrerHost: 'l.instagram.com',
+            })
+        })
+    })
+
+    describe('Play referrer budget without a tracked link', () => {
+        const plainPayload = (context: object, badges: string[] = []) => {
+            saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, { ...journey, ...context })
+            if (badges.length) saveToCookie('campaignTagsV2', badges)
+            const encoded = buildDeferredPayload('/home', undefined, 'android')
+            expect(encodeURIComponent(encoded).length).toBeLessThanOrEqual(MAX_PLAY_REFERRER_LENGTH)
+            expect(new URLSearchParams(encoded).getAll('badge_campaign')).toEqual(badges)
+            return parseDeferredPayload(encoded)!.attribution
+        }
+        const at = (minutesAgo: number) => new Date(Date.now() - minutesAgo * 60_000).toISOString()
+
+        // A reduced last touch with no campaign would report blank last-touch fields instead of the first touch.
+        it('drops a referrer-only last touch from a reduced journey', () => {
+            const attribution = plainPayload({
+                firstTouch: {
+                    occurredAt: at(30),
+                    utmSource: 'google',
+                    utmMedium: 'cpc',
+                    utmCampaign: 'c'.repeat(64),
+                    utmContent: 'n'.repeat(64),
+                    referrerHost: 'www.google.com',
+                },
+                lastTouch: { occurredAt: at(1), referrerHost: 'www.reddit.com' },
+            })!
+            expect(attribution.firstTouch).toMatchObject({ utmSource: 'google', utmCampaign: 'c'.repeat(64) })
+            expect(attribution.firstTouch.utmContent).toBeUndefined()
+            expect(attribution.lastTouch).toBeUndefined()
+        })
+
+        it('keeps the content landing when it is the only touch with a campaign', () => {
+            const attribution = plainPayload(
+                {
+                    firstTouch: { occurredAt: at(30) },
+                    firstContentTouch: {
+                        occurredAt: at(20),
+                        utmSource: 'google',
+                        utmMedium: 'organic',
+                        utmCampaign: 'seo-camp',
+                        utmContent: 'n'.repeat(64),
+                    },
+                    lastTouch: { occurredAt: at(1), referrerHost: 'www.reddit.com' },
+                },
+                ['b'.repeat(40), 'd'.repeat(40), 'e'.repeat(40)]
+            )!
+            expect(attribution.firstContentTouch).toMatchObject({ utmCampaign: 'seo-camp' })
+            expect(attribution.firstContentTouch?.utmContent).toBeUndefined()
+        })
+
+        // Only a tracked link's visit event can join a bare journey; elsewhere it carries nothing.
+        it('never sends the bare journey', () => {
+            const long = { utmSource: 's'.repeat(64), utmMedium: 'cpc', utmCampaign: 'c'.repeat(64) }
+            const attribution = plainPayload({
+                firstTouch: { occurredAt: at(30), ...long },
+                lastTouch: { occurredAt: at(1), ...long, utmCampaign: 'd'.repeat(64) },
+            })
+            expect(attribution).toBeUndefined()
+        })
+    })
+
+    it('trims Android payload bytes without downgrading the passive inviter', () => {
+        saveToCookie(SIGNUP_ATTRIBUTION_COOKIE, {
+            ...journey,
+            firstTouch: { ...journey.firstTouch, utmCampaign: 'x'.repeat(64), utmContent: 'y'.repeat(64) },
+        })
+        stashAcquisitionInvite('a'.repeat(64))
+        const encoded = buildDeferredPayload('/home?' + 'x'.repeat(600), undefined, 'android', {
+            trackedLink: 'a'.repeat(64),
+        })
+        expect(encodeURIComponent(encoded).length).toBeLessThanOrEqual(MAX_PLAY_REFERRER_LENGTH)
+        expect(parseDeferredPayload(encoded)?.acquisitionInvite).toBe('a'.repeat(64))
+        expect(parseLegacyDeferredPayload(encoded)?.invite).toBeUndefined()
     })
 })

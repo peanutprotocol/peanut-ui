@@ -3,7 +3,7 @@ import SetupTitleBlock from './SetupTitleBlock'
 
 /**
  * The notifications step renders its own heading, because each experiment
- * variant has its own copy. The spacing repeats SetupWrapper's title-to-content gap.
+ * variant has its own copy. The content and footer scroll together in SetupWrapper.
  */
 export default function NotificationsStepLayout({
     title,

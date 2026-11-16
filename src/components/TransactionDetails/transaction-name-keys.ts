@@ -21,6 +21,7 @@ export const TRANSACTION_NAME_KEYS = {
     externalAccount: 'name.externalAccount',
     claimedToBank: 'name.claimedToBank',
     bankAccount: 'name.bankAccount',
+    pix: 'name.pix',
     depositOrderExpired: 'name.depositOrderExpired',
     recipient: 'name.recipient',
     sender: 'name.sender',

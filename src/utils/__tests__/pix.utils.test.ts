@@ -176,9 +176,9 @@ test('full PIX key survives the redirect and cannot mislabel a different payment
 
 describe('pixKeyOwnerDetails', () => {
     it('shows a CPF key once, in full, as the CPF it is', () => {
-        expect(pixKeyOwnerDetails('09579927189', '09*******89')).toEqual({
+        expect(pixKeyOwnerDetails('11144477735', '11*******35')).toEqual({
             pixKey: null,
-            taxId: { kind: 'CPF', value: '095.799.271-89' },
+            taxId: { kind: 'CPF', value: '111.444.777-35' },
         })
     })
 
@@ -186,6 +186,14 @@ describe('pixKeyOwnerDetails', () => {
         expect(pixKeyOwnerDetails('11222333000181', '11**********81')).toEqual({
             pixKey: null,
             taxId: { kind: 'CNPJ', value: '11.222.333/0001-81' },
+        })
+    })
+
+    // review finding 9: every caller keeps Avenia's mask, not only the Pix withdraw form
+    it("shows Avenia's mask, which hides the first digits, next to the key", () => {
+        expect(pixKeyOwnerDetails('maria@silva.com.br', '***.456.789-**')).toEqual({
+            pixKey: 'maria@silva.com.br',
+            taxId: { kind: 'CPF', value: '***.456.789-**' },
         })
     })
 
@@ -234,4 +242,11 @@ describe('recipientBankNameOf', () => {
     ])('gives null for %s, so the form shows no bank line', (_label, lock) => {
         expect(recipientBankNameOf(lock)).toBeNull()
     })
+})
+
+// API review 2: a hand-made /qr-pay?pixKey=<BR Code> link is a code, never looked up or saved as a key
+test('a pixKey that is itself a Pix code is no key label', () => {
+    const code =
+        '00020101021226680014br.gov.bcb.pix2546pix.example.com/qr/v2/cobv/padaria-pao-dourado520400005303986540542.505802BR5924PADARIA PAO DOURADO LTDA6009SAO PAULO62070503***63043A47'
+    expect(verifiedPixKeyLabel(code, code)).toBeNull()
 })

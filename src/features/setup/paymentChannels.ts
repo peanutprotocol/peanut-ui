@@ -9,7 +9,8 @@ export type SetupPaymentChannel = Exclude<SetupFundingChannel, 'brlBank' | 'arsB
 export type SetupChannel = SetupFundingChannel | SetupPaymentChannel
 export const SETUP_CHANNEL_CONCEPTS: Record<SetupChannel, Concept> = {
     bank: 'bank',
-    brlBank: 'bank',
+    // a bank transfer into BRL is Pix in Brazil, so the row shows the Pix mark (TASK-24947)
+    brlBank: 'pix',
     arsBank: 'bank',
     qr: 'qrPay',
     card: 'card',

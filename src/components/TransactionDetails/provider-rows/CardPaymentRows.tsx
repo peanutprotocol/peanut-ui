@@ -242,7 +242,7 @@ export function CardPaymentRows({
         card.cancellationReason === 'auth_expired_uncaptured'
     // Active disputes flip the pill to pending too (see transactionTransformer),
     // but the dispute row IS the status — the spend already settled, so
-    // "Authorized, awaiting settlement" is a lie next to "Disputed — In review".
+    // "Authorized, awaiting settlement" is a lie next to "Disputed: in review".
     const hasActiveDispute = card.dispute?.status === 'pending' || card.dispute?.status === 'inReview'
     if (transaction.status === 'pending' && !card.isRefund && !hasCancellationNote && !hasActiveDispute) {
         subRows.push({

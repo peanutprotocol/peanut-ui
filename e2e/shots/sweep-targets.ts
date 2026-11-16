@@ -7,6 +7,8 @@
  * nondeterministic by design.
  */
 
+import { HOME_ADD_DRAWER_CHECKPOINT } from '../../src/dev/screens/pages'
+
 export const MARKETING_LOCALES = ['en', 'es-419', 'es-ar', 'pt-br'] as const
 
 const COUNTRIES = [
@@ -354,7 +356,12 @@ export const OVERLAY_TARGETS: OverlayTarget[] = [
         clickKeys: ['profile.backup.faq.exportKeys'],
         proof: '[data-vaul-drawer], [role="dialog"]',
     },
-    { id: 'home-add-drawer', route: '/home?drawer=add', proof: '[data-vaul-drawer], [role="dialog"]' },
+    {
+        id: 'home-add-drawer',
+        route: '/home?drawer=add',
+        fixture: 'home-add-drawer',
+        proof: HOME_ADD_DRAWER_CHECKPOINT,
+    },
     { id: 'home-send-drawer', route: '/home?drawer=send', proof: '[data-vaul-drawer], [role="dialog"]' },
     { id: 'add-money-bank-list', route: '/add-money?method=bank', fixture: 'add-money' },
     { id: 'profile-avatar-picker', route: '/profile?avatarPicker=true', proof: '[data-vaul-drawer], [role="dialog"]' },

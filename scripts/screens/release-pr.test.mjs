@@ -80,9 +80,16 @@ test('rejects fork candidates as release reviews', () => {
     assert.equal(reviewProvenance(repository, run(), [pr], git()), null)
 })
 
-test('rejects feature-to-main candidates as release reviews', () => {
+test('accepts feature-to-main candidates with their own exact branch identity', () => {
     const pr = candidate({ head: { sha: head, ref: 'feature/x', repo: { full_name: repository } } })
-    assert.notEqual(currentCaptureReview(pr, releaseContext), true)
+    const featureRun = run({
+        head_branch: pr.head.ref,
+        pull_requests: [{ number: pr.number, head: pr.head, base: pr.base }],
+    })
+    assert.equal(currentCaptureReview(pr, { ...releaseContext, headRef: pr.head.ref }), true)
+    const result = reviewProvenance(repository, featureRun, [pr], () => assert.fail('main uses its exact base'))
+    assert.equal(result.before, base)
+    assert.equal(result.after, head)
     assert.equal(reviewProvenance(repository, run(), [pr], git()), null)
 })
 

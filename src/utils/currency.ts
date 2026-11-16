@@ -57,6 +57,19 @@ export const formatAmountNumber = (
 }
 
 /**
+ * The number of a fiat exchange rate, as in "1 USD = 5.40 BRL": half-up to two
+ * decimals and always both, so "5.40", never "5.4" or "4.941639". No fiat value
+ * shows more than two decimals, and a rate counts (TASK-24947, 2026-11-15).
+ * A token rate is not fiat and keeps its own precision.
+ */
+export const formatFiatRate = (rate: string | number): string =>
+    formatFiniteDisplay(rate, 'en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+        roundingMode: 'halfExpand',
+    })
+
+/**
  * `amount` rounded UP to `decimals`, as the server prices a charge: a local
  * amount converted to the USD that pays it (withdraw quote, request amount).
  */

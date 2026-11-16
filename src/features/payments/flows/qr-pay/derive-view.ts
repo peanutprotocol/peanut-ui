@@ -33,7 +33,8 @@ export interface QrPayViewInputs {
     rateUnavailable: boolean
     loadingState: LoadingStates
     isSuccess: boolean
-    isManteca: boolean
+    /** a provider pays this scan (an unknown code type has none, and no success) */
+    hasProcessor: boolean
     hasUnsettledPayment?: boolean
 }
 
@@ -87,7 +88,7 @@ export function deriveQrPayView(inputs: QrPayViewInputs): QrPayView {
 
     if (inputs.hasUnsettledPayment) return 'STATUS'
 
-    if (inputs.isSuccess && inputs.isManteca) return 'SUCCESS'
+    if (inputs.isSuccess && inputs.hasProcessor) return 'SUCCESS'
 
     return 'FORM'
 }

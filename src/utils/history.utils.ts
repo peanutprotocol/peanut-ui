@@ -87,18 +87,25 @@ export type HistoryEntryType = 'TRANSACTION_INTENT'
 export type HistoryUserRole = `${EHistoryUserRole}`
 export type HistoryStatus = `${EHistoryStatus}`
 
-/** A Pix withdrawal's recovery as `GET /history/:entryId` sends it (api `PixRecoveryView`). */
-export type PixRecoveryView = NonNullable<
-    NonNullable<
-        paths['/history/{entryId}']['get']['responses'][200]['content']['application/json']['extraData']
-    >['pixRecovery']
->
-
 /** The intent's own status as `GET /history/:entryId` sends it, before `status` folds it into PENDING. */
 export type HistoryIntentStatus = NonNullable<
     NonNullable<
         paths['/history/{entryId}']['get']['responses'][200]['content']['application/json']['extraData']
     >['intentStatus']
+>
+
+/** Who a Pix payout paid, as `GET /history/:entryId` sends it, to its owner only (API-CONTRACT-M3 section 8). */
+export type PixPayoutView = NonNullable<
+    NonNullable<
+        paths['/history/{entryId}']['get']['responses'][200]['content']['application/json']['extraData']
+    >['pixPayout']
+>
+
+/** How an entry's money moved, as `GET /history/:entryId` and the list send it ('PIX'). */
+export type PaymentMethodView = NonNullable<
+    NonNullable<
+        paths['/history/{entryId}']['get']['responses'][200]['content']['application/json']['extraData']
+    >['paymentMethod']
 >
 
 /** A Pix deposit's code state as `GET /history/:entryId` sends it, to its owner only. */
@@ -107,6 +114,11 @@ export type PixDepositView = NonNullable<
         paths['/history/{entryId}']['get']['responses'][200]['content']['application/json']['extraData']
     >['pixDeposit']
 >
+
+/** A Pix withdrawal's or QR payment's recovery as the history sends it; null when it has none. */
+export type PixRecoveryView = NonNullable<
+    paths['/history/{entryId}']['get']['responses'][200]['content']['application/json']['extraData']
+>['pixRecovery']
 
 /**
  * Wire-shape extra-data carried on every HistoryEntry. Pre-this-type,
@@ -126,11 +138,16 @@ export type PixDepositView = NonNullable<
  * reading one on the FE, remove it here.
  */
 export interface HistoryEntryExtraData {
-    /** On a Pix withdrawal only: its recovery after the payout failed or came back, null when it has none.
-     *  The shape is the API's (`GET /history/:entryId`); read it through `awaitsNewPixKey`. */
-    pixRecovery?: PixRecoveryView | null
     /** On a Pix deposit only: whether its code can still be paid. Read it through `pixCodePayable`. */
     pixDeposit?: PixDepositView
+    /** On an Avenia Pix withdrawal only, to its owner: the raw key it paid and who was paid.
+     *  `ownAccount` false: a send to another person. */
+    pixPayout?: PixPayoutView
+    /** On an Avenia Pix withdrawal, send or QR payment only: its recovery, null when it has none. */
+    pixRecovery?: PixRecoveryView
+    /** How the money moved, on list and detail entries: 'PIX' on every Pix transaction of every
+     *  provider (peanut-api-ts#2151). Read it through `isPixEntry`. */
+    paymentMethod?: PaymentMethodView
     /** The intent's own status, which `status` folds into PENDING (a Pix withdrawal is
      *  AWAITING_USER_ACTION until it is signed, PROCESSING after). */
     intentStatus?: HistoryIntentStatus
@@ -195,6 +212,9 @@ export interface HistoryEntryExtraData {
     payoutFeeUsd?: number | null
     /** The rail a Bridge payout went out on ('ach_same_day', 'wire', …). */
     payoutRail?: string | null
+    /** A settled Avenia Pix entry: every fee the providers took, in reais, sent only with
+     *  `receipt.exchange_rate`, Avenia's rate with no fee in it (peanut-api-ts#2151). */
+    providerFeeBrl?: string | null
     /** Server-authenticated delivery proof from Rhino's BRIDGE_EXECUTED
      *  webhook. Both fields appear together and only after destination finality. */
     destinationTxHash?: string
@@ -407,6 +427,9 @@ export function getAvatarUrl(transaction: TransactionDetails): string | undefine
     if (transaction.extraDataForDrawer?.rewardData?.avatarUrl) {
         return transaction.extraDataForDrawer.rewardData.avatarUrl
     }
+    // A Pix transaction leads with the Pix logo, the Activity row and the receipt alike; the title
+    // keeps the person's or the merchant's name.
+    if (transaction.extraDataForDrawer?.isPix) return PIX
     const kind = transaction.extraDataForDrawer?.kind
     const provider = transaction.extraDataForDrawer?.provider
     if (kind === 'QR_PAY' && provider === 'MANTECA') {

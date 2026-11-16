@@ -29,7 +29,7 @@ import {
 } from '@/services/pix'
 import { API_ERROR_CODES, apiErrorStatus, wireErrorCode } from '@/services/api-error'
 import { useAuth } from '@/context/authContext'
-import { quoteMovedAgainstUser, signMatchesDisplay } from '@/features/pix/pixFlow.utils'
+import { PIX_WITHDRAW_PREVIEW, quoteMovedAgainstUser, signMatchesDisplay } from '@/features/pix/pixFlow.utils'
 import { pixSignedFunding } from '@/features/pix/pixSignedFunding'
 import { clearDepositMaybeSent, markDepositMaybeSent } from '@/features/pix/pixWithdrawSent'
 import {
@@ -405,6 +405,10 @@ export function usePixWithdrawSubmit({
                 // a wire code is the API's own refusal; anything else is a failure to look at
                 if (!code) void captureNetworkTriagedFailure(caught, { tags: flowTags('init') })
                 dispatch({ type: 'INIT_REFUSED', error: refusalMessage(caught) })
+                // a re-quote moved the reais (API-CONTRACT-M5 §2): nothing opened; the review is read
+                // again, so the next Confirm is for the figures on screen
+                if (code === API_ERROR_CODES.PIX_QUOTE_CHANGED)
+                    void queryClient.invalidateQueries({ queryKey: [PIX_WITHDRAW_PREVIEW] })
                 // the route moved since the screen loaded: the capabilities say where the user stands now
                 if (code === API_ERROR_CODES.ROUTE_NOT_AVAILABLE || code === API_ERROR_CODES.PROVIDER_UNAVAILABLE) {
                     void fetchUser().catch(() => undefined)
@@ -434,7 +438,7 @@ export function usePixWithdrawSubmit({
             }
             await sign(withdrawal)
         },
-        [dispatch, fetchUser, hasPendingTransactions, onOpened, provider, refusalMessage, sign, tShared]
+        [dispatch, fetchUser, hasPendingTransactions, onOpened, provider, queryClient, refusalMessage, sign, tShared]
     )
 
     const confirmOpened = useCallback(async () => {

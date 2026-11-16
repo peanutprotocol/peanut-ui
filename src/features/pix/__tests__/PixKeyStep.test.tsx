@@ -1,5 +1,5 @@
 /** @jest-environment jsdom */
-import { screen } from '@testing-library/react'
+import { fireEvent, screen } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
 import type { PixKeyLookup } from '../usePixKeyLookup'
@@ -12,31 +12,49 @@ jest.mock('@/features/pix/usePixKeyLookup', () => ({
 
 import { PixKeyStep } from '../components/PixKeyStep'
 
-const KEY = '09579927189'
+const KEY = '11144477735'
 const info = {
     provider: 'avenia',
     holderName: 'Ana Souza',
-    holderTaxIdMasked: '095.***.***-89',
+    holderTaxIdMasked: '111.***.***-35',
     bankName: 'Banco Inter',
     ispb: '00416968',
     ownAccount: true,
     blocked: false,
 }
+const continueButton = () => screen.getByRole('button', { name: en.common.continue })
 
-describe('PixKeyStep holder badge', () => {
+describe('PixKeyStep holder card', () => {
     it("names the user's own account at a deny-listed bank as their own, with the bank refusal", () => {
-        mockResult = { key: KEY, status: 'found', info: { ...info, blocked: true }, verdict: 'blocked' }
+        mockResult = { key: KEY, status: 'found', info: { ...info, blocked: true } }
         renderWithIntl(<PixKeyStep title="Withdraw" initialKey={KEY} onBack={jest.fn()} onContinue={jest.fn()} />)
 
         expect(screen.getByText(en.pix.withdraw.ownAccount)).toBeInTheDocument()
-        expect(screen.queryByText(en.pix.withdraw.someoneElses)).toBeNull()
         expect(screen.getByText(en.pix.withdraw.keyBlocked)).toBeInTheDocument()
+        expect(continueButton()).toBeDisabled()
     })
 
-    it("names someone else's account as such", () => {
-        mockResult = { key: KEY, status: 'found', info: { ...info, ownAccount: false }, verdict: 'not-own' }
-        renderWithIntl(<PixKeyStep title="Withdraw" initialKey={KEY} onBack={jest.fn()} onContinue={jest.fn()} />)
+    // TASK-24947: any key continues; the card says whom the money goes to
+    it("continues with another person's key, named with their bank and masked tax id, and no badge", () => {
+        mockResult = { key: KEY, status: 'found', info: { ...info, ownAccount: false } }
+        const onContinue = jest.fn()
+        renderWithIntl(<PixKeyStep title="Send" initialKey={KEY} onBack={jest.fn()} onContinue={onContinue} />)
 
-        expect(screen.getByText(en.pix.withdraw.someoneElses)).toBeInTheDocument()
+        const holder = screen.getByTestId('pix-key-holder')
+        expect(holder).toHaveTextContent('Ana Souza')
+        expect(holder).toHaveTextContent('Banco Inter · CPF 111.***.***-35')
+        expect(screen.queryByText(en.pix.withdraw.ownAccount)).toBeNull()
+        expect(screen.queryByRole('alert')).toBeNull()
+
+        fireEvent.click(continueButton())
+        expect(onContinue).toHaveBeenCalledWith(KEY, { ...info, ownAccount: false })
+    })
+
+    it('continues with a key whose holder the provider cannot tell, with no badge', () => {
+        mockResult = { key: KEY, status: 'found', info: { ...info, ownAccount: null } }
+        renderWithIntl(<PixKeyStep title="Send" initialKey={KEY} onBack={jest.fn()} onContinue={jest.fn()} />)
+
+        expect(screen.queryByText(en.pix.withdraw.ownAccount)).toBeNull()
+        expect(continueButton()).toBeEnabled()
     })
 })

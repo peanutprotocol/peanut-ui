@@ -45,7 +45,7 @@ import { isLockExpired, receiveLock, type ReceivedLock } from '@/utils/price-loc
 import { useCurrency } from '@/hooks/useCurrency'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { countryData } from '@/components/AddMoney/consts'
-import { formatBankAmount } from '@/utils/currency'
+import { formatBankAmount, formatFiatRate } from '@/utils/currency'
 import { formatCurrency } from '@/utils/general.utils'
 import { validateCbuCvuAlias } from '@/utils/withdraw.utils'
 import ValidatedInput from '@/components/Global/ValidatedInput'
@@ -215,6 +215,10 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
     const [showKycModal, setShowKycModal] = useState(false)
     const [rejectedCountry, setRejectedCountry] = useState<string | null>(null)
 
+    useEffect(() => {
+        if (showKycModal && sumsubFlow.isModalOpen) setShowKycModal(false)
+    }, [showKycModal, sumsubFlow.isModalOpen])
+
     // Get method and country from URL parameters
     const countryFromUrl = searchParams.get('country') // argentina, brazil, etc.
     const countryPath = countryFromUrl
@@ -298,7 +302,7 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
 
     // BR self-service limit increase flow
     const { mantecaLimits, refetch: refetchLimits } = useLimits()
-    const isBrEligible = isBrUserEligibleForLimitIncrease(mantecaLimits)
+    const isBrEligible = !limitsValidation.servedByAvenia && isBrUserEligibleForLimitIncrease(mantecaLimits)
     const limitIncreaseFlow = useSumsubActionFlow({
         fetchToken: initiateIncreaseLimits,
         onSuccess: refetchLimits,
@@ -1105,15 +1109,18 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
                         return
                     }
                     if (mantecaRejection.state === 'restart-identity') {
-                        await sumsubFlow.handleRestartIdentity()
+                        const opened = await sumsubFlow.handleRestartIdentity()
+                        if (opened) setShowKycModal(false)
                     } else if (mantecaRejection.state === 'fixable') {
-                        await sumsubFlow.handleFixableRejection(mantecaRejection)
+                        const opened = await sumsubFlow.handleFixableRejection(mantecaRejection)
+                        if (opened) setShowKycModal(false)
                     } else {
-                        await sumsubFlow.handleInitiateKyc('LATAM', undefined, true, selectedCountry?.id)
+                        const opened = await sumsubFlow.handleInitiateKyc('LATAM', undefined, true, selectedCountry?.id)
+                        if (opened) setShowKycModal(false)
                     }
-                    setShowKycModal(false)
                 }}
                 isLoading={sumsubFlow.isLoading}
+                error={sumsubFlow.error}
                 variant={
                     mantecaRejection.state === 'blocked'
                         ? 'blocked'
@@ -1353,7 +1360,7 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
                         />
                         <PaymentInfoRow
                             label={t('manteca.exchangeRate')}
-                            value={`1 USD = ${priceLock?.price ?? currencyPrice!.sell} ${currencyCode!.toUpperCase()}`}
+                            value={`1 USD = ${formatFiatRate(priceLock?.price ?? currencyPrice!.sell)} ${currencyCode!.toUpperCase()}`}
                             moreInfoText={tCommon('exchangeRateInfo')}
                         />
                         <PaymentInfoRow

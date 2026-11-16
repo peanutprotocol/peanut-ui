@@ -14,6 +14,7 @@ import { homeDrawerOptions } from '../home-drawer-options'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 
 interface BalanceSectionProps {
+    addMoneyEntry?: 'picker' | 'drawer'
     balance: bigint | undefined
     isFetching: boolean
     /** balance is the persisted last-known-good while the live sum is still
@@ -37,7 +38,14 @@ const SUBMENU_ACTIONS: Array<{ key: HomeDrawer; icon: IconName }> = [
  * visibility toggle, plus the add / send / request submenu underneath.
  * submenu states per component 17533:117867 (default / pressed).
  */
-export function BalanceSection({ balance, isFetching, isStale, isHidden, onToggleVisibility }: BalanceSectionProps) {
+export function BalanceSection({
+    addMoneyEntry = 'picker',
+    balance,
+    isFetching,
+    isStale,
+    isHidden,
+    onToggleVisibility,
+}: BalanceSectionProps) {
     const t = useAppTranslations('home')
     const tNav = useTranslations('navigation')
     const { triggerHaptic } = useAppHaptic()
@@ -84,8 +92,13 @@ export function BalanceSection({ balance, isFetching, isStale, isHidden, onToggl
                     // a drawer with one row is a pointless extra tap: link to
                     // that row's destination instead (request, while standing
                     // bank details are not offered)
-                    const options = homeDrawerOptions(action.key, depositAccounts)
-                    const directHref = options.length === 1 ? options[0].href : undefined
+                    const options = action.key === 'add' ? [] : homeDrawerOptions(action.key, depositAccounts)
+                    const directHref =
+                        action.key === 'add' && addMoneyEntry === 'picker'
+                            ? '/add-money'
+                            : options.length === 1
+                              ? options[0].href
+                              : undefined
                     const inner = (
                         <>
                             <span

@@ -53,6 +53,8 @@ import { VerifySetupPrelude } from './components/VerifySetupPrelude'
 import { restoreNativeStatusBar } from './useInsetColor'
 import { ProofOfAddressScreen, ReviewScreen, SavedScreen } from './components/StatusScreens'
 import { StepsScreen } from './components/StepsScreen'
+import { BankRefusalNotice } from './components/BankRefusalNotice'
+import { supportRefusal } from '@/features/kyc-features/report'
 import {
     stepsLabel,
     trackPaperworkVerification,
@@ -383,6 +385,7 @@ function PaperworkVerificationSteps({
     const locale = useLocale()
     const router = useRouter()
     const { user, fetchUser } = useAuth()
+    const modals = useModalsContextOptional()
     // What a feature still waits on once the identity is verified: steps of the verified timeline.
     const tRoot = useTranslations()
     const { nextActions, capabilities } = useCapabilities()
@@ -390,6 +393,7 @@ function PaperworkVerificationSteps({
         () => verifiedFollowUps(nextActions, capabilities.features),
         [nextActions, capabilities.features]
     )
+    const bankRefusal = supportRefusal(capabilities.features?.bank, nextActions)
     // The picked document's name for Sumsub's ID step; a retry without a pick keeps the last one.
     const [identityStepTitle, setIdentityStepTitle] = useState<string>()
     const exit = useSafeBack('/home')
@@ -1038,6 +1042,7 @@ function PaperworkVerificationSteps({
                 followUps={followUps.map((followUp) => followUp.label)}
                 note={followUps[0] && tRoot(followUps[0].note)}
                 cta={followUps[0] && t('continue')}
+                aside={bankRefusal && <BankRefusalNotice refusal={bankRefusal} />}
                 onBack={goHome}
                 onContinue={() => router.push(followUps[0]?.href ?? PAYMENT_METHODS_HREF)}
             />
@@ -1072,6 +1077,8 @@ function PaperworkVerificationSteps({
                     declaredSecond={user?.residence?.secondaryDeclaredCountry}
                     verified={user?.residence?.verified?.country ?? null}
                     pending={pendingResidenceCountry(user?.residence)}
+                    pendingStatus={user?.residence?.declared?.status}
+                    onContactSupport={modals ? () => modals.setIsSupportModalOpen(true) : undefined}
                     onSaved={async () => {
                         // The questions follow the residence: the server rebuilds them for the new country.
                         queueGeneration.current += 1

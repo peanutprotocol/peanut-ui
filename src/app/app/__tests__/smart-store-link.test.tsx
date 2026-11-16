@@ -11,13 +11,13 @@ jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform
  * anything visibly breaking.
  */
 import React from 'react'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import { STORE_URL } from '@/constants/migration.consts'
 import { parseDeferredPayload } from '@/utils/deferred-link'
 import { captureSignupAttribution, readSignupAttribution } from '@/utils/signup-attribution'
 import { saveToCookie } from '@/utils/cookie-url.utils'
-import { stashInvite } from '@/utils/invite-stash'
+import { readInviteCode, readInviteIntent, stashInvite } from '@/utils/invite-stash'
 import { EInviteType } from '@/services/services.types'
 
 let mockAnalyticsAllowed = true
@@ -45,7 +45,6 @@ jest.mock('@/utils/capacitor', () => ({
     isCapacitor: () => false,
     isAndroidNative: () => false,
     isIOSNative: () => false,
-    openExternalUrl: jest.fn(),
 }))
 
 jest.mock('@/utils/migration.utils', () => ({
@@ -372,5 +371,69 @@ describe('ad landing link (/app with campaign parameters)', () => {
         renderPage()
         expect(mockReplace).toHaveBeenCalledWith('/home')
         expect(readSignupAttribution()).toBeNull()
+    })
+})
+
+describe('tracked-link entry', () => {
+    afterEach(() => {
+        Reflect.deleteProperty(document, 'prerendering')
+    })
+    it('sends Android to the store with the passive inviter on the install referrer', async () => {
+        mockDeviceType = 'android'
+        visit('?tl=alice&acq_invite=alice')
+        renderPage()
+        await waitFor(() => expect(locationReplace).toHaveBeenCalledTimes(1))
+        const payload = new URL(locationReplace.mock.calls[0][0]).searchParams.get('referrer')!
+        expect(parseDeferredPayload(payload)?.acquisitionInvite).toBe('alice')
+        expect(parseDeferredPayload(payload)?.invite).toBeUndefined()
+        expect(readInviteIntent()).toBe('acquisition')
+    })
+    it('holds iOS for the clipboard gesture, and offers the existing app association', async () => {
+        mockDeviceType = 'ios'
+        visit('?tl=alice&acq_invite=alice')
+        renderPage()
+        const openAppLink = await screen.findByRole('link', { name: 'Open Peanut' })
+        expect(locationReplace).not.toHaveBeenCalled()
+        expect(mockCopyIOSHandoff).not.toHaveBeenCalled()
+        const openApp = new URL(openAppLink.getAttribute('href')!)
+        expect(openApp.origin + openApp.pathname).toBe('https://peanut.me/home')
+        expect(openApp.searchParams.get('tl_seen')).toBe('1')
+        fireEvent.click(storeButton(/app store/i))
+        expect(parseDeferredPayload(mockCopyIOSHandoff.mock.calls[0][0])?.acquisitionInvite).toBe('alice')
+    })
+    it('keeps the handoff functional while sending no store or handoff telemetry without consent', async () => {
+        mockAnalyticsAllowed = false
+        mockDeviceType = 'ios'
+        visit('?tl=alice&acq_invite=alice')
+        renderPage()
+        await screen.findByRole('link', { name: 'Open Peanut' })
+        fireEvent.click(storeButton(/app store/i))
+        await act(async () => {})
+        expect(parseDeferredPayload(mockCopyIOSHandoff.mock.calls[0][0])?.acquisitionInvite).toBe('alice')
+        expect(trackStoreClick).not.toHaveBeenCalled()
+        expect(mockTrackHandoffCreated).not.toHaveBeenCalled()
+    })
+    it('waits for a prerendered page to be shown before bootstrap or store navigation', async () => {
+        Object.defineProperty(document, 'prerendering', { configurable: true, value: true })
+        mockDeviceType = 'android'
+        visit('?tl=alice&acq_invite=alice')
+        renderPage()
+        await act(async () => {})
+        expect(readInviteCode()).toBe('')
+        expect(locationReplace).not.toHaveBeenCalled()
+        await act(async () => {
+            Object.defineProperty(document, 'prerendering', { configurable: true, value: false })
+            document.dispatchEvent(new Event('prerenderingchange'))
+        })
+        await waitFor(() => expect(locationReplace).toHaveBeenCalledTimes(1))
+        expect(readInviteCode()).toBe('alice')
+    })
+    it('stashes the inviter in the installed app and opens home', async () => {
+        mockNative = true
+        visit('?tl=alice&acq_invite=alice')
+        renderPage()
+        await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/home'))
+        expect(readInviteIntent()).toBe('acquisition')
+        expect(locationReplace).not.toHaveBeenCalled()
     })
 })

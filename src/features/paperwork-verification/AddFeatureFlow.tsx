@@ -13,6 +13,7 @@ import {
 import { isKycFlowHandedBack } from '@/app/actions/kyc-flow-hand-back'
 import { getKycDocumentPlan } from '@/app/actions/kyc-workflow'
 import type {
+    PaperworkQuestionsFeature,
     PaperworkVerificationFeature,
     PaperworkVerificationStep,
 } from '@/app/actions/types/kyc-paperwork-verification.types'
@@ -67,14 +68,15 @@ const withValues = (screen: PaperworkVerificationStep[], values: Record<string, 
  * Never a new ID check.
  */
 export function AddFeatureQuestions({
-    feature,
+    feature: askedFeature,
     requiredStep,
     onBack,
     onDone,
     onReady = onDone,
     onResidence,
 }: {
-    feature: PaperworkVerificationFeature
+    /** `pix`: Avenia's Pix account asks the step itself and joins no plan, so its answers end the step. */
+    feature: PaperworkQuestionsFeature
     /** A step the caller was told is missing (the card application); asked even when the read says answered. */
     requiredStep?: string | null
     onBack: () => void
@@ -86,10 +88,12 @@ export function AddFeatureQuestions({
     const t = useTranslations('kyc.paperworkVerification')
     const tKyc = useTranslations('kyc')
     const router = useRouter()
+    // the plan feature the answers add; none for `pix`
+    const feature = askedFeature === 'pix' ? null : askedFeature
     const [state, setState] = useState<State>({ kind: 'loading' })
     const [residence, setResidence] = useState<string | null>(null)
     const tracking = useMemo<PaperworkVerificationTrackingContext>(
-        () => ({ flow: 'add_later', feature, residence }),
+        () => ({ flow: 'add_later', feature: feature ?? undefined, residence }),
         [feature, residence]
     )
     const trackingRef = useRef(tracking)
@@ -115,6 +119,7 @@ export function AddFeatureQuestions({
 
     const finish = useCallback(
         async (afterRequired?: string | null) => {
+            if (!feature) return onDoneRef.current()
             try {
                 const result = await addKycFeature(feature)
                 track(ANALYTICS_EVENTS.KYC_PV_ADD_FEATURE_OUTCOME, {
@@ -142,7 +147,7 @@ export function AddFeatureQuestions({
         async (required?: string | null) => {
             setState({ kind: 'loading' })
             try {
-                const questions = await getKycQuestions(feature)
+                const questions = await getKycQuestions(askedFeature)
                 const steps = questions.steps.filter((s) => !s.answered || s.id === required)
                 setResidence(questions.residence)
                 onResidenceRef.current?.(questions.residence)
@@ -164,7 +169,7 @@ export function AddFeatureQuestions({
                 setState({ kind: 'failed' })
             }
         },
-        [feature, finish, track]
+        [askedFeature, finish, track]
     )
     loadRef.current = load
 
@@ -192,7 +197,8 @@ export function AddFeatureQuestions({
                 statusTone="error"
                 screenId="add-feature"
                 onBack={onBack}
-                title={t(`addLater.title.${feature}`)}
+                // a refusal comes from adding a plan feature, so `feature` is set here
+                title={feature ? t(`addLater.title.${feature}`) : undefined}
                 description={tKyc(
                     state.copy as never,
                     { feature: tKyc(`documents.${state.feature}` as never) } as never
@@ -251,7 +257,7 @@ export function AddFeatureQuestions({
                 key={state.at}
                 steps={state.screens[state.at]}
                 residence={state.residence}
-                feature={feature}
+                feature={askedFeature}
                 title={feature === 'local' ? t('addLater.title.local') : undefined}
                 startFromEnd={state.fromBack}
                 onBack={() => (state.at ? setState({ ...state, at: state.at - 1, fromBack: true }) : onBack())}

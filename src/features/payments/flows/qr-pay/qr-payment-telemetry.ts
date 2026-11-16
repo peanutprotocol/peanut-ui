@@ -1,6 +1,7 @@
 import posthog from 'posthog-js'
 import { boundedPixQrHost, type PixQrHost } from '@/utils/pix-qr-host'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import type { ProviderCode } from '@/types/capabilities'
 
 /**
  * Client half of the `qr_payment_stage` contract (TASK-22692). One attempt =
@@ -62,6 +63,12 @@ export interface QrPaymentAttemptTelemetry {
 export const QR_PAYMENT_STAGE_SCHEMA_VERSION = 1
 
 /**
+ * Who serves the payment, as the API names it (Manteca's QR routes, or the provider the pay route
+ * names): the events are the same for every provider, and this property tells them apart.
+ */
+export type QrPaymentStageProvider = ProviderCode
+
+/**
  * Bound a rail label to the API's vocabulary. Accepts either the lock's
  * provider type (`QR3_PAYMENT`, `PIX`) or the scanner's `EQrType` name
  * (`MERCADO_PAGO`, `ARGENTINA_QR3`, `PIX_KEY`); anything else is `OTHER`.
@@ -91,6 +98,7 @@ function monotonicNow(): number {
 export function createQrPaymentAttemptTelemetry(context: {
     qrType: QrPaymentStageQrType | undefined
     pixQrHost?: PixQrHost
+    provider?: QrPaymentStageProvider
 }): QrPaymentAttemptTelemetry {
     const attemptId = newAttemptId()
     const startedAt = monotonicNow()
@@ -114,6 +122,7 @@ export function createQrPaymentAttemptTelemetry(context: {
                 stage: name,
                 elapsed_ms: elapsed,
                 ...(context.qrType ? { qr_type: context.qrType } : {}),
+                ...(context.provider ? { provider: context.provider } : {}),
                 ...(context.qrType === 'PIX' ? { pix_qr_host: boundedPixQrHost(context.pixQrHost) } : {}),
                 ...(strategy ? { strategy } : {}),
                 ...(detail?.outcome ? { outcome: detail.outcome } : {}),
@@ -128,9 +137,17 @@ export function createQrPaymentAttemptTelemetry(context: {
     return { attemptId, stage }
 }
 
-export function trackPixQrInitResult(host: PixQrHost, outcome: 'ready' | 'refused' | 'unavailable'): void {
+export function trackPixQrInitResult(
+    host: PixQrHost,
+    outcome: 'ready' | 'refused' | 'unavailable',
+    provider?: QrPaymentStageProvider
+): void {
     try {
-        posthog.capture(ANALYTICS_EVENTS.PIX_QR_INIT_RESULT, { pix_qr_host: boundedPixQrHost(host), outcome })
+        posthog.capture(ANALYTICS_EVENTS.PIX_QR_INIT_RESULT, {
+            pix_qr_host: boundedPixQrHost(host),
+            outcome,
+            ...(provider ? { provider } : {}),
+        })
     } catch {
         // Telemetry must not change the init result.
     }

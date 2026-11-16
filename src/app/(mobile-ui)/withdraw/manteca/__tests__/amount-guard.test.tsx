@@ -36,7 +36,9 @@ jest.mock('@/hooks/useCurrency', () => ({
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({ setIsSupportModalOpen: jest.fn(), openSupportWithMessage: jest.fn() }),
 }))
-jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ rails: [], nextActions: [] }) }))
+jest.mock('@/hooks/useCapabilities', () => ({
+    useCapabilities: () => ({ rails: [], nextActions: [], capabilities: { routes: [] } }),
+}))
 jest.mock('@/hooks/useIdentityVerification', () => ({ useIdentityVerification: () => ({ isVerified: true }) }))
 jest.mock('@/hooks/wallet/usePendingTransactions', () => ({
     usePendingTransactions: () => ({ hasPendingTransactions: false }),
@@ -177,11 +179,22 @@ describe('the Brazil pause', () => {
     })
 
     // the pay:PIX_BR route, not the app, refuses the residence
-    test('shows the residence words for a Pix send the pay route refuses for the residence', () => {
+    test('shows the residence words for a Pix send from Send the pay route refuses for the residence', () => {
+        mockPixBlock = 'residence'
+        mockParams = 'country=brazil&method=pix&sendMethod=bank'
+        render()
+        expect(screen.getByTestId('brazil-paused-screen')).toHaveAttribute('data-block', 'residence')
+    })
+
+    // live test on staging, 2026-11-12: outside Send the resident came to withdraw, and their
+    // own-account Pix is open on /withdraw/pix; the block screen was a dead end in front of it
+    test('sends a resident outside Send to the neutral Pix page, with no block screen', () => {
+        mockPush.mockClear()
         mockPixBlock = 'residence'
         mockParams = 'country=brazil&method=pix'
         render()
-        expect(screen.getByTestId('brazil-paused-screen')).toHaveAttribute('data-block', 'residence')
+        expect(screen.queryByTestId('brazil-paused-screen')).not.toBeInTheDocument()
+        expect(mockPush).toHaveBeenCalledWith('/withdraw/pix')
     })
 
     // TASK-24724: the pay route the API sends a resident elsewhere is open, so the Pix-key send is too;

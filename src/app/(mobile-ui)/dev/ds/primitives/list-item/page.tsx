@@ -148,7 +148,7 @@ export default function ListItemPage() {
   body={tGlobal('countryList.cryptoWithdrawDescription')}
   bodyWrap
   chevron
-  leading={<IconBubble icon="coins" color="blue" size="s" />}
+  leading={<IconBubble icon="coins" color="yellow" size="s" />}
   onClick={onCryptoClick}
   data-testid="withdraw-crypto"
 />`}
@@ -158,7 +158,7 @@ export default function ListItemPage() {
                         body="Send USDC to any wallet or exchange address"
                         bodyWrap
                         chevron
-                        leading={<IconBubble icon="coins" color="blue" size="s" />}
+                        leading={<IconBubble icon="coins" color="yellow" size="s" />}
                         onClick={() => {}}
                     />
                 </ProductUsage.Example>

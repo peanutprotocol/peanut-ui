@@ -239,8 +239,16 @@ export class PasskeyServerError extends Error {
     }
 }
 
+// a 429 on login verify keeps its retry window but shows the rate-limit copy (TASK-22431)
+const isRateLimited = (error: Error) => (error as { status?: unknown }).status === 429
+
 export function normalizePasskeyServerError(error: unknown): unknown {
-    if (error instanceof Error && error.name === 'PasskeyOptionsFailedError') return new PasskeyServerError(error)
+    if (error instanceof Error && error.name === 'PasskeyVerifyRetryableError' && isRateLimited(error)) return error
+    if (
+        error instanceof Error &&
+        (error.name === 'PasskeyOptionsFailedError' || error.name === 'PasskeyVerifyRetryableError')
+    )
+        return new PasskeyServerError(error)
     if (!(error instanceof TypeError)) return error
     const message = error.message ?? ''
     if (PASSKEY_SERVER_TYPE_ERROR.test(message)) return new PasskeyServerError(error)
@@ -370,6 +378,9 @@ export function classifyPasskeyError(error: unknown): PasskeyErrorClassification
         // restart copy instead of the transient "wait a moment" one
         case 'PasskeyShimFailedError':
             code = 'PASSKEY_STATE'
+            break
+        case 'PasskeyVerifyRetryableError':
+            code = isRateLimited(err) ? 'RATE_LIMITED' : 'NETWORK'
             break
         case 'PasskeyServerError':
         case 'PasskeyOptionsFailedError':

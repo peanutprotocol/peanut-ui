@@ -70,9 +70,6 @@ interface TransactionDetailsHeaderCardProps {
     /** A bank's verification micro-deposit: cancelled on the wire, but the
      *  amount stays readable and the badge says Returned. */
     isVerificationDeposit?: boolean
-    /** The action the user can take on it now (a refused Pix payout waits for another
-     *  own key): the badge names it in the attention colour, never Failed. */
-    userActionBadge?: string
 }
 
 type TransactionTranslator = ReturnType<typeof useTranslations<'transaction'>>
@@ -156,9 +153,14 @@ const getTitle = (
                 break
             case 'withdraw':
             case 'bank_withdraw':
-                titleText = t(status === 'completed' ? 'title.withdrewTo' : 'title.withdrawingTo', {
-                    name: sentenceName,
-                })
+                if (nameKey === TRANSACTION_NAME_KEYS.pix) {
+                    // Pix is the method, not a place the money went to: "Withdrew by Pix"
+                    titleText = t(status === 'completed' ? 'title.withdrewByPix' : 'title.withdrawingByPix')
+                } else {
+                    titleText = t(status === 'completed' ? 'title.withdrewTo' : 'title.withdrawingTo', {
+                        name: sentenceName,
+                    })
+                }
                 break
             case 'bank_claim':
                 titleText = displayName
@@ -167,6 +169,9 @@ const getTitle = (
             case 'bank_deposit':
                 if (isTest) {
                     titleText = t('enjoyPeanut')
+                } else if (nameKey === TRANSACTION_NAME_KEYS.pix) {
+                    // Pix is the method, not a place the money came from: "Added by Pix"
+                    titleText = t(status === 'completed' ? 'title.addedByPix' : 'title.addingByPix')
                 } else {
                     titleText = t(status === 'completed' ? 'title.addedFrom' : 'title.addingFrom', {
                         name: sentenceName,
@@ -256,7 +261,6 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
     statusNote,
     nameDetail,
     isVerificationDeposit = false,
-    userActionBadge,
 }) => {
     const router = useRouter()
     const t = useTranslations('transaction')
@@ -410,10 +414,7 @@ export const TransactionDetailsHeaderCard: React.FC<TransactionDetailsHeaderCard
                     )}
                 </div>
                 {showBadge &&
-                    (userActionBadge ? (
-                        // design.md, rows the user cannot act on: the user can act now, so the badge names it
-                        <Badge status="pending" size="medium" customText={userActionBadge} />
-                    ) : actionLabelKey === 'type.returnedToSender' || isVerificationDeposit ? (
+                    (actionLabelKey === 'type.returnedToSender' || isVerificationDeposit ? (
                         // A bank deposit sent back to the payer is a fact with no
                         // success tone, so `neutral`, in the heading's word.
                         <Badge status="neutral" size="medium" customText={t('returnedStatus')} />

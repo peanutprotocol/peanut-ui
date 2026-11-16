@@ -323,6 +323,14 @@ export function formatAmountWithSignificantDigits(amount: number, significantDig
     return floorFixed(amount, fractionDigits)
 }
 
+// one separator before exactly 3 digits ("125.000", "1,000", "R$ 1.000") is a
+// thousand in es/pt and a decimal in en: a guess is a 1000x amount, so amount
+// fields refuse such user text (TASK-23499). not for numbers the app writes
+// itself: "133.333" from a slider is never a thousands group.
+export function isAmbiguousAmountText(text: string) {
+    return /^(?:[A-Za-z]{0,2}\p{Sc}\s*)?[1-9]\d{0,2}[.,]\d{3}(?:\s*\p{Sc})?$/u.test(text.trim())
+}
+
 export function formatTokenAmount(amount?: number | string, maxFractionDigits?: number, forInput: boolean = false) {
     if (amount === undefined) return undefined
     maxFractionDigits = maxFractionDigits ?? 6
@@ -334,13 +342,26 @@ export function formatTokenAmount(amount?: number | string, maxFractionDigits?: 
         let s = amount.trim()
         if (s === '') return ''
 
+        // a copied amount often carries one sign ("R$ 1.234,56", "$12", "12,50 €").
+        // only that sign goes; anything else around the digits stays and is rejected.
+        const signed = s.match(/^[A-Za-z]{0,2}\p{Sc}\s*(.+)$/u) ?? s.match(/^(.+?)\s*\p{Sc}$/u)
+        if (signed) s = signed[1]
+        // spaces (and the no-break spaces Intl writes) are thousands only in clean
+        // 3-digit groups: "1 234,56" is 1234.56, but "12 5" is rejected, never 125
+        if (/^\d{1,3}([   ]\d{3})+([.,]\d*)?$/.test(s)) s = s.replace(/[   ]/g, '')
+
         // a lone comma is the decimal separator (es/pt): "0,125" is 0.125, never 125.
         // commas are thousands only in a well-formed group with a second signal:
         // a dot after them ("10,000.50") or more than one comma ("1,234,567").
+        // dots are thousands by the same rule mirrored: clean groups with a decimal
+        // comma after them ("1.000,50"). a dot with no comma stays a decimal point;
+        // user text like "125.000" is refused before it gets here (isAmbiguousAmountText).
         // anything else with a comma ("1,2,3") ends up invalid and is rejected.
         const loneComma = /^[^,.]*,[^,.]*$/.test(s)
         const isThousands = !loneComma && /^\d{1,3}(,\d{3})+(\.\d*)?$/.test(s)
-        s = isThousands ? s.replace(/,/g, '') : s.replace(/,/g, '.')
+        const isDotThousands = /^[1-9]\d{0,2}(\.\d{3})+,\d*$/.test(s)
+        if (isDotThousands) s = s.replace(/\./g, '').replace(',', '.')
+        else s = isThousands ? s.replace(/,/g, '') : s.replace(/,/g, '.')
 
         const m = s.match(/^(\d*)(?:\.(\d*))?$/)
         if (!m) return '' // invalid → empty
