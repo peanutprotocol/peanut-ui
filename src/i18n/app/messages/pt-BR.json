@@ -1358,7 +1358,8 @@
             "clear": "Limpar",
             "cta": "Usar esse usuário",
             "ctaNamed": "Usar @{name}",
-            "fieldAria": "Usuário"
+            "fieldAria": "Usuário",
+            "reserved": "Esse nome de usuário é reservado. Tente outro."
         },
         "passkey": {
             "s1": {
@@ -1389,7 +1390,19 @@
             "cannot1": "Abra Configurações → Senhas, chaves de acesso e contas.",
             "cannot2": "Escolha o Gerenciador de senhas do Google e tente de novo.",
             "cannotOther": "Use outro gerenciador de senhas e tente de novo.",
-            "browser": "Crie sua conta em peanut.me no navegador"
+            "browser": "Crie sua conta em peanut.me no navegador",
+            "browserOpenFailed": "O navegador não abriu. Tente de novo.",
+            "preflight": {
+                "nativeAndroid": "As passkeys ainda não estão disponíveis. Entre em uma conta do Google e atualize o Google Play Services, depois tente de novo.",
+                "nativeOther": "As passkeys ainda não estão disponíveis neste dispositivo. Confira as configurações do dispositivo e tente de novo.",
+                "nativeCheckFailed": "Não conseguimos verificar se as passkeys funcionam. Confira se você entrou em uma conta do Google com o Google Play Services atualizado e tente de novo.",
+                "insecure": "As passkeys precisam de uma conexão segura (HTTPS).",
+                "browserUnsupported": "Este navegador não aceita passkeys.",
+                "chromeOutdated": "Atualize o Chrome para usar passkeys.",
+                "androidOutdated": "Sua versão do Android é antiga demais para passkeys. Atualize para o Android 9 ou mais recente.",
+                "screenLock": "Ative o bloqueio de tela com PIN ou biometria nas configurações do dispositivo.",
+                "limitedSupport": "Seu dispositivo pode ter suporte limitado a passkeys. Se a configuração falhar, tente atualizar o Google Play Services."
+            }
         },
         "invite": {
             "title": "Alguém te convidou?",

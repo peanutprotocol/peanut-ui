@@ -1358,7 +1358,8 @@
             "clear": "Clear",
             "cta": "Use this username",
             "ctaNamed": "Use @{name}",
-            "fieldAria": "Username"
+            "fieldAria": "Username",
+            "reserved": "This username is reserved. Try a different one."
         },
         "passkey": {
             "s1": {
@@ -1389,7 +1390,19 @@
             "cannot1": "Open Settings → Passwords, passkeys and accounts.",
             "cannot2": "Pick Google Password Manager, then try again.",
             "cannotOther": "Use another password manager, then try again.",
-            "browser": "Sign up at peanut.me in a browser"
+            "browser": "Sign up at peanut.me in a browser",
+            "browserOpenFailed": "The browser didn’t open. Try again.",
+            "preflight": {
+                "nativeAndroid": "Passkeys aren’t available yet. Sign in to a Google account and update Google Play Services, then try again.",
+                "nativeOther": "Passkeys aren’t available on this device yet. Check your device settings and try again.",
+                "nativeCheckFailed": "We couldn’t verify passkey support. Make sure you’re signed in to a Google account with up-to-date Google Play Services, then try again.",
+                "insecure": "Passkeys need a secure connection (HTTPS).",
+                "browserUnsupported": "This browser doesn’t support passkeys.",
+                "chromeOutdated": "Update Chrome to use passkeys.",
+                "androidOutdated": "Your Android version is too old for passkeys. Update to Android 9 or later.",
+                "screenLock": "Turn on a screen lock with a PIN or biometrics in your device settings.",
+                "limitedSupport": "Your device may have limited passkey support. If setup fails, try updating Google Play Services."
+            }
         },
         "invite": {
             "title": "Invited by a friend?",

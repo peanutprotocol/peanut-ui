@@ -1358,7 +1358,8 @@
             "clear": "Borrar",
             "cta": "Usar este usuario",
             "ctaNamed": "Usar @{name}",
-            "fieldAria": "Usuario"
+            "fieldAria": "Usuario",
+            "reserved": "Este nombre de usuario está reservado. Prueba con otro."
         },
         "passkey": {
             "s1": {
@@ -1389,7 +1390,19 @@
             "cannot1": "Abre Configuración → Contraseñas, llaves de acceso y cuentas.",
             "cannot2": "Elige el Administrador de contraseñas de Google e inténtalo de nuevo.",
             "cannotOther": "Usa otro administrador de contraseñas e inténtalo de nuevo.",
-            "browser": "Regístrate en peanut.me desde el navegador"
+            "browser": "Regístrate en peanut.me desde el navegador",
+            "browserOpenFailed": "No se abrió el navegador. Vuelve a intentarlo.",
+            "preflight": {
+                "nativeAndroid": "Las passkeys todavía no están disponibles. Inicia sesión en una cuenta de Google y actualiza Google Play Services, luego vuelve a intentarlo.",
+                "nativeOther": "Las passkeys todavía no están disponibles en este dispositivo. Revisa la configuración del dispositivo y vuelve a intentarlo.",
+                "nativeCheckFailed": "No pudimos verificar si las passkeys funcionan. Asegúrate de haber iniciado sesión en una cuenta de Google con Google Play Services actualizado y vuelve a intentarlo.",
+                "insecure": "Las passkeys necesitan una conexión segura (HTTPS).",
+                "browserUnsupported": "Este navegador no admite passkeys.",
+                "chromeOutdated": "Actualiza Chrome para usar passkeys.",
+                "androidOutdated": "Tu versión de Android es demasiado antigua para las passkeys. Actualiza a Android 9 o posterior.",
+                "screenLock": "Activa el bloqueo de pantalla con PIN o biometría en la configuración del dispositivo.",
+                "limitedSupport": "Es posible que tu dispositivo tenga soporte limitado para passkeys. Si la configuración falla, intenta actualizar Google Play Services."
+            }
         },
         "invite": {
             "title": "¿Alguien te invitó?",
