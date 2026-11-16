@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { whenIdle } from '@/utils/defer-analytics'
 import { initSentry } from '@/utils/sentry-init'
+import { reportChunkReloadRecovery } from '@/utils/chunk-reload-report'
 import { useWalletProvisioningLifecycle } from '@/hooks/useWalletProvisioningLifecycle'
 import { useKillSwitchesSync } from '@/features/kill-switches/useKillSwitchesSync'
 import { sweepExpiredAnswerDrafts } from '@/features/paperwork-verification/answerDraft'
@@ -30,7 +31,13 @@ export function AppGlobals({ children }: { children: React.ReactNode }) {
     // App routes want Sentry; the marketing site does not pay for it. Doing it
     // here rather than in sentry.client.config means a client-side navigation
     // off the landing page still initialises the SDK.
-    useEffect(() => whenIdle(initSentry), [])
+    useEffect(
+        () =>
+            whenIdle(() => {
+                void Promise.resolve(initSentry()).then(reportChunkReloadRecovery, reportChunkReloadRecovery)
+            }),
+        []
+    )
     // Other accounts' expired drafts would otherwise wait for those accounts to sign in again.
     useEffect(() => whenIdle(sweepExpiredAnswerDrafts), [])
 
