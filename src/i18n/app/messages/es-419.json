@@ -1247,6 +1247,11 @@
         "notificationsControl": {
             "title": "Activa las notificaciones",
             "description": "Entérate al instante cuando llega dinero, se completa un pago o tu cuenta necesita atención."
+        },
+        "signupStep": {
+            "errors": {
+                "reserved": "Este nombre de usuario está reservado. Prueba con otro."
+            }
         }
     },
     "setupRedesign": {

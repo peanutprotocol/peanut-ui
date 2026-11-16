@@ -1247,6 +1247,11 @@
         "notificationsControl": {
             "title": "Turn on notifications",
             "description": "Know instantly when money arrives, a payment goes through, or your account requires attention."
+        },
+        "signupStep": {
+            "errors": {
+                "reserved": "This username is reserved. Try a different one."
+            }
         }
     },
     "setupRedesign": {
