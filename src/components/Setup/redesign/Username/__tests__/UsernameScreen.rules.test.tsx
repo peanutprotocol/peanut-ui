@@ -142,6 +142,17 @@ describe('02 Username — typed values (C.md § 3.1, § 4.1)', () => {
         expect(primary()).toBeDisabled()
     })
 
+    // Ported from dev's Signup.test "reports the same validation category again after … editing" (C § 6.1).
+    it('C-12 an edit clears the reported too_short, so the next settled short value reports it again', async () => {
+        await mount()
+        await type('ab')
+        await advance(750)
+        await type('abc')
+        await advance(750)
+        expect(controlsOf(capture()).filter((control) => control === 'username:error:too_short')).toHaveLength(2)
+        expect(invalidTypes()).toEqual(['too_short', 'too_short'])
+    })
+
     it.each([
         ['9lucky', 'invalidStart'],
         ['lu ky', 'invalidChars'],
