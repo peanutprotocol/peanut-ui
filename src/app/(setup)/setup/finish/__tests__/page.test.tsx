@@ -7,6 +7,8 @@ import FinishSetupPage from '../page'
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 jest.mock('@/features/setup/SetupFlowContext', () => ({
     useSetupFlowContext: () => ({ signupEntryFlow: 'card' }),
+    // the real shell's hooks read the optional flow; the standalone finish page has none
+    useOptionalSetupFlow: () => null,
 }))
 jest.mock('@/hooks/useBackHandler', () => ({ useBackHandler: jest.fn() }))
 jest.mock('@/components/Setup/redesign/FinalConfirm/FinalConfirmScreen', () => ({
