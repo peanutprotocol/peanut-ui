@@ -98,13 +98,6 @@ export const PAGE_CAPTURES: PageCapture[] = [
         fixture: 'add-money-picker-first-time',
         expectSelector: '[data-testid="add-money-option-GBP"]',
     },
-    {
-        id: 'add-money-pix-currency',
-        name: 'Add money — Pix currency',
-        route: '/add-money/options?method=pix',
-        fixture: 'add-money-picker-first-time',
-        expectSelector: '[data-testid="add-money-option-BRL"]',
-    },
     { id: 'p18-add-money-crypto', name: 'Add money — crypto', route: '/add-money/crypto' },
     {
         id: 'add-money-crypto-euro-token-network',

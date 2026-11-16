@@ -1550,11 +1550,6 @@
         "route": "/add-money/options?method=transfer"
     },
     {
-        "id": "add-money-pix-currency",
-        "flow": "Add money",
-        "route": "/add-money/options?method=pix"
-    },
-    {
         "id": "p18-add-money-crypto",
         "flow": "Add money",
         "route": "/add-money/crypto"
