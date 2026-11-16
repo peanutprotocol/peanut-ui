@@ -91,7 +91,12 @@ class SignupStub {
     inviters = new Set(['fulano'])
     /** Extra latency per `METHOD /path` key, in ms (the slow-network journey). */
     delays = new Map<string, number>()
-    registered: { username: string; email: string | null; residence: unknown; wallet: boolean } | null = null
+    registered: {
+        username: string
+        email: string | null
+        residence: unknown
+        wallet: Record<string, unknown> | null
+    } | null = null
     unhandled: string[] = []
 
     reset() {
@@ -115,13 +120,15 @@ class SignupStub {
             invitesSent: [],
             showEarlyUserModal: false,
             invitedBy: null,
+            // the final step's /add-account, as the API would store it: the wallet and the chosen plan
+            signupPreferences: this.registered?.wallet?.signupPreferences ?? null,
             accounts: this.registered?.wallet
                 ? [
                       {
                           id: 'e2e-wallet',
                           userId: E2E_USER_ID,
-                          type: 'peanut-wallet',
-                          identifier: E2E_ADDRESS,
+                          type: this.registered.wallet.accountType ?? 'peanut-wallet',
+                          identifier: this.registered.wallet.accountIdentifier ?? E2E_ADDRESS,
                           chainId: '42161',
                           details: {},
                           createdAt: '2026-11-16T00:00:00.000Z',
@@ -203,7 +210,7 @@ class SignupStub {
                     username: passkeyName.replace(/\.peanut\.wallet$/, ''),
                     email: null,
                     residence: null,
-                    wallet: false,
+                    wallet: null,
                 }
                 return { status: 200, json: { verified: true, token: 'e2e-jwt' } }
             }
@@ -239,7 +246,7 @@ class SignupStub {
             case 'POST /add-account':
                 // the wallet the final step creates; the account is complete from here on
                 if (!this.registered) return { status: 401, json: { error: 'unauthorized' } }
-                this.registered.wallet = true
+                this.registered.wallet = (body as Record<string, unknown>) ?? {}
                 return { status: 200, json: { success: true } }
             case 'POST /invites/validate': {
                 const code = String((body as { inviteCode?: string })?.inviteCode ?? '').toLowerCase()
