@@ -31,7 +31,7 @@ function ChannelIcon({ channel, size }: { channel: SetupChannel | null; size: 'x
     if (!channel) return <IconBubble icon="question-mark" size={size} color="gray" />
     const concept = SETUP_CHANNEL_CONCEPTS[channel]
     const mark: ConceptIcon = CONCEPT_ICONS[concept]
-    // a brand mark (Pix) is the whole circle: no bubble colour reaches it
+    // a brand mark (Pix, Mercado Pago) is the whole circle: no bubble colour reaches it
     if ('logo' in mark) return <IconBubble logo={mark.logo} size={size} />
     const color: IconBubbleColor = concept === 'bank' ? 'green' : mark.color
     return <IconBubble {...mark} size={size} color={color} />
@@ -169,7 +169,9 @@ export default function PaymentPlanStep() {
                                 ? t('peanutCompact')
                                 : channel === 'brlBank'
                                   ? tMethods('pix')
-                                  : t(`funding.${channel === 'arsBank' ? 'bank' : channel}`)
+                                  : channel === 'arsBank'
+                                    ? tMethods('mercadoPago')
+                                    : t(`funding.${channel}`)
                         }
                         label={(channel) =>
                             channel === 'bank' && intents?.bank.currencies?.length

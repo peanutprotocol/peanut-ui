@@ -1294,7 +1294,7 @@
                 "bank": "Bank transfer",
                 "bankCurrencies": "Bank transfer ({currencies})",
                 "brlBank": "Pix (BRL)",
-                "arsBank": "Bank transfer (ARS)"
+                "arsBank": "Mercado Pago (ARS)"
             },
             "payment": {
                 "peanut": "Pay a Peanut user",
@@ -2260,6 +2260,7 @@
             "kycRequired": "Verification required",
             "bankTransferDescription": "Reusable bank details to get paid",
             "mercadoPagoOrBank": "Mercado Pago or Bank",
+            "mercadoPago": "Mercado Pago",
             "pix": "Pix",
             "pixDescription": "Instant transfers in reais"
         },

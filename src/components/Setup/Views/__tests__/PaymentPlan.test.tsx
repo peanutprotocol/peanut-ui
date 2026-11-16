@@ -165,24 +165,30 @@ const leadingMark = (element: HTMLElement) => {
 // The picker button sizes itself on every label in hidden spans; this is the one it shows.
 const shownLabel = (button: HTMLElement) => button.querySelector('span.truncate')?.textContent
 
-it('keeps the AR funding text compact and its accessible label complete', async () => {
+// TASK-25015, 2026-11-16: a resident of Argentina adds ARS from Mercado Pago, so the row says so and shows its mark.
+it('names the ARS funding row Mercado Pago with the Mercado Pago mark, and still saves arsBank', async () => {
     renderWithIntl(ui('AR'))
     expect(optionsIn('Add money with')).toEqual([
-        'Bank transfer (ARS)',
+        'Mercado Pago (ARS)',
         'Bank transfer (USD, EUR, GBP, MXN)',
         'Crypto',
         'Receive from a Peanut user',
     ])
     const dialog = screen.getByRole('dialog')
-    const row = within(dialog).getByRole('button', { name: 'Bank transfer (ARS)' })
-    expect(leadingMark(row)).toEqual({ logo: false, className: expect.stringContaining('size-8') })
-    expect(leadingMark(row).className).toContain('bg-background-icon-bubble-green')
+    const row = within(dialog).getByRole('button', { name: 'Mercado Pago (ARS)' })
+    const rowMark = leadingMark(row)
+    expect(rowMark.logo).toBe(true)
+    expect(rowMark.className).toContain('size-8')
+    expect(rowMark.className).not.toMatch(/\bbg-/)
     fireEvent.click(row)
     await waitFor(() => expect(dialog).toHaveAttribute('data-state', 'closed'))
     const funding = screen.getByTestId('setup-funding-channel')
-    expect(funding).toHaveAccessibleName('Add money with: Bank transfer (ARS)')
-    expect(shownLabel(funding)).toBe('Bank transfer')
-    expect(leadingMark(funding).className).toContain('bg-background-icon-bubble-green')
+    expect(funding).toHaveAccessibleName('Add money with: Mercado Pago (ARS)')
+    expect(shownLabel(funding)).toBe('Mercado Pago')
+    const buttonMark = leadingMark(funding)
+    expect(buttonMark.logo).toBe(true)
+    expect(buttonMark.className).toContain('size-6')
+    expect(buttonMark.className).not.toMatch(/\bbg-/)
     expect(screen.getByLabelText('Plan')).toHaveTextContent('arsBank/')
 })
 

@@ -770,7 +770,7 @@
                 "crypto": "Cripto",
                 "bank": "Transferencia bancaria",
                 "brlBank": "Pix (BRL)",
-                "arsBank": "Transferencia bancaria (ARS)"
+                "arsBank": "Mercado Pago (ARS)"
             },
             "payment": {
                 "bank": "Transferencia bancaria",
