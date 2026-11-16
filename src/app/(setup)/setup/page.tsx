@@ -126,6 +126,10 @@ function SetupPageContent() {
         if (nextImage && 'pose' in nextImage) {
             void MASCOT_ANIMATION_LOADERS[nextImage.pose]().catch(() => {})
         }
+        // The residence hero opens on the waving mascot.
+        if (nextImage && 'hero' in nextImage) {
+            void MASCOT_ANIMATION_LOADERS['waving-hello']().catch(() => {})
+        }
     }, [steps, currentStepIndex])
     const stepCopy = useSetupStepCopy(step)
     const { user, isFetchingUser, userFetchError, fetchUser } = useAuth()
