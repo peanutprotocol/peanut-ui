@@ -17,6 +17,14 @@ import {
 } from '@/features/setup/signup-test-transaction'
 import { AccountType } from '@/interfaces/interfaces'
 import { AccountSetupError } from '@/services/account-setup'
+import { recordSetupIpCountry } from '@/features/setup/country-signals'
+import { getRedirectUrl, setRedirectUrl } from '@/utils/general.utils'
+import { CeremonyTimeoutError } from '@/utils/passkeyCeremony.utils'
+import {
+    clearSignupAttribution,
+    hasPendingSignupAttribution,
+    readSignupAttributionAsync,
+} from '@/utils/signup-attribution'
 import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
 import { confettiPresets } from '@/utils/confetti'
 import { UserOpSubmissionError } from '@/utils/userop-submission'
@@ -381,7 +389,9 @@ describe('11 Final confirm: art', () => {
     /** An ArtPiece box in design px from its inline style. */
     const box = (el: Element | null) => {
         let node = el as HTMLElement | null
-        while (node && !(node.style.left && node.style.top)) node = node.parentElement
+        // skip next/image's fill box (left 0, top 0, width 100%) up to the ArtPiece placed in px
+        while (node && !(node.style.left && node.style.top && node.style.width.endsWith('px')))
+            node = node.parentElement
         if (!node) throw new Error('no placed art piece')
         const px = (v: string) => parseFloat(v)
         const left = px(node.style.left)
@@ -639,5 +649,385 @@ describe('11 Final confirm: the plan reaches the account', () => {
             expect.objectContaining({ signupPreferences: { fundingChannel: 'brlBank', paymentChannel: 'card' } })
         )
         expect(mockSend).toHaveBeenCalledTimes(1)
+    })
+})
+
+/*
+ * Cases ported from dev's Views/__tests__/SignTestTransaction.test.tsx (deleted with the old view) that the checks
+ * above do not already hold. Each keeps dev's assertion against the redesigned screen and names the P4 § 4 line
+ * ("Dev behaviour to keep") it guards.
+ */
+describe('11 Final confirm: dev behaviour kept (ported from SignTestTransaction.test)', () => {
+    const ambiguous = () =>
+        new AccountSetupError('Account creation could not be confirmed', {
+            kind: 'retryable',
+            requestAttempts: 2,
+            status: 503,
+        })
+    const JOURNEY = { journeyId: '33333333-3333-4333-8333-333333333333', platform: 'android', captureMethod: 'browser' }
+
+    beforeEach(() => {
+        jest.mocked(readSignupAttributionAsync).mockResolvedValue(null)
+        jest.mocked(clearSignupAttribution).mockResolvedValue(undefined)
+        jest.mocked(hasPendingSignupAttribution).mockResolvedValue(false)
+    })
+    afterEach(() => {
+        capture.mockImplementation(() => undefined)
+        recordSetupIpCountry(null)
+    })
+
+    it('P4-42 a failed signing releases the primary even when the diagnostics never finish', async () => {
+        mockSend.mockRejectedValueOnce(new Error('Signing failed'))
+        jest.mocked(capturePasskeyDebugInfo).mockReturnValueOnce(new Promise(() => {}))
+        const onComplete = jest.fn()
+        const { container } = render({ onComplete })
+        confirm(container)
+        await waitFor(() => expect(capturePasskeyDebugInfo).toHaveBeenCalled())
+        await waitFor(() => expect(primary(container)).toBeEnabled())
+        expect(mockAddAccount).not.toHaveBeenCalled()
+        expect(onComplete).not.toHaveBeenCalled()
+        expect(confettiPresets.celebration).not.toHaveBeenCalled()
+    })
+
+    it('P4-38 on the finish route, Retry completes an ambiguous earlier commit and redirects once', async () => {
+        mockAddAccount.mockRejectedValueOnce(ambiguous())
+        const view = render({ showLogout: true })
+        confirm(view.container)
+        await waitFor(() => expect(label(primary(view.container))).toBe(copy('setupRedesign.final.retrySetup')))
+        await waitFor(() => expect(primary(view.container)).toBeEnabled())
+        expect(confettiPresets.celebration).not.toHaveBeenCalled()
+
+        // a later profile refresh shows that the first request did commit. The auth mock is no context, and the
+        // shell keeps the mounted screen element, so a flow update re-renders the screen to read the new accounts.
+        accounts = [{ type: AccountType.PEANUT_WALLET }]
+        act(() => view.flow().setUsername('kim'))
+        confirm(view.container)
+
+        await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledWith('/home'))
+        expect(mockAddAccount).toHaveBeenCalledTimes(1)
+        expect(mockRouterPush).not.toHaveBeenCalled()
+        expect(mockRouterReplace).toHaveBeenCalledTimes(1)
+        expect(confettiPresets.celebration).toHaveBeenCalledTimes(1)
+    })
+
+    it('P4-49 a Retry that finds the wallet already saved still sends the current choices, without signing again', async () => {
+        mockAddAccount.mockRejectedValueOnce(ambiguous())
+        const view = render({ showLogout: true, seed: { fundingChannel: 'brlBank', paymentChannel: 'qr' } })
+        confirm(view.container)
+        await waitFor(() => expect(label(primary(view.container))).toBe(copy('setupRedesign.final.retrySetup')))
+        await waitFor(() => expect(primary(view.container)).toBeEnabled())
+
+        accounts = [{ type: AccountType.PEANUT_WALLET }]
+        act(() => view.flow().setPaymentChannel('card'))
+        view.rerenderSame()
+        confirm(view.container)
+
+        await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledWith('/home'))
+        expect(mockAddAccount).toHaveBeenCalledTimes(2)
+        expect(mockAddAccount).toHaveBeenLastCalledWith(
+            expect.objectContaining({ signupPreferences: { fundingChannel: 'brlBank', paymentChannel: 'card' } })
+        )
+        expect(mockSend).toHaveBeenCalledTimes(1)
+    })
+
+    it('P4-48 after a confirmation on the finish route the primary stays off and signup_completed carries the flow', async () => {
+        const { container } = render({ showLogout: true })
+        confirm(container)
+        await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledWith('/home'))
+        expect(mockRouterReplace).toHaveBeenCalledTimes(1)
+        expect(primary(container)).toBeDisabled()
+        fireEvent.click(primary(container))
+        expect(mockSend).toHaveBeenCalledTimes(1)
+        expect(events(ANALYTICS_EVENTS.SIGNUP_COMPLETED)).toEqual([
+            expect.objectContaining({ flow_version: 2, signup_entry_flow: 'default' }),
+        ])
+        expect(mockRouterPush).not.toHaveBeenCalled()
+    })
+
+    it('P4-48 the finish route still takes a deep link the person asked for', async () => {
+        setRedirectUrl('/receipt?id=abc')
+        const { container } = render({ showLogout: true })
+        confirm(container)
+        await waitFor(() => expect(mockRouterReplace).toHaveBeenCalled())
+        expect(mockRouterReplace).toHaveBeenCalledTimes(1)
+        expect(mockRouterReplace).toHaveBeenCalledWith('/receipt?id=abc')
+    })
+
+    it('P4-37 the hand-over to the celebration leaves the saved destination for it', async () => {
+        setRedirectUrl('/receipt?id=abc')
+        const onComplete = jest.fn()
+        const { container } = render({ onComplete })
+        confirm(container)
+        await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1))
+        expect(mockRouterReplace).not.toHaveBeenCalled()
+        expect(getRedirectUrl()).toBe('/receipt?id=abc')
+        expect(confettiPresets.celebration).not.toHaveBeenCalled()
+    })
+
+    it('P4-37 in the sign-up an account that already has a wallet still asks for the confirmation', async () => {
+        accounts = [{ type: AccountType.PEANUT_WALLET }]
+        setRedirectUrl('/receipt?id=abc')
+        let finishSigning!: (result: unknown) => void
+        mockSend.mockReturnValueOnce(new Promise((resolve) => (finishSigning = resolve)))
+        const onComplete = jest.fn()
+        const { container } = render({ onComplete, seed: { fundingChannel: 'bank', paymentChannel: 'card' } })
+
+        expect(mockRouterReplace).not.toHaveBeenCalled()
+        expect(mockSend).not.toHaveBeenCalled()
+        expect(onComplete).not.toHaveBeenCalled()
+        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(copyRx('setupRedesign.final.title'))
+
+        confirm(container)
+        expect(mockSend).toHaveBeenCalledTimes(1)
+        expect(mockAddAccount).not.toHaveBeenCalled()
+        expect(onComplete).not.toHaveBeenCalled()
+
+        await act(async () => finishSigning({ userOpHash: HASH, reusedSignature: false, sends: 1, recovered: [] }))
+        await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1))
+        expect(mockAddAccount).toHaveBeenCalledWith(
+            expect.objectContaining({ signupPreferences: { fundingChannel: 'bank', paymentChannel: 'card' } })
+        )
+        expect(mockRouterReplace).not.toHaveBeenCalled()
+        expect(getRedirectUrl()).toBe('/receipt?id=abc')
+    })
+
+    it('P4-37 completion carries the captured country hint to signup_completed and the person', async () => {
+        recordSetupIpCountry('BR')
+        const onComplete = jest.fn()
+        const { container } = render({ onComplete })
+        confirm(container)
+        await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1))
+        expect(events(ANALYTICS_EVENTS.SIGNUP_COMPLETED)).toEqual([
+            expect.objectContaining({ signup_ip_country: 'BR' }),
+        ])
+        expect(posthog.setPersonProperties).toHaveBeenCalledWith(expect.objectContaining({ signup_ip_country: 'BR' }))
+    })
+
+    it('P4-48 a restarted journey is captured with its attribution before that attribution is cleared', async () => {
+        const order: string[] = []
+        jest.mocked(readSignupAttributionAsync).mockResolvedValue(JOURNEY as never)
+        capture.mockImplementation((event: string) => {
+            if (event === ANALYTICS_EVENTS.SIGNUP_COMPLETED) order.push('capture')
+        })
+        jest.mocked(clearSignupAttribution).mockImplementation(async () => {
+            order.push('clear')
+        })
+        const { container } = render({ showLogout: true })
+        confirm(container)
+        await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledWith('/home'))
+        expect(events(ANALYTICS_EVENTS.SIGNUP_COMPLETED)).toEqual([
+            expect.objectContaining({ signup_journey_id: JOURNEY.journeyId, signup_platform: 'android' }),
+        ])
+        expect(order).toEqual(['capture', 'clear'])
+    })
+
+    it('P4-37 attribution the server has not acknowledged stays for the retry after sign-in', async () => {
+        jest.mocked(hasPendingSignupAttribution).mockResolvedValue(true)
+        jest.mocked(readSignupAttributionAsync).mockResolvedValue(JOURNEY as never)
+        const onComplete = jest.fn()
+        const { container } = render({ onComplete })
+        confirm(container)
+        await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1))
+        expect(events(ANALYTICS_EVENTS.SIGNUP_COMPLETED)).toEqual([
+            expect.objectContaining({ signup_journey_id: JOURNEY.journeyId }),
+        ])
+        expect(clearSignupAttribution).not.toHaveBeenCalled()
+    })
+
+    it('P4-37 a confirmed sign-up clears the stored operation', async () => {
+        saveSignupTestTransaction('user-1', pending({ transientFailures: 0 }))
+        mockSend.mockResolvedValueOnce({ userOpHash: HASH, reusedSignature: true, sends: 1, recovered: [] })
+        const onComplete = jest.fn()
+        const { container } = render({ onComplete })
+        confirm(container)
+        await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1))
+        expect(readSignupTestTransaction('user-1')).toBeNull()
+        expect(events(ANALYTICS_EVENTS.SIGNUP_COMPLETED)).toEqual([expect.objectContaining({ test_tx: 'confirmed' })])
+    })
+
+    it('P4-39 while the network is busy one Try again runs at a time, and a later one recovers', async () => {
+        mockSend.mockRejectedValueOnce(stalled())
+        const onComplete = jest.fn()
+        const { container } = render({ onComplete })
+        confirm(container)
+        await screen.findByText(textMatch(copy('setupRedesign.final.busy')))
+        await waitFor(() => expect(primary(container)).toBeEnabled())
+        expect(label(primary(container))).toBe(copy('setupRedesign.common.retry'))
+
+        let rejectRetry: (error: unknown) => void = () => undefined
+        mockSend.mockReturnValueOnce(new Promise((_, reject) => (rejectRetry = reject)))
+        confirm(container)
+        confirm(container)
+        expect(mockSend).toHaveBeenCalledTimes(2)
+        await waitFor(() => expect(primary(container)).toBeDisabled())
+        await act(async () => rejectRetry(stalled()))
+
+        mockSend.mockResolvedValueOnce({ userOpHash: HASH, reusedSignature: true, sends: 1, recovered: [] })
+        await waitFor(() => expect(primary(container)).toBeEnabled())
+        expect(label(primary(container))).toBe(copy('setupRedesign.common.retry'))
+        confirm(container)
+        await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1))
+        expect(mockSend).toHaveBeenCalledTimes(3)
+        expect(mockAddAccount).toHaveBeenCalledTimes(1)
+    })
+})
+
+describe('11 Final confirm: failure classification (ported from SignTestTransaction.test)', () => {
+    /** Fail the confirmation, wait for the shown line, return the one signup_test_tx_failed event. */
+    const failConfirmWith = async (error: unknown, shown: RegExp | ReturnType<typeof textMatch>) => {
+        mockSend.mockRejectedValueOnce(error)
+        const view = render({ onComplete: jest.fn() })
+        confirm(view.container)
+        expect(await screen.findByText(shown)).toBeInTheDocument()
+        await waitFor(() => expect(events(ANALYTICS_EVENTS.SIGNUP_TEST_TX_FAILED)).toHaveLength(1))
+        return { ...view, event: events(ANALYTICS_EVENTS.SIGNUP_TEST_TX_FAILED)[0] }
+    }
+    const supportCopy = () => screen.queryByText(copyRx('setup.testTransaction.errors.supportNeeded'))
+
+    it.each([
+        [
+            'a passkey cancel',
+            () =>
+                Object.assign(new Error('The operation either timed out or was not allowed.'), {
+                    name: 'NotAllowedError',
+                }),
+            'setup.passkey.notCompleted',
+            { error_name: 'NotAllowedError', error_code: 'LOGIN_CANCELED', is_aa24: false },
+        ],
+        [
+            'the Android shim cancel',
+            () => new Error('User cancelled the selector'),
+            'setup.passkey.notCompleted',
+            { error_name: 'NotAllowedError', error_code: 'LOGIN_CANCELED' },
+        ],
+        [
+            'a ceremony that never settled',
+            () => new CeremonyTimeoutError(60_000),
+            'setup.passkey.tookTooLong',
+            { error_name: 'CeremonyTimeoutError', error_code: 'CEREMONY_TIMEOUT' },
+        ],
+        [
+            'a passkey prompt closed without a reason',
+            () => new SignupTestTxError('sign', new Error('')),
+            'setup.passkey.interrupted',
+            { failure_mode: 'passkey', phase: 'sign', error_code: 'LOGIN_ERROR' },
+        ],
+    ])('P4-42 %s shows retry copy, never support, and is classified', async (_, error, key, props) => {
+        const { event } = await failConfirmWith(error(), copyRx(key))
+        expect(supportCopy()).toBeNull()
+        expect(event).toMatchObject(props)
+    })
+
+    it('P4-42 a failure no retry is known to fix keeps the support copy and is classified unknown', async () => {
+        const { event } = await failConfirmWith(
+            new SignupTestTxError('submit', new Error('AA21 didn’t pay prefund')),
+            copyRx('setup.testTransaction.errors.supportNeeded')
+        )
+        expect(event).toMatchObject({ failure_mode: 'unknown', phase: 'submit' })
+    })
+
+    it.each([
+        [
+            'a server error whose hex request body contains aa24',
+            () =>
+                Object.assign(
+                    new Error(
+                        'HTTP request failed.\n\nStatus: 500\nRequest body: {"method":"pm_sponsorUserOperation","params":[{"callData":"0x51945447aa24f0"}]}'
+                    ),
+                    { name: 'HttpRequestError', status: 500 }
+                ),
+            { error_name: 'HttpRequestError', is_aa24: false, failure_mode: 'bundler_transient' },
+        ],
+        [
+            'exhausted bundler retries',
+            () =>
+                new SignupTestTxError(
+                    'submit',
+                    new UserOpSubmissionError('transient', HASH, 3, true, new Error('timeout')),
+                    'valid'
+                ),
+            { failure_mode: 'bundler_transient', submission_kind: 'transient' },
+        ],
+    ])('P4-39 %s shows the busy line, not support or the password-manager line', async (_, error, props) => {
+        const { container, event } = await failConfirmWith(error(), textMatch(copy('setupRedesign.final.busy')))
+        expect(supportCopy()).toBeNull()
+        expect(screen.queryByText(copyRx('setup.testTransaction.errors.passkeyProviderUnsupported'))).toBeNull()
+        expect(queryFooterText(container, copyRx('setupRedesign.final.later'))).toBeNull()
+        expect(event).toMatchObject(props)
+    })
+
+    it('P4-41 AA24 reads the inner signature error and sends the assertion layout', async () => {
+        // viem repeats the bundler's details line on the inner error
+        const details = 'Details: UserOperation reverted with reason: AA24 signature error'
+        const signatureError = Object.assign(
+            new Error(`Signature provided for the User Operation is invalid.\n\n${details}`),
+            { name: 'UserOperationSignatureError' }
+        )
+        const executionError = Object.assign(
+            new Error(`Signature provided for the User Operation is invalid.\n\n${details}`, { cause: signatureError }),
+            { name: 'UserOperationExecutionError' }
+        )
+        const { container, event } = await failConfirmWith(
+            executionError,
+            copyRx('setup.testTransaction.errors.passkeyProviderUnsupported')
+        )
+        expect(supportCopy()).toBeNull()
+        expect(event).toMatchObject({
+            error_name: 'UserOperationSignatureError',
+            error_code: undefined,
+            is_aa24: true,
+            failure_mode: 'signature_invalid',
+            deferral_offered: false,
+            backup_eligible: false,
+            challenge_offset: 41,
+        })
+        expect(mockLatestCeremony).toHaveBeenCalledWith('get', 'user_op', expect.any(Number))
+        await waitFor(() => expect(primary(container)).toBeEnabled())
+        expect(mockAddAccount).not.toHaveBeenCalled()
+        expect(mockLogoutUser).not.toHaveBeenCalled()
+    })
+
+    describe('Sentry reports', () => {
+        let consoleError: jest.SpyInstance
+        beforeEach(() => {
+            consoleError = jest.spyOn(console, 'error').mockImplementation(() => {})
+        })
+        afterEach(() => consoleError.mockRestore())
+
+        it('P4-42 a failed passkey prompt is left to the signing hook’s rate-limited report', async () => {
+            const closed = new SignupTestTxError(
+                'sign',
+                Object.assign(new Error('The operation either timed out or was not allowed.'), {
+                    name: 'NotAllowedError',
+                })
+            )
+            await failConfirmWith(closed, copyRx('setup.passkey.notCompleted'))
+            expect(Sentry.captureException).not.toHaveBeenCalled()
+            expect(consoleError).not.toHaveBeenCalled()
+        })
+
+        it('P4-42 a signing failure the passkey reporter does not recognise is still reported', async () => {
+            const broken = new SignupTestTxError(
+                'sign',
+                new TypeError("Cannot read properties of undefined (reading 'x')")
+            )
+            await failConfirmWith(broken, copyRx('setup.passkey.interrupted'))
+            expect(Sentry.captureException).toHaveBeenCalledTimes(1)
+            expect(Sentry.captureException).toHaveBeenCalledWith(
+                broken,
+                expect.objectContaining({ tags: { feature: 'signup-test-transaction', failure_mode: 'passkey' } })
+            )
+        })
+
+        it('P4-42 a submission failure is reported once, with its tags, and never through console.error', async () => {
+            const failure = new SignupTestTxError('submit', new Error('AA21 didn’t pay prefund'))
+            await failConfirmWith(failure, copyRx('setup.testTransaction.errors.supportNeeded'))
+            expect(Sentry.captureException).toHaveBeenCalledTimes(1)
+            expect(Sentry.captureException).toHaveBeenCalledWith(
+                failure,
+                expect.objectContaining({ tags: { feature: 'signup-test-transaction', failure_mode: 'unknown' } })
+            )
+            expect(consoleError).not.toHaveBeenCalled()
+        })
     })
 })
