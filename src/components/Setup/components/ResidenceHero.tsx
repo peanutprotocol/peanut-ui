@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useEffect, useState, type CSSProperties } from 'react'
+import { useEffect, useState } from 'react'
 import { useReducedMotion } from 'framer-motion'
 import sparkle from '@/assets/illustrations/sparkle.svg'
 import star from '@/assets/illustrations/star.svg'
@@ -72,7 +72,6 @@ export function ResidenceHero({ alt }: { alt: string }) {
                             draggable={false}
                             className="residence-deco"
                             data-deco={index}
-                            style={{ '--i': index } as CSSProperties}
                         />
                     ))}
                     {stickers.map((file, index) => (
@@ -86,7 +85,6 @@ export function ResidenceHero({ alt }: { alt: string }) {
                             draggable={false}
                             className="residence-sticker"
                             data-sticker={index}
-                            style={{ '--i': index } as CSSProperties}
                         />
                     ))}
                 </div>

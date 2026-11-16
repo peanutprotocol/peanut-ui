@@ -2332,17 +2332,20 @@ html[data-crisp-launcher='hidden'] .crisp-client {
         residence-sticker-idle var(--d, 3.2s) ease-in-out calc(580ms + var(--i) * 170ms) infinite alternate;
 }
 .residence-sticker[data-sticker='0'] {
+    --i: 0;
     left: 1%;
     top: calc(var(--bar) + 0.5rem);
     --r: -12deg;
 }
 .residence-sticker[data-sticker='1'] {
+    --i: 1;
     right: 1%;
     top: calc(var(--bar) + 0.125rem);
     --r: 10deg;
     --d: 3.7s;
 }
 .residence-sticker[data-sticker='2'] {
+    --i: 2;
     right: -2%;
     bottom: 2%;
     --r: -7deg;
@@ -2358,12 +2361,14 @@ html[data-crisp-launcher='hidden'] .crisp-client {
         residence-deco-twinkle var(--t, 2.4s) ease-in-out calc(1120ms + var(--i) * 90ms) infinite alternate;
 }
 .residence-deco[data-deco='0'] {
+    --i: 0;
     width: calc(var(--stk) * 0.52);
     left: 33%;
     top: 10%;
     --a: -8deg;
 }
 .residence-deco[data-deco='1'] {
+    --i: 1;
     width: calc(var(--stk) * 0.4);
     right: 30%;
     top: 18%;
@@ -2371,6 +2376,7 @@ html[data-crisp-launcher='hidden'] .crisp-client {
     --t: 1.9s;
 }
 .residence-deco[data-deco='2'] {
+    --i: 2;
     width: calc(var(--stk) * 0.4);
     left: 7%;
     top: 66%;
@@ -2378,6 +2384,7 @@ html[data-crisp-launcher='hidden'] .crisp-client {
     --t: 2.8s;
 }
 .residence-deco[data-deco='3'] {
+    --i: 3;
     width: calc(var(--stk) * 0.36);
     /* The mock puts this star between the two right stickers; the real hero is
        too short for that gap, so it sits left of the third sticker instead. */
@@ -2387,6 +2394,7 @@ html[data-crisp-launcher='hidden'] .crisp-client {
     --t: 2.1s;
 }
 .residence-deco[data-deco='4'] {
+    --i: 4;
     width: calc(var(--stk) * 0.32);
     left: 27%;
     top: 84%;
