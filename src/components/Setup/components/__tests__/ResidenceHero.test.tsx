@@ -2,7 +2,7 @@
 import fs from 'fs'
 import path from 'path'
 import React from 'react'
-import { act, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { RESIDENCE_PICK_DELAY_MS, RESIDENCE_STICKER_LOAD_MS, RESIDENCE_WAVE_MS, ResidenceHero } from '../ResidenceHero'
 
 const mockFlow = { residenceCountry: '', residenceWaveDone: { current: false } }
@@ -199,9 +199,10 @@ describe('ResidenceHero', () => {
         mockReducedMotion.value = true
         mockFlow.residenceCountry = 'AR'
         const { container } = render(<ResidenceHero alt="Peanut mascot" />)
-        expect(pose()).toBe('cheering')
         expect(stickers(container)).toHaveLength(3)
         expect(decorations(container)).toHaveLength(5)
+        loadStickers()
+        expect(pose()).toBe('cheering')
     })
 
     it('keeps the stickers and decorations out of the accessibility tree and out of the way of taps', () => {
@@ -232,7 +233,6 @@ describe('ResidenceHero', () => {
         mockFlow.residenceWaveDone = { current: true }
         mockFlow.residenceCountry = 'AR'
         const { container } = render(<ResidenceHero alt="Peanut mascot" />)
-        expect(pose()).toBe('cheering')
         expect(stickers(container)).toEqual([])
 
         act(() => jest.advanceTimersByTime(RESIDENCE_STICKER_LOAD_MS - 1))
@@ -244,32 +244,97 @@ describe('ResidenceHero', () => {
     it('keeps waving until the cheering pose has loaded, so the mascot never blanks', () => {
         mockFlow.residenceCountry = 'AR'
         const { container } = render(<ResidenceHero alt="Peanut mascot" />)
+        // The sticker files are in; the cheering chunk is still on its way.
         loadStickers(false, { pose: false })
         act(() => jest.advanceTimersByTime(RESIDENCE_STICKER_LOAD_MS - 1))
-        expect(stickers(container)).toEqual([])
-        loadStickers()
+        expect(pose()).toBe('waving-hello')
+
+        // The fallback (over before the wave is) releases the stickers only; the pose has no time limit.
         wave()
+        expect(pose()).toBe('waving-hello')
+        expect(stickers(container)).toHaveLength(3)
+        act(() => jest.advanceTimersByTime(RESIDENCE_STICKER_LOAD_MS * 10))
+        expect(pose()).toBe('waving-hello')
+
+        loadStickers()
         expect(pose()).toBe('cheering')
         expect(stickers(container)).toHaveLength(3)
     })
 
-    it('draws the final state at once when a country arrives under reduced motion', () => {
+    it('keeps waving under reduced motion until the cheering pose has loaded', () => {
         mockReducedMotion.value = true
         const { container, rerender } = render(<ResidenceHero alt="Peanut mascot" />)
         expect(pose()).toBe('waving-hello')
         mockFlow.residenceCountry = 'AR'
         rerender(<ResidenceHero alt="Peanut mascot" />)
-        expect(pose()).toBe('cheering')
+        // The stickers are still; the pose changes only when it can be drawn.
         expect(stickers(container)).toHaveLength(3)
+        expect(pose()).toBe('waving-hello')
+        act(() => jest.advanceTimersByTime(RESIDENCE_STICKER_LOAD_MS * 10))
+        expect(pose()).toBe('waving-hello')
+        loadStickers()
+        expect(pose()).toBe('cheering')
     })
 
-    it('does not let a failed sticker fetch hold the celebration', () => {
+    it('waits for the pose again on a hand-pick after returning from the compare view', () => {
+        // Back from the compare view: the wave is done and a sticker country is set.
+        mockFlow.residenceWaveDone = { current: true }
+        mockFlow.residenceCountry = 'AR'
+        const { rerender } = render(<ResidenceHero alt="Peanut mascot" />)
+        expect(pose()).toBe('waving-hello')
+        mockFlow.residenceCountry = 'BR'
+        rerender(<ResidenceHero alt="Peanut mascot" />)
+        act(() => jest.advanceTimersByTime(RESIDENCE_STICKER_LOAD_MS * 10))
+        expect(pose()).toBe('waving-hello')
+        loadStickers()
+        expect(pose()).toBe('cheering')
+    })
+
+    it('renders each sticker from the very URL it preloaded, so it is fetched once', () => {
+        mockFlow.residenceCountry = 'AR'
+        const { container } = render(<ResidenceHero alt="Peanut mascot" />)
+        const preloaded = preloads.map((image) => image.src)
+        expect(preloaded).toHaveLength(3)
+        loadStickers()
+        wave()
+        expect(stickers(container)).toEqual(preloaded)
+    })
+
+    it('leaves out a sticker whose preload failed, and carries on with the rest', () => {
+        mockFlow.residenceCountry = 'AR'
+        const { container } = render(<ResidenceHero alt="Peanut mascot" />)
+        act(() => preloads[1].onerror?.())
+        loadStickers()
+        wave()
+        expect(pose()).toBe('cheering')
+        expect(stickers(container)).toEqual(['/residence-stickers/ar-mate.webp', '/residence-stickers/ar-alfajor.webp'])
+        // The others keep their own places.
+        expect(
+            Array.from(container.querySelectorAll('img.residence-sticker')).map((img) =>
+                img.getAttribute('data-sticker')
+            )
+        ).toEqual(['0', '2'])
+        expect(decorations(container)).toHaveLength(5)
+    })
+
+    it('removes a sticker that fails after it was rendered', () => {
+        mockFlow.residenceCountry = 'AR'
+        const { container } = render(<ResidenceHero alt="Peanut mascot" />)
+        loadStickers()
+        wave()
+        fireEvent.error(container.querySelectorAll('img.residence-sticker')[0])
+        expect(pose()).toBe('cheering')
+        expect(stickers(container)).toEqual(['/residence-stickers/ar-sol.webp', '/residence-stickers/ar-alfajor.webp'])
+    })
+
+    it('does not let failed sticker fetches hold the celebration', () => {
         mockFlow.residenceCountry = 'AR'
         const { container } = render(<ResidenceHero alt="Peanut mascot" />)
         loadStickers(true)
         wave()
         expect(pose()).toBe('cheering')
-        expect(stickers(container)).toHaveLength(3)
+        expect(stickers(container)).toEqual([])
+        expect(decorations(container)).toHaveLength(5)
     })
 
     it('waves the full time for a country that arrives during the wave', () => {
@@ -311,8 +376,8 @@ describe('ResidenceHero', () => {
         first.unmount()
 
         const { container } = render(<ResidenceHero alt="Peanut mascot" />)
-        expect(pose()).toBe('cheering')
         loadStickers()
+        expect(pose()).toBe('cheering')
         expect(stickers(container)).toHaveLength(3)
         expect(jest.getTimerCount()).toBe(0)
     })

@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useReducedMotion } from 'framer-motion'
 import sparkle from '@/assets/illustrations/sparkle.svg'
 import star from '@/assets/illustrations/star.svg'
@@ -13,7 +13,7 @@ import { RESIDENCE_STICKERS, residenceStickerSrc } from './residence-stickers.co
 /** The mascot waves this long after the screen arrives before it may celebrate. */
 export const RESIDENCE_WAVE_MS = 2000
 
-/** The celebration waits this long at most for its files; a failed fetch never holds it longer. */
+/** The stickers wait this long at most for their files; a failed fetch never holds them longer. */
 export const RESIDENCE_STICKER_LOAD_MS = 1500
 
 /** A country picked by hand waits this long, so the first slap is not hidden by the closing picker. */
@@ -35,10 +35,12 @@ const DECORATIONS = [star, sparkle, star, star, sparkle]
  * mounts, so a residence prefilled from geo gets the wave first, while a country
  * picked by hand (always later than that) celebrates at once. The wave happens
  * once per sign-up: the hero unmounts for the compare view and on Back, and
- * celebrates at once when it returns. The celebration starts only when the
- * cheering pose and the three sticker files have loaded, so the mascot never
- * blanks and the slap never plays on empty boxes. The sticker layer is keyed by
- * country, so another sticker country replays the slap with its own stickers.
+ * celebrates at once when it returns. The mascot keeps waving until the
+ * cheering pose has loaded, with no time limit, so it never blanks. The slap
+ * waits for the pose and the three sticker files, at most
+ * RESIDENCE_STICKER_LOAD_MS; a sticker whose file fails is left out. The
+ * sticker layer is keyed by country, so another sticker country replays the
+ * slap with its own stickers.
  *
  * Both poses are drawn on one shared canvas box (as in the approved mock), so
  * the mascot keeps its size and its ground line when the pose changes. Layout
@@ -50,14 +52,22 @@ export function ResidenceHero({ alt }: { alt: string }) {
     const prefersReducedMotion = useReducedMotion()
     const [waved, setWaved] = useState(() => residenceWaveDone.current)
     const [loadedCountry, setLoadedCountry] = useState<string | null>(null)
+    // The mascot leaves the wave only when the cheering pose can be drawn, however long that takes.
+    const [poseReady, setPoseReady] = useState(false)
+    const [failedStickers, setFailedStickers] = useState<readonly string[]>([])
+    const hideSticker = useCallback(
+        (file: string) => setFailedStickers((failed) => (failed.includes(file) ? failed : [...failed, file])),
+        []
+    )
     const stickers = RESIDENCE_STICKERS[residenceCountry]
     const celebrating = !!stickers && (waved || !!prefersReducedMotion)
     // A hero that mounts already celebrating (reduced motion, or back from the
     // compare view) draws its final state on the first paint, with no wave first.
     const mountedCelebrating = useRef(celebrating).current
     const mountedCountry = useRef(residenceCountry).current
-    // Nothing moves under reduced motion, so there is nothing to hold back.
-    const cheering = celebrating && (!!prefersReducedMotion || mountedCelebrating || loadedCountry !== null)
+    // Nothing moves under reduced motion, so only the pose itself is waited for.
+    const cheering =
+        celebrating && poseReady && (!!prefersReducedMotion || mountedCelebrating || loadedCountry !== null)
     const stickersReady = !!prefersReducedMotion || loadedCountry === residenceCountry
 
     useEffect(() => {
@@ -80,7 +90,7 @@ export function ResidenceHero({ alt }: { alt: string }) {
         // A country that arrives after the wave was picked by hand: the picker is still closing.
         let held = residenceWaveDone.current && residenceCountry !== mountedCountry
         const ready = () => setLoadedCountry(residenceCountry)
-        // A failed or slow fetch must not hold the celebration back.
+        // A failed or slow fetch must not hold the stickers back. The pose is not on this clock.
         const fallback = setTimeout(ready, RESIDENCE_STICKER_LOAD_MS)
         const start = () => {
             if (cancelled || pending > 0 || held) return
@@ -97,11 +107,18 @@ export function ResidenceHero({ alt }: { alt: string }) {
                   start()
               }, RESIDENCE_PICK_DELAY_MS)
             : undefined
-        void MASCOT_ANIMATION_LOADERS.cheering().then(settle, settle)
+        void MASCOT_ANIMATION_LOADERS.cheering().then(() => {
+            setPoseReady(true)
+            settle()
+        }, settle)
+        // The same URL the layer renders below, so each sticker is fetched once.
         const images = stickers.map((file) => {
             const image = new window.Image()
             image.onload = settle
-            image.onerror = settle
+            image.onerror = () => {
+                hideSticker(file)
+                settle()
+            }
             image.src = residenceStickerSrc(file)
             return image
         })
@@ -114,7 +131,7 @@ export function ResidenceHero({ alt }: { alt: string }) {
                 image.onerror = null
             })
         }
-    }, [stickers, residenceCountry, residenceWaveDone, mountedCountry])
+    }, [stickers, residenceCountry, residenceWaveDone, mountedCountry, hideSticker])
 
     return (
         <div className="residence-hero" data-residence-hero={cheering ? residenceCountry : 'waving'}>
@@ -139,19 +156,23 @@ export function ResidenceHero({ alt }: { alt: string }) {
                                 data-deco={index}
                             />
                         ))}
-                        {stickers.map((file, index) => (
-                            <Image
-                                key={file}
-                                src={residenceStickerSrc(file)}
-                                alt=""
-                                width={320}
-                                height={320}
-                                unoptimized
-                                draggable={false}
-                                className="residence-sticker"
-                                data-sticker={index}
-                            />
-                        ))}
+                        {/* A plain img: next/image adds a deploy query, which would be a second fetch. */}
+                        {stickers.map((file, index) =>
+                            failedStickers.includes(file) ? null : (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                    key={file}
+                                    src={residenceStickerSrc(file)}
+                                    alt=""
+                                    width={320}
+                                    height={320}
+                                    draggable={false}
+                                    onError={() => hideSticker(file)}
+                                    className="residence-sticker"
+                                    data-sticker={index}
+                                />
+                            )
+                        )}
                     </div>
                 )}
             </div>
