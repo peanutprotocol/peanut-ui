@@ -76,3 +76,32 @@ console.log('RESULT:' + JSON.stringify({ values, networkRequests }));
         }
     }
 }, 95000)
+
+it('answers the open ARS deposit lookup in synthetic captures: the open-order fixture has one, the rest none', () => {
+    const fixtures = ['add-money-argentina-deposit-open', 'add-money-argentina-deposit-pending', 'add-money-argentina']
+    const output = execFileSync(
+        process.execPath,
+        [
+            '--import',
+            'tsx',
+            '--input-type=module',
+            '-e',
+            `
+globalThis.fetch = () => { throw new Error('Unexpected network request'); };
+const { default: adapter } = await import('./scripts/screens/adapter.ts');
+const values = [];
+for (const fixture of ${JSON.stringify(fixtures)}) {
+    const response = await adapter.answer(fixture, '/manteca/deposit/open?currency=ARS', 'GET');
+    values.push({ fixture, status: response.status, body: await response.json() });
+}
+console.log('RESULT:' + JSON.stringify(values));
+`,
+        ],
+        childOptions
+    )
+    const [open, pending, plain] = JSON.parse(output.split('RESULT:')[1])
+    expect(open.status).toBe(200)
+    expect(open.body.data).toMatchObject({ id: 'fixture-ars-deposit' })
+    expect(pending).toMatchObject({ status: 200, body: { data: null } })
+    expect(plain).toMatchObject({ status: 200, body: { data: null } })
+}, 95000)
