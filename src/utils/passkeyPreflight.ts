@@ -7,9 +7,23 @@
 
 import { isCapacitor, getNativeRpId } from '@/utils/capacitor'
 
+/** Catalog keys under `setupRedesign.passkey.preflight`, one per warning below, so screens show it in the user's language. */
+export type PasskeyPreflightWarningKey =
+    | 'nativeAndroid'
+    | 'nativeOther'
+    | 'nativeCheckFailed'
+    | 'insecure'
+    | 'browserUnsupported'
+    | 'chromeOutdated'
+    | 'androidOutdated'
+    | 'screenLock'
+    | 'limitedSupport'
+
 export interface PasskeyPreflightResult {
     isSupported: boolean
+    /** The warning in English, for logs and diagnostics. */
     warning: string | null
+    warningKey: PasskeyPreflightWarningKey | null
     diagnostics: {
         hasPublicKeyCredential: boolean
         isHttps: boolean
@@ -53,6 +67,7 @@ export async function checkPasskeySupport(): Promise<PasskeyPreflightResult> {
                     warning: diagnostics.isAndroid
                         ? 'Passkeys aren’t available yet. Sign in to a Google account and update Google Play Services, then try again.'
                         : 'Passkeys aren’t available on this device yet. Check your device settings and try again.',
+                    warningKey: diagnostics.isAndroid ? 'nativeAndroid' : 'nativeOther',
                     diagnostics,
                 }
             }
@@ -62,10 +77,11 @@ export async function checkPasskeySupport(): Promise<PasskeyPreflightResult> {
                 isSupported: false,
                 warning:
                     'We couldn’t verify passkey support. Make sure you’re signed in to a Google account with up-to-date Google Play Services, then try again.',
+                warningKey: 'nativeCheckFailed',
                 diagnostics,
             }
         }
-        return { isSupported: true, warning: null, diagnostics }
+        return { isSupported: true, warning: null, warningKey: null, diagnostics }
     }
 
     // capture rpId for debugging - this is what will be used for passkey registration
@@ -92,6 +108,7 @@ export async function checkPasskeySupport(): Promise<PasskeyPreflightResult> {
         return {
             isSupported: false,
             warning: 'Passkeys require a secure connection (HTTPS)',
+            warningKey: 'insecure',
             diagnostics,
         }
     }
@@ -101,6 +118,7 @@ export async function checkPasskeySupport(): Promise<PasskeyPreflightResult> {
         return {
             isSupported: false,
             warning: 'Passkeys are not supported on this browser',
+            warningKey: 'browserUnsupported',
             diagnostics,
         }
     }
@@ -119,6 +137,7 @@ export async function checkPasskeySupport(): Promise<PasskeyPreflightResult> {
                 return {
                     isSupported: false,
                     warning: 'Please update Chrome to use passkeys',
+                    warningKey: 'chromeOutdated',
                     diagnostics,
                 }
             }
@@ -136,6 +155,7 @@ export async function checkPasskeySupport(): Promise<PasskeyPreflightResult> {
                 return {
                     isSupported: false,
                     warning: 'Your Android version is too old for passkeys. Please update to Android 9 or later.',
+                    warningKey: 'androidOutdated',
                     diagnostics,
                 }
             }
@@ -164,6 +184,7 @@ export async function checkPasskeySupport(): Promise<PasskeyPreflightResult> {
                 return {
                     isSupported: false,
                     warning: 'Please enable screen lock with PIN or biometric in your device settings',
+                    warningKey: 'screenLock',
                     diagnostics,
                 }
             }
@@ -196,6 +217,7 @@ export async function checkPasskeySupport(): Promise<PasskeyPreflightResult> {
         return {
             isSupported: true,
             warning: 'Your device may have limited passkey support. If setup fails, try updating Google Play Services.',
+            warningKey: 'limitedSupport',
             diagnostics,
         }
     }
@@ -203,6 +225,7 @@ export async function checkPasskeySupport(): Promise<PasskeyPreflightResult> {
     return {
         isSupported: true,
         warning: null,
+        warningKey: null,
         diagnostics,
     }
 }
