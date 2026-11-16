@@ -6,7 +6,7 @@ import { Callout } from '@/components/0_Bruddle/Callout'
 import type { ResidenceCountryOption } from '@/utils/residence-options'
 import { twMerge } from '@/utils/tw'
 import { CountryPill } from './CountryPill'
-import { useSentenceFit } from './useSentenceFit'
+import { longestLabel, useSentenceFit } from './useSentenceFit'
 
 type Sheet = 'open' | 'no-results' | null
 
@@ -37,13 +37,21 @@ export function ResidenceSentence({
 }) {
     const t = useTranslations('setupRedesign.residence')
     const blockRef = useRef<HTMLDivElement>(null)
-    const sentenceClass = useSentenceFit(blockRef, refusedPassport)
+    // either pill can hold any offered country, so the longest name is the worst case for both
+    const longest = longestLabel(options.map((option) => option.label))
+    const sentenceClass = useSentenceFit(blockRef, {
+        worst: { residence_country: longest, nationality_country: longest },
+        remeasure: refusedPassport,
+    })
     return (
         <div ref={blockRef} data-setup-screen="residence">
             <p className={twMerge('[text-wrap:pretty] text-foreground-primary', sentenceClass)}>
                 {t.rich('sentence', {
                     nw: (chunks) => (
-                        <span className="inline-flex max-w-full items-center align-middle whitespace-nowrap">
+                        <span
+                            className="inline-flex max-w-full items-center align-middle whitespace-nowrap"
+                            data-fit-group
+                        >
                             {chunks}
                         </span>
                     ),

@@ -68,10 +68,11 @@ export function CelebrationScreen() {
                     >
                         {t(claim ? 'claimSub' : 'sub')}
                     </p>
-                    <p className="mt-4 flex h-9 items-center justify-center gap-2 text-body-s text-foreground-over-color-secondary signup-sm:mt-2.5">
+                    {/* a div, not a p: the spinner is a div, and a p cannot hold one */}
+                    <div className="mt-4 flex h-9 items-center justify-center gap-2 text-body-s text-foreground-over-color-secondary signup-sm:mt-2.5">
                         <Loading className="size-4 flex-none" />
-                        {t(claim ? 'claimGoing' : 'going')}
-                    </p>
+                        <span>{t(claim ? 'claimGoing' : 'going')}</span>
+                    </div>
                 </div>
             }
         />

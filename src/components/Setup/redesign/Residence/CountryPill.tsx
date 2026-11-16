@@ -107,7 +107,7 @@ export function CountryPill({
                     }
                     iconContainerClassName="size-6"
                 >
-                    <span className="block min-w-0 truncate" title={shown}>
+                    <span className="block min-w-0 truncate" title={shown} data-fit-label={control}>
                         {shown}
                     </span>
                     <Icon name="chevron-down" size={20} className="shrink-0" />

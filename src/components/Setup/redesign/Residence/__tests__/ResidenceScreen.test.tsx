@@ -85,11 +85,12 @@ jest.mock('@/hooks/useResidenceRestrictionSets', () => {
     const fixture = () => jest.requireActual('@/test-utils/residenceRestrictions.fixture').RESIDENCE_RESTRICTION_SETS
     return {
         ...actual,
+        // mockSets: undefined = the fixture, null = the read failed (settled with no lists)
         useResidenceRestrictionSetsWithStatus: () => ({
-            sets: mockSetsSettled ? (mockSets ?? fixture()) : null,
+            sets: mockSetsSettled ? (mockSets === undefined ? fixture() : mockSets) : null,
             settled: mockSetsSettled,
         }),
-        useResidenceRestrictionSets: () => (mockSetsSettled ? (mockSets ?? fixture()) : null),
+        useResidenceRestrictionSets: () => (mockSetsSettled ? (mockSets === undefined ? fixture() : mockSets) : null),
     }
 })
 
@@ -632,10 +633,13 @@ describe('07 Residence: compare view', () => {
 
     it.each(['en', 'es-AR'] as const)(
         'P3-32 compare buttons: residence primary, nationality secondary (%s)',
-        (locale) => {
+        async (locale) => {
             const view = openCompare({ residenceCountry: 'PT', nationalityCountry: 'BR' }, locale)
-            expect(view.selectButton('PT')).toHaveTextContent(
-                copyRx(`${K}.select`, { country: labelOf('PT', locale) }, locale)
+            // the primary keeps "Continue" until its 100 ms label crossfade ends
+            await waitFor(() =>
+                expect(view.selectButton('PT')).toHaveTextContent(
+                    copyRx(`${K}.select`, { country: labelOf('PT', locale) }, locale)
+                )
             )
             expect(view.selectButton('BR')).toHaveTextContent(
                 copyRx(`${K}.select`, { country: labelOf('BR', locale) }, locale)
@@ -708,5 +712,134 @@ describe('07 Residence: compare view', () => {
         expect(visibleText(view.container)).not.toMatch(
             /platinum|cashback|bono|no password|sin contraseña|suggested|example|ejemplo/i
         )
+    })
+})
+
+// ---- ported from dev's Views/__tests__/Residence.test.tsx (deleted with the old view) -----------------------
+
+describe('07 Residence: dev cases kept', () => {
+    // mirrors peanut-api-ts FULL_RESTRICTED_RESIDENCE (api#1738)
+    it.each(['CN', 'IR', 'RU', 'BY', 'GB', 'KP', 'SY', 'CU', 'MM', 'VE', 'IQ', 'PS', 'YE', 'SS', 'CD'])(
+        'P3-24 a confirmed %s reports the restricted outcome only and still advances',
+        (iso2) => {
+            const view = render({ residenceCountry: iso2 })
+            fireEvent.click(view.continueButton())
+            expect(OUTCOMES.flatMap((name) => events(name))).toHaveLength(1)
+            expect(events(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_RESTRICTED_SHOWN)).toEqual([
+                expect.objectContaining({ residence_country: iso2 }),
+            ])
+            expect(mockHandleNext).toHaveBeenCalledTimes(1)
+        }
+    )
+
+    it.each([
+        ['IN', 'card'],
+        ['TR', 'card'],
+        ['UA', 'card'],
+        ['VN', 'card'],
+        ['IL', 'card'],
+        ['NP', 'card'],
+        ['NI', 'card'],
+        // Rain's Platform Standards list, and Nigeria until Rain approves Peanut there
+        ['TZ', 'card'],
+        ['ID', 'card'],
+        ['NG', 'card'],
+        ['ZA', 'card'],
+        ['DZ', 'banking'],
+        ['BI', 'banking'],
+        ['GW', 'banking'],
+        ['JP', 'banking'],
+        ['TN', 'banking'],
+        // Bridge's Prohibited list (api#1738, TASK-23054 R2)
+        ['AF', 'banking'],
+        ['SD', 'banking'],
+        ['LY', 'banking'],
+        ['LB', 'banking'],
+        ['SO', 'banking'],
+    ])('P3-24 a confirmed %s reports a partial (%s) outcome and advances', (iso2, kind) => {
+        const view = render({ residenceCountry: iso2 })
+        fireEvent.click(view.continueButton())
+        expect(OUTCOMES.flatMap((name) => events(name))).toHaveLength(1)
+        expect(events(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_PARTIAL_SHOWN)).toEqual([
+            expect.objectContaining({ residence_country: iso2, restriction_type: kind }),
+        ])
+        expect(mockHandleNext).toHaveBeenCalledTimes(1)
+    })
+
+    // TASK-23054 R1: HK was restricted for a Sumsub document rule, which never decides eligibility
+    it('P3-24 Hong Kong is unrestricted: the congrats outcome', () => {
+        const view = render({ residenceCountry: 'HK' })
+        fireEvent.click(view.continueButton())
+        expect(OUTCOMES.flatMap((name) => events(name))).toHaveLength(1)
+        expect(events(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_CONGRATS_SHOWN)).toEqual([
+            expect.objectContaining({ residence_country: 'HK' }),
+        ])
+    })
+
+    it('P3-24 the outcome follows the served tiers, not a built-in list', () => {
+        mockSets = {
+            ...jest.requireActual('@/test-utils/residenceRestrictions.fixture').RESIDENCE_RESTRICTION_SETS,
+            full: new Set(['PT']),
+            cardOnly: new Set(),
+            bankingOnly: new Set(),
+        }
+        const view = render({ residenceCountry: 'PT' })
+        fireEvent.click(view.continueButton())
+        expect(OUTCOMES.flatMap((name) => events(name))).toHaveLength(1)
+        expect(events(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_RESTRICTED_SHOWN)).toEqual([
+            expect.objectContaining({ residence_country: 'PT' }),
+        ])
+    })
+
+    it('P3-19 a Russian passport is not refused (it still verifies everything but the card)', () => {
+        const view = render({ residenceCountry: 'DE', nationalityCountry: 'RU' })
+        expect(setupState(view.container)).toBe('differ')
+        expect(visibleText(view.container)).not.toContain(
+            copy(`${K}.refusedPassport`, { nationality: labelOf('RU'), residence: labelOf('DE') })
+        )
+        expect(controls()).toEqual([])
+    })
+
+    it('P3-32 picking the nationality on compare reports its outcome once (JP: banking partial)', () => {
+        const view = render({ residenceCountry: 'PT', nationalityCountry: 'JP' })
+        fireEvent.click(view.continueButton())
+        fireEvent.click(view.selectButton('JP'))
+        expect(OUTCOMES.flatMap((name) => events(name))).toHaveLength(1)
+        expect(events(ANALYTICS_EVENTS.SIGNUP_RESIDENCE_PARTIAL_SHOWN)).toEqual([
+            expect.objectContaining({ residence_country: 'JP', restriction_type: 'banking' }),
+        ])
+        expect(view.flow().residenceCountry).toBe('JP')
+        expect(mockHandleNext).toHaveBeenCalledTimes(1)
+    })
+
+    it('P3-30 while the restriction lists load, a column whose intents read failed keeps compare loading', () => {
+        mockSetsSettled = false
+        mockIntents = {
+            PT: { intents: undefined, settled: true },
+            BR: { intents: intents({ local: { available: true } }), settled: true },
+        }
+        const view = render({ residenceCountry: 'PT', nationalityCountry: 'BR' })
+        fireEvent.click(view.continueButton())
+        expect(setupState(view.container)).toBe('compare-loading')
+        expect(view.items('PT')).toEqual([])
+        expect(view.items('BR')).toEqual([])
+    })
+
+    it('P3-27 (§ 3.6) with the restriction lists failed a served column lists its offers, and a failed one lists only P2P', () => {
+        mockSets = null
+        mockIntents = {
+            PT: { intents: undefined, settled: true },
+            BR: { intents: intents({ local: { available: true } }), settled: true },
+        }
+        const view = render({ residenceCountry: 'PT', nationalityCountry: 'BR' })
+        fireEvent.click(view.continueButton())
+        expect(setupState(view.container)).toBe('compare')
+        expect(view.items('PT')).toEqual([copy(`${K}.itemP2p`)])
+        expect(view.items('BR')).toEqual([
+            copy(`${K}.itemPix`),
+            copy(`${K}.itemBankAccount`, { currencies: orList(['USD', 'EUR']) }),
+            copy(`${K}.itemCard`),
+            copy(`${K}.itemP2p`),
+        ])
     })
 })

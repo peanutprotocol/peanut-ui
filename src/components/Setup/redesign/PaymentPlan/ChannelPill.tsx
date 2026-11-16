@@ -99,7 +99,9 @@ export function ChannelPill<C extends SetupChannel>({
                                 {text}
                             </span>
                         ))}
-                        <span className="block truncate [grid-area:1/1]">{shown}</span>
+                        <span className="block truncate [grid-area:1/1]" data-fit-label={kind}>
+                            {shown}
+                        </span>
                     </span>
                     <Icon name="chevron-down" size={20} className="shrink-0" />
                 </Button>

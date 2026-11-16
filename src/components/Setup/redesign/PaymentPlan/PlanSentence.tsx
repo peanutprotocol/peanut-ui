@@ -2,7 +2,7 @@
 
 import { useRef } from 'react'
 import { useTranslations } from 'next-intl'
-import { useSentenceFit } from '@/components/Setup/redesign/Residence/useSentenceFit'
+import { longestLabel, useSentenceFit } from '@/components/Setup/redesign/Residence/useSentenceFit'
 import type { SetupFundingChannel, SetupPaymentChannel } from '@/features/setup/paymentChannels'
 import { twMerge } from '@/utils/tw'
 import { ChannelPill } from './ChannelPill'
@@ -35,7 +35,11 @@ export function PlanSentence({
 }) {
     const t = useTranslations('setupRedesign.plan')
     const blockRef = useRef<HTMLParagraphElement>(null)
-    const sentenceClass = useSentenceFit(blockRef)
+    const fundingSizers = Object.values(FUNDING_PILL_KEY).map((key) => t(key))
+    const paymentSizers = (['card', 'qr', 'peanut'] as const).map((channel) => t(PAYMENT_PILL_KEY[channel]))
+    const sentenceClass = useSentenceFit(blockRef, {
+        worst: { funding: longestLabel(fundingSizers), payment: longestLabel(paymentSizers) },
+    })
     const fundingLabel = (channel: SetupFundingChannel) =>
         channel === 'bank' && bankCurrencies.length
             ? t('fundBankCurrencies', { currencies: bankCurrencies.join(', ') })
@@ -48,7 +52,9 @@ export function PlanSentence({
         >
             {t.rich('sentence', {
                 nw: (chunks) => (
-                    <span className="inline-flex max-w-full items-center align-middle whitespace-nowrap">{chunks}</span>
+                    <span className="inline-flex max-w-full items-center align-middle whitespace-nowrap" data-fit-group>
+                        {chunks}
+                    </span>
                 ),
                 gap: () => <span aria-hidden="true" className="block h-4 signup-sm:h-2" />,
                 funding: () => (
@@ -57,7 +63,7 @@ export function PlanSentence({
                         title={t('sheetFunding')}
                         value={funding}
                         options={fundingOptions}
-                        sizers={Object.values(FUNDING_PILL_KEY).map((key) => t(key))}
+                        sizers={fundingSizers}
                         label={fundingLabel}
                         pillLabel={(channel) => t(FUNDING_PILL_KEY[channel])}
                         placeholder={t('choose')}
@@ -71,7 +77,7 @@ export function PlanSentence({
                         title={t('sheetPayment')}
                         value={payment}
                         options={paymentOptions}
-                        sizers={(['card', 'qr', 'peanut'] as const).map((channel) => t(PAYMENT_PILL_KEY[channel]))}
+                        sizers={paymentSizers}
                         label={(channel) => t(PAYMENT_SHEET_KEY[channel])}
                         pillLabel={(channel) => t(PAYMENT_PILL_KEY[channel])}
                         placeholder={t('choose')}

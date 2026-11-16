@@ -13,7 +13,7 @@ type EmailFieldProps = {
     mode: EmailMode
     valid: boolean
     disabled: boolean
-    /** The line under the field: an error (`role="alert"`) or, with `status`, a note (`role="status"`). */
+    /** The line under the field: an error (`role="alert"` while present) or, with `status`, a note (`role="status"`). */
     message?: string
     status?: string
     onChange: (value: string) => void
@@ -86,6 +86,7 @@ export const EmailField = forwardRef<HTMLInputElement, EmailFieldProps>(
                                 aria-hidden="true"
                                 className="flex size-5 items-center justify-center rounded-full bg-background-icon-bubble-green text-foreground-inverse"
                                 data-email-ok
+                                data-testid="setup-redesign-email-valid"
                             >
                                 <Icon name="check" size={12} strokeWidth={3} />
                             </span>
@@ -99,7 +100,8 @@ export const EmailField = forwardRef<HTMLInputElement, EmailFieldProps>(
                             {status}
                         </p>
                     ) : (
-                        <p id={`${id}-msg`} role="alert" className="text-foreground-error">
+                        // an alert only while it holds a line: an empty one would be an alert with nothing to say
+                        <p id={`${id}-msg`} role={message ? 'alert' : undefined} className="text-foreground-error">
                             {message}
                         </p>
                     )}

@@ -195,7 +195,10 @@ describe('12 Celebration', () => {
                 'color',
                 'mixBlendMode',
             ] as const) {
-                expect(node.style[prop] ?? '').toBe('')
+                // next/image puts `color: transparent` on every <img> to hide its alt text while loading; it
+                // touches no pixel of the coin, so it is the one inline colour allowed, and only on the still
+                const altTextHide = node === still && prop === 'color' && node.style.color === 'transparent'
+                expect(altTextHide ? '' : (node.style[prop] ?? '')).toBe('')
             }
             expect(String(node.getAttribute('class') ?? '')).not.toMatch(banned)
         }

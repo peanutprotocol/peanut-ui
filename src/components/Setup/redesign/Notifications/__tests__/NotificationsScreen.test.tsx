@@ -6,13 +6,14 @@
  * reading PostHog's flag. Ports dev's NotificationSetup.test.tsx and Notifications.analytics.test.tsx.
  */
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { useState } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import type { NotificationChoices } from '@/features/setup/SetupFlowContext'
+import { type NotificationChoices, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { NOTIFICATIONS_EXPERIMENT_FLAG } from '@/features/setup/notificationsExperiment'
 import { signupControls } from '@/test-utils/signup-controls'
-import { setAuthToken } from '@/utils/auth-token'
+import { clearAuthToken, setAuthToken } from '@/utils/auth-token'
 import { canOpenAppSettings, openAppSettings } from '@/utils/native-settings'
 import { NotificationsScreen } from '../NotificationsScreen'
 import {
@@ -236,7 +237,10 @@ describe('10 Notifications: control arm', () => {
         fireEvent.click(turnOn(view.container))
         await waitFor(() => expect(setupState(view.container)).toBe('denied'))
         expect(deniedNote()).toBeInTheDocument()
-        expect(primary(view.container)).toHaveAccessibleName(copyRx('setupRedesign.common.continue'))
+        // the primary's label crossfades in 100 ms
+        await waitFor(() =>
+            expect(primary(view.container)).toHaveAccessibleName(copyRx('setupRedesign.common.continue'))
+        )
         expect(view.flow().notificationChoices.push).toBe(false)
         expect(controls()).toContain('push_permission:error:denied')
         expect(answered()).toEqual([{ variant: 'control', answer: 'denied' }])
@@ -272,7 +276,8 @@ describe('10 Notifications: control arm', () => {
         const { container } = render()
         fireEvent.click(turnOn(container))
         await waitFor(() => expect(setupState(container)).toBe('denied'))
-        fireEvent.click(continueButton(container))
+        // the primary's label crossfades in 100 ms
+        fireEvent.click(await waitFor(() => continueButton(container)))
         await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
         expect(mockSave).not.toHaveBeenCalled()
         expect(controls()).toEqual(['push:toggle:on', 'push_permission:error:denied', 'continue:tap'])
@@ -491,4 +496,397 @@ describe('P4-32 session fence', () => {
         expect(mockSave).not.toHaveBeenCalled()
         expect(mockNext).not.toHaveBeenCalled()
     })
+})
+
+/** Cases ported from dev's Views/__tests__/NotificationSetup.test.tsx and Notifications.analytics.test.tsx. */
+describe('10 Notifications: ported dev cases', () => {
+    const saveFailedLine = () => screen.findByText(textMatch(copy('setup.notifications.saveFailed')))
+    const optOut = { push: false, marketingPush: false, emailUpdates: false }
+    const choicesSaved = () =>
+        capture.mock.calls.filter(([event]) => event === ANALYTICS_EVENTS.NOTIFICATION_CHOICES_SAVED)
+    const errors = () => controls().filter((c) => c.split(':')[1] === 'error')
+
+    /** Shows the flow's stored choices next to the screen. */
+    function ChoicesProbe() {
+        const { notificationChoices } = useSetupFlowContext()
+        return <output data-testid="notification-choices">{JSON.stringify(notificationChoices)}</output>
+    }
+    const renderWithProbe = () =>
+        renderRedesign(
+            <QueryClientProvider client={queryClient}>
+                <NotificationsScreen />
+                <ChoicesProbe />
+            </QueryClientProvider>,
+            { screenId: 'notification-permission' }
+        )
+    const storedChoices = () => screen.getByTestId('notification-choices').textContent
+
+    it.each([undefined, 'switches', 'defaults_on'])(
+        'P4-28 flag %p: the start state reports no control event',
+        (flag) => {
+            mockFlag = flag
+            render()
+            expect(controls()).toEqual([])
+        }
+    )
+
+    it.each(['switches', 'defaults_on'])(
+        'P4-28 %s: every explicit toggle is reported with its screen, automatic changes are not',
+        (flag) => {
+            mockFlag = flag
+            render()
+            const first = flag === 'defaults_on' ? 'off' : 'on'
+            fireEvent.click(important())
+            fireEvent.click(important())
+            fireEvent.click(offers())
+            fireEvent.click(offers())
+            // Email updates is on from the defaults or from the first Important cascade
+            fireEvent.click(emailUpdates())
+            fireEvent.click(emailUpdates())
+            expect(controls()).toEqual([
+                `push:toggle:${first}`,
+                `push:toggle:${first === 'on' ? 'off' : 'on'}`,
+                'marketing_push:toggle:on',
+                'marketing_push:toggle:off',
+                'email_updates:toggle:off',
+                'email_updates:toggle:on',
+            ])
+            const calls = capture.mock.calls.filter(([event]) => event === ANALYTICS_EVENTS.CONTROL_USED)
+            for (const [, props] of calls)
+                expect(props).toEqual(expect.objectContaining({ flow: 'signup', screen_id: 'notification-permission' }))
+        }
+    )
+
+    it.each(['switches', 'defaults_on'])('P4-30 %s: Continue is reported once, without a value', async (flag) => {
+        mockFlag = flag
+        const { container } = render()
+        if (flag === 'switches') fireEvent.click(emailUpdates())
+        fireEvent.click(continueButton(container))
+        await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+        expect(controls().filter((c) => c.endsWith(':tap'))).toEqual(['continue:tap'])
+    })
+
+    it.each(['switches', 'defaults_on'])(
+        'P4-31 %s: "Not now" reports only not_now:tap, saves all off, asks nothing, records no OS answer',
+        async (flag) => {
+            mockFlag = flag
+            const { container } = render()
+            fireEvent.click(notNow(container))
+            await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+            expect(controls()).toEqual(['not_now:tap'])
+            expect(mockSave).toHaveBeenCalledWith(optOut, 'new-user')
+            expect(mockPermission).not.toHaveBeenCalled()
+            expect(answered()).toEqual([])
+            expect(switchStates()).toEqual(['false', 'false', 'false'])
+        }
+    )
+
+    it('P4-30 Offers and perks alone asks the OS inside the tap too', async () => {
+        mockFlag = 'switches'
+        const { container } = render()
+        fireEvent.click(offers())
+        fireEvent.click(continueButton(container))
+        expect(mockPermission).toHaveBeenCalledTimes(1)
+        await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+        expect(mockAfterPermission).toHaveBeenCalledTimes(1)
+        expect(mockSave).toHaveBeenCalledWith(
+            { push: false, marketingPush: true, emailUpdates: false, pushPermission: 'granted' },
+            'new-user'
+        )
+    })
+
+    it.each([
+        ['switches', 'denied', 'denied'],
+        ['switches', 'default', 'dismissed'],
+        ['defaults_on', 'denied', 'denied'],
+        ['defaults_on', 'default', 'dismissed'],
+    ])(
+        'P4-30 %s, OS answer %s: both push switches saved off, Email updates kept, answer and error once',
+        async (flag, answer, recorded) => {
+            mockFlag = flag
+            mockPermission.mockResolvedValueOnce(answer)
+            const { container } = render()
+            if (flag === 'switches') {
+                fireEvent.click(important())
+                fireEvent.click(offers())
+            }
+            fireEvent.click(continueButton(container))
+            await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+            expect(mockSave).toHaveBeenCalledWith(
+                { push: false, marketingPush: false, emailUpdates: true, pushPermission: recorded },
+                'new-user'
+            )
+            expect(switchStates()).toEqual(['false', 'false', 'true'])
+            expect(answered()).toEqual([{ variant: flag, answer: recorded }])
+            expect(errors()).toEqual([`push_permission:error:${recorded}`])
+        }
+    )
+
+    it('P4-30 a rejecting SDK is reported as the safe dismissed category, never its message', async () => {
+        mockFlag = 'switches'
+        mockPermission.mockRejectedValueOnce(new Error('secret SDK diagnostic private@mail.com'))
+        const { container } = render()
+        fireEvent.click(important())
+        fireEvent.click(continueButton(container))
+        await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+        expect(errors()).toEqual(['push_permission:error:dismissed'])
+        expect(JSON.stringify(capture.mock.calls)).not.toMatch(/secret|private@mail\.com/)
+    })
+
+    it('P4-30 Continue waits for the preferences write before advancing', async () => {
+        mockFlag = 'switches'
+        let finish!: () => void
+        mockSave.mockReturnValueOnce(new Promise<void>((resolve) => (finish = resolve)))
+        const { container } = render()
+        fireEvent.click(emailUpdates())
+        fireEvent.click(continueButton(container))
+        await waitFor(() => expect(mockSave).toHaveBeenCalledTimes(1))
+        expect(mockNext).not.toHaveBeenCalled()
+        await act(async () => finish())
+        await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+    })
+
+    it('P4-30 a save that answers with the stored preferences does not stall the step', async () => {
+        mockFlag = 'switches'
+        mockSave.mockResolvedValueOnce({
+            push: true,
+            email: true,
+            marketingPush: true,
+            emailUpdates: true,
+            pushPermission: 'granted',
+        })
+        const { container } = render()
+        fireEvent.click(important())
+        fireEvent.click(offers())
+        fireEvent.click(continueButton(container))
+        await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+        expect(mockSave).toHaveBeenCalledTimes(1)
+        expect(screen.queryByText(textMatch(copy('setup.notifications.saveFailed')))).not.toBeInTheDocument()
+        expect(capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.NOTIFICATION_CHOICES_SAVED, {
+            variant: 'switches',
+            outcome: 'granted',
+            important: true,
+            offers: true,
+            email: true,
+        })
+    })
+
+    it('P4-31 an Offers-only choice stays retryable after an OS refusal and a failed save', async () => {
+        mockFlag = 'switches'
+        mockPermission.mockResolvedValueOnce('denied')
+        mockSave.mockRejectedValueOnce(new Error('network'))
+        const { container } = render()
+        fireEvent.click(offers())
+        fireEvent.click(continueButton(container))
+        await saveFailedLine()
+        expect(switchStates()).toEqual(['false', 'true', 'false'])
+        await waitFor(() => expect(continueButton(container)).toBeEnabled())
+        fireEvent.click(continueButton(container))
+        await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+        expect(mockPermission).toHaveBeenCalledTimes(1)
+        expect(mockSave).toHaveBeenLastCalledWith(
+            { push: false, marketingPush: false, emailUpdates: false, pushPermission: 'denied' },
+            'new-user'
+        )
+    })
+
+    it('P4-31 an Email-only save failure blocks too, and the retry sends the same body', async () => {
+        mockFlag = 'switches'
+        mockSave.mockRejectedValueOnce(new Error('offline'))
+        const { container } = render()
+        fireEvent.click(emailUpdates())
+        fireEvent.click(continueButton(container))
+        await saveFailedLine()
+        expect(mockNext).not.toHaveBeenCalled()
+        expect(switchStates()).toEqual(['false', 'false', 'true'])
+        expect(choicesSaved()).toEqual([])
+        await waitFor(() => expect(continueButton(container)).toBeEnabled())
+        fireEvent.click(continueButton(container))
+        await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+        expect(mockSave.mock.calls).toEqual([
+            [{ push: false, marketingPush: false, emailUpdates: true }, 'new-user'],
+            [{ push: false, marketingPush: false, emailUpdates: true }, 'new-user'],
+        ])
+        expect(mockPermission).not.toHaveBeenCalled()
+    })
+
+    it('P4-31 a failed save is reported once per attempt, not again on a rerender, never with its message', async () => {
+        mockFlag = 'switches'
+        mockSave.mockRejectedValue(new Error('secret backend payload private@mail.com'))
+        const view = render()
+        fireEvent.click(emailUpdates())
+        fireEvent.click(continueButton(view.container))
+        await saveFailedLine()
+        expect(errors()).toEqual(['notification_preferences:error:save_failed'])
+        view.rerenderSame()
+        view.rerenderSame()
+        expect(errors()).toHaveLength(1)
+        await waitFor(() => expect(continueButton(view.container)).toBeEnabled())
+        fireEvent.click(continueButton(view.container))
+        await waitFor(() => expect(mockSave).toHaveBeenCalledTimes(2))
+        await waitFor(() => expect(errors()).toHaveLength(2))
+        expect(JSON.stringify(capture.mock.calls)).not.toMatch(/secret|private@mail\.com|backend payload/)
+        expect(mockNext).not.toHaveBeenCalled()
+        expect(choicesSaved()).toEqual([])
+    })
+
+    it('P4-31 "Not now" keeps the stored choices until its opt-out save is acknowledged, one save at a time', async () => {
+        mockFlag = 'switches'
+        let rejectSave!: (error: Error) => void
+        let acknowledge!: () => void
+        mockSave.mockReturnValueOnce(new Promise<void>((_resolve, reject) => (rejectSave = reject)))
+        mockSave.mockReturnValueOnce(new Promise<void>((resolve) => (acknowledge = resolve)))
+        const { container } = renderWithProbe()
+        fireEvent.click(important())
+        fireEvent.click(offers())
+        const before = storedChoices()
+        fireEvent.click(notNow(container))
+        fireEvent.click(notNow(container))
+        await waitFor(() => expect(mockSave).toHaveBeenCalledTimes(1))
+        expect(mockSave).toHaveBeenCalledWith(optOut, 'new-user')
+        expect(storedChoices()).toBe(before)
+        expect(notNow(container)).toBeDisabled()
+        await act(async () => rejectSave(new Error('offline')))
+        await saveFailedLine()
+        expect(mockNext).not.toHaveBeenCalled()
+        expect(storedChoices()).toBe(before)
+        expect(choicesSaved()).toEqual([])
+        await waitFor(() => expect(notNow(container)).toBeEnabled())
+        fireEvent.click(notNow(container))
+        fireEvent.click(notNow(container))
+        await waitFor(() => expect(mockSave).toHaveBeenCalledTimes(2))
+        expect(mockSave.mock.calls).toEqual([
+            [optOut, 'new-user'],
+            [optOut, 'new-user'],
+        ])
+        expect(storedChoices()).toBe(before)
+        await act(async () => acknowledge())
+        await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+        expect(switchStates()).toEqual(['false', 'false', 'false'])
+        expect(mockPermission).not.toHaveBeenCalled()
+        expect(choicesSaved().map(([, props]) => props)).toEqual([
+            { variant: 'switches', outcome: 'skipped', important: false, offers: false, email: false },
+        ])
+    })
+
+    it('P4-31 after a failed Continue and a failed "Not now", the "Not now" retry reuses the OS grant', async () => {
+        mockFlag = 'switches'
+        mockSave.mockRejectedValueOnce(new Error('offline')).mockRejectedValueOnce(new Error('offline'))
+        const { container } = renderWithProbe()
+        fireEvent.click(important())
+        fireEvent.click(continueButton(container))
+        await saveFailedLine()
+        const before = storedChoices()
+        await waitFor(() => expect(notNow(container)).toBeEnabled())
+        fireEvent.click(notNow(container))
+        await waitFor(() => expect(mockSave).toHaveBeenCalledTimes(2))
+        await waitFor(() => expect(notNow(container)).toBeEnabled())
+        await saveFailedLine()
+        expect(mockNext).not.toHaveBeenCalled()
+        expect(storedChoices()).toBe(before)
+        expect(switchStates()).toEqual(['true', 'false', 'true'])
+        expect(choicesSaved()).toEqual([])
+        fireEvent.click(notNow(container))
+        await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+        expect(mockSave.mock.calls.slice(1)).toEqual([
+            [{ ...optOut, pushPermission: 'granted' }, 'new-user'],
+            [{ ...optOut, pushPermission: 'granted' }, 'new-user'],
+        ])
+        expect(mockPermission).toHaveBeenCalledTimes(1)
+        expect(switchStates()).toEqual(['false', 'false', 'false'])
+    })
+
+    it('P4-31 defaults_on: a failed "Not now" keeps the user on the step with the defaults shown', async () => {
+        mockFlag = 'defaults_on'
+        mockSave.mockRejectedValueOnce(new Error('offline'))
+        const { container } = render()
+        fireEvent.click(notNow(container))
+        await saveFailedLine()
+        expect(mockNext).not.toHaveBeenCalled()
+        expect(switchStates()).toEqual(['true', 'false', 'true'])
+    })
+
+    it('P4-29 defaults_on: Offers and perks is saved on only after the user taps it', async () => {
+        mockFlag = 'defaults_on'
+        const { container } = render()
+        fireEvent.click(offers())
+        fireEvent.click(continueButton(container))
+        await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+        expect(mockSave).toHaveBeenCalledWith(
+            { push: true, marketingPush: true, emailUpdates: true, pushPermission: 'granted' },
+            'new-user'
+        )
+    })
+
+    it('P4-29 defaults_on: a switch the user turned off never comes back on; all off disables Continue', () => {
+        mockFlag = 'defaults_on'
+        const { container } = render()
+        fireEvent.click(emailUpdates())
+        fireEvent.click(important())
+        fireEvent.click(important())
+        expect(switchStates()).toEqual(['true', 'false', 'false'])
+        fireEvent.click(important())
+        expect(switchStates()).toEqual(['false', 'false', 'false'])
+        expect(continueButton(container)).toBeDisabled()
+    })
+
+    it('P4-29 defaults_on: Next then Back remounts the step with the saved answer, not the defaults', async () => {
+        mockFlag = 'defaults_on'
+        mockPermission.mockResolvedValueOnce('denied')
+        function RoundTrip() {
+            const [next, setNext] = useState(false)
+            mockNext.mockImplementation(async () => setNext(true))
+            return next ? (
+                <button onClick={() => setNext(false)}>Back to notifications</button>
+            ) : (
+                <NotificationsScreen />
+            )
+        }
+        const { container } = renderRedesign(
+            <QueryClientProvider client={queryClient}>
+                <RoundTrip />
+            </QueryClientProvider>,
+            { screenId: 'notification-permission' }
+        )
+        fireEvent.click(continueButton(container))
+        fireEvent.click(await screen.findByRole('button', { name: 'Back to notifications' }))
+        expect(switchStates()).toEqual(['false', 'false', 'true'])
+    })
+
+    it.each(['cleared', 'unmounted'] as const)(
+        'P4-32 switches: a session %s during the OS request stops save and navigation',
+        async (change) => {
+            mockFlag = 'switches'
+            let answer!: (permission: string) => void
+            mockPermission.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)))
+            const view = render()
+            fireEvent.click(important())
+            fireEvent.click(continueButton(view.container))
+            expect(mockPermission).toHaveBeenCalledTimes(1)
+            if (change === 'cleared') await act(async () => void (await clearAuthToken()))
+            else view.unmount()
+            await act(async () => answer('granted'))
+            expect(mockSave).not.toHaveBeenCalled()
+            expect(mockNext).not.toHaveBeenCalled()
+        }
+    )
+
+    it.each(['granted', 'denied', 'default'])(
+        'P4-32 switches: a stale OS answer of %s after an account change reports nothing',
+        async (permission) => {
+            mockFlag = 'switches'
+            let answer!: (permission: string) => void
+            mockPermission.mockReturnValueOnce(new Promise((resolve) => (answer = resolve)))
+            const { container } = render()
+            fireEvent.click(important())
+            fireEvent.click(continueButton(container))
+            otherAccount()
+            await act(async () => answer(permission))
+            expect(mockSave).not.toHaveBeenCalled()
+            expect(mockNext).not.toHaveBeenCalled()
+            expect(answered()).toEqual([])
+            expect(choicesSaved()).toEqual([])
+            expect(errors()).toEqual([])
+        }
+    )
 })

@@ -36,43 +36,50 @@ export function FinalConfirmArt({ scanning, locked }: { scanning: boolean; locke
                 entrance="pop"
                 zIndex={5}
             >
-                <motion.div
-                    className="absolute inset-0"
-                    animate={{ scale: locked ? 0.95 : 1 }}
-                    transition={{ duration: reducedMotion ? 0 : 0.34 }}
-                    data-scan-frame
-                >
-                    {CORNERS.map((corner) => (
-                        <span
-                            key={corner}
+                <div className="absolute inset-0" data-testid="setup-redesign-final-confirm-frame">
+                    <motion.div
+                        className="absolute inset-0"
+                        animate={{ scale: locked ? 0.95 : 1 }}
+                        transition={{ duration: reducedMotion ? 0 : 0.34 }}
+                        data-scan-frame
+                    >
+                        {CORNERS.map((corner) => (
+                            <span
+                                key={corner}
+                                aria-hidden
+                                className={`absolute size-[34px] border-border-default ${corner}`}
+                            />
+                        ))}
+                    </motion.div>
+                    <span
+                        className="absolute flex items-center justify-center text-foreground-primary"
+                        style={{
+                            left: (FRAME.width - FACE) / 2,
+                            top: (FRAME.height - FACE) / 2,
+                            width: FACE,
+                            height: FACE,
+                        }}
+                        data-scan-face
+                    >
+                        {/* the stroke as heavy as the 4 px corners at this size */}
+                        <Icon name="smile" size={FACE} strokeWidth={(4 * 24) / FACE} />
+                    </span>
+                    {scanning && !reducedMotion && (
+                        <motion.span
                             aria-hidden
-                            className={`absolute size-[34px] border-border-default ${corner}`}
+                            className="shadow-2 absolute h-1.5 rounded-full border-[1.5px] border-border-default bg-background-default"
+                            style={{ left: 12, top: 12, width: FRAME.width - 24 }}
+                            initial={{ y: 0 }}
+                            animate={{ y: FRAME.height - 30 }}
+                            transition={{
+                                duration: 0.52,
+                                repeat: Infinity,
+                                repeatType: 'reverse',
+                                ease: [0.5, 0, 0.5, 1],
+                            }}
                         />
-                    ))}
-                </motion.div>
-                <span
-                    className="absolute flex items-center justify-center text-foreground-primary"
-                    style={{
-                        left: (FRAME.width - FACE) / 2,
-                        top: (FRAME.height - FACE) / 2,
-                        width: FACE,
-                        height: FACE,
-                    }}
-                    data-scan-face
-                >
-                    {/* the stroke as heavy as the 4 px corners at this size */}
-                    <Icon name="smile" size={FACE} strokeWidth={(4 * 24) / FACE} />
-                </span>
-                {scanning && !reducedMotion && (
-                    <motion.span
-                        aria-hidden
-                        className="shadow-2 absolute h-1.5 rounded-full border-[1.5px] border-border-default bg-background-default"
-                        style={{ left: 12, top: 12, width: FRAME.width - 24 }}
-                        initial={{ y: 0 }}
-                        animate={{ y: FRAME.height - 30 }}
-                        transition={{ duration: 0.52, repeat: Infinity, repeatType: 'reverse', ease: [0.5, 0, 0.5, 1] }}
-                    />
-                )}
+                    )}
+                </div>
             </ArtPiece>
             <CoinCharacter
                 coin="usd"

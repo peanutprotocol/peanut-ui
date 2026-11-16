@@ -23,7 +23,7 @@ beforeEach(() => {
 
 it('P4-17 notificationsExperiment.ts is byte-identical to origin/dev c985d250e', () => {
     const source = readFileSync(join(__dirname, '..', 'notificationsExperiment.ts'))
-    expect(createHash('sha256').update(source).digest('hex')).toBe(DEV_SHA256)
+    expect(createHash('sha256').update(new Uint8Array(source)).digest('hex')).toBe(DEV_SHA256)
 })
 
 it('P4-17 the flag and arms are dev’s', () => {
