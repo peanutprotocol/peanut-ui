@@ -12,7 +12,7 @@ export const DESIGN_STAGE_PX: Record<SetupStageSize, number> = { tall: 520, std:
  * Scale for the 390-wide art box so the hero clears the headline and fits the phone (mock shell.js layoutArt).
  * The box hangs from the stage bottom, so the art's top lands at stageH - (designH - artTop) * s, and it must sit
  * under the headline (whose bottom includes an 8 px gap). Small phones keep 0.62 to 0.82, or the screen's fixed
- * `smScale`; other phones never grow the art past the mock.
+ * `smScale`; other phones never grow the art past the mock, and keep 1 for art beside the headline.
  */
 export function useArtScale({
     stageRef,
@@ -21,6 +21,7 @@ export function useArtScale({
     artTop,
     smArtTop,
     smScale,
+    artBesideTitle,
     device,
 }: {
     stageRef: RefObject<HTMLElement | null>
@@ -29,6 +30,7 @@ export function useArtScale({
     artTop?: number
     smArtTop?: number
     smScale?: number
+    artBesideTitle?: boolean
     device: ShellDevice
 }) {
     const [scale, setScale] = useState(1)
@@ -40,6 +42,10 @@ export function useArtScale({
             const width = stageEl.clientWidth / ART_BOX_W
             if (device === 'sm' && smScale) {
                 setScale(Math.min(smScale, width))
+                return
+            }
+            if (device !== 'sm' && artBesideTitle) {
+                setScale(Math.min(1, width))
                 return
             }
             const stageH = stageEl.clientHeight
@@ -55,6 +61,6 @@ export function useArtScale({
         observer.observe(stageEl)
         if (titleRef.current) observer.observe(titleRef.current)
         return () => observer.disconnect()
-    }, [stageRef, titleRef, stage, artTop, smArtTop, smScale, device])
+    }, [stageRef, titleRef, stage, artTop, smArtTop, smScale, artBesideTitle, device])
     return scale
 }

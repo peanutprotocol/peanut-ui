@@ -17,10 +17,20 @@ const labelId = (label: ReactNode) => (typeof label === 'string' || typeof label
  * whose note would end less than 16 px above the bottom edge ('n'). Between lifts the footer glides with the
  * step (500 ms). Mock: scaffold core/shell.js setFooter / fitFooter, core/shell.css .footer.
  */
-export function ShellFooter({ spec, reduced }: { spec: SetupFooterSpec | null; reduced: boolean }) {
+export function ShellFooter({
+    spec,
+    latest,
+    reduced,
+}: {
+    spec: SetupFooterSpec | null
+    /** The screen's latest footer: its callbacks change on every render without a footer re-render. */
+    latest: () => SetupFooterSpec | null
+    reduced: boolean
+}) {
     const rootRef = useRef<HTMLDivElement>(null)
     const slotRef = useRef<HTMLDivElement>(null)
     const reserveRef = useRef<HTMLDivElement>(null)
+    const belowRef = useRef<HTMLDivElement>(null)
     const [noteLift, setNoteLift] = useState(false)
     const base: SetupFooterStack = spec?.secondary ? (spec.below ? '3' : '2') : '1'
 
@@ -35,7 +45,7 @@ export function ShellFooter({ spec, reduced }: { spec: SetupFooterSpec | null; r
             // in shell px without the lift: offsetTop ignores the transform, and so does a rect relative to the footer
             const rootTop = root.getBoundingClientRect().top
             let end = 0
-            for (const el of [slotRef.current, reserveRef.current]) {
+            for (const el of [slotRef.current, reserveRef.current, belowRef.current]) {
                 if (!el) continue
                 const range = document.createRange()
                 range.selectNodeContents(el)
@@ -72,7 +82,7 @@ export function ShellFooter({ spec, reduced }: { spec: SetupFooterSpec | null; r
                 disabled={primary.disabled}
                 loading={primary.loading}
                 icon={primary.icon}
-                onClick={primary.onClick}
+                onClick={() => latest()?.primary.onClick()}
                 data-testid={primary.testId}
             >
                 <CrossfadeLabel id={labelId(primary.label)} reduced={reduced}>
@@ -90,7 +100,7 @@ export function ShellFooter({ spec, reduced }: { spec: SetupFooterSpec | null; r
                         disabled={secondary.disabled}
                         loading={secondary.loading}
                         icon={secondary.icon}
-                        onClick={secondary.onClick}
+                        onClick={() => latest()?.secondary?.onClick()}
                         data-testid={secondary.testId}
                     >
                         {secondary.label}
@@ -121,6 +131,14 @@ export function ShellFooter({ spec, reduced }: { spec: SetupFooterSpec | null; r
                             className="pointer-events-none invisible absolute inset-x-0 top-0 flex min-h-[var(--sr-slot-h)] items-center justify-center text-center text-body-xs"
                         >
                             {spec.reserve}
+                        </div>
+                    )}
+                    {spec.below && (
+                        <div
+                            ref={belowRef}
+                            className="flex h-6 items-center justify-center text-center text-body-xs text-foreground-secondary"
+                        >
+                            {spec.below}
                         </div>
                     )}
                 </div>

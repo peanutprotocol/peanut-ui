@@ -30,8 +30,8 @@ export type SetupFooterSecondary = SetupFooterButton & {
 
 /**
  * The fixed footer. The primary button never moves within a screen or between screens; only its label
- * crossfades. One of `slot` (a link or legal line under the button) or `secondary` (a white button, with an
- * optional `below` link line under it).
+ * crossfades. One of `slot` (a link or legal line under the button) or `secondary` (a white button). `below` is
+ * a link line under the white button, or under the slot of a one-button footer (it counts toward the note lift).
  */
 export type SetupFooterSpec = {
     primary: SetupFooterButton

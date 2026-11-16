@@ -89,7 +89,9 @@ export function SetupShell({ screenId, children, direction = 0, showBackButton, 
                     data-setup-screen={screenId}
                 >
                     <div className="absolute inset-0" data-setup-track>
-                        <AnimatePresence initial={false} custom={direction} mode="sync">
+                        {/* presenceAffectsLayout off: on, every shell render hands the screen a new presence value (framer-motion
+                            11 memoizes it on Math.random()), the screen re-renders and writes the store, and the shell renders again. */}
+                        <AnimatePresence initial={false} custom={direction} mode="sync" presenceAffectsLayout={false}>
                             <ShellSlide key={screenId} slideKey={screenId} direction={direction}>
                                 {children}
                             </ShellSlide>
@@ -112,7 +114,7 @@ export function SetupShell({ screenId, children, direction = 0, showBackButton, 
                         showLanguage={chrome.lang !== false}
                         reduced={reducedMotion}
                     />
-                    <ShellFooter spec={screen?.footer ?? null} reduced={reducedMotion} />
+                    <ShellFooter spec={screen?.footer ?? null} latest={store.latestFooter} reduced={reducedMotion} />
                 </div>
             </SignupScreenContext.Provider>
         </SetupShellContext.Provider>

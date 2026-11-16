@@ -1,18 +1,16 @@
 'use client'
 
-import NotificationsStep from '@/components/Setup/Views/Notifications'
+import { useState } from 'react'
 import type { StepComponentProps } from '@/components/Setup/Setup.types'
-import { SetupScreen } from '@/components/Setup/redesign/shell/SetupScreen'
+import { readNotificationsVariant } from '@/features/setup/notificationsExperiment'
+import { NotificationsControlScreen } from './NotificationsControlScreen'
+import { NotificationsSwitchesScreen } from './NotificationsSwitchesScreen'
 
 /**
- * 10 Notifications (step `notification-permission`). PLACEHOLDER from the foundation: the mock's ground, stage on the new shell, with
- * dev's view as the panel body so the flow keeps working. Package P4 replaces this file's body; keep the name
- * and the props. Contract: mono _temp/signup-redesign/r2/r9/build/INTERFACES.md.
+ * 10 Notifications (step `notification-permission`). The `signup-notification-switches` experiment picks the
+ * panel and footer; the arm is read once on mount, so the screen never changes under the user. Contract P4 § 3.
  */
 export function NotificationsScreen(_props: StepComponentProps) {
-    return (
-        <SetupScreen ground="pink" stage="std" footer={null} state="default" panelClassName="overflow-y-auto pb-6">
-            <NotificationsStep />
-        </SetupScreen>
-    )
+    const [variant] = useState(readNotificationsVariant)
+    return variant === 'control' ? <NotificationsControlScreen /> : <NotificationsSwitchesScreen variant={variant} />
 }

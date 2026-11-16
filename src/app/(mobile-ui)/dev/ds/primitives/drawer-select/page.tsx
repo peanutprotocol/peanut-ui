@@ -29,9 +29,7 @@ const METHODS = [
 export default function DrawerSelectPage() {
     const [method, setMethod] = useState<Method | null>(null)
     const [listValue, setListValue] = useState<Method | null>('crypto')
-    const [funding, setFunding] = useState<Method | null>(null)
     const [language, setLanguage] = useState<AppLocale>('en')
-    const fundingChosen = METHODS.find((m) => m.value === funding)
     const chosen = METHODS.find((m) => m.value === method)
 
     return (
@@ -135,44 +133,6 @@ export default function DrawerSelectPage() {
             </DocSection>
 
             <ProductUsage>
-                <ProductUsage.Example
-                    title="Sign-up payment plan — the Choose pickers"
-                    path="src/components/Setup/Views/PaymentPlan.tsx"
-                    description="A compact secondary Button inside the sentence is the trigger; each channel row leads with its concept bubble."
-                    code={`<DrawerSelect<C>
-  title={title}
-  value={value}
-  onChange={onChange}
-  options={options.map((channel) => ({ value: channel, label: label(channel), leading: <ChannelIcon channel={channel} /> }))}
-  trigger={<Button variant="secondary" size="compact" shadowSize="2" aria-haspopup="dialog">…</Button>}
-/>`}
-                >
-                    <p className="text-heading-xs">
-                        You&apos;ll first add money with{' '}
-                        <DrawerSelect
-                            title="Add money with"
-                            options={METHODS}
-                            value={funding}
-                            onChange={setFunding}
-                            trigger={
-                                <Button
-                                    variant="secondary"
-                                    size="compact"
-                                    shadowSize="2"
-                                    aria-haspopup="dialog"
-                                    className="inline-flex w-fit align-middle"
-                                    icon={
-                                        fundingChosen?.leading ?? <IconBubble icon={<span />} size="xs" color="gray" />
-                                    }
-                                    iconContainerClassName="size-6"
-                                >
-                                    {fundingChosen?.label ?? 'Choose'}
-                                    <Icon name="chevron-down" size={20} className="shrink-0" />
-                                </Button>
-                            }
-                        />
-                    </p>
-                </ProductUsage.Example>
                 <ProductUsage.Example
                     title="Sign-up language picker"
                     path="src/components/Setup/components/SetupLanguageSwitcher.tsx"

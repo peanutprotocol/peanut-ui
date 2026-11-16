@@ -1,7 +1,7 @@
 'use client'
 
-import { NotificationSwitches } from '@/components/Setup/Views/Notifications'
-import { SetupCelebrationView } from '@/components/Setup/Views/Success'
+import { NotificationsSwitchesScreen } from '@/components/Setup/redesign/Notifications/NotificationsSwitchesScreen'
+import { CelebrationScreen } from '@/components/Setup/redesign/Celebration/CelebrationScreen'
 import { TestBuildRibbonView } from '@/components/Global/TestBuildRibbon'
 import { API_CONTRACT_STATES } from './api-contract-states'
 import AmountInput from '@/components/Global/AmountInput'
@@ -32,8 +32,6 @@ import { useQueryClient } from '@tanstack/react-query'
 import { DEMO_PIX_BR_CODE } from '@/constants/demo-data'
 import { useLocale, useTranslations } from 'next-intl'
 import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
-import { SetupConfirmationView } from '@/components/Setup/Views/SignTestTransaction'
-import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { SetupNotificationsPrompt } from '@/components/Notifications/SetupNotificationsModal'
 import { setupScreenIds, setupSteps } from '@/components/Setup/Setup.consts'
 import { SetupShell } from '@/components/Setup/redesign/shell/SetupShell'
@@ -45,7 +43,6 @@ import { FinalConfirmScreen } from '@/components/Setup/redesign/FinalConfirm/Fin
 
 import { PasskeySetupHelpDrawer } from '@/components/Setup/Views/PasskeySetupHelpDrawer'
 import { LoginRecoveryDrawer } from '@/components/Setup/Views/LoginRecoveryDrawer'
-import { PasskeyProviderUnsupportedDrawer } from '@/components/Setup/Views/PasskeyProviderUnsupportedDrawer'
 import PasskeyInfoDrawer from '@/components/Setup/components/PasskeyInfoDrawer'
 import ConfirmInviteModal from '@/components/Global/ConfirmInviteModal'
 import EarlyUserDrawer from '@/components/Global/EarlyUserDrawer'
@@ -322,20 +319,11 @@ const FUNDED_CARD_ONBOARDING: OnboardingState = {
 }
 const noop = () => {}
 
-/** The final step after repeated network failures: retry copy and the "confirm later" link. */
-function NetworkBusyConfirmation() {
-    const t = useTranslations('setup')
-    const tCommon = useTranslations('common')
-    return (
-        <SetupConfirmationView
-            merged
-            onConfirm={noop}
-            buttonText={tCommon('tryAgain')}
-            error={t('testTransaction.errors.networkBusy')}
-            errorDetail={t('testTransaction.finishLaterDescription')}
-            secondary={<LinkButton onClick={noop}>{t('testTransaction.finishLater')}</LinkButton>}
-        />
-    )
+/** 12 needs a completed sign-up in the flow context; it then redirects on its own after 4.5 s, as on /setup. */
+function CompletedCelebration() {
+    const { setSignupCompleted } = useSetupFlowContext()
+    React.useLayoutEffect(() => setSignupCompleted(true), [setSignupCompleted])
+    return <CelebrationScreen />
 }
 
 /** The residence step's comparison, as its Next opens it when the nationality differs. */
@@ -847,18 +835,13 @@ export const SURFACES: Record<string, Surface> = {
 
     '05-a-signtesttransaction': {
         ...SURFACE_META['05-a-signtesttransaction'],
-        render: () => (
-            <SetupScreen screenId="advantage-control">
-                <SetupConfirmationView merged onConfirm={noop} />
-            </SetupScreen>
-        ),
+        render: () => <SetupScreen screenId="advantage-control" />,
     },
     '05-b-signtesttransaction-network-busy': {
         ...SURFACE_META['05-b-signtesttransaction-network-busy'],
         render: () => (
-            <SetupScreen screenId="advantage-control">
-                <NetworkBusyConfirmation />
-            </SetupScreen>
+            // the busy state needs a failing test transaction, which the harness cannot fake: shows 11's default
+            <SetupScreen screenId="advantage-control" />
         ),
     },
     '06-b-invite': {
@@ -900,7 +883,7 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['07-d-notification-switches'],
         render: () => (
             <SetupScreen screenId="notification-permission">
-                <NotificationSwitches variant="switches" />
+                <NotificationsSwitchesScreen variant="switches" />
             </SetupScreen>
         ),
     },
@@ -908,7 +891,7 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['07-d-notification-defaults-on'],
         render: () => (
             <SetupScreen screenId="notification-permission">
-                <NotificationSwitches variant="defaults_on" />
+                <NotificationsSwitchesScreen variant="defaults_on" />
             </SetupScreen>
         ),
     },
@@ -916,17 +899,13 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['07-e-setup-celebration'],
         render: () => (
             <SetupScreen screenId="advantage-control" showProgress={false}>
-                <SetupCelebrationView />
+                <CompletedCelebration />
             </SetupScreen>
         ),
     },
     '07-b-advantage-control': {
         ...SURFACE_META['07-b-advantage-control'],
-        render: () => (
-            <SetupScreen screenId="advantage-control">
-                <SetupConfirmationView merged onConfirm={noop} />
-            </SetupScreen>
-        ),
+        render: () => <SetupScreen screenId="advantage-control" />,
     },
     '08-a-passkeysetuphelpmodal': {
         ...SURFACE_META['08-a-passkeysetuphelpmodal'],
@@ -956,46 +935,6 @@ export const SURFACES: Record<string, Surface> = {
     '08-c-loginrecoverydrawer-web': {
         ...SURFACE_META['08-c-loginrecoverydrawer-web'],
         render: () => <LoginRecoveryDrawer visible onClose={noop} onRetry={noop} onSupport={noop} platform="web" />,
-    },
-    '08-d-passkeyproviderunsupporteddrawer': {
-        ...SURFACE_META['08-d-passkeyproviderunsupporteddrawer'],
-        render: () => (
-            <PasskeyProviderUnsupportedDrawer
-                visible
-                platform="android-app"
-                onClose={noop}
-                onRetry={noop}
-                onSignUpInBrowser={noop}
-                onSupport={noop}
-            />
-        ),
-    },
-    '08-e-passkeyproviderunsupporteddrawer-browser-failed': {
-        ...SURFACE_META['08-e-passkeyproviderunsupporteddrawer-browser-failed'],
-        render: () => (
-            <PasskeyProviderUnsupportedDrawer
-                visible
-                platform="android-app"
-                browserOpenFailed
-                onClose={noop}
-                onRetry={noop}
-                onSignUpInBrowser={noop}
-                onSupport={noop}
-            />
-        ),
-    },
-    '08-f-passkeyproviderunsupporteddrawer-other': {
-        ...SURFACE_META['08-f-passkeyproviderunsupporteddrawer-other'],
-        render: () => (
-            <PasskeyProviderUnsupportedDrawer
-                visible
-                platform="other"
-                onClose={noop}
-                onRetry={noop}
-                onSignUpInBrowser={noop}
-                onSupport={noop}
-            />
-        ),
     },
     '09-a-passkeyinfomodal': {
         name: 'PasskeyInfoDrawer',

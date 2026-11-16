@@ -1,27 +1,75 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import SignupStep from '@/components/Setup/Views/Signup'
+import { useId } from 'react'
 import type { StepComponentProps } from '@/components/Setup/Setup.types'
 import { SetupScreen } from '@/components/Setup/redesign/shell/SetupScreen'
+import { UsernameAlternatives } from './UsernameAlternatives'
+import { UsernameField } from './UsernameField'
+import { UsernameHelpRow } from './UsernameHelpRow'
+import { UsernameProfileArt } from './UsernameProfileArt'
+import { usernameStateName } from './username-state'
+import { useUsernameClaim } from './useUsernameClaim'
+import { useUsernameField } from './useUsernameField'
 
 /**
- * 02 Username (step `signup`). PLACEHOLDER from the foundation: the mock's ground, stage and headline on the new shell, with
- * dev's view as the panel body so the flow keeps working. Package C replaces this file's body; keep the name
- * and the props. Contract: mono _temp/signup-redesign/r2/r9/build/INTERFACES.md.
+ * 02 Username (step `signup`): pick a username, held for this device before the passkey screen creates the
+ * account. Mock: scaffold/screens/02-username; contract: mono _temp/signup-redesign/r2/r9/build/contract/C.md.
+ * The button turns on only after the person rolls, types an available name or taps a chip (mock a6).
  */
 export function UsernameScreen(_props: StepComponentProps) {
     const t = useTranslations('setupRedesign.username')
+    const helpId = useId()
+    const field = useUsernameField()
+    const { claim, isClaiming } = useUsernameClaim({ name: field.value, onRefused: field.onClaimRefused })
+    const { kind, value } = field
+    const ready = kind === 'rolled' || kind === 'available' || kind === 'demo'
+    const shownName = kind === 'rolling' ? field.rollFrom : value || field.suggestion
+
     return (
         <SetupScreen
             ground="yellow"
             stage="std"
+            artTop={196}
             title={t('title')}
-            footer={null}
-            state="default"
-            panelClassName="overflow-y-auto pb-6"
+            state={usernameStateName(kind, isClaiming)}
+            art={
+                shownName ? (
+                    <UsernameProfileArt name={shownName} rolls={field.rolls} rolling={kind === 'rolling'} />
+                ) : null
+            }
+            footer={{
+                primary: {
+                    label: ready ? t('ctaNamed', { name: value.trim() }) : t('cta'),
+                    disabled: !ready || isClaiming,
+                    loading: isClaiming,
+                    onClick: () => void claim(),
+                    testId: 'username-claim',
+                },
+            }}
         >
-            <SignupStep />
+            <div data-testid="setup-redesign-username">
+                <p className="text-body-m text-foreground-secondary">{t('desc')}</p>
+                <UsernameField
+                    value={value}
+                    kind={kind}
+                    placeholder={field.suggestion}
+                    rollFrom={field.rollFrom}
+                    rolls={field.rolls}
+                    inputRef={field.inputRef}
+                    describedBy={helpId}
+                    onInput={field.onInput}
+                    onFocus={field.onFocus}
+                    onBlur={field.onBlur}
+                    onClear={field.onClear}
+                    onRoll={() => void field.onRoll()}
+                />
+                <UsernameHelpRow id={helpId} kind={kind} value={value} onSupport={field.onSupport} />
+                <UsernameAlternatives
+                    names={kind === 'taken' ? field.alternatives : []}
+                    onPick={field.onPickAlternative}
+                />
+            </div>
         </SetupScreen>
     )
 }

@@ -913,21 +913,7 @@
         "steps": {
             "landing": {
                 "title": "Receba de qualquer lugar. Gaste no mundo todo.",
-                "description": "Receba em USD ou EUR com dados bancários. Gaste com cartão ou QR, onde você estiver.",
-                "variants": {
-                    "every_border": {
-                        "title": "Uma conta. Todas as fronteiras.",
-                        "description": "Receba, envie e gaste internacionalmente, sem pagar pela distância."
-                    },
-                    "whole_world": {
-                        "title": "O mundo inteiro em uma conta.",
-                        "description": "Receba em outras moedas, pague quem quiser no exterior e gaste no seu país. Sem taxas de transferência."
-                    },
-                    "travels_free": {
-                        "title": "Dinheiro que viaja de graça.",
-                        "description": "Uma conta que envia, recebe e gasta entre países sem custo."
-                    }
-                }
+                "description": "Receba em USD ou EUR com dados bancários. Gaste com cartão ou QR, onde você estiver."
             },
             "signup": {
                 "title": "Garantir usuário",
@@ -1003,7 +989,6 @@
         "loginFailed": "Não conseguimos fazer seu login. Tente de novo.",
         "landing": {
             "signUp": "Criar conta",
-            "recoverWallet": "Precisa recuperar uma conta Peanut?",
             "testBuild": "Versão de teste",
             "testSignUp": "Cadastre-se na web"
         },
@@ -1026,41 +1011,12 @@
             "signUp": "Não tenho conta, criar uma"
         },
         "passkeyProvider": {
-            "title": "Este gerenciador de senhas salvou uma passkey que o Peanut não consegue verificar",
-            "steps": {
-                "openSettings": "Abra Configurações → Senhas, chaves de acesso e contas.",
-                "chooseGoogle": "Defina o Gerenciador de senhas do Google como serviço preferencial e tente de novo."
-            },
-            "signUpInBrowser": "Criar conta em peanut.me no navegador",
-            "useAnotherManager": "Use outro gerenciador de senhas e tente de novo.",
-            "browserOpenFailed": "O navegador não abriu. Tente de novo."
+            "title": "Este gerenciador de senhas salvou uma passkey que o Peanut não consegue verificar"
         },
         "waitlist": {
             "loginCanceled": "O login foi cancelado. Tente de novo.",
             "noPasskey": "Nenhuma passkey encontrada. Primeiro crie uma carteira.",
             "loginUnexpectedError": "Ocorreu um erro inesperado ao fazer login."
-        },
-        "signupStep": {
-            "usernameLabel": "Usuário",
-            "usernamePlaceholder": "Usuário",
-            "usernameRules": "De 4 a 12 caracteres. Comece com uma letra. Só letras e números. Não pode conter “peanut” nem ser um nome reservado.",
-            "inviterUsernameLabel": "Usuário de quem convidou você",
-            "inviterUsernamePlaceholder": "Usuário de quem convidou",
-            "inviterNotFound": "Não encontramos esse usuário.",
-            "inviterIsSelf": "Esse é o seu próprio usuário.",
-            "inviterCheckFailed": "Não conseguimos verificar esse usuário. Tente de novo.",
-            "errors": {
-                "required": "O nome de usuário é obrigatório",
-                "tooShort": "Use pelo menos 4 caracteres.",
-                "tooLong": "Use até 12 caracteres.",
-                "invalidFormat": "Comece com uma letra. Use só letras e números.",
-                "taken": "Esse nome de usuário já está em uso",
-                "invalid": "O nome de usuário não é válido, use um diferente",
-                "reserved": "Esse nome de usuário é reservado. Tente outro.",
-                "checkFailed": "Não conseguimos verificar a disponibilidade do usuário. Tente de novo.",
-                "checkFailedSupport": "Não conseguimos verificar a disponibilidade do usuário. Tente de novo ou fale com o suporte."
-            },
-            "termsAgreement": "Ao criar uma conta, você aceita os <terms>Termos e Condições</terms> e a <privacy>Política de Privacidade</privacy>"
         },
         "residenceStep": {
             "errors": {
@@ -1127,17 +1083,8 @@
                 "title": "Vincule seu perfil a um único país",
                 "description": "Veja o que cada um libera."
             },
-            "sentence": "Meu país de residência <nw>é <residence></residence></nw><br></br>e o de nacionalidade <nw>é <nationality></nationality>.</nw>",
             "residenceTitle": "Onde você tem residência?",
-            "nationalityTitle": "Qual é a sua nacionalidade?",
-            "sameCountry": "o mesmo",
-            "sameCountryRow": "O mesmo país",
-            "choose": "Escolher",
-            "searchCountry": "Buscar países",
-            "noCountry": "Nenhum país corresponde a “{query}”.",
-            "hint": "Toque em um país para mudá-lo.",
-            "refusedPassport": "Não conseguimos verificar passaportes nem documentos de identidade deste país: {nationality}. Para verificar sua identidade, use seu cartão de residência ({residence}).",
-            "continue": "Continuar"
+            "hint": "Toque em um país para mudá-lo."
         },
         "passkey": {
             "create": "Criar passkey",
@@ -1233,11 +1180,8 @@
             "biometryRequired": "Use o Face ID ou Touch ID para verificar a passkey e tente de novo."
         },
         "testTransaction": {
-            "confirmTitle": "Só falta um passo",
             "finishLater": "Confirmar depois",
             "finishLaterDescription": "Termine o cadastro agora. Vamos tentar novamente quando você abrir o app.",
-            "confirmAndFinish": "Confirmar e concluir",
-            "retryAccountSetup": "Tentar configurar a conta de novo",
             "errors": {
                 "loadUserFailed": "Não conseguimos carregar seus dados. Recarregue a página.",
                 "noWalletAddress": "Nenhum endereço de carteira encontrado. Tente recarregar a página.",
@@ -1261,19 +1205,14 @@
             "cta": "Ir para a conta"
         },
         "email": {
-            "alreadyRegistered": "O usuário com este email já estava cadastrado.",
-            "recoveryGuide": "Como recuperar sua conta",
             "label": "E-mail",
             "placeholder": "E-mail",
-            "continue": "Continuar",
             "invalid": "Digite um e-mail válido.",
             "notReady": "Sua conta ainda está carregando. Tente novamente em instantes.",
             "saveFailed": "Não foi possível salvar seu e-mail. Tente novamente.",
-            "accessHint": "Sua passkey controla o acesso à conta. Seu e-mail é para notificações.",
-            "optOutNote": "Vamos enviar e-mails sobre sua conta. Você pode desativar novidades e ofertas quando quiser."
+            "accessHint": "Sua passkey controla o acesso à conta. Seu e-mail é para notificações."
         },
         "notifications": {
-            "continue": "Continuar",
             "saveFailed": "Não foi possível salvar suas configurações. Tente novamente.",
             "importantLabel": "Alertas importantes",
             "importantDescription": "Pagamentos, conta e segurança",
@@ -1281,18 +1220,14 @@
             "offersDescription": "Teste as novidades antes de todo mundo",
             "emailLabel": "Novidades por e-mail",
             "emailDescription": "Novidades úteis no seu e-mail",
-            "changeAnytime": "Você pode mudar qualquer uma dessas opções quando quiser no seu perfil.",
-            "notNow": "Agora não"
+            "changeAnytime": "Você pode mudar qualquer uma dessas opções quando quiser no seu perfil."
         },
         "paymentPlan": {
-            "fundingTitle": "Adicionar dinheiro com",
-            "paymentTitle": "Fazer um pagamento com",
             "hint": "As opções dependem da sua residência.",
             "funding": {
                 "crypto": "Cripto",
                 "peanut": "Receber de um usuário do Peanut",
                 "bank": "Transferência bancária",
-                "bankCurrencies": "Transferência bancária ({currencies})",
                 "brlBank": "Pix (BRL)",
                 "arsBank": "Transferência bancária (ARS)"
             },
@@ -1303,26 +1238,20 @@
                 "crypto": "Cripto",
                 "qr": "Pagamentos QR"
             },
-            "peanutCompact": "Outro usuário do Peanut",
-            "with": "com",
             "unavailable": {
                 "banking": "As transferências bancárias não estão disponíveis no seu país.",
                 "card": "O Peanut Card não está disponível no seu país.",
                 "both": "As transferências bancárias e a emissão de cartões não estão disponíveis no seu país."
-            },
-            "fundingLead": "Primeiro você vai adicionar dinheiro",
-            "spendLead": "e depois gastar",
-            "choose": "Escolher",
-            "continue": "Continuar"
-        },
-        "inviteStep": {
-            "continue": "Continuar",
-            "skip": "Pular"
+            }
         },
         "notificationsControl": {
             "title": "Ative as notificações",
-            "description": "Saiba na hora quando o dinheiro chega, um pagamento é concluído ou sua conta precisa de atenção.",
-            "pushLabel": "Notificações push"
+            "description": "Saiba na hora quando o dinheiro chega, um pagamento é concluído ou sua conta precisa de atenção."
+        },
+        "signupStep": {
+            "errors": {
+                "reserved": "Esse nome de usuário é reservado. Tente outro."
+            }
         }
     },
     "setupRedesign": {
@@ -1358,7 +1287,8 @@
             "clear": "Limpar",
             "cta": "Usar esse usuário",
             "ctaNamed": "Usar @{name}",
-            "fieldAria": "Usuário"
+            "fieldAria": "Usuário",
+            "reserved": "Esse nome de usuário é reservado. Tente outro."
         },
         "passkey": {
             "s1": {
@@ -1389,12 +1319,25 @@
             "cannot1": "Abra Configurações → Senhas, chaves de acesso e contas.",
             "cannot2": "Escolha o Gerenciador de senhas do Google e tente de novo.",
             "cannotOther": "Use outro gerenciador de senhas e tente de novo.",
-            "browser": "Crie sua conta em peanut.me no navegador"
+            "browser": "Crie sua conta em peanut.me no navegador",
+            "browserOpenFailed": "O navegador não abriu. Tente de novo.",
+            "preflight": {
+                "nativeAndroid": "As passkeys ainda não estão disponíveis. Entre em uma conta do Google e atualize o Google Play Services, depois tente de novo.",
+                "nativeOther": "As passkeys ainda não estão disponíveis neste dispositivo. Confira as configurações do dispositivo e tente de novo.",
+                "nativeCheckFailed": "Não conseguimos verificar se as passkeys funcionam. Confira se você entrou em uma conta do Google com o Google Play Services atualizado e tente de novo.",
+                "insecure": "As passkeys precisam de uma conexão segura (HTTPS).",
+                "browserUnsupported": "Este navegador não aceita passkeys.",
+                "chromeOutdated": "Atualize o Chrome para usar passkeys.",
+                "androidOutdated": "Sua versão do Android é antiga demais para passkeys. Atualize para o Android 9 ou mais recente.",
+                "screenLock": "Ative o bloqueio de tela com PIN ou biometria nas configurações do dispositivo.",
+                "limitedSupport": "Seu dispositivo pode ter suporte limitado a passkeys. Se a configuração falhar, tente atualizar o Google Play Services."
+            }
         },
         "invite": {
             "title": "Alguém te convidou?",
             "desc": "Digite o usuário para vocês dois ganharem recompensas.",
             "placeholder": "Usuário",
+            "fieldLabel": "Usuário de quem convidou você",
             "found": "Encontramos @{name}.",
             "notFound": "Não encontramos esse usuário.",
             "isSelf": "Esse é o seu próprio usuário.",
@@ -1416,21 +1359,24 @@
             "desc": "Um cartão Visa virtual para gastar seu saldo onde a Visa é aceita. Ah, e ele é <pink>rosa</pink>."
         },
         "residence": {
-            "sentence": "Meu país de residência <nw>é {residence}</nw> e o de nacionalidade <nw>é {nationality}.</nw>",
+            "sentence": "Meu país de residência <nw>é <residence></residence></nw> e o de nacionalidade <nw>é <nationality></nationality>.</nw>",
             "choose": "Escolher",
             "sheetResidence": "Onde você mora?",
             "sheetNationality": "Qual é a sua nacionalidade?",
             "sameRow": "O mesmo país",
             "search": "Buscar países",
+            "noCountry": "Nenhum país corresponde a “{query}”.",
             "refusedPassport": "Não conseguimos verificar passaportes nem documentos de identidade deste país: {nationality}. Para verificar sua identidade, use seu cartão de residência ({residence}).",
             "compareTitle": "Escolha só um país.",
             "compareRule": "Tem autorização de residência? Escolha esse país. Se não, escolha o que emitiu seu documento.",
             "itemPix": "Pagamentos e transferências Pix",
             "itemArQr": "Pagamentos QR e transferências próprias",
-            "itemBankAccount": "Conta bancária: USD ou EUR",
+            "itemBankAccount": "Conta bancária: {currencies}",
+            "itemBank": "Conta bancária",
             "itemCard": "Peanut Card",
             "itemP2p": "De Peanut para Peanut",
-            "select": "Escolher {country}"
+            "select": "Escolher {country}",
+            "compareCurrencyNote": "Transferências em outra moeda exigem uma conta bancária nessa moeda."
         },
         "country": {
             "AR": "Argentina",
@@ -1441,12 +1387,17 @@
         },
         "plan": {
             "title": "Como você vai usar o Peanut?",
-            "sentence": "Primeiro você vai adicionar dinheiro <nw>com {funding}</nw><gap></gap>e depois gastar <nw>com {payment}</nw>",
+            "sentence": "Primeiro você vai adicionar dinheiro <nw>com <funding></funding></nw><gap></gap>e depois gastar <nw>com <payment></payment></nw>",
             "choose": "Escolher",
             "sheetFunding": "Adicionar dinheiro com",
             "sheetPayment": "Gastar com",
-            "fundBank": "Transferência bancária (USD, EUR)",
+            "fundBank": "Transferência bancária",
+            "fundBankCurrencies": "Transferência bancária ({currencies})",
             "fundBankPill": "Banco USD/EUR",
+            "fundArsBank": "Transferência bancária (ARS)",
+            "fundArsBankPill": "Banco ARS",
+            "fundBrlBank": "Pix (BRL)",
+            "fundBrlBankPill": "Pix",
             "fundPeanut": "Receber de um usuário do Peanut",
             "fundCrypto": "Cripto",
             "payQr": "Pagamentos QR",
