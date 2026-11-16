@@ -685,13 +685,11 @@ export function mapTransactionDataForDrawer(entry: HistoryEntry): MappedTransact
     // different thing to know, and the only one that says what to do next.
     const returnedStatus = entry.status?.toUpperCase()
     // A Pix deposit the provider gave back (Avenia: paid from an account not under the user's CPF)
-    // stays FAILED on the wire; the API marks it with `returnReason`, to the owner only. Without the
-    // field the row reads as it did: the status alone never says it was returned.
+    // stays FAILED on the wire. `pixReturned` says so to every viewer, the shared receipt included;
+    // why (`returnReason`) goes to the owner only. Without the flag the row reads as it did: the
+    // status alone never says it was returned.
     const isPixDepositReturned =
-        direction === 'bank_deposit' &&
-        returnedStatus === 'FAILED' &&
-        !!entry.extraData?.returnReason &&
-        isPixEntry(entry)
+        direction === 'bank_deposit' && returnedStatus === 'FAILED' && entry.extraData?.pixReturned === true
     const isDepositReturned =
         isPixDepositReturned ||
         (direction === 'bank_deposit' && (returnedStatus === 'REFUNDED' || returnedStatus === 'RETURNED'))

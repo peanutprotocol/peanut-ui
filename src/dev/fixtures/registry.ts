@@ -746,7 +746,8 @@ const AVENIA_PAID_DEPOSIT = {
 
 /**
  * A R$22 Pix deposit Avenia received and gave back: paid from an account not under the user's CPF.
- * The wire status stays FAILED; `returnReason` (owner only) says why. Nothing was converted: the
+ * The wire status stays FAILED; `pixReturned` says it was returned, to every viewer, and
+ * `returnReason` (owner only) says why. Nothing was converted: the
  * amount is the quoted USD and no rate or fee is sent.
  */
 const AVENIA_RETURNED_DEPOSIT = {
@@ -760,6 +761,8 @@ const AVENIA_RETURNED_DEPOSIT = {
         ...aveniaPayableDeposit.extraData,
         usdAmount: '3.84',
         pixDeposit: { codePayable: false, expiresAt: null },
+        // returned, to every viewer; why, to the owner only
+        pixReturned: true,
         returnReason: { code: 'third_party', text: null },
     },
 }

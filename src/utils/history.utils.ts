@@ -140,6 +140,9 @@ export type PixRecoveryView = NonNullable<
 export interface HistoryEntryExtraData {
     /** On a Pix deposit only: whether its code can still be paid. Read it through `pixCodePayable`. */
     pixDeposit?: PixDepositView
+    /** On a Pix deposit the provider received and gave back, to every viewer (the shared receipt
+     *  too); absent otherwise. Why it went back (`returnReason`) goes to the owner only. */
+    pixReturned?: true
     /** On an Avenia Pix withdrawal only, to its owner: the raw key it paid and who was paid.
      *  `ownAccount` false: a send to another person. */
     pixPayout?: PixPayoutView

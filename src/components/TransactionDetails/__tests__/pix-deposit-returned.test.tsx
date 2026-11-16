@@ -1,11 +1,14 @@
 /**
  * A Pix deposit Avenia received and gave back (paid from an account not under the user's CPF) stays
- * FAILED on the wire; the API marks it with `extraData.returnReason`, to the owner only (TASK-24947,
- * release 168 smoke). It reads as a returned deposit everywhere: "Returned" in place of "Failed",
- * with the deposit screen's own sentence as the reason. Nothing was converted, so the receipt keeps
- * the estimate row. Without the field the entry reads as it did; a lapsed code (CANCELLED) too.
+ * FAILED on the wire (TASK-24947, release 168 smoke). `extraData.pixReturned` says it was returned, to
+ * every viewer; `returnReason` says why, to the owner only (Chip on ui#4116: the state is public, the
+ * reason private). It reads as a returned deposit everywhere: "Returned" in place of "Failed"; the
+ * owner reads the deposit screen's own sentence for `third_party`, anyone else the general line.
+ * Nothing was converted, so the receipt keeps the estimate row. Without the flag the entry reads as
+ * it did; a lapsed code (CANCELLED) too.
  *
- * Entries are shaped as `GET /users/history` sends them; made-up data only.
+ * Entries are shaped as `GET /users/history` sends them to the owner, and as the public receipt
+ * projection sends them to anyone (no `pixDeposit`, no `returnReason`); made-up data only.
  */
 import React from 'react'
 import { render, screen } from '@testing-library/react'
@@ -41,17 +44,28 @@ jest.mock('next/image', () => ({
 type Reason = 'third_party' | 'other'
 
 // R$22 quoted at about 3.84 USDC: the API books the quoted USD as the amount and keeps the reais
-const pixDeposit = (status: string, reason?: Reason): HistoryEntry =>
-    ({
-        uuid: 'fixture-pix-deposit-returned',
-        type: 'TRANSACTION_INTENT',
-        timestamp: new Date('2026-11-16T12:00:00.000Z'),
-        amount: '3.84',
-        currency: { amount: '22.00', code: 'BRL' },
-        tokenSymbol: 'USDC',
-        chainId: '42161',
-        status,
-        userRole: 'RECIPIENT',
+const publicPart = (status: string, returned: boolean) => ({
+    uuid: 'fixture-pix-deposit-returned',
+    type: 'TRANSACTION_INTENT',
+    timestamp: new Date('2026-11-16T12:00:00.000Z'),
+    amount: '3.84',
+    currency: { amount: '22.00', code: 'BRL' },
+    tokenSymbol: 'USDC',
+    chainId: '42161',
+    status,
+    userRole: 'RECIPIENT',
+    extraData: {
+        kind: 'ONRAMP',
+        provider: 'AVENIA',
+        paymentMethod: 'PIX',
+        ...(returned ? { pixReturned: true } : {}),
+    },
+})
+/** The owner's entry: the public part, the code state and the reason. */
+const ownerDeposit = (status: string, { returned = true, reason }: { returned?: boolean; reason?: Reason } = {}) => {
+    const part = publicPart(status, returned)
+    return {
+        ...part,
         senderAccount: { identifier: '', type: 'address', isUser: false },
         recipientAccount: {
             identifier: '0x1111111111111111111111111111111111111111',
@@ -59,22 +73,23 @@ const pixDeposit = (status: string, reason?: Reason): HistoryEntry =>
             isUser: true,
         },
         extraData: {
-            kind: 'ONRAMP',
-            provider: 'AVENIA',
-            paymentMethod: 'PIX',
+            ...part.extraData,
             usdAmount: '3.84',
             pixDeposit: { codePayable: false, expiresAt: null },
             ...(reason ? { returnReason: { code: reason, text: null } } : {}),
         },
-    }) as unknown as HistoryEntry
+    } as unknown as HistoryEntry
+}
+/** What anyone with the link reads: no `pixDeposit`, no `returnReason`. */
+const sharedDeposit = (status: string) => publicPart(status, true) as unknown as HistoryEntry
 
 const details = (wire: HistoryEntry) => mapTransactionDataForDrawer(wire).transactionDetails
 
-function Header({ transaction }: { transaction: TransactionDetails }) {
+function Header({ transaction, isPublic = false }: { transaction: TransactionDetails; isPublic?: boolean }) {
     return (
         <QueryClientProvider client={new QueryClient()}>
             <ToastProvider>
-                <TransactionDetailsReceipt transaction={transaction} isPublic={false} />
+                <TransactionDetailsReceipt transaction={transaction} isPublic={isPublic} />
             </ToastProvider>
         </QueryClientProvider>
     )
@@ -101,10 +116,12 @@ const renderRow = (wire: HistoryEntry) => {
     )
 }
 const t: PdfTranslate = (key) => key
+const pdfStatus = (tx: TransactionDetails) =>
+    buildReceiptPdfModel(tx, t, 'en').rows.find((row) => row.label === 'transaction.officialReceipt.pdf.status')?.value
 
-describe('a Pix deposit the provider gave back', () => {
+describe('a Pix deposit the provider gave back, to its owner', () => {
     it('reads as Returned, not Failed, and keeps the estimate: nothing was converted', () => {
-        const tx = details(pixDeposit('FAILED', 'third_party'))
+        const tx = details(ownerDeposit('FAILED', { reason: 'third_party' }))
         expect(tx.status).toBe('refunded')
         expect(tx.actionLabelKey).toBe('type.returnedToSender')
         expect(tx.extraDataForDrawer?.returnReasonCode).toBe('third_party')
@@ -113,8 +130,10 @@ describe('a Pix deposit the provider gave back', () => {
         expect(tx.amount).toBe(3.84)
     })
 
-    it('third_party: the receipt says what the deposit screen said, under the Returned badge', () => {
-        render(<Header transaction={details(pixDeposit('FAILED', 'third_party'))} />, { wrapper: IntlWrapper })
+    it('third_party: the drawer says what the deposit screen said, under the Returned badge', () => {
+        render(<Header transaction={details(ownerDeposit('FAILED', { reason: 'third_party' }))} />, {
+            wrapper: IntlWrapper,
+        })
         // the badge, and the date row of the details
         expect(screen.getAllByText(en.transaction.returnedStatus)).toHaveLength(2)
         expect(screen.queryByText(en.common.status.failed)).toBeNull()
@@ -125,14 +144,16 @@ describe('a Pix deposit the provider gave back', () => {
     })
 
     it('other: the general line', () => {
-        render(<Header transaction={details(pixDeposit('FAILED', 'other'))} />, { wrapper: IntlWrapper })
+        render(<Header transaction={details(ownerDeposit('FAILED', { reason: 'other' }))} />, { wrapper: IntlWrapper })
         expect(screen.getAllByText(en.transaction.returnedStatus).length).toBeGreaterThan(0)
         expect(screen.getByText(en.transaction.returnedReason)).toBeInTheDocument()
         expect(screen.queryByText(en.pix.deposit.returnedBody)).toBeNull()
     })
 
     it('the details keep "≈ BRL 22", date the return, and show no rate or fee', () => {
-        render(<Rows transaction={details(pixDeposit('FAILED', 'third_party'))} />, { wrapper: IntlWrapper })
+        render(<Rows transaction={details(ownerDeposit('FAILED', { reason: 'third_party' }))} />, {
+            wrapper: IntlWrapper,
+        })
         expect(screen.getByText(en.transaction.rows.estimateConversion)).toBeInTheDocument()
         expect(screen.getByText('≈ BRL 22')).toBeInTheDocument()
         expect(screen.queryByText(en.transaction.rows.converted)).toBeNull()
@@ -142,22 +163,50 @@ describe('a Pix deposit the provider gave back', () => {
     })
 
     it('the Activity row reads "Returned to sender", the amount struck through', () => {
-        renderRow(pixDeposit('FAILED', 'third_party'))
+        renderRow(ownerDeposit('FAILED', { reason: 'third_party' }))
         expect(screen.getByText(en.transaction.type.returnedToSender)).toBeInTheDocument()
         expect(screen.getByText(/\$3\.84/)).toHaveClass('line-through')
     })
 
     it('the PDF prints Returned and the estimate', () => {
-        const model = buildReceiptPdfModel(details(pixDeposit('FAILED', 'third_party')), t, 'en')
-        const status = model.rows.find((row) => row.label === 'transaction.officialReceipt.pdf.status')
-        expect(status?.value).toBe('transaction.returnedStatus')
-        expect(model.convertedAmountDisplay).toBe('≈ BRL 22')
+        const tx = details(ownerDeposit('FAILED', { reason: 'third_party' }))
+        expect(pdfStatus(tx)).toBe('transaction.returnedStatus')
+        expect(buildReceiptPdfModel(tx, t, 'en').convertedAmountDisplay).toBe('≈ BRL 22')
     })
 })
 
-describe('a Pix deposit without returnReason reads as it does today', () => {
-    it('an API without the field: Failed, no reason, no guess from the status', () => {
-        const tx = details(pixDeposit('FAILED'))
+// Chip on ui#4116: the shared receipt and the anonymous PDF said "Failed" while the owner saw "Returned"
+describe('the same deposit, to anyone with the link', () => {
+    it('reads as Returned from the public flag alone, with the general line, never the CPF sentence', () => {
+        const tx = details(sharedDeposit('FAILED'))
+        expect(tx.status).toBe('refunded')
+        expect(tx.actionLabelKey).toBe('type.returnedToSender')
+        expect(tx.extraDataForDrawer?.returnReasonCode).toBeUndefined()
+        render(<Header transaction={tx} isPublic />, { wrapper: IntlWrapper })
+        expect(screen.getAllByText(en.transaction.returnedStatus).length).toBeGreaterThan(0)
+        expect(screen.queryByText(en.common.status.failed)).toBeNull()
+        expect(screen.getByText(en.transaction.returnedReason)).toBeInTheDocument()
+        expect(screen.queryByText(en.pix.deposit.returnedBody)).toBeNull()
+    })
+
+    it('a shared receipt keeps the general line even if a reason reached it', () => {
+        render(<Header transaction={details(ownerDeposit('FAILED', { reason: 'third_party' }))} isPublic />, {
+            wrapper: IntlWrapper,
+        })
+        expect(screen.getByText(en.transaction.returnedReason)).toBeInTheDocument()
+        expect(screen.queryByText(en.pix.deposit.returnedBody)).toBeNull()
+    })
+
+    it('the Activity row and the anonymous PDF read Returned too', () => {
+        renderRow(sharedDeposit('FAILED'))
+        expect(screen.getByText(en.transaction.type.returnedToSender)).toBeInTheDocument()
+        expect(pdfStatus(details(sharedDeposit('FAILED')))).toBe('transaction.returnedStatus')
+    })
+})
+
+describe('a Pix deposit without the flag reads as it does today', () => {
+    it('a reason without pixReturned: Failed, no reason, no guess from returnReason or the status', () => {
+        const tx = details(ownerDeposit('FAILED', { returned: false, reason: 'third_party' }))
         expect(tx.status).toBe('failed')
         expect(tx.actionLabelKey).toBeUndefined()
         expect(tx.extraDataForDrawer?.returnedBeforeConversion).toBeUndefined()
@@ -165,10 +214,11 @@ describe('a Pix deposit without returnReason reads as it does today', () => {
         expect(screen.getByText(en.common.status.failed)).toBeInTheDocument()
         expect(screen.queryByText(en.transaction.returnedStatus)).toBeNull()
         expect(screen.queryByText(en.pix.deposit.returnedBody)).toBeNull()
+        expect(pdfStatus(tx)).toBe('common.status.failed')
     })
 
     it('a lapsed code (CANCELLED): Cancelled, no reason', () => {
-        const tx = details(pixDeposit('CANCELLED'))
+        const tx = details(ownerDeposit('CANCELLED', { returned: false }))
         expect(tx.status).toBe('cancelled')
         expect(tx.actionLabelKey).toBeUndefined()
         render(<Header transaction={tx} />, { wrapper: IntlWrapper })

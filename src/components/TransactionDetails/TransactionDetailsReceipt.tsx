@@ -126,9 +126,12 @@ export const TransactionDetailsReceipt = ({
         transaction.actionLabelKey !== 'type.returnedToSender'
             ? undefined
             : returnReasonCode === 'third_party'
-              ? // a Pix the provider gave back says what the deposit screen said: one sentence for both
+              ? // a Pix the provider gave back says what the deposit screen said: one sentence for both.
+                // It speaks to the payer ("your CPF"), so a shared receipt keeps the general line.
                 transaction.extraDataForDrawer?.isPix
-                  ? tPixDeposit('returnedBody')
+                  ? isPublic
+                      ? t('returnedReason')
+                      : tPixDeposit('returnedBody')
                   : t('returnedReasonThirdParty')
               : returnReasonCode === 'too_many_recent'
                 ? t('returnedReasonTooManyRecent')
