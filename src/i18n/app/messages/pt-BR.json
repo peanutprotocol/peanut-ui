@@ -1295,7 +1295,7 @@
                 "bank": "Transferência bancária",
                 "bankCurrencies": "Transferência bancária ({currencies})",
                 "brlBank": "Pix (BRL)",
-                "arsBank": "Transferência bancária (ARS)"
+                "arsBank": "Mercado Pago (ARS)"
             },
             "payment": {
                 "peanut": "Pagar um usuário do Peanut",
@@ -2261,6 +2261,7 @@
             "kycRequired": "Precisa de verificação",
             "bankTransferDescription": "Dados bancários reutilizáveis para receber",
             "mercadoPagoOrBank": "Mercado Pago ou Banco",
+            "mercadoPago": "Mercado Pago",
             "pix": "Pix",
             "pixDescription": "Transferências instantâneas em reais"
         },
