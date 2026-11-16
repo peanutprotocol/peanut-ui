@@ -11,7 +11,8 @@ import { FUNDING_PILL_KEY, FUNDING_SHEET_KEY, PAYMENT_PILL_KEY, PAYMENT_SHEET_KE
 /**
  * The 08 sentence in the white panel: "You'll first add money with [funding] / then spend with [payment]", the two
  * clauses 16 px apart (8 px on a small phone). Each lead word ("with", "con") shares its line with its pill, and that
- * line holds nothing else, so the lines stay the same in every state (mock freezeLines). No hint line.
+ * line holds nothing else, so the lines stay the same in every state (mock freezeLines). The lead lines are balanced, so
+ * no lone word sits above a pill line (es-AR 320 "Primero vas a / agregar dinero"). No hint line.
  */
 export function PlanSentence({
     funding,
@@ -47,7 +48,7 @@ export function PlanSentence({
     return (
         <p
             ref={blockRef}
-            className={twMerge('[text-wrap:pretty] text-foreground-primary', sentenceClass)}
+            className={twMerge('[text-wrap:balance] text-foreground-primary', sentenceClass)}
             data-setup-screen="payment-plan"
         >
             {t.rich('sentence', {
