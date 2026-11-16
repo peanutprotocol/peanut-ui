@@ -255,6 +255,37 @@ describe('02 Username — Claim (C.md § 4.2)', () => {
     })
 })
 
+describe('02 Username — Enter / Go key (review R2-10)', () => {
+    const enter = async () => {
+        await act(async () => {
+            fireEvent.keyDown(field(), { key: 'Enter' })
+        })
+        await advance(10)
+    }
+
+    it('Enter in the field claims the available name once, as the button does', async () => {
+        await mount()
+        await available('keyboardcat')
+        expect(field()).toHaveAttribute('enterkeyhint', 'go')
+        await enter()
+        expect(mockReserve).toHaveBeenCalledTimes(1)
+        expect(mockReserve).toHaveBeenCalledWith('keyboardcat')
+        expect(mockHandleNext).toHaveBeenCalledTimes(1)
+    })
+
+    it('Enter does nothing while the button is off (checking, invalid)', async () => {
+        await mount()
+        await type('keyboardcat')
+        await enter()
+        await type('9lucky')
+        await advance(800)
+        expect(primary()).toBeDisabled()
+        await enter()
+        expect(mockReserve).not.toHaveBeenCalled()
+        expect(mockHandleNext).not.toHaveBeenCalled()
+    })
+})
+
 describe('02 Username — privacy (C.md § 6)', () => {
     it('C-28 no analytics call carries the typed name, a suggestion or a chip name', async () => {
         mockApiFetch.mockImplementation(availabilityStub({ tiger: 200, tinytiger: 200 }, 404))

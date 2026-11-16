@@ -394,6 +394,25 @@ describe('04 Invite: Continue and Skip', () => {
         expect(readInviteCode()).toBe('')
     })
 
+    it('R2-10 Enter in the field acts as Continue: nothing while it is off, one advance once "alice" is found', async () => {
+        renderInvite()
+        const enter = async () => {
+            await act(async () => {
+                fireEvent.keyDown(field(), { key: 'Enter' })
+            })
+            await act(async () => {})
+        }
+        expect(field()).toHaveAttribute('enterkeyhint', 'go')
+        type('alice')
+        await enter()
+        expect(mockHandleNext).not.toHaveBeenCalled()
+        await advance(750)
+        expect(primary()).toBeEnabled()
+        await enter()
+        expect(probe.context.inviteSelection).toBe('alice')
+        expect(mockHandleNext).toHaveBeenCalledTimes(1)
+    })
+
     it('P2-25 Continue does nothing while changing, checking or failed; while loading it spins and Skip is off', async () => {
         const pending = deferred<typeof FOUND>()
         mockValidateInviter.mockImplementationOnce(async () => CHECK_FAILED)

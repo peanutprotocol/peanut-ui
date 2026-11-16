@@ -71,7 +71,16 @@ export function ChannelPill<C extends SetupChannel>({
                 track(control, 'select', channel)
                 onChange(channel)
             }}
-            onOpen={() => track(control, 'open')}
+            onOpen={() => {
+                track(control, 'open')
+                // vaul leaves focus on the pill behind the modal sheet, so Tab first walked the hidden page (review
+                // R2-06). DrawerSelect does not pass Radix's onOpenAutoFocus through, so move focus to the sheet once
+                // it is mounted; Radix then traps Tab inside and returns focus to the pill on close.
+                requestAnimationFrame(() => {
+                    const sheet = document.querySelector<HTMLElement>('[role="dialog"][data-state="open"]')
+                    if (sheet && !sheet.contains(document.activeElement)) sheet.focus()
+                })
+            }}
             onDismiss={() => track(control, 'dismiss')}
             options={options.map((channel) => ({
                 value: channel,

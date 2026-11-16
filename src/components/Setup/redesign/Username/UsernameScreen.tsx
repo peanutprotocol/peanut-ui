@@ -64,6 +64,10 @@ export function UsernameScreen(_props: StepComponentProps) {
                     onBlur={field.onBlur}
                     onClear={field.onClear}
                     onRoll={() => void field.onRoll()}
+                    // as the primary button: only while it is on (review R2-10)
+                    onSubmit={() => {
+                        if (ready && !isClaiming) void claim()
+                    }}
                 />
                 <UsernameHelpRow id={helpId} kind={kind} value={value} onSupport={field.onSupport} />
                 <UsernameAlternatives

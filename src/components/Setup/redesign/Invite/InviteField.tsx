@@ -29,6 +29,7 @@ export function InviteField({
     reducedMotion,
     onChange,
     onClear,
+    onSubmit,
 }: {
     value: string
     status: InviteStatus
@@ -42,6 +43,8 @@ export function InviteField({
     reducedMotion: boolean
     onChange: (value: string) => void
     onClear: () => void
+    /** Enter or the keyboard's Go key: the screen's primary button, which decides whether it is on. */
+    onSubmit: () => void
 }) {
     const invalid = MISS.includes(status)
     const found = personFrom({ username: foundHandle })
@@ -67,6 +70,12 @@ export function InviteField({
                 type="text"
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
+                onKeyDown={(e) => {
+                    if (e.key !== 'Enter' || e.nativeEvent.isComposing) return
+                    e.preventDefault()
+                    onSubmit()
+                }}
+                enterKeyHint="go"
                 aria-label={label}
                 aria-invalid={invalid || undefined}
                 aria-describedby={invalid ? errorId : undefined}

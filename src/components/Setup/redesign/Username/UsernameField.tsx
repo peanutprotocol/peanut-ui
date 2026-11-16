@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { useTranslations } from 'next-intl'
-import { type RefObject, useEffect, useState } from 'react'
+import { type RefObject, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { useSetupShell } from '@/components/Setup/redesign/shell/SetupShellContext'
 import { USERNAME_MAX } from '@/features/setup/username-suggestions'
@@ -48,6 +48,7 @@ export function UsernameField({
     onBlur,
     onClear,
     onRoll,
+    onSubmit,
 }: {
     value: string
     kind: UsernameKind
@@ -61,6 +62,8 @@ export function UsernameField({
     onBlur: () => void
     onClear: () => void
     onRoll: () => void
+    /** Enter or the keyboard's Go key: the screen's primary button, which decides whether it is on. */
+    onSubmit: () => void
 }) {
     const t = useTranslations('setupRedesign.username')
     const { reducedMotion } = useSetupShell()
@@ -68,8 +71,17 @@ export function UsernameField({
     const scrambled = useScramble(rolling, rollFrom)
     const isError = ERROR_KINDS.includes(kind)
     const typing = kind === 'short' || kind === 'checking'
-    const head = value.slice(0, USERNAME_MAX)
-    const over = value.slice(USERNAME_MAX)
+    // Only the too-long state paints the letters past the 12th red (contract C § 3.1 row 5); an invalid name is red
+    // as a whole through the field border and help line, not by its length (review R2-09).
+    const head = kind === 'too-long' ? value.slice(0, USERNAME_MAX) : value
+    const over = kind === 'too-long' ? value.slice(USERNAME_MAX) : ''
+    // The input scrolls to its caret when the name is wider than the field; the mirror that draws the letters must
+    // scroll with it, or the last letters hide under the error icon (review R2-09, 320 es-AR).
+    const mirrorRef = useRef<HTMLSpanElement>(null)
+    const syncMirror = () => {
+        if (mirrorRef.current && inputRef.current) mirrorRef.current.scrollLeft = inputRef.current.scrollLeft
+    }
+    useLayoutEffect(syncMirror)
 
     return (
         <div
@@ -82,6 +94,7 @@ export function UsernameField({
             <span className="shrink-0 text-foreground-secondary">{'@'}</span>
             <span className="relative h-full min-w-0 flex-1">
                 <span
+                    ref={mirrorRef}
                     aria-hidden="true"
                     className={twMerge(
                         'pointer-events-none absolute inset-0 flex items-center overflow-hidden whitespace-pre',
@@ -124,6 +137,14 @@ export function UsernameField({
                     value={rolling ? '' : value}
                     readOnly={rolling}
                     onChange={(event) => onInput(event.target.value)}
+                    onKeyDown={(event) => {
+                        if (event.key !== 'Enter' || event.nativeEvent.isComposing) return
+                        event.preventDefault()
+                        onSubmit()
+                    }}
+                    enterKeyHint="go"
+                    onScroll={syncMirror}
+                    onSelect={syncMirror}
                     onFocus={onFocus}
                     onBlur={onBlur}
                     className="absolute inset-0 h-full w-full bg-transparent p-0 text-transparent caret-action-focus outline-none placeholder:font-medium placeholder:text-foreground-secondary"

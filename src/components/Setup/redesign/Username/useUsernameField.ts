@@ -184,7 +184,9 @@ export function useUsernameField() {
     }, [kind, value])
 
     const onInput = (raw: string) => {
-        const next = raw.toLowerCase()
+        // A pasted name keeps no outer spaces or "@" (the field draws its own), as 04 does (review R2-11). Spaces
+        // inside the name stay and get the invalid line.
+        const next = raw.trim().replace(/^@/, '').toLowerCase()
         const at = nextToken()
         returning.current = ''
         trackOnce('username', 'change')

@@ -113,7 +113,15 @@ export function CountryPill({
                     <Icon name="chevron-down" size={20} className="shrink-0" />
                 </Button>
             </DrawerTrigger>
-            <DrawerContent>
+            <DrawerContent
+                // vaul leaves focus on the pill behind the modal sheet (its `autoFocus` is off), so Tab first walked
+                // the hidden page (review R2-06). Focus the sheet itself, not its search field, so a phone does not
+                // raise the keyboard on open; Radix then traps Tab inside and returns focus to the pill on close.
+                onOpenAutoFocus={(event) => {
+                    event.preventDefault()
+                    ;(event.currentTarget as HTMLElement).focus()
+                }}
+            >
                 {/* One height while results filter, so the sheet does not jump. */}
                 <div className="flex min-h-[75vh] flex-col gap-4 pb-4 signup-sm:gap-2">
                     <DrawerTitle>{title}</DrawerTitle>
