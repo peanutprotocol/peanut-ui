@@ -68,6 +68,7 @@ async function loadConfig() {
     const getFeatureFlagResult = jest.fn()
     config.loaded({
         register: jest.fn(),
+        unregister: jest.fn(),
         onFeatureFlags: (callback: () => void) => {
             flagsLoaded = callback
             return () => {}
