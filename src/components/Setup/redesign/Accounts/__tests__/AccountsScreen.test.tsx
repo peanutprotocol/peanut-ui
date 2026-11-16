@@ -97,6 +97,6 @@ describe('05 Accounts', () => {
 
     it('P3-01 keeps no old-view copy (dev "Euros? Dollars? Pesos? Yes.")', () => {
         const { container } = render()
-        expect(visibleText(container)).not.toContain(copy('setup.steps.advantage-fees.title'))
+        expect(visibleText(container)).not.toContain('Euros? Dollars? Pesos? Yes.') // dev's old 05 title (setup.steps.advantage-fees.title)
     })
 })

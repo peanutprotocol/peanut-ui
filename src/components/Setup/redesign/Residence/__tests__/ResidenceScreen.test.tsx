@@ -116,6 +116,8 @@ const OUTCOMES = [
 ]
 
 const K = 'setupRedesign.residence'
+/** dev's old 07 hint (setup.residenceStep.hint), pinned: the key left the catalogs with the old view. */
+const OLD_HINT = { en: 'Tap a country to change it.', 'es-AR': 'Tocá un país para cambiarlo.' } as const
 const labelOf = (iso2: string, locale: AppLocale = 'en') =>
     buildResidenceCountryOptions(locale).find((o) => o.value === iso2)!.label
 
@@ -241,7 +243,7 @@ describe('07 Residence: sentence view', () => {
             const line = screen.getByText(textMatch(sentence(ar, ar, locale)))
             expect(line).toBeInTheDocument()
             expect(visibleText(line)).not.toMatch(/resident|nationality of|the same country/i)
-            expect(visibleText(view.container)).not.toContain(copy('setup.residenceStep.hint', {}, locale))
+            expect(visibleText(view.container)).not.toContain(OLD_HINT[locale])
         }
     )
 
@@ -498,7 +500,7 @@ describe('07 Residence: sentence view', () => {
     it('P3-52 no hint line on 07 in the empty, default or differ state', () => {
         for (const seed of [{}, { residenceCountry: 'AR' }, { residenceCountry: 'AR', nationalityCountry: 'BR' }]) {
             const view = render(seed)
-            expect(visibleText(view.container)).not.toContain(copy('setup.residenceStep.hint'))
+            expect(visibleText(view.container)).not.toContain(OLD_HINT.en)
             view.unmount()
         }
     })

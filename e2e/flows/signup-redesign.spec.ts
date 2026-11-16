@@ -586,7 +586,7 @@ async function landingToUsername(page: Page, locale: Locale) {
 
     // 07: the geo suggestion (AR) prefills the residence, the nationality reads "the same"
     await expectScreen(page, 'residence', 'default')
-    await expect(panelOf(page)).toContainText(t('setupRedesign.country.AR'))
+    await expect(panelOf(page)).toContainText('Argentina')
     await primary(page, t('setupRedesign.common.continue')).click()
 
     // 08: Argentina offers a bank and QR; pick both, then Continue

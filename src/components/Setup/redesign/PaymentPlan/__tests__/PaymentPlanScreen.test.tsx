@@ -93,6 +93,11 @@ jest.mock('@/hooks/useKycIntents', () => ({
 const capture = posthog.capture as jest.Mock
 const controls = () => signupControls(capture)
 const K = 'setupRedesign.plan'
+/** dev's old 08 hint (setup.paymentPlan.hint; es-AR fell back to es-419), pinned: the key left with the old view. */
+const OLD_HINT = {
+    en: 'Options depend on your residence.',
+    'es-AR': 'Las opciones dependen de tu residencia.',
+} as const
 const escapeRx = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 const plain = (s: string | null | undefined) => (s ?? '').replace(/ /g, ' ').replace(/\s+/g, ' ').trim()
 
@@ -448,7 +453,7 @@ describe('08 Payment plan', () => {
         expect(visibleText(view.container)).not.toMatch(
             /platinum|cashback|bono|no password|sin contraseña|suggested|example|ejemplo/i
         )
-        expect(visibleText(view.container)).not.toContain(copy('setup.paymentPlan.hint', {}, locale))
+        expect(visibleText(view.container)).not.toContain(OLD_HINT[locale])
         expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(copyRx(`${K}.title`, {}, locale))
     })
 })
