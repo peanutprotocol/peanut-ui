@@ -79,7 +79,8 @@ export function useShellFit({
     const fit = useCallback(() => {
         const shell = shellRef.current
         const probe = probeRef.current
-        if (!shell || !probe) return
+        // no layout (a test DOM): nothing to fit
+        if (!shell || !probe || !shell.clientHeight) return
         let fold: ShellFold | null = null
         let foldPx = 0
         if (stage !== 'full') {

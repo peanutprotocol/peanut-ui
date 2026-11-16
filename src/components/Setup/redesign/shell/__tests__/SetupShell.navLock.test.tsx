@@ -106,13 +106,11 @@ describe.each([
         expect(shown()).toBe('advantage-fees')
     })
 
-    it('a tap that changes no screen holds the next tap for one step, then lets it through', async () => {
+    it('a tap that changes no screen locks nothing, so a retry is never dropped', () => {
         const onTap = jest.fn()
         render(<Flow onTap={onTap} navigates={false} />)
         fireEvent.click(cta())
-        fireEvent.click(cta())
-        expect(onTap).toHaveBeenCalledTimes(1)
-        await unlocked()
+        expect(shell()).not.toHaveAttribute('data-nav-locked')
         fireEvent.click(cta())
         expect(onTap).toHaveBeenCalledTimes(2)
     })

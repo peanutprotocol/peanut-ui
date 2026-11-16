@@ -9,7 +9,7 @@ export const NAV_LOCK_MIN_MS = STEP_S * 1000
 /** Safety net only: if the entering screen never reports its slide finished, the lock lets go after this long. */
 export const NAV_LOCK_MAX_MS = STEP_S * 1000 + 1500
 
-type Lock = { kind: 'pending'; since: number } | { kind: 'transition'; screen: string; since: number; entered: boolean }
+type Lock = { screen: string; since: number; entered: boolean }
 
 export type NavLock = {
     /** Runs a navigation tap unless a step is still in flight; a dropped tap does nothing. */
@@ -22,10 +22,10 @@ export type NavLock = {
 
 /**
  * One step per tap gesture (R2-01). The primary button sits at the same pixel on every screen and the next
- * screen's button is live as it slides in, so a double tap used to run two steps. The lock starts at the tap
- * and holds until the next screen's slide has finished, that screen's footer is the one on show and one step
- * duration has passed. A tap that does not change the screen (a check that fails, a drawer) lets go once its
- * button is no longer loading. Back in the top bar goes through the same lock.
+ * screen's button is live as it slides in, so a double tap used to run two steps. A tap that starts a step locks
+ * every footer and Back tap until the next screen's slide has finished, that screen's footer is the one on show
+ * and one step duration has passed. A tap that changes no screen (a failed check, a retry, a drawer) locks
+ * nothing, so a retry is never dropped. A step started any other way (hardware Back, the browser) locks too.
  */
 export function useNavLock({
     screenId,
@@ -67,20 +67,9 @@ export function useNavLock({
             set(null)
             return
         }
-        if (current.kind === 'pending') {
-            // the tap moved nothing: release once the button is not busy (a check or a drawer, not a step)
-            const busy = !!store.latestFooter()?.primary.loading
-            if (!busy && elapsed >= NAV_LOCK_MIN_MS) {
-                set(null)
-                return
-            }
-            if (busy) current.since = now
-        } else {
-            const mounted = store.get()?.owner === current.screen
-            if (current.entered && mounted && elapsed >= NAV_LOCK_MIN_MS) {
-                set(null)
-                return
-            }
+        if (current.entered && store.get()?.owner === current.screen && elapsed >= NAV_LOCK_MIN_MS) {
+            set(null)
+            return
         }
         frame.current = requestAnimationFrame(check)
     }, [set, store])
@@ -90,7 +79,7 @@ export function useNavLock({
         if (screenRef.current === screenId) return
         screenRef.current = screenId
         clearTimers()
-        set({ kind: 'transition', screen: screenId, since: Date.now(), entered: false })
+        set({ screen: screenId, since: Date.now(), entered: false })
         frame.current = requestAnimationFrame(check)
         // the safety net runs on a timer too: rAF stops in a background tab
         timer.current = setTimeout(() => set(null), NAV_LOCK_MAX_MS)
@@ -98,27 +87,15 @@ export function useNavLock({
 
     useEffect(() => clearTimers, [])
 
-    const guard = useCallback(
-        (run: () => void) => {
-            if (lock.current) return
-            set({ kind: 'pending', since: Date.now() })
-            clearTimers()
-            run()
-            // run() may have started a step: the screen change swaps the lock for a transition lock
-            const after = lock.current as Lock | null
-            if (after?.kind === 'pending') {
-                frame.current = requestAnimationFrame(check)
-                timer.current = setTimeout(() => {
-                    if (lock.current?.kind === 'pending') set(null)
-                }, NAV_LOCK_MAX_MS)
-            }
-        },
-        [check, set]
-    )
+    // A tap's own state updates commit before the browser dispatches the next event (React flushes a discrete
+    // event's updates at its end), so a tap that starts a step has locked the next tap by the time it lands.
+    const guard = useCallback((run: () => void) => {
+        if (!lock.current) run()
+    }, [])
 
     const onEntered = useCallback((slideKey: string) => {
         const current = lock.current
-        if (current?.kind === 'transition' && current.screen === slideKey) current.entered = true
+        if (current?.screen === slideKey) current.entered = true
     }, [])
 
     const isLocked = useCallback(() => !!lock.current, [])
