@@ -5,7 +5,7 @@
  * (`redirect_uri`) and the demo route are checked by where the person lands.
  */
 import { StrictMode } from 'react'
-import { act, fireEvent, screen } from '@testing-library/react'
+import { act, fireEvent, screen, within } from '@testing-library/react'
 import posthog from 'posthog-js'
 import { confettiPresets } from '@/utils/confetti'
 import { notifyHaptic } from '@/utils/haptics'
@@ -263,8 +263,8 @@ describe('12 Celebration', () => {
 describe('12 Celebration: the verify invite (flag signup-verify-invite)', () => {
     const captured = (event: string) =>
         (posthog.capture as jest.Mock).mock.calls.filter(([name]) => name === event).map(([, props]) => props)
-    const verifyNow = () => screen.getByRole('button', { name: copyRx('setupRedesign.done.verifyNow') })
-    const later = () => screen.getByRole('button', { name: copyRx('kyc.setup.later') })
+    const verifyNow = () => screen.getByRole('button', { name: copyRx('setupRedesign.verifyInvite.verifyNow') })
+    const later = () => screen.getByRole('button', { name: copyRx('setupRedesign.verifyInvite.remindLater') })
 
     beforeEach(() => {
         mockInviteFlag = true
@@ -284,6 +284,23 @@ describe('12 Celebration: the verify invite (flag signup-verify-invite)', () => 
         expect(captured('signup_verify_invite_shown')).toEqual([
             expect.objectContaining({ flow_version: 2, signup_entry_flow: 'default' }),
         ])
+    })
+
+    it('VI-8 v7 copy: "Verify now", the bank-details sub and the three steps, account done and questions next', () => {
+        render()
+        expect(screen.getByRole('heading', { name: copy('setupRedesign.verifyInvite.title') })).toBeInTheDocument()
+        expect(screen.getByText(copy('setupRedesign.verifyInvite.sub'))).toBeInTheDocument()
+        const steps = within(screen.getByTestId('setup-redesign-verify-steps')).getAllByRole('listitem')
+        expect(steps.map((step) => step.textContent)).toEqual([
+            `${copy('setupRedesign.verifyInvite.stepAccount')} ${copy('kyc.paperworkVerification.steps.done')}`,
+            `2${copy('setupRedesign.verifyInvite.stepQuestions')}`,
+            `3${copy('setupRedesign.verifyInvite.stepPhoto')}`,
+        ])
+        expect(steps[1]).toHaveAttribute('aria-current', 'step')
+        // the old headline and the @username chip give way to the invite
+        expect(screen.queryByText(copy('setupRedesign.done.title'))).toBeNull()
+        // Remind me later is the tertiary link (design.md: a defer action is never a Button)
+        expect(later()).not.toHaveClass('btn')
     })
 
     it('VI-2 Verify now opens /verify and reports the choice', async () => {

@@ -1326,8 +1326,16 @@
             "going": "Levando você para a conta…",
             "claimTitle": "Tudo pronto!",
             "claimSub": "Sua conta do Peanut foi criada.",
-            "claimGoing": "Voltando para o seu link…",
-            "verifyNow": "Verificar agora (~3 min)"
+            "claimGoing": "Voltando para o seu link…"
+        },
+        "verifyInvite": {
+            "title": "Verifique agora",
+            "sub": "Isso libera seus dados bancários.",
+            "stepAccount": "Criar conta",
+            "stepQuestions": "Responder algumas perguntas",
+            "stepPhoto": "Tirar uma foto do documento e uma selfie",
+            "verifyNow": "Verificar agora · 3 min",
+            "remindLater": "Lembrar mais tarde"
         }
     },
     "loadingStates": {

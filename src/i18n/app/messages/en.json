@@ -1326,8 +1326,16 @@
             "going": "Taking you to the account…",
             "claimTitle": "All set!",
             "claimSub": "Your Peanut account is created.",
-            "claimGoing": "Taking you back to your link…",
-            "verifyNow": "Verify now (~3 min)"
+            "claimGoing": "Taking you back to your link…"
+        },
+        "verifyInvite": {
+            "title": "Verify now",
+            "sub": "This will unlock bank details.",
+            "stepAccount": "Create account",
+            "stepQuestions": "Answer a few questions",
+            "stepPhoto": "Take an ID photo and a selfie",
+            "verifyNow": "Verify now · 3 min",
+            "remindLater": "Remind me later"
         }
     },
     "loadingStates": {
