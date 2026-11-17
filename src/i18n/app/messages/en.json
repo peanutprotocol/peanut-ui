@@ -1333,7 +1333,6 @@
             "sub": "This will unlock bank details.",
             "stepQuestions": "A few questions we’re required to ask",
             "stepPhoto": "ID photo and selfie",
-            "stepReview": "Review",
             "verifyNow": "Verify now · 3 min",
             "remindLater": "Remind me later"
         }

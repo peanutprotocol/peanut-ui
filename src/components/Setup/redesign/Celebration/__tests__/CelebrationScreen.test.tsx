@@ -286,7 +286,7 @@ describe('12 Celebration: the verify invite (flag signup-verify-invite)', () => 
         ])
     })
 
-    it('VI-8 copy: "Verify now", the bank-details sub and Konrad\'s three steps, the questions first', () => {
+    it('VI-8 copy: "Verify now", the bank-details sub and the two steps the person acts on, the questions first', () => {
         render()
         expect(screen.getByRole('heading', { name: copy('setupRedesign.verifyInvite.title') })).toBeInTheDocument()
         expect(screen.getByText(copy('setupRedesign.verifyInvite.sub'))).toBeInTheDocument()
@@ -294,7 +294,6 @@ describe('12 Celebration: the verify invite (flag signup-verify-invite)', () => 
         expect(steps.map((step) => step.textContent)).toEqual([
             `1${copy('setupRedesign.verifyInvite.stepQuestions')}`,
             `2${copy('setupRedesign.verifyInvite.stepPhoto')}`,
-            `3${copy('setupRedesign.verifyInvite.stepReview')}`,
         ])
         expect(steps[0]).toHaveAttribute('aria-current', 'step')
         expect(steps[1]).not.toHaveAttribute('aria-current')

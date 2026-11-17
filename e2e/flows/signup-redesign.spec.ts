@@ -932,7 +932,7 @@ test.describe('sign-up redesign journeys', () => {
             const remindLater = (page: Page) =>
                 page.getByRole('button', { name: copy('en', 'setupRedesign.verifyInvite.remindLater') })
 
-            test('one screen: Verify now, the 3 steps and Remind me later; no redirect; Remind me later opens Home', async ({
+            test('one screen: Verify now, the 2 steps and Remind me later; no redirect; Remind me later opens Home', async ({
                 page,
                 context,
                 baseURL,
@@ -940,7 +940,7 @@ test.describe('sign-up redesign journeys', () => {
                 await verifyInviteFlagOn(context)
                 if (!(await organicSignupToCelebration(page, context, baseURL!, 'luckyotter'))) return
                 await expect(page.getByText(copy('en', 'setupRedesign.verifyInvite.sub'))).toBeVisible()
-                await expect(page.getByTestId('setup-redesign-verify-steps').getByRole('listitem')).toHaveCount(3)
+                await expect(page.getByTestId('setup-redesign-verify-steps').getByRole('listitem')).toHaveCount(2)
                 await expect(verifyNow(page)).toBeVisible()
                 await expect(remindLater(page)).toBeVisible()
                 // the old 4.5 s redirect is gone on this path
