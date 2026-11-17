@@ -1,5 +1,6 @@
 import { addBreadcrumb, captureException } from '@sentry/nextjs'
 import { nativePasskeyFailure } from './native-passkey-errors'
+import { passkeyFailureFields } from './passkey-failure-fields'
 
 // Recovery, reporting and monitoring policy: https://github.com/peanutprotocol/mono/blob/main/engineering/ui/passkey-failures.md
 type PasskeyOperation = 'login' | 'registration' | 'sign-user-op' | 'send-user-op'
@@ -36,6 +37,7 @@ export function reportPasskeyFailure(error: unknown, operation: PasskeyOperation
         level: reason.startsWith('association_') ? 'error' : 'warning',
         fingerprint: ['passkey-failure', operation, reason],
         tags: { error_type: 'passkey_failure', passkey_operation: operation, passkey_reason: reason },
+        extra: passkeyFailureFields(error),
     })
     return true
 }

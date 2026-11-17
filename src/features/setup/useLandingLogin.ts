@@ -16,6 +16,7 @@ import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { isCapacitor } from '@/utils/capacitor'
 import { disableDemoMode } from '@/utils/demo'
 import { useNativePlatform } from '@/utils/native-platform'
+import { loadPasskeyDeviceFacts, passkeyFailureFields } from '@/utils/passkey-failure-fields'
 import {
     classifyPasskeyError,
     getPasskeyErrorCode,
@@ -101,6 +102,7 @@ export function useLandingLogin() {
             Sentry.captureException(error, { extra: { errorCode } })
         }
         posthog.capture(ANALYTICS_EVENTS.SIGNUP_LOGIN_ERROR, {
+            ...passkeyFailureFields(error),
             error_code: errorCode,
             native: isCapacitor(),
             recovery_drawer: recovery,
@@ -110,6 +112,7 @@ export function useLandingLogin() {
     const login = async () => {
         trackError('log_in', null)
         setIsAccountDeleted(false)
+        void loadPasskeyDeviceFacts()
         try {
             await handleLoginClick()
         } catch (e) {

@@ -44,8 +44,14 @@ export function sanitizePasskeyDiagnostics(value: unknown): Record<string, strin
         output.attempt_id = input.attempt_id
         output.native_settled_after_timeout = true
     }
-    if (typeof input.nativeException === 'string' && /^[A-Za-z]{1,80}$/.test(input.nativeException)) {
-        output.nativeException = input.nativeException
-    }
+    if (isNativeExceptionType(input.nativeException)) output.nativeException = input.nativeException
     return output
+}
+
+// patch peanut.3+ sends the androidx credential type, e.g. "android.credentials.GetCredentialException.TYPE_USER_CANCELED",
+// because R8 renames classes in release builds. Older binaries send a simple class name. Only these shapes pass.
+const CREDENTIAL_TYPE = /^androidx?\.credentials\.[A-Za-z_.]{1,100}(?:\/androidx\.credentials\.TYPE_[A-Z_]{1,60})?$/
+
+function isNativeExceptionType(value: unknown): value is string {
+    return typeof value === 'string' && (/^[A-Za-z]{1,80}$/.test(value) || CREDENTIAL_TYPE.test(value))
 }
