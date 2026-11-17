@@ -378,6 +378,8 @@ describe('11 Final confirm: states', () => {
         await waitFor(() => expect(later).toBeEnabled())
         fireEvent.click(later)
         await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1))
+        // the step skips the celebration for an unconfirmed account
+        expect(onComplete).toHaveBeenCalledWith({ deferred: true })
         expect(signupControls(capture)).toContain('finish_later:tap')
         expect(events(ANALYTICS_EVENTS.SIGNUP_TEST_TX_DEFERRED)).toEqual([
             { transient_failures: 2, signature_check: 'valid' },

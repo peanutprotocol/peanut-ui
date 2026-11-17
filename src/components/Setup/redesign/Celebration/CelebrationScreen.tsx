@@ -15,13 +15,15 @@ import { useCelebrationRedirect } from './useCelebrationRedirect'
  * account's name, and where the app goes next. It leaves on its own after 4.5 s. A sign-up that started from a
  * claim link says it goes back to the link (`claim-link`); the redirect itself is dev's. Contract P4 § 5.
  */
-export function CelebrationScreen() {
+export function CelebrationScreen({ quiet = false }: { quiet?: boolean }) {
     const t = useTranslations('setupRedesign.done')
     const { signupCompleted, signupEntryFlow, username: draftUsername } = useSetupFlowContext()
     const { user } = useAuth()
-    useCelebrationRedirect(signupCompleted)
+    useCelebrationRedirect(signupCompleted, quiet)
 
     if (!signupCompleted) return null
+    // Confirm later: the account is not confirmed yet, so leave at once without the party
+    if (quiet) return <Loading />
     const claim = signupEntryFlow === 'claim'
     const state = claim ? 'claim-link' : 'default'
     const username = user?.user.username || draftUsername
