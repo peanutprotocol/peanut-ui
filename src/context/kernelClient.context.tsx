@@ -301,7 +301,7 @@ export const createKernelClientForChain = async <C extends Chain>(
     // demo mode hard-stop: no UserOp from any flow can reach the chain.
     const realSendUserOperation = kernelClient.sendUserOperation.bind(kernelClient)
     kernelClient.sendUserOperation = (async (args: unknown) => {
-        if (isDemoMode()) return `0x${'de'.repeat(32)}` as Hash
+        if ((isDemoMode() || (typeof window !== 'undefined' && (window as unknown as {__screenCapture?: boolean}).__screenCapture === true)) /* screen-capture-adapter-v1 */) return `0x${'de'.repeat(32)}` as Hash
         return realSendUserOperation(args as never)
     }) as typeof kernelClient.sendUserOperation
 
@@ -386,7 +386,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
         // Demo mode, and dev fixtures: no passkey/kernel client — synthesize the
         // address and report ready. Without this a fixture screen waits forever
         // on a kernel address it can never get.
-        if (isDemoMode() || ensureActiveFixture()) {
+        if ((isDemoMode() || (typeof window !== 'undefined' && (window as unknown as {__screenCapture?: boolean}).__screenCapture === true)) /* screen-capture-adapter-v1 */ || ensureActiveFixture()) {
             zeroDevFlowActions.setAddress(DEMO_ADDRESS)
             zeroDevFlowActions.setIsKernelClientReady(true)
             return

@@ -34,6 +34,10 @@ type FetchOptions = RequestInit & {
 }
 
 async function callApi(path: string, options?: FetchOptions): Promise<Response> {
+    /* screen-capture-adapter-v1 */
+    if (typeof window !== 'undefined' && (window as unknown as {__screenCapture?: boolean}).__screenCapture) {
+        return fetch('/screen-capture-api' + path, options)
+    }
     // Explicit demo sessions route to synthetic data before any auth/network work.
     // Lazy import keeps the fixtures out of the initial bundle.
     if (isDemoMode()) return import('./demo-api').then((m) => m.demoRespond(path, options))

@@ -370,7 +370,7 @@ export const getWebSocketInstance = (username?: string): PeanutWebSocket | null 
     // Demo mode and dev fixtures have no backend/charges socket — returning null
     // is the no-op (callers already handle it) and avoids the mixed-content
     // wss:// failure, plus an endless reconnect loop against a dead port.
-    if (isDemoMode() || ensureActiveFixture()) return null
+    if ((isDemoMode() || (typeof window !== 'undefined' && (window as unknown as {__screenCapture?: boolean}).__screenCapture === true)) /* screen-capture-adapter-v1 */ || ensureActiveFixture()) return null
     // Can't connect without a username — the server route is /ws/charges/:username.
     // Returning null lets callers bail out and re-try once auth is ready.
     if (!username) return null

@@ -208,7 +208,7 @@ export const useWallet = () => {
     // peek, not ensure: this runs in the render body, and ensureActiveFixture
     // writes (sessionStorage + cookie). api-fetch does the promotion write.
     const demoMode = useHydrationSnapshot(
-        () => isDemoMode() || !!peekActiveFixture(),
+        () => (isDemoMode() || (typeof window !== 'undefined' && (window as unknown as {__screenCapture?: boolean}).__screenCapture === true)) /* screen-capture-adapter-v1 */ || !!peekActiveFixture(),
         () => false
     )
     const demoBalanceUnits = useDemoBalanceUnits()
