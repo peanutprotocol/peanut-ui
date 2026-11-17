@@ -245,7 +245,10 @@ class SignupStub {
                             json: { code: 'EMAIL_ON_ACTIVE_ACCOUNT', message: 'Email already in use' },
                         }
                     if (/^dormant@/i.test(update.email))
-                        return { status: 409, json: { code: 'EMAIL_IN_USE', message: 'Email already in use' } }
+                        return {
+                            status: 409,
+                            json: { code: 'EMAIL_ON_DORMANT_ACCOUNT', message: 'Email already in use' },
+                        }
                     this.registered.email = update.email
                 }
                 if ('residenceCountry' in update || 'nationality' in update) this.registered.residence = update

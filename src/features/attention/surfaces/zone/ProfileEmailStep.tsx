@@ -40,7 +40,7 @@ export default function ProfileEmailStep({ onComplete, onSkip }: { onComplete: (
         setSaving(true)
         try {
             const response = await updateUserById({ userId, email: trimmed })
-            if ('code' in response && response.code === 'EMAIL_IN_USE') {
+            if ('code' in response && response.code === 'EMAIL_ON_DORMANT_ACCOUNT') {
                 setDeferred(true)
                 return
             }

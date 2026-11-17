@@ -173,10 +173,12 @@ export function useEmailStep() {
                 }))
                 if (result.error) {
                     const code = 'code' in result ? result.code : undefined
-                    // The API sends the same text with both codes; the text alone is an older API (EMAIL_IN_USE).
-                    const onEstablished = code === 'EMAIL_ON_ACTIVE_ACCOUNT'
+                    // Only EMAIL_ON_DORMANT_ACCOUNT lets sign-up go on. EMAIL_IN_USE, or the text alone, is an older API
+                    // that cannot tell holders apart, so it is the taken state: never defer an established holder's email.
+                    const deferrable = code === 'EMAIL_ON_DORMANT_ACCOUNT'
                     const duplicate =
-                        onEstablished ||
+                        deferrable ||
+                        code === 'EMAIL_ON_ACTIVE_ACCOUNT' ||
                         code === 'EMAIL_IN_USE' ||
                         result.error === 'This email is already associated with another account'
                     const protectedFailure =
@@ -211,8 +213,8 @@ export function useEmailStep() {
                         trackError('email', protectedFailure)
                         return
                     }
-                    setMode(onEstablished ? 'taken' : duplicate ? 'deferred' : 'failed')
-                    trackError('email', onEstablished ? 'already_registered' : duplicate ? 'deferred' : 'save_failed')
+                    setMode(deferrable ? 'deferred' : duplicate ? 'taken' : 'failed')
+                    trackError('email', deferrable ? 'deferred' : duplicate ? 'already_registered' : 'save_failed')
                     return
                 }
                 // Profile and KYC read this shared account cache. Reflect the acknowledged write even if the

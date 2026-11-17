@@ -15830,7 +15830,7 @@ export interface paths {
                             message: string;
                             success: boolean;
                         } | {
-                            code: "EMAIL_IN_USE" | "EMAIL_ON_ACTIVE_ACCOUNT";
+                            code: "EMAIL_ON_ACTIVE_ACCOUNT" | "EMAIL_ON_DORMANT_ACCOUNT";
                             error: string;
                         } | {
                             code: "RESIDENCE_CHANGE_UNAVAILABLE" | "identity_submitted";

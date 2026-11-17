@@ -30231,13 +30231,13 @@
 													"anyOf": [
 														{
 															"enum": [
-																"EMAIL_IN_USE"
+																"EMAIL_ON_ACTIVE_ACCOUNT"
 															],
 															"type": "string"
 														},
 														{
 															"enum": [
-																"EMAIL_ON_ACTIVE_ACCOUNT"
+																"EMAIL_ON_DORMANT_ACCOUNT"
 															],
 															"type": "string"
 														}

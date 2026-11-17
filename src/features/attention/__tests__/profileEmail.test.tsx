@@ -230,7 +230,11 @@ test('invalid email cannot submit or settle the ask', async () => {
     expect(screen.getByText(en.kyc.provideEmail.invalidEmail)).toBeInTheDocument()
 })
 test('an email a not-established account holds asks to add it again at verification, and does not settle', async () => {
-    mockUpdateUserById.mockResolvedValueOnce({ status: 409, code: 'EMAIL_IN_USE', error: 'raw backend text' })
+    mockUpdateUserById.mockResolvedValueOnce({
+        status: 409,
+        code: 'EMAIL_ON_DORMANT_ACCOUNT',
+        error: 'raw backend text',
+    })
     const p = openEmail()
     fireEvent.change(screen.getByLabelText(en.kyc.provideEmail.emailLabel), {
         target: { value: 'dormant@example.com' },
