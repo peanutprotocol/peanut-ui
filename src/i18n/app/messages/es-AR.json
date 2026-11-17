@@ -2128,9 +2128,6 @@
             "removeCountry": "Quitar {country}"
         },
         "feedbackBanner": "Ayudanos a mejorar Peanut. Compartí tus comentarios acá.",
-        "reConsent": {
-            "whatChanged": "Actualizamos los documentos de abajo. Los cambios principales: agregamos a Avenia como socio de pagos para Pix en Brasil, y la Política de privacidad ahora describe las grabaciones de sesión y nombra a más proveedores de servicios que usamos. No hay apuro: leelos cuando quieras y seguí usando Peanut como siempre."
-        },
         "savedAddresses": {
             "nicknameRequired": "Agregá un nombre para guardar esta dirección."
         },
