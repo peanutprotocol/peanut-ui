@@ -95,10 +95,11 @@ const ReConsentModal = ({
             description={
                 /* The first sentence answers the question this modal actually raises
                  * ("is something being taken from me?") before anything else. The
-                 * what-changed line describes the 2026-07-15 tos-v1 rewrite — revisit
-                 * it when a future version bump shows this modal for a different
-                 * change. "No rush" is literal: "Not now" snoozes to the effective
-                 * date (see utils.ts). */
+                 * what-changed line describes the update published in November 2026
+                 * (Pix through Avenia, session recordings, more named service
+                 * providers) — revisit it when a future version bump shows this modal
+                 * for a different change. "No rush" is literal: "Not now" snoozes to
+                 * the effective date (see utils.ts). */
                 <div className="space-y-3">
                     <p>{t('reConsent.reassurance')}</p>
                     <p>{t('reConsent.whatChanged')}</p>
