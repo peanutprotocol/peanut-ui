@@ -4,7 +4,13 @@ import { addBreadcrumb, captureException } from '@/utils/sentry-lazy'
 import { isCapacitor } from '@/utils/capacitor'
 import { setAuthToken } from '@/utils/auth-token'
 import { setCachedStepUpToken } from '@/services/step-up-cache'
-import { beginCeremonyTiming, openCredentialCall, type CeremonyTiming } from '@/utils/webauthn-ceremony-telemetry'
+import {
+    beginCeremonyTiming,
+    openCredentialCall,
+    type CeremonyTiming,
+    type CeremonyTimeoutOutcome,
+} from '@/utils/webauthn-ceremony-telemetry'
+import { watchNativeAppActive } from '@/utils/native-app-state'
 
 /**
  * Guards for the passkey ceremony (TASK-21782).
@@ -20,6 +26,16 @@ import { beginCeremonyTiming, openCredentialCall, type CeremonyTiming } from '@/
 // cancel a ceremony the user is legitimately still completing.
 export const CEREMONY_TIMEOUT_MS = 60_000
 
+// Android counts only time the app is in front, and while the native request is pending (the sheet
+// is up) it waits this long instead of CEREMONY_TIMEOUT_MS. Native timeouts at 60 s landed at a
+// median of 59.7 s, so that bound cut off people still using the sheet. Three minutes covers a slow
+// fingerprint retry or the PIN fallback, and still frees the button when the sheet's callback never fires.
+export const ANDROID_SHEET_HUNG_MS = 180_000
+
+// After the person comes back to the app, the ceremony gets this much more foreground time. A sheet
+// that closed delivers its native result within about 170 ms; one that is still open stays usable.
+export const ANDROID_RETURN_GRACE_MS = 30_000
+
 // Web cross-device (QR/hybrid) and security-key ceremonies legitimately run
 // minutes, so the web bound is generous — it exists only so a ceremony the
 // browser never settles can't leave isLoggingIn true (and the landing
@@ -31,10 +47,18 @@ export const WEB_CEREMONY_TIMEOUT_MS = 300_000
 export const SHIM_WAIT_TIMEOUT_MS = 3_000
 const SHIM_POLL_INTERVAL_MS = 100
 
+/**
+ * `left_app`: on Android the app went to the background during the ceremony (or a full-screen
+ * provider screen covered it) and the ceremony did not settle after the person came back.
+ * `sheet_hung`: the app stayed in front the whole time. Web and iOS do not track the app state,
+ * so their timeouts are always `sheet_hung`.
+ */
 export class CeremonyTimeoutError extends Error {
-    constructor(ms: number) {
+    readonly outcome: CeremonyTimeoutOutcome
+    constructor(ms: number, outcome: CeremonyTimeoutOutcome = 'sheet_hung') {
         super(`passkey ceremony did not settle within ${ms}ms`)
         this.name = 'CeremonyTimeoutError'
+        this.outcome = outcome
     }
 }
 
@@ -219,6 +243,55 @@ export const raceCeremonyTimeout = <T>(
 }
 
 /**
+ * The Android form of raceCeremonyTimeout. The budget pauses while the app is in the background,
+ * so a person who switches apps is not timed out behind their back. The background signal is
+ * appStateChange, which the passkey sheet itself does not trigger (see native-app-state).
+ */
+const raceAndroidCeremony = <T>(
+    promise: Promise<T>,
+    onTimeout: (outcome: CeremonyTimeoutOutcome) => void
+): Promise<T> => {
+    let usedMs = 0
+    let activeSince: number | undefined = Date.now()
+    // Foreground time already used when the app last came back; undefined while it never left.
+    let usedAtReturn: number | undefined
+    let timer: ReturnType<typeof setTimeout> | undefined
+    let stopWatching = () => {}
+    const timeout = new Promise<never>((_, reject) => {
+        const check = () => {
+            clearTimeout(timer)
+            if (activeSince === undefined) return
+            const spent = usedMs + Date.now() - activeSince
+            const budget = openCredentialCall()?.inFlight ? ANDROID_SHEET_HUNG_MS : CEREMONY_TIMEOUT_MS
+            const limit = usedAtReturn === undefined ? budget : Math.min(budget, usedAtReturn + ANDROID_RETURN_GRACE_MS)
+            if (spent < limit) {
+                timer = setTimeout(check, limit - spent)
+                return
+            }
+            const outcome = usedAtReturn === undefined ? 'sheet_hung' : 'left_app'
+            onTimeout(outcome)
+            reject(new CeremonyTimeoutError(spent, outcome))
+        }
+        stopWatching = watchNativeAppActive((isActive) => {
+            if (isActive && activeSince === undefined) {
+                activeSince = Date.now()
+                usedAtReturn = usedMs
+                check()
+            } else if (!isActive && activeSince !== undefined) {
+                usedMs += Date.now() - activeSince
+                activeSince = undefined
+                clearTimeout(timer)
+            }
+        })
+        check()
+    })
+    return Promise.race([promise, timeout]).finally(() => {
+        clearTimeout(timer)
+        stopWatching()
+    }) as Promise<T>
+}
+
+/**
  * A browser keeps an abandoned get()/create() pending and rejects the retry
  * with "A request is already pending" (PEANUT-UI-TBB). The ceremony's abort
  * signal belongs to @simplewebauthn's shared service, which the zerodev SDK
@@ -233,7 +306,7 @@ const cancelBrowserCeremony = (): void => {
 /**
  * The one wrapper both login and register ceremonies route through: on
  * Capacitor, gate on the shim actually being installed and bound the
- * ceremony to CEREMONY_TIMEOUT_MS; on web, use the generous
+ * ceremony to CEREMONY_TIMEOUT_MS (Android: raceAndroidCeremony); on web, use the generous
  * WEB_CEREMONY_TIMEOUT_MS bound (hybrid/QR ceremonies legitimately run for
  * minutes, but an abandoned one must not wedge the UI forever).
  *
@@ -304,17 +377,20 @@ export const guardPasskeyCeremony = async <T>(
                       stopListening = () => cancel.removeEventListener('abort', onAbort)
                   })
                 : undefined
-            const result = await raceCeremonyTimeout(
-                cancelled ? Promise.race([scopedOperation, cancelled]) : scopedOperation,
-                native ? CEREMONY_TIMEOUT_MS : WEB_CEREMONY_TIMEOUT_MS,
-                () => {
-                    try {
-                        timing?.timeout()
-                    } catch {}
-                    if (native) androidScope?.expire()
-                    else cancelBrowserCeremony()
-                }
-            )
+            const raced = cancelled ? Promise.race([scopedOperation, cancelled]) : scopedOperation
+            const result = await (androidScope
+                ? raceAndroidCeremony(raced, (outcome) => {
+                      try {
+                          timing?.timeout(outcome)
+                      } catch {}
+                      androidScope.expire()
+                  })
+                : raceCeremonyTimeout(raced, native ? CEREMONY_TIMEOUT_MS : WEB_CEREMONY_TIMEOUT_MS, () => {
+                      try {
+                          timing?.timeout()
+                      } catch {}
+                      if (!native) cancelBrowserCeremony()
+                  }))
             // The ceremony can settle in the same turn as a retirement; a retired login must not commit a session.
             if (cancel?.aborted) throw new CeremonyCancelledError()
             if (stashedVerifyToken !== null) setAuthToken(stashedVerifyToken)

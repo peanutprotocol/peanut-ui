@@ -81,6 +81,8 @@ export type CeremonyRecord = {
 }
 
 type Phase = 'options' | 'native' | 'verify'
+/** How an Android passkey ceremony timed out; CeremonyTimeoutError in passkeyCeremony.utils defines each value. */
+export type CeremonyTimeoutOutcome = 'sheet_hung' | 'left_app'
 type CeremonyTimingProperties = {
     attempt_id: string
     options_ms: number | null
@@ -89,6 +91,7 @@ type CeremonyTimingProperties = {
     total_ms: number
     backgrounded_ms: number
     timeout_phase?: Phase | 'other'
+    timeout_outcome?: CeremonyTimeoutOutcome
 }
 
 export type CeremonyTiming = {
@@ -98,7 +101,7 @@ export type CeremonyTiming = {
     attach(record: CeremonyRecord): void
     update(record: CeremonyRecord, fields: Partial<CeremonyRecord>): void
     request(path: string): void
-    timeout(): void
+    timeout(outcome?: CeremonyTimeoutOutcome): void
     finish(error?: unknown): void
     dispose(): void
     operationStarted(): void
@@ -179,6 +182,7 @@ export function beginCeremonyTiming(
     let finished = false
     let snapshot: CeremonyTimingProperties | undefined
     let timedOut = false
+    let timeoutOutcome: CeremonyTimeoutOutcome | undefined
     let hiddenAt: number | undefined
     let backgrounded = 0
     let kind: 'get' | 'create' = purpose.split('>').pop() === 'registration' ? 'create' : 'get'
@@ -220,6 +224,7 @@ export function beginCeremonyTiming(
                           (['verify', 'native', 'options'] as const).find(
                               (phase) => (phases[phase]?.pending ?? 0) > 0
                           ) ?? 'other',
+                      ...(timeoutOutcome ? { timeout_outcome: timeoutOutcome } : {}),
                   }
                 : {}),
         }
@@ -298,10 +303,11 @@ export function beginCeremonyTiming(
                 if (purpose === 'unknown') purpose = currentCeremonyPurpose()
             })
         },
-        timeout() {
+        timeout(outcome?: CeremonyTimeoutOutcome) {
             safely(() => {
                 if (!finished) {
                     timedOut = true
+                    timeoutOutcome = outcome
                     freeze()
                 }
             })

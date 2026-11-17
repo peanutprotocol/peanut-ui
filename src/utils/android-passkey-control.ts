@@ -163,7 +163,8 @@ export function installAndroidPasskeyControl(plugin: CapacitorPasskeyPlugin): vo
                             })
                         })
                     },
-                    { attemptId }
+                    // The guard's Android deadline pauses in the background and can outlast this timer.
+                    { attemptId, untimed: scope !== undefined }
                 )
                 .then((result) => {
                     // Reject before the shim lets the SDK submit register/verify and reserve the username.
