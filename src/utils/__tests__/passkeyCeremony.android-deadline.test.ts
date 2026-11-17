@@ -120,6 +120,23 @@ describe('guardPasskeyCeremony on Android', () => {
         expect(timing.timeout).toHaveBeenCalledWith('network_hung')
     })
 
+    it('sees a sheet that opens and closes before 60 s, and gives the network after it a full 60 s', async () => {
+        const { guardPasskeyCeremony, CEREMONY_TIMEOUT_MS } = await setup()
+        const timing = fakeTiming()
+        const result = outcome(guardPasskeyCeremony(() => new Promise<never>(() => {}), { timing }))
+        await jest.advanceTimersByTimeAsync(2_000)
+        mockNativeInFlight = true
+        await jest.advanceTimersByTimeAsync(18_000)
+        // The sheet closes at 20 s; register/verify then hangs.
+        mockNativeInFlight = false
+        await jest.advanceTimersByTimeAsync(1_000 + CEREMONY_TIMEOUT_MS - 1)
+        expect(timing.timeout).not.toHaveBeenCalled()
+        await jest.advanceTimersByTimeAsync(1_000)
+        await expect(result).resolves.toMatchObject({
+            error: { name: 'CeremonyTimeoutError', outcome: 'network_hung' },
+        })
+    })
+
     it('pauses the deadline while the app is in the background', async () => {
         const { guardPasskeyCeremony } = await setup()
         const sheet = deferred<string>()

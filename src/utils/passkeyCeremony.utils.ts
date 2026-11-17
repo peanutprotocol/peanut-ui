@@ -275,8 +275,9 @@ const raceAndroidCeremony = <T>(
             const budget = sheetOpen ? ANDROID_SHEET_HUNG_MS : (sheetSettledAt ?? 0) + CEREMONY_TIMEOUT_MS
             const limit = usedAtReturn === undefined ? budget : Math.min(budget, usedAtReturn + ANDROID_RETURN_GRACE_MS)
             if (spent < limit) {
-                // While the sheet is open, look again soon: nothing else tells this timer the sheet closed.
-                timer = setTimeout(check, sheetOpen ? Math.min(limit - spent, SHEET_RECHECK_MS) : limit - spent)
+                // Look again every second: nothing else tells this timer the sheet opened or closed, and a
+                // short sheet must still give the network after it a full 60 s.
+                timer = setTimeout(check, Math.min(limit - spent, SHEET_RECHECK_MS))
                 return
             }
             const outcome = usedAtReturn !== undefined ? 'left_app' : sheetOpen ? 'sheet_hung' : 'network_hung'
