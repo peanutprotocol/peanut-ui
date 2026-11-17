@@ -69,8 +69,6 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
     const { fetchUser } = useAuth()
     // the provider the route names, for the provider row and its sheet
     const providerId = pixProviderId(route.provider)
-    // the route's step at the flow's entry: terms that arrive once the flow runs wait for the next entry
-    const ready = usePixFlowSetupState(route) === 'ready'
     const leaveFlow = () => (isFromSendFlow ? router.replace('/send') : backToWithdraw())
 
     // set once Confirm opened the withdrawal: from then on the URL shows its outcome, never the form again
@@ -111,6 +109,8 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
     // The funding was sent, the page reloaded after Confirm opened the withdrawal (the signature
     // is gone with the memory), or a submit may have gone out: the last step is the only way on.
     const showOutcome = isSent || (!!intentId && !submit.opened) || !!pending
+    // the provider's terms gate each new withdrawal or send, never one already opened
+    const ready = usePixFlowSetupState(route, showOutcome || !!submit.opened) === 'ready'
     useEffect(() => {
         if (showOutcome && step !== 'success') void goTo('success')
     }, [showOutcome, step, goTo])

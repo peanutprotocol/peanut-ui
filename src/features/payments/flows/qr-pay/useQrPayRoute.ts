@@ -16,14 +16,15 @@ import { isPixEmvcoQr } from '@/utils/withdraw.utils'
  *   route is ready or paused (the flow shows the pause), and a payment already opened (`?intentId=`),
  *   which shows its outcome whatever the route says now.
  * - `setup`: the route's step before Pix works (verify, the provider's terms, the account the first
- *   use opens, the wait). The terms gate the scan's entry only (`usePixFlowSetupState`).
+ *   use opens, the wait). The terms gate each scan, never a payment already opened
+ *   (`usePixFlowSetupState`).
  * - `support`: the provider refused the user; support fixes it.
  */
 export type QrPayRouteStep = 'loading' | 'flow' | 'setup' | 'support'
 
 export function qrPayRouteStep(input: {
     route: CapabilityRoute | undefined
-    /** The route's setup state as the flow reads it at its entry (`usePixFlowSetupState`). */
+    /** The route's setup state as the flow reads it for this attempt (`usePixFlowSetupState`). */
     setupState: PixSetupState
     viaPixRoutes: boolean
     isPixCode: boolean
@@ -59,7 +60,8 @@ export function useQrPayRoute(qrCode: string, qrType: string | null) {
     const isPixCode = qrType === EQrType.PIX || isPixEmvcoQr(qrCode)
     const route = isPixCode ? findPixRoute(capabilities.routes, 'pay') : undefined
     const viaPixRoutes = isPixCode && (!!intentId || pixPaysThroughPayRoutes(route))
-    const setupState = usePixFlowSetupState(route)
+    // one scan is one attempt: the page mounts anew for each scan
+    const setupState = usePixFlowSetupState(route, !!intentId)
     return {
         route,
         viaPixRoutes,

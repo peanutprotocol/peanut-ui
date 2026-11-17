@@ -22,10 +22,12 @@ const route = (overrides: Partial<CapabilityRoute> = {}): CapabilityRoute => ({
     candidates: [],
     ...overrides,
 })
-const renderGate = (initial: CapabilityRoute) =>
-    renderHook(({ r }: { r: CapabilityRoute }) => usePixFlowSetupState(r), { initialProps: { r: initial } })
+const renderGate = (initial: CapabilityRoute, opened = false) =>
+    renderHook(({ r, o }: { r: CapabilityRoute; o: boolean }) => usePixFlowSetupState(r, o), {
+        initialProps: { r: initial, o: opened },
+    })
 
-// TASK-25073: Avenia's terms gate a Pix flow at its entry, never in the middle
+// TASK-25073: Avenia's terms gate each new attempt of a Pix flow, never a payment already opened
 describe('usePixFlowSetupState', () => {
     beforeEach(() => {
         mockNextActions = []
@@ -36,16 +38,16 @@ describe('usePixFlowSetupState', () => {
         expect(result.current).toBe('accept-terms')
 
         // accepted: the read after it names no terms
-        rerender({ r: route() })
+        rerender({ o: false, r: route() })
         expect(result.current).toBe('ready')
     })
 
     it('a new user accepts the terms, then the account opens, then the flow starts', () => {
         const { result, rerender } = renderGate(route({ state: 'action_required', action: 'activate', terms: TERMS }))
         expect(result.current).toBe('accept-terms')
-        rerender({ r: route({ state: 'action_required', action: 'activate' }) })
+        rerender({ o: false, r: route({ state: 'action_required', action: 'activate' }) })
         expect(result.current).toBe('activate')
-        rerender({ r: route() })
+        rerender({ o: false, r: route() })
         expect(result.current).toBe('ready')
     })
 
@@ -53,19 +55,32 @@ describe('usePixFlowSetupState', () => {
         const { result, rerender } = renderGate(route())
         expect(result.current).toBe('ready')
 
-        rerender({ r: route({ terms: TERMS }) })
+        rerender({ o: false, r: route({ terms: TERMS }) })
         expect(result.current).toBe('ready')
 
         mockNextActions = [TERMS_ACTION]
-        rerender({ r: route({ state: 'action_required', action: 'accept-tos:avenia' }) })
+        rerender({ o: false, r: route({ state: 'action_required', action: 'accept-tos:avenia' }) })
+        expect(result.current).toBe('ready')
+    })
+
+    it('terms never replace an opened payment, and the next attempt in the same screen asks for them', () => {
+        // a deposit code on screen, read with the route ready
+        const { result, rerender } = renderGate(route(), true)
+        rerender({ o: true, r: route({ terms: TERMS }) })
+        expect(result.current).toBe('ready')
+
+        // Start new deposit: the payment closes, and the new one asks first
+        rerender({ o: false, r: route({ terms: TERMS }) })
+        expect(result.current).toBe('accept-terms')
+        rerender({ o: false, r: route() })
         expect(result.current).toBe('ready')
     })
 
     it('a flow that started still meets every other step, as before', () => {
         const { result, rerender } = renderGate(route())
-        rerender({ r: route({ state: 'pending', terms: TERMS }) })
+        rerender({ o: false, r: route({ state: 'pending', terms: TERMS }) })
         expect(result.current).toBe('pending')
-        rerender({ r: route({ state: 'action_required', action: 'verify', terms: TERMS }) })
+        rerender({ o: false, r: route({ state: 'action_required', action: 'verify', terms: TERMS }) })
         expect(result.current).toBe('verify')
     })
 

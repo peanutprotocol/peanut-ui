@@ -69,10 +69,10 @@ export function PixDepositFlow({ route }: { route: CapabilityRoute }) {
     const leaveToHome = useReturnTo(originPastHubs(returnTo, ADD_MONEY_HUBS) ?? '/home')
     const onBack = useSafeBack(returnTo ?? '/add-money?method=bank')
     const step: PixDepositStep = urlState.step ?? 'inputAmount'
-    // the route's step at the flow's entry: terms that arrive once the flow runs wait for the next entry
-    const ready = usePixFlowSetupState(route) === 'ready'
     const providerId = pixProviderId(route.provider)
     const intentId = urlState.intentId
+    // the provider's terms gate each new deposit, never the code of one already made
+    const ready = usePixFlowSetupState(route, !!intentId) === 'ready'
 
     const [usdAmount, setUsdAmount] = useState('')
     const [brlAmount, setBrlAmount] = useState('')
