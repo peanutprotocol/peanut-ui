@@ -85,17 +85,17 @@ export function PaymentPlanScreen(_props: StepComponentProps) {
     const compact = device === 'sm'
     // QR payments run on Manteca: Argentina and Brazil only (FLEET-RULES 9)
     const qrHome = isMantecaSupportedCountryCode(residenceCountry)
-    // TEMPORARY (TASK-25063): options a and c show the one line; b moves it into a "Why these options?" sheet.
-    const helper =
-        infoLine === 'b' ? null : (
-            <p
-                className="mt-3 flex items-center gap-1 text-body-xs text-foreground-secondary signup-sm:mt-2"
-                data-testid="setup-plan-hint"
-            >
-                <Icon name="info" size={16} className="shrink-0" />
-                {t('plan.hint')}
-            </p>
-        )
+    // The one helper line (Konrad, addendum 2): more ways to pay can be unlocked later, so the choice is not a hard one.
+    const helper = (
+        <p
+            className="mt-3 flex items-center gap-1 text-body-xs text-foreground-secondary signup-sm:mt-2"
+            data-testid="setup-plan-change-later"
+        >
+            <Icon name="info" size={16} className="shrink-0" />
+            {t('plan.changeLater')}
+        </p>
+    )
+    // TEMPORARY (TASK-25063): option b adds a "Why these options?" sheet that holds "Options depend on your residence."
     const whyLink =
         infoLine === 'b' ? (
             <WhyWeAskSheet

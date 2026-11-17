@@ -817,7 +817,8 @@
             "hint": "Las opciones dependen de tu residencia.",
             "payQrAbroad": "Pagos QR en Argentina y Brasil",
             "whyOptions": "¿Por qué estas opciones?",
-            "whyOptionsTitle": "Por qué estas opciones"
+            "whyOptionsTitle": "Por qué estas opciones",
+            "changeLater": "Podés cambiarlo después."
         },
         "email": {
             "title": "Peanut necesita un email.",

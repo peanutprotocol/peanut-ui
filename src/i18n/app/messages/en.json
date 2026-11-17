@@ -1285,7 +1285,8 @@
             "hint": "Options depend on your residence.",
             "payQrAbroad": "QR payments in Argentina and Brazil",
             "whyOptions": "Why these options?",
-            "whyOptionsTitle": "Why these options"
+            "whyOptionsTitle": "Why these options",
+            "changeLater": "You can change this later."
         },
         "email": {
             "title": "Peanut needs an email.",

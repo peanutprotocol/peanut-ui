@@ -13,7 +13,7 @@ import { FUNDING_PILL_KEY, FUNDING_SHEET_KEY, PAYMENT_PILL_KEY, PAYMENT_SHEET_KE
  * clauses 16 px apart (8 px on a small phone). Each lead word ("with", "con") shares its line with its pill, and that
  * line holds nothing else, so the lines stay the same in every state (mock freezeLines). The lead lines are balanced, so
  * no lone word sits above a pill line (es-AR 320 "Primero vas a / agregar dinero"). Under it the screen's helper line
- * (v7: "Options depend on your residence."). The fit measures the sentence and that line together, so the pair never
+ * ("You can change this later.", addendum 2). The fit measures the sentence and that line together, so the pair never
  * runs under the CTA.
  */
 export function PlanSentence({

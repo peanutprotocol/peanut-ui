@@ -1285,7 +1285,8 @@
             "hint": "As opções dependem da sua residência.",
             "payQrAbroad": "Pagamentos QR na Argentina e no Brasil",
             "whyOptions": "Por que essas opções?",
-            "whyOptionsTitle": "Por que essas opções"
+            "whyOptionsTitle": "Por que essas opções",
+            "changeLater": "Você pode mudar isso depois."
         },
         "email": {
             "title": "O Peanut precisa do seu e-mail.",

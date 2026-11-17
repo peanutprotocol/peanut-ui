@@ -610,8 +610,8 @@ async function landingToUsername(page: Page, locale: Locale) {
     // 08: Argentina offers a bank and QR; pick both, then Continue
     await expectScreen(page, 'payment-plan', 'default')
     const panel = panelOf(page)
-    // v7: the one info line under the choice, in default and filled
-    const hint = panel.getByText(t('setupRedesign.plan.hint'), { exact: true })
+    // addendum 2: the one info line under the choice, in default and filled
+    const hint = panel.getByText(t('setupRedesign.plan.changeLater'), { exact: true })
     await expect(hint).toBeVisible()
     await panel
         .getByRole('button', { name: t('setupRedesign.plan.choose') })

@@ -483,20 +483,19 @@ describe('08 Payment plan', () => {
     })
 
     it.each(['en', 'es-AR'] as const)(
-        'v7: one info line "Options depend on your residence." under the sentence, in default and filled; no "change later" (%s)',
+        'addendum 2: the one info line is "You can change this later.", in default and filled; no residence line (%s)',
         async (locale) => {
             const view = render({ residenceCountry: 'PT' }, { locale })
-            const line = () => screen.getByTestId('setup-plan-hint')
+            const line = () => screen.getByTestId('setup-plan-change-later')
             expect(setupState(view.container)).toBe('default')
-            expect(line()).toHaveTextContent(copyRx(`${K}.hint`, {}, locale))
-            expect(line()).toHaveTextContent(OLD_HINT[locale])
+            expect(line()).toHaveTextContent(copyRx(`${K}.changeLater`, {}, locale))
             // it follows the sentence inside the measured block, so the fit keeps both above the CTA
             expect(line().parentElement).toHaveAttribute('data-setup-screen', 'payment-plan')
-            expect(visibleText(view.container)).not.toMatch(/change this later|cambiarlo después/i)
+            expect(visibleText(view.container)).not.toContain(OLD_HINT[locale])
             await view.choose('funding', label('fundCrypto', {}, locale))
             await view.choose('payment', label('payCard', {}, locale))
             expect(setupState(view.container)).toBe('filled')
-            expect(line()).toHaveTextContent(copyRx(`${K}.hint`, {}, locale))
+            expect(line()).toHaveTextContent(copyRx(`${K}.changeLater`, {}, locale))
         }
     )
 
@@ -507,11 +506,15 @@ describe('08 Payment plan', () => {
         expect(label('sheetPayment')).toBe('Make a payment with')
     })
 
-    it('info-line option b: no line on the screen; "Why these options?" under Continue opens the hint in a sheet', async () => {
+    it('info-line option b: the line stays; "Why these options?" under Continue holds "Options depend on your residence."', async () => {
         window.history.replaceState({}, '', '/setup?infoline=b')
         try {
             const view = render({ residenceCountry: 'PT' })
-            await waitFor(() => expect(screen.queryByTestId('setup-plan-hint')).toBeNull())
+            await waitFor(() =>
+                expect(within(footer(view.container)!).getByTestId('setup-plan-why')).toBeInTheDocument()
+            )
+            expect(screen.getByTestId('setup-plan-change-later')).toHaveTextContent(label('changeLater'))
+            expect(visibleText(view.container)).not.toContain(label('hint'))
             fireEvent.click(within(footer(view.container)!).getByTestId('setup-plan-why'))
             const sheet = await waitFor(() => openDialog(copyRx(`${K}.whyOptionsTitle`))!)
             expect(within(sheet).getByText(label('hint'))).toBeInTheDocument()
