@@ -1,4 +1,5 @@
 import type { PasskeyHelpReason, SignupPasskey } from '@/features/setup/useSignupPasskey'
+import { DeviceType } from '@/hooks/useGetDeviceType'
 
 const noop = () => {}
 const noopAsync = async () => {}
@@ -27,5 +28,5 @@ export const previewPasskey = (helpReason: PasskeyHelpReason): SignupPasskey => 
     closeProviderUnsupported: noop,
     retryFromProviderUnsupported: noop,
     signUpInBrowser: noopAsync,
-    deviceType: 'android',
+    deviceType: DeviceType.ANDROID,
 })
