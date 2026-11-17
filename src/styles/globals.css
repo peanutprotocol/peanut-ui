@@ -13,6 +13,13 @@
 @custom-variant short (@media (max-width: 767px) and (max-height: 699px));
 /* The smallest phone viewports (an iPhone SE in Safari): the tightest sign-up panel. */
 @custom-variant tight (@media (max-width: 767px) and (max-height: 579px));
+/* The redesigned sign-up's small phone (the mock's 320x568 check): heading-s titles, tighter panel. Same query as .signup-shell's. */
+/* Block form: the one-line form splits the media list at its comma and emits a broken selector for the second query. */
+@custom-variant signup-sm {
+    @media (max-height: 600px), (max-width: 340px) {
+        @slot;
+    }
+}
 
 @theme {
     /* the v3 legacy palette is GONE — every token had its consumers migrated.
@@ -832,6 +839,82 @@
     }
     .setup-hero-background {
         background-color: var(--setup-hero-background, var(--color-background-setup-hero));
+    }
+
+    /*
+     * The redesigned sign-up shell (src/components/Setup/redesign/shell). The approved mock is drawn on a
+     * 390x844 phone (47px status bar, 34px home indicator) and checked on 320x568 (20px status bar). The
+     * shell sits inside the safe area, so every value is the mock's value measured from the safe area:
+     * stage heights 520/440/300 become 473/393/253, the CTA top 698 becomes 112px above the safe bottom.
+     * Phones between the two sizes scale the stage with the shell height; the CTA keeps its distance to
+     * the bottom. Mock: mono _temp/signup-redesign/r2/scaffold (core/tokens.css, core/shell.css).
+     */
+    .signup-shell {
+        --sr-h: calc(100dvh - var(--safe-top) - var(--safe-bottom));
+        --sr-stage-tall-base: min(473px, calc(var(--sr-h) * 0.62));
+        --sr-stage-std-base: min(393px, calc(var(--sr-h) * 0.515));
+        --sr-stage-compact-base: min(253px, calc(var(--sr-h) * 0.332));
+        --sr-stage-full-base: var(--sr-h);
+        --sr-stage-tall: var(--sr-stage-tall-base);
+        --sr-stage-std: var(--sr-stage-std-base);
+        --sr-stage-compact: var(--sr-stage-compact-base);
+        --sr-stage-full: var(--sr-stage-full-base);
+        --sr-cta-top: calc(var(--sr-h) - 112px);
+        --sr-topbar-top: 4px;
+        --sr-title-top: 61px;
+        --sr-gutter: 24px;
+        --sr-panel-pad: 32px;
+        --sr-slot-h: 64px;
+        --sr-lift-2: 0px;
+        --sr-lift-3: 0px;
+        --sr-step: 500ms;
+        --sr-seam: 300ms;
+        --sr-ease-step: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    /* the 320x568 check phone (and any phone that short or that narrow) */
+    @media (max-height: 600px), (max-width: 340px) {
+        .signup-shell {
+            --sr-stage-tall-base: 310px;
+            --sr-stage-std-base: 260px;
+            --sr-stage-compact-base: 220px;
+            --sr-cta-top: calc(var(--sr-h) - 100px);
+            --sr-title-top: 52px;
+            --sr-gutter: 20px;
+            --sr-panel-pad: 16px;
+            --sr-slot-h: 44px;
+            --sr-lift-2: 20px;
+            --sr-lift-3: 44px;
+        }
+    }
+    /*
+     * Error text inside the shell uses the DS red that reads at 4.5:1 on white and on the error surface (R2-07):
+     * red-600 is 4.8:1, the default foreground-error #ff3b30 only 3.6:1. Field borders keep #ff3b30 (3:1 is enough).
+     */
+    .signup-shell {
+        --color-foreground-error: var(--color-red-600, #e40c0c);
+    }
+    /*
+     * Folded stage (useShellFit): the keyboard is open, or the panel would be too small to use. The stage shrinks to
+     * just under the headline ('title') or to the top bar ('bar'); the art hides, and on 'bar' the headline too.
+     */
+    .signup-shell[data-fold] {
+        --sr-stage-tall: var(--sr-fold-stage);
+        --sr-stage-std: var(--sr-fold-stage);
+        --sr-stage-compact: var(--sr-fold-stage);
+    }
+    .signup-shell[data-fold] [data-setup-art-box],
+    .signup-shell[data-fold='bar'] [data-setup-art-layer] h1 {
+        visibility: hidden;
+    }
+    /*
+     * Standalone links in the footer (Skip, Not now, Log out): LinkButton already extends its hit area to 44 px tall;
+     * this widens it to at least 44 px, centred, without changing how the link looks (R2-08, WCAG 2.5.8).
+     */
+    [data-setup-footer-links] > :is(a, button)::after {
+        left: 50%;
+        right: auto;
+        width: max(100%, 44px);
+        transform: translateX(-50%);
     }
 }
 
@@ -2299,4 +2382,185 @@ input::placeholder {
  */
 html[data-crisp-launcher='hidden'] .crisp-client {
     display: none !important;
+}
+
+/*
+ * Sign-up Residence hero: the country stickers and their stars and sparkles
+ * (ResidenceHero, TASK-24899). Motion and placement follow the approved mock:
+ * each sticker is slapped on 170ms after the last, then wobbles; the five
+ * decorations pop in after the third sticker and twinkle. The mock's hero was
+ * taller than the app's 40dvh one, so the vertical positions are mapped onto the
+ * real box: stickers start under the top bar and shrink with a short hero.
+ * Curves and durations are the mock's own, kept as approved.
+ */
+.residence-hero {
+    position: absolute;
+    inset: 0;
+    container-type: size;
+}
+/* The picture is laid out in a box centred in the hero and never much taller
+   than wide (the approved mock's hero is about square), so on a tall desktop
+   column the stickers stay around the mascot instead of at the column's ends. */
+.residence-scene {
+    position: absolute;
+    inset-inline: 0;
+    top: 50%;
+    --scene: min(100cqh, 105cqw);
+    height: var(--scene);
+    transform: translateY(-50%);
+    /* The back button and the language switcher end 3.5rem below the hero's top
+       (the hero already starts below the safe-area inset; AppShell reserves it).
+       Less of that reaches into the scene when the scene is shorter than the hero. */
+    --bar: max(0px, 3.5rem - (100cqh - var(--scene)) / 2);
+    /* The mascot's canvas, both poses: as tall as fits under the top bar, and
+       at most the mock's 80% of the width. */
+    --cv: min(var(--scene) - var(--bar) + 0.5rem, 80cqw);
+    /* A quarter of the width as in the mock, less on a short hero so that the
+       mascot stays the centre of the picture. */
+    --stk: min(25cqw, var(--cv) * 0.4, 11rem);
+}
+.residence-mascot {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    height: var(--cv);
+    aspect-ratio: 1050 / 1000;
+    transform: translateX(-50%);
+}
+.residence-stickers {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+.residence-sticker {
+    position: absolute;
+    z-index: 3;
+    width: var(--stk);
+    height: var(--stk);
+    transform: rotate(var(--r));
+    filter: drop-shadow(0 calc(var(--stk) * 0.036) 0 rgba(0, 0, 0, 0.28));
+    animation:
+        residence-sticker-slap 0.42s cubic-bezier(0.2, 0.9, 0.3, 1) calc(120ms + var(--i) * 170ms) both,
+        residence-sticker-idle var(--d, 3.2s) ease-in-out calc(580ms + var(--i) * 170ms) infinite alternate;
+}
+.residence-sticker[data-sticker='0'] {
+    --i: 0;
+    left: 1%;
+    top: calc(var(--bar) + 0.5rem);
+    --r: -12deg;
+}
+.residence-sticker[data-sticker='1'] {
+    --i: 1;
+    right: 1%;
+    top: calc(var(--bar) + 0.125rem);
+    --r: 10deg;
+    --d: 3.7s;
+}
+.residence-sticker[data-sticker='2'] {
+    --i: 2;
+    right: -2%;
+    bottom: 2%;
+    --r: -7deg;
+    --d: 2.9s;
+}
+.residence-deco {
+    position: absolute;
+    z-index: 2;
+    height: auto;
+    transform: rotate(var(--a)) scaleX(var(--fx, 1));
+    animation:
+        residence-deco-in 0.35s cubic-bezier(0.3, 1.7, 0.5, 1) calc(770ms + var(--i) * 90ms) both,
+        residence-deco-twinkle var(--t, 2.4s) ease-in-out calc(1120ms + var(--i) * 90ms) infinite alternate;
+}
+.residence-deco[data-deco='0'] {
+    --i: 0;
+    width: calc(var(--stk) * 0.52);
+    left: 33%;
+    top: 10%;
+    --a: -8deg;
+}
+.residence-deco[data-deco='1'] {
+    --i: 1;
+    width: calc(var(--stk) * 0.4);
+    right: 30%;
+    top: 18%;
+    --a: 12deg;
+    --t: 1.9s;
+}
+.residence-deco[data-deco='2'] {
+    --i: 2;
+    width: calc(var(--stk) * 0.4);
+    left: 7%;
+    top: 66%;
+    --a: 6deg;
+    --t: 2.8s;
+}
+.residence-deco[data-deco='3'] {
+    --i: 3;
+    width: calc(var(--stk) * 0.36);
+    /* The mock puts this star between the two right stickers; the real hero is
+       too short for that gap, so it sits left of the third sticker instead. */
+    right: 24%;
+    top: 74%;
+    --a: -10deg;
+    --t: 2.1s;
+}
+.residence-deco[data-deco='4'] {
+    --i: 4;
+    width: calc(var(--stk) * 0.32);
+    left: 27%;
+    top: 84%;
+    --a: 18deg;
+    --t: 3.1s;
+    /* The bottom-left sparkle is mirrored. */
+    --fx: -1;
+}
+@keyframes residence-sticker-slap {
+    0% {
+        opacity: 0;
+        transform: scale(2.6) rotate(calc(var(--r) - 28deg));
+    }
+    55% {
+        opacity: 1;
+        transform: scale(0.88) rotate(calc(var(--r) + 3deg));
+    }
+    75% {
+        transform: scale(1.06) rotate(var(--r));
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) rotate(var(--r));
+    }
+}
+@keyframes residence-sticker-idle {
+    from {
+        transform: rotate(calc(var(--r) - 2.5deg)) translateY(0) scale(1);
+    }
+    to {
+        transform: rotate(calc(var(--r) + 2.5deg)) translateY(calc(var(--stk) * -0.048)) scale(1.03);
+    }
+}
+@keyframes residence-deco-in {
+    0% {
+        opacity: 0;
+        transform: scale(0) rotate(-40deg) scaleX(var(--fx, 1));
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) rotate(var(--a)) scaleX(var(--fx, 1));
+    }
+}
+@keyframes residence-deco-twinkle {
+    from {
+        transform: scale(1) rotate(var(--a)) scaleX(var(--fx, 1));
+    }
+    to {
+        transform: scale(0.78) rotate(calc(var(--a) + 14deg)) scaleX(var(--fx, 1));
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .residence-sticker,
+    .residence-deco {
+        animation: none;
+    }
 }

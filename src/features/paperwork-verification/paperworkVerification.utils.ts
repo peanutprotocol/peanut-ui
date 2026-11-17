@@ -311,6 +311,7 @@ export function formatTaxId(format: PaperworkVerificationTaxFormat | undefined, 
         0,
         spec.groups.reduce((a, b) => a + b, 0)
     )
+    if (format === 'cuit' && digits.length <= 8) return digits
     let out = ''
     let at = 0
     spec.groups.forEach((size, i) => {

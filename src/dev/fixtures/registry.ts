@@ -14,6 +14,7 @@ import ATTENTION_POLICY from '@/features/attention/catalogue.generated.json'
 import { DOWNLOAD_PROMPT_FIXTURE } from './active'
 import type { RainCardFunding, RainFundingAccess, RainFundingManagementStatus } from '@/services/rain'
 import { DEMO_RESIDENCE_RESTRICTIONS } from '@/utils/demo-kyc'
+import { suggestionCandidates } from '@/features/setup/username-suggestions'
 import {
     CLAIMABLE_COP,
     CLAIMABLE_EUR,
@@ -56,7 +57,7 @@ const BRIDGE_DUPLICATE_SUPPORT = {
 const BRIDGE_DUPLICATE_REASON = {
     code: 'duplicate_customer_detected',
     userMessage:
-        'Your details are already linked to another Peanut account, so Bridge, our account provider, can’t open bank accounts on this one. If the other account is yours, sign in to it or contact support.',
+        'Your details are already linked to another Peanut account. If you can, log in and use that account, otherwise contact support.',
 }
 /** The `/users/me` of a verify-once user Bridge refused as a duplicate customer (the API's terminal branch). */
 const BRIDGE_DUPLICATE_USER = {
@@ -334,11 +335,11 @@ const aveniaResponses = (stage: 'enabled' | 'first-use', overrides: Record<strin
         operation: 'deposit',
         amountBrl: '100.00',
         usdcAmount: '18.237000',
-        rate: '5.442342',
+        rate: '5.442233',
         fixedFeeBrl: '0.75',
-        // Avenia's rate and every fee: (100.00 − 1.52) ÷ 5.40 = 18.237
-        exchangeRate: '5.400000',
-        providerFeeBrl: '1.52',
+        // the variable fees in the rate, the flat fee as the row: (100.00 − 0.75) ÷ 5.442233 = 18.237
+        exchangeRate: '5.442233',
+        providerFeeBrl: '0.75',
         minAmountBrl: '20',
     },
     ...overrides,
@@ -600,9 +601,9 @@ const AVENIA_SEND_PREVIEW = {
     withdrawUsd: '18.870000',
     rate: '5.339163',
     fixedFeeBrl: '0.75',
-    // Avenia's rate and every fee: 18.87 × 5.38 − 1.52 = 100.00
-    exchangeRate: '5.380000',
-    providerFeeBrl: '1.52',
+    // the variable fees in the rate, the flat fee as the row: 18.87 × 5.339163 − 0.75 = 100.00
+    exchangeRate: '5.339163',
+    providerFeeBrl: '0.75',
     arrivalEstimateSeconds: 60,
     provider: 'Avenia',
 }
@@ -679,9 +680,9 @@ const aveniaNonResidentResponses = (stage: 'enabled' | 'first-use', overrides: R
         usdcAmount: '18.870000',
         rate: '5.339163',
         fixedFeeBrl: '0.75',
-        // Avenia's rate and every fee: 18.87 × 5.38 − 1.52 = 100.00
-        exchangeRate: '5.380000',
-        providerFeeBrl: '1.52',
+        // the variable fees in the rate, the flat fee as the row: 18.87 × 5.339163 − 0.75 = 100.00
+        exchangeRate: '5.339163',
+        providerFeeBrl: '0.75',
         minAmountBrl: '5',
     },
     ...overrides,
@@ -700,9 +701,9 @@ const aveniaDepositRead = (overrides: Record<string, unknown> = {}) => ({
     amountBrl: '100.00',
     usdcAmount: '18.237000',
     fixedFeeBrl: '0.75',
-    // Avenia's rate and every fee: (100.00 − 1.52) ÷ 5.40 = 18.237
-    exchangeRate: '5.400000',
-    providerFeeBrl: '1.52',
+    // the variable fees in the rate, the flat fee as the row: (100.00 − 0.75) ÷ 5.442233 = 18.237
+    exchangeRate: '5.442233',
+    providerFeeBrl: '0.75',
     codePayable: false,
     ...overrides,
 })
@@ -738,9 +739,32 @@ const AVENIA_PAID_DEPOSIT = {
     extraData: {
         ...aveniaPayableDeposit.extraData,
         pixDeposit: { codePayable: false, expiresAt: null },
-        // settled: Avenia's rate and every fee, (100.00 − 1.52) ÷ 5.40 = 18.237
-        receipt: { exchange_rate: '5.400000' },
-        providerFeeBrl: '1.52',
+        // settled: the variable fees in the rate, the flat fee as the row, (100.00 − 0.75) ÷ 5.442233 = 18.237
+        receipt: { exchange_rate: '5.442233' },
+        providerFeeBrl: '0.75',
+    },
+}
+
+/**
+ * A R$22 Pix deposit Avenia received and gave back: paid from an account not under the user's CPF.
+ * The wire status stays FAILED; `pixReturned` says it was returned, to every viewer, and
+ * `returnReason` (owner only) says why. Nothing was converted: the
+ * amount is the quoted USD and no rate or fee is sent.
+ */
+const AVENIA_RETURNED_DEPOSIT = {
+    ...aveniaPayableDeposit,
+    uuid: 'fixture-avenia-deposit-returned',
+    timestamp: new Date('2026-11-16T12:00:00.000Z'),
+    status: 'FAILED',
+    amount: '3.84',
+    currency: { amount: '22.00', code: 'BRL' },
+    extraData: {
+        ...aveniaPayableDeposit.extraData,
+        usdAmount: '3.84',
+        pixDeposit: { codePayable: false, expiresAt: null },
+        // returned, to every viewer; why, to the owner only
+        pixReturned: true,
+        returnReason: { code: 'third_party', text: null },
     },
 }
 
@@ -2106,7 +2130,285 @@ const cardStopFunding = (cause: 'card_locked' | 'card_canceled', state: 'pending
     }
 }
 
+// ---------------------------------------------------------------------
+// The redesigned sign-up (TASK-25016): one fixture per contract state, named
+// `setup-redesign-<screen>-<state>`, on the `setup-redesign-*` surfaces. A
+// fixture holds what the API answers; a state that also needs a tap or a
+// typed value (a taken name, an open picker) is driven by the visual gate in
+// mono _temp/signup-redesign/r2/r9/build/gate (states.mjs), which says which
+// states a browser cannot reach (native passkey sheets, the OS prompt).
+// Contracts: mono _temp/signup-redesign/r2/r9/build/contract/.
+// ---------------------------------------------------------------------
+/** An account that has not saved an email yet (the demo user has one, which 09 would prefill). */
+const NO_EMAIL = { 'GET /users/me': { user: { email: null } } }
+/**
+ * The demo API routes GET /users/username/:name only, so the app's HEAD check falls through to a 200 and every
+ * name reads as taken. A state that needs a free name says which names are free.
+ */
+const freeUsernames = (...names: string[]) =>
+    Object.fromEntries(names.map((name) => [`HEAD /users/username/${name}`, { status: 404, body: {} }]))
+const setupRedesign = (surface: string, about: string, extra: Partial<Fixture> = {}): Fixture => ({
+    ...extra,
+    route: `/dev/surfaces?s=setup-redesign-${surface}`,
+    about,
+    responses: {
+        'GET /config/residence-restrictions': DEMO_RESIDENCE_RESTRICTIONS,
+        ...(surface === 'email' && NO_EMAIL),
+        ...extra.responses,
+    },
+})
+/**
+ * Every idea 02 can show first or roll to, free in both locales, so the hero card and the field show a checked
+ * suggestion (C-05). Without it every check reads taken and 02 opens on an empty field with no card.
+ */
+const suggestionIdeas = (locale: string) => {
+    const names = new Set<string>()
+    for (const name of suggestionCandidates(locale, 0)) {
+        if (names.has(name)) break
+        names.add(name)
+    }
+    return [...names]
+}
+const FREE_SUGGESTIONS = freeUsernames(...suggestionIdeas('en'), ...suggestionIdeas('es-AR'))
+/** HEAD /users/username/:name answering 200: the name has an account. */
+const USERNAME_TAKEN_ANSWER = {}
+
+const SETUP_REDESIGN_FIXTURES: Record<string, Fixture> = {
+    'setup-redesign-landing-default': setupRedesign('landing', '01 Landing: Sign up and Log in under the coin bridge.'),
+    'setup-redesign-landing-login-failed': setupRedesign(
+        'landing',
+        '01 Landing after a failed log-in: the recovery link.'
+    ),
+    'setup-redesign-landing-account-deleted': setupRedesign('landing', '01 Landing: log-in found a deleted account.'),
+    'setup-redesign-landing-web-download': setupRedesign(
+        'landing',
+        '01 Landing on the web without keep-web: the store buttons.'
+    ),
+
+    'setup-redesign-username-default': setupRedesign('username', '02 Username: a checked suggestion, button off.', {
+        rejects: FREE_SUGGESTIONS,
+    }),
+    'setup-redesign-username-rolling': setupRedesign('username', '02 Username: the die is rolling.', {
+        rejects: FREE_SUGGESTIONS,
+    }),
+    'setup-redesign-username-rolled': setupRedesign('username', '02 Username: a rolled name landed, button on.', {
+        rejects: FREE_SUGGESTIONS,
+    }),
+    'setup-redesign-username-typing': setupRedesign(
+        'username',
+        '02 Username: a short typed value, rule line and counter.',
+        {
+            rejects: FREE_SUGGESTIONS,
+        }
+    ),
+    'setup-redesign-username-too-long': setupRedesign('username', '02 Username: 14 letters, the extra two in red.', {
+        rejects: FREE_SUGGESTIONS,
+    }),
+    'setup-redesign-username-invalid': setupRedesign('username', '02 Username: starts with a digit.', {
+        rejects: FREE_SUGGESTIONS,
+    }),
+    'setup-redesign-username-taken': setupRedesign(
+        'username',
+        '02 Username: @tiger is taken, two free names offered.',
+        {
+            responses: {
+                'HEAD /users/username/tiger': USERNAME_TAKEN_ANSWER,
+                'HEAD /users/username/tigre': USERNAME_TAKEN_ANSWER,
+            },
+            rejects: FREE_SUGGESTIONS,
+        }
+    ),
+    'setup-redesign-username-available': setupRedesign('username', '02 Username: a typed name is free, button on.', {
+        rejects: { ...FREE_SUGGESTIONS, ...freeUsernames('mellowfox', 'lunamate') },
+    }),
+    'setup-redesign-username-check-failed': setupRedesign('username', '02 Username: the check failed, support link.', {
+        rejects: FREE_SUGGESTIONS,
+        fails: ['HEAD /users/username/mellowfox', 'HEAD /users/username/lunamate'],
+    }),
+    'setup-redesign-username-reserved': setupRedesign('username', '02 Username: a reserved name (contains peanut).', {
+        rejects: FREE_SUGGESTIONS,
+    }),
+    'setup-redesign-username-claiming': setupRedesign('username', '02 Username: the reservation is in flight.', {
+        rejects: FREE_SUGGESTIONS,
+    }),
+    'setup-redesign-username-return-taken': setupRedesign(
+        'username-return',
+        '02 Username opened again on a name someone just registered: taken, field focused.',
+        { responses: { 'HEAD /users/username/luckyotter': USERNAME_TAKEN_ANSWER } }
+    ),
+
+    'setup-redesign-passkey-default': setupRedesign('passkey', '03 Passkey: create the passkey for @luckyotter.', {
+        rejects: freeUsernames('luckyotter', 'tigrefeliz'),
+    }),
+    'setup-redesign-passkey-prompt': setupRedesign('passkey', '03 Passkey: the OS sheet is open (button busy).', {
+        rejects: freeUsernames('luckyotter', 'tigrefeliz'),
+    }),
+    'setup-redesign-passkey-error-inline': setupRedesign(
+        'passkey',
+        '03 Passkey: the ceremony was cancelled, inline callout.',
+        {
+            rejects: freeUsernames('luckyotter', 'tigrefeliz'),
+        }
+    ),
+    'setup-redesign-passkey-taken': setupRedesign('passkey', '03 Passkey: the name was registered meanwhile.', {
+        responses: { 'HEAD /users/username/luckyotter': USERNAME_TAKEN_ANSWER },
+    }),
+    'setup-redesign-passkey-failed-android': setupRedesign(
+        'passkey',
+        '03 Passkey: Android app could not create a passkey.'
+    ),
+    'setup-redesign-passkey-failed-ios': setupRedesign('passkey', '03 Passkey: iPhone did not save the passkey.'),
+    'setup-redesign-passkey-cannot-create': setupRedesign(
+        'passkey',
+        '03 Passkey: Android password manager unsupported.'
+    ),
+    'setup-redesign-passkey-cannot-create-other': setupRedesign(
+        'passkey',
+        '03 Passkey: another password manager unsupported.'
+    ),
+    'setup-redesign-passkey-help-drawer': setupRedesign('passkey', '03 Passkey: dev help drawer over the screen.'),
+
+    'setup-redesign-invite-default': setupRedesign('invite', '04 Invite: empty field, Skip under Continue.'),
+    'setup-redesign-invite-typing': setupRedesign('invite', '04 Invite: a short value, no lookup yet.'),
+    'setup-redesign-invite-checking': setupRedesign('invite', '04 Invite: the lookup is in flight.'),
+    'setup-redesign-invite-found': setupRedesign('invite-found', '04 Invite: @fulano found, Continue on.', {
+        responses: {
+            'POST /invites/validate': {
+                success: true,
+                username: 'fulano',
+                attributionResolved: true,
+                onboardingResolved: true,
+            },
+        },
+    }),
+    'setup-redesign-invite-not-found': setupRedesign('invite', '04 Invite: nobody by that name.', {
+        rejects: { 'POST /invites/validate': { status: 404, body: { error: 'Invite not found' } } },
+    }),
+    'setup-redesign-invite-not-found-two': setupRedesign(
+        'invite',
+        '04 Invite: not found with two suggestions (flag on).',
+        {
+            rejects: { 'POST /invites/validate': { status: 404, body: { error: 'Invite not found' } } },
+        }
+    ),
+    'setup-redesign-invite-self': setupRedesign('invite', '04 Invite: the person typed their own username.'),
+    'setup-redesign-invite-check-failed': setupRedesign('invite', '04 Invite: the lookup failed.', {
+        fails: ['POST /invites/validate'],
+    }),
+    'setup-redesign-invite-continuing': setupRedesign('invite', '04 Invite: Continue tapped, the step advances.'),
+
+    'setup-redesign-accounts-default': setupRedesign('accounts', '05 Accounts: USD and EUR bank details.'),
+    'setup-redesign-accounts-advancing': setupRedesign('accounts', '05 Accounts: Continue tapped.'),
+    'setup-redesign-card-default': setupRedesign('card', '06 Card: the pink Peanut Card.'),
+    'setup-redesign-card-advancing': setupRedesign('card', '06 Card: Continue tapped.'),
+
+    'setup-redesign-residence-default': setupRedesign(
+        'residence',
+        '07 Residence: my residence is in Argentina, my nationality is Argentina.'
+    ),
+    'setup-redesign-residence-empty': setupRedesign('residence-empty', '07 Residence: nothing chosen yet.'),
+    'setup-redesign-residence-picker': setupRedesign('residence', '07 Residence: the residence drawer is open.'),
+    'setup-redesign-residence-picker-nationality': setupRedesign('residence', '07 Residence: the nationality drawer.'),
+    'setup-redesign-residence-search-empty': setupRedesign('residence', '07 Residence: a search with no country.'),
+    'setup-redesign-residence-differ': setupRedesign('residence-differ', '07 Residence: Portugal and Brazil.'),
+    'setup-redesign-residence-refused-passport': setupRedesign(
+        'residence-refused',
+        '07 Residence: a Cuban passport cannot verify; use the Argentine residence card.'
+    ),
+    'setup-redesign-residence-compare': setupRedesign(
+        'residence-differ',
+        '07 Residence: pick one of the two countries.'
+    ),
+    'setup-redesign-residence-compare-equal': setupRedesign(
+        'residence',
+        '07 Residence: compare where both lists match.'
+    ),
+    'setup-redesign-residence-compare-loading': setupRedesign(
+        'residence-differ',
+        '07 Residence: compare while loading.'
+    ),
+    'setup-redesign-residence-advancing': setupRedesign('residence', '07 Residence: Continue tapped.'),
+
+    'setup-redesign-plan-loading': setupRedesign('plan', '08 Payment plan: the options for Argentina are loading.', {
+        isLoadingState: true,
+    }),
+    'setup-redesign-plan-default': setupRedesign('plan', '08 Payment plan: Argentina, nothing chosen.'),
+    'setup-redesign-plan-prefilled': setupRedesign(
+        'plan-single',
+        '08 Payment plan: Portugal, the one way to spend filled in.'
+    ),
+    'setup-redesign-plan-picker': setupRedesign('plan', '08 Payment plan: the funding drawer.'),
+    'setup-redesign-plan-picker-payment': setupRedesign('plan', '08 Payment plan: the spending drawer.'),
+    'setup-redesign-plan-filled': setupRedesign('plan-filled', '08 Payment plan: bank transfer, then QR payments.'),
+    'setup-redesign-plan-advancing': setupRedesign('plan-filled', '08 Payment plan: Continue tapped.'),
+
+    'setup-redesign-email-default': setupRedesign('email', '09 Email: empty field, Continue off.'),
+    'setup-redesign-email-filled': setupRedesign('email-filled', '09 Email: a valid address, Continue on.'),
+    'setup-redesign-email-invalid': setupRedesign('email', '09 Email: an address without a domain, after blur.'),
+    'setup-redesign-email-already-registered': setupRedesign('email-filled', '09 Email: the address has an account.', {
+        rejects: {
+            'POST /update-user': { status: 409, body: { code: 'EMAIL_IN_USE', message: 'Email already in use' } },
+        },
+    }),
+    'setup-redesign-email-save-failed': setupRedesign('email-filled', '09 Email: the save failed, Continue retries.', {
+        fails: ['POST /update-user'],
+    }),
+    'setup-redesign-email-saving': setupRedesign('email-filled', '09 Email: the save is in flight.'),
+    'setup-redesign-email-not-ready': setupRedesign('email-filled', '09 Email: Continue before the account loaded.'),
+    'setup-redesign-email-kept-current': setupRedesign('email-filled', '09 Email: the change needs a verification.'),
+
+    'setup-redesign-notifications-default': setupRedesign('notifications', '10 Notifications: Turn on, or Not now.'),
+    'setup-redesign-notifications-prompt': setupRedesign('notifications', '10 Notifications: the OS prompt is open.'),
+    'setup-redesign-notifications-denied': setupRedesign('notifications', '10 Notifications: the OS said no.'),
+    'setup-redesign-notifications-switches': setupRedesign('notifications', '10 Notifications: the switches arm.'),
+    'setup-redesign-notifications-switches-save-failed': setupRedesign(
+        'notifications',
+        '10 Notifications: switches, save failed.',
+        {
+            fails: ['POST /notifications/preferences'],
+        }
+    ),
+
+    'setup-redesign-final-default': setupRedesign('final', '11 Final confirm: Confirm and finish.'),
+    'setup-redesign-final-loading-user': setupRedesign('final', '11 Final confirm: the account is still loading.', {
+        isLoadingState: true,
+    }),
+    'setup-redesign-final-prompt': setupRedesign('final', '11 Final confirm: the passkey sheet is open.'),
+    'setup-redesign-final-success': setupRedesign('final', '11 Final confirm: signed, finishing.'),
+    'setup-redesign-final-network-busy': setupRedesign(
+        'final',
+        '11 Final confirm: the network is busy, Confirm later.'
+    ),
+    'setup-redesign-final-network-busy-first': setupRedesign('final', '11 Final confirm: the first busy answer.'),
+    'setup-redesign-final-setup-failed': setupRedesign('final', '11 Final confirm: the account setup failed.'),
+    'setup-redesign-final-what-passkey': setupRedesign('final', '11 Final confirm: the passkey drawer is open.'),
+    'setup-redesign-final-error-refresh': setupRedesign('final', '11 Final confirm: the account did not load.', {
+        fails: ['GET /users/me'],
+    }),
+    'setup-redesign-final-error-support': setupRedesign(
+        'final',
+        '11 Final confirm: an unknown failure, contact support.'
+    ),
+    'setup-redesign-final-error-provider': setupRedesign(
+        'final',
+        '11 Final confirm: the password manager signs wrong.'
+    ),
+    'setup-redesign-final-error-confirm-again': setupRedesign('final', '11 Final confirm: a new signature is needed.'),
+    'setup-redesign-final-error-passkey': setupRedesign('final', '11 Final confirm: the passkey was interrupted.'),
+    'setup-redesign-final-finish-route': setupRedesign(
+        'final-finish',
+        '11 Final confirm on /setup/finish, with Log out.'
+    ),
+
+    'setup-redesign-celebration-default': setupRedesign(
+        'celebration',
+        '12 Celebration: ready to verify and add money.'
+    ),
+    'setup-redesign-celebration-claim-link': setupRedesign('celebration-claim', '12 Celebration after a claim link.'),
+}
+
 export const FIXTURES: Record<string, Fixture> = {
+    ...SETUP_REDESIGN_FIXTURES,
     'setup-signup-reserved': {
         route: '/dev/surfaces?s=06-a-signup',
         about: 'Claim username — reserved-name error returned by the server.',
@@ -2295,6 +2597,25 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         ])
     ),
+    // A new order makes Manteca cancel the open one, so the amount step offers the open order back.
+    'add-money-argentina-deposit-open': {
+        route: '/add-money/argentina/manteca?step=inputAmount&currency=ARS',
+        geoCountry: 'AR',
+        about: 'ARS deposit with an unpaid order still open: the amount step offers its transfer details.',
+        responses: {
+            'GET /users/me': {
+                residence: { declared: 'AR', verified: 'AR', pending: null, declaredSecond: null },
+                capabilities: MANTECA_AR_CAPABILITIES,
+            },
+            'GET /manteca/deposit/open': { data: ARS_DEPOSIT },
+            'GET /manteca/deposit/fixture-ars-deposit/status': {
+                id: 'fixture-ars-deposit',
+                status: 'PROCESSING',
+                stage: 1,
+                expired: false,
+            },
+        },
+    },
     // TASK-23924: Liechtenstein banks in CHF, and a top-up pays EUR, so the
     // amount screen asks for a euro account, as it does for Switzerland.
     'add-money-bank-liechtenstein': {
@@ -2611,7 +2932,7 @@ export const FIXTURES: Record<string, Fixture> = {
     'pix-withdraw-review': {
         route: `${AVENIA_WITHDRAW_ROUTE}?step=review`,
         sessionStorage: pixWithdrawForm({ destination: AVENIA_OWN_KEY, amountBrl: '503' }),
-        about: "Avenia Pix withdrawal: the one form, the key's holder and bank, the reais over the USD, Avenia's own rate and every provider fee as one row.",
+        about: "Avenia Pix withdrawal: the one form, the key's holder and bank, the reais over the USD, the rate with Avenia's variable fees inside and its flat fee as the Provider fee row.",
         responses: aveniaResponses('enabled', {
             'POST /pix/withdraw/preview': {
                 amountBrl: '503.00',
@@ -2622,9 +2943,9 @@ export const FIXTURES: Record<string, Fixture> = {
                 withdrawUsd: '92.504310',
                 rate: '5.445692',
                 fixedFeeBrl: '0.75',
-                // Avenia's rate and every fee: 92.504310 × 5.46 − 2.07 = 503.00
-                exchangeRate: '5.460000',
-                providerFeeBrl: '2.07',
+                // the variable fees in the rate, the flat fee as the row: 92.504310 × 5.445692 − 0.75 = 503.00
+                exchangeRate: '5.445692',
+                providerFeeBrl: '0.75',
                 arrivalEstimateSeconds: 60,
                 provider: 'Avenia',
             },
@@ -2640,7 +2961,7 @@ export const FIXTURES: Record<string, Fixture> = {
     // the code screen as ruled on 13 Nov: the amount, "You get ≈", the code, the timer badge under it
     'pix-deposit-code': {
         route: AVENIA_DEPOSIT_CODE_ROUTE,
-        about: "A payable Avenia Pix code: the reais, what the balance gets, the code, a pending badge with the time left, then Avenia's rate and every fee as one row.",
+        about: "A payable Avenia Pix code: the reais, what the balance gets, the code, a pending badge with the time left, then the rate with Avenia's variable fees inside and its flat fee as the Provider fee row.",
         responses: aveniaResponses('enabled', {
             [`GET /pix/deposit/${AVENIA_DEPOSIT_ID}`]: aveniaDepositRead({
                 codePayable: true,
@@ -2761,6 +3082,22 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: {
             'GET /users/history': { entries: [AVENIA_PAID_DEPOSIT], hasMore: false },
             [`GET /history/${AVENIA_PAID_DEPOSIT.uuid}`]: AVENIA_PAID_DEPOSIT,
+        },
+    },
+    'pix-deposit-receipt-returned': {
+        route: `/history?tx=${AVENIA_RETURNED_DEPOSIT.uuid}`,
+        about: "The receipt of a Pix deposit Avenia gave back: Returned, with the deposit screen's reason, the estimate in reais, no rate or fee.",
+        responses: {
+            'GET /users/history': { entries: [AVENIA_RETURNED_DEPOSIT], hasMore: false },
+            [`GET /history/${AVENIA_RETURNED_DEPOSIT.uuid}`]: AVENIA_RETURNED_DEPOSIT,
+        },
+    },
+    'pix-deposit-returned-row': {
+        route: '/history',
+        about: 'The Activity row of a Pix deposit Avenia gave back: "Returned to sender", the amount struck through.',
+        waitFor: '[data-testid="transaction-card"]',
+        responses: {
+            'GET /users/history': { entries: [AVENIA_RETURNED_DEPOSIT, AVENIA_PAID_DEPOSIT], hasMore: false },
         },
     },
     'pix-setup-verify': {
@@ -5914,11 +6251,11 @@ export const FIXTURES: Record<string, Fixture> = {
 
     ...PAPERWORK_VERIFICATION_FIXTURES,
     ...KYC_FEATURE_ACTIVATION_FIXTURES,
-    // The local account refused because the residence's Pix comes from its route (M5): the supplement says where
+    // The local account refused because the residence's Pix comes from its route (M5): under the ARS title the
+    // line names the residence, not Pix (a Brazil resident on the Argentina page).
     'feature-activation-local-served-elsewhere': {
         ...KYC_FEATURE_ACTIVATION_FIXTURES['feature-activation-local-refused'],
-        // The Brazil local route sends a resident to the Pix page, so the line is captured on the family's own route.
-        about: "First use local: refused because the user's Pix route serves Pix (local_served_elsewhere): the line names what Pix covers.",
+        about: 'First use local on the ARS page: refused because the Pix route serves the residence (local_served_elsewhere): the line names the residence.',
         responses: {
             ...KYC_FEATURE_ACTIVATION_FIXTURES['feature-activation-local-refused'].responses,
             'POST /users/kyc/features/local/activate': { state: 'refused', reason: 'local_served_elsewhere' },

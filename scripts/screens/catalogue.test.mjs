@@ -116,7 +116,6 @@ test('account setup keeps distinct integer steps in the intended journey order',
             '06-b-invite',
             '06-c-passkey',
             '08-a-passkeysetuphelpmodal',
-            '09-a-passkeyinfomodal',
             '07-c-notification-email',
             '07-d-notification-settings',
             '07-b-advantage-control',
@@ -130,7 +129,7 @@ test('account setup keeps distinct integer steps in the intended journey order',
 
 test('passkey capture uses the real view and an anonymous reservation fixture', () => {
     const screen = screens.find(({ id }) => id === '06-c-passkey')
-    assert.equal(screen?.source, 'Setup/Views/Passkey.tsx')
+    assert.equal(screen?.source, 'Setup/redesign/Passkey/PasskeyScreen.tsx')
     assert.equal(screen?.route, '/dev/surfaces?s=06-c-passkey')
     assert.equal(screen?.fixture, 'setup-passkey')
     assert.ok(screen?.captureState.includes('username=kimchi'))

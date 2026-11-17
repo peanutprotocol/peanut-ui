@@ -80,7 +80,7 @@ jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }),
 }))
 jest.mock('../useReceiptReferralAction', () => ({ useReceiptReferralAction: () => null }))
-jest.mock('@/components/Setup/Views/SignTestTransaction', () => ({ PasskeyDocsLink: () => null }))
+jest.mock('@/components/Setup/components/PasskeyDocsLink', () => ({ PasskeyDocsLink: () => null }))
 jest.mock('../provider-actions/CancelDepositActions', () => ({
     CancelDepositActions: ({ confirmOpen }: { confirmOpen: boolean }) => (
         <div data-testid="cancel-confirm-host" data-confirm-open={String(confirmOpen)} />

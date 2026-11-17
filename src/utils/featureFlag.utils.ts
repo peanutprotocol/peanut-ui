@@ -38,6 +38,8 @@ export const FLAG_DEFAULTS = {
     session_key_spend_sign: false,
     // The interview invite is optional marketing: hidden when PostHog is silent.
     'user-interviews-invite': false,
+    // Inviter suggestions need the suggest route (TASK-24908): hidden when PostHog is silent.
+    'signup-rollout-inviter-suggestions': false,
 } as const satisfies Record<string, boolean>
 
 export type FeatureFlagKey = keyof typeof FLAG_DEFAULTS

@@ -585,9 +585,10 @@ describe('an Avenia payment waits on its review while the passkey is open', () =
     })
 })
 
-// The owner, 15 Nov, "Option A": an Avenia QR review shows Avenia's own rate and every fee as one row, or
-// neither row; never the all-in rate, the market rate or the flat fee alone. Manteca's QR form is unchanged.
-describe("an Avenia QR review shows Avenia's rate and every fee", () => {
+// An Avenia QR review shows the review's rate and fee rows (TASK-24967: the variable fees in the rate, the
+// flat fee as the row), or neither row; never the market rate. The pair below differs from the legacy
+// `rate` and `fixedFeeBrl` on purpose, to prove which fields the flow reads. Manteca's QR form is unchanged.
+describe("an Avenia QR review shows the review's rate and fee rows", () => {
     const rows = () =>
         mockSurface as unknown as { shownRate: number | null; hideRate: boolean; providerFee: string | null }
 
@@ -595,7 +596,7 @@ describe("an Avenia QR review shows Avenia's rate and every fee", () => {
         mockRoutes = [payRoute('avenia')]
     })
 
-    it('the review’s exchangeRate and providerFeeBrl, not the all-in rate and the flat fee', async () => {
+    it('the review’s exchangeRate and providerFeeBrl, not the legacy rate and fixedFeeBrl', async () => {
         // 8.062211 × 5.40 − 1.04 = R$42.50
         mockPixApi.previewPayment.mockResolvedValue({ ...review, exchangeRate: '5.400000', providerFeeBrl: '1.04' })
         renderScan()

@@ -1,9 +1,9 @@
 import type { ProviderId } from '@/types/provider.types'
 
 /**
- * The exchange rate and the provider fee the API sends as two rows that reconcile with the amounts
- * (peanut-api-ts#2151): the provider's own rate, BRL per USD with no fee in it, and every fee the
- * providers take, in reais. Deposit: (amountBrl − providerFeeBrl) ÷ exchangeRate = USD credited.
+ * The exchange rate and the provider fee the API sends as two rows that reconcile with the amounts:
+ * BRL per USD with the providers' variable fees inside, and the flat fee per Pix in reais (TASK-24967).
+ * Deposit: (amountBrl − providerFeeBrl) ÷ exchangeRate = USD credited.
  * Payout: USD sent × exchangeRate − providerFeeBrl = amountBrl.
  */
 export type PixRateAndFee = { exchangeRate: number; providerFeeBrl: string }
@@ -20,9 +20,9 @@ export function pixRateAndFee(
 }
 
 /**
- * Whether a Pix screen shows the provider's own rate and fee rows (the owner, 15 Nov, "Option A"):
- * on Avenia the rate with no fee in it and every fee as one "Provider fee" row, or neither row when
- * the API sends neither; never a rate worked out from the amounts. Manteca keeps the rows it had.
+ * Whether a Pix screen shows the API's rate and fee rows: on Avenia the rate with the variable fees
+ * inside and the flat fee as the "Provider fee" row (TASK-24967), or neither row when the API sends
+ * neither; never a rate worked out from the amounts. Manteca keeps the rows it had.
  * The wire names no such capability, so the route's provider decides (`pixProviderId`).
  */
 export const showsProviderRateAndFee = (providerId: ProviderId | null): boolean => providerId === 'avenia-br'

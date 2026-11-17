@@ -1,5 +1,5 @@
 // Marketing asset inventory: the approved brand art — mascot, hero art, doodles,
-// gloves, logo set, easter eggs, avatars, badges — and where each piece is used.
+// gloves, logo set, easter eggs, residence stickers, avatars, badges — and where each piece is used.
 // An asset that is not listed here is not approved. Files decided fix-later in
 // the Oct 2026 sweep stay in production but are not listed.
 
@@ -8,6 +8,7 @@ import type { MascotPose } from '@/components/Global/PeanutMascot/PeanutMascot.t
 import { LOGO, LOGO_LOCKUP, WORDMARK } from '@/assets/brand'
 import { PEANUTMAN_MOBILE, PEANUT_SITTING } from '@/assets/mascot'
 import { EASTER_EGG_COUNTRIES } from '@/components/Global/EasterEggDrawer/easter-egg-countries.consts'
+import { RESIDENCE_STICKERS, residenceStickerSrc } from '@/components/Setup/components/residence-stickers.consts'
 import { LETTERS, avatarSrc } from '@/components/Avatar/avatar.utils'
 import { getTierBadge } from '@/features/rewards/utils'
 import badgeAssets from '@/types/badge-assets.json'
@@ -222,6 +223,21 @@ export const EASTER_EGG_ENTRIES: PublicArtEntry[] = Object.entries(EASTER_EGG_CO
 
 export const EASTER_EGG_RULE =
     'Hidden easter eggs: the eight no-banking territories get an illustration in EasterEggDrawer. Explicit exception to the design-system asset rules — approved as they are, not restyled to the doodle or glove rules, never reused outside that drawer.'
+
+/**
+ * Residence stickers: three per country for 20 countries, straight from the
+ * hero's own map. Approved by Konrad, 2026-11-15 (TASK-24899).
+ */
+export const RESIDENCE_STICKER_ENTRIES: PublicArtEntry[] = Object.entries(RESIDENCE_STICKERS).flatMap(([code, files]) =>
+    files.map((file) => ({
+        label: `${code} ${file.slice(3, -5)}`,
+        src: residenceStickerSrc(file),
+        usedIn: 'ResidenceHero, sign-up Residence step',
+    }))
+)
+
+export const RESIDENCE_STICKER_RULE =
+    'Sign-up Residence easter egg: a resident of one of 20 countries gets three local stickers slapped around the cheering mascot, with the landing star and sparkle. Generated art in the sticker style; used only on that screen. Approved by Konrad, 2026-11-15.'
 
 /**
  * Avatars. Basics and badge avatars mirror the API manifest

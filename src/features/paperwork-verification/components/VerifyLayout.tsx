@@ -3,7 +3,7 @@
 import { type ReactNode, useEffect, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
-import ProgressBar from '@/components/0_Bruddle/ProgressBar'
+import { CarouselDots } from '@/components/0_Bruddle/CarouselDots'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { NAV_CIRCLE_BUTTON_CLASSES } from '@/components/Global/NavHeader/navHeader.consts'
 import PeanutMascot from '@/components/Global/PeanutMascot'
@@ -68,18 +68,12 @@ export function VerifyQuestionLayout({
             >
                 <div className="size-10">{onBack && <BackButton onBack={onBack} />}</div>
                 {progress && (
-                    <div
-                        role="progressbar"
+                    <CarouselDots
+                        count={progress.total}
+                        activeIndex={Math.max(0, Math.min(progress.current - 1, progress.total - 1))}
                         aria-label={t('progress', progress)}
-                        aria-valuemin={0}
-                        aria-valuemax={progress.total}
-                        aria-valuenow={progress.current}
-                    >
-                        <ProgressBar
-                            value={(progress.current / progress.total) * 100}
-                            fillClassName="bg-foreground-primary"
-                        />
-                    </div>
+                        className="justify-center"
+                    />
                 )}
                 <span />
             </div>

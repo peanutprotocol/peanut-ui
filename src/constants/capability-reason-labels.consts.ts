@@ -107,3 +107,12 @@ export type ReasonCodeKey = (typeof REASON_CODE_KEYS)[KnownReasonCode]
 /** Catalog key for a known reason code; undefined → render the BE prose. */
 export const reasonCodeKey = (code: string | null | undefined): ReasonCodeKey | undefined =>
     code && code in REASON_CODE_KEYS ? REASON_CODE_KEYS[code as KnownReasonCode] : undefined
+
+/**
+ * The `depositAccounts` title a bank refusal gets for its reason, with or
+ * without a currency; undefined keeps the screen's "We cannot open" title.
+ * A duplicate customer can still use the other Peanut account, so the title
+ * asks about that account (Aleks, 2026-11-16).
+ */
+export const refusalTitleKey = (code: string | null | undefined): 'gate.duplicateTitle' | undefined =>
+    code === 'duplicate_customer_detected' ? 'gate.duplicateTitle' : undefined

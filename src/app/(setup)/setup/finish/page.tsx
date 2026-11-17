@@ -2,11 +2,10 @@
 
 import { Suspense } from 'react'
 import Loading from '@/components/Global/Loading'
-import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
-import SignTestTransaction from '@/components/Setup/Views/SignTestTransaction'
+import { SetupShell } from '@/components/Setup/redesign/shell/SetupShell'
+import { FinalConfirmScreen } from '@/components/Setup/redesign/FinalConfirm/FinalConfirmScreen'
 import { useBackHandler } from '@/hooks/useBackHandler'
 import { minimizeNativeApp } from '@/utils/capacitor'
-import { useTranslations } from 'next-intl'
 import type { ISetupStep } from '@/components/Setup/Setup.types'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { useSetupStepAnalytics } from '@/features/setup/useSetupStepAnalytics'
@@ -14,8 +13,7 @@ import { useSetupStepAnalytics } from '@/features/setup/useSetupStepAnalytics'
 const finishStep: ISetupStep = {
     screenId: 'sign-test-transaction',
     layoutType: 'signup',
-    image: { pose: 'waving-chill' },
-    component: SignTestTransaction,
+    component: FinalConfirmScreen,
 }
 const finishSteps = [finishStep]
 
@@ -24,7 +22,6 @@ const finishSteps = [finishStep]
  * shows test transaction step to verify passkey works before finalizing
  */
 function FinishSetupPageContent() {
-    const t = useTranslations('setup')
     const { signupEntryFlow } = useSetupFlowContext()
     useSetupStepAnalytics({ enabled: true, step: finishStep, steps: finishSteps, signupEntryFlow })
     useBackHandler(() => {
@@ -33,19 +30,10 @@ function FinishSetupPageContent() {
     })
 
     return (
-        <SetupWrapper
-            layoutType={finishStep.layoutType}
-            screenId={finishStep.screenId}
-            image={finishStep.image}
-            title={t('finish.title')}
-            description={t('finish.description')}
-            showBackButton={false}
-            showSkipButton={false}
-            contentClassName="flex flex-col items-center justify-center gap-6"
-        >
+        <SetupShell screenId={finishStep.screenId} showBackButton={false}>
             {/* log out is a link under the primary: the top bar keeps one control (Release 164 smoke test) */}
-            <SignTestTransaction showLogout />
-        </SetupWrapper>
+            <FinalConfirmScreen showLogout />
+        </SetupShell>
     )
 }
 

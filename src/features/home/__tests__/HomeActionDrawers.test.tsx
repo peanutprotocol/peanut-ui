@@ -118,7 +118,7 @@ describe('HomeActionDrawers', () => {
     })
 
     // Which Pix deposit routes offer the row: useAddMoneyReadiness.test.ts
-    it('leads with Pix on a route on Avenia and opens the ready-only Pix list (Aleks, 2026-11-12 and 2026-11-14)', async () => {
+    it('leads with Pix on a route on Avenia and opens the Pix deposit directly (Aleks, 2026-11-12 and 2026-11-16)', async () => {
         const onAvenia = resolveAddMoneyMethods({
             cryptoReady: true,
             standingEnabled: true,
@@ -126,6 +126,7 @@ describe('HomeActionDrawers', () => {
             residenceIso2s: ['BR'],
             activeAccounts: [],
             readyTopUps: [],
+            firstPaymentAt: '2026-01-01T00:00:00Z',
             pixDepositOffered: true,
         })
         renderWithUrl('?drawer=add', undefined, onAvenia)
@@ -135,7 +136,8 @@ describe('HomeActionDrawers', () => {
         expect(pix.compareDocumentPosition(crypto) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 
         fireEvent.click(pix)
-        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/options?method=pix&ready=1'))
+        // Pix has one currency: no chooser of one BRL row in between (TASK-25033)
+        await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/pix'))
     })
 
     it('opens the full method picker from More ways and clears the drawer', async () => {

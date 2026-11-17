@@ -1,7 +1,6 @@
 'use client'
 
 import Divider from '@/components/0_Bruddle/Divider'
-import { Button } from '@/components/0_Bruddle/Button'
 import { BulletList } from '@/components/0_Bruddle/BulletList'
 import { PropsTable } from '../../_components/PropsTable'
 import { ProductUsage } from '../../_components/ProductUsage'
@@ -94,25 +93,6 @@ export default function DividerPage() {
             </DocSection>
 
             <ProductUsage>
-                <ProductUsage.Example
-                    title="Setup — landing, sign up or log in"
-                    path="src/components/Setup/Views/Landing.tsx"
-                    description="The default shape: an 'or' label between two CTAs. Highest-traffic divider in the app — every logged-out visitor sees it."
-                    code={`<Button shadowSize="4" onClick={onSignupClick}>{t('landing.signUp')}</Button>
-<Divider text={tCommon('or')} />
-<Button loading={isLoggingIn} shadowSize="4" variant="secondary" onClick={onLoginClick}>
-    {t('logIn')}
-</Button>`}
-                >
-                    <div className="flex flex-col">
-                        <Button shadowSize="4">Sign up</Button>
-                        <Divider text="or" />
-                        <Button shadowSize="4" variant="secondary">
-                            Log in
-                        </Button>
-                    </div>
-                </ProductUsage.Example>
-
                 <ProductUsage.Example
                     title="Marketing prose — the mdx horizontal rule"
                     path="src/components/Marketing/mdx/components.tsx"

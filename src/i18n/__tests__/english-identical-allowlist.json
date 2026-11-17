@@ -86,9 +86,29 @@
             "locales": ["es-419", "es-AR", "pt-BR"],
             "reason": "Colombia's ID document, an official Spanish name used as is in every locale"
         },
-        "setup.paymentPlan.funding.brlBank": {
+        "setupRedesign.residence.itemCard": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "Peanut Card is the product name in every language (TASK-24037); the redesigned sign-up names it as the product"
+        },
+        "setupRedesign.plan.payCard": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "Peanut Card is the product name in every language (TASK-24037); the redesigned sign-up names it as the product"
+        },
+        "setupRedesign.plan.fundBrlBank": {
             "locales": ["es-419", "es-AR", "pt-BR"],
             "reason": "payment rail name and currency code (Pix (BRL)), the same in every language"
+        },
+        "setupRedesign.plan.fundArsBank": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "brand name and currency code (Mercado Pago (ARS)), the same in every language (TASK-25015)"
+        },
+        "setupRedesign.plan.fundArsBankPill": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "brand name (Mercado Pago), the same in every language (TASK-25015)"
+        },
+        "addMoney.methods.mercadoPago": {
+            "locales": ["es-419", "es-AR", "pt-BR"],
+            "reason": "brand name (Mercado Pago), the same in every language"
         }
     }
 }

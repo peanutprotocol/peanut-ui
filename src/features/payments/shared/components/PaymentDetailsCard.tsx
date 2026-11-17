@@ -17,8 +17,8 @@ import { formatFiatRate } from '@/utils/currency'
  * - Exchange rate (i): always, except where the provider states none (left out: no row).
  * - Savings vs card (i): the payment, when the card markup gives a saving.
  * - Peanut fee: always "Sponsored by Peanut!" (zero on both flows).
- * - Provider fee: every fee Avenia's quote names (`providerFeeBrl`); hidden
- *   when it names none (Manteca charges none).
+ * - Provider fee: Avenia's flat fee per Pix (`providerFeeBrl`; its variable
+ *   fees are in the rate); hidden when it names none (Manteca charges none).
  * - Bank receives / Total: the withdrawal, the exact reais and the exact
  *   wallet debit its quote names; each row waits while the quote is in flight.
  * - Provider (?): when the route names one.

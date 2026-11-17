@@ -100,8 +100,8 @@ describe('PixDepositFlow and the URL', () => {
         mockQuotesTypedAmount = false
     })
 
-    // The owner, 15 Nov, "Option A": the amount step shows Avenia's own rate, the minimum's before an
-    // amount, and the fee once the amount on screen is quoted; never R$5 over the USDC that pays it
+    // the amount step shows the quote's rate, the minimum's before an amount, and the fee once the
+    // amount on screen is quoted (TASK-24967); never R$5 over the USDC that pays it
     it('shows the minimum quote’s exchangeRate and no fee before an amount, then the fee of the typed amount', () => {
         mockRateAndFee = { exchangeRate: 5.37, providerFeeBrl: '0.95' }
         const view = renderAt('')
@@ -109,12 +109,12 @@ describe('PixDepositFlow and the URL', () => {
         expect(screen.queryByText(en.pix.withdraw.fee)).toBeNull()
         view.unmount()
 
-        mockRateAndFee = { exchangeRate: 5.728962, providerFeeBrl: '0.97' }
+        mockRateAndFee = { exchangeRate: 5.796567, providerFeeBrl: '0.75' }
         mockQuotesTypedAmount = true
         renderAt('')
-        expect(screen.getByText('1 USD = 5.73 BRL')).toBeInTheDocument()
+        expect(screen.getByText('1 USD = 5.80 BRL')).toBeInTheDocument()
         expect(screen.getByText(en.pix.withdraw.fee)).toBeInTheDocument()
-        expect(screen.getByText('R$0.97')).toBeInTheDocument()
+        expect(screen.getByText('R$0.75')).toBeInTheDocument()
     })
 
     it('shows neither row when the quote carries no pair', () => {

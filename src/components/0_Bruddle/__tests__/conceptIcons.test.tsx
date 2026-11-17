@@ -7,7 +7,7 @@ import { IconBubble, type IconBubbleColor } from '../IconBubble'
 import { CONCEPT_ICONS, type Concept, type IconConcept } from '../conceptIcons'
 
 const CONCEPTS = Object.keys(CONCEPT_ICONS) as Concept[]
-// every concept but the Pix logo draws an icon in a coloured bubble
+// every concept but the brand logos (Pix, Mercado Pago) draws an icon in a coloured bubble
 const ICON_CONCEPTS = CONCEPTS.filter((concept): concept is IconConcept => 'icon' in CONCEPT_ICONS[concept])
 const bubbleClass = (color: IconBubbleColor) =>
     color === 'brand' ? 'bg-background-brand' : `bg-background-icon-bubble-${color}`

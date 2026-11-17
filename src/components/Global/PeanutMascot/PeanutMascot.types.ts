@@ -43,4 +43,10 @@ export type PeanutMascotProps = {
     /** Empty or omitted makes the mascot decorative (aria-hidden); text makes it role="img". */
     alt?: string
     loop?: boolean
+    /**
+     * 'art' (default) fits the pose's artwork to the box, so every pose looks the same
+     * size. 'canvas' fits the whole comp canvas instead: two poses swapped in one box
+     * then keep the rig's own scale and ground line, with no jump in size.
+     */
+    fit?: 'art' | 'canvas'
 }

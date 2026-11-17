@@ -11,9 +11,9 @@ import {
     MASCOT_SPEED,
 } from './PeanutMascot.consts'
 import type { PeanutMascotProps } from './PeanutMascot.types'
-import { getMascotPlacement, jitterFrame, subscribeToMascotClock } from './PeanutMascot.utils'
+import { getMascotCanvasPlacement, getMascotPlacement, jitterFrame, subscribeToMascotClock } from './PeanutMascot.utils'
 
-export default function PeanutMascot({ pose, className, alt, loop = true }: PeanutMascotProps) {
+export default function PeanutMascot({ pose, className, alt, loop = true, fit = 'art' }: PeanutMascotProps) {
     const hostRef = useRef<HTMLDivElement>(null)
     const stageRef = useRef<HTMLDivElement>(null)
     // Survives visibility toggles: scrolling a mascot out and back should resume the loop,
@@ -65,7 +65,10 @@ export default function PeanutMascot({ pose, className, alt, loop = true }: Pean
         const stage = stageRef.current
         if (!host || !stage) return
         const measure = () => {
-            const placement = getMascotPlacement(pose, host.clientWidth, host.clientHeight)
+            const placement =
+                fit === 'canvas'
+                    ? getMascotCanvasPlacement(host.clientWidth, host.clientHeight)
+                    : getMascotPlacement(pose, host.clientWidth, host.clientHeight)
             stage.style.width = `${placement.width}px`
             stage.style.height = `${placement.height}px`
             stage.style.left = `${placement.left}px`
@@ -75,7 +78,7 @@ export default function PeanutMascot({ pose, className, alt, loop = true }: Pean
         const observer = new ResizeObserver(measure)
         observer.observe(host)
         return () => observer.disconnect()
-    }, [pose])
+    }, [pose, fit])
 
     useEffect(() => {
         const host = hostRef.current
@@ -115,7 +118,9 @@ export default function PeanutMascot({ pose, className, alt, loop = true }: Pean
                     stop()
                     return
                 }
-                virtualFrame.current -= totalFrames
+                // Modulo, not one subtraction: a pose swap can carry over a frame from a
+                // longer animation, which one subtraction leaves past this one's end.
+                virtualFrame.current %= totalFrames
             }
             const heldFrame = Math.floor(virtualFrame.current / MASCOT_HOLD_FRAMES) * MASCOT_HOLD_FRAMES
             if (heldFrame === shownFrame) return
@@ -129,7 +134,7 @@ export default function PeanutMascot({ pose, className, alt, loop = true }: Pean
     return (
         <div
             ref={hostRef}
-            className={twMerge('relative overflow-hidden', MASCOT_ASPECT_CLASSES[pose], className)}
+            className={twMerge('relative overflow-hidden', fit === 'art' && MASCOT_ASPECT_CLASSES[pose], className)}
             // The artwork's own aspect, so a call site can give a height alone and get a box
             // the pose actually fits — every pose then renders at that height instead of the
             // wide ones coming out short. Ignored when the classes make both dimensions

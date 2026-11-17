@@ -27,6 +27,8 @@ import {
     LOGO_ENTRIES,
     MASCOT_ENTRIES,
     MASCOT_STILL_ENTRIES,
+    RESIDENCE_STICKER_ENTRIES,
+    RESIDENCE_STICKER_RULE,
     TIER_BADGE_ENTRIES,
     type ArtEntry,
     type PublicArtEntry,
@@ -181,6 +183,14 @@ export default function MarketingAssetsPage() {
             <DocSection title="Easter eggs" description="Hidden. Eight no-banking territories in EasterEggDrawer.">
                 <DesignNote type="info">{EASTER_EGG_RULE}</DesignNote>
                 <PublicArtGrid entries={EASTER_EGG_ENTRIES} tile="h-16" />
+            </DocSection>
+
+            <DocSection
+                title="Residence stickers"
+                description="Three per country, 20 countries. Slapped around the mascot on the sign-up Residence step."
+            >
+                <DesignNote type="info">{RESIDENCE_STICKER_RULE}</DesignNote>
+                <PublicArtGrid entries={RESIDENCE_STICKER_ENTRIES} tile="h-16" />
             </DocSection>
 
             <DocSection

@@ -379,7 +379,7 @@ describe('PaperworkVerificationFlow: the steps overview', () => {
         expect(steps.querySelector('[aria-current="step"]')).toHaveTextContent('Answer a few questions')
         expect(screen.getByText('Unlock eligible payments')).toBeInTheDocument()
         fireEvent.click(screen.getByTestId('verify-steps-continue'))
-        expect(await screen.findByRole('progressbar', { name: 'Step 2 of 4' })).toBeInTheDocument()
+        expect(await screen.findByRole('group', { name: 'Step 2 of 4' })).toBeInTheDocument()
         fireEvent.click(screen.getByTestId('verify-back'))
         expect(await screen.findByTestId('verify-steps')).toBeInTheDocument()
         expect(mockExit).not.toHaveBeenCalled()
@@ -411,7 +411,7 @@ describe('PaperworkVerificationFlow: the steps overview', () => {
         renderFlow('?step=money')
         expect(await screen.findByTestId('verify-pick-annualSalary')).toBeInTheDocument()
         expect(screen.getByTestId('verify-pick-cardPurpose')).toBeInTheDocument()
-        expect(screen.getByRole('progressbar', { name: 'Step 2 of 4' })).toBeInTheDocument()
+        expect(screen.getByRole('group', { name: 'Step 2 of 4' })).toBeInTheDocument()
         // Each step's sentences sit under its own label.
         expect(screen.getByText('Purpose')).toBeInTheDocument()
         expect(screen.getByText('Money')).toBeInTheDocument()
@@ -466,14 +466,14 @@ describe('PaperworkVerificationFlow: the steps overview', () => {
         renderFlow('?step=money')
         const income = await screen.findByTestId('verify-pick-annualSalary')
         expect(screen.getAllByTestId(/^verify-pick-/)).toHaveLength(3)
-        expect(screen.getByRole('progressbar', { name: 'Step 2 of 5' })).toBeInTheDocument()
+        expect(screen.getByRole('group', { name: 'Step 2 of 5' })).toBeInTheDocument()
         fireEvent.click(income)
         fireEvent.click(await screen.findByRole('button', { name: 'Under $25,000' }))
 
         fireEvent.click(continueButton())
         expect(await screen.findByTestId('verify-pick-nationality')).toHaveTextContent('Germany')
         expect(screen.getAllByTestId(/^verify-pick-/)).toHaveLength(3)
-        expect(screen.getByRole('progressbar', { name: 'Step 3 of 5' })).toBeInTheDocument()
+        expect(screen.getByRole('group', { name: 'Step 3 of 5' })).toBeInTheDocument()
         expect(mockSave).not.toHaveBeenCalled()
         fireEvent.click(screen.getByTestId('verify-back'))
         expect(await screen.findByTestId('verify-pick-annualSalary')).toHaveTextContent('Under $25,000')
@@ -722,7 +722,7 @@ describe('PaperworkVerificationFlow: the phone', () => {
             .mockResolvedValueOnce({ kind: 'saved', next: 'tax' })
         await startFlow()
         expect(await screen.findByText('Where do you live?')).toBeInTheDocument()
-        expect(screen.getByRole('progressbar', { name: 'Step 3 of 5' })).toBeInTheDocument()
+        expect(screen.getByRole('group', { name: 'Step 3 of 5' })).toBeInTheDocument()
         expect(screen.getByText('For card security. We won’t send you codes.')).toBeInTheDocument()
         expect(screen.queryByTestId('verify-phone-no-spam')).not.toBeInTheDocument()
         fireEvent.change(screen.getByTestId('verify-input-street'), { target: { value: 'Main St 1' } })
@@ -735,7 +735,7 @@ describe('PaperworkVerificationFlow: the phone', () => {
             ['address', { street: 'Main St 1', town: 'Austin', postCode: '78701', country: 'US' }],
             ['phone', { phone: '+14155550132' }],
         ])
-        expect(screen.getByRole('progressbar', { name: 'Step 4 of 5' })).toBeInTheDocument()
+        expect(screen.getByRole('group', { name: 'Step 4 of 5' })).toBeInTheDocument()
     })
 
     it('asked later on its own, keeps its own screen with the no-spam promise', async () => {
@@ -751,7 +751,7 @@ describe('PaperworkVerificationFlow: the phone', () => {
 describe('PaperworkVerificationFlow', () => {
     it('resumes on the screen of the first unanswered step the server names (app killed mid-way)', async () => {
         await startFlow()
-        expect(await screen.findByRole('progressbar', { name: 'Step 2 of 4' })).toBeInTheDocument()
+        expect(await screen.findByRole('group', { name: 'Step 2 of 4' })).toBeInTheDocument()
         expect(screen.getByTestId('verify-pick-annualSalary')).toHaveTextContent('$25,000–$49,999')
     })
 
@@ -1342,6 +1342,7 @@ describe('PaperworkVerificationFlow', () => {
         try {
             renderFlow()
             const notice = await screen.findByTestId('verify-bank-refused')
+            expect(notice).toHaveTextContent('Already have an account?')
             expect(notice).toHaveTextContent(/already linked to another Peanut account/)
             expect(screen.getByTestId('verify-verified-payments')).toBeInTheDocument()
         } finally {

@@ -893,6 +893,7 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
         }),
     },
     { method: 'POST', pattern: '/manteca/deposit', handler: () => demoMantecaDeposit() },
+    { method: 'GET', pattern: '/manteca/deposit/open', handler: () => ({ data: null }) },
     {
         method: 'GET',
         pattern: '/manteca/deposit/:depositId/status',

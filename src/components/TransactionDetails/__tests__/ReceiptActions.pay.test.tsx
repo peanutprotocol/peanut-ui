@@ -40,7 +40,7 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
 jest.mock('@/components/Global/CancelSendLinkDrawer', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => null }))
 jest.mock('@/components/Global/ShareButton', () => ({ __esModule: true, default: () => null }))
-jest.mock('@/components/Setup/Views/SignTestTransaction', () => ({ PasskeyDocsLink: () => null }))
+jest.mock('@/components/Setup/components/PasskeyDocsLink', () => ({ PasskeyDocsLink: () => null }))
 jest.mock('../provider-actions/CancelDepositActions', () => ({ CancelDepositActions: () => null }))
 jest.mock('../useReceiptReferralAction', () => ({ useReceiptReferralAction: () => null }))
 jest.mock('@/context/ModalsContext', () => ({

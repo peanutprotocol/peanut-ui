@@ -98,13 +98,6 @@ export const PAGE_CAPTURES: PageCapture[] = [
         fixture: 'add-money-picker-first-time',
         expectSelector: '[data-testid="add-money-option-GBP"]',
     },
-    {
-        id: 'add-money-pix-currency',
-        name: 'Add money — Pix currency',
-        route: '/add-money/options?method=pix',
-        fixture: 'add-money-picker-first-time',
-        expectSelector: '[data-testid="add-money-option-BRL"]',
-    },
     { id: 'p18-add-money-crypto', name: 'Add money — crypto', route: '/add-money/crypto' },
     {
         id: 'add-money-crypto-euro-token-network',
@@ -310,7 +303,7 @@ PAGE_CAPTURES.push(
         expectSelector: '[role="dialog"][data-state="open"]',
     },
     // Manteca's two entities, as the statement's provider page names them: Argentina's money, and Pix
-    // for accounts that do not use Avenia yet
+    // for users who do not live in Brazil
     {
         id: 'p85-manteca-ar-provider-sheet',
         name: "Argentina's add money — the provider's legal details",

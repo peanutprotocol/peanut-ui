@@ -538,6 +538,10 @@ let nextConfig = {
                 headers: [{ key: 'Cache-Control', value: UNHASHED_STATIC_CACHE_CONTROL }],
             },
             {
+                source: '/residence-stickers/:path+',
+                headers: [{ key: 'Cache-Control', value: UNHASHED_STATIC_CACHE_CONTROL }],
+            },
+            {
                 source: '/dev/payment-graph',
                 headers: [
                     { key: 'Cache-Control', value: 'private, no-store, max-age=0, must-revalidate' },

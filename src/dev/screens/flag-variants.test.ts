@@ -1,9 +1,5 @@
 import { FLAG_DEFAULTS } from '@/utils/featureFlag.utils'
 import { NOTIFICATIONS_EXPERIMENT_FLAG, readNotificationsVariant } from '@/features/setup/notificationsExperiment'
-import {
-    WELCOME_HEADLINE_EXPERIMENT_FLAG,
-    readWelcomeHeadlineVariant,
-} from '@/features/setup/welcomeHeadlineExperiment'
 import { SCREENS } from './catalogue'
 import { FLAGS, FLAG_EXEMPTIONS, FLAG_VARIANTS } from './flag-variants'
 
@@ -13,7 +9,7 @@ jest.mock('posthog-js', () => ({
     default: {
         featureFlags: {
             hasLoadedFlags: true,
-            getFlagVariants: () => ({ [WELCOME_HEADLINE_EXPERIMENT_FLAG]: flagState.value }),
+            getFlagVariants: () => ({}),
         },
         getFeatureFlag: () => flagState.value,
         isFeatureEnabled: () => false,
@@ -24,9 +20,7 @@ jest.mock('posthog-js', () => ({
 
 describe('PostHog flag variants in the Screen Library', () => {
     it('lists every flag the app reads', () => {
-        expect(Object.keys(FLAGS).sort()).toEqual(
-            [...Object.keys(FLAG_DEFAULTS), NOTIFICATIONS_EXPERIMENT_FLAG, WELCOME_HEADLINE_EXPERIMENT_FLAG].sort()
-        )
+        expect(Object.keys(FLAGS).sort()).toEqual([...Object.keys(FLAG_DEFAULTS), NOTIFICATIONS_EXPERIMENT_FLAG].sort())
     })
 
     it('lists exactly the experiment arms the app accepts', () => {
@@ -43,15 +37,6 @@ describe('PostHog flag variants in the Screen Library', () => {
             if (flag === 'user-interviews-invite') expect(FLAGS[flag].baseline).toBe(true)
             else expect(FLAGS[flag].baseline).toBe(value)
         }
-    })
-
-    it('lists exactly the welcome arms accepted by the app', () => {
-        for (const value of FLAGS[WELCOME_HEADLINE_EXPERIMENT_FLAG].values) {
-            flagState.value = value
-            expect(readWelcomeHeadlineVariant(true)).toBe(value)
-        }
-        flagState.value = 'unknown-arm'
-        expect(readWelcomeHeadlineVariant(true)).toBe(FLAGS[WELCOME_HEADLINE_EXPERIMENT_FLAG].baseline)
     })
 
     it('shows every value of every flag in some capture, or says why it cannot', () => {

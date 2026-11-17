@@ -45,7 +45,6 @@ describe('screen catalogue', () => {
                 '06-b-invite',
                 '06-a-signup',
                 '08-a-passkeysetuphelpmodal',
-                '09-a-passkeyinfomodal',
                 '03-a-residence-select',
                 '03-b-residence-compare',
                 '04-b-advantage-fees',

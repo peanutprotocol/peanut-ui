@@ -1,6 +1,7 @@
 import Image, { type StaticImageData } from 'next/image'
 import { LOGO } from '@/assets/brand'
 import STAR_STRAIGHT_ICON from '@/assets/icons/starStraight.svg'
+import MERCADO_PAGO from '@/assets/payment-apps/mercado-pago.svg'
 import PIX from '@/assets/payment-apps/pix.svg'
 import { type IconName } from '@/components/Global/Icons/Icon'
 import { type IconBubbleColor } from './IconBubble'
@@ -17,12 +18,13 @@ export type ConceptIcon = ConceptBubble | ConceptLogo
  * always through IconBubble: `<IconBubble {...CONCEPT_ICONS.bank} size="s" />`.
  * Change a concept's look in this map, never at a call site.
  *
- * Flags, chain logos and the Mercado Pago mark are not concepts: they name one
- * country, network or brand and keep their own image in the same leading slot.
- * The Pix mark is the one brand mark here (`pix`): Pix is a method of its own
- * in the app (an Add money entry, its setup, a Home step). It is a `logo`
- * entry: the mark as it ships is the whole circle, with no bubble behind it,
- * the way a flag or a chain logo leads a row (Aleks, 2026-11-12, TASK-24841).
+ * Flags and chain logos are not concepts: they name one country or network
+ * and keep their own image in the same leading slot. Pix and Mercado Pago are
+ * the brand marks here: Pix is a method of its own in the app (an Add money
+ * entry, its setup, a Home step), and Mercado Pago is how a resident of
+ * Argentina adds ARS at signup (TASK-25015). Each is a `logo` entry: the mark
+ * as it ships is the whole circle, with no bubble behind it, the way a flag or
+ * a chain logo leads a row (Aleks, 2026-11-12, TASK-24841).
  *
  * Blue is the usual method color and gray is inactive. Yellow marks
  * Peanut's own concepts: the Peanut user, friends, the card, rewards. QR pay is pink,
@@ -40,6 +42,7 @@ export const CONCEPT_ICONS = {
     crypto: { icon: 'coins', color: 'blue' },
     // the mark as it ships, never recolored or cropped: the whole circle, no bubble
     pix: { logo: PIX },
+    mercadoPago: { logo: MERCADO_PAGO },
     sendLink: { icon: 'link', color: 'blue' },
     requestLink: { icon: 'link', color: 'blue' },
     qrPay: { icon: 'qr-code', color: 'brand' },

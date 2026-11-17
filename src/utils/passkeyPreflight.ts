@@ -7,9 +7,26 @@
 
 import { isCapacitor, getNativeRpId } from '@/utils/capacitor'
 
+/** Catalog keys under `setupRedesign.passkey.preflight`, one per warning below, so screens show it in the user's language. */
+export type PasskeyPreflightWarningKey =
+    | 'nativeAndroid'
+    | 'nativeOther'
+    | 'nativeCheckFailed'
+    | 'insecure'
+    | 'browserUnsupported'
+    | 'chromeOutdated'
+    | 'androidOutdated'
+    | 'screenLock'
+    | 'limitedSupport'
+
 export interface PasskeyPreflightResult {
     isSupported: boolean
+    /**
+     * A language-neutral code for logs and diagnostics (`preflight:<warningKey>`). Screens never show it:
+     * they translate `warningKey` from `setupRedesign.passkey.preflight`.
+     */
     warning: string | null
+    warningKey: PasskeyPreflightWarningKey | null
     diagnostics: {
         hasPublicKeyCredential: boolean
         isHttps: boolean
@@ -23,6 +40,13 @@ export interface PasskeyPreflightResult {
         rpId?: string
     }
 }
+
+/** A result carrying a warning: the catalog key for screens, and `preflight:<key>` for logs. */
+const withWarning = (
+    isSupported: boolean,
+    warningKey: PasskeyPreflightWarningKey,
+    diagnostics: PasskeyPreflightResult['diagnostics']
+): PasskeyPreflightResult => ({ isSupported, warning: `preflight:${warningKey}`, warningKey, diagnostics })
 
 /**
  * checks if the current environment supports passkeys and identifies common issues
@@ -48,24 +72,13 @@ export async function checkPasskeySupport(): Promise<PasskeyPreflightResult> {
             diagnostics.uvpaAvailable = support.available
             diagnostics.conditionalMediationAvailable = support.conditionalMediation
             if (!support.available) {
-                return {
-                    isSupported: false,
-                    warning: diagnostics.isAndroid
-                        ? 'Passkeys aren’t available yet. Sign in to a Google account and update Google Play Services, then try again.'
-                        : 'Passkeys aren’t available on this device yet. Check your device settings and try again.',
-                    diagnostics,
-                }
+                return withWarning(false, diagnostics.isAndroid ? 'nativeAndroid' : 'nativeOther', diagnostics)
             }
         } catch (e) {
             console.warn('[PasskeyPreflight] native isSupported() check failed:', e)
-            return {
-                isSupported: false,
-                warning:
-                    'We couldn’t verify passkey support. Make sure you’re signed in to a Google account with up-to-date Google Play Services, then try again.',
-                diagnostics,
-            }
+            return withWarning(false, 'nativeCheckFailed', diagnostics)
         }
-        return { isSupported: true, warning: null, diagnostics }
+        return { isSupported: true, warning: null, warningKey: null, diagnostics }
     }
 
     // capture rpId for debugging - this is what will be used for passkey registration
@@ -89,20 +102,12 @@ export async function checkPasskeySupport(): Promise<PasskeyPreflightResult> {
 
     // check https (required for webauthn in production)
     if (!diagnostics.isHttps) {
-        return {
-            isSupported: false,
-            warning: 'Passkeys require a secure connection (HTTPS)',
-            diagnostics,
-        }
+        return withWarning(false, 'insecure', diagnostics)
     }
 
     // check if WebAuthn is supported
     if (!diagnostics.hasPublicKeyCredential) {
-        return {
-            isSupported: false,
-            warning: 'Passkeys are not supported on this browser',
-            diagnostics,
-        }
+        return withWarning(false, 'browserUnsupported', diagnostics)
     }
 
     // android-specific checks
@@ -116,11 +121,7 @@ export async function checkPasskeySupport(): Promise<PasskeyPreflightResult> {
             console.log('[PasskeyPreflight] Chrome version:', diagnostics.chromeVersion)
 
             if (diagnostics.chromeVersion < 108) {
-                return {
-                    isSupported: false,
-                    warning: 'Please update Chrome to use passkeys',
-                    diagnostics,
-                }
+                return withWarning(false, 'chromeOutdated', diagnostics)
             }
         }
 
@@ -133,11 +134,7 @@ export async function checkPasskeySupport(): Promise<PasskeyPreflightResult> {
 
             // android 9 (pie) is minimum for passkeys, but 10+ recommended
             if (diagnostics.androidVersionNum < 9) {
-                return {
-                    isSupported: false,
-                    warning: 'Your Android version is too old for passkeys. Please update to Android 9 or later.',
-                    diagnostics,
-                }
+                return withWarning(false, 'androidOutdated', diagnostics)
             }
         }
 
@@ -161,11 +158,7 @@ export async function checkPasskeySupport(): Promise<PasskeyPreflightResult> {
 
             // on android, uvpa must be available (indicates screen lock is properly configured)
             if (!diagnostics.uvpaAvailable && diagnostics.isAndroid) {
-                return {
-                    isSupported: false,
-                    warning: 'Please enable screen lock with PIN or biometric in your device settings',
-                    diagnostics,
-                }
+                return withWarning(false, 'screenLock', diagnostics)
             }
         }
     } catch (e) {
@@ -193,16 +186,13 @@ export async function checkPasskeySupport(): Promise<PasskeyPreflightResult> {
     // return soft warning for android devices without conditional mediation
     // this doesn't block registration but warns user about potential issues
     if (diagnostics.isAndroid && diagnostics.conditionalMediationAvailable === false) {
-        return {
-            isSupported: true,
-            warning: 'Your device may have limited passkey support. If setup fails, try updating Google Play Services.',
-            diagnostics,
-        }
+        return withWarning(true, 'limitedSupport', diagnostics)
     }
 
     return {
         isSupported: true,
         warning: null,
+        warningKey: null,
         diagnostics,
     }
 }

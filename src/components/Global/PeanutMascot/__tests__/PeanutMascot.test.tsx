@@ -12,8 +12,12 @@ import {
     MASCOT_CANVAS_HEIGHT,
     MASCOT_CANVAS_WIDTH,
 } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
-import { getMascotPlacement, subscribeToMascotClock } from '@/components/Global/PeanutMascot/PeanutMascot.utils'
-import { render, screen, waitFor } from '@testing-library/react'
+import {
+    getMascotCanvasPlacement,
+    getMascotPlacement,
+    subscribeToMascotClock,
+} from '@/components/Global/PeanutMascot/PeanutMascot.utils'
+import { act, render, screen, waitFor } from '@testing-library/react'
 
 const mockAnimation = {
     totalFrames: 20,
@@ -122,6 +126,55 @@ describe('getMascotPlacement', () => {
     })
 })
 
+describe('getMascotCanvasPlacement', () => {
+    it('fits the whole canvas in the box, centred, the same for every pose', () => {
+        // A box wider than the canvas: height-bound, centred sideways.
+        const placement = getMascotCanvasPlacement(300, 200)
+        expect(placement.height).toBeCloseTo(200, 5)
+        expect(placement.width).toBeCloseTo((200 * MASCOT_CANVAS_WIDTH) / MASCOT_CANVAS_HEIGHT, 5)
+        expect(placement.top).toBeCloseTo(0, 5)
+        expect(placement.left).toBeCloseTo((300 - placement.width) / 2, 5)
+    })
+})
+
+describe('PeanutMascot pose swap', () => {
+    // The frame clock outlives a pose swap. Coming from a longer animation it can sit more
+    // than one loop past the shorter one's end, where a single subtraction is not enough.
+    it('wraps a frame carried over from a longer pose into the new pose', async () => {
+        const pending: FrameRequestCallback[] = []
+        const raf = jest.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => pending.push(cb))
+        const caf = jest.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => void pending.splice(0))
+        let now = performance.now()
+        // Each frame arrives a second late, so the clock advances by its capped step.
+        const runFrames = (count: number) =>
+            act(() => {
+                for (let i = 0; i < count; i++) pending.shift()?.((now += 1000))
+            })
+
+        try {
+            const long = { ...mockAnimation, totalFrames: 60, goToAndStop: jest.fn() }
+            const short = { ...mockAnimation, totalFrames: 20, goToAndStop: jest.fn() }
+            mockLoadAnimation.mockReturnValueOnce(long).mockReturnValueOnce(short)
+            const { container, rerender } = render(<PeanutMascot pose="waving-hello" className="h-60 w-60" />)
+            const ready = () => expect(container.querySelector('[data-lottie-ready="true"]')).not.toBeNull()
+            await waitFor(ready)
+            runFrames(15)
+            const carried = Math.max(...long.goToAndStop.mock.calls.map(([frame]) => frame as number))
+            expect(carried).toBeGreaterThan(40)
+
+            rerender(<PeanutMascot pose="cheering" className="h-60 w-60" />)
+            await waitFor(() => expect(mockLoadAnimation).toHaveBeenCalledTimes(2))
+            await waitFor(ready)
+            runFrames(3)
+            expect(short.goToAndStop).toHaveBeenCalled()
+            short.goToAndStop.mock.calls.forEach(([frame]) => expect(frame).toBeLessThan(short.totalFrames))
+        } finally {
+            raf.mockRestore()
+            caf.mockRestore()
+        }
+    })
+})
+
 describe('subscribeToMascotClock', () => {
     // The loop is module-level shared state, so a leak here burns a rAF on every page for
     // the rest of the session. A ticker that unsubscribes from inside its own tick (what a
@@ -189,6 +242,14 @@ describe('MASCOT_ART_BOXES', () => {
 
 describe('mascot sizing', () => {
     type Pose = keyof typeof MASCOT_ART_BOXES
+
+    it('leaves the box to the call site when it fits the canvas, so two poses can share one box', async () => {
+        const { container } = render(<PeanutMascot pose="cheering" fit="canvas" className="size-full" />)
+
+        await waitFor(() => expect(mockLoadAnimation).toHaveBeenCalled())
+        const host = container.firstElementChild as HTMLElement
+        expect(host).not.toHaveClass(MASCOT_ASPECT_CLASSES.cheering)
+    })
 
     it('gives the host the pose art aspect, so a height-only box fits the pose', async () => {
         const { container } = render(<PeanutMascot pose="waving-chill" className="h-[35dvh]" />)

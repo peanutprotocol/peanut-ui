@@ -3,85 +3,67 @@
         "id": "01-a-landing",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=01-a-landing",
-        "source": "Setup/Views/Landing.tsx"
-    },
-    {
-        "id": "01-a-landing-flag-welcome-headline-copy-every-border",
-        "flow": "Setup and login",
-        "route": "/dev/surfaces?s=01-a-landing",
-        "source": "Setup/Views/Landing.tsx"
-    },
-    {
-        "id": "01-a-landing-flag-welcome-headline-copy-whole-world",
-        "flow": "Setup and login",
-        "route": "/dev/surfaces?s=01-a-landing",
-        "source": "Setup/Views/Landing.tsx"
-    },
-    {
-        "id": "01-a-landing-flag-welcome-headline-copy-travels-free",
-        "flow": "Setup and login",
-        "route": "/dev/surfaces?s=01-a-landing",
-        "source": "Setup/Views/Landing.tsx"
+        "source": "Setup/redesign/Landing/LandingScreen.tsx"
     },
     {
         "id": "04-b-advantage-fees",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=04-b-advantage-fees",
-        "source": "Setup/Views/Advantage.tsx"
+        "source": "Setup/redesign/Accounts/AccountsScreen.tsx"
     },
     {
         "id": "02-b-advantage-card",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=02-b-advantage-card",
-        "source": "Setup/Views/Advantage.tsx"
+        "source": "Setup/redesign/Card/CardScreen.tsx"
     },
     {
         "id": "03-a-residence-select",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=03-a-residence-select",
-        "source": "Setup/Views/Residence.tsx"
+        "source": "Setup/redesign/Residence/ResidenceScreen.tsx"
     },
     {
         "id": "03-b-residence-compare",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=03-b-residence-compare",
-        "source": "Setup/components/ResidenceCompare.tsx"
+        "source": "Setup/redesign/Residence/ResidenceCompareView.tsx"
     },
     {
         "id": "03-c-residence-congrats",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=03-c-residence-congrats",
-        "source": "Setup/Views/PaymentPlan.tsx"
+        "source": "Setup/redesign/PaymentPlan/PaymentPlanScreen.tsx"
     },
     {
         "id": "03-h-funding-methods",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=03-h-funding-methods",
-        "source": "Setup/Views/PaymentPlan.tsx"
+        "source": "Setup/redesign/PaymentPlan/PaymentPlanScreen.tsx"
     },
     {
         "id": "03-i-payment-methods",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=03-i-payment-methods",
-        "source": "Setup/Views/PaymentPlan.tsx"
+        "source": "Setup/redesign/PaymentPlan/PaymentPlanScreen.tsx"
     },
     {
         "id": "06-a-signup",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=06-a-signup",
-        "source": "Setup/Views/Signup.tsx"
+        "source": "Setup/redesign/Username/UsernameScreen.tsx"
     },
     {
         "id": "06-b-invite",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=06-b-invite",
-        "source": "Setup/Views/Invite.tsx"
+        "source": "Setup/redesign/Invite/InviteScreen.tsx"
     },
     {
         "id": "06-c-passkey",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=06-c-passkey",
-        "source": "Setup/Views/Passkey.tsx"
+        "source": "Setup/redesign/Passkey/PasskeyScreen.tsx"
     },
     {
         "id": "08-a-passkeysetuphelpmodal",
@@ -90,58 +72,52 @@
         "source": "Setup/Views/PasskeySetupHelpDrawer.tsx"
     },
     {
-        "id": "09-a-passkeyinfomodal",
-        "flow": "Setup and login",
-        "route": "/dev/surfaces?s=09-a-passkeyinfomodal",
-        "source": "Setup/components/PasskeyInfoDrawer.tsx"
-    },
-    {
         "id": "07-c-notification-email",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=07-c-notification-email",
-        "source": "Setup/Views/Email.tsx"
+        "source": "Setup/redesign/Email/EmailScreen.tsx"
     },
     {
         "id": "07-d-notification-settings",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=07-d-notification-settings",
-        "source": "Setup/Views/Notifications.tsx"
+        "source": "Setup/redesign/Notifications/NotificationsScreen.tsx"
     },
     {
         "id": "07-d-notification-settings-flag-signup-notification-switches-switches",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=07-d-notification-settings",
-        "source": "Setup/Views/Notifications.tsx"
+        "source": "Setup/redesign/Notifications/NotificationsScreen.tsx"
     },
     {
         "id": "07-d-notification-settings-flag-signup-notification-switches-defaults-on",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=07-d-notification-settings",
-        "source": "Setup/Views/Notifications.tsx"
+        "source": "Setup/redesign/Notifications/NotificationsScreen.tsx"
     },
     {
         "id": "07-b-advantage-control",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=07-b-advantage-control",
-        "source": "Setup/Views/Advantage.tsx"
+        "source": "Setup/redesign/FinalConfirm/FinalConfirmScreen.tsx"
     },
     {
         "id": "05-a-signtesttransaction",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=05-a-signtesttransaction",
-        "source": "Setup/Views/SignTestTransaction.tsx"
+        "source": "Setup/redesign/FinalConfirm/FinalConfirmScreen.tsx"
     },
     {
         "id": "05-b-signtesttransaction-network-busy",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=05-b-signtesttransaction-network-busy",
-        "source": "Setup/Views/SignTestTransaction.tsx"
+        "source": "Setup/redesign/FinalConfirm/FinalConfirmScreen.tsx"
     },
     {
         "id": "07-e-setup-celebration",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=07-e-setup-celebration",
-        "source": "Setup/Views/Success.tsx"
+        "source": "Setup/redesign/Celebration/CelebrationScreen.tsx"
     },
     {
         "id": "20-a-setupnotificationsmodal",
@@ -182,6 +158,431 @@
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=15-a-invitefriendsmodal",
         "source": "Global/InviteFriendsModal/index.tsx"
+    },
+    {
+        "id": "fixture-setup-redesign-landing-default",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-landing"
+    },
+    {
+        "id": "fixture-setup-redesign-landing-login-failed",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-landing"
+    },
+    {
+        "id": "fixture-setup-redesign-landing-account-deleted",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-landing"
+    },
+    {
+        "id": "fixture-setup-redesign-landing-web-download",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-landing"
+    },
+    {
+        "id": "fixture-setup-redesign-username-default",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-username"
+    },
+    {
+        "id": "fixture-setup-redesign-username-rolling",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-username"
+    },
+    {
+        "id": "fixture-setup-redesign-username-rolled",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-username"
+    },
+    {
+        "id": "fixture-setup-redesign-username-typing",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-username"
+    },
+    {
+        "id": "fixture-setup-redesign-username-too-long",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-username"
+    },
+    {
+        "id": "fixture-setup-redesign-username-invalid",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-username"
+    },
+    {
+        "id": "fixture-setup-redesign-username-taken",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-username"
+    },
+    {
+        "id": "fixture-setup-redesign-username-available",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-username"
+    },
+    {
+        "id": "fixture-setup-redesign-username-check-failed",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-username"
+    },
+    {
+        "id": "fixture-setup-redesign-username-reserved",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-username"
+    },
+    {
+        "id": "fixture-setup-redesign-username-claiming",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-username"
+    },
+    {
+        "id": "fixture-setup-redesign-username-return-taken",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-username-return"
+    },
+    {
+        "id": "fixture-setup-redesign-passkey-default",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-passkey"
+    },
+    {
+        "id": "fixture-setup-redesign-passkey-prompt",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-passkey"
+    },
+    {
+        "id": "fixture-setup-redesign-passkey-error-inline",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-passkey"
+    },
+    {
+        "id": "fixture-setup-redesign-passkey-taken",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-passkey"
+    },
+    {
+        "id": "fixture-setup-redesign-passkey-failed-android",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-passkey"
+    },
+    {
+        "id": "fixture-setup-redesign-passkey-failed-ios",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-passkey"
+    },
+    {
+        "id": "fixture-setup-redesign-passkey-cannot-create",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-passkey"
+    },
+    {
+        "id": "fixture-setup-redesign-passkey-cannot-create-other",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-passkey"
+    },
+    {
+        "id": "fixture-setup-redesign-passkey-help-drawer",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-passkey"
+    },
+    {
+        "id": "fixture-setup-redesign-invite-default",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-invite"
+    },
+    {
+        "id": "fixture-setup-redesign-invite-typing",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-invite"
+    },
+    {
+        "id": "fixture-setup-redesign-invite-checking",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-invite"
+    },
+    {
+        "id": "fixture-setup-redesign-invite-found",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-invite-found"
+    },
+    {
+        "id": "fixture-setup-redesign-invite-not-found",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-invite"
+    },
+    {
+        "id": "fixture-setup-redesign-invite-not-found-two",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-invite"
+    },
+    {
+        "id": "fixture-setup-redesign-invite-self",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-invite"
+    },
+    {
+        "id": "fixture-setup-redesign-invite-check-failed",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-invite"
+    },
+    {
+        "id": "fixture-setup-redesign-invite-continuing",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-invite"
+    },
+    {
+        "id": "fixture-setup-redesign-accounts-default",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-accounts"
+    },
+    {
+        "id": "fixture-setup-redesign-accounts-advancing",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-accounts"
+    },
+    {
+        "id": "fixture-setup-redesign-card-default",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-card"
+    },
+    {
+        "id": "fixture-setup-redesign-card-advancing",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-card"
+    },
+    {
+        "id": "fixture-setup-redesign-residence-default",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-residence"
+    },
+    {
+        "id": "fixture-setup-redesign-residence-empty",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-residence-empty"
+    },
+    {
+        "id": "fixture-setup-redesign-residence-picker",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-residence"
+    },
+    {
+        "id": "fixture-setup-redesign-residence-picker-nationality",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-residence"
+    },
+    {
+        "id": "fixture-setup-redesign-residence-search-empty",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-residence"
+    },
+    {
+        "id": "fixture-setup-redesign-residence-differ",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-residence-differ"
+    },
+    {
+        "id": "fixture-setup-redesign-residence-refused-passport",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-residence-refused"
+    },
+    {
+        "id": "fixture-setup-redesign-residence-compare",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-residence-differ"
+    },
+    {
+        "id": "fixture-setup-redesign-residence-compare-equal",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-residence"
+    },
+    {
+        "id": "fixture-setup-redesign-residence-compare-loading",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-residence-differ"
+    },
+    {
+        "id": "fixture-setup-redesign-residence-advancing",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-residence"
+    },
+    {
+        "id": "fixture-setup-redesign-plan-loading",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-plan"
+    },
+    {
+        "id": "fixture-setup-redesign-plan-default",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-plan"
+    },
+    {
+        "id": "fixture-setup-redesign-plan-prefilled",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-plan-single"
+    },
+    {
+        "id": "fixture-setup-redesign-plan-picker",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-plan"
+    },
+    {
+        "id": "fixture-setup-redesign-plan-picker-payment",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-plan"
+    },
+    {
+        "id": "fixture-setup-redesign-plan-filled",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-plan-filled"
+    },
+    {
+        "id": "fixture-setup-redesign-plan-advancing",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-plan-filled"
+    },
+    {
+        "id": "fixture-setup-redesign-email-default",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-email"
+    },
+    {
+        "id": "fixture-setup-redesign-email-filled",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-email-filled"
+    },
+    {
+        "id": "fixture-setup-redesign-email-invalid",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-email"
+    },
+    {
+        "id": "fixture-setup-redesign-email-already-registered",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-email-filled"
+    },
+    {
+        "id": "fixture-setup-redesign-email-save-failed",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-email-filled"
+    },
+    {
+        "id": "fixture-setup-redesign-email-saving",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-email-filled"
+    },
+    {
+        "id": "fixture-setup-redesign-email-not-ready",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-email-filled"
+    },
+    {
+        "id": "fixture-setup-redesign-email-kept-current",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-email-filled"
+    },
+    {
+        "id": "fixture-setup-redesign-notifications-default",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-notifications"
+    },
+    {
+        "id": "fixture-setup-redesign-notifications-prompt",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-notifications"
+    },
+    {
+        "id": "fixture-setup-redesign-notifications-denied",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-notifications"
+    },
+    {
+        "id": "fixture-setup-redesign-notifications-switches",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-notifications"
+    },
+    {
+        "id": "fixture-setup-redesign-notifications-switches-save-failed",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-notifications"
+    },
+    {
+        "id": "fixture-setup-redesign-final-default",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-final"
+    },
+    {
+        "id": "fixture-setup-redesign-final-loading-user",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-final"
+    },
+    {
+        "id": "fixture-setup-redesign-final-prompt",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-final"
+    },
+    {
+        "id": "fixture-setup-redesign-final-success",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-final"
+    },
+    {
+        "id": "fixture-setup-redesign-final-network-busy",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-final"
+    },
+    {
+        "id": "fixture-setup-redesign-final-network-busy-first",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-final"
+    },
+    {
+        "id": "fixture-setup-redesign-final-setup-failed",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-final"
+    },
+    {
+        "id": "fixture-setup-redesign-final-what-passkey",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-final"
+    },
+    {
+        "id": "fixture-setup-redesign-final-error-refresh",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-final"
+    },
+    {
+        "id": "fixture-setup-redesign-final-error-support",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-final"
+    },
+    {
+        "id": "fixture-setup-redesign-final-error-provider",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-final"
+    },
+    {
+        "id": "fixture-setup-redesign-final-error-confirm-again",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-final"
+    },
+    {
+        "id": "fixture-setup-redesign-final-error-passkey",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-final"
+    },
+    {
+        "id": "fixture-setup-redesign-final-finish-route",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-final-finish"
+    },
+    {
+        "id": "fixture-setup-redesign-celebration-default",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-celebration"
+    },
+    {
+        "id": "fixture-setup-redesign-celebration-claim-link",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-celebration-claim"
     },
     {
         "id": "fixture-setup-signup-reserved",
@@ -290,25 +691,25 @@
         "id": "03-j-funding-methods-argentina",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=03-j-funding-methods-argentina",
-        "source": "Setup/Views/PaymentPlan.tsx"
+        "source": "Setup/redesign/PaymentPlan/PaymentPlanScreen.tsx"
     },
     {
         "id": "03-k-funding-pix-chosen",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=03-k-funding-pix-chosen",
-        "source": "Setup/Views/PaymentPlan.tsx"
+        "source": "Setup/redesign/PaymentPlan/PaymentPlanScreen.tsx"
     },
     {
         "id": "07-d-notification-switches",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=07-d-notification-switches",
-        "source": "Setup/Views/Notifications.tsx"
+        "source": "Setup/redesign/Notifications/NotificationsSwitchesScreen.tsx"
     },
     {
         "id": "07-d-notification-defaults-on",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=07-d-notification-defaults-on",
-        "source": "Setup/Views/Notifications.tsx"
+        "source": "Setup/redesign/Notifications/NotificationsSwitchesScreen.tsx"
     },
     {
         "id": "08-b-loginrecoverydrawer",
@@ -323,24 +724,6 @@
         "source": "Setup/Views/LoginRecoveryDrawer.tsx"
     },
     {
-        "id": "08-d-passkeyproviderunsupporteddrawer",
-        "flow": "Setup and login",
-        "route": "/dev/surfaces?s=08-d-passkeyproviderunsupporteddrawer",
-        "source": "Setup/Views/PasskeyProviderUnsupportedDrawer.tsx"
-    },
-    {
-        "id": "08-e-passkeyproviderunsupporteddrawer-browser-failed",
-        "flow": "Setup and login",
-        "route": "/dev/surfaces?s=08-e-passkeyproviderunsupporteddrawer-browser-failed",
-        "source": "Setup/Views/PasskeyProviderUnsupportedDrawer.tsx"
-    },
-    {
-        "id": "08-f-passkeyproviderunsupporteddrawer-other",
-        "flow": "Setup and login",
-        "route": "/dev/surfaces?s=08-f-passkeyproviderunsupporteddrawer-other",
-        "source": "Setup/Views/PasskeyProviderUnsupportedDrawer.tsx"
-    },
-    {
         "id": "45-c-residencechangemodal",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=45-c-residencechangemodal",
@@ -353,6 +736,12 @@
         "source": "Profile/views/ResidenceChangeDrawer.tsx"
     },
     {
+        "id": "45-e-residence-manual-review",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=45-e-residence-manual-review",
+        "source": "Profile/views/ResidenceChangeDrawer.tsx"
+    },
+    {
         "id": "78-f-choice-guest-claim",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=78-f-choice-guest-claim",
@@ -362,7 +751,7 @@
         "id": "83-f-choice-residence-restricted",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=83-f-choice-residence-restricted",
-        "source": "Setup/Views/PaymentPlan.tsx"
+        "source": "Setup/redesign/PaymentPlan/PaymentPlanScreen.tsx"
     },
     {
         "id": "84-f-choice-public-profile-guest",
@@ -624,6 +1013,11 @@
         "id": "fixture-paperwork-verification-ar",
         "flow": "Home and shared states",
         "route": "/verify"
+    },
+    {
+        "id": "fixture-paperwork-verification-ar-tax",
+        "flow": "Home and shared states",
+        "route": "/verify?step=tax"
     },
     {
         "id": "fixture-paperwork-verification-br",
@@ -1159,6 +1553,11 @@
         "route": "/add-money/argentina/manteca?step=inputAmount&amount=10000&currency=ARS"
     },
     {
+        "id": "fixture-add-money-argentina-deposit-open",
+        "flow": "Add money",
+        "route": "/add-money/argentina/manteca?step=inputAmount&currency=ARS"
+    },
+    {
         "id": "fixture-add-money-bank-liechtenstein",
         "flow": "Add money",
         "route": "/add-money/liechtenstein/bank?step=inputAmount&amount=100"
@@ -1237,6 +1636,16 @@
         "id": "fixture-pix-deposit-receipt-completed",
         "flow": "Add money",
         "route": "/history?tx=fixture-avenia-deposit-paid"
+    },
+    {
+        "id": "fixture-pix-deposit-receipt-returned",
+        "flow": "Add money",
+        "route": "/history?tx=fixture-avenia-deposit-returned"
+    },
+    {
+        "id": "fixture-pix-deposit-returned-row",
+        "flow": "Add money",
+        "route": "/history"
     },
     {
         "id": "fixture-pix-activation-refused",
@@ -1532,11 +1941,6 @@
         "id": "add-money-transfer-currencies",
         "flow": "Add money",
         "route": "/add-money/options?method=transfer"
-    },
-    {
-        "id": "add-money-pix-currency",
-        "flow": "Add money",
-        "route": "/add-money/options?method=pix"
     },
     {
         "id": "p18-add-money-crypto",

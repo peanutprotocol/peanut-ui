@@ -64,25 +64,24 @@ describe('PixQrDeposit', () => {
     })
 
     // a provider that sends no expiry or payer CPF: the code alone, with no line it cannot fill
-    // The owner, 15 Nov, "Option A", with his own R$20 deposit: Avenia's rate 5.728962 and every fee
-    // (0.75 + 0.22 + gas) as one row; (20.00 − 0.97) ÷ 5.728962 = 3.32 USDC
-    it("shows Avenia's own rate and every fee as one row, from the deposit answer", () => {
+    // The first real R$20 deposit (15 Nov) under TASK-24967: conversion and gas inside the rate, the
+    // flat In Fee as the row; (20.00 − 0.75) ÷ 5.796567 = 3.32 USDC
+    it('shows the rate and the flat fee row from the deposit answer', () => {
         state(
             'pending',
             read({
                 amountBrl: '20.00',
                 usdcAmount: '3.320931',
                 fixedFeeBrl: '0.75',
-                exchangeRate: '5.728962',
-                providerFeeBrl: '0.97',
+                exchangeRate: '5.796567',
+                providerFeeBrl: '0.75',
             })
         )
         renderScreen()
         expect(screen.getByText(en.common.exchangeRate)).toBeInTheDocument()
-        expect(screen.getByText('1 USD = 5.73 BRL')).toBeInTheDocument()
+        expect(screen.getByText('1 USD = 5.80 BRL')).toBeInTheDocument()
         expect(screen.getByText(en.pix.withdraw.fee)).toBeInTheDocument()
-        expect(screen.getByText('R$0.97')).toBeInTheDocument()
-        expect(screen.queryByText('R$0.75')).toBeNull()
+        expect(screen.getByText('R$0.75')).toBeInTheDocument()
         expect(screen.getByText('You get ≈ $3.32')).toBeInTheDocument()
     })
 
@@ -93,7 +92,7 @@ describe('PixQrDeposit', () => {
         expect(screen.queryByText(en.pix.withdraw.fee)).toBeNull()
         view.unmount()
 
-        state('pending', read({ provider: 'manteca', exchangeRate: '5.728962', providerFeeBrl: '0.97' }))
+        state('pending', read({ provider: 'manteca', exchangeRate: '5.796567', providerFeeBrl: '0.75' }))
         renderScreen()
         expect(screen.queryByText(en.common.exchangeRate)).toBeNull()
     })

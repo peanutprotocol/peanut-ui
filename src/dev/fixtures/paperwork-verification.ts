@@ -602,6 +602,11 @@ export const PAPERWORK_VERIFICATION_FIXTURES: Record<string, Fixture> = {
         about: 'Smart Paperwork Verification questions for an Argentine resident with local transfers + card: Manteca’s marital status, declarations and CUIT.',
         responses: asking('AR', AR_STEPS),
     },
+    'paperwork-verification-ar-tax': {
+        route: '/verify?step=tax',
+        about: 'Smart Paperwork Verification, Argentina: the tax-ID question, which takes a CUIT, CUIL or DNI.',
+        responses: asking('AR', AR_STEPS),
+    },
     'paperwork-verification-br': {
         route: '/verify?step=birth',
         about: 'Smart Paperwork Verification questions for a Brazilian resident with local transfers + card: the sex on the ID and the marital status.',
