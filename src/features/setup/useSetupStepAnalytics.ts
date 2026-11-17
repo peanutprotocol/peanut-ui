@@ -3,9 +3,11 @@
 import { type ISetupStep, type ScreenId } from '@/components/Setup/Setup.types'
 import {
     captureSignupStepViewed,
+    SIGNUP_FLOW_VERSION,
     type SignupEntryFlow,
     type SignupNavigationType,
 } from '@/features/setup/signup-analytics'
+import posthog from 'posthog-js'
 import { useEffect, useRef } from 'react'
 
 /**
@@ -28,6 +30,12 @@ export const useSetupStepAnalytics = ({
     signupEntryFlow: SignupEntryFlow
 }) => {
     const lastScreenRef = useRef<ScreenId | null>(null)
+
+    // every event fired while setup is open (errors included) must be splittable by flow
+    useEffect(() => {
+        posthog.register({ flow_version: SIGNUP_FLOW_VERSION })
+        return () => posthog.unregister('flow_version')
+    }, [])
 
     useEffect(() => {
         if (!enabled || !step) return
