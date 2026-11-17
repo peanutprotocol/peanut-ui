@@ -956,6 +956,9 @@ describe('07 Residence: v7', () => {
             screen.getByText(copy(`${K}.refusedPassport`, { nationality: labelOf('CU'), residence: labelOf('AR') }))
         ).toBeInTheDocument()
         expect(whyLink(view.container)).toBeNull()
+        // the longer v7 sentence leaves the callout no room on a std phone (375x667) unless the stage is compact
+        // (the hero box starts at the compact stage's 120 design px, not the std stage's 150)
+        expect(view.container.querySelector<HTMLElement>('[data-residence-hero-box]')!.style.top).toBe('120px')
     })
 
     it('the country list leads with Argentina and Brazil under "Popular", each listed once; a search drops the header', () => {

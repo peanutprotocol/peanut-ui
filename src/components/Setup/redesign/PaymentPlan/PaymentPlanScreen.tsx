@@ -89,7 +89,7 @@ export function PaymentPlanScreen(_props: StepComponentProps) {
     const helper =
         infoLine === 'b' ? null : (
             <p
-                className="mt-3 flex items-center gap-2 text-body-s leading-5 text-foreground-secondary signup-sm:mt-2"
+                className="mt-3 flex items-center gap-1 text-body-xs text-foreground-secondary signup-sm:mt-2"
                 data-testid="setup-plan-hint"
             >
                 <Icon name="info" size={16} className="shrink-0" />
