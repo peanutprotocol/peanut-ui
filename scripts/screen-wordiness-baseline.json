@@ -54,7 +54,7 @@
         "components/Send/link/views/Initial.link.send.view.tsx": 68,
         "components/Send/views/Contacts.view.tsx": 96,
         "components/Send/views/SendRouter.view.tsx": 75,
-        "components/Setup/redesign/Email/EmailScreen.tsx": 72,
+        "components/Setup/redesign/Email/EmailScreen.tsx": 76,
         "components/Setup/redesign/FinalConfirm/PasskeyInfoSheet.tsx": 63,
         "components/Setup/redesign/Landing/LandingScreen.tsx": 81,
         "components/Setup/redesign/Notifications/NotificationsControlScreen.tsx": 70,

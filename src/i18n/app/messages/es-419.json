@@ -1289,7 +1289,7 @@
             "note": "Puedes desactivar novedades y ofertas cuando quieras.",
             "invalid": "Ingresa un correo válido.",
             "taken": "Este correo ya tiene una cuenta de Peanut.",
-            "takenDeleted": "Este correo pertenece a una cuenta de Peanut eliminada.",
+            "takenDeleted": "La cuenta de este correo fue eliminada.",
             "useOther": "Usar otro correo",
             "recover": "Cómo recuperar esa cuenta",
             "clearAria": "Borrar"
