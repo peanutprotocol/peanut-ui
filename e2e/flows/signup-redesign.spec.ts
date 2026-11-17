@@ -238,7 +238,13 @@ class SignupStub {
                 const update = body as Record<string, unknown>
                 if (!this.registered) return { status: 401, json: { error: 'unauthorized' } }
                 if (typeof update.email === 'string') {
+                    // taken@: an established account holds it; dormant@: one that is not established
                     if (/^taken@/i.test(update.email))
+                        return {
+                            status: 409,
+                            json: { code: 'EMAIL_ON_ACTIVE_ACCOUNT', message: 'Email already in use' },
+                        }
+                    if (/^dormant@/i.test(update.email))
                         return { status: 409, json: { code: 'EMAIL_IN_USE', message: 'Email already in use' } }
                     this.registered.email = update.email
                 }
@@ -1012,6 +1018,45 @@ test.describe('sign-up redesign journeys', () => {
             await expect(field).toHaveValue('luckyotter@gmail.com')
             await expect(suggestion).toHaveCount(0)
             await expectScreen(page, 'notification-email', 'filled')
+            await primary(page, copy('en', 'setupRedesign.common.continue')).click()
+            await expectScreen(page, 'notification-permission', 'default')
+        })
+
+        test('an email on an established account: Log in to that account, then the recovery link; nothing saved', async ({
+            page,
+            context,
+            baseURL,
+        }) => {
+            await addAuthenticator(page)
+            await openSetup(page, context, baseURL!)
+            await landingToUsername(page, 'en')
+            await claimUsername(page, 'en', 'luckyotter')
+            await inviteSkip(page, 'en')
+            await createPasskey(page, 'en')
+            await expectScreen(page, 'notification-email', 'default', 30_000)
+            await page.getByRole('textbox', { name: copy('en', 'setupRedesign.email.label') }).fill('taken@gmail.com')
+            await primary(page, copy('en', 'setupRedesign.common.continue')).click()
+            await expectScreen(page, 'notification-email', 'already-registered')
+            await expect(primary(page, copy('en', 'setupRedesign.email.logIn'))).toBeEnabled()
+            await expect(footer(page).getByText(copy('en', 'setupRedesign.email.recover'))).toBeVisible()
+        })
+
+        test('an email on an account that is not established: the saved-after-verification note, then on unsaved', async ({
+            page,
+            context,
+            baseURL,
+        }) => {
+            await addAuthenticator(page)
+            await openSetup(page, context, baseURL!)
+            await landingToUsername(page, 'en')
+            await claimUsername(page, 'en', 'luckyotter')
+            await inviteSkip(page, 'en')
+            await createPasskey(page, 'en')
+            await expectScreen(page, 'notification-email', 'default', 30_000)
+            await page.getByRole('textbox', { name: copy('en', 'setupRedesign.email.label') }).fill('dormant@gmail.com')
+            await primary(page, copy('en', 'setupRedesign.common.continue')).click()
+            await expectScreen(page, 'notification-email', 'deferred')
+            await expect(page.getByText(copy('en', 'setupRedesign.email.deferred'))).toBeVisible()
             await primary(page, copy('en', 'setupRedesign.common.continue')).click()
             await expectScreen(page, 'notification-permission', 'default')
         })

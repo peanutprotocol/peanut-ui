@@ -1,5 +1,7 @@
 import { DEFAULT_CATALOGUE, DEFAULT_SETTINGS, asCatalogue } from '../catalogue'
 import { ASKS } from '../registry'
+import { isSilenced } from '../decide'
+import { homePushTrigger } from '../homePushTrigger'
 import { applyServerFacts, applyServerRanking, asServerAttention } from '../serverAttention'
 import type { JourneyState } from '../types'
 
@@ -239,4 +241,61 @@ test('a failed spend query with successful QR query does not become an old-spend
     )
     const merged = applyServerFacts(state, server)
     expect(ASKS.find((ask) => ask.id === 'next-payment')?.eligible(merged)).toBe('unknown')
+})
+
+// TASK-25063: the Home push ask asks once more after the first bank or crypto deposit.
+describe('the first deposit fact and the Home push re-ask', () => {
+    const facts = {
+        onboarding: null,
+        firstPeerPaymentAt: null,
+        lastSpendAt: null,
+        spendHistoryAvailable: true,
+        hasMadeQrPayment: true,
+        hasReceivedRequestPayment: false,
+    }
+    const state = {
+        userId: 'user-a',
+        userLoaded: true,
+        isNative: false,
+        push: { ready: true, unanswered: true, promptedThisSession: false, notEnabled: true },
+        now: Date.parse('2026-11-17T12:00:00Z'),
+    } as unknown as JourneyState
+    const pushAsk = ASKS.find((ask) => ask.id === 'push-home-fallback')!
+    const snoozedFor = (version: string) => ({
+        snoozedUntil: '2026-11-30T00:00:00Z',
+        version,
+    })
+
+    test.each([
+        ['true', { firstDepositReceived: true }, true],
+        ['false', { firstDepositReceived: false }, false],
+        ['null', { firstDepositReceived: null }, null],
+        ['missing (an older API)', {}, null],
+        ['not a boolean', { firstDepositReceived: 'yes' }, null],
+    ])('%s reads as %p', (_label, patch, fact) => {
+        const built = applyServerFacts(state, asServerAttention(envelope({ facts: { ...facts, ...patch } })))
+        expect(built.firstDepositReceived).toBe(fact)
+        expect(built.qr?.hasMadeQrPayment).toBe(true)
+    })
+
+    test('a snoozed Home ask re-arms once when the first deposit lands, then its new snooze holds', () => {
+        const before = { ...state, firstDepositReceived: false }
+        const after = { ...state, firstDepositReceived: true }
+        expect(isSilenced(pushAsk, snoozedFor(pushAsk.version!(before)!), before)).toBe(true)
+        // the deposit changes the version, so the old snooze no longer holds
+        expect(isSilenced(pushAsk, snoozedFor(pushAsk.version!(before)!), after)).toBe(false)
+        // answered "Not now" after the deposit: silenced like any snooze, no further re-arm
+        expect(isSilenced(pushAsk, snoozedFor(pushAsk.version!(after)!), after)).toBe(true)
+        expect(pushAsk.eligible(after)).toBe('show')
+    })
+
+    test.each([
+        [true, 'first_deposit'],
+        [false, 'home_fallback'],
+        [null, 'home_fallback'],
+        [undefined, 'home_fallback'],
+    ])('firstDepositReceived %p asks with the %s trigger', (fact, trigger) => {
+        expect(homePushTrigger({ firstDepositReceived: fact })).toBe(trigger)
+        expect(pushAsk.legacyProps?.({ ...state, firstDepositReceived: fact }, 'shown')).toMatchObject({ trigger })
+    })
 })

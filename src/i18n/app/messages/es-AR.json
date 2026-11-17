@@ -159,7 +159,8 @@
             },
             "addEmail": {
                 "title": "Agregá tu correo",
-                "description": "Recibí comprobantes y alertas de tu cuenta por correo."
+                "description": "Recibí comprobantes y alertas de tu cuenta por correo.",
+                "deferred": "Vamos a guardar este correo cuando verifiques tu identidad."
             },
             "rewards": {
                 "title": "Tenés recompensas esperando",
@@ -821,9 +822,10 @@
             "note": "Podés desactivar novedades y ofertas cuando quieras.",
             "invalid": "Ingresá un email válido.",
             "taken": "Este email ya tiene una cuenta de Peanut.",
+            "deferred": "Vamos a guardar este email cuando verifiques tu identidad.",
             "suggest": "¿Quisiste decir {a}?",
-            "useOther": "Usar otro email",
-            "recover": "Cómo recuperar esa cuenta",
+            "logIn": "Iniciar sesión en esa cuenta",
+            "recover": "Recuperar mi cuenta",
             "clearAria": "Borrar"
         },
         "notif": {

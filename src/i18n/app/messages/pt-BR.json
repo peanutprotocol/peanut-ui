@@ -292,7 +292,8 @@
             },
             "addEmail": {
                 "title": "Adicione seu e-mail",
-                "description": "Receba comprovantes e alertas da conta por e-mail."
+                "description": "Receba comprovantes e alertas da conta por e-mail.",
+                "deferred": "Vamos salvar este e-mail quando você verificar sua identidade."
             },
             "rewards": {
                 "title": "Você tem recompensas esperando",
@@ -1289,9 +1290,10 @@
             "note": "Você pode desativar novidades e ofertas quando quiser.",
             "invalid": "Digite um e-mail válido.",
             "taken": "Esse e-mail já tem uma conta no Peanut.",
+            "deferred": "Vamos salvar este e-mail quando você verificar sua identidade.",
             "suggest": "Você quis dizer {a}?",
-            "useOther": "Usar outro e-mail",
-            "recover": "Como recuperar essa conta",
+            "logIn": "Entrar nessa conta",
+            "recover": "Recuperar minha conta",
             "clearAria": "Limpar"
         },
         "notif": {
@@ -3319,7 +3321,9 @@
         "cardReadyTitle": "Avisamos sobre cada pagamento no cartão",
         "cardReadyDescription": "Uma notificação por pagamento, aprovado ou recusado.",
         "qrFirstScanTitle": "Confirmamos cada pagamento QR",
-        "qrFirstScanDescription": "Uma notificação quando o pagamento for concluído."
+        "qrFirstScanDescription": "Uma notificação quando o pagamento for concluído.",
+        "firstDepositTitle": "Saiba quando seu dinheiro se mexer",
+        "firstDepositDescription": "Avisamos quando chegar dinheiro ou um pagamento for concluído."
     },
     "kyc": {
         "statusDrawerTitle": "Status da verificação",

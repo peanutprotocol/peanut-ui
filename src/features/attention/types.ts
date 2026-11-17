@@ -241,6 +241,8 @@ export interface JourneyState {
     depositAccounts: { enabled: boolean; loaded: boolean; claimable: number; active: number }
     /** money arrived by bank transfer on one of the user's deposit accounts; null or absent when the server cannot tell */
     bankDepositReceived?: boolean | null
+    /** any bank or crypto deposit completed; null or absent when the server cannot tell */
+    firstDepositReceived?: boolean | null
     /** authoritative newest QR pay or card spend when history is available */
     lastSpendAt: string | null
     /** false when the server could not establish the latest spend; absent on legacy fixtures */

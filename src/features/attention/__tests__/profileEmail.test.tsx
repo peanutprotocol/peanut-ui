@@ -229,6 +229,35 @@ test('invalid email cannot submit or settle the ask', async () => {
     expect(p.onActed).not.toHaveBeenCalled()
     expect(screen.getByText(en.kyc.provideEmail.invalidEmail)).toBeInTheDocument()
 })
+test('an email a not-established account holds says it is saved after verification, and does not settle', async () => {
+    mockUpdateUserById.mockResolvedValueOnce({ status: 409, code: 'EMAIL_IN_USE', error: 'raw backend text' })
+    const p = openEmail()
+    fireEvent.change(screen.getByLabelText(en.kyc.provideEmail.emailLabel), {
+        target: { value: 'dormant@example.com' },
+    })
+    await act(async () => {
+        fireEvent.click(screen.getByText(en.kyc.provideEmail.save))
+    })
+    expect(screen.getByText(en.home.carousel.addEmail.deferred)).toBeInTheDocument()
+    expect(screen.queryByText('raw backend text')).not.toBeInTheDocument()
+    expect(mockFetchUser).not.toHaveBeenCalled()
+    expect(p.onActed).not.toHaveBeenCalled()
+})
+test('an email an established account holds keeps the refusal text', async () => {
+    mockUpdateUserById.mockResolvedValueOnce({
+        status: 409,
+        code: 'EMAIL_ON_ACTIVE_ACCOUNT',
+        error: 'This email is already associated with another account',
+    })
+    const p = openEmail()
+    fireEvent.change(screen.getByLabelText(en.kyc.provideEmail.emailLabel), { target: { value: 'kept@example.com' } })
+    await act(async () => {
+        fireEvent.click(screen.getByText(en.kyc.provideEmail.save))
+    })
+    expect(screen.getByText('This email is already associated with another account')).toBeInTheDocument()
+    expect(screen.queryByText(en.home.carousel.addEmail.deferred)).not.toBeInTheDocument()
+    expect(p.onActed).not.toHaveBeenCalled()
+})
 test('failed save remains retryable and does not settle', async () => {
     mockUpdateUserById.mockRejectedValueOnce(new Error('offline'))
     const p = openEmail()

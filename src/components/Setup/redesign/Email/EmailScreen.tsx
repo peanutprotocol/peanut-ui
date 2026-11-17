@@ -58,13 +58,13 @@ export function EmailScreen(_props: StepComponentProps) {
             footer={
                 taken
                     ? {
+                          // v7 etaken: an established account holds it, so log in to it first, then recover it
                           primary: {
-                              label: t('email.useOther'),
+                              label: t('email.logIn'),
                               testId: 'setup-redesign-primary',
-                              onClick: () => {
-                                  step.chooseAnother()
-                                  inputRef.current?.focus()
-                              },
+                              loading: step.isLoggingIn,
+                              disabled: step.isLoggingIn,
+                              onClick: () => void step.logIn(),
                           },
                           slot: (
                               <span data-testid="setup-redesign-slot">
@@ -118,7 +118,13 @@ export function EmailScreen(_props: StepComponentProps) {
                     valid={step.valid}
                     disabled={step.saving}
                     message={message}
-                    status={step.keepCurrentEmail ? tSetup('notifications.changeAnytime') : undefined}
+                    status={
+                        step.keepCurrentEmail
+                            ? tSetup('notifications.changeAnytime')
+                            : step.mode === 'deferred'
+                              ? t('email.deferred')
+                              : undefined
+                    }
                     onChange={step.change}
                     onBlur={step.blur}
                 />

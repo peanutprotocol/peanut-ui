@@ -17,12 +17,15 @@ export default function ProfileEmailStep({ onComplete, onSkip }: { onComplete: (
     const [email, setEmail] = useState('')
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    // another account that is not established holds it: KYC moves it there once the inbox is verified
+    const [deferred, setDeferred] = useState(false)
     const [fieldError, setFieldError] = useState<string | null>(null)
     const pending = useRef(false)
     const save = async () => {
         if (pending.current) return
         setError(null)
         setFieldError(null)
+        setDeferred(false)
         const trimmed = email.trim()
         if (!isValidEmail(trimmed)) {
             setFieldError(common('invalidEmail'))
@@ -37,6 +40,10 @@ export default function ProfileEmailStep({ onComplete, onSkip }: { onComplete: (
         setSaving(true)
         try {
             const response = await updateUserById({ userId, email: trimmed })
+            if ('code' in response && response.code === 'EMAIL_IN_USE') {
+                setDeferred(true)
+                return
+            }
             if (response.error) {
                 setError(response.error)
                 return
@@ -86,6 +93,7 @@ export default function ProfileEmailStep({ onComplete, onSkip }: { onComplete: (
                     />
                     {fieldError && <FieldError>{fieldError}</FieldError>}
                     {error && <Callout priority="error">{error}</Callout>}
+                    {deferred && <Callout priority="info">{t('deferred')}</Callout>}
                 </div>
             }
         />

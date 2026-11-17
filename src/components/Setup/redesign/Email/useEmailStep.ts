@@ -2,26 +2,39 @@
 
 import { useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
+import { useToast } from '@/components/0_Bruddle/Toast'
 import { updateUserById } from '@/app/actions/users'
 import { USER } from '@/constants/query.consts'
 import { useAuth } from '@/context/authContext'
 import { reportEmailSaveFailure } from '@/features/setup/report-email-save-failure'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { useSignupControl } from '@/features/setup/useSignupControl'
+import { useLogin } from '@/hooks/useLogin'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import type { IUserProfile } from '@/interfaces/interfaces'
 import { isValidEmail } from '@/utils/format.utils'
 import { suggestEmailFix } from './email-typo'
 import { addBreadcrumb, captureException } from '@/utils/sentry-lazy'
+import {
+    classifyPasskeyError,
+    getPasskeyErrorCode,
+    getPasskeyErrorSetupKey,
+    isAlreadyReported,
+} from '@/utils/webauthn.utils'
 
-/** What the field shows besides the value: a wrong address, a used one, a failed save, an account still loading. */
-export type EmailMode = 'edit' | 'invalid' | 'taken' | 'failed' | 'not-ready'
+/**
+ * What the field shows besides the value: a wrong address, one an established account holds (`taken`), one a
+ * not-established account holds (`deferred`: KYC moves it later), a failed save, an account still loading.
+ */
+export type EmailMode = 'edit' | 'invalid' | 'taken' | 'deferred' | 'failed' | 'not-ready'
 
 export type EmailState =
     | 'default'
     | 'filled'
     | 'invalid'
     | 'already-registered'
+    | 'deferred'
     | 'save-failed'
     | 'saving'
     | 'not-ready'
@@ -43,6 +56,9 @@ export function useEmailStep() {
     const savingRef = useRef(false)
     const saveAttemptsRef = useRef(0)
     const { track, trackOnce, trackError } = useSignupControl()
+    const { handleLoginClick, isLoggingIn } = useLogin()
+    const toast = useToast()
+    const tSetup = useTranslations('setup')
 
     const valid = isValidEmail(email.trim())
     const canContinue = keepCurrentEmail || (valid && mode !== 'invalid' && mode !== 'taken')
@@ -55,15 +71,17 @@ export function useEmailStep() {
           ? 'kept-current'
           : mode === 'taken'
             ? 'already-registered'
-            : mode === 'failed'
-              ? 'save-failed'
-              : mode === 'invalid'
-                ? 'invalid'
-                : mode === 'not-ready'
-                  ? 'not-ready'
-                  : valid
-                    ? 'filled'
-                    : 'default'
+            : mode === 'deferred'
+              ? 'deferred'
+              : mode === 'failed'
+                ? 'save-failed'
+                : mode === 'invalid'
+                  ? 'invalid'
+                  : mode === 'not-ready'
+                    ? 'not-ready'
+                    : valid
+                      ? 'filled'
+                      : 'default'
 
     const change = (value: string) => {
         trackOnce('email', 'change')
@@ -86,11 +104,18 @@ export function useEmailStep() {
         change(suggestion)
     }
 
-    const chooseAnother = () => {
-        track('use_another_email', 'tap')
-        trackError('email', null)
-        setEmail('')
-        setMode('edit')
+    // "Log in to that account": the passkey sheet; useLogin opens the account of the passkey picked
+    const logIn = async () => {
+        track('log_in', 'tap')
+        try {
+            await handleLoginClick()
+        } catch (error) {
+            if (getPasskeyErrorCode(error) === 'LOGIN_CANCELED') return
+            trackError('log_in', getPasskeyErrorCode(error) ?? classifyPasskeyError(error).code)
+            const key = getPasskeyErrorSetupKey(error)
+            toast.error(key ? tSetup(key) : tSetup('loginFailed'))
+            if (!isAlreadyReported(error)) captureException(error)
+        }
     }
 
     const save = async () => {
@@ -106,6 +131,20 @@ export function useEmailStep() {
         }
         track('continue', 'tap')
         trackError('email', null)
+        if (mode === 'deferred') {
+            // Not saved: another account holds it, and the reclaim at KYC moves it once the inbox is verified.
+            savingRef.current = true
+            setSaving(true)
+            try {
+                await handleNext()
+            } catch (navigationError) {
+                captureException(navigationError)
+            } finally {
+                savingRef.current = false
+                setSaving(false)
+            }
+            return
+        }
         setMode('edit')
         if (!user?.user.userId) {
             setMode('not-ready')
@@ -129,7 +168,10 @@ export function useEmailStep() {
                 }))
                 if (result.error) {
                     const code = 'code' in result ? result.code : undefined
+                    // The API sends the same text with both codes; the text alone is an older API (EMAIL_IN_USE).
+                    const onEstablished = code === 'EMAIL_ON_ACTIVE_ACCOUNT'
                     const duplicate =
+                        onEstablished ||
                         code === 'EMAIL_IN_USE' ||
                         result.error === 'This email is already associated with another account'
                     const protectedFailure =
@@ -164,8 +206,8 @@ export function useEmailStep() {
                         trackError('email', protectedFailure)
                         return
                     }
-                    setMode(duplicate ? 'taken' : 'failed')
-                    trackError('email', duplicate ? 'already_registered' : 'save_failed')
+                    setMode(onEstablished ? 'taken' : duplicate ? 'deferred' : 'failed')
+                    trackError('email', onEstablished ? 'already_registered' : duplicate ? 'deferred' : 'save_failed')
                     return
                 }
                 // Profile and KYC read this shared account cache. Reflect the acknowledged write even if the
@@ -201,7 +243,8 @@ export function useEmailStep() {
         change,
         blur,
         acceptSuggestion,
-        chooseAnother,
+        logIn,
+        isLoggingIn,
         save,
     }
 }
