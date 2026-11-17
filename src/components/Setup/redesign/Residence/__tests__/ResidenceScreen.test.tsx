@@ -236,13 +236,13 @@ describe('07 Residence: sentence view', () => {
     })
 
     it.each(['en', 'es-AR'] as const)(
-        'P3-14 the sentence reads "I live in [X] and I’m from [X]." with no old wording and no hint (%s)',
+        'P3-14 the sentence reads "My residence is in [X], my nationality is [X]." with no old wording and no hint (%s)',
         (locale) => {
             const view = render({ residenceCountry: 'AR' }, { locale })
             const ar = labelOf('AR', locale)
             const line = screen.getByText(textMatch(sentence(ar, ar, locale)))
             expect(line).toBeInTheDocument()
-            expect(visibleText(line)).not.toMatch(/resident|nationality of|the same country/i)
+            expect(visibleText(line)).not.toMatch(/I live|I’m from|resident\b|nationality of|the same country/i)
             expect(visibleText(view.container)).not.toContain(OLD_HINT[locale])
         }
     )

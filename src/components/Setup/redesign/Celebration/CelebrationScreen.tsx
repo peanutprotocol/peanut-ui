@@ -11,7 +11,7 @@ import { CelebrationArt } from './CelebrationArt'
 import { useCelebrationRedirect } from './useCelebrationRedirect'
 
 /**
- * 12 Celebration (step `advantage-control` after sign-up completes): full pink stage, the cheering peanut, the
+ * 12 Celebration (step `advantage-control` after sign-up completes): full pink stage, the whistling peanut, the
  * account's name, and where the app goes next. It leaves on its own after 4.5 s. A sign-up that started from a
  * claim link says it goes back to the link (`claim-link`); the redirect itself is dev's. Contract P4 § 5.
  */
