@@ -111,7 +111,7 @@ describe('AddFeatureQuestions', () => {
         // Without the address beside it, the phone keeps its country-code help and the no-spam promise.
         expect(screen.getByText('Include your country code, like +1.')).toBeInTheDocument()
         expect(screen.getByTestId('verify-phone-no-spam')).toHaveTextContent('No spam')
-        expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+        expect(screen.queryByRole('group', { name: /^Step \d+ of \d+$/ })).not.toBeInTheDocument()
     })
 
     it('splits five dropdowns into three and two and shows a refused answer on its page', async () => {

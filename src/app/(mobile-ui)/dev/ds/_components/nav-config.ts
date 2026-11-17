@@ -311,7 +311,8 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             label: 'CarouselDots',
             icon: Ellipsis,
             href: '/dev/ds/primitives/carousel-dots',
-            description: 'Dot pagination from the dots/stepper board, tappable with 44px hit areas',
+            description:
+                'Dot pagination and the one stepper / step indicator (Step n of m). Tappable with 44px hit areas, read-only with aria-label',
             status: 'production',
         },
         {
