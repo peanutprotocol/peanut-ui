@@ -11,7 +11,7 @@
  *   npm run test:e2e:regression -- setup-top-bar
  */
 
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 import { KEEP_WEB_COOKIE, KEEP_WEB_TOKEN } from '../../src/constants/migration.consts'
 import { FIXTURE_STORAGE_KEY } from '../../src/dev/fixtures/active'
 import { blockExternal, seenOnceModals } from '../shots/fixture-page'
@@ -181,11 +181,34 @@ async function tokenColor(page: Page, token: string) {
     }, token)
 }
 
+/**
+ * A box once it has stopped moving: the footer glides 500 ms to a new lift (a note that needs room, large text), so
+ * a box read during the glide is neither where it was nor where it rests.
+ */
+async function restingBox(locator: Locator) {
+    let last = ''
+    await expect
+        .poll(
+            async () => {
+                const box = JSON.stringify(await locator.boundingBox())
+                const resting = box === last
+                last = box
+                return resting
+            },
+            { intervals: [250] }
+        )
+        .toBe(true)
+    return JSON.parse(last) as Awaited<ReturnType<Locator['boundingBox']>>
+}
+
 test('the residence comparison paints both safe areas and positions the top bar once', async ({ page }) => {
     await page.setViewportSize({ width: 393, height: 852 })
     await prepareSetupSurface(page)
-    await openSetupSurface(page, '03-b-residence-compare')
+    // 07 with two different countries; Continue opens the comparison on the same step, as on /setup
+    await openSetupSurface(page, 'setup-redesign-residence-differ', 'setup-redesign-residence-compare')
+    await page.locator('[data-setup-footer]').getByRole('button', { name: 'Continue', exact: true }).click()
     await expect(page.getByTestId('setup-residence-select-PT')).toBeVisible()
+    await expect(page.getByTestId('setup-redesign-residence-column-BR')).toBeVisible()
     await page.evaluate(() => {
         document.documentElement.style.setProperty('--safe-area-inset-top', '59px')
         document.documentElement.style.setProperty('--safe-area-inset-bottom', '34px')
@@ -226,20 +249,20 @@ test('the celebration paints the home-bar strip with its ground', async ({ page 
     await expect(inset).toHaveCSS('background-color', await tokenColor(page, '--color-background-brand'))
 })
 
-// Every sign-up step, as /setup renders it (the surfaces gallery mounts each step in the real shell).
+// Every sign-up step in dev's order (01 Landing … 11 Final), as /setup renders it: the `setup-redesign-*` surfaces
+// mount the step's own Setup.consts entry in the real shell with the flow seeded, under its default fixture.
 const STEP_SURFACES = [
-    '01-a-landing',
-    '04-b-advantage-fees',
-    '02-b-advantage-card',
-    '03-a-residence-select',
-    '03-c-residence-congrats',
-    '06-a-signup',
-    '06-b-invite',
-    '06-c-passkey',
-    '07-c-notification-email',
-    '07-d-notification-settings',
-    '07-b-advantage-control',
-    '05-a-signtesttransaction',
+    'landing',
+    'accounts',
+    'card',
+    'residence',
+    'plan',
+    'username',
+    'invite',
+    'passkey',
+    'email',
+    'notifications',
+    'final',
 ]
 
 for (const viewport of VIEWPORTS) {
@@ -257,15 +280,18 @@ for (const viewport of VIEWPORTS) {
             w.PublicKeyCredential = w.PublicKeyCredential || (function () {} as never)
             w.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable = async () => true
         })
-        for (const id of STEP_SURFACES) {
-            await openSetupSurface(page, id, id === '06-c-passkey' ? 'setup-passkey' : SETUP_FIXTURE)
+        for (const screen of STEP_SURFACES) {
+            const id = `setup-redesign-${screen}`
+            await openSetupSurface(page, id, `${id}-default`)
             const footer = page.locator('[data-setup-footer]')
             const primary =
-                id === '01-a-landing'
+                screen === 'landing'
                     ? footer.getByRole('button', { name: 'Sign up', exact: true })
                     : footer.getByRole('button').first()
             await expect(primary, `${id}: signup action`).toBeVisible()
             await expect(primary).toBeInViewport({ ratio: 1 })
+            // a footer whose note needs room glides up 500 ms after the step mounts; the resting top is exact
+            await restingBox(primary)
             const layout = await primary.evaluate((button) => {
                 const r = button.getBoundingClientRect()
                 const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
@@ -344,7 +370,8 @@ for (const variant of ['switches', 'defaults-on'] as const) {
         const footer = page.locator('[data-setup-footer]')
         const lastSwitch = page.getByRole('switch').last()
         const initialTopBar = await topBar.boundingBox()
-        const initialFooter = await footer.boundingBox()
+        // the larger text lifts the footer until it ends on screen (ShellFooter fit, a 500 ms glide): read it at rest
+        const initialFooter = await restingBox(footer)
 
         await lastSwitch.scrollIntoViewIfNeeded()
         await expect(lastSwitch).toBeInViewport({ ratio: 1 })
