@@ -2650,7 +2650,7 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     // The Manteca step is open (before the 72-hour park): the peso screen offers to continue it.
-    'add-money-argentina-bank-setup-unfinished': {
+    'add-money-argentina-bank-step-unfinished': {
         route: '/add-money/argentina/manteca?step=inputAmount&currency=ARS',
         geoCountry: 'AR',
         about: 'ARS deposit while the Manteca bank step is unfinished: the page offers to continue it.',
@@ -2662,7 +2662,7 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     // After the 72-hour park the same page explains the step timed out.
-    'add-money-argentina-bank-setup-expired': {
+    'add-money-argentina-bank-step-expired': {
         route: '/add-money/argentina/manteca?step=inputAmount&currency=ARS',
         geoCountry: 'AR',
         about: 'ARS deposit after the Manteca bank step expired: the page offers to restart it.',
