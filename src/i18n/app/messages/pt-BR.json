@@ -4820,8 +4820,8 @@
         "rainCooldownPill": "Resfriamento do cartão",
         "easterEggImageAlt": "Ilustração de easter egg",
         "reConsent": {
-            "reassurance": "Nada muda nos seus fundos. Eles continuam na sua carteira, sob seu controle.",
-            "whatChanged": "Atualizamos os documentos abaixo. As principais mudanças: o Pix no Brasil agora funciona por meio do nosso parceiro Avenia, e a Política de privacidade agora descreve as gravações de sessão e cita mais prestadores de serviço que usamos. Não tem pressa: leia quando quiser e continue usando o Peanut normalmente.",
+            "reassurance": "Nada muda nos seus fundos.",
+            "whatChanged": "Atualizamos os documentos abaixo. As principais mudanças: adicionamos a Avenia como parceiro de pagamentos para o Pix no Brasil, e a Política de privacidade agora descreve as gravações de sessão e cita mais prestadores de serviço que usamos. Não tem pressa: leia quando quiser e continue usando o Peanut normalmente.",
             "title": "Uma pequena atualização dos nossos termos",
             "acceptLabel": "Aceito os documentos atualizados",
             "acceptCta": "Aceitar e continuar",
