@@ -4,7 +4,10 @@ import { renderWithIntl } from '@/test-utils/intl'
 import posthog from 'posthog-js'
 import FinishSetupPage from '../page'
 
-jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
+jest.mock('posthog-js', () => ({
+    __esModule: true,
+    default: { capture: jest.fn(), register: jest.fn(), unregister: jest.fn() },
+}))
 jest.mock('@/features/setup/SetupFlowContext', () => ({
     useSetupFlowContext: () => ({ signupEntryFlow: 'card' }),
     // the real shell's hooks read the optional flow; the standalone finish page has none

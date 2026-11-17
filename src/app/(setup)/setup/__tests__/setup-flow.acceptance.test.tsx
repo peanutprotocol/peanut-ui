@@ -173,7 +173,13 @@ jest.mock('@/components/Setup/components/SetupLanguageSwitcher', () => ({ SetupL
 // 04 Invite's "Did you mean" gate subscribes to flag loads and reads flags.
 jest.mock('posthog-js', () => ({
     __esModule: true,
-    default: { capture: jest.fn(), onFeatureFlags: jest.fn(() => () => {}), isFeatureEnabled: jest.fn(() => false) },
+    default: {
+        capture: jest.fn(),
+        register: jest.fn(),
+        unregister: jest.fn(),
+        onFeatureFlags: jest.fn(() => () => {}),
+        isFeatureEnabled: jest.fn(() => false),
+    },
 }))
 
 const DAY = 24 * 60 * 60 * 1000
