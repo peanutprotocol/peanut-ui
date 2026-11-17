@@ -1041,7 +1041,7 @@ test.describe('sign-up redesign journeys', () => {
             await expect(footer(page).getByText(copy('en', 'setupRedesign.email.recover'))).toBeVisible()
         })
 
-        test('an email on an account that is not established: the saved-after-verification note, then on unsaved', async ({
+        test('an email on an account that is not established: the add-it-again-at-verification note, then on unsaved', async ({
             page,
             context,
             baseURL,

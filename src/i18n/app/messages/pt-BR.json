@@ -292,7 +292,7 @@
             },
             "addEmail": {
                 "title": "Adicione seu e-mail",
-                "deferred": "Vamos salvar este e-mail quando você verificar sua identidade.",
+                "deferred": "Informe este e-mail de novo quando verificar sua identidade.",
                 "description": "Receba comprovantes e alertas da conta por e-mail."
             },
             "rewards": {
@@ -1290,7 +1290,7 @@
             "note": "Você pode desativar novidades e ofertas quando quiser.",
             "invalid": "Digite um e-mail válido.",
             "taken": "Esse e-mail já tem uma conta no Peanut.",
-            "deferred": "Vamos salvar este e-mail quando você verificar sua identidade.",
+            "deferred": "Informe este e-mail de novo quando verificar sua identidade.",
             "suggest": "Você quis dizer {a}?",
             "logIn": "Entrar nessa conta",
             "recover": "Recuperar minha conta",

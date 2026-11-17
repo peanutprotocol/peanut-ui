@@ -2359,7 +2359,7 @@ const SETUP_REDESIGN_FIXTURES: Record<string, Fixture> = {
     ),
     'setup-redesign-email-deferred': setupRedesign(
         'email-filled',
-        '09 Email: an account that is not established has the address; saved after verification.',
+        '09 Email: an account that is not established has the address; added again at verification.',
         {
             rejects: {
                 'POST /update-user': { status: 409, body: { code: 'EMAIL_IN_USE', message: 'Email already in use' } },

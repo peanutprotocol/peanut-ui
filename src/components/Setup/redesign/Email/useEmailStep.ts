@@ -136,7 +136,8 @@ export function useEmailStep() {
         track('continue', 'tap')
         trackError('email', null)
         if (mode === 'deferred') {
-            // Not saved: another account holds it, and the reclaim at KYC moves it once the inbox is verified.
+            // Not saved: another account holds it. The person enters it again at KYC, where the reclaim moves it
+            // once Sumsub has verified the inbox; nothing carries it there unverified.
             savingRef.current = true
             setSaving(true)
             try {

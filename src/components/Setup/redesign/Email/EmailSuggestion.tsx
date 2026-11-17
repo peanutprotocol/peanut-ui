@@ -23,7 +23,7 @@ export function EmailSuggestion({ line, address, onPick }: { line: string; addre
                         <button
                             type="button"
                             translate="no"
-                            className="notranslate relative font-semibold text-foreground-primary underline after:absolute after:inset-x-0 after:-inset-y-3.5"
+                            className="notranslate relative rounded font-semibold text-foreground-primary underline after:absolute after:inset-x-0 after:-inset-y-3.5 focus-visible:outline-2 focus-visible:outline-action-focus"
                             onClick={onPick}
                         >
                             {address}

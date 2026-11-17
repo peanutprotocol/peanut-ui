@@ -292,7 +292,7 @@
             },
             "addEmail": {
                 "title": "Add your email",
-                "deferred": "We’ll save this email after you verify your identity.",
+                "deferred": "Add this email again when you verify your identity.",
                 "description": "Get receipts and account alerts by email."
             },
             "rewards": {
@@ -1290,7 +1290,7 @@
             "note": "You can turn off news and offers anytime.",
             "invalid": "Enter a valid email address.",
             "taken": "This email already has a Peanut account.",
-            "deferred": "We’ll save this email after you verify your identity.",
+            "deferred": "Add this email again when you verify your identity.",
             "suggest": "Did you mean {a}?",
             "logIn": "Log in to that account",
             "recover": "Recover my account",
