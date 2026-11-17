@@ -93,6 +93,10 @@ describe('PixSetup', () => {
             const link = screen.getByRole('link', { name: 'Avenia terms and conditions' })
             expect(link).toHaveAttribute('href', TERMS_URL)
             expect(link).toHaveAttribute('target', '_blank')
+            // design.md consent screens: the document before the control that records the consent
+            const agree = screen.getByRole('button', { name: en.pix.setup.acceptCta })
+            expect(link.compareDocumentPosition(agree) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+            expect(screen.queryByRole('button', { name: en.common.continue })).toBeNull()
             expect(screen.queryByText('account opening')).toBeNull()
         })
 
@@ -100,7 +104,7 @@ describe('PixSetup', () => {
             mockAcceptRouteTerms.mockResolvedValue(undefined)
             const view = renderSetup(route({ action: 'activate', terms: TERMS }))
             await act(async () => {
-                fireEvent.click(screen.getByRole('button', { name: en.common.continue }))
+                fireEvent.click(screen.getByRole('button', { name: en.pix.setup.acceptCta }))
             })
             expect(mockAcceptRouteTerms).toHaveBeenCalledWith('accept-tos:avenia')
             expect(mockFetchUser).toHaveBeenCalled()
@@ -108,17 +112,17 @@ describe('PixSetup', () => {
             // the read the acceptance asked for: no terms left, the account the first use opens
             view.rerender(<PixSetup title="Add money" onBack={jest.fn()} route={route({ action: 'activate' })} />)
             expect(screen.getByText('account opening')).toBeInTheDocument()
-            expect(screen.queryByRole('button', { name: en.common.continue })).toBeNull()
+            expect(screen.queryByRole('button', { name: en.pix.setup.acceptCta })).toBeNull()
         })
 
         it('says the acceptance was not saved, and keeps Continue to try again', async () => {
             mockAcceptRouteTerms.mockRejectedValue(new ApiError('not saved', { status: 500 }))
             renderSetup(route({ action: 'activate', terms: TERMS }))
             await act(async () => {
-                fireEvent.click(screen.getByRole('button', { name: en.common.continue }))
+                fireEvent.click(screen.getByRole('button', { name: en.pix.setup.acceptCta }))
             })
             expect(screen.getByRole('alert')).toHaveTextContent(en.pix.setup.termsNotSaved)
-            expect(screen.getByRole('button', { name: en.common.continue })).toBeEnabled()
+            expect(screen.getByRole('button', { name: en.pix.setup.acceptCta })).toBeEnabled()
         })
 
         // an Avenia account opened before the terms step accepts them at its next Pix use
@@ -135,7 +139,7 @@ describe('PixSetup', () => {
             renderSetup(route({ action: 'accept-tos:avenia', reason: { code: 'terms_required', userMessage: '' } }))
             expect(screen.getByRole('link', { name: 'Avenia terms and conditions' })).toHaveAttribute('href', TERMS_URL)
             await act(async () => {
-                fireEvent.click(screen.getByRole('button', { name: en.common.continue }))
+                fireEvent.click(screen.getByRole('button', { name: en.pix.setup.acceptCta }))
             })
             expect(mockAcceptRouteTerms).toHaveBeenCalledWith('accept-tos:avenia')
         })

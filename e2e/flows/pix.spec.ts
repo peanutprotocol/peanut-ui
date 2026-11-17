@@ -51,7 +51,7 @@ test.describe('Pix on the Avenia route', () => {
         await expect(terms).toHaveAttribute('href', 'https://app.avenia.io/Avenia-TC.pdf')
         await expect(terms).toHaveAttribute('target', '_blank')
         await expect(page.getByText('Account provider · Avenia')).toBeVisible()
-        await expect(page.getByRole('button', { name: 'Continue' })).toBeEnabled()
+        await expect(page.getByRole('button', { name: 'Agree and continue' })).toBeEnabled()
     })
 
     test("an Avenia account opened before the terms step meets Avenia's terms at its next withdrawal", async ({

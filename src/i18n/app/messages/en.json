@@ -2637,7 +2637,8 @@
             "verifyCta": "Verify identity",
             "title": "Set up Pix",
             "body": "Our payment partner provides Pix.",
-            "terms": "By continuing, you agree to the <terms>{termsName}</terms>.",
+            "terms": "To use Pix, agree to the <terms>{brand} terms and conditions</terms>.",
+            "acceptCta": "Agree and continue",
             "termsNotSaved": "Your acceptance of the terms was not saved. Try again.",
             "notAvailable": "Pix could not be set up. Contact support."
         },

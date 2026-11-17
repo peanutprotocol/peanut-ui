@@ -290,7 +290,7 @@ PAGE_CAPTURES.push(
         name: 'Pix terms — the acceptance was not saved',
         route: '/add-money/pix',
         fixture: 'pix-setup-terms',
-        clicks: ['Continue'],
+        clicks: ['Agree and continue'],
         expectSelector: '[role="alert"]',
     },
     {

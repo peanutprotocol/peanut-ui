@@ -2637,7 +2637,8 @@
             "verifyCta": "Verificar identidade",
             "title": "Configurar o Pix",
             "body": "Nosso parceiro de pagamentos oferece o Pix.",
-            "terms": "Ao continuar, você aceita os <terms>{termsName}</terms>.",
+            "terms": "Para usar o Pix, aceite os <terms>termos e condições da {brand}</terms>.",
+            "acceptCta": "Aceitar e continuar",
             "termsNotSaved": "O seu aceite dos termos não foi salvo. Tente de novo.",
             "notAvailable": "Não foi possível configurar o Pix. Fale com o suporte."
         },

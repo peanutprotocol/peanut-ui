@@ -40,7 +40,6 @@ export function PixSetup({
     route: CapabilityRoute | undefined
 }) {
     const t = useTranslations('pix.setup')
-    const tCommon = useTranslations('common')
     const tLoading = useTranslations('loadingStates')
     const { nextActions } = useCapabilities()
     const state = pixSetupState(route, nextActions)
@@ -78,22 +77,12 @@ export function PixSetup({
                         {/* the Pix mark: this is the Pix set-up, not a verification of ours (Aleks, 2026-11-12) */}
                         <IconBubble {...CONCEPT_ICONS.pix} size="l" />
                         <TitleBlock align="center" title={t('title')} description={t('body')} />
-                    </div>
-                    <div className="flex flex-col gap-4">
-                        <Button
-                            variant="primary"
-                            className="w-full"
-                            loading={terms.isAccepting}
-                            disabled={terms.isAccepting}
-                            onClick={() => void terms.accept()}
-                        >
-                            {tCommon('continue')}
-                        </Button>
-                        {/* The terms the tap agrees to, named and linked before the tap (design.md, consent
-                            screens). The link is the document the API versions and hashes. */}
-                        <p className="text-center text-body-xs text-foreground-secondary">
+                        {/* The terms the tap agrees to, named and linked before the control that records the
+                            consent (design.md, consent screens). The link is the document the API versions
+                            and hashes. */}
+                        <p className="text-body-s text-foreground-secondary">
                             {t.rich('terms', {
-                                termsName: provider?.termsName ?? provider?.brand ?? '',
+                                brand: provider?.brand ?? '',
                                 terms: (chunks) => (
                                     <a
                                         href={routeTerms?.url ?? provider?.termsUrl}
@@ -106,6 +95,17 @@ export function PixSetup({
                                 ),
                             })}
                         </p>
+                    </div>
+                    <div className="flex flex-col gap-4">
+                        <Button
+                            variant="primary"
+                            className="w-full"
+                            loading={terms.isAccepting}
+                            disabled={terms.isAccepting}
+                            onClick={() => void terms.accept()}
+                        >
+                            {t('acceptCta')}
+                        </Button>
                         {providerId && (
                             <ProviderFinePrint providerId={providerId} label="accountProvider" prospective />
                         )}
