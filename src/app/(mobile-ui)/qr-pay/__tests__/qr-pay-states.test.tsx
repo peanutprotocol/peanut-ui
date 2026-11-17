@@ -21,7 +21,7 @@ import type { RailCapability } from '@/types/capabilities'
 // fixture. Mirroring the full RailCapability/CapabilityRestriction types here
 // would force every fixture to supply method/country/currency + a non-nullable
 // reason message even when the page never touches them.
-type TestRail = Pick<RailCapability, 'id' | 'provider' | 'status' | 'operations'> & {
+type TestRail = Pick<RailCapability, 'id' | 'provider' | 'country' | 'status' | 'operations'> & {
     reason?: { userMessage: string | null }
     resolved?: RailCapability['resolved']
 }
@@ -490,7 +490,8 @@ type GateState =
     | 'provider_rejection_fixable'
     | 'provider_rejection_blocked'
 
-const MANTECA_RAIL_ID = 'manteca.pix_br'
+const MANTECA_PIX_RAIL_ID = 'manteca.pix_br'
+const MANTECA_MP_RAIL_ID = 'manteca.mercadopago_qr_ar'
 // The capability-contract restriction code emitted by the backend resolver — NOT the legacy
 // provider-metadata constant. The page's pool-fallback branch must match THIS value.
 const US_RESTRICTION_CODE = 'manteca_us_nationality'
@@ -501,22 +502,32 @@ function capabilitiesForGate(state: GateState, opts: { userMessage?: string | nu
     let rails: TestRail[] = []
     let restrictions: TestRestriction[] = []
     let payEnabled = false
+    const railsWith = (status: TestRail['status'], operations?: TestRail['operations']): TestRail[] => [
+        { id: MANTECA_MP_RAIL_ID, provider: 'manteca', country: 'AR', status, operations },
+        { id: MANTECA_PIX_RAIL_ID, provider: 'manteca', country: 'BR', status, operations },
+    ]
     switch (state) {
         case 'proceed_to_pay':
             payEnabled = true
-            rails = [{ id: MANTECA_RAIL_ID, provider: 'manteca', status: 'enabled', operations: { pay: 'enabled' } }]
+            rails = railsWith('enabled', { pay: 'enabled' })
             break
         case 'provider_rejection_blocked':
-            rails = [{ id: MANTECA_RAIL_ID, provider: 'manteca', status: 'blocked', reason: { userMessage } }]
+            rails = railsWith('blocked').map((rail) => ({ ...rail, reason: { userMessage } }))
             if (usRestricted) {
-                restrictions = [{ code: US_RESTRICTION_CODE, affectedRailIds: [MANTECA_RAIL_ID], userMessage }]
+                restrictions = [
+                    {
+                        code: US_RESTRICTION_CODE,
+                        affectedRailIds: [MANTECA_MP_RAIL_ID, MANTECA_PIX_RAIL_ID],
+                        userMessage,
+                    },
+                ]
             }
             break
         case 'provider_rejection_fixable':
-            rails = [{ id: MANTECA_RAIL_ID, provider: 'manteca', status: 'requires-info', reason: { userMessage } }]
+            rails = railsWith('requires-info').map((rail) => ({ ...rail, reason: { userMessage } }))
             break
         case 'identity_verification_in_progress':
-            rails = [{ id: MANTECA_RAIL_ID, provider: 'manteca', status: 'pending' }]
+            rails = railsWith('pending')
             break
         case 'requires_identity_verification':
         case 'loading':
@@ -588,7 +599,7 @@ function applyDefaults() {
     setCapabilitiesGate('proceed_to_pay')
 
     mockUseAuth.mockReturnValue({
-        user: { user: { username: 'test-user' } },
+        user: { user: { username: 'test-user' }, identityVerification: { status: 'not_started' } },
         isFetchingUser: false,
         fetchUser: jest.fn(),
     })
@@ -713,6 +724,56 @@ describe('GROUP 1: Loading & KYC Gate', () => {
         expect(screen.getByText('Unlock now')).toBeInTheDocument()
     })
 
+    test('an already-verified PIX customer with a missing rail reaches init instead of being asked to verify again', async () => {
+        setCapabilitiesGate('requires_identity_verification')
+        mockUseAuth.mockReturnValue({
+            user: { user: { username: 'test-user' }, identityVerification: { status: 'verified' } },
+            isFetchingUser: false,
+            fetchUser: jest.fn(),
+        })
+
+        renderQrPay({ qrCode: 'pix://payment?id=123', type: 'PIX', t: '1' })
+
+        await waitFor(() => expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1))
+        expect(screen.queryByText('Unlock now')).not.toBeInTheDocument()
+    })
+
+    test('an already-verified PIX customer with a stale pending rail reaches the API repair path', async () => {
+        setCapabilitiesGate('identity_verification_in_progress')
+        mockUseAuth.mockReturnValue({
+            user: { user: { username: 'test-user' }, identityVerification: { status: 'verified' } },
+            isFetchingUser: false,
+            fetchUser: jest.fn(),
+        })
+
+        renderQrPay({ qrCode: 'pix://payment?id=123', type: 'PIX', t: '1' })
+
+        await waitFor(() => expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1))
+        expect(screen.queryByText('Almost there')).not.toBeInTheDocument()
+    })
+
+    test('an enabled Argentina QR rail does not authorize a Brazil PIX scan', () => {
+        const rails: TestRail[] = [
+            {
+                id: MANTECA_MP_RAIL_ID,
+                provider: 'manteca',
+                country: 'AR',
+                status: 'enabled',
+                operations: { pay: 'enabled' },
+            },
+        ]
+        mockUseCapabilities.mockReturnValue({
+            ...capabilitiesForGate('proceed_to_pay'),
+            rails,
+            railsForProvider: (provider: string) => rails.filter((rail) => rail.provider === provider),
+        })
+
+        renderQrPay({ qrCode: 'pix://payment?id=123', type: 'PIX', t: '1' })
+
+        expect(screen.getByText('Unlock now')).toBeInTheDocument()
+        expect(mockMantecaApi.initiateQrPayment).not.toHaveBeenCalled()
+    })
+
     // Pool QR pay is residence-agnostic, so the offer is legitimate for almost
     // every restricted residence — but not when Sumsub refuses the document's
     // jurisdiction, which no rail can survive and no re-upload can change.
@@ -765,8 +826,9 @@ describe('GROUP 1: Loading & KYC Gate', () => {
             ...capabilitiesForGate('provider_rejection_fixable', { userMessage: 'Add your email to continue.' }),
             railsForProvider: () => [
                 {
-                    id: MANTECA_RAIL_ID,
+                    id: MANTECA_MP_RAIL_ID,
                     provider: 'manteca',
+                    country: 'AR',
                     status: 'blocked',
                     resolved: {
                         status: 'fixable',

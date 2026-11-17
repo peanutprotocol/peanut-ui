@@ -13,16 +13,16 @@ import { QrKycState } from '@/constants/kyc.consts'
 import { useQrPayFlow } from '../QrPayFlowContext'
 
 // KYC screens come before any error screens - user needs to verify first.
-// MIGRATION-REVIEW: the `crossRegion` flag passed to handleInitiateKyc was `isUserSumsubKycApproved`
-// (Sumsub identity cleared, only the regional Manteca uplift remains). Sumsub has no rail in the
-// capability model, so — matching the MantecaFlowManager precedent (commit 8c98a3e81) — isKycApproved
-// (any enabled rail ⇒ identity verified at least once) is the closest faithful proxy.
+// The `crossRegion` flag means the identity itself has already cleared and only
+// a regional uplift remains. Read that canonical identity status directly;
+// "any enabled rail" is not equivalent (a card or unrelated country rail can
+// be enabled independently).
 export function QrPayKycGateView() {
     const t = useAppTranslations('qrPay')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
     const { gate, methodIcon, targetMantecaCountry, onBack } = useQrPayFlow()
-    const { kycGateState, sumsubFlow, isKycApproved } = gate
+    const { kycGateState, sumsubFlow, isIdentityVerified } = gate
     // A restart cooldown replaces the unlock prompt: the cooldown modal (from
     // SumsubKycModals below) is the one actionable surface, and dismissing it
     // leaves the flow rather than re-offering a verification that cannot start.
@@ -52,7 +52,7 @@ export function QrPayKycGateView() {
                             sumsubFlow.handleInitiateKyc(
                                 'LATAM',
                                 undefined,
-                                isKycApproved || undefined,
+                                isIdentityVerified || undefined,
                                 targetMantecaCountry
                             ),
                         variant: 'purple',
@@ -79,7 +79,7 @@ export function QrPayKycGateView() {
                             sumsubFlow.handleInitiateKyc(
                                 'LATAM',
                                 undefined,
-                                isKycApproved || undefined,
+                                isIdentityVerified || undefined,
                                 targetMantecaCountry
                             ),
                         variant: 'purple',

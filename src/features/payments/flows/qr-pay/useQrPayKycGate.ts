@@ -10,20 +10,23 @@ import { railUserMessage, railVerdict } from '@/utils/capability-gate'
 
 // MIGRATION-REVIEW: QR-pay KYC gate, formerly useQrKycGate + useKycStatus.
 // Derived inline from the backend capability model. Mapping:
-//   canDo('pay',{manteca}) → PROCEED_TO_PAY. The BE resolver expresses both
+//   enabled pay for the scanned QR's country → PROCEED_TO_PAY. The BE resolver expresses both
 //     paths uniformly as an enabled pay op: Sumsub-approved pool users AND
 //     Sumsub-approved US-nationality-restricted users alike (compliance
 //     ratified 2026-05-28). No FE special-case needed.
 //   manteca top-level 'blocked' → PROVIDER_REJECTION_BLOCKED (genuine block —
 //     no Sumsub, or a non-restriction final rejection).
 //   manteca top-level 'requires-info' → PROVIDER_REJECTION_FIXABLE.
-//   manteca 'pending' → IDENTITY_VERIFICATION_IN_PROGRESS.
+//   verified identity + missing/pending pool rail → PROCEED_TO_PAY so the
+//     transaction-time API can repair the derived rail without re-running KYC.
+//   manteca 'pending' + unverified identity → IDENTITY_VERIFICATION_IN_PROGRESS.
 //   otherwise → REQUIRES_IDENTITY_VERIFICATION. While loading → LOADING.
 // userMessage ← the rejecting rail's reason.userMessage (was useProviderRejectionStatus).
-export function useQrPayKycGate() {
-    const { canDo, railsForProvider, nextActions, isKycApproved, isLoading: isLoadingCapabilities } = useCapabilities()
+export function useQrPayKycGate(targetCountry?: string) {
+    const { railsForProvider, nextActions, isLoading: isLoadingCapabilities } = useCapabilities()
     const { isRegionRestricted } = useIdentityVerification()
     const { user, fetchUser } = useAuth()
+    const isIdentityVerified = user?.identityVerification?.status === 'verified'
 
     // On public routes (qr-pay) auth still auto-fetches via React Query, but trigger a one-shot
     // fetch if we landed with no user and nothing in flight, mirroring the old hook's fallback.
@@ -58,19 +61,21 @@ export function useQrPayKycGate() {
         if (isRegionRestricted) {
             return { kycGateState: QrKycState.REGION_RESTRICTED, qrKycUserMessage: noAction, qrKycActionKey: noAction }
         }
-        if (canDo('pay', { provider: 'manteca' })) {
-            return { kycGateState: QrKycState.PROCEED_TO_PAY, qrKycUserMessage: noAction, qrKycActionKey: noAction }
-        }
         // Verdict-first via the shared railVerdict collapse (rail.resolved,
         // BE-derived; legacy fallback for older/cached responses). The
         // US-nationality refinement is applied in the resolver itself
         // (Sumsub-approved + US-restricted → operations.pay enabled, caught by
-        // canDo above), so a blocked verdict is genuine.
+        // the scoped pay check below), so a blocked verdict is genuine.
         const actionByKey = new Map(nextActions.map((action) => [action.key, action]))
-        const candidates = railsForProvider('manteca').map((rail) => ({
-            rail,
-            verdict: railVerdict(rail, actionByKey),
-        }))
+        const candidates = railsForProvider('manteca')
+            .filter((rail) => targetCountry === undefined || rail.country === targetCountry)
+            .map((rail) => ({
+                rail,
+                verdict: railVerdict(rail, actionByKey),
+            }))
+        if (candidates.some(({ rail }) => (rail.operations?.pay ?? rail.status) === 'enabled')) {
+            return { kycGateState: QrKycState.PROCEED_TO_PAY, qrKycUserMessage: noAction, qrKycActionKey: noAction }
+        }
         // provide-email is NOT a document fix: routing it into the Sumsub
         // upload flow dead-ends the user, and this surface has no email form —
         // map it to the blocked modal (same rule as deriveProviderRejection).
@@ -110,6 +115,15 @@ export function useQrPayKycGate() {
                 qrKycActionKey: action?.kind === 'sumsub' ? action.key : noAction,
             }
         }
+        // QR-pool access is derived from an approved identity. If that derived
+        // country rail is absent or still PENDING, asking the customer to run
+        // Sumsub again cannot fix it. Let the read-only init request reach the
+        // backend: its transaction-time gate repairs the pool rail and remains
+        // the authoritative authorization check. Genuine blocked/fixable rail
+        // verdicts above still win and never bypass provider restrictions.
+        if (isIdentityVerified) {
+            return { kycGateState: QrKycState.PROCEED_TO_PAY, qrKycUserMessage: noAction, qrKycActionKey: noAction }
+        }
         if (candidates.some(({ verdict }) => verdict.status === 'pending')) {
             return {
                 kycGateState: QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS,
@@ -122,7 +136,16 @@ export function useQrPayKycGate() {
             qrKycUserMessage: noAction,
             qrKycActionKey: noAction,
         }
-    }, [isLoadingCapabilities, canDo, railsForProvider, nextActions, user, userFetchSettled, isRegionRestricted])
+    }, [
+        isLoadingCapabilities,
+        railsForProvider,
+        nextActions,
+        user,
+        userFetchSettled,
+        isRegionRestricted,
+        isIdentityVerified,
+        targetCountry,
+    ])
 
     const shouldBlockPay = kycGateState !== QrKycState.PROCEED_TO_PAY
 
@@ -151,5 +174,5 @@ export function useQrPayKycGate() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [kycGateState, sumsubFlow.showWrapper, sumsubFlow.isModalOpen, sumsubFlow.completeFlow])
 
-    return { kycGateState, qrKycUserMessage, qrKycActionKey, shouldBlockPay, isKycApproved, sumsubFlow }
+    return { kycGateState, qrKycUserMessage, qrKycActionKey, shouldBlockPay, isIdentityVerified, sumsubFlow }
 }

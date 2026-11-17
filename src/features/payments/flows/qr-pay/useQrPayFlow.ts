@@ -146,7 +146,7 @@ export function useQrPayFlowController(bag: QrPayFlowBag, scan: QrPayScanParams)
         return paymentProcessor ? maintenanceConfig.disabledPaymentProviders.includes(paymentProcessor) : false
     }, [paymentProcessor])
 
-    const gate = useQrPayKycGate()
+    const gate = useQrPayKycGate(targetMantecaCountry)
     const { kycGateState, shouldBlockPay } = gate
 
     /*
