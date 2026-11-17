@@ -18,14 +18,14 @@ export default function CarouselDotsPage() {
         <DocPage>
             <DocHeader
                 title="CarouselDots"
-                description="Dot pagination from the dots/stepper board (17312:137591): active = 24x8 border-default bar, inactive = 8px border-subtle dot. onSelect makes each dot a 44px-hit-area button."
+                description="Dot pagination and THE stepper, from the dots/stepper board (17312:137591): active = 24x8 border-default bar, inactive = 8px border-subtle dot. One style for carousel pages and flow steps. onSelect makes each dot a 44px-hit-area button."
                 status="production"
             />
 
             <WhenToUse
                 use={[
                     'Page position in a swipeable carousel — the shared embla wrapper renders it',
-                    'Step position in a short stepped sequence — the card add-to-wallet steps',
+                    'Step position in a stepped flow — this is the stepper (card add-to-wallet, paperwork verification questions)',
                     'Let the user jump to a page: pass onSelect and each dot becomes a button with a 44px hit area',
                     'Read-only indicator: omit onSelect and pass aria-label with the current step and the total',
                 ]}
@@ -33,6 +33,7 @@ export default function CarouselDotsPage() {
                     'Percentage or quantity progress — use ProgressBar',
                     'Switching between named sections — use Tabs',
                     'A single page — show the dots only above one snap',
+                    "Outlined/filled 'done' dots — rejected 17 Nov 2026, keep one stepper style",
                 ]}
             />
 
@@ -49,6 +50,26 @@ export default function CarouselDotsPage() {
                         code={`import { CarouselDots } from '@/components/0_Bruddle/CarouselDots'
 
 <CarouselDots count={4} activeIndex={page} onSelect={setPage} />`}
+                    />
+                </DocSection.Code>
+            </DocSection>
+
+            <DocSection title="Stepper">
+                <DocSection.Content>
+                    <div className="flex flex-col items-start gap-4">
+                        <CarouselDots count={4} activeIndex={1} aria-label="Step 2 of 4" />
+                        <p className="text-body-s text-foreground-secondary">
+                            One style for paging and steps. No done/filled state and no outlined variant: steps behind
+                            and ahead look the same, only the current one is the pill. A read-only stepper omits
+                            onSelect and passes aria-label with the current step and the total, which gives the dots
+                            role=group. Decided 17 Nov 2026.
+                        </p>
+                    </div>
+                </DocSection.Content>
+                <DocSection.Code>
+                    <CodeBlock
+                        label="Read-only stepper"
+                        code={`<CarouselDots count={4} activeIndex={1} aria-label="Step 2 of 4" />`}
                     />
                 </DocSection.Code>
             </DocSection>
@@ -76,6 +97,20 @@ export default function CarouselDotsPage() {
 />`}
                 >
                     <CarouselDots count={3} activeIndex={1} aria-label="Step 2 of 3" />
+                </ProductUsage.Example>
+
+                <ProductUsage.Example
+                    title="Paperwork verification — question screens"
+                    path="src/features/paperwork-verification/components/VerifyLayout.tsx"
+                    description="The stepper in the verification top bar (VerifyQuestionLayout and IdentityDocumentScreen). Replaced the black ProgressBar 'Step n of m'; read-only, so aria-label carries the position."
+                    code={`<CarouselDots
+    count={progress.total}
+    activeIndex={Math.max(0, Math.min(progress.current - 1, progress.total - 1))}
+    aria-label={t('progress', progress)}
+    className="justify-center"
+/>`}
+                >
+                    <CarouselDots count={5} activeIndex={2} aria-label="Step 3 of 5" />
                 </ProductUsage.Example>
             </ProductUsage>
         </DocPage>
