@@ -481,6 +481,23 @@ describe('08 Payment plan', () => {
         expect(visibleText(view.container)).not.toContain(OLD_HINT[locale])
         expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(copyRx(`${K}.title`, {}, locale))
     })
+
+    it.each(['en', 'es-AR'] as const)(
+        'owner ruling 17 Nov: one info line "You can change this later" under the sentence, in default and filled (%s)',
+        async (locale) => {
+            const view = render({ residenceCountry: 'PT' }, { locale })
+            const line = () => screen.getByTestId('setup-redesign-plan-change-later')
+            expect(setupState(view.container)).toBe('default')
+            expect(line()).toHaveTextContent(copyRx(`${K}.changeLater`, {}, locale))
+            // it follows the sentence inside the measured block, so the fit keeps both above the CTA
+            expect(line().parentElement).toHaveAttribute('data-setup-screen', 'payment-plan')
+            expect(line().previousElementSibling?.querySelector('[data-fit-group]')).not.toBeNull()
+            await view.choose('funding', label('fundCrypto', {}, locale))
+            await view.choose('payment', label('payCard', {}, locale))
+            expect(setupState(view.container)).toBe('filled')
+            expect(line()).toHaveTextContent(copyRx(`${K}.changeLater`, {}, locale))
+        }
+    )
 })
 
 // ---- ported from dev's Views/__tests__/PaymentPlan.test.tsx (deleted with the old view) ---------------------
