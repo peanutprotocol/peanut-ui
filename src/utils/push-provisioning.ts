@@ -63,8 +63,9 @@ const PushProvisioning = nativeCapability<PushProvisioningPlugin>('PushProvision
 
 /**
  * Can this device do one-tap wallet provisioning? `alreadyInWallet` is a
- * last-four match, which can be another card with the same digits: confirm it
- * before hiding the add action. The native addCard flow checks the exact card.
+ * last-four match, which can be another card with the same digits. Android
+ * treats an active or suspended match as this card being in Google Wallet;
+ * iOS only trusts it after the native add has confirmed the exact card.
  * False on web, binaries without the SDK, or without required entitlements.
  */
 export async function getPushProvisioningAvailability(last4?: string): Promise<PushProvisioningAvailability> {
