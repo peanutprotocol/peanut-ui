@@ -106,7 +106,8 @@ it('asks the residence, then the payment plan, saves both and reloads /verify', 
     })
 
     await choose('sheetFunding', copy('setupRedesign.plan.fundBankCurrencies', { currencies: 'USD, EUR, GBP, MXN' }))
-    await choose('sheetPayment', copy('setupRedesign.plan.payQr'))
+    // v7: outside Argentina and Brazil the QR row names where it works
+    await choose('sheetPayment', copy('setupRedesign.plan.payQrAbroad'))
     await settled()
     await act(async () => {
         fireEvent.click(continueButton())
