@@ -60,6 +60,7 @@ import {
 } from '@/features/setup/username-reservation'
 import { bindSignupDraft, discardSignupDraft, readSignupDraft } from '@/features/setup/signup-draft'
 import { AccountType } from '@/interfaces/interfaces'
+import { markLoggedInOnDevice } from '@/utils/device-login-history'
 
 // types
 type UserOpEncodedParams = {
@@ -178,6 +179,7 @@ export const useZeroDev = () => {
             // Bind the ceremony key to the fresh API session, never the render's previous user.
             // Native cookies may disappear on restart; persist before any RPC-dependent build.
             const registeredUser = await hydrateLoginSession()
+            markLoggedInOnDevice()
             updateUserPreferences(registeredUser.user.userId, { webAuthnKey })
             await bindSignupDraft(registeredUser.user.userId)
             // Arm delivery only after hydration supplies the authoritative
@@ -307,6 +309,7 @@ export const useZeroDev = () => {
 
             saveToCookie(WEB_AUTHN_COOKIE_KEY, webAuthnKey, 90)
             const loggedInUser = await hydrateLoginSession()
+            markLoggedInOnDevice()
             if (readSignupDraft()?.userId === loggedInUser.user.userId) await bindSignupDraft(loggedInUser.user.userId)
             else discardSignupDraft()
             void releaseUsernameReservation()

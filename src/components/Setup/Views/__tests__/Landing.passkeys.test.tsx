@@ -3,21 +3,29 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import Landing from '../Landing'
 
+import { markLoggedInOnDevice } from '@/utils/device-login-history'
+
+const mockCheck = jest.fn()
+jest.mock('@/utils/landing-passkeys', () => ({
+    checkAndroidLandingPasskey: (signal: AbortSignal) => mockCheck(signal),
+}))
+
 const mockLogin = jest.fn()
 const mockNext = jest.fn()
 const mockToastError = jest.fn()
 const mockCancelPending = jest.fn()
 let mockIsLoggingIn = false
-const nativePlatform = (platform: 'android' | 'ios') => ({
+let mockKeepWebBypass = true
+const originalCapacitorBuild = process.env.NEXT_PUBLIC_CAPACITOR_BUILD
+let mockNative = {
     isCapacitor: true,
     isHydrated: true,
     isNativeBridge: true,
-    isIOSNative: platform === 'ios',
-    isAndroidNative: platform === 'android',
-    isAndroidNativeBridge: platform === 'android',
-    platform: `${platform}-native`,
-})
-let mockNative = nativePlatform('android')
+    isIOSNative: false,
+    isAndroidNativeBridge: true,
+    isAndroidNative: true,
+    platform: 'android',
+}
 
 jest.mock('@/hooks/useLogin', () => ({
     useLogin: () => ({ handleLoginClick: mockLogin, isLoggingIn: mockIsLoggingIn }),
@@ -63,8 +71,9 @@ jest.mock('@/components/0_Bruddle/LinkButton', () => ({
         </button>
     ),
 }))
-jest.mock('../../components/SetupFooter', () => {
-    const Footer = ({
+jest.mock('../../components/SetupFooter', () => ({
+    __esModule: true,
+    default: ({
         actions,
         secondary,
         children,
@@ -78,9 +87,23 @@ jest.mock('../../components/SetupFooter', () => {
             {secondary}
             {children}
         </div>
-    )
-    return { __esModule: true, default: Footer, SetupFooter: Footer }
-})
+    ),
+    SetupFooter: ({
+        actions,
+        secondary,
+        children,
+    }: {
+        actions?: ReactNode
+        secondary?: ReactNode
+        children?: ReactNode
+    }) => (
+        <div>
+            {actions}
+            {secondary}
+            {children}
+        </div>
+    ),
+}))
 jest.mock('@/components/Setup/components/SetupDocsDrawer', () => ({
     SetupDocLink: ({ children, href }: { children: ReactNode; href?: string }) => <a href={href}>{children}</a>,
 }))
@@ -90,7 +113,7 @@ jest.mock('@/features/setup/useSignupControl', () => ({
     useSignupControl: () => ({ track: jest.fn(), trackError: jest.fn() }),
 }))
 jest.mock('../LoginRecoveryDrawer', () => ({ LoginRecoveryDrawer: () => null }))
-jest.mock('@/hooks/useKeepWebBypass', () => ({ useKeepWebBypass: () => true }))
+jest.mock('@/hooks/useKeepWebBypass', () => ({ useKeepWebBypass: () => mockKeepWebBypass }))
 jest.mock('@/hooks/useGetDeviceType', () => ({
     useDeviceType: () => ({ deviceType: 'web' }),
     DeviceType: { WEB: 'web' },
@@ -105,195 +128,278 @@ const advance = async (milliseconds: number) => {
         await Promise.resolve()
     })
 }
-const login = () => screen.getByRole('button', { name: 'logIn' })
-const signup = () => screen.getByRole('button', { name: 'landing.signUp' })
+const login = () => screen.queryByRole('button', { name: 'logIn' })
 const expectEntryActions = () => {
-    expect(signup()).toBeEnabled()
-    expect(login()).toBeEnabled()
-    expect(login()).toHaveAttribute('data-control', 'full')
-    expect(login()).toHaveAttribute('data-variant', 'secondary')
-    expect(signup().compareDocumentPosition(login()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'landing.signUp' })).toBeEnabled()
+    // Recovery shows only after a failed login (3fa5cee30).
     expect(screen.queryByText('landing.recoverWallet')).not.toBeInTheDocument()
 }
-function web() {
+function ios() {
     mockNative = {
-        isCapacitor: false,
-        isHydrated: true,
-        isNativeBridge: false,
-        isIOSNative: false,
+        ...mockNative,
+        platform: 'ios',
+        isIOSNative: true,
         isAndroidNative: false,
         isAndroidNativeBridge: false,
-        platform: 'web',
     }
 }
+
+// Jest does not load Tailwind CSS; provide the utility used for the invisible slot.
+beforeAll(() => {
+    const style = document.createElement('style')
+    style.textContent = '.invisible { visibility: hidden; }'
+    document.head.appendChild(style)
+})
 
 beforeEach(() => {
     jest.useFakeTimers()
     jest.resetAllMocks()
-    mockNative = nativePlatform('android')
+    localStorage.clear()
+    mockCheck.mockImplementation(() => new Promise(() => {}))
+    mockNative = {
+        isCapacitor: true,
+        isHydrated: true,
+        isNativeBridge: true,
+        isIOSNative: false,
+        isAndroidNativeBridge: true,
+        isAndroidNative: true,
+        platform: 'android',
+    }
     mockLogin.mockResolvedValue(undefined)
     mockIsLoggingIn = false
+    mockKeepWebBypass = true
 })
 afterEach(() => {
     cleanup()
-    jest.clearAllTimers()
+    if (originalCapacitorBuild === undefined) delete process.env.NEXT_PUBLIC_CAPACITOR_BUILD
+    else process.env.NEXT_PUBLIC_CAPACITOR_BUILD = originalCapacitorBuild
     jest.useRealTimers()
 })
 
-describe('native landing requires an explicit Log in tap', () => {
-    it.each([
-        ['android', 'android', true, true],
-        ['ios', 'ios', true, true],
-        ['old Android bridge', 'android', false, true],
-        ['old iOS bridge', 'ios', false, true],
-        ['hydrating Android', 'android', true, false],
-        ['hydrating iOS', 'ios', true, false],
-    ] as const)('shows the full secondary Log in below Sign up immediately on %s', (_, platform, bridge, hydrated) => {
-        mockNative = { ...nativePlatform(platform), isNativeBridge: bridge, isHydrated: hydrated }
-        render(<Landing />)
+function deferred<T>() {
+    let resolve!: (value: T) => void
+    let reject!: (reason: unknown) => void
+    const promise = new Promise<T>((yes, no) => {
+        resolve = yes
+        reject = no
+    })
+    return { promise, resolve, reject }
+}
+function expectPending(container: HTMLElement) {
+    expect(login()).not.toBeInTheDocument()
+    const placeholder = container.querySelector('[data-testid="landing-login-placeholder"]')
+    expect(placeholder).not.toBeNull()
+    expect(placeholder).toHaveAttribute('aria-hidden', 'true')
+    expect(placeholder).toHaveClass('h-11')
+    expect(placeholder).not.toBeVisible()
+    expect(placeholder?.querySelector('button, a, input, [tabindex="0"]')).toBeNull()
+}
 
+describe('native landing log in', () => {
+    it.each(['ios', 'old-ios'])('shows full login immediately on %s', (platform) => {
+        ios()
+        if (platform === 'old-ios') mockNative.isNativeBridge = false
+        render(<Landing />)
         expectEntryActions()
-        expect(mockLogin).not.toHaveBeenCalled()
+        expect(login()).toHaveAttribute('data-control', 'full')
+        expect(mockCheck).not.toHaveBeenCalled()
     })
 
-    it.each(['android', 'ios'] as const)(
-        'keeps %s actions stable at five and ten seconds without logging in',
-        async (platform) => {
-            mockNative = nativePlatform(platform)
-            render(<Landing />)
-            const initialLogin = login()
-            const initialSignup = signup()
+    it('uses device history immediately without probing', () => {
+        markLoggedInOnDevice()
+        render(<Landing />)
+        expect(login()).toHaveAttribute('data-control', 'full')
+        expect(mockCheck).not.toHaveBeenCalled()
+        expectEntryActions()
+    })
 
-            for (const milliseconds of [5000, 5000]) {
-                await advance(milliseconds)
-                expectEntryActions()
-                expect(login()).toBe(initialLogin)
-                expect(signup()).toBe(initialSignup)
-                expect(mockLogin).not.toHaveBeenCalled()
-                expect(mockToastError).not.toHaveBeenCalled()
-            }
-        }
-    )
+    it('treats a device signed out before the history marker as returning', () => {
+        localStorage.setItem('user-123:user-preferences', JSON.stringify({ lastUsedTab: 'home' }))
+        render(<Landing />)
+        expect(login()).toHaveAttribute('data-control', 'full')
+        expect(mockCheck).not.toHaveBeenCalled()
+    })
 
-    it.each(['android', 'ios'] as const)(
-        'does not log in when %s hydration finishes or Landing rerenders',
-        async (platform) => {
-            mockNative = { ...nativePlatform(platform), isHydrated: false }
-            const view = render(<Landing />)
-            expectEntryActions()
+    it.each(['available', 'unavailable', 'unknown', 'rejection'])('settles %s immediately', async (outcome) => {
+        const pending = deferred<string>()
+        mockCheck.mockReturnValue(pending.promise)
+        const { container } = render(<Landing />)
+        expectPending(container)
+        expectEntryActions()
+        await act(async () => {
+            if (outcome === 'rejection') pending.reject(new Error('old binary'))
+            else pending.resolve(outcome)
+        })
+        expect(login()).toHaveAttribute('data-control', outcome === 'unavailable' ? 'link' : 'full')
+        if (outcome === 'unavailable') expect(login()?.closest('.pt-2')).not.toBeNull()
+        expect(mockLogin).not.toHaveBeenCalled()
+        expect(mockToastError).not.toHaveBeenCalled()
+    })
 
-            mockNative = { ...mockNative, isHydrated: true }
-            view.rerender(<Landing />)
-            await advance(5000)
-            view.rerender(<Landing />)
-            await advance(5000)
+    it('stays pending at 2999ms, shows full at 3000ms and ignores a late unavailable answer', async () => {
+        const pending = deferred<string>()
+        mockCheck.mockReturnValue(pending.promise)
+        const { container } = render(<Landing />)
+        await advance(2999)
+        expectPending(container)
+        await advance(1)
+        expect(login()).toHaveAttribute('data-control', 'full')
+        await act(async () => pending.resolve('unavailable'))
+        expect(login()).toHaveAttribute('data-control', 'full')
+        expect(mockCheck).toHaveBeenCalledTimes(1)
+    })
 
-            expectEntryActions()
-            expect(mockLogin).not.toHaveBeenCalled()
-        }
-    )
+    it('ignores unavailable arriving after the wall-clock deadline before timeout delivery', async () => {
+        const startedAt = Date.now()
+        const pending = deferred<string>()
+        mockCheck.mockReturnValue(pending.promise)
+        const view = render(<Landing />)
+        expectPending(view.container)
+        jest.setSystemTime(startedAt + 3001)
+        await act(async () => pending.resolve('unavailable'))
+        expect(login()).toHaveAttribute('data-control', 'full')
+        expect(mockCheck).toHaveBeenCalledTimes(1)
+    })
 
-    it('does not log in on iOS unmount, remount, or a late timer after unmount', async () => {
-        mockNative = nativePlatform('ios')
+    it('aborts on cleanup without warnings and starts a fresh check on remount', async () => {
+        const pending = deferred<string>()
+        mockCheck.mockReturnValueOnce(pending.promise)
+        const warning = jest.spyOn(console, 'error').mockImplementation(() => {})
+        const first = render(<Landing />)
+        const signal = mockCheck.mock.calls[0][0] as AbortSignal
+        first.unmount()
+        expect(signal.aborted).toBe(true)
+        await act(async () => pending.resolve('unavailable'))
+        const second = render(<Landing />)
+        expect(mockCheck).toHaveBeenCalledTimes(2)
+        expectPending(second.container)
+        expect(warning).not.toHaveBeenCalled()
+        warning.mockRestore()
+    })
+
+    it('rereads history on remount', () => {
         const first = render(<Landing />)
         first.unmount()
-        await advance(10_000)
-        expect(mockLogin).not.toHaveBeenCalled()
-
-        const second = render(<Landing />)
-        expectEntryActions()
-        await advance(10_000)
-        expect(mockLogin).not.toHaveBeenCalled()
-        second.unmount()
-        await advance(10_000)
-        expect(mockLogin).not.toHaveBeenCalled()
-    })
-
-    it.each(['android', 'ios'] as const)(
-        'starts %s login once, without options, only after a manual tap',
-        async (platform) => {
-            mockNative = nativePlatform(platform)
-            render(<Landing />)
-            await advance(10_000)
-            expect(mockLogin).not.toHaveBeenCalled()
-
-            await act(async () => fireEvent.click(login()))
-            expect(mockLogin.mock.calls).toEqual([[]])
-            await advance(10_000)
-            expect(mockLogin.mock.calls).toEqual([[]])
-            expect(mockNext).not.toHaveBeenCalled()
-        }
-    )
-
-    it.each(['android', 'ios'] as const)(
-        'starts signup immediately on %s and never starts login afterward',
-        async (platform) => {
-            mockNative = nativePlatform(platform)
-            const view = render(<Landing />)
-            await act(async () => fireEvent.click(signup()))
-
-            expect(mockNext).toHaveBeenCalledTimes(1)
-            expect(mockLogin).not.toHaveBeenCalled()
-            await advance(10_000)
-            view.rerender(<Landing />)
-            expect(mockLogin).not.toHaveBeenCalled()
-        }
-    )
-
-    it.each(['android', 'ios'] as const)(
-        'disables both %s actions for an in-flight manual login and restores them afterward',
-        async (platform) => {
-            mockNative = nativePlatform(platform)
-            let resolveLogin!: () => void
-            mockLogin.mockReturnValueOnce(new Promise<void>((resolve) => (resolveLogin = resolve)))
-            const view = render(<Landing />)
-            fireEvent.click(login())
-            expect(mockLogin.mock.calls).toEqual([[]])
-
-            mockIsLoggingIn = true
-            view.rerender(<Landing />)
-            expect(login()).toBeDisabled()
-            expect(signup()).toBeDisabled()
-            fireEvent.click(login())
-            fireEvent.click(signup())
-            await advance(10_000)
-            expect(mockLogin.mock.calls).toEqual([[]])
-            expect(mockNext).not.toHaveBeenCalled()
-
-            await act(async () => resolveLogin())
-            mockIsLoggingIn = false
-            view.rerender(<Landing />)
-            expectEntryActions()
-        }
-    )
-})
-
-describe('keep-web landing', () => {
-    it('shows both full actions immediately and logs in only on a manual tap without options', async () => {
-        web()
+        markLoggedInOnDevice()
         render(<Landing />)
-        expectEntryActions()
-        await advance(10_000)
-        expect(mockLogin).not.toHaveBeenCalled()
-
-        await act(async () => fireEvent.click(login()))
-        expect(mockLogin.mock.calls).toEqual([[]])
+        expect(login()).toHaveAttribute('data-control', 'full')
+        expect(mockCheck).toHaveBeenCalledTimes(1)
     })
 
-    it('keeps Sign up enabled while a manual login is in flight', async () => {
-        web()
-        let resolveLogin!: () => void
-        mockLogin.mockReturnValueOnce(new Promise<void>((resolve) => (resolveLogin = resolve)))
+    it('keeps native prehydration inert and checks only after hydration', () => {
+        mockNative.isHydrated = false
         const view = render(<Landing />)
-        fireEvent.click(login())
-        mockIsLoggingIn = true
+        expectPending(view.container)
+        expect(mockCheck).not.toHaveBeenCalled()
+        mockNative.isHydrated = true
         view.rerender(<Landing />)
+        expect(mockCheck).toHaveBeenCalledTimes(1)
+    })
 
+    it('keeps an iOS native build inert before hydration, then shows full login without checking', () => {
+        process.env.NEXT_PUBLIC_CAPACITOR_BUILD = 'true'
+        ios()
+        mockNative.isHydrated = false
+        const view = render(<Landing />)
+        expectPending(view.container)
+        expect(mockCheck).not.toHaveBeenCalled()
+        mockNative.isHydrated = true
+        view.rerender(<Landing />)
+        expect(login()).toHaveAttribute('data-control', 'full')
+        expect(mockCheck).not.toHaveBeenCalled()
+    })
+
+    it('reserves the native-build slot for a server web snapshot until Android hydration', () => {
+        process.env.NEXT_PUBLIC_CAPACITOR_BUILD = 'true'
+        mockKeepWebBypass = false
+        mockNative = {
+            isCapacitor: false,
+            isHydrated: false,
+            isNativeBridge: false,
+            isIOSNative: false,
+            isAndroidNativeBridge: false,
+            isAndroidNative: false,
+            platform: 'web',
+        }
+        const view = render(<Landing />)
+        expectPending(view.container)
+        expect(mockCheck).not.toHaveBeenCalled()
+        mockNative = {
+            ...mockNative,
+            isCapacitor: true,
+            isHydrated: true,
+            isNativeBridge: true,
+            isAndroidNativeBridge: true,
+            isAndroidNative: true,
+            platform: 'android',
+        }
+        view.rerender(<Landing />)
+        expectPending(view.container)
+        expect(mockCheck).toHaveBeenCalledTimes(1)
+    })
+
+    it.each(['available', 'unavailable'])('disables the %s login and native signup during login', async (outcome) => {
+        mockCheck.mockResolvedValue(outcome)
+        mockIsLoggingIn = true
+        render(<Landing />)
+        await advance(0)
         expect(login()).toBeDisabled()
-        expect(signup()).toBeEnabled()
-        await act(async () => fireEvent.click(signup()))
-        expect(mockNext).toHaveBeenCalledTimes(1)
-        expect(mockLogin.mock.calls).toEqual([[]])
-        await act(async () => resolveLogin())
+        expect(screen.getByRole('button', { name: 'landing.signUp' })).toBeDisabled()
+        fireEvent.click(login()!)
+        expect(mockLogin).not.toHaveBeenCalled()
+    })
+
+    it('starts no passkey ceremony on iOS until Log in is tapped', async () => {
+        ios()
+        render(<Landing />)
+        await advance(10_000)
+        expect(mockLogin).not.toHaveBeenCalled()
+        expect(mockToastError).not.toHaveBeenCalled()
+        fireEvent.click(login()!)
+        expect(mockLogin).toHaveBeenCalledTimes(1)
+        expect(mockLogin).toHaveBeenCalledWith()
+    })
+
+    it('disables Log in and Sign up on native while a login is in flight', () => {
+        ios()
+        mockIsLoggingIn = true
+        render(<Landing />)
+        expect(login()).toBeDisabled()
+        expect(screen.getByRole('button', { name: 'landing.signUp' })).toBeDisabled()
+    })
+
+    it('keeps Sign up usable on the web while a login is in flight', () => {
+        mockNative = {
+            isCapacitor: false,
+            isHydrated: true,
+            isNativeBridge: false,
+            isIOSNative: false,
+            isAndroidNativeBridge: false,
+            isAndroidNative: false,
+            platform: 'web',
+        }
+        mockIsLoggingIn = true
+        render(<Landing />)
+        expect(login()).toBeDisabled()
+        expect(screen.getByRole('button', { name: 'landing.signUp' })).toBeEnabled()
+    })
+
+    it('shows the full Log in button for keep-web users and starts login only on tap', async () => {
+        mockNative = {
+            isCapacitor: false,
+            isHydrated: true,
+            isNativeBridge: false,
+            isIOSNative: false,
+            isAndroidNativeBridge: false,
+            isAndroidNative: false,
+            platform: 'web',
+        }
+        render(<Landing />)
+        expect(login()).toHaveAttribute('data-control', 'full')
+        expectEntryActions()
+        await advance(5000)
+        expect(mockLogin).not.toHaveBeenCalled()
+        fireEvent.click(login()!)
+        expect(mockLogin).toHaveBeenCalledWith()
     })
 })

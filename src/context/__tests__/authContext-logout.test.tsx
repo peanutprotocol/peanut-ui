@@ -106,6 +106,7 @@ import { clearRedirectUrl, endIntentionalLogout, getRedirectUrl, saveRedirectUrl
 import { clearSessionHeld, hasHeldSession, markSessionHeld } from '@/utils/session-presence'
 import { purgeCaches } from '@/utils/cache.utils'
 import { clearAuthToken } from '@/utils/auth-token'
+import { HAS_LOGGED_IN_ON_DEVICE_KEY, hasLoggedInOnDevice, markLoggedInOnDevice } from '@/utils/device-login-history'
 import { isReturningDevice } from '@/utils/returning-device'
 import { recordSignupRegistration, readSignupDraft, saveSignupDraft } from '@/features/setup/signup-draft'
 
@@ -150,6 +151,20 @@ describe('logoutUser', () => {
         clearRedirectUrl()
         clearSessionHeld()
     })
+
+    it.each([undefined, { skipBackendCall: true }, { allDevices: true }])(
+        'retains device login history through logout %j',
+        async (options) => {
+            markLoggedInOnDevice()
+            stubLocation()
+            const { result } = renderHook(() => useAuth(), { wrapper })
+            await act(async () => {
+                await result.current.logoutUser(options)
+            })
+            expect(hasLoggedInOnDevice()).toBe(true)
+            expect(localStorage.getItem(HAS_LOGGED_IN_ON_DEVICE_KEY)).toBe('true')
+        }
+    )
 
     it('clears the previous user’s bound signup draft along with credentials', async () => {
         saveSignupDraft({

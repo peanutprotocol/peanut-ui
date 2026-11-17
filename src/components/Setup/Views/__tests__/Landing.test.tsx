@@ -9,6 +9,8 @@ import { onSignupScreen, signupControls } from '@/test-utils/signup-controls'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import LandingStep from '../Landing'
 
+import { HAS_LOGGED_IN_ON_DEVICE_KEY, markLoggedInOnDevice } from '@/utils/device-login-history'
+
 const mockLogin = jest.fn()
 const mockNext = jest.fn()
 const mockResetSetupFlow = jest.fn()
@@ -83,13 +85,17 @@ const recoveryActions = () =>
 beforeEach(() => {
     jest.useFakeTimers()
     jest.clearAllMocks()
+    markLoggedInOnDevice()
     mockNative = true
     mockAndroidNative = false
     mockTestBuild = false
     mockDeviceType = 'ios'
     mockSignupDraft = null
 })
-afterEach(() => jest.useRealTimers())
+afterEach(() => {
+    jest.useRealTimers()
+    localStorage.removeItem(HAS_LOGGED_IN_ON_DEVICE_KEY)
+})
 
 describe('Landing — the account recovery link appears only after a failed login', () => {
     const recoveryLink = () => screen.queryByText('Need to recover a Peanut account?')
