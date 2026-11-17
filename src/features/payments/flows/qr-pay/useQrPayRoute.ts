@@ -3,6 +3,8 @@
 import { parseAsString, useQueryState } from 'nuqs'
 import { EQrType } from '@/components/Global/DirectSendQR/utils'
 import { findPixRoute, pixPaysThroughPayRoutes } from '@/features/pix/pixRoute.utils'
+import type { PixSetupState } from '@/features/pix/pixRouteStep'
+import { usePixFlowSetupState } from '@/features/pix/usePixFlowSetupState'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import type { CapabilityRoute } from '@/types/capabilities'
 import { isPixEmvcoQr } from '@/utils/withdraw.utils'
@@ -13,13 +15,17 @@ import { isPixEmvcoQr } from '@/utils/withdraw.utils'
  * - `flow`: the QR pay flow. Every code that is not a Pix code on the neutral routes, a Pix code whose
  *   route is ready or paused (the flow shows the pause), and a payment already opened (`?intentId=`),
  *   which shows its outcome whatever the route says now.
- * - `setup`: the route's step before Pix works (verify, the account the first use opens, the wait).
+ * - `setup`: the route's step before Pix works (verify, the provider's terms, the account the first
+ *   use opens, the wait). The terms gate each scan, never a payment already opened
+ *   (`usePixFlowSetupState`).
  * - `support`: the provider refused the user; support fixes it.
  */
 export type QrPayRouteStep = 'loading' | 'flow' | 'setup' | 'support'
 
 export function qrPayRouteStep(input: {
     route: CapabilityRoute | undefined
+    /** The route's setup state as the flow reads it for this attempt (`usePixFlowSetupState`). */
+    setupState: PixSetupState
     viaPixRoutes: boolean
     isPixCode: boolean
     isLoading: boolean
@@ -29,13 +35,12 @@ export function qrPayRouteStep(input: {
     if (input.isLoading) return 'loading'
     if (!input.viaPixRoutes || input.hasOpenedPayment) return 'flow'
     switch (input.route?.state) {
-        case 'ready':
         case 'paused':
             return 'flow'
         case 'refused':
             return 'support'
         default:
-            return 'setup'
+            return input.setupState === 'ready' ? 'flow' : 'setup'
     }
 }
 
@@ -55,9 +60,11 @@ export function useQrPayRoute(qrCode: string, qrType: string | null) {
     const isPixCode = qrType === EQrType.PIX || isPixEmvcoQr(qrCode)
     const route = isPixCode ? findPixRoute(capabilities.routes, 'pay') : undefined
     const viaPixRoutes = isPixCode && (!!intentId || pixPaysThroughPayRoutes(route))
+    // one scan is one attempt: the page mounts anew for each scan
+    const setupState = usePixFlowSetupState(route, !!intentId)
     return {
         route,
         viaPixRoutes,
-        step: qrPayRouteStep({ route, viaPixRoutes, isPixCode, isLoading, hasOpenedPayment: !!intentId }),
+        step: qrPayRouteStep({ route, setupState, viaPixRoutes, isPixCode, isLoading, hasOpenedPayment: !!intentId }),
     }
 }

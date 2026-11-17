@@ -1,4 +1,5 @@
 import { apiFetch } from '@/utils/api-fetch'
+import { apiErrorFromResponse } from '@/services/api-error'
 import { LEGAL_DOCUMENT_VERSIONS, type LegalDocumentSlug } from '@/constants/legal-versions.generated'
 
 /**
@@ -64,5 +65,18 @@ export const consentApi = {
         })
         if (!response.ok) throw new Error(`Failed to record acceptance (${response.status})`)
         return await response.json()
+    },
+
+    /**
+     * A provider's terms, as the user's route names them (`accept-tos:<provider>`). The API
+     * stores the consent with the document's version and hash, then enrols the user there.
+     * Called from the client, so the record carries the user's own IP and user agent.
+     */
+    acceptRouteTerms: async (key: string): Promise<void> => {
+        const response = await apiFetch('/users/kyc/accept-terms', {
+            method: 'POST',
+            body: JSON.stringify({ key }),
+        })
+        if (!response.ok) throw await apiErrorFromResponse(response, 'Could not save the acceptance')
     },
 }

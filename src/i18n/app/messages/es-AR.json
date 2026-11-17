@@ -1439,6 +1439,8 @@
         "payResidence": "Los pagos con Pix aún no están disponibles donde vivís.",
         "unavailable": "Pix no está disponible en este momento. Intentá de nuevo pronto.",
         "setup": {
+            "terms": "Para usar Pix, aceptá los <terms>términos y condiciones de {brand}</terms>.",
+            "termsNotSaved": "No se guardó tu aceptación de los términos. Intentá de nuevo.",
             "notAvailable": "No se pudo configurar Pix. Contactá a soporte."
         },
         "deposit": {

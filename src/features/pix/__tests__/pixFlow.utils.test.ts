@@ -9,29 +9,80 @@ import {
     completePixKey,
     toApiDecimal,
 } from '../pixFlow.utils'
-import { pixOpensWithoutTap, pixSetupState } from '../pixRouteStep'
+import { pixOpensWithoutTap, pixRouteTerms, pixSetupState } from '../pixRouteStep'
 import { DEMO_PIX_BR_CODE } from '@/constants/demo-data'
 import type { HistoryIntentStatus } from '@/utils/history.utils'
-import type { CapabilityRoute } from '@/types/capabilities'
+import type { CapabilityRoute, NextAction } from '@/types/capabilities'
 
 const route = (
     state: CapabilityRoute['state'],
-    extra: Partial<Pick<CapabilityRoute, 'action'>> = {}
-): Pick<CapabilityRoute, 'state' | 'action'> => ({ state, ...extra })
+    extra: Partial<Pick<CapabilityRoute, 'action' | 'terms'>> = {}
+): Pick<CapabilityRoute, 'state' | 'action' | 'terms'> => ({ state, ...extra })
+
+// TASK-25073: Avenia's terms, in the two shapes the API may send
+const TERMS = { key: 'accept-tos:avenia', url: 'https://app.avenia.io/Avenia-TC.pdf' }
+const TERMS_ACTION: NextAction = {
+    key: 'accept-tos:avenia',
+    kind: 'accept-tos',
+    purpose: 'unlock-avenia',
+    tosUrl: 'https://app.avenia.io/Avenia-TC.pdf',
+}
 
 describe('pixSetupState', () => {
     it("reads the user's step from the backend's route", () => {
-        expect(pixSetupState(route('ready'))).toBe('ready')
-        expect(pixSetupState(route('pending'))).toBe('pending')
-        expect(pixSetupState(route('action_required', { action: 'verify' }))).toBe('verify')
-        expect(pixSetupState(route('action_required', { action: 'activate' }))).toBe('activate')
+        expect(pixSetupState(route('ready'), [])).toBe('ready')
+        expect(pixSetupState(route('pending'), [])).toBe('pending')
+        expect(pixSetupState(route('action_required', { action: 'verify' }), [])).toBe('verify')
+        expect(pixSetupState(route('action_required', { action: 'activate' }), [])).toBe('activate')
     })
 
-    // TASK-24947: Avenia relies on our verification, so a terms or hosted step is no step of the Pix setup
+    it("reads the route's terms as the terms step, whatever the route's state", () => {
+        expect(pixSetupState(route('action_required', { action: 'activate', terms: TERMS }), [])).toBe('accept-terms')
+        expect(pixSetupState(route('pending', { terms: TERMS }), [])).toBe('accept-terms')
+        // an Avenia account opened before the terms step accepts them at its next Pix use
+        expect(pixSetupState(route('ready', { terms: TERMS }), [])).toBe('accept-terms')
+    })
+
+    it('reads a step whose action is an accept-tos next action as the same terms step', () => {
+        expect(pixSetupState(route('action_required', { action: 'accept-tos:avenia' }), [TERMS_ACTION])).toBe(
+            'accept-terms'
+        )
+    })
+
+    it('asks for the identity check before the terms', () => {
+        expect(pixSetupState(route('action_required', { action: 'verify', terms: TERMS }), [TERMS_ACTION])).toBe(
+            'verify'
+        )
+    })
+
+    it('sets the terms aside for a flow that has started, and reads the step under them', () => {
+        const aside = { setAsideTerms: true }
+        expect(pixSetupState(route('ready', { terms: TERMS }), [], aside)).toBe('ready')
+        expect(pixSetupState(route('action_required', { action: 'activate', terms: TERMS }), [], aside)).toBe(
+            'activate'
+        )
+        expect(pixSetupState(route('action_required', { action: 'accept-tos:avenia' }), [TERMS_ACTION], aside)).toBe(
+            'ready'
+        )
+        // a step this build does not know stays support's, terms or not
+        expect(pixSetupState(route('action_required', { action: 'x', terms: TERMS }), [], aside)).toBe('support')
+    })
+
     it('leaves any other step to support', () => {
-        expect(pixSetupState(route('action_required', { action: 'contact-support:x' }))).toBe('support')
-        expect(pixSetupState(route('action_required', { action: 'accept-tos:avenia' }))).toBe('support')
-        expect(pixSetupState(undefined)).toBe('support')
+        expect(pixSetupState(route('action_required', { action: 'contact-support:x' }), [])).toBe('support')
+        // a terms key with no accept-tos next action is no step this build knows
+        expect(pixSetupState(route('action_required', { action: 'accept-tos:avenia' }), [])).toBe('support')
+        expect(pixSetupState(route('refused', { terms: TERMS }), [])).toBe('support')
+        expect(pixSetupState(undefined, [])).toBe('support')
+    })
+})
+
+describe('pixRouteTerms', () => {
+    it("names the terms and their document from either shape, the route's own first", () => {
+        expect(pixRouteTerms(route('ready', { terms: TERMS }), [])).toEqual(TERMS)
+        expect(pixRouteTerms(route('action_required', { action: 'accept-tos:avenia' }), [TERMS_ACTION])).toEqual(TERMS)
+        expect(pixRouteTerms(route('ready'), [TERMS_ACTION])).toBeNull()
+        expect(pixRouteTerms(route('paused', { terms: TERMS }), [])).toBeNull()
     })
 })
 

@@ -345,6 +345,24 @@ const aveniaResponses = (stage: 'enabled' | 'first-use', overrides: Record<strin
     ...overrides,
 })
 
+/** Avenia's terms as the route names them (TASK-25073): the step, and the document the user accepts. */
+const AVENIA_TERMS = { key: 'accept-tos:avenia', url: 'https://app.avenia.io/Avenia-TC.pdf' }
+/** Avenia's routes with its terms still to accept, as the capabilities read before the acceptance. */
+const aveniaTermsResponses = (stage: 'enabled' | 'first-use') => {
+    const responses = aveniaResponses(stage)
+    const me = responses['GET /users/me']
+    return {
+        ...responses,
+        'GET /users/me': {
+            ...me,
+            capabilities: {
+                ...me.capabilities,
+                routes: me.capabilities.routes.map((route) => ({ ...route, terms: AVENIA_TERMS })),
+            },
+        },
+    }
+}
+
 /**
  * A resident outside Brazil, whose Pix routes name Manteca: R$1 minimum, Manteca pays any key and
  * cannot tell whose it is, charges no flat fee, and its Pix code has no expiry or payer CPF. The one
@@ -2833,6 +2851,18 @@ export const FIXTURES: Record<string, Fixture> = {
         about: "Avenia's first use (TASK-24947): no tap and no terms, the account opens as the page loads.",
         isLoadingState: true,
         responses: aveniaResponses('first-use', { [ACTIVATE_PIX]: { state: 'setting_up' } }),
+    },
+    'pix-setup-terms': {
+        route: '/add-money/pix',
+        about: "Avenia's terms (TASK-25073): the provider and its terms named and linked before the user accepts them, once.",
+        responses: aveniaTermsResponses('first-use'),
+        // the page capture that taps Continue shows the acceptance not saved
+        fails: ['POST /users/kyc/accept-terms'],
+    },
+    'pix-withdraw-terms': {
+        route: AVENIA_WITHDRAW_ROUTE,
+        about: "An Avenia account opened before its terms step (TASK-25073): the next Pix use asks for Avenia's terms first.",
+        responses: aveniaTermsResponses('enabled'),
     },
     'pix-deposit-amount': {
         route: '/add-money/pix',

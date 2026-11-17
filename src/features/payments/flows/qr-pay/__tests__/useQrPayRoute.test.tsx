@@ -7,7 +7,7 @@ import type { CapabilityRoute } from '@/types/capabilities'
 let mockRoutes: CapabilityRoute[] = []
 let mockIsLoading = false
 jest.mock('@/hooks/useCapabilities', () => ({
-    useCapabilities: () => ({ capabilities: { routes: mockRoutes }, isLoading: mockIsLoading }),
+    useCapabilities: () => ({ capabilities: { routes: mockRoutes }, nextActions: [], isLoading: mockIsLoading }),
 }))
 
 import { useQrPayRoute } from '../useQrPayRoute'
@@ -26,12 +26,15 @@ const payRoute = (route: Partial<CapabilityRoute>): CapabilityRoute =>
     }) as CapabilityRoute
 const providerRejected = { code: 'provider_rejected', userMessage: 'Message support.' }
 
-const renderRoute = (qrCode: string, qrType: string | null, searchParams = '') =>
+const mountRoute = (qrCode: string, qrType: string | null, searchParams = '') =>
     renderHook(() => useQrPayRoute(qrCode, qrType), {
         wrapper: ({ children }: { children: ReactNode }) => (
             <NuqsTestingAdapter searchParams={searchParams}>{children}</NuqsTestingAdapter>
         ),
-    }).result.current
+    })
+const renderRoute = (qrCode: string, qrType: string | null, searchParams = '') =>
+    mountRoute(qrCode, qrType, searchParams).result.current
+const TERMS = { key: 'accept-tos:avenia', url: 'https://app.avenia.io/Avenia-TC.pdf' }
 
 describe('useQrPayRoute: which flow a scanned code mounts (API-CONTRACT-M4 §1)', () => {
     beforeEach(() => {
@@ -68,6 +71,21 @@ describe('useQrPayRoute: which flow a scanned code mounts (API-CONTRACT-M4 §1)'
         expect(renderRoute(PIX_CODE, 'PIX').step).toBe('setup')
         mockRoutes = [payRoute({ state: 'pending' })]
         expect(renderRoute(PIX_CODE, 'PIX').step).toBe('setup')
+    })
+
+    // TASK-25073: an Avenia account opened before its terms step accepts them at its next Pix payment
+    it("a ready route that still names Avenia's terms meets them before the scan's flow", () => {
+        mockRoutes = [payRoute({ terms: TERMS })]
+        expect(renderRoute(PIX_CODE, 'PIX')).toMatchObject({ viaPixRoutes: true, step: 'setup' })
+    })
+
+    it('terms a later read brings do not take the flow of a scan away', () => {
+        mockRoutes = [payRoute({})]
+        const view = mountRoute(PIX_CODE, 'PIX')
+        expect(view.result.current.step).toBe('flow')
+        mockRoutes = [payRoute({ terms: TERMS })]
+        view.rerender()
+        expect(view.result.current.step).toBe('flow')
     })
 
     it('a user Avenia refused goes to support, never to Manteca', () => {

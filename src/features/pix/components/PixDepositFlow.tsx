@@ -17,6 +17,7 @@ import { PixQrDeposit } from '@/features/pix/components/PixQrDeposit'
 import { PixRateAndFeeCard } from '@/features/pix/components/PixRateAndFeeCard'
 import { showsProviderRateAndFee } from '@/features/pix/pixRateAndFee'
 import { PixSetup } from '@/features/pix/components/PixSetup'
+import { usePixFlowSetupState } from '@/features/pix/usePixFlowSetupState'
 import { usePixQuoteCurrency } from '@/features/pix/usePixQuoteCurrency'
 import { isUnderPixMinimum } from '@/features/pix/pixQuote.utils'
 import { pixMinimumBrl } from '@/features/pix/pixRoute.utils'
@@ -68,9 +69,10 @@ export function PixDepositFlow({ route }: { route: CapabilityRoute }) {
     const leaveToHome = useReturnTo(originPastHubs(returnTo, ADD_MONEY_HUBS) ?? '/home')
     const onBack = useSafeBack(returnTo ?? '/add-money?method=bank')
     const step: PixDepositStep = urlState.step ?? 'inputAmount'
-    const ready = route.state === 'ready'
     const providerId = pixProviderId(route.provider)
     const intentId = urlState.intentId
+    // the provider's terms gate each new deposit, never the code of one already made
+    const ready = usePixFlowSetupState(route, !!intentId) === 'ready'
 
     const [usdAmount, setUsdAmount] = useState('')
     const [brlAmount, setBrlAmount] = useState('')

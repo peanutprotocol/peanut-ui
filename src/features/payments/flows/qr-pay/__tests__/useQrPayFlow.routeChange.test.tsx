@@ -214,6 +214,7 @@ let mockRoutes: Array<Record<string, unknown>> = []
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({
         capabilities: { rails: [], nextActions: [], restrictions: [], routes: mockRoutes },
+        nextActions: [],
         isLoading: false,
     }),
 }))

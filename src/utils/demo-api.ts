@@ -969,6 +969,8 @@ const ROUTES: Array<{ method: string; pattern: string; handler: Handler }> = [
 
     // avenia (Brazil Pix for residents). 200s, so a fixture can override any field.
     // the demo user's Pix routes name Avenia (DEMO_PIX_ROUTES), so these answer as Avenia does
+    // a route's provider terms step (accept-tos:avenia): the consent is recorded
+    { method: 'POST', pattern: '/users/kyc/accept-terms', handler: () => ({ accepted: true }) },
     {
         method: 'GET',
         pattern: '/pix/deposit/rules',
