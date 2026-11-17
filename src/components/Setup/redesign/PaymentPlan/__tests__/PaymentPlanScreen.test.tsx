@@ -213,13 +213,14 @@ describe('08 Payment plan', () => {
         ])
         fireEvent.keyDown(openDialog()!, { key: 'Escape' })
         await waitFor(() => expect(openDialog()).toBeNull())
-        expect(view.open('payment')).toEqual([label('payCard'), label('payQr')])
+        // v7: QR payments work only in Argentina and Brazil, so a US resident's row says where
+        expect(view.open('payment')).toEqual([label('payCard'), label('payQrAbroad')])
         fireEvent.keyDown(openDialog()!, { key: 'Escape' })
         await waitFor(() => expect(openDialog()).toBeNull())
 
         await view.choose('funding', label('fundBankCurrencies', { currencies: 'USD, EUR' }))
         expect(view.continueButton()).toBeDisabled()
-        await view.choose('payment', label('payQr'))
+        await view.choose('payment', label('payQrAbroad'))
         expect(view.flow().fundingChannel).toBe('bank')
         expect(view.flow().paymentChannel).toBe('qr')
         expect(setupState(view.container)).toBe('filled')
@@ -318,7 +319,7 @@ describe('08 Payment plan', () => {
         async (locale) => {
             const view = render({ residenceCountry: 'PT' }, { locale })
             await view.choose('funding', label('fundBankCurrencies', { currencies: 'USD, EUR, GBP, MXN' }, locale))
-            await view.choose('payment', label('payQr', {}, locale))
+            await view.choose('payment', label('payQrAbroad', {}, locale))
             expect(shownText(view.pill('funding'))).toBe(label('fundBankPill', {}, locale))
             expect(shownText(view.pill('payment'))).toBe(label('payQr', {}, locale))
             // the accessible name keeps the full sheet label
@@ -363,7 +364,7 @@ describe('08 Payment plan', () => {
         fireEvent.click(view.pill('payment'))
         fireEvent.keyDown(openDialog()!, { key: 'Escape' })
         await waitFor(() => expect(openDialog()).toBeNull())
-        await view.choose('payment', label('payQr'))
+        await view.choose('payment', label('payQrAbroad'))
         fireEvent.click(view.continueButton())
         expect(controls()).toEqual([
             'funding_channel:open',
@@ -413,7 +414,7 @@ describe('08 Payment plan', () => {
     it('P3-48 Continue for a fully restricted residence reports it; an unrestricted one does not', async () => {
         const gb = render({ residenceCountry: 'GB' })
         await gb.choose('funding', label('fundCrypto'))
-        await gb.choose('payment', label('payQr'))
+        await gb.choose('payment', label('payQrAbroad'))
         fireEvent.click(gb.continueButton())
         expect(capture).toHaveBeenCalledWith(
             ANALYTICS_EVENTS.SIGNUP_RESIDENCE_RESTRICTED_CONTINUED,
@@ -423,7 +424,7 @@ describe('08 Payment plan', () => {
         capture.mockClear()
         const pt = render({ residenceCountry: 'PT' })
         await pt.choose('funding', label('fundCrypto'))
-        await pt.choose('payment', label('payQr'))
+        await pt.choose('payment', label('payQrAbroad'))
         fireEvent.click(pt.continueButton())
         expect(
             capture.mock.calls.filter(([e]) => e === ANALYTICS_EVENTS.SIGNUP_RESIDENCE_RESTRICTED_CONTINUED)
@@ -434,7 +435,7 @@ describe('08 Payment plan', () => {
     it('P3-49 signed in and no host: Continue saves the plan once without waiting', async () => {
         const view = render({ residenceCountry: 'PT' })
         await view.choose('funding', label('fundCrypto'))
-        await view.choose('payment', label('payQr'))
+        await view.choose('payment', label('payQrAbroad'))
         fireEvent.click(view.continueButton())
         expect(mockUpdateUserById).toHaveBeenCalledTimes(1)
         expect(mockUpdateUserById).toHaveBeenCalledWith({
@@ -447,7 +448,7 @@ describe('08 Payment plan', () => {
     it('P3-49 the verify prelude (onFinish) and a sign-up before the account save nothing on Continue', async () => {
         const prelude = render({ residenceCountry: 'PT' }, { onFinish: async () => undefined })
         await prelude.choose('funding', label('fundCrypto'))
-        await prelude.choose('payment', label('payQr'))
+        await prelude.choose('payment', label('payQrAbroad'))
         fireEvent.click(prelude.continueButton())
         expect(capture.mock.calls.find(([e]) => e === 'control_used')?.[1]).toEqual(
             expect.objectContaining({ setup_host: 'verify-prelude' })
@@ -456,7 +457,7 @@ describe('08 Payment plan', () => {
         mockUserId = null
         const draft = render({ residenceCountry: 'PT' })
         await draft.choose('funding', label('fundCrypto'))
-        await draft.choose('payment', label('payQr'))
+        await draft.choose('payment', label('payQrAbroad'))
         fireEvent.click(draft.continueButton())
         expect(mockUpdateUserById).not.toHaveBeenCalled()
         expect(draft.flow().fundingChannel).toBe('crypto')
@@ -473,31 +474,51 @@ describe('08 Payment plan', () => {
         expect(mockHandleNext).not.toHaveBeenCalled()
     })
 
-    it.each(['en', 'es-AR'] as const)('P3-08 / P3-52 no banned word and no hint line on 08 (%s)', async (locale) => {
+    it.each(['en', 'es-AR'] as const)('P3-08 no banned word on 08 (%s)', async (locale) => {
         const view = render({ residenceCountry: 'PT' }, { locale })
         expect(visibleText(view.container)).not.toMatch(
             /platinum|cashback|bono|no password|sin contraseña|suggested|example|ejemplo/i
         )
-        expect(visibleText(view.container)).not.toContain(OLD_HINT[locale])
         expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(copyRx(`${K}.title`, {}, locale))
     })
 
     it.each(['en', 'es-AR'] as const)(
-        'owner ruling 17 Nov: one info line "You can change this later" under the sentence, in default and filled (%s)',
+        'v7: one info line "Options depend on your residence." under the sentence, in default and filled; no "change later" (%s)',
         async (locale) => {
             const view = render({ residenceCountry: 'PT' }, { locale })
-            const line = () => screen.getByTestId('setup-redesign-plan-change-later')
+            const line = () => screen.getByTestId('setup-plan-hint')
             expect(setupState(view.container)).toBe('default')
-            expect(line()).toHaveTextContent(copyRx(`${K}.changeLater`, {}, locale))
+            expect(line()).toHaveTextContent(copyRx(`${K}.hint`, {}, locale))
+            expect(line()).toHaveTextContent(OLD_HINT[locale])
             // it follows the sentence inside the measured block, so the fit keeps both above the CTA
             expect(line().parentElement).toHaveAttribute('data-setup-screen', 'payment-plan')
-            expect(line().previousElementSibling?.querySelector('[data-fit-group]')).not.toBeNull()
+            expect(visibleText(view.container)).not.toMatch(/change this later|cambiarlo después/i)
             await view.choose('funding', label('fundCrypto', {}, locale))
             await view.choose('payment', label('payCard', {}, locale))
             expect(setupState(view.container)).toBe('filled')
-            expect(line()).toHaveTextContent(copyRx(`${K}.changeLater`, {}, locale))
+            expect(line()).toHaveTextContent(copyRx(`${K}.hint`, {}, locale))
         }
     )
+
+    it('v7: the spending sheet is prod’s "Make a payment with"; Argentina and Brazil keep the plain QR row', () => {
+        const view = render({ residenceCountry: 'AR' })
+        expect(view.open('payment')).toContain(label('payQr'))
+        expect(within(openDialog()!).getByText(label('sheetPayment'))).toBeInTheDocument()
+        expect(label('sheetPayment')).toBe('Make a payment with')
+    })
+
+    it('info-line option b: no line on the screen; "Why these options?" under Continue opens the hint in a sheet', async () => {
+        window.history.replaceState({}, '', '/setup?infoline=b')
+        try {
+            const view = render({ residenceCountry: 'PT' })
+            await waitFor(() => expect(screen.queryByTestId('setup-plan-hint')).toBeNull())
+            fireEvent.click(within(footer(view.container)!).getByTestId('setup-plan-why'))
+            const sheet = await waitFor(() => openDialog(copyRx(`${K}.whyOptionsTitle`))!)
+            expect(within(sheet).getByText(label('hint'))).toBeInTheDocument()
+        } finally {
+            window.history.replaceState({}, '', '/')
+        }
+    })
 })
 
 // ---- ported from dev's Views/__tests__/PaymentPlan.test.tsx (deleted with the old view) ---------------------
@@ -510,10 +531,10 @@ describe('08 Payment plan: dev cases kept', () => {
     }
 
     it.each([
-        ['PT', ['payCard', 'payQr']],
+        ['PT', ['payCard', 'payQrAbroad']],
         ['BR', ['payCard', 'payQr']],
-        ['GB', ['payQr']],
-        ['UA', ['payQr']],
+        ['GB', ['payQrAbroad']],
+        ['UA', ['payQrAbroad']],
     ])('P3-40 spending offers only the card and QR payments in %s', async (country, keys) => {
         const view = render({ residenceCountry: country })
         // a one-item list arrives filled, so its pill opens on the choice instead of Choose

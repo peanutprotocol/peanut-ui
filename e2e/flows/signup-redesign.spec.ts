@@ -587,16 +587,32 @@ async function landingToUsername(page: Page, locale: Locale) {
     // 07: the geo suggestion (AR) prefills the residence, the nationality reads "the same"
     await expectScreen(page, 'residence', 'default')
     await expect(panelOf(page)).toContainText('Argentina')
-    // owner ruling 17 Nov: "My residence is in [X], my nationality is [Y]."
-    await expect(panelOf(page)).toContainText(t('setupRedesign.residence.sentence').split(',')[0].trim())
+    // v7: prod's wording, "I'm a resident of [X] and hold the nationality of [Y]." (the words before the first pill)
+    await expect(panelOf(page)).toContainText(
+        t('setupRedesign.residence.sentence')
+            .split(/\s{2,}/)[0]
+            .trim()
+    )
+    // v7: "Why do we ask?" under Continue opens the nationality reason
+    await page.getByTestId('setup-residence-why').click()
+    await expect(drawer(page)).toContainText(t('kyc.paperworkVerification.why.nationality'))
+    await drawer(page)
+        .getByRole('button', { name: t('kyc.paperworkVerification.gotIt') })
+        .click()
+    await expect(drawer(page)).toHaveCount(0)
+    // v7: the country list leads with Argentina and Brazil under "Popular"
+    await page.getByTestId('setup-residence-country').click()
+    await expect(drawer(page).getByRole('heading', { name: t('setupRedesign.residence.popular') })).toBeVisible()
+    await drawer(page).getByRole('button', { name: 'Argentina', exact: true }).click()
+    await expect(drawer(page)).toHaveCount(0)
     await primary(page, t('setupRedesign.common.continue')).click()
 
     // 08: Argentina offers a bank and QR; pick both, then Continue
     await expectScreen(page, 'payment-plan', 'default')
     const panel = panelOf(page)
-    // owner ruling 17 Nov: the one info line under the choice, in default and filled
-    const changeLater = panel.getByText(t('setupRedesign.plan.changeLater'), { exact: true })
-    await expect(changeLater).toBeVisible()
+    // v7: the one info line under the choice, in default and filled
+    const hint = panel.getByText(t('setupRedesign.plan.hint'), { exact: true })
+    await expect(hint).toBeVisible()
     await panel
         .getByRole('button', { name: t('setupRedesign.plan.choose') })
         .first()
@@ -608,7 +624,7 @@ async function landingToUsername(page: Page, locale: Locale) {
         .click()
     await drawer(page).getByText(t('setupRedesign.plan.payQr'), { exact: true }).click()
     await expectScreen(page, 'payment-plan', 'filled')
-    await expect(changeLater).toBeVisible()
+    await expect(hint).toBeVisible()
     await primary(page, t('setupRedesign.common.continue')).click()
 
     await expectScreen(page, 'signup')
