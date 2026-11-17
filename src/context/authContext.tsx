@@ -1,4 +1,5 @@
 'use client'
+
 import { useTranslations } from 'next-intl'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { USER } from '@/constants/query.consts'
