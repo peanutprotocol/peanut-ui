@@ -660,6 +660,10 @@ export const SETUP_REDESIGN_SURFACES: Record<string, SurfaceMeta> = {
         name: 'Sign-up redesign: 08 Payment plan, one way to spend',
         path: 'Setup/redesign/PaymentPlan/PaymentPlanScreen.tsx',
     },
+    'setup-redesign-plan-us': {
+        name: 'Sign-up redesign: 08 Payment plan, US resident (QR row names Argentina and Brazil)',
+        path: 'Setup/redesign/PaymentPlan/PaymentPlanScreen.tsx',
+    },
     'setup-redesign-email': { name: 'Sign-up redesign: 09 Email', path: 'Setup/redesign/Email/EmailScreen.tsx' },
     'setup-redesign-email-filled': {
         name: 'Sign-up redesign: 09 Email, prefilled',

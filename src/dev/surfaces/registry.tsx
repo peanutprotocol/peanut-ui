@@ -1800,6 +1800,10 @@ export const SURFACES: Record<string, Surface> = {
         ...SETUP_REDESIGN_SURFACES['setup-redesign-plan-single'],
         render: () => <RedesignStepSurface screenId="payment-plan" seed={{ residenceCountry: 'PT' }} />,
     },
+    'setup-redesign-plan-us': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-plan-us'],
+        render: () => <RedesignStepSurface screenId="payment-plan" seed={{ residenceCountry: 'US' }} />,
+    },
     'setup-redesign-email': {
         ...SETUP_REDESIGN_SURFACES['setup-redesign-email'],
         render: () => <RedesignStepSurface screenId="notification-email" seed={{ username: 'luckyotter' }} />,
