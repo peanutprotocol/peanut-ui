@@ -861,7 +861,8 @@
             "claimGoing": "Te llevamos de vuelta a tu enlace…"
         },
         "verifyInvite": {
-            "sub": "Así desbloqueás tus datos bancarios."
+            "sub": "Así desbloqueás tus datos bancarios.",
+            "subCard": "Luego solicitá una tarjeta."
         }
     },
     "loadingStates": {

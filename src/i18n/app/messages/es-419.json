@@ -1331,7 +1331,7 @@
         "verifyInvite": {
             "title": "Verificar ahora",
             "sub": "Así desbloqueas tus datos bancarios.",
-            "subCard": "Verificarte te permite solicitar una tarjeta.",
+            "subCard": "Luego solicita una tarjeta.",
             "stepQuestions": "Algunas preguntas que debemos hacerte",
             "stepPhoto": "Foto de tu documento y selfie",
             "verifyNow": "Verificar ahora · 3 min",

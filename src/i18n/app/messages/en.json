@@ -1331,7 +1331,7 @@
         "verifyInvite": {
             "title": "Verify now",
             "sub": "This will unlock bank details.",
-            "subCard": "Verifying lets you apply for a card.",
+            "subCard": "Then apply for a card.",
             "stepQuestions": "A few questions we’re required to ask",
             "stepPhoto": "ID photo and selfie",
             "verifyNow": "Verify now · 3 min",

@@ -1331,7 +1331,7 @@
         "verifyInvite": {
             "title": "Verificar agora",
             "sub": "Isso libera seus dados bancários.",
-            "subCard": "Com a verificação, você pode pedir um cartão.",
+            "subCard": "Depois, peça um cartão.",
             "stepQuestions": "Algumas perguntas que somos obrigados a fazer",
             "stepPhoto": "Foto do documento e selfie",
             "verifyNow": "Verificar agora · 3 min",
