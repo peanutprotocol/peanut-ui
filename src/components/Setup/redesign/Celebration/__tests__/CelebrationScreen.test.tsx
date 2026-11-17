@@ -293,7 +293,7 @@ describe('12 Celebration: the verify invite (flag signup-verify-invite)', () => 
         const steps = within(screen.getByTestId('setup-redesign-verify-steps')).getAllByRole('listitem')
         expect(steps.map((step) => step.textContent)).toEqual([
             `${copy('setupRedesign.verifyInvite.stepAccount')} ${copy('kyc.paperworkVerification.steps.done')}`,
-            `2${copy('setupRedesign.verifyInvite.stepQuestions')}`,
+            `2${copy('kyc.paperworkVerification.steps.questions')}`,
             `3${copy('setupRedesign.verifyInvite.stepPhoto')}`,
         ])
         expect(steps[1]).toHaveAttribute('aria-current', 'step')

@@ -1329,10 +1329,9 @@
             "claimGoing": "Te llevamos de vuelta a tu enlace…"
         },
         "verifyInvite": {
-            "title": "Verifica ahora",
+            "title": "Verificar ahora",
             "sub": "Así desbloqueas tus datos bancarios.",
             "stepAccount": "Crear cuenta",
-            "stepQuestions": "Responder unas preguntas",
             "stepPhoto": "Tomar una foto de tu documento y una selfie",
             "verifyNow": "Verificar ahora · 3 min",
             "remindLater": "Recordármelo más tarde"

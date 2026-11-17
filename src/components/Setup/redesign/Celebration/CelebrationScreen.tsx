@@ -79,7 +79,7 @@ export function CelebrationScreen() {
                             <StepTimeline
                                 rows={[
                                     { key: 'account', label: tInvite('stepAccount'), state: 'done' },
-                                    { key: 'questions', label: tInvite('stepQuestions'), state: 'current' },
+                                    { key: 'questions', label: tSteps('questions'), state: 'current' },
                                     { key: 'photo', label: tInvite('stepPhoto'), state: 'next' },
                                 ]}
                                 doneLabel={tSteps('done')}

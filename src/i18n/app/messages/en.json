@@ -1332,7 +1332,6 @@
             "title": "Verify now",
             "sub": "This will unlock bank details.",
             "stepAccount": "Create account",
-            "stepQuestions": "Answer a few questions",
             "stepPhoto": "Take an ID photo and a selfie",
             "verifyNow": "Verify now · 3 min",
             "remindLater": "Remind me later"

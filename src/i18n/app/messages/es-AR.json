@@ -859,6 +859,9 @@
             "claimTitle": "¡Listo!",
             "claimSub": "Tu cuenta de Peanut ya está creada.",
             "claimGoing": "Te llevamos de vuelta a tu enlace…"
+        },
+        "verifyInvite": {
+            "sub": "Así desbloqueás tus datos bancarios."
         }
     },
     "loadingStates": {
