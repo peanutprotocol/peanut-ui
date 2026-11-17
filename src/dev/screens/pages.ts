@@ -286,6 +286,14 @@ PAGE_CAPTURES.push(
     },
     // Pix states that follow a tap; the fixture answers the call the tap makes.
     {
+        id: 'p80-pix-terms-not-saved',
+        name: 'Pix terms — the acceptance was not saved',
+        route: '/add-money/pix',
+        fixture: 'pix-setup-terms',
+        clicks: ['Continue'],
+        expectSelector: '[role="alert"]',
+    },
+    {
         id: 'p81-pix-deposit-limit',
         name: 'Pix deposit — over the monthly limit',
         route: '/add-money/pix?amount=100&currency=BRL',

@@ -112,6 +112,7 @@ describe('demoRespond — routing', () => {
         ['POST', '/pix/key', { ownAccount: true, blocked: false }],
         ['POST', '/pix/withdraw/preview', { provider: 'Avenia', ownAccount: true }],
         ['GET', '/pix/withdraw/demo-pix-withdraw', { state: 'paid', selfPay: false, perk: null }],
+        ['POST', '/users/kyc/accept-terms', { accepted: true }],
     ])('answers %s %s in strict capture mode', async (method, path, expected) => {
         const res = await demoRespond(path, { method }, { offline: true, strict: true })
         expect(res.status).toBe(200)

@@ -605,6 +605,11 @@
         "route": "/dev/surfaces?s=03-c-residence-congrats"
     },
     {
+        "id": "fixture-pix-setup-terms",
+        "flow": "Setup and login",
+        "route": "/add-money/pix"
+    },
+    {
         "id": "fixture-pix-route-residence-paused",
         "flow": "Setup and login",
         "route": "/withdraw/pix"
@@ -1993,6 +1998,11 @@
         "route": "/add-money/argentina/manteca"
     },
     {
+        "id": "p80-pix-terms-not-saved",
+        "flow": "Add money",
+        "route": "/add-money/pix"
+    },
+    {
         "id": "p81-pix-deposit-limit",
         "flow": "Add money",
         "route": "/add-money/pix?amount=100&currency=BRL"
@@ -2885,6 +2895,11 @@
         "id": "fixture-withdraw-brazil-paused",
         "flow": "Withdraw",
         "route": "/withdraw/manteca?country=brazil&method=pix"
+    },
+    {
+        "id": "fixture-pix-withdraw-terms",
+        "flow": "Withdraw",
+        "route": "/withdraw/pix"
     },
     {
         "id": "fixture-pix-withdraw-key",

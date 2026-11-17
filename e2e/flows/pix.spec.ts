@@ -1,6 +1,6 @@
 /**
- * The one Pix flow, on the route of either provider: the first use and what it still asks, the
- * deposit amount's minimum from the route, the withdrawal key and a send to another person's key
+ * The one Pix flow, on the route of either provider: Avenia's terms (TASK-25073), the first use
+ * and what it still asks, the deposit amount's minimum from the route, the withdrawal key and a send to another person's key
  * (TASK-24947: any key is paid), the form's rows, the send's ending and receipt, and a resident
  * of another country on Avenia; then the same screens on Manteca's route, where the answers
  * differ; and a merchant Pix code paid on Avenia's pay route (M4). UI state only:
@@ -41,6 +41,25 @@ test.describe('Pix on the Avenia route', () => {
             .toContain('POST /users/kyc/features/pix/activate')
         await expect(page.getByRole('button', { name: 'Continue' })).toHaveCount(0)
         await expect(page.getByRole('link', { name: 'Avenia terms and conditions' })).toHaveCount(0)
+    })
+
+    // TASK-25073: Avenia's terms, accepted once at Pix setup
+    test("the terms step names and links Avenia's terms before the user accepts them", async ({ page }) => {
+        await open(page, '/add-money/pix?__fixture=pix-setup-terms')
+        await expect(page.getByText('Set up Pix')).toBeVisible({ timeout: 60_000 })
+        const terms = page.getByRole('link', { name: 'Avenia terms and conditions' })
+        await expect(terms).toHaveAttribute('href', 'https://app.avenia.io/Avenia-TC.pdf')
+        await expect(terms).toHaveAttribute('target', '_blank')
+        await expect(page.getByText('Account provider · Avenia')).toBeVisible()
+        await expect(page.getByRole('button', { name: 'Continue' })).toBeEnabled()
+    })
+
+    test("an Avenia account opened before the terms step meets Avenia's terms at its next withdrawal", async ({
+        page,
+    }) => {
+        await open(page, `${WITHDRAW}?__fixture=pix-withdraw-terms`)
+        await expect(page.getByRole('link', { name: 'Avenia terms and conditions' })).toBeVisible({ timeout: 60_000 })
+        await expect(page.getByRole('textbox', { name: 'Pix key' })).toHaveCount(0)
     })
 
     test("a missing address is asked on the Pix page, with the state picked from Brazil's list", async ({ page }) => {
