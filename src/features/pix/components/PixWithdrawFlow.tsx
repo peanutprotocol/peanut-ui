@@ -17,6 +17,7 @@ import {
 } from '@/features/pix/pixFlow.utils'
 import { PixKeyStep } from '@/features/pix/components/PixKeyStep'
 import { PixSetup } from '@/features/pix/components/PixSetup'
+import { usePixFlowSetupState } from '@/features/pix/usePixFlowSetupState'
 import { PixWithdrawForm, type PixWithdrawAmountSeed } from '@/features/pix/components/PixWithdrawForm'
 import { PixWithdrawOutcome } from '@/features/pix/components/PixWithdrawOutcome'
 import { usePixRefusalMessage } from '@/features/pix/usePixRefusalMessage'
@@ -68,6 +69,8 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
     const { fetchUser } = useAuth()
     // the provider the route names, for the provider row and its sheet
     const providerId = pixProviderId(route.provider)
+    // the route's step at the flow's entry: terms that arrive once the flow runs wait for the next entry
+    const ready = usePixFlowSetupState(route) === 'ready'
     const leaveFlow = () => (isFromSendFlow ? router.replace('/send') : backToWithdraw())
 
     // set once Confirm opened the withdrawal: from then on the URL shows its outcome, never the form again
@@ -130,7 +133,7 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
     const settled = settledTyped === typed
 
     // the form is on screen and its amount can still change: once Confirm opened a withdrawal, its numbers stand
-    const formOpen = route.state === 'ready' && step === 'review' && !showOutcome && !submit.lockedAfterInit
+    const formOpen = ready && step === 'review' && !showOutcome && !submit.lockedAfterInit
     // The route states the provider's minimum: an amount under it is refused here, before any quote.
     // The field's estimate is the provider's quote for the reais on screen, not the /fx rate.
     const minimumBrl = pixMinimumBrl(route)
@@ -279,7 +282,7 @@ export function PixWithdrawFlow({ route }: { route: CapabilityRoute }) {
         )
     }
 
-    if (route.state !== 'ready') return <PixSetup title={title} onBack={leaveFlow} route={route} />
+    if (!ready) return <PixSetup title={title} onBack={leaveFlow} route={route} />
 
     if (step === 'pix-key') {
         return (

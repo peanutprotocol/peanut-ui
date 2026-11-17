@@ -169,6 +169,8 @@ beforeEach(() => {
 // enabled, on a screen titled Withdraw, nor the reverse (review finding 2)
 describe('the Pix drafts of Send and Withdraw', () => {
     const keyField = () => screen.findByRole('textbox', { name: en.withdraw.pixKey.placeholder })
+    // these read the key field only: the key's lookup stays in flight
+    beforeEach(() => mockLookup.mockReturnValue(new Promise(() => {})))
 
     it("opens Send with an empty key after a withdrawal's draft", async () => {
         withForm(REVIEW_FORM)
