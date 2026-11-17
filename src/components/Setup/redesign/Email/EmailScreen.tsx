@@ -8,6 +8,8 @@ import type { StepComponentProps } from '@/components/Setup/Setup.types'
 import { SetupScreen } from '@/components/Setup/redesign/shell/SetupScreen'
 import { EmailArt } from './EmailArt'
 import { EmailField } from './EmailField'
+import { EmailSuggestion } from './EmailSuggestion'
+import { CHIP_MARKERS } from '@/components/Setup/redesign/Invite/suggestion-line'
 import { useEmailStep } from './useEmailStep'
 import { SETUP_LEAD_CLASS } from '@/components/Setup/redesign/shell/shell.consts'
 
@@ -120,6 +122,16 @@ export function EmailScreen(_props: StepComponentProps) {
                     onChange={step.change}
                     onBlur={step.blur}
                 />
+                {step.suggestion && (
+                    <EmailSuggestion
+                        line={t('email.suggest', { a: CHIP_MARKERS.a })}
+                        address={step.suggestion}
+                        onPick={() => {
+                            step.acceptSuggestion()
+                            inputRef.current?.focus()
+                        }}
+                    />
+                )}
             </form>
         </SetupScreen>
     )

@@ -518,3 +518,59 @@ describe('09 Email: ported dev cases', () => {
         expect(field()).toHaveValue('money@mail.com')
     })
 })
+
+/** v7 `etypo`: a misspelled common domain gets a one-tap fix. */
+describe('09 Email: domain typo help', () => {
+    const suggestion = () => screen.queryByTestId('setup-redesign-email-suggestion')
+
+    it('offers the fixed address; one tap fills the field and Continue saves it', async () => {
+        const { container } = render()
+        type('maria@gmial.com')
+        expect(suggestion()).toHaveTextContent('Did you mean maria@gmail.com?')
+        fireEvent.click(within(suggestion()!).getByRole('button', { name: 'maria@gmail.com' }))
+        expect(field()).toHaveValue('maria@gmail.com')
+        expect(suggestion()).not.toBeInTheDocument()
+        fireEvent.click(continueButton(container))
+        await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+        expect(mockUpdateUser).toHaveBeenCalledWith({ userId: 'new-user', email: 'maria@gmail.com' })
+    })
+
+    it('is a hint, not a gate: Continue saves the address as typed', async () => {
+        const { container } = render()
+        type('maria@company.con')
+        expect(suggestion()).toHaveTextContent('maria@company.com')
+        expect(continueButton(container)).toBeEnabled()
+        fireEvent.click(continueButton(container))
+        await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+        expect(mockUpdateUser).toHaveBeenCalledWith({ userId: 'new-user', email: 'maria@company.con' })
+    })
+
+    it('shows nothing for a right domain, an invalid address or the already-registered state', async () => {
+        const { container } = render()
+        type('maria@gmail.com')
+        expect(suggestion()).not.toBeInTheDocument()
+        type('maria@gmial')
+        expect(suggestion()).not.toBeInTheDocument()
+        mockUpdateUser.mockResolvedValue({ status: 409, code: 'EMAIL_IN_USE', error: 'x' })
+        type('maria@gmial.com')
+        fireEvent.click(continueButton(container))
+        await screen.findByRole('alert')
+        expect(suggestion()).not.toBeInTheDocument()
+    })
+
+    it('tracks the tap without the address', () => {
+        render()
+        type('private@hotmial.com')
+        fireEvent.click(within(suggestion()!).getByRole('button'))
+        expect(controls()).toEqual(['email:change', 'email_suggestion:tap'])
+        expect(JSON.stringify(capture.mock.calls)).not.toMatch(/private|hotmail/)
+    })
+
+    it('renders the es-AR line', () => {
+        render({ locale: 'es-AR' })
+        fireEvent.change(screen.getByRole('textbox', { name: copyRx('setupRedesign.email.label', {}, 'es-AR') }), {
+            target: { value: 'maria@gmial.com' },
+        })
+        expect(suggestion()).toHaveTextContent('¿Quisiste decir maria@gmail.com?')
+    })
+})

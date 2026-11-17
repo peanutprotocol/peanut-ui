@@ -11,6 +11,7 @@ import { useSignupControl } from '@/features/setup/useSignupControl'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import type { IUserProfile } from '@/interfaces/interfaces'
 import { isValidEmail } from '@/utils/format.utils'
+import { suggestEmailFix } from './email-typo'
 import { addBreadcrumb, captureException } from '@/utils/sentry-lazy'
 
 /** What the field shows besides the value: a wrong address, a used one, a failed save, an account still loading. */
@@ -45,6 +46,8 @@ export function useEmailStep() {
 
     const valid = isValidEmail(email.trim())
     const canContinue = keepCurrentEmail || (valid && mode !== 'invalid' && mode !== 'taken')
+    // A hint, not a gate: Continue keeps the address as typed.
+    const suggestion = valid && mode === 'edit' && !keepCurrentEmail && !saving ? suggestEmailFix(email) : null
 
     const state: EmailState = saving
         ? 'saving'
@@ -75,6 +78,12 @@ export function useEmailStep() {
         if (mode !== 'edit' || keepCurrentEmail || !value || isValidEmail(value)) return
         setMode('invalid')
         trackError('email', 'invalid')
+    }
+
+    const acceptSuggestion = () => {
+        if (!suggestion) return
+        track('email_suggestion', 'tap')
+        change(suggestion)
     }
 
     const chooseAnother = () => {
@@ -180,5 +189,19 @@ export function useEmailStep() {
         }
     }
 
-    return { email, mode, state, valid, saving, keepCurrentEmail, canContinue, change, blur, chooseAnother, save }
+    return {
+        email,
+        mode,
+        state,
+        valid,
+        saving,
+        keepCurrentEmail,
+        canContinue,
+        suggestion,
+        change,
+        blur,
+        acceptSuggestion,
+        chooseAnother,
+        save,
+    }
 }

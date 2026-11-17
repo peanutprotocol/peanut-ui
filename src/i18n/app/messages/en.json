@@ -1289,6 +1289,7 @@
             "note": "You can turn off news and offers anytime.",
             "invalid": "Enter a valid email address.",
             "taken": "This email already has a Peanut account.",
+            "suggest": "Did you mean {a}?",
             "useOther": "Use another email",
             "recover": "How to recover that account",
             "clearAria": "Clear"
