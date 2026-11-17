@@ -39,6 +39,21 @@ describe('legacy card URLs', () => {
     })
 })
 
+// The help page slug lost "waitlist" in TASK-24171; the old URL keeps working in one hop.
+describe('legacy help slug', () => {
+    it.each([
+        ['/help/waitlist-invite-codes', '/en/help/invite-codes'],
+        ['/en/help/waitlist-invite-codes', '/en/help/invite-codes'],
+        ['/es-419/help/waitlist-invite-codes', '/es-419/help/invite-codes'],
+        ['/es-ar/help/waitlist-invite-codes', '/es-ar/help/invite-codes'],
+        ['/pt-br/help/waitlist-invite-codes', '/pt-br/help/invite-codes'],
+    ])('%s redirects permanently to %s', (path, destination) => {
+        expect(firstRedirect(path)).toMatchObject({ destination, permanent: true })
+        expect(resolvePermanentRedirectPath(path)).toBe(destination)
+        expect(firstRedirect(destination)).toBeUndefined()
+    })
+})
+
 describe('redirect table', () => {
     it('has no chains or loops between static rules', () => {
         const chained = table

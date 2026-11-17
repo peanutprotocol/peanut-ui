@@ -34,6 +34,24 @@ describe('approved SEO corpus transition', () => {
         })
     })
 
+    it('accepts a renamed file under its old or new path, but not with both missing', () => {
+        for (const [newPath, oldPath] of Object.entries(inventory.renamedFrom)) {
+            const files = finalFiles()
+            const published = finalPublished()
+            files.delete(newPath)
+            published.delete(newPath)
+            files.add(oldPath)
+            published.add(oldPath)
+            expect(checkIncomeMigration(files, published).errors).toEqual([])
+            published.delete(oldPath)
+            expect(checkIncomeMigration(files, published).errors).toEqual([
+                `Required content is unpublished: ${newPath}`,
+            ])
+            files.delete(oldPath)
+            expect(checkIncomeMigration(files, published).errors).toEqual([`Required content is missing: ${newPath}`])
+        }
+    })
+
     it('rejects a partial retirement even when the published count exceeds the old floor', () => {
         const files = oldFiles()
         const published = oldPublished()
