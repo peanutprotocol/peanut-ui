@@ -62,8 +62,7 @@ export function ContactCard({
     return (
         <ArtPiece left={left} top={top} rotate={rotate} entrance="deal" delay={delay} zIndex={zIndex}>
             <div
-                className="transition-opacity duration-fast"
-                style={{ opacity: dimmed ? 0.5 : 1 }}
+                className={`transition-opacity duration-fast ${dimmed ? 'opacity-50' : 'opacity-100'}`}
                 data-testid={testId}
             >
                 <motion.div animate={five} className="relative">

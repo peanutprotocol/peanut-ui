@@ -30,7 +30,7 @@ import type { PixDeposit, PixWithdrawDisplay } from '@/services/pix'
 import { pixDepositQueryKey } from '@/features/pix/pixDepositCode'
 import { useQueryClient } from '@tanstack/react-query'
 import { DEMO_PIX_BR_CODE } from '@/constants/demo-data'
-import { useLocale, useTranslations } from 'next-intl'
+import { useTranslations } from 'next-intl'
 import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { SetupNotificationsPrompt } from '@/components/Notifications/SetupNotificationsModal'
 import { setupScreenIds, setupSteps } from '@/components/Setup/Setup.consts'
@@ -102,9 +102,6 @@ import RhinoDepositView from '@/components/AddMoney/views/RhinoDeposit.view'
 import { RequestCreatedView } from '@/components/Request/link/views/RequestCreatedView'
 import { BankTransferChooserDrawer } from '@/features/payments/flows/contribute-pot/components/BankTransferChooserDrawer'
 import { MantecaAccountUnavailable } from '@/components/Common/MantecaAccountUnavailable'
-import { ResidenceCompare } from '@/components/Setup/components/ResidenceCompare'
-import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
-import { buildResidenceCountryOptions } from '@/utils/residence-options'
 
 /**
  * A setup step exactly as /setup renders it — SetupShell around the step's own
@@ -326,22 +323,6 @@ function CompletedCelebration() {
     return <CelebrationScreen />
 }
 
-/** The residence step's comparison, as its Next opens it when the nationality differs. */
-function ResidenceCompareSurface({ residence, nationality }: { residence: string; nationality: string }) {
-    const locale = useLocale()
-    const options = React.useMemo(() => buildResidenceCountryOptions(locale), [locale])
-    const { sets } = useResidenceRestrictionSetsWithStatus()
-    return (
-        <ResidenceCompare
-            residence={residence}
-            nationality={nationality}
-            labelOf={(iso2) => options.find((option) => option.value === iso2)?.label ?? iso2}
-            restrictionSets={sets}
-            busy={false}
-            onChoose={noop}
-        />
-    )
-}
 const asyncNoop = async () => {}
 
 /**
@@ -826,22 +807,22 @@ export const SURFACES: Record<string, Surface> = {
     },
     '03-b-residence-compare': {
         ...SURFACE_META['03-b-residence-compare'],
+        // as on /setup: 07 with two countries, then its Continue opens the comparison (shotClickTestId)
         render: () => (
-            <SetupScreen screenId="residence" residenceCountry="PT" nationalityCountry="BR">
-                <ResidenceCompareSurface residence="PT" nationality="BR" />
-            </SetupScreen>
+            <RedesignStepSurface screenId="residence" seed={{ residenceCountry: 'PT', nationalityCountry: 'BR' }} />
         ),
     },
 
     '05-a-signtesttransaction': {
         ...SURFACE_META['05-a-signtesttransaction'],
-        render: () => <SetupScreen screenId="advantage-control" />,
+        // /setup/finish: 11 with its "Log out" line
+        render: () => <RedesignStepSurface screenId="advantage-control" finishRoute />,
     },
     '05-b-signtesttransaction-network-busy': {
         ...SURFACE_META['05-b-signtesttransaction-network-busy'],
         render: () => (
             // the busy state needs a failing test transaction, which the harness cannot fake: shows 11's default
-            <SetupScreen screenId="advantage-control" />
+            <RedesignStepSurface screenId="advantage-control" finishRoute />
         ),
     },
     '06-b-invite': {
@@ -908,7 +889,7 @@ export const SURFACES: Record<string, Surface> = {
     },
     '07-b-advantage-control': {
         ...SURFACE_META['07-b-advantage-control'],
-        render: () => <SetupScreen screenId="advantage-control" />,
+        render: () => <RedesignStepSurface screenId="advantage-control" seed={{ username: 'luckyotter' }} />,
     },
     '08-a-passkeysetuphelpmodal': {
         ...SURFACE_META['08-a-passkeysetuphelpmodal'],
