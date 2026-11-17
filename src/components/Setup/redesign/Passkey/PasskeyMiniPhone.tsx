@@ -73,10 +73,10 @@ export function PasskeyMiniPhone({
                             {`@${username}`}
                         </span>
                         <span className="mt-auto flex gap-1.5">
-                            <span className="flex h-[30px] flex-1 items-center justify-center rounded-full bg-foreground-primary text-sm font-bold text-foreground-inverse">
+                            <span className="flex h-[30px] flex-1 items-center justify-center rounded-full bg-foreground-primary text-label-l text-foreground-inverse">
                                 {t('yes')}
                             </span>
-                            <span className="flex h-[30px] flex-1 items-center justify-center rounded-full bg-background-badge-helper text-sm font-bold text-foreground-primary">
+                            <span className="flex h-[30px] flex-1 items-center justify-center rounded-full bg-background-badge-helper text-label-l text-foreground-primary">
                                 {t('no')}
                             </span>
                         </span>

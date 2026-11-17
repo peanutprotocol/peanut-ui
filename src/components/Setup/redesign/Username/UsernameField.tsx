@@ -87,8 +87,10 @@ export function UsernameField({
         <div
             className={twMerge(
                 'relative mt-3.5 flex h-12 items-center gap-0.5 rounded-sm border border-border-default bg-background-default pr-0.5 pl-4 text-body-m-semibold text-foreground-primary transition-colors duration-instant signup-sm:mt-2.5',
-                'focus-within:border-transparent focus-within:outline-[3px] focus-within:outline-action-focus focus-within:outline-solid',
-                isError && 'border-border-error focus-within:border-border-error focus-within:outline-none'
+                // an error keeps its red border while focused and draws no focus ring
+                isError
+                    ? 'border-border-error'
+                    : 'focus-within:border-transparent focus-within:outline-[3px] focus-within:outline-action-focus focus-within:outline-solid'
             )}
         >
             <span className="shrink-0 text-foreground-secondary">{'@'}</span>

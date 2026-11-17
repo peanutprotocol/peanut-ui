@@ -170,7 +170,8 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '03-a-residence-select': { name: 'Residence — select', path: 'Setup/redesign/Residence/ResidenceScreen.tsx' },
     '03-b-residence-compare': {
         name: 'Residence — two countries compared',
-        path: 'Setup/components/ResidenceCompare.tsx',
+        path: 'Setup/redesign/Residence/ResidenceCompareView.tsx',
+        shotClickTestId: 'setup-residence-continue',
     },
     '05-a-signtesttransaction': {
         name: 'Final passkey confirmation',
@@ -599,3 +600,89 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
 }
 
 export const SURFACE_IDS = Object.keys(SURFACE_META).sort()
+
+/**
+ * The redesigned sign-up (TASK-25016), one surface per step and seed. They are captured through the
+ * `setup-redesign-<screen>-<state>` fixtures, not as surfaces of their own, so they stay out of SURFACE_META.
+ */
+export const SETUP_REDESIGN_SURFACES: Record<string, SurfaceMeta> = {
+    'setup-redesign-landing': {
+        name: 'Sign-up redesign: 01 Landing',
+        path: 'Setup/redesign/Landing/LandingScreen.tsx',
+    },
+    'setup-redesign-username': {
+        name: 'Sign-up redesign: 02 Username',
+        path: 'Setup/redesign/Username/UsernameScreen.tsx',
+    },
+    'setup-redesign-username-return': {
+        name: 'Sign-up redesign: 02 Username, back with a name',
+        path: 'Setup/redesign/Username/UsernameScreen.tsx',
+    },
+    'setup-redesign-passkey': {
+        name: 'Sign-up redesign: 03 Passkey',
+        path: 'Setup/redesign/Passkey/PasskeyScreen.tsx',
+    },
+    'setup-redesign-invite': { name: 'Sign-up redesign: 04 Invite', path: 'Setup/redesign/Invite/InviteScreen.tsx' },
+    'setup-redesign-invite-found': {
+        name: 'Sign-up redesign: 04 Invite, back with an inviter',
+        path: 'Setup/redesign/Invite/InviteScreen.tsx',
+    },
+    'setup-redesign-accounts': {
+        name: 'Sign-up redesign: 05 Accounts',
+        path: 'Setup/redesign/Accounts/AccountsScreen.tsx',
+    },
+    'setup-redesign-card': { name: 'Sign-up redesign: 06 Card', path: 'Setup/redesign/Card/CardScreen.tsx' },
+    'setup-redesign-residence': {
+        name: 'Sign-up redesign: 07 Residence',
+        path: 'Setup/redesign/Residence/ResidenceScreen.tsx',
+    },
+    'setup-redesign-residence-empty': {
+        name: 'Sign-up redesign: 07 Residence, nothing chosen',
+        path: 'Setup/redesign/Residence/ResidenceScreen.tsx',
+    },
+    'setup-redesign-residence-differ': {
+        name: 'Sign-up redesign: 07 Residence, two countries',
+        path: 'Setup/redesign/Residence/ResidenceScreen.tsx',
+    },
+    'setup-redesign-residence-refused': {
+        name: 'Sign-up redesign: 07 Residence, refused passport',
+        path: 'Setup/redesign/Residence/ResidenceScreen.tsx',
+    },
+    'setup-redesign-plan': {
+        name: 'Sign-up redesign: 08 Payment plan',
+        path: 'Setup/redesign/PaymentPlan/PaymentPlanScreen.tsx',
+    },
+    'setup-redesign-plan-filled': {
+        name: 'Sign-up redesign: 08 Payment plan, both chosen',
+        path: 'Setup/redesign/PaymentPlan/PaymentPlanScreen.tsx',
+    },
+    'setup-redesign-plan-single': {
+        name: 'Sign-up redesign: 08 Payment plan, one way to spend',
+        path: 'Setup/redesign/PaymentPlan/PaymentPlanScreen.tsx',
+    },
+    'setup-redesign-email': { name: 'Sign-up redesign: 09 Email', path: 'Setup/redesign/Email/EmailScreen.tsx' },
+    'setup-redesign-email-filled': {
+        name: 'Sign-up redesign: 09 Email, prefilled',
+        path: 'Setup/redesign/Email/EmailScreen.tsx',
+    },
+    'setup-redesign-notifications': {
+        name: 'Sign-up redesign: 10 Notifications',
+        path: 'Setup/redesign/Notifications/NotificationsScreen.tsx',
+    },
+    'setup-redesign-final': {
+        name: 'Sign-up redesign: 11 Final confirm',
+        path: 'Setup/redesign/FinalConfirm/FinalConfirmScreen.tsx',
+    },
+    'setup-redesign-final-finish': {
+        name: 'Sign-up redesign: 11 Final confirm on /setup/finish',
+        path: 'Setup/redesign/FinalConfirm/FinalConfirmScreen.tsx',
+    },
+    'setup-redesign-celebration': {
+        name: 'Sign-up redesign: 12 Celebration',
+        path: 'Setup/redesign/Celebration/CelebrationScreen.tsx',
+    },
+    'setup-redesign-celebration-claim': {
+        name: 'Sign-up redesign: 12 Celebration after a claim link',
+        path: 'Setup/redesign/Celebration/CelebrationScreen.tsx',
+    },
+}

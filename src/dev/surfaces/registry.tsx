@@ -30,7 +30,7 @@ import type { PixDeposit, PixWithdrawDisplay } from '@/services/pix'
 import { pixDepositQueryKey } from '@/features/pix/pixDepositCode'
 import { useQueryClient } from '@tanstack/react-query'
 import { DEMO_PIX_BR_CODE } from '@/constants/demo-data'
-import { useLocale, useTranslations } from 'next-intl'
+import { useTranslations } from 'next-intl'
 import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { SetupNotificationsPrompt } from '@/components/Notifications/SetupNotificationsModal'
 import { setupScreenIds, setupSteps } from '@/components/Setup/Setup.consts'
@@ -102,9 +102,6 @@ import RhinoDepositView from '@/components/AddMoney/views/RhinoDeposit.view'
 import { RequestCreatedView } from '@/components/Request/link/views/RequestCreatedView'
 import { BankTransferChooserDrawer } from '@/features/payments/flows/contribute-pot/components/BankTransferChooserDrawer'
 import { MantecaAccountUnavailable } from '@/components/Common/MantecaAccountUnavailable'
-import { ResidenceCompare } from '@/components/Setup/components/ResidenceCompare'
-import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
-import { buildResidenceCountryOptions } from '@/utils/residence-options'
 
 /**
  * A setup step exactly as /setup renders it — SetupShell around the step's own
@@ -326,22 +323,6 @@ function CompletedCelebration() {
     return <CelebrationScreen />
 }
 
-/** The residence step's comparison, as its Next opens it when the nationality differs. */
-function ResidenceCompareSurface({ residence, nationality }: { residence: string; nationality: string }) {
-    const locale = useLocale()
-    const options = React.useMemo(() => buildResidenceCountryOptions(locale), [locale])
-    const { sets } = useResidenceRestrictionSetsWithStatus()
-    return (
-        <ResidenceCompare
-            residence={residence}
-            nationality={nationality}
-            labelOf={(iso2) => options.find((option) => option.value === iso2)?.label ?? iso2}
-            restrictionSets={sets}
-            busy={false}
-            onChoose={noop}
-        />
-    )
-}
 const asyncNoop = async () => {}
 
 /**
@@ -620,7 +601,7 @@ import { RejectLabelsList } from '@/components/Kyc/RejectLabelsList'
 import { KycActionRequired } from '@/components/Kyc/states/KycActionRequired'
 import RateUnavailable from '@/components/Global/RateUnavailable'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
-import { SURFACE_META, type SurfaceMeta } from './list'
+import { SETUP_REDESIGN_SURFACES, SURFACE_META, type SurfaceMeta } from './list'
 import { PasskeyHelpA, PasskeyHelpB, PasskeyHelpC, PasskeyHelpD } from './options/PasskeyHelpOptions'
 
 export type Surface = SurfaceMeta & {
@@ -826,22 +807,22 @@ export const SURFACES: Record<string, Surface> = {
     },
     '03-b-residence-compare': {
         ...SURFACE_META['03-b-residence-compare'],
+        // as on /setup: 07 with two countries, then its Continue opens the comparison (shotClickTestId)
         render: () => (
-            <SetupScreen screenId="residence" residenceCountry="PT" nationalityCountry="BR">
-                <ResidenceCompareSurface residence="PT" nationality="BR" />
-            </SetupScreen>
+            <RedesignStepSurface screenId="residence" seed={{ residenceCountry: 'PT', nationalityCountry: 'BR' }} />
         ),
     },
 
     '05-a-signtesttransaction': {
         ...SURFACE_META['05-a-signtesttransaction'],
-        render: () => <SetupScreen screenId="advantage-control" />,
+        // /setup/finish: 11 with its "Log out" line
+        render: () => <RedesignStepSurface screenId="advantage-control" finishRoute />,
     },
     '05-b-signtesttransaction-network-busy': {
         ...SURFACE_META['05-b-signtesttransaction-network-busy'],
         render: () => (
             // the busy state needs a failing test transaction, which the harness cannot fake: shows 11's default
-            <SetupScreen screenId="advantage-control" />
+            <RedesignStepSurface screenId="advantage-control" finishRoute />
         ),
     },
     '06-b-invite': {
@@ -908,7 +889,7 @@ export const SURFACES: Record<string, Surface> = {
     },
     '07-b-advantage-control': {
         ...SURFACE_META['07-b-advantage-control'],
-        render: () => <SetupScreen screenId="advantage-control" />,
+        render: () => <RedesignStepSurface screenId="advantage-control" seed={{ username: 'luckyotter' }} />,
     },
     '08-a-passkeysetuphelpmodal': {
         ...SURFACE_META['08-a-passkeysetuphelpmodal'],
@@ -1748,23 +1729,19 @@ export const SURFACES: Record<string, Surface> = {
     // The redesigned sign-up (TASK-25016), one surface per step and seed. Fixtures `setup-redesign-<screen>--<state>`
     // open these with the API answers for each contract state; the visual gate drives the rest.
     'setup-redesign-landing': {
-        name: 'Sign-up redesign: 01 Landing',
-        path: 'Setup/redesign/Landing/LandingScreen.tsx',
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-landing'],
         render: () => <RedesignStepSurface screenId="landing" />,
     },
     'setup-redesign-username': {
-        name: 'Sign-up redesign: 02 Username',
-        path: 'Setup/redesign/Username/UsernameScreen.tsx',
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-username'],
         render: () => <RedesignStepSurface screenId="signup" />,
     },
     'setup-redesign-username-return': {
-        name: 'Sign-up redesign: 02 Username, back with a name',
-        path: 'Setup/redesign/Username/UsernameScreen.tsx',
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-username-return'],
         render: () => <RedesignStepSurface screenId="signup" seed={{ username: 'luckyotter' }} />,
     },
     'setup-redesign-passkey': {
-        name: 'Sign-up redesign: 03 Passkey',
-        path: 'Setup/redesign/Passkey/PasskeyScreen.tsx',
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-passkey'],
         render: () => (
             <RedesignStepSurface
                 screenId="passkey"
@@ -1779,59 +1756,49 @@ export const SURFACES: Record<string, Surface> = {
         ),
     },
     'setup-redesign-invite': {
-        name: 'Sign-up redesign: 04 Invite',
-        path: 'Setup/redesign/Invite/InviteScreen.tsx',
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-invite'],
         render: () => <RedesignStepSurface screenId="invite" seed={{ username: 'luckyotter' }} />,
     },
     'setup-redesign-invite-found': {
-        name: 'Sign-up redesign: 04 Invite, back with an inviter',
-        path: 'Setup/redesign/Invite/InviteScreen.tsx',
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-invite-found'],
         render: () => (
             <RedesignStepSurface screenId="invite" seed={{ username: 'luckyotter', inviteSelection: 'fulano' }} />
         ),
     },
     'setup-redesign-accounts': {
-        name: 'Sign-up redesign: 05 Accounts',
-        path: 'Setup/redesign/Accounts/AccountsScreen.tsx',
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-accounts'],
         render: () => <RedesignStepSurface screenId="advantage-fees" />,
     },
     'setup-redesign-card': {
-        name: 'Sign-up redesign: 06 Card',
-        path: 'Setup/redesign/Card/CardScreen.tsx',
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-card'],
         render: () => <RedesignStepSurface screenId="advantage-card" />,
     },
     'setup-redesign-residence': {
-        name: 'Sign-up redesign: 07 Residence',
-        path: 'Setup/redesign/Residence/ResidenceScreen.tsx',
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-residence'],
         render: () => <RedesignStepSurface screenId="residence" seed={{ residenceCountry: 'AR' }} />,
     },
     'setup-redesign-residence-empty': {
-        name: 'Sign-up redesign: 07 Residence, nothing chosen',
-        path: 'Setup/redesign/Residence/ResidenceScreen.tsx',
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-residence-empty'],
         render: () => <RedesignStepSurface screenId="residence" />,
     },
     'setup-redesign-residence-differ': {
-        name: 'Sign-up redesign: 07 Residence, two countries',
-        path: 'Setup/redesign/Residence/ResidenceScreen.tsx',
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-residence-differ'],
         render: () => (
             <RedesignStepSurface screenId="residence" seed={{ residenceCountry: 'PT', nationalityCountry: 'BR' }} />
         ),
     },
     'setup-redesign-residence-refused': {
-        name: 'Sign-up redesign: 07 Residence, refused passport',
-        path: 'Setup/redesign/Residence/ResidenceScreen.tsx',
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-residence-refused'],
         render: () => (
             <RedesignStepSurface screenId="residence" seed={{ residenceCountry: 'AR', nationalityCountry: 'CU' }} />
         ),
     },
     'setup-redesign-plan': {
-        name: 'Sign-up redesign: 08 Payment plan',
-        path: 'Setup/redesign/PaymentPlan/PaymentPlanScreen.tsx',
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-plan'],
         render: () => <RedesignStepSurface screenId="payment-plan" seed={{ residenceCountry: 'AR' }} />,
     },
     'setup-redesign-plan-filled': {
-        name: 'Sign-up redesign: 08 Payment plan, both chosen',
-        path: 'Setup/redesign/PaymentPlan/PaymentPlanScreen.tsx',
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-plan-filled'],
         render: () => (
             <RedesignStepSurface
                 screenId="payment-plan"
@@ -1840,18 +1807,15 @@ export const SURFACES: Record<string, Surface> = {
         ),
     },
     'setup-redesign-plan-single': {
-        name: 'Sign-up redesign: 08 Payment plan, one way to spend',
-        path: 'Setup/redesign/PaymentPlan/PaymentPlanScreen.tsx',
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-plan-single'],
         render: () => <RedesignStepSurface screenId="payment-plan" seed={{ residenceCountry: 'PT' }} />,
     },
     'setup-redesign-email': {
-        name: 'Sign-up redesign: 09 Email',
-        path: 'Setup/redesign/Email/EmailScreen.tsx',
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-email'],
         render: () => <RedesignStepSurface screenId="notification-email" seed={{ username: 'luckyotter' }} />,
     },
     'setup-redesign-email-filled': {
-        name: 'Sign-up redesign: 09 Email, prefilled',
-        path: 'Setup/redesign/Email/EmailScreen.tsx',
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-email-filled'],
         render: () => (
             <RedesignStepSurface
                 screenId="notification-email"
@@ -1860,23 +1824,19 @@ export const SURFACES: Record<string, Surface> = {
         ),
     },
     'setup-redesign-notifications': {
-        name: 'Sign-up redesign: 10 Notifications',
-        path: 'Setup/redesign/Notifications/NotificationsScreen.tsx',
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-notifications'],
         render: () => <RedesignStepSurface screenId="notification-permission" />,
     },
     'setup-redesign-final': {
-        name: 'Sign-up redesign: 11 Final confirm',
-        path: 'Setup/redesign/FinalConfirm/FinalConfirmScreen.tsx',
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-final'],
         render: () => <RedesignStepSurface screenId="advantage-control" seed={{ username: 'luckyotter' }} />,
     },
     'setup-redesign-final-finish': {
-        name: 'Sign-up redesign: 11 Final confirm on /setup/finish',
-        path: 'Setup/redesign/FinalConfirm/FinalConfirmScreen.tsx',
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-final-finish'],
         render: () => <RedesignStepSurface screenId="advantage-control" finishRoute />,
     },
     'setup-redesign-celebration': {
-        name: 'Sign-up redesign: 12 Celebration',
-        path: 'Setup/redesign/Celebration/CelebrationScreen.tsx',
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-celebration'],
         render: () => (
             <RedesignStepSurface
                 screenId="advantage-control"
@@ -1885,8 +1845,7 @@ export const SURFACES: Record<string, Surface> = {
         ),
     },
     'setup-redesign-celebration-claim': {
-        name: 'Sign-up redesign: 12 Celebration after a claim link',
-        path: 'Setup/redesign/Celebration/CelebrationScreen.tsx',
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-celebration-claim'],
         render: () => (
             <RedesignStepSurface
                 screenId="advantage-control"

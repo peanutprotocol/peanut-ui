@@ -44,7 +44,7 @@ export function InviteArt({
     // ArtPiece adds the shell's 100 ms art delay; these are the mock's offsets after it
     return (
         <>
-            <div className="transition-opacity duration-fast" style={{ opacity: found ? 0 : 1 }}>
+            <div className={`transition-opacity duration-fast ${found ? 'opacity-0' : 'opacity-100'}`}>
                 <MascotStage
                     pose="waving-hello"
                     left={layout.wave[0]}
@@ -53,7 +53,7 @@ export function InviteArt({
                     zIndex={4}
                 />
             </div>
-            <div className="transition-opacity duration-fast" style={{ opacity: found ? 1 : 0 }}>
+            <div className={`transition-opacity duration-fast ${found ? 'opacity-100' : 'opacity-0'}`}>
                 <MascotStage
                     pose="cheering"
                     left={layout.cheer[0]}
@@ -96,7 +96,7 @@ export function InviteArt({
                 delay={0.46}
                 zIndex={8}
             >
-                <div className="transition-opacity duration-fast" style={{ opacity: missed ? 0 : 1 }}>
+                <div className={`transition-opacity duration-fast ${missed ? 'opacity-0' : 'opacity-100'}`}>
                     <motion.div animate={pulse}>
                         <Image src={sparkle} alt="" className="h-auto w-full" />
                     </motion.div>
