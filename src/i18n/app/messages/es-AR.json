@@ -159,8 +159,8 @@
             },
             "addEmail": {
                 "title": "Agregá tu correo",
-                "description": "Recibí comprobantes y alertas de tu cuenta por correo.",
-                "deferred": "Vamos a guardar este email cuando verifiques tu identidad."
+                "deferred": "Vamos a guardar este email cuando verifiques tu identidad.",
+                "description": "Recibí comprobantes y alertas de tu cuenta por correo."
             },
             "rewards": {
                 "title": "Tenés recompensas esperando",

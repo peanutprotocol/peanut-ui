@@ -292,8 +292,8 @@
             },
             "addEmail": {
                 "title": "Add your email",
-                "description": "Get receipts and account alerts by email.",
-                "deferred": "We’ll save this email after you verify your identity."
+                "deferred": "We’ll save this email after you verify your identity.",
+                "description": "Get receipts and account alerts by email."
             },
             "rewards": {
                 "title": "You have rewards waiting",
@@ -3321,9 +3321,9 @@
         "cardReadyTitle": "Know every card payment",
         "cardReadyDescription": "One notification per payment or decline.",
         "qrFirstScanTitle": "Confirmation for each QR payment",
-        "qrFirstScanDescription": "One notification when it completes.",
         "firstDepositTitle": "Know when your money moves",
-        "firstDepositDescription": "We’ll tell you when money arrives or a payment goes through."
+        "firstDepositDescription": "We’ll tell you when money arrives or a payment goes through.",
+        "qrFirstScanDescription": "One notification when it completes."
     },
     "kyc": {
         "statusDrawerTitle": "Verification status",

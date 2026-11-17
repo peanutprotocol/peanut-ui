@@ -292,8 +292,8 @@
             },
             "addEmail": {
                 "title": "Agrega tu correo",
-                "description": "Recibe comprobantes y alertas de tu cuenta por correo.",
-                "deferred": "Guardaremos este correo cuando verifiques tu identidad."
+                "deferred": "Guardaremos este correo cuando verifiques tu identidad.",
+                "description": "Recibe comprobantes y alertas de tu cuenta por correo."
             },
             "rewards": {
                 "title": "Tienes recompensas esperando",
@@ -3321,9 +3321,9 @@
         "cardReadyTitle": "Avisamos de cada pago con tarjeta",
         "cardReadyDescription": "Una notificación por cada pago con tarjeta, aprobado o rechazado.",
         "qrFirstScanTitle": "Confirmamos cada pago QR",
-        "qrFirstScanDescription": "Una notificación cuando se complete el pago.",
         "firstDepositTitle": "Entérate cuando se mueva tu dinero",
-        "firstDepositDescription": "Te avisamos cuando llegue dinero o se complete un pago."
+        "firstDepositDescription": "Te avisamos cuando llegue dinero o se complete un pago.",
+        "qrFirstScanDescription": "Una notificación cuando se complete el pago."
     },
     "kyc": {
         "statusDrawerTitle": "Estado de la verificación",
