@@ -19,6 +19,8 @@ export type SetupScreenProps = {
     titleSize?: 'm' | 'l'
     /** Extra classes for the h1 (a narrower measure, the sentence type). */
     titleClassName?: string
+    /** One short line under the headline, on the stage (the landing trust line). The art scales to stay below both. */
+    subtitle?: ReactNode
     /**
      * The hero: pieces placed in the 390-wide art box, in the mock's design px (top 250 = 250 px from the top of
      * a 390x844 phone). Use ArtPiece, MascotStage and CoinCharacter. The box hangs from the stage bottom, may cross
@@ -59,6 +61,7 @@ export function SetupScreen({
     title,
     titleSize = 'm',
     titleClassName,
+    subtitle,
     art,
     artTop,
     smArtTop,
@@ -78,7 +81,7 @@ export function SetupScreen({
     const isPresent = useIsPresent()
     const device = useShellDevice()
     const stageBoxRef = useRef<HTMLDivElement>(null)
-    const titleRef = useRef<HTMLHeadingElement>(null)
+    const titleRef = useRef<HTMLDivElement>(null)
     const scale = useArtScale({
         stageRef: stageBoxRef,
         titleRef,
@@ -180,18 +183,27 @@ export function SetupScreen({
                     </div>
                 )}
                 {title && (
-                    <h1
+                    // one block for the headline and its line, so the art scale measures both
+                    <div
                         ref={titleRef}
-                        className={twMerge(
-                            'absolute top-[var(--sr-title-top)] right-[var(--sr-gutter)] left-[var(--sr-gutter)] z-10 text-left',
-                            titleSize === 'l'
-                                ? 'text-heading-l signup-sm:text-heading-m'
-                                : 'text-heading-m signup-sm:text-heading-s',
-                            titleClassName
-                        )}
+                        className="absolute top-[var(--sr-title-top)] right-[var(--sr-gutter)] left-[var(--sr-gutter)] z-10 text-left"
                     >
-                        {title}
-                    </h1>
+                        <h1
+                            className={twMerge(
+                                titleSize === 'l'
+                                    ? 'text-heading-l signup-sm:text-heading-m'
+                                    : 'text-heading-m signup-sm:text-heading-s',
+                                titleClassName
+                            )}
+                        >
+                            {title}
+                        </h1>
+                        {subtitle && (
+                            <p className="mt-2 text-body-m text-foreground-primary" data-setup-subtitle>
+                                {subtitle}
+                            </p>
+                        )}
+                    </div>
                 )}
                 {stageCopy}
             </motion.div>

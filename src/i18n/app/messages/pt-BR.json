@@ -1152,7 +1152,8 @@
             "cta": "Criar conta",
             "loginBtn": "Entrar",
             "recover": "Precisa recuperar uma conta Peanut?",
-            "invitedTitle": "@{username} convidou você para o Peanut."
+            "invitedTitle": "@{username} convidou você para o Peanut.",
+            "trustLine": "As transferências bancárias passam por parceiros licenciados."
         },
         "username": {
             "title": "Garanta seu usuário.",

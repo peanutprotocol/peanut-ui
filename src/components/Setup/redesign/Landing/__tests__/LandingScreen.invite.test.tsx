@@ -1,5 +1,6 @@
 /** @jest-environment jsdom */
-// v7 (TASK-25063): the Landing headline names the inviter when the person arrives through an invite.
+// v7 (TASK-25063): the Landing headline names the inviter when the person arrives through an invite; organic
+// installs read the trust line under the default headline (addendum 1).
 jest.mock('@/hooks/useLogin', () => require('./landing-state').useLoginModule())
 jest.mock('@/hooks/useSetupFlow', () => require('./landing-state').useSetupFlowModule())
 jest.mock('@/features/setup/SetupFlowContext', () => require('./landing-state').setupFlowContextModule())
@@ -28,6 +29,7 @@ import { loose, msg, renderInShell } from './redesign-harness'
 import type { TestLocale } from './redesign-harness'
 
 const headline = () => screen.getByRole('heading', { level: 1 })
+const trustLine = () => document.querySelector('[data-setup-subtitle]')
 
 beforeEach(() => {
     resetLanding()
@@ -35,9 +37,22 @@ beforeEach(() => {
 })
 
 describe('01 Landing — headline by source', () => {
-    it('no source: the default headline', () => {
+    it.each(['en', 'es-AR'] as const)(
+        'no source: the default headline with the trust line under it, in the headline block (%s)',
+        (locale: TestLocale) => {
+            renderInShell('landing', <LandingScreen />, { locale })
+            expect(headline()).toHaveTextContent(loose(msg('setupRedesign.landing.title', {}, locale)))
+            expect(trustLine()).toHaveTextContent(loose(msg('setupRedesign.landing.trustLine', {}, locale)))
+            // the art scale measures this block, so the art never covers the line
+            expect(trustLine()?.parentElement).toBe(headline().parentElement)
+            expect(trustLine()?.querySelector('svg, img')).toBeNull()
+        }
+    )
+
+    it('an invite source: the inviter headline and no trust line', () => {
+        stashInvite('maria', EInviteType.DIRECT)
         renderInShell('landing', <LandingScreen />)
-        expect(headline()).toHaveTextContent(loose(msg('setupRedesign.landing.title')))
+        expect(trustLine()).toBeNull()
     })
 
     it.each(['en', 'es-AR'] as const)(
