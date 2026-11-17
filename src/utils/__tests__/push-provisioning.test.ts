@@ -53,6 +53,7 @@ describe('getPushProvisioningAvailability', () => {
         await expect(getPushProvisioningAvailability('1234')).resolves.toEqual({
             available: false,
             alreadyInWallet: false,
+            lookupFailed: true,
         })
         expect(isAvailable).not.toHaveBeenCalled()
     })
@@ -73,6 +74,7 @@ describe('getPushProvisioningAvailability', () => {
         await expect(getPushProvisioningAvailability('1234')).resolves.toEqual({
             available: false,
             alreadyInWallet: false,
+            lookupFailed: true,
         })
     })
 })

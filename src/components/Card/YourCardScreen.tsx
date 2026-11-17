@@ -119,14 +119,13 @@ const YourCardScreen: FC<Props> = ({
     const handleAddToWallet = useCallback(async () => {
         if (isAdding) return
         const result = await addToWallet()
-        if (result.added) {
+        if (result.added || result.alreadyInWallet) {
             triggerHaptic()
-            toast.success(t('walletAddSuccess'))
-        } else if (!result.canceled && !result.alreadyInWallet) {
-            // already in wallet is not a failure
+            toast.success(walletAddedLabel ?? t('walletAddSuccess'))
+        } else if (!result.canceled) {
             toast.error(t('walletAddFailed'))
         }
-    }, [isAdding, addToWallet, triggerHaptic, toast, t])
+    }, [isAdding, addToWallet, triggerHaptic, toast, t, walletAddedLabel])
 
     // The official button replaces the manual row only where it starts the native add.
     const walletButton = !nativeAvailable ? null : walletPlatform === 'android' ? (
@@ -306,13 +305,7 @@ const YourCardScreen: FC<Props> = ({
                 </ListGroup>
             </Section>
 
-            {alreadyInWallet && walletAddedLabel ? (
-                <p role="status" className="text-center text-body-m text-foreground-secondary">
-                    {walletAddedLabel}
-                </p>
-            ) : (
-                walletButton
-            )}
+            {!alreadyInWallet && walletButton}
 
             <Callout priority="info" title={t('payAsCreditTitle')}>
                 {t('payAsCreditBody')}

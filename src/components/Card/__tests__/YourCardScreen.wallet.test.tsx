@@ -1,5 +1,5 @@
 import React from 'react'
-import { fireEvent, screen } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import YourCardScreen from '@/components/Card/YourCardScreen'
 import { renderWithIntl } from '@/test-utils/intl'
 import type { RainCardOverview, RainCardSummary } from '@/services/rain'
@@ -17,7 +17,11 @@ jest.mock('@/hooks/useCardReveal', () => ({
     useCardReveal: () => ({ revealed: null, isLoading: false, toggle: jest.fn() }),
 }))
 jest.mock('@/hooks/useAppHaptic', () => ({ useAppHaptic: () => ({ triggerHaptic: jest.fn() }) }))
-jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ success: jest.fn(), error: jest.fn() }) }))
+const mockToastSuccess = jest.fn()
+const mockToastError = jest.fn()
+jest.mock('@/components/0_Bruddle/Toast', () => ({
+    useToast: () => ({ success: mockToastSuccess, error: mockToastError }),
+}))
 jest.mock('@/components/Card/CardFace', () => ({ __esModule: true, default: () => <div>Card ending 0420</div> }))
 jest.mock('@/components/Card/LockCardModal', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Card/CancelCardModal', () => ({ __esModule: true, default: () => null }))
@@ -74,11 +78,30 @@ it('preserves manual instructions when the Google flag or native SDK is unavaila
     expect(mockAdd).not.toHaveBeenCalled()
 })
 
-it('replaces the Google action with a status once the card is provisioned', () => {
+it('hides every Google add action once the card is in Google Wallet, without a standing status', () => {
     mockProvisioning = { nativeAvailable: false, alreadyInWallet: true, isAdding: false }
     renderScreen()
-    expect(screen.getByText('Added to Google Wallet')).toHaveAttribute('role', 'status')
+    expect(screen.queryByText('Added to Google Wallet')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Add to Google Wallet' })).not.toBeInTheDocument()
+})
+
+it.each([
+    ['a new add', { added: true }],
+    ['a card already in the wallet', { added: false, alreadyInWallet: true }],
+])('confirms %s with an "Added to Google Wallet" toast', async (_name, result) => {
+    mockAdd.mockResolvedValue(result)
+    renderScreen()
+    fireEvent.click(screen.getByRole('button', { name: 'Add to Google Wallet' }))
+    await waitFor(() => expect(mockToastSuccess).toHaveBeenCalledWith('Added to Google Wallet'))
+    expect(mockToastError).not.toHaveBeenCalled()
+})
+
+it('stays quiet when the Google sheet is closed', async () => {
+    renderScreen()
+    fireEvent.click(screen.getByRole('button', { name: 'Add to Google Wallet' }))
+    await waitFor(() => expect(mockAdd).toHaveBeenCalled())
+    expect(mockToastSuccess).not.toHaveBeenCalled()
+    expect(mockToastError).not.toHaveBeenCalled()
 })
 
 it('disables the Google control during provisioning', () => {
@@ -87,11 +110,11 @@ it('disables the Google control during provisioning', () => {
     expect(screen.getByRole('button', { name: 'Add to Google Wallet' })).toBeDisabled()
 })
 
-it('replaces the Apple row with a status once the card is in Apple Wallet', () => {
+it('hides the Apple row once the card is in Apple Wallet, without a standing status', () => {
     mockPlatform = 'ios'
     mockProvisioning = { nativeAvailable: false, alreadyInWallet: true, isAdding: false }
     renderScreen()
-    expect(screen.getByText('Added to Apple Wallet')).toHaveAttribute('role', 'status')
+    expect(screen.queryByText('Added to Apple Wallet')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Add to Apple Wallet' })).not.toBeInTheDocument()
 })
 
