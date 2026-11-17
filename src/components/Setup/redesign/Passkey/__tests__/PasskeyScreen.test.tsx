@@ -13,6 +13,7 @@ import type { ReactElement } from 'react'
 import { PasskeyScreen } from '@/components/Setup/redesign/Passkey/PasskeyScreen'
 import { SetupDocsProvider, type SetupDocuments } from '@/components/Setup/components/SetupDocsDrawer'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import type { PasskeyHelpReason } from '@/features/setup/useSignupPasskey'
 import { dispatchBackPress, resetBackHandlersForTests } from '@/utils/back-handler'
 import {
     BANNED_COPY,
@@ -41,10 +42,11 @@ type PasskeyState = {
     logIn: jest.Mock
     isLoggingIn: boolean
     helpErrorName: string | null
-    helpReason: 'android-setup' | 'ios-not-saved' | 'private-mode' | 'error-name' | null
+    helpReason: PasskeyHelpReason | null
     isHelpOpen: boolean
     closeHelp: jest.Mock
     retryFromHelp: jest.Mock
+    openSettings: jest.Mock
     isProviderUnsupportedOpen: boolean
     providerUnsupportedPlatform: 'android-app' | 'other'
     closeProviderUnsupported: jest.Mock
@@ -67,6 +69,7 @@ const BASE = (): PasskeyState => ({
     isHelpOpen: false,
     closeHelp: jest.fn(),
     retryFromHelp: jest.fn(),
+    openSettings: jest.fn(),
     isProviderUnsupportedOpen: false,
     providerUnsupportedPlatform: 'other',
     closeProviderUnsupported: jest.fn(),
@@ -545,6 +548,61 @@ describe('03 Passkey — failure screens', () => {
         expect(mockHandleNext).not.toHaveBeenCalled()
         expect(mockSetScreenId).not.toHaveBeenCalled()
     })
+
+    it.each([
+        [
+            'android-cancel',
+            'second-cancel',
+            'secondCancelTitle',
+            'secondCancelLead',
+            ['secondCancel1', 'secondCancel2', 'secondCancel3'],
+        ],
+        ['took-too-long', 'took-too-long', 'tookTooLongTitle', 'tookTooLongLead', []],
+        ['left-app', 'left-app', 'leftAppTitle', 'leftAppLead', []],
+    ] as const)(
+        'TASK-25047 %s: the %s screen with its copy, Try again retries, support links out, Back closes',
+        async (helpReason, state, title, lead, steps) => {
+            show({ helpReason, isHelpOpen: true, deviceType: 'android' })
+            await flush()
+            expect(setupState()).toBe(state)
+            expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(loose(P(title)))
+            expect(screen.getByText(loose(P(lead)), { normalizer: loose })).toBeInTheDocument()
+            expect(screen.queryAllByRole('listitem').map((item) => loose(item.textContent ?? ''))).toEqual(
+                steps.map((key) => loose(P(key)))
+            )
+            expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+            fireEvent.click(button(msg('setupRedesign.common.retry')))
+            expect(mockPasskey.retryFromHelp).toHaveBeenCalledTimes(1)
+            expect(
+                screen.getByRole('link', { name: exact(loose(tagText('setupRedesign.common.support', 'link'))) })
+            ).toHaveAttribute('href', 'https://peanut.me/support')
+            await back()
+            expect(mockPasskey.closeHelp).toHaveBeenCalledTimes(1)
+            expect(mockHandleNext).not.toHaveBeenCalled()
+        }
+    )
+
+    it.each([
+        ['screen-lock', 'check-screen-lock', 'screenLock'],
+        ['no-provider', 'check-no-provider', 'noProvider'],
+    ] as const)(
+        'TASK-25047 %s pre-check: Open settings first, three steps, Try again re-checks',
+        async (helpReason, state, prefix) => {
+            show({ helpReason, isHelpOpen: true, deviceType: 'android' })
+            await flush()
+            expect(setupState()).toBe(state)
+            expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(loose(P(`${prefix}Title`)))
+            expect(listItems().map(loose)).toEqual([1, 2, 3].map((n) => loose(P(`${prefix}${n}`))))
+            const settings = button(P('openSettings'))
+            const retry = button(msg('setupRedesign.common.retry'))
+            expect(settings.compareDocumentPosition(retry) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+            fireEvent.click(settings)
+            expect(mockPasskey.openSettings).toHaveBeenCalledTimes(1)
+            fireEvent.click(retry)
+            expect(mockPasskey.retryFromHelp).toHaveBeenCalledTimes(1)
+            expect(controls()).toEqual(['passkey_help:open', 'passkey_settings:tap', 'passkey_help_retry:tap'])
+        }
+    )
 
     it('C-57 taken wins over an open unsupported-provider screen', async () => {
         show({ ...cannot(), usernameTaken: true })

@@ -18,7 +18,8 @@ import { isAndroidNativeBridge, isCapacitor, isIOSNativeBridge, openExternalUrl 
 import { keepWebSignupUrl } from '@/features/setup/keep-web-signup-url'
 import type { PasskeyProviderUnsupportedError } from '@/utils/passkey-registration-compatibility'
 import { apiFetch } from '@/utils/api-fetch'
-import { checkPasskeySupport, type PasskeyPreflightResult } from '@/utils/passkeyPreflight'
+import { checkPasskeySupport, openPasskeySettings, type PasskeyPreflightResult } from '@/utils/passkeyPreflight'
+import { passkeyFailureFields } from '@/utils/passkey-failure-fields'
 import { nativeErrorCode, nativePasskeyFailure } from '@/utils/native-passkey-errors'
 import { reportPasskeyFailure } from '@/utils/passkey-failure-reporting'
 import { isCeremonyGuardError } from '@/utils/passkeyCeremony.utils'
@@ -51,16 +52,38 @@ const isUsernameTaken = async (username: string): Promise<boolean | null> => {
     }
 }
 
-/** Which help case opened: Android app setup, iOS not saving, private mode, or one keyed by the error name. */
-export type PasskeyHelpReason = 'android-setup' | 'ios-not-saved' | 'private-mode' | 'error-name'
+/**
+ * Which help case opened: Android app setup, iOS not saving, a second Android-app cancel, a sheet that took too
+ * long, a person who left the app mid-sheet, a pre-check that found no screen lock or no passkey provider, private
+ * mode, or one keyed by the error name.
+ */
+export type PasskeyHelpReason =
+    | 'android-setup'
+    | 'ios-not-saved'
+    | 'android-cancel'
+    | 'took-too-long'
+    | 'left-app'
+    | 'screen-lock'
+    | 'no-provider'
+    | 'private-mode'
+    | 'error-name'
 
-// The first cancel is usually deliberate; the second on the same step usually means iOS refused to save.
-const IOS_CANCELS_BEFORE_HELP = 2
+// The first cancel is usually deliberate; the second on the same step usually means the phone refused to save:
+// iOS with iCloud Passwords off, Android with Samsung Pass or another provider in front of Google's.
+const CANCELS_BEFORE_HELP = 2
 // A sheet that closes this fast was never answered by a person: iOS refused
 // (no passcode, iCloud Passwords off, a wedged credential provider). Over 30
 // days of ceremonies a 1 s rule caught 1 of the 8 people who never recovered,
 // 2 s caught 4 (TASK-24017). `ceremony_ms` on the failure event recalibrates it.
 const IOS_FAST_CANCEL_MS = 2000
+
+/** The pre-check result the person can fix in the phone's security settings, as its help reason. */
+const settingsHelpReason = (result: PasskeyPreflightResult): PasskeyHelpReason | null => {
+    if (result.isSupported || result.fix !== 'security-settings') return null
+    if (result.warningKey === 'nativeScreenLock') return 'screen-lock'
+    if (result.warningKey === 'nativeNoProvider') return 'no-provider'
+    return null
+}
 
 const isProbablyPrivateMode = () => {
     try {
@@ -71,6 +94,9 @@ const isProbablyPrivateMode = () => {
         return true
     }
 }
+
+/** The passkey screen's state and actions, as useSignupPasskey returns them. */
+export type SignupPasskey = ReturnType<typeof useSignupPasskey>
 
 /** Registration and device recovery for the passkey screen. */
 export function useSignupPasskey(username: string) {
@@ -139,6 +165,7 @@ export function useSignupPasskey(username: string) {
      */
     const inFlightRef = useRef(false)
     const iosCancelsRef = useRef(0)
+    const androidCancelsRef = useRef(0)
     const attemptsRef = useRef(0)
     // Covers those same awaits in the UI, so the button reads as busy, not dead.
     const [isPreparing, setIsPreparing] = useState(false)
@@ -149,6 +176,11 @@ export function useSignupPasskey(username: string) {
             if (active && !result.isSupported && result.warning) {
                 setPreflightWarning(preflightTextRef.current(result))
                 trackError('create_passkey', 'PASSKEY_UNSUPPORTED')
+                const reason = settingsHelpReason(result)
+                if (reason) {
+                    setHelpReason(reason)
+                    setIsHelpOpen(true)
+                }
             }
         })
         return () => {
@@ -182,6 +214,11 @@ export function useSignupPasskey(username: string) {
             const message = preflightText(support) ?? t('passkey.notAvailable')
             setPreflightWarning(message)
             setInlineError(message)
+            const reason = settingsHelpReason(support)
+            if (reason) {
+                setHelpReason(reason)
+                setIsHelpOpen(true)
+            }
             trackError('create_passkey', 'PASSKEY_UNSUPPORTED')
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED, {
                 device_type: deviceType,
@@ -252,6 +289,9 @@ export function useSignupPasskey(username: string) {
                     backup_eligible: provider.backupEligible,
                     client_data_keys: provider.clientDataKeys,
                 }),
+                // Bounded names, the plugin's native exception and the device facts (TASK-25047); they read the
+                // plugin's own error layers, so they win over the plain fields above.
+                ...passkeyFailureFields(err),
             })
             trackError(
                 'create_passkey',
@@ -297,7 +337,14 @@ export function useSignupPasskey(username: string) {
                 if (error.name === 'CeremonyTimeoutError' && (await isUsernameTaken(username))) {
                     setUsernameTaken(true)
                 } else if (error.name === 'CeremonyTimeoutError') {
+                    // The timer says whether the sheet hung or the person switched apps; an older timer says neither.
+                    const outcome = (error as { outcome?: string }).outcome
                     setInlineError(t('passkey.tookTooLong'))
+                    // Only the Android timer tells the two outcomes apart; web and iOS keep Konrad's inline line.
+                    if (isAndroidNativeBridge()) {
+                        setHelpReason(outcome === 'left_app' ? 'left-app' : 'took-too-long')
+                        setIsHelpOpen(true)
+                    }
                 } else if (error.name === 'PasskeyShimNotReadyError') {
                     setInlineError(t('passkey.notReady'))
                 } else if (error.name === 'CeremonyConflictError') {
@@ -339,31 +386,49 @@ export function useSignupPasskey(username: string) {
                 return
             }
 
+            // In the app, only a reason the native layer names as a cancel is one. A NotAllowedError with no
+            // known message may be a provider that refused, so it says "not completed", never "cancelled".
+            const nativeCancel = nativeReason === 'canceled'
+            const nativeUnclassified = !nativeReason && err.name === WebAuthnErrorName.NotAllowed
+            const showCancelOrUnfinished = () => {
+                setInlineError(t(nativeCancel ? 'passkey.cancelled' : 'passkey.notCompleted'))
+                setInlineErrorCode(nativeCancel ? 'cancelled' : null)
+            }
+
             // The iOS app ends the ceremony as a plain cancel when iCloud
             // Passwords is off, even after its own prompt sent the user to
             // Settings. iPhone Safari keeps the browser path below.
-            const cancelled =
-                nativeReason === 'canceled' || (!nativeReason && err.name === WebAuthnErrorName.NotAllowed)
-            if (cancelled && isIOSNativeBridge()) {
+            if ((nativeCancel || nativeUnclassified) && isIOSNativeBridge()) {
                 if (nativeReason) reportPasskeyFailure(err, 'registration')
                 iosCancelsRef.current += 1
                 const fastCancel = ceremony !== undefined && ceremony.durationMs < IOS_FAST_CANCEL_MS
-                if (fastCancel || iosCancelsRef.current >= IOS_CANCELS_BEFORE_HELP) {
+                if (fastCancel || iosCancelsRef.current >= CANCELS_BEFORE_HELP) {
                     setHelpErrorName(PASSKEY_NOT_SAVED_HELP)
                     setHelpReason('ios-not-saved')
                     setIsHelpOpen(true)
                 } else {
-                    setInlineError(t('passkey.notCompleted'))
-                    setInlineErrorCode('cancelled')
+                    showCancelOrUnfinished()
+                }
+                return
+            }
+
+            // The Android app: Samsung Pass or another provider can open in front of Google's and fail as a
+            // cancel. A second cancel, or any unclassified refusal, gets the steps to pick another manager.
+            if ((nativeCancel || nativeUnclassified) && isAndroidNativeBridge()) {
+                if (nativeReason) reportPasskeyFailure(err, 'registration')
+                if (nativeCancel) androidCancelsRef.current += 1
+                showCancelOrUnfinished()
+                if (nativeUnclassified || androidCancelsRef.current >= CANCELS_BEFORE_HELP) {
+                    setHelpReason('android-cancel')
+                    setIsHelpOpen(true)
                 }
                 return
             }
 
             if (nativeReason) {
                 reportPasskeyFailure(err, 'registration')
-                const code = classifyPasskeyError(err).code
-                setInlineError(t(getPasskeySetupKey(code)))
-                if (code === 'LOGIN_CANCELED') setInlineErrorCode('cancelled')
+                if (nativeCancel) showCancelOrUnfinished()
+                else setInlineError(t(getPasskeySetupKey(classifyPasskeyError(err).code)))
                 return
             }
 
@@ -375,7 +440,7 @@ export function useSignupPasskey(username: string) {
                     setHelpReason('private-mode')
                     setIsHelpOpen(true)
                 } else {
-                    setInlineError(t('passkey.notCompleted'))
+                    setInlineError(t('passkey.cancelled'))
                     setInlineErrorCode('cancelled')
                 }
                 return
@@ -490,6 +555,12 @@ export function useSignupPasskey(username: string) {
         retryFromHelp: () => {
             setIsHelpOpen(false)
             void claim()
+        },
+        /** The pre-check screens' "Open settings": the phone's security settings, where a screen lock is set. */
+        openSettings: () => {
+            void openPasskeySettings().catch((error: unknown) => {
+                Sentry.captureException(error, { tags: { error_type: 'passkey_settings_open_failed' } })
+            })
         },
         isProviderUnsupportedOpen: providerUnsupportedPlatform !== null,
         providerUnsupportedPlatform: providerUnsupportedPlatform ?? 'other',
