@@ -1,10 +1,5 @@
 {
     "sourceCommit": "858882cd0445e972dcba8689c36874b840c6ef69",
-    "renamedFrom": {
-        "help/invite-codes/en.md": "help/waitlist-invite-codes/en.md",
-        "help/invite-codes/es-419.md": "help/waitlist-invite-codes/es-419.md",
-        "help/invite-codes/pt-br.md": "help/waitlist-invite-codes/pt-br.md"
-    },
     "retainedPublished": [
         "blog/earn-with-peanut-3min-setup/en.md",
         "blog/earn-with-peanut-3min-setup/es-419.md",
@@ -245,9 +240,9 @@
         "help/verification/en.md",
         "help/verification/es-419.md",
         "help/verification/pt-br.md",
-        "help/invite-codes/en.md",
-        "help/invite-codes/es-419.md",
-        "help/invite-codes/pt-br.md",
+        "help/waitlist-invite-codes/en.md",
+        "help/waitlist-invite-codes/es-419.md",
+        "help/waitlist-invite-codes/pt-br.md",
         "help/web-login/en.md",
         "help/web-login/es-419.md",
         "help/web-login/pt-br.md",

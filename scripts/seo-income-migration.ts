@@ -6,25 +6,13 @@ import inventory from './seo-income-migration.json'
  * hidden by an unrelated new page. Keep the count baseline in pre-migration
  * units so new publications retain the existing regression guard.
  */
-// A renamed file passes under its old path until the rename reaches the content
-// mirror: peanut-ui and mono publish separately (TASK-24171). Drop an entry once
-// the mirror holds the new path.
-const renamedFrom: Record<string, string> = inventory.renamedFrom
-
-function presentPath(file: string, files: Set<string>): string | undefined {
-    if (files.has(file)) return file
-    const oldPath = renamedFrom[file]
-    return oldPath && files.has(oldPath) ? oldPath : undefined
-}
-
 export function checkIncomeMigration(files: Set<string>, published: Set<string>) {
     const errors: string[] = []
     for (const file of [...inventory.retainedPublished, ...inventory.retainedUnpublished]) {
-        if (!presentPath(file, files)) errors.push(`Required content is missing: ${file}`)
+        if (!files.has(file)) errors.push(`Required content is missing: ${file}`)
     }
     for (const file of inventory.retainedPublished) {
-        const present = presentPath(file, files)
-        if (present && !published.has(present)) errors.push(`Required content is unpublished: ${file}`)
+        if (files.has(file) && !published.has(file)) errors.push(`Required content is unpublished: ${file}`)
     }
     const remaining = inventory.retired.filter((file) => files.has(file))
     if (remaining.length > 0 && remaining.length < inventory.retired.length) {

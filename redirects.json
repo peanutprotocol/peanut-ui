@@ -1165,31 +1165,6 @@
         "permanent": false
     },
     {
-        "source": "/help/waitlist-invite-codes",
-        "destination": "/en/help/invite-codes",
-        "permanent": true
-    },
-    {
-        "source": "/en/help/waitlist-invite-codes",
-        "destination": "/en/help/invite-codes",
-        "permanent": true
-    },
-    {
-        "source": "/es-419/help/waitlist-invite-codes",
-        "destination": "/es-419/help/invite-codes",
-        "permanent": true
-    },
-    {
-        "source": "/es-ar/help/waitlist-invite-codes",
-        "destination": "/es-ar/help/invite-codes",
-        "permanent": true
-    },
-    {
-        "source": "/pt-br/help/waitlist-invite-codes",
-        "destination": "/pt-br/help/invite-codes",
-        "permanent": true
-    },
-    {
         "source": "/help/:path*",
         "destination": "/en/help/:path*",
         "permanent": true
