@@ -992,6 +992,30 @@ test.describe('sign-up redesign journeys', () => {
             await expect(field).toHaveValue('luckyotter@gmail.com')
         })
 
+        test('a misspelled domain offers a one-tap fix, and the fixed address is saved (v7 etypo)', async ({
+            page,
+            context,
+            baseURL,
+        }) => {
+            await addAuthenticator(page)
+            await openSetup(page, context, baseURL!)
+            await landingToUsername(page, 'en')
+            await claimUsername(page, 'en', 'luckyotter')
+            await inviteSkip(page, 'en')
+            await createPasskey(page, 'en')
+            await expectScreen(page, 'notification-email', 'default', 30_000)
+            const field = page.getByRole('textbox', { name: copy('en', 'setupRedesign.email.label') })
+            await field.fill('luckyotter@gmial.com')
+            const suggestion = page.getByTestId('setup-redesign-email-suggestion')
+            await expect(suggestion).toHaveText(/Did you mean\s*luckyotter@gmail\.com\?/)
+            await suggestion.getByRole('button', { name: 'luckyotter@gmail.com' }).click()
+            await expect(field).toHaveValue('luckyotter@gmail.com')
+            await expect(suggestion).toHaveCount(0)
+            await expectScreen(page, 'notification-email', 'filled')
+            await primary(page, copy('en', 'setupRedesign.common.continue')).click()
+            await expectScreen(page, 'notification-permission', 'default')
+        })
+
         test('demo reviewer username: no check, no reservation, no passkey; the app opens on the last step', async ({
             page,
             context,
