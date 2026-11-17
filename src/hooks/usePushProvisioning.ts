@@ -151,7 +151,10 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
             const sequence = initialLookup ? statusSequence.current : ++statusSequence.current
             void Promise.all([
                 bounded(() => getGoogleWalletCardStatus(card.id), 'unknown'),
-                bounded(() => initialLookup ?? getPushProvisioningAvailability(card.last4), null),
+                bounded(async () => {
+                    const result = await (initialLookup ?? getPushProvisioningAvailability(card.last4))
+                    return result.lookupFailed ? null : result
+                }, null),
             ]).then(([status, availability]) => {
                 if (cancelled || sequence !== statusSequence.current || getClearEpoch() !== authEpochAtStart) return
                 appliedStatusSequence.current = sequence

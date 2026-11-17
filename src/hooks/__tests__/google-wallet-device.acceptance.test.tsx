@@ -284,6 +284,39 @@ it.each(['absent', 'pending'] as const)(
     }
 )
 
+it.each([
+    {
+        exact: 'unknown',
+        source: 'native SDK failure',
+        failed: { available: true, alreadyInWallet: false, lookupFailed: true },
+    },
+    {
+        exact: 'absent',
+        source: 'native SDK failure',
+        failed: { available: true, alreadyInWallet: false, lookupFailed: true },
+    },
+    {
+        exact: 'unknown',
+        source: 'bridge fallback',
+        failed: { available: false, alreadyInWallet: false, lookupFailed: true },
+    },
+] as const)('does not read a $source as a suffix miss when exact is $exact', async ({ exact, failed }) => {
+    availability.mockResolvedValue(suffixPresent)
+    const { result } = renderHook(() => usePushProvisioning(card))
+    await waitFor(() => expect(result.current.alreadyInWallet).toBe(true))
+    exactStatus.mockResolvedValue(exact)
+    availability.mockResolvedValue(failed)
+    await foreground()
+    expect(availability).toHaveBeenCalledTimes(2)
+    expect(result.current.alreadyInWallet).toBe(true)
+    expect(result.current.nativeAvailable).toBe(false)
+
+    availability.mockResolvedValue(suffixAbsent)
+    await foreground()
+    await waitFor(() => expect(result.current.alreadyInWallet).toBe(false))
+    expect(result.current.nativeAvailable).toBe(true)
+})
+
 it('keeps Add disabled when the app returns to the foreground after a logout during the initial check', async () => {
     const pending = deferred<Availability>()
     availability.mockReturnValueOnce(pending.promise).mockResolvedValue(suffixAbsent)

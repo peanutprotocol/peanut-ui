@@ -12,6 +12,8 @@ export const PUSH_PROVISIONING_FLAGS = {
 export interface PushProvisioningAvailability {
     available: boolean
     alreadyInWallet: boolean
+    /** The wallet could not be read, so `alreadyInWallet: false` is not a confirmed miss. */
+    lookupFailed?: boolean
 }
 
 export interface AddCardToWalletArgs {
@@ -69,7 +71,11 @@ const PushProvisioning = nativeCapability<PushProvisioningPlugin>('PushProvision
  * False on web, binaries without the SDK, or without required entitlements.
  */
 export async function getPushProvisioningAvailability(last4?: string): Promise<PushProvisioningAvailability> {
-    return PushProvisioning.call('isAvailable', { last4 }, () => ({ available: false, alreadyInWallet: false }))
+    return PushProvisioning.call('isAvailable', { last4 }, () => ({
+        available: false,
+        alreadyInWallet: false,
+        lookupFailed: true,
+    }))
 }
 
 export type GoogleWalletCardStatus = 'present' | 'absent' | 'pending' | 'unknown' | 'unsupported'
