@@ -1558,6 +1558,16 @@
         "route": "/add-money/argentina/manteca?step=inputAmount&currency=ARS"
     },
     {
+        "id": "fixture-add-money-argentina-bank-setup-unfinished",
+        "flow": "Add money",
+        "route": "/add-money/argentina/manteca?step=inputAmount&currency=ARS"
+    },
+    {
+        "id": "fixture-add-money-argentina-bank-setup-expired",
+        "flow": "Add money",
+        "route": "/add-money/argentina/manteca?step=inputAmount&currency=ARS"
+    },
+    {
         "id": "fixture-add-money-bank-liechtenstein",
         "flow": "Add money",
         "route": "/add-money/liechtenstein/bank?step=inputAmount&amount=100"
