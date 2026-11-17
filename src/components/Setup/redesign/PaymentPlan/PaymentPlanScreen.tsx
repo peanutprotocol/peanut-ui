@@ -17,9 +17,6 @@ import { useSignupControl } from '@/features/setup/useSignupControl'
 import { useKycIntents } from '@/hooks/useKycIntents'
 import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
-import { Icon } from '@/components/Global/Icons/Icon'
-import { useInfoLineOption } from '@/components/Setup/redesign/shell/useInfoLineOption'
-import { WhyWeAskSheet } from '@/features/paperwork-verification/components/WhyWeAskSheet'
 import { PlanArt, type PlanHop } from './PlanArt'
 import { PlanSentence } from './PlanSentence'
 
@@ -39,7 +36,6 @@ export function PaymentPlanScreen(_props: StepComponentProps) {
     const device = useShellDevice()
     const { intents, settled: intentsSettled } = useKycIntents(residenceCountry)
     const [hop, setHop] = useState<PlanHop>(null)
-    const infoLine = useInfoLineOption()
     // The server's answer for the residence, the tiers when it could not be read, the universal options when neither.
     const settled = usePlanOptionsSettled({ intentsSettled, hasIntents: !!intents, setsSettled })
     const options = useMemo(
@@ -85,29 +81,6 @@ export function PaymentPlanScreen(_props: StepComponentProps) {
     const compact = device === 'sm'
     // QR payments run on Manteca: Argentina and Brazil only (FLEET-RULES 9)
     const qrHome = isMantecaSupportedCountryCode(residenceCountry)
-    // The one helper line (Konrad, addendum 2): more ways to pay can be unlocked later, so the choice is not a hard one.
-    const helper = (
-        <p
-            className="mt-3 flex items-center gap-1 text-body-xs text-foreground-secondary signup-sm:mt-2"
-            data-testid="setup-plan-change-later"
-        >
-            <Icon name="info" size={16} className="shrink-0" />
-            {t('plan.changeLater')}
-        </p>
-    )
-    // TEMPORARY (TASK-25063): option b adds a "Why these options?" sheet that holds "Options depend on your residence."
-    const whyLink =
-        infoLine === 'b' ? (
-            <WhyWeAskSheet
-                link={t('plan.whyOptions')}
-                title={t('plan.whyOptionsTitle')}
-                reasons={[t('plan.hint')]}
-                testId="setup-plan-why"
-                onOpen={() => track('why', 'open')}
-                onDismiss={() => track('why', 'dismiss')}
-                onGotIt={() => track('why_got_it', 'tap')}
-            />
-        ) : undefined
     return (
         <SetupScreen
             ground="sky"
@@ -124,7 +97,6 @@ export function PaymentPlanScreen(_props: StepComponentProps) {
                     disabled: !settled || !funding || !payment || isLoading,
                     loading: isLoading,
                 },
-                slot: whyLink,
             }}
         >
             <PlanSentence
@@ -135,7 +107,6 @@ export function PaymentPlanScreen(_props: StepComponentProps) {
                 bankCurrencies={intents?.bank.currencies ?? []}
                 loading={!settled}
                 qrAbroad={!qrHome}
-                helper={helper}
                 onFunding={(channel) => {
                     setFundingChannel(channel)
                     setHop((last) => ({ piece: 'coin', beat: (last?.beat ?? 0) + 1 }))

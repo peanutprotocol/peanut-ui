@@ -1260,7 +1260,6 @@
             "itemP2p": "Peanut to Peanut",
             "select": "Select {country}",
             "compareCurrencyNote": "Transfers in another currency need a bank account in that currency.",
-            "hint": "Tap a country to change it.",
             "popular": "Popular"
         },
         "plan": {
@@ -1282,10 +1281,7 @@
             "payCard": "Peanut Card",
             "payPeanut": "Pay a Peanut user",
             "peanutPill": "Another Peanut user",
-            "hint": "Options depend on your residence.",
             "payQrAbroad": "QR payments in Argentina and Brazil",
-            "whyOptions": "Why these options?",
-            "whyOptionsTitle": "Why these options",
             "changeLater": "You can change this later"
         },
         "email": {

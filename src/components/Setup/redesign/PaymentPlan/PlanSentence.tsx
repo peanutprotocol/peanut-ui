@@ -1,7 +1,8 @@
 'use client'
 
-import { type ReactNode, useRef } from 'react'
+import { useRef } from 'react'
 import { useTranslations } from 'next-intl'
+import { Icon } from '@/components/Global/Icons/Icon'
 import { longestLabel, useSentenceFit } from '@/components/Setup/redesign/Residence/useSentenceFit'
 import type { SetupFundingChannel, SetupPaymentChannel } from '@/features/setup/paymentChannels'
 import { twMerge } from '@/utils/tw'
@@ -12,9 +13,9 @@ import { FUNDING_PILL_KEY, FUNDING_SHEET_KEY, PAYMENT_PILL_KEY, PAYMENT_SHEET_KE
  * The 08 sentence in the white panel: "You'll first add money with [funding] / then spend with [payment]", the two
  * clauses 16 px apart (8 px on a small phone). Each lead word ("with", "con") shares its line with its pill, and that
  * line holds nothing else, so the lines stay the same in every state (mock freezeLines). The lead lines are balanced, so
- * no lone word sits above a pill line (es-AR 320 "Primero vas a / agregar dinero"). Under it the screen's helper line
- * ("You can change this later.", addendum 2). The fit measures the sentence and that line together, so the pair never
- * runs under the CTA.
+ * no lone word sits above a pill line (es-AR 320 "Primero vas a / agregar dinero"). Under it one quiet info line, "You
+ * can change this later" (owner ruling, 17 Nov: the one exception to "no helper lines"). The fit measures the
+ * sentence and that line together, so the pair never runs under the CTA.
  */
 export function PlanSentence({
     funding,
@@ -24,7 +25,6 @@ export function PlanSentence({
     bankCurrencies,
     loading,
     qrAbroad,
-    helper,
     onFunding,
     onPayment,
 }: {
@@ -35,9 +35,8 @@ export function PlanSentence({
     /** The server's bank currencies for the residence; empty when unknown. */
     bankCurrencies: readonly string[]
     loading: boolean
-    /** QR payments work only in Argentina and Brazil: residents elsewhere see that in the spending row. */
+    /** QR payments work only in Argentina and Brazil: residents elsewhere see that in the spending row (v7). */
     qrAbroad: boolean
-    helper: ReactNode
     onFunding: (channel: SetupFundingChannel) => void
     onPayment: (channel: SetupPaymentChannel) => void
 }) {
@@ -93,7 +92,13 @@ export function PlanSentence({
                     ),
                 })}
             </p>
-            {helper}
+            <p
+                className="mt-3 flex items-center gap-1 text-body-xs text-foreground-secondary signup-sm:mt-2"
+                data-testid="setup-redesign-plan-change-later"
+            >
+                <Icon name="info" size={16} className="shrink-0" />
+                {t('changeLater')}
+            </p>
         </div>
     )
 }

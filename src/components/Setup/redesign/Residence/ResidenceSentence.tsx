@@ -1,6 +1,6 @@
 'use client'
 
-import { type ReactNode, useRef } from 'react'
+import { useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import type { ResidenceCountryOption } from '@/utils/residence-options'
@@ -12,7 +12,7 @@ type Sheet = 'open' | 'no-results' | null
 
 /**
  * The 07 sentence in the white panel: "My residence is in [residence], my nationality is [nationality]." with two country pills,
- * and the refused-passport callout under it, or else the screen's helper line when it has one.
+ * and the refused-passport callout under it. No hint line.
  */
 export function ResidenceSentence({
     residence,
@@ -24,7 +24,6 @@ export function ResidenceSentence({
     onNationality,
     onResidenceSheet,
     onNationalitySheet,
-    helper,
 }: {
     residence: string
     nationality: string
@@ -35,8 +34,6 @@ export function ResidenceSentence({
     onNationality: (country: string) => void
     onResidenceSheet: (sheet: Sheet) => void
     onNationalitySheet: (sheet: Sheet) => void
-    /** The line under the sentence when no callout shows; measured with it, so the pair never runs under the CTA. */
-    helper: ReactNode
 }) {
     const t = useTranslations('setupRedesign.residence')
     const blockRef = useRef<HTMLDivElement>(null)
@@ -91,12 +88,10 @@ export function ResidenceSentence({
                         ),
                     })}
                 </p>
-                {refusedPassport ? (
+                {refusedPassport && (
                     <Callout priority="attention" className="mt-3 signup-sm:mt-1.5">
                         {t('refusedPassport', { nationality: labelOf(nationality), residence: labelOf(residence) })}
                     </Callout>
-                ) : (
-                    helper
                 )}
             </div>
         </div>

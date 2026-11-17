@@ -116,8 +116,8 @@ const OUTCOMES = [
 ]
 
 const K = 'setupRedesign.residence'
-/** "Tap a country to change it.": on the screen only in info-line option c (TASK-25063, Kush picks). */
-const HINT = { en: copy(`${K}.hint`), 'es-AR': copy(`${K}.hint`, {}, 'es-AR') } as const
+/** dev's old 07 hint (setup.residenceStep.hint), pinned: the key left the catalogs with the old view. */
+const OLD_HINT = { en: 'Tap a country to change it.', 'es-AR': 'Tocá un país para cambiarlo.' } as const
 const labelOf = (iso2: string, locale: AppLocale = 'en') =>
     buildResidenceCountryOptions(locale).find((o) => o.value === iso2)!.label
 
@@ -243,7 +243,7 @@ describe('07 Residence: sentence view', () => {
             const line = screen.getByText(textMatch(sentence(ar, ar, locale)))
             expect(line).toBeInTheDocument()
             expect(visibleText(line)).not.toMatch(/I live|I’m from|resident\b|nationality of|the same country/i)
-            expect(visibleText(view.container)).not.toContain(HINT[locale])
+            expect(visibleText(view.container)).not.toContain(OLD_HINT[locale])
         }
     )
 
@@ -579,10 +579,10 @@ describe('07 Residence: sentence view', () => {
         )
     })
 
-    it('info-line option a (the default): no hint line on 07 in the empty, default or differ state', () => {
+    it('P3-52 no hint line on 07 in the empty, default or differ state', () => {
         for (const seed of [{}, { residenceCountry: 'AR' }, { residenceCountry: 'AR', nationalityCountry: 'BR' }]) {
             const view = render(seed)
-            expect(visibleText(view.container)).not.toContain(HINT.en)
+            expect(visibleText(view.container)).not.toContain(OLD_HINT.en)
             view.unmount()
         }
     })
@@ -928,13 +928,11 @@ describe('07 Residence: dev cases kept', () => {
     })
 })
 
-// ---- v7 (TASK-25063): "Why do we ask?", the Popular countries, the info-line options ----------------------------
+// ---- v7 (TASK-25063): "Why do we ask?" and the Popular countries ----------------------------
 
 describe('07 Residence: v7', () => {
     const KYC = 'kyc.paperworkVerification'
     const whyLink = (container: HTMLElement) => within(footer(container)!).queryByTestId('setup-residence-why')
-    const withInfoLine = (option: string) => window.history.replaceState({}, '', `/setup?infoline=${option}`)
-    afterEach(() => window.history.replaceState({}, '', '/'))
 
     it('"Why do we ask?" under Continue opens the nationality reason; Got it closes it; both are tracked', async () => {
         const view = render({ residenceCountry: 'AR' })
@@ -942,7 +940,6 @@ describe('07 Residence: v7', () => {
         const sheet = await waitFor(() => openDialog(copyRx(`${KYC}.whyTitle`))!)
         expect(within(sheet).getByText(copy(`${KYC}.why.nationality`))).toBeInTheDocument()
         expect(within(sheet).getByText(copy(`${KYC}.whyShared`))).toBeInTheDocument()
-        expect(within(sheet).queryByText(HINT.en)).toBeNull()
         fireEvent.click(within(sheet).getByRole('button', { name: copy(`${KYC}.gotIt`) }))
         await waitFor(() => expect(openDialog(copyRx(`${KYC}.whyTitle`))).toBeNull())
         expect(controls()).toEqual(['why:open', 'why_got_it:tap'])
@@ -972,25 +969,5 @@ describe('07 Residence: v7', () => {
         fireEvent.change(within(sheet).getByRole('searchbox'), { target: { value: 'arg' } })
         expect(within(sheet).queryByRole('heading', { name: copy(`${K}.popular`) })).toBeNull()
         expect(within(sheet).getByRole('button', { name: labelOf('AR') })).toBeInTheDocument()
-    })
-
-    it('info-line option b: no line on the screen; the sheet also holds "Tap a country to change it."', async () => {
-        withInfoLine('b')
-        const view = render({ residenceCountry: 'AR' })
-        expect(screen.queryByTestId('setup-residence-hint')).toBeNull()
-        fireEvent.click(whyLink(view.container)!)
-        const sheet = await waitFor(() => openDialog(copyRx(`${KYC}.whyTitle`))!)
-        expect(within(sheet).getByText(HINT.en)).toBeInTheDocument()
-        expect(within(sheet).getByText(copy(`${KYC}.why.nationality`))).toBeInTheDocument()
-    })
-
-    it('info-line option c: one line under the sentence holds the hint and the link; the footer has no link', async () => {
-        withInfoLine('c')
-        const view = render({ residenceCountry: 'AR' })
-        const line = await screen.findByTestId('setup-residence-hint')
-        expect(line).toHaveTextContent(HINT.en)
-        expect(within(line).getByTestId('setup-residence-why')).toBeInTheDocument()
-        expect(line.closest('[data-setup-screen="residence"]')).not.toBeNull()
-        expect(whyLink(view.container)).toBeNull()
     })
 })

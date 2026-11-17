@@ -792,7 +792,6 @@
             "itemP2p": "De Peanut a Peanut",
             "select": "Elegir {country}",
             "compareCurrencyNote": "Las transferencias en otra moneda requieren una cuenta bancaria en esa moneda.",
-            "hint": "Tocá un país para cambiarlo.",
             "popular": "Populares"
         },
         "plan": {
@@ -814,10 +813,7 @@
             "payCard": "Peanut Card",
             "payPeanut": "Pagar a un usuario de Peanut",
             "peanutPill": "Usuario de Peanut",
-            "hint": "Las opciones dependen de tu residencia.",
             "payQrAbroad": "Pagos QR en Argentina y Brasil",
-            "whyOptions": "¿Por qué estas opciones?",
-            "whyOptionsTitle": "Por qué estas opciones",
             "changeLater": "Podés cambiarlo después"
         },
         "email": {

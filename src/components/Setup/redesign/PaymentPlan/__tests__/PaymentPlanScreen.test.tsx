@@ -474,56 +474,43 @@ describe('08 Payment plan', () => {
         expect(mockHandleNext).not.toHaveBeenCalled()
     })
 
-    it.each(['en', 'es-AR'] as const)('P3-08 no banned word on 08 (%s)', async (locale) => {
+    it.each(['en', 'es-AR'] as const)('P3-08 / P3-52 no banned word and no hint line on 08 (%s)', async (locale) => {
         const view = render({ residenceCountry: 'PT' }, { locale })
         expect(visibleText(view.container)).not.toMatch(
             /platinum|cashback|bono|no password|sin contraseña|suggested|example|ejemplo/i
         )
+        expect(visibleText(view.container)).not.toContain(OLD_HINT[locale])
         expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(copyRx(`${K}.title`, {}, locale))
     })
 
     it.each(['en', 'es-AR'] as const)(
-        'addendum 2: the one info line is "You can change this later.", in default and filled; no residence line (%s)',
+        'owner ruling 17 Nov: one info line "You can change this later" under the sentence, in default and filled (%s)',
         async (locale) => {
             const view = render({ residenceCountry: 'PT' }, { locale })
-            const line = () => screen.getByTestId('setup-plan-change-later')
+            const line = () => screen.getByTestId('setup-redesign-plan-change-later')
             expect(setupState(view.container)).toBe('default')
             expect(line()).toHaveTextContent(copyRx(`${K}.changeLater`, {}, locale))
             // it follows the sentence inside the measured block, so the fit keeps both above the CTA
             expect(line().parentElement).toHaveAttribute('data-setup-screen', 'payment-plan')
-            expect(visibleText(view.container)).not.toContain(OLD_HINT[locale])
+            expect(line().previousElementSibling?.querySelector('[data-fit-group]')).not.toBeNull()
             await view.choose('funding', label('fundCrypto', {}, locale))
             await view.choose('payment', label('payCard', {}, locale))
             expect(setupState(view.container)).toBe('filled')
             expect(line()).toHaveTextContent(copyRx(`${K}.changeLater`, {}, locale))
         }
     )
-
-    it('v7: Argentina and Brazil residents keep the plain QR row', () => {
-        const view = render({ residenceCountry: 'AR' })
-        expect(view.open('payment')).toContain(label('payQr'))
-        expect(view.rows()).not.toContain(label('payQrAbroad'))
-    })
-
-    it('info-line option b: the line stays; "Why these options?" under Continue holds "Options depend on your residence."', async () => {
-        window.history.replaceState({}, '', '/setup?infoline=b')
-        try {
-            const view = render({ residenceCountry: 'PT' })
-            await waitFor(() =>
-                expect(within(footer(view.container)!).getByTestId('setup-plan-why')).toBeInTheDocument()
-            )
-            expect(screen.getByTestId('setup-plan-change-later')).toHaveTextContent(label('changeLater'))
-            expect(visibleText(view.container)).not.toContain(label('hint'))
-            fireEvent.click(within(footer(view.container)!).getByTestId('setup-plan-why'))
-            const sheet = await waitFor(() => openDialog(copyRx(`${K}.whyOptionsTitle`))!)
-            expect(within(sheet).getByText(label('hint'))).toBeInTheDocument()
-        } finally {
-            window.history.replaceState({}, '', '/')
-        }
-    })
 })
 
 // ---- ported from dev's Views/__tests__/PaymentPlan.test.tsx (deleted with the old view) ---------------------
+
+describe('08 Payment plan: v7 (TASK-25063)', () => {
+    it.each(['AR', 'BR'])('a resident of %s keeps the plain QR row', async (residenceCountry) => {
+        const view = render({ residenceCountry })
+        await waitFor(() => expect(setupState(view.container)).not.toBe('loading'))
+        expect(view.open('payment')).toContain(label('payQr'))
+        expect(view.rows()).not.toContain(label('payQrAbroad'))
+    })
+})
 
 describe('08 Payment plan: dev cases kept', () => {
     // the leading slot of a drawer row: a Pix logo is a bare image, a bubble draws a fill
