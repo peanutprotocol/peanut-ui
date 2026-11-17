@@ -772,7 +772,7 @@
             "desc": "Una Visa virtual para gastar tu saldo donde se acepte Visa. Ah, y es <pink>rosa</pink>."
         },
         "residence": {
-            "sentence": "Vivo <nw>en <residence></residence></nw> <nw>y soy de <nationality></nationality>.</nw>",
+            "sentence": "Mi país de residencia <nw>es <residence></residence>,</nw> el de nacionalidad <nw>es <nationality></nationality>.</nw>",
             "choose": "Elegir",
             "sheetResidence": "¿Dónde vivís?",
             "sheetNationality": "¿Cuál es tu nacionalidad?",
@@ -809,7 +809,8 @@
             "payQr": "Pagos QR",
             "payCard": "Peanut Card",
             "payPeanut": "Pagar a un usuario de Peanut",
-            "peanutPill": "Usuario de Peanut"
+            "peanutPill": "Usuario de Peanut",
+            "changeLater": "Podés cambiarlo después"
         },
         "email": {
             "title": "Peanut necesita un email.",

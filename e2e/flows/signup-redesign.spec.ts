@@ -587,11 +587,16 @@ async function landingToUsername(page: Page, locale: Locale) {
     // 07: the geo suggestion (AR) prefills the residence, the nationality reads "the same"
     await expectScreen(page, 'residence', 'default')
     await expect(panelOf(page)).toContainText('Argentina')
+    // owner ruling 17 Nov: "My residence is in [X], my nationality is [Y]."
+    await expect(panelOf(page)).toContainText(t('setupRedesign.residence.sentence').split(',')[0].trim())
     await primary(page, t('setupRedesign.common.continue')).click()
 
     // 08: Argentina offers a bank and QR; pick both, then Continue
     await expectScreen(page, 'payment-plan', 'default')
     const panel = panelOf(page)
+    // owner ruling 17 Nov: the one info line under the choice, in default and filled
+    const changeLater = panel.getByText(t('setupRedesign.plan.changeLater'), { exact: true })
+    await expect(changeLater).toBeVisible()
     await panel
         .getByRole('button', { name: t('setupRedesign.plan.choose') })
         .first()
@@ -603,6 +608,7 @@ async function landingToUsername(page: Page, locale: Locale) {
         .click()
     await drawer(page).getByText(t('setupRedesign.plan.payQr'), { exact: true }).click()
     await expectScreen(page, 'payment-plan', 'filled')
+    await expect(changeLater).toBeVisible()
     await primary(page, t('setupRedesign.common.continue')).click()
 
     await expectScreen(page, 'signup')
@@ -684,6 +690,9 @@ async function confirmAndCelebrate(page: Page, locale: Locale, state: 'default' 
     await expectScreen(page, 'advantage-control', state, 45_000)
     const title = copy(locale, state === 'claim-link' ? 'setupRedesign.done.claimTitle' : 'setupRedesign.done.title')
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(title)
+    // owner ruling 17 Nov: the whistling peanut (waving-chill), not the cheering one
+    await expect(page.locator('[data-mascot-pose="waving-chill"]')).toHaveCount(1)
+    await expect(page.locator('[data-mascot-pose="cheering"]')).toHaveCount(0)
     return true
 }
 

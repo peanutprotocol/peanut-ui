@@ -19,7 +19,7 @@ const STARS: [number, number, number, boolean][] = [
 ]
 
 /**
- * 12 hero: the approved cheering peanut (it loops), the USD coin left and the EUR coin right as drawn (the pink
+ * 12 hero: the approved whistling peanut (`waving-chill`, the old PeanutWhistling; owner ruling 17 Nov) (it loops), the USD coin left and the EUR coin right as drawn (the pink
  * EUR coin on the pink ground: no recolour, rim, outline or filter), stars. The art moves as one object
  * (mock r9 S10/S11): 24 px higher in `default` on a standard phone; in `claim-link` it grows about 1.12x and
  * moves down to meet the shorter copy.
@@ -42,7 +42,7 @@ export function CelebrationArt({ claim }: { claim: boolean }) {
             style={{ transform, transformOrigin: '50% 100%' }}
             data-testid="setup-redesign-art"
         >
-            <MascotStage pose="cheering" left={10} top={118} width={370} zIndex={4} />
+            <MascotStage pose="waving-chill" left={10} top={118} width={370} zIndex={4} />
             <CoinCharacter
                 coin="usd"
                 left={20}

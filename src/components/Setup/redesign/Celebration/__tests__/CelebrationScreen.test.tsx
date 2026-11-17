@@ -124,9 +124,9 @@ describe('12 Celebration', () => {
         expect(container.querySelector('[data-setup-panel]')).toBeNull()
     })
 
-    it('P4-52 the mascot is the approved cheering pose', () => {
+    it('P4-52 the mascot is the approved whistling pose (waving-chill, owner ruling 17 Nov)', () => {
         const { container } = render()
-        expect(container.querySelector('[data-mascot-pose="cheering"]')).not.toBeNull()
+        expect(container.querySelector('[data-mascot-pose="waving-chill"]')).not.toBeNull()
     })
 
     it('P4-53 haptic, celebration:open and confetti fire once on mount, also under Strict Mode', () => {
@@ -216,7 +216,10 @@ describe('12 Celebration', () => {
     it('P4-63 under reduced motion the mascot holds its frame and the redirect still fires at 4500 ms', () => {
         setReducedMotion(true)
         const { container } = render()
-        expect(container.querySelector('[data-mascot-pose="cheering"]')).toHaveAttribute('data-lottie-running', 'false')
+        expect(container.querySelector('[data-mascot-pose="waving-chill"]')).toHaveAttribute(
+            'data-lottie-running',
+            'false'
+        )
         for (const piece of container.querySelectorAll<HTMLElement>('[data-setup-art-box] > div')) {
             expect(piece.style.opacity === '' || piece.style.opacity === '1').toBe(true)
         }

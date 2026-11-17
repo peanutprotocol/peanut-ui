@@ -41,7 +41,7 @@ const COMPARE_STARS: readonly StarSpec[] = [
 ]
 
 /**
- * 07 Residence (step `residence`): "I live in [X] and I'm from [Y]." in the white panel, dev's country-sticker hero on
+ * 07 Residence (step `residence`): "My residence is in [X], my nationality is [Y]." in the white panel, dev's country-sticker hero on
  * the stage. A different nationality opens the compare view, which sets Peanut up for the country picked. Behaviour,
  * saves and analytics as dev's Residence view.
  */

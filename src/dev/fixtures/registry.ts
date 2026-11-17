@@ -2304,7 +2304,7 @@ const SETUP_REDESIGN_FIXTURES: Record<string, Fixture> = {
 
     'setup-redesign-residence-default': setupRedesign(
         'residence',
-        '07 Residence: I live in Argentina and I am from Argentina.'
+        '07 Residence: my residence is in Argentina, my nationality is Argentina.'
     ),
     'setup-redesign-residence-empty': setupRedesign('residence-empty', '07 Residence: nothing chosen yet.'),
     'setup-redesign-residence-picker': setupRedesign('residence', '07 Residence: the residence drawer is open.'),
