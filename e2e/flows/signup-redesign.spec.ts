@@ -681,19 +681,63 @@ async function emailToFinal(page: Page, locale: Locale, email: string) {
     await expectScreen(page, 'advantage-control', 'default')
 }
 
-async function confirmAndCelebrate(page: Page, locale: Locale, state: 'default' | 'claim-link' = 'default') {
+async function confirmAndCelebrate(
+    page: Page,
+    locale: Locale,
+    state: 'default' | 'claim-link' | 'verify-invite' = 'default'
+) {
     if (!STUB_BUNDLER) {
         test.info().annotations.push({ type: 'not checked', description: '11 → 12: no stub bundler in this build' })
         return false
     }
     await primary(page, copy(locale, 'setupRedesign.final.cta')).click()
     await expectScreen(page, 'advantage-control', state, 45_000)
-    const title = copy(locale, state === 'claim-link' ? 'setupRedesign.done.claimTitle' : 'setupRedesign.done.title')
+    const title = copy(
+        locale,
+        state === 'claim-link'
+            ? 'setupRedesign.done.claimTitle'
+            : state === 'verify-invite'
+              ? 'setupRedesign.verifyInvite.title'
+              : 'setupRedesign.done.title'
+    )
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(title)
     // owner ruling 17 Nov: the whistling peanut (waving-chill), not the cheering one
     await expect(page.locator('[data-mascot-pose="waving-chill"]')).toHaveCount(1)
     await expect(page.locator('[data-mascot-pose="cheering"]')).toHaveCount(0)
     return true
+}
+
+/**
+ * Answers PostHog's flag request with the verify invite on, as the rollback switch is set in production (signup v7).
+ * A build without a PostHog key never asks, so the invite stays off and the test says so instead of passing.
+ */
+async function verifyInviteFlagOn(context: BrowserContext) {
+    const flag = 'signup-verify-invite'
+    await context.route(/\/relay\/|posthog\.com/, async (route) => {
+        if (/\/(flags|decide)\b/.test(new URL(route.request().url()).pathname))
+            return route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({
+                    featureFlags: { [flag]: true },
+                    flags: { [flag]: { key: flag, enabled: true } },
+                    featureFlagPayloads: {},
+                }),
+            })
+        return route.fulfill({ status: 200, contentType: 'application/json', body: '{"status":1}' })
+    })
+}
+
+/** Every screen from Landing to 12, for a default (organic) sign-up. */
+async function organicSignupToCelebration(page: Page, context: BrowserContext, baseURL: string, username: string) {
+    await addAuthenticator(page)
+    await openSetup(page, context, baseURL)
+    await landingToUsername(page, 'en')
+    await claimUsername(page, 'en', username)
+    await inviteSkip(page, 'en')
+    await createPasskey(page, 'en')
+    await emailToFinal(page, 'en', `${username}@gmail.com`)
+    return confirmAndCelebrate(page, 'en', 'verify-invite')
 }
 
 /** The three POSTs that turn a reserved name into an account, in order, for this username. */
@@ -881,6 +925,59 @@ test.describe('sign-up redesign journeys', () => {
             if (!(await confirmAndCelebrate(page, 'en', 'claim-link'))) return
             await expect(page.getByText(copy('en', 'setupRedesign.done.claimGoing'))).toBeVisible()
             await expect.poll(() => new URL(page.url()).pathname, { timeout: 15_000 }).toBe('/claim')
+        })
+
+        test.describe('12 verify invite (signup v7, flag signup-verify-invite on)', () => {
+            const verifyNow = (page: Page) => primary(page, copy('en', 'setupRedesign.verifyInvite.verifyNow'))
+            const remindLater = (page: Page) =>
+                page.getByRole('button', { name: copy('en', 'setupRedesign.verifyInvite.remindLater') })
+
+            test('one screen: Verify now, the 3 steps and Remind me later; no redirect; Remind me later opens Home', async ({
+                page,
+                context,
+                baseURL,
+            }) => {
+                await verifyInviteFlagOn(context)
+                if (!(await organicSignupToCelebration(page, context, baseURL!, 'luckyotter'))) return
+                await expect(page.getByText(copy('en', 'setupRedesign.verifyInvite.sub'))).toBeVisible()
+                await expect(page.getByTestId('setup-redesign-verify-steps').getByRole('listitem')).toHaveCount(3)
+                await expect(verifyNow(page)).toBeVisible()
+                await expect(remindLater(page)).toBeVisible()
+                // the old 4.5 s redirect is gone on this path
+                await page.waitForTimeout(6000)
+                expect(new URL(page.url()).pathname).toBe('/setup')
+                await remindLater(page).click()
+                await expect.poll(() => new URL(page.url()).pathname, { timeout: 15_000 }).toBe('/home')
+            })
+
+            test('Verify now opens the existing ID check start', async ({ page, context, baseURL }) => {
+                await verifyInviteFlagOn(context)
+                if (!(await organicSignupToCelebration(page, context, baseURL!, 'luckyotter'))) return
+                await verifyNow(page).click()
+                // /verify for a Smart Paperwork Verification user; the legacy start modal otherwise (unit tests cover it)
+                await expect
+                    .poll(
+                        async () =>
+                            new URL(page.url()).pathname === '/verify' || (await page.getByRole('dialog').count()) > 0,
+                        { timeout: 15_000 }
+                    )
+                    .toBe(true)
+            })
+
+            test('a claim-link sign-up keeps its copy and the auto-redirect', async ({ page, context, baseURL }) => {
+                await verifyInviteFlagOn(context)
+                await addAuthenticator(page)
+                const claim = '/claim?c=42161&v=v4.3&i=7#p=e2e'
+                await openSetup(page, context, baseURL!, `/setup?redirect_uri=${encodeURIComponent(claim)}`)
+                await anyEntryToUsername(page, 'en')
+                await claimUsername(page, 'en', 'luckyotter')
+                await inviteSkip(page, 'en')
+                await createPasskey(page, 'en')
+                await emailToFinal(page, 'en', 'luckyotter@gmail.com')
+                if (!(await confirmAndCelebrate(page, 'en', 'claim-link'))) return
+                await expect(remindLater(page)).toHaveCount(0)
+                await expect.poll(() => new URL(page.url()).pathname, { timeout: 15_000 }).toBe('/claim')
+            })
         })
 
         test('resume after a refresh: 08 keeps residence and plan, 03 keeps the username (P3-35, C-62)', async ({
