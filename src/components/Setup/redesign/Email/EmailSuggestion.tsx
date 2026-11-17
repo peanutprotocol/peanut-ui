@@ -1,49 +1,37 @@
 'use client'
 
 import { Fragment } from 'react'
-import { Button } from '@/components/0_Bruddle/Button'
 import { splitSuggestionLine } from '@/components/Setup/redesign/Invite/suggestion-line'
 
 /**
- * The 09 "Did you mean maria@gmail.com?" row (v7 `etypo`): the translated sentence with the fixed address as a
- * compact secondary chip, the same chip as 04 Invite's suggestions. `line` carries `CHIP_MARKERS.a` for the chip.
+ * The 09 "Did you mean maria@gmail.com?" line (v7 `etypo`), in the field's one-line help row: at 375×667 the
+ * footer leaves no room for a chip row under the field. The address is a text button; its hit area reaches past
+ * the line, as the support link's does. `line` carries `CHIP_MARKERS.a` for the address.
  */
 export function EmailSuggestion({ line, address, onPick }: { line: string; address: string; onPick: () => void }) {
     const { lead, parts } = splitSuggestionLine(line)
     return (
-        <div
-            className="mt-1 flex flex-wrap items-center gap-2 text-body-xs text-foreground-secondary"
-            data-testid="setup-redesign-email-suggestion"
-        >
-            {lead && <span>{lead}</span>}
-            {/* The spaces only matter to text (screen readers, copy): the flex gap lays the pieces out. */}
+        <p data-testid="setup-redesign-email-suggestion">
+            {lead}
             {parts.map((part, i) =>
                 'text' in part ? (
-                    <Fragment key={i}>
-                        {' '}
-                        <span>{part.text}</span>
-                    </Fragment>
+                    <Fragment key={i}> {part.text}</Fragment>
                 ) : (
                     <Fragment key={i}>
                         {(lead || i > 0) && ' '}
-                        <span className="inline-flex items-center gap-1 whitespace-nowrap">
-                            {/* the chip sits inside the email form: a submit button would save the typo */}
-                            <Button
-                                type="button"
-                                variant="secondary"
-                                size="compact"
-                                shadowSize="2"
-                                className="notranslate"
-                                translate="no"
-                                onClick={onPick}
-                            >
-                                {address}
-                            </Button>
-                            {part.suffix && <span>{part.suffix}</span>}
-                        </span>
+                        {/* inside the email form: a submit button would save the typo */}
+                        <button
+                            type="button"
+                            translate="no"
+                            className="notranslate relative font-semibold text-foreground-primary underline after:absolute after:inset-x-0 after:-inset-y-3.5"
+                            onClick={onPick}
+                        >
+                            {address}
+                        </button>
+                        {part.suffix}
                     </Fragment>
                 )
             )}
-        </div>
+        </p>
     )
 }

@@ -134,17 +134,19 @@ export function EmailScreen(_props: StepComponentProps) {
                     }
                     onChange={step.change}
                     onBlur={step.blur}
+                    hint={
+                        step.suggestion && (
+                            <EmailSuggestion
+                                line={t('email.suggest', { a: CHIP_MARKERS.a })}
+                                address={step.suggestion}
+                                onPick={() => {
+                                    step.acceptSuggestion()
+                                    inputRef.current?.focus()
+                                }}
+                            />
+                        )
+                    }
                 />
-                {step.suggestion && (
-                    <EmailSuggestion
-                        line={t('email.suggest', { a: CHIP_MARKERS.a })}
-                        address={step.suggestion}
-                        onPick={() => {
-                            step.acceptSuggestion()
-                            inputRef.current?.focus()
-                        }}
-                    />
-                )}
             </form>
         </SetupScreen>
     )
