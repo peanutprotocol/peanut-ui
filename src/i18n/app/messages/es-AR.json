@@ -772,7 +772,7 @@
             "desc": "Una Visa virtual para gastar tu saldo donde se acepte Visa. Ah, y es <pink>rosa</pink>."
         },
         "residence": {
-            "sentence": "Mi país de residencia <nw>es <residence></residence>,</nw> el de nacionalidad <nw>es <nationality></nationality>.</nw>",
+            "sentence": "Mi país de residencia <nw>es <residence></residence>,</nw> <nw>el de nacionalidad</nw> <nw>es <nationality></nationality>.</nw>",
             "choose": "Elegir",
             "sheetResidence": "¿Dónde vivís?",
             "sheetNationality": "¿Cuál es tu nacionalidad?",

@@ -12,7 +12,7 @@ import { useShellDevice } from '@/components/Setup/redesign/shell/useShellDevice
 const STARS: [number, number, number, boolean][] = [
     [150, 128, 30, false],
     [346, 252, 22, false],
-    [30, 290, 20, false],
+    [22, 360, 20, false],
     [236, 104, 26, true],
     [318, 440, 18, false],
     [52, 436, 16, false],
@@ -42,7 +42,9 @@ export function CelebrationArt({ claim }: { claim: boolean }) {
             style={{ transform, transformOrigin: '50% 100%' }}
             data-testid="setup-redesign-art"
         >
-            <MascotStage pose="waving-chill" left={10} top={118} width={370} zIndex={4} />
+            {/* the whistling pose is wider than the cheering one: narrower and centred so the claim-link 1.12x scale keeps both
+                hands on screen, feet where the cheering peanut stood */}
+            <MascotStage pose="waving-chill" left={25} top={146} width={340} zIndex={4} />
             <CoinCharacter
                 coin="usd"
                 left={20}
@@ -56,7 +58,7 @@ export function CelebrationArt({ claim }: { claim: boolean }) {
             />
             <CoinCharacter
                 coin="eur"
-                left={272}
+                left={284}
                 top={128}
                 size={96}
                 rotate={12}
