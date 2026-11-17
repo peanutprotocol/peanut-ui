@@ -23,28 +23,33 @@ import { PasskeyTerms } from './PasskeyTerms'
 import { SETUP_LEAD_CLASS } from '@/components/Setup/redesign/shell/shell.consts'
 
 const NARROW_TITLE = 'max-w-[250px]'
+// The new help screens' longer titles ran under the art at 375 px; the art starts about 220 px in.
+const BESIDE_ART_TITLE = 'max-w-[216px]'
 const LEAD = `${SETUP_LEAD_CLASS} text-pretty`
 
 /** Copy keys under `setupRedesign.passkey` for each full failure screen; `settings` puts Open settings first. */
-type FailureCopy = { title: string; lead: string; steps?: readonly string[]; settings?: boolean }
+type FailureCopy = { title: string; lead: string; steps?: readonly string[]; settings?: boolean; titleClass?: string }
 const FAILURE_COPY: Partial<Record<PasskeyScreenState, FailureCopy>> = {
     'failed-android': { title: 'failedTitle', lead: 'failedLead', steps: ['android1', 'android2', 'android3'] },
     'failed-ios': { title: 'failedTitle', lead: 'failedLead', steps: ['ios1', 'ios2', 'ios3'] },
     'second-cancel': {
         title: 'secondCancelTitle',
+        titleClass: BESIDE_ART_TITLE,
         lead: 'secondCancelLead',
         steps: ['secondCancel1', 'secondCancel2', 'secondCancel3'],
     },
-    'took-too-long': { title: 'tookTooLongTitle', lead: 'tookTooLongLead' },
-    'left-app': { title: 'leftAppTitle', lead: 'leftAppLead' },
+    'took-too-long': { title: 'tookTooLongTitle', lead: 'tookTooLongLead', titleClass: BESIDE_ART_TITLE },
+    'left-app': { title: 'leftAppTitle', lead: 'leftAppLead', titleClass: BESIDE_ART_TITLE },
     'check-screen-lock': {
         title: 'screenLockTitle',
+        titleClass: BESIDE_ART_TITLE,
         lead: 'screenLockLead',
         steps: ['screenLock1', 'screenLock2', 'screenLock3'],
         settings: true,
     },
     'check-no-provider': {
         title: 'noProviderTitle',
+        titleClass: BESIDE_ART_TITLE,
         lead: 'noProviderLead',
         steps: ['noProvider1', 'noProvider2', 'noProvider3'],
         settings: true,
@@ -178,7 +183,7 @@ export function PasskeyScreenView({ passkey }: { passkey: SignupPasskey }) {
             stage: 'compact',
             artBesideTitle: true,
             title: passkeyText(copy.title),
-            titleClassName: NARROW_TITLE,
+            titleClassName: copy.titleClass ?? NARROW_TITLE,
             art: <PasskeyFailureArt state={state} />,
             footer,
         }
