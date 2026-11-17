@@ -432,6 +432,28 @@ describe('passkey failures and collision recovery', () => {
         expect(screen.getByRole('button', { name: 'Claim' })).toBeEnabled()
     })
 
+    it('sends which pre-check failed, so a missing screen lock and a missing provider stay apart', async () => {
+        renderWithIntl(<Harness />)
+        await waitFor(() => expect(mockSupport).toHaveBeenCalledTimes(1))
+        mockSupport.mockImplementation(async () => ({
+            isSupported: false,
+            warning: 'preflight:nativeNoProvider',
+            warningKey: 'nativeNoProvider',
+        }))
+        claim()
+        await waitFor(() =>
+            expect(failedEvents()).toEqual([
+                [
+                    ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED,
+                    expect.objectContaining({
+                        error_name: 'PreflightUnsupported',
+                        preflight_warning: 'nativeNoProvider',
+                    }),
+                ],
+            ])
+        )
+    })
+
     it('falls back to the generic copy when an unsupported device gives no warning', async () => {
         renderWithIntl(<Harness />)
         await waitFor(() => expect(mockSupport).toHaveBeenCalledTimes(1))

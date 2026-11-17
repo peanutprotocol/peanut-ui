@@ -873,7 +873,7 @@
             "what": "<link>¿Qué es una passkey?</link>",
             "busy": "Todavía no pudimos confirmar. Probá de nuevo en un momento.",
             "later": "<link>Confirmar después</link>",
-            "recovery": "{platform, select, android {Tu passkey se guarda en el gestor de contraseñas de tu celular, como Google o Samsung Pass. En un celular nuevo, iniciá sesión con la misma cuenta y la recuperás.} ios {Tu passkey se guarda en iCloud Keychain. En un iPhone nuevo, iniciá sesión con el mismo Apple ID y tu passkey viene con vos.} other {Tu passkey se guarda en tu navegador o gestor de contraseñas. Solo pasa a un dispositivo nuevo si ese gestor la sincroniza.}}"
+            "recovery": "{platform, select, android {Tu passkey se guarda en el gestor de contraseñas de tu celular, como Google o Samsung Pass. Solo pasa a un celular nuevo si ese gestor la sincroniza.} ios {Tu passkey se guarda en iCloud Keychain. Pasa a un iPhone nuevo con el mismo Apple ID si iCloud Keychain está activado.} other {Tu passkey se guarda en tu navegador o gestor de contraseñas. Solo pasa a un dispositivo nuevo si ese gestor la sincroniza.}}"
         },
         "done": {
             "title": "Ya podés verificar tu identidad y agregar dinero.",

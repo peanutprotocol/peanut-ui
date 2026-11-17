@@ -24,7 +24,7 @@ import { SETUP_LEAD_CLASS } from '@/components/Setup/redesign/shell/shell.consts
 
 const NARROW_TITLE = 'max-w-[250px]'
 // The new help screens' longer titles ran under the art at 375 px; the art starts about 220 px in.
-const BESIDE_ART_TITLE = 'max-w-[216px]'
+const BESIDE_ART_TITLE = 'max-w-52'
 const LEAD = `${SETUP_LEAD_CLASS} text-pretty`
 
 /** Copy keys under `setupRedesign.passkey` for each full failure screen; `settings` puts Open settings first. */

@@ -1341,7 +1341,7 @@
             "what": "<link>What’s a passkey?</link>",
             "busy": "We couldn’t confirm yet. Try again in a moment.",
             "later": "<link>Confirm later</link>",
-            "recovery": "{platform, select, android {Your passkey is saved in your phone’s password manager, like Google Password Manager or Samsung Pass. On a new phone, sign in to the same account and your passkey comes with you.} ios {Your passkey is saved in iCloud Keychain. On a new iPhone, sign in with the same Apple ID and your passkey comes with you.} other {Your passkey is saved in your browser or password manager. It moves to a new device only if that password manager syncs it.}}"
+            "recovery": "{platform, select, android {Your passkey is saved in your phone’s password manager, like Google Password Manager or Samsung Pass. It moves to a new phone only if that manager syncs it.} ios {Your passkey is saved in iCloud Keychain. It moves to a new iPhone with the same Apple ID if iCloud Keychain is on.} other {Your passkey is saved in your browser or password manager. It moves to a new device only if that password manager syncs it.}}"
         },
         "done": {
             "title": "You’re ready to verify your identity and add money.",

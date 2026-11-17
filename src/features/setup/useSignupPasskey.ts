@@ -221,8 +221,11 @@ export function useSignupPasskey(username: string) {
             }
             trackError('create_passkey', 'PASSKEY_UNSUPPORTED')
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED, {
+                ...passkeyFailureFields(undefined),
                 device_type: deviceType,
                 error_name: 'PreflightUnsupported',
+                // Tells a missing screen lock from a missing provider and the other pre-check reasons.
+                preflight_warning: support.warningKey ?? undefined,
             })
             return
         }
