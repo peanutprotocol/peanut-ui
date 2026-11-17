@@ -11,9 +11,8 @@ import { longestLabel, useSentenceFit } from './useSentenceFit'
 type Sheet = 'open' | 'no-results' | null
 
 /**
- * The 07 sentence in the white panel, prod's wording (v7: nationality is a legal term): "I'm a resident of [residence]
- * and hold the nationality of [nationality]." with two country pills. Under it the refused-passport callout, or else
- * the screen's helper line when it has one.
+ * The 07 sentence in the white panel: "My residence is in [residence], my nationality is [nationality]." with two country pills,
+ * and the refused-passport callout under it, or else the screen's helper line when it has one.
  */
 export function ResidenceSentence({
     residence,

@@ -1242,7 +1242,7 @@
             "desc": "Um cartão Visa virtual para gastar seu saldo onde a Visa é aceita. Ah, e ele é <pink>rosa</pink>."
         },
         "residence": {
-            "sentence": "Meu país de residência <nw>é <residence></residence></nw> e o de nacionalidade <nw>é <nationality></nationality>.</nw>",
+            "sentence": "Meu país de residência <nw>é <residence></residence>,</nw> <nw>o de nacionalidade</nw> <nw>é <nationality></nationality>.</nw>",
             "choose": "Escolher",
             "sheetResidence": "Onde você mora?",
             "sheetNationality": "Qual é a sua nacionalidade?",
@@ -1268,7 +1268,7 @@
             "sentence": "Primeiro você vai adicionar dinheiro <nw>com <funding></funding></nw><gap></gap>e depois gastar <nw>com <payment></payment></nw>",
             "choose": "Escolher",
             "sheetFunding": "Adicionar dinheiro com",
-            "sheetPayment": "Fazer um pagamento com",
+            "sheetPayment": "Gastar com",
             "fundBank": "Transferência bancária",
             "fundBankCurrencies": "Transferência bancária ({currencies})",
             "fundBankPill": "Banco USD/EUR",
@@ -1286,7 +1286,7 @@
             "payQrAbroad": "Pagamentos QR na Argentina e no Brasil",
             "whyOptions": "Por que essas opções?",
             "whyOptionsTitle": "Por que essas opções",
-            "changeLater": "Você pode mudar isso depois."
+            "changeLater": "Você pode mudar isso depois"
         },
         "email": {
             "title": "O Peanut precisa do seu e-mail.",

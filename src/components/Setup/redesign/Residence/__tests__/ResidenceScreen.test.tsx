@@ -236,15 +236,13 @@ describe('07 Residence: sentence view', () => {
     })
 
     it.each(['en', 'es-AR'] as const)(
-        'v7: the sentence states the nationality as a nationality, in prod’s wording, with no hint line by default (%s)',
+        'P3-14 the sentence reads "My residence is in [X], my nationality is [X]." with no old wording and no hint (%s)',
         (locale) => {
             const view = render({ residenceCountry: 'AR' }, { locale })
             const ar = labelOf('AR', locale)
             const line = screen.getByText(textMatch(sentence(ar, ar, locale)))
             expect(line).toBeInTheDocument()
-            expect(visibleText(line)).toMatch(
-                locale === 'en' ? /resident of .+ nationality of/ : /residencia .+ nacionalidad/
-            )
+            expect(visibleText(line)).not.toMatch(/I live|I’m from|resident\b|nationality of|the same country/i)
             expect(visibleText(view.container)).not.toContain(HINT[locale])
         }
     )
@@ -956,9 +954,6 @@ describe('07 Residence: v7', () => {
             screen.getByText(copy(`${K}.refusedPassport`, { nationality: labelOf('CU'), residence: labelOf('AR') }))
         ).toBeInTheDocument()
         expect(whyLink(view.container)).toBeNull()
-        // the longer v7 sentence leaves the callout no room on a std phone (375x667) unless the stage is compact
-        // (the hero box starts at the compact stage's 120 design px, not the std stage's 150)
-        expect(view.container.querySelector<HTMLElement>('[data-residence-hero-box]')!.style.top).toBe('120px')
     })
 
     it('the country list leads with Argentina and Brazil under "Popular", each listed once; a search drops the header', () => {

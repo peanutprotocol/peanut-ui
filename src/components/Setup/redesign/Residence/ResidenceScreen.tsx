@@ -33,7 +33,7 @@ type Sheet = 'open' | 'no-results' | null
 
 /**
  * Where the hero box starts in the art box (design px): it runs from under the headline to the seam, so dev's
- * ResidenceHero (ruling 5) stands its mascot on the seam. Small phones start lower; the compact stage (the
+ * ResidenceHero (ruling 5) stands its mascot on the seam. Small phones start lower; the compact stage (the 320
  * refused-passport state) is shorter.
  */
 const HERO_TOP = { std: 150, sm: 190, compact: 120 }
@@ -194,9 +194,7 @@ export function ResidenceScreen(_props: StepComponentProps) {
                     : nationality
                       ? 'differ'
                       : 'default'
-    // v7's sentence is a line longer than the redesign's, so the refused callout needs the compact stage on every phone
-    // (at 375x667 the std stage left it below the fold)
-    const stage: SetupStageSize = comparing || refusedPassport ? 'compact' : 'std'
+    const stage: SetupStageSize = comparing || (refusedPassport && device === 'sm') ? 'compact' : 'std'
     const heroTop = stage === 'compact' ? HERO_TOP.compact : HERO_TOP[device]
     const selectButton = (iso2: string) => ({
         label: t('residence.select', { country: labelOf(iso2) }),

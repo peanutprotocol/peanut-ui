@@ -1242,7 +1242,7 @@
             "desc": "A virtual Visa to spend the balance wherever Visa is accepted. Oh, and it’s <pink>pink</pink>."
         },
         "residence": {
-            "sentence": "I’m a resident <nw>of <residence></residence></nw> and hold the nationality <nw>of <nationality></nationality>.</nw>",
+            "sentence": "My residence is <nw>in <residence></residence>,</nw> my nationality <nw>is <nationality></nationality>.</nw>",
             "choose": "Choose",
             "sheetResidence": "Where do you live?",
             "sheetNationality": "What’s your nationality?",
@@ -1268,7 +1268,7 @@
             "sentence": "You’ll first add money <nw>with <funding></funding></nw><gap></gap>then spend <nw>with <payment></payment></nw>",
             "choose": "Choose",
             "sheetFunding": "Add money with",
-            "sheetPayment": "Make a payment with",
+            "sheetPayment": "Spend with",
             "fundBank": "Bank transfer",
             "fundBankCurrencies": "Bank transfer ({currencies})",
             "fundBankPill": "Bank transfer",
@@ -1286,7 +1286,7 @@
             "payQrAbroad": "QR payments in Argentina and Brazil",
             "whyOptions": "Why these options?",
             "whyOptionsTitle": "Why these options",
-            "changeLater": "You can change this later."
+            "changeLater": "You can change this later"
         },
         "email": {
             "title": "Peanut needs an email.",

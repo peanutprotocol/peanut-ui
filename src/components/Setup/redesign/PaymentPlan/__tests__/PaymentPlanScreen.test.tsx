@@ -499,11 +499,10 @@ describe('08 Payment plan', () => {
         }
     )
 
-    it('v7: the spending sheet is prod’s "Make a payment with"; Argentina and Brazil keep the plain QR row', () => {
+    it('v7: Argentina and Brazil residents keep the plain QR row', () => {
         const view = render({ residenceCountry: 'AR' })
         expect(view.open('payment')).toContain(label('payQr'))
-        expect(within(openDialog()!).getByText(label('sheetPayment'))).toBeInTheDocument()
-        expect(label('sheetPayment')).toBe('Make a payment with')
+        expect(view.rows()).not.toContain(label('payQrAbroad'))
     })
 
     it('info-line option b: the line stays; "Why these options?" under Continue holds "Options depend on your residence."', async () => {
