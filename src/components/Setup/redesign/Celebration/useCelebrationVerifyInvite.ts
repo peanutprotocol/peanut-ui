@@ -72,5 +72,7 @@ export function useCelebrationVerifyInvite(signupCompleted: boolean) {
         handleRedirect({ isNewAccount: true })
     }
 
-    return { shown, starting, verify, later, kycFlow, modals: identityCheck.modals }
+    // bank rails closed but the card open: verifying unlocks the card, not bank details (Chip on ui#4138)
+    const cardOnly = restrictions.banking && !restrictions.card
+    return { shown, cardOnly, starting, verify, later, kycFlow, modals: identityCheck.modals }
 }

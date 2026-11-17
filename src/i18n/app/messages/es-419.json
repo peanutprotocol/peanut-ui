@@ -1331,6 +1331,7 @@
         "verifyInvite": {
             "title": "Verificar ahora",
             "sub": "Así desbloqueas tus datos bancarios.",
+            "subCard": "Así desbloqueas tu tarjeta.",
             "stepQuestions": "Algunas preguntas que debemos hacerte",
             "stepPhoto": "Foto de tu documento y selfie",
             "verifyNow": "Verificar ahora · 3 min",

@@ -75,7 +75,7 @@ export function CelebrationScreen() {
                         >
                             <h1 className="text-heading-l text-balance signup-sm:text-heading-s">{tInvite('title')}</h1>
                             <p className="mt-1 text-body-m text-foreground-primary signup-sm:text-body-s">
-                                {tInvite('sub')}
+                                {tInvite(invite.cardOnly ? 'subCard' : 'sub')}
                             </p>
                             <StepTimeline
                                 rows={[

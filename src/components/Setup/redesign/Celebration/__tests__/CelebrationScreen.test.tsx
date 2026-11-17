@@ -371,10 +371,12 @@ describe('12 Celebration: the verify invite (flag signup-verify-invite)', () => 
         expect(captured('signup_verify_invite_shown')).toEqual([])
     })
 
-    it('VI-6 card only (bank rails closed) still gets the invite', () => {
+    it('VI-6 card only (bank rails closed) still gets the invite, promising the card, not bank details', () => {
         mockRestrictions = { banking: true, card: false }
         render()
         expect(verifyNow()).toBeInTheDocument()
+        expect(screen.getByText(copy('setupRedesign.verifyInvite.subCard'))).toBeInTheDocument()
+        expect(screen.queryByText(copy('setupRedesign.verifyInvite.sub'))).toBeNull()
     })
 
     it('VI-7 flag off: the 4.5 s redirect as before', () => {
