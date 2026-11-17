@@ -126,6 +126,7 @@ describe('HomeActionDrawers', () => {
             residenceIso2s: ['BR'],
             activeAccounts: [],
             readyTopUps: [],
+            firstPaymentAt: '2026-01-01T00:00:00Z',
             pixDepositOffered: true,
         })
         renderWithUrl('?drawer=add', undefined, onAvenia)
