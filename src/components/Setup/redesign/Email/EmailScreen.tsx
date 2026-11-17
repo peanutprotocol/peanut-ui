@@ -6,6 +6,8 @@ import { LINK_BUTTON_CLASSES } from '@/components/0_Bruddle/LinkButton'
 import { SetupDocLink } from '@/components/Setup/components/SetupDocsDrawer'
 import type { StepComponentProps } from '@/components/Setup/Setup.types'
 import { SetupScreen } from '@/components/Setup/redesign/shell/SetupScreen'
+import { PasskeySupportLine } from '@/components/Setup/redesign/Passkey/PasskeySupportLine'
+import { useSignupControl } from '@/features/setup/useSignupControl'
 import { EmailArt } from './EmailArt'
 import { EmailField } from './EmailField'
 import { useEmailStep } from './useEmailStep'
@@ -19,6 +21,7 @@ import { SETUP_LEAD_CLASS } from '@/components/Setup/redesign/shell/shell.consts
 export function EmailScreen(_props: StepComponentProps) {
     const t = useTranslations('setupRedesign')
     const tSetup = useTranslations('setup')
+    const { track } = useSignupControl()
     const step = useEmailStep()
     const inputRef = useRef<HTMLInputElement>(null)
     const [beat, setBeat] = useState(0)
@@ -34,7 +37,7 @@ export function EmailScreen(_props: StepComponentProps) {
         step.mode === 'invalid'
             ? t('email.invalid')
             : step.mode === 'taken'
-              ? t('email.taken')
+              ? t(step.takenByDeleted ? 'email.takenDeleted' : 'email.taken')
               : step.mode === 'failed'
                 ? t('email.saveFailed')
                 : step.mode === 'not-ready'
@@ -64,7 +67,11 @@ export function EmailScreen(_props: StepComponentProps) {
                                   inputRef.current?.focus()
                               },
                           },
-                          slot: (
+                          slot: step.takenByDeleted ? (
+                              <span data-testid="setup-redesign-slot">
+                                  <PasskeySupportLine onSupport={() => track('email_deleted_support', 'tap')} />
+                              </span>
+                          ) : (
                               <span data-testid="setup-redesign-slot">
                                   <SetupDocLink
                                       kind="account-recovery"

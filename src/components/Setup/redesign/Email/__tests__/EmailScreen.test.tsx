@@ -220,6 +220,25 @@ describe('09 Email', () => {
         expect(mockNext).not.toHaveBeenCalled()
     })
 
+    it("a deleted account's email says so and offers support, not the recovery link that ends in ACCOUNT_DELETED", async () => {
+        mockUpdateUser.mockResolvedValue({ status: 409, code: 'EMAIL_BELONGS_TO_DELETED_ACCOUNT', error: 'x' })
+        const { container } = render()
+        type('deleted@mail.com')
+        fireEvent.click(continueButton(container))
+        expect(await screen.findByRole('alert')).toHaveTextContent(copyRx('setupRedesign.email.takenDeleted'))
+        expect(setupState(container)).toBe('already-registered')
+        const foot = within(footer(container)!)
+        expect(await foot.findByRole('button', { name: copyRx('setupRedesign.email.useOther') })).toBeEnabled()
+        expect(foot.queryByText(copyRx('setupRedesign.email.recover'))).not.toBeInTheDocument()
+        expect(foot.getByRole('link', { name: /contact support/i })).toHaveAttribute(
+            'href',
+            'https://peanut.me/support'
+        )
+        expect(controls()).toContain('email:error:deleted_account')
+        expect(reportEmailSaveFailure).not.toHaveBeenCalled()
+        expect(mockNext).not.toHaveBeenCalled()
+    })
+
     it('P4-11 the legacy duplicate message is also already-registered', async () => {
         mockUpdateUser.mockResolvedValue({ error: 'This email is already associated with another account' })
         const { container } = render()

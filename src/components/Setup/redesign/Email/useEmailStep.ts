@@ -37,6 +37,8 @@ export function useEmailStep() {
     const { handleNext } = useSetupFlow()
     const [email, setEmail] = useState(notificationEmail || user?.user.email || '')
     const [mode, setMode] = useState<EmailMode>('edit')
+    // read only while `taken`: a deleted account keeps its email, and its recovery path ends in ACCOUNT_DELETED
+    const [takenByDeleted, setTakenByDeleted] = useState(false)
     const [saving, setSaving] = useState(false)
     const [keepCurrentEmail, setKeepCurrentEmail] = useState(false)
     const savingRef = useRef(false)
@@ -120,7 +122,9 @@ export function useEmailStep() {
                 }))
                 if (result.error) {
                     const code = 'code' in result ? result.code : undefined
+                    const deletedOwner = code === 'EMAIL_BELONGS_TO_DELETED_ACCOUNT'
                     const duplicate =
+                        deletedOwner ||
                         code === 'EMAIL_IN_USE' ||
                         result.error === 'This email is already associated with another account'
                     const protectedFailure =
@@ -155,8 +159,12 @@ export function useEmailStep() {
                         trackError('email', protectedFailure)
                         return
                     }
+                    setTakenByDeleted(deletedOwner)
                     setMode(duplicate ? 'taken' : 'failed')
-                    trackError('email', duplicate ? 'already_registered' : 'save_failed')
+                    trackError(
+                        'email',
+                        deletedOwner ? 'deleted_account' : duplicate ? 'already_registered' : 'save_failed'
+                    )
                     return
                 }
                 // Profile and KYC read this shared account cache. Reflect the acknowledged write even if the
@@ -180,5 +188,18 @@ export function useEmailStep() {
         }
     }
 
-    return { email, mode, state, valid, saving, keepCurrentEmail, canContinue, change, blur, chooseAnother, save }
+    return {
+        email,
+        mode,
+        state,
+        valid,
+        saving,
+        keepCurrentEmail,
+        takenByDeleted,
+        canContinue,
+        change,
+        blur,
+        chooseAnother,
+        save,
+    }
 }
