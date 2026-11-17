@@ -212,10 +212,23 @@ export interface CapabilityRestriction {
  * Which provider serves an operation on a method for this user, and what the
  * user's step is there (api `routing/route-for.ts`). The backend picks the
  * provider; the app mounts that provider's screens and decides nothing.
- * Typed from the generated contract.
+ * Typed from the generated contract, plus `terms` until the generated contract carries it.
  */
 export type CapabilityRoute =
-    paths['/users/capabilities']['get']['responses'][200]['content']['application/json']['capabilities']['routes'][number]
+    paths['/users/capabilities']['get']['responses'][200]['content']['application/json']['capabilities']['routes'][number] & {
+        /**
+         * The route's provider has terms this user has not accepted, whatever the route's `state`
+         * (TASK-25073): `key` is the step POST /users/kyc/accept-terms takes, `url` the document.
+         * Absent once accepted, and for a provider without terms.
+         */
+        terms?: RouteTerms
+    }
+
+/** A provider's terms the user accepts once, before its first use (`accept-tos:<provider>`). */
+export interface RouteTerms {
+    key: string
+    url: string
+}
 
 /** The block embedded in /get-user (top-level) and returned by GET /users/capabilities. */
 export interface UserCapabilities {
