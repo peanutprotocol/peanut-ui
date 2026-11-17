@@ -4825,7 +4825,7 @@
         "easterEggImageAlt": "Easter egg illustration",
         "reConsent": {
             "reassurance": "Nothing changes about your fees, your funds, or how we handle your data.",
-            "whatChanged": "We've rewritten the documents below in plain language so they match what Peanut is today, including the Peanut Card and Rewards. There's no rush, read them whenever, and keep using Peanut as usual.",
+            "whatChanged": "We've updated the documents below. The main changes: Pix in Brazil now runs through our partner Avenia, and the Privacy Policy now describes session recordings and names more of the service providers we use. There's no rush, read them whenever, and keep using Peanut as usual.",
             "title": "A small update to our terms",
             "acceptLabel": "I accept the updated documents",
             "acceptCta": "Accept & continue",
