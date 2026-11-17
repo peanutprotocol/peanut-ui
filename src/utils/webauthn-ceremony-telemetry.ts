@@ -82,7 +82,7 @@ export type CeremonyRecord = {
 
 type Phase = 'options' | 'native' | 'verify'
 /** How an Android passkey ceremony timed out; CeremonyTimeoutError in passkeyCeremony.utils defines each value. */
-export type CeremonyTimeoutOutcome = 'sheet_hung' | 'left_app'
+export type CeremonyTimeoutOutcome = 'sheet_hung' | 'left_app' | 'network_hung'
 type CeremonyTimingProperties = {
     attempt_id: string
     options_ms: number | null
