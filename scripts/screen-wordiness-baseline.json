@@ -39,7 +39,7 @@
         "components/Claim/Link/views/BankFlowManager.view.tsx": 480,
         "components/Claim/Link/views/Confirm.bank-claim.view.tsx": 185,
         "components/Kyc/AdditionalVerificationView.tsx": 314,
-        "components/Kyc/InitiateKycModal.tsx": 218,
+        "components/Kyc/InitiateKycModal.tsx": 226,
         "components/Kyc/KycStatusDrawer.tsx": 267,
         "components/Kyc/KycVerificationInProgressModal.tsx": 205,
         "components/Kyc/modals/KycActionRequiredModal.tsx": 78,

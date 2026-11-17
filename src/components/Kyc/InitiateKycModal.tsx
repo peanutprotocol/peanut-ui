@@ -195,7 +195,13 @@ export const InitiateKycModal = ({
         if (isDocumentMissing) return t('initiate.titleIdentityDocumentMissing')
         if (isRestartIdentity) return t('initiate.titleRestartIdentity')
         if (isHostedCheck) return tHome('pendingTasks.verifyTitle')
-        if (isProviderRejection) return t('documentRequest.title')
+        if (isProviderRejection) {
+            if (reasonCode === 'manteca_action_incomplete' || reasonCode === 'manteca_action_expired') {
+                return t('initiate.titleBankSetup')
+            }
+            if (reasonCode === 'manteca_action_correction_required') return t('correction.title')
+            return t('documentRequest.title')
+        }
         return t('processingTitle')
     }
 
@@ -250,13 +256,12 @@ export const InitiateKycModal = ({
             return { text: t('continueVerification'), onClick: onVerify, control: 'continue', icon: 'check-circle' }
         }
         if (isProviderRejection) {
+            const ctaKey = kycActionCtaKey(nextAction, reasonCode)
             return {
-                text: isLoading ? tCommon('loading') : t(kycActionCtaKey(nextAction, reasonCode)),
+                text: isLoading ? tCommon('loading') : t(ctaKey),
                 onClick: onVerify,
                 control: 'continue',
-                icon: kycActionCtaKey(nextAction, reasonCode).startsWith('initiate.ctaAnswerQuestion')
-                    ? undefined
-                    : 'upload-cloud',
+                icon: ctaKey === 'initiate.ctaUploadDocument' ? 'upload-cloud' : undefined,
                 testId: reasonCode === 'requirements_missing' ? 'kyc-supplement-cta' : undefined,
             }
         }
