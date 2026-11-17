@@ -4,8 +4,6 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
-import { LinkButton } from '@/components/0_Bruddle/LinkButton'
-import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
 import { Icon } from '@/components/Global/Icons/Icon'
 import SetupTitleBlock from '@/components/Setup/components/SetupTitleBlock'
 import type {
@@ -37,6 +35,7 @@ import {
 import { isZeroTaxId, taxIdOutcome, taxIdVerdict, useTaxIdChecker } from '../taxIdChecks'
 import { isSentenceField, QuestionFields } from './QuestionFields'
 import { VerifyFooter, VerifyQuestionLayout } from './VerifyLayout'
+import { WhyWeAskSheet } from './WhyWeAskSheet'
 
 const FORM_ERROR_KEYS: Record<AnswerFormError, string> = {
     retry: 'errors.retry',
@@ -117,49 +116,19 @@ export function WhyWeAsk({ steps }: { steps: Array<PaperworkVerificationStepId |
     const t = useTranslations('kyc.paperworkVerification')
     const track = usePaperworkVerificationTrack()
     const control = useKycControl()
-    const [open, setOpen] = useState(false)
     return (
-        <>
-            <LinkButton
-                onClick={() => {
-                    control.track('why', 'open')
-                    setOpen(true)
-                    track(ANALYTICS_EVENTS.KYC_PV_WHY_OPENED, { steps: steps.join('+') })
-                }}
-                data-testid="verify-why"
-            >
-                {t('whyAsk')}
-            </LinkButton>
-            <Drawer
-                open={open}
-                onOpenChange={(next) => {
-                    if (!next) control.track('why', 'dismiss')
-                    setOpen(next)
-                }}
-            >
-                <DrawerContent>
-                    <div className="flex flex-col gap-4 pb-4">
-                        <DrawerTitle>{t('whyTitle')}</DrawerTitle>
-                        {steps.map((step) => (
-                            <p key={step} className="text-body-s text-foreground-secondary">
-                                {t(`why.${step}`)}
-                            </p>
-                        ))}
-                        <p className="text-body-s text-foreground-secondary">{t('whyShared')}</p>
-                        <Button
-                            variant="secondary"
-                            shadowSize="4"
-                            onClick={() => {
-                                control.track('why_got_it', 'tap')
-                                setOpen(false)
-                            }}
-                        >
-                            {t('gotIt')}
-                        </Button>
-                    </div>
-                </DrawerContent>
-            </Drawer>
-        </>
+        <WhyWeAskSheet
+            link={t('whyAsk')}
+            title={t('whyTitle')}
+            reasons={[...steps.map((step) => t(`why.${step}`)), t('whyShared')]}
+            testId="verify-why"
+            onOpen={() => {
+                control.track('why', 'open')
+                track(ANALYTICS_EVENTS.KYC_PV_WHY_OPENED, { steps: steps.join('+') })
+            }}
+            onDismiss={() => control.track('why', 'dismiss')}
+            onGotIt={() => control.track('why_got_it', 'tap')}
+        />
     )
 }
 

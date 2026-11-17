@@ -1151,7 +1151,8 @@
             "cardAmount": "USD 1.200",
             "cta": "Criar conta",
             "loginBtn": "Entrar",
-            "recover": "Precisa recuperar uma conta Peanut?"
+            "recover": "Precisa recuperar uma conta Peanut?",
+            "invitedTitle": "@{username} convidou você para o Peanut."
         },
         "username": {
             "title": "Garanta seu usuário.",
@@ -1240,7 +1241,7 @@
             "desc": "Um cartão Visa virtual para gastar seu saldo onde a Visa é aceita. Ah, e ele é <pink>rosa</pink>."
         },
         "residence": {
-            "sentence": "Meu país de residência <nw>é <residence></residence>,</nw> <nw>o de nacionalidade</nw> <nw>é <nationality></nationality>.</nw>",
+            "sentence": "Meu país de residência <nw>é <residence></residence></nw> e o de nacionalidade <nw>é <nationality></nationality>.</nw>",
             "choose": "Escolher",
             "sheetResidence": "Onde você mora?",
             "sheetNationality": "Qual é a sua nacionalidade?",
@@ -1257,14 +1258,16 @@
             "itemCard": "Peanut Card",
             "itemP2p": "De Peanut para Peanut",
             "select": "Escolher {country}",
-            "compareCurrencyNote": "Transferências em outra moeda exigem uma conta bancária nessa moeda."
+            "compareCurrencyNote": "Transferências em outra moeda exigem uma conta bancária nessa moeda.",
+            "hint": "Toque em um país para mudá-lo.",
+            "popular": "Populares"
         },
         "plan": {
             "title": "Como você vai usar o Peanut?",
             "sentence": "Primeiro você vai adicionar dinheiro <nw>com <funding></funding></nw><gap></gap>e depois gastar <nw>com <payment></payment></nw>",
             "choose": "Escolher",
             "sheetFunding": "Adicionar dinheiro com",
-            "sheetPayment": "Gastar com",
+            "sheetPayment": "Fazer um pagamento com",
             "fundBank": "Transferência bancária",
             "fundBankCurrencies": "Transferência bancária ({currencies})",
             "fundBankPill": "Banco USD/EUR",
@@ -1278,7 +1281,10 @@
             "payCard": "Peanut Card",
             "payPeanut": "Pagar um usuário do Peanut",
             "peanutPill": "Usuário do Peanut",
-            "changeLater": "Você pode mudar isso depois"
+            "hint": "As opções dependem da sua residência.",
+            "payQrAbroad": "Pagamentos QR na Argentina e no Brasil",
+            "whyOptions": "Por que essas opções?",
+            "whyOptionsTitle": "Por que essas opções"
         },
         "email": {
             "title": "O Peanut precisa do seu e-mail.",

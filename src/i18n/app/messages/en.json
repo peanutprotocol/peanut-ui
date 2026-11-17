@@ -1151,7 +1151,8 @@
             "cardAmount": "USD 1,200",
             "cta": "Sign up",
             "loginBtn": "Log in",
-            "recover": "Need to recover a Peanut account?"
+            "recover": "Need to recover a Peanut account?",
+            "invitedTitle": "@{username} invited you to Peanut."
         },
         "username": {
             "title": "Claim a username.",
@@ -1240,7 +1241,7 @@
             "desc": "A virtual Visa to spend the balance wherever Visa is accepted. Oh, and it’s <pink>pink</pink>."
         },
         "residence": {
-            "sentence": "My residence is <nw>in <residence></residence>,</nw> my nationality <nw>is <nationality></nationality>.</nw>",
+            "sentence": "I’m a resident <nw>of <residence></residence></nw> and hold the nationality <nw>of <nationality></nationality>.</nw>",
             "choose": "Choose",
             "sheetResidence": "Where do you live?",
             "sheetNationality": "What’s your nationality?",
@@ -1257,14 +1258,16 @@
             "itemCard": "Peanut Card",
             "itemP2p": "Peanut to Peanut",
             "select": "Select {country}",
-            "compareCurrencyNote": "Transfers in another currency need a bank account in that currency."
+            "compareCurrencyNote": "Transfers in another currency need a bank account in that currency.",
+            "hint": "Tap a country to change it.",
+            "popular": "Popular"
         },
         "plan": {
             "title": "How will you use Peanut?",
             "sentence": "You’ll first add money <nw>with <funding></funding></nw><gap></gap>then spend <nw>with <payment></payment></nw>",
             "choose": "Choose",
             "sheetFunding": "Add money with",
-            "sheetPayment": "Spend with",
+            "sheetPayment": "Make a payment with",
             "fundBank": "Bank transfer",
             "fundBankCurrencies": "Bank transfer ({currencies})",
             "fundBankPill": "Bank transfer",
@@ -1278,7 +1281,10 @@
             "payCard": "Peanut Card",
             "payPeanut": "Pay a Peanut user",
             "peanutPill": "Another Peanut user",
-            "changeLater": "You can change this later"
+            "hint": "Options depend on your residence.",
+            "payQrAbroad": "QR payments in Argentina and Brazil",
+            "whyOptions": "Why these options?",
+            "whyOptionsTitle": "Why these options"
         },
         "email": {
             "title": "Peanut needs an email.",

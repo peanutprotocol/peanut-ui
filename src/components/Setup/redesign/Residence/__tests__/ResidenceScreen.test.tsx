@@ -116,8 +116,8 @@ const OUTCOMES = [
 ]
 
 const K = 'setupRedesign.residence'
-/** dev's old 07 hint (setup.residenceStep.hint), pinned: the key left the catalogs with the old view. */
-const OLD_HINT = { en: 'Tap a country to change it.', 'es-AR': 'Tocá un país para cambiarlo.' } as const
+/** "Tap a country to change it.": on the screen only in info-line option c (TASK-25063, Kush picks). */
+const HINT = { en: copy(`${K}.hint`), 'es-AR': copy(`${K}.hint`, {}, 'es-AR') } as const
 const labelOf = (iso2: string, locale: AppLocale = 'en') =>
     buildResidenceCountryOptions(locale).find((o) => o.value === iso2)!.label
 
@@ -236,14 +236,16 @@ describe('07 Residence: sentence view', () => {
     })
 
     it.each(['en', 'es-AR'] as const)(
-        'P3-14 the sentence reads "My residence is in [X], my nationality is [X]." with no old wording and no hint (%s)',
+        'v7: the sentence states the nationality as a nationality, in prod’s wording, with no hint line by default (%s)',
         (locale) => {
             const view = render({ residenceCountry: 'AR' }, { locale })
             const ar = labelOf('AR', locale)
             const line = screen.getByText(textMatch(sentence(ar, ar, locale)))
             expect(line).toBeInTheDocument()
-            expect(visibleText(line)).not.toMatch(/I live|I’m from|resident\b|nationality of|the same country/i)
-            expect(visibleText(view.container)).not.toContain(OLD_HINT[locale])
+            expect(visibleText(line)).toMatch(
+                locale === 'en' ? /resident of .+ nationality of/ : /residencia .+ nacionalidad/
+            )
+            expect(visibleText(view.container)).not.toContain(HINT[locale])
         }
     )
 
@@ -579,10 +581,10 @@ describe('07 Residence: sentence view', () => {
         )
     })
 
-    it('P3-52 no hint line on 07 in the empty, default or differ state', () => {
+    it('info-line option a (the default): no hint line on 07 in the empty, default or differ state', () => {
         for (const seed of [{}, { residenceCountry: 'AR' }, { residenceCountry: 'AR', nationalityCountry: 'BR' }]) {
             const view = render(seed)
-            expect(visibleText(view.container)).not.toContain(OLD_HINT.en)
+            expect(visibleText(view.container)).not.toContain(HINT.en)
             view.unmount()
         }
     })
@@ -925,5 +927,72 @@ describe('07 Residence: dev cases kept', () => {
             copy(`${K}.itemCard`),
             copy(`${K}.itemP2p`),
         ])
+    })
+})
+
+// ---- v7 (TASK-25063): "Why do we ask?", the Popular countries, the info-line options ----------------------------
+
+describe('07 Residence: v7', () => {
+    const KYC = 'kyc.paperworkVerification'
+    const whyLink = (container: HTMLElement) => within(footer(container)!).queryByTestId('setup-residence-why')
+    const withInfoLine = (option: string) => window.history.replaceState({}, '', `/setup?infoline=${option}`)
+    afterEach(() => window.history.replaceState({}, '', '/'))
+
+    it('"Why do we ask?" under Continue opens the nationality reason; Got it closes it; both are tracked', async () => {
+        const view = render({ residenceCountry: 'AR' })
+        fireEvent.click(whyLink(view.container)!)
+        const sheet = await waitFor(() => openDialog(copyRx(`${KYC}.whyTitle`))!)
+        expect(within(sheet).getByText(copy(`${KYC}.why.nationality`))).toBeInTheDocument()
+        expect(within(sheet).getByText(copy(`${KYC}.whyShared`))).toBeInTheDocument()
+        expect(within(sheet).queryByText(HINT.en)).toBeNull()
+        fireEvent.click(within(sheet).getByRole('button', { name: copy(`${KYC}.gotIt`) }))
+        await waitFor(() => expect(openDialog(copyRx(`${KYC}.whyTitle`))).toBeNull())
+        expect(controls()).toEqual(['why:open', 'why_got_it:tap'])
+    })
+
+    it('a refused passport shows the callout and no "Why do we ask?" link (no room for both)', () => {
+        const view = render({ residenceCountry: 'AR', nationalityCountry: 'CU' })
+        expect(
+            screen.getByText(copy(`${K}.refusedPassport`, { nationality: labelOf('CU'), residence: labelOf('AR') }))
+        ).toBeInTheDocument()
+        expect(whyLink(view.container)).toBeNull()
+    })
+
+    it('the country list leads with Argentina and Brazil under "Popular", each listed once; a search drops the header', () => {
+        const view = render({ residenceCountry: 'PT' })
+        fireEvent.click(view.residencePill())
+        const sheet = openDialog()!
+        const popular = within(sheet)
+            .getByRole('heading', { name: copy(`${K}.popular`) })
+            .closest('section')!
+        expect(
+            within(popular)
+                .getAllByRole('button')
+                .map((row) => row.getAttribute('aria-label'))
+        ).toEqual([labelOf('AR'), labelOf('BR')])
+        expect(within(sheet).getAllByRole('button', { name: labelOf('AR') })).toHaveLength(1)
+        fireEvent.change(within(sheet).getByRole('searchbox'), { target: { value: 'arg' } })
+        expect(within(sheet).queryByRole('heading', { name: copy(`${K}.popular`) })).toBeNull()
+        expect(within(sheet).getByRole('button', { name: labelOf('AR') })).toBeInTheDocument()
+    })
+
+    it('info-line option b: no line on the screen; the sheet also holds "Tap a country to change it."', async () => {
+        withInfoLine('b')
+        const view = render({ residenceCountry: 'AR' })
+        expect(screen.queryByTestId('setup-residence-hint')).toBeNull()
+        fireEvent.click(whyLink(view.container)!)
+        const sheet = await waitFor(() => openDialog(copyRx(`${KYC}.whyTitle`))!)
+        expect(within(sheet).getByText(HINT.en)).toBeInTheDocument()
+        expect(within(sheet).getByText(copy(`${KYC}.why.nationality`))).toBeInTheDocument()
+    })
+
+    it('info-line option c: one line under the sentence holds the hint and the link; the footer has no link', async () => {
+        withInfoLine('c')
+        const view = render({ residenceCountry: 'AR' })
+        const line = await screen.findByTestId('setup-residence-hint')
+        expect(line).toHaveTextContent(HINT.en)
+        expect(within(line).getByTestId('setup-residence-why')).toBeInTheDocument()
+        expect(line.closest('[data-setup-screen="residence"]')).not.toBeNull()
+        expect(whyLink(view.container)).toBeNull()
     })
 })

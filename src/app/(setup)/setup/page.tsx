@@ -3,7 +3,7 @@
 import { useHydrationSnapshot } from '@/utils/native-platform'
 import Loading from '@/components/Global/Loading'
 import { SetupShell } from '@/components/Setup/redesign/shell/SetupShell'
-import { NO_DOT_SCREENS } from '@/components/Setup/redesign/shell/shell.consts'
+import { setupProgress } from '@/components/Setup/redesign/shell/setupProgress'
 import { type ScreenId } from '@/components/Setup/Setup.types'
 import { postRegistrationScreen, useSetupFlow } from '@/hooks/useSetupFlow'
 import { setupCountrySuggestion } from '@/features/setup/country-signals'
@@ -851,8 +851,7 @@ function SetupPageContent() {
 
     if (!step) return null
 
-    const dotSteps = steps.filter((entry) => !NO_DOT_SCREENS.includes(entry.screenId))
-    const dotIndex = dotSteps.indexOf(step)
+    const dots = setupProgress(steps, step.screenId)
     return (
         <SetupShell
             screenId={step.screenId}
@@ -863,7 +862,7 @@ function SetupPageContent() {
             // handler below it steps back when nothing consumed the press.
             onBack={dispatchBackPress}
             direction={direction}
-            progress={signupCompleted || dotIndex < 0 ? null : { index: dotIndex, total: dotSteps.length }}
+            progress={signupCompleted ? null : dots}
         >
             <step.component
                 entryDirection={direction}

@@ -18,11 +18,14 @@ import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { useSetupCountrySignals } from '@/features/setup/useSetupCountrySignals'
 import { useSignupControl } from '@/features/setup/useSignupControl'
 import { useBackHandler } from '@/hooks/useBackHandler'
+import { Icon } from '@/components/Global/Icons/Icon'
+import { useInfoLineOption } from '@/components/Setup/redesign/shell/useInfoLineOption'
 import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { buildResidenceCountryOptions } from '@/utils/residence-options'
 import { ResidenceCompareView } from './ResidenceCompareView'
 import { ResidenceSentence } from './ResidenceSentence'
+import { ResidenceWhyLink } from './ResidenceWhyLink'
 import { useCompareColumns } from './useCompareColumns'
 
 type PartialRestriction = 'card' | 'banking'
@@ -60,6 +63,7 @@ export function ResidenceScreen(_props: StepComponentProps) {
     const [view, setView] = useState<'sentence' | 'compare'>('sentence')
     const [residenceSheet, setResidenceSheet] = useState<Sheet>(null)
     const [nationalitySheet, setNationalitySheet] = useState<Sheet>(null)
+    const infoLine = useInfoLineOption()
 
     // The confirmed residence: the payment plan reads it from the context, so the step advances once it is there.
     const [confirmedPrimary, setConfirmedPrimary] = useState<string | null>(null)
@@ -200,6 +204,21 @@ export function ResidenceScreen(_props: StepComponentProps) {
         testId: `setup-residence-select-${iso2}`,
     })
 
+    // The refused-passport callout takes the helper's place, and leaves no room for the link (v7 resrestricted).
+    const whyLink = refusedPassport ? null : <ResidenceWhyLink withHint={infoLine === 'b'} />
+    // TEMPORARY (TASK-25063): option c merges the hint and the link into one line; a and b show no line on the screen.
+    const helper =
+        infoLine === 'c' ? (
+            <p
+                className="mt-3 flex flex-wrap items-center gap-x-2 text-body-s leading-5 text-foreground-secondary signup-sm:mt-1.5"
+                data-testid="setup-residence-hint"
+            >
+                <Icon name="info" size={16} className="shrink-0" />
+                {t('residence.hint')}
+                {whyLink}
+            </p>
+        ) : null
+
     if (comparing)
         return (
             <SetupScreen
@@ -240,6 +259,7 @@ export function ResidenceScreen(_props: StepComponentProps) {
                     loading: advancing,
                     testId: 'setup-residence-continue',
                 },
+                slot: infoLine === 'c' ? undefined : (whyLink ?? undefined),
             }}
         >
             <ResidenceSentence
@@ -255,6 +275,7 @@ export function ResidenceScreen(_props: StepComponentProps) {
                 onNationality={setNationalityCountry}
                 onResidenceSheet={setResidenceSheet}
                 onNationalitySheet={setNationalitySheet}
+                helper={helper}
             />
         </SetupScreen>
     )
