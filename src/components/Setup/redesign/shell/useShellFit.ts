@@ -28,6 +28,11 @@ const isTextEntry = (el: Element | null): el is HTMLElement => {
 }
 
 const visibleHeight = () => Math.round(window.visualViewport?.height ?? window.innerHeight)
+/**
+ * Only a touch device or a phone-width window has an on-screen keyboard. A desktop window made shorter while a field
+ * has focus is not a keyboard and must not fold the stage.
+ */
+const KEYBOARD_DEVICE_QUERY = '(pointer: coarse), (max-width: 767px)'
 
 /** The field and the line that describes it (help, error) stay inside the panel's visible box. */
 export function revealInPanel(field: HTMLElement) {
@@ -126,7 +131,11 @@ export function useShellFit({
         const height = visibleHeight()
         if (tallest.current.width !== width || height > tallest.current.height) tallest.current = { width, height }
         const field = document.activeElement
-        const open = isTextEntry(field) && shell.contains(field) && height < tallest.current.height - KEYBOARD_MIN_PX
+        const open =
+            isTextEntry(field) &&
+            shell.contains(field) &&
+            height < tallest.current.height - KEYBOARD_MIN_PX &&
+            window.matchMedia(KEYBOARD_DEVICE_QUERY).matches
         const changed = open !== keyboard.current
         keyboard.current = open
         if (open) {
