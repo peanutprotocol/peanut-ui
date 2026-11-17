@@ -1327,8 +1327,7 @@
             "claimTitle": "¡Todo listo!",
             "claimSub": "Tu cuenta de Peanut ya está creada.",
             "claimGoing": "Te llevamos de vuelta a tu enlace…",
-            "verifyNow": "Verificar ahora (~3 min)",
-            "later": "Más tarde"
+            "verifyNow": "Verificar ahora (~3 min)"
         }
     },
     "loadingStates": {

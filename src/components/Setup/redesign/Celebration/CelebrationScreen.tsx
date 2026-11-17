@@ -21,6 +21,7 @@ import { useCelebrationVerifyInvite } from './useCelebrationVerifyInvite'
  */
 export function CelebrationScreen() {
     const t = useTranslations('setupRedesign.done')
+    const tKycSetup = useTranslations('kyc.setup')
     const { signupCompleted, signupEntryFlow, username: draftUsername } = useSetupFlowContext()
     const { user } = useAuth()
     const invite = useCelebrationVerifyInvite(signupCompleted)
@@ -53,7 +54,7 @@ export function CelebrationScreen() {
                               },
                               slot: (
                                   <LinkButton onClick={invite.later} disabled={invite.starting}>
-                                      {t('later')}
+                                      {tKycSetup('later')}
                                   </LinkButton>
                               ),
                           }

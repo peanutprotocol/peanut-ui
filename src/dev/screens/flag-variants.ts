@@ -11,6 +11,8 @@ export const FLAG_VARIANTS: ReadonlyArray<{ base: string; flag: string; value: F
     { base: '07-d-notification-settings', flag: 'signup-notification-switches', value: 'defaults_on' },
     // The checklist's first-payment row drops the card and offers only QR.
     { base: 'fixture-home-verify-processing', flag: 'card-promotion-disabled', value: true },
+    // The celebration ends on Verify now and a Later link instead of the redirect.
+    { base: '07-e-setup-celebration', flag: 'signup-verify-invite', value: true },
 ]
 
 /** Every value each flag can take, and the one captures show when no variant sets it. */
@@ -23,6 +25,7 @@ export const FLAGS: Record<string, { values: ReadonlyArray<FlagValue>; baseline:
     // Read with nonProdBypass, which turns it on in every non-production build.
     'user-interviews-invite': { values: [true, false], baseline: true },
     'signup-rollout-inviter-suggestions': { values: [true, false], baseline: false },
+    'signup-verify-invite': { values: [true, false], baseline: false },
     'signup-notification-switches': { values: ['control', 'switches', 'defaults_on'], baseline: 'control' },
 }
 

@@ -264,7 +264,7 @@ describe('12 Celebration: the verify invite (flag signup-verify-invite)', () => 
     const captured = (event: string) =>
         (posthog.capture as jest.Mock).mock.calls.filter(([name]) => name === event).map(([, props]) => props)
     const verifyNow = () => screen.getByRole('button', { name: copyRx('setupRedesign.done.verifyNow') })
-    const later = () => screen.getByRole('button', { name: copyRx('setupRedesign.done.later') })
+    const later = () => screen.getByRole('button', { name: copyRx('kyc.setup.later') })
 
     beforeEach(() => {
         mockInviteFlag = true
