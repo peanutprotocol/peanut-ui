@@ -7,6 +7,30 @@ import {
 } from '../../src/constants/residence.consts'
 import { FIXTURES } from '../../src/dev/fixtures/registry'
 export const ADAPTER_VERSION = 'synthetic-api-v1'
+
+// A blank, valid PDF: capture only needs the prefetched file to settle so the
+// receipt actions are ready. Never invoke Next's server-side receipt/API path.
+const receiptPdf = (() => {
+    const objects = [
+        '<< /Type /Catalog /Pages 2 0 R >>',
+        '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+        '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1 1] >>',
+    ]
+    let pdf = '%PDF-1.4\n'
+    const offsets = objects.map((object, index) => {
+        const offset = pdf.length
+        pdf += `${index + 1} 0 obj\n${object}\nendobj\n`
+        return offset
+    })
+    const start = pdf.length
+    pdf += `xref\n0 4\n0000000000 65535 f \n${offsets.map((offset) => `${String(offset).padStart(10, '0')} 00000 n \n`).join('')}`
+    return `${pdf}trailer\n<< /Size 4 /Root 1 0 R >>\nstartxref\n${start}\n%%EOF\n`
+})()
+
+export function isReceiptPdfRequest(url: URL, origin: string): boolean {
+    return url.origin === origin && /^\/receipt\/[^/]+\/pdf$/.test(url.pathname)
+}
+
 export function merge(base: unknown, patch: unknown): unknown {
     if (
         !base ||
@@ -26,6 +50,9 @@ export async function answer(fixture: string, path: string, method: string, body
     if (!state) throw new Error(`Unknown fixture ${fixture}`)
     const key = `${method} ${path.split('?')[0].replace(/\/+$/, '')}`
     if (state.fails?.includes(key)) return Response.json({ error: 'Synthetic failure' }, { status: 500 })
+    const receipt = /^GET \/receipt\/([^/]+)\/pdf$/.exec(key)
+    if (receipt && state.receiptPdfs?.includes(decodeURIComponent(receipt[1])))
+        return new Response(receiptPdf, { headers: { 'content-type': 'application/pdf' } })
     if (key === 'GET /notifications') return Response.json({ items: [], nextCursor: null })
     if (key === 'POST /invites/validate')
         return Response.json({ success: true, attributionResolved: true, onboardingResolved: true, username: 'demo' })
@@ -51,7 +78,20 @@ export async function answer(fixture: string, path: string, method: string, body
             ...(query.has('sourceAmount') ? { netAmount: query.get('sourceAmount') } : {}),
         })
     }
-    const base = await demoRespond(path, { method, body }, { offline: true, strict: true })
+    let base: Response
+    try {
+        base = await demoRespond(path, { method, body }, { offline: true, strict: true })
+    } catch (error) {
+        // A fixture may explicitly declare an endpoint absent from the shared
+        // demo API. Undeclared endpoints must still fail the capture.
+        if (
+            !(error instanceof Error) ||
+            error.message !== `Unmapped capture API: ${key}` ||
+            !Object.hasOwn(state.responses ?? {}, key)
+        )
+            throw error
+        return Response.json(state.responses![key])
+    }
     let data = await base.json()
     if (key === 'GET /users/me') data = merge(data, { user: { activationCelebratedAt: '2026-01-01T00:00:00Z' } })
     return Response.json(state.responses?.[key] === undefined ? data : merge(data, state.responses[key]), {

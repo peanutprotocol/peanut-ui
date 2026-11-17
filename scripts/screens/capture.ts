@@ -6,7 +6,7 @@ import { execFileSync } from 'node:child_process'
 import sharp from 'sharp'
 import { SCREENS } from '../../src/dev/screens/catalogue'
 import { APP_LOCALES, type AppLocale } from '../../src/i18n/app/config'
-import { answer, ADAPTER_VERSION } from './adapter'
+import { answer, ADAPTER_VERSION, isReceiptPdfRequest } from './adapter'
 import { hash, storeAsset, validateCapture, materializeCatalogue } from './core.mjs'
 import { canonicalScope, scopeCapture } from './capture-scope.mjs'
 import { fixtureIdentityFiles } from './capture-impact.mjs'
@@ -329,7 +329,8 @@ async function main() {
                         if (
                             url.hostname === 'api.peanut.me' ||
                             url.hostname === 'api.staging.peanut.me' ||
-                            url.pathname.startsWith('/screen-capture-api/')
+                            url.pathname.startsWith('/screen-capture-api/') ||
+                            isReceiptPdfRequest(url, base.origin)
                         ) {
                             const path = url.pathname.replace(/^\/screen-capture-api/, '') + url.search
                             try {
@@ -341,7 +342,7 @@ async function main() {
                                 )
                                 await route.fulfill({
                                     status: response.status,
-                                    contentType: 'application/json',
+                                    contentType: response.headers.get('content-type') ?? 'application/json',
                                     body: await response.text(),
                                 })
                             } catch {

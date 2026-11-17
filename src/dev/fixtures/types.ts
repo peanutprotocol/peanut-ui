@@ -10,6 +10,8 @@ export type Fixture = {
      * So an empty state is `{ entries: [] }` and a renamed user is one line.
      */
     responses?: Record<string, unknown>
+    /** Receipt IDs whose eagerly prefetched PDF is synthetic during capture. */
+    receiptPdfs?: string[]
     /**
      * Wallet balance in USD, e.g. `'0.17'`. The balance is not an API answer —
      * fixtures ride the demo balance overlay — so a state that depends on it

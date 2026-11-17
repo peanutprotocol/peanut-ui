@@ -202,10 +202,14 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '79-f-choice-direct-send': {
         name: 'Direct send — payment choices',
         path: 'features/payments/shared/components/PaymentMethodActionList.tsx',
+        captureState: ['identity=guest', 'externalWallet=false'],
+        expectSelector: '[data-testid="guest-payment-methods"] [role="button"]',
     },
     '80-f-choice-semantic-request': {
         name: 'Semantic request — payment choices',
         path: 'features/payments/shared/components/PaymentMethodActionList.tsx',
+        captureState: ['identity=guest', 'externalWallet=true'],
+        expectSelector: '[data-testid="guest-payment-methods"] [role="button"]',
     },
     '81-f-choice-request-pot': {
         name: 'Request pot — payment choices',

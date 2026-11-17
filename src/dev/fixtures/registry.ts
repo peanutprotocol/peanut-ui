@@ -1351,7 +1351,11 @@ export const FIXTURES: Record<string, Fixture> = {
     'history-request-paid-external': {
         route: '/history',
         about: 'Activity row for a request paid from an external wallet, named by its address.',
-        responses: { 'GET /users/history': { entries: [REQUEST_PAID_EXTERNAL_ENTRY], hasMore: false } },
+        responses: {
+            'GET /users/history': { entries: [REQUEST_PAID_EXTERNAL_ENTRY], hasMore: false },
+            // The address is the subject of this state, not an ENS identity.
+            'GET /ens/reverse/0x7a3f9c41d2e8b05a6f13c47e92d0ab58e1f491c2': { name: null },
+        },
     },
     // Activity after an in-person card tap (star LP /peanut-card capture).
     'history-card-spend': {
@@ -1674,6 +1678,7 @@ export const FIXTURES: Record<string, Fixture> = {
     'history-request-pot-closed-short': {
         route: '/history?tx=fixture-request-pot-closed-short',
         about: 'The same request closed by the requester with $25.51 unpaid: neutral Closed badge, "not paid".',
+        receiptPdfs: ['fixture-request-pot-closed-short'],
         responses: {
             'GET /users/history': { entries: [CLOSED_SHORT_POT_ENTRY], hasMore: false },
             'GET /history/fixture-request-pot-closed-short': CLOSED_SHORT_POT_ENTRY,
