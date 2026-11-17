@@ -38,19 +38,20 @@ interface UsePullToRefreshOptions {
 
 /**
  * The layouts' pull guard: a pull only starts when both the window and the
- * app scroll container (`#scrollable-content`) sit at the top. The element is
+ * scroll container sit at the top. The element is
  * looked up lazily and cached — DOM queries per touch would be waste.
  */
-export function useShouldPullToRefresh(): () => boolean {
+export function useShouldPullToRefresh(scrollTarget = DEFAULT_REFRESH_TARGET): () => boolean {
     const scrollableContentRef = useRef<Element | null>(null)
     return useCallback(() => {
         if (window.scrollY > 0) return false
-        if (!scrollableContentRef.current?.isConnected) {
-            scrollableContentRef.current = document.querySelector(DEFAULT_REFRESH_TARGET)
+        const previous = scrollableContentRef.current
+        if (!previous?.isConnected || !previous.matches(scrollTarget)) {
+            scrollableContentRef.current = document.querySelector(scrollTarget)
         }
         const scrollableContent = scrollableContentRef.current
         return !scrollableContent || scrollableContent.scrollTop === 0
-    }, [])
+    }, [scrollTarget])
 }
 
 /**

@@ -68,7 +68,7 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
         setSteps(filterSetupStepsForInvite(steps, inviterAccepted || !!invitedBy || !!readInviteCode()))
     }, [setSteps, residenceRestrictions, sellCountry, invitedBy, inviterAccepted])
 
-    usePullToRefresh({ shouldPullToRefresh: useShouldPullToRefresh() })
+    usePullToRefresh({ shouldPullToRefresh: useShouldPullToRefresh('[data-setup-scroll-panel]') })
 
     return (
         <AppShell

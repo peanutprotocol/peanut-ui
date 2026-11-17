@@ -207,6 +207,7 @@ for (const viewport of VIEWPORTS) {
                     ? footer.getByRole('button', { name: 'Sign up', exact: true })
                     : footer.getByRole('button').first()
             await expect(primary, `${id}: signup action`).toBeVisible()
+            if (id === '07-d-notification-settings') await primary.scrollIntoViewIfNeeded()
             await expect(primary).toBeInViewport({ ratio: 1 })
             const layout = await primary.evaluate((button) => {
                 const r = button.getBoundingClientRect()
@@ -227,49 +228,104 @@ for (const viewport of VIEWPORTS) {
     })
 }
 
+const NOTIFICATION_VARIANTS = ['settings', 'switches', 'defaults-on'] as const
+
 for (const viewport of VIEWPORTS) {
-    for (const variant of ['switches', 'defaults-on']) {
-        test(`notification ${variant} keeps both actions reachable at ${viewport.width}x${viewport.height}`, async ({
+    for (const variant of NOTIFICATION_VARIANTS) {
+        test(`notification ${variant} keeps every choice and action reachable at ${viewport.width}x${viewport.height}`, async ({
             page,
         }) => {
             await page.setViewportSize(viewport)
             await prepareSetupSurface(page)
             await openSetupSurface(page, `07-d-notification-${variant}`)
-            const choices = page.getByTestId('setup-notification-choices')
-            await expect(choices.getByRole('switch')).toHaveCount(3)
+            const control = variant === 'settings'
+            const switches = page.getByRole('switch')
+            await expect(switches).toHaveCount(control ? 1 : 3)
             const footer = page.locator('[data-setup-footer]')
             const next = footer.getByRole('button', { name: 'Continue', exact: true })
             const skip = footer.getByRole('button', { name: 'Not now', exact: true })
-            await expect(next).toBeInViewport({ ratio: 1 })
-            await expect(skip).toBeInViewport({ ratio: 1 })
             if (variant === 'switches') {
                 await expect(next).toBeDisabled()
-                await choices.getByRole('switch', { name: 'Important alerts' }).click()
+                await switches.first().click()
             }
-            for (const action of [next, skip]) {
-                await expect(action).toBeEnabled()
-                await expect(action).toBeInViewport({ ratio: 1 })
-                expect(
-                    await action.evaluate((button) => {
-                        const r = button.getBoundingClientRect()
-                        const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
-                        return hit === button || (!!hit && button.contains(hit))
-                    })
-                ).toBe(true)
-            }
-            if (viewport.width === 320) {
-                const top = await next.evaluate((button) => button.getBoundingClientRect().top)
-                const email = choices.getByRole('switch', { name: 'Email updates' })
-                await email.scrollIntoViewIfNeeded()
-                expect(await choices.evaluate((panel) => panel.scrollTop)).toBeGreaterThan(0)
+            if (control) {
+                await expect(skip).toHaveCount(0)
+            } else {
+                const email = page.getByRole('switch', { name: 'Email updates' })
                 const checked = await email.getAttribute('aria-checked')
                 await email.click()
                 await expect(email).toHaveAttribute('aria-checked', checked === 'true' ? 'false' : 'true')
-                expect(await next.evaluate((button) => button.getBoundingClientRect().top)).toBe(top)
+            }
+            for (const action of control ? [next] : [next, skip]) {
+                await action.scrollIntoViewIfNeeded()
+                await expect(action).toBeEnabled()
+                await expect(action).toBeInViewport({ ratio: 1 })
+                await action.click({ trial: true })
+            }
+            for (const toggle of await switches.all()) {
+                await toggle.scrollIntoViewIfNeeded()
+                await expect(toggle).toBeInViewport({ ratio: 1 })
+                await toggle.click({ trial: true })
             }
             expect(await page.evaluate(() => document.scrollingElement!.scrollHeight > innerHeight)).toBe(false)
         })
     }
+}
+
+for (const variant of NOTIFICATION_VARIANTS) {
+    test(`notification ${variant} scrolls the heading, choices and actions together`, async ({ page }) => {
+        await page.setViewportSize({ width: 360, height: 480 })
+        await prepareSetupSurface(page)
+        await openSetupSurface(page, `07-d-notification-${variant}`)
+        await page.addStyleTag({ content: 'html { font-size: 150% !important; }' })
+        const heading = page.getByRole('heading', { level: 1, name: /notifications/i })
+        const hero = page.locator('[data-setup-hero]')
+        const topBar = page.locator('[data-setup-top-bar]')
+        const footer = page.locator('[data-setup-footer]')
+        const lastAction = footer.getByRole('button', { name: variant === 'settings' ? 'Continue' : 'Not now' })
+        const lastSwitch = page.getByRole('switch').last()
+        await expect(heading).toBeInViewport()
+        await expect(lastAction).not.toBeInViewport({ ratio: 1 })
+        const initialHeading = (await heading.boundingBox())!.y
+        const initialSwitch = (await lastSwitch.boundingBox())!.y
+        const initialHero = await hero.boundingBox()
+        const initialTopBar = await topBar.boundingBox()
+
+        await heading.hover()
+        await page.mouse.wheel(0, 240)
+        await expect.poll(async () => (await heading.boundingBox())!.y).toBeLessThan(initialHeading)
+        await lastAction.scrollIntoViewIfNeeded()
+
+        await expect(lastAction).toBeInViewport({ ratio: 1 })
+        const headingShift = (await heading.boundingBox())!.y - initialHeading
+        expect(headingShift).toBeLessThan(0)
+        expect((await lastSwitch.boundingBox())!.y - initialSwitch).toBeCloseTo(headingShift)
+        expect(await hero.boundingBox()).toEqual(initialHero)
+        expect(await topBar.boundingBox()).toEqual(initialTopBar)
+        expect(await page.evaluate(() => window.scrollY)).toBe(0)
+
+        await lastSwitch.scrollIntoViewIfNeeded()
+
+        await expect(lastSwitch).toBeInViewport({ ratio: 1 })
+        expect((await lastSwitch.boundingBox())!.y - initialSwitch).toBeCloseTo(
+            (await heading.boundingBox())!.y - initialHeading
+        )
+    })
+
+    test(`notification ${variant} fits without scrolling on a tall phone`, async ({ page }) => {
+        const viewport = { width: 430, height: 1024 }
+        await page.setViewportSize(viewport)
+        await prepareSetupSurface(page)
+        await openSetupSurface(page, `07-d-notification-${variant}`)
+        const heading = page.getByRole('heading', { level: 1, name: /notifications/i })
+        const footer = page.locator('[data-setup-footer]')
+        await expect(heading).toBeInViewport({ ratio: 1 })
+        await expect(footer).toBeInViewport({ ratio: 1 })
+        for (const toggle of await page.getByRole('switch').all()) {
+            await expect(toggle).toBeInViewport({ ratio: 1 })
+        }
+        expect((await footer.boundingBox())!.y).toBeGreaterThan(viewport.height * 0.75)
+    })
 }
 
 test('desktop keeps the full-height side hero', async ({ page }) => {

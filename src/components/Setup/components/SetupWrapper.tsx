@@ -461,9 +461,8 @@ export const SetupWrapper = memo(function SetupWrapper({
         <div
             className={twMerge(
                 'flex min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] flex-col overflow-x-hidden overflow-y-auto bg-white',
-                // A minimum height alone lets notification choices grow the whole setup page.
-                screenId === 'notification-permission' &&
-                    'max-md:h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))]',
+                // Bound the notification step so the white panel owns scrolling.
+                screenId === 'notification-permission' && 'h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))]',
                 // The first panel rises from below the viewport. Fill the exposed
                 // space with the same blue as the hero, not the page beige.
                 screenId === 'landing' && 'bg-background-setup-hero',
@@ -516,6 +515,7 @@ export const SetupWrapper = memo(function SetupWrapper({
 
                             {/* content section */}
                             <motion.div
+                                data-setup-scroll-panel={screenId === 'notification-permission' ? '' : undefined}
                                 initial={animatePanelIn ? { y: '100%' } : false}
                                 animate={animatePanelIn ? { y: ['100%', 0] } : { y: 0 }}
                                 transition={
@@ -527,14 +527,13 @@ export const SetupWrapper = memo(function SetupWrapper({
                                     // The footer's reserved secondary slot keeps the primary CTA clear of the
                                     // home gesture area, so the panel needs only pb-6 above the safe-area inset.
                                     'flex min-h-0 flex-1 flex-col justify-between overflow-x-hidden overflow-y-auto bg-white px-6 pt-10 pb-6 md:h-dvh compact:pt-6 compact:pb-4 short:pt-4 short:pb-3 tight:pt-3 tight:pb-2',
-
+                                    screenId === 'notification-permission' && 'overscroll-y-contain',
                                     fullScreen && 'md:h-auto md:flex-1'
                                 )}
                             >
                                 <div
                                     className={twMerge(
                                         'flex w-full flex-1 flex-col justify-between md:flex-1',
-                                        screenId === 'notification-permission' && 'min-h-0',
                                         contentClassName,
                                         'gap-8 compact:gap-6 short:gap-4 tight:gap-3',
                                         // signup matches residence: the field sits 24px under the description
@@ -564,8 +563,7 @@ export const SetupWrapper = memo(function SetupWrapper({
                                         className={twMerge(
                                             'mx-auto w-full',
                                             fullScreen ? 'flex flex-1 flex-col md:max-w-md' : 'md:max-w-xs',
-                                            !sunsetLanding && 'flex flex-1 flex-col',
-                                            screenId === 'notification-permission' && 'min-h-0'
+                                            !sunsetLanding && 'flex flex-1 flex-col'
                                         )}
                                     >
                                         <SetupFullScreenContext.Provider value={setFullScreenForScreen}>
