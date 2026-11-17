@@ -286,17 +286,18 @@ describe('12 Celebration: the verify invite (flag signup-verify-invite)', () => 
         ])
     })
 
-    it('VI-8 v7 copy: "Verify now", the bank-details sub and the three steps, account done and questions next', () => {
+    it('VI-8 copy: "Verify now", the bank-details sub and Konrad\'s three steps, the questions first', () => {
         render()
         expect(screen.getByRole('heading', { name: copy('setupRedesign.verifyInvite.title') })).toBeInTheDocument()
         expect(screen.getByText(copy('setupRedesign.verifyInvite.sub'))).toBeInTheDocument()
         const steps = within(screen.getByTestId('setup-redesign-verify-steps')).getAllByRole('listitem')
         expect(steps.map((step) => step.textContent)).toEqual([
-            `${copy('setupRedesign.verifyInvite.stepAccount')} ${copy('kyc.paperworkVerification.steps.done')}`,
-            `2${copy('kyc.paperworkVerification.steps.questions')}`,
-            `3${copy('setupRedesign.verifyInvite.stepPhoto')}`,
+            `1${copy('setupRedesign.verifyInvite.stepQuestions')}`,
+            `2${copy('setupRedesign.verifyInvite.stepPhoto')}`,
+            `3${copy('setupRedesign.verifyInvite.stepReview')}`,
         ])
-        expect(steps[1]).toHaveAttribute('aria-current', 'step')
+        expect(steps[0]).toHaveAttribute('aria-current', 'step')
+        expect(steps[1]).not.toHaveAttribute('aria-current')
         // the old headline and the @username chip give way to the invite
         expect(screen.queryByText(copy('setupRedesign.done.title'))).toBeNull()
         // Remind me later is the tertiary link (design.md: a defer action is never a Button)

@@ -1331,8 +1331,9 @@
         "verifyInvite": {
             "title": "Verificar agora",
             "sub": "Isso libera seus dados bancários.",
-            "stepAccount": "Criar conta",
-            "stepPhoto": "Tirar uma foto do documento e uma selfie",
+            "stepQuestions": "Algumas perguntas que somos obrigados a fazer",
+            "stepPhoto": "Foto do documento e selfie",
+            "stepReview": "Revisar",
             "verifyNow": "Verificar agora · 3 min",
             "remindLater": "Lembrar mais tarde"
         }

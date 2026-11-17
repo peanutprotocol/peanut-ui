@@ -19,7 +19,8 @@ import { useCelebrationVerifyInvite } from './useCelebrationVerifyInvite'
  * account's name, and where the app goes next. It leaves on its own after 4.5 s. A sign-up that started from a
  * claim link says it goes back to the link (`claim-link`); the redirect itself is dev's. Contract P4 § 5.
  * A default sign-up may instead get the verify invite (`verify-invite`, signup v7): the same screen asks it to verify,
- * with the ID check's steps, "Verify now · 3 min" and a "Remind me later" link to Home, and no wait.
+ * with the ID check's three steps (Konrad's wording, addendum 1), "Verify now · 3 min" and a "Remind me later" link
+ * to Home, and no wait.
  */
 export function CelebrationScreen() {
     const t = useTranslations('setupRedesign.done')
@@ -78,9 +79,9 @@ export function CelebrationScreen() {
                             </p>
                             <StepTimeline
                                 rows={[
-                                    { key: 'account', label: tInvite('stepAccount'), state: 'done' },
-                                    { key: 'questions', label: tSteps('questions'), state: 'current' },
+                                    { key: 'questions', label: tInvite('stepQuestions'), state: 'current' },
                                     { key: 'photo', label: tInvite('stepPhoto'), state: 'next' },
+                                    { key: 'review', label: tInvite('stepReview'), state: 'next' },
                                 ]}
                                 doneLabel={tSteps('done')}
                                 dense

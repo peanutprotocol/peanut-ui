@@ -1331,8 +1331,9 @@
         "verifyInvite": {
             "title": "Verificar ahora",
             "sub": "Así desbloqueas tus datos bancarios.",
-            "stepAccount": "Crear cuenta",
-            "stepPhoto": "Tomar una foto de tu documento y una selfie",
+            "stepQuestions": "Algunas preguntas que debemos hacerte",
+            "stepPhoto": "Foto de tu documento y selfie",
+            "stepReview": "Revisar",
             "verifyNow": "Verificar ahora · 3 min",
             "remindLater": "Recordármelo más tarde"
         }
