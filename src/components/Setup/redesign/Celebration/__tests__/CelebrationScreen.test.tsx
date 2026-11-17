@@ -287,7 +287,9 @@ describe('12 Celebration: the verify invite (flag signup-verify-invite)', () => 
     })
 
     it('VI-8 copy: "Verify now", the bank-details sub and the two steps the person acts on, the questions first', () => {
-        render()
+        const { container } = render()
+        // addendum 3: the merged screen keeps dev's whistling peanut
+        expect(container.querySelector('[data-mascot-pose="waving-chill"]')).not.toBeNull()
         expect(screen.getByRole('heading', { name: copy('setupRedesign.verifyInvite.title') })).toBeInTheDocument()
         expect(screen.getByText(copy('setupRedesign.verifyInvite.sub'))).toBeInTheDocument()
         const steps = within(screen.getByTestId('setup-redesign-verify-steps')).getAllByRole('listitem')
