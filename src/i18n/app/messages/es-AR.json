@@ -753,7 +753,7 @@
             "noProvider1": "Abrí Ajustes → Contraseñas, llaves de acceso y cuentas.",
             "noProvider2": "Activá el Gestor de contraseñas de Google con tu cuenta de Google.",
             "noProvider3": "Volvé y tocá Reintentar.",
-            "openSettings": "Abrir ajustes",
+            "openSettings": "Abrir configuración",
             "preflight": {
                 "nativeAndroid": "Las passkeys todavía no están disponibles. Iniciá sesión en una cuenta de Google y actualizá Google Play Services, después probá de nuevo.",
                 "nativeOther": "Las passkeys todavía no están disponibles en este dispositivo. Revisá los ajustes del dispositivo y probá de nuevo.",
