@@ -9,6 +9,8 @@ import { SetupScreen } from '@/components/Setup/redesign/shell/SetupScreen'
 import { EmailArt } from './EmailArt'
 import { EmailField } from './EmailField'
 import { EmailSuggestion } from './EmailSuggestion'
+import { PasskeySupportLine } from '@/components/Setup/redesign/Passkey/PasskeySupportLine'
+import { useSignupControl } from '@/features/setup/useSignupControl'
 import { CHIP_MARKERS } from '@/components/Setup/redesign/Invite/suggestion-line'
 import { useEmailStep } from './useEmailStep'
 import { SETUP_LEAD_CLASS } from '@/components/Setup/redesign/shell/shell.consts'
@@ -22,6 +24,7 @@ export function EmailScreen(_props: StepComponentProps) {
     const t = useTranslations('setupRedesign')
     const tSetup = useTranslations('setup')
     const step = useEmailStep()
+    const { track } = useSignupControl()
     const inputRef = useRef<HTMLInputElement>(null)
     const [beat, setBeat] = useState(0)
     const wasValid = useRef(step.valid)
@@ -67,7 +70,7 @@ export function EmailScreen(_props: StepComponentProps) {
                               onClick: () => void step.logIn(),
                           },
                           slot: (
-                              <span data-testid="setup-redesign-slot">
+                              <span className="flex flex-col items-center gap-2" data-testid="setup-redesign-slot">
                                   <SetupDocLink
                                       kind="account-recovery"
                                       href="/en/help/account-recovery"
@@ -75,6 +78,10 @@ export function EmailScreen(_props: StepComponentProps) {
                                   >
                                       {t('email.recover')}
                                   </SetupDocLink>
+                                  {/* a failed login is no dead end: the passkey may not be synced to this phone */}
+                                  {step.loginFailed && (
+                                      <PasskeySupportLine onSupport={() => track('email_login_support', 'tap')} />
+                                  )}
                               </span>
                           ),
                           // the button keeps the height it has under the note in the other states

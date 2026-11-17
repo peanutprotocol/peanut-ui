@@ -234,15 +234,42 @@ describe('09 Email', () => {
         if (link.tagName === 'A') expect(link.getAttribute('href')).toMatch(/\/help\/account-recovery$/)
         fireEvent.click(link)
         expect(controls()).toContain('account-recovery_doc:open')
+        // support shows only once a login attempt failed
+        expect(screen.queryByRole('link', { name: /contact support/i })).not.toBeInTheDocument()
         mockLogin.mockRejectedValueOnce(Object.assign(new Error('cancelled'), { name: 'NotAllowedError' }))
         fireEvent.click(
             await within(footer(container)!).findByRole('button', { name: copyRx('setupRedesign.email.logIn') })
         )
         await waitFor(() => expect(mockLogin).toHaveBeenCalledTimes(1))
         expect(controls()).toContain('log_in:tap')
+        // a cancel is no dead end either: the old passkey may not be on this phone
+        const support = await within(footer(container)!).findByRole('link', { name: /contact support/i })
+        expect(support).toHaveAttribute('href', 'https://peanut.me/support')
+        expect(within(footer(container)!).getByText(copyRx('setupRedesign.email.recover'))).toBeInTheDocument()
+        fireEvent.click(support)
+        expect(controls()).toContain('email_login_support:tap')
         // the save is not retried and the step does not advance: logging in is the way on
         expect(mockUpdateUser).toHaveBeenCalledTimes(1)
         expect(mockNext).not.toHaveBeenCalled()
+    })
+
+    it('a failed login (no passkey for that account here) keeps recovery and adds support; editing clears it', async () => {
+        mockUpdateUser.mockResolvedValue({ status: 409, code: 'EMAIL_ON_ACTIVE_ACCOUNT', error: 'x' })
+        const { container } = render()
+        type('taken@mail.com')
+        fireEvent.click(continueButton(container))
+        await screen.findByRole('alert')
+        mockLogin.mockRejectedValueOnce(new Error('no credentials available'))
+        fireEvent.click(
+            await within(footer(container)!).findByRole('button', { name: copyRx('setupRedesign.email.logIn') })
+        )
+        expect(await within(footer(container)!).findByRole('link', { name: /contact support/i })).toBeInTheDocument()
+        expect(within(footer(container)!).getByText(copyRx('setupRedesign.email.recover'))).toBeInTheDocument()
+        expect(
+            within(footer(container)!).getByRole('button', { name: copyRx('setupRedesign.email.logIn') })
+        ).toBeEnabled()
+        type('other@mail.com')
+        expect(screen.queryByRole('link', { name: /contact support/i })).not.toBeInTheDocument()
     })
 
     it.each([

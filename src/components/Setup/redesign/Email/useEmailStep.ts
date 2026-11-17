@@ -53,6 +53,8 @@ export function useEmailStep() {
     const [mode, setMode] = useState<EmailMode>('edit')
     const [saving, setSaving] = useState(false)
     const [keepCurrentEmail, setKeepCurrentEmail] = useState(false)
+    // the old account's passkey may not be on this phone: after a failed or cancelled login, offer support too
+    const [loginFailed, setLoginFailed] = useState(false)
     const savingRef = useRef(false)
     const saveAttemptsRef = useRef(0)
     const { track, trackOnce, trackError } = useSignupControl()
@@ -89,6 +91,7 @@ export function useEmailStep() {
         setEmail(value)
         setMode('edit')
         setKeepCurrentEmail(false)
+        setLoginFailed(false)
     }
 
     const blur = () => {
@@ -110,6 +113,7 @@ export function useEmailStep() {
         try {
             await handleLoginClick()
         } catch (error) {
+            setLoginFailed(true)
             if (getPasskeyErrorCode(error) === 'LOGIN_CANCELED') return
             trackError('log_in', getPasskeyErrorCode(error) ?? classifyPasskeyError(error).code)
             const key = getPasskeyErrorSetupKey(error)
@@ -245,6 +249,7 @@ export function useEmailStep() {
         acceptSuggestion,
         logIn,
         isLoggingIn,
+        loginFailed,
         save,
     }
 }
