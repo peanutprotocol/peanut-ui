@@ -42,7 +42,7 @@ describe('initial availability and coarse information', () => {
             scenario.unmount()
         }
     )
-    test('Android last-four match retains exact native add even with Rain and historical signals', async () => {
+    test('Android last-four match hides Add even with Rain and historical signals', async () => {
         const scenario = await walletScenario({
             platform: 'android',
             card: CARD_A,
@@ -52,8 +52,8 @@ describe('initial availability and coarse information', () => {
         })
         await scenario.flush()
         expect(scenario.state()).toMatchObject({
-            action: 'native',
-            added: false,
+            action: 'none',
+            added: true,
             provisioningCalls: 0,
             nativeAddCalls: 0,
         })
@@ -77,12 +77,12 @@ describe('initial availability and coarse information', () => {
         scenario.unmount()
     })
     test.each([undefined, null, [], {}, ['unsupported'], { wallets: 'google' }])(
-        'malformed/missing coarse wallet data %j cannot hide Add',
+        'malformed/missing Rain wallet data %j cannot hide Add after a native suffix miss',
         async (wallets) => {
             const scenario = await walletScenario({
                 platform: 'android',
                 card: CARD_A,
-                availability: COARSE_MATCH,
+                availability: AVAILABLE,
                 rainWallets: wallets as never,
             })
             await scenario.flush()
@@ -112,7 +112,7 @@ describe('initial availability and coarse information', () => {
     )
 })
 
-describe('only active exact-card native outcomes confirm addition', () => {
+describe('current native suffix matches and active exact-card outcomes confirm addition', () => {
     test.each([{ added: true }, { added: false, alreadyInWallet: true }])(
         'Android exact result %j confirms this active card',
         async (outcome) => {
@@ -158,7 +158,7 @@ describe('only active exact-card native outcomes confirm addition', () => {
         expect(scenario.state()).toMatchObject({ action: 'none', added: true, provisioningCalls: 2, nativeAddCalls: 2 })
         scenario.unmount()
     })
-    test('fresh visit after earlier local history still exposes Add', async () => {
+    test('fresh visit hides Add when the native suffix matches independently of local history', async () => {
         const scenario = await walletScenario({
             platform: 'android',
             card: CARD_A,
@@ -166,7 +166,7 @@ describe('only active exact-card native outcomes confirm addition', () => {
             historicalCardIds: [CARD_A.id],
         })
         await scenario.flush()
-        expect(scenario.state()).toMatchObject({ action: 'native', added: false })
+        expect(scenario.state()).toMatchObject({ action: 'none', added: true })
         scenario.unmount()
     })
     test('same-last-four replacement cannot inherit an active-flow exact success', async () => {

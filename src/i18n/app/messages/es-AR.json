@@ -1579,6 +1579,7 @@
         "errorNoResponse": "No hubo respuesta del servidor. Intentalo de nuevo.",
         "errorStartDocVerification": "No pudimos iniciar la verificación de documentos. Intentalo de nuevo.",
         "initiate": {
+            "titleBankSetup": "Terminá de configurar tu cuenta bancaria",
             "titleRestartIdentity": "Verificate con otro documento",
             "titleIdentityDocumentMissing": "Completá tu verificación",
             "descriptionError": "{error} Contactá a soporte para recibir ayuda.",
@@ -2024,6 +2025,7 @@
             "imported_identity_rejected": "Nuestro socio de pagos no pudo verificar el documento de tu verificación anterior. Necesita un documento de identidad oficial vigente y puede pedirte también un comprobante de domicilio. Escribile a soporte y nos encargamos del resto.",
             "card_rejected": "No se pudo aprobar tu solicitud de tarjeta. Escribile a soporte si creés que es un error.",
             "country_not_supported": "Este método necesita un documento de un país compatible. Podés verificarte con otro documento.",
+            "manteca_action_incomplete": "Tu cuenta bancaria todavía no está lista. Completá la breve verificación para depositar y retirar pesos por transferencia.",
             "manteca_action_expired": "La configuración de tu cuenta bancaria venció. Completá la breve verificación para habilitar depósitos y retiros locales.",
             "manteca_action_correction_required": "Corregí la información para verificar tu cuenta bancaria.",
             "tax_id_unresolved": "No pudimos leer el número de identificación fiscal que necesitan los depósitos y retiros locales. Podés verificarte de nuevo para proporcionarlo. Los pagos con QR no se ven afectados.",

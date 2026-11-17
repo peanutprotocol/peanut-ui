@@ -1702,6 +1702,39 @@ const MANTECA_AR_CAPABILITIES = {
     restrictions: [],
 }
 
+/** The ARS bank rail waits on the person's Manteca step (questionnaire and phone check), as the API reports it. */
+const mantecaArStepCapabilities = (code: 'manteca_action_incomplete' | 'manteca_action_expired') => {
+    const userMessage =
+        code === 'manteca_action_incomplete'
+            ? 'Your bank setup is not finished. Complete the short verification to unlock local deposits and withdrawals.'
+            : 'Your bank account setup timed out. Finish the short verification to unlock local deposits and withdrawals.'
+    const nextAction = { key: 'manteca-kyc-action:AR', kind: 'sumsub', purpose: 'unlock-manteca-bank' }
+    return {
+        rails: [
+            {
+                ...MANTECA_AR_CAPABILITIES.rails[0],
+                status: 'requires-info',
+                blockingActions: [nextAction.key],
+                reason: { code, userMessage },
+                resolved: {
+                    status: 'fixable',
+                    blocking: { code, userMessage, selfHealable: true },
+                    nextAction,
+                },
+            },
+        ],
+        nextActions: [nextAction],
+        restrictions: [],
+        features: {
+            local: {
+                state: 'action_required',
+                action: nextAction.key,
+                accounts: { ARS: { state: 'action_required', action: nextAction.key } },
+            },
+        },
+    }
+}
+
 /** A Colombian user: one Bre-B corridor and nothing else. */
 const BRIDGE_CO_CAPABILITIES = {
     rails: [
@@ -2613,6 +2646,30 @@ export const FIXTURES: Record<string, Fixture> = {
                 status: 'PROCESSING',
                 stage: 1,
                 expired: false,
+            },
+        },
+    },
+    // The Manteca step is open (before the 72-hour park): the peso screen offers to continue it.
+    'add-money-argentina-bank-step-unfinished': {
+        route: '/add-money/argentina/manteca?step=inputAmount&currency=ARS',
+        geoCountry: 'AR',
+        about: 'ARS deposit while the Manteca bank step is unfinished: the page offers to continue it.',
+        responses: {
+            'GET /users/me': {
+                residence: { declared: 'AR', verified: 'AR', pending: null, declaredSecond: null },
+                capabilities: mantecaArStepCapabilities('manteca_action_incomplete'),
+            },
+        },
+    },
+    // After the 72-hour park the same page explains the step timed out.
+    'add-money-argentina-bank-step-expired': {
+        route: '/add-money/argentina/manteca?step=inputAmount&currency=ARS',
+        geoCountry: 'AR',
+        about: 'ARS deposit after the Manteca bank step expired: the page offers to restart it.',
+        responses: {
+            'GET /users/me': {
+                residence: { declared: 'AR', verified: 'AR', pending: null, declaredSecond: null },
+                capabilities: mantecaArStepCapabilities('manteca_action_expired'),
             },
         },
     },

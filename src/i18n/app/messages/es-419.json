@@ -3379,6 +3379,7 @@
         "errorNoResponse": "No hubo respuesta del servidor. Inténtalo de nuevo.",
         "errorStartDocVerification": "No pudimos iniciar la verificación de documentos. Inténtalo de nuevo.",
         "initiate": {
+            "titleBankSetup": "Termina de configurar tu cuenta bancaria",
             "titleBlocked": "No pudimos desbloquear esto",
             "titleRestartIdentity": "Verifícate con otro documento",
             "titleIdentityDocumentMissing": "Completa tu verificación",
@@ -4395,6 +4396,7 @@
             "card_needs_review": "Nuestro socio de tarjetas necesita revisar algunos detalles más.",
             "manteca_us_nationality": "Los pagos desde este país no están disponibles para ciudadanos de EE. UU. por el momento.",
             "country_not_supported": "Este medio de pago requiere un documento de un país compatible. Puedes verificarte con otro documento.",
+            "manteca_action_incomplete": "Tu cuenta bancaria todavía no está lista. Completa la breve verificación para depositar y retirar pesos por transferencia.",
             "manteca_action_expired": "La configuración de tu cuenta bancaria venció. Completa la breve verificación para habilitar depósitos y retiros locales.",
             "manteca_action_correction_required": "Corrige la información para verificar tu cuenta bancaria.",
             "tax_id_unresolved": "No pudimos leer el número de identificación fiscal que requieren los depósitos y retiros locales. Puedes verificarte de nuevo para proporcionarlo. Los pagos con QR no se ven afectados.",

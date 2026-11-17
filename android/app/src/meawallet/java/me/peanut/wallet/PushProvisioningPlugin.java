@@ -248,6 +248,7 @@ public class PushProvisioningPlugin extends Plugin {
                     JSObject out = new JSObject();
                     out.put("available", true);
                     out.put("alreadyInWallet", false);
+                    out.put("lookupFailed", true);
                     call.resolve(out);
                 }
             });
@@ -256,6 +257,7 @@ public class PushProvisioningPlugin extends Plugin {
             JSObject out = new JSObject();
             out.put("available", true);
             out.put("alreadyInWallet", false);
+            out.put("lookupFailed", true);
             call.resolve(out);
         }
     }

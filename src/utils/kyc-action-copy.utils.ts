@@ -11,6 +11,10 @@ const QUESTIONNAIRE_LEVELS = new Set([
 ])
 
 export function kycActionCtaKey(action?: NextAction, reasonCode?: string | null) {
+    if (reasonCode === 'manteca_action_incomplete' || reasonCode === 'manteca_action_expired') {
+        return 'continueVerification' as const
+    }
+    if (reasonCode === 'manteca_action_correction_required') return 'correction.correct' as const
     if (action?.kind === 'questions') return 'initiate.ctaAnswerQuestion' as const
     if (reasonCode === 'eea_tin_reupload') return 'initiate.ctaUploadDocument' as const
     const levels = [action?.levelKey, action?.key.split(':').pop(), reasonCode]
