@@ -126,13 +126,14 @@ export function SetupShell({ screenId, children, direction = 0, showBackButton, 
         <SetupShellContext.Provider value={context}>
             <SignupScreenContext.Provider value={screenId}>
                 <div
-                    className="md:flex md:h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] md:flex-row"
+                    // w-full: a flex parent (the surfaces gallery) must not shrink the frame, and with it the shell, to nothing
+                    className="w-full md:flex md:h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] md:flex-row"
                     data-setup-desktop-frame
                 >
                     {desktopHero && (
                         <SetupDesktopHero screenId={screenId} direction={direction} reduced={reducedMotion} />
                     )}
-                    <div className="md:min-w-0 md:flex-1 md:bg-background-default">
+                    <div className="w-full md:min-w-0 md:flex-1 md:bg-background-default">
                         <div
                             ref={shellRef}
                             className={twMerge(

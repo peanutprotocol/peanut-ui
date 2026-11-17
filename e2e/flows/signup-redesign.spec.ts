@@ -1099,22 +1099,26 @@ test.describe('sign-up redesign journeys', () => {
             })
         }
 
-        test('a desktop window made shorter with the field focused is not a keyboard: the stage stays', async ({
-            page,
-            context,
-            baseURL,
-        }) => {
-            await page.setViewportSize({ width: 1440, height: 900 })
-            await openSetup(page, context, baseURL!)
-            await landingToUsername(page, 'en')
-            const field = page.getByRole('textbox', { name: copy('en', 'setupRedesign.username.fieldAria') })
-            await field.focus()
-            await page.setViewportSize({ width: 1440, height: 740 })
-            await page.waitForTimeout(900)
-            const shell = page.locator('[data-setup-shell]')
-            await expect(shell).not.toHaveAttribute('data-keyboard')
-            await expect(shell).not.toHaveAttribute('data-fold')
-            await expect(page.locator('[data-setup-hero]')).toBeVisible()
+        test.describe('on a desktop browser (mouse, no touch)', () => {
+            test.use({ isMobile: false, hasTouch: false, deviceScaleFactor: 1 })
+
+            test('a desktop window made shorter with the field focused is not a keyboard: the stage stays', async ({
+                page,
+                context,
+                baseURL,
+            }) => {
+                await page.setViewportSize({ width: 1440, height: 900 })
+                await openSetup(page, context, baseURL!)
+                await landingToUsername(page, 'en')
+                const field = page.getByRole('textbox', { name: copy('en', 'setupRedesign.username.fieldAria') })
+                await field.focus()
+                await page.setViewportSize({ width: 1440, height: 740 })
+                await page.waitForTimeout(900)
+                const shell = page.locator('[data-setup-shell]')
+                await expect(shell).not.toHaveAttribute('data-keyboard')
+                await expect(shell).not.toHaveAttribute('data-fold')
+                await expect(page.locator('[data-setup-hero]')).toBeVisible()
+            })
         })
 
         test('slow network on the username check: the button stays off until the answer, then turns on', async ({
