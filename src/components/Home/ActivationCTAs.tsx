@@ -12,7 +12,7 @@ import { useRouter } from 'next/navigation'
 import { IconBubble, type IconBubbleColor } from '@/components/0_Bruddle/IconBubble'
 import { useModalsContext } from '@/context/ModalsContext'
 import Card from '../Global/Card'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -26,10 +26,7 @@ import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useProviderRejection } from '@/hooks/useProviderRejection'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
-import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
-import { useQrIdentityCheck } from '@/features/payments/flows/qr-pay/useQrIdentityCheck'
-import { usePaperworkVerificationStart } from '@/features/paperwork-verification/usePaperworkVerificationStart'
-import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
+import { useIdentityCheckStart } from '@/features/paperwork-verification/useIdentityCheckStart'
 import { paperworkVerificationFeaturePath } from '@/features/paperwork-verification/paperworkVerificationEntry'
 
 interface ActivationCTAsProps {
@@ -118,35 +115,8 @@ export default function ActivationCTAs({
     // only showed the regions list, forcing the user to hunt for the Upload-document
     // CTA again). Mirrors the add-money bank flow + the Unlock payments view.
     const kycFlow = useMultiPhaseKycFlow({})
-    const qrIdentityCheck = useQrIdentityCheck()
-
-    // The checklist's Verify row opens the same start modal the bank and
-    // deposit gates use: its outage, region and residence checks run here too.
-    const [showInitiateKyc, setShowInitiateKyc] = useState(false)
-    // Smart Paperwork Verification users go straight to the question screens,
-    // wherever they live: its questions cover every feature the residence opens.
-    const opensPaperworkVerification = usePaperworkVerificationStart()
-    const restrictions = useResidenceRestrictions()
-    const startingRef = useRef(false)
-    const startIdentityCheck = async () => {
-        if (startingRef.current) return
-        startingRef.current = true
-        try {
-            if (await opensPaperworkVerification()) router.push('/verify')
-            // The legacy start is bank-shaped. Where bank rails are closed the
-            // card is the door, and where the card is closed too, QR pay is
-            // (Hugo, 2026-09-26: QR is open to every verified user).
-            else if (!restrictions.banking) setShowInitiateKyc(true)
-            else if (!restrictions.card) router.push('/card')
-            else qrIdentityCheck.start()
-        } finally {
-            startingRef.current = false
-        }
-    }
-    // the SDK takes over the screen; the modal that opened it should not stay behind it
-    useEffect(() => {
-        if (kycFlow.showWrapper) setShowInitiateKyc(false)
-    }, [kycFlow.showWrapper])
+    // The checklist's Verify row: the same start the sign-up Celebration offers.
+    const identityCheck = useIdentityCheckStart(kycFlow)
 
     // Each onboarding step is reported once per session, not on every Home visit.
     const userId = user?.user?.userId
@@ -285,24 +255,11 @@ export default function ActivationCTAs({
                 <GettingStartedChecklist
                     onboarding={onboarding}
                     showWelcome={showWelcome}
-                    onStartIdentityCheck={() => void startIdentityCheck()}
+                    onStartIdentityCheck={() => void identityCheck.start()}
                     signupPaymentChannel={user?.signupPreferences?.paymentChannel}
                 />
-                <InitiateKycModal
-                    cooldownActive={!!kycFlow.errorCooldown}
-                    visible={showInitiateKyc}
-                    onClose={() => setShowInitiateKyc(false)}
-                    // no corridor: the one ID check, the same start the status drawer resumes
-                    onVerify={() => void kycFlow.handleInitiateKyc()}
-                    onContactSupport={() => {
-                        setShowInitiateKyc(false)
-                        openSupportWithMessage(buildContactSupportMessage({ userId: user?.user?.userId }))
-                    }}
-                    isLoading={kycFlow.isLoading}
-                    error={kycFlow.error}
-                />
+                {identityCheck.modals}
                 <SumsubKycModals flow={kycFlow} />
-                {qrIdentityCheck.modals}
             </>
         )
 
