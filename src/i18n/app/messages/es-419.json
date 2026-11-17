@@ -4088,7 +4088,7 @@
                 },
                 "label": {
                     "ssn": "Número de Seguro Social",
-                    "cuit": "CUIT o CUIL",
+                    "cuit": "CUIT, CUIL o DNI",
                     "cpf": "CPF",
                     "rut": "RUT",
                     "curp": "CURP",
@@ -4106,7 +4106,7 @@
                 },
                 "help": {
                     "ssn": "9 dígitos. No se aceptan ITIN.",
-                    "cuit": "11 dígitos, de tu constancia de inscripción.",
+                    "cuit": "11 dígitos para CUIT o CUIL, 7 u 8 para DNI.",
                     "cpf": "11 dígitos.",
                     "rut": "Con el dígito verificador al final.",
                     "curp": "18 caracteres.",
@@ -4395,7 +4395,7 @@
             "identity_document_missing": "Necesitamos un documento de identidad y una selfie para completar tu verificación.",
             "document_country_unsupported": "Esto requiere un documento de identidad emitido por el país donde vives. Verifícate de nuevo con ese documento.",
             "card_unavailable_for_verification": "No disponible con la verificación actual",
-            "local_tax_id_missing": "Necesita un número fiscal: CPF en Brasil, CUIT o CUIL en Argentina",
+            "local_tax_id_missing": "Necesita un número fiscal: CPF en Brasil, CUIT, CUIL o DNI en Argentina",
             "under_minimum_age": "Solo a partir de los 18 años",
             "bridge_processing_slow": "Está tardando más de lo normal. Nuestro socio de pagos todavía está revisando tus datos. Contacta a soporte y lo revisamos.",
             "questions_missing": "Responde una pregunta más para terminar de configurarlo."

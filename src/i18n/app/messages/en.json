@@ -4088,7 +4088,7 @@
                 },
                 "label": {
                     "ssn": "Social Security number",
-                    "cuit": "CUIT or CUIL",
+                    "cuit": "CUIT, CUIL or DNI",
                     "cpf": "CPF",
                     "rut": "RUT",
                     "curp": "CURP",
@@ -4106,7 +4106,7 @@
                 },
                 "help": {
                     "ssn": "9 digits. ITINs aren’t accepted.",
-                    "cuit": "11 digits, from your tax registration.",
+                    "cuit": "11 digits for CUIT or CUIL, 7 or 8 for DNI.",
                     "cpf": "11 digits.",
                     "rut": "With the check digit at the end.",
                     "curp": "18 characters.",
@@ -4395,7 +4395,7 @@
             "identity_document_missing": "We need an identity document and a selfie to complete your verification.",
             "document_country_unsupported": "This needs an ID issued by the country you live in. Verify again with that ID.",
             "card_unavailable_for_verification": "Not available with the current verification",
-            "local_tax_id_missing": "Needs a tax ID: CPF in Brazil, CUIT or CUIL in Argentina",
+            "local_tax_id_missing": "Needs a tax ID: CPF in Brazil, CUIT, CUIL or DNI in Argentina",
             "under_minimum_age": "Only from age 18",
             "bridge_processing_slow": "This is taking longer than usual. Our payment partner is still reviewing your details. Contact support and we'll check on it.",
             "questions_missing": "Answer one more question to finish setting this up."

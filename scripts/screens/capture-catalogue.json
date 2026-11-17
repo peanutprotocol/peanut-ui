@@ -1015,6 +1015,11 @@
         "route": "/verify"
     },
     {
+        "id": "fixture-paperwork-verification-ar-tax",
+        "flow": "Home and shared states",
+        "route": "/verify?step=tax"
+    },
+    {
         "id": "fixture-paperwork-verification-br",
         "flow": "Home and shared states",
         "route": "/verify?step=birth"
