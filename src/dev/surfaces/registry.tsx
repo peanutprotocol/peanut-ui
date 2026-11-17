@@ -1,7 +1,7 @@
 'use client'
 
-import { NotificationSwitches } from '@/components/Setup/Views/Notifications'
-import { SetupCelebrationView } from '@/components/Setup/Views/Success'
+import { NotificationsSwitchesScreen } from '@/components/Setup/redesign/Notifications/NotificationsSwitchesScreen'
+import { CelebrationScreen } from '@/components/Setup/redesign/Celebration/CelebrationScreen'
 import { TestBuildRibbonView } from '@/components/Global/TestBuildRibbon'
 import { API_CONTRACT_STATES } from './api-contract-states'
 import AmountInput from '@/components/Global/AmountInput'
@@ -30,21 +30,19 @@ import type { PixDeposit, PixWithdrawDisplay } from '@/services/pix'
 import { pixDepositQueryKey } from '@/features/pix/pixDepositCode'
 import { useQueryClient } from '@tanstack/react-query'
 import { DEMO_PIX_BR_CODE } from '@/constants/demo-data'
-import { useLocale, useTranslations } from 'next-intl'
+import { useTranslations } from 'next-intl'
 import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
-import { SetupConfirmationView } from '@/components/Setup/Views/SignTestTransaction'
-import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { SetupNotificationsPrompt } from '@/components/Notifications/SetupNotificationsModal'
 import { setupScreenIds, setupSteps } from '@/components/Setup/Setup.consts'
-import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
-import { useSetupStepCopy } from '@/components/Setup/useSetupStepCopy'
+import { SetupShell } from '@/components/Setup/redesign/shell/SetupShell'
+import { NO_DOT_SCREENS } from '@/components/Setup/redesign/shell/shell.consts'
 import type { ScreenId } from '@/components/Setup/Setup.types'
 import type { SetupFundingChannel, SetupPaymentChannel } from '@/features/setup/paymentChannels'
+import type { SignupEntryFlow } from '@/features/setup/signup-analytics'
+import { FinalConfirmScreen } from '@/components/Setup/redesign/FinalConfirm/FinalConfirmScreen'
 
 import { PasskeySetupHelpDrawer } from '@/components/Setup/Views/PasskeySetupHelpDrawer'
 import { LoginRecoveryDrawer } from '@/components/Setup/Views/LoginRecoveryDrawer'
-import { PasskeyProviderUnsupportedDrawer } from '@/components/Setup/Views/PasskeyProviderUnsupportedDrawer'
-import PasskeyInfoDrawer from '@/components/Setup/components/PasskeyInfoDrawer'
 import ConfirmInviteModal from '@/components/Global/ConfirmInviteModal'
 import EarlyUserDrawer from '@/components/Global/EarlyUserDrawer'
 import EasterEggDrawer from '@/components/Global/EasterEggDrawer'
@@ -104,21 +102,17 @@ import RhinoDepositView from '@/components/AddMoney/views/RhinoDeposit.view'
 import { RequestCreatedView } from '@/components/Request/link/views/RequestCreatedView'
 import { BankTransferChooserDrawer } from '@/features/payments/flows/contribute-pot/components/BankTransferChooserDrawer'
 import { MantecaAccountUnavailable } from '@/components/Common/MantecaAccountUnavailable'
-import { ResidenceCompare } from '@/components/Setup/components/ResidenceCompare'
-import { useResidenceRestrictionSetsWithStatus } from '@/hooks/useResidenceRestrictionSets'
-import { buildResidenceCountryOptions } from '@/utils/residence-options'
 
 /**
- * A setup step exactly as /setup renders it — SetupWrapper driven by the step's
- * own entry in Setup.consts, so the hero, clouds, title, back/skip and progress
- * are the app's, not the harness's. Mounting the view bare (which this harness
+ * A setup step exactly as /setup renders it — SetupShell around the step's own
+ * entry in Setup.consts, so the stage, title, back and progress dots are the
+ * app's, not the harness's. Mounting the view bare (which this harness
  * did first) drops all of that and photographs a naked form.
  */
 function SetupScreen({
     screenId,
     children,
     showProgress = true,
-    forceFullScreen = false,
     residenceCountry,
     nationalityCountry,
     username,
@@ -128,7 +122,6 @@ function SetupScreen({
     screenId: ScreenId
     children?: React.ReactNode
     showProgress?: boolean
-    forceFullScreen?: boolean
     residenceCountry?: string
     nationalityCountry?: string
     username?: string
@@ -140,7 +133,6 @@ function SetupScreen({
             <SetupScreenBody
                 screenId={screenId}
                 showProgress={showProgress}
-                forceFullScreen={forceFullScreen}
                 residenceCountry={residenceCountry}
                 nationalityCountry={nationalityCountry}
                 username={username}
@@ -156,7 +148,6 @@ function SetupScreenBody({
     screenId,
     children,
     showProgress = true,
-    forceFullScreen = false,
     residenceCountry,
     nationalityCountry,
     username,
@@ -166,7 +157,6 @@ function SetupScreenBody({
     screenId: ScreenId
     children?: React.ReactNode
     showProgress?: boolean
-    forceFullScreen?: boolean
     residenceCountry?: string
     nationalityCountry?: string
     username?: string
@@ -211,7 +201,6 @@ function SetupScreenBody({
         currentPayment,
     ])
     const step = setupSteps.find((entry) => entry.screenId === screenId)
-    const stepCopy = useSetupStepCopy(step)
     if (
         !step ||
         (residenceCountry && currentResidence !== residenceCountry) ||
@@ -222,22 +211,98 @@ function SetupScreenBody({
     )
         return null
     const View = step.component
+    const dotSteps = setupSteps.filter((entry) => !NO_DOT_SCREENS.includes(entry.screenId))
+    const dotIndex = dotSteps.indexOf(step)
     return (
-        <SetupWrapper
-            fullScreen={forceFullScreen || step.fullScreen}
-            showProgress={showProgress}
-            layoutType={step.layoutType}
+        <SetupShell
             screenId={step.screenId}
-            image={step.image}
-            {...stepCopy}
             showBackButton={step.showBackButton}
-            showSkipButton={step.showSkipButton}
-            imageClassName={step.imageClassName}
-            contentClassName={step.contentClassName}
-            step={setupSteps.indexOf(step)}
+            progress={showProgress && dotIndex >= 0 ? { index: dotIndex, total: dotSteps.length } : null}
         >
             {children ?? <View />}
-        </SetupWrapper>
+        </SetupShell>
+    )
+}
+
+/** What a redesigned sign-up step reads from the flow before it mounts (a username from 02, a residence from 07, …). */
+type RedesignSeed = {
+    username?: string
+    residenceCountry?: string
+    nationalityCountry?: string
+    fundingChannel?: SetupFundingChannel
+    paymentChannel?: SetupPaymentChannel
+    inviteSelection?: string
+    notificationEmail?: string
+    signupCompleted?: boolean
+    signupEntryFlow?: SignupEntryFlow
+}
+
+/**
+ * One redesigned sign-up step for the screen library and the visual gate (mono
+ * _temp/signup-redesign/r2/r9/build/gate): SetupShell around the step's entry in Setup.consts, with the flow
+ * seeded first, so the step renders the state a fixture asks for instead of an empty flow. `finishRoute` is
+ * /setup/finish: the final screen with its "Log out" line.
+ */
+function RedesignStepSurface({
+    screenId,
+    seed = {},
+    finishRoute = false,
+}: {
+    screenId: ScreenId
+    seed?: RedesignSeed
+    finishRoute?: boolean
+}) {
+    return (
+        <SetupFlowProvider masterScreenIds={setupScreenIds}>
+            <RedesignStepBody screenId={screenId} seed={seed} finishRoute={finishRoute} />
+        </SetupFlowProvider>
+    )
+}
+function RedesignStepBody({
+    screenId,
+    seed,
+    finishRoute,
+}: {
+    screenId: ScreenId
+    seed: RedesignSeed
+    finishRoute: boolean
+}) {
+    const flow = useSetupFlowContext()
+    const [seeded, setSeeded] = useState(false)
+    // Seed once, before the first paint of the step: a step that reads an empty flow on mount (02's check, 07's
+    // prefill) would otherwise start from the wrong state.
+    React.useLayoutEffect(() => {
+        if (seeded) return
+        flow.setSteps(setupSteps)
+        if (seed.username) flow.setUsername(seed.username)
+        if (seed.residenceCountry) flow.setResidenceCountry(seed.residenceCountry)
+        if (seed.nationalityCountry) flow.setNationalityCountry(seed.nationalityCountry)
+        if (seed.fundingChannel) flow.setFundingChannel(seed.fundingChannel)
+        if (seed.paymentChannel) flow.setPaymentChannel(seed.paymentChannel)
+        if (seed.inviteSelection) flow.setInviteSelection(seed.inviteSelection)
+        if (seed.notificationEmail) flow.setNotificationEmail(seed.notificationEmail)
+        if (seed.signupEntryFlow) flow.setSignupEntryFlow(seed.signupEntryFlow)
+        if (seed.signupCompleted) flow.setSignupCompleted(true)
+        setSeeded(true)
+    }, [flow, seed, seeded])
+    const step = setupSteps.find((entry) => entry.screenId === screenId)
+    if (!seeded || !step) return null
+    const View = step.component
+    const dotSteps = setupSteps.filter((entry) => !NO_DOT_SCREENS.includes(entry.screenId))
+    const dotIndex = dotSteps.indexOf(step)
+    return (
+        <SetupShell
+            screenId={finishRoute ? 'sign-test-transaction' : step.screenId}
+            showBackButton={step.showBackButton && !finishRoute}
+            progress={
+                dotIndex >= 0 && !seed.signupCompleted && !finishRoute
+                    ? { index: dotIndex, total: dotSteps.length }
+                    : null
+            }
+        >
+            {/* as /setup passes it: without it 11 treats the demo account as a log-in and leaves for /home */}
+            {finishRoute ? <FinalConfirmScreen showLogout /> : <View onComplete={noop} />}
+        </SetupShell>
     )
 }
 
@@ -251,38 +316,13 @@ const FUNDED_CARD_ONBOARDING: OnboardingState = {
 }
 const noop = () => {}
 
-/** The final step after repeated network failures: retry copy and the "confirm later" link. */
-function NetworkBusyConfirmation() {
-    const t = useTranslations('setup')
-    const tCommon = useTranslations('common')
-    return (
-        <SetupConfirmationView
-            merged
-            onConfirm={noop}
-            buttonText={tCommon('tryAgain')}
-            error={t('testTransaction.errors.networkBusy')}
-            errorDetail={t('testTransaction.finishLaterDescription')}
-            secondary={<LinkButton onClick={noop}>{t('testTransaction.finishLater')}</LinkButton>}
-        />
-    )
+/** 12 needs a completed sign-up in the flow context; it then redirects on its own after 4.5 s, as on /setup. */
+function CompletedCelebration() {
+    const { setSignupCompleted } = useSetupFlowContext()
+    React.useLayoutEffect(() => setSignupCompleted(true), [setSignupCompleted])
+    return <CelebrationScreen />
 }
 
-/** The residence step's comparison, as its Next opens it when the nationality differs. */
-function ResidenceCompareSurface({ residence, nationality }: { residence: string; nationality: string }) {
-    const locale = useLocale()
-    const options = React.useMemo(() => buildResidenceCountryOptions(locale), [locale])
-    const { sets } = useResidenceRestrictionSetsWithStatus()
-    return (
-        <ResidenceCompare
-            residence={residence}
-            nationality={nationality}
-            labelOf={(iso2) => options.find((option) => option.value === iso2)?.label ?? iso2}
-            restrictionSets={sets}
-            busy={false}
-            onChoose={noop}
-        />
-    )
-}
 const asyncNoop = async () => {}
 
 /**
@@ -561,7 +601,7 @@ import { RejectLabelsList } from '@/components/Kyc/RejectLabelsList'
 import { KycActionRequired } from '@/components/Kyc/states/KycActionRequired'
 import RateUnavailable from '@/components/Global/RateUnavailable'
 import LimitsWarningCard from '@/features/limits/components/LimitsWarningCard'
-import { SURFACE_META, type SurfaceMeta } from './list'
+import { SETUP_REDESIGN_SURFACES, SURFACE_META, type SurfaceMeta } from './list'
 import { PasskeyHelpA, PasskeyHelpB, PasskeyHelpC, PasskeyHelpD } from './options/PasskeyHelpOptions'
 
 export type Surface = SurfaceMeta & {
@@ -767,34 +807,32 @@ export const SURFACES: Record<string, Surface> = {
     },
     '03-b-residence-compare': {
         ...SURFACE_META['03-b-residence-compare'],
+        // as on /setup: 07 with two countries, then its Continue opens the comparison (shotClickTestId)
         render: () => (
-            <SetupScreen screenId="residence" residenceCountry="PT" nationalityCountry="BR">
-                <ResidenceCompareSurface residence="PT" nationality="BR" />
-            </SetupScreen>
+            <RedesignStepSurface screenId="residence" seed={{ residenceCountry: 'PT', nationalityCountry: 'BR' }} />
         ),
     },
 
     '05-a-signtesttransaction': {
         ...SURFACE_META['05-a-signtesttransaction'],
-        render: () => (
-            <SetupScreen screenId="advantage-control">
-                <SetupConfirmationView merged onConfirm={noop} />
-            </SetupScreen>
-        ),
+        // /setup/finish: 11 with its "Log out" line
+        render: () => <RedesignStepSurface screenId="advantage-control" finishRoute />,
     },
     '05-b-signtesttransaction-network-busy': {
         ...SURFACE_META['05-b-signtesttransaction-network-busy'],
         render: () => (
-            <SetupScreen screenId="advantage-control">
-                <NetworkBusyConfirmation />
-            </SetupScreen>
+            // the busy state needs a failing test transaction, which the harness cannot fake: shows 11's default
+            <RedesignStepSurface screenId="advantage-control" finishRoute />
         ),
     },
     '06-b-invite': {
         ...SURFACE_META['06-b-invite'],
         render: () => <SetupScreen screenId="invite" />,
     },
-    '06-a-signup': { name: 'Signup', path: 'Setup/Views/Signup.tsx', render: () => <SetupScreen screenId="signup" /> },
+    '06-a-signup': {
+        ...SURFACE_META['06-a-signup'],
+        render: () => <SetupScreen screenId="signup" />,
+    },
     '06-c-passkey': {
         ...SURFACE_META['06-c-passkey'],
         render: () => (
@@ -829,7 +867,7 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['07-d-notification-switches'],
         render: () => (
             <SetupScreen screenId="notification-permission">
-                <NotificationSwitches variant="switches" />
+                <NotificationsSwitchesScreen variant="switches" />
             </SetupScreen>
         ),
     },
@@ -837,25 +875,21 @@ export const SURFACES: Record<string, Surface> = {
         ...SURFACE_META['07-d-notification-defaults-on'],
         render: () => (
             <SetupScreen screenId="notification-permission">
-                <NotificationSwitches variant="defaults_on" />
+                <NotificationsSwitchesScreen variant="defaults_on" />
             </SetupScreen>
         ),
     },
     '07-e-setup-celebration': {
         ...SURFACE_META['07-e-setup-celebration'],
         render: () => (
-            <SetupScreen screenId="advantage-control" showProgress={false} forceFullScreen>
-                <SetupCelebrationView />
+            <SetupScreen screenId="advantage-control" showProgress={false}>
+                <CompletedCelebration />
             </SetupScreen>
         ),
     },
     '07-b-advantage-control': {
         ...SURFACE_META['07-b-advantage-control'],
-        render: () => (
-            <SetupScreen screenId="advantage-control">
-                <SetupConfirmationView merged onConfirm={noop} />
-            </SetupScreen>
-        ),
+        render: () => <RedesignStepSurface screenId="advantage-control" seed={{ username: 'luckyotter' }} />,
     },
     '08-a-passkeysetuphelpmodal': {
         ...SURFACE_META['08-a-passkeysetuphelpmodal'],
@@ -885,37 +919,6 @@ export const SURFACES: Record<string, Surface> = {
     '08-c-loginrecoverydrawer-web': {
         ...SURFACE_META['08-c-loginrecoverydrawer-web'],
         render: () => <LoginRecoveryDrawer visible onClose={noop} onRetry={noop} onSupport={noop} platform="web" />,
-    },
-    '08-d-passkeyproviderunsupporteddrawer': {
-        ...SURFACE_META['08-d-passkeyproviderunsupporteddrawer'],
-        render: () => (
-            <PasskeyProviderUnsupportedDrawer
-                visible
-                platform="android-app"
-                onClose={noop}
-                onRetry={noop}
-                onSignUpInBrowser={noop}
-                onSupport={noop}
-            />
-        ),
-    },
-    '08-f-passkeyproviderunsupporteddrawer-other': {
-        ...SURFACE_META['08-f-passkeyproviderunsupporteddrawer-other'],
-        render: () => (
-            <PasskeyProviderUnsupportedDrawer
-                visible
-                platform="other"
-                onClose={noop}
-                onRetry={noop}
-                onSignUpInBrowser={noop}
-                onSupport={noop}
-            />
-        ),
-    },
-    '09-a-passkeyinfomodal': {
-        name: 'PasskeyInfoDrawer',
-        path: 'Setup/components/PasskeyInfoDrawer.tsx',
-        render: () => <PasskeyInfoDrawer visible onClose={noop} />,
     },
     '10-a-confirminvitemodal': {
         ...SURFACE_META['10-a-confirminvitemodal'],
@@ -1722,6 +1725,133 @@ export const SURFACES: Record<string, Surface> = {
         name: 'Backup FAQ — export keys',
         path: 'Profile/BackupFaqDrawers.tsx',
         render: () => <BackupFaqDrawers active="export-keys" onClose={noop} platform="ios" />,
+    },
+    // The redesigned sign-up (TASK-25016), one surface per step and seed. Fixtures `setup-redesign-<screen>--<state>`
+    // open these with the API answers for each contract state; the visual gate drives the rest.
+    'setup-redesign-landing': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-landing'],
+        render: () => <RedesignStepSurface screenId="landing" />,
+    },
+    'setup-redesign-username': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-username'],
+        render: () => <RedesignStepSurface screenId="signup" />,
+    },
+    'setup-redesign-username-return': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-username-return'],
+        render: () => <RedesignStepSurface screenId="signup" seed={{ username: 'luckyotter' }} />,
+    },
+    'setup-redesign-passkey': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-passkey'],
+        render: () => (
+            <RedesignStepSurface
+                screenId="passkey"
+                seed={{
+                    username: 'luckyotter',
+                    residenceCountry: 'AR',
+                    nationalityCountry: 'AR',
+                    fundingChannel: 'bank',
+                    paymentChannel: 'qr',
+                }}
+            />
+        ),
+    },
+    'setup-redesign-invite': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-invite'],
+        render: () => <RedesignStepSurface screenId="invite" seed={{ username: 'luckyotter' }} />,
+    },
+    'setup-redesign-invite-found': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-invite-found'],
+        render: () => (
+            <RedesignStepSurface screenId="invite" seed={{ username: 'luckyotter', inviteSelection: 'fulano' }} />
+        ),
+    },
+    'setup-redesign-accounts': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-accounts'],
+        render: () => <RedesignStepSurface screenId="advantage-fees" />,
+    },
+    'setup-redesign-card': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-card'],
+        render: () => <RedesignStepSurface screenId="advantage-card" />,
+    },
+    'setup-redesign-residence': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-residence'],
+        render: () => <RedesignStepSurface screenId="residence" seed={{ residenceCountry: 'AR' }} />,
+    },
+    'setup-redesign-residence-empty': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-residence-empty'],
+        render: () => <RedesignStepSurface screenId="residence" />,
+    },
+    'setup-redesign-residence-differ': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-residence-differ'],
+        render: () => (
+            <RedesignStepSurface screenId="residence" seed={{ residenceCountry: 'PT', nationalityCountry: 'BR' }} />
+        ),
+    },
+    'setup-redesign-residence-refused': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-residence-refused'],
+        render: () => (
+            <RedesignStepSurface screenId="residence" seed={{ residenceCountry: 'AR', nationalityCountry: 'CU' }} />
+        ),
+    },
+    'setup-redesign-plan': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-plan'],
+        render: () => <RedesignStepSurface screenId="payment-plan" seed={{ residenceCountry: 'AR' }} />,
+    },
+    'setup-redesign-plan-filled': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-plan-filled'],
+        render: () => (
+            <RedesignStepSurface
+                screenId="payment-plan"
+                seed={{ residenceCountry: 'AR', fundingChannel: 'bank', paymentChannel: 'qr' }}
+            />
+        ),
+    },
+    'setup-redesign-plan-single': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-plan-single'],
+        render: () => <RedesignStepSurface screenId="payment-plan" seed={{ residenceCountry: 'PT' }} />,
+    },
+    'setup-redesign-email': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-email'],
+        render: () => <RedesignStepSurface screenId="notification-email" seed={{ username: 'luckyotter' }} />,
+    },
+    'setup-redesign-email-filled': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-email-filled'],
+        render: () => (
+            <RedesignStepSurface
+                screenId="notification-email"
+                seed={{ username: 'luckyotter', notificationEmail: 'luckyotter@gmail.com' }}
+            />
+        ),
+    },
+    'setup-redesign-notifications': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-notifications'],
+        render: () => <RedesignStepSurface screenId="notification-permission" />,
+    },
+    'setup-redesign-final': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-final'],
+        render: () => <RedesignStepSurface screenId="advantage-control" seed={{ username: 'luckyotter' }} />,
+    },
+    'setup-redesign-final-finish': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-final-finish'],
+        render: () => <RedesignStepSurface screenId="advantage-control" finishRoute />,
+    },
+    'setup-redesign-celebration': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-celebration'],
+        render: () => (
+            <RedesignStepSurface
+                screenId="advantage-control"
+                seed={{ username: 'luckyotter', signupCompleted: true }}
+            />
+        ),
+    },
+    'setup-redesign-celebration-claim': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-celebration-claim'],
+        render: () => (
+            <RedesignStepSurface
+                screenId="advantage-control"
+                seed={{ username: 'luckyotter', signupCompleted: true, signupEntryFlow: 'claim' }}
+            />
+        ),
     },
 }
 

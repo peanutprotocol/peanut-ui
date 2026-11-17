@@ -38,7 +38,8 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { renderWithIntl } from '@/test-utils/intl'
 import { onSignupScreen } from '@/test-utils/signup-controls'
 import type { ScreenId } from '@/components/Setup/Setup.types'
-import InviteStep from '@/components/Setup/Views/Invite'
+import { InviteScreen } from '@/components/Setup/redesign/Invite/InviteScreen'
+import type { SetupShell as SetupShellComponent } from '@/components/Setup/redesign/shell/SetupShell'
 import { EMPTY_SETUP_COUNTRY_SIGNALS, type SetupCountrySignals } from '@/features/setup/country-signals'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { saveSignupProgress, type SignupProgressAnswers } from '@/features/setup/signup-progress'
@@ -132,8 +133,8 @@ jest.mock('@/hooks/useGetDeviceType', () => ({
     useDeviceType: () => ({ deviceType: 'android' }),
 }))
 jest.mock('@/hooks/usePullToRefresh', () => ({ usePullToRefresh: jest.fn(), useShouldPullToRefresh: () => false }))
-jest.mock('@/components/Setup/components/SetupWrapper', () => ({
-    SetupWrapper: ({ screenId, showBackButton }: { screenId: string; showBackButton?: boolean }) => (
+jest.mock('@/components/Setup/redesign/shell/SetupShell', () => ({
+    SetupShell: ({ screenId, showBackButton }: { screenId: string; showBackButton?: boolean }) => (
         <div>
             <span data-testid="page-screen">{screenId}</span>
             {showBackButton && <button>Go back</button>}
@@ -167,7 +168,13 @@ jest.mock('@sentry/nextjs', () => ({
     captureMessage: jest.fn(),
     addBreadcrumb: jest.fn(),
 }))
-jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
+// The real shell's top bar draws the language switcher, which needs the app locale provider the page sets up.
+jest.mock('@/components/Setup/components/SetupLanguageSwitcher', () => ({ SetupLanguageSwitcher: () => null }))
+// 04 Invite's "Did you mean" gate subscribes to flag loads and reads flags.
+jest.mock('posthog-js', () => ({
+    __esModule: true,
+    default: { capture: jest.fn(), onFeatureFlags: jest.fn(() => () => {}), isFeatureEnabled: jest.fn(() => false) },
+}))
 
 const DAY = 24 * 60 * 60 * 1000
 const WALLET = [{ type: 'peanut-wallet' }]
@@ -178,12 +185,28 @@ const probe = {} as {
     flow: ReturnType<typeof useSetupFlow>
 }
 
+const { SetupShell: RealSetupShell } = jest.requireActual<{ SetupShell: typeof SetupShellComponent }>(
+    '@/components/Setup/redesign/shell/SetupShell'
+)
+
 function Probe() {
     const context = useSetupFlowContext()
     const flow = useSetupFlow()
     probe.context = context
     probe.flow = flow
-    return <>{flow.step?.screenId === 'invite' && onSignupScreen('invite', <InviteStep />)}</>
+    // The page's shell is a stub here (it only names the screen); 04 Invite draws Continue and Skip in the real
+    // shell's footer, so the probe renders the step inside a real one.
+    return (
+        <>
+            {flow.step?.screenId === 'invite' &&
+                onSignupScreen(
+                    'invite',
+                    <RealSetupShell screenId="invite">
+                        <InviteScreen />
+                    </RealSetupShell>
+                )}
+        </>
+    )
 }
 
 const mount = (urlScreen?: string) =>

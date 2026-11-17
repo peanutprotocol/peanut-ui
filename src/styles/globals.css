@@ -13,6 +13,13 @@
 @custom-variant short (@media (max-width: 767px) and (max-height: 699px));
 /* The smallest phone viewports (an iPhone SE in Safari): the tightest sign-up panel. */
 @custom-variant tight (@media (max-width: 767px) and (max-height: 579px));
+/* The redesigned sign-up's small phone (the mock's 320x568 check): heading-s titles, tighter panel. Same query as .signup-shell's. */
+/* Block form: the one-line form splits the media list at its comma and emits a broken selector for the second query. */
+@custom-variant signup-sm {
+    @media (max-height: 600px), (max-width: 340px) {
+        @slot;
+    }
+}
 
 @theme {
     /* the v3 legacy palette is GONE — every token had its consumers migrated.
@@ -832,6 +839,82 @@
     }
     .setup-hero-background {
         background-color: var(--setup-hero-background, var(--color-background-setup-hero));
+    }
+
+    /*
+     * The redesigned sign-up shell (src/components/Setup/redesign/shell). The approved mock is drawn on a
+     * 390x844 phone (47px status bar, 34px home indicator) and checked on 320x568 (20px status bar). The
+     * shell sits inside the safe area, so every value is the mock's value measured from the safe area:
+     * stage heights 520/440/300 become 473/393/253, the CTA top 698 becomes 112px above the safe bottom.
+     * Phones between the two sizes scale the stage with the shell height; the CTA keeps its distance to
+     * the bottom. Mock: mono _temp/signup-redesign/r2/scaffold (core/tokens.css, core/shell.css).
+     */
+    .signup-shell {
+        --sr-h: calc(100dvh - var(--safe-top) - var(--safe-bottom));
+        --sr-stage-tall-base: min(473px, calc(var(--sr-h) * 0.62));
+        --sr-stage-std-base: min(393px, calc(var(--sr-h) * 0.515));
+        --sr-stage-compact-base: min(253px, calc(var(--sr-h) * 0.332));
+        --sr-stage-full-base: var(--sr-h);
+        --sr-stage-tall: var(--sr-stage-tall-base);
+        --sr-stage-std: var(--sr-stage-std-base);
+        --sr-stage-compact: var(--sr-stage-compact-base);
+        --sr-stage-full: var(--sr-stage-full-base);
+        --sr-cta-top: calc(var(--sr-h) - 112px);
+        --sr-topbar-top: 4px;
+        --sr-title-top: 61px;
+        --sr-gutter: 24px;
+        --sr-panel-pad: 32px;
+        --sr-slot-h: 64px;
+        --sr-lift-2: 0px;
+        --sr-lift-3: 0px;
+        --sr-step: 500ms;
+        --sr-seam: 300ms;
+        --sr-ease-step: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    /* the 320x568 check phone (and any phone that short or that narrow) */
+    @media (max-height: 600px), (max-width: 340px) {
+        .signup-shell {
+            --sr-stage-tall-base: 310px;
+            --sr-stage-std-base: 260px;
+            --sr-stage-compact-base: 220px;
+            --sr-cta-top: calc(var(--sr-h) - 100px);
+            --sr-title-top: 52px;
+            --sr-gutter: 20px;
+            --sr-panel-pad: 16px;
+            --sr-slot-h: 44px;
+            --sr-lift-2: 20px;
+            --sr-lift-3: 44px;
+        }
+    }
+    /*
+     * Error text inside the shell uses the DS red that reads at 4.5:1 on white and on the error surface (R2-07):
+     * red-600 is 4.8:1, the default foreground-error #ff3b30 only 3.6:1. Field borders keep #ff3b30 (3:1 is enough).
+     */
+    .signup-shell {
+        --color-foreground-error: var(--color-red-600, #e40c0c);
+    }
+    /*
+     * Folded stage (useShellFit): the keyboard is open, or the panel would be too small to use. The stage shrinks to
+     * just under the headline ('title') or to the top bar ('bar'); the art hides, and on 'bar' the headline too.
+     */
+    .signup-shell[data-fold] {
+        --sr-stage-tall: var(--sr-fold-stage);
+        --sr-stage-std: var(--sr-fold-stage);
+        --sr-stage-compact: var(--sr-fold-stage);
+    }
+    .signup-shell[data-fold] [data-setup-art-box],
+    .signup-shell[data-fold='bar'] [data-setup-art-layer] h1 {
+        visibility: hidden;
+    }
+    /*
+     * Standalone links in the footer (Skip, Not now, Log out): LinkButton already extends its hit area to 44 px tall;
+     * this widens it to at least 44 px, centred, without changing how the link looks (R2-08, WCAG 2.5.8).
+     */
+    [data-setup-footer-links] > :is(a, button)::after {
+        left: 50%;
+        right: auto;
+        width: max(100%, 44px);
+        transform: translateX(-50%);
     }
 }
 

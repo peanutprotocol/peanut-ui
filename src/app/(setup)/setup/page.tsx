@@ -2,7 +2,8 @@
 
 import { useHydrationSnapshot } from '@/utils/native-platform'
 import Loading from '@/components/Global/Loading'
-import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
+import { SetupShell } from '@/components/Setup/redesign/shell/SetupShell'
+import { NO_DOT_SCREENS } from '@/components/Setup/redesign/shell/shell.consts'
 import { type ScreenId } from '@/components/Setup/Setup.types'
 import { postRegistrationScreen, useSetupFlow } from '@/hooks/useSetupFlow'
 import { setupCountrySuggestion } from '@/features/setup/country-signals'
@@ -18,10 +19,8 @@ import {
 } from '@/features/setup/signup-progress'
 import { useSetupStepAnalytics } from '@/features/setup/useSetupStepAnalytics'
 import { useSignupControl } from '@/features/setup/useSignupControl'
-import { MASCOT_ANIMATION_LOADERS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
 import { INVITE_TYPE_PARAM, readInviteIntent, stashAcquisitionInvite, stashInvite } from '@/utils/invite-stash'
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { useSetupStepCopy } from '@/components/Setup/useSetupStepCopy'
 import { hasKnownDeviceCredentials, resolveSetupEntryStep } from '@/components/Setup/setup-entry'
 import { isCapacitor } from '@/utils/capacitor'
 import { mayHoldSession } from '@/utils/auth-token'
@@ -112,26 +111,7 @@ function SetupPageContent() {
         registrationInProgress,
         resetSetupFlow,
     } = useSetupFlowContext()
-    const {
-        step,
-        currentIndex: currentStepIndex,
-        direction,
-        handleNext,
-        handleBack,
-        setScreenId,
-        isLoading: flowLoading,
-    } = useSetupFlow()
-    useEffect(() => {
-        const nextImage = steps[currentStepIndex + 1]?.image
-        if (nextImage && 'pose' in nextImage) {
-            void MASCOT_ANIMATION_LOADERS[nextImage.pose]().catch(() => {})
-        }
-        // The residence hero opens on the waving mascot.
-        if (nextImage && 'hero' in nextImage) {
-            void MASCOT_ANIMATION_LOADERS['waving-hello']().catch(() => {})
-        }
-    }, [steps, currentStepIndex])
-    const stepCopy = useSetupStepCopy(step)
+    const { step, direction, handleBack, setScreenId, isLoading: flowLoading } = useSetupFlow()
     const { user, isFetchingUser, userFetchError, fetchUser } = useAuth()
     const router = useRouter()
     const signedInUserId = user?.user?.userId
@@ -871,27 +851,19 @@ function SetupPageContent() {
 
     if (!step) return null
 
+    const dotSteps = steps.filter((entry) => !NO_DOT_SCREENS.includes(entry.screenId))
+    const dotIndex = dotSteps.indexOf(step)
     return (
-        <SetupWrapper
-            fullScreen={step.fullScreen}
-            showProgress={!signupCompleted}
-            layoutType={step.layoutType}
+        <SetupShell
             screenId={step.screenId}
-            image={step.image}
-            {...stepCopy}
             showBackButton={showBackButton}
-            showSkipButton={step.showSkipButton}
-            imageClassName={step.imageClassName}
             // The visible back button walks the same handler stack as hardware
             // back, so a step's sub-view (residence heads-up) collapses first
             // instead of being skipped straight to the previous step. The page
             // handler below it steps back when nothing consumed the press.
             onBack={dispatchBackPress}
-            onSkip={() => handleNext()}
-            step={currentStepIndex}
             direction={direction}
-            titleClassName={step.titleClassName}
-            contentClassName={step.contentClassName}
+            progress={signupCompleted || dotIndex < 0 ? null : { index: dotIndex, total: dotSteps.length }}
         >
             <step.component
                 entryDirection={direction}
@@ -904,7 +876,7 @@ function SetupPageContent() {
                         : undefined
                 }
             />
-        </SetupWrapper>
+        </SetupShell>
     )
 }
 

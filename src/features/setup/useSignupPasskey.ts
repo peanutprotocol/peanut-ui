@@ -18,7 +18,7 @@ import { isAndroidNativeBridge, isCapacitor, isIOSNativeBridge, openExternalUrl 
 import { keepWebSignupUrl } from '@/features/setup/keep-web-signup-url'
 import type { PasskeyProviderUnsupportedError } from '@/utils/passkey-registration-compatibility'
 import { apiFetch } from '@/utils/api-fetch'
-import { checkPasskeySupport } from '@/utils/passkeyPreflight'
+import { checkPasskeySupport, type PasskeyPreflightResult } from '@/utils/passkeyPreflight'
 import { nativeErrorCode, nativePasskeyFailure } from '@/utils/native-passkey-errors'
 import { reportPasskeyFailure } from '@/utils/passkey-failure-reporting'
 import { isCeremonyGuardError } from '@/utils/passkeyCeremony.utils'
@@ -51,6 +51,9 @@ const isUsernameTaken = async (username: string): Promise<boolean | null> => {
     }
 }
 
+/** Which help case opened: Android app setup, iOS not saving, private mode, or one keyed by the error name. */
+export type PasskeyHelpReason = 'android-setup' | 'ios-not-saved' | 'private-mode' | 'error-name'
+
 // The first cancel is usually deliberate; the second on the same step usually means iOS refused to save.
 const IOS_CANCELS_BEFORE_HELP = 2
 // A sheet that closes this fast was never answered by a person: iOS refused
@@ -72,6 +75,12 @@ const isProbablyPrivateMode = () => {
 /** Registration and device recovery for the passkey screen. */
 export function useSignupPasskey(username: string) {
     const t = useTranslations('setup')
+    const tPreflight = useTranslations('setupRedesign.passkey.preflight')
+    const preflightText = (result: PasskeyPreflightResult) =>
+        result.warningKey ? tPreflight(result.warningKey) : result.warning
+    // The mount check reads the current language without re-running when it changes.
+    const preflightTextRef = useRef(preflightText)
+    preflightTextRef.current = preflightText
     const context = useSetupFlowContext()
     const { setNoBackLockScreenId, setRegistrationInProgress, setInviterAccepted, setRefusedUsername, steps } = context
     const { handleNext, setScreenId } = useSetupFlow()
@@ -106,6 +115,10 @@ export function useSignupPasskey(username: string) {
     const [providerUnsupportedPlatform, setProviderUnsupportedPlatform] = useState<'android-app' | 'other' | null>(null)
     const [preflightWarning, setPreflightWarning] = useState<string | null>(null)
     const [inlineError, setInlineError] = useState<string | null>(null)
+    // Why the inline error shows, for a view that words a cancel its own way (the redesign's 03).
+    const [inlineErrorCode, setInlineErrorCode] = useState<'cancelled' | null>(null)
+    // Which help case opened: the redesign's 03 draws Android setup and iOS not-saved as full screens.
+    const [helpReason, setHelpReason] = useState<PasskeyHelpReason | null>(null)
     const [usernameTaken, setUsernameTaken] = useState(false)
     // True only once the user starts a registration on THIS step. The advance
     // below keys off it, so a wallet address that hydrates asynchronously from a
@@ -134,7 +147,7 @@ export function useSignupPasskey(username: string) {
         let active = true
         void checkPasskeySupport().then((result) => {
             if (active && !result.isSupported && result.warning) {
-                setPreflightWarning(result.warning)
+                setPreflightWarning(preflightTextRef.current(result))
                 trackError('create_passkey', 'PASSKEY_UNSUPPORTED')
             }
         })
@@ -151,7 +164,9 @@ export function useSignupPasskey(username: string) {
         trackError('create_passkey', null)
         trackError('username', null)
         setInlineError(null)
+        setInlineErrorCode(null)
         setHelpErrorName(null)
+        setHelpReason(null)
         setUsernameTaken(false)
 
         if (!/^[a-z][a-z0-9]{3,11}$/.test(username)) {
@@ -164,7 +179,7 @@ export function useSignupPasskey(username: string) {
         // must never silently no-op when passkeys are unavailable.
         const support = await checkPasskeySupport()
         if (!support.isSupported) {
-            const message = support.warning ?? t('passkey.notAvailable')
+            const message = preflightText(support) ?? t('passkey.notAvailable')
             setPreflightWarning(message)
             setInlineError(message)
             trackError('create_passkey', 'PASSKEY_UNSUPPORTED')
@@ -319,6 +334,7 @@ export function useSignupPasskey(username: string) {
             if (nativeReason === 'setup_required') {
                 reportPasskeyFailure(err, 'registration')
                 setHelpErrorName(WebAuthnErrorName.NotAllowed)
+                setHelpReason('android-setup')
                 setIsHelpOpen(true)
                 return
             }
@@ -334,16 +350,20 @@ export function useSignupPasskey(username: string) {
                 const fastCancel = ceremony !== undefined && ceremony.durationMs < IOS_FAST_CANCEL_MS
                 if (fastCancel || iosCancelsRef.current >= IOS_CANCELS_BEFORE_HELP) {
                     setHelpErrorName(PASSKEY_NOT_SAVED_HELP)
+                    setHelpReason('ios-not-saved')
                     setIsHelpOpen(true)
                 } else {
                     setInlineError(t('passkey.notCompleted'))
+                    setInlineErrorCode('cancelled')
                 }
                 return
             }
 
             if (nativeReason) {
                 reportPasskeyFailure(err, 'registration')
-                setInlineError(t(getPasskeySetupKey(classifyPasskeyError(err).code)))
+                const code = classifyPasskeyError(err).code
+                setInlineError(t(getPasskeySetupKey(code)))
+                if (code === 'LOGIN_CANCELED') setInlineErrorCode('cancelled')
                 return
             }
 
@@ -352,9 +372,11 @@ export function useSignupPasskey(username: string) {
             if (err.name === WebAuthnErrorName.NotAllowed) {
                 if (isProbablyPrivateMode()) {
                     setHelpErrorName(WebAuthnErrorName.NotAllowed)
+                    setHelpReason('private-mode')
                     setIsHelpOpen(true)
                 } else {
                     setInlineError(t('passkey.notCompleted'))
+                    setInlineErrorCode('cancelled')
                 }
                 return
             }
@@ -367,6 +389,7 @@ export function useSignupPasskey(username: string) {
                 ].includes(err.name as WebAuthnErrorName)
             ) {
                 setHelpErrorName(err.name)
+                setHelpReason('error-name')
                 setIsHelpOpen(true)
             } else {
                 Sentry.captureException(error, {
@@ -374,6 +397,7 @@ export function useSignupPasskey(username: string) {
                     extra: { errorName: err.name, deviceType },
                 })
                 setHelpErrorName('UnknownError')
+                setHelpReason('error-name')
                 setIsHelpOpen(true)
             }
         }
@@ -396,6 +420,7 @@ export function useSignupPasskey(username: string) {
     const logIn = async () => {
         trackError('log_in', null)
         setInlineError(null)
+        setInlineErrorCode(null)
         try {
             await handleLoginClick()
             // success: useLogin's effect redirects once the user is loaded
@@ -454,10 +479,12 @@ export function useSignupPasskey(username: string) {
         isClaiming: isPreparing || isRegistering || isFinishing,
         preflightWarning,
         inlineError,
+        inlineErrorCode,
         usernameTaken,
         logIn,
         isLoggingIn,
         helpErrorName,
+        helpReason,
         isHelpOpen,
         closeHelp: () => setIsHelpOpen(false),
         retryFromHelp: () => {

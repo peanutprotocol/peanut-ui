@@ -33,6 +33,8 @@ describe('test-build ribbon copy', () => {
  * Portuguese make distinctions English collapses, so these keys must NOT be merged
  * into one — doing so ships the wrong part of speech or the wrong gender.
  */
+const SIGNUP_REDESIGN = 'sign-up redesign label sized for its screen (setupRedesign.*), TASK-25016'
+
 const CONTEXT_DIVERGENT: Record<string, string> = {
     Send: 'nav/action verb vs. transaction-type noun (Enviar / Envío)',
     Request: 'nav/action verb vs. transaction-type noun (Solicitar / Solicitud)',
@@ -60,6 +62,20 @@ const CONTEXT_DIVERGENT: Record<string, string> = {
         'button label in the infinitive vs. checklist hint in the imperative like its sibling hints (Pagar / Paga un código QR)',
     'Peanut Card':
         'product name stays "Peanut Card" (shhhhh wordmark), menu and nav labels stay translated (Tarjeta Peanut / Cartão Peanut), TASK-24037',
+    // The redesigned sign-up's copy (setupRedesign.*, the approved r9 mock) is written for its own short
+    // labels and sentence pills; the localizer's native review decides whether each one aligns (TASK-25016).
+    'Try again': SIGNUP_REDESIGN,
+    'Peanut to Peanut': SIGNUP_REDESIGN,
+    Email: SIGNUP_REDESIGN,
+    'All set!': SIGNUP_REDESIGN,
+    Skip: SIGNUP_REDESIGN,
+    'Sign up at peanut.me in a browser': SIGNUP_REDESIGN,
+    'The same country': SIGNUP_REDESIGN,
+    'Retry account setup': SIGNUP_REDESIGN,
+    'Bank transfer': 'sentence pill "Banco USD/EUR" (owner ruling, 16 Nov 2026) vs. the method row label',
+    'Another Peanut user': SIGNUP_REDESIGN,
+    'Turn on notifications': SIGNUP_REDESIGN,
+    Clear: 'clear-field button vs. the invites graph filter (Borrar / Quitar)',
 }
 
 describe('deepMerge fallback', () => {
