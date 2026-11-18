@@ -622,3 +622,62 @@ describe('AddFeatureQuestions: a saved tax number', () => {
         await waitFor(() => expect(mockSave).toHaveBeenCalledWith('tax', { taxId: '20-12345678-6' }, 'local', 'user-a'))
     })
 })
+
+describe("Avenia's CPF record step after a data rejection", () => {
+    // A made-up CPF with valid check digits; peanut-ui is public.
+    const cpfRecord = (fields: PaperworkVerificationQuestions['steps'][number]['fields']) => ({
+        available: true,
+        attemptId: null,
+        residence: 'BR',
+        steps: [{ id: 'cpfRecord' as const, features: [], answered: false, fields }],
+        firstUnanswered: 'cpfRecord' as const,
+        progress: { done: 1, total: 2 },
+    })
+    const maskedCpf = {
+        key: 'taxId',
+        kind: 'taxId' as const,
+        required: true,
+        format: 'cpf' as const,
+        value: '•••• 7735',
+        masked: true,
+    }
+    const fullName = { key: 'fullName', kind: 'text' as const, required: true, value: 'Ana Souza' }
+
+    it('a name mismatch asks the CPF and the name, prefilled, and sends only what the user changed', async () => {
+        mockQuestions.mockResolvedValue(cpfRecord([maskedCpf, fullName]))
+        mockSave.mockResolvedValue({ kind: 'saved', next: null })
+        const onDone = jest.fn()
+        renderWithIntl(
+            <AddFeatureQuestions feature="pix" requiredStep="cpfRecord" onBack={jest.fn()} onDone={onDone} />
+        )
+        expect(await screen.findByText(en.kyc.paperworkVerification.cpfRecord.title.name)).toBeInTheDocument()
+        expect(screen.getByText(en.kyc.paperworkVerification.cpfRecord.description.name)).toBeInTheDocument()
+        expect(screen.getByTestId('verify-input-taxId')).toHaveValue('•••• 7735')
+        const name = screen.getByTestId('verify-input-fullName')
+        expect(name).toHaveValue('Ana Souza')
+        fireEvent.change(name, { target: { value: 'Ana Maria Souza' } })
+        fireEvent.click(screen.getByTestId('verify-continue'))
+        await waitFor(() =>
+            expect(mockSave).toHaveBeenCalledWith('cpfRecord', { fullName: 'Ana Maria Souza' }, 'pix', 'user-a')
+        )
+        await waitFor(() => expect(onDone).toHaveBeenCalled())
+    })
+
+    it('an irregular CPF asks the CPF again, and a second try within a day says so in a callout', async () => {
+        mockQuestions.mockResolvedValue(cpfRecord([{ ...maskedCpf, value: null, masked: undefined }]))
+        mockSave.mockResolvedValue({ kind: 'conflict', code: 'retry_later' })
+        const onDone = jest.fn()
+        renderWithIntl(
+            <AddFeatureQuestions feature="pix" requiredStep="cpfRecord" onBack={jest.fn()} onDone={onDone} />
+        )
+        expect(await screen.findByText(en.kyc.paperworkVerification.cpfRecord.title.status)).toBeInTheDocument()
+        expect(screen.queryByTestId('verify-input-fullName')).not.toBeInTheDocument()
+        fireEvent.change(screen.getByTestId('verify-input-taxId'), { target: { value: '11144477735' } })
+        fireEvent.click(screen.getByTestId('verify-continue'))
+        expect(await screen.findByTestId('verify-form-error')).toHaveTextContent(
+            en.kyc.paperworkVerification.errors.retryLater
+        )
+        expect(mockSave).toHaveBeenCalledWith('cpfRecord', { taxId: '111.444.777-35' }, 'pix', 'user-a')
+        expect(onDone).not.toHaveBeenCalled()
+    })
+})

@@ -3932,7 +3932,8 @@
                 "phone": "Our partners keep your phone number on file to protect your account.",
                 "tax": "Accounts in your country must be linked to your tax number.",
                 "declarations": "Financial rules in your country ask everyone these questions. If one applies, we may ask for a document later.",
-                "nationality": "We use your nationality to show the passport and national ID card you can verify with."
+                "nationality": "We use your nationality to show the passport and national ID card you can verify with.",
+                "cpfRecord": "Our Pix partner checks the CPF and name against the Receita Federal record."
             },
             "sentence": {
                 "cardPurpose": "I’ll use my card <nw>for <pill></pill></nw>",
@@ -4122,7 +4123,8 @@
                 "isPep": "I hold a public office",
                 "isFatca": "I’m a US citizen or tax resident",
                 "isFep": "I must report to the UIF",
-                "cityOfBirth": "City of birth"
+                "cityOfBirth": "City of birth",
+                "fullName": "Full name"
             },
             "tax": {
                 "title": {
@@ -4184,7 +4186,8 @@
                 "poBoxNotAccepted": "A PO box can’t be used as a home address.",
                 "invalidBody": "These answers couldn’t be accepted. Reopen this check to continue.",
                 "unknownStep": "This step is no longer available. Reopen this check to continue.",
-                "rateLimited": "Too many tries. Wait a minute and try again."
+                "rateLimited": "Too many tries. Wait a minute and try again.",
+                "retryLater": "This CPF was checked less than a day ago. Fix it at gov.br and try again tomorrow."
             },
             "midpoint": {
                 "restartTitle": "Verify with a different document",
@@ -4352,6 +4355,16 @@
             "taxConfirm": "I confirm",
             "documentMismatch": {
                 "description": "It seems like you submitted a document from a different country than the one you declared. Here’s what each country unlocks."
+            },
+            "cpfRecord": {
+                "title": {
+                    "name": "CPF and name as on the Receita Federal record",
+                    "status": "CPF status at Receita Federal"
+                },
+                "description": {
+                    "name": "Our Pix partner could not match this CPF and name. Check both.",
+                    "status": "Our Pix partner found this CPF irregular or missing. Check it at gov.br, then type it again."
+                }
             }
         }
     },

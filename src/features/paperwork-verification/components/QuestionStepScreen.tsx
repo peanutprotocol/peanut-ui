@@ -50,6 +50,7 @@ const FORM_ERROR_KEYS: Record<AnswerFormError, string> = {
     existing_verification: 'errors.unavailable',
     conflict: 'errors.unavailable',
     session_changed: 'errors.unavailable',
+    retry_later: 'errors.retryLater',
 }
 
 /** Who keeps the phone number: the card partner when the card asks for it, else the local bank partner. */
@@ -67,6 +68,11 @@ function useStepHeading(step: PaperworkVerificationStep) {
             title: t(ssn ? 'tax.title.ssn' : 'tax.title.other'),
             description: t(ssn ? 'tax.description.ssn' : 'tax.description.other'),
         }
+    }
+    // after a name mismatch the step asks the name too; an irregular CPF asks only the CPF
+    if (step.id === 'cpfRecord') {
+        const kind = step.fields.some((f) => f.key === 'fullName') ? 'name' : 'status'
+        return { title: t(`cpfRecord.title.${kind}`), description: t(`cpfRecord.description.${kind}`) }
     }
     if (step.id === 'address' || step.id === 'declarations')
         return { title: t(`titles.${step.id}`), description: t(`descriptions.${step.id}`) }

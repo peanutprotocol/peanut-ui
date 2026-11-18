@@ -1942,7 +1942,8 @@
                 "streetNumberMissing": "Agregá el número de la calle.",
                 "invalidBody": "No se pudieron aceptar estas respuestas. Volvé a abrir la verificación para continuar.",
                 "unknownStep": "Este paso ya no está disponible. Volvé a abrir la verificación para continuar.",
-                "rateLimited": "Demasiados intentos. Esperá un minuto y volvé a intentarlo."
+                "rateLimited": "Demasiados intentos. Esperá un minuto y volvé a intentarlo.",
+                "retryLater": "Este CPF se verificó hace menos de un día. Regularizalo en gov.br y volvé a intentarlo mañana."
             },
             "midpoint": {
                 "restartTitle": "Verificate con otro documento",
@@ -2021,6 +2022,12 @@
             },
             "addLater": {
                 "actionDescription": "Completá la verificación adicional para terminar la configuración."
+            },
+            "cpfRecord": {
+                "description": {
+                    "name": "Nuestro socio de Pix no pudo verificar este CPF con este nombre. Revisá ambos.",
+                    "status": "Nuestro socio de Pix encontró este CPF irregular o inexistente. Revisalo en gov.br y volvé a escribirlo."
+                }
             }
         },
         "setup": {

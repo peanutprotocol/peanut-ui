@@ -33,6 +33,8 @@ export type AnswerFormError =
     | 'existing_verification'
     | 'conflict'
     | 'session_changed'
+    // the same irregular CPF again within a day of Avenia's rejection
+    | 'retry_later'
 export type SaveOutcome =
     | { ok: true; next: PaperworkVerificationStepId | null }
     | {
@@ -49,6 +51,7 @@ export type SaveOutcome =
       }
 
 const CONFLICTS = new Set([
+    'retry_later',
     'feature_not_selected',
     'identity_submitted',
     'verification_complete',
