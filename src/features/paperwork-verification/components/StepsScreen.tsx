@@ -19,7 +19,8 @@ type StepRow = { key: string; label: `steps.${StepKey}` | `steps.followUp.${Foll
 /** Before the ID check, waiting for its review, or verified: one timeline, its rows filled in as far as the user got. */
 export type StepsPhase = 'intro' | 'review' | 'verified'
 
-const SKELETON_ROWS = 6
+// the overview's rows while the server says which steps are left
+const SKELETON_ROWS = 5
 const skeleton = 'animate-pulse bg-foreground-primary/10 motion-reduce:animate-none'
 
 const PHASE_COPY = {
@@ -80,16 +81,19 @@ function stepRows(
     if (phase === 'review')
         return keys.map((key) => row(key, key === 'review' ? 'current' : key === 'unlock' ? 'next' : 'done'))
     const photoCurrent = !hasQuestions || questionsDone
-    return keys.map((key) =>
-        row(
-            key,
-            key === 'residence' || (key === 'questions' && questionsDone)
-                ? 'done'
-                : key === 'questions' || (key === 'photo' && photoCurrent)
-                  ? 'current'
-                  : 'next'
+    // before the start only the steps the person acts on: the review shows once it runs (Hugo, 2026-11-17)
+    return keys
+        .filter((key) => key !== 'review')
+        .map((key) =>
+            row(
+                key,
+                key === 'residence' || (key === 'questions' && questionsDone)
+                    ? 'done'
+                    : key === 'questions' || (key === 'photo' && photoCurrent)
+                      ? 'current'
+                      : 'next'
+            )
         )
-    )
 }
 
 /**

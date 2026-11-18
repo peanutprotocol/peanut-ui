@@ -40,8 +40,8 @@ export const FLAG_DEFAULTS = {
     'user-interviews-invite': false,
     // Inviter suggestions need the suggest route (TASK-24908): hidden when PostHog is silent.
     'signup-rollout-inviter-suggestions': false,
-    // The verify invite on the sign-up Celebration (rollback switch): off keeps the 4.5 s redirect.
-    'signup-verify-invite': false,
+    // The verify start on the sign-up Celebration (rollback switch): off keeps the 4.5 s redirect.
+    'signup-verify-start': false,
 } as const satisfies Record<string, boolean>
 
 export type FeatureFlagKey = keyof typeof FLAG_DEFAULTS

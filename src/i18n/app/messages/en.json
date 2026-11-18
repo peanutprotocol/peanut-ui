@@ -1328,7 +1328,7 @@
             "claimSub": "Your Peanut account is created.",
             "claimGoing": "Taking you back to your link…"
         },
-        "verifyInvite": {
+        "verifyStart": {
             "title": "Verify now",
             "sub": "This will unlock bank details.",
             "subCard": "Then apply for a card.",

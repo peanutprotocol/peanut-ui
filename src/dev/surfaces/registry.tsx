@@ -1,7 +1,8 @@
 'use client'
 
 import { NotificationsSwitchesScreen } from '@/components/Setup/redesign/Notifications/NotificationsSwitchesScreen'
-import { CelebrationScreen } from '@/components/Setup/redesign/Celebration/CelebrationScreen'
+import { FinalStep } from '@/components/Setup/redesign/FinalConfirm/FinalStep'
+import { VerifyStartScreen } from '@/components/Setup/redesign/VerifyStart/VerifyStartScreen'
 import { TestBuildRibbonView } from '@/components/Global/TestBuildRibbon'
 import { API_CONTRACT_STATES } from './api-contract-states'
 import AmountInput from '@/components/Global/AmountInput'
@@ -316,11 +317,21 @@ const FUNDED_CARD_ONBOARDING: OnboardingState = {
 }
 const noop = () => {}
 
-/** 12 needs a completed sign-up in the flow context; it then redirects on its own after 4.5 s, as on /setup. */
+/**
+ * 12 needs a completed sign-up in the flow context; it then redirects on its own after 4.5 s, as on /setup. With
+ * the verify offer, its Verify now opens the Verify start, as on /setup.
+ */
 function CompletedCelebration() {
     const { setSignupCompleted } = useSetupFlowContext()
     React.useLayoutEffect(() => setSignupCompleted(true), [setSignupCompleted])
-    return <CelebrationScreen />
+    return <FinalStep />
+}
+
+/** The Verify start after a completed default sign-up. */
+function CompletedVerifyStart() {
+    const { setSignupCompleted } = useSetupFlowContext()
+    React.useLayoutEffect(() => setSignupCompleted(true), [setSignupCompleted])
+    return <VerifyStartScreen />
 }
 
 const asyncNoop = async () => {}
@@ -884,6 +895,14 @@ export const SURFACES: Record<string, Surface> = {
         render: () => (
             <SetupScreen screenId="advantage-control" showProgress={false}>
                 <CompletedCelebration />
+            </SetupScreen>
+        ),
+    },
+    '07-f-setup-verify-start': {
+        ...SURFACE_META['07-f-setup-verify-start'],
+        render: () => (
+            <SetupScreen screenId="advantage-control" showProgress={false}>
+                <CompletedVerifyStart />
             </SetupScreen>
         ),
     },

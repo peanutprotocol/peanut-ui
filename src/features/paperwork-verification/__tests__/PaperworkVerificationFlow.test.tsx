@@ -5,7 +5,7 @@ import { setAuthToken } from '@/utils/auth-token'
 import * as authToken from '@/utils/auth-token'
 import posthog from 'posthog-js'
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
-import { act, fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { renderWithIntl } from '@/test-utils/intl'
@@ -378,6 +378,9 @@ describe('PaperworkVerificationFlow: the steps overview', () => {
         expect(screen.getByTestId('verify-steps-continue')).toBeInTheDocument()
         expect(steps.querySelector('[aria-current="step"]')).toHaveTextContent('Answer a few questions')
         expect(screen.getByText('Unlock eligible payments')).toBeInTheDocument()
+        // before the start only the steps the person acts on; the review row appears once it runs
+        expect(within(steps).queryByText('Get a secure review')).toBeNull()
+        expect(within(steps).getAllByRole('listitem')).toHaveLength(5)
         fireEvent.click(screen.getByTestId('verify-steps-continue'))
         expect(await screen.findByRole('group', { name: 'Step 2 of 4' })).toBeInTheDocument()
         fireEvent.click(screen.getByTestId('verify-back'))
@@ -405,6 +408,15 @@ describe('PaperworkVerificationFlow: the steps overview', () => {
         renderFlow('?step=tax')
         expect(await screen.findByText('What’s your Social Security number?')).toBeInTheDocument()
         expect(screen.queryByTestId('verify-steps')).not.toBeInTheDocument()
+    })
+
+    it('skipOverview (the sign-up Verify start listed the steps) opens on the open question; Back leaves', async () => {
+        mockQuestions.mockResolvedValue(build({ purpose: false }, 'purpose'))
+        renderFlow('?skipOverview=true')
+        expect(await screen.findByRole('group', { name: 'Step 2 of 4' })).toBeInTheDocument()
+        expect(screen.queryByTestId('verify-steps')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByTestId('verify-back'))
+        expect(mockExit).toHaveBeenCalled()
     })
 
     it('a deep link to a step that shares a screen opens that screen', async () => {

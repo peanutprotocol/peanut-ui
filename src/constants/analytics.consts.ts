@@ -49,8 +49,8 @@ export const ANALYTICS_EVENTS = {
     SIGNUP_TEST_TX_DEFERRED_RESOLVED: 'signup_test_tx_deferred_resolved',
     SIGNUP_ACCOUNT_READY_CTA_CLICKED: 'signup_account_ready_cta_clicked',
     SIGNUP_COMPLETED: 'signup_completed',
-    SIGNUP_VERIFY_INVITE_SHOWN: 'signup_verify_invite_shown',
-    SIGNUP_VERIFY_INVITE_TAPPED: 'signup_verify_invite_tapped',
+    SIGNUP_VERIFY_START_SHOWN: 'signup_verify_start_shown',
+    SIGNUP_VERIFY_START_TAPPED: 'signup_verify_start_tapped',
 
     // ── KYC (Bridge) ──
     KYC_INITIATED: 'kyc_initiated',

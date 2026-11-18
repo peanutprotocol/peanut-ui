@@ -8,14 +8,12 @@ export type StepTimelineRow = { key: string; label: string; state: StepTimelineS
 
 /**
  * The ID check's numbered timeline: a green check when done, yellow when current, grey after. /verify's steps
- * screen and the sign-up Celebration's verify invite draw the same rows. `dense` is the invite's 48 px row
- * (mock v7), where the screen also holds the art and the buttons.
+ * screen and the sign-up Verify start draw the same rows.
  */
 export function StepTimeline({
     rows,
     doneLabel,
     spinCurrent = false,
-    dense = false,
     className,
     testId,
     phase,
@@ -25,7 +23,6 @@ export function StepTimeline({
     doneLabel: string
     /** a spinner in the current circle instead of its number (the review wait) */
     spinCurrent?: boolean
-    dense?: boolean
     className?: string
     testId?: string
     phase?: string
@@ -36,10 +33,7 @@ export function StepTimeline({
                 <li
                     key={row.key}
                     aria-current={row.state === 'current' ? 'step' : undefined}
-                    className={twMerge(
-                        'relative grid grid-cols-[2rem_minmax(0,1fr)] gap-x-4 last:min-h-8 last:pb-0',
-                        dense ? 'min-h-12 pb-4' : 'min-h-[4.625rem] pb-6'
-                    )}
+                    className="relative grid min-h-[4.625rem] grid-cols-[2rem_minmax(0,1fr)] gap-x-4 pb-6 last:min-h-8 last:pb-0"
                 >
                     {index < rows.length - 1 && (
                         <span aria-hidden className="absolute top-8 bottom-0 left-[15.5px] w-px bg-border-subtle" />

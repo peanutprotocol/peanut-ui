@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useQueryState } from 'nuqs'
+import { parseAsBoolean, useQueryState } from 'nuqs'
 import { type QueryClient, useQueryClient } from '@tanstack/react-query'
 import { useLocale, useTranslations } from 'next-intl'
 import ResidenceChangeDrawer from '@/components/Profile/views/ResidenceChangeDrawer'
@@ -410,6 +410,8 @@ function PaperworkVerificationSteps({
     }, [])
     const [stepParam] = useQueryState('step')
     const [returnToFeature] = useQueryState('returnToFeature')
+    // set by a caller that already listed the steps (the sign-up Verify start)
+    const [skipOverview] = useQueryState('skipOverview', parseAsBoolean.withDefault(false))
     const linkedQuestion = useRef(stepParam)
     const enterLastPage = useRef<PaperworkVerificationStepId | undefined>(undefined)
     // A replacement hands off before its submission webhook necessarily arrives.
@@ -471,8 +473,8 @@ function PaperworkVerificationSteps({
     const entry = screenOf(entryStep({ questions, plan, status }, submitted))
 
     // A visit that still has questions or the ID ahead opens on the steps overview, in front
-    // of the open step; a deep link to a step skips it.
-    const [intro, setIntro] = useState(() => asking && !introShown.current && !stepParam)
+    // of the open step; a deep link to a step skips it, and so does a caller that showed the steps itself.
+    const [intro, setIntro] = useState(() => asking && !introShown.current && !stepParam && !skipOverview)
     const showIntro = intro && asking
     // While asking, the clean URL keeps meaning the step this visit opened on, so moving on to
     // a step that has since become the entry (the ID, once every answer is in) still writes it.

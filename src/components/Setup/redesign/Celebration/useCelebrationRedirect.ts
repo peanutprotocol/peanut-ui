@@ -15,7 +15,7 @@ export const CELEBRATION_REDIRECT_MS = 4500
  * dev's celebration behaviour (`Views/Success.tsx`): once per mount, also under Strict Mode, a success haptic,
  * `celebration:open` and dev's confetti; after 4.5 s, once, demo mode opens /home and everyone else goes where
  * `handleRedirect` sends a new account (an explicit `redirect_uri`, such as a claim link, first). `hold` stops the
- * wait while the screen asks the person where to go (the verify invite).
+ * wait while the screen asks the person where to go (the verify start).
  */
 export function useCelebrationRedirect(enabled: boolean, hold = false) {
     const router = useRouter()

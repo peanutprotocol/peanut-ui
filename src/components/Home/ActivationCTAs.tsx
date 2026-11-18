@@ -115,7 +115,7 @@ export default function ActivationCTAs({
     // only showed the regions list, forcing the user to hunt for the Upload-document
     // CTA again). Mirrors the add-money bank flow + the Unlock payments view.
     const kycFlow = useMultiPhaseKycFlow({})
-    // The checklist's Verify row: the same start the sign-up Celebration offers.
+    // The checklist's Verify row: the same start the sign-up Verify start offers.
     const identityCheck = useIdentityCheckStart(kycFlow)
 
     // Each onboarding step is reported once per session, not on every Home visit.

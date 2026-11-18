@@ -860,7 +860,7 @@
             "claimSub": "Tu cuenta de Peanut ya está creada.",
             "claimGoing": "Te llevamos de vuelta a tu enlace…"
         },
-        "verifyInvite": {
+        "verifyStart": {
             "sub": "Así desbloqueás tus datos bancarios.",
             "subCard": "Luego solicitá una tarjeta."
         }

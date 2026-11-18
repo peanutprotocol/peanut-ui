@@ -7,50 +7,27 @@ import { useIdentityCheckStart } from '@/features/paperwork-verification/useIden
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { signupAnalyticsContext } from '@/features/setup/signup-analytics'
 import { useAccountSetup } from '@/hooks/useAccountSetup'
-import { useFeatureFlags } from '@/hooks/useFeatureFlag'
-import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
-import { isDemoMode } from '@/utils/demo'
 
-export const VERIFY_INVITE_FLAG = 'signup-verify-invite'
-
-/**
- * The Celebration's invite to verify now (war room 2026-11-16: people verify in their first session or never).
- * Only a default sign-up gets it: a claim link or another deep link keeps the redirect to where the person was
- * going, and so does demo mode. It needs the PostHog flag (the rollback switch) and an open door: a
- * region-restricted ID, or a residence with neither bank rails nor the card, keeps the redirect. Once shown it
- * stays, so a late flag or residence answer never pulls the buttons away under a finger.
- */
-export function useCelebrationVerifyInvite(signupCompleted: boolean) {
+/** The Verify start's actions and events: shown once on open, then which way the person chose. */
+export function useVerifyStart() {
     const { signupEntryFlow } = useSetupFlowContext()
-    const isFlagOn = useFeatureFlags()
-    const { isRegionRestricted } = useIdentityVerification()
     const restrictions = useResidenceRestrictions()
     const { consumeRedirect, handleRedirect } = useAccountSetup()
     const kycFlow = useMultiPhaseKycFlow({})
     const identityCheck = useIdentityCheckStart(kycFlow)
-    const [shown, setShown] = useState(false)
     const [starting, setStarting] = useState(false)
     const reported = useRef(false)
 
-    const eligible =
-        signupCompleted &&
-        signupEntryFlow === 'default' &&
-        isFlagOn(VERIFY_INVITE_FLAG) &&
-        !isRegionRestricted &&
-        !(restrictions.banking && restrictions.card)
-
-    // demo mode reads storage, so it is checked after hydration, here
     useEffect(() => {
-        if (!eligible || reported.current || isDemoMode()) return
+        if (reported.current) return
         reported.current = true
-        setShown(true)
-        posthog.capture(ANALYTICS_EVENTS.SIGNUP_VERIFY_INVITE_SHOWN, signupAnalyticsContext(signupEntryFlow))
-    }, [eligible, signupEntryFlow])
+        posthog.capture(ANALYTICS_EVENTS.SIGNUP_VERIFY_START_SHOWN, signupAnalyticsContext(signupEntryFlow))
+    }, [signupEntryFlow])
 
     const tapped = (choice: 'verify' | 'later') =>
-        posthog.capture(ANALYTICS_EVENTS.SIGNUP_VERIFY_INVITE_TAPPED, {
+        posthog.capture(ANALYTICS_EVENTS.SIGNUP_VERIFY_START_TAPPED, {
             choice,
             ...signupAnalyticsContext(signupEntryFlow),
         })
@@ -61,7 +38,8 @@ export function useCelebrationVerifyInvite(signupCompleted: boolean) {
         consumeRedirect({ isNewAccount: true })
         setStarting(true)
         try {
-            await identityCheck.start()
+            // this screen already lists the steps, so /verify opens on the first question, not its overview
+            await identityCheck.start({ skipOverview: true })
         } finally {
             setStarting(false)
         }
@@ -74,5 +52,5 @@ export function useCelebrationVerifyInvite(signupCompleted: boolean) {
 
     // bank rails closed but the card open: verifying unlocks the card, not bank details (Chip on ui#4138)
     const cardOnly = restrictions.banking && !restrictions.card
-    return { shown, cardOnly, starting, verify, later, kycFlow, modals: identityCheck.modals }
+    return { cardOnly, starting, verify, later, kycFlow, modals: identityCheck.modals }
 }

@@ -120,7 +120,7 @@
         "source": "Setup/redesign/Celebration/CelebrationScreen.tsx"
     },
     {
-        "id": "07-e-setup-celebration-flag-signup-verify-invite-true",
+        "id": "07-e-setup-celebration-flag-signup-verify-start-true",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=07-e-setup-celebration",
         "source": "Setup/redesign/Celebration/CelebrationScreen.tsx"
@@ -716,6 +716,12 @@
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=07-d-notification-defaults-on",
         "source": "Setup/redesign/Notifications/NotificationsSwitchesScreen.tsx"
+    },
+    {
+        "id": "07-f-setup-verify-start",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=07-f-setup-verify-start",
+        "source": "Setup/redesign/VerifyStart/VerifyStartScreen.tsx"
     },
     {
         "id": "08-b-loginrecoverydrawer",

@@ -209,6 +209,10 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         name: 'Setup — full-screen account celebration',
         path: 'Setup/redesign/Celebration/CelebrationScreen.tsx',
     },
+    '07-f-setup-verify-start': {
+        name: 'Setup — verify start',
+        path: 'Setup/redesign/VerifyStart/VerifyStartScreen.tsx',
+    },
     '07-b-advantage-control': {
         name: 'Setup benefit — control',
         path: 'Setup/redesign/FinalConfirm/FinalConfirmScreen.tsx',

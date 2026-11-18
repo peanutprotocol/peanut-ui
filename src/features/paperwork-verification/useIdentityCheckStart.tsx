@@ -12,12 +12,13 @@ import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { buildContactSupportMessage } from '@/utils/contact-support.utils'
 
 /**
- * The one ID-check start, shared by Home's Verify row and the sign-up Celebration. The caller owns the KYC
+ * The one ID-check start, shared by Home's Verify row and the sign-up Verify start. The caller owns the KYC
  * flow and renders its SumsubKycModals, because Home reuses that flow for its other cards. `modals` holds
  * the start modal and the QR check's modals.
  */
 export function useIdentityCheckStart(kycFlow: ReturnType<typeof useMultiPhaseKycFlow>): {
-    start: () => Promise<void>
+    /** `skipOverview`: the caller already showed the steps, so /verify opens on the first open question. */
+    start: (options?: { skipOverview?: boolean }) => Promise<void>
     modals: ReactNode
 } {
     const router = useRouter()
@@ -31,11 +32,11 @@ export function useIdentityCheckStart(kycFlow: ReturnType<typeof useMultiPhaseKy
     const opensPaperworkVerification = usePaperworkVerificationStart()
     const restrictions = useResidenceRestrictions()
     const startingRef = useRef(false)
-    const start = async () => {
+    const start = async ({ skipOverview = false }: { skipOverview?: boolean } = {}) => {
         if (startingRef.current) return
         startingRef.current = true
         try {
-            if (await opensPaperworkVerification()) router.push('/verify')
+            if (await opensPaperworkVerification()) router.push(skipOverview ? '/verify?skipOverview=true' : '/verify')
             // The legacy start is bank-shaped. Where bank rails are closed the
             // card is the door, and where the card is closed too, QR pay is
             // (Hugo, 2026-09-26: QR is open to every verified user).

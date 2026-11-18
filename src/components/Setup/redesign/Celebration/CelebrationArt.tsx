@@ -22,16 +22,16 @@ const STARS: [number, number, number, boolean][] = [
  * 12 hero: the approved whistling peanut (`waving-chill`, the old PeanutWhistling; owner ruling 17 Nov) (it loops), the USD coin left and the EUR coin right as drawn (the pink
  * EUR coin on the pink ground: no recolour, rim, outline or filter), stars. The art moves as one object
  * (mock r9 S10/S11): 24 px higher in `default` on a standard phone; in `claim-link` it grows about 1.12x and
- * moves down to meet the shorter copy. With the verify invite on a small phone, the footer lifts the copy, so the
- * art shrinks from its top edge to keep the feet clear of the headline.
+ * moves down to meet the shorter copy. With the verify offer's buttons on a small phone, the footer lifts the copy, so
+ * the art shrinks from its top edge to keep the feet clear of the headline.
  */
-export function CelebrationArt({ claim, invite = false }: { claim: boolean; invite?: boolean }) {
+export function CelebrationArt({ claim, footer = false }: { claim: boolean; footer?: boolean }) {
     const sm = useShellDevice() === 'sm'
     // the mock moves the scaled art box in screen px; inside the box a small phone's 0.67 scale applies, so divide.
     // On a standard phone the mock's box hangs from the phone's bottom edge, home bar included; the shell's stage ends
     // above the bottom safe area, so the box moves down by it.
-    const smInvite = invite && sm && !claim
-    const transform = smInvite
+    const smFooter = footer && sm && !claim
+    const transform = smFooter
         ? 'scale(0.88)'
         : claim
           ? sm
@@ -43,7 +43,7 @@ export function CelebrationArt({ claim, invite = false }: { claim: boolean; invi
     return (
         <div
             className="absolute inset-0"
-            style={{ transform, transformOrigin: smInvite ? '50% 0' : '50% 100%' }}
+            style={{ transform, transformOrigin: smFooter ? '50% 0' : '50% 100%' }}
             data-testid="setup-redesign-art"
         >
             {/* the whistling pose is wider than the cheering one: narrower and centred so the claim-link 1.12x scale keeps both
