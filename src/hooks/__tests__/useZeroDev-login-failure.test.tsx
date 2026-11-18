@@ -563,7 +563,7 @@ it('waits for fresh session hydration before publishing the verified wallet key 
     )
     mockToWebAuthnKey.mockResolvedValue({ authenticatorId: 'verified' })
     const { result } = renderHook(() => useZeroDev())
-    let pending!: Promise<void>
+    let pending!: Promise<unknown>
     await act(async () => {
         pending = result.current.handleLogin()
     })
