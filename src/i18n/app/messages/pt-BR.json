@@ -4364,7 +4364,7 @@
                     "name": "Nosso parceiro de Pix não conseguiu conferir este CPF com este nome. Confira os dois.",
                     "status": "Nosso parceiro de Pix encontrou este CPF irregular ou inexistente. Confira no gov.br e digite o CPF de novo."
                 },
-                "retryLater": "Este CPF foi conferido há menos de um dia. Regularize no gov.br e tente de novo amanhã."
+                "retryLater": "Este CPF foi verificado há menos de um dia. Regularize a situação na Receita Federal e tente de novo amanhã."
             }
         }
     },

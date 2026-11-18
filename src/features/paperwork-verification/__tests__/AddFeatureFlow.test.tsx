@@ -652,7 +652,8 @@ describe("Avenia's CPF record step after a data rejection", () => {
         )
         expect(await screen.findByText(en.kyc.paperworkVerification.cpfRecord.title.name)).toBeInTheDocument()
         expect(screen.getByText(en.kyc.paperworkVerification.cpfRecord.description.name)).toBeInTheDocument()
-        expect(screen.getByTestId('verify-input-taxId')).toHaveValue('•••• 7735')
+        // the saved CPF reads in its own shape, by its last four digits
+        expect(screen.getByTestId('verify-input-taxId')).toHaveValue('XXX.XXX.X77-35')
         const name = screen.getByTestId('verify-input-fullName')
         expect(name).toHaveValue('Ana Souza')
         fireEvent.change(name, { target: { value: 'Ana Maria Souza' } })

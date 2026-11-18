@@ -52,3 +52,12 @@ export function formatBrTaxId(value: string): string {
     if (isValidCnpj(value)) return value.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5')
     return value
 }
+
+/**
+ * A saved CPF the API shows by its last four digits (`•••• 7735`), in the CPF's own shape:
+ * `XXX.XXX.X77-35` (Aleks, 2026-11-18). Any other value unchanged.
+ */
+export function formatMaskedCpf(masked: string): string {
+    const last = masked.match(/^[^\d]*(\d{4})$/)?.[1]
+    return last ? `XXX.XXX.X${last.slice(0, 2)}-${last.slice(2)}` : masked
+}

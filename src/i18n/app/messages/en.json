@@ -4364,7 +4364,7 @@
                     "name": "Our Pix partner could not match this CPF and name. Check both.",
                     "status": "Our Pix partner found this CPF irregular or missing. Check it at gov.br, then type it again."
                 },
-                "retryLater": "This CPF was checked less than a day ago. Fix it at gov.br and try again tomorrow."
+                "retryLater": "This CPF was checked less than a day ago. Regularize the status with Receita Federal and try again tomorrow."
             }
         }
     },

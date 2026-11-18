@@ -1,4 +1,4 @@
-import { brTaxIdKind, formatBrTaxId, isValidCnpj, isValidCpf } from '@/utils/br-tax-id.utils'
+import { brTaxIdKind, formatBrTaxId, formatMaskedCpf, isValidCnpj, isValidCpf } from '@/utils/br-tax-id.utils'
 
 describe('isValidCpf', () => {
     it.each(['12345678909', '11144477735'])('accepts %s, whose check digits match', (cpf) => {
@@ -57,5 +57,16 @@ describe('formatBrTaxId', () => {
 
     it('leaves anything else unchanged', () => {
         expect(formatBrTaxId('12*******90')).toBe('12*******90')
+    })
+})
+
+describe('formatMaskedCpf', () => {
+    it("shows a saved CPF's last four digits in the CPF's shape", () => {
+        expect(formatMaskedCpf('•••• 7735')).toBe('XXX.XXX.X77-35')
+    })
+
+    it('leaves a value without four trailing digits as it is', () => {
+        expect(formatMaskedCpf('•••• 77')).toBe('•••• 77')
+        expect(formatMaskedCpf('')).toBe('')
     })
 })
