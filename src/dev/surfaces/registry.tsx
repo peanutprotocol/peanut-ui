@@ -319,7 +319,7 @@ const noop = () => {}
 
 /**
  * 12 needs a completed sign-up in the flow context; it then redirects on its own after 4.5 s, as on /setup. With
- * the verify offer, its Verify now opens the Verify start, as on /setup.
+ * Verify now and Remind me later, its Verify now opens the Verify start, as on /setup.
  */
 function CompletedCelebration() {
     const { setSignupCompleted } = useSetupFlowContext()

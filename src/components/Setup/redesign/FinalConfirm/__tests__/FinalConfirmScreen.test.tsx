@@ -44,7 +44,9 @@ import {
 
 jest.mock('@/services/signup-geo', () => ({ attachSignupGeo: jest.fn() }))
 // 12's verify start has its own suite (CelebrationScreen.test); here 12 is the plain celebration
-jest.mock('@/components/Setup/redesign/Celebration/useVerifyStartOffer', () => ({ useVerifyStartOffer: () => false }))
+jest.mock('@/components/Setup/redesign/Celebration/useVerifyStartEligible', () => ({
+    useVerifyStartEligible: () => false,
+}))
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))
 
 const WALLET = '0x1111111111111111111111111111111111111111'

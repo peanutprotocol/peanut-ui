@@ -22,7 +22,7 @@ const STARS: [number, number, number, boolean][] = [
  * 12 hero: the approved whistling peanut (`waving-chill`, the old PeanutWhistling; owner ruling 17 Nov) (it loops), the USD coin left and the EUR coin right as drawn (the pink
  * EUR coin on the pink ground: no recolour, rim, outline or filter), stars. The art moves as one object
  * (mock r9 S10/S11): 24 px higher in `default` on a standard phone; in `claim-link` it grows about 1.12x and
- * moves down to meet the shorter copy. With the verify offer's buttons on a small phone, the footer lifts the copy, so
+ * moves down to meet the shorter copy. With Verify now and Remind me later on a small phone, the footer lifts the copy, so
  * the art shrinks from its top edge to keep the feet clear of the headline.
  */
 export function CelebrationArt({ claim, footer = false }: { claim: boolean; footer?: boolean }) {

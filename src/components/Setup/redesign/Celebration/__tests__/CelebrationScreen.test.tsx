@@ -284,7 +284,7 @@ describe('12 Celebration and the Verify start (flag signup-verify-start)', () =>
 
     it("VS-1 Celebration: dev's copy, a white Verify now and a Remind me later link in place of the wait", () => {
         const { container } = renderStep()
-        expect(setupState(container)).toBe('verify-offer')
+        expect(setupState(container)).toBe('buttons')
         expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(copyRx('setupRedesign.done.title'))
         expect(screen.getByText(textMatch('@kim'))).toBeInTheDocument()
         expect(screen.getByText(textMatch(copy('setupRedesign.done.sub')))).toBeInTheDocument()
@@ -357,7 +357,7 @@ describe('12 Celebration and the Verify start (flag signup-verify-start)', () =>
         fireEvent.click(later())
         expect(mockReplace).toHaveBeenCalledWith('/home')
         expect(mockReplace).toHaveBeenCalledTimes(1)
-        expect(setupState(container)).toBe('verify-offer')
+        expect(setupState(container)).toBe('buttons')
         expect(signupControls(posthog.capture as jest.Mock)).toEqual([
             'celebration:open',
             'celebration-remind-later:tap',
@@ -396,7 +396,7 @@ describe('12 Celebration and the Verify start (flag signup-verify-start)', () =>
     it.each([
         ['no bank rails and no card', () => (mockRestrictions = { banking: true, card: true })],
         ['a region-restricted ID', () => (mockRegionRestricted = true)],
-    ])('VS-8 %s: no offer, the redirect stays', (_label, restrict) => {
+    ])('VS-8 %s: no buttons, the redirect stays', (_label, restrict) => {
         restrict()
         const { container } = renderStep()
         expect(setupState(container)).toBe('default')

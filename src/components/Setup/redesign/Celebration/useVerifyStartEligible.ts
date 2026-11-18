@@ -10,18 +10,18 @@ import { isDemoMode } from '@/utils/demo'
 export const VERIFY_START_FLAG = 'signup-verify-start'
 
 /**
- * Whether the Celebration offers to verify now (war room 2026-11-16: people verify in their first session or never).
- * Only a default sign-up gets the offer: a claim link or another deep link keeps the redirect to where the person
+ * Whether the Celebration shows Verify now and Remind me later, which lead to the Verify start (war room 2026-11-16: people verify in their first session or never).
+ * Only a default sign-up gets them: a claim link or another deep link keeps the redirect to where the person
  * was going, and so does demo mode. It needs the PostHog flag (the rollback switch) and an open door: a
- * region-restricted ID, or a residence with neither bank rails nor the card, keeps the redirect. Once offered it
+ * region-restricted ID, or a residence with neither bank rails nor the card, keeps the redirect. Once shown they
  * stays, so a late flag or residence answer never pulls the buttons away under a finger.
  */
-export function useVerifyStartOffer(signupCompleted: boolean) {
+export function useVerifyStartEligible(signupCompleted: boolean) {
     const { signupEntryFlow } = useSetupFlowContext()
     const isFlagOn = useFeatureFlags()
     const { isRegionRestricted } = useIdentityVerification()
     const restrictions = useResidenceRestrictions()
-    const [offered, setOffered] = useState(false)
+    const [shown, setShown] = useState(false)
 
     const eligible =
         signupCompleted &&
@@ -32,8 +32,8 @@ export function useVerifyStartOffer(signupCompleted: boolean) {
 
     // demo mode reads storage, so it is checked after hydration, here
     useEffect(() => {
-        if (eligible && !isDemoMode()) setOffered(true)
+        if (eligible && !isDemoMode()) setShown(true)
     }, [eligible])
 
-    return offered
+    return shown
 }

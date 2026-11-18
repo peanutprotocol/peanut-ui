@@ -684,7 +684,7 @@ async function emailToFinal(page: Page, locale: Locale, email: string) {
 async function confirmAndCelebrate(
     page: Page,
     locale: Locale,
-    state: 'default' | 'claim-link' | 'verify-offer' = 'default'
+    state: 'default' | 'claim-link' | 'buttons' = 'default'
 ) {
     if (!STUB_BUNDLER) {
         test.info().annotations.push({ type: 'not checked', description: '11 → 12: no stub bundler in this build' })
@@ -727,7 +727,7 @@ async function organicSignupToCelebration(
     context: BrowserContext,
     baseURL: string,
     username: string,
-    state: 'default' | 'verify-offer' = 'verify-offer'
+    state: 'default' | 'buttons' = 'buttons'
 ) {
     await addAuthenticator(page)
     await openSetup(page, context, baseURL)
