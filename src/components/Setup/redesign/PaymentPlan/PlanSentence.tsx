@@ -35,7 +35,7 @@ export function PlanSentence({
     /** The server's bank currencies for the residence; empty when unknown. */
     bankCurrencies: readonly string[]
     loading: boolean
-    /** QR payments work only in Argentina and Brazil: residents elsewhere see that in the spending row (v7). */
+    /** QR payments work only in Argentina and Brazil: a US resident sees that in the spending row (v7). */
     qrAbroad: boolean
     onFunding: (channel: SetupFundingChannel) => void
     onPayment: (channel: SetupPaymentChannel) => void

@@ -106,7 +106,8 @@ export function PaymentPlanScreen(_props: StepComponentProps) {
                 paymentOptions={options.payment}
                 bankCurrencies={intents?.bank.currencies ?? []}
                 loading={!settled}
-                qrAbroad={!qrHome}
+                // the abroad label is for US residents only (Konrad, Kush decisions round 2); others keep dev's row
+                qrAbroad={residenceCountry === 'US'}
                 onFunding={(channel) => {
                     setFundingChannel(channel)
                     setHop((last) => ({ piece: 'coin', beat: (last?.beat ?? 0) + 1 }))
