@@ -270,7 +270,7 @@ describe('the first deposit fact and the Home push re-ask', () => {
         ['true', { firstDepositReceived: true }, true],
         ['false', { firstDepositReceived: false }, false],
         ['null', { firstDepositReceived: null }, null],
-        ['missing (an older API)', {}, null],
+        ['missing (an older API)', {}, undefined],
         ['not a boolean', { firstDepositReceived: 'yes' }, null],
     ])('%s reads as %p', (_label, patch, fact) => {
         const built = applyServerFacts(state, asServerAttention(envelope({ facts: { ...facts, ...patch } })))
@@ -287,6 +287,24 @@ describe('the first deposit fact and the Home push re-ask', () => {
         // answered "Not now" after the deposit: silenced like any snooze, no further re-arm
         expect(isSilenced(pushAsk, snoozedFor(pushAsk.version!(after)!), after)).toBe(true)
         expect(pushAsk.eligible(after)).toBe('show')
+    })
+
+    test('the Home ask waits while the facts load or after a failed read, so a dismissal under ":deposit" holds', () => {
+        const loading = applyServerFacts(state, undefined)
+        const failed = applyServerFacts(
+            state,
+            asServerAttention(envelope({ facts: { ...facts, firstDepositReceived: null } }))
+        )
+        expect(loading.firstDepositReceived).toBeNull()
+        expect(pushAsk.eligible(loading)).toBe('unknown')
+        expect(pushAsk.eligible(failed)).toBe('unknown')
+        // settled: the ask decides again, and the dismissal saved after the deposit still matches
+        const settled = { ...state, firstDepositReceived: true }
+        expect(pushAsk.eligible(settled)).toBe('show')
+        expect(isSilenced(pushAsk, snoozedFor(pushAsk.version!(settled)!), settled)).toBe(true)
+        // an older API that answers without the fact keeps today's ask
+        const older = applyServerFacts(state, asServerAttention(envelope({ facts })))
+        expect(pushAsk.eligible(older)).toBe('show')
     })
 
     test.each([

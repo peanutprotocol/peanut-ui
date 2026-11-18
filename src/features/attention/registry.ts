@@ -153,6 +153,8 @@ export const pushHomeFallback: AttentionAsk = defineAsk('push-home-fallback', {
         const gate = loggedIn(s)
         if (gate !== 'ready') return gate
         if (!s.push.ready) return 'unknown'
+        // facts loading or unread: deciding now drops ":deposit" and re-arms a dismissal saved under it
+        if (s.firstDepositReceived === null) return 'unknown'
         // a money moment already asked this session: one pre-prompt per session
         if (s.push.unanswered) return s.push.promptedThisSession ? 'ineligible' : 'show'
         // answered but not on: the native card opens the OS settings
