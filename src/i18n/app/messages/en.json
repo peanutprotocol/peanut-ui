@@ -1370,6 +1370,7 @@
             "stepQuestions": "A few questions we’re required to ask",
             "stepPhoto": "ID photo and selfie",
             "verifyNow": "Verify now · 3 min",
+            "verifyNowIdOnly": "Verify now · 2 min",
             "remindLater": "Remind me later"
         }
     },
@@ -4288,10 +4289,6 @@
                     "bankTerms": "Accept the bank transfer terms",
                     "bankCheck": "Finish the bank transfer check"
                 }
-            },
-            "saved": {
-                "title": "Answers saved!",
-                "description": "Next, a photo of your ID and a quick selfie."
             },
             "featureNames": {
                 "bank": "bank accounts",

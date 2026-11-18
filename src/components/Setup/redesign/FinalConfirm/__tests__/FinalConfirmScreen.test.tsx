@@ -42,6 +42,10 @@ import {
     openDialog,
 } from '../../Accounts/__tests__/redesignHarness'
 
+// the Celebration's Verify now has its own suite (CelebrationScreen.test)
+jest.mock('@/components/Setup/redesign/Celebration/useCelebrationVerify', () => ({
+    useCelebrationVerify: () => ({ start: jest.fn(), starting: false, kycFlow: {}, modals: null }),
+}))
 jest.mock('@/services/signup-geo', () => ({ attachSignupGeo: jest.fn() }))
 // 12's verify start has its own suite (CelebrationScreen.test); here 12 is the plain celebration
 jest.mock('@/components/Setup/redesign/Celebration/useVerifyStartEligible', () => ({

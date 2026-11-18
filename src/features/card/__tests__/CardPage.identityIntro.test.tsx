@@ -12,6 +12,7 @@ import { CardPage } from '../CardPage'
 const handleSumsubClose = jest.fn()
 let mockFlow: Record<string, unknown> = {}
 
+jest.mock('@/components/Setup/components/SetupLanguageSwitcher', () => ({ SetupLanguageSwitcher: () => null }))
 jest.mock('../useCardFlow', () => ({ useCardFlow: () => mockFlow }))
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))
 jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({
@@ -75,7 +76,7 @@ describe('CardPage — the first ID check opens behind the intro', () => {
 
         expect(screen.getByTestId('identity-check-intro')).toBeInTheDocument()
         expect(screen.getByText('Card provider')).toBeInTheDocument()
-        expect(screen.getByText('Answer a few questions')).toBeInTheDocument()
+        expect(screen.getByText('A few questions we’re required to ask')).toBeInTheDocument()
         expect(screen.queryByTestId('sumsub-sdk')).not.toBeInTheDocument()
 
         fireEvent.click(screen.getByTestId('verify-steps-continue'))
@@ -87,7 +88,7 @@ describe('CardPage — the first ID check opens behind the intro', () => {
         mockFlow = flow({ status: 'not_started' })
         renderPage()
 
-        fireEvent.click(screen.getByTestId('verify-back'))
+        fireEvent.click(screen.getByRole('button', { name: 'Remind me later' }))
         expect(handleSumsubClose).toHaveBeenCalledTimes(1)
     })
 

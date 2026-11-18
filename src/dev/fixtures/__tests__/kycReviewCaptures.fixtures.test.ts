@@ -41,12 +41,12 @@ describe('KYC review screen captures', () => {
         ['nationality', 'manteca_us_nationality_restricted'],
         ['tax', 'tax_id_required'],
         ['unknown', 'fixture_unknown_reason'],
-    ])('registers an answered saved screen for the %s refusal', (category, reason) => {
+    ])('registers the ID type picker, answers saved, for the %s refusal', (category, reason) => {
         const id = `paperwork-verification-closed-${category}`
         const questions = response(id, 'GET /users/kyc/questions')
         expect(questions.steps.every((step: any) => step.answered)).toBe(true)
         expect(questions.closed.map((item: any) => item.reason)).toEqual([reason])
-        expect(SCREENS.find((screen) => screen.fixture === id)?.route).toBe('/verify?step=saved')
+        expect(SCREENS.find((screen) => screen.fixture === id)?.route).toBe('/verify?step=id')
     })
 
     it('keeps policy hold, rejection, outage and foreign-national restart separately registered', () => {

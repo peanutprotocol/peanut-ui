@@ -32,22 +32,13 @@ const primary = (label: string, onClick: () => void, testId: string, loading = f
     </Button>
 )
 
-/** The last answer is saved: the ID check comes next. */
-/** `busy` while the last answers are still on their way to the server. */
-export function SavedScreen({
-    busy = false,
-    closed = [],
-    onBack,
-    onContinue,
-}: {
-    busy?: boolean
-    /** What the residence or an answer closed of the user's pick, said before the ID check. */
-    closed?: PaperworkVerificationClosedFeature[]
-    onBack?: () => void
-    onContinue: () => void
-}) {
+/**
+ * What the residence or an answer closed of the user's pick, said on the ID type picker before the ID check (it
+ * sat on the answers-saved midpoint until Kush dropped it, 2026-11-18). Nothing when nothing closed.
+ */
+export function ClosedFeaturesNotice({ closed }: { closed: PaperworkVerificationClosedFeature[] }) {
     const t = useTranslations('kyc.paperworkVerification')
-    const controls = useKycControl('answers-saved')
+    if (!closed.length) return null
     const line = ({ feature, reason }: PaperworkVerificationClosedFeature) => {
         if (t.has(`closed.${feature}.${reason}` as never)) return t(`closed.${feature}.${reason}` as never)
         const tokens = reason.split(/[._-]/)
@@ -64,37 +55,12 @@ export function SavedScreen({
         return t(`closed.${feature}.${category}` as never)
     }
     return (
-        <VerifyCelebrationLayout
-            pose="pointing"
-            screenId="answers-saved"
-            statusTone="success"
-            onBack={onBack}
-            celebrate
-            title={t('saved.title')}
-            description={t('saved.description')}
-            footer={
-                <VerifyFooter
-                    actions={primary(
-                        t('continue'),
-                        () => {
-                            controls.track('continue', 'tap')
-                            onContinue()
-                        },
-                        'verify-saved-continue',
-                        busy
-                    )}
-                />
-            }
-        >
-            {closed.length > 0 && (
-                <Callout priority="info" className="w-full text-left" data-testid="verify-closed-features">
-                    {closed.map((c) => (
-                        <span key={c.feature}>{line(c)} </span>
-                    ))}
-                    <span>{t('closed.rest')}</span>
-                </Callout>
-            )}
-        </VerifyCelebrationLayout>
+        <Callout priority="info" className="w-full text-left" data-testid="verify-closed-features">
+            {closed.map((c) => (
+                <span key={c.feature}>{line(c)} </span>
+            ))}
+            <span>{t('closed.rest')}</span>
+        </Callout>
     )
 }
 

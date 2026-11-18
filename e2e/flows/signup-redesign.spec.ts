@@ -921,19 +921,10 @@ test.describe('sign-up redesign journeys', () => {
             await expect.poll(() => new URL(page.url()).pathname, { timeout: 15_000 }).toBe('/claim')
         })
 
-        test.describe('12 Celebration and Verify start (signup v7)', () => {
+        test.describe('12 Celebration and the one verify screen (signup v7)', () => {
             const verifyNow = (page: Page) => primary(page, copy('en', 'setupRedesign.verifyStart.verifyNow'))
             const remindLater = (page: Page) =>
                 page.getByRole('button', { name: copy('en', 'setupRedesign.verifyStart.remindLater') })
-            const toVerifyStart = async (page: Page) => {
-                await verifyNow(page).click()
-                await expectScreen(page, 'advantage-control', 'verify-start')
-                await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-                    copy('en', 'setupRedesign.verifyStart.title')
-                )
-                await expect(page.getByText(copy('en', 'setupRedesign.verifyStart.sub'))).toBeVisible()
-                await expect(page.getByTestId('setup-redesign-verify-steps').getByRole('listitem')).toHaveCount(2)
-            }
 
             test('Celebration: Verify now and Remind me later, no redirect; Remind me later opens Home', async ({
                 page,
@@ -950,31 +941,28 @@ test.describe('sign-up redesign journeys', () => {
                 await expect.poll(() => new URL(page.url()).pathname, { timeout: 15_000 }).toBe('/home')
             })
 
-            test('Celebration → Verify start → Verify now opens the first question, past the /verify overview', async ({
+            test("Celebration → Verify now opens Verify start on /verify, or today's check over the Celebration", async ({
                 page,
                 context,
                 baseURL,
             }) => {
                 if (!(await organicSignupToCelebration(page, context, baseURL!, 'luckyotter'))) return
-                await toVerifyStart(page)
                 await verifyNow(page).click()
-                // /verify for a Smart Paperwork Verification user; the legacy start modal otherwise (unit tests cover it)
-                await expect
-                    .poll(
-                        async () => {
-                            const url = new URL(page.url())
-                            if (url.pathname === '/verify') return url.searchParams.get('skipOverview') === 'true'
-                            return (await page.getByRole('dialog').count()) > 0
-                        },
-                        { timeout: 15_000 }
-                    )
-                    .toBe(true)
+                // /verify for a Smart Paperwork Verification user; today's check (its Verify start) otherwise
+                await expect(page.getByTestId('setup-redesign-verify-start')).toBeVisible({ timeout: 15_000 })
+                await expect(
+                    page.getByTestId('setup-redesign-verify-steps').getByRole('listitem').last()
+                ).toContainText(copy('en', 'setupRedesign.verifyStart.stepPhoto'))
+                // one footer on /verify: the sign-up shell is gone with its footer (TASK-25063)
+                if (new URL(page.url()).pathname === '/verify')
+                    await expect(page.locator('[data-setup-footer]')).toHaveCount(1)
                 await expect(page.getByTestId('verify-steps')).toHaveCount(0)
             })
 
-            test('Verify start: Remind me later opens Home', async ({ page, context, baseURL }) => {
+            test('Verify start after sign-up: Remind me later opens Home', async ({ page, context, baseURL }) => {
                 if (!(await organicSignupToCelebration(page, context, baseURL!, 'luckyotter'))) return
-                await toVerifyStart(page)
+                await verifyNow(page).click()
+                await expect(page.getByTestId('setup-redesign-verify-start')).toBeVisible({ timeout: 15_000 })
                 await remindLater(page).click()
                 await expect.poll(() => new URL(page.url()).pathname, { timeout: 15_000 }).toBe('/home')
             })

@@ -5,20 +5,18 @@ import { createPortal } from 'react-dom'
 import { useTranslations } from 'next-intl'
 import Card from '@/components/Global/Card'
 import { ProviderRow } from '@/components/Provider/ProviderRow'
+import { VerifyStartIntro } from '@/components/Setup/redesign/VerifyStart/VerifyStartIntro'
 import { useBackHandler } from '@/hooks/useBackHandler'
 import type { ProviderId, ProviderLabel } from '@/types/provider.types'
-import { StepsScreen } from './StepsScreen'
 import { useKycControl } from '../analytics'
 
 /**
- * /verify's intro in front of today's ID check (InitiateKycModal's unlock
- * offer, the Payment methods rows, the card's first check): the same steps, full screen, and Continue
- * starts the check the caller always started. It reads nothing from the API,
- * so it works for every user the server keeps on today's flow.
+ * Verify start, the one verify intro, in front of today's ID check (InitiateKycModal's unlock offer, the Payment
+ * methods rows, the card's first check): full screen, and Verify now starts the check the caller always started.
+ * It reads nothing from the API, so it works for every user the server keeps on today's flow.
  *
- * Over the page and under the drawers (z-30), so the provider's (?) sheet opens
- * on top of it. The provider row stays because Brazil's Resolution 520 wants
- * every ID screen to name the provider (TASK-23295).
+ * Over the page and under the drawers (z-30), so the provider's (?) sheet opens on top of it. The provider row
+ * stays because Brazil's Resolution 520 wants every ID screen to name the provider (TASK-23295).
  */
 export function IdentityCheckIntroScreen({
     visible,
@@ -44,8 +42,11 @@ export function IdentityCheckIntroScreen({
     const t = useTranslations('kyc.paperworkVerification')
     const control = useKycControl('id-handoff', 'kyc_legacy')
     const layerRef = useRef<HTMLDivElement>(null)
-    useBackHandler(() => {
+    const leave = () => {
         if (!busy) onBack()
+    }
+    useBackHandler(() => {
+        leave()
         return true
     }, visible)
     useEffect(() => {
@@ -60,35 +61,34 @@ export function IdentityCheckIntroScreen({
             aria-modal="true"
             aria-label={t('steps.title')}
             tabIndex={-1}
-            className="fixed inset-0 z-30 overflow-y-auto bg-background-page pt-safe-top pb-safe-bottom outline-none"
+            className="fixed inset-0 z-30 overflow-y-auto bg-background-default pb-safe-bottom outline-none"
             data-testid="identity-check-intro"
         >
-            <div className="mx-auto w-full max-w-md">
-                <StepsScreen
-                    screenId="id-handoff"
-                    controlFlow="kyc_legacy"
-                    hasQuestions={hasQuestions}
-                    busy={busy}
-                    continueTestId={continueTestId}
-                    aside={
-                        providerId ? (
-                            <Card position="solo" className="px-4 py-0">
-                                <ProviderRow
-                                    providerId={providerId}
-                                    label={providerLabel}
-                                    prospective
-                                    onOpenChange={(open) => control.track('provider_help', open ? 'open' : 'dismiss')}
-                                    onDocumentClick={(document) => control.track(`provider_${document}`, 'tap')}
-                                />
-                            </Card>
-                        ) : undefined
-                    }
-                    onBack={() => {
-                        if (!busy) onBack()
-                    }}
-                    onContinue={onContinue}
-                />
-            </div>
+            {/* the status-bar strip in the band's pink: the shell sets the ground */}
+            <div aria-hidden className="setup-hero-background h-safe-top" />
+            <VerifyStartIntro
+                controlScreen="id-handoff"
+                controlFlow="kyc_legacy"
+                questions={hasQuestions}
+                card={providerLabel === 'cardProvider'}
+                starting={busy}
+                verifyTestId={continueTestId ?? 'verify-steps-continue'}
+                aside={
+                    providerId ? (
+                        <Card position="solo" className="px-4 py-0">
+                            <ProviderRow
+                                providerId={providerId}
+                                label={providerLabel}
+                                prospective
+                                onOpenChange={(open) => control.track('provider_help', open ? 'open' : 'dismiss')}
+                                onDocumentClick={(document) => control.track(`provider_${document}`, 'tap')}
+                            />
+                        </Card>
+                    ) : undefined
+                }
+                onLater={leave}
+                onVerify={onContinue}
+            />
         </div>,
         document.body
     )

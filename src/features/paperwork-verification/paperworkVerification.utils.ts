@@ -327,7 +327,7 @@ export function formatTaxId(format: PaperworkVerificationTaxFormat | undefined, 
 export const looksLikeItin = (format: PaperworkVerificationTaxFormat | undefined, value: string) =>
     format === 'ssn' && /^9\d{8}$/.test(value.replace(/\D/g, ''))
 
-export type VerifyPhase = 'saved' | 'id' | 'review' | 'verified' | 'address-proof'
+export type VerifyPhase = 'id' | 'review' | 'verified' | 'address-proof'
 export type VerifyStep = PaperworkVerificationStepId | VerifyPhase
 
 // REVERIFYING is an approved user's selfie re-check; the API counts it as approved.

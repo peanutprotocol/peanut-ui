@@ -7,19 +7,29 @@ import { useAuth } from '@/context/authContext'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useQrIdentityCheck } from '@/features/payments/flows/qr-pay/useQrIdentityCheck'
 import { usePaperworkVerificationStart } from '@/features/paperwork-verification/usePaperworkVerificationStart'
-import { verifySkipOverviewHref } from '@/features/paperwork-verification/verifyRoute'
 import type { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { buildContactSupportMessage } from '@/utils/contact-support.utils'
 
 /**
- * The one ID-check start, shared by Home's Verify row and the sign-up Verify start. The caller owns the KYC
- * flow and renders its SumsubKycModals, because Home reuses that flow for its other cards. `modals` holds
- * the start modal and the QR check's modals.
+ * The one ID-check start, shared by Home's Verify row and the sign-up Celebration. Both open the one verify
+ * screen: Verify start on /verify, or over the page for today's check. The caller owns the KYC flow and renders
+ * its SumsubKycModals, because Home reuses that flow for its other cards. `modals` holds the start modal and the
+ * QR check's modals.
  */
-export function useIdentityCheckStart(kycFlow: ReturnType<typeof useMultiPhaseKycFlow>): {
-    /** `skipOverview`: the caller already showed the steps, so /verify opens on the first open question. */
-    start: (options?: { skipOverview?: boolean }) => Promise<void>
+export function useIdentityCheckStart(
+    kycFlow: ReturnType<typeof useMultiPhaseKycFlow>,
+    {
+        replace = false,
+        onClose,
+    }: {
+        /** /verify takes the caller's place (sign-up): Back from it must not reopen the caller */
+        replace?: boolean
+        /** after the start modal closes without starting the check (its Remind me later) */
+        onClose?: () => void
+    } = {}
+): {
+    start: () => Promise<void>
     modals: ReactNode
 } {
     const router = useRouter()
@@ -33,13 +43,12 @@ export function useIdentityCheckStart(kycFlow: ReturnType<typeof useMultiPhaseKy
     const opensPaperworkVerification = usePaperworkVerificationStart()
     const restrictions = useResidenceRestrictions()
     const startingRef = useRef(false)
-    const start = async ({ skipOverview = false }: { skipOverview?: boolean } = {}) => {
+    const start = async () => {
         if (startingRef.current) return
         startingRef.current = true
         try {
             if (await opensPaperworkVerification()) {
-                // from sign-up, /verify takes the screen's place: Back from the first question must not reopen sign-up
-                if (skipOverview) router.replace(verifySkipOverviewHref())
+                if (replace) router.replace('/verify')
                 else router.push('/verify')
             }
             // The legacy start is bank-shaped. Where bank rails are closed the
@@ -62,7 +71,10 @@ export function useIdentityCheckStart(kycFlow: ReturnType<typeof useMultiPhaseKy
             <InitiateKycModal
                 cooldownActive={!!kycFlow.errorCooldown}
                 visible={showInitiateKyc}
-                onClose={() => setShowInitiateKyc(false)}
+                onClose={() => {
+                    setShowInitiateKyc(false)
+                    onClose?.()
+                }}
                 // no corridor: the one ID check, the same start the status drawer resumes
                 onVerify={() => void kycFlow.handleInitiateKyc()}
                 onContactSupport={() => {

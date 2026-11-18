@@ -85,7 +85,7 @@ interface InitiateKycModalProps {
 }
 
 // confirmation modal shown before starting identity check or document resubmission.
-// default            → /verify's intro: the steps of the ID check, then Continue
+// default            → Verify start: the steps of the ID check, then Verify now
 // provider_rejection → "One more document needed"
 // blocked            → "We couldn't unlock this — contact support"
 // restart_identity   → "Verify with a different document" (self-fix for country mismatch);
@@ -345,9 +345,9 @@ export const InitiateKycModal = ({
         return <KycRegionRestrictedModal visible={visible} onClose={onClose} />
     }
 
-    // The unlock offers lead into a fresh SDK run: /verify's intro, the steps
+    // The unlock offers lead into a fresh SDK run: Verify start, the steps
     // the check takes, the same screen a Smart Paperwork Verification user sees
-    // (Slava, 2026-11-03). Every other variant is an error/action state of its own.
+    // (Slava, 2026-11-03; one intro everywhere, Kush 2026-11-18). Every other variant is an error/action state of its own.
     if (isUnlockOffer && !error && !isSupplementInReview && !slow) {
         // the account provider: bridge from the caller, manteca from the tax-id country
         const introProviderId =

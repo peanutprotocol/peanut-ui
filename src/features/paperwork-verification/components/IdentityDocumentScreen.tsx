@@ -65,6 +65,7 @@ export function IdentityDocumentScreen({
     nationality = null,
     restart = false,
     reason = null,
+    notice,
     documentsLoading = false,
     busy,
     error,
@@ -81,6 +82,8 @@ export function IdentityDocumentScreen({
     nationality?: string | null
     restart?: boolean
     reason?: string | null
+    /** under the title: what the answers closed of the user's pick (ClosedFeaturesNotice) */
+    notice?: React.ReactNode
     /** the plan is being read again for the documents */
     documentsLoading?: boolean
     busy: boolean
@@ -312,6 +315,7 @@ export function IdentityDocumentScreen({
                         {reason}
                     </Callout>
                 )}
+                {notice}
                 <p className="text-body-m leading-[1.625rem] text-foreground-secondary">
                     {t(restart ? 'midpoint.restartDescription' : 'documentList.description')}
                 </p>

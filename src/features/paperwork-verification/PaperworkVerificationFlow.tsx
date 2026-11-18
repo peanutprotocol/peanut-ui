@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { parseAsBoolean, useQueryState } from 'nuqs'
+import { useQueryState } from 'nuqs'
 import { type QueryClient, useQueryClient } from '@tanstack/react-query'
 import { useLocale, useTranslations } from 'next-intl'
 import ResidenceChangeDrawer from '@/components/Profile/views/ResidenceChangeDrawer'
@@ -16,7 +16,7 @@ import { identityRejection, rejectionSupportMessage, type IdentityRejection } fr
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { verifiedFollowUps } from './followUps'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
-import { useSafeBack } from '@/hooks/useSafeBack'
+import { previousInAppUrl, useSafeBack } from '@/hooks/useSafeBack'
 import { useSessionFence } from '@/hooks/useSessionFence'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import { useWebSocket } from '@/hooks/useWebSocket'
@@ -51,8 +51,9 @@ import { QuestionStepScreen, trackSaveOutcome } from './components/QuestionStepS
 import { LoadFailed, VerifyLoading } from './components/LoadScreens'
 import { VerifySetupPrelude } from './components/VerifySetupPrelude'
 import { restoreNativeStatusBar } from './useInsetColor'
-import { ProofOfAddressScreen, ReviewScreen, SavedScreen } from './components/StatusScreens'
+import { ClosedFeaturesNotice, ProofOfAddressScreen, ReviewScreen } from './components/StatusScreens'
 import { StepsScreen } from './components/StepsScreen'
+import { VerifyStartIntro } from '@/components/Setup/redesign/VerifyStart/VerifyStartIntro'
 import { BankRefusalNotice } from './components/BankRefusalNotice'
 import { supportRefusal } from '@/features/kyc-features/report'
 import {
@@ -254,16 +255,6 @@ function PaperworkVerificationAccount({ userId }: { userId?: string }) {
     const [generation, setGeneration] = useState(0)
     // The steps overview opens a visit once; a reload mid-flow goes straight back to the open step.
     const introShown = useRef(false)
-    // A caller that already listed the steps (the sign-up Verify start) skips the overview for this visit. The param
-    // leaves the URL at once, so a reload or a shared link opens the overview as usual.
-    const [skipOverviewParam, setSkipOverviewParam] = useQueryState(
-        'skipOverview',
-        parseAsBoolean.withDefault(false).withOptions({ history: 'replace' })
-    )
-    const overviewSkipped = useRef(skipOverviewParam)
-    useEffect(() => {
-        if (skipOverviewParam) void setSkipOverviewParam(null)
-    }, [skipOverviewParam, setSkipOverviewParam])
     // A load must not re-run because the router object changed identity.
     const routerRef = useRef(router)
     routerRef.current = router
@@ -374,7 +365,6 @@ function PaperworkVerificationAccount({ userId }: { userId?: string }) {
             fresh={state.fresh}
             reload={load}
             introShown={introShown}
-            skipOverview={overviewSkipped.current}
         />
     )
 }
@@ -384,14 +374,12 @@ function PaperworkVerificationSteps({
     fresh,
     reload,
     introShown,
-    skipOverview,
 }: {
     initial: Loaded
     /** the server's read behind a cached open, with the same screens */
     fresh?: Loaded
     reload: () => Promise<void>
     introShown: React.MutableRefObject<boolean>
-    skipOverview: boolean
 }) {
     const t = useTranslations('kyc.paperworkVerification')
     const tDocuments = useTranslations('kyc.documents')
@@ -410,6 +398,8 @@ function PaperworkVerificationSteps({
     // The picked document's name for Sumsub's ID step; a retry without a pick keeps the last one.
     const [identityStepTitle, setIdentityStepTitle] = useState<string>()
     const exit = useSafeBack('/home')
+    // Remind me later goes back where the person came from; from sign-up (/verify replaced its last step) to Home
+    const remindLater = () => (previousInAppUrl()?.startsWith('/setup') ? router.replace('/home') : exit())
     const [questions, setQuestions] = useState(initial.questions)
     const [plan, setPlan] = useState(initial.plan)
     const [status, setStatusState] = useState(initial.status)
@@ -451,7 +441,7 @@ function PaperworkVerificationSteps({
     )
     const progressTotal = pageCounts.reduce((total, count) => total + count, 2)
     const steps = useMemo<VerifyStep[]>(
-        () => [...questionIds, 'saved', 'id', 'review', 'verified', 'address-proof'],
+        () => [...questionIds, 'id', 'review', 'verified', 'address-proof'],
         [questionIds]
     )
     const allAnswered = questions.steps.every((s) => s.answered)
@@ -483,9 +473,9 @@ function PaperworkVerificationSteps({
     useVerificationOpening(asking, questions.entryScope)
     const entry = screenOf(entryStep({ questions, plan, status }, submitted))
 
-    // A visit that still has questions or the ID ahead opens on the steps overview, in front
-    // of the open step; a deep link to a step skips it, and so does a caller that showed the steps itself.
-    const [intro, setIntro] = useState(() => asking && !introShown.current && !stepParam && !skipOverview)
+    // A visit that still has questions or the ID ahead opens on Verify start, the one verify intro, in front
+    // of the open step; a deep link to a step skips it.
+    const [intro, setIntro] = useState(() => asking && !introShown.current && !stepParam)
     const showIntro = intro && asking
     // While asking, the clean URL keeps meaning the step this visit opened on, so moving on to
     // a step that has since become the entry (the ID, once every answer is in) still writes it.
@@ -499,15 +489,12 @@ function PaperworkVerificationSteps({
         defaultStep: asking ? openedOn : entry,
         guards: {
             ...Object.fromEntries(questionIds.map((id) => [id, { ok: asking }])),
-            saved: { ok: asking && allAnswered },
             id: { ok: asking && (allAnswered || documentRequired) },
             review: { ok: reviewing || failed },
             verified: { ok: approved },
             'address-proof': { ok: approved && plan?.proofOfAddress === 'suggested' },
         },
-        // Back from the ID skips the saved celebration.
-        backMap: questionIds.length ? { id: questionIds[questionIds.length - 1] } : undefined,
-        // Back from the first screen returns to the overview, when this visit showed it.
+        // Back from the first screen returns to Verify start, when this visit showed it.
         onExit: () => (asking && introShown.current ? setIntro(true) : exit()),
     })
     const step = stepper.step
@@ -541,17 +528,16 @@ function PaperworkVerificationSteps({
         message?: string
         focus?: boolean
     } | null>(null)
-    const [savedBusy, setSavedBusy] = useState(false)
+    // the ID screen's start waits for the last answer's checkpoint
+    const [settling, setSettling] = useState(false)
 
     const backThroughQuestions = () => {
         backRevision.current += 1
         reviewingAnswers.current = !stepper.isFirst
         linkedQuestion.current = null
         enterLastPage.current =
-            step === 'id' || step === 'saved'
-                ? questionIds.at(-1)
-                : questionIds[questionIds.findIndex((id) => id === step) - 1]
-        if (step === 'saved') setSavedBusy(false)
+            step === 'id' ? questionIds.at(-1) : questionIds[questionIds.findIndex((id) => id === step) - 1]
+        setSettling(false)
         void stepper.back()
     }
 
@@ -647,12 +633,13 @@ function PaperworkVerificationSteps({
         reviewingAnswers.current = reviewing && !!following
         linkedQuestion.current = null
         enterLastPage.current = undefined
-        void stepper.goTo(following ?? 'saved')
+        // after the last answer, straight to the ID type picker: no second overview (Kush, 2026-11-18)
+        void stepper.goTo(following ?? 'id')
 
         const submission = ++submissions.current
         if (!waitForSave && changed.length) saves.current = saves.current.then(persist).then(() => undefined)
         if (following) return
-        // The last answer reserves the attempt: read it and the ID's documents back before the midpoint needs them.
+        // The last answer reserves the attempt: read it and the ID's documents back while the picker is open.
         const checkpointCurrent = () =>
             current() && submission === submissions.current && back === backRevision.current && !saveRefused.current
         settled.current = saves.current.then(async () => {
@@ -661,23 +648,13 @@ function PaperworkVerificationSteps({
                 readQuestions(router, checkpointCurrent),
                 findKycDocumentPlan('verify').catch(() => null),
             ])
-            if (!checkpointCurrent() || stepRef.current !== 'saved') return
+            if (!checkpointCurrent() || stepRef.current !== 'id') return
             if (freshPlan) setPlan(freshPlan)
             if (!freshQuestions) return
             setQuestions(freshQuestions)
             const open = resumeStep(freshQuestions)
             if (open) void stepper.goTo(screenOf(open))
         })
-    }
-
-    const continueFromSaved = async () => {
-        const back = backRevision.current
-        const session = captureSession()
-        setSavedBusy(true)
-        await settled.current
-        if (back !== backRevision.current || !session.current()) return
-        setSavedBusy(false)
-        if (stepRef.current === 'saved' && !saveRefused.current) void stepper.goTo('id')
     }
 
     // A cached open takes the server's read in as long as nothing was answered on top of it.
@@ -750,6 +727,15 @@ function PaperworkVerificationSteps({
     }
 
     const startIdentity = async (document?: { type: string; issuingCountry: string }) => {
+        // the last answer's checkpoint first: its saves, and a fresh read of the attempt and the documents
+        const back = backRevision.current
+        const from = stepRef.current
+        const session = captureSession()
+        setSettling(true)
+        await settled.current
+        setSettling(false)
+        if (back !== backRevision.current || !session.current() || stepRef.current !== from || saveRefused.current)
+            return
         setIdError(null)
         if (document) {
             const key = DOCUMENT_KEYS[document.type as keyof typeof DOCUMENT_KEYS]
@@ -925,7 +911,6 @@ function PaperworkVerificationSteps({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [showIntro])
     useEffect(() => {
-        if (step === 'saved') track(ANALYTICS_EVENTS.KYC_PV_SAVED_VIEWED)
         if (step === 'review') track(ANALYTICS_EVENTS.KYC_PV_REVIEW_VIEWED, { status: status ?? null })
         if (step === 'verified') track(ANALYTICS_EVENTS.KYC_PV_VERIFIED_VIEWED)
         if (step === 'address-proof') track(ANALYTICS_EVENTS.KYC_PV_POA_VIEWED)
@@ -957,23 +942,15 @@ function PaperworkVerificationSteps({
         )
     } else if (showIntro) {
         screen = (
-            <StepsScreen
-                hasQuestions={questionIds.length > 0}
-                questionsDone={allAnswered}
-                onBack={exit}
-                onContinue={() => {
+            <VerifyStartIntro
+                controlScreen="steps-overview"
+                questions={!allAnswered}
+                verifyTestId="verify-steps-continue"
+                onLater={remindLater}
+                onVerify={() => {
                     track(ANALYTICS_EVENTS.KYC_PV_STEPS_CONTINUED, { next: step })
                     setIntro(false)
                 }}
-            />
-        )
-    } else if (step === 'saved') {
-        screen = (
-            <SavedScreen
-                busy={savedBusy}
-                closed={questions.closed}
-                onBack={questionIds.length ? backThroughQuestions : undefined}
-                onContinue={() => void continueFromSaved()}
             />
         )
     } else if (current) {
@@ -1010,8 +987,9 @@ function PaperworkVerificationSteps({
                 plan={plan}
                 residence={questions.residence}
                 nationality={nationalityOf(questions)}
+                notice={<ClosedFeaturesNotice closed={questions.closed ?? []} />}
                 documentsLoading={documentsLoading}
-                busy={identity.busy}
+                busy={identity.busy || settling}
                 error={idError}
                 progress={{ current: progressTotal, total: progressTotal }}
                 onBack={backThroughQuestions}
