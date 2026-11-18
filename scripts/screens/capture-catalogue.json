@@ -765,6 +765,11 @@
         "route": "/home"
     },
     {
+        "id": "fixture-home-low-balance-top-up",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
         "id": "fixture-full-maintenance",
         "flow": "Home and shared states",
         "route": "/maintenance"
