@@ -369,6 +369,7 @@ export const PAPERWORK_VERIFICATION_FIXTURES: Record<string, Fixture> = {
         ).map(([name, values]) => [
             `paperwork-verification-${name}`,
             {
+                capture: { expectSelector: '[data-testid="verify-input-state"]' },
                 route: '/verify?step=address',
                 about: `The US address screen${'state' in values ? ', filled in' : ''}: every field, with the state picked from every USPS state and territory code.`,
                 responses: asking('US', [
@@ -392,6 +393,7 @@ export const PAPERWORK_VERIFICATION_FIXTURES: Record<string, Fixture> = {
         ].map(([category, reason]) => [
             `paperwork-verification-closed-${category}`,
             {
+                capture: { expectSelector: '[data-testid="verify-closed-features"]' },
                 route: '/verify?step=saved',
                 about: `Answers saved: the closed local-transfer feature explains its ${category} reason.`,
                 responses: {
@@ -405,6 +407,7 @@ export const PAPERWORK_VERIFICATION_FIXTURES: Record<string, Fixture> = {
         ])
     ),
     'paperwork-verification-policy-hold': {
+        capture: { expectSelector: '[data-testid="verify-replacement-document"]:enabled' },
         route: '/verify',
         about: 'New-flow policy hold asks for another document and offers the replacement entry.',
         responses: {
@@ -433,6 +436,7 @@ export const PAPERWORK_VERIFICATION_FIXTURES: Record<string, Fixture> = {
         },
     },
     'paperwork-verification-rejected': {
+        capture: { expectSelector: '[data-testid="verify-review-home"]' },
         route: '/verify',
         about: 'A rejected new-flow identity remains on the ordinary verification rejection screen.',
         responses: {
@@ -442,6 +446,7 @@ export const PAPERWORK_VERIFICATION_FIXTURES: Record<string, Fixture> = {
         },
     },
     'paperwork-verification-rejected-not-document': {
+        capture: { expectSelector: '[data-testid="verify-review-home"]' },
         route: '/verify',
         about: 'A final non-document identity rejection explains the decision and directs the user to support.',
         responses: {
@@ -458,6 +463,7 @@ export const PAPERWORK_VERIFICATION_FIXTURES: Record<string, Fixture> = {
         },
     },
     'paperwork-verification-ars-setting-up': {
+        capture: { expectSelector: '[data-testid="verify-feature-done"]' },
         route: '/add-money/argentina/manteca',
         geoCountry: 'AR',
         about: 'A verified Argentine user waits while their ARS account is being set up.',
@@ -475,6 +481,10 @@ export const PAPERWORK_VERIFICATION_FIXTURES: Record<string, Fixture> = {
         },
     },
     'paperwork-verification-py-postal-refused': {
+        capture: {
+            actions: [{ clickSelector: '[data-testid="verify-continue"]' }],
+            expectSelector: '[data-testid="verify-input-postCode"][aria-invalid="true"]',
+        },
         route: '/verify?step=address',
         geoCountry: 'PY',
         about: 'A Paraguayan address with an invalid postal code receives the six-digit correction on Continue.',
@@ -538,6 +548,7 @@ export const PAPERWORK_VERIFICATION_FIXTURES: Record<string, Fixture> = {
         },
     },
     'paperwork-verification-outage': {
+        capture: { expectSelector: '[data-testid="verify-outage"]' },
         route: '/verify',
         about: 'Verification outage: the shared API kill switch stops entry before any SDK opens.',
         responses: {
@@ -546,6 +557,7 @@ export const PAPERWORK_VERIFICATION_FIXTURES: Record<string, Fixture> = {
         },
     },
     'paperwork-verification-restart-foreign': {
+        capture: { expectSelector: '[data-testid="verify-id"]' },
         route: '/verify?step=id&restart=1',
         about: 'A Portuguese resident replacing their ID sees their declared German nationality on the document picker.',
         responses: {
@@ -787,6 +799,10 @@ export const PAPERWORK_VERIFICATION_FIXTURES: Record<string, Fixture> = {
 const postalSupport = PAPERWORK_VERIFICATION_FIXTURES['paperwork-verification-py-bank-postal-support']
 const postalCorrection: (typeof PAPERWORK_VERIFICATION_FIXTURES)[string] = {
     ...postalSupport,
+    capture: {
+        actions: [{ clickSelector: '[data-testid="home-correct-bank-postal-code"]' }],
+        expectSelector: '[data-testid="verify-input-postCode"]',
+    },
     about: 'A verified user corrects the postal code for a blocked Bridge bank setup.',
     responses: {
         ...postalSupport.responses,
@@ -797,6 +813,14 @@ const postalCorrection: (typeof PAPERWORK_VERIFICATION_FIXTURES)[string] = {
 PAPERWORK_VERIFICATION_FIXTURES['paperwork-verification-bridge-postal-correction'] = postalCorrection
 PAPERWORK_VERIFICATION_FIXTURES['paperwork-verification-bridge-postal-refused'] = {
     ...postalCorrection,
+    capture: {
+        actions: [
+            { clickSelector: '[data-testid="home-correct-bank-postal-code"]' },
+            { fill: { selector: '[data-testid="verify-input-postCode"]', value: '1234' } },
+            { clickSelector: '[data-testid="bridge-postal-correction-save"]' },
+        ],
+        expectSelector: '[data-testid="verify-input-postCode"][aria-invalid="true"]',
+    },
     about: 'The Bridge correction keeps the postal code visible when the API rejects it.',
     rejects: {
         'POST /users/kyc/bridge-postal-code': { status: 422, body: { errors: { postCode: 'invalid_postal_code' } } },
@@ -804,15 +828,31 @@ PAPERWORK_VERIFICATION_FIXTURES['paperwork-verification-bridge-postal-refused'] 
 }
 PAPERWORK_VERIFICATION_FIXTURES['paperwork-verification-bridge-postal-queued'] = {
     ...postalCorrection,
+    capture: {
+        actions: [
+            { clickSelector: '[data-testid="home-correct-bank-postal-code"]' },
+            { fill: { selector: '[data-testid="verify-input-postCode"]', value: '012345' } },
+            { clickSelector: '[data-testid="bridge-postal-correction-save"]' },
+        ],
+        expectSelector: '[data-testid="bridge-postal-correction-queued"]',
+    },
     about: 'The corrected postal code is saved and Bridge setup is queued.',
 }
 PAPERWORK_VERIFICATION_FIXTURES['paperwork-verification-bridge-postal-temporary'] = {
     ...postalCorrection,
+    capture: {
+        actions: [{ clickSelector: '[data-testid="home-correct-bank-postal-code"]' }],
+        expectSelector: '[data-testid="bridge-postal-correction-temporary"]',
+    },
     about: 'A temporary error leaves both retry and support available.',
     rejects: { 'GET /users/kyc/bridge-postal-code': { status: 503, body: { code: 'temporary_failure' } } },
 }
 PAPERWORK_VERIFICATION_FIXTURES['paperwork-verification-bridge-postal-unavailable'] = {
     ...postalCorrection,
+    capture: {
+        actions: [{ clickSelector: '[data-testid="home-correct-bank-postal-code"]' }],
+        expectSelector: '[data-testid="bridge-postal-correction-unavailable"]',
+    },
     about: 'A user who cannot use the postal correction can contact support.',
     rejects: { 'GET /users/kyc/bridge-postal-code': { status: 409, body: { code: 'correction_unavailable' } } },
 }

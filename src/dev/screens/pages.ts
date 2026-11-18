@@ -1,16 +1,15 @@
 // Route checkpoints shared by ds-shots and the versioned library.
-export type PageCapture = {
+import { OPEN_DIALOG, HOME_ADD_DRAWER_CHECKPOINT, type CaptureRecipe } from '../fixtures/types'
+export { HOME_ADD_DRAWER_CHECKPOINT }
+
+export type PageCapture = CaptureRecipe & {
     id: string
     name: string
     route: string
     /** Fixture to serve this capture. Defaults to FIXTURE (the demo baseline). */
     fixture?: string
     entryRoute?: string
-    actions?: Array<
-        { click: string } | { clickSelector: string } | { tap: string } | { fill: { selector: string; value: string } }
-    >
-    /** Prove the requested overlay is open, including its selected row. */
-    expectSelector?: string
+    expectedHttpStatus?: number | number[]
     routePattern?: string
     /** Accessible names clicked in order before the shot. */
     clicks?: string[]
@@ -20,28 +19,32 @@ export type PageCapture = {
     defaultScreen?: boolean
 }
 
-export const HOME_ADD_DRAWER_CHECKPOINT = '[role="dialog"][data-state="open"] [data-testid="home-drawer-add-more"]'
-
 export const PAGE_CAPTURES: PageCapture[] = [
     // The page you flagged, then each of its three inline FAQ sheets.
     { id: 'p01-backup', name: 'Backup', route: '/profile/backup' },
     {
         id: 'p02-backup-lose-phone',
+        defaultScreen: false,
         name: 'Backup — What if I lose my phone?',
         route: '/profile/backup',
-        clicks: ['What if I lose my phone?'],
+        actions: [{ clickSelector: '[data-testid="backup-lose-phone"]' }],
+        expectSelector: '[role="dialog"][data-state="open"]',
     },
     {
         id: 'p03-backup-change-phone',
+        defaultScreen: false,
         name: 'Backup — What if I change phone?',
         route: '/profile/backup',
-        clicks: ['What if I change phone?'],
+        actions: [{ clickSelector: '[data-testid="backup-change-phone"]' }],
+        expectSelector: '[role="dialog"][data-state="open"]',
     },
     {
         id: 'p04-backup-export-keys',
+        defaultScreen: false,
         name: 'Backup — Why can’t I export my private key?',
         route: '/profile/backup',
-        clicks: ["Why can't I export my private key?"],
+        actions: [{ clickSelector: '[data-testid="backup-export-keys"]' }],
+        expectSelector: '[role="dialog"][data-state="open"]',
     },
 
     { id: 'p05-home', name: 'Home', route: '/home' },
@@ -104,14 +107,14 @@ export const PAGE_CAPTURES: PageCapture[] = [
         name: 'Add money — euro token network tooltip',
         route: '/add-money/crypto?network=EVM',
         // the chip names the credited variant, as the deposit token list does (rhino.consts EURe v2)
-        actions: [{ tap: 'EURe v2 · Gnosis' }],
+        actions: [{ tapSelector: '[data-testid="deposit-token-EURe v2-Gnosis"]' }],
         expectSelector: '[role="tooltip"]',
     },
     {
         id: 'add-money-crypto-token-network',
         name: 'Add money — network-specific token tooltip',
         route: '/add-money/crypto?network=EVM',
-        actions: [{ tap: 'USDS · Base' }],
+        actions: [{ tapSelector: '[data-testid="deposit-token-USDS-Base"]' }],
         expectSelector: '[role="tooltip"]',
     },
     { id: 'p19-add-money-us-bank', name: 'Add money — US bank', route: '/add-money/usa/bank' },
@@ -130,37 +133,59 @@ export const PAGE_CAPTURES: PageCapture[] = [
     { id: 'p32-request', name: 'Request', route: '/request' },
     { id: 'p33-claim', name: 'Claim', route: '/claim' },
     { id: 'p34-language', name: 'Language', route: '/settings/language' },
-    { id: 'p35-home-ctas', name: 'Home CTAs (incl. spend chooser)', route: '/dev/home-ctas' },
+    { id: 'p35-home-ctas', defaultScreen: false, name: 'Home CTAs (incl. spend chooser)', route: '/dev/home-ctas' },
 
     // Screens the demo baseline gates out; each has a fixture that opens it.
     {
         id: 'p36-add-money-bank-list',
+        defaultScreen: false,
         name: 'Add money — bank country list',
         route: '/add-money?method=bank',
         fixture: 'add-money',
     },
     {
         id: 'p37-add-money-crypto',
+        defaultScreen: false,
         name: 'Add money — network picker',
         route: '/add-money/crypto',
         fixture: 'add-money-crypto',
     },
     {
         id: 'p38-kyc-action-required',
+        defaultScreen: false,
         name: 'Accounts — verification action required',
         route: '/profile/accounts',
         fixture: 'kyc-action-required',
     },
-    { id: 'p39-language', name: 'Language', route: '/settings/language', fixture: 'settings-language' },
-    { id: 'p40-withdraw', name: 'Withdraw — saved accounts', route: '/withdraw', fixture: 'withdraw' },
+    {
+        id: 'p39-language',
+        defaultScreen: false,
+        name: 'Language',
+        route: '/settings/language',
+        fixture: 'settings-language',
+    },
+    {
+        id: 'p40-withdraw',
+        defaultScreen: false,
+        name: 'Withdraw — saved accounts',
+        route: '/withdraw',
+        fixture: 'withdraw',
+    },
     {
         id: 'p41-home-add-drawer',
+        defaultScreen: false,
         name: 'Home — Add money drawer',
         route: '/home?drawer=add',
         fixture: 'home-add-drawer',
         expectSelector: HOME_ADD_DRAWER_CHECKPOINT,
     },
-    { id: 'p42-home-send-drawer', name: 'Home — Send drawer (no mark)', route: '/home?drawer=send' },
+    {
+        id: 'p42-home-send-drawer',
+        defaultScreen: false,
+        expectSelector: OPEN_DIALOG,
+        name: 'Home — Send drawer (no mark)',
+        route: '/home?drawer=send',
+    },
 ]
 
 PAGE_CAPTURES.push(
@@ -172,9 +197,15 @@ PAGE_CAPTURES.push(
     { id: 'p53-maintenance', name: 'Maintenance', route: '/maintenance', fixture: 'full-maintenance' },
     { id: 'p55-send-recipient', name: 'Send to a recipient', route: '/send/demo' },
     { id: 'p56-request-recipient', name: 'Request from a recipient', route: '/request/demo' },
-    { id: 'p57-qr-code', name: 'QR payment — invalid code', route: '/qr/synthetic-invalid' },
+    { id: 'p57-qr-code', defaultScreen: false, name: 'QR payment — invalid code', route: '/qr/synthetic-invalid' },
     { id: 'p58-qr-success', name: 'QR code claimed successfully', route: '/qr/synthetic-success/success' },
-    { id: 'p59-receipt', name: 'Receipt — missing transaction', route: '/receipt/synthetic-invalid' },
+    {
+        id: 'p59-receipt',
+        defaultScreen: false,
+        expectedHttpStatus: [200, 404],
+        name: 'Receipt — missing transaction',
+        route: '/receipt/synthetic-invalid',
+    },
     { id: 'p60-receipt-entry', name: 'Receipt entry', route: '/receipt' },
     { id: 'p61-bank-europe', name: 'Add money — European bank', route: '/add-money/spain/bank', fixture: 'add-money' },
     { id: 'p62-bank-us', name: 'Add money — US bank', route: '/add-money/usa/bank', fixture: 'add-money' },
@@ -186,9 +217,9 @@ PAGE_CAPTURES.push(
         defaultScreen: true,
         entryRoute: '/withdraw?amount=50',
         actions: [
-            { click: '0802' },
-            { fill: { selector: 'input[inputmode=decimal]', value: '50' } },
-            { click: 'Continue' },
+            { clickSelector: '[data-testid="saved-account-fixture-iban-1"]' },
+            { fill: { selector: '[data-testid="amount-input"]', value: '50' } },
+            { clickSelector: '[data-testid="withdraw-amount-continue"]' },
         ],
         fixture: 'withdraw',
     },
@@ -200,6 +231,7 @@ PAGE_CAPTURES.push(
     { id: 'p67-recipient', name: 'Recipient profile', route: '/demo' },
     {
         id: 'p68-invite',
+        defaultScreen: false,
         name: 'Invite — missing code',
         route: '/invite?code=synthetic-invite',
         fixture: 'guest-invite',
@@ -213,19 +245,23 @@ PAGE_CAPTURES.push(
     { id: 'p70-payments', name: 'Payments', route: '/profile/payments', fixture: 'profile-payments' },
     {
         id: 'p71-accounts-held',
+        defaultScreen: false,
         name: 'Accounts — one held, the rest folded',
         route: '/profile/accounts',
         fixture: 'profile-accounts',
     },
     {
         id: 'p72-accounts-held-open',
+        defaultScreen: false,
         name: 'Accounts — open a new account, unfolded',
         route: '/profile/accounts',
         fixture: 'profile-accounts',
-        clicks: ['Open new account'],
+        actions: [{ clickSelector: '[data-testid="open-accounts-toggle"]' }],
+        expectSelector: '[data-testid="open-accounts-toggle"][aria-expanded="true"]',
     },
     {
         id: 'p73-token-selector-drawer',
+        defaultScreen: false,
         name: 'Token selector — open drawer, selected token',
         route: '/withdraw/crypto',
         fixture: 'withdraw-crypto-destination',
@@ -238,6 +274,7 @@ PAGE_CAPTURES.push(
     },
     {
         id: 'p74-network-selector-drawer',
+        defaultScreen: false,
         name: 'Network selector — open drawer, selected network',
         route: '/withdraw/crypto',
         fixture: 'withdraw-crypto-destination',
@@ -250,6 +287,7 @@ PAGE_CAPTURES.push(
     },
     {
         id: 'p75-residence-country-dropdown',
+        defaultScreen: false,
         name: 'Residence — open country list, selected country',
         route: '/dev/surfaces?s=03-a-residence-select',
         actions: [
@@ -261,6 +299,7 @@ PAGE_CAPTURES.push(
     },
     {
         id: 'p76-exchange-currency-dropdown',
+        defaultScreen: false,
         name: 'Exchange rate — open currency dropdown, selected currency',
         route: '/profile/exchange-rate',
         actions: [{ clickSelector: 'button[aria-haspopup="listbox"]' }],
@@ -268,6 +307,7 @@ PAGE_CAPTURES.push(
     },
     {
         id: 'p77-base-select-dropdown',
+        defaultScreen: false,
         name: 'BaseSelect — open dropdown, selected option',
         route: '/dev/ds/primitives/base-select',
         actions: [
@@ -290,7 +330,7 @@ PAGE_CAPTURES.push(
         name: 'Pix deposit — over the monthly limit',
         route: '/add-money/pix?amount=100&currency=BRL',
         fixture: 'pix-deposit-amount',
-        clicks: ['Continue'],
+        actions: [{ clickSelector: '[data-testid="deposit-amount-continue"]' }],
         expectSelector: '[role="alert"]',
     },
     {

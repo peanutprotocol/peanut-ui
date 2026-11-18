@@ -54,7 +54,7 @@ const EarlyUserDrawer = ({ onDismissed, presentation }: AskSurfaceProps) => {
             tone="peanut"
             title={t('earlyUserModal.title')}
             body={
-                <div className="flex w-full flex-col items-center gap-4">
+                <div data-testid="early-user-content" className="flex w-full flex-col items-center gap-4">
                     <p className="text-body-s text-foreground-secondary">{t('earlyUserModal.description')}</p>
 
                     <ShareButton url={inviteLink} title={t('earlyUserModal.shareSheetTitle')}>

@@ -124,6 +124,7 @@ export function UsernameField({
                     )}
                 </span>
                 <input
+                    data-testid="username-input"
                     ref={inputRef}
                     type="text"
                     inputMode="text"

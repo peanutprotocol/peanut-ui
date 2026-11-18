@@ -120,6 +120,7 @@ export function validateCapture(input) {
     )
     const scope = input.scope === undefined ? undefined : canonicalScope(input.scope, seen)
     if (scope) assert(scope.screenIds.length === screens.length, 'Scoped catalogue contains omitted states')
+    assert(input.finished === undefined || typeof input.finished === 'boolean', 'Invalid capture completion marker')
     const settled =
         screens.some((s) => s.status === 'captured') &&
         screens.every((s) => ['captured', 'excluded', 'absent'].includes(s.status))
@@ -136,6 +137,7 @@ export function validateCapture(input) {
         adapter: text(input.adapter),
         capturedAt: text(input.capturedAt),
         reconstruction: !!input.reconstruction,
+        ...(input.finished !== undefined ? { finished: input.finished } : {}),
         ...(input.copyRecording ? { copyRecording: input.copyRecording } : {}),
         profile: input.profile,
         width: input.width,
@@ -147,6 +149,20 @@ export function validateCapture(input) {
         ...(scope ? { scope, scopeComplete: settled && inventory.every((entry) => entry.status !== 'missing') } : {}),
         complete: !scope && inventory.length > 0 && inventory.every((entry) => entry.status !== 'missing') && settled,
     }
+}
+// Older harnesses wrote capture.json after each screen, filling pending rows with this reason.
+const pendingCaptureReason = 'Capture has not completed this state'
+export function publicationCapture(input) {
+    const capture = validateCapture(input)
+    assert(
+        capture.finished !== false && !capture.screens.some((screen) => screen.reason === pendingCaptureReason),
+        'Capture was interrupted before the catalogue finished'
+    )
+    assert(
+        capture.screens.some((screen) => screen.status === 'captured'),
+        'Capture contains zero screenshots'
+    )
+    return capture
 }
 export function validateJourneys(input) {
     assert(
@@ -382,8 +398,26 @@ export function compare(beforeInput, afterInput, assetsDir, beforeHarness) {
     if (scope) {
         if (before.scope && after.scope)
             assert(JSON.stringify(before.scope) === JSON.stringify(after.scope), 'Capture scopes differ')
-        before = validateCapture(scopeCapture(before, scope))
-        after = validateCapture(scopeCapture(after, scope))
+        // An unscoped revision can predate a selected ID. The scoped peer supplies the
+        // display metadata, and absence from the unscoped catalogue proves membership.
+        const project = (capture, peer) => {
+            if (capture.scope) return capture
+            const registered = new Set(capture.screens.map(({ id }) => id))
+            const selected = new Set(scope.screenIds)
+            const absent = peer.screens
+                .filter(({ id }) => selected.has(id) && !registered.has(id))
+                .map(({ id, name, flow, kind }) => ({
+                    id,
+                    name,
+                    flow,
+                    kind,
+                    status: 'absent',
+                    reason: 'State is absent from this revision’s catalogue',
+                }))
+            return validateCapture(scopeCapture({ ...capture, screens: [...capture.screens, ...absent] }, scope))
+        }
+        before = project(before, after)
+        after = project(after, before)
     }
     assert(
         sameEnvironment(before, after, receipt),
@@ -413,20 +447,13 @@ export function compare(beforeInput, afterInput, assetsDir, beforeHarness) {
             before: a,
             after: b,
         }
-        if (a?.status === 'absent' && b?.status === 'captured') return { ...row, status: 'added' }
-        if (b?.status === 'absent' && a?.status === 'captured') return { ...row, status: 'removed' }
-        // A first available screenshot belongs in review without claiming the product was absent before.
-        if (a?.status === 'unavailable' && b?.status === 'captured') return { ...row, status: 'new' }
-        // Missing/failed capture is never proof of a product addition/removal.
-        const gapStatuses = [a?.status, b?.status].filter((status) => status && status !== 'captured')
-        if (gapStatuses.length) {
-            const status = ['failed', 'unavailable', 'excluded', 'absent'].find((candidate) =>
-                gapStatuses.includes(candidate)
-            )
-            return { ...row, status: status ?? 'unavailable' }
+        if ((!a || a.status === 'absent') && b?.status === 'captured') return { ...row, status: 'new' }
+        if ((!b || b.status === 'absent') && a?.status === 'captured') return { ...row, status: 'removed' }
+        if (a?.status !== 'captured' || b?.status !== 'captured') {
+            if (a && a.status === b?.status && ['excluded', 'absent'].includes(a.status))
+                return { ...row, status: a.status }
+            return { ...row, status: 'not-comparable' }
         }
-        if (!a) return { ...row, status: before.complete ? 'added' : 'unavailable' }
-        if (!b) return { ...row, status: after.complete ? 'removed' : 'unavailable' }
         const ad = verifyAsset(assetsDir, a.image, after),
             bd = verifyAsset(assetsDir, b.image, after)
         if (a.image === b.image) return { ...row, status: 'unchanged', pixels: 0, percent: 0 }
@@ -452,6 +479,7 @@ export function compare(beforeInput, afterInput, assetsDir, beforeHarness) {
             ...(translation ? { translation } : {}),
         }
     })
+    const comparable = screens.every((row) => row.status !== 'not-comparable')
     assert(before.locale === after.locale, 'Capture locales differ; compare the same locale')
     return {
         schema: 1,
@@ -460,8 +488,8 @@ export function compare(beforeInput, afterInput, assetsDir, beforeHarness) {
         locale: before.locale,
         before,
         after,
-        complete: before.complete && after.complete,
-        ...(scope ? { scope, scopeComplete: before.scopeComplete && after.scopeComplete } : {}),
+        complete: comparable && before.complete && after.complete,
+        ...(scope ? { scope, scopeComplete: comparable && before.scopeComplete && after.scopeComplete } : {}),
         screens,
     }
 }
@@ -487,7 +515,7 @@ export function materializeCatalogue(catalogue, results) {
                 ...(s.order !== undefined ? { order: s.order } : {}),
                 ...(s.journey !== undefined ? { journey: s.journey } : {}),
                 status: 'unavailable',
-                reason: 'Capture has not completed this state',
+                reason: pendingCaptureReason,
             }
     )
 }

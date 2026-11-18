@@ -373,7 +373,7 @@ test('batched publication retains every report while uploading a shared image on
     }
 })
 
-test('main release publishes a full library and a recomputed comparison with New screen evidence', async () => {
+test('publication recomputes new, removed and non-comparable rows from mixed capture reports', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'screen-publish-main-test-'))
     try {
         const assets = join(dir, 'assets')
@@ -384,7 +384,8 @@ test('main release publishes a full library and a recomputed comparison with New
         const before = capture(image, 'en', 'b'.repeat(40))
         const after = capture(image)
         const newScreen = { ...after.screens[0], id: 'new-state', name: 'New state' }
-        after.screens.push(newScreen)
+        after.screens.push(newScreen, { ...newScreen, id: 'head-only' })
+        before.screens.push({ ...newScreen, id: 'base-only' })
         before.screens.push({
             id: newScreen.id,
             name: newScreen.name,
@@ -410,7 +411,10 @@ test('main release publishes a full library and a recomputed comparison with New
         const report = JSON.parse(storage.objects.get(`reports/${comparisonPath}/manifest.json`).toString())
         assert.equal(report.before.commit, before.commit)
         assert.equal(report.after.commit, after.commit)
-        assert.equal(report.screens.find((screen) => screen.id === 'new-state').status, 'new')
+        assert.equal(report.screens.find((screen) => screen.id === 'new-state').status, 'not-comparable')
+        assert.equal(report.screens.find((screen) => screen.id === 'head-only').status, 'new')
+        assert.equal(report.screens.find((screen) => screen.id === 'base-only').status, 'removed')
+        assert.equal(report.screens.find((screen) => screen.id === 'new-state').before.image, undefined)
         assert.equal(
             report.screens.find((screen) => screen.id === 'new-state').before.reason,
             'No compatible before scenario'
@@ -421,7 +425,7 @@ test('main release publishes a full library and a recomputed comparison with New
         const index = JSON.parse(storage.objects.get('index.json').toString())
         assert.equal(index.length, 2)
         assert.ok(index.every((entry) => entry.branch === 'main'))
-        assert.equal(index.find((entry) => entry.path === mainPath).changedScreens, 1)
+        assert.equal(index.find((entry) => entry.path === mainPath).changedScreens, 2)
         assert.equal(storage.objects.has('latest.json'), false, 'Main must not overwrite the dev pointer')
     } finally {
         rmSync(dir, { recursive: true, force: true })
@@ -451,4 +455,27 @@ test('release preview marker survives index rebuild without advancing the integr
     assert.equal(entries[0].releasePreview, true)
     assert.equal(entries[0].changedScreens, 0)
     assert.equal(storage.objects.has('latest.json'), false)
+})
+
+test('an empty or interrupted comparison side cannot publish any objects', async (t) => {
+    const inputDir = mkdtempSync(join(tmpdir(), 'screen-publish-empty-'))
+    t.after(() => rmSync(inputDir, { recursive: true, force: true }))
+    const captured = capture('0'.repeat(64) + '.png')
+    const empty = {
+        ...captured,
+        screens: captured.screens.map((row) => ({ ...row, status: 'unavailable', reason: 'No matching control' })),
+    }
+    for (const [before, after, expected] of [
+        [captured, empty, /zero screenshots/],
+        [empty, captured, /zero screenshots/],
+        [{ ...captured, finished: false }, captured, /interrupted/],
+    ]) {
+        writeFileSync(join(inputDir, 'manifest.json'), JSON.stringify({ type: 'comparison', before, after }))
+        const storage = memoryStorage()
+        await assert.rejects(
+            publishReport({ inputDir, reportPath: `2026-10-08/compare-main/en/${after.commit}/run-50-1`, storage }),
+            expected
+        )
+        assert.equal(storage.objects.size, 0)
+    }
 })

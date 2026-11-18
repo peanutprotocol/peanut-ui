@@ -65,7 +65,9 @@ export async function fixtureRespond(path: string, options?: RequestInit): Promi
     // This new endpoint has no demo response yet; a named fixture provides its complete response.
     if (
         override !== undefined &&
-        (key === 'GET /users/kyc/bridge-postal-code' || key === 'POST /users/kyc/bridge-postal-code')
+        (fixture.completeResponses?.includes(key) ||
+            key === 'GET /users/kyc/bridge-postal-code' ||
+            key === 'POST /users/kyc/bridge-postal-code')
     ) {
         return new Response(JSON.stringify(override), { status: 200, headers: JSON_HEADERS })
     }

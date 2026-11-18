@@ -4,7 +4,7 @@ import { resolve, join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { tmpdir } from 'node:os'
 import { execFileSync } from 'node:child_process'
-import { compare, hash, validateCapture, validateJourneys, verifyAsset } from './core.mjs'
+import { compare, hash, publicationCapture, validateJourneys, verifyAsset } from './core.mjs'
 import { createStorage } from './cloudflare-storage.mjs'
 import { updateIndexes } from './publication-index.mjs'
 
@@ -77,6 +77,7 @@ function entryMetadata(report, reportPath, env) {
 export async function publishReport({
     inputDir,
     reportPath,
+    capturePair,
     env = process.env,
     storage,
     knownAssets,
@@ -95,10 +96,15 @@ export async function publishReport({
     // Recompute every classification. The downloaded report is untrusted data.
     const report =
         input.type === 'capture'
-            ? validateCapture(input)
+            ? publicationCapture(input)
             : input.type === 'journeys'
               ? validateJourneys(input)
-              : compare(input.before, input.after, assets, input.beforeHarness)
+              : compare(
+                    publicationCapture(capturePair?.before ?? input.before),
+                    publicationCapture(capturePair?.after ?? input.after),
+                    assets,
+                    input.beforeHarness
+                )
     const after = report.type === 'comparison' ? report.after : report
     if (!reportPath.replace(/\/run-[0-9]+-[0-9]+$/, '').endsWith(after.commit))
         throw new Error('Report path does not match captured commit')
@@ -268,6 +274,7 @@ export async function publishReport({
                     ? { profile: `${after.width}x${after.height}` }
                     : {}),
                 complete: report.complete,
+                ...(report.type === 'capture' && !report.scope ? { finished: true } : {}),
                 ...(report.scope ? { scope: report.scope, scopeComplete: report.scopeComplete } : {}),
                 sequence: Number(env.DEV_SEQUENCE ?? 0),
                 attempt: Number(env.RUN_ATTEMPT ?? 0),
