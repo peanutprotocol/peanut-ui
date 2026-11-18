@@ -1370,6 +1370,7 @@
             "stepQuestions": "A few questions we’re required to ask",
             "stepPhoto": "ID photo and selfie",
             "verifyNow": "Verify now · 3 min",
+            "verifyNowIdOnly": "Verify now · 2 min",
             "remindLater": "Remind me later"
         }
     },
@@ -3932,7 +3933,8 @@
                 "phone": "Our partners keep your phone number on file to protect your account.",
                 "tax": "Accounts in your country must be linked to your tax number.",
                 "declarations": "Financial rules in your country ask everyone these questions. If one applies, we may ask for a document later.",
-                "nationality": "We use your nationality to show the passport and national ID card you can verify with."
+                "nationality": "We use your nationality to show the passport and national ID card you can verify with.",
+                "cpfRecord": "Our Pix partner checks the CPF and name against the Receita Federal record."
             },
             "sentence": {
                 "cardPurpose": "I’ll use my card <nw>for <pill></pill></nw>",
@@ -4122,7 +4124,8 @@
                 "isPep": "I hold a public office",
                 "isFatca": "I’m a US citizen or tax resident",
                 "isFep": "I must report to the UIF",
-                "cityOfBirth": "City of birth"
+                "cityOfBirth": "City of birth",
+                "fullName": "Full name"
             },
             "tax": {
                 "title": {
@@ -4289,10 +4292,6 @@
                     "bankCheck": "Finish the bank transfer check"
                 }
             },
-            "saved": {
-                "title": "Answers saved!",
-                "description": "Next, a photo of your ID and a quick selfie."
-            },
             "featureNames": {
                 "bank": "bank accounts",
                 "card": "card",
@@ -4352,6 +4351,17 @@
             "taxConfirm": "I confirm",
             "documentMismatch": {
                 "description": "It seems like you submitted a document from a different country than the one you declared. Here’s what each country unlocks."
+            },
+            "cpfRecord": {
+                "title": {
+                    "name": "CPF and name as on the Receita Federal record",
+                    "status": "CPF status at Receita Federal"
+                },
+                "description": {
+                    "name": "Our Pix partner could not match this CPF and name. Check both.",
+                    "status": "Our Pix partner found this CPF irregular or missing. Check it at gov.br, then type it again."
+                },
+                "retryLater": "This CPF was checked less than a day ago. Regularize the status with Receita Federal and try again tomorrow."
             }
         }
     },

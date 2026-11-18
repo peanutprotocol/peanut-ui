@@ -1,8 +1,8 @@
 /**
- * The unlock offers (default, cross_region, country_payments) open /verify's
- * intro, the steps of the ID check, for users the server keeps on today's flow
- * too (Slava, 2026-11-03). Continue starts the caller's check, and the account
- * provider stays named on the screen (Brazil Resolution 520, TASK-23295).
+ * The unlock offers (default, cross_region, country_payments) open Verify start,
+ * the one verify intro, for users the server keeps on today's flow too (Slava,
+ * 2026-11-03; Kush, 2026-11-18). Verify now starts the caller's check, and the
+ * account provider stays named on the screen (Brazil Resolution 520, TASK-23295).
  */
 /** @jest-environment jsdom */
 import React from 'react'
@@ -10,6 +10,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import { InitiateKycModal } from '../InitiateKycModal'
 
+jest.mock('@/components/Setup/components/SetupLanguageSwitcher', () => ({ SetupLanguageSwitcher: () => null }))
 jest.mock('@/hooks/useResidenceRestrictions', () => ({
     useResidenceRestrictions: () => ({ banking: false, card: false }),
 }))
@@ -33,17 +34,17 @@ const renderModal = (props: Partial<React.ComponentProps<typeof InitiateKycModal
     return { onVerify, onClose, unmount }
 }
 const stepLabels = () =>
-    within(screen.getByTestId('verify-steps'))
+    within(screen.getByTestId('setup-redesign-verify-steps'))
         .getAllByRole('listitem')
         .map((row) => row.textContent)
 
 describe('InitiateKycModal — the ID check intro', () => {
     it.each(['default', 'cross_region', 'country_payments'] as const)(
-        'shows the steps for the %s offer and Continue starts the check',
+        'shows Verify start for the %s offer and Verify now starts the check',
         (variant) => {
             const { onVerify } = renderModal({ variant })
             expect(screen.getByTestId('identity-check-intro')).toBeInTheDocument()
-            expect(screen.getByRole('heading', { name: 'Your ID check' })).toBeInTheDocument()
+            expect(screen.getByRole('heading', { name: 'Verify now' })).toBeInTheDocument()
             expect(screen.queryByTestId('kyc-prep-checklist')).not.toBeInTheDocument()
             fireEvent.click(screen.getByTestId('kyc-initiate-cta'))
             expect(onVerify).toHaveBeenCalledTimes(1)
@@ -52,12 +53,11 @@ describe('InitiateKycModal — the ID check intro', () => {
 
     it('lists the questions step only where the check asks them (Argentina and Brazil)', () => {
         const standard = renderModal()
-        expect(stepLabels()).not.toContain('2Answer a few questions')
-        expect(stepLabels()).toContain('2Take a photo of your ID')
+        expect(stepLabels()).toEqual(['1ID photo and selfie'])
 
         standard.unmount()
         renderModal({ variant: 'country_payments', prepPath: 'extended', taxIdCountry: 'AR' })
-        expect(stepLabels()).toContain('2Answer a few questions')
+        expect(stepLabels()).toEqual(['1A few questions we’re required to ask', '2ID photo and selfie'])
     })
 
     it('names the account provider: Manteca from the country, Bridge from the caller, none when unknown', () => {
@@ -75,22 +75,24 @@ describe('InitiateKycModal — the ID check intro', () => {
     })
 
     it('goes back with onClose, or with onBack in the page form, and not while the check starts', () => {
+        const later = () => fireEvent.click(screen.getByRole('button', { name: 'Remind me later' }))
         const modal = renderModal()
-        fireEvent.click(screen.getByTestId('verify-back'))
+        later()
         expect(modal.onClose).toHaveBeenCalledTimes(1)
 
         modal.unmount()
         const onBack = jest.fn()
         const page = renderModal({ presentation: 'page', onBack })
-        fireEvent.click(screen.getByTestId('verify-back'))
+        later()
         expect(onBack).toHaveBeenCalledTimes(1)
         expect(page.onClose).not.toHaveBeenCalled()
 
         page.unmount()
         const busy = renderModal({ isLoading: true })
-        fireEvent.click(screen.getByTestId('verify-back'))
+        later()
         expect(busy.onClose).not.toHaveBeenCalled()
-        expect(screen.getByTestId('kyc-initiate-cta')).toBeDisabled()
+        fireEvent.click(screen.getByTestId('kyc-initiate-cta'))
+        expect(busy.onVerify).not.toHaveBeenCalled()
     })
 
     it('keeps the error ending instead of the intro', () => {

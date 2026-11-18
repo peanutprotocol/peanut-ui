@@ -1370,6 +1370,7 @@
             "stepQuestions": "Algunas preguntas que debemos hacerte",
             "stepPhoto": "Foto de tu documento y selfie",
             "verifyNow": "Verificar ahora · 3 min",
+            "verifyNowIdOnly": "Verificar ahora · 2 min",
             "remindLater": "Recordármelo más tarde"
         }
     },
@@ -3932,7 +3933,8 @@
                 "phone": "Nuestros socios guardan tu número de teléfono para proteger tu cuenta.",
                 "tax": "Las cuentas en tu país deben estar vinculadas a tu número fiscal.",
                 "declarations": "Las normas financieras de tu país piden estas preguntas a todos. Si alguna aplica, podríamos pedirte un documento más adelante.",
-                "nationality": "Usamos tu nacionalidad para mostrarte el pasaporte y el documento nacional de identidad con los que puedes verificarte."
+                "nationality": "Usamos tu nacionalidad para mostrarte el pasaporte y el documento nacional de identidad con los que puedes verificarte.",
+                "cpfRecord": "Nuestro socio de Pix verifica el CPF y el nombre con el registro de la Receita Federal."
             },
             "sentence": {
                 "cardPurpose": "Usaré mi tarjeta <nw>para <pill></pill></nw>",
@@ -4122,7 +4124,8 @@
                 "isPep": "Ocupo un cargo público",
                 "isFatca": "Tengo ciudadanía o residencia fiscal en EE. UU.",
                 "isFep": "Soy sujeto obligado ante la UIF",
-                "cityOfBirth": "Ciudad de nacimiento"
+                "cityOfBirth": "Ciudad de nacimiento",
+                "fullName": "Nombre completo"
             },
             "tax": {
                 "title": {
@@ -4289,10 +4292,6 @@
                     "bankCheck": "Completa la verificación de transferencias bancarias"
                 }
             },
-            "saved": {
-                "title": "¡Respuestas guardadas!",
-                "description": "Ahora, una foto de tu documento y una selfie rápida."
-            },
             "featureNames": {
                 "bank": "cuentas bancarias",
                 "card": "tarjeta",
@@ -4352,6 +4351,17 @@
             "taxConfirm": "Lo confirmo",
             "documentMismatch": {
                 "description": "Parece que enviaste un documento de un país distinto al que declaraste. Esto es lo que habilita cada uno."
+            },
+            "cpfRecord": {
+                "title": {
+                    "name": "CPF y nombre como en el registro de la Receita Federal",
+                    "status": "Situación del CPF en la Receita Federal"
+                },
+                "description": {
+                    "name": "Nuestro socio de Pix no pudo verificar este CPF con este nombre. Revisa ambos.",
+                    "status": "Nuestro socio de Pix encontró este CPF irregular o inexistente. Revísalo en gov.br y vuelve a escribirlo."
+                },
+                "retryLater": "Este CPF se verificó hace menos de un día. Regulariza la situación en la Receita Federal y vuelve a intentarlo mañana."
             }
         }
     },

@@ -516,6 +516,22 @@ const AVENIA_MISSING_STEPS = {
         answered: false,
         fields: [{ key: 'taxId', kind: 'taxId', required: true, format: 'cpf', value: null }],
     },
+    // After Avenia rejected the CPF and name (TASK-25108): a made-up CPF (111.444.777-35), shown masked.
+    cpfRecordName: {
+        id: 'cpfRecord',
+        features: [],
+        answered: false,
+        fields: [
+            { key: 'taxId', kind: 'taxId', required: true, format: 'cpf', value: '•••• 7735' },
+            { key: 'fullName', kind: 'text', required: true, value: 'Ana Souza' },
+        ],
+    },
+    cpfRecordStatus: {
+        id: 'cpfRecord',
+        features: [],
+        answered: false,
+        fields: [{ key: 'taxId', kind: 'taxId', required: true, format: 'cpf', value: null }],
+    },
 } as const
 /**
  * Avenia's first use for a verified resident of Brazil whose verification lacks what Avenia needs:
@@ -529,11 +545,13 @@ const aveniaMissingResponses = (step: keyof typeof AVENIA_MISSING_STEPS) => ({
             attemptId: null,
             residence: 'BR',
             steps: [AVENIA_MISSING_STEPS[step]],
-            firstUnanswered: step,
+            firstUnanswered: AVENIA_MISSING_STEPS[step].id,
             progress: { done: 0, total: 1 },
         },
     },
-    rejects: { [ACTIVATE_PIX]: { status: 409, body: { code: 'questions_missing', step } } },
+    rejects: {
+        [ACTIVATE_PIX]: { status: 409, body: { code: 'questions_missing', step: AVENIA_MISSING_STEPS[step].id } },
+    },
 })
 
 /** The Avenia rail while Avenia reviews the shared verification, with the route's reason. */
@@ -3253,6 +3271,25 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/add-money/pix',
         about: "Avenia needs a CPF the verification lacks: the verify flow's tax step, asked on the Pix page.",
         ...aveniaMissingResponses('tax'),
+    },
+    'pix-setup-cpf-record-name': {
+        route: '/add-money/pix',
+        about: 'Avenia rejected the CPF and name as not matching the Receita Federal record: the CPF record step asks both, prefilled.',
+        ...aveniaMissingResponses('cpfRecordName'),
+    },
+    'pix-setup-cpf-record-status': {
+        route: '/add-money/pix',
+        about: 'Avenia found the CPF irregular at Receita Federal: the CPF record step asks the CPF again after a gov.br check.',
+        ...aveniaMissingResponses('cpfRecordStatus'),
+    },
+    'pix-setup-cpf-record-retry-later': {
+        route: '/add-money/pix',
+        about: 'The same irregular CPF again within a day of the rejection: the save answers retry_later and the step says to try again tomorrow.',
+        responses: aveniaMissingResponses('cpfRecordStatus').responses,
+        rejects: {
+            ...aveniaMissingResponses('cpfRecordStatus').rejects,
+            'PUT /users/kyc/answers/cpfRecord': { status: 409, body: { code: 'retry_later' } },
+        },
     },
     'pix-activation-refused': {
         route: '/add-money/pix',

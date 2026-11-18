@@ -2021,6 +2021,13 @@
             },
             "addLater": {
                 "actionDescription": "Completá la verificación adicional para terminar la configuración."
+            },
+            "cpfRecord": {
+                "description": {
+                    "name": "Nuestro socio de Pix no pudo verificar este CPF con este nombre. Revisá ambos.",
+                    "status": "Nuestro socio de Pix encontró este CPF irregular o inexistente. Revisalo en gov.br y volvé a escribirlo."
+                },
+                "retryLater": "Este CPF se verificó hace menos de un día. Regularizá la situación en la Receita Federal y volvé a intentarlo mañana."
             }
         },
         "setup": {

@@ -36150,6 +36150,12 @@
 																"tax"
 															],
 															"type": "string"
+														},
+														{
+															"enum": [
+																"cpfRecord"
+															],
+															"type": "string"
 														}
 													]
 												},
@@ -40921,6 +40927,12 @@
 																"tax"
 															],
 															"type": "string"
+														},
+														{
+															"enum": [
+																"cpfRecord"
+															],
+															"type": "string"
 														}
 													]
 												},
@@ -41105,6 +41117,12 @@
 															{
 																"enum": [
 																	"tax"
+																],
+																"type": "string"
+															},
+															{
+																"enum": [
+																	"cpfRecord"
 																],
 																"type": "string"
 															}

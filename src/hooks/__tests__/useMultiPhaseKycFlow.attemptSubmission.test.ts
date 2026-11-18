@@ -8,6 +8,7 @@ jest.mock('@/app/actions/kyc-workflow', () => ({
     resumeKycDocumentAttempt: jest.fn(),
     findKycReplacementPlan: jest.fn(async () => null),
 }))
+import { startVerifySource } from '@/features/paperwork-verification/verifySource'
 import { act } from '@testing-library/react'
 import posthog from 'posthog-js'
 import { renderHookWithIntl as renderHook } from '@/test-utils/intl'
@@ -219,5 +220,26 @@ describe('useMultiPhaseKycFlow — every other flow keeps the progress modal', (
         expect(view.result.current.isModalOpen).toBe(true)
         expect(view.result.current.modalPhase).toBe('verifying')
         expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    it('today’s check carries the Verify start entry from start to submission (TASK-25063)', async () => {
+        sessionStorage.clear()
+        startVerifySource('home')
+        jest.mocked(findKycDocumentPlan).mockResolvedValue({ ...plan, available: false, flow: null })
+        jest.mocked(initiateSumsubKyc).mockResolvedValue({
+            data: { token: 'legacy-token', applicantId: 'applicant-1', status: 'PENDING' },
+        })
+        const view = renderHook(() => useMultiPhaseKycFlow({}))
+        await act(async () => {
+            await view.result.current.handleInitiateKyc('STANDARD')
+        })
+        act(() => view.result.current.handleSdkComplete())
+        expect(captured(ANALYTICS_EVENTS.KYC_INITIATED)).toEqual([
+            [ANALYTICS_EVENTS.KYC_INITIATED, expect.objectContaining({ entry: 'home' })],
+        ])
+        expect(captured(ANALYTICS_EVENTS.KYC_SUBMITTED)).toEqual([
+            [ANALYTICS_EVENTS.KYC_SUBMITTED, expect.objectContaining({ entry: 'home' })],
+        ])
+        sessionStorage.clear()
     })
 })

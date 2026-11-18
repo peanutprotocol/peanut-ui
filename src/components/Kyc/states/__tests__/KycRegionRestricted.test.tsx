@@ -6,6 +6,7 @@ import { KycRegionRestrictedModal } from '../../modals/KycRegionRestrictedModal'
 import { InitiateKycModal } from '../../InitiateKycModal'
 
 let mockRegionRestricted = false
+jest.mock('@/components/Setup/components/SetupLanguageSwitcher', () => ({ SetupLanguageSwitcher: () => null }))
 jest.mock('@/hooks/useIdentityVerification', () => ({
     useIdentityVerification: () => ({ isRegionRestricted: mockRegionRestricted }),
 }))
@@ -185,7 +186,7 @@ describe('InitiateKycModal — region-restricted short-circuit', () => {
         const onVerify = jest.fn()
         renderWithIntl(<InitiateKycModal visible onClose={jest.fn()} onVerify={onVerify} variant="default" />)
 
-        expect(screen.getByText('Your ID check')).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: 'Verify now' })).toBeInTheDocument()
         fireEvent.click(screen.getByTestId('kyc-initiate-cta'))
         expect(onVerify).toHaveBeenCalledTimes(1)
     })

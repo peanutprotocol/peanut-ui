@@ -12,6 +12,8 @@ export type PaperworkVerificationStepId =
     | 'phone'
     | 'declarations'
     | 'tax'
+    // Avenia's CPF record check after it rejected the CPF and name (API: avenia/cpf-record-step.ts)
+    | 'cpfRecord'
 export type PaperworkVerificationFeature = 'bank' | 'card' | 'local'
 /**
  * The feature a question read or save names (`?feature=`). `pix` asks what Avenia's Pix account

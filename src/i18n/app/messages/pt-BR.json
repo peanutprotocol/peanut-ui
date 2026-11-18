@@ -1370,6 +1370,7 @@
             "stepQuestions": "Algumas perguntas que somos obrigados a fazer",
             "stepPhoto": "Foto do documento e selfie",
             "verifyNow": "Verificar agora · 3 min",
+            "verifyNowIdOnly": "Verificar agora · 2 min",
             "remindLater": "Lembrar mais tarde"
         }
     },
@@ -3932,7 +3933,8 @@
                 "phone": "Nossos parceiros guardam seu número de telefone para proteger sua conta.",
                 "tax": "As contas no seu país precisam estar vinculadas ao seu número fiscal.",
                 "declarations": "As regras financeiras do seu país fazem estas perguntas a todos. Se alguma se aplicar, podemos pedir um documento depois.",
-                "nationality": "Usamos sua nacionalidade para mostrar o passaporte e o documento nacional de identidade com os quais você pode se verificar."
+                "nationality": "Usamos sua nacionalidade para mostrar o passaporte e o documento nacional de identidade com os quais você pode se verificar.",
+                "cpfRecord": "Nosso parceiro de Pix confere o CPF e o nome com o cadastro da Receita Federal."
             },
             "sentence": {
                 "cardPurpose": "Vou usar meu cartão <nw>para <pill></pill></nw>",
@@ -4122,7 +4124,8 @@
                 "isPep": "Ocupo um cargo público",
                 "isFatca": "Tenho cidadania ou residência fiscal nos EUA",
                 "isFep": "Sou obrigado a reportar à UIF",
-                "cityOfBirth": "Cidade de nascimento"
+                "cityOfBirth": "Cidade de nascimento",
+                "fullName": "Nome completo"
             },
             "tax": {
                 "title": {
@@ -4289,10 +4292,6 @@
                     "bankCheck": "Conclua a verificação das transferências bancárias"
                 }
             },
-            "saved": {
-                "title": "Respostas salvas!",
-                "description": "Agora, uma foto do seu documento e uma selfie rápida."
-            },
             "featureNames": {
                 "bank": "contas bancárias",
                 "card": "cartão",
@@ -4352,6 +4351,17 @@
             "taxConfirm": "Confirmo",
             "documentMismatch": {
                 "description": "Parece que você enviou um documento de um país diferente do que declarou. Veja o que cada um libera."
+            },
+            "cpfRecord": {
+                "title": {
+                    "name": "CPF e nome como no cadastro da Receita Federal",
+                    "status": "Situação do CPF na Receita Federal"
+                },
+                "description": {
+                    "name": "Nosso parceiro de Pix não conseguiu conferir este CPF com este nome. Confira os dois.",
+                    "status": "Nosso parceiro de Pix encontrou este CPF irregular ou inexistente. Confira no gov.br e digite o CPF de novo."
+                },
+                "retryLater": "Este CPF foi verificado há menos de um dia. Regularize a situação na Receita Federal e tente de novo amanhã."
             }
         }
     },

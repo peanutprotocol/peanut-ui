@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useMemo, useRef } from 'react'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS, type AnalyticsEvent } from '@/constants/analytics.consts'
+import { verifySourceProperty } from './verifySource'
 import type {
     PaperworkVerificationFeature,
     PaperworkVerificationStep,
@@ -118,7 +119,8 @@ export function trackPaperworkVerification(
     properties: Record<string, unknown> = {}
 ): void {
     try {
-        posthog.capture(event, { ...baseProperties(ctx), ...properties })
+        // `entry`: where the Verify start this verification began on was opened from (the funnel's first step)
+        posthog.capture(event, { ...baseProperties(ctx), ...verifySourceProperty(), ...properties })
     } catch {
         // Analytics never breaks a verification step.
     }

@@ -394,8 +394,8 @@ export const PAPERWORK_VERIFICATION_FIXTURES: Record<string, Fixture> = {
             `paperwork-verification-closed-${category}`,
             {
                 capture: { expectSelector: '[data-testid="verify-closed-features"]' },
-                route: '/verify?step=saved',
-                about: `Answers saved: the closed local-transfer feature explains its ${category} reason.`,
+                route: '/verify?step=id',
+                about: `Answers saved, on the ID type picker: the closed local-transfer feature explains its ${category} reason.`,
                 responses: {
                     ...asking('US', answered(US_STEPS)),
                     'GET /users/kyc/questions': {
@@ -649,9 +649,9 @@ export const PAPERWORK_VERIFICATION_FIXTURES: Record<string, Fixture> = {
         responses: asking('US', US_STEPS),
         fails: ['PUT /users/kyc/answers/tax'],
     },
-    'paperwork-verification-midpoint': {
+    'paperwork-verification-questions-answered': {
         route: '/verify',
-        about: 'Every question answered: the midpoint, picking the ID type and its issuing country.',
+        about: 'Every question answered: Verify start lists only the ID photo and selfie, Verify now · 2 min.',
         responses: {
             'GET /users/kyc/questions': questions('US', answered(US_STEPS), null),
             'GET /users/kyc/plan': plan(),

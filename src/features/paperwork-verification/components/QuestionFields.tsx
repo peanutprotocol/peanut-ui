@@ -27,6 +27,7 @@ import { fieldErrorKey, formatTaxId, jobModeOf, looksLikeItin, maskedUntouched }
 import { AnswerPicker } from './AnswerPicker'
 import { PlacePicker } from './PlaceField'
 import { PostalCodeField } from './PostalCodeField'
+import { formatMaskedCpf } from '@/utils/br-tax-id.utils'
 
 const SENTENCE_KINDS = new Set(['choice', 'occupation', 'country', 'place'])
 // A conditional field belongs with the form control it depends on, not in the heading sentences.
@@ -433,7 +434,12 @@ function TypedFields({
                 maskedUntouched(tax, values) &&
                 fieldFor(
                     tax,
-                    (f) => input(f, { readOnly: true, value: f.value ?? '' }),
+                    // the saved value stays the API's mask: only how a CPF reads changes
+                    (f) =>
+                        input(f, {
+                            readOnly: true,
+                            value: taxFormat === 'cpf' ? formatMaskedCpf(f.value ?? '') : (f.value ?? ''),
+                        }),
                     <LinkButton
                         onClick={() => {
                             control.track(`${tax.key}_clear`, 'tap')
