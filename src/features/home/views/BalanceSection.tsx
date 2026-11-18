@@ -12,9 +12,17 @@ import Link from 'next/link'
 import { useHomeDrawer, type HomeDrawer } from '../useHomeDrawer'
 import { homeDrawerOptions } from '../home-drawer-options'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import posthog from 'posthog-js'
+import { AddMoneyPill } from './AddMoneyPill'
+import { showsAddMoneyPill } from '../addMoneyPill.utils'
 
 interface BalanceSectionProps {
     addMoneyEntry?: 'picker' | 'drawer'
+    /** identity verified: with a balance under $10, Add renders as the labelled pill */
+    isVerified?: boolean
+    /** money came in before: the pill reads "Top up" */
+    hasFundedBefore?: boolean
     balance: bigint | undefined
     isFetching: boolean
     /** balance is the persisted last-known-good while the live sum is still
@@ -27,10 +35,11 @@ interface BalanceSectionProps {
 // home IA (figma section 17609:2334): add, send and request each open a bottom
 // drawer. request offers two ways to be paid — share a request link, or share
 // standing bank details. while only the link is offered it skips the drawer.
-const SUBMENU_ACTIONS: Array<{ key: HomeDrawer; icon: IconName }> = [
-    { key: 'add', icon: 'plus' },
-    { key: 'send', icon: 'arrow-up-right' },
-    { key: 'request', icon: 'arrow-down-left' },
+// the grid keeps Send centred and Request at the end whatever width Add takes
+const SUBMENU_ACTIONS: Array<{ key: HomeDrawer; icon: IconName; slot: string }> = [
+    { key: 'add', icon: 'plus', slot: 'justify-self-start' },
+    { key: 'send', icon: 'arrow-up-right', slot: 'justify-self-center' },
+    { key: 'request', icon: 'arrow-down-left', slot: 'justify-self-end' },
 ]
 
 /**
@@ -40,6 +49,8 @@ const SUBMENU_ACTIONS: Array<{ key: HomeDrawer; icon: IconName }> = [
  */
 export function BalanceSection({
     addMoneyEntry = 'picker',
+    isVerified = false,
+    hasFundedBefore = false,
     balance,
     isFetching,
     isStale,
@@ -52,7 +63,13 @@ export function BalanceSection({
     const [openDrawer, setOpenDrawer] = useHomeDrawer()
     const depositAccounts = useDepositAccountsEnabled()
 
+    // a hidden balance keeps the round Add, so the pill does not reveal it is under $10
+    const showPill = !isHidden && showsAddMoneyPill({ isVerified, balance, isFetching, isStale })
+    const trackTap = (action: HomeDrawer) =>
+        posthog.capture(ANALYTICS_EVENTS.HOME_SUBMENU_TAPPED, { action, add_cta_active: showPill })
+
     const openActionDrawer = (drawer: HomeDrawer) => {
+        trackTap(drawer)
         triggerHaptic()
         setOpenDrawer(drawer)
     }
@@ -87,7 +104,8 @@ export function BalanceSection({
                     </button>
                 )}
             </div>
-            <div className="flex items-start justify-between px-10">
+            {/* px-10 pairs with AddMoneyPill's -ml-10: change both together */}
+            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start px-10">
                 {SUBMENU_ACTIONS.map((action) => {
                     // a drawer with one row is a pointless extra tap: link to
                     // that row's destination instead (request, while standing
@@ -99,6 +117,24 @@ export function BalanceSection({
                             : options.length === 1
                               ? options[0].href
                               : undefined
+                    if (action.key === 'add' && showPill && balance !== undefined) {
+                        return (
+                            // the cell stretches, so the pill's max width is the cell's
+                            <div key={action.key}>
+                                <AddMoneyPill
+                                    balance={balance}
+                                    hasFundedBefore={hasFundedBefore}
+                                    href={directHref}
+                                    isDrawerOpen={openDrawer === action.key}
+                                    onTap={() => {
+                                        // Button gives the haptic
+                                        trackTap(action.key)
+                                        if (!directHref) setOpenDrawer(action.key)
+                                    }}
+                                />
+                            </div>
+                        )
+                    }
                     const inner = (
                         <>
                             <span
@@ -120,11 +156,19 @@ export function BalanceSection({
                         </>
                     )
                     const shared = {
-                        className: 'flex w-14 cursor-pointer flex-col items-center gap-2',
+                        className: twMerge('flex w-14 cursor-pointer flex-col items-center gap-2', action.slot),
                         'data-testid': `home-submenu-${action.key}`,
                     }
                     return directHref ? (
-                        <Link key={action.key} href={directHref} onClick={() => triggerHaptic()} {...shared}>
+                        <Link
+                            key={action.key}
+                            href={directHref}
+                            onClick={() => {
+                                trackTap(action.key)
+                                triggerHaptic()
+                            }}
+                            {...shared}
+                        >
                             {inner}
                         </Link>
                     ) : (

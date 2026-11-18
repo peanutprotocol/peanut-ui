@@ -109,6 +109,10 @@
     },
     "home": {
         "rewards": "Puntos",
+        "addMoneyPill": {
+            "addMoney": "Agregar dinero",
+            "topUp": "Recargar"
+        },
         "activation": {
             "addEmail": {
                 "title": "Agregar email",
