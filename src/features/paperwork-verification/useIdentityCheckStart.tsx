@@ -10,6 +10,7 @@ import { usePaperworkVerificationStart } from '@/features/paperwork-verification
 import type { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { buildContactSupportMessage } from '@/utils/contact-support.utils'
+import { markVerifySource, type VerifySource } from './verifySource'
 
 /**
  * The one ID-check start, shared by Home's Verify row and the sign-up Celebration. Both open the one verify
@@ -22,9 +23,12 @@ export function useIdentityCheckStart(
     {
         replace = false,
         onClose,
+        source = 'home',
     }: {
         /** /verify takes the caller's place (sign-up): Back from it must not reopen the caller */
         replace?: boolean
+        /** where the person starts from, for the verification funnel: Home's Verify row unless said */
+        source?: VerifySource
         /** after the start modal closes without starting the check (its Remind me later) */
         onClose?: () => void
     } = {}
@@ -48,6 +52,7 @@ export function useIdentityCheckStart(
         startingRef.current = true
         try {
             if (await opensPaperworkVerification()) {
+                markVerifySource(source)
                 if (replace) router.replace('/verify')
                 else router.push('/verify')
             }
@@ -71,6 +76,7 @@ export function useIdentityCheckStart(
             <InitiateKycModal
                 cooldownActive={!!kycFlow.errorCooldown}
                 visible={showInitiateKyc}
+                source={source}
                 onClose={() => {
                     setShowInitiateKyc(false)
                     onClose?.()

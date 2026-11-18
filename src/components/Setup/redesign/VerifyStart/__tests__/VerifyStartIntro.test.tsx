@@ -1,7 +1,10 @@
 /** @jest-environment jsdom */
 // One verify intro in the whole app (TASK-25063): outside sign-up, Verify start lists only the steps left, Verify now
 // goes on and Remind me later goes back, and the shell's footer never draws over a full-screen overlay.
+import { StrictMode } from 'react'
 import { fireEvent, render, screen, within } from '@testing-library/react'
+import posthog from 'posthog-js'
+import { markVerifySource, verifySourceProperty } from '@/features/paperwork-verification/verifySource'
 import { IntlProvider, msg } from '@/components/Setup/redesign/Landing/__tests__/redesign-harness'
 import { VerifyStartIntro } from '../VerifyStartIntro'
 
@@ -11,7 +14,11 @@ let mockRestrictions = { banking: false, card: false }
 jest.mock('@/hooks/useResidenceRestrictions', () => ({ useResidenceRestrictions: () => mockRestrictions }))
 beforeEach(() => {
     mockRestrictions = { banking: false, card: false }
+    sessionStorage.clear()
+    jest.clearAllMocks()
 })
+const events = (name: string) =>
+    (posthog.capture as jest.Mock).mock.calls.filter(([event]) => event === name).map(([, props]) => props)
 
 function renderIntro(questions: boolean) {
     const onVerify = jest.fn()
@@ -76,5 +83,51 @@ describe('VerifyStartIntro', () => {
         const shell = document.querySelector('[data-setup-shell]')!
         expect(shell).toHaveClass('isolate')
         expect(shell.querySelector('[data-setup-footer]')).not.toBeNull()
+    })
+
+    it('reports one view with where the person came from and the steps left, then the choice', () => {
+        markVerifySource('signup')
+        render(
+            <StrictMode>
+                <IntlProvider>
+                    <VerifyStartIntro
+                        controlScreen="steps-overview"
+                        questions
+                        onVerify={jest.fn()}
+                        onLater={jest.fn()}
+                    />
+                </IntlProvider>
+            </StrictMode>
+        )
+        expect(events('signup_verify_start_shown')).toEqual([{ entry: 'signup', steps_left: 2 }])
+        fireEvent.click(screen.getByRole('button', { name: msg('setupRedesign.verifyStart.remindLater') }))
+        fireEvent.click(screen.getByTestId('setup-redesign-verify-now'))
+        expect(events('signup_verify_start_tapped')).toEqual([
+            { choice: 'later', entry: 'signup', steps_left: 2 },
+            { choice: 'verify', entry: 'signup', steps_left: 2 },
+        ])
+        // the entry rides on the check's events from here
+        expect(verifySourceProperty()).toEqual({ entry: 'signup' })
+    })
+
+    it('takes the source its caller names (today’s check), and counts one step left once the questions are done', () => {
+        markVerifySource('home')
+        render(
+            <IntlProvider>
+                <VerifyStartIntro
+                    controlScreen="id-handoff"
+                    source="card"
+                    questions={false}
+                    onVerify={jest.fn()}
+                    onLater={jest.fn()}
+                />
+            </IntlProvider>
+        )
+        expect(events('signup_verify_start_shown')).toEqual([{ entry: 'card', steps_left: 1 }])
+    })
+
+    it('a visit no caller sent is direct', () => {
+        renderIntro(true)
+        expect(events('signup_verify_start_shown')).toEqual([{ entry: 'direct', steps_left: 2 }])
     })
 })

@@ -3,6 +3,7 @@ jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: moc
 jest.mock('@/constants/dev-tools.consts', () => ({ DEV_TOOLS_ENABLED: true }))
 import { setAuthToken } from '@/utils/auth-token'
 import * as authToken from '@/utils/auth-token'
+import { markVerifySource } from '../verifySource'
 import posthog from 'posthog-js'
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
@@ -384,6 +385,8 @@ describe('PaperworkVerificationFlow: the steps overview', () => {
         const steps = await screen.findByTestId('setup-redesign-verify-steps')
         expect(screen.getByTestId('verify-steps-continue')).toBeInTheDocument()
         expect(steps.querySelector('[aria-current="step"]')).toHaveTextContent('A few questions we’re required to ask')
+        // opened without a caller's source: a direct visit, both steps left
+        expect(posthog.capture).toHaveBeenCalledWith('signup_verify_start_shown', { entry: 'direct', steps_left: 2 })
         // Verify start, the one intro: only the steps left, no residence, review or unlock row
         expect(
             within(steps)
@@ -602,7 +605,10 @@ describe('PaperworkVerificationFlow: the steps overview', () => {
         mockQuestions.mockResolvedValue(saved)
         fireEvent.click(continueButton())
         expect(await screen.findByTestId('verify-id')).toBeInTheDocument()
-        await screen.findByTestId('verify-id')
+        // the funnel's "questions complete" step, once, as the picker opens; a direct visit is the entry
+        expect(
+            (posthog.capture as jest.Mock).mock.calls.filter(([event]) => event === 'kyc_paperwork_saved_viewed')
+        ).toEqual([['kyc_paperwork_saved_viewed', expect.objectContaining({ entry: 'direct' })]])
         // Let the URL write for the ID screen land before Back writes the next one.
         await settleStepUrl()
         fireEvent.click(screen.getByTestId('verify-back'))
@@ -940,7 +946,15 @@ describe('PaperworkVerificationFlow', () => {
                 },
             } as never,
         })
+        // the Celebration's Verify now left its source for /verify (TASK-25063)
+        markVerifySource('signup')
         await startFlow()
+        expect(posthog.capture).toHaveBeenCalledWith('signup_verify_start_shown', { entry: 'signup', steps_left: 1 })
+        expect(posthog.capture).toHaveBeenCalledWith('signup_verify_start_tapped', {
+            choice: 'verify',
+            entry: 'signup',
+            steps_left: 1,
+        })
         fireEvent.click(await screen.findByTestId('verify-id-option-PASSPORT-US'))
         // the start waits for the last answer's checkpoint first
         await waitFor(() =>
@@ -948,6 +962,11 @@ describe('PaperworkVerificationFlow', () => {
         )
         fireEvent.click(await screen.findByText('sumsub-submit'))
         expect(await screen.findByTestId('verify-review-home')).toBeInTheDocument()
+        // the funnel's entry rides on to the submission
+        expect(posthog.capture).toHaveBeenCalledWith(
+            'kyc_paperwork_identity_submitted',
+            expect.objectContaining({ entry: 'signup' })
+        )
         expect(screen.getByRole('heading', { name: 'Your ID check' })).toBeInTheDocument()
         expect(screen.getByTestId('verify-steps')).toHaveAttribute('data-phase', 'review')
         expect(screen.getByRole('listitem', { current: 'step' })).toHaveTextContent('Get a secure review')

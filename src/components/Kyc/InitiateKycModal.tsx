@@ -29,6 +29,7 @@ import type { PaperworkVerificationEntry } from '@/features/paperwork-verificati
 import { usePaperworkVerificationRedirect } from '@/features/paperwork-verification/usePaperworkVerificationRedirect'
 import { IdentityCheckIntroScreen } from '@/features/paperwork-verification/components/IdentityCheckIntroScreen'
 import { useKycControl } from '@/features/paperwork-verification/analytics'
+import type { VerifySource } from '@/features/paperwork-verification/verifySource'
 
 type InitiateKycVariant =
     | 'default'
@@ -82,6 +83,8 @@ interface InitiateKycModalProps {
      * never sees the unlock offer. Omit where the caller already routes them.
      */
     verifyEntry?: PaperworkVerificationEntry
+    /** where the person starts the check from, for the verification funnel (`entry` on its events) */
+    source?: VerifySource
 }
 
 // confirmation modal shown before starting identity check or document resubmission.
@@ -118,6 +121,7 @@ export const InitiateKycModal = ({
     providerId,
     ctaTestId = 'kyc-initiate-cta',
     verifyEntry,
+    source = 'unlock_payments',
 }: InitiateKycModalProps) => {
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
@@ -183,7 +187,8 @@ export const InitiateKycModal = ({
     const isUnlockOffer = resolvedVariant === 'default' || isCrossRegion || isCountryPayments
     const redirecting = usePaperworkVerificationRedirect(
         visible && isUnlockOffer && !cooldownActive && !isKycDegraded && !isRegionRestricted && !error,
-        verifyEntry
+        verifyEntry,
+        source
     )
 
     const getTitle = () => {
@@ -359,6 +364,7 @@ export const InitiateKycModal = ({
                 providerId={introProviderId}
                 busy={isLoading}
                 continueTestId={ctaTestId}
+                source={source}
                 onBack={presentation === 'page' ? (onBack ?? onClose) : onClose}
                 onContinue={onVerify}
             />

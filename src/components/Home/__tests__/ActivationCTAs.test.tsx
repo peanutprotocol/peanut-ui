@@ -11,6 +11,7 @@
  * rail — the card's rail reads `enabled` — or BE-marked `isActivated`). A
  * genuinely-fixable bank RFI still surfaces in the /add-money bank flow.
  */
+import { startVerifySource } from '@/features/paperwork-verification/verifySource'
 import React from 'react'
 import { act, render as rtlRender, screen, fireEvent, waitFor } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
@@ -236,6 +237,8 @@ describe('ActivationCTAs — the Verify row starts the ID check in place', () =>
         fireEvent.click(screen.getByText('start-identity-check'))
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/verify'))
         expect(screen.queryByText('initiate-kyc-modal')).not.toBeInTheDocument()
+        // the Verify start /verify shows reports Home's Verify row as its entry (TASK-25063)
+        expect(startVerifySource()).toBe('home')
     })
 
     it('a tap before the plan loads waits for it instead of opening the start modal', async () => {

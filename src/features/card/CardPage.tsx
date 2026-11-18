@@ -542,6 +542,7 @@ export const CardPage: FC = () => {
                 hasQuestions
                 providerId="third-national"
                 providerLabel="cardProvider"
+                source="card"
                 onBack={handleSumsubClose}
                 onContinue={() => setIntroDoneFor(sumsubToken)}
             />

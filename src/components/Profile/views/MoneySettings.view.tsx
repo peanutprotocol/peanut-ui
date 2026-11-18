@@ -611,6 +611,7 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
                 <IdentityCheckIntroScreen
                     visible={modalVariant === 'start' && !redirectingToVerify}
                     hasQuestions={selectedRegion?.path === 'latam'}
+                    source="payment_methods"
                     providerId={clickedProviderId}
                     busy={flow.isLoading}
                     onBack={handleModalClose}

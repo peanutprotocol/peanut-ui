@@ -4,6 +4,7 @@
  * useAccountSetup is real: the redirect is observed on the router (`router.replace`), so the claim link
  * (`redirect_uri`) and the demo route are checked by where the person lands.
  */
+import { startVerifySource } from '@/features/paperwork-verification/verifySource'
 import { StrictMode } from 'react'
 import { act, fireEvent, screen } from '@testing-library/react'
 import posthog from 'posthog-js'
@@ -315,6 +316,8 @@ describe('12 Celebration and the one verify screen (a default sign-up)', () => {
         expect(signupControls(posthog.capture as jest.Mock)).toEqual(['celebration:open', 'celebration-verify-now:tap'])
         // replace: Back from /verify must not reopen sign-up
         expect(mockReplace).toHaveBeenCalledWith('/verify')
+        // the Verify start /verify shows reports sign-up as its entry
+        expect(startVerifySource()).toBe('signup')
         expect(mockReplace).toHaveBeenCalledTimes(1)
         expect(mockPush).not.toHaveBeenCalled()
         // the step stays the Celebration until the route changes and unmounts the sign-up shell with its footer

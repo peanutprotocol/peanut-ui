@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { paperworkVerificationEntryRoute, type PaperworkVerificationEntry } from './paperworkVerificationEntry'
+import { markVerifySource, type VerifySource } from './verifySource'
 
 /**
  * Sends a Smart Paperwork Verification user to /verify (or the add-later screen
@@ -10,7 +11,11 @@ import { paperworkVerificationEntryRoute, type PaperworkVerificationEntry } from
  * modal. True while the answer is pending or the user is being sent: the modal
  * must not paint then, or its Verify could still be tapped.
  */
-export function usePaperworkVerificationRedirect(active: boolean, entry: PaperworkVerificationEntry | undefined) {
+export function usePaperworkVerificationRedirect(
+    active: boolean,
+    entry: PaperworkVerificationEntry | undefined,
+    source: VerifySource = 'unlock_payments'
+) {
     const router = useRouter()
     const routerRef = useRef(router)
     routerRef.current = router
@@ -23,6 +28,7 @@ export function usePaperworkVerificationRedirect(active: boolean, entry: Paperwo
         let cancelled = false
         void paperworkVerificationEntryRoute(entry).then((route) => {
             if (cancelled) return
+            if (route === '/verify') markVerifySource(source)
             if (route) routerRef.current.push(route)
             else setStay(true)
         })

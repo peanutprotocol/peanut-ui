@@ -9,6 +9,7 @@ import { VerifyStartIntro } from '@/components/Setup/redesign/VerifyStart/Verify
 import { useBackHandler } from '@/hooks/useBackHandler'
 import type { ProviderId, ProviderLabel } from '@/types/provider.types'
 import { useKycControl } from '../analytics'
+import type { VerifySource } from '../verifySource'
 
 /**
  * Verify start, the one verify intro, in front of today's ID check (InitiateKycModal's unlock offer, the Payment
@@ -25,6 +26,7 @@ export function IdentityCheckIntroScreen({
     providerLabel = 'accountProvider',
     busy = false,
     continueTestId,
+    source = 'unlock_payments',
     onBack,
     onContinue,
 }: {
@@ -36,6 +38,8 @@ export function IdentityCheckIntroScreen({
     providerLabel?: ProviderLabel
     busy?: boolean
     continueTestId?: string
+    /** where the person starts the check from, for the verification funnel */
+    source?: VerifySource
     onBack: () => void
     onContinue: () => void
 }) {
@@ -69,6 +73,7 @@ export function IdentityCheckIntroScreen({
             <VerifyStartIntro
                 controlScreen="id-handoff"
                 controlFlow="kyc_legacy"
+                source={source}
                 questions={hasQuestions}
                 card={providerLabel === 'cardProvider'}
                 starting={busy}

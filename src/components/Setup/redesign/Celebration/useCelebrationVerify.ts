@@ -16,7 +16,7 @@ export function useCelebrationVerify() {
     // today's check finishes over the Celebration: once verified, go where sign-up goes
     const kycFlow = useMultiPhaseKycFlow({ onKycSuccess: leave })
     // /verify takes sign-up's place, so Back cannot reopen it; closing today's check leaves sign-up as Remind me later does
-    const identityCheck = useIdentityCheckStart(kycFlow, { replace: true, onClose: leave })
+    const identityCheck = useIdentityCheckStart(kycFlow, { replace: true, onClose: leave, source: 'signup' })
     const [starting, setStarting] = useState(false)
 
     const start = async () => {

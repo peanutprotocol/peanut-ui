@@ -639,6 +639,8 @@ function PaperworkVerificationSteps({
         const submission = ++submissions.current
         if (!waitForSave && changed.length) saves.current = saves.current.then(persist).then(() => undefined)
         if (following) return
+        // every question answered: the funnel's "questions complete" step, as the ID type picker opens
+        track(ANALYTICS_EVENTS.KYC_PV_SAVED_VIEWED)
         // The last answer reserves the attempt: read it and the ID's documents back while the picker is open.
         const checkpointCurrent = () =>
             current() && submission === submissions.current && back === backRevision.current && !saveRefused.current
