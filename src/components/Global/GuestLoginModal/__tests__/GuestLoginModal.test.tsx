@@ -23,7 +23,41 @@ jest.mock('@/components/Global/ActionModal', () => ({
     ),
 }))
 
+jest.mock('@/components/Setup/Views/LoginRecoveryDrawer', () => ({
+    LoginRecoveryDrawer: ({ visible, onRetry }: { visible: boolean; onRetry: () => void }) =>
+        visible ? (
+            <div data-testid="login-recovery">
+                <button onClick={onRetry}>drawer retry</button>
+            </div>
+        ) : null,
+}))
+
+const passkeyError = (code: string) => Object.assign(new Error(code), { name: 'PasskeyError', code })
+
 beforeEach(() => jest.clearAllMocks())
+
+test('PASSKEY_NOT_FOUND closes the modal and opens the recovery drawer instead of a toast', async () => {
+    mockLogin.mockRejectedValue(passkeyError('PASSKEY_NOT_FOUND'))
+    renderWithIntl(<GuestLoginModal />)
+    fireEvent.click(screen.getByRole('button'))
+    expect(await screen.findByTestId('login-recovery')).toBeInTheDocument()
+    expect(mockClose).toHaveBeenCalledWith(false)
+    expect(mockToastError).not.toHaveBeenCalled()
+
+    // Retry in the drawer starts the login again.
+    fireEvent.click(screen.getByText('drawer retry'))
+    await waitFor(() => expect(mockLogin).toHaveBeenCalledTimes(2))
+})
+
+test('a cancel keeps the toast and opens no drawer, even twice', async () => {
+    mockLogin.mockRejectedValue(passkeyError('LOGIN_CANCELED'))
+    renderWithIntl(<GuestLoginModal />)
+    fireEvent.click(screen.getByRole('button'))
+    await waitFor(() => expect(mockToastError).toHaveBeenCalledTimes(1))
+    fireEvent.click(screen.getByRole('button'))
+    await waitFor(() => expect(mockToastError).toHaveBeenCalledTimes(2))
+    expect(screen.queryByTestId('login-recovery')).not.toBeInTheDocument()
+})
 
 test.each([
     [

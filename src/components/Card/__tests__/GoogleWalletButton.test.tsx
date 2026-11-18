@@ -1,5 +1,5 @@
 import React from 'react'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import GoogleWalletButton from '@/components/Card/GoogleWalletButton'
 import { APP_LOCALES } from '@/i18n/app/config'
@@ -50,7 +50,7 @@ it.each(APP_LOCALES)('uses official artwork and a matching accessible label in %
     expect(messages.card.yourCard.addedToGoogleWallet).toBeTruthy()
 })
 
-it('darkens the fill while pressed and while the add runs, without moving', async () => {
+it('darkens the fill while pressed and while the add runs, without moving the button', async () => {
     const messages = await loadMessages('en')
     const onClick = jest.fn()
     const renderButton = (isAdding: boolean) => (
@@ -81,4 +81,46 @@ it('darkens the fill while pressed and while the add runs, without moving', asyn
     expect(button).toHaveAttribute('aria-busy', 'true')
     fireEvent.click(button)
     expect(mockHaptic).toHaveBeenCalledTimes(1)
+})
+
+describe('touch ripple', () => {
+    const renderEn = async (isAdding = false) => {
+        const messages = await loadMessages('en')
+        render(
+            <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
+                <GoogleWalletButton isAdding={isAdding} onClick={jest.fn()} />
+            </NextIntlClientProvider>
+        )
+        return screen.getByRole('button', { name: messages.card.yourCard.addToGoogleWallet })
+    }
+    const animate = jest.fn(() => ({ finished: Promise.resolve() }))
+
+    beforeEach(() => {
+        animate.mockClear()
+        Object.defineProperty(HTMLElement.prototype, 'animate', { value: animate, configurable: true })
+    })
+    afterEach(() => {
+        delete (HTMLElement.prototype as Partial<HTMLElement>).animate
+    })
+
+    it('spreads under the artwork from the touch point and clears after release', async () => {
+        const button = await renderEn()
+        fireEvent.pointerDown(button, { button: 0, clientX: 10, clientY: 10 })
+        const wave = button.querySelector('span[aria-hidden] > span')
+        expect(wave).not.toBeNull()
+        expect(animate).toHaveBeenCalledTimes(1)
+        button.querySelectorAll('img').forEach((image) => expect(image.className).toMatch(/\brelative\b/))
+
+        fireEvent.pointerUp(button)
+        fireEvent.pointerLeave(button)
+        await waitFor(() => expect(button.querySelector('span[aria-hidden] > span')).toBeNull())
+        // grow, then one fade even though up and leave both fired
+        expect(animate).toHaveBeenCalledTimes(2)
+    })
+
+    it('does not ripple while the add runs', async () => {
+        const button = await renderEn(true)
+        fireEvent.pointerDown(button, { button: 0 })
+        expect(animate).not.toHaveBeenCalled()
+    })
 })

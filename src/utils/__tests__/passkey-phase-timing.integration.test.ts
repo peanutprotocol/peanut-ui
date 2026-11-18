@@ -237,13 +237,17 @@ it.each(['success', 'error'] as const)(
                 telemetry.withCeremonyPurpose('login', () => guard(() => navigator.credentials.get({})))
             )
             .catch((error) => error)
+        // A pending Android sheet in the foreground waits for the hung bound, not 60 s.
         await jest.advanceTimersByTimeAsync(60_000)
-        await expect(result).resolves.toMatchObject({ name: 'CeremonyTimeoutError' })
+        expect(events()).toHaveLength(0)
+        await jest.advanceTimersByTimeAsync(120_000)
+        await expect(result).resolves.toMatchObject({ name: 'CeremonyTimeoutError', outcome: 'sheet_hung' })
         expect(events()).toHaveLength(1)
         const timeout = events()[0]
         expect(timeout).toMatchObject({
             native_ms: null,
             timeout_phase: 'native',
+            timeout_outcome: 'sheet_hung',
             flow_id: expect.any(String),
             attempt_id: expect.any(String),
         })
@@ -282,7 +286,7 @@ it('a conflicting same-message Android sign cannot replace the admitted attempt 
         .catch((error) => error)
     await jest.advanceTimersByTimeAsync(0)
     await expect(second).resolves.toMatchObject({ name: 'CeremonyConflictError' })
-    await jest.advanceTimersByTimeAsync(60_000)
+    await jest.advanceTimersByTimeAsync(180_000)
     await expect(first).resolves.toMatchObject({ name: 'CeremonyTimeoutError' })
     expect(events()).toHaveLength(1)
     expect(events()[0]).toMatchObject({ timeout_phase: 'native', native_ms: null })

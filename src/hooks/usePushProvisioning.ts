@@ -54,6 +54,9 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
     const [alreadyInWallet, setAlreadyInWallet] = useState(false)
     const addingRef = useRef(false)
     const statusSequence = useRef(0)
+    const appliedStatusSequence = useRef(0)
+    const presenceSource = useRef<'exact' | 'suffix' | null>(null)
+    const initialAvailability = useRef<ReturnType<typeof getPushProvisioningAvailability> | null>(null)
     const [checkedScope, setCheckedScope] = useState('')
     const availabilityScope = `${wallet}:${flagOn}:${card.id}:${card.last4}`
     const availabilityScopeRef = useRef(availabilityScope)
@@ -71,6 +74,9 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
     useEffect(() => {
         let cancelled = false
         const authEpochAtStart = getClearEpoch()
+        const sequence = ++statusSequence.current
+        presenceSource.current = null
+        initialAvailability.current = null
         setAlreadyInWallet(false)
         if (!flagOn || wallet === null) {
             setNativeAvailable(false)
@@ -83,19 +89,27 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
             setCheckedScope(availabilityScope)
         }, AVAILABILITY_TIMEOUT_MS)
         void (async () => {
-            const { available, alreadyInWallet: suffixMatch } = await getPushProvisioningAvailability(card.last4)
+            const lookup = getPushProvisioningAvailability(card.last4)
+            initialAvailability.current = lookup
+            const { available, alreadyInWallet: suffixMatch } = await lookup
             if (cancelled) return
             clearTimeout(timeout)
+            // A pending refresh can use initial suffix evidence; a completed newer result wins.
+            if (wallet === 'google' && sequence < appliedStatusSequence.current) return
             if (getClearEpoch() !== authEpochAtStart) {
                 setNativeAvailable(false)
                 setCheckedScope(availabilityScope)
                 return
             }
-            // Only the native add result identifies this card on this device.
+            if (wallet === 'google') {
+                appliedStatusSequence.current = sequence
+                presenceSource.current = suffixMatch ? 'suffix' : null
+                setAlreadyInWallet(suffixMatch)
+            }
             setNativeAvailable(wallet === 'google' ? available || suffixMatch : available)
             setCheckedScope(availabilityScope)
         })().catch(() => {
-            if (!cancelled) {
+            if (!cancelled && (wallet !== 'google' || sequence >= appliedStatusSequence.current)) {
                 clearTimeout(timeout)
                 setNativeAvailable(false)
                 setCheckedScope(availabilityScope)
@@ -111,33 +125,63 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
         if (!flagOn || wallet !== 'google' || !card.id) return
         let cancelled = false
         let removeListener: (() => void) | undefined
+        const authEpochAtStart = getClearEpoch()
         const timers = new Set<ReturnType<typeof setTimeout>>()
-        const refresh = () => {
-            if (cancelled) return
-            const sequence = ++statusSequence.current
-            const epoch = getClearEpoch()
+        const bounded = async <T>(read: () => Promise<T>, fallback: T): Promise<T> => {
             let timeout: ReturnType<typeof setTimeout> | undefined
-            void Promise.race([
-                Promise.resolve()
-                    .then(() => getGoogleWalletCardStatus(card.id))
-                    .catch(() => 'unknown' as const),
-                new Promise<'unknown'>((resolve) => {
-                    timeout = setTimeout(() => resolve('unknown'), AVAILABILITY_TIMEOUT_MS)
-                    timers.add(timeout)
-                }),
-            ]).then((status) => {
+            try {
+                return await Promise.race([
+                    Promise.resolve()
+                        .then(read)
+                        .catch(() => fallback),
+                    new Promise<T>((resolve) => {
+                        timeout = setTimeout(() => resolve(fallback), AVAILABILITY_TIMEOUT_MS)
+                        timers.add(timeout)
+                    }),
+                ])
+            } finally {
                 if (timeout !== undefined) {
                     clearTimeout(timeout)
                     timers.delete(timeout)
                 }
-                if (cancelled || sequence !== statusSequence.current || getClearEpoch() !== epoch) return
-                // Inconclusive reads (timeout, SDK error, or an older binary without this method) keep the last confirmed state.
-                if (status === 'present' || status === 'absent' || status === 'pending') {
-                    setAlreadyInWallet(status === 'present')
+            }
+        }
+        const refresh = (initialLookup: typeof initialAvailability.current = null) => {
+            if (cancelled) return
+            const sequence = initialLookup ? statusSequence.current : ++statusSequence.current
+            void Promise.all([
+                bounded(() => getGoogleWalletCardStatus(card.id), 'unknown'),
+                bounded(async () => {
+                    const result = await (initialLookup ?? getPushProvisioningAvailability(card.last4))
+                    return result.lookupFailed ? null : result
+                }, null),
+            ]).then(([status, availability]) => {
+                if (cancelled || sequence !== statusSequence.current || getClearEpoch() !== authEpochAtStart) return
+                appliedStatusSequence.current = sequence
+                if (availability) setNativeAvailable(availability.available || availability.alreadyInWallet)
+                setCheckedScope(availabilityScope)
+                // Google counts active or suspended issuer tokens matching the card suffix as present.
+                const suffixMatch = availability?.alreadyInWallet === true
+                if (status === 'present') {
+                    presenceSource.current = 'exact'
+                    setAlreadyInWallet(true)
+                } else if (status === 'absent' || status === 'pending') {
+                    // Exact absence says nothing about a hand-added token, so suffix presence needs a suffix miss to clear.
+                    if (availability || presenceSource.current !== 'suffix') {
+                        presenceSource.current = suffixMatch ? 'suffix' : null
+                        setAlreadyInWallet(suffixMatch)
+                    }
+                } else if (suffixMatch) {
+                    if (presenceSource.current !== 'exact') presenceSource.current = 'suffix'
+                    setAlreadyInWallet(true)
+                } else if (availability?.alreadyInWallet === false && presenceSource.current !== 'exact') {
+                    // An inconclusive exact check can clear only suffix-derived presence.
+                    presenceSource.current = null
+                    setAlreadyInWallet(false)
                 }
             })
         }
-        refresh()
+        refresh(initialAvailability.current)
         void Promise.resolve()
             .then(() =>
                 App.addListener('appStateChange', ({ isActive }) => {
@@ -157,7 +201,7 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
             timers.forEach(clearTimeout)
             removeListener?.()
         }
-    }, [availabilityScope, card.id, flagOn, wallet])
+    }, [availabilityScope, card.id, card.last4, flagOn, wallet])
 
     const addToWallet = useCallback(async (): Promise<AddCardToWalletResult> => {
         if (!flagOn || wallet === null || !nativeAvailable || checkedScope !== availabilityScope || addingRef.current) {
@@ -175,6 +219,7 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
                 if (availabilityScopeRef.current === scopeAtStart && !loggedOut) return null
                 if (loggedOut && availabilityScopeRef.current === scopeAtStart) {
                     setNativeAvailable(false)
+                    presenceSource.current = null
                     setAlreadyInWallet(false)
                 }
                 const currentSelection = () =>
@@ -242,9 +287,9 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
                 { wallet, error: result.error }
             )
             if (wallet === 'google' && (result.added || result.alreadyInWallet)) {
-                statusSequence.current++
-                // Both results identify the exact card, unlike a suffix match.
+                appliedStatusSequence.current = ++statusSequence.current
                 if (availabilityScopeRef.current === scopeAtStart) {
+                    presenceSource.current = 'exact'
                     setAlreadyInWallet(true)
                 }
             } else if (result.added) {

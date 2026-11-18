@@ -83,6 +83,8 @@
     --color-background-google-wallet: #1f1f1f;
     /* The fill above under Material's 10% pressed state layer (#e3e3e3 at 10%). */
     --color-background-google-wallet-press: #333333;
+    /* Material's touch ripple on that pill, drawn at 24% opacity. */
+    --color-background-google-wallet-ripple: #e3e3e3;
     --color-border-google-wallet: #747775;
 
     --color-background-icon-bubble-green: #29cc6a;
