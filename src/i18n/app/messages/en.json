@@ -1271,7 +1271,7 @@
             "sameRow": "The same country",
             "search": "Search countries",
             "noCountry": "No country matches “{query}”.",
-            "refusedPassport": "We can’t verify passports or ID cards from {nationality}. Use your residence card from {residence} when you verify your identity.",
+            "refusedPassport": "We can’t verify IDs from {nationality}. Use your residence card from {residence}.",
             "compareTitle": "Pick one country.",
             "compareRule": "Have a residence permit? Pick that country. If not, pick the one that issued your ID.",
             "itemPix": "Pix payments and transfers",

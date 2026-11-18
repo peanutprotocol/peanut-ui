@@ -1271,7 +1271,7 @@
             "sameRow": "O mesmo país",
             "search": "Buscar países",
             "noCountry": "Nenhum país corresponde a “{query}”.",
-            "refusedPassport": "Não conseguimos verificar passaportes nem documentos de identidade deste país: {nationality}. Para verificar sua identidade, use seu cartão de residência ({residence}).",
+            "refusedPassport": "Não conseguimos verificar documentos de identidade deste país: {nationality}. Use seu cartão de residência ({residence}).",
             "compareTitle": "Escolha só um país.",
             "compareRule": "Tem autorização de residência? Escolha esse país. Se não, escolha o que emitiu seu documento.",
             "itemPix": "Pagamentos e transferências Pix",

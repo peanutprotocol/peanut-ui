@@ -803,7 +803,7 @@
             "sameRow": "El mismo país donde vivo",
             "search": "Buscar países",
             "noCountry": "Ningún país coincide con “{query}”.",
-            "refusedPassport": "No podemos verificar pasaportes ni documentos de identidad de {nationality}. Usá tu tarjeta de residencia de {residence} cuando verifiques tu identidad.",
+            "refusedPassport": "No podemos verificar documentos de identidad de {nationality}. Usá tu tarjeta de residencia de {residence}.",
             "compareTitle": "Elegí un solo país.",
             "compareRule": "¿Tenés permiso de residencia? Elegí ese país. Si no, elegí el que emitió tu documento.",
             "itemPix": "Pagos y transferencias Pix",
