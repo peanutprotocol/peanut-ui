@@ -16,7 +16,7 @@ import { identityRejection, rejectionSupportMessage, type IdentityRejection } fr
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { verifiedFollowUps } from './followUps'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
-import { previousInAppUrl, useSafeBack } from '@/hooks/useSafeBack'
+import { useSafeBack } from '@/hooks/useSafeBack'
 import { useSessionFence } from '@/hooks/useSessionFence'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import { useWebSocket } from '@/hooks/useWebSocket'
@@ -54,6 +54,7 @@ import { restoreNativeStatusBar } from './useInsetColor'
 import { ClosedFeaturesNotice, ProofOfAddressScreen, ReviewScreen } from './components/StatusScreens'
 import { StepsScreen } from './components/StepsScreen'
 import { VerifyStartIntro } from '@/components/Setup/redesign/VerifyStart/VerifyStartIntro'
+import { currentVerifySource } from './verifySource'
 import { BankRefusalNotice } from './components/BankRefusalNotice'
 import { supportRefusal } from '@/features/kyc-features/report'
 import {
@@ -398,8 +399,8 @@ function PaperworkVerificationSteps({
     // The picked document's name for Sumsub's ID step; a retry without a pick keeps the last one.
     const [identityStepTitle, setIdentityStepTitle] = useState<string>()
     const exit = useSafeBack('/home')
-    // Remind me later goes back where the person came from; from sign-up (/verify replaced its last step) to Home
-    const remindLater = () => (previousInAppUrl()?.startsWith('/setup') ? router.replace('/home') : exit())
+    // Remind me later goes back where the person came from; from sign-up always to Home, never back into or before it
+    const remindLater = () => (currentVerifySource() === 'signup' ? router.replace('/home') : exit())
     const [questions, setQuestions] = useState(initial.questions)
     const [plan, setPlan] = useState(initial.plan)
     const [status, setStatusState] = useState(initial.status)
@@ -530,6 +531,8 @@ function PaperworkVerificationSteps({
     } | null>(null)
     // the ID screen's start waits for the last answer's checkpoint
     const [settling, setSettling] = useState(false)
+    // the last answer's save and fresh read are on their way: the ID type picker offers no choice yet
+    const [checkpointPending, setCheckpointPending] = useState(false)
 
     const backThroughQuestions = () => {
         backRevision.current += 1
@@ -639,11 +642,12 @@ function PaperworkVerificationSteps({
         const submission = ++submissions.current
         if (!waitForSave && changed.length) saves.current = saves.current.then(persist).then(() => undefined)
         if (following) return
-        // every question answered: the funnel's "questions complete" step, as the ID type picker opens
-        track(ANALYTICS_EVENTS.KYC_PV_SAVED_VIEWED)
-        // The last answer reserves the attempt: read it and the ID's documents back while the picker is open.
+        // The last answer reserves the attempt: its save and a fresh read of the questions and the ID's documents
+        // land before the picker offers a choice, so it shows current documents and closed features, and a quick
+        // pick cannot race the save.
         const checkpointCurrent = () =>
             current() && submission === submissions.current && back === backRevision.current && !saveRefused.current
+        setCheckpointPending(true)
         settled.current = saves.current.then(async () => {
             if (!checkpointCurrent()) return
             const [freshQuestions, freshPlan] = await Promise.all([
@@ -652,10 +656,14 @@ function PaperworkVerificationSteps({
             ])
             if (!checkpointCurrent() || stepRef.current !== 'id') return
             if (freshPlan) setPlan(freshPlan)
-            if (!freshQuestions) return
-            setQuestions(freshQuestions)
-            const open = resumeStep(freshQuestions)
+            const open = freshQuestions && resumeStep(freshQuestions)
+            if (freshQuestions) setQuestions(freshQuestions)
             if (open) void stepper.goTo(screenOf(open))
+            // every question answered and saved: the funnel's "questions complete" step
+            else track(ANALYTICS_EVENTS.KYC_PV_SAVED_VIEWED)
+        })
+        void settled.current.finally(() => {
+            if (submission === submissions.current) setCheckpointPending(false)
         })
     }
 
@@ -991,7 +999,7 @@ function PaperworkVerificationSteps({
                 nationality={nationalityOf(questions)}
                 notice={<ClosedFeaturesNotice closed={questions.closed ?? []} />}
                 documentsLoading={documentsLoading}
-                busy={identity.busy || settling}
+                busy={identity.busy || settling || checkpointPending}
                 error={idError}
                 progress={{ current: progressTotal, total: progressTotal }}
                 onBack={backThroughQuestions}

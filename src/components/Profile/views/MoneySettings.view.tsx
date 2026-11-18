@@ -346,7 +346,8 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
                   targetCountry:
                       clickedRegionProvider === 'manteca' && clickedRowCountry ? clickedRowCountry : undefined,
               }
-            : undefined
+            : undefined,
+        'payment_methods'
     )
 
     const handleFinalKycSuccess = useCallback(() => {

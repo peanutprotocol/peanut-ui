@@ -88,11 +88,6 @@ export function hasInAppHistory(): boolean {
     return index > 0
 }
 
-/** The URL of the in-app entry Back would land on, or null on the first entry. */
-export function previousInAppUrl(): string | null {
-    return index > 0 ? (entries[index - 1] ?? null) : null
-}
-
 type Options = {
     /** Use router.replace instead of router.push for the no-history fallback. */
     replace?: boolean

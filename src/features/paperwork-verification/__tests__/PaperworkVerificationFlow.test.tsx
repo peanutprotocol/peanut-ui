@@ -64,8 +64,7 @@ jest.mock('@/context/authContext', () => ({
     }),
 }))
 jest.mock('@/hooks/useWebSocket', () => ({ useWebSocket: jest.fn() }))
-let mockPreviousUrl: string | null = null
-jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => mockExit, previousInAppUrl: () => mockPreviousUrl }))
+jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => mockExit }))
 jest.mock('@/hooks/useSumsubKycFlow', () => ({ useSumsubKycFlow: jest.fn() }))
 jest.mock('@/components/Global/PeanutMascot', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Global/Loading', () => ({ __esModule: true, default: () => <div>loading</div> }))
@@ -252,7 +251,6 @@ const settleStepUrl = () => act(async () => new Promise((resolve) => setTimeout(
 const mockStartAction = jest.fn()
 
 beforeEach(() => {
-    mockPreviousUrl = null
     window.sessionStorage.clear()
     mockAuthUserId = 'user-a'
     jest.clearAllMocks()
@@ -428,8 +426,8 @@ describe('PaperworkVerificationFlow: the steps overview', () => {
         expect(screen.queryByTestId('setup-redesign-verify-start')).not.toBeInTheDocument()
     })
 
-    it('Remind me later after sign-up goes Home: /verify replaced the last sign-up step, so Back would reopen sign-up', async () => {
-        mockPreviousUrl = '/setup?step=payment-plan'
+    it('Remind me later after sign-up goes Home, by the entry, never back into or before sign-up', async () => {
+        markVerifySource('signup')
         renderFlow()
         await screen.findByTestId('setup-redesign-verify-steps')
         fireEvent.click(screen.getByRole('button', { name: 'Remind me later' }))
@@ -655,6 +653,8 @@ describe('PaperworkVerificationFlow: the steps overview', () => {
         fireEvent.click(continueButton())
         expect(await screen.findByTestId('verify-id')).toBeInTheDocument()
         await waitFor(() => expect(mockQuestions).toHaveBeenCalledTimes(2))
+        // the picker offers no choice until the last answer's save and fresh read land
+        expect(screen.getByTestId('verify-id-option-PASSPORT-US')).toHaveAttribute('aria-disabled', 'true')
 
         await settleStepUrl()
         fireEvent.click(screen.getByTestId('verify-back'))

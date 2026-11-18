@@ -42,6 +42,11 @@ export function startVerifySource(given?: VerifySource): VerifySource {
     return source
 }
 
+/** The entry of the Verify start shown last in this tab, or null. */
+export function currentVerifySource(): VerifySource | null {
+    return read(CURRENT_KEY)
+}
+
 /** `{ entry }` for an event of the verification in progress, or nothing when no Verify start was shown. */
 export function verifySourceProperty(): { entry?: VerifySource } {
     const entry = read(CURRENT_KEY)
