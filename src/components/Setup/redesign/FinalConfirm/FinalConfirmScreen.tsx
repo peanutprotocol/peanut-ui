@@ -167,7 +167,7 @@ export function FinalConfirmScreen({ onComplete, showLogout }: FinalConfirmScree
                     </p>
                 )}
                 {displayError && (
-                    <Callout priority={busy ? 'attention' : 'error'} className="mt-3.5 signup-sm:mt-3">
+                    <Callout priority={busy ? 'attention' : 'error'} className="mt-4 signup-sm:mt-3">
                         {displayError}
                     </Callout>
                 )}
