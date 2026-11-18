@@ -8,6 +8,7 @@ import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import NavHeader from '@/components/Global/NavHeader'
+import { markVerifySource } from '@/features/paperwork-verification/verifySource'
 
 /** Pix needs the identity check first: a tap opens /verify, and Back from there returns here, never into a redirect. */
 export function PixVerifyScreen({ title, onBack }: { title: string; onBack: () => void }) {
@@ -21,7 +22,14 @@ export function PixVerifyScreen({ title, onBack }: { title: string; onBack: () =
                     <IconBubble {...CONCEPT_ICONS.verification} size="l" />
                     <TitleBlock align="center" title={t('title')} />
                 </div>
-                <Button variant="primary" className="w-full" onClick={() => router.push('/verify')}>
+                <Button
+                    variant="primary"
+                    className="w-full"
+                    onClick={() => {
+                        markVerifySource('unlock_payments')
+                        router.push('/verify')
+                    }}
+                >
                     {t('verifyCta')}
                 </Button>
             </PageStack.Center>

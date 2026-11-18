@@ -13,6 +13,7 @@ import {
 import { entryAction, reportEntry, supportRefusal, type ReportScope } from '@/features/kyc-features/report'
 import type { FeatureReportEntry } from '@/types/capabilities'
 import { paperworkVerificationFeaturePath } from './paperworkVerificationEntry'
+import { markVerifySource } from './verifySource'
 
 export const KYC_ACTIVATION_POLL_MS = 15_000
 
@@ -194,7 +195,10 @@ export function useKycFeatureActivation(
                     recovery.current.waiting = identityStatus !== 'failed'
                     if (!automatic) {
                         await options?.beforeRedirect?.()
-                        if (mounted.current && currentScope.current === scope) routerRef.current.push('/verify')
+                        if (mounted.current && currentScope.current === scope) {
+                            markVerifySource('unlock_payments')
+                            routerRef.current.push('/verify')
+                        }
                     }
                 } else {
                     recovery.current.waiting = false

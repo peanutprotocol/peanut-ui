@@ -2,7 +2,7 @@
 
 import { NotificationsSwitchesScreen } from '@/components/Setup/redesign/Notifications/NotificationsSwitchesScreen'
 import { FinalStep } from '@/components/Setup/redesign/FinalConfirm/FinalStep'
-import { VerifyStartScreen } from '@/components/Setup/redesign/VerifyStart/VerifyStartScreen'
+import { VerifyStartIntro } from '@/components/Setup/redesign/VerifyStart/VerifyStartIntro'
 import { TestBuildRibbonView } from '@/components/Global/TestBuildRibbon'
 import { API_CONTRACT_STATES } from './api-contract-states'
 import AmountInput from '@/components/Global/AmountInput'
@@ -318,13 +318,6 @@ function CompletedCelebration() {
     React.useLayoutEffect(() => setSignupCompleted(true), [setSignupCompleted])
     // FinalStep shows the final confirm until sign-up completes, and that screen sends a signed-in user Home
     return signupCompleted ? <FinalStep /> : null
-}
-
-/** The Verify start after a completed default sign-up. */
-function CompletedVerifyStart() {
-    const { setSignupCompleted } = useSetupFlowContext()
-    React.useLayoutEffect(() => setSignupCompleted(true), [setSignupCompleted])
-    return <VerifyStartScreen />
 }
 
 const asyncNoop = async () => {}
@@ -893,11 +886,8 @@ export const SURFACES: Record<string, Surface> = {
     },
     '07-f-setup-verify-start': {
         ...SURFACE_META['07-f-setup-verify-start'],
-        render: () => (
-            <SetupScreen screenId="advantage-control" showProgress={false}>
-                <CompletedVerifyStart />
-            </SetupScreen>
-        ),
+        // /verify's intro for a new user: the questions, then the ID photo
+        render: () => <VerifyStartIntro controlScreen="steps-overview" questions onVerify={noop} onLater={noop} />,
     },
     '07-b-advantage-control': {
         ...SURFACE_META['07-b-advantage-control'],

@@ -12,6 +12,7 @@ import { IntlWrapper } from '@/test-utils/intl'
 import { InitiateKycModal } from '../InitiateKycModal'
 
 let mockRestrictions = { banking: false, card: false }
+jest.mock('@/components/Setup/components/SetupLanguageSwitcher', () => ({ SetupLanguageSwitcher: () => null }))
 jest.mock('@/hooks/useResidenceRestrictions', () => ({
     useResidenceRestrictions: () => mockRestrictions,
 }))
@@ -49,13 +50,13 @@ describe('InitiateKycModal — residence check', () => {
 
     it('offers the ID check intro when banking is available', () => {
         renderModal()
-        expect(screen.getByText('Your ID check')).toBeInTheDocument()
-        expect(screen.getByTestId('kyc-initiate-cta')).toHaveTextContent('Continue')
+        expect(screen.getByRole('heading', { name: 'Verify now' })).toBeInTheDocument()
+        expect(screen.getByTestId('kyc-initiate-cta')).toHaveTextContent('Verify now · 2 min')
     })
 
     it("marks the cross-region continue with the caller's test id", () => {
         renderModal({ variant: 'cross_region', ctaTestId: 'kyc-identity-gate-cta' })
-        expect(screen.getByTestId('kyc-identity-gate-cta')).toHaveTextContent('Continue')
+        expect(screen.getByTestId('kyc-identity-gate-cta')).toHaveTextContent('Verify now · 2 min')
         expect(screen.queryByTestId('kyc-initiate-cta')).not.toBeInTheDocument()
     })
 

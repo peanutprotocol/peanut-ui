@@ -1,3 +1,4 @@
+import { verifySourceProperty } from '@/features/paperwork-verification/verifySource'
 import { railJurisdictionForBank } from '@/utils/bridge.utils'
 import * as Sentry from '@/utils/sentry-lazy'
 import { criticalFlowTags } from '@/utils/sentry-critical-flow'
@@ -285,7 +286,7 @@ export const useMultiPhaseKycFlow = ({
         const effectiveIntent = lastIntentRef.current ?? regionIntent
         posthog.capture(
             effectiveIntent === 'LATAM' ? ANALYTICS_EVENTS.MANTECA_KYC_COMPLETED : ANALYTICS_EVENTS.KYC_APPROVED,
-            { region_intent: effectiveIntent, acquisition_source: acquisitionSource }
+            { region_intent: effectiveIntent, acquisition_source: acquisitionSource, ...verifySourceProperty() }
         )
         isRealtimeFlowRef.current = false
         setForceShowModal(false)
@@ -540,6 +541,7 @@ export const useMultiPhaseKycFlow = ({
             posthog.capture(ANALYTICS_EVENTS.KYC_SUBMITTED, {
                 region_intent: submissionAttempt.intent,
                 submit_source: source,
+                ...verifySourceProperty(),
             })
         },
         [submissionAttempt]
@@ -643,7 +645,13 @@ export const useMultiPhaseKycFlow = ({
             lastInitiateArgsRef.current = { intent, levelName, crossRegion, targetCountry, corridor }
             posthog.capture(
                 intent === 'LATAM' ? ANALYTICS_EVENTS.MANTECA_KYC_INITIATED : ANALYTICS_EVENTS.KYC_INITIATED,
-                { region_intent: intent, acquisition_source: acquisitionSource, resumed: resumingRef.current }
+                {
+                    region_intent: intent,
+                    acquisition_source: acquisitionSource,
+                    resumed: resumingRef.current,
+                    // where the Verify start this check began on was opened from (TASK-25063)
+                    ...verifySourceProperty(),
+                }
             )
 
             requestedCountryRef.current = targetCountry?.toUpperCase()

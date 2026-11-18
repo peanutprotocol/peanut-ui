@@ -1370,6 +1370,7 @@
             "stepQuestions": "Algumas perguntas que somos obrigados a fazer",
             "stepPhoto": "Foto do documento e selfie",
             "verifyNow": "Verificar agora · 3 min",
+            "verifyNowIdOnly": "Verificar agora · 2 min",
             "remindLater": "Lembrar mais tarde"
         }
     },
@@ -4290,10 +4291,6 @@
                     "bankTerms": "Aceite os termos das transferências bancárias",
                     "bankCheck": "Conclua a verificação das transferências bancárias"
                 }
-            },
-            "saved": {
-                "title": "Respostas salvas!",
-                "description": "Agora, uma foto do seu documento e uma selfie rápida."
             },
             "featureNames": {
                 "bank": "contas bancárias",

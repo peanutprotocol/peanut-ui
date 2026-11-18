@@ -134,10 +134,12 @@ export function SetupShell({ screenId, children, direction = 0, showBackButton, 
                         <SetupDesktopHero screenId={screenId} direction={direction} reduced={reducedMotion} />
                     )}
                     <div className="w-full md:min-w-0 md:flex-1 md:bg-background-default">
+                        {/* isolate: the shell's layers (the footer is z-40) stack inside it, never over a full-screen
+                            overlay such as the ID-check intro (z-30) opened from a sign-up step (TASK-25063) */}
                         <div
                             ref={shellRef}
                             className={twMerge(
-                                'signup-shell relative mx-auto h-[var(--sr-h)] w-full max-w-[480px] overflow-hidden bg-background-default',
+                                'signup-shell relative isolate mx-auto h-[var(--sr-h)] w-full max-w-[480px] overflow-hidden bg-background-default',
                                 desktopDownload && '[&_[data-setup-art-box]]:hidden'
                             )}
                             style={

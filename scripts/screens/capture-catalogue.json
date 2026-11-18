@@ -677,7 +677,7 @@
     {
         "id": "fixture-paperwork-verification-closed-residence",
         "flow": "Setup and login",
-        "route": "/verify?step=saved"
+        "route": "/verify?step=id"
     },
     {
         "id": "fixture-paperwork-verification-needs-signup",
@@ -1003,17 +1003,17 @@
     {
         "id": "fixture-paperwork-verification-closed-nationality",
         "flow": "Home and shared states",
-        "route": "/verify?step=saved"
+        "route": "/verify?step=id"
     },
     {
         "id": "fixture-paperwork-verification-closed-tax",
         "flow": "Home and shared states",
-        "route": "/verify?step=saved"
+        "route": "/verify?step=id"
     },
     {
         "id": "fixture-paperwork-verification-closed-unknown",
         "flow": "Home and shared states",
-        "route": "/verify?step=saved"
+        "route": "/verify?step=id"
     },
     {
         "id": "fixture-paperwork-verification-policy-hold",
@@ -1076,7 +1076,7 @@
         "route": "/verify?step=tax"
     },
     {
-        "id": "fixture-paperwork-verification-midpoint",
+        "id": "fixture-paperwork-verification-questions-answered",
         "flow": "Home and shared states",
         "route": "/verify"
     },
