@@ -6,6 +6,7 @@
 import { renderHook } from '@testing-library/react'
 import posthog from 'posthog-js'
 import { useSetupStepAnalytics } from '@/features/setup/useSetupStepAnalytics'
+import { SIGNUP_FLOW_VERSION } from '@/features/setup/signup-analytics'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { type ISetupStep } from '@/components/Setup/Setup.types'
 
@@ -41,7 +42,7 @@ beforeEach(() => {
 describe('useSetupStepAnalytics', () => {
     it('tags every event with flow_version while setup is mounted', () => {
         const { unmount } = render({ enabled: false, step: undefined })
-        expect(posthog.register_for_session).toHaveBeenCalledWith({ flow_version: 2 })
+        expect(posthog.register_for_session).toHaveBeenCalledWith({ flow_version: SIGNUP_FLOW_VERSION })
         expect(posthog.unregister_for_session).not.toHaveBeenCalled()
         unmount()
         expect(posthog.unregister_for_session).toHaveBeenCalledWith('flow_version')
