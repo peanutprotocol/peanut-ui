@@ -33,12 +33,8 @@ jest.mock('@/context/authContext', () => ({
 jest.mock('@/utils/confetti', () => ({ confettiPresets: { success: jest.fn(), celebration: jest.fn() } }))
 jest.mock('@/utils/haptics', () => ({ notifyHaptic: jest.fn() }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn(), setPersonProperties: jest.fn() } }))
-// The verify start: its flag, the door checks, and the ID-check start's boundaries (the start's own routing is
+// The verify start: the door checks, and the ID-check start's boundaries (the start's own routing is
 // covered by ActivationCTAs.test, which shares useIdentityCheckStart).
-let mockStartFlag = false
-jest.mock('@/hooks/useFeatureFlag', () => ({
-    useFeatureFlags: () => (flagKey: string) => flagKey === 'signup-verify-start' && mockStartFlag,
-}))
 let mockRegionRestricted = false
 jest.mock('@/hooks/useIdentityVerification', () => ({
     useIdentityVerification: () => ({ isRegionRestricted: mockRegionRestricted }),
@@ -49,8 +45,12 @@ let mockOpensVerify = true
 jest.mock('@/features/paperwork-verification/usePaperworkVerificationStart', () => ({
     usePaperworkVerificationStart: () => async () => mockOpensVerify,
 }))
+let mockKycOptions: { onKycSuccess?: () => void } = {}
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
-    useMultiPhaseKycFlow: () => ({ showWrapper: false, handleInitiateKyc: jest.fn(), isLoading: false }),
+    useMultiPhaseKycFlow: (options: { onKycSuccess?: () => void }) => {
+        mockKycOptions = options
+        return { showWrapper: false, handleInitiateKyc: jest.fn(), isLoading: false }
+    },
 }))
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))
 jest.mock('@/components/Kyc/InitiateKycModal', () => ({
@@ -95,8 +95,13 @@ const setReducedMotion = (matches: boolean) => {
 
 type Seed = Parameters<typeof renderRedesign>[1]['seed']
 const mockOnVerify = jest.fn()
-// the plain Celebration; the verify suite renders FinalStep, so its Verify now really opens the Verify start
-const render = (seed: Seed = { signupCompleted: true, username: 'kim' }, strict = false, step = false) =>
+// dev's Celebration with its redirect, as a deep-link sign-up (add money) still gets it: a default sign-up gets the
+// buttons. The verify suite renders FinalStep, so its Verify now really opens the Verify start.
+const render = (
+    seed: Seed = { signupCompleted: true, username: 'kim', signupEntryFlow: 'add-money' },
+    strict = false,
+    step = false
+) =>
     renderRedesign(
         step ? (
             <FinalStep />
@@ -121,7 +126,6 @@ beforeEach(() => {
     localStorage.clear()
     sessionStorage.clear()
     mockRedirectUri = null
-    mockStartFlag = false
     mockRegionRestricted = false
     mockRestrictions = { banking: false, card: false }
     mockOpensVerify = true
@@ -265,7 +269,7 @@ describe('12 Celebration', () => {
     })
 })
 
-describe('12 Celebration and the Verify start (flag signup-verify-start)', () => {
+describe('12 Celebration and the Verify start (a default sign-up)', () => {
     const captured = (event: string) =>
         (posthog.capture as jest.Mock).mock.calls.filter(([name]) => name === event).map(([, props]) => props)
     const renderStep = (seed: Seed = { signupCompleted: true, username: 'kim' }) => render(seed, false, true)
@@ -277,10 +281,6 @@ describe('12 Celebration and the Verify start (flag signup-verify-start)', () =>
         fireEvent.click(celebrationVerify())
         return view
     }
-
-    beforeEach(() => {
-        mockStartFlag = true
-    })
 
     it("VS-1 Celebration: dev's copy, a white Verify now and a Remind me later link in place of the wait", () => {
         const { container } = renderStep()
@@ -330,8 +330,10 @@ describe('12 Celebration and the Verify start (flag signup-verify-start)', () =>
     it('VS-3 Verify start Verify now opens /verify on the first question, past its overview', async () => {
         openStart()
         await act(async () => fireEvent.click(startVerify()))
-        expect(mockPush).toHaveBeenCalledWith('/verify?skipOverview=true')
-        expect(mockReplace).not.toHaveBeenCalled()
+        // replace: Back from the first question must not reopen sign-up
+        expect(mockReplace).toHaveBeenCalledWith('/verify?skipOverview=true')
+        expect(mockReplace).toHaveBeenCalledTimes(1)
+        expect(mockPush).not.toHaveBeenCalled()
         expect(captured('signup_verify_start_tapped')).toEqual([
             expect.objectContaining({ choice: 'verify', flow_version: 2 }),
         ])
@@ -350,6 +352,15 @@ describe('12 Celebration and the Verify start (flag signup-verify-start)', () =>
         await act(async () => fireEvent.click(startVerify()))
         expect(screen.getByText('initiate-kyc-modal')).toBeInTheDocument()
         expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    it('VS-4 the legacy start, once verified, goes where sign-up goes instead of back to Verify start', async () => {
+        mockOpensVerify = false
+        openStart()
+        await act(async () => fireEvent.click(startVerify()))
+        expect(mockReplace).not.toHaveBeenCalled()
+        act(() => mockKycOptions.onKycSuccess?.())
+        expect(mockReplace).toHaveBeenCalledWith('/home')
     })
 
     it('VS-5 Celebration Remind me later goes Home without opening the Verify start', () => {
@@ -410,16 +421,6 @@ describe('12 Celebration and the Verify start (flag signup-verify-start)', () =>
         openStart()
         expect(screen.getByText(copy('setupRedesign.verifyStart.subCard'))).toBeInTheDocument()
         expect(screen.queryByText(copy('setupRedesign.verifyStart.sub'))).toBeNull()
-    })
-
-    it("VS-9 flag off: dev's Celebration and its 4.5 s redirect", () => {
-        mockStartFlag = false
-        const { container } = renderStep()
-        expect(setupState(container)).toBe('default')
-        expect(screen.getByText(textMatch(copy('setupRedesign.done.going')))).toBeInTheDocument()
-        expect(screen.queryByRole('button')).toBeNull()
-        act(() => jest.advanceTimersByTime(4500))
-        expect(mockReplace).toHaveBeenCalledWith('/home')
     })
 
     it('VS-9 demo mode keeps the walkthrough redirect', () => {

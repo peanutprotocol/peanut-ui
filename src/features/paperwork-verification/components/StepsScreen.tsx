@@ -20,7 +20,7 @@ type StepRow = { key: string; label: `steps.${StepKey}` | `steps.followUp.${Foll
 export type StepsPhase = 'intro' | 'review' | 'verified'
 
 // the overview's rows while the server says which steps are left
-const SKELETON_ROWS = 5
+const SKELETON_ROWS = 4
 const skeleton = 'animate-pulse bg-foreground-primary/10 motion-reduce:animate-none'
 
 const PHASE_COPY = {
@@ -81,9 +81,10 @@ function stepRows(
     if (phase === 'review')
         return keys.map((key) => row(key, key === 'review' ? 'current' : key === 'unlock' ? 'next' : 'done'))
     const photoCurrent = !hasQuestions || questionsDone
-    // before the start only the steps the person acts on: the review shows once it runs (Hugo, 2026-11-17)
+    // before the start only the steps the person acts on: the review and the unlock are outcomes, shown once they
+    // carry live state (review and verified phases; Hugo 2026-11-17, Kush 2026-11-18)
     return keys
-        .filter((key) => key !== 'review')
+        .filter((key) => key !== 'review' && key !== 'unlock')
         .map((key) =>
             row(
                 key,

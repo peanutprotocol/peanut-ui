@@ -7,6 +7,7 @@ import { useAuth } from '@/context/authContext'
 import { useModalsContext } from '@/context/ModalsContext'
 import { useQrIdentityCheck } from '@/features/payments/flows/qr-pay/useQrIdentityCheck'
 import { usePaperworkVerificationStart } from '@/features/paperwork-verification/usePaperworkVerificationStart'
+import { verifySkipOverviewHref } from '@/features/paperwork-verification/verifyRoute'
 import type { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
 import { buildContactSupportMessage } from '@/utils/contact-support.utils'
@@ -36,7 +37,11 @@ export function useIdentityCheckStart(kycFlow: ReturnType<typeof useMultiPhaseKy
         if (startingRef.current) return
         startingRef.current = true
         try {
-            if (await opensPaperworkVerification()) router.push(skipOverview ? '/verify?skipOverview=true' : '/verify')
+            if (await opensPaperworkVerification()) {
+                // from sign-up, /verify takes the screen's place: Back from the first question must not reopen sign-up
+                if (skipOverview) router.replace(verifySkipOverviewHref())
+                else router.push('/verify')
+            }
             // The legacy start is bank-shaped. Where bank rails are closed the
             // card is the door, and where the card is closed too, QR pay is
             // (Hugo, 2026-09-26: QR is open to every verified user).

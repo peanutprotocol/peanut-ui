@@ -241,7 +241,8 @@ test('the celebration paints the home-bar strip with its ground', async ({ page 
     await page.setViewportSize({ width: 393, height: 852 })
     await prepareSetupSurface(page)
     await openSetupSurface(page, '07-e-setup-celebration')
-    // 12 is a full stage: no panel, so the strip under it continues the ground (V1); it leaves on its own after 4.5 s
+    // 12 is a full stage: no panel, so the strip under it continues the ground (V1); with Verify now and Remind me
+    // later it stays until a tap
     await expect(page.locator('[data-setup-stage][data-ground="pink"]')).toBeVisible()
     await page.evaluate(() => document.documentElement.style.setProperty('--safe-area-inset-bottom', '34px'))
     const inset = page.locator('[data-setup-inset]')

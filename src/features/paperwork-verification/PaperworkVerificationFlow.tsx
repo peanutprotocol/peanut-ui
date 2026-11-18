@@ -254,6 +254,16 @@ function PaperworkVerificationAccount({ userId }: { userId?: string }) {
     const [generation, setGeneration] = useState(0)
     // The steps overview opens a visit once; a reload mid-flow goes straight back to the open step.
     const introShown = useRef(false)
+    // A caller that already listed the steps (the sign-up Verify start) skips the overview for this visit. The param
+    // leaves the URL at once, so a reload or a shared link opens the overview as usual.
+    const [skipOverviewParam, setSkipOverviewParam] = useQueryState(
+        'skipOverview',
+        parseAsBoolean.withDefault(false).withOptions({ history: 'replace' })
+    )
+    const overviewSkipped = useRef(skipOverviewParam)
+    useEffect(() => {
+        if (skipOverviewParam) void setSkipOverviewParam(null)
+    }, [skipOverviewParam, setSkipOverviewParam])
     // A load must not re-run because the router object changed identity.
     const routerRef = useRef(router)
     routerRef.current = router
@@ -364,6 +374,7 @@ function PaperworkVerificationAccount({ userId }: { userId?: string }) {
             fresh={state.fresh}
             reload={load}
             introShown={introShown}
+            skipOverview={overviewSkipped.current}
         />
     )
 }
@@ -373,12 +384,14 @@ function PaperworkVerificationSteps({
     fresh,
     reload,
     introShown,
+    skipOverview,
 }: {
     initial: Loaded
     /** the server's read behind a cached open, with the same screens */
     fresh?: Loaded
     reload: () => Promise<void>
     introShown: React.MutableRefObject<boolean>
+    skipOverview: boolean
 }) {
     const t = useTranslations('kyc.paperworkVerification')
     const tDocuments = useTranslations('kyc.documents')
@@ -410,8 +423,6 @@ function PaperworkVerificationSteps({
     }, [])
     const [stepParam] = useQueryState('step')
     const [returnToFeature] = useQueryState('returnToFeature')
-    // set by a caller that already listed the steps (the sign-up Verify start)
-    const [skipOverview] = useQueryState('skipOverview', parseAsBoolean.withDefault(false))
     const linkedQuestion = useRef(stepParam)
     const enterLastPage = useRef<PaperworkVerificationStepId | undefined>(undefined)
     // A replacement hands off before its submission webhook necessarily arrives.

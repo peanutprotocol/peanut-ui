@@ -120,12 +120,6 @@
         "source": "Setup/redesign/Celebration/CelebrationScreen.tsx"
     },
     {
-        "id": "07-e-setup-celebration-flag-signup-verify-start-true",
-        "flow": "Setup and login",
-        "route": "/dev/surfaces?s=07-e-setup-celebration",
-        "source": "Setup/redesign/Celebration/CelebrationScreen.tsx"
-    },
-    {
         "id": "20-a-setupnotificationsmodal",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=20-a-setupnotificationsmodal",

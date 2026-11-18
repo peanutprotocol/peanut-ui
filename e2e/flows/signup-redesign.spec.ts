@@ -684,7 +684,8 @@ async function emailToFinal(page: Page, locale: Locale, email: string) {
 async function confirmAndCelebrate(
     page: Page,
     locale: Locale,
-    state: 'default' | 'claim-link' | 'buttons' = 'default'
+    // a default sign-up gets the Celebration's buttons; a claim link keeps the claim copy and its redirect
+    state: 'claim-link' | 'buttons' = 'buttons'
 ) {
     if (!STUB_BUNDLER) {
         test.info().annotations.push({ type: 'not checked', description: '11 → 12: no stub bundler in this build' })
@@ -700,35 +701,8 @@ async function confirmAndCelebrate(
     return true
 }
 
-/**
- * Answers PostHog's flag request with the verify start on, as the rollback switch is set in production (signup v7).
- * A build without a PostHog key never asks, so the Verify start stays off and the test says so instead of passing.
- */
-async function verifyStartFlagOn(context: BrowserContext) {
-    const flag = 'signup-verify-start'
-    await context.route(/\/relay\/|posthog\.com/, async (route) => {
-        if (/\/(flags|decide)\b/.test(new URL(route.request().url()).pathname))
-            return route.fulfill({
-                status: 200,
-                contentType: 'application/json',
-                body: JSON.stringify({
-                    featureFlags: { [flag]: true },
-                    flags: { [flag]: { key: flag, enabled: true } },
-                    featureFlagPayloads: {},
-                }),
-            })
-        return route.fulfill({ status: 200, contentType: 'application/json', body: '{"status":1}' })
-    })
-}
-
 /** Every screen from Landing to 12, for a default (organic) sign-up. */
-async function organicSignupToCelebration(
-    page: Page,
-    context: BrowserContext,
-    baseURL: string,
-    username: string,
-    state: 'default' | 'buttons' = 'buttons'
-) {
+async function organicSignupToCelebration(page: Page, context: BrowserContext, baseURL: string, username: string) {
     await addAuthenticator(page)
     await openSetup(page, context, baseURL)
     await landingToUsername(page, 'en')
@@ -736,7 +710,7 @@ async function organicSignupToCelebration(
     await inviteSkip(page, 'en')
     await createPasskey(page, 'en')
     await emailToFinal(page, 'en', `${username}@gmail.com`)
-    return confirmAndCelebrate(page, 'en', state)
+    return confirmAndCelebrate(page, 'en')
 }
 
 /** The three POSTs that turn a reserved name into an account, in order, for this username. */
@@ -926,7 +900,7 @@ test.describe('sign-up redesign journeys', () => {
             await expect.poll(() => new URL(page.url()).pathname, { timeout: 15_000 }).toBe('/claim')
         })
 
-        test.describe('12 Celebration and Verify start (signup v7, flag signup-verify-start on)', () => {
+        test.describe('12 Celebration and Verify start (signup v7)', () => {
             const verifyNow = (page: Page) => primary(page, copy('en', 'setupRedesign.verifyStart.verifyNow'))
             const remindLater = (page: Page) =>
                 page.getByRole('button', { name: copy('en', 'setupRedesign.verifyStart.remindLater') })
@@ -945,7 +919,6 @@ test.describe('sign-up redesign journeys', () => {
                 context,
                 baseURL,
             }) => {
-                await verifyStartFlagOn(context)
                 if (!(await organicSignupToCelebration(page, context, baseURL!, 'luckyotter'))) return
                 await expect(verifyNow(page)).toBeVisible()
                 await expect(remindLater(page)).toBeVisible()
@@ -961,7 +934,6 @@ test.describe('sign-up redesign journeys', () => {
                 context,
                 baseURL,
             }) => {
-                await verifyStartFlagOn(context)
                 if (!(await organicSignupToCelebration(page, context, baseURL!, 'luckyotter'))) return
                 await toVerifyStart(page)
                 await verifyNow(page).click()
@@ -980,7 +952,6 @@ test.describe('sign-up redesign journeys', () => {
             })
 
             test('Verify start: Remind me later opens Home', async ({ page, context, baseURL }) => {
-                await verifyStartFlagOn(context)
                 if (!(await organicSignupToCelebration(page, context, baseURL!, 'luckyotter'))) return
                 await toVerifyStart(page)
                 await remindLater(page).click()
@@ -988,7 +959,6 @@ test.describe('sign-up redesign journeys', () => {
             })
 
             test('a claim-link sign-up keeps its copy and the auto-redirect', async ({ page, context, baseURL }) => {
-                await verifyStartFlagOn(context)
                 await addAuthenticator(page)
                 const claim = '/claim?c=42161&v=v4.3&i=7#p=e2e'
                 await openSetup(page, context, baseURL!, `/setup?redirect_uri=${encodeURIComponent(claim)}`)
@@ -1000,17 +970,6 @@ test.describe('sign-up redesign journeys', () => {
                 if (!(await confirmAndCelebrate(page, 'en', 'claim-link'))) return
                 await expect(remindLater(page)).toHaveCount(0)
                 await expect.poll(() => new URL(page.url()).pathname, { timeout: 15_000 }).toBe('/claim')
-            })
-
-            test("flag off: dev's Celebration with no buttons leaves for Home on its own", async ({
-                page,
-                context,
-                baseURL,
-            }) => {
-                if (!(await organicSignupToCelebration(page, context, baseURL!, 'luckyotter', 'default'))) return
-                await expect(remindLater(page)).toHaveCount(0)
-                await expect(page.getByText(copy('en', 'setupRedesign.done.going'))).toBeVisible()
-                await expect.poll(() => new URL(page.url()).pathname, { timeout: 15_000 }).toBe('/home')
             })
         })
 

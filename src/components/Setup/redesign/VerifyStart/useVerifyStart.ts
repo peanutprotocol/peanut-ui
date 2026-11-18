@@ -15,7 +15,8 @@ export function useVerifyStart() {
     const { signupEntryFlow } = useSetupFlowContext()
     const restrictions = useResidenceRestrictions()
     const { consumeRedirect, handleRedirect } = useAccountSetup()
-    const kycFlow = useMultiPhaseKycFlow({})
+    // the legacy start finishes on this screen: once verified, go where sign-up goes, not back to Verify now
+    const kycFlow = useMultiPhaseKycFlow({ onKycSuccess: () => handleRedirect({ isNewAccount: true }) })
     const identityCheck = useIdentityCheckStart(kycFlow)
     const [starting, setStarting] = useState(false)
     const reported = useRef(false)
