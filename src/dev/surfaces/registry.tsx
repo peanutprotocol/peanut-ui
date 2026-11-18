@@ -1863,6 +1863,10 @@ export const SURFACES: Record<string, Surface> = {
         ...SETUP_REDESIGN_SURFACES['setup-redesign-plan-us'],
         render: () => <RedesignStepSurface screenId="payment-plan" seed={{ residenceCountry: 'US' }} />,
     },
+    'setup-redesign-plan-pt': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-plan-pt'],
+        render: () => <RedesignStepSurface screenId="payment-plan" seed={{ residenceCountry: 'PT' }} />,
+    },
     'setup-redesign-email': {
         ...SETUP_REDESIGN_SURFACES['setup-redesign-email'],
         render: () => <RedesignStepSurface screenId="notification-email" seed={{ username: 'luckyotter' }} />,
