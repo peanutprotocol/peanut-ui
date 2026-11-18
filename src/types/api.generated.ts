@@ -17744,7 +17744,7 @@ export interface paths {
                          *     }
                          */
                         "application/json": {
-                            next: ("purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax") | null;
+                            next: ("purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax" | "cpfRecord") | null;
                         };
                     };
                 };
@@ -19542,7 +19542,7 @@ export interface paths {
                                 reason: string;
                             }[];
                             entryScope?: string;
-                            firstUnanswered: ("purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax") | null;
+                            firstUnanswered: ("purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax" | "cpfRecord") | null;
                             needs: ("residence" | "features")[];
                             progress: {
                                 done: number;
@@ -19568,7 +19568,7 @@ export interface paths {
                                     required: boolean;
                                     value: string | null;
                                 }[];
-                                id: "purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax";
+                                id: "purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax" | "cpfRecord";
                             }[];
                             terminal?: "rejected" | null;
                         };
