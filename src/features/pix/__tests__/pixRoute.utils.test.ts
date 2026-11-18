@@ -25,6 +25,16 @@ const route = (overrides: Partial<CapabilityRoute> = {}): CapabilityRoute => ({
     ...overrides,
 })
 
+it.each(['residence_unresolved', 'residence_address_in_review'])(
+    'preserves a local address blocker over a ready Pix route: %s',
+    (reason) => {
+        const report = DEMO_USER.capabilities!.features!
+        const entry = { state: 'setting_up' as const, reason }
+        const blocked = { ...report, local: { ...entry, accounts: { BRL: entry } } }
+        expect(withPixRoute(blocked, [route()]).local.accounts.BRL).toEqual(entry)
+    }
+)
+
 describe('findPixRoute', () => {
     it("picks the operation's PIX_BR route", () => {
         const withdraw = route({ operation: 'withdraw', provider: 'manteca' })

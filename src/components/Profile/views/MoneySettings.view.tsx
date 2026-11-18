@@ -45,7 +45,9 @@ import { useLimits } from '@/hooks/useLimits'
 import { limitSummariesForRows, MethodLimits, type BrlRoom } from './MethodLimits'
 import { brlOperationsServedBy, mantecaBrlLimitApplies } from '@/features/limits/utils'
 import { rowStatusBadge, isRowTappable } from './RowStatusBadge'
-import { entryChip, entryAction, UNKNOWN_REPORT } from '@/features/kyc-features/report'
+import { accountEntry, entryChip, entryAction, UNKNOWN_REPORT } from '@/features/kyc-features/report'
+import { residenceAddressEntry } from '@/features/kyc-features/residenceAddressEntry'
+import { LocalResidenceAddressGate } from '@/features/kyc-features/LocalResidenceAddressGate'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useKycDegraded } from '@/hooks/useKycDegraded'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -113,6 +115,7 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
     const router = useRouter()
     const [openView] = useQueryState('open', parseAsString)
     const [selectedDetailsRow, setDetailsRow] = useState<UnlockRow | null>(null)
+    const [addressCurrency, setAddressCurrency] = useState<'ARS' | 'BRL' | null>(null)
     // the pay:PIX_BR route, not the app, says whether Pix payments and sends serve this residence
     const pixResidenceBlocked = usePixPayBlock() === 'residence'
     const {
@@ -391,6 +394,15 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
 
     const handleRowClick = useCallback(
         (row: UnlockRow) => {
+            const currency = row.labelKey === 'ars' ? 'ARS' : row.labelKey === 'brl' ? 'BRL' : null
+            if (
+                currency &&
+                capabilities.features &&
+                residenceAddressEntry(accountEntry(capabilities.features, 'local', currency), nextActions)
+            ) {
+                setAddressCurrency(currency)
+                return
+            }
             if (row.labelKey === 'ars' && arsSupportEntry) {
                 setArsSupportOpen(true)
                 return
@@ -424,7 +436,16 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
             // name (display); icons are not shown in the modal itself.
             setSelectedRegion({ path: row.regionPath, name: t(`groups.${regionGroupKey(row.regionPath)}`), icon: '' })
         },
-        [router, t, isKycDegraded, cardEntry, arsSupportEntry, nextActions, setIsSupportModalOpen]
+        [
+            router,
+            t,
+            isKycDegraded,
+            cardEntry,
+            arsSupportEntry,
+            nextActions,
+            setIsSupportModalOpen,
+            capabilities.features,
+        ]
     )
 
     // What both forms of the shared list take from this screen.
@@ -498,6 +519,18 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
             detailsRow.chip !== 'alwaysOn'
           ? detailsRow
           : null
+
+    if (
+        addressCurrency &&
+        capabilities.features &&
+        residenceAddressEntry(accountEntry(capabilities.features, 'local', addressCurrency), nextActions)
+    ) {
+        return (
+            <LocalResidenceAddressGate currency={addressCurrency} onBack={() => setAddressCurrency(null)}>
+                {null}
+            </LocalResidenceAddressGate>
+        )
+    }
 
     return (
         <PageStack gap="6" className="pb-10">

@@ -2317,3 +2317,80 @@ describe('ARS Accounts and Payments use the scoped bank-account report', () => {
         expect(screen.getByTestId('processing-continue-verification')).toBeInTheDocument()
     })
 })
+
+// Spec-only entry regression: the shared gate owns address recovery and status.
+jest.mock('@/features/kyc-features/LocalResidenceAddressGate', () => ({
+    LocalResidenceAddressGate: ({ currency, onBack }: { currency: string; onBack: () => void }) => (
+        <div data-testid="local-residence-gate" data-currency={currency}>
+            <button onClick={onBack}>Back from address</button>
+        </div>
+    ),
+}))
+
+describe('local bank rows enter the shared residence address gate', () => {
+    const states: Array<{
+        name: string
+        entry: import('@/types/capabilities').FeatureReportEntry
+        purpose?: string
+    }> = [
+        {
+            name: 'address required',
+            entry: { state: 'action_required', reason: 'residence_unresolved', action: 'sumsub:address_of_residence' },
+            purpose: 'residence_address_required',
+        },
+        {
+            name: 'address rejected',
+            entry: { state: 'action_required', reason: 'residence_unresolved', action: 'sumsub:address_of_residence' },
+            purpose: 'residence_address_rejected',
+        },
+        { name: 'unresolved setup', entry: { state: 'setting_up', reason: 'residence_unresolved' } },
+        { name: 'address review', entry: { state: 'setting_up', reason: 'residence_address_in_review' } },
+        {
+            name: 'address descriptor unavailable',
+            entry: { state: 'action_required', reason: 'residence_unresolved', action: 'sumsub:address_of_residence' },
+        },
+    ]
+
+    describe.each(['ARS', 'BRL'] as const)('%s', (currency) => {
+        describe.each(['account', 'fallback'] as const)('%s report', (source) => {
+            it.each(states)('opens the local gate for $name without region verification', ({ entry, purpose }) => {
+                mockUser = {
+                    residence: normalizeResidence({ declared: 'AR', verified: 'AR' }),
+                    user: { userId: 'address-entry-user' },
+                }
+                mockIsKycApproved = true
+                mockIdentity = { status: 'verified' }
+                mockSendsToVerify = true
+                mockApiLocal =
+                    source === 'account'
+                        ? { state: 'ready', accounts: { [currency]: entry } }
+                        : { ...entry, accounts: {} }
+                mockNextActions = purpose
+                    ? [
+                          {
+                              key: 'sumsub:address_of_residence',
+                              kind: 'sumsub',
+                              levelKey: 'address_of_residence',
+                              purpose,
+                          },
+                      ]
+                    : []
+                render('accounts')
+                fireEvent.click(screen.getByText(currency))
+
+                expect(screen.getByTestId('local-residence-gate')).toHaveAttribute('data-currency', currency)
+                expect(mockInitiateKyc).not.toHaveBeenCalled()
+                expect(mockRestartIdentity).not.toHaveBeenCalled()
+                expect(mockResidenceChange).not.toHaveBeenCalled()
+                expect(mockPush).not.toHaveBeenCalled()
+                expect(screen.queryByText(/unlock-modal-open|processing-modal-open/)).not.toBeInTheDocument()
+                expect(mockVerifyRedirect.mock.calls.some(([active]) => active)).toBe(false)
+
+                fireEvent.click(screen.getByRole('button', { name: 'Back from address' }))
+                expect(screen.queryByTestId('local-residence-gate')).not.toBeInTheDocument()
+                expect(screen.getByText(currency)).toBeInTheDocument()
+                expect(mockInitiateKyc).not.toHaveBeenCalled()
+            })
+        })
+    })
+})

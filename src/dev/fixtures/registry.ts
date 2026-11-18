@@ -1858,7 +1858,7 @@ const addressStepResponse = (step: 'required' | 'rejected' | 'in_review') => {
                 features: {
                     qr: { state: 'ready' },
                     card: { state: 'ready' },
-                    local: { state: 'ready', accounts: {} },
+                    local: { ...entry, accounts: { ARS: entry, BRL: entry } },
                     bank: { ...entry, accounts: { USD: entry, EUR: entry, GBP: entry, MXN: entry } },
                 },
             },
@@ -5212,6 +5212,11 @@ export const FIXTURES: Record<string, Fixture> = {
     'profile-accounts-address-required': {
         route: '/profile/accounts',
         about: 'A verified user with no approved residence: USD, EUR, GBP and MXN say "Action needed" and ask for the home address; COP opens as usual.',
+        responses: addressStepResponse('required'),
+    },
+    'add-money-ars-address-required': {
+        route: '/add-money/argentina/manteca',
+        about: 'An ARS user needs the home address before making a local deposit.',
         responses: addressStepResponse('required'),
     },
     'add-money-address-in-review': {
