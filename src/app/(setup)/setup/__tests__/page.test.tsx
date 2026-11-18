@@ -782,28 +782,100 @@ it('does not initialize after unmount', async () => {
     expect(mockFlow.setScreenId).not.toHaveBeenCalled()
 })
 
-/*
- * Back after a completed signup lands here: the flow leaves a history entry
- * per step on web, and the post-signup redirect only replaces the last one.
- * The session effect already bounces such a visit to /home — while that soft
- * nav is in flight the page must keep waiting, not report a fault it is
- * already recovering from (PEANUT-UI-T3A, reason=missing_step).
- */
-it('bounces a completed session home without showing the recovery screen', async () => {
-    mockAuth.user = { user: { username: 'peanutter', hasAppAccess: true }, accounts: WALLET }
-    mockFlow.step = undefined
-    renderWithIntl(<SetupPage />)
-    await advance(100)
-    expect(mockRouter.replace).toHaveBeenCalledWith('/home')
-    expect(screen.getByRole('status')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
-    expect(Sentry.addBreadcrumb).not.toHaveBeenCalled()
-    expect(Sentry.captureMessage).not.toHaveBeenCalled()
-    // the initialization bound must not turn the pending bounce into a fault either
-    await advance(15000)
-    expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
-    expect(Sentry.addBreadcrumb).not.toHaveBeenCalled()
-    expect(Sentry.captureMessage).not.toHaveBeenCalled()
+describe('a completed session leaving the setup page', () => {
+    // The page loads its destination itself when the soft navigation has not
+    // landed after 3 seconds, and jsdom cannot navigate.
+    const originalLocation = window.location
+    const hardReplace = jest.fn()
+    beforeEach(() => {
+        hardReplace.mockClear()
+        Object.defineProperty(window, 'location', {
+            configurable: true,
+            value: { ...originalLocation, replace: hardReplace },
+        })
+    })
+    afterEach(() => {
+        Object.defineProperty(window, 'location', { configurable: true, value: originalLocation })
+    })
+
+    /*
+     * Back after a completed signup lands here: the flow leaves a history entry
+     * per step on web, and the post-signup redirect only replaces the last one.
+     * The session effect already bounces such a visit to /home — while that soft
+     * nav is in flight the page must keep waiting, not report a fault it is
+     * already recovering from (PEANUT-UI-T3A, reason=missing_step).
+     */
+    it('bounces a completed session home without showing the recovery screen', async () => {
+        mockAuth.user = { user: { username: 'peanutter', hasAppAccess: true }, accounts: WALLET }
+        mockFlow.step = undefined
+        renderWithIntl(<SetupPage />)
+        await advance(100)
+        expect(mockRouter.replace).toHaveBeenCalledWith('/home')
+        expect(screen.getByRole('status')).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+        expect(Sentry.addBreadcrumb).not.toHaveBeenCalled()
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+        // the initialization bound must not turn the pending bounce into a fault either
+        await advance(15000)
+        expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+        expect(Sentry.addBreadcrumb).not.toHaveBeenCalled()
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+    })
+
+    /*
+     * A login on Welcome changes the account under a mounted page, so the entry
+     * step resolves again while the session effect is already leaving for /home.
+     * The entry step ends in a URL write, and Next discards a navigation that is
+     * still waiting for its server response when the URL is written. Nothing sent
+     * the navigation again, so the loader stayed up for good (TASK-24960).
+     */
+    const logIn = async () => {
+        const view = renderWithIntl(<SetupPage />)
+        await advance(100)
+        expect(screen.getByText('Landing step')).toBeInTheDocument()
+        mockFlow.setScreenId.mockClear()
+        mockAuth.user = { user: { userId: 'u1', username: 'alice' }, accounts: WALLET }
+        view.rerender(<SetupPage />)
+        return view
+    }
+
+    it('does not write the entry step to the URL after a login starts the move', async () => {
+        await logIn()
+        await advance(100)
+        expect(mockRouter.replace).toHaveBeenCalledWith('/home')
+        expect(mockFlow.setScreenId).not.toHaveBeenCalled()
+        expect(screen.getByRole('status')).toBeInTheDocument()
+    })
+
+    // A reload of /setup with a session ran the same race, so it did not help.
+    it('does not write the entry step to the URL when the page loads signed in', async () => {
+        mockAuth.user = { user: { userId: 'u1', username: 'alice' }, accounts: WALLET }
+        renderWithIntl(<SetupPage />)
+        await advance(100)
+        expect(mockRouter.replace).toHaveBeenCalledWith('/home')
+        expect(mockFlow.setScreenId).not.toHaveBeenCalled()
+    })
+
+    it.each([
+        { query: '', destination: '/home' },
+        { query: 'redirect_uri=%2Fadd-money', destination: '/add-money' },
+    ])('loads $destination itself when the move has not landed after 3 seconds', async ({ query, destination }) => {
+        mockSearchParams = new URLSearchParams(query)
+        await logIn()
+        await advance(2999)
+        expect(hardReplace).not.toHaveBeenCalled()
+        await advance(1)
+        expect(hardReplace).toHaveBeenCalledTimes(1)
+        expect(hardReplace).toHaveBeenCalledWith(destination)
+    })
+
+    it('loads nothing once the move has landed', async () => {
+        const view = await logIn()
+        await advance(100)
+        view.unmount()
+        await advance(3000)
+        expect(hardReplace).not.toHaveBeenCalled()
+    })
 })
 
 it('does not reinitialize the entry when residence eligibility changes the step list', async () => {

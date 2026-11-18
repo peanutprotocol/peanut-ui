@@ -298,12 +298,19 @@ function SetupPageContent() {
     /*
      * A completed session is on its way to /home or its explicit redirect_uri
      * (see the session effect below), but the soft nav takes a beat and this
-     * page keeps rendering and resolving its entry step meanwhile. Nothing
-     * here is a fault the user should see: an authenticated pop back into
-     * /setup — the signup flow leaves a history entry per step — showed the
-     * recovery screen instead of the bounce it was already performing.
+     * page keeps rendering meanwhile. Nothing here is a fault the user should
+     * see: an authenticated pop back into /setup — the signup flow leaves a
+     * history entry per step — showed the recovery screen instead of the
+     * bounce it was already performing.
+     *
+     * The page must not write the URL while it leaves. Next discards a
+     * navigation that still waits for its server response when
+     * history.replaceState runs, and nothing sends that navigation again, so
+     * the loader stayed up for good (TASK-24960). The entry step therefore
+     * stops resolving, and the hard fallback below covers any other write.
      */
-    const [isLeavingForHome, setIsLeavingForHome] = useState(false)
+    const [leavingFor, setLeavingFor] = useState<string | null>(null)
+    const isLeavingForHome = leavingFor !== null
     const [isSettlingNativeBadgeCampaigns, setIsSettlingNativeBadgeCampaigns] = useState(false)
     const [deepLinkGeneration, setDeepLinkGeneration] = useState(() => getDeepLinkGeneration())
     const isSetupMountedRef = useRef(false)
@@ -375,6 +382,14 @@ function SetupPageContent() {
         }, setupInitTimeoutMs())
         return () => clearTimeout(timeout)
     }, [isLoading, sessionChecked, initializationError, isLeavingForHome, profileFetchFailed, initializationAttempt])
+
+    // The same hard fallback as useAccountSetupRedirect: a discarded soft
+    // navigation never lands, and the loader behind it has no other way out.
+    useEffect(() => {
+        if (!leavingFor) return
+        const fallback = setTimeout(() => window.location.replace(leavingFor), 3000)
+        return () => clearTimeout(fallback)
+    }, [leavingFor])
 
     // Only count steps that actually render, not while the entry step is being determined.
     const stepRendered = !!step && !recoveryReason && !isLoading && sessionChecked
@@ -627,6 +642,7 @@ function SetupPageContent() {
             if (resume) resumeSignup.current = true
             const exitSignedIn = () => {
                 if (!resume) {
+                    setLeavingFor(signedInExit)
                     router.replace(signedInExit)
                     return
                 }
@@ -698,8 +714,7 @@ function SetupPageContent() {
                 return
             }
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_EXISTING_SESSION_CONTINUED, { auto: true })
-            setIsLeavingForHome(true)
-            router.replace(signedInExit)
+            exitSignedIn()
             return
         }
     }, [
@@ -722,7 +737,8 @@ function SetupPageContent() {
         let cancelled = false
         const isObsolete = () => cancelled || initializationExpired.current
         const determineInitialStep = async () => {
-            if (profileFetchFailed) return
+            // The entry step ends in a URL write (see leavingFor).
+            if (profileFetchFailed || isLeavingForHome) return
             const entryKey = JSON.stringify([inviteCodeParam, legacyStepParam])
             if (isObsolete() || resolvedEntry.current === entryKey) return
             // wait for layout to populate steps after logout/mount
@@ -826,6 +842,7 @@ function SetupPageContent() {
         initializationAttempt,
         draftReady,
         signedInUserId,
+        isLeavingForHome,
     ])
 
     if (recoveryReason) {
