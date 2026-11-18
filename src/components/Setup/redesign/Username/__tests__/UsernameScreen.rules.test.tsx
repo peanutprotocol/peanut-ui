@@ -319,7 +319,7 @@ describe('02 Username — copy rules (C.md § 5)', () => {
         await mount({ locale: 'es-AR' })
         const title = screen.getByRole('heading', { level: 1 }).textContent ?? ''
         expect(title).toBe(msg('setupRedesign.username.title', {}, 'es-AR'))
-        expect(title).toContain('un usuario.')
+        expect(title).toContain('nombre de usuario.')
 
         await type('lunamate')
         await advance(800)

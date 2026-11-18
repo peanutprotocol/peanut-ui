@@ -686,11 +686,11 @@
             "recover": "¿Necesitás recuperar la cuenta de Peanut?"
         },
         "username": {
-            "title": "Elegí un usuario.",
+            "title": "Elegí un nombre de usuario.",
             "desc": "Así te encuentran y te pagan.",
             "dice": "Tirar el dado",
             "rolling": "Buscando uno disponible…",
-            "checkFailed": "No pudimos revisar este usuario. Intentalo de nuevo o <link>contactá a soporte</link>.",
+            "checkFailed": "No pudimos revisar este nombre de usuario. Intentalo de nuevo o <link>contactá a soporte</link>.",
             "tooLong": "{n, plural, one {Máximo 12. Sacá 1 letra.} other {Máximo 12. Sacá # letras.}}",
             "taken": "@{name} ya está en uso.",
             "takenLead": "Disponibles:",
@@ -699,9 +699,9 @@
             "rule": "De 4 a 12 letras o números, sin espacios ni acentos.",
             "available": "Disponible",
             "clear": "Borrar",
-            "cta": "Usar este usuario",
+            "cta": "Usar este nombre de usuario",
             "ctaNamed": "Usar @{name}",
-            "fieldAria": "Usuario",
+            "fieldAria": "Nombre de usuario",
             "reserved": "Este nombre de usuario está reservado. Probá con otro."
         },
         "passkey": {
@@ -715,8 +715,8 @@
             "terms": "Al registrarte, aceptás los <terms>términos</terms> y la <privacy>política de privacidad</privacy> de Peanut.",
             "cancelled": "La configuración de la passkey fue cancelada. Intentalo de nuevo cuando quieras.",
             "takenTitle": "{name} ya no está disponible.",
-            "takenLead": "Este usuario ya tiene una cuenta. Si ya te registraste en este celu, iniciá sesión: tu passkey está lista. Si no, elegí otro.",
-            "takenCta": "Elegir otro usuario",
+            "takenLead": "Este nombre de usuario ya tiene una cuenta. Si ya te registraste en este celu, iniciá sesión: tu passkey está lista. Si no, elegí otro.",
+            "takenCta": "Elegir otro nombre de usuario",
             "logIn": "Iniciar sesión",
             "ask": "¿Crear una passkey?",
             "yes": "Sí",
@@ -770,16 +770,16 @@
         },
         "invite": {
             "title": "¿Llegaste por un amigo?",
-            "desc": "Ingresá su usuario para que los dos reciban recompensas.",
-            "placeholder": "Usuario",
-            "fieldLabel": "Usuario de quien te invitó",
+            "desc": "Ingresá su nombre de usuario para que los dos reciban recompensas.",
+            "placeholder": "Nombre de usuario",
+            "fieldLabel": "Nombre de usuario de quien te invitó",
             "found": "Encontramos a @{name}.",
             "notFound": "No encontramos a este usuario.",
-            "isSelf": "Ese es tu propio usuario.",
+            "isSelf": "Ese es tu propio nombre de usuario.",
             "clearAria": "Borrar",
             "suggestOne": "Quisiste decir: {a}",
             "suggestTwo": "Quisiste decir: {a} o {b}",
-            "checkFailed": "No pudimos revisar este usuario. Intentá de nuevo."
+            "checkFailed": "No pudimos revisar este nombre de usuario. Intentá de nuevo."
         },
         "accounts": {
             "title": "Datos bancarios en USD y EUR.",
