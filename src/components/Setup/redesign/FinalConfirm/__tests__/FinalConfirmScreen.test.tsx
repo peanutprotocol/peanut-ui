@@ -389,6 +389,54 @@ describe('11 Final confirm: states', () => {
     })
 })
 
+describe('11 Final confirm: where the passkey is saved', () => {
+    const UA = {
+        android: 'Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile',
+        ios: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148',
+        web: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36',
+    }
+    const recovery = (container: HTMLElement) =>
+        container.querySelector<HTMLElement>('[data-testid="setup-redesign-final-recovery"]')
+    afterEach(() => jest.restoreAllMocks())
+
+    it.each([
+        ['android', 'Google Password Manager or Samsung Pass'],
+        ['ios', 'iCloud Keychain'],
+        ['web', 'browser or password manager'],
+    ] as const)('on %s the line names where the passkey is saved', (platform, store) => {
+        jest.spyOn(window.navigator, 'userAgent', 'get').mockReturnValue(UA[platform])
+        const { container } = render({ onComplete: jest.fn() })
+        const line = recovery(container)
+        expect(line).toHaveTextContent(copy('setupRedesign.final.recovery', { platform }))
+        expect(line).toHaveTextContent(store)
+    })
+
+    it('the line follows the language (es-AR on Android)', () => {
+        jest.spyOn(window.navigator, 'userAgent', 'get').mockReturnValue(UA.android)
+        const { container } = render({ onComplete: jest.fn(), locale: 'es-AR' })
+        expect(recovery(container)).toHaveTextContent(
+            copy('setupRedesign.final.recovery', { platform: 'android' }, 'es-AR')
+        )
+    })
+
+    it.each(['en', 'es-419', 'es-AR', 'pt-BR'] as const)('%s has a distinct line for each platform', (locale) => {
+        const lines = ['android', 'ios', 'web'].map((platform) =>
+            copy('setupRedesign.final.recovery', { platform }, locale)
+        )
+        expect(new Set(lines).size).toBe(3)
+        expect(lines[1]).toMatch(/iPhone/)
+    })
+
+    it('an error takes the line’s place so it stays next to the button', async () => {
+        mockSend.mockRejectedValue(aa24())
+        const { container } = render({ onComplete: jest.fn() })
+        expect(recovery(container)).not.toBeNull()
+        confirm(container)
+        await waitFor(() => expect(setupState(container)).toBe('error-provider'))
+        expect(recovery(container)).toBeNull()
+    })
+})
+
 describe('11 Final confirm: art', () => {
     /** An ArtPiece box in design px from its inline style. */
     const box = (el: Element | null) => {

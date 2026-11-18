@@ -1029,7 +1029,7 @@
         "passkey": {
             "create": "Create passkey",
             "notAvailable": "Passkeys aren't available on this device yet. Please try again.",
-            "cancelled": "Passkey setup was cancelled. Please try again when ready.",
+            "cancelled": "Passkey setup was cancelled. Try again when ready.",
             "tookTooLong": "This is taking longer than it should. Please try again.",
             "notReady": "The app is still getting ready for passkeys. Wait a moment and try again.",
             "deviceState": "There was a problem with the passkey on this device. Restart the app and try again.",
@@ -1202,6 +1202,26 @@
             "cannot2": "Pick Google Password Manager, then try again.",
             "cannotOther": "Use another password manager, then try again.",
             "browser": "Sign up at peanut.me in a browser",
+            "secondCancelTitle": "Try another password manager.",
+            "secondCancelLead": "Your phone may have opened Samsung Pass or another app.",
+            "secondCancel1": "Tap Try again.",
+            "secondCancel2": "If Samsung Pass opens, choose Google Password Manager instead.",
+            "secondCancel3": "Confirm with your fingerprint, face or PIN.",
+            "tookTooLongTitle": "That took too long.",
+            "tookTooLongLead": "The passkey wasn’t saved. Try again.",
+            "leftAppTitle": "Passkey not finished.",
+            "leftAppLead": "You left before finishing. Tap Try again to continue.",
+            "screenLockTitle": "Turn on a screen lock first.",
+            "screenLockLead": "Passkeys need a screen lock on this phone.",
+            "screenLock1": "Open Settings → Security → Screen lock, and set a PIN, pattern or fingerprint.",
+            "screenLock2": "Make sure you’re signed in to a Google account.",
+            "screenLock3": "Come back and tap Try again.",
+            "noProviderTitle": "Turn on a password manager first.",
+            "noProviderLead": "Passkeys need a password manager on this phone.",
+            "noProvider1": "Open Settings → Passwords, passkeys and accounts.",
+            "noProvider2": "Turn on Google Password Manager, signed in to your Google account.",
+            "noProvider3": "Come back and tap Try again.",
+            "openSettings": "Open settings",
             "preflight": {
                 "nativeAndroid": "Passkeys aren’t available yet. Sign in to a Google account and update Google Play Services, then try again.",
                 "nativeOther": "Passkeys aren’t available on this device yet. Check your device settings and try again.",
@@ -1211,7 +1231,9 @@
                 "chromeOutdated": "Update Chrome to use passkeys.",
                 "androidOutdated": "Your Android version is too old for passkeys. Update to Android 9 or later.",
                 "screenLock": "Turn on a screen lock with a PIN or biometrics in your device settings.",
-                "limitedSupport": "Your device may have limited passkey support. If setup fails, try updating Google Play Services."
+                "limitedSupport": "Your device may have limited passkey support. If setup fails, try updating Google Play Services.",
+                "nativeScreenLock": "Passkeys need a screen lock on this phone. Set a PIN, pattern or fingerprint in Settings, then try again.",
+                "nativeNoProvider": "Passkeys need a password manager on this phone. Turn on Google Password Manager in Settings, then try again."
             }
         },
         "invite": {
@@ -1318,7 +1340,8 @@
             "cta": "Confirm & finish",
             "what": "<link>What’s a passkey?</link>",
             "busy": "We couldn’t confirm yet. Try again in a moment.",
-            "later": "<link>Confirm later</link>"
+            "later": "<link>Confirm later</link>",
+            "recovery": "{platform, select, android {Your passkey is saved in your phone’s password manager, like Google Password Manager or Samsung Pass. It moves to a new phone only if that manager syncs it.} ios {Your passkey is saved in iCloud Keychain. It moves to a new iPhone with the same Apple ID if iCloud Keychain is on.} other {Your passkey is saved in your browser or password manager. It moves to a new device only if that password manager syncs it.}}"
         },
         "done": {
             "title": "You’re ready to verify your identity and add money.",

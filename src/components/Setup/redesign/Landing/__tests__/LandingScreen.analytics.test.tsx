@@ -79,7 +79,7 @@ describe('01 Landing — analytics (§ 4)', () => {
         ])
     })
 
-    it('P1-33 each error captures signup_login_error with error_code, native and recovery_drawer', async () => {
+    it('P1-33 each error captures signup_login_error with error_name, error_code, native and recovery_drawer', async () => {
         const loginErrors = () => eventsOf(capture(), ANALYTICS_EVENTS.SIGNUP_LOGIN_ERROR)
 
         landing.login
@@ -106,11 +106,11 @@ describe('01 Landing — analytics (§ 4)', () => {
         await waitFor(() => expect(loginErrors()).toHaveLength(5))
 
         expect(loginErrors()).toEqual([
-            { error_code: 'LOGIN_ERROR', native: true, recovery_drawer: false },
-            { error_code: 'ACCOUNT_DELETED', native: true, recovery_drawer: false },
-            { error_code: 'PASSKEY_NOT_FOUND', native: true, recovery_drawer: true },
-            { error_code: 'LOGIN_CANCELED', native: true, recovery_drawer: false },
-            { error_code: 'LOGIN_CANCELED', native: true, recovery_drawer: true },
+            { error_name: 'PasskeyError', error_code: 'LOGIN_ERROR', native: true, recovery_drawer: false },
+            { error_name: 'PasskeyError', error_code: 'ACCOUNT_DELETED', native: true, recovery_drawer: false },
+            { error_name: 'PasskeyError', error_code: 'PASSKEY_NOT_FOUND', native: true, recovery_drawer: true },
+            { error_name: 'PasskeyError', error_code: 'LOGIN_CANCELED', native: true, recovery_drawer: false },
+            { error_name: 'PasskeyError', error_code: 'LOGIN_CANCELED', native: true, recovery_drawer: true },
         ])
     })
 

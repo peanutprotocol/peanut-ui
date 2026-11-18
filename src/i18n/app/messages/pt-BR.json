@@ -1202,6 +1202,26 @@
             "cannot2": "Escolha o Gerenciador de senhas do Google e tente de novo.",
             "cannotOther": "Use outro gerenciador de senhas e tente de novo.",
             "browser": "Crie sua conta em peanut.me no navegador",
+            "secondCancelTitle": "Tente outro gerenciador de senhas.",
+            "secondCancelLead": "Seu celular pode ter aberto o Samsung Pass ou outro app.",
+            "secondCancel1": "Toque em Tentar de novo.",
+            "secondCancel2": "Se o Samsung Pass abrir, escolha o Gerenciador de senhas do Google.",
+            "secondCancel3": "Confirme com sua digital, rosto ou PIN.",
+            "tookTooLongTitle": "Demorou demais.",
+            "tookTooLongLead": "A passkey não foi salva. Tente de novo.",
+            "leftAppTitle": "A passkey não foi finalizada.",
+            "leftAppLead": "Você saiu antes de terminar. Toque em Tentar de novo para continuar.",
+            "screenLockTitle": "Primeiro, ative o bloqueio de tela.",
+            "screenLockLead": "As passkeys precisam de um bloqueio de tela neste celular.",
+            "screenLock1": "Abra Configurações → Segurança → Bloqueio de tela e defina um PIN, padrão ou digital.",
+            "screenLock2": "Confira se você entrou em uma conta do Google.",
+            "screenLock3": "Volte e toque em Tentar de novo.",
+            "noProviderTitle": "Primeiro, ative um gerenciador de senhas.",
+            "noProviderLead": "As passkeys precisam de um gerenciador de senhas neste celular.",
+            "noProvider1": "Abra Configurações → Senhas, chaves de acesso e contas.",
+            "noProvider2": "Ative o Gerenciador de senhas do Google com sua conta do Google.",
+            "noProvider3": "Volte e toque em Tentar de novo.",
+            "openSettings": "Abrir configurações",
             "preflight": {
                 "nativeAndroid": "As passkeys ainda não estão disponíveis. Entre em uma conta do Google e atualize o Google Play Services, depois tente de novo.",
                 "nativeOther": "As passkeys ainda não estão disponíveis neste dispositivo. Confira as configurações do dispositivo e tente de novo.",
@@ -1211,7 +1231,9 @@
                 "chromeOutdated": "Atualize o Chrome para usar passkeys.",
                 "androidOutdated": "Sua versão do Android é antiga demais para passkeys. Atualize para o Android 9 ou mais recente.",
                 "screenLock": "Ative o bloqueio de tela com PIN ou biometria nas configurações do dispositivo.",
-                "limitedSupport": "Seu dispositivo pode ter suporte limitado a passkeys. Se a configuração falhar, tente atualizar o Google Play Services."
+                "limitedSupport": "Seu dispositivo pode ter suporte limitado a passkeys. Se a configuração falhar, tente atualizar o Google Play Services.",
+                "nativeScreenLock": "As passkeys precisam de um bloqueio de tela neste celular. Defina um PIN, padrão ou digital em Configurações e tente de novo.",
+                "nativeNoProvider": "As passkeys precisam de um gerenciador de senhas neste celular. Ative o Gerenciador de senhas do Google em Configurações e tente de novo."
             }
         },
         "invite": {
@@ -1318,7 +1340,8 @@
             "cta": "Confirmar e concluir",
             "what": "<link>O que é uma passkey?</link>",
             "busy": "Ainda não conseguimos confirmar. Tente de novo em instantes.",
-            "later": "<link>Confirmar depois</link>"
+            "later": "<link>Confirmar depois</link>",
+            "recovery": "{platform, select, android {Sua passkey fica salva no gerenciador de senhas do celular, como o do Google ou o Samsung Pass. Ela só vai para um celular novo se esse gerenciador sincronizar.} ios {Sua passkey fica salva nas Senhas do iCloud. Ela vai para um iPhone novo com o mesmo ID Apple se as Senhas do iCloud estiverem ativadas.} other {Sua passkey fica salva no navegador ou no gerenciador de senhas. Ela só vai para um dispositivo novo se esse gerenciador sincronizar.}}"
         },
         "done": {
             "title": "Agora você pode verificar sua identidade e adicionar dinheiro.",

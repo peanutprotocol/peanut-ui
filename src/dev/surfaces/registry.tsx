@@ -42,6 +42,8 @@ import type { SignupEntryFlow } from '@/features/setup/signup-analytics'
 import { FinalConfirmScreen } from '@/components/Setup/redesign/FinalConfirm/FinalConfirmScreen'
 
 import { PasskeySetupHelpDrawer } from '@/components/Setup/Views/PasskeySetupHelpDrawer'
+import { PasskeyScreenView } from '@/components/Setup/redesign/Passkey/PasskeyScreenView'
+import { previewPasskey } from './passkey-preview'
 import { LoginRecoveryDrawer } from '@/components/Setup/Views/LoginRecoveryDrawer'
 import ConfirmInviteModal from '@/components/Global/ConfirmInviteModal'
 import EarlyUserDrawer from '@/components/Global/EarlyUserDrawer'
@@ -1754,6 +1756,63 @@ export const SURFACES: Record<string, Surface> = {
                 }}
             />
         ),
+    },
+    'setup-redesign-passkey-second-cancel': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-passkey-second-cancel'],
+        render: () => (
+            <SetupScreen screenId="passkey" username="luckyotter">
+                <PasskeyScreenView passkey={previewPasskey('android-cancel')} />
+            </SetupScreen>
+        ),
+    },
+    'setup-redesign-passkey-took-too-long': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-passkey-took-too-long'],
+        render: () => (
+            <SetupScreen screenId="passkey" username="luckyotter">
+                <PasskeyScreenView passkey={previewPasskey('took-too-long')} />
+            </SetupScreen>
+        ),
+    },
+    'setup-redesign-passkey-left-app': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-passkey-left-app'],
+        render: () => (
+            <SetupScreen screenId="passkey" username="luckyotter">
+                <PasskeyScreenView passkey={previewPasskey('left-app')} />
+            </SetupScreen>
+        ),
+    },
+    'setup-redesign-passkey-check-screen-lock': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-passkey-check-screen-lock'],
+        render: () => (
+            <SetupScreen screenId="passkey" username="luckyotter">
+                <PasskeyScreenView passkey={previewPasskey('screen-lock')} />
+            </SetupScreen>
+        ),
+    },
+    'setup-redesign-passkey-check-no-provider': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-passkey-check-no-provider'],
+        render: () => (
+            <SetupScreen screenId="passkey" username="luckyotter">
+                <PasskeyScreenView passkey={previewPasskey('no-provider')} />
+            </SetupScreen>
+        ),
+    },
+    'setup-redesign-passkey-login-recovery': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-passkey-login-recovery'],
+        render: () => {
+            const base = previewPasskey(null)
+            return (
+                <SetupScreen screenId="passkey" username="luckyotter">
+                    <PasskeyScreenView
+                        passkey={{
+                            ...base,
+                            usernameTaken: true,
+                            recoveryDrawer: { ...base.recoveryDrawer, visible: true },
+                        }}
+                    />
+                </SetupScreen>
+            )
+        },
     },
     'setup-redesign-invite': {
         ...SETUP_REDESIGN_SURFACES['setup-redesign-invite'],

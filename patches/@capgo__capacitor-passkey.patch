@@ -9,7 +9,7 @@ index a2f47b6057db70071e9080281db29d78ac165e66..e7d8602055f431b83aae9cb88202ebc8
 +    </queries>
  </manifest>
 diff --git a/android/src/main/java/app/capgo/passkey/CapacitorPasskey.java b/android/src/main/java/app/capgo/passkey/CapacitorPasskey.java
-index ca44127d6a5acd970e53e3f2623677d28468fdc6..a4082535ae8ffe9db8a7b2c625e91e00ac333eed 100644
+index ca44127d6a5acd970e53e3f2623677d28468fdc6..188713d2155f917fdb00396d503489dca1606a12 100644
 --- a/android/src/main/java/app/capgo/passkey/CapacitorPasskey.java
 +++ b/android/src/main/java/app/capgo/passkey/CapacitorPasskey.java
 @@ -5,7 +5,7 @@ import androidx.credentials.webauthn.PublicKeyCredentialRequestOptions;
@@ -17,25 +17,32 @@ index ca44127d6a5acd970e53e3f2623677d28468fdc6..a4082535ae8ffe9db8a7b2c625e91e00
  public class CapacitorPasskey {
  
 -    public static final String PLUGIN_VERSION = "8.0.0";
-+    public static final String PLUGIN_VERSION = "8.2.2-peanut.2";
++    public static final String PLUGIN_VERSION = "8.2.2-peanut.3";
  
      public String getPluginVersion() {
          return PLUGIN_VERSION;
 diff --git a/android/src/main/java/app/capgo/passkey/CapacitorPasskeyPlugin.java b/android/src/main/java/app/capgo/passkey/CapacitorPasskeyPlugin.java
-index f281928d75b6af32f84bd316db840771203f0a90..09a20c3e8598299558298f8160fea7199ad4cdbf 100644
+index f281928d75b6af32f84bd316db840771203f0a90..74a466084bf3867d0019328354df252aea54491f 100644
 --- a/android/src/main/java/app/capgo/passkey/CapacitorPasskeyPlugin.java
 +++ b/android/src/main/java/app/capgo/passkey/CapacitorPasskeyPlugin.java
-@@ -2,6 +2,9 @@ package app.capgo.passkey;
+@@ -1,7 +1,16 @@
+ package app.capgo.passkey;
  
++import android.annotation.SuppressLint;
  import android.app.Activity;
++import android.app.KeyguardManager;
++import android.content.ActivityNotFoundException;
++import android.content.Context;
++import android.content.Intent;
  import android.os.Build;
++import android.provider.Settings;
 +import android.os.CancellationSignal;
 +import android.content.pm.PackageInfo;
 +import android.content.pm.PackageManager;
  import androidx.core.content.ContextCompat;
  import androidx.credentials.CreateCredentialResponse;
  import androidx.credentials.CreatePublicKeyCredentialRequest;
-@@ -14,7 +17,9 @@ import androidx.credentials.GetCredentialResponse;
+@@ -14,9 +23,10 @@ import androidx.credentials.GetCredentialResponse;
  import androidx.credentials.GetPublicKeyCredentialOption;
  import androidx.credentials.PublicKeyCredential;
  import androidx.credentials.exceptions.CreateCredentialException;
@@ -43,9 +50,19 @@ index f281928d75b6af32f84bd316db840771203f0a90..09a20c3e8598299558298f8160fea719
  import androidx.credentials.exceptions.GetCredentialException;
 +import androidx.credentials.exceptions.GetCredentialCancellationException;
  import androidx.credentials.exceptions.NoCredentialException;
- import androidx.credentials.exceptions.domerrors.DomError;
+-import androidx.credentials.exceptions.domerrors.DomError;
  import androidx.credentials.exceptions.publickeycredential.CreatePublicKeyCredentialDomException;
-@@ -38,6 +43,7 @@ public class CapacitorPasskeyPlugin extends Plugin {
+ import androidx.credentials.exceptions.publickeycredential.GetPublicKeyCredentialDomException;
+ import com.getcapacitor.JSObject;
+@@ -30,6 +40,7 @@ import java.net.URISyntaxException;
+ import java.util.ArrayList;
+ import java.util.LinkedHashSet;
+ import java.util.List;
++import java.util.Locale;
+ import org.json.JSONException;
+ import org.json.JSONObject;
+ 
+@@ -38,6 +49,7 @@ public class CapacitorPasskeyPlugin extends Plugin {
  
      private final CapacitorPasskey implementation = new CapacitorPasskey();
      private CredentialManager credentialManager;
@@ -53,7 +70,7 @@ index f281928d75b6af32f84bd316db840771203f0a90..09a20c3e8598299558298f8160fea719
  
      @Override
      public void load() {
-@@ -83,28 +89,36 @@ public class CapacitorPasskeyPlugin extends Plugin {
+@@ -83,28 +95,36 @@ public class CapacitorPasskeyPlugin extends Plugin {
                  return;
              }
  
@@ -109,7 +126,7 @@ index f281928d75b6af32f84bd316db840771203f0a90..09a20c3e8598299558298f8160fea719
          });
      }
  
-@@ -142,32 +156,120 @@ public class CapacitorPasskeyPlugin extends Plugin {
+@@ -142,32 +162,163 @@ public class CapacitorPasskeyPlugin extends Plugin {
                  return;
              }
  
@@ -246,10 +263,53 @@ index f281928d75b6af32f84bd316db840771203f0a90..09a20c3e8598299558298f8160fea719
 +        return value.substring(0, Math.min(value.length(), 80));
 +    }
 +
++    @PluginMethod
++    public void getReadiness(final PluginCall call) {
++        // isSupported checks only the API level; these are the device facts that block the sheet before it opens.
++        JSObject result = new JSObject();
++        KeyguardManager keyguard = (KeyguardManager) getContext().getSystemService(Context.KEYGUARD_SERVICE);
++        result.put("deviceSecure", keyguard == null || keyguard.isDeviceSecure());
++        // Below API 34 androidx reaches passkeys only through Play Services. From 34 other providers can serve them,
++        // and installed Play Services is not proof of a usable provider, so readiness is reported only when false.
++        if (Build.VERSION.SDK_INT < 34 && !playServicesEnabled()) result.put("providerReady", false);
++        call.resolve(result);
++    }
++
++    private boolean playServicesEnabled() {
++        try {
++            return getContext().getPackageManager().getApplicationInfo("com.google.android.gms", 0).enabled;
++        } catch (PackageManager.NameNotFoundException missing) {
++            return false;
++        } catch (Exception unknown) {
++            return true;
++        }
++    }
++
++    @PluginMethod
++    public void openSecuritySettings(final PluginCall call) {
++        Activity activity = getActivity();
++        if (activity == null) {
++            rejectDom(call, "InvalidStateError", "No activity to open settings from.", null);
++            return;
++        }
++        // Screen lock lives under Security; some OEM builds have no such screen, so fall back to Settings.
++        try {
++            activity.startActivity(new Intent(Settings.ACTION_SECURITY_SETTINGS));
++        } catch (ActivityNotFoundException missing) {
++            try {
++                activity.startActivity(new Intent(Settings.ACTION_SETTINGS));
++            } catch (ActivityNotFoundException exception) {
++                rejectDom(call, "NotSupportedError", "Settings could not be opened.", exception);
++                return;
++            }
++        }
++        call.resolve();
++    }
++
      @PluginMethod
      public void getConfiguration(final PluginCall call) {
          PluginConfig config = getConfig();
-@@ -219,6 +321,10 @@ public class CapacitorPasskeyPlugin extends Plugin {
+@@ -219,9 +370,12 @@ public class CapacitorPasskeyPlugin extends Plugin {
      }
  
      private void rejectCreateException(PluginCall call, CreateCredentialException exception) {
@@ -258,9 +318,13 @@ index f281928d75b6af32f84bd316db840771203f0a90..09a20c3e8598299558298f8160fea719
 +            return;
 +        }
          if (exception instanceof CreatePublicKeyCredentialDomException) {
-             DomError domError = ((CreatePublicKeyCredentialDomException) exception).getDomError();
-             rejectDom(call, domError.getClass().getSimpleName(), messageFor(exception, "Passkey registration failed."), exception);
-@@ -229,6 +335,10 @@ public class CapacitorPasskeyPlugin extends Plugin {
+-            DomError domError = ((CreatePublicKeyCredentialDomException) exception).getDomError();
+-            rejectDom(call, domError.getClass().getSimpleName(), messageFor(exception, "Passkey registration failed."), exception);
++            rejectDom(call, domErrorName(nativeExceptionType(exception)), messageFor(exception, "Passkey registration failed."), exception);
+             return;
+         }
+ 
+@@ -229,9 +383,12 @@ public class CapacitorPasskeyPlugin extends Plugin {
      }
  
      private void rejectGetException(PluginCall call, GetCredentialException exception) {
@@ -269,17 +333,45 @@ index f281928d75b6af32f84bd316db840771203f0a90..09a20c3e8598299558298f8160fea719
 +            return;
 +        }
          if (exception instanceof GetPublicKeyCredentialDomException) {
-             DomError domError = ((GetPublicKeyCredentialDomException) exception).getDomError();
-             rejectDom(call, domError.getClass().getSimpleName(), messageFor(exception, "Passkey authentication failed."), exception);
-@@ -256,6 +366,8 @@ public class CapacitorPasskeyPlugin extends Plugin {
+-            DomError domError = ((GetPublicKeyCredentialDomException) exception).getDomError();
+-            rejectDom(call, domError.getClass().getSimpleName(), messageFor(exception, "Passkey authentication failed."), exception);
++            rejectDom(call, domErrorName(nativeExceptionType(exception)), messageFor(exception, "Passkey authentication failed."), exception);
+             return;
+         }
+ 
+@@ -256,9 +413,32 @@ public class CapacitorPasskeyPlugin extends Plugin {
      private void rejectDom(PluginCall call, String name, String message, Exception exception) {
          JSObject data = new JSObject();
          data.put("name", name);
 +        // Exception type is diagnostic metadata; never add raw messages or credential data.
-+        if (exception != null) data.put("nativeException", exception.getClass().getSimpleName());
++        if (exception != null) data.put("nativeException", nativeExceptionType(exception));
          call.reject(message, name, exception, data);
      }
  
++    // R8 renames androidx classes in release builds, so class names are not stable there; credential exception
++    // types are string constants that survive it. getType() is library-group API, but public in the bytecode.
++    @SuppressLint("RestrictedApi")
++    private static String nativeExceptionType(Exception exception) {
++        if (exception instanceof CreateCredentialException) return ((CreateCredentialException) exception).getType();
++        if (exception instanceof GetCredentialException) return ((GetCredentialException) exception).getType();
++        return exception.getClass().getSimpleName();
++    }
++
++    /** "…_DOM_EXCEPTION/androidx.credentials.TYPE_NOT_ALLOWED_ERROR" becomes "NotAllowedError". */
++    static String domErrorName(String exceptionType) {
++        String prefix = "androidx.credentials.TYPE_";
++        String domType = exceptionType == null ? "" : exceptionType.substring(exceptionType.lastIndexOf('/') + 1);
++        if (!domType.startsWith(prefix) || domType.length() == prefix.length()) return "UnknownError";
++        StringBuilder name = new StringBuilder();
++        for (String word : domType.substring(prefix.length()).split("_")) {
++            if (!word.isEmpty()) name.append(word.charAt(0)).append(word.substring(1).toLowerCase(Locale.ROOT));
++        }
++        return name.toString();
++    }
++
+     private ArrayList<String> normalizeDomains(String[] configuredDomains, String origin) {
+         LinkedHashSet<String> domains = new LinkedHashSet<>();
+         if (configuredDomains != null) {
 diff --git a/android/src/main/java/app/capgo/passkey/RequestCoordinator.java b/android/src/main/java/app/capgo/passkey/RequestCoordinator.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..4c78e9bcb79905d5c5e68a2b83895487996e9e46
@@ -382,7 +474,7 @@ index 0000000000000000000000000000000000000000..4c78e9bcb79905d5c5e68a2b83895487
 +    }
 +}
 diff --git a/dist/esm/definitions.d.ts b/dist/esm/definitions.d.ts
-index 221b5ef8fe2ab1476efafc1d4553e06fa13665c8..8bc226d1d8a0763630a7ee6f2c6b0b9f1e97fb1e 100644
+index 221b5ef8fe2ab1476efafc1d4553e06fa13665c8..d3a867569d52ed8acb46eafe46979525c4cc445b 100644
 --- a/dist/esm/definitions.d.ts
 +++ b/dist/esm/definitions.d.ts
 @@ -79,6 +79,8 @@ export interface PasskeyRuntimeConfiguration {
@@ -412,7 +504,7 @@ index 221b5ef8fe2ab1476efafc1d4553e06fa13665c8..8bc226d1d8a0763630a7ee6f2c6b0b9f
      /**
       * JSON-safe authentication request.
       */
-@@ -455,6 +461,22 @@ export interface PasskeySupportResult {
+@@ -455,6 +461,26 @@ export interface PasskeySupportResult {
   * @since 1.0.0
   */
  export interface CapacitorPasskeyPlugin {
@@ -432,11 +524,15 @@ index 221b5ef8fe2ab1476efafc1d4553e06fa13665c8..8bc226d1d8a0763630a7ee6f2c6b0b9f
 +        lateCallbacks?: number;
 +        lastLateCallbackMs?: number;
 +    }>;
++    /** Android only (peanut.3+). `providerReady` is present only when it is known to be false. */
++    getReadiness(): Promise<{ deviceSecure: boolean; providerReady?: boolean }>;
++    /** Android only (peanut.3+). Opens Security settings, or Settings where the device has no Security screen. */
++    openSecuritySettings(): Promise<void>;
      /**
       * Install a browser-style WebAuthn shim on top of the native plugin.
       *
 diff --git a/dist/esm/index.js b/dist/esm/index.js
-index 90eece502f583ab9b35baf5a9276e207021d10d4..28a80daf6efa182e8e7d4177d38f345b254c8115 100644
+index 90eece502f583ab9b35baf5a9276e207021d10d4..1a4f9dcf1abf72038748ed87984038d0c1bea15b 100644
 --- a/dist/esm/index.js
 +++ b/dist/esm/index.js
 @@ -58,7 +58,7 @@ const CapacitorPasskey = {
@@ -448,7 +544,7 @@ index 90eece502f583ab9b35baf5a9276e207021d10d4..28a80daf6efa182e8e7d4177d38f345b
      },
      async getConfiguration() {
          if (!configurationPromise) {
-@@ -67,7 +67,13 @@ const CapacitorPasskey = {
+@@ -67,7 +67,19 @@ const CapacitorPasskey = {
          return configurationPromise;
      },
      async getCredential(options) {
@@ -460,6 +556,12 @@ index 90eece502f583ab9b35baf5a9276e207021d10d4..28a80daf6efa182e8e7d4177d38f345b
 +    },
 +    async getDiagnostics() {
 +        return NativeCapacitorPasskey.getDiagnostics();
++    },
++    async getReadiness() {
++        return NativeCapacitorPasskey.getReadiness();
++    },
++    async openSecuritySettings() {
++        return NativeCapacitorPasskey.openSecuritySettings();
      },
      async getPluginVersion() {
          return NativeCapacitorPasskey.getPluginVersion();
@@ -476,7 +578,7 @@ index 5cf20db91a9dfb86449a8546542555f529ff02b7..9fb09d046d576cc6eee9309fa0486b1d
                  publicKey: webAuthnRequestOptionsToJSON(request.publicKey, currentConfig.origin),
              }));
 diff --git a/dist/plugin.cjs.js b/dist/plugin.cjs.js
-index 11126446e3523c1cfffc22cabbcd5fa81c92497a..8e9a2d4376e21e2632f0126572780c97cc68cc5c 100644
+index 11126446e3523c1cfffc22cabbcd5fa81c92497a..259cd40c90776a7a8b26a5fda68513ea58ee5fc3 100644
 --- a/dist/plugin.cjs.js
 +++ b/dist/plugin.cjs.js
 @@ -483,6 +483,7 @@ function installWebAuthnShim({ root = globalThis, plugin, options }) {
@@ -487,17 +589,23 @@ index 11126446e3523c1cfffc22cabbcd5fa81c92497a..8e9a2d4376e21e2632f0126572780c97
                  origin: currentConfig.origin,
                  publicKey: webAuthnRequestOptionsToJSON(request.publicKey, currentConfig.origin),
              }));
-@@ -615,7 +616,7 @@ const CapacitorPasskey = {
+@@ -615,7 +616,13 @@ const CapacitorPasskey = {
          return configurationPromise;
      },
      async getCredential(options) {
 -        return NativeCapacitorPasskey.getCredential(createNativeRequest(options));
 +        return NativeCapacitorPasskey.getCredential(Object.assign(createNativeRequest(options), { immediateLoginDeadline: options.immediateLoginDeadline }));
++    },
++    async getReadiness() {
++        return NativeCapacitorPasskey.getReadiness();
++    },
++    async openSecuritySettings() {
++        return NativeCapacitorPasskey.openSecuritySettings();
      },
      async getPluginVersion() {
          return NativeCapacitorPasskey.getPluginVersion();
 diff --git a/dist/plugin.js b/dist/plugin.js
-index 26aa42205b932a6608f70056036cf22e208a2e6d..586322ca42889ed7a6d78695b3e31f239a9b202f 100644
+index 26aa42205b932a6608f70056036cf22e208a2e6d..1da3170b268b852720d2ec9cf033474ce73ff842 100644
 --- a/dist/plugin.js
 +++ b/dist/plugin.js
 @@ -482,6 +482,7 @@ var capacitorPasskey = (function (exports, core) {
@@ -508,12 +616,18 @@ index 26aa42205b932a6608f70056036cf22e208a2e6d..586322ca42889ed7a6d78695b3e31f23
                      origin: currentConfig.origin,
                      publicKey: webAuthnRequestOptionsToJSON(request.publicKey, currentConfig.origin),
                  }));
-@@ -614,7 +615,7 @@ var capacitorPasskey = (function (exports, core) {
+@@ -614,7 +615,13 @@ var capacitorPasskey = (function (exports, core) {
              return configurationPromise;
          },
          async getCredential(options) {
 -            return NativeCapacitorPasskey.getCredential(createNativeRequest(options));
 +            return NativeCapacitorPasskey.getCredential(Object.assign(createNativeRequest(options), { immediateLoginDeadline: options.immediateLoginDeadline }));
++        },
++        async getReadiness() {
++            return NativeCapacitorPasskey.getReadiness();
++        },
++        async openSecuritySettings() {
++            return NativeCapacitorPasskey.openSecuritySettings();
          },
          async getPluginVersion() {
              return NativeCapacitorPasskey.getPluginVersion();
