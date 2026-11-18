@@ -30,6 +30,8 @@ export const SEAM = 520
 export const COIN_TOP = SEAM - ((SEAM - (498 - 0.8 * COIN_W)) / (0.983 * COIN_W)) * HR.usd * COIN_W
 const PHASE = 21
 const COINS = 6
+/** The ring the coins wrap around: one coin per PER, COINS of them. */
+export const COIN_RING = COINS * PER
 const SINK = 1.5
 /** The hold frame: static captures and reduced motion show world frame 4 (X1's key frame). */
 export const KEY_FRAME = 4
@@ -38,13 +40,24 @@ const MAX_STEP_S = 0.1
 
 export const COIN_KINDS: readonly CoinKind[] = Array.from({ length: COINS }, (_, i) => (i % 2 ? 'eur' : 'usd'))
 
-/** Per phone size. `left` = walker x; `band` = [x, width] of the coin band; `shift` = how far the ring reaches past the left edge. */
+/**
+ * Per phone size. `left` = walker x; `band` = [x, width] that clips the walker; `coinBand` = [x, width] that clips the
+ * coin row; `shift` = how far the ring reaches past the left edge. The std coin band runs past the 390 art box on
+ * both sides: the box scales down on shorter phones (0.55 at the least), and the row must still reach both screen
+ * edges (Kush, 2026-11-18). [-200, 790] covers a 375 px screen down to scale 0.48.
+ */
 export const X1_LAYOUT: Record<
     ShellDevice,
-    { left: number; card: readonly [number, number, number]; band: readonly [number, number]; shift: number }
+    {
+        left: number
+        card: readonly [number, number, number]
+        band: readonly [number, number]
+        coinBand: readonly [number, number]
+        shift: number
+    }
 > = {
-    std: { left: 208, card: [24, 194, 1], band: [0, 390], shift: 0 },
-    sm: { left: 250, card: [-31, 239, 1.15], band: [-100, 600], shift: 70 },
+    std: { left: 208, card: [24, 194, 1], band: [0, 390], coinBand: [-200, 790], shift: 0 },
+    sm: { left: 250, card: [-31, 239, 1.15], band: [-100, 600], coinBand: [-100, 600], shift: 70 },
 }
 
 const mod = (a: number, n: number) => ((a % n) + n) % n
@@ -88,6 +101,17 @@ export function world(device: ShellDevice, wf: number): X1World {
     for (const foot of ['R', 'L'] as const)
         if (canCarry(foot, f)) body = Math.min(body, soleTop(coins, left, foot, f) - RIG_K * SOLES[foot][f][0] + SINK)
     return { coins, body }
+}
+
+/**
+ * The coins to draw: each ring coin and its copies one ring to the left and right, so the row runs on past the ring's
+ * ends without a gap. A coin that wraps moves all three copies by one ring, so the row looks the same and nothing
+ * remounts. The ring holds an even number of coins, so the copies keep the usd/eur order.
+ */
+export function coinRow(coins: readonly number[]) {
+    return coins.flatMap((x, i) =>
+        [-1, 0, 1].map((copy) => ({ x: x + copy * COIN_RING, kind: COIN_KINDS[i], key: `${i}:${copy}` }))
+    )
 }
 
 /** The highest body top over two walk cycles: the walker box starts above it. */

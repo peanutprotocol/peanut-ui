@@ -41,6 +41,23 @@ describe('01 Landing — X1 walk maths', () => {
         expectClose([std6.body], [230.24])
     })
 
+    it('the coin row reaches both screen edges at every world frame, down to the smallest art scale (Kush, 2026-11-18)', () => {
+        const { world, coinRow, X1_LAYOUT, COIN_W } = require('../x1-walk') as typeof import('../x1-walk')
+        const [bandX, bandW] = X1_LAYOUT.std.coinBand
+        // a 375 px screen over the 390 art box at scale 0.55, in art px around the box centre (195)
+        const view = [195 - 187.5 / 0.55, 195 + 187.5 / 0.55]
+        expect(bandX).toBeLessThanOrEqual(view[0])
+        expect(bandX + bandW).toBeGreaterThanOrEqual(view[1])
+        for (let wf = 0; wf < 80; wf++) {
+            const row = coinRow(world('std', wf).coins).sort((a, b) => a.x - b.x)
+            let reach = view[0]
+            for (const coin of row) if (coin.x <= reach) reach = Math.max(reach, coin.x + COIN_W)
+            expect(reach).toBeGreaterThanOrEqual(view[1])
+            // neighbours alternate usd and eur, copies included
+            row.slice(1).forEach((coin, i) => expect(coin.kind).not.toBe(row[i].kind))
+        }
+    })
+
     it('P1-40 the highest body top over wf 0–79 is 226.04; YTOP 392, coin 132.5 wide, comp 183.75 × 175', () => {
         const walk = loadWalk()
         let lowest = Infinity
