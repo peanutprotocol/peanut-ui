@@ -36,7 +36,10 @@ jest.mock('@/utils/capacitor', () => ({
     ...jest.requireActual('@/utils/capacitor'),
     isNativeBridge: () => mockIsNativeBridge,
 }))
-jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
+jest.mock('posthog-js', () => ({
+    __esModule: true,
+    default: { capture: jest.fn(), register_for_session: jest.fn(), unregister_for_session: jest.fn() },
+}))
 
 const PASSKEY = 'passkey' as ScreenId
 
