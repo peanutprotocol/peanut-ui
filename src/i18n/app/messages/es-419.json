@@ -4186,8 +4186,7 @@
                 "poBoxNotAccepted": "No se puede usar un apartado postal como domicilio.",
                 "invalidBody": "No se pudieron aceptar estas respuestas. Vuelve a abrir la verificación para continuar.",
                 "unknownStep": "Este paso ya no está disponible. Vuelve a abrir la verificación para continuar.",
-                "rateLimited": "Demasiados intentos. Espera un minuto y vuelve a intentarlo.",
-                "retryLater": "Este CPF se verificó hace menos de un día. Regularízalo en gov.br y vuelve a intentarlo mañana."
+                "rateLimited": "Demasiados intentos. Espera un minuto y vuelve a intentarlo."
             },
             "midpoint": {
                 "restartTitle": "Verifícate con otro documento",
@@ -4364,7 +4363,8 @@
                 "description": {
                     "name": "Nuestro socio de Pix no pudo verificar este CPF con este nombre. Revisa ambos.",
                     "status": "Nuestro socio de Pix encontró este CPF irregular o inexistente. Revísalo en gov.br y vuelve a escribirlo."
-                }
+                },
+                "retryLater": "Este CPF se verificó hace menos de un día. Regularízalo en gov.br y vuelve a intentarlo mañana."
             }
         }
     },

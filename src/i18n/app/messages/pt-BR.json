@@ -4186,8 +4186,7 @@
                 "poBoxNotAccepted": "Uma caixa postal não pode ser usada como endereço residencial.",
                 "invalidBody": "Não foi possível aceitar estas respostas. Abra a verificação novamente para continuar.",
                 "unknownStep": "Esta etapa não está mais disponível. Abra a verificação novamente para continuar.",
-                "rateLimited": "Muitas tentativas. Espere um minuto e tente de novo.",
-                "retryLater": "Este CPF foi conferido há menos de um dia. Regularize no gov.br e tente de novo amanhã."
+                "rateLimited": "Muitas tentativas. Espere um minuto e tente de novo."
             },
             "midpoint": {
                 "restartTitle": "Verifique com outro documento",
@@ -4364,7 +4363,8 @@
                 "description": {
                     "name": "Nosso parceiro de Pix não conseguiu conferir este CPF com este nome. Confira os dois.",
                     "status": "Nosso parceiro de Pix encontrou este CPF irregular ou inexistente. Confira no gov.br e digite o CPF de novo."
-                }
+                },
+                "retryLater": "Este CPF foi conferido há menos de um dia. Regularize no gov.br e tente de novo amanhã."
             }
         }
     },

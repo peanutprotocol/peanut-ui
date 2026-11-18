@@ -643,7 +643,7 @@ describe("Avenia's CPF record step after a data rejection", () => {
     }
     const fullName = { key: 'fullName', kind: 'text' as const, required: true, value: 'Ana Souza' }
 
-    it('a name mismatch asks the CPF and the name, prefilled, and sends only what the user changed', async () => {
+    it('a name mismatch asks the CPF and the name, prefilled; the name is sent, the masked CPF only when retyped', async () => {
         mockQuestions.mockResolvedValue(cpfRecord([maskedCpf, fullName]))
         mockSave.mockResolvedValue({ kind: 'saved', next: null })
         const onDone = jest.fn()
@@ -675,8 +675,10 @@ describe("Avenia's CPF record step after a data rejection", () => {
         fireEvent.change(screen.getByTestId('verify-input-taxId'), { target: { value: '11144477735' } })
         fireEvent.click(screen.getByTestId('verify-continue'))
         expect(await screen.findByTestId('verify-form-error')).toHaveTextContent(
-            en.kyc.paperworkVerification.errors.retryLater
+            en.kyc.paperworkVerification.cpfRecord.retryLater
         )
+        // the wait stays on the form: the questions are not read again
+        expect(mockQuestions).toHaveBeenCalledTimes(1)
         expect(mockSave).toHaveBeenCalledWith('cpfRecord', { taxId: '111.444.777-35' }, 'pix', 'user-a')
         expect(onDone).not.toHaveBeenCalled()
     })

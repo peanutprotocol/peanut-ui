@@ -50,7 +50,7 @@ const FORM_ERROR_KEYS: Record<AnswerFormError, string> = {
     existing_verification: 'errors.unavailable',
     conflict: 'errors.unavailable',
     session_changed: 'errors.unavailable',
-    retry_later: 'errors.retryLater',
+    retry_later: 'cpfRecord.retryLater',
 }
 
 /** Who keeps the phone number: the card partner when the card asks for it, else the local bank partner. */
@@ -142,7 +142,7 @@ export function WhyWeAsk({ steps }: { steps: Array<PaperworkVerificationStepId |
  * One or more question steps on one screen. The per-step flow passes one step
  * (its sentences are the heading); add-later passes every open step of a
  * feature. A step with a heading of its own (address, phone, tax,
- * declarations) shows it in every flow, so it looks the same whatever the
+ * declarations, cpfRecord) shows it in every flow, so it looks the same whatever the
  * provider or feature (Aleks, 2026-11-14); `title` is the heading only for a
  * screen whose step has none. Continue saves each step in order.
  */

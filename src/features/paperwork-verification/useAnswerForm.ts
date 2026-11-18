@@ -33,7 +33,7 @@ export type AnswerFormError =
     | 'existing_verification'
     | 'conflict'
     | 'session_changed'
-    // the same irregular CPF again within a day of Avenia's rejection
+    // the same irregular CPF again within a day of Avenia's rejection (the CPF record step only)
     | 'retry_later'
 export type SaveOutcome =
     | { ok: true; next: PaperworkVerificationStepId | null }
@@ -51,7 +51,6 @@ export type SaveOutcome =
       }
 
 const CONFLICTS = new Set([
-    'retry_later',
     'feature_not_selected',
     'identity_submitted',
     'verification_complete',
@@ -84,6 +83,8 @@ export async function saveSteps(
         if (result.kind === 'invalid')
             return { ok: false, step: step.id, rejected: { step: step.id, errors: result.errors } }
         if (result.kind === 'conflict') {
+            // a wait the user must sit out: the form says so and stays, nothing reloads
+            if (result.code === 'retry_later') return { ok: false, formError: 'retry_later', step: step.id }
             const error = CONFLICTS.has(result.code) ? (result.code as AnswerFormError) : 'conflict'
             return { ok: false, error, formError: error, message: result.message, step: step.id }
         }
