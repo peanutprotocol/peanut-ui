@@ -1,22 +1,11 @@
 import type { AttentionLedgerEntry } from '@/utils/general.utils'
 import type { SignupPreferences } from '@/types/signup-preferences'
-import { type SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 import { type UserCapabilities, type IdentityVerification } from '@/types/capabilities'
 
 export type RecipientType = 'address' | 'ens' | 'iban' | 'us' | 'username'
 
 // phases for the multi-phase kyc verification modal
 export type KycModalPhase = 'verifying' | 'submitted' | 'preparing' | 'bridge_tos' | 'supplement' | 'complete'
-
-// per-provider rail status for tracking after kyc approval
-export type ProviderDisplayStatus = 'setting_up' | 'requires_tos' | 'requires_documents' | 'enabled' | 'failed'
-
-export interface ProviderStatus {
-    providerCode: string
-    displayName: string
-    status: ProviderDisplayStatus
-    rails: IUserRail[]
-}
 
 // Moved here from bridge-accounts.utils.ts to avoid circular dependency
 export type BridgeKycStatus = 'not_started' | 'under_review' | 'approved' | 'rejected' | 'incomplete'
@@ -146,28 +135,6 @@ export interface PaymentLink {
     amount: number
     username: string // creator or requester
     status: LinkStatus
-}
-
-export enum MantecaKycStatus {
-    ONBOARDING = 'ONBOARDING',
-    ACTIVE = 'ACTIVE',
-    INACTIVE = 'INACTIVE',
-}
-
-export interface IUserKycVerification {
-    provider: 'MANTECA' | 'BRIDGE' | 'SUMSUB'
-    mantecaGeo?: string | null
-    bridgeGeo?: string | null
-    status: MantecaKycStatus | SumsubKycStatus | string
-    approvedAt?: string | null
-    providerUserId?: string | null
-    providerRawStatus?: string | null
-    sumsubApplicantId?: string | null
-    rejectLabels?: string[] | null
-    rejectType?: 'RETRY' | 'FINAL' | 'PROVIDER_FIXABLE' | 'PROVIDER_FINAL' | null
-    metadata?: { regionIntent?: string; [key: string]: unknown } | null
-    createdAt: string
-    updatedAt: string
 }
 
 export interface User {

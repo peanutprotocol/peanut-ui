@@ -3,7 +3,8 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { IntlWrapper } from '@/test-utils/intl'
-import { SumsubKycFlow } from '@/components/Kyc/SumsubKycFlow'
+import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
+import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { AddFeatureFlow } from '../AddFeatureFlow'
 
 type Request = { method: string; url: string; headers: Record<string, string>; body: unknown; accountId: string }
@@ -68,6 +69,18 @@ jest.mock('@/components/Kyc/SumsubWebSdkModal', () => ({ SumsubWebSdkModal: () =
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: jest.fn() }) }))
 jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }) }))
 
+function LegacySdkEntry() {
+    const flow = useMultiPhaseKycFlow({})
+    return (
+        <>
+            <button type="button" disabled={flow.isLoading} onClick={() => void flow.handleInitiateKyc()}>
+                Start verification
+            </button>
+            <SumsubKycModals flow={flow} />
+        </>
+    )
+}
+
 export function createLegacySdkHarness({ request }: { request: typeof mockRequest; sessionMode: 'cookie-only' }) {
     mockRequest = request
     mockSdkProps = null
@@ -76,7 +89,7 @@ export function createLegacySdkHarness({ request }: { request: typeof mockReques
         <IntlWrapper>
             <QueryClientProvider client={query}>
                 <NuqsTestingAdapter>
-                    {feature ? <AddFeatureFlow feature="card" onExit={() => {}} /> : <SumsubKycFlow />}
+                    {feature ? <AddFeatureFlow feature="card" onExit={() => {}} /> : <LegacySdkEntry />}
                 </NuqsTestingAdapter>
             </QueryClientProvider>
         </IntlWrapper>
