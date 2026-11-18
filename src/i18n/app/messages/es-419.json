@@ -145,7 +145,7 @@
         },
         "gettingStarted": {
             "createAccount": "Crear cuenta",
-            "createAccountDone": "Usuario listo",
+            "createAccountDone": "Nombre de usuario listo",
             "addMoney": "Agregar dinero",
             "firstPayment": "Primer pago",
             "addMoneyRoutes": "Transferencia o cripto",
@@ -1467,7 +1467,7 @@
             "continueToSend": "Continuar para enviar dinero",
             "usernameNotFound": "No encontramos ese nombre de usuario exacto.",
             "invalidUsername": "Ingresa un nombre de usuario de Peanut válido.",
-            "lookupLimitReached": "Demasiadas verificaciones de usuario. Inténtalo de nuevo más tarde.",
+            "lookupLimitReached": "Demasiadas verificaciones de nombres de usuario. Inténtalo de nuevo más tarde.",
             "lookupError": "No pudimos verificar ese nombre de usuario. Inténtalo de nuevo.",
             "yourContacts": "Contactos",
             "loadingMore": "Cargando más...",
