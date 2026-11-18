@@ -53,6 +53,8 @@ export function useEmailStep() {
     const [mode, setMode] = useState<EmailMode>('edit')
     const [saving, setSaving] = useState(false)
     const [keepCurrentEmail, setKeepCurrentEmail] = useState(false)
+    // "Log in to that account" opened the new sign-up itself: its passkey was picked, not the older account's
+    const [sameAccount, setSameAccount] = useState(false)
     const savingRef = useRef(false)
     const saveAttemptsRef = useRef(0)
     const { track, trackOnce, trackError } = useSignupControl()
@@ -89,6 +91,7 @@ export function useEmailStep() {
         setEmail(value)
         setMode('edit')
         setKeepCurrentEmail(false)
+        setSameAccount(false)
     }
 
     const blur = () => {
@@ -106,10 +109,16 @@ export function useEmailStep() {
 
     // "Log in to that account": the passkey sheet; useLogin opens the account of the passkey picked.
     // Not scoped to the signed-in user: that is the new account, and the email belongs to an older one.
+    // So the picker also offers the new account's passkey; picking it stays here with a line (Kush, 2026-11-18).
     const logIn = async () => {
         track('log_in', 'tap')
+        setSameAccount(false)
         try {
-            await handleLoginClick({ scopeToUser: false })
+            const left = await handleLoginClick({ scopeToUser: false, stayIfUserId: user?.user.userId })
+            if (!left) {
+                setSameAccount(true)
+                trackError('log_in', 'same_account')
+            }
         } catch (error) {
             if (getPasskeyErrorCode(error) === 'LOGIN_CANCELED') return
             trackError('log_in', getPasskeyErrorCode(error) ?? classifyPasskeyError(error).code)
@@ -248,6 +257,7 @@ export function useEmailStep() {
         blur,
         acceptSuggestion,
         logIn,
+        sameAccount,
         isLoggingIn,
         save,
     }

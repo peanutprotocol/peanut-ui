@@ -37,7 +37,7 @@ jest.mock('lottie-web/build/player/lottie_light', () => ({
 }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: jest.fn() }) }))
 jest.mock('@/hooks/useSetupFlow', () => ({ useSetupFlow: () => ({ handleNext: mockNext, isLoading: false }) }))
-const mockLogin = jest.fn(async () => {})
+const mockLogin = jest.fn(async (_options?: unknown) => true)
 jest.mock('@/hooks/useLogin', () => ({ useLogin: () => ({ handleLoginClick: mockLogin, isLoggingIn: false }) }))
 jest.mock('@/app/actions/users', () => ({ updateUserById: (...args: unknown[]) => mockUpdateUser(...args) }))
 jest.mock('@/utils/sentry-lazy', () => ({
@@ -94,7 +94,7 @@ beforeEach(() => {
     mockUpdateUser.mockReset().mockResolvedValue({})
     mockNext.mockReset().mockResolvedValue(undefined)
     mockFetchUser.mockReset().mockResolvedValue(undefined)
-    mockLogin.mockReset().mockResolvedValue(undefined)
+    mockLogin.mockReset().mockResolvedValue(true)
     mockUser = { user: { userId: 'new-user', email: '' } }
     queryClient = new QueryClient({ defaultOptions: { queries: { gcTime: Infinity } } })
     urlUpdates = []
@@ -240,12 +240,31 @@ describe('09 Email', () => {
         )
         await waitFor(() => expect(mockLogin).toHaveBeenCalledTimes(1))
         // unscoped: the signed-in user is the new account, the email's holder is an older one
-        expect(mockLogin).toHaveBeenCalledWith({ scopeToUser: false })
+        expect(mockLogin).toHaveBeenCalledWith({ scopeToUser: false, stayIfUserId: 'new-user' })
         expect(controls()).toContain('log_in:tap')
         expect(within(footer(container)!).getByText(copyRx('setupRedesign.email.recover'))).toBeInTheDocument()
         // the save is not retried and the step does not advance: logging in is the way on
         expect(mockUpdateUser).toHaveBeenCalledTimes(1)
         expect(mockNext).not.toHaveBeenCalled()
+    })
+
+    it('the passkey picked opens the new sign-up itself: stays on Email with the pick-the-other-passkey line', async () => {
+        mockUpdateUser.mockResolvedValue({ status: 409, code: 'EMAIL_ON_ACTIVE_ACCOUNT', error: 'x' })
+        const { container } = render()
+        type('taken@mail.com')
+        fireEvent.click(continueButton(container))
+        expect(await screen.findByRole('alert')).toHaveTextContent(copyRx('setupRedesign.email.taken'))
+        mockLogin.mockResolvedValueOnce(false) // useLogin did not redirect: same user id
+        fireEvent.click(
+            await within(footer(container)!).findByRole('button', { name: copyRx('setupRedesign.email.logIn') })
+        )
+        expect(await screen.findByText(copyRx('setupRedesign.email.sameAccount'))).toBeInTheDocument()
+        expect(screen.queryByText(copyRx('setupRedesign.email.taken'))).not.toBeInTheDocument()
+        expect(within(footer(container)!).getByText(copyRx('setupRedesign.email.recover'))).toBeInTheDocument()
+        expect(mockNext).not.toHaveBeenCalled()
+        // another address goes back to the field's normal lines
+        type('other@mail.com')
+        expect(screen.queryByText(copyRx('setupRedesign.email.sameAccount'))).not.toBeInTheDocument()
     })
 
     it('a failed login (no passkey for that account here) leaves only the recovery link, no support line', async () => {

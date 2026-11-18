@@ -71,11 +71,20 @@ export const useLogin = () => {
         return () => clearTimeout(timer)
     }, [loginResolved, user, toast])
 
-    const handleLoginClick = async (options?: Parameters<typeof handleLogin>[0]) => {
+    /** stayIfUserId: no redirect when the passkey opens this account; resolves false then, true after a redirect is due */
+    const handleLoginClick = async ({
+        stayIfUserId,
+        ...options
+    }: NonNullable<Parameters<typeof handleLogin>[0]> & { stayIfUserId?: string } = {}) => {
         setIsloginClicked(true)
         try {
-            await handleLogin(options)
+            const loggedIn = await handleLogin(options)
+            if (stayIfUserId && loggedIn.user.userId === stayIfUserId) {
+                setIsloginClicked(false)
+                return false
+            }
             setLoginResolved(true)
+            return true
         } catch (e) {
             setIsloginClicked(false)
             throw e

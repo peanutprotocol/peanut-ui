@@ -36,7 +36,7 @@ export function EmailScreen(_props: StepComponentProps) {
         step.mode === 'invalid'
             ? t('email.invalid')
             : step.mode === 'taken'
-              ? t('email.taken')
+              ? t(step.sameAccount ? 'email.sameAccount' : 'email.taken')
               : step.mode === 'failed'
                 ? t('email.saveFailed')
                 : step.mode === 'not-ready'

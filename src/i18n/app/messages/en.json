@@ -1316,6 +1316,7 @@
             "suggest": "Did you mean {a}?",
             "logIn": "Log in to that account",
             "recover": "Recover my account",
+            "sameAccount": "That’s the account you just made. Pick the other passkey.",
             "clearAria": "Clear"
         },
         "notif": {

@@ -848,6 +848,7 @@
             "suggest": "¿Quisiste decir {a}?",
             "logIn": "Iniciar sesión en esa cuenta",
             "recover": "Recuperar mi cuenta",
+            "sameAccount": "Esa es la cuenta que acabás de crear. Elegí la otra passkey.",
             "clearAria": "Borrar"
         },
         "notif": {

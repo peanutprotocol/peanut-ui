@@ -312,6 +312,7 @@ export const useZeroDev = () => {
             void releaseUsernameReservation()
             updateUserPreferences(loggedInUser.user.userId, { webAuthnKey })
             setWebAuthnKey(webAuthnKey)
+            return loggedInUser
         } catch (e) {
             const err = normalizePasskeyServerError(e)
             const { code, message } = classifyPasskeyError(err)
