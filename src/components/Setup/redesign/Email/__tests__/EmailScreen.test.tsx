@@ -239,6 +239,8 @@ describe('09 Email', () => {
             await within(footer(container)!).findByRole('button', { name: copyRx('setupRedesign.email.logIn') })
         )
         await waitFor(() => expect(mockLogin).toHaveBeenCalledTimes(1))
+        // unscoped: the signed-in user is the new account, the email's holder is an older one
+        expect(mockLogin).toHaveBeenCalledWith({ scopeToUser: false })
         expect(controls()).toContain('log_in:tap')
         expect(within(footer(container)!).getByText(copyRx('setupRedesign.email.recover'))).toBeInTheDocument()
         // the save is not retried and the step does not advance: logging in is the way on

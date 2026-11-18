@@ -168,6 +168,21 @@ it('completes login when PostHog capture throws', async () => {
     }
 })
 
+it('scopes the passkey sheet to the signed-in user unless told not to', async () => {
+    mockToWebAuthnKey.mockResolvedValue({ authenticatorId: 'k' })
+    mockHydrateLoginSession.mockResolvedValue({ user: { userId: 'u1' } })
+    const { result } = renderHook(() => useZeroDev())
+    await act(async () => {
+        await result.current.handleLogin()
+    })
+    expect(mockToWebAuthnKey.mock.calls[0][0].passkeyServerHeaders).toEqual({ 'x-username': 'alice' })
+    // the Email step's "Log in to that account": the email belongs to an older account, not the one loaded
+    await act(async () => {
+        await result.current.handleLogin({ scopeToUser: false })
+    })
+    expect(mockToWebAuthnKey.mock.calls[1][0].passkeyServerHeaders).toEqual({})
+})
+
 describe('useZeroDev handleLogin — passkey-server failures keep the session', () => {
     let errorSpy: jest.SpyInstance
 

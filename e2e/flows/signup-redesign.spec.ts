@@ -1042,6 +1042,13 @@ test.describe('sign-up redesign journeys', () => {
             await expectScreen(page, 'notification-email', 'already-registered')
             await expect(primary(page, copy('en', 'setupRedesign.email.logIn'))).toBeEnabled()
             await expect(footer(page).getByText(copy('en', 'setupRedesign.email.recover'))).toBeVisible()
+            // the sheet is not scoped to the new account: the email belongs to an older one
+            const before = stub.seen('POST', '/passkeys/login/options').length
+            await primary(page, copy('en', 'setupRedesign.email.logIn')).click()
+            await expect
+                .poll(() => stub.seen('POST', '/passkeys/login/options').length, { timeout: 15_000 })
+                .toBe(before + 1)
+            expect(stub.seen('POST', '/passkeys/login/options').at(-1)!.headers['x-username']).toBeUndefined()
         })
 
         test('an email on an account that is not established: the add-it-again-at-verification note, then on unsaved', async ({

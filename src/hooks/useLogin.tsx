@@ -71,10 +71,10 @@ export const useLogin = () => {
         return () => clearTimeout(timer)
     }, [loginResolved, user, toast])
 
-    const handleLoginClick = async () => {
+    const handleLoginClick = async (options?: Parameters<typeof handleLogin>[0]) => {
         setIsloginClicked(true)
         try {
-            await handleLogin()
+            await handleLogin(options)
             setLoginResolved(true)
         } catch (e) {
             setIsloginClicked(false)

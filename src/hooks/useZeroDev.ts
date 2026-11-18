@@ -263,8 +263,8 @@ export const useZeroDev = () => {
         }
     }
 
-    // login function
-    const handleLogin = async () => {
+    // scopeToUser: false lets the person pick any passkey, e.g. the older account that holds their email
+    const handleLogin = async ({ scopeToUser = true }: { scopeToUser?: boolean } = {}) => {
         const retryError = getLoginRetryError()
         if (retryError) {
             const { code, message } = classifyPasskeyError(retryError)
@@ -280,7 +280,7 @@ export const useZeroDev = () => {
         try {
             const passkeyServerHeaders: Record<string, string> = {}
 
-            if (user?.user?.username) {
+            if (scopeToUser && user?.user?.username) {
                 passkeyServerHeaders['x-username'] = user.user.username
             }
 

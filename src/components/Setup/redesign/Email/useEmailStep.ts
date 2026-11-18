@@ -104,11 +104,12 @@ export function useEmailStep() {
         change(suggestion)
     }
 
-    // "Log in to that account": the passkey sheet; useLogin opens the account of the passkey picked
+    // "Log in to that account": the passkey sheet; useLogin opens the account of the passkey picked.
+    // Not scoped to the signed-in user: that is the new account, and the email belongs to an older one.
     const logIn = async () => {
         track('log_in', 'tap')
         try {
-            await handleLoginClick()
+            await handleLoginClick({ scopeToUser: false })
         } catch (error) {
             if (getPasskeyErrorCode(error) === 'LOGIN_CANCELED') return
             trackError('log_in', getPasskeyErrorCode(error) ?? classifyPasskeyError(error).code)
