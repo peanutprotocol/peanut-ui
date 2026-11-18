@@ -93,7 +93,11 @@ export default function ProfileEmailStep({ onComplete, onSkip }: { onComplete: (
                     />
                     {fieldError && <FieldError>{fieldError}</FieldError>}
                     {error && <Callout priority="error">{error}</Callout>}
-                    {deferred && <Callout priority="info">{t('deferred')}</Callout>}
+                    {deferred && (
+                        <Callout priority="info" className="mt-2">
+                            {t('deferred')}
+                        </Callout>
+                    )}
                 </div>
             }
         />
