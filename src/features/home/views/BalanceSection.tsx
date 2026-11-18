@@ -119,20 +119,18 @@ export function BalanceSection({
                               : undefined
                     if (action.key === 'add' && showPill && balance !== undefined) {
                         return (
-                            // the cell stretches, so the pill's max width is the cell's
-                            <div key={action.key}>
-                                <AddMoneyPill
-                                    balance={balance}
-                                    hasFundedBefore={hasFundedBefore}
-                                    href={directHref}
-                                    isDrawerOpen={openDrawer === action.key}
-                                    onTap={() => {
-                                        // Button gives the haptic
-                                        trackTap(action.key)
-                                        if (!directHref) setOpenDrawer(action.key)
-                                    }}
-                                />
-                            </div>
+                            <AddMoneyPill
+                                key={action.key}
+                                balance={balance}
+                                hasFundedBefore={hasFundedBefore}
+                                href={directHref}
+                                isDrawerOpen={openDrawer === action.key}
+                                onTap={() => {
+                                    // Button gives the haptic
+                                    trackTap(action.key)
+                                    if (!directHref) setOpenDrawer(action.key)
+                                }}
+                            />
                         )
                     }
                     const inner = (

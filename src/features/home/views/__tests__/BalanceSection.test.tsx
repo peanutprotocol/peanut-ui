@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { withNuqsTestingAdapter, type UrlUpdateEvent } from 'nuqs/adapters/testing'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -150,5 +150,32 @@ describe('BalanceSection Add money pill', () => {
         renderSection(undefined, 'picker', verified)
         expect(screen.getByTestId('home-submenu-add')).toHaveTextContent(/^add$/)
         scrollWidth.mockRestore()
+    })
+
+    it('returns to the long label when the row widens again', () => {
+        const observers: Array<() => void> = []
+        const original = global.ResizeObserver
+        global.ResizeObserver = class {
+            constructor(private callback: () => void) {}
+            observe() {
+                observers.push(this.callback)
+            }
+            unobserve() {}
+            disconnect() {}
+        } as unknown as typeof ResizeObserver
+        let width = 100
+        const scrollWidth = jest.spyOn(HTMLElement.prototype, 'scrollWidth', 'get').mockReturnValue(200)
+        const clientWidth = jest.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(() => width)
+        try {
+            renderSection(undefined, 'picker', verified)
+            expect(screen.getByTestId('home-submenu-add')).toHaveTextContent(/^add$/)
+            width = 300
+            act(() => observers.forEach((notify) => notify()))
+            expect(screen.getByTestId('home-submenu-add')).toHaveTextContent('addMoneyPill.addMoney')
+        } finally {
+            scrollWidth.mockRestore()
+            clientWidth.mockRestore()
+            global.ResizeObserver = original
+        }
     })
 })

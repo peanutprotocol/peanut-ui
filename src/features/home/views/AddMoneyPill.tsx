@@ -5,7 +5,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { balanceBucket } from '../addMoneyPill.utils'
 
 interface AddMoneyPillProps {
@@ -23,23 +23,30 @@ interface AddMoneyPillProps {
  * under $10. The pill reaches left into the row padding (-ml-10 matches the
  * row's px-10 in BalanceSection) and stops 16px short of Send's column. When
  * the label does not fit there (e.g. "Add money" at 320px), it falls back to
- * the round button's word ("Add") rather than an ellipsis.
+ * the round button's word ("Add") rather than an ellipsis, and retries the full
+ * label when its grid cell widens again (rotation, resize).
  */
 export function AddMoneyPill({ balance, hasFundedBefore, href, isDrawerOpen, onTap }: AddMoneyPillProps) {
     const t = useAppTranslations('home')
     const tNav = useTranslations('navigation')
+    const cellRef = useRef<HTMLDivElement>(null)
     const labelRef = useRef<HTMLSpanElement>(null)
     const [isShortLabel, setIsShortLabel] = useState(false)
 
-    useLayoutEffect(() => {
+    useEffect(() => {
         posthog.capture(ANALYTICS_EVENTS.HOME_ADD_CTA_SHOWN, {
             balance_bucket: balanceBucket(balance),
             label: hasFundedBefore ? 'top_up' : 'add_money',
         })
-        // measured before paint, again once web fonts load and on resize; the
-        // swap to the short word is one-way for this mount
+        // once per mount, like the pill itself
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
+    // full label showing: measured before paint, again once web fonts load and
+    // on resize; swap to the short word when it overflows
+    useLayoutEffect(() => {
         const label = labelRef.current
-        if (!label) return
+        if (isShortLabel || !label) return
         const check = () => {
             if (label.scrollWidth > label.clientWidth) setIsShortLabel(true)
         }
@@ -52,8 +59,21 @@ export function AddMoneyPill({ balance, hasFundedBefore, href, isDrawerOpen, onT
             active = false
             observer?.disconnect()
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
+    }, [isShortLabel])
+
+    // short word showing: the short label shrink-wraps, so watch the cell
+    // instead; once it is wider than at the swap, retry the full label (the
+    // effect above swaps back before paint if it still does not fit)
+    useEffect(() => {
+        const cell = cellRef.current
+        if (!isShortLabel || !cell || typeof ResizeObserver === 'undefined') return
+        const widthAtSwap = cell.clientWidth
+        const observer = new ResizeObserver(() => {
+            if (cell.clientWidth > widthAtSwap) setIsShortLabel(false)
+        })
+        observer.observe(cell)
+        return () => observer.disconnect()
+    }, [isShortLabel])
 
     const shared = {
         variant: 'primary' as const,
@@ -69,5 +89,10 @@ export function AddMoneyPill({ balance, hasFundedBefore, href, isDrawerOpen, onT
             </span>
         ),
     }
-    return href ? <Button href={href} {...shared} /> : <Button aria-expanded={isDrawerOpen} {...shared} />
+    // the grid cell stretches, so the pill's max width is the cell's
+    return (
+        <div ref={cellRef}>
+            {href ? <Button href={href} {...shared} /> : <Button aria-expanded={isDrawerOpen} {...shared} />}
+        </div>
+    )
 }
