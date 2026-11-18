@@ -1161,11 +1161,11 @@
             "trustLine": "As transferências bancárias passam por parceiros licenciados."
         },
         "username": {
-            "title": "Garanta seu usuário.",
+            "title": "Garanta seu nome de usuário.",
             "desc": "Assim te encontram e te pagam.",
             "dice": "Jogar o dado",
             "rolling": "Procurando um disponível…",
-            "checkFailed": "Não conseguimos verificar esse usuário. Tente de novo ou <link>fale com o suporte</link>.",
+            "checkFailed": "Não conseguimos verificar esse nome de usuário. Tente de novo ou <link>fale com o suporte</link>.",
             "tooLong": "{n, plural, one {Máximo 12. Tire 1 letra.} other {Máximo 12. Tire # letras.}}",
             "taken": "@{name} já está em uso.",
             "takenLead": "Disponíveis:",
@@ -1174,9 +1174,9 @@
             "rule": "De 4 a 12 letras ou números, sem espaços nem acentos.",
             "available": "Disponível",
             "clear": "Limpar",
-            "cta": "Usar esse usuário",
+            "cta": "Usar esse nome de usuário",
             "ctaNamed": "Usar @{name}",
-            "fieldAria": "Usuário",
+            "fieldAria": "Nome de usuário",
             "reserved": "Esse nome de usuário é reservado. Tente outro."
         },
         "passkey": {
@@ -1190,8 +1190,8 @@
             "terms": "Ao criar sua conta, você aceita os <terms>termos</terms> e a <privacy>política de privacidade</privacy> do Peanut.",
             "cancelled": "A passkey foi cancelada. Tente de novo quando quiser.",
             "takenTitle": "{name} não está mais disponível.",
-            "takenLead": "Esse usuário já tem uma conta. Se você já criou a conta neste celular, é só entrar: sua passkey está pronta. Se não, escolha outro.",
-            "takenCta": "Escolher outro usuário",
+            "takenLead": "Esse nome de usuário já tem uma conta. Se você já criou a conta neste celular, é só entrar: sua passkey está pronta. Se não, escolha outro.",
+            "takenCta": "Escolher outro nome de usuário",
             "logIn": "Entrar",
             "ask": "Criar uma passkey?",
             "yes": "Sim",
@@ -1245,16 +1245,16 @@
         },
         "invite": {
             "title": "Alguém te convidou?",
-            "desc": "Digite o usuário para vocês dois ganharem recompensas.",
-            "placeholder": "Usuário",
-            "fieldLabel": "Usuário de quem convidou você",
+            "desc": "Digite o nome de usuário para vocês dois ganharem recompensas.",
+            "placeholder": "Nome de usuário",
+            "fieldLabel": "Nome de usuário de quem convidou você",
             "found": "Encontramos @{name}.",
             "notFound": "Não encontramos esse usuário.",
-            "isSelf": "Esse é o seu próprio usuário.",
+            "isSelf": "Esse é o seu próprio nome de usuário.",
             "clearAria": "Limpar",
             "suggestOne": "Você quis dizer {a}?",
             "suggestTwo": "Você quis dizer {a} ou {b}?",
-            "checkFailed": "Não conseguimos verificar esse usuário. Tente de novo."
+            "checkFailed": "Não conseguimos verificar esse nome de usuário. Tente de novo."
         },
         "accounts": {
             "title": "Dados bancários em USD e EUR.",
