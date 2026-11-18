@@ -2,7 +2,10 @@
 
 import { useState, useRef } from 'react'
 import { useTranslations } from 'next-intl'
-import ActionModal from '@/components/Global/ActionModal'
+import { Button } from '@/components/0_Bruddle/Button'
+import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '@/components/Global/Drawer'
 import ProfileEditField from '@/components/Profile/components/ProfileEditField'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
@@ -57,49 +60,57 @@ export default function ProfileEmailStep({ onComplete, onSkip }: { onComplete: (
             setSaving(false)
         }
     }
+    const skip = () => {
+        if (!pending.current) onSkip()
+    }
+    // a drawer, not a modal: design.md "default to a drawer" (Kush, 2026-11-18); swipe, overlay and back skip
     return (
-        <ActionModal
-            visible
-            title={t('title')}
-            description={t('description')}
-            tone="info"
-            onClose={() => {
-                if (!pending.current) onSkip()
+        <Drawer
+            open
+            dismissible={!saving}
+            onOpenChange={(open) => {
+                if (!open) skip()
             }}
-            ctas={[
-                {
-                    text: common(saving ? 'saving' : 'save'),
-                    onClick: save,
-                    disabled: saving || !email.trim(),
-                    variant: 'primary',
-                    shadowSize: '4',
-                },
-            ]}
-            tertiaryCta={{
-                text: common('notNow'),
-                disabled: saving,
-                onClick: () => {
-                    if (!pending.current) onSkip()
-                },
-            }}
-            content={
-                <div className="w-full text-left">
-                    <ProfileEditField
-                        label={common('emailLabel')}
-                        placeholder={common('emailPlaceholder')}
-                        value={email}
-                        onChange={setEmail}
-                        type="email"
-                    />
-                    {fieldError && <FieldError>{fieldError}</FieldError>}
-                    {error && <Callout priority="error">{error}</Callout>}
-                    {deferred && (
-                        <Callout priority="info" className="mt-2">
-                            {t('deferred')}
-                        </Callout>
-                    )}
+        >
+            <DrawerContent>
+                <div className="flex flex-col items-center pt-1 pb-6 text-center">
+                    <div className="flex w-full flex-col items-center gap-4">
+                        <IconBubble size="m" icon="info" color="blue" />
+                        <DrawerHeader className="mb-3 w-full gap-1 p-0 text-center sm:text-center">
+                            <DrawerTitle>{t('title')}</DrawerTitle>
+                            <DrawerDescription>{t('description')}</DrawerDescription>
+                        </DrawerHeader>
+                    </div>
+                    <div className="w-full text-left">
+                        <ProfileEditField
+                            label={common('emailLabel')}
+                            placeholder={common('emailPlaceholder')}
+                            value={email}
+                            onChange={setEmail}
+                            type="email"
+                        />
+                        {fieldError && <FieldError>{fieldError}</FieldError>}
+                        {error && <Callout priority="error">{error}</Callout>}
+                        {deferred && (
+                            <Callout priority="info" className="mt-2">
+                                {t('deferred')}
+                            </Callout>
+                        )}
+                    </div>
+                    <Button
+                        variant="primary"
+                        shadowSize="4"
+                        className="mt-4 w-full justify-center"
+                        onClick={() => void save()}
+                        disabled={saving || !email.trim()}
+                    >
+                        {common(saving ? 'saving' : 'save')}
+                    </Button>
+                    <LinkButton className="mt-6" onClick={skip} disabled={saving}>
+                        {common('notNow')}
+                    </LinkButton>
                 </div>
-            }
-        />
+            </DrawerContent>
+        </Drawer>
     )
 }
