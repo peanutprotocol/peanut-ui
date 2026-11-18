@@ -63,6 +63,10 @@ export type GrantSessionKeyError =
      *  bytes, a layout the validator cannot read, or a moved nonce). The copy
      *  names no cause, since the code does not say which. Nothing was stored. */
     | { kind: 'signature-rejected'; message: string }
+    /** The grant store refused the approval (409 CARD_PERMISSION_ID_SPENT): the
+     *  permission id is spent on the wallet and signing again gives the same id.
+     *  The user cannot fix it, so no consumer offers a retry. */
+    | { kind: 'permission-spent'; message: string }
     | { kind: 'unexpected'; message: string }
 
 export interface GrantSessionKeyResult {
@@ -277,7 +281,9 @@ export const useGrantSessionKey = (): GrantSessionKeyResult => {
                         ? 'stale-approval'
                         : code === API_ERROR_CODES.CARD_APPROVAL_SIGNATURE_REJECTED
                           ? 'signature-rejected'
-                          : ('unexpected' as const)
+                          : code === API_ERROR_CODES.CARD_PERMISSION_ID_SPENT
+                            ? 'permission-spent'
+                            : ('unexpected' as const)
                 return { ok: false, error: { kind, message: (e as Error).message } as const }
             }
             // The approval is stored for the account that signed it; a switch
