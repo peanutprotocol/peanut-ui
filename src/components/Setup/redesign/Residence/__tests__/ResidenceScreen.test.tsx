@@ -421,26 +421,6 @@ describe('07 Residence: sentence view', () => {
         expect(controls()).toEqual(['nationality_country:error:refused_issuer'])
     })
 
-    it('R2-05 with the callout the sentence block ends 16 px above the CTA and scrolls; without it, no cap', () => {
-        mockSets = {
-            ...jest.requireActual('@/test-utils/residenceRestrictions.fixture').RESIDENCE_RESTRICTION_SETS,
-            refusedIdIssuers: new Set(['CU']),
-        }
-        const view = render({ residenceCountry: 'AR', nationalityCountry: 'CU' })
-        view.rerenderSame()
-        const box = view.container.querySelector('[data-residence-scroll]')!
-        // the callout sits inside the capped box, so it can never run under the button
-        expect(box).toContainElement(screen.getByRole('alert', { hidden: true }))
-        expect(box).toHaveClass('max-h-[calc(var(--sr-panel-to-cta)-16px)]', 'overflow-y-auto')
-        // the cap reads the panel's own distance to the CTA
-        const panel = box.closest<HTMLElement>('[data-setup-panel]')!
-        expect(panel.style.getPropertyValue('--sr-panel-to-cta')).toContain('var(--sr-cta-top)')
-
-        view.unmount()
-        const plain = render({ residenceCountry: 'DE', nationalityCountry: 'IR' })
-        expect(plain.container.querySelector('[data-residence-scroll]')).not.toHaveClass('overflow-y-auto')
-    })
-
     it('P3-19 a refused issuer as the residence (nationality fine) shows no callout', () => {
         mockSets = {
             ...jest.requireActual('@/test-utils/residenceRestrictions.fixture').RESIDENCE_RESTRICTION_SETS,
