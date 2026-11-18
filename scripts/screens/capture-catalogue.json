@@ -645,6 +645,11 @@
         "route": "/add-money/pix"
     },
     {
+        "id": "fixture-pix-setup-cpf-record-retry-later",
+        "flow": "Setup and login",
+        "route": "/add-money/pix"
+    },
+    {
         "id": "fixture-pix-setup-open-failed",
         "flow": "Setup and login",
         "route": "/add-money/pix"

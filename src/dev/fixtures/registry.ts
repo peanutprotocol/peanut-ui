@@ -3235,6 +3235,15 @@ export const FIXTURES: Record<string, Fixture> = {
         about: 'Avenia found the CPF irregular at Receita Federal: the CPF record step asks the CPF again after a gov.br check.',
         ...aveniaMissingResponses('cpfRecordStatus'),
     },
+    'pix-setup-cpf-record-retry-later': {
+        route: '/add-money/pix',
+        about: 'The same irregular CPF again within a day of the rejection: the save answers retry_later and the step says to try again tomorrow.',
+        responses: aveniaMissingResponses('cpfRecordStatus').responses,
+        rejects: {
+            ...aveniaMissingResponses('cpfRecordStatus').rejects,
+            'PUT /users/kyc/answers/cpfRecord': { status: 409, body: { code: 'retry_later' } },
+        },
+    },
     'pix-activation-refused': {
         route: '/add-money/pix',
         about: 'A user Avenia rejected (M5): the activation answers refused at once, and Pix shows its refusal with Contact support, no wait and no fall-back.',
