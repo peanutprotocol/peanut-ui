@@ -27,7 +27,7 @@ it('waits for manual login verification before redirecting an existing session',
     act(() => {
         pending = result.current.handleLoginClick()
     })
-    expect(mockLogin).toHaveBeenCalledWith()
+    expect(mockLogin).toHaveBeenCalledWith(undefined) // no options: scoped to the signed-in user
     expect(mockPush).not.toHaveBeenCalled()
     await act(async () => {
         finish()
