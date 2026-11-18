@@ -917,7 +917,7 @@
             "continueToSend": "Continuar para enviar dinero",
             "usernameNotFound": "No encontramos ese nombre de usuario exacto.",
             "invalidUsername": "Ingresá un nombre de usuario de Peanut válido.",
-            "lookupLimitReached": "Demasiadas verificaciones de usuario. Intentá de nuevo más tarde.",
+            "lookupLimitReached": "Demasiadas verificaciones de nombres de usuario. Intentá de nuevo más tarde.",
             "lookupError": "No pudimos verificar ese nombre de usuario. Intentá de nuevo.",
             "errorDescription": "No pudimos cargar tus contactos. Intentalo de nuevo.",
             "noResultsTitle": "No encontramos el usuario ni el contacto",
