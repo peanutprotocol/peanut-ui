@@ -5,22 +5,14 @@ import { type GraphData } from './types'
 interface UseInvitesGraphCameraParams {
     graphRef: MutableRefObject<any>
     filteredGraphData: GraphData | null
-    isMinimal: boolean
     selectedUserId: string | null
-    combinedGraphNodes: any[]
 }
 
 /**
  * Camera behavior: initial zoom-to-fit after the simulation settles,
- * continuous zoom tracking in minimal mode, and following the selected node.
+ * continuous zoom tracking while it settles, and following the selected node.
  */
-export function useInvitesGraphCamera({
-    graphRef,
-    filteredGraphData,
-    isMinimal,
-    selectedUserId,
-    combinedGraphNodes,
-}: UseInvitesGraphCameraParams) {
+export function useInvitesGraphCamera({ graphRef, filteredGraphData, selectedUserId }: UseInvitesGraphCameraParams) {
     const initialZoomDoneRef = useRef(false)
 
     // Initial zoom to fit after graph stabilizes
@@ -49,9 +41,9 @@ export function useInvitesGraphCamera({
         return () => clearTimeout(timeout)
     }, [filteredGraphData])
 
-    // Continuous zoom tracking in minimal mode during simulation settling
+    // Continuous zoom tracking during simulation settling
     useEffect(() => {
-        if (!isMinimal || !filteredGraphData || !graphRef.current) return
+        if (!filteredGraphData || !graphRef.current) return
 
         let frameId: number | null = null
         const startTime = Date.now()
@@ -75,7 +67,7 @@ export function useInvitesGraphCamera({
             if (frameId) cancelAnimationFrame(frameId)
             clearTimeout(timeout)
         }
-    }, [isMinimal, filteredGraphData])
+    }, [filteredGraphData])
 
     // Center on selected node - track continuously as it moves
     useEffect(() => {
@@ -88,8 +80,8 @@ export function useInvitesGraphCamera({
         const trackNode = () => {
             if (!graphRef.current) return
 
-            // Find node in combinedGraphNodes (has live position updates from simulation)
-            const node = combinedGraphNodes.find((n) => n.id === selectedUserId)
+            // The simulation writes live positions onto these node objects
+            const node = filteredGraphData?.nodes.find((n) => n.id === selectedUserId)
             if (!node || node.x === undefined || node.y === undefined) {
                 // Node doesn't have position yet, keep trying
                 animationFrameId = requestAnimationFrame(trackNode)
@@ -121,12 +113,7 @@ export function useInvitesGraphCamera({
                 cancelAnimationFrame(animationFrameId)
             }
         }
-    }, [selectedUserId, combinedGraphNodes])
-
-    // P2P particle animation is handled by:
-    // 1. autoPauseRedraw={false} on ForceGraph2D - keeps rendering after simulation stops
-    // 2. performance.now() in linkCanvasObject - animates particles based on real time
-    // No additional animation loop needed!
+    }, [selectedUserId, filteredGraphData])
 
     return { handleEngineStop }
 }
