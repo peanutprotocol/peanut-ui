@@ -48,8 +48,9 @@ export function LandingScreen(_props: StepComponentProps) {
             title={inviter ? t('invitedTitle', { username: inviter }) : t('title')}
             // a long username is one word: let it break rather than run off the screen
             titleClassName={inviter ? 'break-words' : undefined}
-            // organic installs (no invite source) read the trust line; NEEDS LEGAL CHECK before merge (TASK-25063)
-            subtitle={inviter ? undefined : t('trustLine')}
+            // organic installs (no confirmed invite) read the trust line at the top of the stage, so the art keeps
+            // dev's size (Kush decisions round 2)
+            stageNote={inviter ? undefined : t('trustLine')}
             titleSize="l"
             artTop={194}
             smScale={0.62}
