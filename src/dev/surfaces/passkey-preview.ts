@@ -8,7 +8,10 @@ const noopAsync = async () => {}
  * A still useSignupPasskey state for the dev gallery: 03's help screens that only a phone reaches (a second
  * Android cancel, a timed-out or abandoned sheet, a pre-check that found no screen lock).
  */
-export const previewPasskey = (helpReason: PasskeyHelpReason): SignupPasskey => ({
+export const previewPasskey = (
+    helpReason: PasskeyHelpReason | null,
+    overrides: Partial<SignupPasskey> = {}
+): SignupPasskey => ({
     claim: noopAsync,
     isClaiming: false,
     preflightWarning: null,
@@ -17,9 +20,17 @@ export const previewPasskey = (helpReason: PasskeyHelpReason): SignupPasskey => 
     usernameTaken: false,
     logIn: noopAsync,
     isLoggingIn: false,
+    recoveryDrawer: {
+        visible: false,
+        platform: DeviceType.ANDROID,
+        onClose: noop,
+        onRetry: noop,
+        onSignUp: undefined,
+        onSupport: noop,
+    },
     helpErrorName: null,
     helpReason,
-    isHelpOpen: true,
+    isHelpOpen: helpReason !== null,
     closeHelp: noop,
     retryFromHelp: noop,
     openSettings: noop,
@@ -29,4 +40,5 @@ export const previewPasskey = (helpReason: PasskeyHelpReason): SignupPasskey => 
     retryFromProviderUnsupported: noop,
     signUpInBrowser: noopAsync,
     deviceType: DeviceType.ANDROID,
+    ...overrides,
 })

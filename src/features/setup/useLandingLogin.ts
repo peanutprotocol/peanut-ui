@@ -3,7 +3,7 @@
 import * as Sentry from '@sentry/nextjs'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useOptionalSetupFlow } from '@/features/setup/SetupFlowContext'
@@ -11,6 +11,7 @@ import { discardSignupDraft, readSignupDraft } from '@/features/setup/signup-dra
 import { useSignupControl } from '@/features/setup/useSignupControl'
 import { useDeviceType } from '@/hooks/useGetDeviceType'
 import { useKeepWebBypass } from '@/hooks/useKeepWebBypass'
+import { useLoginRecovery } from '@/hooks/useLoginRecovery'
 import { useLogin } from '@/hooks/useLogin'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { isCapacitor } from '@/utils/capacitor'
@@ -23,12 +24,6 @@ import {
     getPasskeyErrorSetupKey,
     isAlreadyReported,
 } from '@/utils/webauthn.utils'
-
-// One cancel is often deliberate. On iOS and the web a phone with no Peanut
-// passkey closes the sheet the same way, so the recovery drawer waits for the repeat.
-const LOGIN_CANCELS_BEFORE_RECOVERY = 2
-
-type RecoveryAction = 'retry' | 'signup' | 'support' | 'dismiss'
 
 /**
  * The sign-up landing's log-in and sign-up behaviour, moved unchanged from dev's `Views/Landing.tsx`: the web
@@ -50,12 +45,18 @@ export function useLandingLogin() {
     const { handleLoginClick, isLoggingIn } = useLogin()
     const toast = useToast()
     const { track, trackError } = useSignupControl()
-    const [isRecoveryOpen, setIsRecoveryOpen] = useState(false)
     const [loginFailed, setLoginFailed] = useState(false)
     const [isAccountDeleted, setIsAccountDeleted] = useState(false)
-    const loginCancelsRef = useRef(0)
-    // Set by a drawer action, so the close that follows it is not logged as a dismiss.
-    const recoveryActionRef = useRef<RecoveryAction | null>(null)
+    const { offersRecovery, openRecovery, recoveryDrawer } = useLoginRecovery({
+        onRetry: () => void login(),
+        // Signup is app-only on the blocked web layout; the store buttons sit behind the drawer there.
+        onSignUp: blockSignup ? undefined : () => signUp(),
+        repeatedCancel: true,
+        onEvent: (event) =>
+            event === 'open' || event === 'dismiss'
+                ? track('login_recovery', event)
+                : track(`recovery_${event}`, 'tap'),
+    })
 
     // The auth landing is a "real auth" surface. Demo mode persists in
     // localStorage, so without this a prior demo session would make Log In /
@@ -63,23 +64,6 @@ export function useLandingLogin() {
     useEffect(() => {
         disableDemoMode()
     }, [])
-
-    /**
-     * The Android app answers "no credential" with PASSKEY_NOT_FOUND since
-     * ui#3752, so a cancel there is a deliberate dismissal and keeps the toast.
-     * iOS and browsers report an empty passkey list as a cancel, which a
-     * deliberate dismissal also is, so a cancel opens the drawer only when it
-     * repeats.
-     */
-    const offersRecovery = (code: string | undefined): boolean => {
-        if (code === 'PASSKEY_NOT_FOUND') return true
-        if (code === 'LOGIN_CANCELED' && !nativePlatform.isAndroidNative) {
-            loginCancelsRef.current += 1
-            return loginCancelsRef.current >= LOGIN_CANCELS_BEFORE_RECOVERY
-        }
-        loginCancelsRef.current = 0
-        return false
-    }
 
     const handleError = (error: unknown) => {
         const errorCode = error instanceof Error && 'code' in error ? String(error.code) : undefined
@@ -91,9 +75,7 @@ export function useLandingLogin() {
         if (passkeyErrorCode === 'ACCOUNT_DELETED') {
             setIsAccountDeleted(true)
         } else if (recovery) {
-            track('login_recovery', 'open')
-            recoveryActionRef.current = null
-            setIsRecoveryOpen(true)
+            openRecovery()
         } else {
             const i18nKey = getPasskeyErrorSetupKey(error)
             toast.error(i18nKey ? t(i18nKey) : (error instanceof Error && error.message) || t('loginFailed'))
@@ -137,39 +119,6 @@ export function useLandingLogin() {
     const onSignUpClick = () => {
         track('sign_up', 'tap')
         signUp()
-    }
-
-    const recover = (action: RecoveryAction) => {
-        recoveryActionRef.current = action
-        posthog.capture(ANALYTICS_EVENTS.LOGIN_RECOVERY_ACTION, { action, native: isCapacitor() })
-        track(`recovery_${action}`, 'tap')
-        setIsRecoveryOpen(false)
-    }
-
-    /** Props for `LoginRecoveryDrawer`. */
-    const recoveryDrawer = {
-        visible: isRecoveryOpen,
-        platform: deviceType,
-        onClose: () => {
-            if (recoveryActionRef.current === null) {
-                posthog.capture(ANALYTICS_EVENTS.LOGIN_RECOVERY_ACTION, { action: 'dismiss', native: isCapacitor() })
-                track('login_recovery', 'dismiss')
-            }
-            recoveryActionRef.current = null
-            setIsRecoveryOpen(false)
-        },
-        onRetry: () => {
-            recover('retry')
-            void login()
-        },
-        // Signup is app-only on the blocked web layout; the store buttons sit behind the drawer there.
-        onSignUp: blockSignup
-            ? undefined
-            : () => {
-                  recover('signup')
-                  signUp()
-              },
-        onSupport: () => recover('support'),
     }
 
     return {

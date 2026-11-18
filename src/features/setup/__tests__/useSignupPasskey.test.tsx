@@ -112,6 +112,11 @@ function PasskeyHarness({ username }: { username: string }) {
             </button>
             {passkey.usernameTaken && <button onClick={() => void passkey.logIn()}>Log in</button>}
             {passkey.inlineError && <p role="alert">{passkey.inlineError}</p>}
+            {passkey.recoveryDrawer.visible && (
+                <div data-testid="login-recovery">
+                    <button onClick={passkey.recoveryDrawer.onRetry}>Drawer retry</button>
+                </div>
+            )}
             {passkey.preflightWarning && <p data-testid="preflight">{passkey.preflightWarning}</p>}
             {passkey.isHelpOpen && (
                 <div role="dialog" data-help-reason={String(passkey.helpReason)}>
@@ -510,6 +515,22 @@ describe('passkey failures and collision recovery', () => {
         claim()
         fireEvent.click(await screen.findByRole('button', { name: 'Log in' }))
         expect(await screen.findByRole('alert')).toHaveTextContent('Login exploded')
+        expect(screen.queryByTestId('login-recovery')).not.toBeInTheDocument()
+    })
+
+    it('opens the recovery drawer, not an inline error, when Log in finds no passkey', async () => {
+        mockApiFetch.mockResolvedValue({ status: 200 })
+        mockLogin.mockRejectedValueOnce(
+            Object.assign(new Error('curated'), { name: 'PasskeyError', code: 'PASSKEY_NOT_FOUND' })
+        )
+        renderWithIntl(<Harness />)
+        claim()
+        fireEvent.click(await screen.findByRole('button', { name: 'Log in' }))
+        expect(await screen.findByTestId('login-recovery')).toBeInTheDocument()
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Drawer retry' }))
+        await waitFor(() => expect(mockLogin).toHaveBeenCalledTimes(2))
     })
 
     // The native availability check (GET) hides deleted accounts, but /register/options still

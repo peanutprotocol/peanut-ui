@@ -1797,6 +1797,23 @@ export const SURFACES: Record<string, Surface> = {
             </SetupScreen>
         ),
     },
+    'setup-redesign-passkey-login-recovery': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-passkey-login-recovery'],
+        render: () => {
+            const base = previewPasskey(null)
+            return (
+                <SetupScreen screenId="passkey" username="luckyotter">
+                    <PasskeyScreenView
+                        passkey={{
+                            ...base,
+                            usernameTaken: true,
+                            recoveryDrawer: { ...base.recoveryDrawer, visible: true },
+                        }}
+                    />
+                </SetupScreen>
+            )
+        },
+    },
     'setup-redesign-invite': {
         ...SETUP_REDESIGN_SURFACES['setup-redesign-invite'],
         render: () => <RedesignStepSurface screenId="invite" seed={{ username: 'luckyotter' }} />,

@@ -12,6 +12,7 @@ import { settlePendingInviteAttribution } from '@/services/pending-invite-attrib
 import { readInviteCode } from '@/utils/invite-stash'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useLogin } from '@/hooks/useLogin'
+import { useLoginRecovery } from '@/hooks/useLoginRecovery'
 import { postRegistrationScreen, useSetupFlow } from '@/hooks/useSetupFlow'
 import { useDeviceType } from '@/hooks/useGetDeviceType'
 import { isAndroidNativeBridge, isCapacitor, isIOSNativeBridge, openExternalUrl } from '@/utils/capacitor'
@@ -134,6 +135,8 @@ export function useSignupPasskey(username: string) {
     snapshotRef.current = draftSnapshot()
     const { handleRegister, address, isRegistering } = useZeroDev()
     const { handleLoginClick, isLoggingIn } = useLogin()
+    // The user is already in signup here, so the drawer offers no Sign up.
+    const { offersRecovery, openRecovery, recoveryDrawer } = useLoginRecovery({ onRetry: () => void logIn() })
     const { deviceType } = useDeviceType()
     const [helpErrorName, setHelpErrorName] = useState<string | null>(null)
     const [isHelpOpen, setIsHelpOpen] = useState(false)
@@ -500,6 +503,10 @@ export function useSignupPasskey(username: string) {
                 setInlineError(t('passkey.accountDeletedChooseUsername'))
                 return
             }
+            if (offersRecovery(getPasskeyErrorCode(error))) {
+                openRecovery()
+                return
+            }
             const i18nKey = getPasskeyErrorSetupKey(error)
             setInlineError(i18nKey ? t(i18nKey) : (error as Error)?.message || t('loginFailed'))
         }
@@ -551,6 +558,7 @@ export function useSignupPasskey(username: string) {
         usernameTaken,
         logIn,
         isLoggingIn,
+        recoveryDrawer,
         helpErrorName,
         helpReason,
         isHelpOpen,

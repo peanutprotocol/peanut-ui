@@ -642,6 +642,10 @@ export const SETUP_REDESIGN_SURFACES: Record<string, SurfaceMeta> = {
         name: 'Sign-up redesign: 03 Passkey, pre-check found no password manager',
         path: 'Setup/redesign/Passkey/PasskeyScreenView.tsx',
     },
+    'setup-redesign-passkey-login-recovery': {
+        name: 'Sign-up redesign: 03 Passkey, Log in found no passkey',
+        path: 'Setup/redesign/Passkey/PasskeyScreenView.tsx',
+    },
     'setup-redesign-invite': { name: 'Sign-up redesign: 04 Invite', path: 'Setup/redesign/Invite/InviteScreen.tsx' },
     'setup-redesign-invite-found': {
         name: 'Sign-up redesign: 04 Invite, back with an inviter',

@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
+import { LoginRecoveryDrawer } from '@/components/Setup/Views/LoginRecoveryDrawer'
 import { PasskeySetupHelpDrawer } from '@/components/Setup/Views/PasskeySetupHelpDrawer'
 import { SetupScreen, type SetupScreenProps } from '@/components/Setup/redesign/shell/SetupScreen'
 import { DESIGN_STAGE_PX } from '@/components/Setup/redesign/shell/useArtScale'
@@ -270,6 +271,7 @@ export function PasskeyScreenView({ passkey }: { passkey: SignupPasskey }) {
                     onSupport={() => track('passkey_help_support', 'tap')}
                 />
             )}
+            <LoginRecoveryDrawer {...passkey.recoveryDrawer} />
         </SetupScreen>
     )
 }
