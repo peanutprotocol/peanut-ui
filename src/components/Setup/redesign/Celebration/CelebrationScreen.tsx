@@ -52,6 +52,7 @@ export function CelebrationScreen() {
                         ? {
                               primary: {
                                   label: tInvite('verifyNow'),
+                                  variant: 'secondary',
                                   loading: invite.starting,
                                   onClick: () => void invite.verify(),
                                   testId: 'setup-redesign-verify-now',

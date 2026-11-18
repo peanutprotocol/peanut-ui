@@ -301,6 +301,9 @@ describe('12 Celebration: the verify invite (flag signup-verify-invite)', () => 
         expect(steps[1]).not.toHaveAttribute('aria-current')
         // the old headline and the @username chip give way to the invite
         expect(screen.queryByText(copy('setupRedesign.done.title'))).toBeNull()
+        // Verify now is the white button: the pink primary vanishes on the pink ground (Kush, feedback round 1)
+        expect(verifyNow()).toHaveClass('btn-secondary')
+        expect(verifyNow()).not.toHaveClass('btn-primary')
         // Remind me later is the tertiary link (design.md: a defer action is never a Button)
         expect(later()).not.toHaveClass('btn')
     })

@@ -131,7 +131,7 @@ export function ShellFooter({
             data-stack={stack}
         >
             <Button
-                variant="primary"
+                variant={primary.variant ?? 'primary'}
                 className="w-full"
                 disabled={primary.disabled}
                 loading={primary.loading}
