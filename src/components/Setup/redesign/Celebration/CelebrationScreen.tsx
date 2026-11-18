@@ -22,7 +22,7 @@ import { useVerifyStartEligible } from './useVerifyStartEligible'
  * place of the wait a white "Verify now · 3 min" (the pink primary would vanish on pink) that opens the Verify start,
  * and a "Remind me later" link to Home.
  */
-export function CelebrationScreen({ onVerify }: { onVerify: () => void }) {
+export function CelebrationScreen({ onVerify, quiet = false }: { onVerify: () => void; quiet?: boolean }) {
     const t = useTranslations('setupRedesign.done')
     const tStart = useTranslations('setupRedesign.verifyStart')
     const { signupCompleted, signupEntryFlow, username: draftUsername } = useSetupFlowContext()
@@ -30,9 +30,12 @@ export function CelebrationScreen({ onVerify }: { onVerify: () => void }) {
     const { handleRedirect } = useAccountSetup()
     const { track } = useSignupControl()
     const buttons = useVerifyStartEligible(signupCompleted)
-    useCelebrationRedirect(signupCompleted, buttons)
+    // a quiet exit never shows the buttons, so it never holds the redirect for them
+    useCelebrationRedirect(signupCompleted, buttons && !quiet, quiet)
 
     if (!signupCompleted) return null
+    // Confirm later: the account is not confirmed yet, so leave at once without the party
+    if (quiet) return <Loading />
     const claim = signupEntryFlow === 'claim'
     const state = claim ? 'claim-link' : buttons ? 'buttons' : 'default'
     const username = user?.user.username || draftUsername

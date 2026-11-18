@@ -193,6 +193,22 @@ describe('12 Celebration', () => {
         expect(mockReplace).toHaveBeenCalledTimes(1)
     })
 
+    it('after Confirm later (quiet) there is no celebration: no confetti, no headline, straight into the account', () => {
+        // a default sign-up, which would otherwise get the Verify now buttons and hold the redirect
+        renderRedesign(<CelebrationScreen quiet onVerify={mockOnVerify} />, {
+            screenId: 'advantage-control',
+            seed: { signupCompleted: true, username: 'kim' },
+            showBackButton: true,
+        })
+        expect(screen.queryByTestId('setup-redesign-celebration')).toBeNull()
+        expect(screen.queryByTestId('setup-redesign-celebration-verify-now')).toBeNull()
+        expect(confettiPresets.success).not.toHaveBeenCalled()
+        expect(notifyHaptic).not.toHaveBeenCalled()
+        act(() => jest.advanceTimersByTime(0))
+        expect(mockReplace).toHaveBeenCalledTimes(1)
+        expect(mockReplace).toHaveBeenCalledWith('/home')
+    })
+
     it('P4-54 leaving before 4500 ms never redirects', () => {
         const { unmount } = render()
         act(() => jest.advanceTimersByTime(3000))

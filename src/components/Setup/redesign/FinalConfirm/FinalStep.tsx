@@ -15,6 +15,20 @@ import { FinalConfirmScreen } from './FinalConfirmScreen'
 export function FinalStep({ onComplete }: StepComponentProps) {
     const { signupCompleted } = useSetupFlowContext()
     const [verifying, setVerifying] = useState(false)
-    if (!signupCompleted) return <FinalConfirmScreen onComplete={onComplete} />
-    return verifying ? <VerifyStartScreen /> : <CelebrationScreen onVerify={() => setVerifying(true)} />
+    // after Confirm later the account is not confirmed yet, so it is not celebrated
+    const [deferred, setDeferred] = useState(false)
+    if (!signupCompleted)
+        return (
+            <FinalConfirmScreen
+                onComplete={(outcome) => {
+                    setDeferred(outcome.deferred)
+                    onComplete?.()
+                }}
+            />
+        )
+    return verifying ? (
+        <VerifyStartScreen />
+    ) : (
+        <CelebrationScreen quiet={deferred} onVerify={() => setVerifying(true)} />
+    )
 }

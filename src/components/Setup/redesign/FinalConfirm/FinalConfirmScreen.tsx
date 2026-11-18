@@ -14,8 +14,8 @@ import { useFinalConfirm } from './useFinalConfirm'
 import { SETUP_LEAD_CLASS } from '@/components/Setup/redesign/shell/shell.consts'
 
 export type FinalConfirmScreenProps = {
-    /** Called once the account is set up; the step then shows the celebration. */
-    onComplete?: () => void
+    /** Called once the account is set up; the step then shows the celebration, or skips it after Confirm later. */
+    onComplete?: (outcome: { deferred: boolean }) => void
     /** `/setup/finish` (a signed-in user who never finished): a "Log out" link under the button. */
     showLogout?: boolean
 }
