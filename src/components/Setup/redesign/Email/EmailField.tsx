@@ -44,7 +44,7 @@ export const EmailField = forwardRef<HTMLInputElement, EmailFieldProps>(
                 <label
                     id={`${id}-label`}
                     htmlFor={id}
-                    className="mt-4 mb-1.5 text-label-l text-foreground-primary signup-sm:mt-3"
+                    className="mt-4 mb-1 text-label-l text-foreground-primary signup-sm:mt-3"
                 >
                     {label}
                 </label>
@@ -99,7 +99,7 @@ export const EmailField = forwardRef<HTMLInputElement, EmailFieldProps>(
                         {bad && <Icon name="error" size={20} aria-hidden="true" className="text-foreground-error" />}
                     </span>
                 </div>
-                <div className="mt-1 flex min-h-5 items-center text-body-xs">
+                <div className="mt-2 flex min-h-5 items-center text-body-xs">
                     {status ? (
                         <p id={`${id}-msg`} role="status" className="text-foreground-secondary">
                             {status}

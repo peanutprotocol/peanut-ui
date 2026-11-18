@@ -73,12 +73,12 @@ export function NotificationsControlScreen() {
             <div data-testid="setup-redesign-notifications" data-setup-state={control.state}>
                 <p className={SETUP_LEAD_CLASS}>{t('notif.desc')}</p>
                 {denied && (
-                    <Callout priority="info" className="mt-3.5 signup-sm:mt-3">
+                    <Callout priority="info" className="mt-4 signup-sm:mt-3">
                         {t('notif.denied')}
                     </Callout>
                 )}
                 {control.saveFailed && (
-                    <Callout priority="error" className="mt-3.5 signup-sm:mt-3">
+                    <Callout priority="error" className="mt-4 signup-sm:mt-3">
                         {tNotifications('saveFailed')}
                     </Callout>
                 )}

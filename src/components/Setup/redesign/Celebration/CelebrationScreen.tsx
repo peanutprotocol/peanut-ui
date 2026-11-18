@@ -82,7 +82,7 @@ export function CelebrationScreen({ onVerify, quiet = false }: { onVerify: () =>
                 // With the buttons the footer holds them, and the copy ends 16 px above it.
                 <div
                     className={twMerge(
-                        'pointer-events-none absolute inset-x-6 flex flex-col items-center text-center signup-sm:inset-x-5',
+                        'pointer-events-none absolute inset-x-[var(--sr-gutter)] flex flex-col items-center text-center',
                         buttons
                             ? 'bottom-[calc(100%-var(--sr-footer-top,100%)+1rem)]'
                             : claim
@@ -98,7 +98,7 @@ export function CelebrationScreen({ onVerify, quiet = false }: { onVerify: () =>
                     {username && (
                         <span
                             className={`text-label-l ${twMerge(
-                                'shadow-2 mt-2.5 inline-flex h-7 -rotate-3 items-center gap-1.5 rounded-sm border border-border-default bg-background-default px-2.5 signup-sm:mt-2',
+                                'shadow-2 mt-2 inline-flex h-7 -rotate-3 items-center gap-1 rounded-sm border border-border-default bg-background-default px-2',
                                 !claim && 'mt-4'
                             )}`}
                         >

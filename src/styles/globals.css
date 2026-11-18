@@ -863,8 +863,9 @@
         --sr-stage-compact: calc(var(--sr-stage-compact-base) - var(--sr-fit-lift, 0px));
         --sr-stage-full: var(--sr-stage-full-base);
         --sr-cta-top: calc(var(--sr-h) - 112px);
-        --sr-topbar-top: 4px;
-        --sr-title-top: 61px;
+        /* L/16 below the safe area, as NavHeader and /verify; the title keeps L/16 under the 40 px bar */
+        --sr-topbar-top: 16px;
+        --sr-title-top: 72px;
         --sr-gutter: 24px;
         --sr-panel-pad: 32px;
         --sr-slot-h: 64px;
@@ -881,10 +882,11 @@
             --sr-stage-std-base: 260px;
             --sr-stage-compact-base: 220px;
             --sr-cta-top: calc(var(--sr-h) - 100px);
-            --sr-title-top: 52px;
-            --sr-gutter: 20px;
+            --sr-topbar-top: 8px;
+            --sr-title-top: 56px;
+            /* L/16: 20 px is off the spacing scale, and the 320 column needs the width */
+            --sr-gutter: 16px;
             --sr-panel-pad: 16px;
-            --sr-slot-h: 44px;
             --sr-lift-2: 20px;
             --sr-lift-3: 44px;
         }

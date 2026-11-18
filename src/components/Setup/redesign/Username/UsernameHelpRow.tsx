@@ -116,13 +116,13 @@ export function UsernameHelpRow({
             aria-live="polite"
             data-testid="username-help"
             className={twMerge(
-                'mt-1 flex min-h-5 items-center justify-between gap-2 text-body-xs text-foreground-secondary',
+                'mt-2 flex min-h-5 items-center justify-between gap-2 text-body-xs text-foreground-secondary',
                 isError && 'text-foreground-error'
             )}
         >
             <motion.span
                 key={messageKey}
-                className="flex min-w-0 flex-auto items-center gap-1.5 text-pretty"
+                className="flex min-w-0 flex-auto items-center gap-1 text-pretty"
                 initial={reducedMotion || !message ? false : { opacity: 0, y: 3 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.1, ease: 'easeOut' }}
@@ -133,7 +133,7 @@ export function UsernameHelpRow({
                 <span
                     data-testid="username-count"
                     className={twMerge(
-                        'inline-flex shrink-0 items-center gap-1.5 text-foreground-secondary tabular-nums',
+                        'inline-flex shrink-0 items-center gap-1 text-foreground-secondary tabular-nums',
                         over && 'text-foreground-error'
                     )}
                 >
