@@ -29,6 +29,7 @@ import type { PaperworkVerificationEntry } from '@/features/paperwork-verificati
 import { usePaperworkVerificationRedirect } from '@/features/paperwork-verification/usePaperworkVerificationRedirect'
 import { IdentityCheckIntroScreen } from '@/features/paperwork-verification/components/IdentityCheckIntroScreen'
 import { useKycControl } from '@/features/paperwork-verification/analytics'
+import type { VerifySource } from '@/features/paperwork-verification/verifySource'
 
 type InitiateKycVariant =
     | 'default'
@@ -82,10 +83,12 @@ interface InitiateKycModalProps {
      * never sees the unlock offer. Omit where the caller already routes them.
      */
     verifyEntry?: PaperworkVerificationEntry
+    /** where the person starts the check from, for the verification funnel (`entry` on its events) */
+    source?: VerifySource
 }
 
 // confirmation modal shown before starting identity check or document resubmission.
-// default            → /verify's intro: the steps of the ID check, then Continue
+// default            → Verify start: the steps of the ID check, then Verify now
 // provider_rejection → "One more document needed"
 // blocked            → "We couldn't unlock this — contact support"
 // restart_identity   → "Verify with a different document" (self-fix for country mismatch);
@@ -118,6 +121,7 @@ export const InitiateKycModal = ({
     providerId,
     ctaTestId = 'kyc-initiate-cta',
     verifyEntry,
+    source = 'unlock_payments',
 }: InitiateKycModalProps) => {
     const t = useTranslations('kyc')
     const tCommon = useTranslations('common')
@@ -183,7 +187,8 @@ export const InitiateKycModal = ({
     const isUnlockOffer = resolvedVariant === 'default' || isCrossRegion || isCountryPayments
     const redirecting = usePaperworkVerificationRedirect(
         visible && isUnlockOffer && !cooldownActive && !isKycDegraded && !isRegionRestricted && !error,
-        verifyEntry
+        verifyEntry,
+        source
     )
 
     const getTitle = () => {
@@ -345,9 +350,9 @@ export const InitiateKycModal = ({
         return <KycRegionRestrictedModal visible={visible} onClose={onClose} />
     }
 
-    // The unlock offers lead into a fresh SDK run: /verify's intro, the steps
+    // The unlock offers lead into a fresh SDK run: Verify start, the steps
     // the check takes, the same screen a Smart Paperwork Verification user sees
-    // (Slava, 2026-11-03). Every other variant is an error/action state of its own.
+    // (Slava, 2026-11-03; one intro everywhere, Kush 2026-11-18). Every other variant is an error/action state of its own.
     if (isUnlockOffer && !error && !isSupplementInReview && !slow) {
         // the account provider: bridge from the caller, manteca from the tax-id country
         const introProviderId =
@@ -359,6 +364,7 @@ export const InitiateKycModal = ({
                 providerId={introProviderId}
                 busy={isLoading}
                 continueTestId={ctaTestId}
+                source={source}
                 onBack={presentation === 'page' ? (onBack ?? onClose) : onClose}
                 onContinue={onVerify}
             />

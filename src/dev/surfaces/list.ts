@@ -210,7 +210,7 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         path: 'Setup/redesign/Celebration/CelebrationScreen.tsx',
     },
     '07-f-setup-verify-start': {
-        name: 'Setup — verify start',
+        name: 'Verify start — the one verify intro (/verify, new user)',
         path: 'Setup/redesign/VerifyStart/VerifyStartScreen.tsx',
     },
     '07-b-advantage-control': {

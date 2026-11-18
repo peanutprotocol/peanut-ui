@@ -346,7 +346,8 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
                   targetCountry:
                       clickedRegionProvider === 'manteca' && clickedRowCountry ? clickedRowCountry : undefined,
               }
-            : undefined
+            : undefined,
+        'payment_methods'
     )
 
     const handleFinalKycSuccess = useCallback(() => {
@@ -611,6 +612,7 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
                 <IdentityCheckIntroScreen
                     visible={modalVariant === 'start' && !redirectingToVerify}
                     hasQuestions={selectedRegion?.path === 'latam'}
+                    source="payment_methods"
                     providerId={clickedProviderId}
                     busy={flow.isLoading}
                     onBack={handleModalClose}
