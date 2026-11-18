@@ -19,11 +19,8 @@ export type SetupScreenProps = {
     titleSize?: 'm' | 'l'
     /** Extra classes for the h1 (a narrower measure, the sentence type). */
     titleClassName?: string
-    /**
-     * A short note at the top of the stage, in the top bar's row left of the language switcher (the landing trust
-     * line). It sits above the headline, so the art scale does not measure it and the art keeps its size.
-     */
-    stageNote?: ReactNode
+    /** One short line under the headline, on the stage (the landing trust line). The art scales to stay below both. */
+    subtitle?: ReactNode
     /**
      * The hero: pieces placed in the 390-wide art box, in the mock's design px (top 250 = 250 px from the top of
      * a 390x844 phone). Use ArtPiece, MascotStage and CoinCharacter. The box hangs from the stage bottom, may cross
@@ -64,7 +61,7 @@ export function SetupScreen({
     title,
     titleSize = 'm',
     titleClassName,
-    stageNote,
+    subtitle,
     art,
     artTop,
     smArtTop,
@@ -186,7 +183,7 @@ export function SetupScreen({
                     </div>
                 )}
                 {title && (
-                    // the headline block the art scale and the fold measure
+                    // one block for the headline and its line, so the art scale measures both
                     <div
                         ref={titleRef}
                         className="absolute top-[var(--sr-title-top)] right-[var(--sr-gutter)] left-[var(--sr-gutter)] z-10 text-left"
@@ -202,16 +199,12 @@ export function SetupScreen({
                         >
                             {title}
                         </h1>
+                        {subtitle && (
+                            <p className="mt-2 text-body-m text-foreground-primary" data-setup-subtitle>
+                                {subtitle}
+                            </p>
+                        )}
                     </div>
-                )}
-                {stageNote && (
-                    // after the h1 in reading order; on screen, in the top bar's row (the back slot is empty there)
-                    <p
-                        className="absolute top-[var(--sr-topbar-top)] right-[calc(var(--sr-gutter)+64px)] left-[var(--sr-gutter)] z-10 flex min-h-10 items-center text-body-xs text-pretty text-foreground-primary"
-                        data-setup-stage-note
-                    >
-                        {stageNote}
-                    </p>
                 )}
                 {stageCopy}
             </motion.div>
