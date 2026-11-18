@@ -88,12 +88,14 @@ function setupInitTimeoutMs(): number {
     return slow ? SLOW_NETWORK_SETUP_INIT_TIMEOUT_MS : SETUP_INIT_TIMEOUT_MS
 }
 
-// one report per browser session: the retry or a reload of the same failure is not a new hit
+// one report per reason per browser session: the retry or a reload of the same failure is not a new hit,
+// but a different failure later in the session still reports
 const INIT_FAILURE_REPORTED_KEY = 'setup-init-failure-reported'
-function firstInitFailureThisSession(): boolean {
+function firstInitFailureThisSession(reason: string): boolean {
+    const key = `${INIT_FAILURE_REPORTED_KEY}:${reason}`
     try {
-        if (sessionStorage.getItem(INIT_FAILURE_REPORTED_KEY)) return false
-        sessionStorage.setItem(INIT_FAILURE_REPORTED_KEY, '1')
+        if (sessionStorage.getItem(key)) return false
+        sessionStorage.setItem(key, '1')
     } catch {
         // storage blocked: report every time rather than never
     }
@@ -358,7 +360,7 @@ function SetupPageContent() {
             })
             return
         }
-        if (!firstInitFailureThisSession()) return
+        if (!firstInitFailureThisSession(recoveryReason)) return
         Sentry.captureMessage('Setup initialization failed', {
             level: 'error',
             tags: { reason: recoveryReason },

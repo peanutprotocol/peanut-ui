@@ -345,8 +345,8 @@ it('waits longer before the recovery screen on a slow network', async () => {
     }
 })
 
-it('does not report a setup failure again in the same session', async () => {
-    sessionStorage.setItem('setup-init-failure-reported', '1')
+it('does not report the same setup failure again in the same session', async () => {
+    sessionStorage.setItem('setup-init-failure-reported:initialization_failed', '1')
     mockResolve.mockImplementation(() => {
         throw new Error('entry failed')
     })
@@ -355,6 +355,20 @@ it('does not report a setup failure again in the same session', async () => {
     await advance(100)
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
     expect(Sentry.captureMessage).not.toHaveBeenCalledWith('Setup initialization failed', expect.anything())
+})
+
+it('still reports a different setup failure in the same session', async () => {
+    sessionStorage.setItem('setup-init-failure-reported:initialization_timeout', '1')
+    mockResolve.mockImplementation(() => {
+        throw new Error('entry failed')
+    })
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+    await advance(100)
+    expect(Sentry.captureMessage).toHaveBeenCalledWith(
+        'Setup initialization failed',
+        expect.objectContaining({ tags: { reason: 'initialization_failed' } })
+    )
 })
 
 it('recovers from an initialization exception', async () => {
