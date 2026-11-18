@@ -22,6 +22,11 @@ function failureLayout(state: PasskeyScreenState, sm: boolean): FailureLayout {
     switch (state) {
         case 'failed-android':
         case 'failed-ios':
+        case 'second-cancel':
+        case 'took-too-long':
+        case 'left-app':
+        case 'check-screen-lock':
+        case 'check-no-provider':
             return {
                 pose: 'worried',
                 brackets: { left: 266, top: 112, width: 108, height: 172 },

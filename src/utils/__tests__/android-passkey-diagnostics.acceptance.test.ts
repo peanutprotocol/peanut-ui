@@ -129,6 +129,30 @@ describe('passkey diagnostic privacy boundary', () => {
         })
     })
 
+    // patch peanut.3 sends androidx credential types, which survive R8 where class names do not.
+    it.each([
+        'android.credentials.CreateCredentialException.TYPE_USER_CANCELED',
+        'android.credentials.GetCredentialException.TYPE_NO_CREDENTIAL',
+        'androidx.credentials.TYPE_CREATE_CREDENTIAL_PROVIDER_CONFIGURATION_EXCEPTION',
+        'androidx.credentials.TYPE_GET_PUBLIC_KEY_CREDENTIAL_DOM_EXCEPTION/androidx.credentials.TYPE_NOT_ALLOWED_ERROR',
+    ])('allows the credential exception type %s', (nativeException) => {
+        expect(sanitizePasskeyDiagnostics({ nativeException })).toEqual({ nativeException })
+    })
+
+    it('rejects messages and foreign values dressed as credential types', () => {
+        for (const nativeException of [
+            'android.credentials.CreateCredentialException.TYPE_USER_CANCELED: user@example.org',
+            'androidx.credentials.TYPE_NOT_ALLOWED_ERROR User cancelled the selector',
+            'androidx.credentials.TYPE_DOM_EXCEPTION/https://peanut.me',
+            'androidx.credentials.TYPE_X/androidx.credentials.TYPE_Y/androidx.credentials.TYPE_Z',
+            'com.example.provider.TYPE_CUSTOM',
+            'androidx.credentials.' + 'A'.repeat(101),
+            '[16] Cancelled by user.',
+        ]) {
+            expect(sanitizePasskeyDiagnostics({ nativeException })).toEqual({})
+        }
+    })
+
     it('keeps only allowlisted scalar facts for a deterministic bounded adversarial input corpus', () => {
         // Fixed seed 0x1a2b3c4d; 128 objects, up to 12 untrusted keys each.
         let seed = 0x1a2b3c4d

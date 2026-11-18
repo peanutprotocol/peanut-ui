@@ -23,7 +23,7 @@ patchedDependencies:
     hash: 9f44785cca88b2ad8bbee92a2ca1f24d7b8a8ccadc7948993a8202a65a915f85
     path: patches/@capacitor__clipboard.patch
   '@capgo/capacitor-passkey@8.2.2':
-    hash: 4789cf4a13a8de45bd719ef4eff30583f61dad4e708502ee59663176c5360c80
+    hash: c837b9b3399546f50969e3d2bf5c14995c14121c6bcdb1530c28a90baa55349b
     path: patches/@capgo__capacitor-passkey.patch
   '@sumsub/cordova-idensic-mobile-sdk-plugin@1.46.1':
     hash: 6f7eb30b0614c275eafc28daa2a1f0e1098d45da83480bfdcc592d5772a71a8f
@@ -98,7 +98,7 @@ importers:
         version: 8.6.0(@capacitor/core@8.2.0)
       '@capgo/capacitor-passkey':
         specifier: ^8.2.2
-        version: 8.2.2(patch_hash=4789cf4a13a8de45bd719ef4eff30583f61dad4e708502ee59663176c5360c80)(@capacitor/core@8.2.0)
+        version: 8.2.2(patch_hash=c837b9b3399546f50969e3d2bf5c14995c14121c6bcdb1530c28a90baa55349b)(@capacitor/core@8.2.0)
       '@capgo/capacitor-updater':
         specifier: 8.51.23
         version: 8.51.23(@capacitor/core@8.2.0)
@@ -8950,7 +8950,7 @@ snapshots:
     dependencies:
       '@capacitor/core': 8.2.0
 
-  '@capgo/capacitor-passkey@8.2.2(patch_hash=4789cf4a13a8de45bd719ef4eff30583f61dad4e708502ee59663176c5360c80)(@capacitor/core@8.2.0)':
+  '@capgo/capacitor-passkey@8.2.2(patch_hash=c837b9b3399546f50969e3d2bf5c14995c14121c6bcdb1530c28a90baa55349b)(@capacitor/core@8.2.0)':
     dependencies:
       '@capacitor/core': 8.2.0
 

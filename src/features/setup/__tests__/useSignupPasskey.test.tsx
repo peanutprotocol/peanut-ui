@@ -12,7 +12,11 @@ import { onSignupScreen, signupControls } from '@/test-utils/signup-controls'
 let mockHandleRegister = jest.fn()
 const mockApiFetch = jest.fn()
 const mockLogin = jest.fn()
-const mockSupport = jest.fn(async () => ({ isSupported: true }) as { isSupported: boolean; warning?: string })
+const mockSupport = jest.fn(
+    async () => ({ isSupported: true }) as { isSupported: boolean; warning?: string; warningKey?: string; fix?: string }
+)
+const mockOpenPasskeySettings = jest.fn(async () => {})
+const mockFailureFields = jest.fn((_error: unknown) => ({}) as Record<string, unknown>)
 let mockAddress: string | undefined
 let mockIsRegistering = false
 const mockSetNoBackLock = jest.fn()
@@ -73,7 +77,13 @@ jest.mock('@/features/setup/signup-draft', () => ({
 }))
 jest.mock('@/services/pending-invite-attribution', () => ({ settlePendingInviteAttribution: jest.fn() }))
 jest.mock('@/utils/api-fetch', () => ({ apiFetch: (...args: unknown[]) => mockApiFetch(...args) }))
-jest.mock('@/utils/passkeyPreflight', () => ({ checkPasskeySupport: () => mockSupport() }))
+jest.mock('@/utils/passkeyPreflight', () => ({
+    checkPasskeySupport: () => mockSupport(),
+    openPasskeySettings: () => mockOpenPasskeySettings(),
+}))
+jest.mock('@/utils/passkey-failure-fields', () => ({
+    passkeyFailureFields: (error: unknown) => mockFailureFields(error),
+}))
 jest.mock('@/utils/passkeyDebug', () => ({ capturePasskeyDebugInfo: jest.fn() }))
 jest.mock('@/utils/webauthn-ceremony-telemetry', () => ({
     ...jest.requireActual('@/utils/webauthn-ceremony-telemetry'),
@@ -102,9 +112,20 @@ function PasskeyHarness({ username }: { username: string }) {
             </button>
             {passkey.usernameTaken && <button onClick={() => void passkey.logIn()}>Log in</button>}
             {passkey.inlineError && <p role="alert">{passkey.inlineError}</p>}
+            {passkey.recoveryDrawer.visible && (
+                <div data-testid="login-recovery">
+                    <button onClick={passkey.recoveryDrawer.onRetry}>Drawer retry</button>
+                </div>
+            )}
             {passkey.preflightWarning && <p data-testid="preflight">{passkey.preflightWarning}</p>}
-            {passkey.isHelpOpen && <div role="dialog">{passkey.helpErrorName}</div>}
+            {passkey.isHelpOpen && (
+                <div role="dialog" data-help-reason={String(passkey.helpReason)}>
+                    {passkey.helpErrorName}
+                </div>
+            )}
             {passkey.isHelpOpen && <button onClick={passkey.retryFromHelp}>Retry</button>}
+            {passkey.isHelpOpen && <button onClick={passkey.openSettings}>Open settings</button>}
+            <output data-testid="inline-code">{String(passkey.inlineErrorCode)}</output>
             {passkey.isProviderUnsupportedOpen && (
                 <div
                     role="dialog"
@@ -187,6 +208,7 @@ beforeEach(() => {
     mockCeremony = undefined
     mockUseRealTelemetry = false
     mockSupport.mockImplementation(async () => ({ isSupported: true }))
+    mockFailureFields.mockImplementation(() => ({}))
     // 404 = username free, so the handler proceeds to registration
     mockApiFetch.mockResolvedValue({ status: 404 })
     mockHandleRegister = jest.fn(() => new Promise(() => {}))
@@ -415,6 +437,28 @@ describe('passkey failures and collision recovery', () => {
         expect(screen.getByRole('button', { name: 'Claim' })).toBeEnabled()
     })
 
+    it('sends which pre-check failed, so a missing screen lock and a missing provider stay apart', async () => {
+        renderWithIntl(<Harness />)
+        await waitFor(() => expect(mockSupport).toHaveBeenCalledTimes(1))
+        mockSupport.mockImplementation(async () => ({
+            isSupported: false,
+            warning: 'preflight:nativeNoProvider',
+            warningKey: 'nativeNoProvider',
+        }))
+        claim()
+        await waitFor(() =>
+            expect(failedEvents()).toEqual([
+                [
+                    ANALYTICS_EVENTS.SIGNUP_PASSKEY_FAILED,
+                    expect.objectContaining({
+                        error_name: 'PreflightUnsupported',
+                        preflight_warning: 'nativeNoProvider',
+                    }),
+                ],
+            ])
+        )
+    })
+
     it('falls back to the generic copy when an unsupported device gives no warning', async () => {
         renderWithIntl(<Harness />)
         await waitFor(() => expect(mockSupport).toHaveBeenCalledTimes(1))
@@ -471,6 +515,22 @@ describe('passkey failures and collision recovery', () => {
         claim()
         fireEvent.click(await screen.findByRole('button', { name: 'Log in' }))
         expect(await screen.findByRole('alert')).toHaveTextContent('Login exploded')
+        expect(screen.queryByTestId('login-recovery')).not.toBeInTheDocument()
+    })
+
+    it('opens the recovery drawer, not an inline error, when Log in finds no passkey', async () => {
+        mockApiFetch.mockResolvedValue({ status: 200 })
+        mockLogin.mockRejectedValueOnce(
+            Object.assign(new Error('curated'), { name: 'PasskeyError', code: 'PASSKEY_NOT_FOUND' })
+        )
+        renderWithIntl(<Harness />)
+        claim()
+        fireEvent.click(await screen.findByRole('button', { name: 'Log in' }))
+        expect(await screen.findByTestId('login-recovery')).toBeInTheDocument()
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+
+        fireEvent.click(screen.getByRole('button', { name: 'Drawer retry' }))
+        await waitFor(() => expect(mockLogin).toHaveBeenCalledTimes(2))
     })
 
     // The native availability check (GET) hides deleted accounts, but /register/options still
@@ -493,13 +553,12 @@ describe('passkey failures and collision recovery', () => {
         expect(screen.queryByRole('button', { name: 'Log in' })).not.toBeInTheDocument()
     })
 
-    it('treats a plain NotAllowedError as an unfinished verification the user can retry', async () => {
+    it('treats a plain NotAllowedError in a browser as a cancel the user can retry', async () => {
         mockHandleRegister.mockRejectedValue(Object.assign(new Error('cancelled'), { name: 'NotAllowedError' }))
         renderWithIntl(<Harness />)
         claim()
-        expect(await screen.findByRole('alert')).toHaveTextContent(
-            'Passkey verification wasn’t completed. Try again when ready.'
-        )
+        expect(await screen.findByRole('alert')).toHaveTextContent('Passkey setup was cancelled. Try again when ready.')
+        expect(screen.getByTestId('inline-code')).toHaveTextContent('cancelled')
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Claim' })).toBeEnabled()
     })
@@ -673,9 +732,11 @@ describe('repeated cancels in the iOS app', () => {
         renderWithIntl(<Harness />)
 
         await claimAndSettle()
+        // An unclassified refusal is not a known cancel, so it never says "cancelled".
         expect(screen.getByRole('alert')).toHaveTextContent(
             'Passkey verification wasn’t completed. Try again when ready.'
         )
+        expect(screen.getByTestId('inline-code')).toHaveTextContent('null')
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
 
         await claimAndSettle()
@@ -741,9 +802,7 @@ describe('repeated cancels in the iOS app', () => {
         await claimAndSettle()
         await claimAndSettle()
         await claimAndSettle()
-        expect(screen.getByRole('alert')).toHaveTextContent(
-            'Passkey verification wasn’t completed. Try again when ready.'
-        )
+        expect(screen.getByRole('alert')).toHaveTextContent('Passkey setup was cancelled. Try again when ready.')
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })
 })
@@ -1011,4 +1070,179 @@ it('does not repeat an uncertain registration while the reconciliation lookup is
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('Couldn’t reach Peanut’s servers')
     expect(mockHandleRegister).toHaveBeenCalledTimes(1)
+})
+
+/*
+ * TASK-25047: the Android app. Samsung Pass or another provider can open in front of Google Password Manager and
+ * end the sheet as a cancel, so a second cancel gets the steps to pick another manager. Only a reason the native
+ * layer names as a cancel says "cancelled"; any other NotAllowedError says "not completed" and opens the help.
+ */
+describe('Android app: cancels, timeouts and the pre-check', () => {
+    const fail = (message: string, name = 'NotAllowedError') => Object.assign(new Error(message), { name })
+    const claimAndSettle = async () => {
+        const failures = failedEvents().length
+        claim()
+        await waitFor(() => expect(failedEvents()).toHaveLength(failures + 1))
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Claim' })).toBeEnabled())
+    }
+    const helpReason = () => screen.queryByRole('dialog')?.getAttribute('data-help-reason') ?? null
+
+    beforeEach(() => {
+        mockDeviceType = 'android'
+        mockAndroidNativeBridge = true
+    })
+
+    it('keeps the first real cancel inline as cancelled and opens the password-manager help on the second', async () => {
+        mockHandleRegister.mockRejectedValue(fail('User cancelled the selector'))
+        renderWithIntl(<Harness />)
+
+        await claimAndSettle()
+        expect(screen.getByRole('alert')).toHaveTextContent('Passkey setup was cancelled. Try again when ready.')
+        expect(screen.getByTestId('inline-code')).toHaveTextContent('cancelled')
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+        await claimAndSettle()
+        expect(helpReason()).toBe('android-cancel')
+
+        fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+        await waitFor(() => expect(mockHandleRegister).toHaveBeenCalledTimes(3))
+        await waitFor(() => expect(failedEvents()).toHaveLength(3))
+    })
+
+    it('says "not completed", never "cancelled", for an unclassified NotAllowedError and opens the help at once', async () => {
+        mockHandleRegister.mockRejectedValue(fail('Something the plugin did not name'))
+        renderWithIntl(<Harness />)
+        await claimAndSettle()
+        expect(helpReason()).toBe('android-cancel')
+        expect(screen.getByRole('alert')).toHaveTextContent(
+            'Passkey verification wasn’t completed. Try again when ready.'
+        )
+        expect(screen.getByTestId('inline-code')).toHaveTextContent('null')
+    })
+
+    it('keeps the Android setup screen for "no create options", not the cancel help', async () => {
+        mockHandleRegister.mockRejectedValue(fail('No create options available.'))
+        renderWithIntl(<Harness />)
+        await claimAndSettle()
+        expect(helpReason()).toBe('android-setup')
+    })
+
+    it.each([
+        ['sheet_hung', 'took-too-long'],
+        ['left_app', 'left-app'],
+        [undefined, 'took-too-long'],
+    ])('maps a ceremony timeout with outcome %s to the %s screen', async (outcome, reason) => {
+        mockHandleRegister.mockRejectedValue(
+            Object.assign(fail('CeremonyTimeoutError', 'CeremonyTimeoutError'), outcome ? { outcome } : {})
+        )
+        renderWithIntl(<Harness />)
+        await claimAndSettle()
+        expect(helpReason()).toBe(reason)
+        // Back from the screen leaves the inline line on the hero.
+        expect(screen.getByRole('alert')).toHaveTextContent('This is taking longer than it should.')
+        expect(screen.getByTestId('inline-code')).toHaveTextContent('null')
+    })
+
+    it('keeps the inline timeout line, with no screen, outside the Android app', async () => {
+        mockAndroidNativeBridge = false
+        mockHandleRegister.mockRejectedValue(fail('CeremonyTimeoutError', 'CeremonyTimeoutError'))
+        renderWithIntl(<Harness />)
+        await claimAndSettle()
+        expect(helpReason()).toBeNull()
+        expect(screen.getByRole('alert')).toHaveTextContent('This is taking longer than it should.')
+    })
+
+    it('still sends a timed-out registration that completed server-side to Log in before any timeout screen', async () => {
+        mockApiFetch.mockResolvedValueOnce({ status: 404 }).mockResolvedValueOnce({ status: 200 })
+        mockHandleRegister.mockRejectedValue(
+            Object.assign(fail('CeremonyTimeoutError', 'CeremonyTimeoutError'), { outcome: 'left_app' })
+        )
+        renderWithIntl(<Harness />)
+        claim()
+        expect(await screen.findByRole('button', { name: 'Log in' })).toBeInTheDocument()
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+
+    it.each([
+        ['nativeScreenLock', 'screen-lock', 'Passkeys need a screen lock on this phone.'],
+        ['nativeNoProvider', 'no-provider', 'Passkeys need a password manager on this phone.'],
+    ])('shows the %s pre-check screen on mount; Open settings opens them', async (warningKey, reason, copy) => {
+        mockSupport.mockResolvedValue({
+            isSupported: false,
+            warning: `preflight:${warningKey}`,
+            warningKey,
+            fix: 'security-settings',
+        })
+        renderWithIntl(<Harness />)
+        await waitFor(() => expect(helpReason()).toBe(reason))
+        expect(screen.getByTestId('preflight')).toHaveTextContent(copy)
+        fireEvent.click(screen.getByRole('button', { name: 'Open settings' }))
+        expect(mockOpenPasskeySettings).toHaveBeenCalledTimes(1)
+    })
+
+    it('re-runs the check from Try again on the pre-check screen and starts the ceremony once it passes', async () => {
+        mockSupport.mockResolvedValue({
+            isSupported: false,
+            warning: 'preflight:nativeScreenLock',
+            warningKey: 'nativeScreenLock',
+            fix: 'security-settings',
+        })
+        renderWithIntl(<Harness />)
+        await waitFor(() => expect(helpReason()).toBe('screen-lock'))
+
+        mockSupport.mockResolvedValue({ isSupported: true })
+        fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+        await waitFor(() => expect(mockHandleRegister).toHaveBeenCalledTimes(1))
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+
+    it('opens the pre-check screen when the tap re-check finds no screen lock', async () => {
+        renderWithIntl(<Harness />)
+        await act(async () => {})
+        mockSupport.mockResolvedValue({
+            isSupported: false,
+            warning: 'preflight:nativeScreenLock',
+            warningKey: 'nativeScreenLock',
+            fix: 'security-settings',
+        })
+        claim()
+        await waitFor(() => expect(helpReason()).toBe('screen-lock'))
+        expect(mockHandleRegister).not.toHaveBeenCalled()
+    })
+
+    it('keeps a pre-check warning without a settings fix inline, with no screen', async () => {
+        mockSupport.mockResolvedValue({
+            isSupported: false,
+            warning: 'preflight:nativeAndroid',
+            warningKey: 'nativeAndroid',
+        })
+        renderWithIntl(<Harness />)
+        await screen.findByTestId('preflight')
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+
+    it('adds the native diagnostic fields to signup_passkey_failed and keeps its own fields', async () => {
+        mockFailureFields.mockImplementation(() => ({
+            native_error_code: 'android:CreateCredentialCancellationException',
+            native_exception: 'CreateCredentialCancellationException',
+            device_model: 'SM-A146B',
+            android_version: '14',
+            play_services_version: '24.40.33',
+        }))
+        mockHandleRegister.mockRejectedValue(fail('User cancelled the selector'))
+        renderWithIntl(<Harness />)
+        await claimAndSettle()
+        const [[, properties]] = failedEvents()
+        expect(mockFailureFields).toHaveBeenCalledWith(expect.objectContaining({ name: 'NotAllowedError' }))
+        expect(properties).toMatchObject({
+            error_name: 'NotAllowedError',
+            native_reason: 'canceled',
+            attempt: 1,
+            native_error_code: 'android:CreateCredentialCancellationException',
+            native_exception: 'CreateCredentialCancellationException',
+            device_model: 'SM-A146B',
+            android_version: '14',
+            play_services_version: '24.40.33',
+        })
+    })
 })

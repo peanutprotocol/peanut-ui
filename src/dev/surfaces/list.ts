@@ -622,6 +622,30 @@ export const SETUP_REDESIGN_SURFACES: Record<string, SurfaceMeta> = {
         name: 'Sign-up redesign: 03 Passkey',
         path: 'Setup/redesign/Passkey/PasskeyScreen.tsx',
     },
+    'setup-redesign-passkey-second-cancel': {
+        name: 'Sign-up redesign: 03 Passkey, second Android cancel',
+        path: 'Setup/redesign/Passkey/PasskeyScreenView.tsx',
+    },
+    'setup-redesign-passkey-took-too-long': {
+        name: 'Sign-up redesign: 03 Passkey, the sheet took too long',
+        path: 'Setup/redesign/Passkey/PasskeyScreenView.tsx',
+    },
+    'setup-redesign-passkey-left-app': {
+        name: 'Sign-up redesign: 03 Passkey, left the app mid-sheet',
+        path: 'Setup/redesign/Passkey/PasskeyScreenView.tsx',
+    },
+    'setup-redesign-passkey-check-screen-lock': {
+        name: 'Sign-up redesign: 03 Passkey, pre-check found no screen lock',
+        path: 'Setup/redesign/Passkey/PasskeyScreenView.tsx',
+    },
+    'setup-redesign-passkey-check-no-provider': {
+        name: 'Sign-up redesign: 03 Passkey, pre-check found no password manager',
+        path: 'Setup/redesign/Passkey/PasskeyScreenView.tsx',
+    },
+    'setup-redesign-passkey-login-recovery': {
+        name: 'Sign-up redesign: 03 Passkey, Log in found no passkey',
+        path: 'Setup/redesign/Passkey/PasskeyScreenView.tsx',
+    },
     'setup-redesign-invite': { name: 'Sign-up redesign: 04 Invite', path: 'Setup/redesign/Invite/InviteScreen.tsx' },
     'setup-redesign-invite-found': {
         name: 'Sign-up redesign: 04 Invite, back with an inviter',
