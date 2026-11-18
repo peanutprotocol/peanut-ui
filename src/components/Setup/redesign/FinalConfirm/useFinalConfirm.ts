@@ -26,6 +26,7 @@ import { AccountType } from '@/interfaces/interfaces'
 import { attachSignupGeo } from '@/services/signup-geo'
 import { confettiPresets } from '@/utils/confetti'
 import { readInviteCode } from '@/utils/invite-stash'
+import { passkeyFailureFields } from '@/utils/passkey-failure-fields'
 import { passkeyFailureReason } from '@/utils/passkey-failure-reporting'
 import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
 import {
@@ -272,6 +273,7 @@ export function useFinalConfirm({ onComplete }: { onComplete?: (outcome: { defer
             const assertion = latestCeremony('get', 'user_op', attemptStartedAt)
             const deferrable = failure.mode === 'bundler_transient' && canDeferSignupTestTransaction(record)
             posthog.capture(ANALYTICS_EVENTS.SIGNUP_TEST_TX_FAILED, {
+                ...passkeyFailureFields(failure.rootCause),
                 error_name: failure.rootCause.name,
                 error_code: failure.errorCode,
                 is_aa24: failure.mode === 'signature_invalid',

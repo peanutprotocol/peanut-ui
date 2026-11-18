@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useQueryState } from 'nuqs'
+import { parseAsBoolean, useQueryState } from 'nuqs'
 import { type QueryClient, useQueryClient } from '@tanstack/react-query'
 import { useLocale, useTranslations } from 'next-intl'
 import ResidenceChangeDrawer from '@/components/Profile/views/ResidenceChangeDrawer'
@@ -254,6 +254,16 @@ function PaperworkVerificationAccount({ userId }: { userId?: string }) {
     const [generation, setGeneration] = useState(0)
     // The steps overview opens a visit once; a reload mid-flow goes straight back to the open step.
     const introShown = useRef(false)
+    // A caller that already listed the steps (the sign-up Verify start) skips the overview for this visit. The param
+    // leaves the URL at once, so a reload or a shared link opens the overview as usual.
+    const [skipOverviewParam, setSkipOverviewParam] = useQueryState(
+        'skipOverview',
+        parseAsBoolean.withDefault(false).withOptions({ history: 'replace' })
+    )
+    const overviewSkipped = useRef(skipOverviewParam)
+    useEffect(() => {
+        if (skipOverviewParam) void setSkipOverviewParam(null)
+    }, [skipOverviewParam, setSkipOverviewParam])
     // A load must not re-run because the router object changed identity.
     const routerRef = useRef(router)
     routerRef.current = router
@@ -364,6 +374,7 @@ function PaperworkVerificationAccount({ userId }: { userId?: string }) {
             fresh={state.fresh}
             reload={load}
             introShown={introShown}
+            skipOverview={overviewSkipped.current}
         />
     )
 }
@@ -373,12 +384,14 @@ function PaperworkVerificationSteps({
     fresh,
     reload,
     introShown,
+    skipOverview,
 }: {
     initial: Loaded
     /** the server's read behind a cached open, with the same screens */
     fresh?: Loaded
     reload: () => Promise<void>
     introShown: React.MutableRefObject<boolean>
+    skipOverview: boolean
 }) {
     const t = useTranslations('kyc.paperworkVerification')
     const tDocuments = useTranslations('kyc.documents')
@@ -471,8 +484,8 @@ function PaperworkVerificationSteps({
     const entry = screenOf(entryStep({ questions, plan, status }, submitted))
 
     // A visit that still has questions or the ID ahead opens on the steps overview, in front
-    // of the open step; a deep link to a step skips it.
-    const [intro, setIntro] = useState(() => asking && !introShown.current && !stepParam)
+    // of the open step; a deep link to a step skips it, and so does a caller that showed the steps itself.
+    const [intro, setIntro] = useState(() => asking && !introShown.current && !stepParam && !skipOverview)
     const showIntro = intro && asking
     // While asking, the clean URL keeps meaning the step this visit opened on, so moving on to
     // a step that has since become the entry (the ID, once every answer is in) still writes it.

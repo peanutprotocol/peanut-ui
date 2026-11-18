@@ -1,7 +1,8 @@
 'use client'
 
 import { NotificationsSwitchesScreen } from '@/components/Setup/redesign/Notifications/NotificationsSwitchesScreen'
-import { CelebrationScreen } from '@/components/Setup/redesign/Celebration/CelebrationScreen'
+import { FinalStep } from '@/components/Setup/redesign/FinalConfirm/FinalStep'
+import { VerifyStartScreen } from '@/components/Setup/redesign/VerifyStart/VerifyStartScreen'
 import { TestBuildRibbonView } from '@/components/Global/TestBuildRibbon'
 import { API_CONTRACT_STATES } from './api-contract-states'
 import AmountInput from '@/components/Global/AmountInput'
@@ -42,6 +43,8 @@ import type { SignupEntryFlow } from '@/features/setup/signup-analytics'
 import { FinalConfirmScreen } from '@/components/Setup/redesign/FinalConfirm/FinalConfirmScreen'
 
 import { PasskeySetupHelpDrawer } from '@/components/Setup/Views/PasskeySetupHelpDrawer'
+import { PasskeyScreenView } from '@/components/Setup/redesign/Passkey/PasskeyScreenView'
+import { previewPasskey } from './passkey-preview'
 import { LoginRecoveryDrawer } from '@/components/Setup/Views/LoginRecoveryDrawer'
 import ConfirmInviteModal from '@/components/Global/ConfirmInviteModal'
 import EarlyUserDrawer from '@/components/Global/EarlyUserDrawer'
@@ -316,11 +319,22 @@ const FUNDED_CARD_ONBOARDING: OnboardingState = {
 }
 const noop = () => {}
 
-/** 12 needs a completed sign-up in the flow context; it then redirects on its own after 4.5 s, as on /setup. */
+/**
+ * 12 needs a completed sign-up in the flow context; it then redirects on its own after 4.5 s, as on /setup. With
+ * Verify now and Remind me later, its Verify now opens the Verify start, as on /setup.
+ */
 function CompletedCelebration() {
+    const { signupCompleted, setSignupCompleted } = useSetupFlowContext()
+    React.useLayoutEffect(() => setSignupCompleted(true), [setSignupCompleted])
+    // FinalStep shows the final confirm until sign-up completes, and that screen sends a signed-in user Home
+    return signupCompleted ? <FinalStep /> : null
+}
+
+/** The Verify start after a completed default sign-up. */
+function CompletedVerifyStart() {
     const { setSignupCompleted } = useSetupFlowContext()
     React.useLayoutEffect(() => setSignupCompleted(true), [setSignupCompleted])
-    return <CelebrationScreen />
+    return <VerifyStartScreen />
 }
 
 const asyncNoop = async () => {}
@@ -884,6 +898,14 @@ export const SURFACES: Record<string, Surface> = {
         render: () => (
             <SetupScreen screenId="advantage-control" showProgress={false}>
                 <CompletedCelebration />
+            </SetupScreen>
+        ),
+    },
+    '07-f-setup-verify-start': {
+        ...SURFACE_META['07-f-setup-verify-start'],
+        render: () => (
+            <SetupScreen screenId="advantage-control" showProgress={false}>
+                <CompletedVerifyStart />
             </SetupScreen>
         ),
     },
@@ -1754,6 +1776,63 @@ export const SURFACES: Record<string, Surface> = {
                 }}
             />
         ),
+    },
+    'setup-redesign-passkey-second-cancel': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-passkey-second-cancel'],
+        render: () => (
+            <SetupScreen screenId="passkey" username="luckyotter">
+                <PasskeyScreenView passkey={previewPasskey('android-cancel')} />
+            </SetupScreen>
+        ),
+    },
+    'setup-redesign-passkey-took-too-long': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-passkey-took-too-long'],
+        render: () => (
+            <SetupScreen screenId="passkey" username="luckyotter">
+                <PasskeyScreenView passkey={previewPasskey('took-too-long')} />
+            </SetupScreen>
+        ),
+    },
+    'setup-redesign-passkey-left-app': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-passkey-left-app'],
+        render: () => (
+            <SetupScreen screenId="passkey" username="luckyotter">
+                <PasskeyScreenView passkey={previewPasskey('left-app')} />
+            </SetupScreen>
+        ),
+    },
+    'setup-redesign-passkey-check-screen-lock': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-passkey-check-screen-lock'],
+        render: () => (
+            <SetupScreen screenId="passkey" username="luckyotter">
+                <PasskeyScreenView passkey={previewPasskey('screen-lock')} />
+            </SetupScreen>
+        ),
+    },
+    'setup-redesign-passkey-check-no-provider': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-passkey-check-no-provider'],
+        render: () => (
+            <SetupScreen screenId="passkey" username="luckyotter">
+                <PasskeyScreenView passkey={previewPasskey('no-provider')} />
+            </SetupScreen>
+        ),
+    },
+    'setup-redesign-passkey-login-recovery': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-passkey-login-recovery'],
+        render: () => {
+            const base = previewPasskey(null)
+            return (
+                <SetupScreen screenId="passkey" username="luckyotter">
+                    <PasskeyScreenView
+                        passkey={{
+                            ...base,
+                            usernameTaken: true,
+                            recoveryDrawer: { ...base.recoveryDrawer, visible: true },
+                        }}
+                    />
+                </SetupScreen>
+            )
+        },
     },
     'setup-redesign-invite': {
         ...SETUP_REDESIGN_SURFACES['setup-redesign-invite'],

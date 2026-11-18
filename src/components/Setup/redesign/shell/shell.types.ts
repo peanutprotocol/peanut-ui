@@ -34,7 +34,10 @@ export type SetupFooterSecondary = SetupFooterButton & {
  * a link line under the white button, or under the slot of a one-button footer (it counts toward the note lift).
  */
 export type SetupFooterSpec = {
-    primary: SetupFooterButton
+    primary: SetupFooterButton & {
+        /** White on a pink ground, where the pink primary would vanish (design.md: the band's own white CTA). */
+        variant?: 'secondary'
+    }
     slot?: ReactNode
     secondary?: SetupFooterSecondary
     below?: ReactNode

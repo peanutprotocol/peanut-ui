@@ -5,20 +5,22 @@
  * (`redirect_uri`) and the demo route are checked by where the person lands.
  */
 import { StrictMode } from 'react'
-import { act, screen } from '@testing-library/react'
+import { act, fireEvent, screen, within } from '@testing-library/react'
 import posthog from 'posthog-js'
 import { confettiPresets } from '@/utils/confetti'
 import { notifyHaptic } from '@/utils/haptics'
 import { disableDemoMode, enableDemoMode } from '@/utils/demo'
-import { setRedirectUrl } from '@/utils/general.utils'
+import { getStoredRedirect, setRedirectUrl } from '@/utils/general.utils'
 import { signupControls } from '@/test-utils/signup-controls'
+import { FinalStep } from '../../FinalConfirm/FinalStep'
 import { CelebrationScreen } from '../CelebrationScreen'
 import { copy, copyRx, footer, renderRedesign, setupState, textMatch } from '../../Accounts/__tests__/redesignHarness'
 
 const mockReplace = jest.fn()
+const mockPush = jest.fn()
 let mockRedirectUri: string | null = null
 jest.mock('next/navigation', () => ({
-    useRouter: () => ({ replace: mockReplace, push: jest.fn() }),
+    useRouter: () => ({ replace: mockReplace, push: mockPush }),
     useSearchParams: () => ({ get: (key: string) => (key === 'redirect_uri' ? mockRedirectUri : null) }),
 }))
 jest.mock('@/context/authContext', () => ({
@@ -31,6 +33,33 @@ jest.mock('@/context/authContext', () => ({
 jest.mock('@/utils/confetti', () => ({ confettiPresets: { success: jest.fn(), celebration: jest.fn() } }))
 jest.mock('@/utils/haptics', () => ({ notifyHaptic: jest.fn() }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn(), setPersonProperties: jest.fn() } }))
+// The verify start: the door checks, and the ID-check start's boundaries (the start's own routing is
+// covered by ActivationCTAs.test, which shares useIdentityCheckStart).
+let mockRegionRestricted = false
+jest.mock('@/hooks/useIdentityVerification', () => ({
+    useIdentityVerification: () => ({ isRegionRestricted: mockRegionRestricted }),
+}))
+let mockRestrictions = { banking: false, card: false }
+jest.mock('@/hooks/useResidenceRestrictions', () => ({ useResidenceRestrictions: () => mockRestrictions }))
+let mockOpensVerify = true
+jest.mock('@/features/paperwork-verification/usePaperworkVerificationStart', () => ({
+    usePaperworkVerificationStart: () => async () => mockOpensVerify,
+}))
+let mockKycOptions: { onKycSuccess?: () => void } = {}
+jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
+    useMultiPhaseKycFlow: (options: { onKycSuccess?: () => void }) => {
+        mockKycOptions = options
+        return { showWrapper: false, handleInitiateKyc: jest.fn(), isLoading: false }
+    },
+}))
+jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))
+jest.mock('@/components/Kyc/InitiateKycModal', () => ({
+    InitiateKycModal: ({ visible }: { visible: boolean }) => (visible ? <div>initiate-kyc-modal</div> : null),
+}))
+jest.mock('@/features/payments/flows/qr-pay/useQrIdentityCheck', () => ({
+    useQrIdentityCheck: () => ({ start: jest.fn(), modals: null }),
+}))
+jest.mock('@/context/ModalsContext', () => ({ useModalsContext: () => ({ openSupportWithMessage: jest.fn() }) }))
 jest.mock('lottie-web/build/player/lottie_light', () => ({
     __esModule: true,
     default: {
@@ -65,14 +94,23 @@ const setReducedMotion = (matches: boolean) => {
 }
 
 type Seed = Parameters<typeof renderRedesign>[1]['seed']
-const render = (seed: Seed = { signupCompleted: true, username: 'kim' }, strict = false) =>
+const mockOnVerify = jest.fn()
+// dev's Celebration with its redirect, as a deep-link sign-up (add money) still gets it: a default sign-up gets the
+// buttons. The verify suite renders FinalStep, so its Verify now really opens the Verify start.
+const render = (
+    seed: Seed = { signupCompleted: true, username: 'kim', signupEntryFlow: 'add-money' },
+    strict = false,
+    step = false
+) =>
     renderRedesign(
-        strict ? (
+        step ? (
+            <FinalStep />
+        ) : strict ? (
             <StrictMode>
-                <CelebrationScreen />
+                <CelebrationScreen onVerify={mockOnVerify} />
             </StrictMode>
         ) : (
-            <CelebrationScreen />
+            <CelebrationScreen onVerify={mockOnVerify} />
         ),
         {
             screenId: 'advantage-control',
@@ -88,6 +126,9 @@ beforeEach(() => {
     localStorage.clear()
     sessionStorage.clear()
     mockRedirectUri = null
+    mockRegionRestricted = false
+    mockRestrictions = { banking: false, card: false }
+    mockOpensVerify = true
     setReducedMotion(false)
     disableDemoMode()
 })
@@ -153,12 +194,14 @@ describe('12 Celebration', () => {
     })
 
     it('after Confirm later (quiet) there is no celebration: no confetti, no headline, straight into the account', () => {
-        renderRedesign(<CelebrationScreen quiet />, {
+        // a default sign-up, which would otherwise get the Verify now buttons and hold the redirect
+        renderRedesign(<CelebrationScreen quiet onVerify={mockOnVerify} />, {
             screenId: 'advantage-control',
             seed: { signupCompleted: true, username: 'kim' },
             showBackButton: true,
         })
         expect(screen.queryByTestId('setup-redesign-celebration')).toBeNull()
+        expect(screen.queryByTestId('setup-redesign-celebration-verify-now')).toBeNull()
         expect(confettiPresets.success).not.toHaveBeenCalled()
         expect(notifyHaptic).not.toHaveBeenCalled()
         act(() => jest.advanceTimersByTime(0))
@@ -237,6 +280,169 @@ describe('12 Celebration', () => {
         for (const piece of container.querySelectorAll<HTMLElement>('[data-setup-art-box] > div')) {
             expect(piece.style.opacity === '' || piece.style.opacity === '1').toBe(true)
         }
+        act(() => jest.advanceTimersByTime(4500))
+        expect(mockReplace).toHaveBeenCalledWith('/home')
+    })
+})
+
+describe('12 Celebration and the Verify start (a default sign-up)', () => {
+    const captured = (event: string) =>
+        (posthog.capture as jest.Mock).mock.calls.filter(([name]) => name === event).map(([, props]) => props)
+    const renderStep = (seed: Seed = { signupCompleted: true, username: 'kim' }) => render(seed, false, true)
+    const celebrationVerify = () => screen.getByTestId('setup-redesign-celebration-verify-now')
+    const startVerify = () => screen.getByTestId('setup-redesign-verify-now')
+    const later = () => screen.getByRole('button', { name: copyRx('setupRedesign.verifyStart.remindLater') })
+    const openStart = () => {
+        const view = renderStep()
+        fireEvent.click(celebrationVerify())
+        return view
+    }
+
+    it("VS-1 Celebration: dev's copy, a white Verify now and a Remind me later link in place of the wait", () => {
+        const { container } = renderStep()
+        expect(setupState(container)).toBe('buttons')
+        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(copyRx('setupRedesign.done.title'))
+        expect(screen.getByText(textMatch('@kim'))).toBeInTheDocument()
+        expect(screen.getByText(textMatch(copy('setupRedesign.done.sub')))).toBeInTheDocument()
+        expect(screen.queryByText(textMatch(copy('setupRedesign.done.going')))).toBeNull()
+        expect(container.querySelector('[data-mascot-pose="waving-chill"]')).not.toBeNull()
+        // white on the pink ground: the pink primary would vanish (Kush, feedback round 1)
+        expect(celebrationVerify()).toHaveTextContent(copy('setupRedesign.verifyStart.verifyNow'))
+        expect(celebrationVerify()).toHaveClass('btn-secondary')
+        // design.md: a defer action is the tertiary link, never a Button
+        expect(later()).not.toHaveClass('btn')
+        expect(confettiPresets.success).toHaveBeenCalledTimes(1)
+        act(() => jest.advanceTimersByTime(10000))
+        expect(mockReplace).not.toHaveBeenCalled()
+        // the Verify start reports itself when it opens, not here
+        expect(captured('signup_verify_start_shown')).toEqual([])
+    })
+
+    it('VS-2 Celebration Verify now opens the Verify start: pink band, the two steps, the pink primary', () => {
+        const { container } = openStart()
+        expect(setupState(container)).toBe('verify-start')
+        expect(signupControls(posthog.capture as jest.Mock)).toEqual(['celebration:open', 'celebration-verify-now:tap'])
+        expect(container.querySelector('[data-ground="pink"]')).not.toBeNull()
+        expect(container.querySelector('[data-setup-panel]')).not.toBeNull()
+        expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(copy('setupRedesign.verifyStart.title'))
+        expect(screen.getByText(copy('setupRedesign.verifyStart.sub'))).toBeInTheDocument()
+        const steps = within(screen.getByTestId('setup-redesign-verify-steps')).getAllByRole('listitem')
+        expect(steps.map((step) => step.textContent)).toEqual([
+            `1${copy('setupRedesign.verifyStart.stepQuestions')}`,
+            `2${copy('setupRedesign.verifyStart.stepPhoto')}`,
+        ])
+        expect(steps[0]).toHaveAttribute('aria-current', 'step')
+        expect(steps[1]).not.toHaveAttribute('aria-current')
+        expect(startVerify()).toHaveTextContent(copy('setupRedesign.verifyStart.verifyNow'))
+        expect(startVerify()).toHaveClass('btn-primary')
+        expect(later()).not.toHaveClass('btn')
+        expect(captured('signup_verify_start_shown')).toEqual([
+            expect.objectContaining({ flow_version: 2, signup_entry_flow: 'default' }),
+        ])
+        act(() => jest.advanceTimersByTime(10000))
+        expect(mockReplace).not.toHaveBeenCalled()
+    })
+
+    it('VS-3 Verify start Verify now opens /verify on the first question, past its overview', async () => {
+        openStart()
+        await act(async () => fireEvent.click(startVerify()))
+        // replace: Back from the first question must not reopen sign-up
+        expect(mockReplace).toHaveBeenCalledWith('/verify?skipOverview=true')
+        expect(mockReplace).toHaveBeenCalledTimes(1)
+        expect(mockPush).not.toHaveBeenCalled()
+        expect(captured('signup_verify_start_tapped')).toEqual([
+            expect.objectContaining({ choice: 'verify', flow_version: 2 }),
+        ])
+    })
+
+    it('VS-3 Verify now clears a stored redirect of an earlier session', async () => {
+        setRedirectUrl('/profile', 'session-end')
+        openStart()
+        await act(async () => fireEvent.click(startVerify()))
+        expect(getStoredRedirect()).toBeNull()
+    })
+
+    it('VS-4 a user outside the /verify flow gets the same start modal as Home', async () => {
+        mockOpensVerify = false
+        openStart()
+        await act(async () => fireEvent.click(startVerify()))
+        expect(screen.getByText('initiate-kyc-modal')).toBeInTheDocument()
+        expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    it('VS-4 the legacy start, once verified, goes where sign-up goes instead of back to Verify start', async () => {
+        mockOpensVerify = false
+        openStart()
+        await act(async () => fireEvent.click(startVerify()))
+        expect(mockReplace).not.toHaveBeenCalled()
+        act(() => mockKycOptions.onKycSuccess?.())
+        expect(mockReplace).toHaveBeenCalledWith('/home')
+    })
+
+    it('VS-5 Celebration Remind me later goes Home without opening the Verify start', () => {
+        const { container } = renderStep()
+        fireEvent.click(later())
+        expect(mockReplace).toHaveBeenCalledWith('/home')
+        expect(mockReplace).toHaveBeenCalledTimes(1)
+        expect(setupState(container)).toBe('buttons')
+        expect(signupControls(posthog.capture as jest.Mock)).toEqual([
+            'celebration:open',
+            'celebration-remind-later:tap',
+        ])
+        expect(captured('signup_verify_start_shown')).toEqual([])
+        expect(captured('signup_verify_start_tapped')).toEqual([])
+    })
+
+    it('VS-6 Verify start Remind me later goes Home and reports the choice', () => {
+        openStart()
+        fireEvent.click(later())
+        expect(mockReplace).toHaveBeenCalledWith('/home')
+        expect(mockPush).not.toHaveBeenCalled()
+        expect(captured('signup_verify_start_tapped')).toEqual([
+            expect.objectContaining({ choice: 'later', flow_version: 2 }),
+        ])
+    })
+
+    it('VS-7 a claim-link sign-up keeps the claim redirect at 4500 ms', () => {
+        mockRedirectUri = '/claim/abc'
+        const { container } = renderStep({ signupCompleted: true, username: 'kim', signupEntryFlow: 'claim' })
+        expect(setupState(container)).toBe('claim-link')
+        expect(screen.queryByRole('button')).toBeNull()
+        act(() => jest.advanceTimersByTime(4500))
+        expect(mockReplace).toHaveBeenCalledWith('/claim/abc')
+    })
+
+    it('VS-7 another deep link (add money) keeps its redirect', () => {
+        mockRedirectUri = '/add-money'
+        renderStep({ signupCompleted: true, username: 'kim', signupEntryFlow: 'add-money' })
+        expect(screen.queryByRole('button')).toBeNull()
+        act(() => jest.advanceTimersByTime(4500))
+        expect(mockReplace).toHaveBeenCalledWith('/add-money')
+    })
+
+    it.each([
+        ['no bank rails and no card', () => (mockRestrictions = { banking: true, card: true })],
+        ['a region-restricted ID', () => (mockRegionRestricted = true)],
+    ])('VS-8 %s: no buttons, the redirect stays', (_label, restrict) => {
+        restrict()
+        const { container } = renderStep()
+        expect(setupState(container)).toBe('default')
+        expect(screen.queryByRole('button')).toBeNull()
+        act(() => jest.advanceTimersByTime(4500))
+        expect(mockReplace).toHaveBeenCalledWith('/home')
+    })
+
+    it('VS-8 card only (bank rails closed) still gets the Verify start, promising the card, not bank details', () => {
+        mockRestrictions = { banking: true, card: false }
+        openStart()
+        expect(screen.getByText(copy('setupRedesign.verifyStart.subCard'))).toBeInTheDocument()
+        expect(screen.queryByText(copy('setupRedesign.verifyStart.sub'))).toBeNull()
+    })
+
+    it('VS-9 demo mode keeps the walkthrough redirect', () => {
+        enableDemoMode()
+        renderStep()
+        expect(screen.queryByRole('button')).toBeNull()
         act(() => jest.advanceTimersByTime(4500))
         expect(mockReplace).toHaveBeenCalledWith('/home')
     })

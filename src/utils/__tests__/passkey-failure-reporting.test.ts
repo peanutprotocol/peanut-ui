@@ -61,3 +61,16 @@ it('leaves unknown technical errors to the original owner', () => {
     expect(report(new Error('sponsor response invalid'), 'sign-user-op')).toBe(false)
     expect(require('@sentry/nextjs').captureException).not.toHaveBeenCalled()
 })
+
+it('attaches the bounded passkey failure fields, never the raw message', () => {
+    const failure = Object.assign(association(), {
+        data: { nativeException: 'androidx.credentials.TYPE_CREATE_CREDENTIAL_PROVIDER_CONFIGURATION_EXCEPTION' },
+    })
+    report(failure, 'registration')
+    const [, context] = jest.mocked(require('@sentry/nextjs').captureException).mock.calls[0]
+    expect(context.extra).toMatchObject({
+        error_name: 'NotAllowedError',
+        native_exception: 'androidx.credentials.TYPE_CREATE_CREDENTIAL_PROVIDER_CONFIGURATION_EXCEPTION',
+    })
+    expect(JSON.stringify(context.extra)).not.toContain('webcredentials')
+})

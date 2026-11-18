@@ -5,9 +5,9 @@ import { setAuthToken } from '@/utils/auth-token'
 import * as authToken from '@/utils/auth-token'
 import posthog from 'posthog-js'
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
-import { act, fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
+import { NuqsTestingAdapter, type OnUrlUpdateFunction } from 'nuqs/adapters/testing'
 import { renderWithIntl } from '@/test-utils/intl'
 import type { PaperworkVerificationQuestions } from '@/app/actions/types/kyc-paperwork-verification.types'
 import {
@@ -219,10 +219,15 @@ function withSixDropdowns() {
     } satisfies PaperworkVerificationQuestions
 }
 
-function renderFlow(search = '', client = new QueryClient()) {
+function renderFlow(search = '', client = new QueryClient(), onUrlUpdate?: OnUrlUpdateFunction) {
     return renderWithIntl(
         <QueryClientProvider client={client}>
-            <NuqsTestingAdapter searchParams={search} hasMemory>
+            <NuqsTestingAdapter
+                searchParams={search}
+                hasMemory
+                onUrlUpdate={onUrlUpdate}
+                resetUrlUpdateQueueOnMount={!onUrlUpdate}
+            >
                 <PaperworkVerificationFlow />
             </NuqsTestingAdapter>
         </QueryClientProvider>
@@ -377,7 +382,10 @@ describe('PaperworkVerificationFlow: the steps overview', () => {
         const steps = await screen.findByTestId('verify-steps')
         expect(screen.getByTestId('verify-steps-continue')).toBeInTheDocument()
         expect(steps.querySelector('[aria-current="step"]')).toHaveTextContent('Answer a few questions')
-        expect(screen.getByText('Unlock eligible payments')).toBeInTheDocument()
+        // before the start only the steps the person acts on; review and unlock appear once they carry live state
+        expect(within(steps).queryByText('Get a secure review')).toBeNull()
+        expect(within(steps).queryByText('Unlock eligible payments')).toBeNull()
+        expect(within(steps).getAllByRole('listitem')).toHaveLength(4)
         fireEvent.click(screen.getByTestId('verify-steps-continue'))
         expect(await screen.findByRole('group', { name: 'Step 2 of 4' })).toBeInTheDocument()
         fireEvent.click(screen.getByTestId('verify-back'))
@@ -404,6 +412,26 @@ describe('PaperworkVerificationFlow: the steps overview', () => {
     it('a deep link to a step skips the overview', async () => {
         renderFlow('?step=tax')
         expect(await screen.findByText('What’s your Social Security number?')).toBeInTheDocument()
+        expect(screen.queryByTestId('verify-steps')).not.toBeInTheDocument()
+    })
+
+    it('skipOverview (the sign-up Verify start listed the steps) opens on the open question; Back leaves', async () => {
+        mockQuestions.mockResolvedValue(build({ purpose: false }, 'purpose'))
+        renderFlow('?skipOverview=true')
+        expect(await screen.findByRole('group', { name: 'Step 2 of 4' })).toBeInTheDocument()
+        expect(screen.queryByTestId('verify-steps')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByTestId('verify-back'))
+        expect(mockExit).toHaveBeenCalled()
+    })
+
+    it('skipOverview leaves the URL at once, so a reload or a shared link opens the overview as usual', async () => {
+        mockQuestions.mockResolvedValue(build({ purpose: false }, 'purpose'))
+        const urls: string[] = []
+        renderFlow('?skipOverview=true', new QueryClient(), ({ queryString }) => urls.push(queryString))
+        expect(await screen.findByRole('group', { name: 'Step 2 of 4' })).toBeInTheDocument()
+        await waitFor(() => expect(urls.length).toBeGreaterThan(0))
+        expect(urls.at(-1)).not.toContain('skipOverview')
+        // the visit keeps skipping: the overview never opens once the param is gone
         expect(screen.queryByTestId('verify-steps')).not.toBeInTheDocument()
     })
 

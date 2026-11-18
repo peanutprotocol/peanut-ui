@@ -9,7 +9,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { renderWithIntl } from '@/test-utils/intl'
 import { onSignupScreen } from '@/test-utils/signup-controls'
-import { useSignupPasskey } from '../useSignupPasskey'
+import { type PasskeyHelpReason, useSignupPasskey } from '../useSignupPasskey'
 
 let mockHandleRegister = jest.fn()
 const mockApiFetch = jest.fn()
@@ -75,7 +75,7 @@ jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn()
 /** The hook as the redesign reads it: the two fields C adds next to dev's. */
 type RedesignPasskey = ReturnType<typeof useSignupPasskey> & {
     inlineErrorCode?: 'cancelled' | null
-    helpReason?: 'android-setup' | 'ios-not-saved' | 'private-mode' | 'error-name' | null
+    helpReason?: PasskeyHelpReason | null
 }
 
 function Probe() {
@@ -129,22 +129,37 @@ describe('C-39 one tap, one registration', () => {
 })
 
 describe('C-40 inlineErrorCode', () => {
-    it('C-40 a plain NotAllowedError (not private mode) is cancelled, with dev’s inline text unchanged', async () => {
+    it('C-40 a plain NotAllowedError in a browser (not private mode) is cancelled, with the cancel line', async () => {
         mockHandleRegister.mockRejectedValue(failWith('NotAllowedError', 'cancelled'))
         renderProbe()
         await claimAndSettle()
         expect(probe()).toHaveAttribute('data-inline-code', 'cancelled')
-        expect(probe()).toHaveTextContent('Passkey verification wasn’t completed. Try again when ready.')
+        expect(probe()).toHaveTextContent('Passkey setup was cancelled. Try again when ready.')
     })
 
-    it('C-40 the first slow cancel in the iOS app is cancelled', async () => {
+    it('C-40 the first slow native cancel (1001) in the iOS app is cancelled', async () => {
+        mockIOSNativeBridge = true
+        mockCeremony = { durationMs: 3000 }
+        mockHandleRegister.mockRejectedValue(
+            failWith(
+                'NotAllowedError',
+                'The operation couldn’t be completed. (com.apple.AuthenticationServices.AuthorizationError error 1001.)'
+            )
+        )
+        renderProbe()
+        await claimAndSettle()
+        expect(probe()).toHaveAttribute('data-inline-code', 'cancelled')
+        expect(probe()).toHaveAttribute('data-help-reason', 'null')
+    })
+
+    it('C-40 TASK-25047 an unclassified NotAllowedError in the iOS app is not completed, not cancelled', async () => {
         mockIOSNativeBridge = true
         mockCeremony = { durationMs: 3000 }
         mockHandleRegister.mockRejectedValue(failWith('NotAllowedError', 'cancelled'))
         renderProbe()
         await claimAndSettle()
-        expect(probe()).toHaveAttribute('data-inline-code', 'cancelled')
-        expect(probe()).toHaveAttribute('data-help-reason', 'null')
+        expect(probe()).toHaveAttribute('data-inline-code', 'null')
+        expect(probe()).toHaveTextContent('Passkey verification wasn’t completed. Try again when ready.')
     })
 
     it('C-40 a native cancel reason (LOGIN_CANCELED) outside the iOS app is cancelled', async () => {

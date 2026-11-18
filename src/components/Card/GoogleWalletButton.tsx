@@ -1,6 +1,8 @@
 'use client'
 
 import Image from 'next/image'
+import { useRef, type PointerEvent } from 'react'
+import { useReducedMotion } from 'framer-motion'
 import { useLocale, useTranslations } from 'next-intl'
 import { resolveLocale, type AppLocale } from '@/i18n/app/config'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
@@ -43,29 +45,85 @@ const ARTWORK: Record<AppLocale, Artwork> = {
     },
 }
 
+const RIPPLE_OPACITY = 0.24
+const RIPPLE_GROW_MS = 300
+const RIPPLE_FADE_MS = 200
+const RIPPLE_EASING = 'cubic-bezier(0.2, 0, 0, 1)'
+
+// Material's touch ripple, as on Google's own Android wallet button: it spreads
+// from the touch point and finishes after a quick tap, so the press always shows.
+function startRipple(event: PointerEvent<HTMLButtonElement>, host: HTMLSpanElement) {
+    const rect = event.currentTarget.getBoundingClientRect()
+    const x = event.clientX - rect.left
+    const y = event.clientY - rect.top
+    const radius = Math.hypot(Math.max(x, rect.width - x), Math.max(y, rect.height - y))
+    const wave = document.createElement('span')
+    wave.className = 'absolute rounded-full bg-background-google-wallet-ripple'
+    Object.assign(wave.style, {
+        left: `${x - radius}px`,
+        top: `${y - radius}px`,
+        width: `${radius * 2}px`,
+        height: `${radius * 2}px`,
+        opacity: '0',
+    })
+    if (typeof wave.animate !== 'function') return
+    host.appendChild(wave)
+    const grow = wave.animate(
+        [
+            { transform: 'scale(0.1)', opacity: RIPPLE_OPACITY },
+            { transform: 'scale(1)', opacity: RIPPLE_OPACITY },
+        ],
+        { duration: RIPPLE_GROW_MS, easing: RIPPLE_EASING, fill: 'forwards' }
+    )
+    const target = event.currentTarget
+    const releaseTypes = ['pointerup', 'pointercancel', 'pointerleave'] as const
+    const release = () => {
+        releaseTypes.forEach((type) => target.removeEventListener(type, release))
+        void grow.finished
+            .then(
+                () =>
+                    wave.animate([{ opacity: RIPPLE_OPACITY }, { opacity: 0 }], {
+                        duration: RIPPLE_FADE_MS,
+                        fill: 'forwards',
+                    }).finished
+            )
+            .catch(() => undefined)
+            .finally(() => wave.remove())
+    }
+    releaseTypes.forEach((type) => target.addEventListener(type, release))
+}
+
 export default function GoogleWalletButton({ isAdding, onClick }: { isAdding: boolean; onClick: () => void }) {
     const t = useTranslations('card.yourCard')
     const artwork = ARTWORK[resolveLocale(useLocale())]
     const { triggerHaptic } = useAppHaptic()
+    const reducedMotion = useReducedMotion()
+    const rippleHost = useRef<HTMLSpanElement>(null)
 
     return (
         // Vendor branding exception: Google's artwork on Google's pill, full width as in
         // Google's Android codelab. Where the one-line artwork doesn't fit, Google's
         // guidelines call for the two-line badge, which needs >=53dp height. Shadowless,
-        // so pressing never moves it (design.md law 7): the pill fill takes Google's
-        // pressed state layer instead, and holds it while the add runs.
+        // so pressing never moves it (design.md law 7): a touch ripple and Google's
+        // pressed state layer show the press, and the fill holds it while the add runs.
         <div className="@container w-full">
             <button
                 type="button"
                 disabled={isAdding}
                 aria-busy={isAdding}
                 aria-label={t('addToGoogleWallet')}
+                onPointerDown={(event) => {
+                    if (!reducedMotion && !isAdding && !event.button && rippleHost.current) {
+                        startRipple(event, rippleHost.current)
+                    }
+                }}
                 onClick={() => {
                     triggerHaptic()
                     onClick()
                 }}
-                className={`flex h-14 w-full items-center justify-center overflow-hidden rounded-full bg-background-google-wallet p-0 ring-1 ring-border-google-wallet transition-colors duration-instant ring-inset focus-visible:outline-[3px] focus-visible:outline-action-focus active:bg-background-google-wallet-press aria-busy:bg-background-google-wallet-press ${artwork.fits.pill}`}
+                className={`relative flex h-14 w-full items-center justify-center overflow-hidden rounded-full bg-background-google-wallet p-0 ring-1 ring-border-google-wallet transition-colors duration-instant ring-inset focus-visible:outline-[3px] focus-visible:outline-action-focus active:bg-background-google-wallet-press aria-busy:bg-background-google-wallet-press ${artwork.fits.pill}`}
             >
+                <span ref={rippleHost} aria-hidden className="pointer-events-none absolute inset-0" />
                 <Image
                     src={`/wallet/google/one-line/${artwork.file}.svg`}
                     width={artwork.oneLineWidth}
@@ -73,7 +131,7 @@ export default function GoogleWalletButton({ isAdding, onClick }: { isAdding: bo
                     alt=""
                     aria-hidden
                     unoptimized
-                    className={`hidden h-full w-auto max-w-none ${artwork.fits.oneLine}`}
+                    className={`relative hidden h-full w-auto max-w-none ${artwork.fits.oneLine}`}
                 />
                 <Image
                     src={`/wallet/google/two-line/${artwork.file}.svg`}
@@ -82,7 +140,7 @@ export default function GoogleWalletButton({ isAdding, onClick }: { isAdding: bo
                     alt=""
                     aria-hidden
                     unoptimized
-                    className={`block h-full w-auto max-w-none ${artwork.fits.twoLine}`}
+                    className={`relative block h-full w-auto max-w-none ${artwork.fits.twoLine}`}
                 />
             </button>
         </div>

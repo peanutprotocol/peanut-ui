@@ -209,6 +209,10 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         name: 'Setup — full-screen account celebration',
         path: 'Setup/redesign/Celebration/CelebrationScreen.tsx',
     },
+    '07-f-setup-verify-start': {
+        name: 'Setup — verify start',
+        path: 'Setup/redesign/VerifyStart/VerifyStartScreen.tsx',
+    },
     '07-b-advantage-control': {
         name: 'Setup benefit — control',
         path: 'Setup/redesign/FinalConfirm/FinalConfirmScreen.tsx',
@@ -621,6 +625,30 @@ export const SETUP_REDESIGN_SURFACES: Record<string, SurfaceMeta> = {
     'setup-redesign-passkey': {
         name: 'Sign-up redesign: 03 Passkey',
         path: 'Setup/redesign/Passkey/PasskeyScreen.tsx',
+    },
+    'setup-redesign-passkey-second-cancel': {
+        name: 'Sign-up redesign: 03 Passkey, second Android cancel',
+        path: 'Setup/redesign/Passkey/PasskeyScreenView.tsx',
+    },
+    'setup-redesign-passkey-took-too-long': {
+        name: 'Sign-up redesign: 03 Passkey, the sheet took too long',
+        path: 'Setup/redesign/Passkey/PasskeyScreenView.tsx',
+    },
+    'setup-redesign-passkey-left-app': {
+        name: 'Sign-up redesign: 03 Passkey, left the app mid-sheet',
+        path: 'Setup/redesign/Passkey/PasskeyScreenView.tsx',
+    },
+    'setup-redesign-passkey-check-screen-lock': {
+        name: 'Sign-up redesign: 03 Passkey, pre-check found no screen lock',
+        path: 'Setup/redesign/Passkey/PasskeyScreenView.tsx',
+    },
+    'setup-redesign-passkey-check-no-provider': {
+        name: 'Sign-up redesign: 03 Passkey, pre-check found no password manager',
+        path: 'Setup/redesign/Passkey/PasskeyScreenView.tsx',
+    },
+    'setup-redesign-passkey-login-recovery': {
+        name: 'Sign-up redesign: 03 Passkey, Log in found no passkey',
+        path: 'Setup/redesign/Passkey/PasskeyScreenView.tsx',
     },
     'setup-redesign-invite': { name: 'Sign-up redesign: 04 Invite', path: 'Setup/redesign/Invite/InviteScreen.tsx' },
     'setup-redesign-invite-found': {
