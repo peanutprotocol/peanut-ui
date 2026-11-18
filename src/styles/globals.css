@@ -906,7 +906,7 @@
         --sr-stage-compact: var(--sr-fold-stage);
     }
     .signup-shell[data-fold] [data-setup-art-box],
-    .signup-shell[data-fold='bar'] [data-setup-art-layer] h1 {
+    .signup-shell[data-fold='bar'] [data-setup-title] {
         visibility: hidden;
     }
     /*

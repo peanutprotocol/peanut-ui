@@ -187,6 +187,7 @@ export function SetupScreen({
                     <div
                         ref={titleRef}
                         className="absolute top-[var(--sr-title-top)] right-[var(--sr-gutter)] left-[var(--sr-gutter)] z-10 text-left"
+                        data-setup-title
                     >
                         <h1
                             className={twMerge(

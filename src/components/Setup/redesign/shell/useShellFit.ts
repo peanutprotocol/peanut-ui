@@ -112,7 +112,8 @@ export function useShellFit({
             const base = probe.offsetHeight
             const pad = parseFloat(getComputedStyle(shell).getPropertyValue('--sr-panel-pad')) || 0
             const footer = footerTop.current ?? shell.clientHeight
-            const title = shell.querySelector('[data-setup-slide]:not([aria-hidden]) [data-setup-art-layer] h1')
+            // the headline block: the h1 and the line under it (the landing trust line)
+            const title = shell.querySelector('[data-setup-slide]:not([aria-hidden]) [data-setup-title]')
             const bar = shell.querySelector('[data-setup-top-bar]')
             const titleBottom = title ? title.getBoundingClientRect().bottom - shellTop : 0
             const barBottom = bar ? bar.getBoundingClientRect().bottom - shellTop : 0

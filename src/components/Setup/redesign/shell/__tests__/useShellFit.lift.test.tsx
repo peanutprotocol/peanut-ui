@@ -86,3 +86,35 @@ describe('useShellFit: the lift', () => {
         expect(shell.style.getPropertyValue('--sr-fit-lift')).toBe('77px')
     })
 })
+
+describe('useShellFit: the fold', () => {
+    it('folds the stage under the whole headline block, so the line under the headline stays on the stage', () => {
+        const { shell } = shellDom(100)
+        const slide = shell.querySelector('[data-setup-slide]')!
+        const layer = document.createElement('div')
+        layer.setAttribute('data-setup-art-layer', '')
+        const block = document.createElement('div')
+        block.setAttribute('data-setup-title', '')
+        const h1 = document.createElement('h1')
+        const line = document.createElement('p')
+        block.append(h1, line)
+        layer.append(block)
+        slide.append(layer)
+        const rect = (bottom: number) => ({ top: 0, bottom, left: 0, right: 0, width: 0, height: bottom }) as DOMRect
+        h1.getBoundingClientRect = () => rect(120)
+        block.getBoundingClientRect = () => rect(160)
+        const { result } = renderHook(() =>
+            useShellFit({
+                shellRef: { current: shell },
+                probeRef: { current: shell.firstElementChild as HTMLDivElement },
+                stage: 'std',
+                screenId: 'landing',
+            })
+        )
+        // footer top 400: 400 - 344 leaves under 96 px of panel, so the stage folds
+        act(() => result.current.onFooterTop(400))
+        expect(shell.dataset.fold).toBe('title')
+        // under the block (160) + 12, not under the h1 (120 + 12)
+        expect(shell.style.getPropertyValue('--sr-fold-stage')).toBe('172px')
+    })
+})
