@@ -20,7 +20,9 @@ const P4_KEYS: Record<string, string[]> = {
         'note',
         'invalid',
         'taken',
-        'useOther',
+        'logIn',
+        'deferred',
+        'suggest',
         'recover',
         'saveFailed',
         'clearAria',
@@ -55,8 +57,8 @@ const tags = (value: string) =>
 const placeholders = (value: string) => [...value.matchAll(/\{(\w+)[,}]/g)].map((m) => m[1]).sort()
 
 describe('P4-61 key parity for 09–12', () => {
-    it('lists the 43 keys of the contract', () => {
-        expect(KEYS).toHaveLength(43)
+    it('lists the 45 keys of the contract (v7 adds logIn, deferred and suggest, drops useOther)', () => {
+        expect(KEYS).toHaveLength(45)
     })
 
     it.each(Object.keys(CATALOGS))('every key is a non-empty string in %s', (locale) => {

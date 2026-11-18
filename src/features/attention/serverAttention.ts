@@ -38,6 +38,8 @@ export type ServerAttention = Omit<
         hasMadeQrPayment: boolean | null
         hasReceivedRequestPayment: boolean | null
         bankDepositReceived: boolean | null
+        /** absent: an API without the fact; null: the server could not tell */
+        firstDepositReceived?: boolean | null
     }
     explanations?: Record<string, { verdict: Verdict; reason: string; unknownSources: string[] }>
 }
@@ -124,6 +126,12 @@ function asFacts(value: unknown): ServerAttention['facts'] {
         hasReceivedRequestPayment: value.hasReceivedRequestPayment as boolean | null,
         // newer than the other facts: an API without it, or any other value, is unknown, never a bad body
         bankDepositReceived: typeof value.bankDepositReceived === 'boolean' ? value.bankDepositReceived : null,
+        ...(value.firstDepositReceived === undefined
+            ? {}
+            : {
+                  firstDepositReceived:
+                      typeof value.firstDepositReceived === 'boolean' ? value.firstDepositReceived : null,
+              }),
     }
 }
 
@@ -155,6 +163,8 @@ export function applyServerFacts(state: JourneyState, server: ServerAttention | 
         attentionSettings: getSettings(server),
         spendHistoryAvailable: facts?.spendHistoryAvailable ?? false,
         bankDepositReceived: facts?.bankDepositReceived ?? null,
+        // null while the facts load or after a failed read; undefined when an older API answered without it
+        firstDepositReceived: facts ? facts.firstDepositReceived : null,
         ...(facts
             ? {
                   onboarding: facts.onboarding ?? state.onboarding,

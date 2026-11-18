@@ -1,6 +1,6 @@
 import type { AttentionAsk, JourneyState } from './types'
+import { homePushTrigger } from './homePushTrigger'
 import { defineAsk, DEFAULT_SETTINGS } from './catalogue'
-import { PUSH_PROMPT_TRIGGERS } from '@/constants/push-prompt.consts'
 
 /*
  * The tier is the display urgency; `rank` is the order inside the tier and
@@ -153,18 +153,22 @@ export const pushHomeFallback: AttentionAsk = defineAsk('push-home-fallback', {
         const gate = loggedIn(s)
         if (gate !== 'ready') return gate
         if (!s.push.ready) return 'unknown'
+        // facts loading or unread: deciding now drops ":deposit" and re-arms a dismissal saved under it
+        if (s.firstDepositReceived === null) return 'unknown'
         // a money moment already asked this session: one pre-prompt per session
         if (s.push.unanswered) return s.push.promptedThisSession ? 'ineligible' : 'show'
         // answered but not on: the native card opens the OS settings
         return s.push.notEnabled ? 'show' : 'done'
     },
-    version: (s) => `${s.isNative ? 'native' : 'web'}:${s.push.unanswered ? 'prompt' : 'settings'}`,
+    // ":deposit" re-arms a snoozed or dismissed ask once, when the first deposit lands (TASK-25063)
+    version: (s) =>
+        `${s.isNative ? 'native' : 'web'}:${s.push.unanswered ? 'prompt' : 'settings'}${s.firstDepositReceived === true ? ':deposit' : ''}`,
     policy: {
         // the OS dialog is one-shot: the pre-prompt only while it is unanswered; the card only where settings can be opened
         surfaceWhen: { interrupt: (s) => s.push.unanswered, zone: (s) => s.isNative },
     },
-    legacyProps: (_s, event) => ({
-        trigger: PUSH_PROMPT_TRIGGERS.HOME_FALLBACK,
+    legacyProps: (s, event) => ({
+        trigger: homePushTrigger(s),
         ...(event === 'acted' && { cta: 'enable' }),
     }),
 })

@@ -1900,6 +1900,15 @@ export const SURFACES: Record<string, Surface> = {
             />
         ),
     },
+    'setup-redesign-email-typo': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-email-typo'],
+        render: () => (
+            <RedesignStepSurface
+                screenId="notification-email"
+                seed={{ username: 'luckyotter', notificationEmail: 'maria@gmial.com' }}
+            />
+        ),
+    },
     'setup-redesign-notifications': {
         ...SETUP_REDESIGN_SURFACES['setup-redesign-notifications'],
         render: () => <RedesignStepSurface screenId="notification-permission" />,

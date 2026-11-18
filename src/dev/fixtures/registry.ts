@@ -2378,11 +2378,30 @@ const SETUP_REDESIGN_FIXTURES: Record<string, Fixture> = {
     'setup-redesign-email-default': setupRedesign('email', '09 Email: empty field, Continue off.'),
     'setup-redesign-email-filled': setupRedesign('email-filled', '09 Email: a valid address, Continue on.'),
     'setup-redesign-email-invalid': setupRedesign('email', '09 Email: an address without a domain, after blur.'),
-    'setup-redesign-email-already-registered': setupRedesign('email-filled', '09 Email: the address has an account.', {
-        rejects: {
-            'POST /update-user': { status: 409, body: { code: 'EMAIL_IN_USE', message: 'Email already in use' } },
-        },
-    }),
+    'setup-redesign-email-already-registered': setupRedesign(
+        'email-filled',
+        '09 Email: an established account has the address; log in to it.',
+        {
+            rejects: {
+                'POST /update-user': {
+                    status: 409,
+                    body: { code: 'EMAIL_ON_ACTIVE_ACCOUNT', message: 'Email already in use' },
+                },
+            },
+        }
+    ),
+    'setup-redesign-email-deferred': setupRedesign(
+        'email-filled',
+        '09 Email: an account that is not established has the address; added again at verification.',
+        {
+            rejects: {
+                'POST /update-user': {
+                    status: 409,
+                    body: { code: 'EMAIL_ON_DORMANT_ACCOUNT', message: 'Email already in use' },
+                },
+            },
+        }
+    ),
     'setup-redesign-email-save-failed': setupRedesign('email-filled', '09 Email: the save failed, Continue retries.', {
         fails: ['POST /update-user'],
     }),

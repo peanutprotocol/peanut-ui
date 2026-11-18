@@ -23,11 +23,11 @@ it('waits for manual login verification before redirecting an existing session',
         })
     )
     const { result } = renderHook(() => useLogin())
-    let pending!: Promise<void>
+    let pending!: Promise<boolean>
     act(() => {
         pending = result.current.handleLoginClick()
     })
-    expect(mockLogin).toHaveBeenCalledWith()
+    expect(mockLogin).toHaveBeenCalledWith({}) // no options: scoped to the signed-in user
     expect(mockPush).not.toHaveBeenCalled()
     await act(async () => {
         finish()
@@ -45,4 +45,29 @@ it('does not redirect an existing session when manual login fails', async () => 
         await expect(result.current.handleLoginClick()).rejects.toBe(error)
     })
     expect(mockPush).not.toHaveBeenCalled()
+})
+
+describe('stayIfUserId: the passkey picked opens the account the person is already in', () => {
+    it('the same account: no redirect, resolves false', async () => {
+        mockLogin.mockResolvedValueOnce({ user: { userId: 'existing' } })
+        const { result } = renderHook(() => useLogin())
+        let left: boolean | undefined
+        await act(async () => {
+            left = await result.current.handleLoginClick({ scopeToUser: false, stayIfUserId: 'existing' })
+        })
+        expect(mockLogin).toHaveBeenCalledWith({ scopeToUser: false })
+        expect(left).toBe(false)
+        expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    it('another account: redirects as today, resolves true', async () => {
+        mockLogin.mockResolvedValueOnce({ user: { userId: 'older' } })
+        const { result } = renderHook(() => useLogin())
+        let left: boolean | undefined
+        await act(async () => {
+            left = await result.current.handleLoginClick({ scopeToUser: false, stayIfUserId: 'existing' })
+        })
+        expect(left).toBe(true)
+        expect(mockPush).toHaveBeenCalledWith('/home')
+    })
 })

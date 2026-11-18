@@ -15830,8 +15830,7 @@ export interface paths {
                             message: string;
                             success: boolean;
                         } | {
-                            /** @enum {string} */
-                            code: "EMAIL_IN_USE";
+                            code: "EMAIL_ON_ACTIVE_ACCOUNT" | "EMAIL_ON_DORMANT_ACCOUNT";
                             error: string;
                         } | {
                             code: "RESIDENCE_CHANGE_UNAVAILABLE" | "identity_submitted";
@@ -20218,6 +20217,7 @@ export interface paths {
                          *           "status": "clear",
                          *           "versions": []
                          *         },
+                         *         "firstDepositReceived": false,
                          *         "firstPeerPaymentAt": null,
                          *         "hasMadeQrPayment": false,
                          *         "hasReceivedRequestPayment": false,
@@ -20449,6 +20449,7 @@ export interface paths {
                                     status: "unknown" | "clear" | "needed";
                                     versions: string[];
                                 };
+                                firstDepositReceived: boolean | null;
                                 firstPeerPaymentAt: string | null;
                                 hasMadeQrPayment: boolean | null;
                                 hasReceivedRequestPayment: boolean | null;

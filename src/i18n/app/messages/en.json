@@ -292,6 +292,7 @@
             },
             "addEmail": {
                 "title": "Add your email",
+                "deferred": "Add this email again when you verify your identity.",
                 "description": "Get receipts and account alerts by email."
             },
             "rewards": {
@@ -1315,8 +1316,11 @@
             "note": "You can turn off news and offers anytime.",
             "invalid": "Enter a valid email address.",
             "taken": "This email already has a Peanut account.",
-            "useOther": "Use another email",
-            "recover": "How to recover that account",
+            "deferred": "Add this email again when you verify your identity.",
+            "suggest": "Did you mean {a}?",
+            "logIn": "Log in to that account",
+            "recover": "Recover my account",
+            "sameAccount": "That’s the account you just made. Pick the other passkey.",
             "clearAria": "Clear"
         },
         "notif": {
@@ -3354,6 +3358,8 @@
         "cardReadyTitle": "Know every card payment",
         "cardReadyDescription": "One notification per payment or decline.",
         "qrFirstScanTitle": "Confirmation for each QR payment",
+        "firstDepositTitle": "Know when your money moves",
+        "firstDepositDescription": "We’ll tell you when money arrives or a payment goes through.",
         "qrFirstScanDescription": "One notification when it completes."
     },
     "kyc": {

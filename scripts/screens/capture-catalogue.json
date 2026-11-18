@@ -460,6 +460,11 @@
         "route": "/dev/surfaces?s=setup-redesign-email-filled"
     },
     {
+        "id": "fixture-setup-redesign-email-deferred",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-email-filled"
+    },
+    {
         "id": "fixture-setup-redesign-email-save-failed",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=setup-redesign-email-filled"

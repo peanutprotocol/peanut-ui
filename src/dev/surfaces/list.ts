@@ -701,6 +701,10 @@ export const SETUP_REDESIGN_SURFACES: Record<string, SurfaceMeta> = {
         name: 'Sign-up redesign: 09 Email, prefilled',
         path: 'Setup/redesign/Email/EmailScreen.tsx',
     },
+    'setup-redesign-email-typo': {
+        name: 'Sign-up redesign: 09 Email, domain typo',
+        path: 'Setup/redesign/Email/EmailScreen.tsx',
+    },
     'setup-redesign-notifications': {
         name: 'Sign-up redesign: 10 Notifications',
         path: 'Setup/redesign/Notifications/NotificationsScreen.tsx',

@@ -142,6 +142,30 @@ jest.mock('@/components/Global/ActionModal', () => ({
     },
 }))
 
+// the add-email step is a drawer: "drawer-dismiss" stands for a swipe, an overlay tap or back
+jest.mock('@/components/Global/Drawer', () => ({
+    Drawer: ({
+        open,
+        onOpenChange,
+        dismissible = true,
+        children,
+    }: {
+        open: boolean
+        onOpenChange?: (open: boolean) => void
+        dismissible?: boolean
+        children: React.ReactNode
+    }) =>
+        open ? (
+            <div data-testid="drawer">
+                {children}
+                <button onClick={() => dismissible && onOpenChange?.(false)}>drawer-dismiss</button>
+            </div>
+        ) : null,
+    DrawerContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    DrawerHeader: ({ children }: { children: React.ReactNode }) => <header>{children}</header>,
+    DrawerTitle: ({ children }: { children: React.ReactNode }) => <h2>{children}</h2>,
+    DrawerDescription: ({ children }: { children: React.ReactNode }) => <p>{children}</p>,
+}))
 jest.mock('@/components/Global/DocsLink', () => ({
     __esModule: true,
     default: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
@@ -214,6 +238,16 @@ test('email sheet Not now must snooze rather than permanently dismiss', () => {
     expect(p.onDismissed).not.toHaveBeenCalled()
 })
 
+test('swiping the email drawer away snoozes, like Not now', () => {
+    const p = props('add-email')
+    renderSurface(AddEmailCard, p)
+    fireEvent.click(screen.getByText('Add email card'))
+    expect(screen.getByTestId('drawer')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('drawer-dismiss'))
+    expect(p.onSnoozed).toHaveBeenCalledTimes(1)
+    expect(p.onDismissed).not.toHaveBeenCalled()
+})
+
 function openEmail(p = props('add-email')) {
     renderSurface(AddEmailCard, p)
     fireEvent.click(screen.getByText('Add email card'))
@@ -228,6 +262,39 @@ test('invalid email cannot submit or settle the ask', async () => {
     expect(mockUpdateUserById).not.toHaveBeenCalled()
     expect(p.onActed).not.toHaveBeenCalled()
     expect(screen.getByText(en.kyc.provideEmail.invalidEmail)).toBeInTheDocument()
+})
+test('an email a not-established account holds asks to add it again at verification, and does not settle', async () => {
+    mockUpdateUserById.mockResolvedValueOnce({
+        status: 409,
+        code: 'EMAIL_ON_DORMANT_ACCOUNT',
+        error: 'raw backend text',
+    })
+    const p = openEmail()
+    fireEvent.change(screen.getByLabelText(en.kyc.provideEmail.emailLabel), {
+        target: { value: 'dormant@example.com' },
+    })
+    await act(async () => {
+        fireEvent.click(screen.getByText(en.kyc.provideEmail.save))
+    })
+    expect(screen.getByText(en.home.carousel.addEmail.deferred)).toBeInTheDocument()
+    expect(screen.queryByText('raw backend text')).not.toBeInTheDocument()
+    expect(mockFetchUser).not.toHaveBeenCalled()
+    expect(p.onActed).not.toHaveBeenCalled()
+})
+test('an email an established account holds keeps the refusal text', async () => {
+    mockUpdateUserById.mockResolvedValueOnce({
+        status: 409,
+        code: 'EMAIL_ON_ACTIVE_ACCOUNT',
+        error: 'This email is already associated with another account',
+    })
+    const p = openEmail()
+    fireEvent.change(screen.getByLabelText(en.kyc.provideEmail.emailLabel), { target: { value: 'kept@example.com' } })
+    await act(async () => {
+        fireEvent.click(screen.getByText(en.kyc.provideEmail.save))
+    })
+    expect(screen.getByText('This email is already associated with another account')).toBeInTheDocument()
+    expect(screen.queryByText(en.home.carousel.addEmail.deferred)).not.toBeInTheDocument()
+    expect(p.onActed).not.toHaveBeenCalled()
 })
 test('failed save remains retryable and does not settle', async () => {
     mockUpdateUserById.mockRejectedValueOnce(new Error('offline'))
@@ -262,7 +329,7 @@ test('pending save cannot be duplicated or closed and completes after confirmed 
         fireEvent.click(screen.getByText(en.kyc.provideEmail.save))
     })
     expect(mockUpdateUserById).toHaveBeenCalledTimes(1)
-    fireEvent.click(screen.getByText('modal-close'))
+    fireEvent.click(screen.getByText('drawer-dismiss'))
     fireEvent.click(screen.getByText(en.kyc.provideEmail.notNow))
     expect(p.onSnoozed).not.toHaveBeenCalled()
     expect(p.onActed).not.toHaveBeenCalled()
