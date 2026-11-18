@@ -322,9 +322,10 @@ const noop = () => {}
  * Verify now and Remind me later, its Verify now opens the Verify start, as on /setup.
  */
 function CompletedCelebration() {
-    const { setSignupCompleted } = useSetupFlowContext()
+    const { signupCompleted, setSignupCompleted } = useSetupFlowContext()
     React.useLayoutEffect(() => setSignupCompleted(true), [setSignupCompleted])
-    return <FinalStep />
+    // FinalStep shows the final confirm until sign-up completes, and that screen sends a signed-in user Home
+    return signupCompleted ? <FinalStep /> : null
 }
 
 /** The Verify start after a completed default sign-up. */

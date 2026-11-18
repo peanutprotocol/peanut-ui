@@ -10,11 +10,12 @@ import { isDemoMode } from '@/utils/demo'
 export const VERIFY_START_FLAG = 'signup-verify-start'
 
 /**
- * Whether the Celebration shows Verify now and Remind me later, which lead to the Verify start (war room 2026-11-16: people verify in their first session or never).
- * Only a default sign-up gets them: a claim link or another deep link keeps the redirect to where the person
- * was going, and so does demo mode. It needs the PostHog flag (the rollback switch) and an open door: a
- * region-restricted ID, or a residence with neither bank rails nor the card, keeps the redirect. Once shown they
- * stays, so a late flag or residence answer never pulls the buttons away under a finger.
+ * Whether the Celebration shows Verify now and Remind me later, which lead to the Verify start (war room
+ * 2026-11-16: people verify in their first session or never). Only a default sign-up gets them: a claim link or
+ * another deep link keeps the redirect to where the person was going, and so does demo mode. It needs the PostHog
+ * flag (the rollback switch) and an open door: a region-restricted ID, or a residence with neither bank rails nor
+ * the card, keeps the redirect. Once shown, the buttons stay, so a late flag or residence answer never pulls them
+ * away under a finger.
  */
 export function useVerifyStartEligible(signupCompleted: boolean) {
     const { signupEntryFlow } = useSetupFlowContext()
