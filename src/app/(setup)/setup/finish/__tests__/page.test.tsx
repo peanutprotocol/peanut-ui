@@ -6,7 +6,7 @@ import FinishSetupPage from '../page'
 
 jest.mock('posthog-js', () => ({
     __esModule: true,
-    default: { capture: jest.fn(), register: jest.fn(), unregister: jest.fn() },
+    default: { capture: jest.fn(), register_for_session: jest.fn(), unregister_for_session: jest.fn() },
 }))
 jest.mock('@/features/setup/SetupFlowContext', () => ({
     useSetupFlowContext: () => ({ signupEntryFlow: 'card' }),

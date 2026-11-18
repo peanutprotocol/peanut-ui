@@ -38,7 +38,7 @@ jest.mock('@/utils/capacitor', () => ({
 }))
 jest.mock('posthog-js', () => ({
     __esModule: true,
-    default: { capture: jest.fn(), register: jest.fn(), unregister: jest.fn() },
+    default: { capture: jest.fn(), register_for_session: jest.fn(), unregister_for_session: jest.fn() },
 }))
 
 const PASSKEY = 'passkey' as ScreenId

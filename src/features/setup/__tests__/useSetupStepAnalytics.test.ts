@@ -9,7 +9,11 @@ import { useSetupStepAnalytics } from '@/features/setup/useSetupStepAnalytics'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { type ISetupStep } from '@/components/Setup/Setup.types'
 
-jest.mock('posthog-js', () => ({ capture: jest.fn(), register: jest.fn(), unregister: jest.fn() }))
+jest.mock('posthog-js', () => ({
+    capture: jest.fn(),
+    register_for_session: jest.fn(),
+    unregister_for_session: jest.fn(),
+}))
 
 const mockedCapture = posthog.capture as jest.MockedFunction<typeof posthog.capture>
 
@@ -37,10 +41,10 @@ beforeEach(() => {
 describe('useSetupStepAnalytics', () => {
     it('tags every event with flow_version while setup is mounted', () => {
         const { unmount } = render({ enabled: false, step: undefined })
-        expect(posthog.register).toHaveBeenCalledWith({ flow_version: 2 })
-        expect(posthog.unregister).not.toHaveBeenCalled()
+        expect(posthog.register_for_session).toHaveBeenCalledWith({ flow_version: 2 })
+        expect(posthog.unregister_for_session).not.toHaveBeenCalled()
         unmount()
-        expect(posthog.unregister).toHaveBeenCalledWith('flow_version')
+        expect(posthog.unregister_for_session).toHaveBeenCalledWith('flow_version')
     })
 
     it('does nothing while disabled (entry step not yet rendered)', () => {

@@ -196,7 +196,7 @@ jest.mock('@/components/Setup/redesign/shell/SetupShell', () => ({
 jest.mock('@/components/Global/Loading', () => ({ __esModule: true, default: () => <div role="status">Loading</div> }))
 jest.mock('posthog-js', () => ({
     __esModule: true,
-    default: { capture: jest.fn(), register: jest.fn(), unregister: jest.fn() },
+    default: { capture: jest.fn(), register_for_session: jest.fn(), unregister_for_session: jest.fn() },
 }))
 jest.mock('@sentry/nextjs', () => ({
     captureException: jest.fn(),

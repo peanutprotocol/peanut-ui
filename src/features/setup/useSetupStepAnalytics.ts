@@ -31,10 +31,11 @@ export const useSetupStepAnalytics = ({
 }) => {
     const lastScreenRef = useRef<ScreenId | null>(null)
 
-    // every event fired while setup is open (errors included) must be splittable by flow
+    // every event fired while setup is open (errors included) must be splittable by flow.
+    // session scope, so a tab close or app kill mid-signup does not tag later app events.
     useEffect(() => {
-        posthog.register({ flow_version: SIGNUP_FLOW_VERSION })
-        return () => posthog.unregister('flow_version')
+        posthog.register_for_session({ flow_version: SIGNUP_FLOW_VERSION })
+        return () => posthog.unregister_for_session('flow_version')
     }, [])
 
     useEffect(() => {
