@@ -6,7 +6,13 @@
 import React from 'react'
 import { render, screen } from '@testing-library/react'
 
-let mockFlow: { isOnboardingComplete: boolean; isActivated: boolean; isPageLoading?: boolean }
+let mockFlow: {
+    isOnboardingComplete: boolean
+    isActivated: boolean
+    isPageLoading?: boolean
+    isIdentityVerified?: boolean
+    onboarding?: { addMoneyDone: boolean }
+}
 jest.mock('../useHomeFlow', () => ({
     useHomeFlow: () => ({
         isPageLoading: false,
@@ -14,6 +20,8 @@ jest.mock('../useHomeFlow', () => ({
         spendableBalance: 0n,
         isFetchingSpendableBalance: false,
         isSpendableBalanceStale: false,
+        isIdentityVerified: false,
+        onboarding: { addMoneyDone: false },
         isBalanceHidden: false,
         toggleBalanceVisibility: jest.fn(),
         ...mockFlow,
@@ -34,7 +42,13 @@ jest.mock('@/components/Home/HomeHistory', () => ({
 }))
 jest.mock('../components/HomeActionDrawers', () => ({ HomeActionDrawers: () => null }))
 jest.mock('../components/HomeModals', () => ({ HomeModals: () => null }))
-jest.mock('../views/BalanceSection', () => ({ BalanceSection: () => null }))
+const mockBalanceSection = jest.fn()
+jest.mock('../views/BalanceSection', () => ({
+    BalanceSection: (props: object) => {
+        mockBalanceSection(props)
+        return null
+    },
+}))
 jest.mock('../views/HomeTopNav', () => ({ HomeTopNav: () => null }))
 jest.mock('@/components/0_Bruddle/PageContainer', () => ({
     __esModule: true,
@@ -44,7 +58,10 @@ jest.mock('@/components/Global/Loading', () => ({ __esModule: true, default: () 
 
 import { HomePage } from '../HomePage'
 
-beforeEach(() => mockHistory.mockClear())
+beforeEach(() => {
+    mockHistory.mockClear()
+    mockBalanceSection.mockClear()
+})
 
 it('renders the attention zone and hides the empty feed before activation', () => {
     mockFlow = { isOnboardingComplete: false, isActivated: false }
@@ -64,4 +81,17 @@ it('shows the loader while the user loads', () => {
     render(<HomePage />)
     expect(screen.getByText('loading')).toBeInTheDocument()
     expect(screen.queryByText('attention-zone')).not.toBeInTheDocument()
+})
+
+it('hands identity verification and the funded-before signal to the balance section', () => {
+    mockFlow = {
+        isOnboardingComplete: false,
+        isActivated: true,
+        isIdentityVerified: true,
+        onboarding: { addMoneyDone: true },
+    }
+    render(<HomePage />)
+    expect(mockBalanceSection).toHaveBeenCalledWith(
+        expect.objectContaining({ isVerified: true, hasFundedBefore: true, balance: 0n })
+    )
 })

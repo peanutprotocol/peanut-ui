@@ -6,24 +6,23 @@ jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform
  * components and saves as signup, then /verify reloads.
  */
 import { type ReactNode, useEffect, useState } from 'react'
-import en from '@/i18n/app/messages/en.json'
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { renderWithIntl } from '@/test-utils/intl'
+import { AppLocaleContext } from '@/i18n/app/locale-context'
+import { copy, copyRx } from '@/components/Setup/redesign/Accounts/__tests__/redesignHarness'
 import { updateUserById } from '@/app/actions/users'
 import { savePaperworkVerificationFeatures } from '@/app/actions/kyc-paperwork-verification'
 import { RESIDENCE_RESTRICTION_SETS } from '@/test-utils/residenceRestrictions.fixture'
 import { VerifySetupPrelude } from '../components/VerifySetupPrelude'
 
-jest.mock('@/components/Setup/components/SetupWrapper', () => ({
-    useSetupFullScreen: jest.fn(),
-    SetupWrapper: ({ title, onBack, children }: { title?: ReactNode; onBack?: () => void; children: ReactNode }) => (
-        <div>
-            {title && <h2>{title}</h2>}
-            <button onClick={onBack}>setup-back</button>
-            {children}
-        </div>
-    ),
+// The real shell draws the footer and the top-bar Back.
+jest.mock('framer-motion', () =>
+    require('@/components/Setup/redesign/Accounts/__tests__/framerMock').framerMotionForShell()
+)
+jest.mock('lottie-web/build/player/lottie_light', () => ({
+    __esModule: true,
+    default: { loadAnimation: () => ({ addEventListener: jest.fn(), destroy: jest.fn(), goToAndStop: jest.fn() }) },
 }))
 jest.mock('@/app/actions/users', () => ({ updateUserById: jest.fn(async () => ({ data: {} })) }))
 jest.mock('@/app/actions/kyc-paperwork-verification', () => ({
@@ -64,17 +63,30 @@ const render = (needs: ('residence' | 'features')[]) => {
     const onDone = jest.fn(async () => {})
     const onExit = jest.fn()
     renderWithIntl(
-        <NuqsTestingAdapter hasMemory>
-            <AfterAdapter>
-                <VerifySetupPrelude needs={needs} onDone={onDone} onExit={onExit} />
-            </AfterAdapter>
-        </NuqsTestingAdapter>
+        <AppLocaleContext.Provider value={{ locale: 'en', setLocale: async () => {} }}>
+            <NuqsTestingAdapter hasMemory>
+                <AfterAdapter>
+                    <VerifySetupPrelude needs={needs} onDone={onDone} onExit={onExit} />
+                </AfterAdapter>
+            </NuqsTestingAdapter>
+        </AppLocaleContext.Provider>
     )
     return { onDone, onExit }
 }
 
-async function choose(kind: 'Add money with' | 'Make a payment with', choice: string) {
-    fireEvent.click(await screen.findByRole('button', { name: `${kind}: Choose`, hidden: true }))
+const RESIDENCE_TITLE = () => copyRx('setupRedesign.residence.sheetResidence')
+const back = () => screen.getByRole('button', { name: copy('setup.navigation.goBack') })
+const continueButton = () => screen.getByRole('button', { name: copyRx('setupRedesign.common.continue'), hidden: true })
+
+/** The shell drops taps while a step slides in (one step per tap gesture, R2-01): tap once it has come to rest. */
+const settled = () =>
+    waitFor(() => expect(document.querySelector('[data-setup-shell]')).not.toHaveAttribute('data-nav-locked'), {
+        timeout: 3000,
+    })
+
+async function choose(kind: 'sheetFunding' | 'sheetPayment', choice: string) {
+    const name = `${copy(`setupRedesign.plan.${kind}`)}: ${copy('setupRedesign.plan.choose')}`
+    fireEvent.click(await screen.findByRole('button', { name, hidden: true }))
     const dialog = screen.getByRole('dialog')
     fireEvent.click(within(dialog).getByRole('button', { name: choice }))
     await waitFor(() => expect(dialog).toHaveAttribute('data-state', 'closed'))
@@ -88,15 +100,16 @@ beforeEach(() => {
 it('asks the residence, then the payment plan, saves both and reloads /verify', async () => {
     const { onDone } = render(['residence', 'features'])
 
-    expect(await screen.findByRole('heading', { name: /I’m a resident of/ })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: RESIDENCE_TITLE() })).toBeInTheDocument()
     await act(async () => {
         fireEvent.click(screen.getByTestId('setup-residence-continue'))
     })
 
-    await choose('Add money with', 'Bank transfer (USD, EUR, GBP, MXN)')
-    await choose('Make a payment with', 'QR payments')
+    await choose('sheetFunding', copy('setupRedesign.plan.fundBankCurrencies', { currencies: 'USD, EUR, GBP, MXN' }))
+    await choose('sheetPayment', copy('setupRedesign.plan.payQr'))
+    await settled()
     await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Continue', hidden: true }))
+        fireEvent.click(continueButton())
     })
 
     expect(updateUserById).toHaveBeenCalledWith({ userId: 'user-1', residenceCountry: 'PT', nationality: 'PT' })
@@ -107,14 +120,16 @@ it('asks the residence, then the payment plan, saves both and reloads /verify', 
 it('back from the two-country comparison returns to the residence sentence, not out of the flow', async () => {
     const { onExit } = render(['residence', 'features'])
 
-    await screen.findByRole('heading', { name: /I’m a resident of/ })
+    await screen.findByRole('heading', { name: RESIDENCE_TITLE() })
     fireEvent.click(screen.getByTestId('setup-nationality-country'))
-    fireEvent.click(await screen.findByRole('button', { name: 'Brazil' }))
+    fireEvent.click(await within(screen.getByRole('dialog')).findByRole('button', { name: 'Brazil' }))
     fireEvent.click(screen.getByTestId('setup-residence-continue'))
-    expect(await screen.findByRole('heading', { name: en.setup.residenceStep.compare.title })).toBeInTheDocument()
+    expect(
+        await screen.findByRole('heading', { name: copyRx('setupRedesign.residence.compareTitle') })
+    ).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'setup-back' }))
-    expect(await screen.findByRole('heading', { name: /I’m a resident of/ })).toBeInTheDocument()
+    fireEvent.click(back())
+    expect(await screen.findByRole('heading', { name: RESIDENCE_TITLE() })).toBeInTheDocument()
     expect(onExit).not.toHaveBeenCalled()
 })
 
@@ -122,9 +137,10 @@ it('a known residence asks only the payment plan, and back from it leaves the fl
     mockDeclared = 'PT'
     const { onExit, onDone } = render(['features'])
 
-    expect(await screen.findByRole('button', { name: 'Add money with: Choose', hidden: true })).toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: /I’m a resident of/ })).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'setup-back' }))
+    const fundingPill = `${copy('setupRedesign.plan.sheetFunding')}: ${copy('setupRedesign.plan.choose')}`
+    expect(await screen.findByRole('button', { name: fundingPill, hidden: true })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: RESIDENCE_TITLE() })).not.toBeInTheDocument()
+    fireEvent.click(back())
     expect(onExit).toHaveBeenCalled()
     expect(onDone).not.toHaveBeenCalled()
 })
@@ -134,7 +150,7 @@ it('a residence that does not save stays on screen with an error, and /verify do
     mockDeclared = null
     const { onDone } = render(['residence'])
 
-    await screen.findByRole('heading', { name: /I’m a resident of/ })
+    await screen.findByRole('heading', { name: RESIDENCE_TITLE() })
     await act(async () => {
         fireEvent.click(screen.getByTestId('setup-residence-continue'))
     })

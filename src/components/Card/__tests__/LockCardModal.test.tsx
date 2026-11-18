@@ -273,6 +273,7 @@ describe('LockCardModal — wallet payment stop', () => {
 
         fireEvent.click(screen.getByText('Slide to freeze'))
         await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
+        expect(mockRefetchOverview).toHaveBeenCalledTimes(1)
         expect(mockSignSpend).toHaveBeenCalledTimes(1)
         expect(mockLockCard).toHaveBeenCalledTimes(2)
         expect(mockLockCard).toHaveBeenLastCalledWith('card-1', RAIN_WITHDRAWAL)
@@ -289,6 +290,7 @@ describe('LockCardModal — wallet payment stop', () => {
         rerender(<LockCardModal cardId="card-1" mode="lock" isOpen onClose={mockOnClose} />)
         fireEvent.click(screen.getByText('Slide to freeze'))
         await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
+        expect(mockRefetchOverview).toHaveBeenCalledTimes(1)
         expect(mockSignSpend).toHaveBeenCalledTimes(1)
         expect(mockLockCard).toHaveBeenLastCalledWith('card-1', RAIN_WITHDRAWAL)
     })
@@ -365,6 +367,7 @@ describe('LockCardModal — unlock', () => {
 
         fireEvent.click(screen.getByText('Slide to freeze'))
         await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
+        expect(mockRefetchOverview).toHaveBeenCalledTimes(1)
         expect(mockSignSpend).toHaveBeenCalledTimes(1)
     })
 
@@ -776,25 +779,83 @@ describe('CancelCardModal — no permission removal step', () => {
     })
 })
 
-/**
- * A lock retry. After a failed attempt the balance on screen can predate a
- * return that already ran, so a retry that needs a new signature reads the
- * balance again and sizes from that. A freeze is never refused: when the read
- * fails the retry signs nothing and still freezes the card, and the backend
- * says what stayed in it. A saved proof that is still valid goes first.
- */
-describe('LockCardModal: a retry after a failed freeze', () => {
+describe('LockCardModal: fresh freeze balance and retries', () => {
     const slide = () => fireEvent.click(screen.getByText('Slide to freeze'))
     const spent = new ApiError('Intent already completed', { status: 409 })
 
     afterEach(() => jest.useRealTimers())
 
-    it('the first attempt reads nothing extra', async () => {
+    it('the first attempt reads a fresh overview before signing', async () => {
         setup(OVERVIEW)
         renderLock()
         slide()
         await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
-        expect(mockRefetchOverview).not.toHaveBeenCalled()
+        expect(mockRefetchOverview).toHaveBeenCalledTimes(1)
+    })
+
+    it('2026-11-16 incident: sizes the first freeze from 40000 fresh cents instead of 8680 screen cents', async () => {
+        setup({ balance: { spendingPower: 8680 } })
+        mockRefetchOverview.mockResolvedValue({ data: { balance: { spendingPower: 40000 } }, isError: false })
+        renderLock()
+        slide()
+        await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
+        expect(mockRefetchOverview).toHaveBeenCalledTimes(1)
+        expect(mockSignSpend).toHaveBeenCalledWith({
+            ...FORCED_SIGN_ARGS,
+            requiredUsdcAmount: 400_000_000n,
+            rainSpendingPower: 400_000_000n,
+        })
+    })
+
+    it('awaits the fresh overview before signing or freezing', async () => {
+        setup(OVERVIEW)
+        let resolveRead!: (result: { data: typeof OVERVIEW; isError: boolean }) => void
+        mockRefetchOverview.mockReturnValue(
+            new Promise((resolve) => {
+                resolveRead = resolve
+            })
+        )
+        renderLock()
+        slide()
+        expect(mockRefetchOverview).toHaveBeenCalledTimes(1)
+        expect(mockSignSpend).not.toHaveBeenCalled()
+        expect(mockLockCard).not.toHaveBeenCalled()
+
+        await act(async () => {
+            resolveRead({ data: OVERVIEW, isError: false })
+        })
+        await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
+        expect(mockSignSpend).toHaveBeenCalledWith(FORCED_SIGN_ARGS)
+    })
+
+    it.each([
+        ['an error with cached data', { data: OVERVIEW, isError: true }],
+        ['absent data', { data: undefined, isError: false }],
+    ])('the first read returns %s: signs for the balance on screen', async (_reason, result) => {
+        setup(OVERVIEW)
+        mockRefetchOverview.mockResolvedValue(result)
+        renderLock()
+        slide()
+        await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
+        expect(mockRefetchOverview).toHaveBeenCalledTimes(1)
+        expect(mockSignSpend).toHaveBeenCalledWith(FORCED_SIGN_ARGS)
+        expect(mockLockCard).toHaveBeenCalledWith('card-1', RAIN_WITHDRAWAL)
+    })
+
+    it('caps the signed amount using the fresh credit limit', async () => {
+        setup({ balance: { spendingPower: 8680, creditLimit: 8680 } })
+        mockRefetchOverview.mockResolvedValue({
+            data: { balance: { spendingPower: 40000, creditLimit: 20000 } },
+            isError: false,
+        })
+        renderLock()
+        slide()
+        await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
+        expect(mockSignSpend).toHaveBeenCalledWith({
+            ...FORCED_SIGN_ARGS,
+            requiredUsdcAmount: 200_000_000n,
+            rainSpendingPower: 400_000_000n,
+        })
     })
 
     it('signs for the fresh balance, not for the one on screen', async () => {
@@ -808,7 +869,7 @@ describe('LockCardModal: a retry after a failed freeze', () => {
         mockRefetchOverview.mockResolvedValue({ data: { balance: { spendingPower: 400 } }, isError: false })
         slide()
         await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
-        expect(mockRefetchOverview).toHaveBeenCalledTimes(1)
+        expect(mockRefetchOverview).toHaveBeenCalledTimes(2)
         expect(mockSignSpend).toHaveBeenCalledTimes(2)
         expect(mockSignSpend).toHaveBeenLastCalledWith({
             ...FORCED_SIGN_ARGS,
@@ -870,10 +931,11 @@ describe('LockCardModal: a retry after a failed freeze', () => {
         renderLock()
         slide()
         expect(await screen.findByText('Card update failed')).toBeInTheDocument()
+        expect(mockRefetchOverview).toHaveBeenCalledTimes(1)
 
         slide()
         await waitFor(() => expect(mockOnClose).toHaveBeenCalledTimes(1))
-        expect(mockRefetchOverview).not.toHaveBeenCalled()
+        expect(mockRefetchOverview).toHaveBeenCalledTimes(1)
         expect(mockSignSpend).toHaveBeenCalledTimes(1)
         expect(mockLockCard).toHaveBeenLastCalledWith('card-1', RAIN_WITHDRAWAL)
     })

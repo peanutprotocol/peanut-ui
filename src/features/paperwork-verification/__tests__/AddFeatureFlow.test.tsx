@@ -111,7 +111,7 @@ describe('AddFeatureQuestions', () => {
         // Without the address beside it, the phone keeps its country-code help and the no-spam promise.
         expect(screen.getByText('Include your country code, like +1.')).toBeInTheDocument()
         expect(screen.getByTestId('verify-phone-no-spam')).toHaveTextContent('No spam')
-        expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+        expect(screen.queryByRole('group', { name: /^Step \d+ of \d+$/ })).not.toBeInTheDocument()
     })
 
     it('splits five dropdowns into three and two and shows a refused answer on its page', async () => {
@@ -620,5 +620,67 @@ describe('AddFeatureQuestions: a saved tax number', () => {
         fireEvent.change(input, { target: { value: '20123456786' } })
         fireEvent.click(screen.getByTestId('verify-continue'))
         await waitFor(() => expect(mockSave).toHaveBeenCalledWith('tax', { taxId: '20-12345678-6' }, 'local', 'user-a'))
+    })
+})
+
+describe("Avenia's CPF record step after a data rejection", () => {
+    // A made-up CPF with valid check digits; peanut-ui is public.
+    const cpfRecord = (fields: PaperworkVerificationQuestions['steps'][number]['fields']) => ({
+        available: true,
+        attemptId: null,
+        residence: 'BR',
+        steps: [{ id: 'cpfRecord' as const, features: [], answered: false, fields }],
+        firstUnanswered: 'cpfRecord' as const,
+        progress: { done: 1, total: 2 },
+    })
+    const maskedCpf = {
+        key: 'taxId',
+        kind: 'taxId' as const,
+        required: true,
+        format: 'cpf' as const,
+        value: '•••• 7735',
+        masked: true,
+    }
+    const fullName = { key: 'fullName', kind: 'text' as const, required: true, value: 'Ana Souza' }
+
+    it('a name mismatch asks the CPF and the name, prefilled; the name is sent, the masked CPF only when retyped', async () => {
+        mockQuestions.mockResolvedValue(cpfRecord([maskedCpf, fullName]))
+        mockSave.mockResolvedValue({ kind: 'saved', next: null })
+        const onDone = jest.fn()
+        renderWithIntl(
+            <AddFeatureQuestions feature="pix" requiredStep="cpfRecord" onBack={jest.fn()} onDone={onDone} />
+        )
+        expect(await screen.findByText(en.kyc.paperworkVerification.cpfRecord.title.name)).toBeInTheDocument()
+        expect(screen.getByText(en.kyc.paperworkVerification.cpfRecord.description.name)).toBeInTheDocument()
+        // the saved CPF reads in its own shape, by its last four digits
+        expect(screen.getByTestId('verify-input-taxId')).toHaveValue('XXX.XXX.X77-35')
+        const name = screen.getByTestId('verify-input-fullName')
+        expect(name).toHaveValue('Ana Souza')
+        fireEvent.change(name, { target: { value: 'Ana Maria Souza' } })
+        fireEvent.click(screen.getByTestId('verify-continue'))
+        await waitFor(() =>
+            expect(mockSave).toHaveBeenCalledWith('cpfRecord', { fullName: 'Ana Maria Souza' }, 'pix', 'user-a')
+        )
+        await waitFor(() => expect(onDone).toHaveBeenCalled())
+    })
+
+    it('an irregular CPF asks the CPF again, and a second try within a day says so in a callout', async () => {
+        mockQuestions.mockResolvedValue(cpfRecord([{ ...maskedCpf, value: null, masked: undefined }]))
+        mockSave.mockResolvedValue({ kind: 'conflict', code: 'retry_later' })
+        const onDone = jest.fn()
+        renderWithIntl(
+            <AddFeatureQuestions feature="pix" requiredStep="cpfRecord" onBack={jest.fn()} onDone={onDone} />
+        )
+        expect(await screen.findByText(en.kyc.paperworkVerification.cpfRecord.title.status)).toBeInTheDocument()
+        expect(screen.queryByTestId('verify-input-fullName')).not.toBeInTheDocument()
+        fireEvent.change(screen.getByTestId('verify-input-taxId'), { target: { value: '11144477735' } })
+        fireEvent.click(screen.getByTestId('verify-continue'))
+        expect(await screen.findByTestId('verify-form-error')).toHaveTextContent(
+            en.kyc.paperworkVerification.cpfRecord.retryLater
+        )
+        // the wait stays on the form: the questions are not read again
+        expect(mockQuestions).toHaveBeenCalledTimes(1)
+        expect(mockSave).toHaveBeenCalledWith('cpfRecord', { taxId: '111.444.777-35' }, 'pix', 'user-a')
+        expect(onDone).not.toHaveBeenCalled()
     })
 })

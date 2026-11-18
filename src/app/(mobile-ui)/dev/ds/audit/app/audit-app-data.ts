@@ -269,8 +269,13 @@ export const APP_DIVERGENCE_CATEGORIES: UsageCategory[] = [
                 status: 'canonical',
                 source: 'src/components/0_Bruddle/CarouselDots.tsx',
                 divergence:
-                    'New pagination-dot primitive, 2 product call-sites and ZERO /dev references — the reverse of the usual gap: shipped in the product but absent from the showcase, so a designer browsing /dev will not know it exists.',
-                usedIn: ['components/Card/AddToWalletCarousel.tsx', 'components/Global/Carousel/index.tsx'],
+                    'Pagination-dot primitive and, since 17 Nov 2026, the one stepper (read-only with aria-label; no outlined/done variant). At sweep time it had 2 product call-sites and ZERO /dev references; it now has a /dev/ds page and the paperwork-verification question screens use it as their step indicator.',
+                usedIn: [
+                    'components/Card/AddToWalletCarousel.tsx',
+                    'components/Global/Carousel/index.tsx',
+                    'features/paperwork-verification/components/VerifyLayout.tsx',
+                    'features/paperwork-verification/components/IdentityDocumentScreen.tsx',
+                ],
                 verified: true,
             },
             {

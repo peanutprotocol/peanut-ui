@@ -1,20 +1,23 @@
 /** @jest-environment jsdom */
-import { StrictMode, type ReactNode } from 'react'
+import { StrictMode } from 'react'
 import { renderWithIntl } from '@/test-utils/intl'
 import posthog from 'posthog-js'
 import FinishSetupPage from '../page'
 
-jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
+jest.mock('posthog-js', () => ({
+    __esModule: true,
+    default: { capture: jest.fn(), register_for_session: jest.fn(), unregister_for_session: jest.fn() },
+}))
 jest.mock('@/features/setup/SetupFlowContext', () => ({
     useSetupFlowContext: () => ({ signupEntryFlow: 'card' }),
+    // the real shell's hooks read the optional flow; the standalone finish page has none
+    useOptionalSetupFlow: () => null,
 }))
 jest.mock('@/hooks/useBackHandler', () => ({ useBackHandler: jest.fn() }))
-jest.mock('@/components/Setup/components/SetupWrapper', () => ({
-    SetupWrapper: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-}))
-jest.mock('@/components/Setup/Views/SignTestTransaction', () => ({
-    __esModule: true,
-    default: () => <button>Confirm and finish</button>,
+// the shell's top bar draws the language switcher, which needs the page's locale provider
+jest.mock('@/components/Setup/components/SetupLanguageSwitcher', () => ({ SetupLanguageSwitcher: () => null }))
+jest.mock('@/components/Setup/redesign/FinalConfirm/FinalConfirmScreen', () => ({
+    FinalConfirmScreen: () => <button>Confirm and finish</button>,
 }))
 
 beforeEach(() => jest.clearAllMocks())

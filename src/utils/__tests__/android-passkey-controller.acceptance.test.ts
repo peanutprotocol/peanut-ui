@@ -90,6 +90,18 @@ describe('Android passkey controller', () => {
         expect(cancel).toHaveBeenCalledWith(operation.mock.calls[0][0])
     })
 
+    it('an untimed request (a guarded ceremony owns the deadline) is cancelled only by cancelRequest', async () => {
+        const pending = deferred<string>()
+        const { controller, cancel } = setup()
+        const operation = jest.fn((_id: string) => pending.promise)
+        const result = outcome(controller.run(operation, { untimed: true }))
+        await jest.advanceTimersByTimeAsync(600_000)
+        expect(cancel).not.toHaveBeenCalled()
+        controller.cancelRequest(operation.mock.calls[0][0])
+        await expect(result).resolves.toMatchObject({ error: { name: 'CeremonyTimeoutError' } })
+        expect(cancel).toHaveBeenCalledWith(operation.mock.calls[0][0])
+    })
+
     it('timeout -> cancel acknowledged quickly -> next tap works immediately', async () => {
         const pending = deferred<string>()
         const { controller } = setup()

@@ -56,6 +56,11 @@ export function PixAccountOpening({
     useEffect(() => {
         if (waiting) markSubmitted()
     }, [waiting])
+    // an answer the activation sent ends its round: the provider may ask the same step again once it
+    // decided (Avenia rejecting a corrected CPF record), and that ask is a new one, not a loop
+    useEffect(() => {
+        if (waiting && answered?.step) setAnswered((last) => (last ? { step: null, round: last.round } : last))
+    }, [waiting, answered?.step])
 
     if (degraded) return <VerificationOutage onBack={onBack} />
     if (missing && !activation.isLoading && !(answered && answered.step === missing.step))

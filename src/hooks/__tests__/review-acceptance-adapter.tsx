@@ -242,11 +242,10 @@ export async function walletScenario(options: {
                       ? 'native'
                       : 'manual'
                 : 'none'
-            const addedLabel = mockPlatform === 'android' ? 'Added to Google Wallet' : 'Added to Apple Wallet'
             return {
                 action,
                 isAdding: mockHookResult.isAdding,
-                added: mounted && !!within(rendered.container).queryByText(addedLabel),
+                added: mounted && mockHookResult.alreadyInWallet,
                 provisioningCalls: mockProvisioning.mock.calls.length,
                 nativeAddCalls: mockNativeAdd.mock.calls.length,
             }

@@ -2,8 +2,11 @@
 jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
 
 /*
- * Acceptance tests for the new Passkey screen (spec: signup-reorder-spec.md,
- * contract: username-reservation-contract.md).
+ * Acceptance tests for the Passkey screen (spec: signup-reorder-spec.md,
+ * contract: username-reservation-contract.md), run against the redesigned
+ * 02 Username, 04 Invite and 03 Passkey screens inside the real SetupShell
+ * (sign-up redesign contract C, build/contract/C.md: § 12 C3 no "Learn more",
+ * C7 the full taken screen, C13 two points).
  *
  * ── Guessed names / seams (align the implementation or adjust here) ──────
  * - The screen is the setupSteps entry with screenId 'passkey'; this file
@@ -46,11 +49,11 @@ import { useLayoutEffect, useState } from 'react'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { renderWithIntl } from '@/test-utils/intl'
-import { onSignupScreen, signupControls } from '@/test-utils/signup-controls'
+import { signupControls } from '@/test-utils/signup-controls'
+import { SetupShell } from '@/components/Setup/redesign/shell/SetupShell'
 import { setupScreenIds, setupSteps } from '@/components/Setup/Setup.consts'
 import type { ScreenId } from '@/components/Setup/Setup.types'
 import { SetupDocsProvider, type SetupDocuments } from '@/components/Setup/components/SetupDocsDrawer'
-import { useSetupStepCopy } from '@/components/Setup/useSetupStepCopy'
 import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { __resetSignupSavesForTests } from '@/features/setup/saveSignupAnswers'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
@@ -60,6 +63,7 @@ import { CeremonyTimeoutError } from '@/utils/passkeyCeremony.utils'
 import { installPasskeyVerifyCapture } from '@/utils/passkey-auth-capture'
 import { readInviteCode } from '@/utils/invite-stash'
 import en from '@/i18n/app/messages/en.json'
+import esAR from '@/i18n/app/messages/es-AR.json'
 import es419 from '@/i18n/app/messages/es-419.json'
 import ptBR from '@/i18n/app/messages/pt-BR.json'
 import { FIXTURES } from '@/dev/fixtures/registry'
@@ -154,7 +158,12 @@ jest.mock('@sentry/nextjs', () => ({
     captureMessage: jest.fn(),
     addBreadcrumb: jest.fn(),
 }))
-jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
+// useFeatureFlags (the 04 inviter-suggestions gate) subscribes to flag loads and reads flags.
+jest.mock('posthog-js', () => ({
+    __esModule: true,
+    default: { capture: jest.fn(), onFeatureFlags: jest.fn(() => () => {}), isFeatureEnabled: jest.fn(() => false) },
+}))
+jest.mock('@/components/Setup/components/SetupLanguageSwitcher', () => ({ SetupLanguageSwitcher: () => null }))
 
 const PASSKEY = 'passkey' as ScreenId
 const RESERVATIONS = '/users/username/reservations'
@@ -244,7 +253,6 @@ function Host() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
     const step = flow.step
-    const copy = useSetupStepCopy(step)
     probe.flow = flow
     probe.context = context
     if (!ready) return null
@@ -255,9 +263,10 @@ function Host() {
             <output data-testid="cursor">{id}</output>
             {Step && id && RENDERED.includes(id) && (
                 <section>
-                    {copy.title && <h1>{copy.title}</h1>}
-                    {copy.description && <div>{copy.description}</div>}
-                    {onSignupScreen(id as ScreenId, <Step />)}
+                    {/* As the page renders a step: the shell draws the title and the footer (Continue, Skip, Create passkey). */}
+                    <SetupShell screenId={id as ScreenId}>
+                        <Step />
+                    </SetupShell>
                 </section>
             )}
         </>
@@ -277,11 +286,39 @@ const renderAt = (start: 'passkey' | 'invite' = 'passkey') =>
         </QueryClientProvider>
     )
 
+const PASSKEY_COPY = en.setupRedesign.passkey
+/** Testing Library normalizes the page's no-break spaces to spaces; the catalog keeps them. */
+const plain = (text: string) => text.replace(/\u00a0/g, ' ')
+/** Accessible names keep the no-break spaces, so compare names with them flattened. */
+const named = (text: string) => (name: string) => plain(name) === plain(text)
 const cursor = () => screen.getByTestId('cursor').textContent
-const createButton = () => screen.getByRole('button', { name: 'Create passkey', hidden: true })
+// While a registration runs the DS button's name gains its spinner's "Loading..." label.
+const createButton = () => screen.getByRole('button', { name: /Create passkey$/, hidden: true })
+/** The full taken screen (contract C § 3.2 state 4, C7), which replaced dev's inline "isn’t available right now" callout. */
+const expectTakenScreen = async (username: string) => {
+    expect(
+        await screen.findByRole('heading', {
+            level: 1,
+            name: named(PASSKEY_COPY.takenTitle.replace('{name}', `@${username}`)),
+        })
+    ).toBeInTheDocument()
+    expect(screen.getByText(plain(PASSKEY_COPY.takenLead))).toBeInTheDocument()
+    // the footer's primary keeps "Create passkey" while its label crossfades (CrossfadeLabel), so wait for it
+    expect(await screen.findByRole('button', { name: PASSKEY_COPY.takenCta })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: PASSKEY_COPY.logIn })).toBeInTheDocument()
+    expect(document.querySelector('[data-setup-state]')).toHaveAttribute('data-setup-state', 'taken')
+}
+/** The shell drops taps while a step slides in (one step per tap gesture, R2-01): act once it has come to rest. */
+const settled = () =>
+    waitFor(() => expect(document.querySelector('[data-setup-shell]')).not.toHaveAttribute('data-nav-locked'), {
+        timeout: 3000,
+    })
 const tap = async () => {
+    // after Invite's Continue the shell slides 03 in, so wait for its footer button
+    const button = await screen.findByRole('button', { name: /Create passkey$/, hidden: true })
+    await settled()
     await act(async () => {
-        fireEvent.click(createButton())
+        fireEvent.click(button)
     })
 }
 const events = (name: string) => (posthog.capture as jest.Mock).mock.calls.filter(([event]) => event === name)
@@ -290,6 +327,7 @@ const selectInviter = async (value: string) => {
     const field = screen.getByRole('textbox', { name: 'Username of the person who invited you' })
     fireEvent.change(field, { target: { value } })
     await waitFor(() => expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled())
+    await settled()
     await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: 'Continue' }))
     })
@@ -326,40 +364,37 @@ beforeEach(() => {
 })
 
 describe('the passkey screen', () => {
-    it('explains passkeys and offers Create passkey and Learn more', async () => {
+    it('explains passkeys with two points and offers Create passkey and the terms line, without Learn more', async () => {
         renderAt()
-        expect(await screen.findByRole('button', { name: 'Create passkey' })).toBeInTheDocument()
-        expect(screen.getByText('Create a passkey')).toBeInTheDocument()
-        expect(
-            screen.getByText('It’s how you sign in and approve payments. No password to remember.', {
-                normalizer: (text) => text.replace(/['’]/g, '’').trim(),
-            })
-        ).toBeInTheDocument()
-        for (const text of [
-            /Face or fingerprint/,
-            /Unlock with what your phone already uses\./,
-            /Fully private/,
-            /Peanut never sees or stores it\./,
-            /Ready on a new phone/,
-            /Synced by your phone's password manager\./,
-        ]) {
-            expect(screen.getByText(text)).toBeInTheDocument()
+        expect(await screen.findByRole('button', { name: 'Create passkey' })).toBeEnabled()
+        expect(screen.getByRole('heading', { level: 1, name: named(PASSKEY_COPY.s1.title) })).toBeInTheDocument()
+        expect(screen.getByText(plain(PASSKEY_COPY.s1.lead))).toBeInTheDocument()
+        const points = screen.getByTestId('passkey-points')
+        expect(points).toHaveTextContent(PASSKEY_COPY.s1.p1)
+        expect(points).toHaveTextContent(PASSKEY_COPY.s1.p2)
+        // C13: dev's three points are gone; C3: no passkeys guide link
+        for (const text of [/Face or fingerprint/, /Fully private/, /Ready on a new phone/, /learn more/i]) {
+            expect(screen.queryByText(text)).not.toBeInTheDocument()
         }
-        expect(screen.getByRole('button', { name: /learn more about passkeys/i })).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /learn more about passkeys/i })).not.toBeInTheDocument()
+        expect(screen.getByTestId('passkey-terms')).toHaveTextContent(
+            'By signing up, you agree to Peanut’s terms and privacy policy.'
+        )
     })
 
-    it('opens the passkeys guide from Learn more, reported from the passkey screen', async () => {
+    it('opens the terms from the terms line, reported from the passkey screen', async () => {
         renderAt()
-        fireEvent.click(await screen.findByRole('button', { name: /learn more about passkeys/i }))
-        expect(await screen.findByRole('dialog')).toHaveTextContent('Passkeys guide')
+        await screen.findByRole('button', { name: 'Create passkey' })
+        fireEvent.click(screen.getByRole('button', { name: 'terms' }))
+        expect(await screen.findByRole('dialog')).toHaveTextContent('Terms')
         const opened = (posthog.capture as jest.Mock).mock.calls.find(
-            ([event, props]) => event === ANALYTICS_EVENTS.CONTROL_USED && props.control === 'passkeys_doc'
+            ([event, props]) => event === ANALYTICS_EVENTS.CONTROL_USED && props.control === 'terms_doc'
         )
         expect(opened?.[1]).toEqual(expect.objectContaining({ screen_id: 'passkey', action: 'open' }))
         expect(mockHandleRegister).not.toHaveBeenCalled()
     })
 
-    it('ships the screen copy in en, es-419 and pt-BR', () => {
+    it('ships the screen copy in en, es-AR, es-419 and pt-BR', () => {
         const pathTo = (node: unknown, value: string, path: string[] = []): string[] | null => {
             if (node === value) return path
             if (!node || typeof node !== 'object') return null
@@ -371,10 +406,10 @@ describe('the passkey screen', () => {
         }
         const at = (catalog: unknown, path: string[]) =>
             path.reduce<unknown>((node, key) => (node as Record<string, unknown> | undefined)?.[key], catalog)
-        for (const english of ['Create a passkey', 'Create passkey']) {
-            const path = pathTo(en, english)
+        for (const english of [PASSKEY_COPY.s1.title, PASSKEY_COPY.s1.cta, PASSKEY_COPY.terms]) {
+            const path = pathTo(en.setupRedesign, english)
             expect(path).not.toBeNull()
-            for (const catalog of [es419, ptBR]) {
+            for (const catalog of [esAR.setupRedesign, es419.setupRedesign, ptBR.setupRedesign]) {
                 const translated = at(catalog, path as string[])
                 expect(typeof translated).toBe('string')
                 expect((translated as string).trim()).not.toBe('')
@@ -391,8 +426,7 @@ describe('one tap, one registration (failure 4)', () => {
         renderAt()
         await waitFor(() => expect(reservationCalls()).toHaveLength(1))
         await tap()
-        expect(await screen.findByText(en.setup.passkey.usernameTaken)).toBeVisible()
-        expect(document.querySelector('[role="alert"] + button')).toHaveTextContent(en.setup.logIn)
+        await expectTakenScreen('kimchi')
         expect(cursor()).toBe('passkey')
         expect(mockHandleRegister).not.toHaveBeenCalled()
     })
@@ -417,6 +451,8 @@ describe('one tap, one registration (failure 4)', () => {
         renderAt()
         await screen.findByRole('button', { name: 'Create passkey' })
         await tap()
+        // the button is busy and disabled from the first tap: the extra taps land on it anyway
+        expect(createButton()).toBeDisabled()
         await tap()
         await tap()
         await act(async () => release(404))
@@ -449,7 +485,8 @@ describe('registration refuses a reserved username', () => {
         await screen.findByRole('button', { name: 'Create passkey' })
         await tap()
         await waitFor(() => expect(cursor()).toBe('signup'))
-        expect(await screen.findByText(en.setup.signupStep.errors.reserved)).toBeInTheDocument()
+        const reserved = en.setupRedesign.username.reserved
+        expect(await screen.findByText(reserved)).toBeInTheDocument()
         expect(screen.getByRole('textbox', { name: 'Username' })).toHaveValue('kimchi')
         expect(probe.context).toEqual(
             expect.objectContaining({
@@ -460,10 +497,14 @@ describe('registration refuses a reserved username', () => {
             })
         )
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-        expect(screen.queryByRole('button', { name: /learn more about passkeys/i })).not.toBeInTheDocument()
+        // 02 `reserved`: the button stays off (contract C § 3.1 state 10)
+        expect(await screen.findByRole('button', { name: /^Use (this username|@kimchi)$/ })).toBeDisabled()
         fireEvent.change(screen.getByRole('textbox', { name: 'Username' }), { target: { value: 'kimchi2' } })
-        await waitFor(() => expect(screen.queryByText(en.setup.signupStep.errors.reserved)).not.toBeInTheDocument())
-        await waitFor(() => expect(screen.getByRole('button', { name: /Claim$/ })).toBeEnabled())
+        await waitFor(() => expect(screen.queryByText(reserved)).not.toBeInTheDocument())
+        // 02 checks a typed name after its 750 ms debounce, then names the button
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Use @kimchi2' })).toBeEnabled(), {
+            timeout: 3000,
+        })
     })
 })
 
@@ -539,7 +580,7 @@ describe('username already registered → Log in, on the passkey screen (failure
         renderAt()
         await screen.findByRole('button', { name: 'Create passkey' })
         await tap()
-        expect(await screen.findByText(/This username isn’t available right now/)).toBeInTheDocument()
+        await expectTakenScreen('kimchi')
         fireEvent.click(screen.getByRole('button', { name: 'Log in' }))
         expect(mockLogin).toHaveBeenCalledTimes(1)
         expect(mockHandleRegister).not.toHaveBeenCalled()
@@ -564,9 +605,9 @@ describe('the account may exist after a failed verify or hydration (failure 3)',
         await screen.findByRole('button', { name: 'Create passkey' })
         await tap()
         await waitFor(() => expect(mockHandleRegister).toHaveBeenCalledTimes(1))
-        await tap()
-        expect(await screen.findByText(/This username isn’t available right now/)).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: 'Log in', hidden: true })).toBeInTheDocument()
+        // 03 shows the full taken screen at once (contract C § 8): there is no Create passkey left to tap again
+        await expectTakenScreen('kimchi')
+        expect(screen.queryByRole('button', { name: /Create passkey$/ })).not.toBeInTheDocument()
         expect(mockHandleRegister).toHaveBeenCalledTimes(1)
         expect(cursor()).toBe('passkey')
     })
@@ -735,8 +776,8 @@ describe('control analytics', () => {
     it('attributes the passkey screen’s controls to screen_id passkey', async () => {
         renderAt()
         await screen.findByRole('button', { name: 'Create passkey' })
-        fireEvent.click(screen.getByRole('button', { name: /learn more about passkeys/i }))
-        expect(signupControls(posthog.capture as jest.Mock)).toContain('passkeys_doc:open')
+        fireEvent.click(screen.getByRole('button', { name: /^privacy\spolicy$/ }))
+        expect(signupControls(posthog.capture as jest.Mock)).toContain('privacy_doc:open')
         const screens = (posthog.capture as jest.Mock).mock.calls
             .filter(([event]) => event === ANALYTICS_EVENTS.CONTROL_USED)
             .map(([, props]) => props.screen_id)

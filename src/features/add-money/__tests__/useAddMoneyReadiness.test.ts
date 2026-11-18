@@ -188,7 +188,10 @@ it('reads the Brazil pause from the Pix deposit route and keeps Pix off the draw
 it('leads with Pix while Avenia is setting up or reviewing: the first tap is the setup', () => {
     mockRoutes = pixDeposit({ state: 'action_required' })
     const { result } = renderHook(() => useAddMoneyReadiness(true))
-    expect(result.current.drawerMethods).toEqual(['pix', 'account', 'crypto', 'more'])
+    expect(result.current.pickerMethods[0]).toBe('pix')
+    expect(result.current.drawerMethods).toEqual(['pix', 'account', 'crypto'])
+    // a route offered before verification is not a ready top-up: a new user still lands on the picker
+    expect(result.current.entry).toBe('picker')
 })
 
 it('keeps Pix on offer through an outage of Avenia: the Pix page shows the outage itself', () => {

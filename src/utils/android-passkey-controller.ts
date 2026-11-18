@@ -55,7 +55,7 @@ export function createAndroidPasskeyController({
         predecessor?: Native
         abandoned: boolean
         reject: (error: Error) => void
-        timer: ReturnType<typeof setTimeout>
+        timer?: ReturnType<typeof setTimeout>
     }
     let active: Attempt | undefined
     let starting = false
@@ -254,7 +254,7 @@ export function createAndroidPasskeyController({
         },
         async run<T>(
             operation: (id: string, context: { contended: boolean }) => Promise<T>,
-            telemetry?: { attemptId?: string }
+            telemetry?: { attemptId?: string; untimed?: boolean }
         ): Promise<T> {
             if (active || starting) throw error('CeremonyConflictError', 'Another passkey request is in progress')
             if (blocking) {
@@ -272,8 +272,9 @@ export function createAndroidPasskeyController({
                     predecessor: [...unsettled].pop(),
                     abandoned: false,
                     reject,
-                    timer: setTimeout(() => abandon(attempt), timeoutMs),
                 }
+                // A guarded ceremony owns its deadline and cancels through its scope.
+                if (!telemetry?.untimed) attempt.timer = setTimeout(() => abandon(attempt), timeoutMs)
                 active = attempt
                 const finish = () => {
                     clearTimeout(attempt.timer)

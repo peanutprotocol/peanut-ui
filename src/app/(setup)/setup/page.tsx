@@ -2,7 +2,8 @@
 
 import { useHydrationSnapshot } from '@/utils/native-platform'
 import Loading from '@/components/Global/Loading'
-import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
+import { SetupShell } from '@/components/Setup/redesign/shell/SetupShell'
+import { setupProgress } from '@/components/Setup/redesign/shell/setupProgress'
 import { type ScreenId } from '@/components/Setup/Setup.types'
 import { postRegistrationScreen, useSetupFlow } from '@/hooks/useSetupFlow'
 import { setupCountrySuggestion } from '@/features/setup/country-signals'
@@ -18,10 +19,8 @@ import {
 } from '@/features/setup/signup-progress'
 import { useSetupStepAnalytics } from '@/features/setup/useSetupStepAnalytics'
 import { useSignupControl } from '@/features/setup/useSignupControl'
-import { MASCOT_ANIMATION_LOADERS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
 import { INVITE_TYPE_PARAM, readInviteIntent, stashAcquisitionInvite, stashInvite } from '@/utils/invite-stash'
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { useSetupStepCopy } from '@/components/Setup/useSetupStepCopy'
 import { hasKnownDeviceCredentials, resolveSetupEntryStep } from '@/components/Setup/setup-entry'
 import { isCapacitor } from '@/utils/capacitor'
 import { mayHoldSession } from '@/utils/auth-token'
@@ -78,6 +77,31 @@ function setupTargetMatchesSearchParams(target: string | null, searchParamsStrin
     }
 }
 
+// a slow network gets a fairer wait before the recovery screen (TASK-22459, PEANUT-UI-T3A).
+// navigator.connection is chromium only, so ios webviews keep the base wait.
+const SETUP_INIT_TIMEOUT_MS = 15_000
+const SLOW_NETWORK_SETUP_INIT_TIMEOUT_MS = 30_000
+function setupInitTimeoutMs(): number {
+    const connection = (navigator as Navigator & { connection?: { effectiveType?: string; saveData?: boolean } })
+        .connection
+    const slow = connection?.saveData === true || /2g|3g/.test(connection?.effectiveType ?? '')
+    return slow ? SLOW_NETWORK_SETUP_INIT_TIMEOUT_MS : SETUP_INIT_TIMEOUT_MS
+}
+
+// one report per reason per browser session: the retry or a reload of the same failure is not a new hit,
+// but a different failure later in the session still reports
+const INIT_FAILURE_REPORTED_KEY = 'setup-init-failure-reported'
+function firstInitFailureThisSession(reason: string): boolean {
+    const key = `${INIT_FAILURE_REPORTED_KEY}:${reason}`
+    try {
+        if (sessionStorage.getItem(key)) return false
+        sessionStorage.setItem(key, '1')
+    } catch {
+        // storage blocked: report every time rather than never
+    }
+    return true
+}
+
 function SetupPageContent() {
     const tCommon = useTranslations('common')
     const { setIsSupportModalOpen } = useModalsContext()
@@ -112,26 +136,7 @@ function SetupPageContent() {
         registrationInProgress,
         resetSetupFlow,
     } = useSetupFlowContext()
-    const {
-        step,
-        currentIndex: currentStepIndex,
-        direction,
-        handleNext,
-        handleBack,
-        setScreenId,
-        isLoading: flowLoading,
-    } = useSetupFlow()
-    useEffect(() => {
-        const nextImage = steps[currentStepIndex + 1]?.image
-        if (nextImage && 'pose' in nextImage) {
-            void MASCOT_ANIMATION_LOADERS[nextImage.pose]().catch(() => {})
-        }
-        // The residence hero opens on the waving mascot.
-        if (nextImage && 'hero' in nextImage) {
-            void MASCOT_ANIMATION_LOADERS['waving-hello']().catch(() => {})
-        }
-    }, [steps, currentStepIndex])
-    const stepCopy = useSetupStepCopy(step)
+    const { step, direction, handleBack, setScreenId, isLoading: flowLoading } = useSetupFlow()
     const { user, isFetchingUser, userFetchError, fetchUser } = useAuth()
     const router = useRouter()
     const signedInUserId = user?.user?.userId
@@ -362,6 +367,7 @@ function SetupPageContent() {
             })
             return
         }
+        if (!firstInitFailureThisSession(recoveryReason)) return
         Sentry.captureMessage('Setup initialization failed', {
             level: 'error',
             tags: { reason: recoveryReason },
@@ -373,7 +379,7 @@ function SetupPageContent() {
         const timeout = setTimeout(() => {
             initializationExpired.current = true
             setInitializationError('initialization_timeout')
-        }, 15000)
+        }, setupInitTimeoutMs())
         return () => clearTimeout(timeout)
     }, [isLoading, sessionChecked, initializationError, isLeavingForHome, profileFetchFailed, initializationAttempt])
 
@@ -888,27 +894,18 @@ function SetupPageContent() {
 
     if (!step) return null
 
+    const dots = setupProgress(steps, step.screenId)
     return (
-        <SetupWrapper
-            fullScreen={step.fullScreen}
-            showProgress={!signupCompleted}
-            layoutType={step.layoutType}
+        <SetupShell
             screenId={step.screenId}
-            image={step.image}
-            {...stepCopy}
             showBackButton={showBackButton}
-            showSkipButton={step.showSkipButton}
-            imageClassName={step.imageClassName}
             // The visible back button walks the same handler stack as hardware
             // back, so a step's sub-view (residence heads-up) collapses first
             // instead of being skipped straight to the previous step. The page
             // handler below it steps back when nothing consumed the press.
             onBack={dispatchBackPress}
-            onSkip={() => handleNext()}
-            step={currentStepIndex}
             direction={direction}
-            titleClassName={step.titleClassName}
-            contentClassName={step.contentClassName}
+            progress={signupCompleted ? null : dots}
         >
             <step.component
                 entryDirection={direction}
@@ -921,7 +918,7 @@ function SetupPageContent() {
                         : undefined
                 }
             />
-        </SetupWrapper>
+        </SetupShell>
     )
 }
 

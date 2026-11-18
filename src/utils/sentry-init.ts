@@ -31,6 +31,7 @@ const ENABLED =
  */
 const buffered: Array<ErrorEvent | PromiseRejectionEvent> = []
 let started = false
+let initialization: Promise<void> | undefined
 
 function bufferEvent(event: ErrorEvent | PromiseRejectionEvent): void {
     buffered.push(event)
@@ -38,12 +39,13 @@ function bufferEvent(event: ErrorEvent | PromiseRejectionEvent): void {
     initSentry()
 }
 
-export function initSentry(): void {
-    if (!ENABLED || started || typeof window === 'undefined') return
+export function initSentry(): Promise<void> | undefined {
+    if (!ENABLED || typeof window === 'undefined') return
+    if (started) return initialization
     if (isPrivateDataPath(window.location.pathname)) return
     started = true
 
-    void loadSentryOrRelease().then((Sentry) => {
+    initialization = loadSentryOrRelease().then((Sentry) => {
         if (!Sentry) return
         window.removeEventListener('error', bufferEvent)
         window.removeEventListener('unhandledrejection', bufferEvent)
@@ -99,6 +101,7 @@ export function initSentry(): void {
 
         flushBuffered(Sentry)
     })
+    return initialization
 }
 
 // A failed load keeps the buffer listeners attached, so the next trigger retries.

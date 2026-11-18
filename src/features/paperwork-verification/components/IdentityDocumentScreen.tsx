@@ -7,7 +7,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import Image from 'next/image'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
-import ProgressBar from '@/components/0_Bruddle/ProgressBar'
+import { CarouselDots } from '@/components/0_Bruddle/CarouselDots'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
@@ -65,6 +65,7 @@ export function IdentityDocumentScreen({
     nationality = null,
     restart = false,
     reason = null,
+    notice,
     documentsLoading = false,
     busy,
     error,
@@ -81,6 +82,8 @@ export function IdentityDocumentScreen({
     nationality?: string | null
     restart?: boolean
     reason?: string | null
+    /** under the title: what the answers closed of the user's pick (ClosedFeaturesNotice) */
+    notice?: React.ReactNode
     /** the plan is being read again for the documents */
     documentsLoading?: boolean
     busy: boolean
@@ -280,19 +283,12 @@ export function IdentityDocumentScreen({
                     <Icon name="chevron-up" size={20} className="-rotate-90" />
                 </Button>
                 {progress ? (
-                    <div
-                        role="progressbar"
+                    <CarouselDots
+                        count={progress.total}
+                        activeIndex={Math.max(0, Math.min(progress.current - 1, progress.total - 1))}
                         aria-label={t('progress', progress)}
-                        aria-valuemin={0}
-                        aria-valuemax={progress.total}
-                        aria-valuenow={progress.current}
-                        className="px-4"
-                    >
-                        <ProgressBar
-                            value={(progress.current / progress.total) * 100}
-                            fillClassName="bg-foreground-primary"
-                        />
-                    </div>
+                        className="justify-center px-4"
+                    />
                 ) : (
                     <span />
                 )}
@@ -319,6 +315,7 @@ export function IdentityDocumentScreen({
                         {reason}
                     </Callout>
                 )}
+                {notice}
                 <p className="text-body-m leading-[1.625rem] text-foreground-secondary">
                     {t(restart ? 'midpoint.restartDescription' : 'documentList.description')}
                 </p>

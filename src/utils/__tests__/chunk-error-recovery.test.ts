@@ -15,16 +15,45 @@ type Listener = (event: { reason?: unknown; error?: unknown; message?: string })
 function bootScript({
     standalone = false,
     brokenStorage = false,
-}: { standalone?: boolean; brokenStorage?: boolean } = {}) {
+    markerFailure = false,
+    domFailure = false,
+    timerFailure = false,
+}: {
+    standalone?: boolean
+    brokenStorage?: boolean
+    markerFailure?: boolean
+    domFailure?: boolean
+    timerFailure?: boolean
+} = {}) {
     const listeners: Record<string, Listener[]> = {}
     const reload = jest.fn()
     const store = new Map<string, string>()
+    const style = { visibility: '' }
+    const document = {
+        get documentElement() {
+            if (domFailure) throw new Error('DOM unavailable')
+            return { style }
+        },
+    }
+    const schedule = (fn: () => void, ms: number) => {
+        if (timerFailure) throw new Error('timer unavailable')
+        return setTimeout(fn, ms)
+    }
+    const location = {
+        reload,
+        pathname: '/send',
+        search: '?secret=abc',
+        hash: '#private',
+        href: 'https://peanut.me/send?secret=abc#private',
+    }
     const win = {
+        document,
+        setTimeout: schedule,
         addEventListener: (type: string, fn: Listener) => {
             ;(listeners[type] = listeners[type] || []).push(fn)
         },
         matchMedia: (_query: string) => ({ matches: standalone }),
-        location: { reload },
+        location,
     }
     const sessionStorage = brokenStorage
         ? {
@@ -38,14 +67,23 @@ function bootScript({
         : {
               getItem: (k: string) => (store.has(k) ? store.get(k)! : null),
               setItem: (k: string, v: string) => {
+                  if (markerFailure && k === 'peanut-chunk-reload-report') throw new Error('quota')
                   store.set(k, v)
               },
           }
-    new Function('window', 'sessionStorage', 'navigator', CHUNK_ERROR_RECOVERY_SCRIPT)(win, sessionStorage, {})
+    new Function(
+        'window',
+        'sessionStorage',
+        'navigator',
+        'document',
+        'location',
+        'setTimeout',
+        CHUNK_ERROR_RECOVERY_SCRIPT
+    )(win, sessionStorage, {}, document, location, schedule)
 
     const emitRejection = (reason: unknown) => listeners['unhandledrejection'].forEach((fn) => fn({ reason }))
     const emitError = (event: { error?: unknown; message?: string }) => listeners['error'].forEach((fn) => fn(event))
-    return { reload, store, emitRejection, emitError }
+    return { reload, store, style, emitRejection, emitError }
 }
 
 const chunkError = () =>
@@ -54,6 +92,83 @@ const chunkError = () =>
     })
 
 describe('CHUNK_ERROR_RECOVERY_SCRIPT', () => {
+    beforeEach(() => {
+        jest.useFakeTimers()
+        jest.setSystemTime(1_800_000_000_000)
+    })
+    afterEach(() => {
+        jest.clearAllTimers()
+        jest.useRealTimers()
+    })
+
+    it.each(['rejection', 'error-object', 'error-message', 'string'])(
+        'records and hides before reload for %s',
+        (form) => {
+            const harness = bootScript()
+            const message = 'Loading chunk 42 failed ' + 'x'.repeat(400)
+            harness.reload.mockImplementation(() => {
+                expect(JSON.parse(harness.store.get('peanut-chunk-reload-report')!)).toEqual({
+                    at: Date.now(),
+                    path: '/send',
+                    source: 'inline',
+                    message: message.slice(0, 300),
+                })
+                expect(harness.style.visibility).toBe('hidden')
+            })
+            if (form === 'rejection') harness.emitRejection(new Error(message))
+            if (form === 'error-object') harness.emitError({ error: new Error(message) })
+            if (form === 'error-message') harness.emitError({ message })
+            if (form === 'string') harness.emitRejection(message)
+            expect(harness.reload).toHaveBeenCalledTimes(1)
+            jest.advanceTimersByTime(3999)
+            expect(harness.style.visibility).toBe('hidden')
+            jest.advanceTimersByTime(1)
+            expect(harness.style.visibility).toBe('')
+        }
+    )
+
+    it.each([{ standalone: true }, { brokenStorage: true }])('suppresses new effects when blocked: %p', (options) => {
+        const harness = bootScript(options)
+        harness.emitRejection(chunkError())
+        expect(harness.store.has('peanut-chunk-reload-report')).toBe(false)
+        expect(harness.style.visibility).toBe('')
+        expect(jest.getTimerCount()).toBe(0)
+    })
+
+    it('still reloads when only marker writing fails', () => {
+        const harness = bootScript({ markerFailure: true })
+        expect(() => harness.emitRejection(chunkError())).not.toThrow()
+        expect(harness.reload).toHaveBeenCalledTimes(1)
+    })
+
+    it.each([{ domFailure: true }, { timerFailure: true }])(
+        'still reloads on optional browser operation failure: %p',
+        (options) => {
+            const harness = bootScript(options)
+            expect(() => harness.emitRejection(chunkError())).not.toThrow()
+            expect(harness.reload).toHaveBeenCalledTimes(1)
+        }
+    )
+
+    it('keeps an existing marker and leaves the page visible when the guard blocks reload', () => {
+        const harness = bootScript()
+        harness.store.set('peanut-chunk-reload-at', String(Date.now()))
+        harness.store.set('peanut-chunk-reload-report', 'existing')
+        harness.emitRejection(chunkError())
+        expect(harness.reload).not.toHaveBeenCalled()
+        expect(harness.store.get('peanut-chunk-reload-report')).toBe('existing')
+        expect(harness.style.visibility).toBe('')
+    })
+
+    it('writes no marker, hides nothing, and schedules nothing when the guard blocks', () => {
+        const harness = bootScript()
+        harness.store.set('peanut-chunk-reload-at', String(Date.now()))
+        harness.emitRejection(chunkError())
+        expect(harness.store.has('peanut-chunk-reload-report')).toBe(false)
+        expect(harness.style.visibility).toBe('')
+        expect(jest.getTimerCount()).toBe(0)
+        expect(harness.reload).not.toHaveBeenCalled()
+    })
     it('reloads once on an unhandled ChunkLoadError rejection', () => {
         const { reload, emitRejection } = bootScript()
         emitRejection(chunkError())
@@ -127,9 +242,15 @@ describe('recoverFromChunkError', () => {
     let reload: jest.Mock
 
     beforeEach(() => {
+        jest.useFakeTimers()
+        jest.setSystemTime(1_800_000_000_000)
+        document.documentElement.style.visibility = ''
         sessionStorage.clear()
         reload = jest.fn()
-        Object.defineProperty(window, 'location', { value: { ...originalLocation, reload }, writable: true })
+        Object.defineProperty(window, 'location', {
+            value: { ...originalLocation, pathname: '/send', search: '?secret=abc', hash: '#private', reload },
+            writable: true,
+        })
         Object.defineProperty(window, 'matchMedia', {
             writable: true,
             value: jest.fn(() => ({ matches: false })),
@@ -137,7 +258,70 @@ describe('recoverFromChunkError', () => {
     })
 
     afterEach(() => {
+        jest.restoreAllMocks()
+        jest.clearAllTimers()
+        jest.useRealTimers()
+        document.documentElement.style.visibility = ''
         Object.defineProperty(window, 'location', { value: originalLocation, writable: true })
+    })
+
+    it('records a bounded boundary report and hides before reload, then restores', () => {
+        const message = 'Loading chunk 42 failed ' + 'x'.repeat(400)
+        reload.mockImplementation(() => {
+            expect(JSON.parse(sessionStorage.getItem('peanut-chunk-reload-report')!)).toEqual({
+                at: Date.now(),
+                path: '/send',
+                source: 'boundary',
+                message: message.slice(0, 300),
+            })
+            expect(document.documentElement.style.visibility).toBe('hidden')
+        })
+        expect(recoverFromChunkError(message)).toBe(true)
+        jest.advanceTimersByTime(3999)
+        expect(document.documentElement.style.visibility).toBe('hidden')
+        jest.advanceTimersByTime(1)
+        expect(document.documentElement.style.visibility).toBe('')
+    })
+
+    it('still reloads when only marker storage fails', () => {
+        const originalSetItem = Storage.prototype.setItem
+        jest.spyOn(Storage.prototype, 'setItem').mockImplementation(function (
+            this: Storage,
+            key: string,
+            value: string
+        ) {
+            if (key === 'peanut-chunk-reload-report') throw new Error('quota')
+            originalSetItem.call(this, key, value)
+        })
+        expect(recoverFromChunkError(chunkError())).toBe(true)
+        expect(reload).toHaveBeenCalledTimes(1)
+    })
+
+    it.each(['DOM', 'timer'])('still reloads when the optional %s operation throws', (operation) => {
+        if (operation === 'DOM')
+            jest.spyOn(document, 'documentElement', 'get').mockImplementation(() => {
+                throw new Error('DOM unavailable')
+            })
+        else
+            jest.spyOn(window, 'setTimeout').mockImplementation(() => {
+                throw new Error('timer unavailable')
+            })
+        expect(recoverFromChunkError(chunkError())).toBe(true)
+        expect(reload).toHaveBeenCalledTimes(1)
+    })
+
+    it.each(['non-chunk', 'guard', 'PWA', 'storage'])('suppresses all new effects for %s', (reason) => {
+        if (reason === 'guard') sessionStorage.setItem('peanut-chunk-reload-at', String(Date.now()))
+        if (reason === 'PWA') (window.matchMedia as jest.Mock).mockReturnValue({ matches: true })
+        if (reason === 'storage')
+            jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+                throw new Error('denied')
+            })
+        expect(recoverFromChunkError(reason === 'non-chunk' ? new Error('unrelated') : chunkError())).toBe(false)
+        jest.restoreAllMocks()
+        expect(sessionStorage.getItem('peanut-chunk-reload-report')).toBeNull()
+        expect(document.documentElement.style.visibility).toBe('')
+        expect(jest.getTimerCount()).toBe(0)
     })
 
     it('reloads once for a chunk error and returns true', () => {

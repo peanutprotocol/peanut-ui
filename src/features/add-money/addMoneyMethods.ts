@@ -48,6 +48,8 @@ export function resolveAddMoneyMethods(input: {
             if (!input.brazilPaused) ready.pix.push(rail.currency)
         } else ready.transfer.push(rail.currency)
     }
+    // An offered Avenia route is also offered to a user who has not verified yet, so it never makes them returning.
+    const returning = !!input.firstPaymentAt || !!(ready.account.length || ready.transfer.length || ready.pix.length)
     if (input.pixDepositOffered && !input.brazilPaused && !ready.pix.includes('BRL')) ready.pix.push('BRL')
     const pixRow = pixRowPlace({ ...input, pixReady: ready.pix.length > 0 })
     const drawerMethods: AddMoneyMethod[] = []
@@ -61,7 +63,6 @@ export function resolveAddMoneyMethods(input: {
     if (pixRow === 'after-bank') drawerMethods.push('pix')
     if (input.cryptoReady) drawerMethods.push('crypto')
     const usable = drawerMethods.length > 0
-    const returning = !!input.firstPaymentAt || !!(ready.account.length || ready.transfer.length || ready.pix.length)
     if (usable && returning) drawerMethods.push('more')
     const pickerMethods: AddMoneyMethod[] = []
     if (pixRow === 'first') pickerMethods.push('pix')

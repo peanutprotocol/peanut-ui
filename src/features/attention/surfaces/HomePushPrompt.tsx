@@ -9,6 +9,7 @@ import { SetupNotificationsPrompt } from '@/components/Notifications/SetupNotifi
 import { PUSH_PROMPT_TRIGGERS } from '@/constants/push-prompt.consts'
 import { useNotifications, markPushPromptShownThisSession } from '@/hooks/useNotifications'
 import type { AskSurfaceProps } from '../types'
+import { homePushTrigger } from '../homePushTrigger'
 
 /** The context-free Home push ask, for users no money moment has reached. */
 export default function HomePushPrompt({ onActed, onSnoozed, presentation }: AskSurfaceProps) {
@@ -19,6 +20,8 @@ export default function HomePushPrompt({ onActed, onSnoozed, presentation }: Ask
     const attempting = useRef(false)
     const tCommon = useTranslations('common')
     const { requestPermission, afterPermissionAttempt, isRequestingPermission } = useNotifications()
+    // the moment for copy and analytics; the session still counts this as the Home ask, never a money moment
+    const trigger = homePushTrigger(state)
     useEffect(() => {
         markPushPromptShownThisSession(PUSH_PROMPT_TRIGGERS.HOME_FALLBACK)
     }, [])
@@ -39,7 +42,7 @@ export default function HomePushPrompt({ onActed, onSnoozed, presentation }: Ask
         try {
             if (session.ready) await session.ready
             if (!session.current()) return
-            const result = await requestPermission(PUSH_PROMPT_TRIGGERS.HOME_FALLBACK)
+            const result = await requestPermission(trigger)
             if (!session.current()) return
             if (result === 'granted') {
                 if (!state.userId) throw new Error('Missing account')
@@ -66,7 +69,7 @@ export default function HomePushPrompt({ onActed, onSnoozed, presentation }: Ask
         <SetupNotificationsPrompt
             presentation={presentation}
             visible
-            trigger={PUSH_PROMPT_TRIGGERS.HOME_FALLBACK}
+            trigger={trigger}
             onAllow={allow}
             onClose={(e?: React.MouseEvent) => {
                 e?.preventDefault()

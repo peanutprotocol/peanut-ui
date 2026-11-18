@@ -75,6 +75,7 @@ export const REASON_CODE_KEYS = {
     // A Manteca first-party rail whose submission found no CUIT/CPF. Reachable
     // today only in Argentina, i.e. an es-419 audience — without this entry the
     // one population that can see it gets the backend's English userMessage.
+    manteca_action_incomplete: 'reasons.manteca_action_incomplete',
     manteca_action_expired: 'reasons.manteca_action_expired',
     manteca_action_correction_required: 'reasons.manteca_action_correction_required',
     tax_id_unresolved: 'reasons.tax_id_unresolved',

@@ -15830,8 +15830,7 @@ export interface paths {
                             message: string;
                             success: boolean;
                         } | {
-                            /** @enum {string} */
-                            code: "EMAIL_IN_USE";
+                            code: "EMAIL_ON_ACTIVE_ACCOUNT" | "EMAIL_ON_DORMANT_ACCOUNT";
                             error: string;
                         } | {
                             code: "RESIDENCE_CHANGE_UNAVAILABLE" | "identity_submitted";
@@ -17745,7 +17744,7 @@ export interface paths {
                          *     }
                          */
                         "application/json": {
-                            next: ("purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax") | null;
+                            next: ("purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax" | "cpfRecord") | null;
                         };
                     };
                 };
@@ -19543,7 +19542,7 @@ export interface paths {
                                 reason: string;
                             }[];
                             entryScope?: string;
-                            firstUnanswered: ("purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax") | null;
+                            firstUnanswered: ("purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax" | "cpfRecord") | null;
                             needs: ("residence" | "features")[];
                             progress: {
                                 done: number;
@@ -19569,7 +19568,7 @@ export interface paths {
                                     required: boolean;
                                     value: string | null;
                                 }[];
-                                id: "purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax";
+                                id: "purpose" | "work" | "money" | "declarations" | "birth" | "address" | "phone" | "tax" | "cpfRecord";
                             }[];
                             terminal?: "rejected" | null;
                         };
@@ -20218,6 +20217,7 @@ export interface paths {
                          *           "status": "clear",
                          *           "versions": []
                          *         },
+                         *         "firstDepositReceived": false,
                          *         "firstPeerPaymentAt": null,
                          *         "hasMadeQrPayment": false,
                          *         "hasReceivedRequestPayment": false,
@@ -20449,6 +20449,7 @@ export interface paths {
                                     status: "unknown" | "clear" | "needed";
                                     versions: string[];
                                 };
+                                firstDepositReceived: boolean | null;
                                 firstPeerPaymentAt: string | null;
                                 hasMadeQrPayment: boolean | null;
                                 hasReceivedRequestPayment: boolean | null;

@@ -3,11 +3,12 @@ jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: moc
 jest.mock('@/constants/dev-tools.consts', () => ({ DEV_TOOLS_ENABLED: true }))
 import { setAuthToken } from '@/utils/auth-token'
 import * as authToken from '@/utils/auth-token'
+import { markVerifySource } from '../verifySource'
 import posthog from 'posthog-js'
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
-import { act, fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
+import { NuqsTestingAdapter, type OnUrlUpdateFunction } from 'nuqs/adapters/testing'
 import { renderWithIntl } from '@/test-utils/intl'
 import type { PaperworkVerificationQuestions } from '@/app/actions/types/kyc-paperwork-verification.types'
 import {
@@ -219,21 +220,26 @@ function withSixDropdowns() {
     } satisfies PaperworkVerificationQuestions
 }
 
-function renderFlow(search = '', client = new QueryClient()) {
+function renderFlow(search = '', client = new QueryClient(), onUrlUpdate?: OnUrlUpdateFunction) {
     return renderWithIntl(
         <QueryClientProvider client={client}>
-            <NuqsTestingAdapter searchParams={search} hasMemory>
+            <NuqsTestingAdapter
+                searchParams={search}
+                hasMemory
+                onUrlUpdate={onUrlUpdate}
+                resetUrlUpdateQueueOnMount={!onUrlUpdate}
+            >
                 <PaperworkVerificationFlow />
             </NuqsTestingAdapter>
         </QueryClientProvider>
     )
 }
 
-/** A visit with questions or the ID ahead opens on the steps overview; Continue goes on to the open step. */
+/** A visit with questions or the ID ahead opens on Verify start; Verify now goes on to the open step. */
 // The steps overview opens at once as a skeleton; Continue works once the server's read fills it.
 async function startFlow(search = '', client?: QueryClient) {
     const view = renderFlow(search, client)
-    await screen.findByTestId('verify-steps')
+    await screen.findByTestId('setup-redesign-verify-steps')
     fireEvent.click(screen.getByTestId('verify-steps-continue'))
     return view
 }
@@ -311,7 +317,7 @@ describe('PaperworkVerificationFlow: an account missing signup answers', () => {
         expect(mockReplace).not.toHaveBeenCalledWith('/home')
 
         fireEvent.click(prelude)
-        expect(await screen.findByTestId('verify-steps')).toBeInTheDocument()
+        expect(await screen.findByTestId('setup-redesign-verify-steps')).toBeInTheDocument()
     })
 })
 
@@ -353,7 +359,7 @@ describe('PaperworkVerificationFlow: the steps overview', () => {
                 action: 'tap',
             })
         )
-        await screen.findByTestId('verify-steps')
+        await screen.findByTestId('setup-redesign-verify-steps')
     })
     // Slava, 2026-10-26: the loading mascot showed before the steps on APK #6.
     it('opens at once as a skeleton of the steps, never the loading mascot, Continue off until filled', async () => {
@@ -367,51 +373,73 @@ describe('PaperworkVerificationFlow: the steps overview', () => {
         expect(screen.queryByText('loading')).not.toBeInTheDocument()
 
         await act(async () => answer(build({ purpose: false }, 'purpose')))
-        expect(await screen.findByTestId('verify-steps')).toBeInTheDocument()
+        expect(await screen.findByTestId('setup-redesign-verify-steps')).toBeInTheDocument()
         expect(screen.getByTestId('verify-steps-continue')).toBeEnabled()
     })
 
     it('opens on the steps, with the questions as the current step, and Continue resumes the open question', async () => {
         mockQuestions.mockResolvedValue(build({ purpose: false }, 'purpose'))
         renderFlow()
-        const steps = await screen.findByTestId('verify-steps')
+        const steps = await screen.findByTestId('setup-redesign-verify-steps')
         expect(screen.getByTestId('verify-steps-continue')).toBeInTheDocument()
-        expect(steps.querySelector('[aria-current="step"]')).toHaveTextContent('Answer a few questions')
-        expect(screen.getByText('Unlock eligible payments')).toBeInTheDocument()
+        expect(steps.querySelector('[aria-current="step"]')).toHaveTextContent('A few questions we’re required to ask')
+        // opened without a caller's source: a direct visit, both steps left
+        expect(posthog.capture).toHaveBeenCalledWith('signup_verify_start_shown', { entry: 'direct', steps_left: 2 })
+        // Verify start, the one intro: only the steps left, no residence, review or unlock row
+        expect(
+            within(steps)
+                .getAllByRole('listitem')
+                .map((row) => row.textContent)
+        ).toEqual(['1A few questions we’re required to ask', '2ID photo and selfie'])
         fireEvent.click(screen.getByTestId('verify-steps-continue'))
-        expect(await screen.findByRole('progressbar', { name: 'Step 2 of 4' })).toBeInTheDocument()
+        expect(await screen.findByRole('group', { name: 'Step 2 of 4' })).toBeInTheDocument()
         fireEvent.click(screen.getByTestId('verify-back'))
-        expect(await screen.findByTestId('verify-steps')).toBeInTheDocument()
+        expect(await screen.findByTestId('setup-redesign-verify-steps')).toBeInTheDocument()
         expect(mockExit).not.toHaveBeenCalled()
     })
 
     it('with every answer saved, the ID photo is the current step and Continue opens the document choice', async () => {
         mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
         renderFlow()
-        const steps = await screen.findByTestId('verify-steps')
-        expect(steps.querySelector('[aria-current="step"]')).toHaveTextContent('Take a photo of your ID')
+        const steps = await screen.findByTestId('setup-redesign-verify-steps')
+        expect(
+            within(steps)
+                .getAllByRole('listitem')
+                .map((row) => row.textContent)
+        ).toEqual(['1ID photo and selfie'])
+        // only the ID photo and selfie left: two minutes
+        expect(screen.getByTestId('verify-steps-continue')).toHaveTextContent('Verify now · 2 min')
         fireEvent.click(screen.getByTestId('verify-steps-continue'))
         expect(await screen.findByTestId('verify-id')).toBeInTheDocument()
     })
 
-    it('Back from the steps leaves the flow', async () => {
+    it('Remind me later leaves the flow', async () => {
         renderFlow()
-        await screen.findByTestId('verify-steps')
-        fireEvent.click(screen.getByTestId('verify-back'))
+        await screen.findByTestId('setup-redesign-verify-steps')
+        fireEvent.click(screen.getByRole('button', { name: 'Remind me later' }))
         expect(mockExit).toHaveBeenCalled()
     })
 
     it('a deep link to a step skips the overview', async () => {
         renderFlow('?step=tax')
         expect(await screen.findByText('What’s your Social Security number?')).toBeInTheDocument()
-        expect(screen.queryByTestId('verify-steps')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('setup-redesign-verify-start')).not.toBeInTheDocument()
+    })
+
+    it('Remind me later after sign-up goes Home, by the entry, never back into or before sign-up', async () => {
+        markVerifySource('signup')
+        renderFlow()
+        await screen.findByTestId('setup-redesign-verify-steps')
+        fireEvent.click(screen.getByRole('button', { name: 'Remind me later' }))
+        expect(mockReplace).toHaveBeenCalledWith('/home')
+        expect(mockExit).not.toHaveBeenCalled()
     })
 
     it('a deep link to a step that shares a screen opens that screen', async () => {
         renderFlow('?step=money')
         expect(await screen.findByTestId('verify-pick-annualSalary')).toBeInTheDocument()
         expect(screen.getByTestId('verify-pick-cardPurpose')).toBeInTheDocument()
-        expect(screen.getByRole('progressbar', { name: 'Step 2 of 4' })).toBeInTheDocument()
+        expect(screen.getByRole('group', { name: 'Step 2 of 4' })).toBeInTheDocument()
         // Each step's sentences sit under its own label.
         expect(screen.getByText('Purpose')).toBeInTheDocument()
         expect(screen.getByText('Money')).toBeInTheDocument()
@@ -466,14 +494,14 @@ describe('PaperworkVerificationFlow: the steps overview', () => {
         renderFlow('?step=money')
         const income = await screen.findByTestId('verify-pick-annualSalary')
         expect(screen.getAllByTestId(/^verify-pick-/)).toHaveLength(3)
-        expect(screen.getByRole('progressbar', { name: 'Step 2 of 5' })).toBeInTheDocument()
+        expect(screen.getByRole('group', { name: 'Step 2 of 5' })).toBeInTheDocument()
         fireEvent.click(income)
         fireEvent.click(await screen.findByRole('button', { name: 'Under $25,000' }))
 
         fireEvent.click(continueButton())
         expect(await screen.findByTestId('verify-pick-nationality')).toHaveTextContent('Germany')
         expect(screen.getAllByTestId(/^verify-pick-/)).toHaveLength(3)
-        expect(screen.getByRole('progressbar', { name: 'Step 3 of 5' })).toBeInTheDocument()
+        expect(screen.getByRole('group', { name: 'Step 3 of 5' })).toBeInTheDocument()
         expect(mockSave).not.toHaveBeenCalled()
         fireEvent.click(screen.getByTestId('verify-back'))
         expect(await screen.findByTestId('verify-pick-annualSalary')).toHaveTextContent('Under $25,000')
@@ -551,18 +579,18 @@ describe('PaperworkVerificationFlow: the steps overview', () => {
         expect(mockSave).toHaveBeenCalledWith('phone', { phone: '+14155550132' }, undefined, 'user-a')
     })
 
-    it('says on the saved screen which picked features an answer closed', async () => {
+    it('says on the ID type picker which picked features an answer closed', async () => {
         mockQuestions.mockResolvedValue({
             ...build({ money: true, tax: true }, null),
             closed: [{ feature: 'bank', reason: 'us_state_unsupported' }],
         })
-        renderFlow('?step=saved')
+        renderFlow('?step=id')
         const notice = await screen.findByTestId('verify-closed-features')
         expect(notice).toHaveTextContent('Bank accounts aren’t available for New York addresses.')
         expect(notice).toHaveTextContent('Everything else you picked stays available.')
     })
 
-    it('the last answer celebrates before the document choice, and Back from the ID skips the celebration', async () => {
+    it('the last answer opens the document choice directly, with no midpoint, and Back returns to the last question', async () => {
         mockSave
             .mockResolvedValueOnce({ kind: 'saved', next: 'tax' })
             .mockResolvedValueOnce({ kind: 'saved', next: null })
@@ -574,9 +602,11 @@ describe('PaperworkVerificationFlow: the steps overview', () => {
         saved.steps[2].fields[0].value = '•••• 0198'
         mockQuestions.mockResolvedValue(saved)
         fireEvent.click(continueButton())
-        expect(await screen.findByText('Answers saved!')).toBeInTheDocument()
-        fireEvent.click(screen.getByTestId('verify-saved-continue'))
-        await screen.findByTestId('verify-id')
+        expect(await screen.findByTestId('verify-id')).toBeInTheDocument()
+        // the funnel's "questions complete" step, once, as the picker opens; a direct visit is the entry
+        expect(
+            (posthog.capture as jest.Mock).mock.calls.filter(([event]) => event === 'kyc_paperwork_saved_viewed')
+        ).toEqual([['kyc_paperwork_saved_viewed', expect.objectContaining({ entry: 'direct' })]])
         // Let the URL write for the ID screen land before Back writes the next one.
         await settleStepUrl()
         fireEvent.click(screen.getByTestId('verify-back'))
@@ -593,8 +623,8 @@ describe('PaperworkVerificationFlow: the steps overview', () => {
         const saved = build({ money: true, tax: true }, null)
         saved.steps[2].fields[0].value = '•••• 0198'
         mockQuestions.mockResolvedValue(saved)
-        renderFlow('?step=saved')
-        expect(await screen.findByText('Answers saved!')).toBeInTheDocument()
+        renderFlow('?step=id')
+        expect(await screen.findByTestId('verify-id')).toBeInTheDocument()
 
         fireEvent.click(screen.getByTestId('verify-back'))
         expect(await screen.findByTestId('verify-input-taxId')).toHaveValue('•••• 0198')
@@ -606,7 +636,7 @@ describe('PaperworkVerificationFlow: the steps overview', () => {
         expect(await screen.findByTestId('verify-input-taxId')).toHaveValue('•••• 0198')
         await settleStepUrl()
         fireEvent.click(continueButton())
-        expect(await screen.findByText('Answers saved!')).toBeInTheDocument()
+        expect(await screen.findByTestId('verify-id')).toBeInTheDocument()
         expect(mockSave).not.toHaveBeenCalled()
     })
 
@@ -621,8 +651,10 @@ describe('PaperworkVerificationFlow: the steps overview', () => {
         await startFlow('', client)
         fireEvent.change(await screen.findByTestId('verify-input-taxId'), { target: { value: '412550198' } })
         fireEvent.click(continueButton())
-        expect(await screen.findByText('Answers saved!')).toBeInTheDocument()
+        expect(await screen.findByTestId('verify-id')).toBeInTheDocument()
         await waitFor(() => expect(mockQuestions).toHaveBeenCalledTimes(2))
+        // the picker offers no choice until the last answer's save and fresh read land
+        expect(screen.getByTestId('verify-id-option-PASSPORT-US')).toHaveAttribute('aria-disabled', 'true')
 
         await settleStepUrl()
         fireEvent.click(screen.getByTestId('verify-back'))
@@ -647,8 +679,8 @@ describe('PaperworkVerificationFlow: the steps overview', () => {
         saved.steps[2].fields[0].value = '•••• 0198'
         mockQuestions.mockResolvedValue(saved)
         mockSave.mockResolvedValue({ kind: 'invalid', errors: { taxId: 'itin_not_accepted' } })
-        renderFlow('?step=saved')
-        await screen.findByText('Answers saved!')
+        renderFlow('?step=id')
+        await screen.findByTestId('verify-id')
         fireEvent.click(screen.getByTestId('verify-back'))
         fireEvent.click(await screen.findByTestId('verify-tax-replace'))
         fireEvent.change(screen.getByTestId('verify-input-taxId'), { target: { value: '412550198' } })
@@ -675,7 +707,7 @@ describe('PaperworkVerificationFlow: the steps overview', () => {
         fireEvent.click(await screen.findByTestId('verify-tax-replace'))
         fireEvent.change(screen.getByTestId('verify-input-taxId'), { target: { value: '412550198' } })
         fireEvent.click(continueButton())
-        expect(await screen.findByText('Answers saved!')).toBeInTheDocument()
+        expect(await screen.findByTestId('verify-id')).toBeInTheDocument()
         await settleStepUrl()
         fireEvent.click(screen.getByTestId('verify-back'))
         await screen.findByTestId('verify-input-taxId')
@@ -722,7 +754,7 @@ describe('PaperworkVerificationFlow: the phone', () => {
             .mockResolvedValueOnce({ kind: 'saved', next: 'tax' })
         await startFlow()
         expect(await screen.findByText('Where do you live?')).toBeInTheDocument()
-        expect(screen.getByRole('progressbar', { name: 'Step 3 of 5' })).toBeInTheDocument()
+        expect(screen.getByRole('group', { name: 'Step 3 of 5' })).toBeInTheDocument()
         expect(screen.getByText('For card security. We won’t send you codes.')).toBeInTheDocument()
         expect(screen.queryByTestId('verify-phone-no-spam')).not.toBeInTheDocument()
         fireEvent.change(screen.getByTestId('verify-input-street'), { target: { value: 'Main St 1' } })
@@ -735,7 +767,7 @@ describe('PaperworkVerificationFlow: the phone', () => {
             ['address', { street: 'Main St 1', town: 'Austin', postCode: '78701', country: 'US' }],
             ['phone', { phone: '+14155550132' }],
         ])
-        expect(screen.getByRole('progressbar', { name: 'Step 4 of 5' })).toBeInTheDocument()
+        expect(screen.getByRole('group', { name: 'Step 4 of 5' })).toBeInTheDocument()
     })
 
     it('asked later on its own, keeps its own screen with the no-spam promise', async () => {
@@ -751,7 +783,7 @@ describe('PaperworkVerificationFlow: the phone', () => {
 describe('PaperworkVerificationFlow', () => {
     it('resumes on the screen of the first unanswered step the server names (app killed mid-way)', async () => {
         await startFlow()
-        expect(await screen.findByRole('progressbar', { name: 'Step 2 of 4' })).toBeInTheDocument()
+        expect(await screen.findByRole('group', { name: 'Step 2 of 4' })).toBeInTheDocument()
         expect(screen.getByTestId('verify-pick-annualSalary')).toHaveTextContent('$25,000–$49,999')
     })
 
@@ -881,7 +913,7 @@ describe('PaperworkVerificationFlow', () => {
         fireEvent.change(await screen.findByTestId('verify-input-taxId'), { target: { value: '412550198' } })
         jest.useFakeTimers()
         fireEvent.click(continueButton())
-        expect(await screen.findByText('Answers saved!')).toBeInTheDocument()
+        expect(await screen.findByTestId('verify-id')).toBeInTheDocument()
         await act(async () => {
             await jest.advanceTimersByTimeAsync(5_000)
         })
@@ -894,13 +926,12 @@ describe('PaperworkVerificationFlow', () => {
         mockSave.mockResolvedValueOnce({ kind: 'saved', next: null })
         mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
         fireEvent.click(continueButton())
-        expect(await screen.findByText('Answers saved!')).toBeInTheDocument()
-        fireEvent.click(screen.getByTestId('verify-saved-continue'))
+        expect(await screen.findByTestId('verify-id')).toBeInTheDocument()
         expect(await screen.findByText(/Which document/)).toBeInTheDocument()
         setItem.mockRestore()
     })
 
-    it('the last answer leads to the midpoint, which opens Sumsub on the picked document and then the review', async () => {
+    it('the last answer leads to the document choice, which opens Sumsub on the picked document and then the review', async () => {
         mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
         mockToken.mockResolvedValue({
             kind: 'session',
@@ -915,11 +946,27 @@ describe('PaperworkVerificationFlow', () => {
                 },
             } as never,
         })
+        // the Celebration's Verify now left its source for /verify (TASK-25063)
+        markVerifySource('signup')
         await startFlow()
+        expect(posthog.capture).toHaveBeenCalledWith('signup_verify_start_shown', { entry: 'signup', steps_left: 1 })
+        expect(posthog.capture).toHaveBeenCalledWith('signup_verify_start_tapped', {
+            choice: 'verify',
+            entry: 'signup',
+            steps_left: 1,
+        })
         fireEvent.click(await screen.findByTestId('verify-id-option-PASSPORT-US'))
-        expect(mockToken).toHaveBeenCalledWith('attempt-1', { type: 'PASSPORT', issuingCountry: 'US' })
+        // the start waits for the last answer's checkpoint first
+        await waitFor(() =>
+            expect(mockToken).toHaveBeenCalledWith('attempt-1', { type: 'PASSPORT', issuingCountry: 'US' })
+        )
         fireEvent.click(await screen.findByText('sumsub-submit'))
         expect(await screen.findByTestId('verify-review-home')).toBeInTheDocument()
+        // the funnel's entry rides on to the submission
+        expect(posthog.capture).toHaveBeenCalledWith(
+            'kyc_paperwork_identity_submitted',
+            expect.objectContaining({ entry: 'signup' })
+        )
         expect(screen.getByRole('heading', { name: 'Your ID check' })).toBeInTheDocument()
         expect(screen.getByTestId('verify-steps')).toHaveAttribute('data-phase', 'review')
         expect(screen.getByRole('listitem', { current: 'step' })).toHaveTextContent('Get a secure review')
@@ -1397,7 +1444,7 @@ describe('account-bound queued answer saves', () => {
         fireEvent.click(continueButton())
         fireEvent.change(await screen.findByTestId('verify-input-taxId'), { target: { value: '412550198' } })
         fireEvent.click(continueButton())
-        await screen.findByText('Answers saved!')
+        await screen.findByTestId('verify-id')
         expect(mockSave).toHaveBeenCalledTimes(1)
         return { view, finish }
     }

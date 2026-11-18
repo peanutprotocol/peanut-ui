@@ -56,9 +56,7 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose, onStopAttempt
     const [error, setError] = useState<string | null>(null)
     const queryClient = useQueryClient()
     const { overview, refetch: refetchOverview } = useRainCardOverview()
-    // After a failed lock the balance on screen can predate a return that
-    // already ran. A retry that needs a new signature reads it again first.
-    const balanceIsStale = useRef(false)
+    const afterFailure = useRef(false)
     const { address: smartWalletAddress } = useWallet()
     const { signSpend } = useSignSpendBundle()
     const toast = useToast()
@@ -109,14 +107,14 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose, onStopAttempt
                 // A retry reuses the proof: signing again could be a second withdrawal.
                 let verifiedWithdrawal = withdrawalProof.get()
                 let balance = overview.balance
-                if (!verifiedWithdrawal && balanceIsStale.current) {
-                    // A read that fails sizes nothing. The card still freezes: a
-                    // freeze is never refused, and the backend reports what
-                    // stayed in the card.
+                if (!verifiedWithdrawal) {
+                    // A top-up can land after the screen read the balance. When the
+                    // read fails, a first try signs for the figure on screen; after a
+                    // failed try that figure can predate a return that already ran, so
+                    // it sizes nothing. The card still freezes either way.
                     const fresh = await refetchOverview()
                     const read = !fresh.isError && !!fresh.data
-                    balance = read ? fresh.data.balance : null
-                    if (read) balanceIsStale.current = false
+                    balance = read ? fresh.data.balance : afterFailure.current ? null : overview.balance
                 }
                 const spendingPowerUnits = rainCentsToUsdcUnits(balance?.spendingPower)
                 // Never more than the card holds: refund credit is not signed for.
@@ -150,7 +148,7 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose, onStopAttempt
                 stop = locked?.fundingStop
                 collateralReturn = locked?.collateralReturn
                 withdrawalProof.clear()
-                balanceIsStale.current = false
+                afterFailure.current = false
             } else {
                 const resume = (await rainApi.activateCard(cardId))?.fundingStop
                 // null: the card is active but the stop was not lifted; unlock again.
@@ -173,7 +171,7 @@ const LockCardModal: FC<Props> = ({ cardId, mode, isOpen, onClose, onStopAttempt
             onClose()
         } catch (e) {
             if (mode === 'lock') {
-                balanceIsStale.current = true
+                afterFailure.current = true
                 // A signature the backend used or can never verify is signed again on the next try.
                 withdrawalProof.dropIfSpent(e)
             }

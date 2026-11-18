@@ -34,19 +34,6 @@ export function readNotificationsVariant(): NotificationsVariant {
 }
 `,
     },
-    {
-        path: 'src/features/setup/welcomeHeadlineExperiment.ts',
-        anchor: 'export function readWelcomeHeadlineVariant(eligible: boolean): WelcomeHeadlineVariant {',
-        live: 'function readWelcomeHeadlineVariantLive(eligible: boolean): WelcomeHeadlineVariant {',
-        wrapper: `
-${FLAG_RECORDER_MARKER}
-export function readWelcomeHeadlineVariant(eligible: boolean): WelcomeHeadlineVariant {
-    const value = readWelcomeHeadlineVariantLive(eligible)
-    const capture = ${HOOK}
-    return capture ? (capture(WELCOME_HEADLINE_EXPERIMENT_FLAG, value) as WelcomeHeadlineVariant) : value
-}
-`,
-    },
 ]
 
 /** A revision without the anchor keeps its source; its screens cannot take flag overrides. */

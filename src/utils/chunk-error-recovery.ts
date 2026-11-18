@@ -29,9 +29,11 @@
  * to exactly what it was before this existed. Installed PWAs are excluded
  * until the native migration cutoff because an Android standalone reload can
  * leave the app window and open Chrome.
+ * A short-lived marker allows the next page to report a successful recovery.
  */
 
 const GUARD_KEY = 'peanut-chunk-reload-at'
+export const CHUNK_RELOAD_REPORT_KEY = 'peanut-chunk-reload-report'
 const GUARD_MS = 60_000
 const CHUNK_ERROR_RE = /ChunkLoadError|Loading chunk \S+ failed|Loading CSS chunk|dynamically imported module/
 
@@ -66,6 +68,26 @@ export function recoverFromChunkError(error: unknown): boolean {
         // no sessionStorage -> no loop protection -> don't auto-reload
         return false
     }
+    try {
+        const message = (error as { message?: unknown })?.message ?? error
+        sessionStorage.setItem(
+            CHUNK_RELOAD_REPORT_KEY,
+            JSON.stringify({
+                at: Date.now(),
+                path: window.location.pathname,
+                source: 'boundary',
+                message: String(message).slice(0, 300),
+            })
+        )
+    } catch {}
+    try {
+        document.documentElement.style.visibility = 'hidden'
+        window.setTimeout(() => {
+            try {
+                document.documentElement.style.visibility = ''
+            } catch {}
+        }, 4000)
+    } catch {}
     window.location.reload()
     return true
 }
@@ -91,6 +113,7 @@ export async function importWithChunkRetry<T>(load: () => Promise<T>): Promise<T
 export const CHUNK_ERROR_RECOVERY_SCRIPT = `
 (function () {
     var GUARD_KEY = '${GUARD_KEY}';
+    var REPORT_KEY = '${CHUNK_RELOAD_REPORT_KEY}';
     var GUARD_MS = ${GUARD_MS};
     var CHUNK_ERROR_RE = /${CHUNK_ERROR_RE.source}/;
 
@@ -100,7 +123,7 @@ export const CHUNK_ERROR_RECOVERY_SCRIPT = `
         return err.name === 'ChunkLoadError' || CHUNK_ERROR_RE.test(String(err.message || ''));
     }
 
-    function recover() {
+    function recover(err) {
         var isStandalone = false;
         try {
             isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
@@ -114,16 +137,27 @@ export const CHUNK_ERROR_RECOVERY_SCRIPT = `
             // no sessionStorage -> no loop protection -> don't auto-reload
             return;
         }
+        try {
+            var message = err && err.message != null ? err.message : err;
+            sessionStorage.setItem(REPORT_KEY, JSON.stringify({ at: Date.now(), path: window.location.pathname, source: 'inline', message: String(message).slice(0, 300) }));
+        } catch (e) {}
+        try {
+            document.documentElement.style.visibility = 'hidden';
+            window.setTimeout(function () {
+                try { document.documentElement.style.visibility = ''; } catch (e) {}
+            }, 4000);
+        } catch (e) {}
         window.location.reload();
     }
 
     window.addEventListener('unhandledrejection', function (event) {
-        if (isChunkError(event.reason)) recover();
+        if (isChunkError(event.reason)) recover(event.reason);
     });
     window.addEventListener(
         'error',
         function (event) {
-            if (isChunkError(event.error || event.message)) recover();
+            var err = event.error || event.message;
+            if (isChunkError(err)) recover(err);
         },
         true
     );

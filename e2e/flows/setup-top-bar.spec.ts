@@ -1,19 +1,17 @@
 /**
- * Sign-up top — the hero, the language switcher and the back button stay put
- * while the steps change (TASK-23467, Hugo's staging QA).
+ * Sign-up chrome in the redesigned shell (TASK-25016; first written for TASK-23467): the top bar (back, progress
+ * dots, language) and the fixed footer stay put while the steps change, and every step's primary is reachable.
  *
- * The hero (with the switcher) used to slide with each step and change height
- * per step. Now only the white panel slides; the hero keeps one height per
- * viewport and crossfades its art. The test samples the hero, the switcher and
- * the back button on every animation frame of each transition, at each phone
- * size we support, and requires one hero box, one switcher position and one
- * back position the whole time.
+ * On phones the old board hero (40 % of the viewport) is gone: each screen draws its own stage (`[data-setup-stage]`)
+ * under one top bar, and the primary's top is the same on every screen (`--sr-cta-top`, mock 698 on 390 x 844 with
+ * the phone's safe area). Desktop keeps dev's full-height side hero (`[data-setup-hero]`) beside the shell column. These checks follow the shell
+ * (src/components/Setup/redesign/shell) and mono _temp/signup-redesign/r2/r9/build/INTERFACES.md § 3.
  *
  *   NEXT_PUBLIC_VERCEL_ENV=preview npm run build
  *   npm run test:e2e:regression -- setup-top-bar
  */
 
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 import { KEEP_WEB_COOKIE, KEEP_WEB_TOKEN } from '../../src/constants/migration.consts'
 import { FIXTURE_STORAGE_KEY } from '../../src/dev/fixtures/active'
 import { blockExternal, seenOnceModals } from '../shots/fixture-page'
@@ -49,9 +47,9 @@ async function openSetupSurface(page: Page, id: string, fixture = SETUP_FIXTURE)
 }
 
 type Box = { x: number; y: number }
-type Sample = { switchers: Box[]; back: Box | null; heroes: string[] }
+type Sample = { switchers: Box[]; back: Box | null; bars: string[]; cta: Box | null; stack: string | null }
 
-/** Samples the switcher(s) and the back button on every frame for `ms`. */
+/** Samples the top bar, the language switcher, the back button and the footer on every frame for `ms`. */
 async function sampleDuring(page: Page, ms: number, act: () => Promise<void>): Promise<Sample[]> {
     await page.evaluate((duration) => {
         const w = window as unknown as { __topBarSamples: Sample[] }
@@ -62,15 +60,23 @@ async function sampleDuring(page: Page, ms: number, act: () => Promise<void>): P
         }
         const end = performance.now() + duration
         const tick = () => {
-            const switchers = Array.from(document.querySelectorAll('button')).filter(
+            const switchers = Array.from(document.querySelectorAll('[data-setup-top-bar] button')).filter(
                 (button) => /^EN\b/.test(button.textContent?.trim() ?? '') && button.getBoundingClientRect().width > 0
             )
-            const back = document.querySelector('[aria-label="Go back"]')
-            const heroes = Array.from(document.querySelectorAll('[data-setup-hero]')).map((el) => {
+            const back = document.querySelector('[data-setup-top-bar] [aria-label="Go back"]')
+            const bars = Array.from(document.querySelectorAll('[data-setup-top-bar]')).map((el) => {
                 const r = el.getBoundingClientRect()
                 return [r.x, r.y, r.width, r.height].map(Math.round).join(',')
             })
-            w.__topBarSamples.push({ switchers: switchers.map(box), back: back ? box(back) : null, heroes })
+            const footer = document.querySelector('[data-setup-footer]')
+            const cta = footer?.querySelector('button')
+            w.__topBarSamples.push({
+                switchers: switchers.map(box),
+                back: back ? box(back) : null,
+                bars,
+                cta: cta ? box(cta) : null,
+                stack: footer?.getAttribute('data-stack') ?? null,
+            })
             if (performance.now() < end) requestAnimationFrame(tick)
         }
         requestAnimationFrame(tick)
@@ -91,12 +97,18 @@ const VIEWPORTS = [
     { width: 390, height: 844 },
     { width: 430, height: 739 },
 ]
-// The board's hero is 40% of the viewport. 320x568 is the one documented exception (34%, globals.css).
-const boardHero = ({ width, height }: { width: number; height: number }) =>
-    height * (width < 360 && height < 600 ? 0.34 : 0.4)
+type Viewport = { width: number; height: number }
+// The small phone: the `signup-sm` query (globals.css `.signup-shell`).
+const smallPhone = ({ width, height }: Viewport) => height <= 600 || width <= 340
+// The shell's CTA top: 112 px above the bottom, 100 px on the small phone.
+const ctaTop = (viewport: Viewport) => viewport.height - (smallPhone(viewport) ? 100 : 112)
+// The footer's lift by `data-stack` (globals.css --sr-lift-2/3): only a small phone lifts, by 20 px, 44 px with a link
+// line under two buttons. Everywhere else the primary sits exactly at the CTA top.
+const lift = (viewport: Viewport, stack: string | null) =>
+    !smallPhone(viewport) || stack === '1' ? 0 : stack === '3' ? 44 : 20
 
 for (const viewport of VIEWPORTS) {
-    test(`the hero, the language switcher and the back button stay put between steps at ${viewport.width}x${viewport.height}`, async ({
+    test(`the top bar, the language switcher, the back button and the primary stay put between steps at ${viewport.width}x${viewport.height}`, async ({
         page,
         baseURL,
     }) => {
@@ -122,17 +134,31 @@ for (const viewport of VIEWPORTS) {
 
         const samples = [...toFirstStep, ...backToLanding, ...toFirstStepAgain]
         expect(samples.length).toBeGreaterThan(30)
-        // One hero on every frame, with one box: it neither slides nor changes height.
-        expect(samples.every((s) => s.heroes.length === 1)).toBe(true)
-        expect(new Set(samples.map((s) => s.heroes[0])).size).toBe(1)
-        // The hero keeps the board's proportion (within 5%).
-        const heroHeight = Number(samples[0].heroes[0].split(',')[3])
-        expect(Math.abs(heroHeight - boardHero(viewport))).toBeLessThanOrEqual(boardHero(viewport) * 0.05)
+        // One top bar on every frame, with one box: it never slides with the screens.
+        expect(samples.every((s) => s.bars.length === 1)).toBe(true)
+        expect(new Set(samples.map((s) => s.bars[0])).size).toBe(1)
         // One switcher on every frame, always at the same place.
         expect(samples.every((s) => s.switchers.length === 1)).toBe(true)
         expect(new Set(samples.map((s) => JSON.stringify(s.switchers[0]))).size).toBe(1)
         // The back button, wherever it shows, is always at the same place too.
         expect(new Set(samples.filter((s) => s.back).map((s) => JSON.stringify(s.back))).size).toBe(1)
+        // The primary's top never moves: only its label crossfades. On a small phone the landing's two-button stack
+        // sits 20 px higher, and the footer glides between the two over the step; each settled frame is exact.
+        const withCta = samples.filter((s) => s.cta)
+        if (!smallPhone(viewport)) {
+            expect(new Set(withCta.map((s) => s.cta!.y)).size).toBe(1)
+            expect(withCta[0].cta!.y).toBe(ctaTop(viewport))
+        } else {
+            for (const run of [toFirstStep, backToLanding, toFirstStepAgain]) {
+                for (const settled of [run[0], run[run.length - 1]].filter((s) => s.cta)) {
+                    expect(settled.cta!.y).toBe(ctaTop(viewport) - lift(viewport, settled.stack))
+                }
+            }
+            for (const s of withCta) {
+                expect(s.cta!.y).toBeGreaterThanOrEqual(ctaTop(viewport) - 20)
+                expect(s.cta!.y).toBeLessThanOrEqual(ctaTop(viewport))
+            }
+        }
     })
 }
 
@@ -143,23 +169,65 @@ test('the default web landing offers app download without the signup footer', as
     await expect(page.locator('[data-setup-footer]')).toHaveCount(0)
 })
 
-test('the fullscreen residence comparison paints its safe area and positions the top bar once', async ({ page }) => {
+/** A colour token as the browser computes it, e.g. the pink ground (`--color-background-brand`). */
+async function tokenColor(page: Page, token: string) {
+    return page.evaluate((name) => {
+        const probe = document.createElement('div')
+        probe.style.backgroundColor = `var(${name})`
+        document.body.append(probe)
+        const color = getComputedStyle(probe).backgroundColor
+        probe.remove()
+        return color
+    }, token)
+}
+
+/**
+ * A box once it has stopped moving: the footer glides 500 ms to a new lift (a note that needs room, large text), so
+ * a box read during the glide is neither where it was nor where it rests.
+ */
+async function restingBox(locator: Locator) {
+    let last = ''
+    await expect
+        .poll(
+            async () => {
+                const box = JSON.stringify(await locator.boundingBox())
+                const resting = box === last
+                last = box
+                return resting
+            },
+            { intervals: [250] }
+        )
+        .toBe(true)
+    return JSON.parse(last) as Awaited<ReturnType<Locator['boundingBox']>>
+}
+
+test('the residence comparison paints both safe areas and positions the top bar once', async ({ page }) => {
     await page.setViewportSize({ width: 393, height: 852 })
     await prepareSetupSurface(page)
-    await openSetupSurface(page, '03-b-residence-compare')
-    const hero = page.locator('[data-setup-hero]')
+    // 07 with two different countries; Continue opens the comparison on the same step, as on /setup
+    await openSetupSurface(page, 'setup-redesign-residence-differ', 'setup-redesign-residence-compare')
+    await page.locator('[data-setup-footer]').getByRole('button', { name: 'Continue', exact: true }).click()
     await expect(page.getByTestId('setup-residence-select-PT')).toBeVisible()
-    await expect(hero).toHaveCount(0)
-    await page.evaluate(() => document.documentElement.style.setProperty('--safe-area-inset-top', '59px'))
+    await expect(page.getByTestId('setup-redesign-residence-column-BR')).toBeVisible()
+    await page.evaluate(() => {
+        document.documentElement.style.setProperty('--safe-area-inset-top', '59px')
+        document.documentElement.style.setProperty('--safe-area-inset-bottom', '34px')
+    })
 
+    // the status-bar strip takes the screen's ground (07 Residence: pink)
     const shell = page.locator('#scrollable-content')
     const strip = shell.locator('xpath=preceding-sibling::*[1]')
     await expect(strip).toHaveCSS('height', '59px')
-    await expect(strip).toHaveCSS('background-color', 'rgb(255, 255, 255)')
+    await expect(strip).toHaveCSS('background-color', await tokenColor(page, '--color-background-brand'))
     expect(await shell.evaluate((node) => node.getBoundingClientRect().top)).toBe(59)
+    // the top bar sits 4 px under the safe area (--sr-topbar-top)
     const topBar = page.locator('[data-setup-top-bar]')
     await expect(topBar).toHaveCount(1)
-    expect(await topBar.evaluate((node) => node.getBoundingClientRect().top)).toBe(75)
+    expect(await topBar.evaluate((node) => node.getBoundingClientRect().top)).toBe(63)
+    // the home-bar strip continues the white panel (V1)
+    const inset = page.locator('[data-setup-inset]')
+    await expect(inset).toHaveCSS('height', '34px')
+    await expect(inset).toHaveCSS('background-color', 'rgb(255, 255, 255)')
 
     await openSetupSurface(page, '84-f-choice-public-profile-guest')
     await expect(shell.getByText('Create your wallet')).toBeVisible()
@@ -169,24 +237,37 @@ test('the fullscreen residence comparison paints its safe area and positions the
     await expect(shell).toHaveCSS('position', 'relative')
 })
 
-// Every sign-up step, as /setup renders it (the surfaces gallery mounts each step in the real wrapper).
+test('the celebration paints the home-bar strip with its ground', async ({ page }) => {
+    await page.setViewportSize({ width: 393, height: 852 })
+    await prepareSetupSurface(page)
+    await openSetupSurface(page, '07-e-setup-celebration')
+    // 12 is a full stage: no panel, so the strip under it continues the ground (V1); with Verify now and Remind me
+    // later it stays until a tap
+    await expect(page.locator('[data-setup-stage][data-ground="pink"]')).toBeVisible()
+    await page.evaluate(() => document.documentElement.style.setProperty('--safe-area-inset-bottom', '34px'))
+    const inset = page.locator('[data-setup-inset]')
+    await expect(inset).toHaveCSS('height', '34px')
+    await expect(inset).toHaveCSS('background-color', await tokenColor(page, '--color-background-brand'))
+})
+
+// Every sign-up step in dev's order (01 Landing … 11 Final), as /setup renders it: the `setup-redesign-*` surfaces
+// mount the step's own Setup.consts entry in the real shell with the flow seeded, under its default fixture.
 const STEP_SURFACES = [
-    '01-a-landing',
-    '04-b-advantage-fees',
-    '02-b-advantage-card',
-    '03-a-residence-select',
-    '03-c-residence-congrats',
-    '06-a-signup',
-    '06-b-invite',
-    '06-c-passkey',
-    '07-c-notification-email',
-    '07-d-notification-settings',
-    '07-b-advantage-control',
-    '05-a-signtesttransaction',
+    'landing',
+    'accounts',
+    'card',
+    'residence',
+    'plan',
+    'username',
+    'invite',
+    'passkey',
+    'email',
+    'notifications',
+    'final',
 ]
 
 for (const viewport of VIEWPORTS) {
-    test(`every step keeps the board's hero and a reachable primary at ${viewport.width}x${viewport.height}`, async ({
+    test(`every step puts a reachable primary at the shell's CTA top at ${viewport.width}x${viewport.height}`, async ({
         page,
         baseURL,
     }) => {
@@ -200,36 +281,39 @@ for (const viewport of VIEWPORTS) {
             w.PublicKeyCredential = w.PublicKeyCredential || (function () {} as never)
             w.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable = async () => true
         })
-        const heroes = new Set<number>()
-        for (const id of STEP_SURFACES) {
-            await openSetupSurface(page, id, id === '06-c-passkey' ? 'setup-passkey' : SETUP_FIXTURE)
+        for (const screen of STEP_SURFACES) {
+            const id = `setup-redesign-${screen}`
+            await openSetupSurface(page, id, `${id}-default`)
             const footer = page.locator('[data-setup-footer]')
             const primary =
-                id === '01-a-landing'
+                screen === 'landing'
                     ? footer.getByRole('button', { name: 'Sign up', exact: true })
                     : footer.getByRole('button').first()
             await expect(primary, `${id}: signup action`).toBeVisible()
-            if (id === '07-d-notification-settings') await primary.scrollIntoViewIfNeeded()
             await expect(primary).toBeInViewport({ ratio: 1 })
+            // a footer whose note needs room glides up 500 ms after the step mounts; the resting top is exact
+            await restingBox(primary)
             const layout = await primary.evaluate((button) => {
                 const r = button.getBoundingClientRect()
                 const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
                 return {
-                    hero: Math.round(document.querySelector('[data-setup-hero]')!.getBoundingClientRect().height),
+                    top: Math.round(r.top),
+                    stack: button.closest('[data-setup-footer]')?.getAttribute('data-stack') ?? null,
                     hit: !!hit && (hit === button || button.contains(hit)),
                     scrolls: document.scrollingElement!.scrollHeight > innerHeight,
                 }
             })
             expect(layout.hit, `${id}: a tap at the primary's centre lands on it`).toBe(true)
             expect(layout.scrolls, `${id}: the page does not scroll`).toBe(false)
-            heroes.add(layout.hero)
+            expect(layout.top, `${id}: the primary sits at the shell's CTA top (stack ${layout.stack})`).toBe(
+                ctaTop(viewport) - lift(viewport, layout.stack)
+            )
         }
-        expect([...heroes]).toHaveLength(1)
-        const [hero] = [...heroes]
-        expect(Math.abs(hero - boardHero(viewport))).toBeLessThanOrEqual(boardHero(viewport) * 0.05)
     })
 }
 
+// Contract P4 § 3: the control arm draws "Turn on notifications" + "Not now" (no switch); the switch arms keep
+// dev's three switch rows, Continue and Not now.
 const NOTIFICATION_VARIANTS = ['settings', 'switches', 'defaults-on'] as const
 
 for (const viewport of VIEWPORTS) {
@@ -242,23 +326,24 @@ for (const viewport of VIEWPORTS) {
             await openSetupSurface(page, `07-d-notification-${variant}`)
             const control = variant === 'settings'
             const switches = page.getByRole('switch')
-            await expect(switches).toHaveCount(control ? 1 : 3)
+            await expect(switches).toHaveCount(control ? 0 : 3)
             const footer = page.locator('[data-setup-footer]')
-            const next = footer.getByRole('button', { name: 'Continue', exact: true })
+            const next = footer.getByRole('button', {
+                name: control ? 'Turn on notifications' : 'Continue',
+                exact: true,
+            })
             const skip = footer.getByRole('button', { name: 'Not now', exact: true })
             if (variant === 'switches') {
                 await expect(next).toBeDisabled()
                 await switches.first().click()
             }
-            if (control) {
-                await expect(skip).toHaveCount(0)
-            } else {
+            if (!control) {
                 const email = page.getByRole('switch', { name: 'Email updates' })
                 const checked = await email.getAttribute('aria-checked')
                 await email.click()
                 await expect(email).toHaveAttribute('aria-checked', checked === 'true' ? 'false' : 'true')
             }
-            for (const action of control ? [next] : [next, skip]) {
+            for (const action of [next, skip]) {
                 await action.scrollIntoViewIfNeeded()
                 await expect(action).toBeEnabled()
                 await expect(action).toBeInViewport({ ratio: 1 })
@@ -274,63 +359,31 @@ for (const viewport of VIEWPORTS) {
     }
 }
 
-for (const variant of NOTIFICATION_VARIANTS) {
-    test(`notification ${variant} scrolls the heading, choices and actions together`, async ({ page }) => {
+for (const variant of ['switches', 'defaults-on'] as const) {
+    test(`notification ${variant} scrolls its choices inside the panel with large text, the top bar and footer stay`, async ({
+        page,
+    }) => {
         await page.setViewportSize({ width: 360, height: 480 })
         await prepareSetupSurface(page)
         await openSetupSurface(page, `07-d-notification-${variant}`)
         await page.addStyleTag({ content: 'html { font-size: 150% !important; }' })
-        const heading = page.getByRole('heading', { level: 1, name: /notifications/i })
-        const hero = page.locator('[data-setup-hero]')
         const topBar = page.locator('[data-setup-top-bar]')
         const footer = page.locator('[data-setup-footer]')
-        const lastAction = footer.getByRole('button', { name: variant === 'settings' ? 'Continue' : 'Not now' })
         const lastSwitch = page.getByRole('switch').last()
-        await expect(heading).toBeInViewport()
-        await expect(lastAction).not.toBeInViewport({ ratio: 1 })
-        const initialHeading = (await heading.boundingBox())!.y
-        const initialSwitch = (await lastSwitch.boundingBox())!.y
-        const initialHero = await hero.boundingBox()
         const initialTopBar = await topBar.boundingBox()
-
-        await heading.hover()
-        await page.mouse.wheel(0, 240)
-        await expect.poll(async () => (await heading.boundingBox())!.y).toBeLessThan(initialHeading)
-        await lastAction.scrollIntoViewIfNeeded()
-
-        await expect(lastAction).toBeInViewport({ ratio: 1 })
-        const headingShift = (await heading.boundingBox())!.y - initialHeading
-        expect(headingShift).toBeLessThan(0)
-        expect((await lastSwitch.boundingBox())!.y - initialSwitch).toBeCloseTo(headingShift)
-        expect(await hero.boundingBox()).toEqual(initialHero)
-        expect(await topBar.boundingBox()).toEqual(initialTopBar)
-        expect(await page.evaluate(() => window.scrollY)).toBe(0)
+        // the larger text lifts the footer until it ends on screen (ShellFooter fit, a 500 ms glide): read it at rest
+        const initialFooter = await restingBox(footer)
 
         await lastSwitch.scrollIntoViewIfNeeded()
-
         await expect(lastSwitch).toBeInViewport({ ratio: 1 })
-        expect((await lastSwitch.boundingBox())!.y - initialSwitch).toBeCloseTo(
-            (await heading.boundingBox())!.y - initialHeading
-        )
-    })
-
-    test(`notification ${variant} fits without scrolling on a tall phone`, async ({ page }) => {
-        const viewport = { width: 430, height: 1024 }
-        await page.setViewportSize(viewport)
-        await prepareSetupSurface(page)
-        await openSetupSurface(page, `07-d-notification-${variant}`)
-        const heading = page.getByRole('heading', { level: 1, name: /notifications/i })
-        const footer = page.locator('[data-setup-footer]')
-        await expect(heading).toBeInViewport({ ratio: 1 })
-        await expect(footer).toBeInViewport({ ratio: 1 })
-        for (const toggle of await page.getByRole('switch').all()) {
-            await expect(toggle).toBeInViewport({ ratio: 1 })
-        }
-        expect((await footer.boundingBox())!.y).toBeGreaterThan(viewport.height * 0.75)
+        await lastSwitch.click({ trial: true })
+        expect(await topBar.boundingBox()).toEqual(initialTopBar)
+        expect(await footer.boundingBox()).toEqual(initialFooter)
+        expect(await page.evaluate(() => window.scrollY)).toBe(0)
     })
 }
 
-test('desktop keeps the full-height side hero', async ({ page }) => {
+test('desktop keeps the full-height side hero, with the shell column beside it', async ({ page }) => {
     await page.setViewportSize({ width: 1024, height: 900 })
     await page.addInitScript(() => {
         const w = window as unknown as {
@@ -343,5 +396,13 @@ test('desktop keeps the full-height side hero', async ({ page }) => {
     const hero = page.locator('[data-setup-hero]')
     await expect(hero).toBeVisible({ timeout: 60_000 })
     await page.waitForTimeout(1500)
-    expect(Math.round((await hero.boundingBox())!.height)).toBe(900)
+    // dev's split: the hero takes 7/12 of the width at full height; the shell column fills the rest
+    const heroBox = (await hero.boundingBox())!
+    expect(Math.round(heroBox.height)).toBe(900)
+    expect(Math.round(heroBox.x)).toBe(0)
+    expect(Math.abs(heroBox.width - (1024 * 7) / 12)).toBeLessThanOrEqual(1)
+    const shell = (await page.locator('[data-setup-shell]').boundingBox())!
+    expect(Math.round(shell.height)).toBe(900)
+    expect(Math.abs(shell.x - (heroBox.x + heroBox.width))).toBeLessThanOrEqual(1)
+    expect(Math.abs(shell.x + shell.width - 1024)).toBeLessThanOrEqual(1)
 })

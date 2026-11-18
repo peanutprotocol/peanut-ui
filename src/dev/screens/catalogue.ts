@@ -313,7 +313,6 @@ const setupJourney: Record<string, { journey: string; step: number }> = {
     '06-b-invite': { journey: 'Account setup', step: 100 },
     '06-c-passkey': { journey: 'Account setup', step: 110 },
     '08-a-passkeysetuphelpmodal': { journey: 'Account setup', step: 120 },
-    '09-a-passkeyinfomodal': { journey: 'Account setup', step: 130 },
     '07-c-notification-email': { journey: 'Account setup', step: 140 },
     '07-d-notification-settings': { journey: 'Account setup', step: 150 },
     '07-b-advantage-control': { journey: 'Account setup', step: 160 },

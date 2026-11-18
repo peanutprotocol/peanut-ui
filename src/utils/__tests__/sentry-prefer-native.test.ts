@@ -1,7 +1,7 @@
 // fetchWithSentry's preferNativeTransport path: tokenless native sessions go
 // over the OS HTTP client FIRST (the legacy cookie-jar JWT only rides there),
 // falling through to the WebView path when the OS client fails.
-import { fetchWithSentry } from '../sentry.utils'
+import { fetchWithSentry, NATIVE_FIRST_READ_LEG_MS } from '../sentry.utils'
 import { reportNetworkError } from '../connectivity'
 import { canUseNativeHttp, nativeHttpRequest } from '../native-http'
 import * as Sentry from '@sentry/nextjs'
@@ -227,6 +227,41 @@ describe('fetchWithSentry preferNativeTransport', () => {
 
         expect(res.status).toBe(200)
         expect(global.fetch).toHaveBeenCalledTimes(1)
+    })
+
+    // PEANUT-UI-TC8: on a fresh install the OS client can hang while the WebView works.
+    it('moves a read to the WebView when the OS client does not answer in time', async () => {
+        jest.useFakeTimers()
+        try {
+            mockCanUse.mockReturnValue(true)
+            mockNativeRequest.mockImplementation(() => new Promise<Response>(() => {}))
+
+            const res = fetchWithSentry(
+                'https://api.test.com/users/me',
+                { method: 'GET', preferNativeTransport: true },
+                20_000
+            )
+            await jest.advanceTimersByTimeAsync(NATIVE_FIRST_READ_LEG_MS)
+
+            expect((await res).status).toBe(200)
+            expect(mockNativeRequest.mock.calls[0][2]).toBe(NATIVE_FIRST_READ_LEG_MS)
+            expect(global.fetch).toHaveBeenCalledTimes(1)
+        } finally {
+            jest.useRealTimers()
+        }
+    })
+
+    it('keeps the full OS-client leg for a mutation, so it is never sent twice', async () => {
+        mockCanUse.mockReturnValue(true)
+        mockNativeRequest.mockResolvedValue(fakeResponse(200))
+
+        await fetchWithSentry(
+            'https://api.test.com/users',
+            { method: 'POST', body: '{}', preferNativeTransport: true },
+            20_000
+        )
+
+        expect(mockNativeRequest.mock.calls[0][2]).toBeGreaterThan(NATIVE_FIRST_READ_LEG_MS)
     })
 
     it('skips the OS client for native-ineligible requests (canUseNativeHttp false)', async () => {

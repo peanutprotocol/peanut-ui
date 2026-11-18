@@ -402,31 +402,6 @@ export default function ButtonPage() {
                         </Button>
                     </div>
                 </ProductUsage.Example>
-
-                <ProductUsage.Example
-                    title="Signup — Next beside the username field"
-                    path="src/components/Setup/Views/Signup.tsx"
-                    description="Inline CTA on one row with the input: large size, 4/12 width, loading while the username check runs."
-                    code={`<Button
-  size="large"
-  className="w-4/12"
-  loading={isLoading}
-  shadowSize="4"
-  onClick={() => handleNext(async () => isValid)}
-  disabled={!isValid || isChanging || isLoading}
->
-  {t('next')}
-</Button>`}
-                >
-                    <div className="flex items-center gap-2">
-                        <div className="input flex h-12 flex-1 items-center px-4 text-body-s text-foreground-secondary">
-                            kushagra
-                        </div>
-                        <Button size="large" className="w-4/12" shadowSize="4">
-                            Next
-                        </Button>
-                    </div>
-                </ProductUsage.Example>
             </ProductUsage>
         </DocPage>
     )

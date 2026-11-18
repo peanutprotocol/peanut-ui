@@ -86,4 +86,11 @@ describe('useHomeFlow', () => {
         mockUser = userWith({ avatarKey: 'basic.frog' })
         expect(renderHook(() => useHomeFlow()).result.current).not.toHaveProperty('avatarKey')
     })
+
+    it('reports identity verification from the backend status only', () => {
+        mockUser = { ...userWith({}), identityVerification: { status: 'verified' } }
+        expect(renderHook(() => useHomeFlow()).result.current.isIdentityVerified).toBe(true)
+        mockUser = { ...userWith({}), identityVerification: { status: 'processing' } }
+        expect(renderHook(() => useHomeFlow()).result.current.isIdentityVerified).toBe(false)
+    })
 })

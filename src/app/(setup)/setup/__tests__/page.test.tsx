@@ -176,8 +176,8 @@ jest.mock('@/components/Setup/setup-entry', () => ({
     hasKnownDeviceCredentials: () => false,
     resolveSetupEntryStep: (...args: unknown[]) => mockResolve(...args),
 }))
-jest.mock('@/components/Setup/components/SetupWrapper', () => ({
-    SetupWrapper: ({
+jest.mock('@/components/Setup/redesign/shell/SetupShell', () => ({
+    SetupShell: ({
         children,
         showLogoutButton,
         showBackButton,
@@ -194,7 +194,10 @@ jest.mock('@/components/Setup/components/SetupWrapper', () => ({
     ),
 }))
 jest.mock('@/components/Global/Loading', () => ({ __esModule: true, default: () => <div role="status">Loading</div> }))
-jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
+jest.mock('posthog-js', () => ({
+    __esModule: true,
+    default: { capture: jest.fn(), register_for_session: jest.fn(), unregister_for_session: jest.fn() },
+}))
 jest.mock('@sentry/nextjs', () => ({
     captureException: jest.fn(),
     captureMessage: jest.fn(),
@@ -204,7 +207,6 @@ jest.mock('@sentry/nextjs', () => ({
 const landing: ISetupStep = {
     screenId: 'landing',
     layoutType: 'signup',
-    image: { src: '' },
     component: () => <div>Landing step</div>,
 }
 const advance = async (ms: number) => {
@@ -328,6 +330,48 @@ it('bounds waiting for the layout and reloads to restart layout and session init
     } finally {
         Object.defineProperty(window, 'location', { configurable: true, value: originalLocation })
     }
+})
+
+it('waits longer before the recovery screen on a slow network', async () => {
+    mockStore.steps = []
+    Object.defineProperty(navigator, 'connection', { configurable: true, value: { effectiveType: '3g' } })
+    try {
+        renderWithIntl(<SetupPage />)
+        await advance(15000)
+        await advance(15000)
+        expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+        await advance(15000)
+        await advance(15000)
+        expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+    } finally {
+        delete (navigator as Navigator & { connection?: unknown }).connection
+    }
+})
+
+it('does not report the same setup failure again in the same session', async () => {
+    sessionStorage.setItem('setup-init-failure-reported:initialization_failed', '1')
+    mockResolve.mockImplementation(() => {
+        throw new Error('entry failed')
+    })
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+    await advance(100)
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+    expect(Sentry.captureMessage).not.toHaveBeenCalledWith('Setup initialization failed', expect.anything())
+})
+
+it('still reports a different setup failure in the same session', async () => {
+    sessionStorage.setItem('setup-init-failure-reported:initialization_timeout', '1')
+    mockResolve.mockImplementation(() => {
+        throw new Error('entry failed')
+    })
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+    await advance(100)
+    expect(Sentry.captureMessage).toHaveBeenCalledWith(
+        'Setup initialization failed',
+        expect.objectContaining({ tags: { reason: 'initialization_failed' } })
+    )
 })
 
 it('recovers from an initialization exception', async () => {

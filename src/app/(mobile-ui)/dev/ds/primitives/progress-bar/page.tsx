@@ -26,7 +26,7 @@ export default function ProgressBarPage() {
                 ]}
                 dontUse={[
                     'Waiting with no known end — use Loading (CyclingLoading stays inline)',
-                    'Page or step position — use CarouselDots',
+                    "Page or step position ('Step n of m') — use CarouselDots, the one stepper",
                     'Hold-to-confirm feedback — Button longPress draws its own bar',
                 ]}
             />
