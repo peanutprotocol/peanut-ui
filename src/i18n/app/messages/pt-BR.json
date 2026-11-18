@@ -1350,6 +1350,15 @@
             "claimTitle": "Tudo pronto!",
             "claimSub": "Sua conta do Peanut foi criada.",
             "claimGoing": "Voltando para o seu link…"
+        },
+        "verifyStart": {
+            "title": "Verificar agora",
+            "sub": "Isso libera seus dados bancários.",
+            "subCard": "Depois, peça um cartão.",
+            "stepQuestions": "Algumas perguntas que somos obrigados a fazer",
+            "stepPhoto": "Foto do documento e selfie",
+            "verifyNow": "Verificar agora · 3 min",
+            "remindLater": "Lembrar mais tarde"
         }
     },
     "loadingStates": {

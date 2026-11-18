@@ -63,6 +63,7 @@
         "components/Setup/redesign/Passkey/PasskeyScreenView.tsx": 121,
         "components/Setup/redesign/Residence/ResidenceScreen.tsx": 78,
         "components/Setup/redesign/Username/UsernameScreen.tsx": 72,
+        "components/Setup/redesign/VerifyStart/VerifyStartScreen.tsx": 89,
         "components/Setup/Views/PasskeySetupHelpDrawer.tsx": 121,
         "components/TransactionDetails/TransactionDetailsDrawer.tsx": 822,
         "features/add-money/views/BridgeBankOnrampView.tsx": 495,

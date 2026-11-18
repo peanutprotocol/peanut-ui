@@ -712,6 +712,12 @@
         "source": "Setup/redesign/Notifications/NotificationsSwitchesScreen.tsx"
     },
     {
+        "id": "07-f-setup-verify-start",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=07-f-setup-verify-start",
+        "source": "Setup/redesign/VerifyStart/VerifyStartScreen.tsx"
+    },
+    {
         "id": "08-b-loginrecoverydrawer",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=08-b-loginrecoverydrawer",
