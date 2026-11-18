@@ -684,7 +684,7 @@
             "cta": "Registrate",
             "loginBtn": "Iniciá sesión",
             "recover": "¿Necesitás recuperar la cuenta de Peanut?",
-            "invitedTitle": "@{username} te invitó a Peanut.",
+            "invitedTitle": "Invitación de @{username}.",
             "trustLine": "Las transferencias bancarias pasan por socios con licencia."
         },
         "username": {
