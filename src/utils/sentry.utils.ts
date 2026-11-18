@@ -419,6 +419,14 @@ export const CLIENT_FETCH_TIMEOUT_MS = 20_000
 export const TRANSPORT_TIMEOUT_RETRY_DELAY_MS = 300
 
 /*
+ * How long a tokenless native read waits on the OS HTTP client before it tries the WebView.
+ * On some phones the OS client hangs on a fresh install while the WebView works (canary
+ * `native:fail`), and the full 20s leg outlived the 15s setup timeout (PEANUT-UI-TC8). A read is
+ * safe to send twice; a mutation keeps the full leg so it is never sent twice.
+ */
+export const NATIVE_FIRST_READ_LEG_MS = 4_000
+
+/*
  * Floor for a single transport leg. Below this the budget pool is spent and a
  * further leg cannot complete anything — attempting one would only add latency
  * to a failure the caller is already going to see.
@@ -934,14 +942,16 @@ export const fetchWithSentry = async (
          * ignores its url param). A WebView POST reaches the backend with neither
          * header nor cookie and 400s — and because it gets an HTTP response, the
          * rejection fallback below never engages. On a FAST OS-client failure, fall
-         * through to the WebView path so logged-out flows behave as before. On an
-         * OS-client TIMEOUT the pool is spent and the WebView leg is skipped: the
-         * network is stalled, so a second full-length leg would double the wait for
-         * a failure the caller is already going to see.
+         * through to the WebView path so logged-out flows behave as before. A read
+         * waits at most NATIVE_FIRST_READ_LEG_MS, then tries the WebView with the
+         * rest of the pool. On a mutation's OS-client TIMEOUT the pool is spent and
+         * the WebView leg is skipped, so the mutation is never sent twice.
          */
         if (preferNativeTransport && canUseNativeHttp(url, options) && legTimeoutMs() >= minLegMs) {
             try {
-                const response = await nativeLeg(legTimeoutMs())
+                const response = await nativeLeg(
+                    isMutatingMethod(method) ? legTimeoutMs() : Math.min(legTimeoutMs(), NATIVE_FIRST_READ_LEG_MS)
+                )
                 return response
             } catch (error) {
                 if (callerSignal?.aborted) throw cancelError(callerSignal)
