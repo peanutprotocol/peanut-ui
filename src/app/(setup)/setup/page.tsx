@@ -77,6 +77,29 @@ function setupTargetMatchesSearchParams(target: string | null, searchParamsStrin
     }
 }
 
+// a slow network gets a fairer wait before the recovery screen (TASK-22459, PEANUT-UI-T3A).
+// navigator.connection is chromium only, so ios webviews keep the base wait.
+const SETUP_INIT_TIMEOUT_MS = 15_000
+const SLOW_NETWORK_SETUP_INIT_TIMEOUT_MS = 30_000
+function setupInitTimeoutMs(): number {
+    const connection = (navigator as Navigator & { connection?: { effectiveType?: string; saveData?: boolean } })
+        .connection
+    const slow = connection?.saveData === true || /2g|3g/.test(connection?.effectiveType ?? '')
+    return slow ? SLOW_NETWORK_SETUP_INIT_TIMEOUT_MS : SETUP_INIT_TIMEOUT_MS
+}
+
+// one report per browser session: the retry or a reload of the same failure is not a new hit
+const INIT_FAILURE_REPORTED_KEY = 'setup-init-failure-reported'
+function firstInitFailureThisSession(): boolean {
+    try {
+        if (sessionStorage.getItem(INIT_FAILURE_REPORTED_KEY)) return false
+        sessionStorage.setItem(INIT_FAILURE_REPORTED_KEY, '1')
+    } catch {
+        // storage blocked: report every time rather than never
+    }
+    return true
+}
+
 function SetupPageContent() {
     const tCommon = useTranslations('common')
     const { setIsSupportModalOpen } = useModalsContext()
@@ -335,6 +358,7 @@ function SetupPageContent() {
             })
             return
         }
+        if (!firstInitFailureThisSession()) return
         Sentry.captureMessage('Setup initialization failed', {
             level: 'error',
             tags: { reason: recoveryReason },
@@ -346,7 +370,7 @@ function SetupPageContent() {
         const timeout = setTimeout(() => {
             initializationExpired.current = true
             setInitializationError('initialization_timeout')
-        }, 15000)
+        }, setupInitTimeoutMs())
         return () => clearTimeout(timeout)
     }, [isLoading, sessionChecked, initializationError, isLeavingForHome, profileFetchFailed, initializationAttempt])
 

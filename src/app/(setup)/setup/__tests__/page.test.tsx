@@ -329,6 +329,34 @@ it('bounds waiting for the layout and reloads to restart layout and session init
     }
 })
 
+it('waits longer before the recovery screen on a slow network', async () => {
+    mockStore.steps = []
+    Object.defineProperty(navigator, 'connection', { configurable: true, value: { effectiveType: '3g' } })
+    try {
+        renderWithIntl(<SetupPage />)
+        await advance(15000)
+        await advance(15000)
+        expect(screen.queryByRole('button', { name: 'Try again' })).not.toBeInTheDocument()
+        await advance(15000)
+        await advance(15000)
+        expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+    } finally {
+        delete (navigator as Navigator & { connection?: unknown }).connection
+    }
+})
+
+it('does not report a setup failure again in the same session', async () => {
+    sessionStorage.setItem('setup-init-failure-reported', '1')
+    mockResolve.mockImplementation(() => {
+        throw new Error('entry failed')
+    })
+    renderWithIntl(<SetupPage />)
+    await advance(100)
+    await advance(100)
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
+    expect(Sentry.captureMessage).not.toHaveBeenCalledWith('Setup initialization failed', expect.anything())
+})
+
 it('recovers from an initialization exception', async () => {
     mockResolve.mockImplementation(() => {
         throw new Error('entry failed')
