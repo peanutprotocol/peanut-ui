@@ -9,7 +9,7 @@ import type { StepComponentProps } from '@/components/Setup/Setup.types'
 import { SetupScreen } from '@/components/Setup/redesign/shell/SetupScreen'
 import { LoginRecoveryDrawer } from '@/components/Setup/Views/LoginRecoveryDrawer'
 import { useLandingLogin } from '@/features/setup/useLandingLogin'
-import { useStashedInviteCode } from '@/features/setup/useStashedInviteCode'
+import { useValidatedInviter } from '@/features/setup/useValidatedInviter'
 import { LandingWebBlock } from './LandingWebBlock'
 import { X1Hero } from './X1Hero'
 import { SETUP_LEAD_CLASS } from '@/components/Setup/redesign/shell/shell.consts'
@@ -19,14 +19,14 @@ import { SETUP_LEAD_CLASS } from '@/components/Setup/redesign/shell/shell.consts
  * get Sign up and Log in in the fixed footer; the web gets the download-only block in the panel and no footer. The
  * recovery link follows dev's rule (after one real log-in error, or the second cancel in a row on iPhone and the web).
  * Contract: mono _temp/signup-redesign/r2/r9/build/contract/P1.md. A person who arrives through an invite (a deferred
- * link or an invite link) reads who invited them in the headline (v7); with no source, the default headline and the
- * trust line under it (addendum 1).
+ * link or an invite link) reads who invited them in the headline (v7), once the API confirms the code and names the
+ * inviter; until then, and with no source, the default headline and the trust line under it (addendum 1).
  */
 export function LandingScreen(_props: StepComponentProps) {
     const t = useTranslations('setupRedesign.landing')
     const tSetup = useTranslations('setup')
     const landing = useLandingLogin()
-    const inviter = useStashedInviteCode()
+    const inviter = useValidatedInviter()
 
     const recoveryLink = landing.loginFailed && (
         <SetupDocLink kind="account-recovery" href="/en/help/account-recovery" className={LINK_BUTTON_CLASSES}>
