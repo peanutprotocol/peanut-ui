@@ -6,6 +6,7 @@ import { useParams, useSearchParams } from 'next/navigation'
 import { countryData } from '@/components/AddMoney/consts'
 import { LocalResidenceAddressGate } from '@/features/kyc-features/LocalResidenceAddressGate'
 import { useSafeBack } from '@/hooks/useSafeBack'
+import { readReturnTo } from '@/utils/return-to.utils'
 
 export default function MantecaAddMoney() {
     const params = useParams()
@@ -13,7 +14,7 @@ export default function MantecaAddMoney() {
     // path params (web) or query params (native static export), as the route page reads them
     const country = (params.country as string) || searchParams.get('country') || ''
     const selectedCountry = countryData.find((item) => item.type === 'country' && item.path === country)
-    const onBack = useSafeBack('/add-money?method=bank')
+    const onBack = useSafeBack(readReturnTo(searchParams) ?? '/add-money?method=bank')
     return (
         <LocalResidenceAddressGate currency={selectedCountry?.currency === 'BRL' ? 'BRL' : 'ARS'} onBack={onBack}>
             <KycFeatureActivationGate
