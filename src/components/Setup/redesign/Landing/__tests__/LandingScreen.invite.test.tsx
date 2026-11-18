@@ -35,7 +35,7 @@ import { loose, msg, renderInShell } from './redesign-harness'
 import type { TestLocale } from './redesign-harness'
 
 const headline = () => screen.getByRole('heading', { level: 1 })
-const trustLine = () => document.querySelector('[data-setup-stage-note]')
+const trustLine = () => document.querySelector('[data-setup-subtitle]')
 const validate = invitesApi.validateInviteCode as jest.Mock
 const found = (username: string) => ({ success: true, attributionResolved: true, onboardingResolved: true, username })
 const defaultHeadline = (locale: TestLocale = 'en') => {
@@ -51,16 +51,13 @@ beforeEach(() => {
 
 describe('01 Landing — headline by source', () => {
     it.each(['en', 'es-AR'] as const)(
-        'no source: the default headline, and the trust line at the top of the stage, outside the headline block (%s)',
+        'no source: the default headline with the trust line under it, in the headline block (%s)',
         (locale: TestLocale) => {
             renderInShell('landing', <LandingScreen />, { locale })
-            defaultHeadline(locale)
-            // the art scale measures the headline block only, so the line no longer shrinks the art (decisions round 2)
-            const block = document.querySelector('[data-setup-title]')!
-            expect(block).toContainElement(headline())
-            expect(block).not.toContainElement(trustLine() as HTMLElement)
-            // read after the headline
-            expect(headline().compareDocumentPosition(trustLine()!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+            expect(headline()).toHaveTextContent(loose(msg('setupRedesign.landing.title', {}, locale)))
+            expect(trustLine()).toHaveTextContent(loose(msg('setupRedesign.landing.trustLine', {}, locale)))
+            // the art scale measures this block, so the art never covers the line
+            expect(trustLine()?.parentElement).toBe(headline().parentElement)
             expect(trustLine()?.querySelector('svg, img')).toBeNull()
         }
     )
