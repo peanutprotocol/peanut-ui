@@ -421,26 +421,6 @@ describe('07 Residence: sentence view', () => {
         expect(controls()).toEqual(['nationality_country:error:refused_issuer'])
     })
 
-    it('R2-05 with the callout the sentence block ends 16 px above the CTA and scrolls; without it, no cap', () => {
-        mockSets = {
-            ...jest.requireActual('@/test-utils/residenceRestrictions.fixture').RESIDENCE_RESTRICTION_SETS,
-            refusedIdIssuers: new Set(['CU']),
-        }
-        const view = render({ residenceCountry: 'AR', nationalityCountry: 'CU' })
-        view.rerenderSame()
-        const box = view.container.querySelector('[data-residence-scroll]')!
-        // the callout sits inside the capped box, so it can never run under the button
-        expect(box).toContainElement(screen.getByRole('alert', { hidden: true }))
-        expect(box).toHaveClass('max-h-[calc(var(--sr-panel-to-cta)-16px)]', 'overflow-y-auto')
-        // the cap reads the panel's own distance to the CTA
-        const panel = box.closest<HTMLElement>('[data-setup-panel]')!
-        expect(panel.style.getPropertyValue('--sr-panel-to-cta')).toContain('var(--sr-cta-top)')
-
-        view.unmount()
-        const plain = render({ residenceCountry: 'DE', nationalityCountry: 'IR' })
-        expect(plain.container.querySelector('[data-residence-scroll]')).not.toHaveClass('overflow-y-auto')
-    })
-
     it('P3-19 a refused issuer as the residence (nationality fine) shows no callout', () => {
         mockSets = {
             ...jest.requireActual('@/test-utils/residenceRestrictions.fixture').RESIDENCE_RESTRICTION_SETS,
@@ -925,5 +905,49 @@ describe('07 Residence: dev cases kept', () => {
             copy(`${K}.itemCard`),
             copy(`${K}.itemP2p`),
         ])
+    })
+})
+
+// ---- v7 (TASK-25063): "Why do we ask?" and the Popular countries ----------------------------
+
+describe('07 Residence: v7', () => {
+    const KYC = 'kyc.paperworkVerification'
+    const whyLink = (container: HTMLElement) => within(footer(container)!).queryByTestId('setup-residence-why')
+
+    it('"Why do we ask?" under Continue opens the nationality reason; Got it closes it; both are tracked', async () => {
+        const view = render({ residenceCountry: 'AR' })
+        fireEvent.click(whyLink(view.container)!)
+        const sheet = await waitFor(() => openDialog(copyRx(`${KYC}.whyTitle`))!)
+        expect(within(sheet).getByText(copy(`${KYC}.why.nationality`))).toBeInTheDocument()
+        expect(within(sheet).getByText(copy(`${KYC}.whyShared`))).toBeInTheDocument()
+        fireEvent.click(within(sheet).getByRole('button', { name: copy(`${KYC}.gotIt`) }))
+        await waitFor(() => expect(openDialog(copyRx(`${KYC}.whyTitle`))).toBeNull())
+        expect(controls()).toEqual(['why:open', 'why_got_it:tap'])
+    })
+
+    it('a refused passport shows the callout and no "Why do we ask?" link (no room for both)', () => {
+        const view = render({ residenceCountry: 'AR', nationalityCountry: 'CU' })
+        expect(
+            screen.getByText(copy(`${K}.refusedPassport`, { nationality: labelOf('CU'), residence: labelOf('AR') }))
+        ).toBeInTheDocument()
+        expect(whyLink(view.container)).toBeNull()
+    })
+
+    it('the country list leads with Argentina and Brazil under "Popular", each listed once; a search drops the header', () => {
+        const view = render({ residenceCountry: 'PT' })
+        fireEvent.click(view.residencePill())
+        const sheet = openDialog()!
+        const popular = within(sheet)
+            .getByRole('heading', { name: copy(`${K}.popular`) })
+            .closest('section')!
+        expect(
+            within(popular)
+                .getAllByRole('button')
+                .map((row) => row.getAttribute('aria-label'))
+        ).toEqual([labelOf('AR'), labelOf('BR')])
+        expect(within(sheet).getAllByRole('button', { name: labelOf('AR') })).toHaveLength(1)
+        fireEvent.change(within(sheet).getByRole('searchbox'), { target: { value: 'arg' } })
+        expect(within(sheet).queryByRole('heading', { name: copy(`${K}.popular`) })).toBeNull()
+        expect(within(sheet).getByRole('button', { name: labelOf('AR') })).toBeInTheDocument()
     })
 })

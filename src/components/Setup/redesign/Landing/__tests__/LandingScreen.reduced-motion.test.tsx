@@ -26,9 +26,12 @@ import { LandingScreen } from '@/components/Setup/redesign/Landing/LandingScreen
 import { resetLanding } from './landing-state'
 import { clock, coinOffsets, setReducedMotionQuery } from './motion-clock'
 import { renderInShell } from './redesign-harness'
+import { COIN_RING, X1_LAYOUT } from '@/components/Setup/redesign/Landing/x1-walk'
 
-/** P1-39's coin x at world frame 4 on a 390 phone (band x 0, so translateX = coin x). */
+/** P1-39's coin x at world frame 4 on a 390 phone, with the copies one ring to each side. */
 const WF4_STD = [-100.37, 10.93, 122.23, 233.53, 344.83, 456.13]
+    .flatMap((x) => [x - COIN_RING, x, x + COIN_RING])
+    .sort((a, b) => a - b)
 
 beforeAll(() => {
     setReducedMotionQuery(true)
@@ -46,7 +49,10 @@ describe('01 Landing — reduced motion', () => {
             await act(async () => clock.tickers.forEach((ticker) => ticker(1 / 30)))
         }
         expect(screen.getByTestId('landing-walker')).toHaveAttribute('data-world-frame', '4')
-        const offsets = coinOffsets(screen.getByTestId('landing-coin-band')).sort((a, b) => a - b)
+        // translateX is relative to the coin band
+        const offsets = coinOffsets(screen.getByTestId('landing-coin-band'))
+            .map((x) => x + X1_LAYOUT.std.coinBand[0])
+            .sort((a, b) => a - b)
         expect(offsets).toHaveLength(WF4_STD.length)
         offsets.forEach((x, i) => expect(Math.abs(x - WF4_STD[i])).toBeLessThanOrEqual(0.01))
     })

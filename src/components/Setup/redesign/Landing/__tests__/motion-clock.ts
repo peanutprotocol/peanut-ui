@@ -15,7 +15,7 @@ export const clockModule = () => ({
     },
 })
 
-/** Every coin's translateX in px, read from the coin band's children (band x is 0 at 390 wide). */
+/** Every coin's translateX in px, relative to the coin band, read from the band's children. */
 export function coinOffsets(band: HTMLElement): number[] {
     return Array.from(band.querySelectorAll<HTMLElement>('[style*="translate"]')).map((coin) => {
         const match = /translateX\((-?[\d.]+)px\)/.exec(coin.style.transform)

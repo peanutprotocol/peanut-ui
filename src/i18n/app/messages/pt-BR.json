@@ -1151,7 +1151,9 @@
             "cardAmount": "USD 1.200",
             "cta": "Criar conta",
             "loginBtn": "Entrar",
-            "recover": "Precisa recuperar uma conta Peanut?"
+            "recover": "Precisa recuperar uma conta Peanut?",
+            "invitedTitle": "Convite de @{username}.",
+            "trustLine": "As transferências bancárias passam por parceiros licenciados."
         },
         "username": {
             "title": "Garanta seu usuário.",
@@ -1269,7 +1271,7 @@
             "sameRow": "O mesmo país",
             "search": "Buscar países",
             "noCountry": "Nenhum país corresponde a “{query}”.",
-            "refusedPassport": "Não conseguimos verificar passaportes nem documentos de identidade deste país: {nationality}. Para verificar sua identidade, use seu cartão de residência ({residence}).",
+            "refusedPassport": "Não conseguimos verificar documentos de identidade deste país: {nationality}. Use seu cartão de residência ({residence}).",
             "compareTitle": "Escolha só um país.",
             "compareRule": "Tem autorização de residência? Escolha esse país. Se não, escolha o que emitiu seu documento.",
             "itemPix": "Pagamentos e transferências Pix",
@@ -1279,7 +1281,8 @@
             "itemCard": "Peanut Card",
             "itemP2p": "De Peanut para Peanut",
             "select": "Escolher {country}",
-            "compareCurrencyNote": "Transferências em outra moeda exigem uma conta bancária nessa moeda."
+            "compareCurrencyNote": "Transferências em outra moeda exigem uma conta bancária nessa moeda.",
+            "popular": "Populares"
         },
         "plan": {
             "title": "Como você vai usar o Peanut?",
@@ -1300,6 +1303,7 @@
             "payCard": "Peanut Card",
             "payPeanut": "Pagar um usuário do Peanut",
             "peanutPill": "Usuário do Peanut",
+            "payQrAbroad": "Pagamentos QR na Argentina e no Brasil",
             "changeLater": "Você pode mudar isso depois"
         },
         "email": {

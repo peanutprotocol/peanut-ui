@@ -589,6 +589,18 @@ async function landingToUsername(page: Page, locale: Locale) {
     await expect(panelOf(page)).toContainText('Argentina')
     // owner ruling 17 Nov: "My residence is in [X], my nationality is [Y]."
     await expect(panelOf(page)).toContainText(t('setupRedesign.residence.sentence').split(',')[0].trim())
+    // v7: "Why do we ask?" under Continue opens the nationality reason
+    await page.getByTestId('setup-residence-why').click()
+    await expect(drawer(page)).toContainText(t('kyc.paperworkVerification.why.nationality'))
+    await drawer(page)
+        .getByRole('button', { name: t('kyc.paperworkVerification.gotIt') })
+        .click()
+    await expect(drawer(page)).toHaveCount(0)
+    // v7: the country list leads with Argentina and Brazil under "Popular"
+    await page.getByTestId('setup-residence-country').click()
+    await expect(drawer(page).getByRole('heading', { name: t('setupRedesign.residence.popular') })).toBeVisible()
+    await drawer(page).getByRole('button', { name: 'Argentina', exact: true }).click()
+    await expect(drawer(page)).toHaveCount(0)
     await primary(page, t('setupRedesign.common.continue')).click()
 
     // 08: Argentina offers a bank and QR; pick both, then Continue

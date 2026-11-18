@@ -24,6 +24,7 @@ export function PlanSentence({
     paymentOptions,
     bankCurrencies,
     loading,
+    qrAbroad,
     onFunding,
     onPayment,
 }: {
@@ -34,6 +35,8 @@ export function PlanSentence({
     /** The server's bank currencies for the residence; empty when unknown. */
     bankCurrencies: readonly string[]
     loading: boolean
+    /** QR payments work only in Argentina and Brazil: a US resident sees that in the spending row (v7). */
+    qrAbroad: boolean
     onFunding: (channel: SetupFundingChannel) => void
     onPayment: (channel: SetupPaymentChannel) => void
 }) {
@@ -78,7 +81,9 @@ export function PlanSentence({
                             title={t('sheetPayment')}
                             value={payment}
                             options={paymentOptions}
-                            label={(channel) => t(PAYMENT_SHEET_KEY[channel])}
+                            label={(channel) =>
+                                channel === 'qr' && qrAbroad ? t('payQrAbroad') : t(PAYMENT_SHEET_KEY[channel])
+                            }
                             pillLabel={(channel) => t(PAYMENT_PILL_KEY[channel])}
                             placeholder={t('choose')}
                             loading={loading}

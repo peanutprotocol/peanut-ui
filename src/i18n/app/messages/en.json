@@ -1151,7 +1151,9 @@
             "cardAmount": "USD 1,200",
             "cta": "Sign up",
             "loginBtn": "Log in",
-            "recover": "Need to recover a Peanut account?"
+            "recover": "Need to recover a Peanut account?",
+            "invitedTitle": "Invited by @{username}.",
+            "trustLine": "Bank transfers go through licensed partners."
         },
         "username": {
             "title": "Claim a username.",
@@ -1269,7 +1271,7 @@
             "sameRow": "The same country",
             "search": "Search countries",
             "noCountry": "No country matches “{query}”.",
-            "refusedPassport": "We can’t verify passports or ID cards from {nationality}. Use your residence card from {residence} when you verify your identity.",
+            "refusedPassport": "We can’t verify IDs from {nationality}. Use your residence card from {residence}.",
             "compareTitle": "Pick one country.",
             "compareRule": "Have a residence permit? Pick that country. If not, pick the one that issued your ID.",
             "itemPix": "Pix payments and transfers",
@@ -1279,7 +1281,8 @@
             "itemCard": "Peanut Card",
             "itemP2p": "Peanut to Peanut",
             "select": "Select {country}",
-            "compareCurrencyNote": "Transfers in another currency need a bank account in that currency."
+            "compareCurrencyNote": "Transfers in another currency need a bank account in that currency.",
+            "popular": "Popular"
         },
         "plan": {
             "title": "How will you use Peanut?",
@@ -1300,6 +1303,7 @@
             "payCard": "Peanut Card",
             "payPeanut": "Pay a Peanut user",
             "peanutPill": "Another Peanut user",
+            "payQrAbroad": "QR payments in Argentina and Brazil",
             "changeLater": "You can change this later"
         },
         "email": {

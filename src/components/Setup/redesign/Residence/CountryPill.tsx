@@ -7,6 +7,7 @@ import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { Button } from '@/components/0_Bruddle/Button'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
+import { Section } from '@/components/0_Bruddle/Section'
 import { Drawer, DrawerContent, DrawerTitle, DrawerTrigger } from '@/components/Global/Drawer'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
@@ -30,6 +31,7 @@ function Flag({ country, size }: { country: string; size: 'xs' | 's' }) {
 /** The mock's row heights: 56 px (44 on a small phone), the same-country row 64 (52). The flag stays 32 px. */
 const ROW = 'py-3 signup-sm:py-1.5'
 const SAME_ROW = 'py-[11px] signup-sm:py-[5px]'
+const POPULAR_COUNTRIES: readonly string[] = ['AR', 'BR']
 
 /**
  * Opens the list at the chosen country, centred where the list allows it. Set directly, so the sheet does not
@@ -80,6 +82,22 @@ export function CountryPill({
     const listed = words.length
         ? options.filter((o) => words.every((word) => normalizeSearch(o.label).includes(word)))
         : options
+
+    // Most sign-ups live in Argentina or Brazil: with no search they lead the list under "Popular", once each.
+    const popular = words.length ? [] : options.filter((o) => POPULAR_COUNTRIES.includes(o.value))
+    const rest = listed.filter((o) => !popular.includes(o))
+    const row = (option: ResidenceCountryOption) => (
+        <ListItem
+            key={option.value}
+            title={option.label}
+            leading={<Flag country={option.value} size="s" />}
+            trailing={option.value === value ? <Icon name="check" size={20} /> : undefined}
+            className={twMerge(ROW, option.value === value && 'bg-background-selection')}
+            aria-label={option.label}
+            aria-current={option.value === value || undefined}
+            onClick={() => choose(option.value)}
+        />
+    )
 
     const noResults = words.length > 0 && listed.length === 0
     useEffect(() => {
@@ -172,21 +190,13 @@ export function CountryPill({
                             leftContent={<Icon name="search" size={20} className="text-foreground-secondary" />}
                         />
                     </div>
-                    {listed.length > 0 ? (
-                        <ListGroup>
-                            {listed.map((option) => (
-                                <ListItem
-                                    key={option.value}
-                                    title={option.label}
-                                    leading={<Flag country={option.value} size="s" />}
-                                    trailing={option.value === value ? <Icon name="check" size={20} /> : undefined}
-                                    className={twMerge(ROW, option.value === value && 'bg-background-selection')}
-                                    aria-label={option.label}
-                                    aria-current={option.value === value || undefined}
-                                    onClick={() => choose(option.value)}
-                                />
-                            ))}
-                        </ListGroup>
+                    {popular.length > 0 && (
+                        <Section title={t('popular')}>
+                            <ListGroup>{popular.map(row)}</ListGroup>
+                        </Section>
+                    )}
+                    {rest.length > 0 ? (
+                        <ListGroup>{rest.map(row)}</ListGroup>
                     ) : (
                         <p className="text-body-s text-foreground-secondary">{t('noCountry', { query })}</p>
                     )}

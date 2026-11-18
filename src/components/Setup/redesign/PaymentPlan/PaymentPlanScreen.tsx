@@ -79,6 +79,8 @@ export function PaymentPlanScreen(_props: StepComponentProps) {
               ? 'prefilled'
               : 'default'
     const compact = device === 'sm'
+    // QR payments run on Manteca: Argentina and Brazil only (FLEET-RULES 9)
+    const qrHome = isMantecaSupportedCountryCode(residenceCountry)
     return (
         <SetupScreen
             ground="sky"
@@ -87,14 +89,7 @@ export function PaymentPlanScreen(_props: StepComponentProps) {
             smScale={0.55}
             state={state}
             title={t('plan.title')}
-            art={
-                <PlanArt
-                    compact={compact}
-                    hop={hop}
-                    // QR payments run on Manteca: Argentina and Brazil only (FLEET-RULES 9)
-                    showQr={isMantecaSupportedCountryCode(residenceCountry)}
-                />
-            }
+            art={<PlanArt compact={compact} hop={hop} showQr={qrHome} />}
             footer={{
                 primary: {
                     label: t('common.continue'),
@@ -111,6 +106,8 @@ export function PaymentPlanScreen(_props: StepComponentProps) {
                 paymentOptions={options.payment}
                 bankCurrencies={intents?.bank.currencies ?? []}
                 loading={!settled}
+                // the abroad label is for US residents only (Konrad, Kush decisions round 2); others keep dev's row
+                qrAbroad={residenceCountry === 'US'}
                 onFunding={(channel) => {
                     setFundingChannel(channel)
                     setHop((last) => ({ piece: 'coin', beat: (last?.beat ?? 0) + 1 }))

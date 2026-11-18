@@ -36,7 +36,7 @@ import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFl
 import { SetupNotificationsPrompt } from '@/components/Notifications/SetupNotificationsModal'
 import { setupScreenIds, setupSteps } from '@/components/Setup/Setup.consts'
 import { SetupShell } from '@/components/Setup/redesign/shell/SetupShell'
-import { NO_DOT_SCREENS } from '@/components/Setup/redesign/shell/shell.consts'
+import { setupProgress } from '@/components/Setup/redesign/shell/setupProgress'
 import type { ScreenId } from '@/components/Setup/Setup.types'
 import type { SetupFundingChannel, SetupPaymentChannel } from '@/features/setup/paymentChannels'
 import type { SignupEntryFlow } from '@/features/setup/signup-analytics'
@@ -214,14 +214,9 @@ function SetupScreenBody({
     )
         return null
     const View = step.component
-    const dotSteps = setupSteps.filter((entry) => !NO_DOT_SCREENS.includes(entry.screenId))
-    const dotIndex = dotSteps.indexOf(step)
+    const dots = setupProgress(setupSteps, step.screenId)
     return (
-        <SetupShell
-            screenId={step.screenId}
-            showBackButton={step.showBackButton}
-            progress={showProgress && dotIndex >= 0 ? { index: dotIndex, total: dotSteps.length } : null}
-        >
+        <SetupShell screenId={step.screenId} showBackButton={step.showBackButton} progress={showProgress ? dots : null}>
             {children ?? <View />}
         </SetupShell>
     )
@@ -291,17 +286,12 @@ function RedesignStepBody({
     const step = setupSteps.find((entry) => entry.screenId === screenId)
     if (!seeded || !step) return null
     const View = step.component
-    const dotSteps = setupSteps.filter((entry) => !NO_DOT_SCREENS.includes(entry.screenId))
-    const dotIndex = dotSteps.indexOf(step)
+    const dots = setupProgress(setupSteps, step.screenId)
     return (
         <SetupShell
             screenId={finishRoute ? 'sign-test-transaction' : step.screenId}
             showBackButton={step.showBackButton && !finishRoute}
-            progress={
-                dotIndex >= 0 && !seed.signupCompleted && !finishRoute
-                    ? { index: dotIndex, total: dotSteps.length }
-                    : null
-            }
+            progress={!seed.signupCompleted && !finishRoute ? dots : null}
         >
             {/* as /setup passes it: without it 11 treats the demo account as a log-in and leaves for /home */}
             {finishRoute ? <FinalConfirmScreen showLogout /> : <View onComplete={noop} />}
@@ -1887,6 +1877,14 @@ export const SURFACES: Record<string, Surface> = {
     },
     'setup-redesign-plan-single': {
         ...SETUP_REDESIGN_SURFACES['setup-redesign-plan-single'],
+        render: () => <RedesignStepSurface screenId="payment-plan" seed={{ residenceCountry: 'PT' }} />,
+    },
+    'setup-redesign-plan-us': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-plan-us'],
+        render: () => <RedesignStepSurface screenId="payment-plan" seed={{ residenceCountry: 'US' }} />,
+    },
+    'setup-redesign-plan-pt': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-plan-pt'],
         render: () => <RedesignStepSurface screenId="payment-plan" seed={{ residenceCountry: 'PT' }} />,
     },
     'setup-redesign-email': {

@@ -213,13 +213,14 @@ describe('08 Payment plan', () => {
         ])
         fireEvent.keyDown(openDialog()!, { key: 'Escape' })
         await waitFor(() => expect(openDialog()).toBeNull())
-        expect(view.open('payment')).toEqual([label('payCard'), label('payQr')])
+        // v7: QR payments work only in Argentina and Brazil, so a US resident's row says where
+        expect(view.open('payment')).toEqual([label('payCard'), label('payQrAbroad')])
         fireEvent.keyDown(openDialog()!, { key: 'Escape' })
         await waitFor(() => expect(openDialog()).toBeNull())
 
         await view.choose('funding', label('fundBankCurrencies', { currencies: 'USD, EUR' }))
         expect(view.continueButton()).toBeDisabled()
-        await view.choose('payment', label('payQr'))
+        await view.choose('payment', label('payQrAbroad'))
         expect(view.flow().fundingChannel).toBe('bank')
         expect(view.flow().paymentChannel).toBe('qr')
         expect(setupState(view.container)).toBe('filled')
@@ -501,6 +502,16 @@ describe('08 Payment plan', () => {
 })
 
 // ---- ported from dev's Views/__tests__/PaymentPlan.test.tsx (deleted with the old view) ---------------------
+
+describe('08 Payment plan: v7 (TASK-25063)', () => {
+    // US residents only (Konrad; Kush decisions round 2): everyone else keeps dev's plain QR row
+    it.each(['AR', 'BR', 'PT', 'GB'])('a resident of %s keeps the plain QR row', async (residenceCountry) => {
+        const view = render({ residenceCountry })
+        await waitFor(() => expect(setupState(view.container)).not.toBe('loading'))
+        expect(view.open('payment')).toContain(label('payQr'))
+        expect(view.rows()).not.toContain(label('payQrAbroad'))
+    })
+})
 
 describe('08 Payment plan: dev cases kept', () => {
     // the leading slot of a drawer row: a Pix logo is a bare image, a bubble draws a fill

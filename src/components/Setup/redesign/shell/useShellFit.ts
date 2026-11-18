@@ -14,6 +14,20 @@ const KEYBOARD_PANEL_MIN_PX = 112
 const FOLD_GAP_PX = 12
 /** Room kept under a focused field for its help or error line. */
 const HELP_LINE_PX = 40
+/** Room between the panel's last line and the footer once the stage lifts for it. */
+const CONTENT_GAP_PX = 16
+/** The lift never takes the stage closer than this to the headline: the art keeps room, the rest scrolls. */
+const LIFT_ART_MIN_PX = 96
+
+const activePanel = (shell: HTMLElement) =>
+    shell.querySelector<HTMLElement>('[data-setup-slide]:not([aria-hidden]) [data-setup-panel]')
+
+/** How tall the panel's content is, from the panel's top (its padding included), whatever the panel's own height. */
+const contentHeight = (panel: HTMLElement) =>
+    Array.from(panel.children).reduce(
+        (end, child) => Math.max(end, (child as HTMLElement).offsetTop + (child as HTMLElement).offsetHeight),
+        0
+    )
 
 export type ShellFold = 'title' | 'bar'
 
@@ -64,6 +78,10 @@ export function revealInPanel(field: HTMLElement) {
  * system text, a short window), the stage folds to just under the headline (`data-fold="title"`), or to the top
  * bar when even that leaves too little room (`data-fold="bar"`). The art hides while folded. No fold happens on
  * a regular phone at the default text size, so the approved layout is untouched.
+ *
+ * The lift: when the panel's content would run under the footer (a callout, a helper line), the stage shrinks by
+ * that much plus 16 px (`--sr-fit-lift`), so the last line ends above the footer and the art scales down with the
+ * stage. It stops 96 px under the headline; past that the panel scrolls. Content never sits under the footer.
  */
 export function useShellFit({
     shellRef,
@@ -88,23 +106,32 @@ export function useShellFit({
         if (!shell || !probe || !shell.clientHeight) return
         let fold: ShellFold | null = null
         let foldPx = 0
+        let lift = 0
         if (stage !== 'full') {
             const shellTop = shell.getBoundingClientRect().top
             const base = probe.offsetHeight
             const pad = parseFloat(getComputedStyle(shell).getPropertyValue('--sr-panel-pad')) || 0
             const footer = footerTop.current ?? shell.clientHeight
+            // the headline block: the h1 and the line under it (the landing trust line)
+            const title = shell.querySelector('[data-setup-slide]:not([aria-hidden]) [data-setup-title]')
+            const bar = shell.querySelector('[data-setup-top-bar]')
+            const titleBottom = title ? title.getBoundingClientRect().bottom - shellTop : 0
+            const barBottom = bar ? bar.getBoundingClientRect().bottom - shellTop : 0
+            const underTitle = Math.ceil(Math.max(titleBottom, barBottom) + FOLD_GAP_PX)
             if (keyboard.current || footer - (base + pad) < PANEL_MIN_PX) {
-                const title = shell.querySelector('[data-setup-slide]:not([aria-hidden]) [data-setup-art-layer] h1')
-                const bar = shell.querySelector('[data-setup-top-bar]')
-                const titleBottom = title ? title.getBoundingClientRect().bottom - shellTop : 0
-                const barBottom = bar ? bar.getBoundingClientRect().bottom - shellTop : 0
-                const underTitle = Math.ceil(Math.max(titleBottom, barBottom) + FOLD_GAP_PX)
                 const roomUnderTitle = footer - (underTitle + pad)
                 const keepTitle = keyboard.current
                     ? roomUnderTitle >= KEYBOARD_PANEL_MIN_PX
                     : roomUnderTitle >= PANEL_MIN_PX
                 fold = keepTitle ? 'title' : 'bar'
                 foldPx = Math.min(base, keepTitle ? underTitle : Math.ceil(barBottom + FOLD_GAP_PX))
+            } else if (footerTop.current !== null) {
+                // Content that would run under the footer (a callout, a helper line) lifts the stage instead, so
+                // its last line ends above the footer and the art scales down with the stage (Kush, 2026-11-18).
+                const panel = activePanel(shell)
+                const over = panel ? contentHeight(panel) - (footer - base) : 0
+                if (over > 1)
+                    lift = Math.max(0, Math.min(Math.ceil(over + CONTENT_GAP_PX), base - underTitle - LIFT_ART_MIN_PX))
             }
         }
         if (fold) {
@@ -114,6 +141,8 @@ export function useShellFit({
             delete shell.dataset.fold
             shell.style.removeProperty('--sr-fold-stage')
         }
+        if (lift) shell.style.setProperty('--sr-fit-lift', `${lift}px`)
+        else shell.style.removeProperty('--sr-fit-lift')
     }, [shellRef, probeRef, stage])
 
     /** The focused field back into view once the shell has settled at its new size. */
@@ -179,7 +208,35 @@ export function useShellFit({
         if (!shell) return
         const observer = new ResizeObserver(() => fit())
         observer.observe(shell)
-        return () => observer.disconnect()
+        // the panel's content grows and shrinks without the shell resizing (a callout appears)
+        const content = new ResizeObserver(() => fit())
+        const watch = () => {
+            content.disconnect()
+            const panel = activePanel(shell)
+            if (panel) for (const child of Array.from(panel.children)) content.observe(child)
+        }
+        // only a panel coming or going, or a panel's own children changing: the art's animation frames are ignored
+        const isPanel = (node: Node) =>
+            node instanceof Element &&
+            (node.matches('[data-setup-panel]') || !!node.querySelector('[data-setup-panel]'))
+        const children = new MutationObserver((records) => {
+            if (
+                !records.some(
+                    (r) =>
+                        isPanel(r.target) || [...Array.from(r.addedNodes), ...Array.from(r.removedNodes)].some(isPanel)
+                )
+            )
+                return
+            watch()
+            fit()
+        })
+        children.observe(shell, { childList: true, subtree: true })
+        watch()
+        return () => {
+            observer.disconnect()
+            content.disconnect()
+            children.disconnect()
+        }
     }, [fit, shellRef, screenId])
 
     /** The footer reports where its top edge rests (shell px), after its lifts. */

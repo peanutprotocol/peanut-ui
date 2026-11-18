@@ -683,7 +683,9 @@
             "cardAmount": "USD 1.200",
             "cta": "Registrate",
             "loginBtn": "Iniciá sesión",
-            "recover": "¿Necesitás recuperar la cuenta de Peanut?"
+            "recover": "¿Necesitás recuperar la cuenta de Peanut?",
+            "invitedTitle": "Invitación de @{username}.",
+            "trustLine": "Las transferencias bancarias pasan por socios con licencia."
         },
         "username": {
             "title": "Elegí un usuario.",
@@ -801,7 +803,7 @@
             "sameRow": "El mismo país donde vivo",
             "search": "Buscar países",
             "noCountry": "Ningún país coincide con “{query}”.",
-            "refusedPassport": "No podemos verificar pasaportes ni documentos de identidad de {nationality}. Usá tu tarjeta de residencia de {residence} cuando verifiques tu identidad.",
+            "refusedPassport": "No podemos verificar documentos de identidad de {nationality}. Usá tu tarjeta de residencia de {residence}.",
             "compareTitle": "Elegí un solo país.",
             "compareRule": "¿Tenés permiso de residencia? Elegí ese país. Si no, elegí el que emitió tu documento.",
             "itemPix": "Pagos y transferencias Pix",
@@ -811,7 +813,8 @@
             "itemCard": "Peanut Card",
             "itemP2p": "De Peanut a Peanut",
             "select": "Elegir {country}",
-            "compareCurrencyNote": "Las transferencias en otra moneda requieren una cuenta bancaria en esa moneda."
+            "compareCurrencyNote": "Las transferencias en otra moneda requieren una cuenta bancaria en esa moneda.",
+            "popular": "Populares"
         },
         "plan": {
             "title": "¿Cómo vas a usar Peanut?",
@@ -832,6 +835,7 @@
             "payCard": "Peanut Card",
             "payPeanut": "Pagar a un usuario de Peanut",
             "peanutPill": "Usuario de Peanut",
+            "payQrAbroad": "Pagos QR en Argentina y Brasil",
             "changeLater": "Podés cambiarlo después"
         },
         "email": {

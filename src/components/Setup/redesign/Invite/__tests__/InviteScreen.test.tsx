@@ -252,6 +252,18 @@ const DEV_INVITER_COPY = [
 
 describe('04 Invite: states and copy', () => {
     it.each(['en', 'es-AR'] as const)(
+        'v7 (%s): the field stays visible with "Enter their username so both of you get rewards." over it',
+        (locale) => {
+            renderInvite({ locale })
+            expect(field(locale)).toBeVisible()
+            const desc = loose(k('invite.desc', {}, locale))
+            const lead = screen.getByText((_, el) => el?.tagName === 'P' && loose(el.textContent ?? '') === desc)
+            expect(lead).toBeVisible()
+            expect(loose(k('invite.desc'))).toBe('Enter their username so both of you get rewards.')
+        }
+    )
+
+    it.each(['en', 'es-AR'] as const)(
         'P2-16 (%s) default: placeholder, empty help row, Continue off, Skip on, state default',
         (locale) => {
             renderInvite({ locale })

@@ -857,9 +857,10 @@
         --sr-stage-std-base: min(393px, calc(var(--sr-h) * 0.515));
         --sr-stage-compact-base: min(253px, calc(var(--sr-h) * 0.332));
         --sr-stage-full-base: var(--sr-h);
-        --sr-stage-tall: var(--sr-stage-tall-base);
-        --sr-stage-std: var(--sr-stage-std-base);
-        --sr-stage-compact: var(--sr-stage-compact-base);
+        /* --sr-fit-lift: the stage gives way to panel content that would run under the footer (useShellFit) */
+        --sr-stage-tall: calc(var(--sr-stage-tall-base) - var(--sr-fit-lift, 0px));
+        --sr-stage-std: calc(var(--sr-stage-std-base) - var(--sr-fit-lift, 0px));
+        --sr-stage-compact: calc(var(--sr-stage-compact-base) - var(--sr-fit-lift, 0px));
         --sr-stage-full: var(--sr-stage-full-base);
         --sr-cta-top: calc(var(--sr-h) - 112px);
         --sr-topbar-top: 4px;
@@ -905,7 +906,7 @@
         --sr-stage-compact: var(--sr-fold-stage);
     }
     .signup-shell[data-fold] [data-setup-art-box],
-    .signup-shell[data-fold='bar'] [data-setup-art-layer] h1 {
+    .signup-shell[data-fold='bar'] [data-setup-title] {
         visibility: hidden;
     }
     /*
