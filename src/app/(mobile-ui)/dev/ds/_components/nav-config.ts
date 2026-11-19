@@ -53,6 +53,7 @@ import {
     Rows2,
     Rows3,
     Ruler,
+    ScanLine,
     Shapes,
     Share2,
     SlidersHorizontal,
@@ -421,6 +422,13 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             icon: Sparkles,
             href: '/dev/ds/primitives/screen-mark',
             description: "Centered IconBubble size l above a screen's content. Code-only, ruling pending",
+            status: 'limited',
+        },
+        {
+            label: 'ScanFrame',
+            icon: ScanLine,
+            href: '/dev/ds/primitives/scan-frame',
+            description: 'Scanner corner marks round approved art, with an optional scan line. Code-only, ruling pending',
             status: 'limited',
         },
         {
