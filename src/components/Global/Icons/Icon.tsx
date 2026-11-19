@@ -60,6 +60,7 @@ import {
     RectangleEllipsis,
     Snowflake,
     RefreshCw,
+    ScanFace,
     Search,
     Share,
     Shield,
@@ -135,6 +136,7 @@ export type IconName =
     | 'logout'
     | 'mail'
     | 'paperclip'
+    | 'scan-face'
     | 'smile'
     | 'star'
     | 'user'
@@ -298,6 +300,7 @@ const iconComponents: Record<IconName, ComponentType<SVGProps<SVGSVGElement>>> =
     logout: (props) => <LucideWrapper Icon={LogOut} {...props} />,
     mail: (props) => <LucideWrapper Icon={Mail} {...props} />,
     paperclip: (props) => <LucideWrapper Icon={Paperclip} {...props} />,
+    'scan-face': (props) => <LucideWrapper Icon={ScanFace} {...props} />,
     smile: (props) => <LucideWrapper Icon={Smile} {...props} />,
     user: (props) => <LucideWrapper Icon={User} {...props} />,
     share: (props) => <LucideWrapper Icon={Share} {...props} />,

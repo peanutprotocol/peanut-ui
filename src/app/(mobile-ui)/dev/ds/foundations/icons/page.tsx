@@ -97,6 +97,7 @@ const ALL_ICONS: IconName[] = [
     'qr-code',
     'question-mark',
     'retry',
+    'scan-face',
     'search',
     'share',
     'shield',
