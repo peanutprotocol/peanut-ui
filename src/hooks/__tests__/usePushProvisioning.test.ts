@@ -4,6 +4,7 @@ import { renderHook, act, waitFor } from '@testing-library/react'
 import posthog from 'posthog-js'
 import { usePushProvisioning } from '@/hooks/usePushProvisioning'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { StepUpError } from '@/services/step-up'
 import { ApiError } from '@/services/api-error'
 import { rainApi, RainCardRateLimitError, type RainProvisioningDataResponse } from '@/services/rain'
 import { isAndroidNative, isIOSNative } from '@/utils/capacitor'
@@ -281,7 +282,7 @@ describe('usePushProvisioning', () => {
         ])
     })
 
-    it.each([400, 409, 499])('disables push after Rain returns %i', async (status) => {
+    it.each([400, 404, 409, 422, 499])('disables push after Rain returns %i', async (status) => {
         mockedGetProvisioningData.mockRejectedValueOnce(
             new ApiError('Provisioning rejected', { status, code: 'BACKEND_ONLY' })
         )
@@ -300,7 +301,12 @@ describe('usePushProvisioning', () => {
     })
 
     it.each([
+        ['HTTP 401', new ApiError('Session expired', { status: 401 })],
+        ['HTTP 403', new ApiError('Step-up token expired', { status: 403 })],
+        ['HTTP 408', new ApiError('Request timeout', { status: 408 })],
+        ['HTTP 425', new ApiError('Too early', { status: 425 })],
         ['HTTP 429', new ApiError('Rate limited', { status: 429 })],
+        ['step-up guard timeout', new StepUpError('Passkey prompt timed out')],
         ['HTTP 503', new ApiError('Unavailable', { status: 503 })],
         ['network failure', new TypeError('Failed to fetch')],
         ['step-up timeout', new Error('Step-up timed out')],
@@ -314,6 +320,35 @@ describe('usePushProvisioning', () => {
 
         expect(result.current.pushDisabled).toBe(false)
         expect(result.current.nativeAvailable).toBe(true)
+    })
+
+    it.each([
+        ['web NotAllowedError', new DOMException('The operation was not allowed.', 'NotAllowedError')],
+        ['web AbortError', new DOMException('The operation was aborted.', 'AbortError')],
+        ['Android dismissal', new Error('User canceled the request')],
+        [
+            'iOS dismissal',
+            new Error(
+                'The operation couldn’t be completed. (com.apple.AuthenticationServices.AuthorizationError 1001.)'
+            ),
+        ],
+    ])('treats a %s during step-up as a cancel, not a failure', async (_name, error) => {
+        mockedGetProvisioningData.mockRejectedValue(error)
+        const { result } = renderHook(() => usePushProvisioning(card))
+        await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
+        for (let attempt = 0; attempt < 2; attempt++) {
+            await act(async () => {
+                expect(await result.current.addToWallet()).toEqual({ added: false, canceled: true })
+            })
+        }
+
+        expect(result.current.pushDisabled).toBe(false)
+        expect(result.current.nativeAvailable).toBe(true)
+        expect(failureEvents()).toStrictEqual([])
+        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_CANCELED, {
+            wallet: 'apple',
+            error: 'step_up_canceled',
+        })
     })
 
     it.each(['UNAVAILABLE', 'SDK_ERROR', 'BAD_PARAMS'])('disables iOS push on a %s plugin rejection', async (code) => {

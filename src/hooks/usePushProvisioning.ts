@@ -7,9 +7,11 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useFeatureFlags } from '@/hooks/useFeatureFlag'
 import { ApiError } from '@/services/api-error'
 import { rainApi, RainCardRateLimitError } from '@/services/rain'
+import { StepUpError } from '@/services/step-up'
 import { getClearEpoch } from '@/utils/auth-token'
 import { getWalletProvisioningOwner } from '@/utils/wallet-provisioning-owner'
 import { isIOSNative } from '@/utils/capacitor'
+import { nativePasskeyFailure } from '@/utils/native-passkey-errors'
 import {
     addCardToWallet,
     clearWalletStateIfCardMatches,
@@ -40,15 +42,24 @@ const TERMINAL_MPP_ERROR_CODES = {
 }
 const terminalMppCodes = new Set(Object.values(TERMINAL_MPP_ERROR_CODES))
 const terminalPluginCodes = new Set(['UNAVAILABLE', 'SDK_ERROR', 'BAD_PARAMS'])
+// Auth, step-up expiry, timeouts and rate limits can succeed on a retry.
+const retryableHttpStatuses = new Set([401, 403, 408, 425, 429])
 
 type WalletFailure = Pick<AddCardToWalletResult, 'code' | 'error' | 'mppErrorCode'> & { status?: number }
 
 export function isTerminalWalletFailure({ status, code, mppErrorCode }: WalletFailure): boolean {
     return (
-        (status !== undefined && status >= 400 && status < 500 && status !== 429) ||
+        (status !== undefined && status >= 400 && status < 500 && !retryableHttpStatuses.has(status)) ||
         (code !== undefined && terminalPluginCodes.has(code)) ||
         (mppErrorCode !== undefined && terminalMppCodes.has(mppErrorCode))
     )
+}
+
+function isPasskeyCancel(error: unknown): boolean {
+    if (error instanceof StepUpError) return false
+    if (nativePasskeyFailure(error) === 'canceled') return true
+    const name = typeof error === 'object' && error !== null && 'name' in error ? error.name : undefined
+    return name === 'NotAllowedError' || name === 'AbortError'
 }
 
 async function getBoundedPushProvisioningAvailability(last4: string) {
@@ -381,6 +392,10 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
         } catch (e) {
             const stale = await cancelStaleAdd(false)
             if (stale) return stale
+            if (isPasskeyCancel(e)) {
+                posthog.capture(ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_CANCELED, { wallet, error: 'step_up_canceled' })
+                return { added: false, canceled: true }
+            }
             const error = e instanceof Error ? e.message : 'unknown'
             const status = e instanceof ApiError ? e.status : e instanceof RainCardRateLimitError ? 429 : undefined
             recordAddFailure({ error, status })
