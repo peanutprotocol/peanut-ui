@@ -264,7 +264,6 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         [setError, t]
     )
     const [liveKycStatus, setLiveKycStatus] = useState<SumsubKycStatus | undefined>(undefined)
-    const [rejectLabels, setRejectLabels] = useState<string[] | undefined>(undefined)
     // true when the SDK is showing an applicant action (not a standard level)
     const [isActionFlow, setIsActionFlow] = useState(false)
     // true when the open SDK session runs a multi-level workflow, so the SDK must
@@ -355,9 +354,8 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     useWebSocket({
         username: user?.user.username ?? undefined,
         autoConnect: true,
-        onSumsubKycStatusUpdate: (newStatus, newRejectLabels) => {
+        onSumsubKycStatusUpdate: (newStatus) => {
             setLiveKycStatus(newStatus as SumsubKycStatus)
-            if (newRejectLabels) setRejectLabels(newRejectLabels)
         },
     })
 
@@ -1412,17 +1410,6 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         setIsProviderRequest(false)
     }, [])
 
-    const closeVerificationModalAndGoHome = useCallback(() => {
-        setIsVerificationProgressModalOpen(false)
-        setIsProviderRequest(false)
-        router.push('/home')
-    }, [router])
-
-    const resetError = useCallback(() => {
-        setIsTerminalError(false)
-        setError(null)
-    }, [setError])
-
     // Reset Sumsub IDENTITY step + open the WebSDK with a fresh token. The
     // user lands back on the document-upload screen so they can verify with a
     // different ID. Used as the CTA for the `restart-identity` gate state
@@ -1867,7 +1854,6 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         showWrapper,
         accessToken,
         liveKycStatus,
-        rejectLabels,
         handleInitiateKyc,
         handleUnlockQr,
         handleRestartIdentity,
@@ -1886,8 +1872,6 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         isResidenceReviewOpen,
         dismissResidenceReview,
         closeVerificationProgressModal,
-        closeVerificationModalAndGoHome,
-        resetError,
         isActionFlow,
         // The outer multi-phase orchestrator must not treat this Applicant
         // Action as an identity/provider approval. The ref is current before

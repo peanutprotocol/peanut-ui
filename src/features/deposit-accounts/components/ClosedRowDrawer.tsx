@@ -236,7 +236,7 @@ export function ClosedRowDrawer({
                     <div className="flex flex-col items-center text-center">
                         <IconBubble icon="globe-lock" color="gray" className="mb-4" />
                         <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
-                            <DrawerTitle>{content.title}</DrawerTitle>
+                            <DrawerTitle data-testid="closed-row-title">{content.title}</DrawerTitle>
                             <DrawerDescription>{content.body}</DrawerDescription>
                         </DrawerHeader>
                         <div className="mt-6 flex w-full flex-col items-center gap-6">

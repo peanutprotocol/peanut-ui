@@ -152,7 +152,9 @@ export default function CameraPermissionDrawer({ visible, onRetry, onClose }: Ca
                     <div className="mb-3 flex w-full flex-col items-center gap-4">
                         <IconBubble icon="camera" color="yellow" />
                         <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
-                            <DrawerTitle>{t('qrScanner.cameraPermission.title')}</DrawerTitle>
+                            <DrawerTitle data-testid="camera-permission-title">
+                                {t('qrScanner.cameraPermission.title')}
+                            </DrawerTitle>
                         </DrawerHeader>
                     </div>
                     <div className="flex w-full flex-col gap-4 text-left">

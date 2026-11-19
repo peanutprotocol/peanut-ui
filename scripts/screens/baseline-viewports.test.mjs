@@ -24,7 +24,17 @@ const manifest = (locale, profile) => {
         profile: `${locale}-${profile}`,
         width,
         height,
-        screens: [{ id: 'home', name: 'Home', flow: 'Home', kind: 'route', status: 'excluded', reason: 'test' }],
+        screens: [
+            {
+                id: 'home',
+                name: 'Home',
+                flow: 'Home',
+                kind: 'route',
+                status: 'captured',
+                image: 'a'.repeat(64) + '.png',
+                thumbnail: 'a'.repeat(64) + '.png',
+            },
+        ],
         inventory: [{ route: '/home', status: 'catalogued', screens: ['home'] }],
     }
 }
@@ -52,6 +62,14 @@ test('publisher requires exactly four locales by four viewport profiles at one i
                 readCapture: (name) => captures.get(name),
             }),
         /Re-run all jobs to create the full matrix under one run attempt/
+    )
+    const empty = manifest('en', '393x852')
+    empty.screens = [
+        { id: 'home', name: 'Home', kind: 'route', flow: 'Home', status: 'unavailable', reason: 'No screenshot' },
+    ]
+    assert.throws(
+        () => verifyBaselineMatrix({ sha, attempt: 2, artifacts, readCapture: () => empty }),
+        /zero screenshots/
     )
     captures.get(baselineArtifactName(sha, 'en', '440x956', 2)).commit = 'd'.repeat(40)
     assert.throws(

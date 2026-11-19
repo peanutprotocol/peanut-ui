@@ -3,10 +3,19 @@ import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { marketingOnly, planCapture } from './capture-plan.mjs'
-import { revisionGraph, trustedCatalogue } from './capture-impact.mjs'
+import { revisionGraph, impactCatalogue } from './capture-impact.mjs'
 import { CAPTURE_LOCALES } from './capture-locales.mjs'
 
 const root = fileURLToPath(new URL('../../', import.meta.url))
+const catalogue = impactCatalogue(
+    JSON.parse(
+        execFileSync(
+            process.execPath,
+            ['--import', 'tsx', '-e', "console.log(JSON.stringify(require('./src/dev/screens/catalogue.ts').SCREENS))"],
+            { cwd: root, encoding: 'utf8' }
+        )
+    )
+)
 const runGit = (args, input) =>
     execFileSync('git', args, { cwd: root, encoding: 'utf8', input, maxBuffer: 256 * 1024 * 1024 })
 
@@ -26,7 +35,7 @@ const marketingRoute = (route) => {
 }
 
 function capturedClosure() {
-    const { screens, dependencies } = revisionGraph('HEAD', trustedCatalogue, runGit, Date.now() + 120000)
+    const { screens, dependencies } = revisionGraph('HEAD', catalogue, runGit, Date.now() + 120000)
     const reached = new Set()
     const pending = screens.flatMap((screen) => screen.sources)
     while (pending.length) {
@@ -54,11 +63,11 @@ test('no captured screen can render a marketing or content path', () => {
 
 test('the runtime gates hold for the catalogue', () => {
     assert.deepEqual(
-        trustedCatalogue.filter((screen) => marketingRoute(screen.route)).map((screen) => screen.id),
+        catalogue.filter((screen) => marketingRoute(screen.route)).map((screen) => screen.id),
         []
     )
     assert.deepEqual(
-        trustedCatalogue.filter((screen) => /SetupDoc/.test(screen.source ?? '')).map((screen) => screen.id),
+        catalogue.filter((screen) => /SetupDoc/.test(screen.source ?? '')).map((screen) => screen.id),
         []
     )
 })

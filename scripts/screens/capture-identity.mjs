@@ -39,6 +39,7 @@ export function harnessIdentityFiles(trackedFiles) {
                 (['pnpm-lock.yaml', 'package.json'].includes(path) ||
                     /^(?:scripts\/(?:screens|next-font-google)\/|src\/dev\/(?:screens|surfaces)\/)/.test(path)) &&
                 !/(?:^|\/)(?:node_modules|\.next|\.cache|__shots__)\//.test(path) &&
+                path !== 'scripts/screens/capture-catalogue.json' &&
                 !knownNonvisual(path)
         )
         .sort()

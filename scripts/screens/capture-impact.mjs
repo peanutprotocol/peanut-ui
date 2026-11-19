@@ -1,7 +1,11 @@
 import { createRequire } from 'node:module'
 import { execFileSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
-import { posix } from 'node:path'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join, posix } from 'node:path'
+import { pages } from './baseline-source.mjs'
+import { trustedIntegrationBaselineRun } from './baseline-runs.mjs'
+import { ghApiSync, ghErrorStatus, isTransientGhError } from './gh-api.mjs'
 import { planCapture, knownNonvisual } from './capture-plan.mjs'
 import { routePatternFor } from './routes.mjs'
 const require = createRequire(import.meta.url)
@@ -12,7 +16,6 @@ try {
     ts = require('typescript')
 }
 
-export const trustedCatalogue = JSON.parse(readFileSync(new URL('./capture-catalogue.json', import.meta.url), 'utf8'))
 const code = /\.[cm]?[jt]sx?$/
 const sha = /^[a-f0-9]{40}$/
 const git = (args, input) =>
@@ -22,6 +25,119 @@ const git = (args, input) =>
         maxBuffer: 64 * 1024 * 1024,
         timeout: 60000,
     })
+
+// Generate this in the application checkout, where the fixture registry and its dependencies
+// are available. Privileged planning consumes only this data from a verified dev integration.
+export function impactCatalogue(screens) {
+    return screens.map(({ id, flow, route, routePattern, source }) => ({
+        id,
+        flow,
+        route,
+        ...(routePattern ? { routePattern } : {}),
+        ...(source ? { source } : {}),
+    }))
+}
+
+function downloadInventory(repository, artifact) {
+    const limit = 2 * 1024 * 1024
+    if (
+        !Number.isSafeInteger(artifact.id) ||
+        artifact.id <= 0 ||
+        !Number.isSafeInteger(artifact.size_in_bytes) ||
+        artifact.size_in_bytes <= 0 ||
+        artifact.size_in_bytes > limit
+    )
+        throw new Error('Invalid impact inventory artifact')
+    const zip = ghApiSync([`repos/${repository}/actions/artifacts/${artifact.id}/zip`], {
+        timeout: 30000,
+        maxBuffer: limit,
+    })
+    const directory = mkdtempSync(join(tmpdir(), 'screen-impact-'))
+    try {
+        const archive = join(directory, 'inventory.zip')
+        writeFileSync(archive, zip)
+        return JSON.parse(
+            execFileSync('unzip', ['-p', archive, 'catalogue.json'], {
+                encoding: 'utf8',
+                timeout: 10000,
+                maxBuffer: limit,
+            })
+        )
+    } finally {
+        rmSync(directory, { recursive: true, force: true })
+    }
+}
+
+export function verifiedImpactCatalogue(repository, before, options = {}) {
+    if (!/^[\w.-]+\/[\w.-]+$/.test(repository ?? '') || !sha.test(before))
+        throw new Error('Invalid impact inventory identity')
+    const now = options.now ?? Date.now
+    const deadline = now() + 60_000
+    const api =
+        options.api ??
+        ((path) =>
+            JSON.parse(
+                ghApiSync([`repos/${repository}/${path}`], {
+                    encoding: 'utf8',
+                    timeout: 15000,
+                    maxBuffer: 4 * 1024 * 1024,
+                })
+            ))
+    const download = options.download ?? downloadInventory
+    const boundedApi = (path) => {
+        if (now() >= deadline)
+            throw Object.assign(new Error('Impact inventory lookup exceeded its one-minute budget'), {
+                code: 'ETIMEDOUT',
+            })
+        return api(path)
+    }
+    const runs = pages(boundedApi, `actions/runs?branch=dev&event=push&head_sha=${before}`, 'workflow_runs')
+    for (const run of runs) {
+        if (
+            run.path !== '.github/workflows/screen-library.yml' ||
+            run.head_branch !== 'dev' ||
+            run.head_sha !== before ||
+            run.event !== 'push' ||
+            run.head_repository?.full_name !== repository ||
+            !Number.isSafeInteger(run.id) ||
+            run.id <= 0 ||
+            !Number.isSafeInteger(run.run_attempt) ||
+            run.run_attempt <= 0
+        )
+            continue
+        const prefix = `screen-library-inventory-${before}-`
+        const artifacts = pages(boundedApi, `actions/runs/${run.id}/artifacts`, 'artifacts')
+        for (const inventory of artifacts) {
+            if (inventory.expired || !inventory.name.startsWith(prefix)) continue
+            const attempt = Number(inventory.name.slice(prefix.length))
+            if (
+                !Number.isSafeInteger(attempt) ||
+                attempt < 1 ||
+                attempt > run.run_attempt ||
+                inventory.name !== prefix + attempt
+            )
+                continue
+            // Re-running only a publisher must not hide the inventory produced by an earlier
+            // successful capture. Verify the job on the attempt which actually uploaded it.
+            const path = `actions/runs/${run.id}/attempts/${attempt}`
+            const producingRun = attempt === run.run_attempt ? run : boundedApi(path)
+            if (producingRun.id !== run.id || producingRun.run_attempt !== attempt) continue
+            const jobs = pages(boundedApi, path + '/jobs', 'jobs')
+            if (!trustedIntegrationBaselineRun(producingRun, jobs, repository, before, ['en'])) continue
+            const data = download(repository, inventory)
+            if (
+                data.schema !== 1 ||
+                data.commit !== before ||
+                !Array.isArray(data.screens) ||
+                !data.screens.length ||
+                data.screens.length > 2000
+            )
+                throw new Error('Invalid verified impact inventory')
+            return data.screens
+        }
+    }
+    return null
+}
 
 export function changedPaths(before, after, runGit = git) {
     if (!sha.test(before) || !sha.test(after)) throw new Error('Expected exact impact revisions')
@@ -198,6 +314,12 @@ export function revisionGraph(revision, catalogue, runGit, deadline) {
         contents.set(path, data.subarray(newline + 1, newline + length + 1).toString('utf8'))
         offset = newline + length + 2
     }
+    // A screen can be registered by a factory, including one imported from product code.
+    // A change to any input of that factory requires rediscovery on both revisions.
+    const catalogueEntry = 'src/dev/screens/catalogue.ts'
+    const registrationInputs = files.has(catalogueEntry)
+        ? fixtureIdentityFiles([catalogueEntry], { files, read: (path) => contents.get(path) })
+        : []
     const dependencies = {}
     const pending = screens.flatMap((screen) => screen.sources)
     while (pending.length) {
@@ -207,25 +329,56 @@ export function revisionGraph(revision, catalogue, runGit, deadline) {
         dependencies[path] = code.test(path) ? localDependencies(path, contents.get(path), files) : []
         pending.push(...(dependencies[path] ?? []))
     }
-    return { screens, dependencies }
+    return { screens, dependencies, registrationInputs }
 }
 
-export function planRevisionCapture({ event, branch, before, after, catalogue = trustedCatalogue, runGit = git }) {
+export function planRevisionCapture({
+    event,
+    branch,
+    before,
+    after,
+    catalogue,
+    repository,
+    runGit = git,
+    lookupInventory = verifiedImpactCatalogue,
+}) {
     const changedFiles = changedPaths(before, after, runGit)
+    const mayChangeCatalogue = changedFiles.some(
+        (path) => !knownNonvisual(path) && !/^src\/(?:components|features|utils|app)\/.+\.[cm]?[jt]sx?$/.test(path)
+    )
+    if (!catalogue) {
+        // The app registries in either revision may have changed or the base may predate
+        // retained inventories. Full capture always derives its own current catalogue.
+        if (mayChangeCatalogue)
+            return { mode: 'full', screenIds: [], reasons: ['Capture definitions or shared runtime may have changed'] }
+        // An in-flight scoped review from before the migration used a checked-in data file.
+        // Authenticate it via the verified base Git object, never the PR's working tree.
+        const legacyIndex = 'scripts/screens/capture-catalogue.json'
+        const legacy = runGit(['ls-tree', '-z', '--name-only', before, '--', legacyIndex]) === legacyIndex + '\0'
+        try {
+            catalogue = legacy
+                ? JSON.parse(runGit(['show', `${before}:${legacyIndex}`]))
+                : lookupInventory(repository, before)
+        } catch (error) {
+            // This lookup only proposes a cheaper scope. An unavailable provider can always
+            // require full coverage. The publisher rejects any claimed scope it cannot re-prove.
+            if (!isTransientGhError(error) && ![403, 404].includes(ghErrorStatus(error))) throw error
+            return { mode: 'full', screenIds: [], reasons: ['The optional trusted impact inventory is inaccessible'] }
+        }
+        if (!catalogue) return { mode: 'full', screenIds: [], reasons: ['No trusted impact inventory for this base'] }
+    }
     const fallbackScreens = catalogue.map((screen) => ({ id: screen.id, flow: screen.flow, sources: [] }))
     const initial = planCapture({ event, branch, changedFiles, screens: fallbackScreens })
     if (!changedFiles.length || initial.mode === 'skip' || event !== 'pull_request') return initial
     // Global changes are full regardless of graph, so don't parse needless source trees.
-    if (
-        changedFiles.some(
-            (path) => !knownNonvisual(path) && !/^src\/(?:components|features|utils|app)\/.+\.[cm]?[jt]sx?$/.test(path)
-        )
-    )
-        return initial
+    if (mayChangeCatalogue) return initial
     try {
         const deadline = Date.now() + 120000
         const left = revisionGraph(before, catalogue, runGit, deadline),
             right = revisionGraph(after, catalogue, runGit, deadline)
+        const registrationInputs = new Set([...left.registrationInputs, ...right.registrationInputs])
+        if (changedFiles.some((path) => registrationInputs.has(path)))
+            return { ...initial, reasons: ['An input to the application screen registry changed'] }
         const dependencies = {}
         for (const path of new Set([...Object.keys(left.dependencies), ...Object.keys(right.dependencies)])) {
             const a = left.dependencies[path],

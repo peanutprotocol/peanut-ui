@@ -100,7 +100,7 @@ const ReConsentModal = ({
                 t('reConsent.whatChanged')
             }
             body={
-                <div className="space-y-3 w-full">
+                <div data-testid="reconsent-documents" className="space-y-3 w-full">
                     {/* the updated documents on one centered line, separator-joined
                         (wraps when it must) — inline-link treatment per the Signup
                         consent line; DocsLink handles browser and native targets */}

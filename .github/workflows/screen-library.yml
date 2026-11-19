@@ -50,6 +50,7 @@ jobs:
         permissions:
             contents: read
             pull-requests: read
+            actions: read
         outputs:
             before: ${{ steps.refs.outputs.before }}
             before_harness: ${{ steps.before_harness.outputs.before_harness || 'head' }}
@@ -127,6 +128,8 @@ jobs:
                   AFTER: ${{ steps.refs.outputs.after }}
                   EVENT: ${{ github.event_name }}
                   BRANCH: ${{ github.event.pull_request.base.ref || github.ref_name }}
+                  REPOSITORY: ${{ github.repository }}
+                  GH_TOKEN: ${{ github.token }}
               run: node scripts/screens/decide-capture.mjs --impact
     capture_after:
         needs: refs
@@ -173,12 +176,31 @@ jobs:
               run: |
                   args=()
                   if [ -n "$CAPTURE_ONLY" ]; then args+=("--scope=targeted" "--only=$CAPTURE_ONLY"); fi
-                  node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture --locale=${{ matrix.locale }} "${args[@]}" ${{ github.ref == 'refs/heads/main' && '--full-catalogue' || '' }}
+                  node scripts/screens/run-capture.mjs ../target "$TARGET_SHA" ../capture --locale=${{ matrix.locale }} "${args[@]}"
             - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
               if: always()
               with:
                   name: screen-library-after-${{ matrix.locale }}-${{ github.run_attempt }}
                   path: capture/
+                  if-no-files-found: error
+                  retention-days: 14
+            - name: Export dev inventory for trusted impact planning
+              if: github.event_name == 'push' && github.ref == 'refs/heads/dev' && matrix.locale == 'en'
+              working-directory: harness
+              env:
+                  TARGET_SHA: ${{ needs.refs.outputs.after }}
+              run: |
+                  node --import tsx --input-type=module <<'JS'
+                  import { writeFileSync } from 'node:fs'
+                  import catalogue from './src/dev/screens/catalogue.ts'
+                  import { impactCatalogue } from './scripts/screens/capture-impact.mjs'
+                  writeFileSync('../catalogue.json', JSON.stringify({ schema: 1, commit: process.env.TARGET_SHA, screens: impactCatalogue(catalogue.SCREENS) }))
+                  JS
+            - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+              if: github.event_name == 'push' && github.ref == 'refs/heads/dev' && matrix.locale == 'en'
+              with:
+                  name: screen-library-inventory-${{ needs.refs.outputs.after }}-${{ github.run_attempt }}
+                  path: catalogue.json
                   if-no-files-found: error
                   retention-days: 14
             # The reusable publisher is intentionally pinned to trusted dev.
@@ -194,7 +216,6 @@ jobs:
 
     capture_before:
         needs: [refs, capture_after]
-        # No --full-catalogue here: states a release adds have no scenario at the previous main and show as added.
         # Verify the actual after environment before app/browser installation.
         if: needs.refs.outputs.mode != 'skip' && needs.capture_after.result == 'success'
         permissions:
@@ -307,6 +328,7 @@ jobs:
               run: |
                   args=()
                   if [ -n "$CAPTURE_ONLY" ]; then args+=("--scope=targeted" "--only=$CAPTURE_ONLY"); fi
+                  node ../harness/scripts/screens/write-before-harness.mjs --prepare-exit-policy .
                   node scripts/screens/run-capture.mjs . "$TARGET_SHA" ../capture --locale=${{ matrix.locale }} "${args[@]}"
             - name: Record base harness provenance
               # A failed screen can leave a valid partial manifest. Keep the capture step failed.
@@ -350,8 +372,8 @@ jobs:
         needs: [refs, capture_after, capture_before]
         if: >-
             always() && !cancelled() && needs.refs.result == 'success' &&
-            needs.refs.outputs.mode != 'skip' && needs.capture_after.result != 'skipped' &&
-            (github.event_name == 'pull_request' || needs.capture_before.result != 'skipped')
+            needs.refs.outputs.mode != 'skip' && needs.capture_after.result == 'success' &&
+            needs.capture_before.result == 'success'
         permissions:
             contents: read
             actions: read

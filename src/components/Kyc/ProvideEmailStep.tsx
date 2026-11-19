@@ -121,7 +121,7 @@ export default function ProvideEmailStep({ visible, onComplete, onSkip }: Provid
                 },
             }}
             content={
-                <div className="w-full pt-2 text-left">
+                <div data-testid="provide-email-form" className="w-full pt-2 text-left">
                     <ProfileEditField
                         label={t('provideEmail.emailLabel')}
                         value={email}

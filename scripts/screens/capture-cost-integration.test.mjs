@@ -6,7 +6,13 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { PNG } from 'pngjs'
-import { localDependencies, planRevisionCapture, trustedCatalogue, fixtureIdentityFiles } from './capture-impact.mjs'
+import {
+    localDependencies,
+    planRevisionCapture,
+    verifiedImpactCatalogue,
+    impactCatalogue,
+    fixtureIdentityFiles,
+} from './capture-impact.mjs'
 import { knownNonvisual, galleryMaintenanceChange, galleryIndexChange } from './capture-plan.mjs'
 import { harnessIdentityFiles, fileIdentity } from './capture-identity.mjs'
 import { compare, storeAsset, hash } from './core.mjs'
@@ -216,23 +222,107 @@ test('graph provider failure cannot become a safe skip or selected pass', () => 
     assert.match(result.reasons.join(' '), /provider unavailable/)
 })
 
-test('trusted generated catalogue matches current actual registered capture metadata', () => {
-    const source = execFileSync(
-        process.execPath,
-        [
-            '--import',
-            'tsx',
-            '--input-type=module',
-            '-e',
-            'import c from "./src/dev/screens/catalogue.ts"; console.log(JSON.stringify(c.SCREENS.map(({id,flow,route,routePattern,source})=>({id,flow,route,...(routePattern?{routePattern}:{}),...(source?{source}:{})}))))',
-        ],
-        {
-            encoding: 'utf8',
-            timeout: 30000,
-            maxBuffer: 4 * 1024 * 1024,
-        }
+test('changes to an imported registration factory require discovering all current states', () => {
+    const files = {
+        ...project,
+        'src/dev/screens/catalogue.ts': "import {format} from '@/features/pay/format'; export const ids=[format()]",
+    }
+    const result = plan(files, files, ['src/features/pay/format.ts'])
+    assert.equal(result.mode, 'full')
+    assert.match(result.reasons.join(' '), /screen registry changed/)
+})
+
+test('an inaccessible impact inventory widens to full while invalid inventory evidence is fatal', () => {
+    const planWith = (error) =>
+        planRevisionCapture({
+            event: 'pull_request',
+            branch: 'dev',
+            before,
+            after,
+            repository,
+            runGit: ([command]) => (command === 'diff' ? 'src/features/pay/format.ts\0' : ''),
+            lookupInventory: () => {
+                throw error
+            },
+        })
+    for (const error of [
+        new Error('gh: HTTP 503'),
+        new Error('gh: HTTP 403'),
+        Object.assign(new Error('timeout'), { code: 'ETIMEDOUT' }),
+    ]) {
+        const result = planWith(error)
+        assert.equal(result.mode, 'full')
+        assert.deepEqual(result.screenIds, [])
+    }
+    assert.throws(() => planWith(new Error('Invalid verified impact inventory')), /Invalid verified/)
+})
+
+test('dev exports planning metadata directly from the live screen registrations', () => {
+    assert.deepEqual(
+        impactCatalogue([
+            { id: 'new-screen', flow: 'Preview', route: '/preview', source: 'Preview.tsx', fixture: 'private' },
+        ]),
+        [{ id: 'new-screen', flow: 'Preview', route: '/preview', source: 'Preview.tsx' }]
     )
-    assert.deepEqual(JSON.parse(source), trustedCatalogue)
+})
+
+test('inventory is data from a successful English dev push bound to the exact base and attempt', () => {
+    const inventory = { name: `screen-library-inventory-${before}-2`, expired: false }
+    const trusted = {
+        id: 1,
+        run_attempt: 2,
+        path: '.github/workflows/screen-library.yml',
+        event: 'push',
+        head_branch: 'dev',
+        head_sha: before,
+        head_repository: { full_name: repository },
+        status: 'completed',
+    }
+    const job = { name: 'capture_after (en)', status: 'completed', conclusion: 'success' }
+    const lookup = ({
+        producer = trusted,
+        priorAttempt,
+        artifact = inventory,
+        captureJob = job,
+        commit = before,
+    } = {}) => {
+        let downloads = 0
+        const result = verifiedImpactCatalogue(repository, before, {
+            api: (path) => {
+                if (path.startsWith('actions/runs?')) return { workflow_runs: [producer] }
+                if (path === 'actions/runs/1/attempts/1')
+                    return priorAttempt ?? { ...trusted, run_attempt: 1, status: 'in_progress' }
+                if (/^actions\/runs\/1\/attempts\/[12]\/jobs\?/.test(path)) return { jobs: [captureJob] }
+                if (path.startsWith('actions/runs/1/artifacts?')) return { artifacts: [artifact] }
+                throw new Error('Unexpected inventory lookup')
+            },
+            download: () => {
+                downloads++
+                return { schema: 1, commit, screens: catalogue }
+            },
+        })
+        return { result, downloads }
+    }
+    assert.deepEqual(lookup(), { result: catalogue, downloads: 1 })
+    for (const candidate of [
+        { producer: { ...trusted, event: 'pull_request' } },
+        { producer: { ...trusted, head_branch: 'other' } },
+        { producer: { ...trusted, head_sha: after } },
+        { producer: { ...trusted, head_repository: { full_name: 'foreign/repo' } } },
+        { captureJob: { ...job, conclusion: 'failure' } },
+        { artifact: { ...inventory, expired: true } },
+        { artifact: { ...inventory, name: `screen-library-inventory-${before}-1` } },
+    ])
+        assert.deepEqual(lookup(candidate), { result: null, downloads: 0 })
+    assert.deepEqual(
+        lookup({
+            producer: { ...trusted, status: 'in_progress' },
+            artifact: { ...inventory, name: `screen-library-inventory-${before}-1` },
+            priorAttempt: { ...trusted, run_attempt: 1 },
+        }),
+        { result: catalogue, downloads: 1 }
+    )
+    assert.throws(() => lookup({ commit: after }), /Invalid verified impact inventory/)
 })
 
 const locales = ['en', 'es-419', 'es-AR', 'pt-BR']

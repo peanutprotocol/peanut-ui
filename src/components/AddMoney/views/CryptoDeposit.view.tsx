@@ -260,6 +260,7 @@ const CryptoDepositView = ({
                                         CHAIN_SCOPED_DEPOSIT_TOKENS.map((token) => (
                                             <Tooltip
                                                 key={token.name}
+                                                triggerTestId={`deposit-token-${token.name}-${token.network}`}
                                                 // The default width runs off screen over a chip at the left edge.
                                                 contentClassName="max-w-40"
                                                 content={t(

@@ -118,8 +118,10 @@ export function sortEntries(entries) {
 }
 
 export function selectLatest(entries) {
-    const complete = sortEntries(entries).filter((entry) => entry.complete === true && devPath.test(entry.path ?? ''))
-    return complete.find((entry) => entryLocale(entry) === 'en') ?? complete[0] ?? null
+    const libraries = sortEntries(entries).filter(
+        (entry) => (entry.finished === true || entry.complete === true) && devPath.test(entry.path ?? '')
+    )
+    return libraries.find((entry) => entryLocale(entry) === 'en') ?? libraries[0] ?? null
 }
 
 /** Rebuild shared pointers from immutable entry objects after a publication. */
