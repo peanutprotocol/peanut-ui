@@ -322,9 +322,27 @@ describe('usePushProvisioning', () => {
         expect(result.current.nativeAvailable).toBe(true)
     })
 
+    it('counts an AbortError request timeout as a temporary failure, not a passkey cancel', async () => {
+        const timeout = () => Object.assign(new Error('The request was cancelled'), { name: 'AbortError' })
+        mockedGetProvisioningData.mockRejectedValueOnce(timeout()).mockRejectedValueOnce(timeout())
+        const { result } = renderHook(() => usePushProvisioning(card))
+        await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
+        await act(async () => {
+            expect(await result.current.addToWallet()).toEqual({ added: false, error: 'The request was cancelled' })
+        })
+        expect(result.current.pushDisabled).toBe(false)
+        expect(failureEvents()).toStrictEqual([
+            { wallet: 'apple', error: 'The request was cancelled', failureClass: 'temporary' },
+        ])
+
+        await act(async () => {
+            await result.current.addToWallet()
+        })
+        expect(result.current.pushDisabled).toBe(true)
+    })
+
     it.each([
         ['web NotAllowedError', new DOMException('The operation was not allowed.', 'NotAllowedError')],
-        ['web AbortError', new DOMException('The operation was aborted.', 'AbortError')],
         ['Android dismissal', new Error('User canceled the request')],
         [
             'iOS dismissal',

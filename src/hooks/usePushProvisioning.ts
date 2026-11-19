@@ -59,7 +59,8 @@ function isPasskeyCancel(error: unknown): boolean {
     if (error instanceof StepUpError) return false
     if (nativePasskeyFailure(error) === 'canceled') return true
     const name = typeof error === 'object' && error !== null && 'name' in error ? error.name : undefined
-    return name === 'NotAllowedError' || name === 'AbortError'
+    // Not AbortError: api-fetch uses it for cancelled and timed-out requests.
+    return name === 'NotAllowedError'
 }
 
 async function getBoundedPushProvisioningAvailability(last4: string) {
