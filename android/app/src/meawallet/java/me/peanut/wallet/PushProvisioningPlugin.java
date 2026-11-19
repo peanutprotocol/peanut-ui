@@ -197,19 +197,10 @@ public class PushProvisioningPlugin extends Plugin {
 
     @PluginMethod
     public void isAvailable(PluginCall call) {
-        // Without Google Wallet installed the suffix lookup finds no token and
-        // reports the card as addable, so the UI would swap the manual flow for
-        // a one-tap action that fetches PAN-equivalent credentials and can only
-        // fail. Rule it out before the lookup.
-        boolean walletAvailable = false;
-        if (hasMeaConfig() && initialize(getContext())) {
-            try {
-                walletAvailable = MeaPushProvisioning.GooglePay.isWalletAvailable(getContext());
-            } catch (Exception ignored) {
-                // Treat SDK availability failures the same as an unavailable wallet.
-            }
-        }
-        if (!walletAvailable) {
+        // Don't gate on the Google Wallet app (GooglePay.isWalletAvailable): push
+        // creates the wallet when there is none, and Google's app review requires
+        // that path ("Create a new Google Wallet" on a device that never had it).
+        if (!hasMeaConfig() || !initialize(getContext())) {
             JSObject out = new JSObject();
             out.put("available", false);
             out.put("alreadyInWallet", false);
