@@ -1,5 +1,5 @@
 import { captureProfile } from './capture-profiles.mjs'
-import { validateCapture } from './core.mjs'
+import { publicationCapture } from './core.mjs'
 
 export const BASELINE_LOCALES = Object.freeze(['en', 'es-419', 'es-AR', 'pt-BR'])
 export const ADDITIONAL_PROFILES = Object.freeze(['440x956', '360x800', '320x712'])
@@ -27,7 +27,7 @@ export function verifyBaselineMatrix({ sha, attempt, artifacts, readCapture }) {
                 throw new Error(
                     `Missing or duplicate baseline artifact: ${name}. Re-run all jobs to create the full matrix under one run attempt; Re-run failed jobs leaves successful captures under an earlier attempt.`
                 )
-            const capture = validateCapture(readCapture(name))
+            const capture = publicationCapture(readCapture(name))
             if (capture.commit !== sha || capture.locale !== locale || capture.profile !== `${locale}-${profile}`)
                 throw new Error(`Baseline capture identity mismatch: ${name}`)
             expected.push({ name, locale, slug: localeSlugs[locale], profile, capture })

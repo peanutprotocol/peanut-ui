@@ -36,14 +36,13 @@ const VISUAL_CHANGE_STATUSES = new Set(['changed', 'added', 'new', 'removed'])
 const normalizeComparison = (comparison) => ({
     ...comparison,
     screens: comparison.screens.map((row) => {
-        // Old immutable reports marked the whole pair unavailable when only the baseline lacked a harness.
+        // Legacy reports used several labels for known states without pixel evidence.
         if (
-            row.status === 'unavailable' &&
-            row.before?.status === 'unavailable' &&
-            row.after?.status === 'captured' &&
-            row.after.image
+            ['failed', 'unavailable', 'new', 'excluded'].includes(row.status) &&
+            [row.before, row.after].some((screen) => ['failed', 'unavailable', 'excluded'].includes(screen?.status)) &&
+            !(row.before?.status === 'excluded' && row.after?.status === 'excluded')
         )
-            return { ...row, status: 'new' }
+            return { ...row, status: 'not-comparable' }
         if (
             row.status === 'changed' &&
             Number.isFinite(row.percent) &&
@@ -54,6 +53,11 @@ const normalizeComparison = (comparison) => ({
         return row
     }),
 })
+const matchesStatus = (row, status) =>
+    row.status === status ||
+    (row.status === 'not-comparable' &&
+        ['failed', 'unavailable', 'excluded'].includes(status) &&
+        [row.before, row.after].some((screen) => screen?.status === status))
 const explicitNonvisualStatus = (status) =>
     Boolean(status) && status !== 'differences' && !VISUAL_CHANGE_STATUSES.has(status)
 const entrySource = (entry) => entry?.source ?? 'synthetic'
@@ -1587,12 +1591,15 @@ function filteredScreenRows() {
         changedMode = report?.type === 'comparison' && viewMode === 'changed' && !explicitNonvisualStatus(status)
     return rows.filter(
         (r) =>
-            (report?.type === 'collection' || availableScreen(r)) &&
+            (report?.type === 'collection' ||
+                availableScreen(r) ||
+                r.status === 'not-comparable' ||
+                r.status === 'unavailable') &&
             (report?.type !== 'comparison' || showVariations || isDefaultScreen(r)) &&
             (!q || `${r.name} ${r.id} ${r.flow}`.toLowerCase().includes(q)) &&
             (!flow || flow === r.flow) &&
             (!changedMode || VISUAL_CHANGE_STATUSES.has(r.status)) &&
-            (!status || (status === 'differences' ? VISUAL_CHANGE_STATUSES.has(r.status) : status === r.status))
+            (!status || (status === 'differences' ? VISUAL_CHANGE_STATUSES.has(r.status) : matchesStatus(r, status)))
     )
 }
 function renderTile(row) {
@@ -1606,16 +1613,26 @@ function renderTile(row) {
                   .filter(Boolean)
                   .join(' · ')
     head.append(
-        el('span', row.status === 'new' ? 'New screen' : row.status, `tag ${row.status}`),
+        el(
+            'span',
+            row.status === 'new'
+                ? 'New screen'
+                : row.status === 'not-comparable'
+                  ? 'Not comparable'
+                  : row.status === 'unavailable'
+                    ? 'Not captured'
+                    : row.status,
+            `tag ${row.status}`
+        ),
         el(row.flowIndex === undefined ? 'h2' : 'h3', row.name),
         el('div', detail, 'meta')
     )
     if (row.note) head.append(el('p', row.note, 'collection-note'))
     tile.append(head)
-    const showSingle = singleScreenLayout()
+    const showSingle = singleScreenLayout() && row.status !== 'not-comparable'
     const pair = el('div', undefined, `pair${showSingle ? ' single' : ''}`)
     for (const [label, s] of showSingle
-        ? [['Screen', availableScreen(row)]]
+        ? [['Screen', availableScreen(row) ?? row.after]]
         : [
               ['Before', row.before],
               ['After', row.after],
@@ -2146,7 +2163,10 @@ function renderCoverage() {
     } · ${rows.length} ${report.type === 'journeys' || report.type === 'collection' ? 'screenshots' : 'states'} · ${Object.entries(
         counts
     )
-        .map(([s, n]) => `${n} ${s === 'new' ? 'new screens' : s}`)
+        .map(
+            ([s, n]) =>
+                `${n} ${s === 'new' ? (n === 1 ? 'new screen' : 'new screens') : s === 'unavailable' ? 'not captured' : s.replaceAll('-', ' ')}`
+        )
         .join(' · ')}`
 }
 async function configureReportLocales(reportPath) {
@@ -2287,7 +2307,7 @@ async function start() {
               ? report.screens.map((s) => ({
                     ...s,
                     after: s,
-                    status: s.status,
+                    status: report.type === 'capture' && s.status === 'failed' ? 'unavailable' : s.status,
                 }))
               : report.screens
     ).map(explicitSurfaceName)
@@ -2421,7 +2441,7 @@ async function start() {
     $('flow').value = rows.some((row) => row.flow === requestedFlow) ? requestedFlow : ''
     const requestedStatus = requestedFilter('status')
     const reportHasStatus =
-        rows.some((row) => row.status === requestedStatus) ||
+        rows.some((row) => matchesStatus(row, requestedStatus)) ||
         (report.type === 'comparison' && requestedStatus === 'differences')
     $('status').value = reportHasStatus
         ? requestedStatus

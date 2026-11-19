@@ -303,7 +303,9 @@ export default function ConfirmWithdrawView({
                 )}
 
                 {balanceBlocksConfirmation && !isProcessing && !error && (
-                    <Callout priority="error">{tErrors('notEnoughBalanceAddFunds')}</Callout>
+                    <Callout priority="error" data-testid="withdraw-insufficient-balance">
+                        {tErrors('notEnoughBalanceAddFunds')}
+                    </Callout>
                 )}
                 {belowMinimumMessage && !insufficientBalance && !error && (
                     <Callout priority="error">{belowMinimumMessage}</Callout>

@@ -10,6 +10,7 @@ interface TooltipProps {
     children: React.ReactNode
     position?: TooltipPosition
     className?: string
+    triggerTestId?: string
     contentClassName?: string
     disabled?: boolean
     id?: string
@@ -18,6 +19,7 @@ interface TooltipProps {
 export const Tooltip = ({
     content,
     children,
+    triggerTestId,
     position = 'top',
     className = '',
     contentClassName = '',
@@ -74,6 +76,7 @@ export const Tooltip = ({
     return (
         <>
             <div
+                data-testid={triggerTestId}
                 ref={triggerRef}
                 className={twMerge('inline-block cursor-pointer', className)}
                 onMouseEnter={showTooltip}

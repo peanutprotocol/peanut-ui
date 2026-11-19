@@ -62,9 +62,24 @@ export default function BackupPage() {
 
                 <Section title={t('faqHeading')}>
                     <ListGroup>
-                        <ListItem title={t('faq.losePhone')} chevron onClick={() => setActiveModal('lose-phone')} />
-                        <ListItem title={t('faq.changePhone')} chevron onClick={() => setActiveModal('change-phone')} />
-                        <ListItem title={t('faq.exportKeys')} chevron onClick={() => setActiveModal('export-keys')} />
+                        <ListItem
+                            data-testid="backup-lose-phone"
+                            title={t('faq.losePhone')}
+                            chevron
+                            onClick={() => setActiveModal('lose-phone')}
+                        />
+                        <ListItem
+                            data-testid="backup-change-phone"
+                            title={t('faq.changePhone')}
+                            chevron
+                            onClick={() => setActiveModal('change-phone')}
+                        />
+                        <ListItem
+                            data-testid="backup-export-keys"
+                            title={t('faq.exportKeys')}
+                            chevron
+                            onClick={() => setActiveModal('export-keys')}
+                        />
                     </ListGroup>
                 </Section>
             </div>

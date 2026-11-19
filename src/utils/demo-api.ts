@@ -1328,6 +1328,30 @@ export async function demoRespond(
         })
     }
 
+    // Historical screen captures use these offline contract answers; a fixture may override any of them.
+    if (capture?.strict) {
+        const key = `${method} ${pathname}`
+        if (key === 'GET /notifications') return json({ items: [], nextCursor: null })
+        if (key === 'POST /invites/validate')
+            return json({ success: true, attributionResolved: true, onboardingResolved: true, username: 'demo' })
+        if (key === 'GET /qr/synthetic-invalid') return json({ claimed: false, available: false })
+        if (key === 'GET /qr/synthetic-success')
+            return json({ claimed: true, available: false, claimedAt: '2026-09-01T12:00:00Z' })
+        if (key === 'GET /bridge/onramp/quote') {
+            const query = new URL(path, 'http://capture.invalid').searchParams
+            const from = query.get('accountType')?.includes('iban') ? 'EUR' : 'USD'
+            return json({
+                from,
+                to: 'USD',
+                grossRate: '1',
+                netRate: '1',
+                peanutFee: '0.0000',
+                updatedAt: '2026-09-01T12:00:00Z',
+                ...(query.has('sourceAmount') ? { netAmount: query.get('sourceAmount') } : {}),
+            })
+        }
+    }
+
     // Capture mode never calls live rates or support sessions.
     if (capture?.offline && method === 'GET') {
         if (pathname === '/tokens/price') {

@@ -443,6 +443,7 @@ const AmountInput = ({
                                 setExactSymbol(displaySymbol)
                             }}
                             ref={inputRef}
+                            data-testid="amount-input"
                             inputMode="decimal"
                             type="text"
                             value={shownValue}
