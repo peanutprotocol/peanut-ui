@@ -50,6 +50,9 @@ function starHeight(scalar: number): number {
 const FALLBACK_SHAPES: Shape[] = ['star']
 const FALLBACK_COLORS = ['#ffc900']
 const FALLBACK_SCALAR = 1.8
+// One brand star reads as about five plain ones, so the fallback fires the
+// plain-star counts the app used before.
+const FALLBACK_COUNT_RATIO = 5
 
 /*
  * prefers-reduced-motion asks for less motion, not less feedback.
@@ -155,10 +158,13 @@ function getShapeOptions(heights: readonly number[], fallbackScalar: number) {
     })
     return Promise.race([getStarShapes(heights), timeout])
         .then(
-            (shapes) => ({ shapes }),
+            (shapes) => ({ countRatio: 1, shapeOptions: { shapes } }),
             (error: unknown) => {
                 console.warn('[confetti] star shape failed, using the fallback star:', error)
-                return { shapes: FALLBACK_SHAPES, colors: FALLBACK_COLORS, scalar: fallbackScalar }
+                return {
+                    countRatio: FALLBACK_COUNT_RATIO,
+                    shapeOptions: { shapes: FALLBACK_SHAPES, colors: FALLBACK_COLORS, scalar: fallbackScalar },
+                }
             }
         )
         .finally(() => clearTimeout(timer))
@@ -176,7 +182,7 @@ const fireStars = (options: ConfettiOptions, scalars: readonly number[]) => {
     const heights = [...new Set(sizes.map(starHeight))]
 
     Promise.all([getConfetti(), getShapeOptions(heights, FALLBACK_SCALAR * Math.max(...sizes))])
-        .then(([fire, shapeOptions]) =>
+        .then(([fire, { countRatio, shapeOptions }]) =>
             fire({
                 ...defaultConfettiConfig,
                 ...otherOptions,
@@ -184,7 +190,7 @@ const fireStars = (options: ConfettiOptions, scalars: readonly number[]) => {
                 ...shapeOptions,
                 particleCount: reduced
                     ? Math.max(REDUCED_MOTION_MIN_PARTICLES, Math.round(particleCount * REDUCED_MOTION_PARTICLE_RATIO))
-                    : particleCount,
+                    : particleCount * countRatio,
                 origin,
             })
         )

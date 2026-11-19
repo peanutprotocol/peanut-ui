@@ -30,7 +30,7 @@ const STANDARD = [
     ['Native app', 'Half the stars, one size'],
     [
         'Reduced motion',
-        'A quarter of the stars (at least 8), small and slow, staying near the start point. Never nothing',
+        'A quarter of the stars (at least 8), small and slow, staying near the start point. Only the card milestone screen still skips the burst, as it did before',
     ],
     ['Repeat', 'A second burst within 1.5 s is dropped'],
 ] as const
@@ -93,7 +93,7 @@ export default function CelebrationsPage() {
                     'A confetti with its own shape, colours or tumble. → there is one look; tune only amount, size, spread and start point.',
                     'More than 60 stars or a star above 64 px. → old phones pay for every star on every frame.',
                     'A routine confirmation such as saved settings or a copied link. → use a toast.',
-                    'Skipping the burst under reduced motion. → the burst already tones itself down.',
+                    'Skipping the burst under reduced motion on a new screen. → the burst already tones itself down. The card milestone screen is the one that still skips it.',
                     'A new celebration made of shapes drawn in code. → use one of the permitted celebrations below, built from approved art.',
                 ]}
             />
@@ -150,7 +150,7 @@ usePointsConfetti(pointsEarned, pointsRowRef)`}
                             <div className="min-w-0">
                                 <p className="text-body-s font-bold">{tuning.name}</p>
                                 <p className="text-body-s text-foreground-secondary">{tuning.where}</p>
-                                <code className="text-caption break-all text-foreground-secondary">{tuning.code}</code>
+                                <code className="text-body-xs break-all text-foreground-secondary">{tuning.code}</code>
                             </div>
                             <Button variant="secondary" size="small" className="w-auto shrink-0" onClick={tuning.fire}>
                                 Fire

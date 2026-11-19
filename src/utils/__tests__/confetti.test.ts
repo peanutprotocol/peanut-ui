@@ -103,7 +103,8 @@ describe('the standard burst', () => {
             shapes: ['star'],
             colors: ['#ffc900'],
             scalar: 1.8,
-            particleCount: 40,
+            // plain stars read thinner, so the fallback fires the old plain-star count
+            particleCount: 200,
         })
         expect(warn).toHaveBeenCalledWith('[confetti] star shape failed, using the fallback star:', expect.any(Error))
 
@@ -125,7 +126,8 @@ describe('the standard burst', () => {
         await new Promise((resolve) => setTimeout(resolve, 850))
 
         expect(fire).toHaveBeenCalledTimes(1)
-        expect(fire.mock.calls[0][0]).toMatchObject({ shapes: ['star'], colors: ['#ffc900'] })
+        expect(fire.mock.calls[0][0]).toMatchObject({ shapes: ['star'], colors: ['#ffc900'], particleCount: 200 })
+        expect(fire.mock.calls[0][0]).not.toHaveProperty('countRatio')
 
         // The load carried on: the next burst gets the brand star without a second load.
         finishLoad([starShape(50), starShape(36)])
