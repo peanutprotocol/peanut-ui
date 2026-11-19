@@ -83,9 +83,10 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
             return
         }
         setNativeAvailable(false)
+        // Settle on the manual row after the timeout, but let a slow lookup (a
+        // first suffix read on a phone with no wallet yet) still show the button.
         const timeout = setTimeout(() => {
             if (cancelled) return
-            cancelled = true
             setCheckedScope(availabilityScope)
         }, AVAILABILITY_TIMEOUT_MS)
         void (async () => {
