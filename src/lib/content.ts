@@ -186,7 +186,8 @@ function contentOwnerForPath(encodedSegments: string[], locale: Locale): string 
 // Exported so scripts/generate-valid-links.ts (what content may link) and
 // scripts/verify-content.ts (what links pass validation) stay in sync with
 // this resolver — /card drifted out of the verifier once already.
-export const LOCALE_NEUTRAL_APP_ROUTES = new Set(['card', 'shhhhh', 'careers'])
+// 'shhhhh' stays while older content still links it; it resolves to /peanut-card below.
+export const LOCALE_NEUTRAL_APP_ROUTES = new Set(['card', 'peanut-card', 'shhhhh', 'careers'])
 
 function contentPathSegments(pathname: string): { segments: string[]; strippedLocale: string | null } {
     const segments = pathname.split('/').filter(Boolean)
@@ -218,7 +219,7 @@ export function resolveContentHref(href: string, locale: Locale): string {
 
         const { segments, strippedLocale } = contentPathSegments(absoluteHref.pathname)
         if (segments.length === 1 && LOCALE_NEUTRAL_APP_ROUTES.has(decodedSegment(segments[0]))) {
-            return `${PEANUT_PRODUCTION_ORIGIN}/${segments[0]}${absoluteHref.search}${absoluteHref.hash}`
+            return `${PEANUT_PRODUCTION_ORIGIN}${resolvePermanentRedirectPath(`/${segments[0]}`)}${absoluteHref.search}${absoluteHref.hash}`
         }
         const owner = contentOwnerForPath(segments, locale)
         const targetLocale = owner ?? (strippedLocale === 'en' ? locale : null)
@@ -234,7 +235,7 @@ export function resolveContentHref(href: string, locale: Locale): string {
     const suffix = suffixIndex === -1 ? '' : href.slice(suffixIndex)
     const { segments } = contentPathSegments(pathname)
     if (segments.length === 1 && LOCALE_NEUTRAL_APP_ROUTES.has(decodedSegment(segments[0]))) {
-        return `/${segments[0]}${suffix}`
+        return `${resolvePermanentRedirectPath(`/${segments[0]}`)}${suffix}`
     }
 
     const owner = contentOwnerForPath(segments, locale)

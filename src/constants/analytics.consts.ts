@@ -275,7 +275,6 @@ export const ANALYTICS_EVENTS = {
     // ── QR ──
     QR_SCANNED: 'qr_scanned',
     PIX_QR_INIT_RESULT: 'pix_qr_init_result',
-    QR_NOTIFY_ME_CLICKED: 'qr_notify_me_clicked',
     QR_DECODING_ERROR_SHOWN: 'qr_decoding_error_shown',
     QR_SENDER_REJECTED_SHOWN: 'qr_sender_rejected_shown',
     QR_MERCHANT_CHARGE_EXPIRED_SHOWN: 'qr_merchant_charge_expired_shown',
@@ -436,8 +435,6 @@ export const ANALYTICS_EVENTS = {
     CARD_CANCEL_OPENED: 'card_cancel_opened',
     CARD_CANCEL_CONFIRMED: 'card_cancel_confirmed',
     CARD_CANCEL_FAILED: 'card_cancel_failed',
-    CARD_PHYSICAL_WAITLIST_VIEWED: 'card_physical_waitlist_viewed',
-    CARD_PHYSICAL_WAITLIST_JOINED: 'card_physical_waitlist_joined',
     CARD_ADD_TO_WALLET_VIEWED: 'card_add_to_wallet_viewed',
     // Native push provisioning (MeaWallet MPP). Server-side card_tokenized /
     // card_tokenization_declined (Rain webhooks) close this funnel.

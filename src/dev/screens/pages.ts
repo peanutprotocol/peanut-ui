@@ -189,7 +189,6 @@ export const PAGE_CAPTURES: PageCapture[] = [
 ]
 
 PAGE_CAPTURES.push(
-    { id: 'p43-card-physical', name: 'Physical card', route: '/card/physical' },
     { id: 'p44-card-add-to-wallet', name: 'Add card to wallet', route: '/card/add-to-wallet' },
     { id: 'p46-card-signature', name: 'Repair card signature', route: '/fix-card-signature' },
     { id: 'p47-pay-request', name: 'Pay a request', route: '/pay-request?id=synthetic-request' },

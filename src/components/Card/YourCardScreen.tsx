@@ -287,12 +287,6 @@ const YourCardScreen: FC<Props> = ({
                         chevron
                         onClick={() => router.push('/card/limit')}
                     />
-                    <ListItem
-                        title={t('physicalCard')}
-                        leading={<Icon name="credit-card" size={24} />}
-                        chevron
-                        onClick={() => router.push('/card/physical')}
-                    />
                     {/* manual steps until the platform flag and native SDK show the wallet control below */}
                     {walletLabel && !isChecking && !alreadyInWallet && !walletButton && (
                         <ListItem

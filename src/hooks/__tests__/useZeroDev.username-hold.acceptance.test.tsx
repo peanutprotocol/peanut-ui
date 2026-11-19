@@ -78,7 +78,7 @@ jest.mock('@zerodev/passkey-validator', () => ({
 jest.mock('@/services/pending-invite-attribution', () => ({
     settlePendingInviteAttribution: jest.fn(async () => ({ status: 'none' })),
 }))
-jest.mock('@/app/shhhhh/shhhhh-acquisition', () => ({ settleShhhhhCampaignContinuation: jest.fn() }))
+jest.mock('@/features/card/card-campaign-acquisition', () => ({ settleCardCampaignContinuation: jest.fn() }))
 jest.mock('@/components/Invites/badge-campaign-context', () => ({ getPendingBadgeCampaigns: () => [] }))
 jest.mock('@/services/badge-campaigns', () => ({
     claimAndSettlePendingBadgeCampaigns: jest.fn(),

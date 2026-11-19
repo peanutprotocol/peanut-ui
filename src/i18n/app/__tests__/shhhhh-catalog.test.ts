@@ -4,19 +4,21 @@ import es419 from '../messages/es-419.json'
 import esAR from '../messages/es-AR.json'
 import { leafPaths } from './catalog-helpers'
 
-describe('/shhhhh catalog', () => {
-    it.each(APP_LOCALES)('%s has a public card CTA without admission copy', async (locale) => {
+// Only the card FAQ is left in this namespace: /peanut-card reads it (TASK-24171).
+describe('card FAQ catalog (shhhhh namespace)', () => {
+    it.each(APP_LOCALES)('%s has the card FAQ without admission copy', async (locale) => {
         const messages = await loadMessages(locale)
         const copy = JSON.stringify(messages.shhhhh)
-        expect(messages.shhhhh.hero.cta).toBeTruthy()
+        expect(Object.keys(messages.shhhhh)).toEqual(['faq'])
+        expect(messages.shhhhh.faq.q1.question).toBeTruthy()
         expect(copy).not.toMatch(/beta|waitlist|lista de espera|fila de espera|<counter>/i)
     })
 
     it('es-AR overlays voseo onto the es-419 copy', async () => {
         const [es419, esArResolved] = await Promise.all([loadMessages('es-419'), loadMessages('es-AR')])
 
-        expect(es419.shhhhh.howToApply.verifyTitle).toBe('Verifica.')
-        expect(esArResolved.shhhhh.howToApply.verifyTitle).toBe('Verificá.')
+        expect(es419.shhhhh.faq.q3.answer).toContain('Puedes agregar')
+        expect(esArResolved.shhhhh.faq.q3.answer).toContain('Podés agregar')
         // untouched keys still fall through to es-419
         expect(esArResolved.shhhhh.faq.q2.answer).toBe(es419.shhhhh.faq.q2.answer)
     })

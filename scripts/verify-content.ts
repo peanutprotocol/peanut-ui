@@ -175,6 +175,9 @@ function discoverRoutes(): Set<string> {
     // Bare legal URLs redirect to their localized pages and remain valid links.
     routes.add('/privacy')
     routes.add('/terms')
+    // /shhhhh redirects to /peanut-card (TASK-24171). Pinned content still links
+    // it until mono republishes; the resolver rewrites those links on render.
+    routes.add('/shhhhh')
 
     // App routes (mobile-ui)
     for (const p of [
