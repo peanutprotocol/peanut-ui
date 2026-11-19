@@ -557,6 +557,49 @@ describe('usePushProvisioning', () => {
             expect(result.current.alreadyInWallet).toBe(true)
         })
 
+        describe('slow first availability lookup', () => {
+            beforeEach(() => jest.useFakeTimers())
+            afterEach(() => jest.useRealTimers())
+
+            const slowLookup = () => {
+                let resolve!: (value: { available: boolean; alreadyInWallet: boolean }) => void
+                mockedAvailability.mockReturnValue(new Promise((r) => (resolve = r)))
+                return (value: { available: boolean; alreadyInWallet: boolean }) => resolve(value)
+            }
+
+            it('shows the manual row at the timeout, then the button when the lookup lands', async () => {
+                const settle = slowLookup()
+                const { result } = renderHook(() => usePushProvisioning(card))
+                await act(async () => {
+                    jest.advanceTimersByTime(5000)
+                })
+                expect(result.current.isChecking).toBe(false)
+                expect(result.current.nativeAvailable).toBe(false)
+
+                await act(async () => {
+                    settle({ available: true, alreadyInWallet: false })
+                })
+                expect(result.current.nativeAvailable).toBe(true)
+                expect(result.current.alreadyInWallet).toBe(false)
+            })
+
+            it('drops a late lookup for a card that is no longer selected', async () => {
+                const settle = slowLookup()
+                const { result, rerender } = renderHook(({ c }) => usePushProvisioning(c), {
+                    initialProps: { c: card },
+                })
+                await act(async () => {
+                    jest.advanceTimersByTime(5000)
+                })
+                mockedAvailability.mockResolvedValue({ available: false, alreadyInWallet: false })
+                rerender({ c: { id: 'card-2', last4: '9999' } })
+                await act(async () => {
+                    settle({ available: true, alreadyInWallet: false })
+                })
+                expect(result.current.nativeAvailable).toBe(false)
+            })
+        })
+
         it('fails closed when the initial native availability lookup rejects', async () => {
             mockedAvailability.mockRejectedValue(new Error('bridge unavailable'))
             const { result } = renderHook(() => usePushProvisioning(card))
