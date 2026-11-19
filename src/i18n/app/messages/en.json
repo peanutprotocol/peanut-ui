@@ -3901,6 +3901,20 @@
             "servedElsewhere": "Pix deposits, withdrawals, transfers and QR payments are available where you live."
         },
         "paperworkVerification": {
+            "reverify": {
+                "inviteTitle": "Verify your identity again",
+                "inviteCard": "Verify your identity again to set up your card. You can keep using your existing accounts while we review it.",
+                "inviteBank": "Verify your identity again to set up your bank account. You can keep using your existing accounts while we review it.",
+                "inviteLocal": "Verify your identity again to set up your local account. You can keep using your existing accounts while we review it.",
+                "start": "Verify again",
+                "documentMismatch": "The document you uploaded is from a different country. Choose the document you want to upload again.",
+                "pendingTitle": "We’re reviewing your identity",
+                "pendingDescription": "You can keep using your existing accounts while we review your new identity check.",
+                "refusalTitle": "We couldn’t verify your identity again",
+                "refusalCard": "We couldn’t set up your card. You can keep using your existing accounts.",
+                "refusalBank": "We couldn’t set up your bank account. You can keep using your existing accounts.",
+                "refusalLocal": "We couldn’t set up your local account. You can keep using your existing accounts."
+            },
             "back": "Go back",
             "progress": "Step {current} of {total}",
             "continue": "Continue",

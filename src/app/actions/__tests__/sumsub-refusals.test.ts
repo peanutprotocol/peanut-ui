@@ -46,7 +46,7 @@ describe('initiateSumsubKyc — Smart Paperwork Verification users', () => {
         await initiateSumsubKyc({ regionIntent: 'EU' })
         expect(mockFetch).toHaveBeenCalledWith(
             '/users/identity',
-            expect.objectContaining({ headers: expect.objectContaining({ 'x-kyc-client': '2' }) })
+            expect.objectContaining({ headers: expect.objectContaining({ 'x-kyc-client': '3' }) })
         )
     })
 
@@ -132,7 +132,7 @@ describe('initiateSumsubKyc — backend refusals', () => {
         expect(mockFetch).toHaveBeenCalledWith(
             '/users/identity',
             expect.objectContaining({
-                headers: { 'x-residence-format': 'compact', 'x-kyc-client': '2' },
+                headers: { 'x-residence-format': 'compact', 'x-kyc-client': '3' },
             })
         )
     })
@@ -159,7 +159,7 @@ describe('restartIdentityVerification — wire shape', () => {
             '/users/identity/restart',
             expect.objectContaining({
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-residence-format': 'compact', 'x-kyc-client': '2' },
+                headers: { 'Content-Type': 'application/json', 'x-residence-format': 'compact', 'x-kyc-client': '3' },
                 body: JSON.stringify({ regionIntent: 'LATAM' }),
             })
         )
@@ -282,7 +282,7 @@ describe('startResidenceChangeVerification — wire shape', () => {
 
         expect(mockFetch).toHaveBeenCalledWith('/users/residence-change/start', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-kyc-client': '2' },
+            headers: { 'Content-Type': 'application/json', 'x-kyc-client': '3' },
             body: JSON.stringify({ targetCountry: 'PT' }),
         })
         expect(result.data?.targetCountry).toBe('PT')
@@ -534,7 +534,7 @@ describe('KYC client version on every request', () => {
         respondWith(200, { token: 'token', applicantId: 'app', targetCountry: 'PT' })
         await call()
         expect(mockFetch).toHaveBeenCalledTimes(1)
-        expect(mockFetch.mock.calls[0][1]?.headers).toMatchObject({ 'x-kyc-client': '2' })
+        expect(mockFetch.mock.calls[0][1]?.headers).toMatchObject({ 'x-kyc-client': '3' })
     })
 })
 

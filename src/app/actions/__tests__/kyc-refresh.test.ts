@@ -25,7 +25,7 @@ describe('refreshKycState', () => {
         await expect(refreshKycState()).resolves.toEqual({ expedited: true })
         expect(mockFetch).toHaveBeenCalledWith('/users/kyc/refresh', {
             method: 'POST',
-            headers: { 'x-kyc-client': '2' },
+            headers: { 'x-kyc-client': '3' },
         })
         respondWith(200, { expedited: false })
         await expect(refreshKycState()).resolves.toEqual({ expedited: false })

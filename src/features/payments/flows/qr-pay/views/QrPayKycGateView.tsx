@@ -36,6 +36,7 @@ export function QrPayKycGateView() {
     const redirecting = usePaperworkVerificationRedirect(unlockOffered, {
         intent: QR_IDENTITY_CHECK_INTENT,
         targetCountry: targetMantecaCountry,
+        qr: true,
     })
 
     return (

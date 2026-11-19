@@ -3901,6 +3901,20 @@
             "servedElsewhere": "Depósitos, saques, transferências e pagamentos por QR via Pix estão disponíveis onde você mora."
         },
         "paperworkVerification": {
+            "reverify": {
+                "inviteTitle": "Verifique sua identidade novamente",
+                "inviteCard": "Verifique sua identidade novamente para configurar seu cartão. Você pode continuar usando suas contas atuais enquanto analisamos seus dados.",
+                "inviteBank": "Verifique sua identidade novamente para configurar sua conta bancária. Você pode continuar usando suas contas atuais enquanto analisamos seus dados.",
+                "inviteLocal": "Verifique sua identidade novamente para configurar sua conta local. Você pode continuar usando suas contas atuais enquanto analisamos seus dados.",
+                "start": "Verificar novamente",
+                "documentMismatch": "O documento que você enviou é de outro país. Escolha o documento que quer enviar novamente.",
+                "pendingTitle": "Estamos analisando sua identidade",
+                "pendingDescription": "Você pode continuar usando suas contas atuais enquanto analisamos sua nova verificação de identidade.",
+                "refusalTitle": "Não conseguimos verificar sua identidade novamente",
+                "refusalCard": "Não conseguimos configurar seu cartão. Você pode continuar usando suas contas atuais.",
+                "refusalBank": "Não conseguimos configurar sua conta bancária. Você pode continuar usando suas contas atuais.",
+                "refusalLocal": "Não conseguimos configurar sua conta local. Você pode continuar usando suas contas atuais."
+            },
             "back": "Voltar",
             "progress": "Passo {current} de {total}",
             "continue": "Continuar",

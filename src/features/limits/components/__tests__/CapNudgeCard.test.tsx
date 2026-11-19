@@ -29,6 +29,10 @@ const mockUpdatePrefs = jest.fn((_userId: string, prefs: Record<string, unknown>
     mockPrefs = { ...mockPrefs, ...prefs }
 })
 
+const mockRouterPush = jest.fn()
+jest.mock('next/navigation', () => ({
+    useRouter: () => ({ push: mockRouterPush }),
+}))
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({ rails: mockRails, nextActions: mockNextActions }),
 }))

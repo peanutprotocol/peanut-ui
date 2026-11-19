@@ -7,6 +7,8 @@ import {
 } from './types/sumsub.types'
 import { serverFetch } from '@/utils/api-fetch'
 import { kycClientHeaders } from '@/utils/kyc-client-headers'
+import { featureReverificationConflict } from '@/utils/kyc-reverification'
+import type { FeatureReverificationEntry } from './types/kyc-reverification.types'
 import type { paths } from '@/types/api.generated'
 import type { KycDocumentConfig, KycReplacementChoices } from './types/kyc-workflow.types'
 
@@ -55,6 +57,7 @@ const PIX_PROVIDER_MOVED = 'PIX_PROVIDER_MOVED'
 interface SumsubActionError {
     error: string
     code?: SumsubActionErrorCode
+    entry?: FeatureReverificationEntry
 }
 
 /** Permanent refusals. These have no catalog entry, so classifying one never
@@ -88,6 +91,9 @@ const backendOrFallback = (
     code: SumsubActionErrorCode,
     status: number
 ): SumsubActionError => {
+    const reverification = featureReverificationConflict(status, responseJson)
+    if (reverification)
+        return { error: reverification.userMessage, code: reverification.code, entry: reverification.entry }
     // Manteca no longer opens Brazil for this user: their Pix moved (409). The caller sends them to the Pix flow.
     if (responseJson.code === PIX_PROVIDER_MOVED)
         return { error: responseJson.userMessage || fallback, code: PIX_PROVIDER_MOVED }
@@ -157,6 +163,7 @@ export const initiateSumsubKyc = async (
     error?: string
     code?: SumsubActionErrorCode
     feature?: 'local' | 'bank'
+    entry?: FeatureReverificationEntry
 }> => {
     const body: Record<string, string | boolean | undefined> = {
         corridor: params?.corridor,
@@ -570,6 +577,7 @@ export const startKycAction = async (
     code?: SumsubActionErrorCode
     reason?: string
     fallback?: SupplementFallback
+    entry?: FeatureReverificationEntry
 }> => {
     let status: number | undefined
     try {

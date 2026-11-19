@@ -92,6 +92,7 @@ export function StepsScreen({
     aside,
     followUps = [],
     note,
+    title,
     cta,
     onBack,
     onContinue,
@@ -104,6 +105,7 @@ export function StepsScreen({
     followUps?: readonly FollowUpLabel[]
     /** in place of the phase's note and button, for the open follow-up */
     note?: string
+    title?: string
     cta?: string
     onBack: () => void
     onContinue?: () => void
@@ -131,7 +133,7 @@ export function StepsScreen({
                     <Icon name="chevron-up" size={20} className="-rotate-90" />
                 </Button>
                 <h1 className="text-center text-heading-xs tracking-[-0.3px] whitespace-pre-line text-foreground-primary">
-                    {t(copy.title)}
+                    {title ?? t(copy.title)}
                 </h1>
                 <span />
             </div>

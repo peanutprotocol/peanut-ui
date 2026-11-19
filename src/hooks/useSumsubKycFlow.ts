@@ -38,6 +38,8 @@ import { isDemoMode } from '@/utils/demo'
 import { captureSessionFence } from '@/utils/session-fence'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
 import { pixFlowPath } from '@/features/pix/pixRoute.utils'
+import { currentReverificationDestination, featureReverificationPath } from '@/utils/kyc-reverification'
+import type { FeatureReverificationEntry } from '@/app/actions/types/kyc-reverification.types'
 import {
     entryFeature,
     paperworkVerificationRoute,
@@ -152,6 +154,15 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         }
     }, [user?.user?.userId])
     const router = useRouter()
+    const openReverification = useCallback(
+        (entry: FeatureReverificationEntry, returnTo: string | null) => {
+            userInitiatedRef.current = false
+            setShowWrapper(false)
+            setIsVerificationProgressModalOpen(false)
+            router.push(featureReverificationPath(entry, returnTo))
+        },
+        [router]
+    )
     const t = useTranslations('kyc')
     const tIdentity = useTranslations('identity')
 
@@ -407,14 +418,19 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         // APPROVED transition that closes the SDK.
         if (userInitiatedRef.current) return
 
+        const owner = actionOwnerRef.current
+        let cancelled = false
         const fetchCurrentStatus = async () => {
             try {
                 // a status initiate would open a legacy applicant for a user Smart Paperwork Verification still has to ask
                 // (an unreadable plan throws, so the status initiate is skipped then too)
-                if ((await findKycDocumentPlan('status-sync'))?.flow === PAPERWORK_VERIFICATION_FLOW) return
+                const plan = await findKycDocumentPlan('status-sync')
+                if (plan?.flow === PAPERWORK_VERIFICATION_FLOW || plan?.entry) return
+                if (cancelled || owner !== actionOwnerRef.current) return
                 if (initiatingRef.current || startRecoveryRef.current || userInitiatedRef.current) return
                 const response = await initiateSumsubKyc({ regionIntent })
-                if (response.data?.status && !initiatingRef.current && !showWrapperRef.current) {
+                if (cancelled || owner !== actionOwnerRef.current) return
+                if (response.data?.status && !response.entry && !initiatingRef.current && !showWrapperRef.current) {
                     setLiveKycStatus(response.data.status)
                 }
             } catch {
@@ -423,6 +439,9 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         }
 
         fetchCurrentStatus()
+        return () => {
+            cancelled = true
+        }
     }, [regionIntent])
 
     // polling fallback for missed websocket events. while the verification
@@ -454,7 +473,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     levelName: levelNameRef.current,
                     targetCountry: targetCountryRef.current,
                 })
-                if (response.data?.status) {
+                if (!cancelled && response.data?.status && !response.entry) {
                     setLiveKycStatus(response.data.status)
                 }
             } catch {
@@ -534,6 +553,16 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             // CapacitorHttp request). A re-tap must reconcile that same start.
             if (startRecoveryRef.current) return startRecoveryRef.current.retry()
             const entryUserId = user?.user?.userId
+            const returnTo = currentReverificationDestination()
+            const normalizedTargetCountry = rawTargetCountry?.toUpperCase()
+            const feature = entryFeature({
+                intent: overrideIntent ?? regionIntent,
+                corridor,
+                targetCountry: normalizedTargetCountry,
+            })
+            // An unscoped LATAM intent also serves QR pool identity checks.
+            const planFeature =
+                explicitEntry && (feature !== 'local' || corridor || normalizedTargetCountry) ? feature : null
             const generation = ++startGeneration.current
             const timeoutError = new Error(t('errorInitiateFailed'))
             const isCurrent = () => generation === startGeneration.current && entryUserId === actionOwnerRef.current
@@ -560,7 +589,6 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 }
             }
 
-            const normalizedTargetCountry = rawTargetCountry?.toUpperCase()
             const targetCountry =
                 normalizedTargetCountry && isMantecaSupportedCountryCode(normalizedTargetCountry)
                     ? normalizedTargetCountry
@@ -588,6 +616,11 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 response: Awaited<ReturnType<typeof initiateSumsubKyc>>
             ): Promise<boolean> => {
                 if (!isCurrent()) return false
+                if (response.code === 'feature_reverification_required' && response.entry) {
+                    if (crossRegion) prevStatusRef.current = savedPrevStatus
+                    openReverification(response.entry, returnTo)
+                    return false
+                }
                 if (response.code === 'paperwork_verification_required') {
                     userInitiatedRef.current = false
                     if (crossRegion) prevStatusRef.current = savedPrevStatus
@@ -814,12 +847,21 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     return false
                 }
                 try {
-                    plan = await withinStage((signal) => findKycDocumentPlan('initiate', signal))
+                    plan = await withinStage((signal) =>
+                        planFeature
+                            ? findKycDocumentPlan('initiate', signal, planFeature)
+                            : findKycDocumentPlan('initiate', signal)
+                    )
                 } catch {
                     // Unknown plan is never permission to repeat initiation.
                 }
                 if (!isCurrent() || !acceptLate) return false
                 if (recovered) return recoveryResult
+                if (plan?.entry) {
+                    recovered = true
+                    openReverification(plan.entry, returnTo)
+                    return false
+                }
                 if (plan?.activeAttemptId) {
                     try {
                         const session = await withinStage((signal) =>
@@ -847,7 +889,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                 }
                 // Base identity approval cannot establish that a cross-region,
                 // correction or additional-document start completed.
-                if (status === 'APPROVED' && !crossRegion && !correctSession && !levelName) {
+                if (status === 'APPROVED' && !crossRegion && !correctSession && !levelName && !planFeature) {
                     recovered = true
                     userInitiatedRef.current = false
                     prevStatusRef.current = status
@@ -892,20 +934,14 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                     // paperwork_verification_required for a Smart Paperwork Verification user
                     // (handled below), so a failed GET never blocks everyone else.
                     const plan = await withinStage((signal) =>
-                        findKycDocumentPlan('initiate', signal).catch(() => null)
+                        (planFeature
+                            ? findKycDocumentPlan('initiate', signal, planFeature)
+                            : findKycDocumentPlan('initiate', signal)
+                        ).catch(() => null)
                     )
                     // Smart Paperwork Verification users answer Peanut's questions on /verify before any document.
                     const paperworkVerificationPath = await withinStage((signal) =>
-                        paperworkVerificationRoute(
-                            plan,
-                            entryFeature({
-                                intent: overrideIntent ?? regionIntent,
-                                corridor,
-                                targetCountry: normalizedTargetCountry,
-                            }),
-                            user?.capabilities?.features,
-                            signal
-                        )
+                        paperworkVerificationRoute(plan, feature, user?.capabilities?.features, signal)
                     )
                     if (paperworkVerificationPath) {
                         userInitiatedRef.current = false
@@ -953,7 +989,14 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                         // test/older transports may still complete after abort.
                         void request
                             .then(async (lateResponse) => {
-                                if (!uncertain || recovered || !acceptLate || !isCurrent() || !lateResponse.data) return
+                                if (
+                                    !uncertain ||
+                                    recovered ||
+                                    !acceptLate ||
+                                    !isCurrent() ||
+                                    (!lateResponse.data && !lateResponse.entry)
+                                )
+                                    return
                                 recovered = true
                                 userInitiatedRef.current = true
                                 setError(null)
@@ -1001,6 +1044,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             handleDocumentConflict,
             user?.user?.userId,
             user?.capabilities?.features,
+            openReverification,
         ]
     )
 
@@ -1169,6 +1213,8 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const refreshAddressGeneration = addressGeneration.current
     const refreshIsAddressAction = actionKeyRef.current === RESIDENCE_ADDRESS_ACTION_KEY
     const refreshToken = useCallback(async (): Promise<string> => {
+        const owner = actionOwnerRef.current
+        const returnTo = currentReverificationDestination()
         const staleAddress = () =>
             (refreshIsAddressAction || actionKeyRef.current === RESIDENCE_ADDRESS_ACTION_KEY) &&
             (actionOwnerRef.current !== user?.user?.userId || addressGeneration.current !== refreshAddressGeneration)
@@ -1204,6 +1250,11 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
         if (actionKeyRef.current) {
             const response = await startKycAction(actionKeyRef.current)
             if (staleAddress()) throw new Error('Address verification session changed')
+            if (owner !== actionOwnerRef.current) throw new Error('Verification session changed')
+            if (response.code === 'feature_reverification_required' && response.entry) {
+                openReverification(response.entry, returnTo)
+                throw new Error(response.error || 'Re-verification required')
+            }
             if (response.error || !response.data?.token) {
                 throw new Error(response.error || 'Failed to refresh action token')
             }
@@ -1226,6 +1277,11 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             levelName: levelNameRef.current,
             targetCountry: targetCountryRef.current,
         })
+        if (owner !== actionOwnerRef.current) throw new Error('Verification session changed')
+        if (response.code === 'feature_reverification_required' && response.entry) {
+            openReverification(response.entry, returnTo)
+            throw new Error(response.error || 'Re-verification required')
+        }
 
         if (response.error || !response.data?.token) {
             if (response.code === 'paperwork_verification_required') {
@@ -1244,7 +1300,14 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
 
         setAccessToken(response.data.token)
         return response.data.token
-    }, [handleDocumentConflict, router, user?.user?.userId, refreshAddressGeneration, refreshIsAddressAction])
+    }, [
+        handleDocumentConflict,
+        router,
+        user?.user?.userId,
+        refreshAddressGeneration,
+        refreshIsAddressAction,
+        openReverification,
+    ])
 
     const closeVerificationProgressModal = useCallback(() => {
         setIsVerificationProgressModalOpen(false)
@@ -1529,6 +1592,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
     const handleStartAction = useCallback(
         async (key: string): Promise<boolean> => {
             const owner = user?.user?.userId
+            const returnTo = currentReverificationDestination()
             if (key === RESIDENCE_ADDRESS_ACTION_KEY && actionOwnerRef.current !== owner) return false
             const generation = ++addressGeneration.current
             addressPendingRef.current = key === RESIDENCE_ADDRESS_ACTION_KEY
@@ -1555,12 +1619,12 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
 
             try {
                 let response = await startKycAction(key)
-                if (staleAddress()) return false
+                if (owner !== actionOwnerRef.current || staleAddress()) return false
                 // Sumsub had already reviewed the action. Ask once more: a final rejection opens the
                 // next attempt. Only an explicit completed/not-required answer confirms it is done.
                 if (response.data?.completed) {
                     response = await startKycAction(key)
-                    if (staleAddress()) return false
+                    if (owner !== actionOwnerRef.current || staleAddress()) return false
                     if (
                         !response.fallback &&
                         (response.data?.completed ||
@@ -1571,6 +1635,10 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
                         onKycSuccess?.()
                         return false
                     }
+                }
+                if (response.code === 'feature_reverification_required' && response.entry) {
+                    openReverification(response.entry, returnTo)
+                    return false
                 }
                 // The step the API names instead: a supplement it no longer asks for, or a new ID through the restart.
                 if (response.fallback) {
@@ -1636,6 +1704,7 @@ export const useSumsubKycFlow = ({ onKycSuccess, onManualClose, regionIntent }: 
             acceptSessionView,
             onKycSuccess,
             restartIdentity,
+            openReverification,
         ]
     )
 

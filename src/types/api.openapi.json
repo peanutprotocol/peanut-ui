@@ -11890,6 +11890,67 @@
 				]
 			}
 		},
+		"/manteca/deposit/open": {
+			"get": {
+				"description": "Return the newest unpaid, unexpired ARS deposit order from its saved Manteca snapshot.",
+				"parameters": [
+					{
+						"in": "query",
+						"name": "currency",
+						"required": true,
+						"schema": {
+							"enum": [
+								"ARS"
+							],
+							"type": "string"
+						}
+					},
+					{
+						"in": "header",
+						"name": "Authorization",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"data": null
+								},
+								"schema": {
+									"properties": {
+										"data": {
+											"anyOf": [
+												{
+													"additionalProperties": {},
+													"type": "object"
+												},
+												{
+													"type": "null"
+												}
+											]
+										}
+									},
+									"required": [
+										"data"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Get open deposit order",
+				"tags": [
+					"manteca"
+				]
+			}
+		},
 		"/manteca/deposit/{depositId}/cancel": {
 			"patch": {
 				"description": "Cancel a deposit order created via Manteca.",
@@ -22216,45 +22277,195 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"properties": {
-										"code": {
-											"anyOf": [
-												{
+									"anyOf": [
+										{
+											"properties": {
+												"code": {
 													"enum": [
-														"application-outcome-unknown"
+														"feature_reverification_required"
 													],
 													"type": "string"
 												},
-												{
-													"enum": [
-														"paperwork_verification_required"
+												"entry": {
+													"properties": {
+														"attemptId": {
+															"anyOf": [
+																{
+																	"type": "string"
+																},
+																{
+																	"type": "null"
+																}
+															]
+														},
+														"feature": {
+															"anyOf": [
+																{
+																	"enum": [
+																		"bank"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"card"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"local"
+																	],
+																	"type": "string"
+																}
+															]
+														},
+														"kind": {
+															"enum": [
+																"reverify_for_feature"
+															],
+															"type": "string"
+														},
+														"targetProvider": {
+															"anyOf": [
+																{
+																	"enum": [
+																		"BRIDGE"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"RAIN"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"MANTECA"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"AVENIA"
+																	],
+																	"type": "string"
+																}
+															]
+														}
+													},
+													"required": [
+														"kind",
+														"feature",
+														"targetProvider",
+														"attemptId"
 													],
+													"type": "object"
+												},
+												"error": {
 													"type": "string"
 												},
-												{
+												"message": {
+													"type": "string"
+												},
+												"userMessage": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"code",
+												"userMessage",
+												"message",
+												"error",
+												"entry"
+											],
+											"type": "object"
+										},
+										{
+											"properties": {
+												"code": {
+													"anyOf": [
+														{
+															"enum": [
+																"feature_setup_unavailable"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"feature_setup_pending"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"feature_not_open"
+															],
+															"type": "string"
+														}
+													]
+												},
+												"error": {
+													"type": "string"
+												},
+												"message": {
+													"type": "string"
+												},
+												"userMessage": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"code",
+												"userMessage",
+												"message",
+												"error"
+											],
+											"type": "object"
+										},
+										{
+											"properties": {
+												"code": {
+													"anyOf": [
+														{
+															"enum": [
+																"application-outcome-unknown"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"paperwork_verification_required"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"CARD_APP_UPDATE_REQUIRED"
+															],
+															"type": "string"
+														}
+													]
+												},
+												"message": {
+													"type": "string"
+												},
+												"status": {
 													"enum": [
-														"CARD_APP_UPDATE_REQUIRED"
+														"error"
 													],
 													"type": "string"
 												}
-											]
-										},
-										"message": {
-											"type": "string"
-										},
-										"status": {
-											"enum": [
-												"error"
+											},
+											"required": [
+												"status",
+												"code",
+												"message"
 											],
-											"type": "string"
+											"type": "object"
 										}
-									},
-									"required": [
-										"status",
-										"code",
-										"message"
-									],
-									"type": "object"
+									]
 								}
 							}
 						},
@@ -22287,6 +22498,92 @@
 										"message"
 									],
 									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"anyOf": [
+										{
+											"properties": {
+												"code": {
+													"anyOf": [
+														{
+															"enum": [
+																"feature_setup_unavailable"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"feature_setup_pending"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"feature_not_open"
+															],
+															"type": "string"
+														}
+													]
+												},
+												"error": {
+													"type": "string"
+												},
+												"message": {
+													"type": "string"
+												},
+												"userMessage": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"code",
+												"userMessage",
+												"message",
+												"error"
+											],
+											"type": "object"
+										},
+										{
+											"properties": {
+												"message": {
+													"type": "string"
+												},
+												"status": {
+													"enum": [
+														"error"
+													],
+													"type": "string"
+												}
+											},
+											"required": [
+												"status",
+												"message"
+											],
+											"type": "object"
+										},
+										{
+											"additionalProperties": true,
+											"properties": {
+												"code": {
+													"type": "string"
+												},
+												"error": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"error"
+											],
+											"type": "object"
+										}
+									]
 								}
 							}
 						},
@@ -27483,18 +27780,168 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"properties": {
-										"code": {
-											"enum": [
-												"verification_task_changed"
+									"anyOf": [
+										{
+											"properties": {
+												"code": {
+													"enum": [
+														"feature_reverification_required"
+													],
+													"type": "string"
+												},
+												"entry": {
+													"properties": {
+														"attemptId": {
+															"anyOf": [
+																{
+																	"type": "string"
+																},
+																{
+																	"type": "null"
+																}
+															]
+														},
+														"feature": {
+															"anyOf": [
+																{
+																	"enum": [
+																		"bank"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"card"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"local"
+																	],
+																	"type": "string"
+																}
+															]
+														},
+														"kind": {
+															"enum": [
+																"reverify_for_feature"
+															],
+															"type": "string"
+														},
+														"targetProvider": {
+															"anyOf": [
+																{
+																	"enum": [
+																		"BRIDGE"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"RAIN"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"MANTECA"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"AVENIA"
+																	],
+																	"type": "string"
+																}
+															]
+														}
+													},
+													"required": [
+														"kind",
+														"feature",
+														"targetProvider",
+														"attemptId"
+													],
+													"type": "object"
+												},
+												"error": {
+													"type": "string"
+												},
+												"message": {
+													"type": "string"
+												},
+												"userMessage": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"code",
+												"userMessage",
+												"message",
+												"error",
+												"entry"
 											],
-											"type": "string"
+											"type": "object"
+										},
+										{
+											"properties": {
+												"code": {
+													"anyOf": [
+														{
+															"enum": [
+																"feature_setup_unavailable"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"feature_setup_pending"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"feature_not_open"
+															],
+															"type": "string"
+														}
+													]
+												},
+												"error": {
+													"type": "string"
+												},
+												"message": {
+													"type": "string"
+												},
+												"userMessage": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"code",
+												"userMessage",
+												"message",
+												"error"
+											],
+											"type": "object"
+										},
+										{
+											"properties": {
+												"code": {
+													"enum": [
+														"verification_task_changed"
+													],
+													"type": "string"
+												}
+											},
+											"required": [
+												"code"
+											],
+											"type": "object"
 										}
-									},
-									"required": [
-										"code"
-									],
-									"type": "object"
+									]
 								}
 							}
 						},
@@ -27504,18 +27951,64 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"properties": {
-										"code": {
-											"enum": [
-												"verification_task_unavailable"
+									"anyOf": [
+										{
+											"properties": {
+												"code": {
+													"anyOf": [
+														{
+															"enum": [
+																"feature_setup_unavailable"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"feature_setup_pending"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"feature_not_open"
+															],
+															"type": "string"
+														}
+													]
+												},
+												"error": {
+													"type": "string"
+												},
+												"message": {
+													"type": "string"
+												},
+												"userMessage": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"code",
+												"userMessage",
+												"message",
+												"error"
 											],
-											"type": "string"
+											"type": "object"
+										},
+										{
+											"properties": {
+												"code": {
+													"enum": [
+														"verification_task_unavailable"
+													],
+													"type": "string"
+												}
+											},
+											"required": [
+												"code"
+											],
+											"type": "object"
 										}
-									},
-									"required": [
-										"code"
-									],
-									"type": "object"
+									]
 								}
 							}
 						},
@@ -34143,18 +34636,168 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"properties": {
-										"code": {
-											"type": "string"
+									"anyOf": [
+										{
+											"properties": {
+												"code": {
+													"enum": [
+														"feature_reverification_required"
+													],
+													"type": "string"
+												},
+												"entry": {
+													"properties": {
+														"attemptId": {
+															"anyOf": [
+																{
+																	"type": "string"
+																},
+																{
+																	"type": "null"
+																}
+															]
+														},
+														"feature": {
+															"anyOf": [
+																{
+																	"enum": [
+																		"bank"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"card"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"local"
+																	],
+																	"type": "string"
+																}
+															]
+														},
+														"kind": {
+															"enum": [
+																"reverify_for_feature"
+															],
+															"type": "string"
+														},
+														"targetProvider": {
+															"anyOf": [
+																{
+																	"enum": [
+																		"BRIDGE"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"RAIN"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"MANTECA"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"AVENIA"
+																	],
+																	"type": "string"
+																}
+															]
+														}
+													},
+													"required": [
+														"kind",
+														"feature",
+														"targetProvider",
+														"attemptId"
+													],
+													"type": "object"
+												},
+												"error": {
+													"type": "string"
+												},
+												"message": {
+													"type": "string"
+												},
+												"userMessage": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"code",
+												"userMessage",
+												"message",
+												"error",
+												"entry"
+											],
+											"type": "object"
 										},
-										"error": {
-											"type": "string"
+										{
+											"properties": {
+												"code": {
+													"anyOf": [
+														{
+															"enum": [
+																"feature_setup_unavailable"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"feature_setup_pending"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"feature_not_open"
+															],
+															"type": "string"
+														}
+													]
+												},
+												"error": {
+													"type": "string"
+												},
+												"message": {
+													"type": "string"
+												},
+												"userMessage": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"code",
+												"userMessage",
+												"message",
+												"error"
+											],
+											"type": "object"
+										},
+										{
+											"properties": {
+												"code": {
+													"type": "string"
+												},
+												"error": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"error"
+											],
+											"type": "object"
 										}
-									},
-									"required": [
-										"error"
-									],
-									"type": "object"
+									]
 								}
 							}
 						},
@@ -34170,6 +34813,55 @@
 										}
 									},
 									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"anyOf": [
+												{
+													"enum": [
+														"feature_setup_unavailable"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"feature_setup_pending"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"feature_not_open"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"message": {
+											"type": "string"
+										},
+										"userMessage": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"code",
+										"userMessage",
+										"message",
 										"error"
 									],
 									"type": "object"
@@ -34542,8 +35234,262 @@
 						}
 					}
 				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"additionalProperties": true,
+								"properties": {
+									"feature": {
+										"anyOf": [
+											{
+												"enum": [
+													"bank"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"card"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"local"
+												],
+												"type": "string"
+											}
+										]
+									}
+								},
+								"type": "object"
+							}
+						}
+					}
+				},
 				"responses": {
 					"200": {
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"anyOf": [
+										{
+											"properties": {
+												"code": {
+													"enum": [
+														"feature_reverification_required"
+													],
+													"type": "string"
+												},
+												"entry": {
+													"properties": {
+														"attemptId": {
+															"anyOf": [
+																{
+																	"type": "string"
+																},
+																{
+																	"type": "null"
+																}
+															]
+														},
+														"feature": {
+															"anyOf": [
+																{
+																	"enum": [
+																		"bank"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"card"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"local"
+																	],
+																	"type": "string"
+																}
+															]
+														},
+														"kind": {
+															"enum": [
+																"reverify_for_feature"
+															],
+															"type": "string"
+														},
+														"targetProvider": {
+															"anyOf": [
+																{
+																	"enum": [
+																		"BRIDGE"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"RAIN"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"MANTECA"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"AVENIA"
+																	],
+																	"type": "string"
+																}
+															]
+														}
+													},
+													"required": [
+														"kind",
+														"feature",
+														"targetProvider",
+														"attemptId"
+													],
+													"type": "object"
+												},
+												"error": {
+													"type": "string"
+												},
+												"message": {
+													"type": "string"
+												},
+												"userMessage": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"code",
+												"userMessage",
+												"message",
+												"error",
+												"entry"
+											],
+											"type": "object"
+										},
+										{
+											"properties": {
+												"code": {
+													"anyOf": [
+														{
+															"enum": [
+																"feature_setup_unavailable"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"feature_setup_pending"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"feature_not_open"
+															],
+															"type": "string"
+														}
+													]
+												},
+												"error": {
+													"type": "string"
+												},
+												"message": {
+													"type": "string"
+												},
+												"userMessage": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"code",
+												"userMessage",
+												"message",
+												"error"
+											],
+											"type": "object"
+										},
+										{
+											"additionalProperties": true,
+											"properties": {},
+											"type": "object"
+										}
+									]
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"anyOf": [
+										{
+											"properties": {
+												"code": {
+													"anyOf": [
+														{
+															"enum": [
+																"feature_setup_unavailable"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"feature_setup_pending"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"feature_not_open"
+															],
+															"type": "string"
+														}
+													]
+												},
+												"error": {
+													"type": "string"
+												},
+												"message": {
+													"type": "string"
+												},
+												"userMessage": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"code",
+												"userMessage",
+												"message",
+												"error"
+											],
+											"type": "object"
+										},
+										{
+											"additionalProperties": true,
+											"properties": {},
+											"type": "object"
+										}
+									]
+								}
+							}
+						},
 						"description": "Default Response"
 					}
 				}
@@ -34944,6 +35890,217 @@
 			"post": {
 				"responses": {
 					"200": {
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"anyOf": [
+										{
+											"properties": {
+												"code": {
+													"enum": [
+														"feature_reverification_required"
+													],
+													"type": "string"
+												},
+												"entry": {
+													"properties": {
+														"attemptId": {
+															"anyOf": [
+																{
+																	"type": "string"
+																},
+																{
+																	"type": "null"
+																}
+															]
+														},
+														"feature": {
+															"anyOf": [
+																{
+																	"enum": [
+																		"bank"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"card"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"local"
+																	],
+																	"type": "string"
+																}
+															]
+														},
+														"kind": {
+															"enum": [
+																"reverify_for_feature"
+															],
+															"type": "string"
+														},
+														"targetProvider": {
+															"anyOf": [
+																{
+																	"enum": [
+																		"BRIDGE"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"RAIN"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"MANTECA"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"AVENIA"
+																	],
+																	"type": "string"
+																}
+															]
+														}
+													},
+													"required": [
+														"kind",
+														"feature",
+														"targetProvider",
+														"attemptId"
+													],
+													"type": "object"
+												},
+												"error": {
+													"type": "string"
+												},
+												"message": {
+													"type": "string"
+												},
+												"userMessage": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"code",
+												"userMessage",
+												"message",
+												"error",
+												"entry"
+											],
+											"type": "object"
+										},
+										{
+											"properties": {
+												"code": {
+													"anyOf": [
+														{
+															"enum": [
+																"feature_setup_unavailable"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"feature_setup_pending"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"feature_not_open"
+															],
+															"type": "string"
+														}
+													]
+												},
+												"error": {
+													"type": "string"
+												},
+												"message": {
+													"type": "string"
+												},
+												"userMessage": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"code",
+												"userMessage",
+												"message",
+												"error"
+											],
+											"type": "object"
+										},
+										{
+											"additionalProperties": true,
+											"properties": {},
+											"type": "object"
+										}
+									]
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"anyOf": [
+												{
+													"enum": [
+														"feature_setup_unavailable"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"feature_setup_pending"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"feature_not_open"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"message": {
+											"type": "string"
+										},
+										"userMessage": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"code",
+										"userMessage",
+										"message",
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
 						"description": "Default Response"
 					}
 				}
@@ -36020,6 +37177,15 @@
 				"parameters": [
 					{
 						"in": "query",
+						"name": "attemptId",
+						"required": false,
+						"schema": {
+							"format": "uuid",
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
 						"name": "feature",
 						"required": false,
 						"schema": {
@@ -36475,6 +37641,24 @@
 							"application/json": {
 								"schema": {
 									"properties": {},
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"code"
+									],
 									"type": "object"
 								}
 							}
@@ -37885,12 +39069,166 @@
 						"content": {
 							"application/json": {
 								"schema": {
+									"anyOf": [
+										{
+											"properties": {
+												"code": {
+													"enum": [
+														"feature_reverification_required"
+													],
+													"type": "string"
+												},
+												"entry": {
+													"properties": {
+														"attemptId": {
+															"anyOf": [
+																{
+																	"type": "string"
+																},
+																{
+																	"type": "null"
+																}
+															]
+														},
+														"feature": {
+															"anyOf": [
+																{
+																	"enum": [
+																		"bank"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"card"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"local"
+																	],
+																	"type": "string"
+																}
+															]
+														},
+														"kind": {
+															"enum": [
+																"reverify_for_feature"
+															],
+															"type": "string"
+														},
+														"targetProvider": {
+															"anyOf": [
+																{
+																	"enum": [
+																		"BRIDGE"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"RAIN"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"MANTECA"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"AVENIA"
+																	],
+																	"type": "string"
+																}
+															]
+														}
+													},
+													"required": [
+														"kind",
+														"feature",
+														"targetProvider",
+														"attemptId"
+													],
+													"type": "object"
+												},
+												"error": {
+													"type": "string"
+												},
+												"message": {
+													"type": "string"
+												},
+												"userMessage": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"code",
+												"userMessage",
+												"message",
+												"error",
+												"entry"
+											],
+											"type": "object"
+										},
+										{
+											"properties": {
+												"code": {
+													"anyOf": [
+														{
+															"enum": [
+																"identity_not_approved"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"feature_not_open"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"questions_missing"
+															],
+															"type": "string"
+														}
+													]
+												},
+												"step": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"code"
+											],
+											"type": "object"
+										}
+									]
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
 									"properties": {
 										"code": {
 											"anyOf": [
 												{
 													"enum": [
-														"identity_not_approved"
+														"feature_setup_unavailable"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"feature_setup_pending"
 													],
 													"type": "string"
 												},
@@ -37899,21 +39237,24 @@
 														"feature_not_open"
 													],
 													"type": "string"
-												},
-												{
-													"enum": [
-														"questions_missing"
-													],
-													"type": "string"
 												}
 											]
 										},
-										"step": {
+										"error": {
+											"type": "string"
+										},
+										"message": {
+											"type": "string"
+										},
+										"userMessage": {
 											"type": "string"
 										}
 									},
 									"required": [
-										"code"
+										"code",
+										"userMessage",
+										"message",
+										"error"
 									],
 									"type": "object"
 								}
@@ -37926,6 +39267,17 @@
 		},
 		"/users/kyc/identity/refresh": {
 			"post": {
+				"parameters": [
+					{
+						"in": "query",
+						"name": "attemptId",
+						"required": false,
+						"schema": {
+							"format": "uuid",
+							"type": "string"
+						}
+					}
+				],
 				"responses": {
 					"200": {
 						"content": {
@@ -37949,6 +39301,17 @@
 									"required": [
 										"status"
 									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {},
 									"type": "object"
 								}
 							}
@@ -38751,6 +40114,33 @@
 						"schema": {
 							"type": "boolean"
 						}
+					},
+					{
+						"in": "query",
+						"name": "feature",
+						"required": false,
+						"schema": {
+							"anyOf": [
+								{
+									"enum": [
+										"bank"
+									],
+									"type": "string"
+								},
+								{
+									"enum": [
+										"card"
+									],
+									"type": "string"
+								},
+								{
+									"enum": [
+										"local"
+									],
+									"type": "string"
+								}
+							]
+						}
 					}
 				],
 				"responses": {
@@ -38872,6 +40262,83 @@
 												},
 												"type": "object"
 											},
+											"type": "object"
+										},
+										"entry": {
+											"properties": {
+												"attemptId": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"feature": {
+													"anyOf": [
+														{
+															"enum": [
+																"bank"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"card"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"local"
+															],
+															"type": "string"
+														}
+													]
+												},
+												"kind": {
+													"enum": [
+														"reverify_for_feature"
+													],
+													"type": "string"
+												},
+												"targetProvider": {
+													"anyOf": [
+														{
+															"enum": [
+																"BRIDGE"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"RAIN"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"MANTECA"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"AVENIA"
+															],
+															"type": "string"
+														}
+													]
+												}
+											},
+											"required": [
+												"kind",
+												"feature",
+												"targetProvider",
+												"attemptId"
+											],
 											"type": "object"
 										},
 										"features": {
@@ -39156,6 +40623,55 @@
 										"documentRefusals",
 										"documentTypeRefusals",
 										"temporaryProtection"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"anyOf": [
+												{
+													"enum": [
+														"feature_setup_unavailable"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"feature_setup_pending"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"feature_not_open"
+													],
+													"type": "string"
+												}
+											]
+										},
+										"error": {
+											"type": "string"
+										},
+										"message": {
+											"type": "string"
+										},
+										"userMessage": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"code",
+										"userMessage",
+										"message",
+										"error"
 									],
 									"type": "object"
 								}
@@ -40407,6 +41923,20 @@
 																		}
 																	]
 																},
+																"heldAt": {
+																	"anyOf": [
+																		{
+																			"format": "date-time",
+																			"type": "string"
+																		},
+																		{
+																			"type": "null"
+																		}
+																	]
+																},
+																"manualReview": {
+																	"type": "boolean"
+																},
 																"secondCountry": {
 																	"anyOf": [
 																		{
@@ -40659,6 +42189,15 @@
 		"/users/kyc/questions": {
 			"get": {
 				"parameters": [
+					{
+						"in": "query",
+						"name": "attemptId",
+						"required": false,
+						"schema": {
+							"format": "uuid",
+							"type": "string"
+						}
+					},
 					{
 						"in": "query",
 						"name": "feature",
@@ -41248,6 +42787,313 @@
 				}
 			}
 		},
+		"/users/kyc/reverification": {
+			"post": {
+				"parameters": [
+					{
+						"description": "Feature re-verification requires version 3 or higher.",
+						"in": "header",
+						"name": "x-kyc-client",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"additionalProperties": false,
+								"properties": {
+									"feature": {
+										"anyOf": [
+											{
+												"enum": [
+													"bank"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"card"
+												],
+												"type": "string"
+											},
+											{
+												"enum": [
+													"local"
+												],
+												"type": "string"
+											}
+										]
+									},
+									"requestKey": {
+										"format": "uuid",
+										"type": "string"
+									}
+								},
+								"required": [
+									"feature",
+									"requestKey"
+								],
+								"type": "object"
+							}
+						}
+					},
+					"required": true
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"attemptId": {
+											"type": "string"
+										},
+										"entry": {
+											"properties": {
+												"attemptId": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"feature": {
+													"anyOf": [
+														{
+															"enum": [
+																"bank"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"card"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"local"
+															],
+															"type": "string"
+														}
+													]
+												},
+												"kind": {
+													"enum": [
+														"reverify_for_feature"
+													],
+													"type": "string"
+												},
+												"targetProvider": {
+													"anyOf": [
+														{
+															"enum": [
+																"BRIDGE"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"RAIN"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"MANTECA"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"AVENIA"
+															],
+															"type": "string"
+														}
+													]
+												}
+											},
+											"required": [
+												"kind",
+												"feature",
+												"targetProvider",
+												"attemptId"
+											],
+											"type": "object"
+										},
+										"status": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"attemptId",
+										"status",
+										"entry"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"anyOf": [
+										{
+											"properties": {
+												"code": {
+													"type": "string"
+												},
+												"error": {
+													"type": "string"
+												},
+												"message": {
+													"type": "string"
+												},
+												"userMessage": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"code",
+												"userMessage",
+												"message",
+												"error"
+											],
+											"type": "object"
+										},
+										{
+											"properties": {
+												"code": {
+													"type": "string"
+												},
+												"error": {
+													"type": "string"
+												},
+												"message": {
+													"type": "string"
+												},
+												"statusCode": {
+													"type": "number"
+												}
+											},
+											"required": [
+												"statusCode",
+												"code",
+												"message",
+												"error"
+											],
+											"type": "object"
+										}
+									]
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										},
+										"message": {
+											"type": "string"
+										},
+										"userMessage": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"code",
+										"userMessage",
+										"message",
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										},
+										"message": {
+											"type": "string"
+										},
+										"userMessage": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"code",
+										"userMessage",
+										"message",
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										},
+										"message": {
+											"type": "string"
+										},
+										"userMessage": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"code",
+										"userMessage",
+										"message",
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				}
+			}
+		},
 		"/users/kyc/start-action": {
 			"post": {
 				"parameters": [
@@ -41369,6 +43215,226 @@
 										}
 									},
 									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"anyOf": [
+										{
+											"properties": {
+												"code": {
+													"enum": [
+														"feature_reverification_required"
+													],
+													"type": "string"
+												},
+												"entry": {
+													"properties": {
+														"attemptId": {
+															"anyOf": [
+																{
+																	"type": "string"
+																},
+																{
+																	"type": "null"
+																}
+															]
+														},
+														"feature": {
+															"anyOf": [
+																{
+																	"enum": [
+																		"bank"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"card"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"local"
+																	],
+																	"type": "string"
+																}
+															]
+														},
+														"kind": {
+															"enum": [
+																"reverify_for_feature"
+															],
+															"type": "string"
+														},
+														"targetProvider": {
+															"anyOf": [
+																{
+																	"enum": [
+																		"BRIDGE"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"RAIN"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"MANTECA"
+																	],
+																	"type": "string"
+																},
+																{
+																	"enum": [
+																		"AVENIA"
+																	],
+																	"type": "string"
+																}
+															]
+														}
+													},
+													"required": [
+														"kind",
+														"feature",
+														"targetProvider",
+														"attemptId"
+													],
+													"type": "object"
+												},
+												"error": {
+													"type": "string"
+												},
+												"message": {
+													"type": "string"
+												},
+												"userMessage": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"code",
+												"userMessage",
+												"message",
+												"error",
+												"entry"
+											],
+											"type": "object"
+										},
+										{
+											"properties": {
+												"code": {
+													"anyOf": [
+														{
+															"enum": [
+																"feature_setup_unavailable"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"feature_setup_pending"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"feature_not_open"
+															],
+															"type": "string"
+														}
+													]
+												},
+												"error": {
+													"type": "string"
+												},
+												"message": {
+													"type": "string"
+												},
+												"userMessage": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"code",
+												"userMessage",
+												"message",
+												"error"
+											],
+											"type": "object"
+										},
+										{
+											"additionalProperties": true,
+											"properties": {},
+											"type": "object"
+										}
+									]
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"anyOf": [
+										{
+											"properties": {
+												"code": {
+													"anyOf": [
+														{
+															"enum": [
+																"feature_setup_unavailable"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"feature_setup_pending"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"feature_not_open"
+															],
+															"type": "string"
+														}
+													]
+												},
+												"error": {
+													"type": "string"
+												},
+												"message": {
+													"type": "string"
+												},
+												"userMessage": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"code",
+												"userMessage",
+												"message",
+												"error"
+											],
+											"type": "object"
+										},
+										{
+											"additionalProperties": true,
+											"properties": {},
+											"type": "object"
+										}
+									]
 								}
 							}
 						},
@@ -43121,6 +45187,20 @@
 																				}
 																			]
 																		},
+																		"heldAt": {
+																			"anyOf": [
+																				{
+																					"format": "date-time",
+																					"type": "string"
+																				},
+																				{
+																					"type": "null"
+																				}
+																			]
+																		},
+																		"manualReview": {
+																			"type": "boolean"
+																		},
 																		"secondCountry": {
 																			"anyOf": [
 																				{
@@ -44564,6 +46644,8 @@
 									"residence": {
 										"declared": {
 											"country": "PT",
+											"heldAt": "2026-01-01T00:00:00.000Z",
+											"manualReview": true,
 											"secondCountry": null,
 											"status": "REVIEW_PENDING",
 											"updatedAt": "2026-01-01T00:00:00.000Z"
@@ -44735,6 +46817,20 @@
 																			"type": "null"
 																		}
 																	]
+																},
+																"heldAt": {
+																	"anyOf": [
+																		{
+																			"format": "date-time",
+																			"type": "string"
+																		},
+																		{
+																			"type": "null"
+																		}
+																	]
+																},
+																"manualReview": {
+																	"type": "boolean"
 																},
 																"secondCountry": {
 																	"anyOf": [

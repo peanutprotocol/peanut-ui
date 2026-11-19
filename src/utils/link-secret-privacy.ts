@@ -22,10 +22,14 @@ const ENCODED_READ_PROOF_QUERY = /(%(?:25)*(?:3f|26)proof%(?:25)*3d)[^\s"'<>&%]+
 // `$session_entry_url`, `href`, `navigationURL`, ... A fragment there is never
 // analytics data, and a fragment we do not know about may be a secret too.
 const URL_KEY = /url|href|referrer/i
+const REVERIFY_RETURN_QUERY = /([?&]returnTo=)[^\s"'<>&#]*/gi
 
 /** Removes every send-link secret (`#p=…`, raw or percent-encoded, and the `proof=` value) from a string. */
 export function stripLinkSecrets(value: string): string {
-    return value
+    const safe = /\/verify\?[^\s"'<>#]*\bmode=reverify\b/.test(value)
+        ? value.replace(REVERIFY_RETURN_QUERY, '$1redacted')
+        : value
+    return safe
         .replace(RAW_SECRET_FRAGMENT, '')
         .replace(ENCODED_SECRET_FRAGMENT, '')
         .replace(READ_PROOF_QUERY, '$1redacted')

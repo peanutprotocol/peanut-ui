@@ -1,8 +1,10 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { rainApi, type RainCardOverview } from '@/services/rain'
+import { useRouter } from 'next/navigation'
+import { rainApi, RainVerificationReverificationError, type RainCardOverview } from '@/services/rain'
 import { getClearEpoch } from '@/utils/auth-token'
+import { currentReverificationDestination, featureReverificationPath } from '@/utils/kyc-reverification'
 
 type Action = NonNullable<RainCardOverview['pendingVerification']>
 type VerificationContext = RainCardOverview['verificationContext']
@@ -31,6 +33,7 @@ export function useCardVerificationContinuation(
     refreshOverview: () => void,
     refreshProfile: () => Promise<unknown>
 ) {
+    const router = useRouter()
     const authEpoch = getClearEpoch()
     const actionIdentity = actionKey(owner, action)
     const last = useRef<{ owner: string | undefined; authEpoch: number; identity: string | null } | null>(null)
@@ -94,6 +97,7 @@ export function useCardVerificationContinuation(
         const controller = new AbortController()
         const revision = context.current.revision
         const capturedAuthEpoch = getClearEpoch()
+        const returnTo = currentReverificationDestination()
         inFlight.current = controller
         setBusyKey(renderKey)
         setErrorKey(null)
@@ -115,20 +119,23 @@ export function useCardVerificationContinuation(
             const next = { key, owner, action, token, revision, authEpoch: capturedAuthEpoch }
             currentSession.current = next
             setSession(next)
-        } catch {
+        } catch (error) {
             if (
                 alive.current &&
                 !controller.signal.aborted &&
                 context.current.key === key &&
                 context.current.revision === revision &&
                 getClearEpoch() === capturedAuthEpoch
-            )
-                setErrorKey(renderKey)
+            ) {
+                if (error instanceof RainVerificationReverificationError)
+                    router.push(featureReverificationPath(error.reverification.entry, returnTo))
+                else setErrorKey(renderKey)
+            }
         } finally {
             if (inFlight.current === controller) inFlight.current = null
             if (alive.current && context.current.key === key && context.current.revision === revision) setBusyKey(null)
         }
-    }, [canStart, key, owner, action, renderedRevision, renderKey])
+    }, [canStart, key, owner, action, renderedRevision, renderKey, router])
 
     const active =
         session?.key === key &&
@@ -148,6 +155,7 @@ export function useCardVerificationContinuation(
         )
             throw new Error('Card verification changed')
         const controller = new AbortController()
+        const returnTo = currentReverificationDestination()
         inFlight.current?.abort()
         inFlight.current = controller
         try {
@@ -167,10 +175,25 @@ export function useCardVerificationContinuation(
             )
                 throw new Error('Card verification changed')
             return token
+        } catch (error) {
+            if (
+                error instanceof RainVerificationReverificationError &&
+                alive.current &&
+                !controller.signal.aborted &&
+                currentSession.current === captured &&
+                context.current.key === captured.key &&
+                context.current.revision === captured.revision &&
+                getClearEpoch() === captured.authEpoch
+            ) {
+                currentSession.current = null
+                setSession(null)
+                router.push(featureReverificationPath(error.reverification.entry, returnTo))
+            }
+            throw error
         } finally {
             if (inFlight.current === controller) inFlight.current = null
         }
-    }, [active])
+    }, [active, router])
 
     const finish = useCallback(() => {
         if (

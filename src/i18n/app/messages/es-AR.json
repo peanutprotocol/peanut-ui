@@ -1885,6 +1885,17 @@
             "servedElsewhere": "Los depósitos, retiros, transferencias y pagos con QR por Pix están disponibles donde vivís."
         },
         "paperworkVerification": {
+            "reverify": {
+                "inviteTitle": "Volvé a verificar tu identidad",
+                "inviteCard": "Volvé a verificar tu identidad para configurar tu tarjeta. Podés seguir usando tus cuentas actuales mientras revisamos tus datos.",
+                "inviteBank": "Volvé a verificar tu identidad para configurar tu cuenta bancaria. Podés seguir usando tus cuentas actuales mientras revisamos tus datos.",
+                "inviteLocal": "Volvé a verificar tu identidad para configurar tu cuenta local. Podés seguir usando tus cuentas actuales mientras revisamos tus datos.",
+                "documentMismatch": "El documento que subiste es de otro país. Elegí el documento que querés volver a subir.",
+                "pendingDescription": "Podés seguir usando tus cuentas actuales mientras revisamos tu nueva verificación de identidad.",
+                "refusalCard": "No pudimos configurar tu tarjeta. Podés seguir usando tus cuentas actuales.",
+                "refusalBank": "No pudimos configurar tu cuenta bancaria. Podés seguir usando tus cuentas actuales.",
+                "refusalLocal": "No pudimos configurar tu cuenta local. Podés seguir usando tus cuentas actuales."
+            },
             "phoneHelp": "Incluí el código de tu país, como +54.",
             "hints": {
                 "purpose": "Elegí la opción más parecida.",

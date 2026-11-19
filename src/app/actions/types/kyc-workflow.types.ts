@@ -1,4 +1,5 @@
 import type { paths } from '@/types/api.generated'
+import type { FeatureReverificationEntry } from './kyc-reverification.types'
 
 type DocumentPlanResponse = paths['/users/kyc/plan']['get']['responses'][200]['content']['application/json']
 /** What an older account still has to answer before Smart Paperwork Verification can ask its questions. */
@@ -27,7 +28,7 @@ export type KycDocumentPlan = Omit<
             | 'temporaryProtection'
             | 'needs'
         >
-    >
+    > & { entry?: FeatureReverificationEntry | null }
 export type KycFeatures = KycDocumentPlan['features']
 /** Smart Paperwork Verification's stored `flow` value; the API keeps it on existing attempts. */
 export const PAPERWORK_VERIFICATION_FLOW = 'verify-once' satisfies NonNullable<KycDocumentPlan['flow']>

@@ -7,6 +7,7 @@ import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { renderWithIntl } from '@/test-utils/intl'
 import type { PaperworkVerificationQuestions } from '@/app/actions/types/kyc-paperwork-verification.types'
 import {
+    getIdentityDocumentMismatch,
     getKycQuestions,
     saveKycAnswers,
     savePaperworkVerificationFeatures,
@@ -31,6 +32,7 @@ jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: mockPush, replace: mockReplace, back: jest.fn(), prefetch: jest.fn() }),
 }))
 jest.mock('@/app/actions/kyc-paperwork-verification', () => ({
+    getIdentityDocumentMismatch: jest.fn(async () => null),
     getKycQuestions: jest.fn(),
     saveKycAnswers: jest.fn(),
     savePaperworkVerificationFeatures: jest.fn(),
@@ -66,16 +68,19 @@ jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({
         onComplete,
         onClose,
         onRefreshToken,
+        onIdentityStepCompleted,
     }: {
         visible: boolean
         onComplete: () => void
         onClose: () => void
         onRefreshToken: () => Promise<string>
+        onIdentityStepCompleted: () => void
     }) =>
         visible ? (
             <div>
                 <button onClick={onComplete}>sumsub-submit</button>
                 <button onClick={onClose}>sumsub-close</button>
+                <button onClick={onIdentityStepCompleted}>sumsub-document</button>
                 <button onClick={() => void onRefreshToken().catch(() => undefined)}>sumsub-refresh</button>
             </div>
         ) : null,
@@ -157,11 +162,11 @@ const build = (
     progress: { done: 2, total: 5 },
 })
 
-function renderFlow(search = '') {
+function renderFlow(search = '', props: Parameters<typeof PaperworkVerificationFlow>[0] = {}) {
     return renderWithIntl(
         <QueryClientProvider client={new QueryClient()}>
             <NuqsTestingAdapter searchParams={search} hasMemory>
-                <PaperworkVerificationFlow />
+                <PaperworkVerificationFlow {...props} />
             </NuqsTestingAdapter>
         </QueryClientProvider>
     )
@@ -205,6 +210,86 @@ const session = (attemptId = 'attempt-1') => ({
     session: { attemptId, token: 'sdk-token', applicantId: 'fixture-applicant', levelName: 'base' } as never,
 })
 
+describe('feature re-verification candidate', () => {
+    const candidate = {
+        kind: 'reverify_for_feature',
+        feature: 'card',
+        targetProvider: 'RAIN',
+        attemptId: 'candidate-1',
+    } as const
+    const returnTo = '/card?tab=details#status'
+
+    beforeEach(() => {
+        mockIdentity = { status: 'verified', oneShot: false }
+        mockPlan.mockResolvedValue({ ...plan, entry: candidate })
+        mockStatus.mockImplementation(async (_signal, attemptId) => (attemptId ? 'NOT_STARTED' : 'APPROVED'))
+        mockQuestions.mockResolvedValue({ ...build(), attemptId: candidate.attemptId })
+    })
+    afterEach(() => jest.useRealTimers())
+
+    it('opens and saves candidate questions despite accepted identity approval', async () => {
+        mockSave.mockResolvedValue({ kind: 'saved', next: null })
+        renderFlow('', { candidate, returnTo })
+        expect(await screen.findByTestId('verify-pick-annualSalary')).toBeInTheDocument()
+        expect(mockQuestions).toHaveBeenCalledWith('card', candidate.attemptId, expect.any(Function))
+        fireEvent.click(continueButton())
+        await waitFor(() => expect(mockSave.mock.calls[0]?.[4]).toBe(candidate.attemptId))
+        expect(mockStatus.mock.calls.every(([, id]) => id === candidate.attemptId)).toBe(true)
+        expect(screen.queryByTestId('verify-verified-payments')).not.toBeInTheDocument()
+        expect(mockPush).not.toHaveBeenCalled()
+        expect(posthog.capture).toHaveBeenCalledWith(
+            expect.any(String),
+            expect.objectContaining({ kyc_flow: 'verify-once', verification_purpose: 'feature_reverification' })
+        )
+    })
+
+    it('resumes pending, reuploads on RETRY, and returns only when the candidate passes', async () => {
+        jest.useFakeTimers()
+        mockQuestions.mockResolvedValue({
+            ...build({ purpose: true, money: true, tax: true }, null),
+            attemptId: candidate.attemptId,
+        })
+        mockStatus.mockResolvedValue('IN_REVIEW')
+        mockToken.mockResolvedValue(session(candidate.attemptId))
+        const view = renderFlow('', { candidate, returnTo })
+        expect(await screen.findByTestId('verify-review-home')).toBeInTheDocument()
+        expect(screen.queryByTestId('verify-verified-payments')).not.toBeInTheDocument()
+        mockStatus.mockResolvedValue('ACTION_REQUIRED')
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(15_000)
+        })
+        fireEvent.click(await screen.findByRole('button', { name: /try again/i }))
+        fireEvent.click(await screen.findByText('sumsub-document'))
+        expect(getIdentityDocumentMismatch).toHaveBeenCalledWith(candidate.attemptId)
+        fireEvent.click(await screen.findByText('sumsub-submit'))
+        expect(mockToken).toHaveBeenCalledWith(candidate.attemptId, undefined, expect.any(Function))
+        expect(screen.queryByTestId('verify-verified-payments')).not.toBeInTheDocument()
+        expect(mockPush).not.toHaveBeenCalled()
+        view.unmount()
+        mockStatus.mockResolvedValue('NOT_STARTED')
+        renderFlow('', { candidate, returnTo })
+        expect(await screen.findByTestId('verify-review-home')).toBeInTheDocument()
+        expect(mockToken).toHaveBeenCalledTimes(1)
+        mockStatus.mockResolvedValue('APPROVED')
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(15_000)
+        })
+        fireEvent.click(await screen.findByTestId('verify-verified-payments'))
+        await waitFor(() => expect(mockReplace).toHaveBeenCalledWith(returnTo))
+        expect(mockReplace.mock.calls.filter(([url]) => url === returnTo)).toHaveLength(1)
+    })
+
+    it('shows target refusal after FINAL even when plan no longer has the active entry', async () => {
+        mockStatus.mockResolvedValue('REJECTED')
+        mockPlan.mockResolvedValue(plan)
+        renderFlow('', { candidate, returnTo })
+        expect(await screen.findByText(/couldn.t set up your card/i)).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /try again/i })).not.toBeInTheDocument()
+        expect(mockToken).not.toHaveBeenCalled()
+        expect(mockPush).not.toHaveBeenCalled()
+    })
+})
+
 describe('canonical identity recovery acceptance', () => {
     afterEach(() => jest.useRealTimers())
 
@@ -213,6 +298,10 @@ describe('canonical identity recovery acceptance', () => {
         mockStatus.mockResolvedValue('PENDING')
         renderFlow()
         expect(await screen.findByTestId('verify-review-home')).toBeInTheDocument()
+        expect(posthog.capture).toHaveBeenCalledWith(
+            expect.any(String),
+            expect.objectContaining({ kyc_flow: 'verify-once', verification_purpose: 'initial' })
+        )
         const readsBeforePoll = mockStatus.mock.calls.length
         await act(async () => {
             jest.advanceTimersByTime(30_000)

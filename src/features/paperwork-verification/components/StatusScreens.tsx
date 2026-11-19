@@ -77,6 +77,7 @@ export function ReviewScreen({
     busy = false,
     error,
     policyHold = false,
+    copy,
 }: {
     rejection: IdentityRejection
     onHome: () => void
@@ -86,6 +87,7 @@ export function ReviewScreen({
     busy?: boolean
     error?: string | null
     policyHold?: boolean
+    copy?: { title: string; description: string }
 }) {
     const t = useTranslations('kyc.paperworkVerification')
     const tRoot = useTranslations()
@@ -121,8 +123,13 @@ export function ReviewScreen({
     return (
         <VerifyCelebrationLayout
             pose="sad"
-            title={t(policyHold ? 'policyHold.title' : onRetry ? 'failed.title' : 'failed.terminalTitle')}
-            description={policyHold ? t('policyHold.description') : tRoot(rejection.descriptionKey as never)}
+            title={
+                copy?.title ?? t(policyHold ? 'policyHold.title' : onRetry ? 'failed.title' : 'failed.terminalTitle')
+            }
+            description={
+                copy?.description ??
+                (policyHold ? t('policyHold.description') : tRoot(rejection.descriptionKey as never))
+            }
             footer={
                 <VerifyFooter
                     actions={
