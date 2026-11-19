@@ -55,11 +55,6 @@ export function LoadFailed({ onRetry, onHome }: { onRetry: () => void; onHome: (
     )
 }
 
-export function ResidenceNotSupported({ onBack }: { onBack: () => void }) {
-    const t = useTranslations('kyc')
-    return <VerifyHeroLayout pose="sad" title={t('residenceNotSupported')} onBack={onBack} footer={null} />
-}
-
 export function VerificationOutage({ onBack }: { onBack: () => void }) {
     const t = useTranslations('kyc')
     const controls = useKycControl('outage', 'kyc_status')

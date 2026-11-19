@@ -47,7 +47,8 @@ import { pendingResidenceCountry } from '@/utils/residence-profile'
 import { identityDocuments } from '@/utils/kyc-document-plan.utils'
 import { IdentityDocumentScreen } from './components/IdentityDocumentScreen'
 import { QuestionStepScreen, trackSaveOutcome } from './components/QuestionStepScreen'
-import { LoadFailed, ResidenceNotSupported, VerifyLoading } from './components/LoadScreens'
+import { LoadFailed, VerifyLoading } from './components/LoadScreens'
+import { ResidenceNotSupportedScreen } from './components/ResidenceNotSupportedScreen'
 import { VerifySetupPrelude } from './components/VerifySetupPrelude'
 import { restoreNativeStatusBar } from './useInsetColor'
 import { ClosedFeaturesNotice, ProofOfAddressScreen, ReviewScreen } from './components/StatusScreens'
@@ -364,7 +365,7 @@ function PaperworkVerificationAccount({ userId }: { userId?: string }) {
                 )}
             </PaperworkVerificationTrackingProvider>
         )
-    if (state.kind === 'residence-not-supported') return <ResidenceNotSupported onBack={exit} />
+    if (state.kind === 'residence-not-supported') return <ResidenceNotSupportedScreen onBack={exit} />
     if (state.kind === 'rejected')
         return (
             <PaperworkVerificationTrackingProvider value={{ flow: 'paperwork_verification', residence: null }}>
@@ -1090,7 +1091,7 @@ function PaperworkVerificationSteps({
         )
     }
 
-    if (plan?.unavailableReason === 'residence_not_supported') return <ResidenceNotSupported onBack={exit} />
+    if (plan?.unavailableReason === 'residence_not_supported') return <ResidenceNotSupportedScreen onBack={exit} />
 
     return (
         <PaperworkVerificationTrackingProvider value={tracking}>

@@ -3368,7 +3368,7 @@
         "qrFirstScanDescription": "Una notificación cuando se complete el pago."
     },
     "kyc": {
-        "residenceNotSupported": "Peanut aún no puede verificar a residentes de este país.",
+        "residenceNotSupported": "Aún no podemos verificar a residentes de este país.",
         "clientUpdateRequired": "Actualiza la app de Peanut para continuar con la verificación.",
         "statusDrawerTitle": "Estado de la verificación",
         "identityVerification": "Verificación de identidad",

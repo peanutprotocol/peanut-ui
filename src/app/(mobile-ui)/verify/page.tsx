@@ -3,7 +3,8 @@
 import { Suspense } from 'react'
 import { parseAsStringEnum, useQueryState } from 'nuqs'
 import { useKycDegraded } from '@/hooks/useKycDegraded'
-import { ResidenceNotSupported, VerificationOutage } from '@/features/paperwork-verification/components/LoadScreens'
+import { VerificationOutage } from '@/features/paperwork-verification/components/LoadScreens'
+import { ResidenceNotSupportedScreen } from '@/features/paperwork-verification/components/ResidenceNotSupportedScreen'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { AddFeatureFlow } from '@/features/paperwork-verification/AddFeatureFlow'
 import { IdentityRestartFlow } from '@/features/paperwork-verification/IdentityRestartFlow'
@@ -20,7 +21,7 @@ function VerifyPage() {
     const [reason] = useQueryState('reason', parseAsStringEnum(['residence_not_supported'] as const))
     const exit = useSafeBack('/home')
     const degraded = useKycDegraded()
-    if (reason === 'residence_not_supported') return <ResidenceNotSupported onBack={exit} />
+    if (reason === 'residence_not_supported') return <ResidenceNotSupportedScreen onBack={exit} />
     if (degraded) {
         // The flow the user was opening, as the flow itself would report it.
         const tracking: PaperworkVerificationTrackingContext = restart

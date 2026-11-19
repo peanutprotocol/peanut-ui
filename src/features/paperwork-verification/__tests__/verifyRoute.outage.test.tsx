@@ -37,21 +37,21 @@ it('switch recovery restores the requested entry', () => {
 })
 
 it.each([
-    ['en', 'Peanut can’t verify residents of this country yet.', 'Update the Peanut app to continue verification.'],
+    ['en', 'We can’t verify this country’s residents yet.', 'Update the Peanut app to continue verification.'],
     [
         'es-419',
-        'Peanut aún no puede verificar a residentes de este país.',
+        'Aún no podemos verificar a residentes de este país.',
         'Actualiza la app de Peanut para continuar con la verificación.',
     ],
     [
         'es-AR',
-        'Peanut aún no puede verificar a residentes de este país.',
+        'Aún no podemos verificar a residentes de este país.',
         'Actualizá la app de Peanut para continuar con la verificación.',
     ],
     [
         'pt-BR',
-        'A Peanut ainda não consegue verificar residentes deste país.',
-        'Atualize o app da Peanut para continuar a verificação.',
+        'Ainda não podemos verificar residentes deste país.',
+        'Atualize o app do Peanut para continuar a verificação.',
     ],
 ] as const)('shows the terminal residence screen in %s', async (locale, residence, update) => {
     mockDown = false
