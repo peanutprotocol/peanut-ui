@@ -141,9 +141,16 @@ const restartIdentityRedirect = (
 const caughtError = (e: unknown): SumsubActionError =>
     e instanceof Error ? { error: e.message } : { error: 'An unexpected error occurred', code: 'unexpected' }
 
+type IdentityPost = paths['/users/identity']['post']
+type IdentityBody = NonNullable<IdentityPost['requestBody']>['content']['application/json']
+type IdentitySetupError = Extract<IdentityPost['responses'][503]['content']['application/json'], { code: string }>
+export const QR_POOL_REFUSED = 'feature_not_open' satisfies IdentitySetupError['code']
+export const QR_POOL_UNAVAILABLE = 'feature_setup_unavailable' satisfies IdentitySetupError['code']
+
 // initiate kyc flow (using sumsub) and get websdk access token
 export const initiateSumsubKyc = async (
     params?: {
+        feature?: Extract<IdentityBody['feature'], 'qr'>
         /**
          * The deposit corridor the user is verifying for (a rail method code, e.g.
          * `BANK_TRANSFER_CO`). The backend reads the level, the rails and the
@@ -164,15 +171,19 @@ export const initiateSumsubKyc = async (
     code?: SumsubActionErrorCode
     feature?: 'local' | 'bank'
     entry?: FeatureReverificationEntry
+    retryAfter?: string
 }> => {
-    const body: Record<string, string | boolean | undefined> = {
-        corridor: params?.corridor,
-        regionIntent: params?.regionIntent,
-        levelName: params?.levelName,
-        crossRegion: params?.crossRegion,
-        targetCountry: params?.targetCountry,
-        correctSession: params?.correctSession,
-    }
+    const qrPool = params?.feature === 'qr'
+    const body: IdentityBody = qrPool
+        ? { feature: 'qr' }
+        : {
+              corridor: params?.corridor,
+              regionIntent: params?.regionIntent,
+              levelName: params?.levelName,
+              crossRegion: params?.crossRegion,
+              targetCountry: params?.targetCountry,
+              correctSession: params?.correctSession,
+          }
 
     let status: number | undefined
     try {
@@ -196,6 +207,18 @@ export const initiateSumsubKyc = async (
                 Sentry.captureException(new Error('KYC request failed'), {
                     tags: { ...criticalFlowTags('kyc'), kyc_step: 'identity_session' },
                 })
+            if (
+                qrPool &&
+                ((response.status === 409 && responseJson.code === QR_POOL_REFUSED) ||
+                    (response.status === 503 && responseJson.code === QR_POOL_UNAVAILABLE))
+            ) {
+                const retryAfter = response.status === 503 ? response.headers?.get('Retry-After') : null
+                return {
+                    code: responseJson.code,
+                    error: responseJson.userMessage,
+                    ...(retryAfter && { retryAfter }),
+                }
+            }
             if (
                 response.status === 409 &&
                 (responseJson.code ?? responseJson.error) === 'paperwork_verification_required'

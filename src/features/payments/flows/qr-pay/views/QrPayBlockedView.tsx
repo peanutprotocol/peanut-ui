@@ -26,7 +26,6 @@ export function QrPayBlockedView() {
         initErrorNeedsSupport,
         initErrorNeedsVerification,
         gate,
-        targetMantecaCountry,
         onBack,
         retryOrderNotReady,
     } = useQrPayFlow()
@@ -46,7 +45,8 @@ export function QrPayBlockedView() {
     if (view === 'INIT_ERROR') {
         // A refusal for identity starts the verification from here, unless the
         // ID check already ended on a final decision: then only support helps.
-        const canVerify = initErrorNeedsVerification && !gate.isTerminalFailure
+        const refused = initErrorNeedsVerification && gate.sumsubFlow.isQrUnlockRefused
+        const canVerify = initErrorNeedsVerification && !gate.isTerminalFailure && !refused
         const isVerificationClosed = initErrorNeedsVerification && gate.isTerminalFailure
         return (
             <PageStack>
@@ -54,15 +54,18 @@ export function QrPayBlockedView() {
                     <CenteredStatusCard
                         title={tCommon('qrPaymentCouldNotStart')}
                         description={
-                            isVerificationClosed
-                                ? tKyc('terminalDescription')
-                                : errorInitiatingPayment || t('errors.genericQrDetails')
+                            refused
+                                ? (gate.sumsubFlow.error ?? t('kyc.blockedDescription'))
+                                : isVerificationClosed
+                                  ? tKyc('terminalDescription')
+                                  : errorInitiatingPayment || t('errors.genericQrDetails')
                         }
                     >
                         {canVerify ? (
                             <Button
-                                onClick={() => gate.startVerification(targetMantecaCountry)}
+                                onClick={() => gate.startVerification()}
                                 loading={gate.sumsubFlow.isLoading}
+                                disabled={gate.sumsubFlow.isQrUnlockBlocked}
                                 variant="primary"
                                 icon="check-circle"
                             >

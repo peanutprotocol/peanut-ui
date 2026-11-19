@@ -26,7 +26,7 @@ const REVERIFY_RETURN_QUERY = /([?&]returnTo=)[^\s"'<>&#]*/gi
 
 /** Removes every send-link secret (`#p=…`, raw or percent-encoded, and the `proof=` value) from a string. */
 export function stripLinkSecrets(value: string): string {
-    const safe = /\/verify\?[^\s"'<>#]*\bmode=reverify\b/.test(value)
+    const safe = /\/verify\/?\?[^\s"'<>#]*\bmode=reverify\b/.test(value)
         ? value.replace(REVERIFY_RETURN_QUERY, '$1redacted')
         : value
     return safe

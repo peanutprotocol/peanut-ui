@@ -2,16 +2,28 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/0_Bruddle/Button'
 import { useAuth } from '@/context/authContext'
 import { startFeatureReverification } from '@/app/actions/kyc-reverification'
-import { findKycDocumentPlan, candidateDocumentStatus } from '@/app/actions/kyc-workflow'
+import { findKycDocumentPlan, candidateDocumentStatus, getKycFeatures } from '@/app/actions/kyc-workflow'
 import { captureSessionFence } from '@/utils/session-fence'
+import { identityRejection } from '@/utils/identity-rejection.utils'
 import type { SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 import type { PaperworkVerificationFeature } from '@/app/actions/types/kyc-paperwork-verification.types'
-import type { FeatureReverificationEntry } from '@/app/actions/types/kyc-reverification.types'
-import { isFeatureReverificationEntry, safeReverificationReturnTo } from '@/utils/kyc-reverification'
+import type {
+    FeatureReverificationEntry,
+    FeatureReverificationStartConflictCode,
+} from '@/app/actions/types/kyc-reverification.types'
+import {
+    isFeatureReverificationEntry,
+    isFeatureReverificationOutcome,
+    kycRetryDeadline,
+    safeReverificationReturnTo,
+} from '@/utils/kyc-reverification'
 import { LoadFailed, VerifyLoading } from './components/LoadScreens'
+import { ReviewScreen } from './components/StatusScreens'
+import { StepsScreen } from './components/StepsScreen'
 import { VerifyFooter, VerifyHeroLayout } from './components/VerifyLayout'
 import { PaperworkVerificationFlow } from './PaperworkVerificationFlow'
 import { PaperworkVerificationTrackingProvider, useKycControl } from './analytics'
@@ -24,7 +36,21 @@ type FlowProps = {
 }
 
 const invitationCopy = { card: 'inviteCard', bank: 'inviteBank', local: 'inviteLocal' } as const
+const refusalCopy = { card: 'refusalCard', bank: 'refusalBank', local: 'refusalLocal' } as const
 const uuid = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i
+const RECONCILE_CODES: readonly string[] = [
+    'reverification_not_required',
+    'reverification_finished',
+] satisfies readonly FeatureReverificationStartConflictCode[]
+const refusalCode: FeatureReverificationStartConflictCode = 'feature_not_open'
+
+function clearStorage(key: string) {
+    try {
+        sessionStorage.removeItem(key)
+    } catch {
+        // Embedded browsers can deny session storage access.
+    }
+}
 
 function readResume(storageKey: string) {
     try {
@@ -69,6 +95,7 @@ function allocateRequestKey(storageKey: string) {
 
 export function FeatureReverificationFlow(props: FlowProps) {
     const owner = useAuth().user?.user.userId
+    const returnTo = safeReverificationReturnTo(props.returnTo)
     return (
         <PaperworkVerificationTrackingProvider
             value={{
@@ -79,7 +106,12 @@ export function FeatureReverificationFlow(props: FlowProps) {
             }}
         >
             {owner ? (
-                <OwnedReverificationFlow key={JSON.stringify([owner, props.feature])} {...props} owner={owner} />
+                <OwnedReverificationFlow
+                    key={JSON.stringify([owner, props.feature, props.targetProvider, returnTo])}
+                    {...props}
+                    owner={owner}
+                    returnTo={returnTo}
+                />
             ) : (
                 <VerifyLoading onBack={props.onExit} />
             )}
@@ -87,21 +119,36 @@ export function FeatureReverificationFlow(props: FlowProps) {
     )
 }
 
-function OwnedReverificationFlow({ owner, feature, returnTo, targetProvider, onExit }: FlowProps & { owner: string }) {
+function OwnedReverificationFlow({
+    owner,
+    feature,
+    returnTo: destination,
+    targetProvider,
+    onExit,
+}: FlowProps & { owner: string }) {
     const t = useTranslations('kyc.paperworkVerification')
+    const router = useRouter()
+    const routerRef = useRef(router)
+    routerRef.current = router
     const controls = useKycControl('reverify-invitation')
     const [loadVersion, setLoadVersion] = useState(0)
     const [entry, setEntry] = useState<FeatureReverificationEntry | null>()
+    const [resolution, setResolution] = useState<'pending' | 'refused' | 'blocked' | null>(null)
     const [busy, setBusy] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [retryAt, setRetryAt] = useState(0)
     const [allowReturn, setAllowReturn] = useState(true)
     const [startedStatus, setStartedStatus] = useState<SumsubKycStatus>()
-    const candidate = useMemo(() => (entry?.attemptId ? { ...entry, attemptId: entry.attemptId } : undefined), [entry])
+    const candidate = useMemo(
+        () => (entry?.attemptId && entry.prepared !== false ? { ...entry, attemptId: entry.attemptId } : undefined),
+        [entry]
+    )
     const scope = useRef<AbortController | null>(null)
     const requestKey = useRef<string | null>(null)
     const pending = useRef(false)
+    const reconciling = useRef(false)
     const storageKey = 'kyc:feature-reverification:' + JSON.stringify([owner, feature])
-    const resumeKey = storageKey + ':' + JSON.stringify([targetProvider ?? null, safeReverificationReturnTo(returnTo)])
+    const resumeKey = storageKey + ':' + JSON.stringify([targetProvider ?? null, destination])
 
     useLayoutEffect(() => {
         const controller = new AbortController()
@@ -113,46 +160,74 @@ function OwnedReverificationFlow({ owner, feature, returnTo, targetProvider, onE
         const controller = new AbortController()
         const fence = captureSessionFence(owner, () => !controller.signal.aborted)
         setEntry(undefined)
+        setResolution(null)
         void Promise.resolve(fence.ready)
             .then(() => (fence.current() ? findKycDocumentPlan('verify', controller.signal, feature) : null))
-            .then((plan) => {
+            .then(async (plan) => {
                 if (!fence.current()) return
                 const next = plan?.entry
                 const saved = readResume(resumeKey)
-                if (next?.attemptId) {
+                if (next?.attemptId && !reconciling.current) {
                     const canReturn =
                         next.feature === feature &&
                         (!saved ||
                             (saved.allowReturn &&
                                 saved.entry.attemptId === next.attemptId &&
                                 saved.entry.targetProvider === next.targetProvider))
-                    saveResume(resumeKey, next, canReturn)
-                    try {
-                        sessionStorage.removeItem(storageKey)
-                    } catch {
-                        // The server's active entry remains the source of truth on reload.
+                    if (next.prepared !== false) saveResume(resumeKey, next, canReturn)
+                    if (next.prepared === true) {
+                        requestKey.current = null
+                        clearStorage(storageKey)
                     }
                     setAllowReturn(canReturn)
                     setEntry(next)
-                } else if (next?.feature === feature) {
-                    try {
-                        sessionStorage.removeItem(resumeKey)
-                    } catch {
-                        // A fresh invitation takes precedence over any saved candidate.
-                    }
+                } else if (next?.feature === feature && !reconciling.current) {
+                    clearStorage(resumeKey)
                     setEntry(next)
-                } else if (plan && !next && saved) {
+                } else if (plan && !next && saved && !reconciling.current) {
                     setAllowReturn(saved.allowReturn)
                     setEntry(saved.entry)
                 } else {
+                    const report = await getKycFeatures(controller.signal)
+                    if (!fence.current()) return
+                    const featureState = report?.[feature]?.state
+                    if (featureState === 'on' || featureState === 'ready') {
+                        clearStorage(storageKey)
+                        clearStorage(resumeKey)
+                        routerRef.current.replace(destination ?? '/home')
+                        return
+                    }
+                    if (featureState === 'refused') {
+                        clearStorage(storageKey)
+                        clearStorage(resumeKey)
+                        setResolution('refused')
+                    } else if (
+                        featureState === 'pending' ||
+                        featureState === 'setting_up' ||
+                        featureState === 'action_required'
+                    ) {
+                        setResolution('pending')
+                    }
                     setEntry(null)
                 }
             })
             .catch(() => {
-                if (!controller.signal.aborted) setEntry(null)
+                if (fence.current()) setEntry(null)
             })
         return () => controller.abort()
-    }, [feature, loadVersion, owner, resumeKey, storageKey])
+    }, [destination, feature, loadVersion, owner, resumeKey, storageKey])
+
+    useEffect(() => {
+        if (!retryAt) return
+        let timer: ReturnType<typeof setTimeout>
+        const wait = () => {
+            const remaining = retryAt - Date.now()
+            if (remaining <= 0) setRetryAt(0)
+            else timer = setTimeout(wait, Math.min(remaining, 2_147_483_647))
+        }
+        wait()
+        return () => clearTimeout(timer)
+    }, [retryAt])
 
     useEffect(() => {
         if (entry && !entry.attemptId) controls.trackOnce('invitation', 'open')
@@ -160,7 +235,7 @@ function OwnedReverificationFlow({ owner, feature, returnTo, targetProvider, onE
 
     const start = async () => {
         const signal = scope.current?.signal
-        if (!signal || signal.aborted || pending.current || !entry || entry.attemptId) return
+        if (!signal || signal.aborted || pending.current || !entry || candidate || Date.now() < retryAt) return
         const fence = captureSessionFence(owner, () => !signal.aborted)
         const current = fence.current
         controls.track(error ? 'retry' : 'start', 'tap')
@@ -176,17 +251,53 @@ function OwnedReverificationFlow({ owner, feature, returnTo, targetProvider, onE
             if ('entry' in result) {
                 const canReturn =
                     result.entry.feature === feature && result.entry.targetProvider === entry.targetProvider
-                saveResume(resumeKey, result.entry, canReturn)
+                if (isFeatureReverificationOutcome(result.status)) {
+                    requestKey.current = null
+                    clearStorage(storageKey)
+                    clearStorage(resumeKey)
+                    if (result.status === 'APPROVED') {
+                        router.replace(
+                            canReturn && (!targetProvider || targetProvider === result.entry.targetProvider)
+                                ? (destination ?? '/home')
+                                : '/home'
+                        )
+                        setEntry(undefined)
+                    } else {
+                        setResolution('refused')
+                    }
+                    return
+                }
+                if (result.entry.prepared !== false) {
+                    saveResume(resumeKey, result.entry, canReturn)
+                    requestKey.current = null
+                    clearStorage(storageKey)
+                }
                 setStartedStatus(candidateDocumentStatus(result.status))
                 setAllowReturn(canReturn)
                 setEntry(result.entry)
-                try {
-                    sessionStorage.removeItem(storageKey)
-                } catch {
-                    // The server's active entry remains the source of truth on reload.
-                }
             } else {
-                setError(result.error || t('loadFailed.description'))
+                const { status, code } = result
+                if (status && status >= 400 && status < 500 && ![408, 425, 429].includes(status)) {
+                    requestKey.current = null
+                    clearStorage(storageKey)
+                    clearStorage(resumeKey)
+                    setError(result.error || null)
+                    if (
+                        code === refusalCode ||
+                        (code === 'reverification_finished' && result.outcome && result.outcome !== 'APPROVED')
+                    ) {
+                        setResolution('refused')
+                    } else if (code && RECONCILE_CODES.includes(code)) {
+                        reconciling.current = true
+                        setEntry(undefined)
+                        setLoadVersion((version) => version + 1)
+                    } else {
+                        setResolution('blocked')
+                    }
+                } else {
+                    setError(result.error || t('loadFailed.description'))
+                    if (status === 503) setRetryAt(kycRetryDeadline(result.retryAfter))
+                }
             }
         } catch {
             if (current()) setError(t('loadFailed.description'))
@@ -196,6 +307,32 @@ function OwnedReverificationFlow({ owner, feature, returnTo, targetProvider, onE
         }
     }
 
+    const goHome = () => router.replace('/home')
+    if (resolution === 'refused' || resolution === 'blocked')
+        return (
+            <ReviewScreen
+                rejection={identityRejection({ retryable: false })}
+                copy={{
+                    title: t(resolution === 'refused' ? 'reverify.refusalTitle' : 'loadFailed.title'),
+                    description:
+                        error ??
+                        (resolution === 'refused'
+                            ? t(`reverify.${refusalCopy[feature]}`)
+                            : t('loadFailed.description')),
+                }}
+                onHome={goHome}
+            />
+        )
+    if (resolution === 'pending')
+        return (
+            <StepsScreen
+                phase="review"
+                title={t('reverify.pendingTitle')}
+                note={t('reverify.pendingDescription')}
+                onBack={goHome}
+                onContinue={goHome}
+            />
+        )
     if (entry === undefined) return <VerifyLoading onBack={onExit} />
     if (!entry) return <LoadFailed onRetry={() => setLoadVersion((version) => version + 1)} onHome={onExit} />
 
@@ -208,7 +345,7 @@ function OwnedReverificationFlow({ owner, feature, returnTo, targetProvider, onE
                     allowReturn &&
                     candidate.feature === feature &&
                     (!targetProvider || candidate.targetProvider === targetProvider)
-                        ? safeReverificationReturnTo(returnTo)
+                        ? destination
                         : null
                 }
             />
@@ -228,10 +365,10 @@ function OwnedReverificationFlow({ owner, feature, returnTo, targetProvider, onE
                         <Button
                             className="w-full"
                             onClick={() => void start()}
-                            disabled={busy}
+                            disabled={busy || retryAt > 0}
                             data-testid="verify-reverification-start"
                         >
-                            {t(error ? 'loadFailed.retry' : 'reverify.start')}
+                            {t(error ? 'loadFailed.retry' : entry.attemptId ? 'continue' : 'reverify.start')}
                         </Button>
                     }
                 />

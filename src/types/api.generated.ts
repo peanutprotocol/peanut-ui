@@ -17305,7 +17305,7 @@ export interface paths {
             requestBody?: {
                 content: {
                     "application/json": {
-                        feature?: "bank" | "card" | "local";
+                        feature?: "bank" | "card" | "local" | "qr";
                     } & {
                         [key: string]: unknown;
                     };
@@ -18847,7 +18847,10 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": Record<string, never>;
+                        "application/json": {
+                            /** @enum {string} */
+                            code?: "attempt_not_active";
+                        };
                     };
                 };
                 /** @description Default Response */
@@ -19205,7 +19208,8 @@ export interface paths {
             parameters: {
                 query?: {
                     restart?: boolean;
-                    feature?: "bank" | "card" | "local";
+                    feature?: "bank" | "card" | "local" | "qr";
+                    attemptId?: string;
                 };
                 header?: never;
                 path?: never;
@@ -19281,6 +19285,7 @@ export interface paths {
                                 feature: "bank" | "card" | "local";
                                 /** @enum {string} */
                                 kind: "reverify_for_feature";
+                                prepared?: boolean;
                                 targetProvider: "BRIDGE" | "RAIN" | "MANTECA" | "AVENIA";
                             };
                             features: {
@@ -19312,6 +19317,18 @@ export interface paths {
                                 until: string;
                             } | null;
                             terminal?: "rejected" | null;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            code: "attempt_not_active";
                         };
                     };
                 };
@@ -19421,6 +19438,7 @@ export interface paths {
                          *               ]
                          *             }
                          *           ],
+                         *           "retryRequestedAt": null,
                          *           "reviewedAt": null,
                          *           "revision": 2,
                          *           "sourceAttemptId": null,
@@ -19548,6 +19566,7 @@ export interface paths {
                                     kind: "CHECK";
                                     requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN" | "AVENIA")[];
                                 })[];
+                                retryRequestedAt: string | null;
                                 reviewedAt: string | null;
                                 revision: number;
                                 sourceAttemptId: string | null;
@@ -19994,6 +20013,18 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
+                        /**
+                         * @example {
+                         *       "attemptId": "00000000-0000-4000-8000-000000000001",
+                         *       "entry": {
+                         *         "attemptId": "00000000-0000-4000-8000-000000000001",
+                         *         "feature": "bank",
+                         *         "kind": "reverify_for_feature",
+                         *         "targetProvider": "BRIDGE"
+                         *       },
+                         *       "status": "COLLECTING"
+                         *     }
+                         */
                         "application/json": {
                             attemptId: string;
                             entry: {
@@ -20047,7 +20078,14 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            code: string;
+                            /** @enum {string} */
+                            code: "reverification_finished";
+                            error: string;
+                            message: string;
+                            outcome: "APPROVED" | "REJECTED" | "SUPERSEDED";
+                            userMessage: string;
+                        } | {
+                            code: "kyc_client_update_required" | "reverification_not_required" | "feature_not_open" | "feature_setup_pending";
                             error: string;
                             message: string;
                             userMessage: string;

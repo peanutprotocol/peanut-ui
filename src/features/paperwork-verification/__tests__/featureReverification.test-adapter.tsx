@@ -5,6 +5,7 @@ import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import VerifyRoute from '@/app/(mobile-ui)/verify/page'
 import type { FeatureReverificationEntry as Entry } from '@/app/actions/types/kyc-reverification.types'
+import type { paths } from '@/types/api.generated'
 import { KycFeatureActivationGate } from '../KycFeatureActivationGate'
 import { clearAuthToken, getAuthToken, setAuthToken } from '@/utils/auth-token'
 
@@ -14,10 +15,17 @@ type Fixture = {
     canonicalStatus: 'APPROVED'
     invitation: Entry | { status: 409; code: 'feature_reverification_required' }
     startResponse?: Entry
+    featureState?: 'on' | 'refused' | 'pending' | 'ready'
 }
 
 type Request = { path: string; body: Record<string, unknown> }
 type Pending = { resolve: (response: Response) => void; reject: (error: Error) => void }
+type PlanResponse = paths['/users/kyc/plan']['get']['responses'][200]['content']['application/json']
+type StartResponse = paths['/users/kyc/reverification']['post']['responses'][200]['content']['application/json']
+const startResponse = ({ kind, attemptId, feature, targetProvider }: Entry, status: string): StartResponse => {
+    if (!attemptId) throw new Error('No re-verification attempt ID')
+    return { attemptId, status, entry: { kind, attemptId, feature, targetProvider } }
+}
 let mockUserId: string
 let mockOneShot: boolean
 let mockCanonicalStatus: Fixture['canonicalStatus']
@@ -85,9 +93,15 @@ jest.mock('../AddFeatureFlow', () => ({ AddFeatureFlow: () => null }))
 jest.mock('../FeatureAction', () => ({ FeatureAction: () => null }))
 jest.mock('../ReplacementDocumentAction', () => ({ ReplacementDocumentAction: () => null }))
 jest.mock('@/features/add-money/CurrencyRefusalScreen', () => ({ CurrencyRefusalScreen: () => null }))
-jest.mock('../components/StatusScreens', () => ({ FeatureReadyScreen: () => null }))
+jest.mock('../components/StatusScreens', () => ({
+    FeatureReadyScreen: () => null,
+    ReviewScreen: ({ copy }: { copy: { title: string; description: string } }) => <div>{copy.description}</div>,
+}))
+jest.mock('../components/StepsScreen', () => ({
+    StepsScreen: ({ title }: { title: string }) => <div>{title}</div>,
+}))
 jest.mock('../components/LoadScreens', () => ({
-    LoadFailed: () => null,
+    LoadFailed: () => <div>plan-load-failed</div>,
     VerifyLoading: () => null,
     VerificationOutage: () => null,
 }))
@@ -106,8 +120,13 @@ jest.mock('../components/VerifyLayout', () => ({
     ),
 }))
 
-function response(status: number, body: unknown) {
-    return { status, ok: status >= 200 && status < 300, json: async () => body } as Response
+function response(status: number, body: unknown, retryAfter?: string) {
+    return {
+        status,
+        ok: status >= 200 && status < 300,
+        json: async () => body,
+        headers: { get: (name: string) => (name.toLowerCase() === 'retry-after' ? (retryAfter ?? null) : null) },
+    } as Response
 }
 
 export async function mountFeatureGate(fixture: Fixture) {
@@ -123,6 +142,9 @@ export async function mountFeatureGate(fixture: Fixture) {
             ? fixture.invitation
             : { kind: 'reverify_for_feature', feature: fixture.feature, targetProvider: 'RAIN', attemptId: null }
     let activeEntry: Entry | null = null
+    let noEntry = false
+    let featureState = fixture.featureState
+    const reads: string[] = []
     let pending: Pending | null = null
     let invitationPath: string | null = null
     let routeVersion = 0
@@ -135,8 +157,24 @@ export async function mountFeatureGate(fixture: Fixture) {
     mockFetch = async (path, options) => {
         if (options?.beforeDispatch && !options.beforeDispatch()) throw new Error('Request obsolete')
         if (path.startsWith('/users/kyc/plan')) {
-            const entry = mockUserId !== 'contract-user-a' ? undefined : (activeEntry ?? invitation)
-            return response(200, { available: Boolean(entry), routes: [], entry })
+            reads.push(path)
+            const entry = mockUserId !== 'contract-user-a' || noEntry ? undefined : (activeEntry ?? invitation)
+            return response(200, {
+                activeAttemptId: entry?.attemptId ?? null,
+                available: Boolean(entry),
+                documentRefusals: {},
+                documentTypeRefusals: {},
+                entry,
+                features: { qr: true, bank: false, card: false, local: false },
+                flow: 'verify-once',
+                needs: [],
+                policyVersion: 'v1',
+                proofOfAddress: null,
+                proofOfAddressIdCountries: [],
+                proofOfAddressReason: null,
+                routes: [],
+                temporaryProtection: null,
+            } satisfies PlanResponse)
         }
         if (path === '/users/kyc/features/' + fixture.feature + '/activate' && conflict) {
             return response(conflict.status, {
@@ -146,6 +184,10 @@ export async function mountFeatureGate(fixture: Fixture) {
                 message: 'Verification required',
                 error: 'Verification required',
             })
+        }
+        if (path === '/users/kyc/features') {
+            reads.push(path)
+            return response(200, { features: { [fixture.feature]: { state: featureState } } })
         }
         if (path !== '/users/kyc/reverification') throw new Error('Unexpected request: ' + path)
         requests.push({ path, body: JSON.parse(String(options?.body)) })
@@ -158,7 +200,7 @@ export async function mountFeatureGate(fixture: Fixture) {
     const tree = () => (
         <QueryClientProvider client={queryClient}>
             <NuqsTestingAdapter key={routeVersion} searchParams={window.location.search}>
-                {window.location.pathname === '/verify' ? (
+                {/^\/verify\/?$/.test(window.location.pathname) ? (
                     <VerifyRoute />
                 ) : (
                     <KycFeatureActivationGate feature={fixture.feature}>
@@ -214,12 +256,37 @@ export async function mountFeatureGate(fixture: Fixture) {
             await act(async () => {
                 if (!fixture.startResponse) throw new Error('No scripted start response')
                 activeEntry = fixture.startResponse
-                requestInFlight().resolve(
-                    response(200, { attemptId: activeEntry.attemptId, status: 'READY', entry: activeEntry })
-                )
+                requestInFlight().resolve(response(200, startResponse(activeEntry, 'READY')))
             })
         },
         postRequests: () => [...requests],
+        reads: () => [...reads],
+        reserveUnprepared: () => {
+            activeEntry = { ...invitation, attemptId: 'reserved-candidate', prepared: false }
+        },
+        finishPreparation: async () => {
+            if (!activeEntry?.attemptId) throw new Error('No reserved re-verification candidate')
+            const prepared = { ...activeEntry, prepared: true }
+            activeEntry = prepared
+            await act(async () => requestInFlight().resolve(response(200, startResponse(prepared, 'READY'))))
+        },
+        setNoEntry: (state: Fixture['featureState']) => {
+            noEntry = true
+            featureState = state
+        },
+        resolveStartError: async (status: number, body: unknown, retryAfter?: string) => {
+            await act(async () => requestInFlight().resolve(response(status, body, retryAfter)))
+        },
+        resolveTerminal: async (status: 'APPROVED' | 'REJECTED' | 'SUPERSEDED') => {
+            const entry = { ...invitation, attemptId: 'finished-candidate' }
+            await act(async () => requestInFlight().resolve(response(200, startResponse(entry, status))))
+        },
+        relaunchNative: async () => {
+            sessionStorage.clear()
+            window.history.replaceState(null, '', invitationPath?.replace('/verify?', '/verify/?') ?? '/verify/')
+            routeVersion += 1
+            await act(async () => view.rerender(tree()))
+        },
         currentCandidate: () => {
             const candidate = screen.queryByTestId('feature-reverification-candidate')
             return candidate

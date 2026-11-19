@@ -35259,6 +35259,12 @@
 													"local"
 												],
 												"type": "string"
+											},
+											{
+												"enum": [
+													"qr"
+												],
+												"type": "string"
 											}
 										]
 									}
@@ -39311,7 +39317,14 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"properties": {},
+									"properties": {
+										"code": {
+											"enum": [
+												"attempt_not_active"
+											],
+											"type": "string"
+										}
+									},
 									"type": "object"
 								}
 							}
@@ -40138,8 +40151,23 @@
 										"local"
 									],
 									"type": "string"
+								},
+								{
+									"enum": [
+										"qr"
+									],
+									"type": "string"
 								}
 							]
+						}
+					},
+					{
+						"in": "query",
+						"name": "attemptId",
+						"required": false,
+						"schema": {
+							"format": "uuid",
+							"type": "string"
 						}
 					}
 				],
@@ -40303,6 +40331,9 @@
 														"reverify_for_feature"
 													],
 													"type": "string"
+												},
+												"prepared": {
+													"type": "boolean"
 												},
 												"targetProvider": {
 													"anyOf": [
@@ -40630,6 +40661,27 @@
 						},
 						"description": "Default Response"
 					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"enum": [
+												"attempt_not_active"
+											],
+											"type": "string"
+										}
+									},
+									"required": [
+										"code"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
 					"503": {
 						"content": {
 							"application/json": {
@@ -40747,6 +40799,7 @@
 													]
 												}
 											],
+											"retryRequestedAt": null,
 											"reviewedAt": null,
 											"revision": 2,
 											"sourceAttemptId": null,
@@ -41376,6 +41429,17 @@
 														"minItems": 1,
 														"type": "array"
 													},
+													"retryRequestedAt": {
+														"anyOf": [
+															{
+																"format": "date-time",
+																"type": "string"
+															},
+															{
+																"type": "null"
+															}
+														]
+													},
 													"reviewedAt": {
 														"anyOf": [
 															{
@@ -41483,6 +41547,7 @@
 													"status",
 													"revision",
 													"reviewedAt",
+													"retryRequestedAt",
 													"startedAt",
 													"submittedAt",
 													"createdAt",
@@ -42847,6 +42912,16 @@
 					"200": {
 						"content": {
 							"application/json": {
+								"example": {
+									"attemptId": "00000000-0000-4000-8000-000000000001",
+									"entry": {
+										"attemptId": "00000000-0000-4000-8000-000000000001",
+										"feature": "bank",
+										"kind": "reverify_for_feature",
+										"targetProvider": "BRIDGE"
+									},
+									"status": "COLLECTING"
+								},
 								"schema": {
 									"properties": {
 										"attemptId": {
@@ -43035,27 +43110,105 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"properties": {
-										"code": {
-											"type": "string"
+									"anyOf": [
+										{
+											"properties": {
+												"code": {
+													"enum": [
+														"reverification_finished"
+													],
+													"type": "string"
+												},
+												"error": {
+													"type": "string"
+												},
+												"message": {
+													"type": "string"
+												},
+												"outcome": {
+													"anyOf": [
+														{
+															"enum": [
+																"APPROVED"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"REJECTED"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"SUPERSEDED"
+															],
+															"type": "string"
+														}
+													]
+												},
+												"userMessage": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"code",
+												"userMessage",
+												"message",
+												"error",
+												"outcome"
+											],
+											"type": "object"
 										},
-										"error": {
-											"type": "string"
-										},
-										"message": {
-											"type": "string"
-										},
-										"userMessage": {
-											"type": "string"
+										{
+											"properties": {
+												"code": {
+													"anyOf": [
+														{
+															"enum": [
+																"kyc_client_update_required"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"reverification_not_required"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"feature_not_open"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"feature_setup_pending"
+															],
+															"type": "string"
+														}
+													]
+												},
+												"error": {
+													"type": "string"
+												},
+												"message": {
+													"type": "string"
+												},
+												"userMessage": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"code",
+												"userMessage",
+												"message",
+												"error"
+											],
+											"type": "object"
 										}
-									},
-									"required": [
-										"code",
-										"userMessage",
-										"message",
-										"error"
-									],
-									"type": "object"
+									]
 								}
 							}
 						},

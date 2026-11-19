@@ -118,3 +118,68 @@ it('preserves the original internal path, query and fragment', () => {
         targetProvider: 'BRIDGE',
     })
 })
+
+it.each([
+    [
+        409,
+        {
+            code: 'reverification_not_required',
+            userMessage: 'Already verified',
+            message: 'Secondary',
+            error: 'Tertiary',
+        },
+        'Already verified',
+    ],
+    [409, { code: 'feature_not_open', message: 'Feature unavailable', error: 'Tertiary' }, 'Feature unavailable'],
+    [
+        409,
+        { code: 'reverification_finished', outcome: 'REJECTED', error: 'Verification finished' },
+        'Verification finished',
+    ],
+    [409, { code: 'kyc_client_update_required', userMessage: 'Update the app' }, 'Update the app'],
+    [403, { code: 'forbidden', message: 'Access denied' }, 'Access denied'],
+])('preserves start refusal code and display copy for HTTP %s', async (status, body, error) => {
+    fetch.mockResolvedValueOnce(response(status, body))
+    await expect(startFeatureReverification('bank', key)).resolves.toMatchObject({
+        status,
+        code: body.code,
+        error,
+        ...('outcome' in body ? { outcome: body.outcome } : {}),
+    })
+})
+
+it('preserves the Retry-After header on an unavailable start', async () => {
+    fetch.mockResolvedValueOnce({
+        ...response(503, { code: 'temporarily_unavailable', userMessage: 'Try again soon' }),
+        headers: { get: (name: string) => (name.toLowerCase() === 'retry-after' ? '2' : null) },
+    } as Response)
+    await expect(startFeatureReverification('bank', key)).resolves.toMatchObject({
+        status: 503,
+        code: 'temporarily_unavailable',
+        error: 'Try again soon',
+        retryAfter: '2',
+    })
+})
+
+it('returns the uncertain request fallback when the start request fails', async () => {
+    fetch.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    await expect(startFeatureReverification('bank', key)).resolves.toEqual({ error: '' })
+})
+
+it('treats a collecting candidate with a retry request as action required', async () => {
+    fetch.mockResolvedValueOnce(
+        response(200, {
+            identity: { canonicalStatus: 'APPROVED' },
+            attempts: [
+                {
+                    id: entry.attemptId,
+                    kind: 'IDENTITY',
+                    status: 'COLLECTING',
+                    reviewedAt: null,
+                    retryRequestedAt: '2026-11-18T12:00:00.000Z',
+                },
+            ],
+        })
+    )
+    await expect(getKycDocumentStatus(undefined, entry.attemptId)).resolves.toBe('ACTION_REQUIRED')
+})

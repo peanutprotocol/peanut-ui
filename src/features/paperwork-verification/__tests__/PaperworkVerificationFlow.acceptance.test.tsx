@@ -1,4 +1,5 @@
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: jest.fn() }) }))
+import { serverFetch } from '@/utils/api-fetch'
 import { setAuthToken } from '@/utils/auth-token'
 import posthog from 'posthog-js'
 import { act, fireEvent, screen, waitFor } from '@testing-library/react'
@@ -6,6 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 import { renderWithIntl } from '@/test-utils/intl'
 import type { PaperworkVerificationQuestions } from '@/app/actions/types/kyc-paperwork-verification.types'
+import type { KycDocumentPlan, KycProfile } from '@/app/actions/types/kyc-workflow.types'
 import {
     getIdentityDocumentMismatch,
     getKycQuestions,
@@ -17,6 +19,8 @@ import { findKycDocumentPlan, findKycReplacementPlan, getKycDocumentStatus } fro
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import { PaperworkVerificationFlow } from '../PaperworkVerificationFlow'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+
+jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn(), apiFetch: jest.fn(async () => ({ ok: false })) }))
 
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 
@@ -40,6 +44,7 @@ jest.mock('@/app/actions/kyc-paperwork-verification', () => ({
     skipProofOfAddress: jest.fn(async () => true),
 }))
 jest.mock('@/app/actions/kyc-workflow', () => ({
+    ...jest.requireActual('@/app/actions/kyc-workflow'),
     refreshKycIdentityStatus: jest.fn(async () => undefined),
     findKycDocumentPlan: jest.fn(),
     findKycReplacementPlan: jest.fn(),
@@ -96,7 +101,7 @@ const plan = {
     available: true,
     activeAttemptId: null,
     policyVersion: 'v1',
-    flow: 'verify-once' as const,
+    flow: 'verify-once',
     proofOfAddress: null,
     features: { qr: true, bank: true, local: false, card: true },
     routes: [
@@ -105,15 +110,54 @@ const plan = {
             documents: [
                 {
                     key: 'identity',
-                    code: 'IDENTITY' as const,
-                    requiredBy: ['SUMSUB' as const],
-                    types: ['PASSPORT'] as never[],
+                    code: 'IDENTITY',
+                    requiredBy: ['SUMSUB'],
+                    types: ['PASSPORT'],
                     countries: ['US'],
                 },
             ],
         },
     ],
-}
+} satisfies KycDocumentPlan
+
+const candidateProfile = (
+    id: string,
+    status: KycProfile['attempts'][number]['status'],
+    retryRequestedAt: string | null = null
+): KycProfile => ({
+    identity: {
+        canonicalStatus: 'APPROVED',
+        status: 'verified',
+        applicantId: 'accepted-applicant',
+        verificationId: 'identity',
+    },
+    attempts: [
+        {
+            id,
+            kind: 'IDENTITY',
+            status,
+            context: {},
+            createdAt: '2026-11-19T09:00:00Z',
+            decisionSource: null,
+            policyVersion: 'v1',
+            provider: 'SUMSUB',
+            reasonCode: null,
+            requirements: [],
+            retryRequestedAt,
+            reviewedAt: null,
+            revision: 1,
+            sourceAttemptId: null,
+            startedAt: '2026-11-19T09:00:00Z',
+            submittedAt: null,
+            updatedAt: '2026-11-19T10:00:00Z',
+            verificationId: 'identity',
+        },
+    ],
+    geo: null,
+    providerAccounts: [],
+    residence: { declared: null, secondaryDeclaredCountry: null, verified: null },
+    user: { email: null, firstName: null, fullName: null, lastName: null },
+})
 
 const build = (
     answered: Record<string, boolean> = {},
@@ -188,6 +232,7 @@ beforeEach(() => {
     mockIdentityReason = undefined
     mockIdentity = {}
     jest.clearAllMocks()
+    mockToken.mockReset()
     setAuthToken(`x.${btoa(JSON.stringify({ userId: 'user-a' }))}.y`)
     ;(useSumsubKycFlow as jest.Mock).mockReturnValue({
         isLoading: false,
@@ -277,6 +322,100 @@ describe('feature re-verification candidate', () => {
         fireEvent.click(await screen.findByTestId('verify-verified-payments'))
         await waitFor(() => expect(mockReplace).toHaveBeenCalledWith(returnTo))
         expect(mockReplace.mock.calls.filter(([url]) => url === returnTo)).toHaveLength(1)
+    })
+
+    it('opens the SDK with the document picked from the frozen candidate routes on the wire', async () => {
+        const workflow = jest.requireActual<typeof import('@/app/actions/kyc-workflow')>('@/app/actions/kyc-workflow')
+        const paperwork = jest.requireActual<typeof import('@/app/actions/kyc-paperwork-verification')>(
+            '@/app/actions/kyc-paperwork-verification'
+        )
+        mockPlan.mockImplementation(workflow.findKycDocumentPlan)
+        mockStatus.mockImplementation(workflow.getKycDocumentStatus)
+        mockQuestions.mockImplementation(paperwork.getKycQuestions)
+        mockToken.mockImplementationOnce(paperwork.startPaperworkVerificationIdentity)
+        jest.mocked(serverFetch).mockImplementation(async (path) => {
+            const url = new URL(path, 'https://peanut.test')
+            let body: unknown
+            if (url.pathname === '/users/kyc/plan') {
+                const scoped = url.searchParams.get('attemptId') === candidate.attemptId
+                body = {
+                    available: scoped,
+                    activeAttemptId: null,
+                    policyVersion: 'v1',
+                    flow: 'verify-once',
+                    features: { qr: false, bank: false, local: false, card: true },
+                    routes: scoped
+                        ? [
+                              {
+                                  id: 'frozen-route',
+                                  documents: [
+                                      {
+                                          key: 'identity',
+                                          code: 'IDENTITY',
+                                          requiredBy: ['SUMSUB'],
+                                          types: ['PASSPORT'],
+                                          countries: ['US'],
+                                      },
+                                  ],
+                              },
+                          ]
+                        : [],
+                    entry: { ...candidate, prepared: true },
+                } satisfies KycDocumentPlan
+            } else if (path === '/users/kyc/profile') {
+                body = candidateProfile(candidate.attemptId, 'READY')
+            } else if (path === '/users/kyc/questions?feature=card&attemptId=candidate-1') {
+                body = { ...build({ purpose: true, money: true, tax: true }, null), attemptId: candidate.attemptId }
+            } else if (path === '/users/kyc/attempts/candidate-1/token') {
+                body = {
+                    attemptId: candidate.attemptId,
+                    token: 'candidate-sdk-token',
+                    applicantId: 'fixture-applicant',
+                    levelName: 'verify-once',
+                    sdkConfig: {
+                        autoSelectDocumentDefinitions: true,
+                        documentDefinitions: { IDENTITY: { country: 'USA', idDocType: 'PASSPORT' } },
+                    },
+                }
+            } else throw new Error('Unexpected request: ' + path)
+            return { ok: true, status: 200, json: async () => body } as Response
+        })
+
+        renderFlow('', { candidate, returnTo })
+        fireEvent.click(await screen.findByTestId('verify-id-option-PASSPORT-US'))
+        expect(await screen.findByText('sumsub-submit')).toBeInTheDocument()
+        expect(serverFetch).toHaveBeenCalledWith(
+            '/users/kyc/attempts/candidate-1/token',
+            expect.objectContaining({
+                method: 'POST',
+                body: JSON.stringify({ document: { type: 'PASSPORT', issuingCountry: 'US' } }),
+            })
+        )
+    })
+
+    it('shows Try again on a real profile RETRY even if this tab missed IN_REVIEW', async () => {
+        const workflow = jest.requireActual<typeof import('@/app/actions/kyc-workflow')>('@/app/actions/kyc-workflow')
+        mockStatus.mockImplementation(workflow.getKycDocumentStatus)
+        mockQuestions.mockResolvedValue({
+            ...build({ purpose: true, money: true, tax: true }, null),
+            attemptId: candidate.attemptId,
+        })
+        const marker = 'kyc:feature-reverification:submitted:' + JSON.stringify(['user-a', candidate.attemptId])
+        sessionStorage.setItem(marker, '1')
+        jest.mocked(serverFetch).mockResolvedValue({
+            ok: true,
+            status: 200,
+            json: async () => candidateProfile(candidate.attemptId, 'COLLECTING', '2026-11-19T10:00:00Z'),
+        } as Response)
+
+        try {
+            renderFlow('', { candidate, returnTo })
+            expect(await screen.findByRole('button', { name: /try again/i })).toBeInTheDocument()
+            await waitFor(() => expect(sessionStorage.getItem(marker)).toBeNull())
+            expect(mockToken).not.toHaveBeenCalled()
+        } finally {
+            sessionStorage.removeItem(marker)
+        }
     })
 
     it('shows target refusal after FINAL even when plan no longer has the active entry', async () => {

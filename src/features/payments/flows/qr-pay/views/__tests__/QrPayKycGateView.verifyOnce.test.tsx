@@ -11,6 +11,8 @@ import { QrKycState } from '@/constants/kyc.consts'
 import { QrPayKycGateView } from '../QrPayKycGateView'
 
 const mockPush = jest.fn()
+let mockScannedCountry: string
+let mockRefusal: string | null
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }), usePathname: () => '/qr-pay' }))
 jest.mock('@/app/actions/kyc-workflow', () => ({ findKycDocumentPlan: jest.fn(), getKycDocumentStatus: jest.fn() }))
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))
@@ -19,12 +21,12 @@ jest.mock('../../QrPayFlowContext', () => ({
     useQrPayFlow: () => ({
         gate: {
             kycGateState: QrKycState.REQUIRES_IDENTITY_VERIFICATION,
-            sumsubFlow: { errorCooldown: null, handleInitiateKyc: jest.fn() },
+            sumsubFlow: { errorCooldown: null, isQrUnlockRefused: !!mockRefusal, error: mockRefusal },
             isKycApproved: false,
             startVerification: jest.fn(),
         },
         methodIcon: undefined,
-        targetMantecaCountry: 'AR',
+        targetMantecaCountry: mockScannedCountry,
         onBack: jest.fn(),
     }),
 }))
@@ -44,7 +46,18 @@ const renderView = () =>
 
 beforeEach(() => {
     jest.clearAllMocks()
+    mockScannedCountry = 'AR'
+    mockRefusal = null
     jest.mocked(getKycDocumentStatus).mockResolvedValue('NOT_STARTED')
+})
+
+it('keeps the stored refusal visible with a way back', () => {
+    mockRefusal = 'QR payments are unavailable for this account.'
+    renderView()
+    expect(screen.getByText(mockRefusal)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Go Back' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Verify identity' })).not.toBeInTheDocument()
+    expect(findKycDocumentPlan).not.toHaveBeenCalled()
 })
 
 it('sends a verify-once user to /verify instead of the unlock offer; today’s flow keeps the offer', async () => {
@@ -58,5 +71,30 @@ it('sends a verify-once user to /verify instead of the unlock offer; today’s f
     mockPush.mockClear()
     renderView()
     expect(await screen.findByText('Unlock QR payments')).toBeInTheDocument()
+    expect(mockPush).not.toHaveBeenCalled()
+})
+
+it.each(['AR', 'BR'])('keeps the %s QR unlock independent of the local-account plan', async (country) => {
+    mockScannedCountry = country
+    jest.mocked(findKycDocumentPlan).mockImplementation(async (_source, _signal, feature) => {
+        return (
+            feature === 'local'
+                ? {
+                      ...plan(null),
+                      entry: {
+                          kind: 'reverify_for_feature',
+                          feature: 'local',
+                          targetProvider: 'MANTECA',
+                          attemptId: null,
+                      },
+                  }
+                : plan(null)
+        ) as never
+    })
+
+    renderView()
+    await waitFor(() => expect(findKycDocumentPlan).toHaveBeenCalled())
+    expect(await screen.findByText('Unlock QR payments')).toBeInTheDocument()
+    expect(jest.mocked(findKycDocumentPlan).mock.calls.every(([, , feature]) => feature === 'qr')).toBe(true)
     expect(mockPush).not.toHaveBeenCalled()
 })

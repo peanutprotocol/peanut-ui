@@ -1,6 +1,7 @@
 import { findKycDocumentPlan, getKycDocumentStatus, getKycFeatures } from '@/app/actions/kyc-workflow'
 import type { KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import type { PaperworkVerificationFeature } from '@/app/actions/types/kyc-paperwork-verification.types'
+import type { KycPlanFeature } from '@/app/actions/types/kyc-reverification.types'
 import { PAPERWORK_VERIFICATION_FLOW, type KycDocumentPlan } from '@/app/actions/types/kyc-workflow.types'
 import { DEPOSIT_RAILS } from '@/features/deposit-accounts/rails'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
@@ -65,12 +66,10 @@ export async function paperworkVerificationRoute(
 
 /** A Verify entry point: what it unlocks, as the start it would make names it. */
 export interface PaperworkVerificationEntry {
-    feature?: PaperworkVerificationFeature
+    feature?: KycPlanFeature
     intent?: KYCRegionIntent
     corridor?: DepositCorridor
     targetCountry?: string
-    /** QR pool checks use the LATAM legacy intent without requesting a local account. */
-    qr?: boolean
 }
 
 /**
@@ -84,19 +83,16 @@ export async function paperworkVerificationEntryRoute(
     signal?: AbortSignal
 ): Promise<string | null> {
     const feature = entry.feature ?? entryFeature(entry)
-    const planFeature = entry.qr && !entry.targetCountry ? null : feature
     // The report read at the tap: fresh, and a failed read falls back to the plan's saved features.
     const [plan, report] = await Promise.all([
-        (planFeature ? findKycDocumentPlan('entry', signal, planFeature) : findKycDocumentPlan('entry')).catch(
-            () => null
-        ),
+        (feature ? findKycDocumentPlan('entry', signal, feature) : findKycDocumentPlan('entry')).catch(() => null),
         Promise.resolve()
             .then(() => getKycFeatures())
             .catch(() => undefined),
     ])
     return paperworkVerificationRoute(
-        entry.qr && !planFeature && plan?.entry ? { ...plan, entry: undefined } : plan,
-        feature,
+        feature === 'qr' && plan?.entry ? { ...plan, entry: undefined } : plan,
+        feature === 'qr' ? null : feature,
         report,
         signal
     )

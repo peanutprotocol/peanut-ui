@@ -11,21 +11,17 @@ import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { KycRegionRestrictedModal } from '@/components/Kyc/modals/KycRegionRestrictedModal'
 import { PeanutDoesntStoreAnyPersonalInformation } from '@/components/Kyc/PeanutDoesntStoreAnyPersonalInformation'
 import { QrKycState } from '@/constants/kyc.consts'
-import { QR_IDENTITY_CHECK_INTENT } from '../qrKycGate.utils'
 import { useQrPayFlow } from '../QrPayFlowContext'
 import { usePaperworkVerificationRedirect } from '@/features/paperwork-verification/usePaperworkVerificationRedirect'
 
 // KYC screens come before any error screens - user needs to verify first.
-// MIGRATION-REVIEW: the `crossRegion` flag passed to handleInitiateKyc was `isUserSumsubKycApproved`
-// (Sumsub identity cleared, only the regional Manteca uplift remains). Sumsub has no rail in the
-// capability model, so — matching the MantecaFlowManager precedent (commit 8c98a3e81) — isKycApproved
-// (any enabled rail ⇒ identity verified at least once) is the closest faithful proxy.
 export function QrPayKycGateView() {
     const t = useAppTranslations('qrPay')
     const tNav = useTranslations('navigation')
     const tCommon = useTranslations('common')
-    const { gate, methodIcon, targetMantecaCountry, onBack } = useQrPayFlow()
-    const { kycGateState, sumsubFlow, isKycApproved, startVerification } = gate
+    const { gate, methodIcon, onBack } = useQrPayFlow()
+    const { kycGateState, sumsubFlow, startVerification } = gate
+    const refused = sumsubFlow.isQrUnlockRefused
     // A restart cooldown replaces the unlock prompt: the cooldown modal (from
     // SumsubKycModals below) is the one actionable surface, and dismissing it
     // leaves the flow rather than re-offering a verification that cannot start.
@@ -33,20 +29,18 @@ export function QrPayKycGateView() {
     const unlockOffered =
         !kycPromptDismissed && !sumsubFlow.errorCooldown && kycGateState === QrKycState.REQUIRES_IDENTITY_VERIFICATION
     // a Smart Paperwork Verification user starts on /verify, never on this offer
-    const redirecting = usePaperworkVerificationRedirect(unlockOffered, {
-        intent: QR_IDENTITY_CHECK_INTENT,
-        targetCountry: targetMantecaCountry,
-        qr: true,
+    const redirecting = usePaperworkVerificationRedirect(unlockOffered && !refused, {
+        feature: 'qr',
     })
 
     return (
         <PageStack>
             <NavHeader title={tNav('pay')} />
             <ActionModal
-                visible={unlockOffered && !redirecting}
+                visible={refused || (unlockOffered && !redirecting)}
                 onClose={onBack}
-                title={t('kyc.unlockTitle')}
-                description={t('kyc.unlockDescription')}
+                title={t(refused ? 'kyc.blockedTitle' : 'kyc.unlockTitle')}
+                description={refused ? (sumsubFlow.error ?? t('kyc.blockedDescription')) : t('kyc.unlockDescription')}
                 // the payment method's brand mark when known, else the QR pay concept (pink)
                 {...(methodIcon
                     ? {
@@ -56,21 +50,22 @@ export function QrPayKycGateView() {
                     : { concept: 'qrPay' as const })}
                 ctas={[
                     {
-                        text: t('kyc.unlockCta'),
-                        onClick: () => startVerification(targetMantecaCountry),
+                        text: t(refused ? 'maintenance.goBack' : 'kyc.unlockCta'),
+                        disabled: !refused && (sumsubFlow.isLoading || sumsubFlow.isQrUnlockBlocked),
+                        onClick: refused ? onBack : startVerification,
                         variant: 'primary',
                         shadowSize: '4',
                         icon: 'check-circle',
                     },
                 ]}
-                footer={<PeanutDoesntStoreAnyPersonalInformation />}
+                footer={refused ? undefined : <PeanutDoesntStoreAnyPersonalInformation />}
             />
             {/* Re-uploading cannot change a jurisdictional refusal, so this
                 surface owes the same one honest ending the drawer and
                 InitiateKycModal give — never the unlock offer above. */}
             <KycRegionRestrictedModal visible={kycGateState === QrKycState.REGION_RESTRICTED} onClose={onBack} />
             <ActionModal
-                visible={kycGateState === QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS}
+                visible={!refused && kycGateState === QrKycState.IDENTITY_VERIFICATION_IN_PROGRESS}
                 onClose={onBack}
                 title={t('kyc.inProgressTitle')}
                 description={t('kyc.inProgressDescription')}
@@ -79,13 +74,8 @@ export function QrPayKycGateView() {
                 ctas={[
                     {
                         text: tCommon('continue'),
-                        onClick: () =>
-                            sumsubFlow.handleInitiateKyc(
-                                QR_IDENTITY_CHECK_INTENT,
-                                undefined,
-                                isKycApproved || undefined,
-                                targetMantecaCountry
-                            ),
+                        disabled: sumsubFlow.isLoading || sumsubFlow.isQrUnlockBlocked,
+                        onClick: () => startVerification(),
                         variant: 'primary',
                         shadowSize: '4',
                         icon: 'check-circle',

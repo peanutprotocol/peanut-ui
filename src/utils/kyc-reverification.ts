@@ -1,6 +1,7 @@
 import type {
     FeatureReverificationConflict,
     FeatureReverificationEntry,
+    FeatureReverificationOutcome,
     FeatureReverificationStatus,
 } from '@/app/actions/types/kyc-reverification.types'
 import type { PaperworkVerificationFeature } from '@/app/actions/types/kyc-paperwork-verification.types'
@@ -25,6 +26,16 @@ export function isFeatureReverificationStatus(status: unknown): status is Featur
     return STATUSES.has(status)
 }
 
+export function isFeatureReverificationOutcome(status: unknown): status is FeatureReverificationOutcome {
+    return status === 'APPROVED' || status === 'REJECTED' || status === 'SUPERSEDED'
+}
+
+export function kycRetryDeadline(header?: string): number {
+    if (!header) return 0
+    const deadline = /^\d+$/.test(header) ? Date.now() + Number(header) * 1000 : Date.parse(header)
+    return Number.isSafeInteger(deadline) ? deadline : 0
+}
+
 export function isFeatureReverificationEntry(value: unknown): value is FeatureReverificationEntry {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return false
     const entry = value as Partial<FeatureReverificationEntry>
@@ -32,6 +43,7 @@ export function isFeatureReverificationEntry(value: unknown): value is FeatureRe
         entry.kind === 'reverify_for_feature' &&
         FEATURES.has(entry.feature) &&
         PROVIDERS.has(entry.targetProvider) &&
+        (entry.prepared === undefined || typeof entry.prepared === 'boolean') &&
         (entry.attemptId === null || (typeof entry.attemptId === 'string' && entry.attemptId.length > 0))
     )
 }

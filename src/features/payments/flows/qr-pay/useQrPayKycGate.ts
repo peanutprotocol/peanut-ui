@@ -7,12 +7,7 @@ import { useAuth } from '@/context/authContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
-import {
-    QR_IDENTITY_CHECK_INTENT,
-    qrIdentityRestartReason,
-    qrVerificationNeedsRestart,
-    selectQrKycGate,
-} from './qrKycGate.utils'
+import { qrIdentityRestartReason, qrVerificationNeedsRestart, selectQrKycGate } from './qrKycGate.utils'
 
 // The QR-pay KYC gate: the API's QR answer (`capabilities.features.qr`), via selectQrKycGate.
 export function useQrPayKycGate() {
@@ -69,34 +64,27 @@ export function useQrPayKycGate() {
     // The one "Verify identity" step of every QR screen. An approved user whose
     // identity evidence is missing needs the restart: the start route answers
     // "already approved" for them and opens nothing.
-    const { handleRestartIdentity, handleInitiateKyc } = sumsubFlow
-    const startVerification = useCallback(
-        (targetCountry?: string) => {
-            if (needsIdentityRestart) void handleRestartIdentity()
-            else void handleInitiateKyc(QR_IDENTITY_CHECK_INTENT, undefined, isKycApproved || undefined, targetCountry)
-        },
-        [needsIdentityRestart, isKycApproved, handleRestartIdentity, handleInitiateKyc]
-    )
+    const { handleRestartIdentity, handleUnlockQr } = sumsubFlow
+    const startVerification = useCallback(() => {
+        if (needsIdentityRestart) void handleRestartIdentity()
+        else void handleUnlockQr()
+    }, [needsIdentityRestart, handleRestartIdentity, handleUnlockQr])
 
     // No QR screen has room for an inline error, so a failed start is a toast:
     // never a tap that does nothing.
     const toast = useToast()
     const startError = sumsubFlow.error
+    const refused = sumsubFlow.isQrUnlockRefused
     useEffect(() => {
-        if (startError) toast.error(startError)
+        if (!startError || refused) return
+        const id = toast.error(startError)
+        return () => toast.dismiss?.(id)
         // eslint-disable-next-line react-hooks/exhaustive-deps -- once per failed start
-    }, [startError])
+    }, [startError, refused])
 
     // Auto-dismiss the Sumsub flow if the user's QR-pool rails become enabled
-    // server-side while a flow is mid-air. Two known sources:
-    //   1. The `/users/identity` LATAM re-entry path now calls
-    //      `enableQrPoolRails()` BEFORE returning the Manteca action token
-    //      (peanut-api-ts #920) — so the BE can hand back a Sumsub token AND
-    //      have just unlocked QR access in the same request. Without this,
-    //      the SDK pops on top of an already-unlocked user.
-    //   2. Out-of-band capability updates (sibling-tab refresh, manual
-    //      backfill, etc.) flip the gate to PROCEED_TO_PAY while the modal
-    //      is still open. Same outcome — close it.
+    // server-side while a flow is mid-air. The explicit QR start and
+    // out-of-band capability changes can both publish an open gate.
     // Cheap watcher, zero added latency on the happy path: relies on the
     // existing useUserAutoRefresh / fetchUser polling already in place.
     useEffect(() => {

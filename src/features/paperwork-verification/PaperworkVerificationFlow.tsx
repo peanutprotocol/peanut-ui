@@ -105,12 +105,13 @@ type Candidate = FeatureReverificationEntry & { attemptId: string }
 type CandidateProps = { candidate?: Candidate; startedStatus?: SumsubKycStatus; returnTo?: string | null }
 
 async function readCandidatePlan(candidate: Candidate) {
-    const plan = await findKycDocumentPlan('verify', undefined, candidate.feature)
+    const plan = await findKycDocumentPlan('verify', undefined, undefined, candidate.attemptId)
     const entry = plan?.entry
     if (
         entry?.attemptId !== candidate.attemptId ||
         entry.feature !== candidate.feature ||
-        entry.targetProvider !== candidate.targetProvider
+        entry.targetProvider !== candidate.targetProvider ||
+        entry.prepared === false
     )
         return null
     return plan ? { ...plan, proofOfAddress: undefined } : null
@@ -1146,6 +1147,7 @@ function PaperworkVerificationSteps({
                 // The server still owns the review state.
             }
         }
+        if (status === 'ACTION_REQUIRED') setSubmitted(false)
         if (approved) {
             closeIdentity()
             void goToStep('verified')
