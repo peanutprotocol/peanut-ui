@@ -19,7 +19,7 @@ export default async function SocialCardPage({ searchParams }: { searchParams: P
     return (
         <main
             data-social-card={requested}
-            className="fixed top-0 left-0 z-50 overflow-hidden bg-background-brand text-foreground-primary"
+            className="bg-background-brand text-foreground-primary fixed left-0 top-0 z-50 overflow-hidden"
             style={SOCIAL_CARD_SIZE}
         >
             <div className="absolute flex flex-col items-start" style={{ left: 92, top: 196 }}>
