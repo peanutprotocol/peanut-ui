@@ -49,4 +49,3 @@ export interface QrArgentinaAppLinkProps {
     children: ReactNode
     className?: string
 }
-

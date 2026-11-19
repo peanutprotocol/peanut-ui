@@ -37,4 +37,3 @@ export interface QrBrazilPayButtonPressProps {
     variant: 'live' | 'norate'
     pressed: boolean
 }
-

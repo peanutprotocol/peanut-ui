@@ -68,60 +68,58 @@ export function QrArgentinaReview({ usdArs }: QrArgentinaReviewProps) {
             className="max-w-[18.5rem] md:[zoom:1.1] lg:[zoom:1.4]"
             screenClassName="gap-3 overflow-visible pb-4"
         >
-                <p className="sr-only">
-                    {`The Peanut pay screen: paying ${QR_AR_MERCHANT} ${price}${
-                        usd && rate ? `, about ${usd}, at ${rate}` : ''
-                    }. ${ROWS.peanutFee}: ${ROWS.sponsoredByPeanut}`}
-                </p>
-                <div aria-hidden className="flex flex-col gap-3">
-                    <p className="text-center text-heading-xs">Pay</p>
-                    <Card className="p-3">
-                        <div className="flex items-center gap-3">
-                            <Image src={MERCADO_PAGO} alt="" width={40} height={40} className="size-10 rounded-full" />
-                            <span className="min-w-0">
-                                <span className="flex items-center gap-1 text-body-xs">
-                                    <Icon name="arrow-up-right" size={16} />
-                                    Paying
-                                </span>
-                                <span className="block text-label-l">{QR_AR_MERCHANT}</span>
+            <p className="sr-only">
+                {`The Peanut pay screen: paying ${QR_AR_MERCHANT} ${price}${
+                    usd && rate ? `, about ${usd}, at ${rate}` : ''
+                }. ${ROWS.peanutFee}: ${ROWS.sponsoredByPeanut}`}
+            </p>
+            <div aria-hidden className="flex flex-col gap-3">
+                <p className="text-center text-heading-xs">Pay</p>
+                <Card className="p-3">
+                    <div className="flex items-center gap-3">
+                        <Image src={MERCADO_PAGO} alt="" width={40} height={40} className="size-10 rounded-full" />
+                        <span className="min-w-0">
+                            <span className="flex items-center gap-1 text-body-xs">
+                                <Icon name="arrow-up-right" size={16} />
+                                Paying
                             </span>
-                        </div>
-                    </Card>
-                    <Card className="items-center gap-1 p-4">
-                        <span className="flex items-baseline gap-1">
-                            <span className="text-body-m-semibold">ARS</span>
-                            <span className="font-roboto-flex-extrabold text-heading-m">
-                                {ARS.format(QR_AR_PRICE_ARS)}
-                            </span>
+                            <span className="block text-label-l">{QR_AR_MERCHANT}</span>
                         </span>
-                        {usd && <span className="text-body-m-semibold">≈ {usd}</span>}
-                    </Card>
-                    <Card className="px-3 py-0">
-                        {rate && (
-                            <span
-                                data-testid="qr-ar-rate-row"
-                                className="flex flex-col gap-1 border-b border-dashed border-border-default py-2"
-                            >
-                                <span className="text-label-m">{ROWS.exchangeRate}</span>
-                                <span className="text-body-m-semibold tabular-nums">{rate}</span>
-                            </span>
-                        )}
-                        <span className="flex flex-col gap-1 py-2">
-                            <span className="text-label-m">{ROWS.peanutFee}</span>
-                            <span className="text-body-m-semibold">{ROWS.sponsoredByPeanut}</span>
+                    </div>
+                </Card>
+                <Card className="items-center gap-1 p-4">
+                    <span className="flex items-baseline gap-1">
+                        <span className="text-body-m-semibold">ARS</span>
+                        <span className="font-roboto-flex-extrabold text-heading-m">{ARS.format(QR_AR_PRICE_ARS)}</span>
+                    </span>
+                    {usd && <span className="text-body-m-semibold">≈ {usd}</span>}
+                </Card>
+                <Card className="px-3 py-0">
+                    {rate && (
+                        <span
+                            data-testid="qr-ar-rate-row"
+                            className="flex flex-col gap-1 border-b border-dashed border-border-default py-2"
+                        >
+                            <span className="text-label-m">{ROWS.exchangeRate}</span>
+                            <span className="text-body-m-semibold tabular-nums">{rate}</span>
                         </span>
-                    </Card>
-                </div>
-                <Button
-                    variant="primary"
-                    shadowSize="4"
-                    onClick={pay}
-                    loading={paying}
-                    aria-disabled={paying}
-                    aria-label="Pay, then see the shop's screen"
-                >
-                    Pay
-                </Button>
+                    )}
+                    <span className="flex flex-col gap-1 py-2">
+                        <span className="text-label-m">{ROWS.peanutFee}</span>
+                        <span className="text-body-m-semibold">{ROWS.sponsoredByPeanut}</span>
+                    </span>
+                </Card>
+            </div>
+            <Button
+                variant="primary"
+                shadowSize="4"
+                onClick={pay}
+                loading={paying}
+                aria-disabled={paying}
+                aria-label="Pay, then see the shop's screen"
+            >
+                Pay
+            </Button>
         </PhoneFrame>
     )
 }

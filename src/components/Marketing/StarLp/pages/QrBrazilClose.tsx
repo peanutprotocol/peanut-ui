@@ -18,8 +18,8 @@ export function QrBrazilClose() {
             <h2>
                 <KnerdTitle text="Pix it" size="hero" />
             </h2>
-            {/* corners 20px clear of the sticker, with the fold's old spacing: the frame's padding is taken back out of its margins */}
-            <ScanFrame scanLine={false} className="mt-7 -mb-5 w-62 p-5 md:w-70">
+            {/* the sticker keeps its old width and spacing: the frame's 16px padding is taken back out of its margins */}
+            <ScanFrame scanLine={false} className="mt-8 -mb-4 w-60 md:w-68">
                 <DropIn fromTilt={-18} tilt={-5}>
                     <QrBrazilAppLink>
                         <QrBrazilPixSticker slot="close-sticker" />
