@@ -541,6 +541,22 @@ describe('usePushProvisioning', () => {
             expect(mockedGetProvisioningData).not.toHaveBeenCalled()
         })
 
+        it('offers the button when the wallet cannot be read, so a device without Google Wallet can push', async () => {
+            mockedAvailability.mockResolvedValue({ available: true, alreadyInWallet: false, lookupFailed: true })
+            mockedAddCard.mockResolvedValue({ added: true })
+            const { result } = renderHook(() => usePushProvisioning(card))
+            await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
+            await act(async () => {})
+            expect(result.current.nativeAvailable).toBe(true)
+            expect(result.current.alreadyInWallet).toBe(false)
+            await act(async () => {
+                expect(await result.current.addToWallet()).toEqual({ added: true })
+            })
+            expect(mockedAddCard).toHaveBeenCalledWith(expect.objectContaining({ cardId: 'mea-card-1' }))
+            expect(result.current.nativeAvailable).toBe(false)
+            expect(result.current.alreadyInWallet).toBe(true)
+        })
+
         it('fails closed when the initial native availability lookup rejects', async () => {
             mockedAvailability.mockRejectedValue(new Error('bridge unavailable'))
             const { result } = renderHook(() => usePushProvisioning(card))
