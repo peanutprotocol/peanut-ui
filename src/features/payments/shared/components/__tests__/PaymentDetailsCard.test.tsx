@@ -15,7 +15,7 @@ describe('PaymentDetailsCard', () => {
         renderWithIntl(
             <PaymentDetailsCard
                 rate={{ price: 5.4, code: 'BRL' }}
-                savings={{ usd: '0.93', currencyCode: 'BRL' }}
+                savings={{ usd: '0.93' }}
                 providerFee="R$0.75"
                 payout="R$503"
                 total="$92.50"

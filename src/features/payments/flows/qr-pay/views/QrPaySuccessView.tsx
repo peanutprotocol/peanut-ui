@@ -69,7 +69,7 @@ export function QrPaySuccessView() {
     if (!paidLocalAmount || !currency) return null
 
     // Show "saved $X vs card" only for currencies with a meaningful
-    // card-vs-local-rail gap (ARS, BRL — see CARD_FX_MARKUP_BY_CURRENCY).
+    // card-vs-local-rail gap (ARS; never BRL — see CARD_FX_MARKUP_BY_CURRENCY).
     // Rate is live (BCRA for ARS) via useCardMarkupRate above.
     const savingsInCents = calculateSavingsInCents(usdAmount, cardMarkup?.rate)
     const showSavingsMessage = savingsInCents > 0 && hasCardMarkupComparison(currency?.code)

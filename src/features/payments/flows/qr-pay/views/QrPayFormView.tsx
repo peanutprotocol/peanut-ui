@@ -113,7 +113,6 @@ export function QrPayFormView() {
                       maximumFractionDigits: 2,
                       useGrouping: false,
                   }),
-                  currencyCode: currency.code,
               }
             : null
 
