@@ -146,7 +146,7 @@ const STEPS: Step[] = [
                 title: 'Select + combobox popovers, tooltip, flags',
                 path: 'src/components/0_Bruddle/BaseSelect.tsx',
                 description:
-                    'shadow-lg 8 (BaseSelect, Common/CountryCombobox, MoreInfo, LandingPage CurrencySelect + TweetCarousel, InvitesGraph 2, PerkClaimGiftBox), shadow-sm 6 (Tooltip, CardPaymentRows, DepositMethodList, PerkClaimGiftBox 2, GraphTopBar), shadow-md 2, shadow-xl 1, drop-shadow-sm 1, plus the video Modal backdrop. BaseSelect is a 0_Bruddle primitive and Tooltip a shared component, so these two spread the soft look to every caller.',
+                    'shadow-lg 7 (BaseSelect, Common/CountryCombobox, MoreInfo, LandingPage CurrencySelect + TweetCarousel, InvitesGraph 2), shadow-sm 4 (Tooltip, CardPaymentRows, DepositMethodList, GraphTopBar), shadow-md 1, drop-shadow-sm 1, plus the video Modal backdrop. BaseSelect is a 0_Bruddle primitive and Tooltip a shared component, so these two spread the soft look to every caller.',
                 render: (
                     <Card className="p-4 shadow-lg">
                         <p className="text-label-l">shadow-lg popover</p>

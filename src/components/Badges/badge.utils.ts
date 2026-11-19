@@ -18,9 +18,6 @@ import badgeAssets from '@/types/badge-assets.json'
  */
 export const BADGE_ASSET_FALLBACKS: Readonly<Record<string, string>> = badgeAssets.assets
 
-/** Legacy-only iteration for the internal share-asset builder. */
-export const BADGE_CODES: readonly string[] = Object.keys(BADGE_ASSET_FALLBACKS)
-
 // Mirror the backend catalog boundary during rolling deploys and for legacy DB
 // rows. Badge art is limited to same-origin public assets and the API's own
 // badge art route; arbitrary remote, data, traversal, query, and fragment URLs

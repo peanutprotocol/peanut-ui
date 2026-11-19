@@ -67,7 +67,6 @@ import {
     Trophy,
     Type,
     Vibrate,
-    Wrench,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -580,12 +579,6 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             icon: Gift,
             href: '/dev/perk-success-test',
             description: 'The perk-unlock success screen with mock perks — preview the celebration + confetti flow.',
-        },
-        {
-            label: 'Share Builder',
-            icon: Wrench,
-            href: '/dev/share-builder',
-            description: 'Iterator for the D3 card share asset — stress-test tiers, names and edge cases.',
         },
     ],
 }

@@ -15,7 +15,7 @@
  * instead of a mix of pixelation + CSS blur. The hand follows the same
  * switch: pixelated with the rest of the tease, crisp on the share asset.
  *
- * Shared between the internal share builder, application preview, and the
+ * Shared between the application preview and the
  * `/shhhhh` LP hero. Keep this file the single source of truth for the
  * pixelation algorithm — the module-level canvas cache means assets are
  * decoded once per session.
