@@ -74,8 +74,12 @@ export function QrPayFormView() {
     const { openSupportWithMessage: openSupportForLimits } = useModalsContext()
 
     // Live card-vs-local-rail markup — same cache entry the success screen's
-    // savings message reads, so the two stay in sync.
-    const { data: cardMarkup } = useCardMarkupRate(currency?.code, currency?.price)
+    // savings message reads, so the two stay in sync. A currency with no card
+    // comparison (BRL) sends no request at all.
+    const { data: cardMarkup } = useCardMarkupRate(
+        hasCardMarkupComparison(currency?.code) ? currency?.code : undefined,
+        currency?.price
+    )
 
     // validate payment against user's limits
     // currency comes from payment lock — hook normalizes it internally

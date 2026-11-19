@@ -57,7 +57,7 @@ export const BRIDGE_DEVELOPER_FEE_RATE = 0
 
 /**
  * Static fallback for the card-vs-local-rail markup. The model itself lives in
- * the backend at `GET /fx/card-markup` (see peanut-api-ts `docs/FX.md`), which
+ * the backend at `GET /fx/card-markup` (see mono `engineering/api/fx.md`), which
  * computes ARS live against the official rate. This map is the client's last
  * resort when that call fails, AND
  * the eligibility gate (`hasCardMarkupComparison`) — only currencies here

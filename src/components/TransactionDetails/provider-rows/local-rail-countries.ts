@@ -1,6 +1,7 @@
 /**
- * Countries where Peanut has a first-party local payment rail that's cheaper
- * than spending on the Rain card. Add a country here to light up the
+ * Countries where Peanut has a first-party local payment rail to suggest after
+ * a card spend. The rail is cheaper than the card only where a card comparison
+ * exists (`hasCardMarkupComparison`: Argentina yes, Brazil no). Add a country here to light up the
  * LocalRailNudge for it — mirrors MANTECA_GEO_RAIL_MAP in peanut-api-ts.
  * When you add one, also extend the `{iso2, select, …}` preposition in the
  * pt-BR `transaction.nudge.localRailDescription` and
