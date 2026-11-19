@@ -4,7 +4,7 @@ import { KycFeatureActivationStatus } from '../KycFeatureActivationStatus'
 
 jest.mock('@/components/Global/PeanutMascot', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Setup/components/SetupLanguageSwitcher', () => ({ SetupLanguageSwitcher: () => null }))
-jest.mock('@/utils/confetti', () => ({ shootStarConfetti: jest.fn() }))
+jest.mock('@/utils/confetti', () => ({ confettiPresets: { success: jest.fn() } }))
 
 describe.each(['bank', 'card', 'local'] as const)('%s first-use activation', (feature) => {
     it.each(['pending', 'setting_up'] as const)('acknowledges %s and exits', (state) => {

@@ -3,7 +3,7 @@
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import { DataRow } from '@/components/0_Bruddle/DataRow'
-import { shootStarConfetti } from '@/utils/confetti'
+import { confettiPresets, shootDoubleStarConfetti } from '@/utils/confetti'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { DesignNote } from '../../_components/DesignNote'
 import { DocHeader } from '../../_components/DocHeader'
@@ -18,13 +18,61 @@ import { CoinStack } from './_components/CoinStack'
 import { ReceiptCardFan } from './_components/ReceiptCardFan'
 
 const STANDARD = [
-    ['Stars', '40, the brand star (star.svg), two sizes: 50 and 36 px tall'],
-    ['Movement', 'Fly out in every direction and fade. No tumble: the star never squashes or mirrors'],
-    ['Length', 'About 1.5 s'],
-    ['Start point', 'Screen centre, 40% down. Only a points row moves it, to itself'],
-    ['Web and native app', 'The same burst'],
-    ['Reduced motion', '8 small stars, slow, staying near the start point. Never nothing'],
+    [
+        'Look',
+        'The brand star (star.svg), flying out in every direction and fading. No tumble: it never squashes or mirrors',
+    ],
+    ['Default burst', '40 stars in two sizes, 50 and 36 px tall. About 1.5 s'],
+    [
+        'A screen may tune',
+        'How many stars, how big, how wide and from where. Never the shape, the colours or the tumble',
+    ],
+    ['Native app', 'Half the stars, one size'],
+    [
+        'Reduced motion',
+        'A quarter of the stars (at least 8), small and slow, staying near the start point. Never nothing',
+    ],
     ['Repeat', 'A second burst within 1.5 s is dropped'],
+] as const
+
+// The tunings in use, as each screen calls them.
+const TUNINGS = [
+    {
+        name: 'Default, 40% down',
+        where: 'Request created, account opened, card milestone',
+        code: 'shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.4 } })',
+        fire: () => shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.4 } }),
+    },
+    {
+        name: 'Default, centre',
+        where: 'Perk claimed after the hold',
+        code: 'shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.5 } })',
+        fire: () => shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.5 } }),
+    },
+    {
+        name: 'Success preset',
+        where: 'QR success, sign-up celebration, verification done',
+        code: 'confettiPresets.success()',
+        fire: () => confettiPresets.success(),
+    },
+    {
+        name: 'Celebration preset',
+        where: 'Sign-up confirmed. 30 stars, half spread, from 30% down',
+        code: 'confettiPresets.celebration()',
+        fire: () => confettiPresets.celebration(),
+    },
+    {
+        name: 'Gentle preset',
+        where: 'No screen yet. 10 smaller stars (40 px), slower',
+        code: 'confettiPresets.gentle()',
+        fire: () => confettiPresets.gentle(),
+    },
+    {
+        name: 'From an element',
+        where: 'Points row on a payment receipt',
+        code: 'shootDoubleStarConfetti({ origin: { x, y } })',
+        fire: () => shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.8 } }),
+    },
 ] as const
 
 export default function CelebrationsPage() {
@@ -32,7 +80,7 @@ export default function CelebrationsPage() {
         <DocPage>
             <DocHeader
                 title="Celebrations"
-                description="One confetti for every success moment, and three more celebrations that are approved but not built into any screen."
+                description="One confetti look for every success moment, tuned per screen, and three more celebrations that are approved but not built into any screen."
                 status="production"
             />
 
@@ -42,7 +90,8 @@ export default function CelebrationsPage() {
                     'Pair it with notifyHaptic("success") when the user caused the moment with a tap or a hold.',
                 ]}
                 dontUse={[
-                    'A second confetti with its own count, size, colours or start height. → there is one burst; call shootStarConfetti() with no options.',
+                    'A confetti with its own shape, colours or tumble. → there is one look; tune only amount, size, spread and start point.',
+                    'More than 60 stars or a star above 64 px. → old phones pay for every star on every frame.',
                     'A routine confirmation such as saved settings or a copied link. → use a toast.',
                     'Skipping the burst under reduced motion. → the burst already tones itself down.',
                     'A new celebration made of shapes drawn in code. → use one of the permitted celebrations below, built from approved art.',
@@ -52,10 +101,11 @@ export default function CelebrationsPage() {
             <DocSection title="Star confetti (the standard)">
                 <DocSection.Content>
                     <p className="text-body-s text-foreground-secondary">
-                        The only confetti in the app. Every success moment fires the same burst.
+                        The only confetti look in the app. Each screen keeps the amount, size and start point that fit
+                        its moment.
                     </p>
-                    <Button variant="primary" onClick={() => shootStarConfetti()}>
-                        Fire star confetti
+                    <Button variant="primary" onClick={() => shootDoubleStarConfetti()}>
+                        Fire the default burst
                     </Button>
                     <Card className="divide-y divide-dashed divide-border-default px-4">
                         {STANDARD.map(([label, value]) => (
@@ -63,18 +113,23 @@ export default function CelebrationsPage() {
                         ))}
                     </Card>
                     <DesignNote type="info">
-                        The star is drawn once from the brand file and stamped 40 times, so a burst costs an old phone
-                        about what the previous plain stars did. Keep the count at or under 60.
+                        The star is drawn once per size from the brand file and stamped, so a burst costs an old phone
+                        about what the previous plain stars did. Counts are in brand stars: about a fifth of the old
+                        plain-star counts.
                     </DesignNote>
                 </DocSection.Content>
                 <DocSection.Code>
                     <CodeBlock
                         label="Success screen"
-                        code={`import { shootStarConfetti } from '@/utils/confetti'
+                        code={`import { shootDoubleStarConfetti } from '@/utils/confetti'
 
 useEffect(() => {
-    shootStarConfetti()
+    shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.4 } })
 }, [])`}
+                    />
+                    <CodeBlock
+                        label="A tuned single-size burst"
+                        code={`shootStarConfetti({ particleCount: 10, scalar: 0.8, startVelocity: 10 })`}
                     />
                     <CodeBlock
                         label="From a points row"
@@ -83,6 +138,26 @@ useEffect(() => {
 usePointsConfetti(pointsEarned, pointsRowRef)`}
                     />
                 </DocSection.Code>
+            </DocSection>
+
+            <DocSection
+                title="Confetti tester"
+                description="Every tuning in use. A second tap within 1.5 s does nothing."
+            >
+                <Card className="divide-y divide-dashed divide-border-default px-4">
+                    {TUNINGS.map((tuning) => (
+                        <div key={tuning.name} className="flex items-center justify-between gap-4 py-3">
+                            <div className="min-w-0">
+                                <p className="text-body-s font-bold">{tuning.name}</p>
+                                <p className="text-body-s text-foreground-secondary">{tuning.where}</p>
+                                <code className="text-caption break-all text-foreground-secondary">{tuning.code}</code>
+                            </div>
+                            <Button variant="secondary" size="small" className="w-auto shrink-0" onClick={tuning.fire}>
+                                Fire
+                            </Button>
+                        </div>
+                    ))}
+                </Card>
             </DocSection>
 
             <SectionDivider />
@@ -124,26 +199,31 @@ usePointsConfetti(pointsEarned, pointsRowRef)`}
                 <ProductUsage.Example
                     title="Request link created"
                     path="src/components/Request/link/views/RequestCreatedView.tsx"
-                    description="The standard burst, fired once when the success screen opens."
-                    code={`shootStarConfetti()`}
-                >
-                    <Button variant="secondary" size="small" className="w-auto" onClick={() => shootStarConfetti()}>
-                        Fire
-                    </Button>
-                </ProductUsage.Example>
-                <ProductUsage.Example
-                    title="Points earned on a payment"
-                    path="src/hooks/usePointsConfetti.ts"
-                    description="The same burst, started from the points row."
-                    code={`shootStarConfetti({ origin: { x, y } })`}
+                    description="The default burst, fired once when the success screen opens."
+                    code={`shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.4 } })`}
                 >
                     <Button
                         variant="secondary"
                         size="small"
                         className="w-auto"
-                        onClick={() => shootStarConfetti({ origin: { x: 0.5, y: 0.8 } })}
+                        onClick={() => shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.4 } })}
                     >
-                        Fire from lower down
+                        Fire
+                    </Button>
+                </ProductUsage.Example>
+                <ProductUsage.Example
+                    title="Sign-up confirmed"
+                    path="src/components/Setup/redesign/FinalConfirm/useFinalConfirm.ts"
+                    description="The celebration preset: fewer stars, a half spread, from higher up."
+                    code={`confettiPresets.celebration()`}
+                >
+                    <Button
+                        variant="secondary"
+                        size="small"
+                        className="w-auto"
+                        onClick={() => confettiPresets.celebration()}
+                    >
+                        Fire
                     </Button>
                 </ProductUsage.Example>
             </ProductUsage>

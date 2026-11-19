@@ -2,10 +2,10 @@ import { StrictMode } from 'react'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import messages from '@/i18n/app/messages/en.json'
-import { shootStarConfetti } from '@/utils/confetti'
+import { shootDoubleStarConfetti } from '@/utils/confetti'
 import { RequestCreatedView } from '../RequestCreatedView'
 
-jest.mock('@/utils/confetti', () => ({ shootStarConfetti: jest.fn() }))
+jest.mock('@/utils/confetti', () => ({ shootDoubleStarConfetti: jest.fn() }))
 jest.mock('@/components/Global/PeanutMascot', () => ({
     __esModule: true,
     default: () => <div data-testid="mascot" />,
@@ -57,7 +57,7 @@ it('makes successful creation persistent and celebrates once', () => {
         'data-url',
         'https://peanut.me/request/pay?id=request-1'
     )
-    expect(shootStarConfetti).toHaveBeenCalledTimes(1)
+    expect(shootDoubleStarConfetti).toHaveBeenCalledTimes(1)
 })
 
 it('shows two buttons, primary Done first, then share', () => {

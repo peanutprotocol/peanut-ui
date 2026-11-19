@@ -24,7 +24,7 @@ import { useAccountSetup } from '@/hooks/useAccountSetup'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { AccountType } from '@/interfaces/interfaces'
 import { attachSignupGeo } from '@/services/signup-geo'
-import { shootStarConfetti } from '@/utils/confetti'
+import { confettiPresets } from '@/utils/confetti'
 import { readInviteCode } from '@/utils/invite-stash'
 import { passkeyFailureFields } from '@/utils/passkey-failure-fields'
 import { passkeyFailureReason } from '@/utils/passkey-failure-reporting'
@@ -86,7 +86,7 @@ export function useFinalConfirm({ onComplete }: { onComplete?: (outcome: { defer
         // An unconfirmed (Confirm later) account gets no confetti on either route.
         if (!onComplete && !deferredRef.current && !completionCelebratedRef.current) {
             completionCelebratedRef.current = true
-            shootStarConfetti()
+            confettiPresets.celebration()
         }
         const inviteCode = readInviteCode()
         // Native Preferences can be the only surviving copy after a WebView process restart, so load the durable

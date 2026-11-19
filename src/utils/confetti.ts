@@ -3,17 +3,24 @@ import { isCapacitor } from '@/utils/capacitor'
 import { loadStarShapes } from '@/utils/confetti-star-shapes'
 
 export interface ConfettiOptions {
-    /** Where the burst starts, as a fraction of the viewport. Only for a burst anchored to an element. */
+    /** Stars in the burst. Counts are brand stars, about a fifth of the old plain-star counts. */
+    particleCount?: number
+    /** Star size, where 1 is the standard 50 px star. */
+    scalar?: number
     origin?: { x: number; y: number }
+    startVelocity?: number
+    gravity?: number
+    spread?: number
+    ticks?: number
+    decay?: number
 }
 
 /*
- * The one confetti. Every success moment fires this burst; there are no
- * per-screen tunings. 40 brand stars in two sizes fly out flat — no tumble,
- * because tumbling squashes and mirrors the drawing — and fade.
+ * One look for every burst: the brand star, flying out flat — no tumble,
+ * because tumbling squashes and mirrors the drawing — and fading. A screen
+ * may tune how many stars, how big and from where; it never changes the look.
  */
-const STAR_CONFETTI_CONFIG = {
-    particleCount: 40,
+const defaultConfettiConfig = {
     spread: 360,
     ticks: 80,
     gravity: 0.3,
@@ -23,11 +30,20 @@ const STAR_CONFETTI_CONFIG = {
     flat: true,
 }
 
-const DEFAULT_ORIGIN = { x: 0.5, y: 0.4 }
+const DEFAULT_ORIGIN = { x: 0.5, y: 0.6 }
 
-// css pixel heights of the two star sizes in a burst
-const STAR_HEIGHTS = [50, 36] as const
-const REDUCED_MOTION_STAR_HEIGHTS = [36] as const
+// css pixel height of the star at scalar 1, and the second size of a double
+// burst relative to the first
+const STAR_HEIGHT = 50
+const SMALL_STAR_RATIO = 0.72
+// Bitmaps stay small whatever a caller asks for: a large one costs old phones
+// fill rate on every particle, every frame.
+const MIN_STAR_HEIGHT = 12
+const MAX_STAR_HEIGHT = 64
+
+function starHeight(scalar: number): number {
+    return Math.min(MAX_STAR_HEIGHT, Math.max(MIN_STAR_HEIGHT, Math.round(STAR_HEIGHT * scalar)))
+}
 
 // Only if the star file cannot be rasterised: the library's own star in brand
 // yellow (yellow-500), so a broken image never means no celebration.
@@ -48,11 +64,13 @@ const FALLBACK_SCALAR = 1.8
  * moment legible.
  */
 const REDUCED_MOTION_CONFIG = {
-    particleCount: 8,
     ticks: 40,
     gravity: 0.5,
     startVelocity: 7,
 }
+
+const REDUCED_MOTION_PARTICLE_RATIO = 0.25
+const REDUCED_MOTION_MIN_PARTICLES = 8
 
 // Read per burst, never cached at module load: the native document outlives
 // any single setting, so a value latched at boot would be days stale by the
@@ -84,7 +102,8 @@ function getConfetti(): Promise<CreateTypes> {
              * *construction*, not a worker that dies later. On native that is
              * unrecoverable: the document never reloads, so one failure means no
              * celebration ever again. Keep the worker on web, where a page load
-             * heals it, and render on the main thread in the WebView.
+             * heals it, and render on the main thread in the WebView (already
+             * down to one half-sized burst there).
              */
             return confetti.create(canvas, { resize: true, useWorker: !isCapacitor() })
         })
@@ -129,35 +148,43 @@ function getStarShapes(heights: readonly number[]): Promise<Shape[]> {
 // the next burst gets the brand star.
 const STAR_SHAPE_TIMEOUT_MS = 800
 
-function getShapeOptions(reduced: boolean) {
+function getShapeOptions(heights: readonly number[], fallbackScalar: number) {
     let timer: ReturnType<typeof setTimeout>
     const timeout = new Promise<never>((_, reject) => {
         timer = setTimeout(() => reject(new Error('star shape timed out')), STAR_SHAPE_TIMEOUT_MS)
     })
-    return Promise.race([getStarShapes(reduced ? REDUCED_MOTION_STAR_HEIGHTS : STAR_HEIGHTS), timeout])
+    return Promise.race([getStarShapes(heights), timeout])
         .then(
             (shapes) => ({ shapes }),
             (error: unknown) => {
                 console.warn('[confetti] star shape failed, using the fallback star:', error)
-                return { shapes: FALLBACK_SHAPES, colors: FALLBACK_COLORS, scalar: FALLBACK_SCALAR }
+                return { shapes: FALLBACK_SHAPES, colors: FALLBACK_COLORS, scalar: fallbackScalar }
             }
         )
         .finally(() => clearTimeout(timer))
 }
 
-/** The app's one celebration burst. Fire it once per success moment. */
-export const shootStarConfetti = ({ origin = DEFAULT_ORIGIN }: ConfettiOptions = {}) => {
-    if (typeof window === 'undefined') return
-    if (isThrottled()) return
+/** One burst of `particleCount` stars, spread evenly over the given sizes. */
+const fireStars = (options: ConfettiOptions, scalars: readonly number[]) => {
+    const { particleCount = 20, origin = DEFAULT_ORIGIN, scalar: _scalar, ...otherOptions } = options
 
     const reduced = prefersReducedMotion()
+    // Reduced motion gets one small size, so the few stars left stay quiet.
+    const sizes = reduced ? [Math.min(...scalars) * SMALL_STAR_RATIO] : scalars
+    // The bitmap is drawn at its final size; the library's own scalar would
+    // only resize the box it is painted into.
+    const heights = [...new Set(sizes.map(starHeight))]
 
-    Promise.all([getConfetti(), getShapeOptions(reduced)])
+    Promise.all([getConfetti(), getShapeOptions(heights, FALLBACK_SCALAR * Math.max(...sizes))])
         .then(([fire, shapeOptions]) =>
             fire({
-                ...STAR_CONFETTI_CONFIG,
+                ...defaultConfettiConfig,
+                ...otherOptions,
                 ...(reduced ? REDUCED_MOTION_CONFIG : {}),
                 ...shapeOptions,
+                particleCount: reduced
+                    ? Math.max(REDUCED_MOTION_MIN_PARTICLES, Math.round(particleCount * REDUCED_MOTION_PARTICLE_RATIO))
+                    : particleCount,
                 origin,
             })
         )
@@ -166,4 +193,48 @@ export const shootStarConfetti = ({ origin = DEFAULT_ORIGIN }: ConfettiOptions =
             // unnoticed for three releases.
             console.warn('[confetti] burst failed:', error)
         })
+}
+
+/** A burst of stars in one size. */
+export const shootStarConfetti = (options: ConfettiOptions = {}) => {
+    if (typeof window === 'undefined') return
+    if (isThrottled()) return
+    fireStars(options, [options.scalar ?? 1])
+}
+
+/** The standard celebration: 40 stars in two sizes. */
+export const shootDoubleStarConfetti = (options: ConfettiOptions = {}) => {
+    if (typeof window === 'undefined') return
+    if (isThrottled()) return
+
+    const { particleCount = 40, scalar = 1, ...otherOptions } = options
+
+    // Native WebView renderers have a much smaller frame budget than Chrome:
+    // half the stars, one size. Reduced motion gets the same for the reason it
+    // gets fewer, slower stars — the two-size spray is the part that reads as
+    // busy.
+    if (isCapacitor() || prefersReducedMotion()) {
+        fireStars({ ...otherOptions, particleCount: Math.round(particleCount / 2) }, [scalar])
+        return
+    }
+
+    // Both sizes go out in one burst; the library picks a size per star.
+    fireStars({ ...otherOptions, particleCount }, [scalar, scalar * SMALL_STAR_RATIO])
+}
+
+// Preset configurations for common use cases
+export const confettiPresets = {
+    success: () => shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.6 } }),
+    celebration: () =>
+        shootDoubleStarConfetti({
+            origin: { x: 0.5, y: 0.3 },
+            particleCount: 30,
+            spread: 180,
+        }),
+    gentle: () =>
+        shootStarConfetti({
+            particleCount: 10,
+            scalar: 0.8,
+            startVelocity: 10,
+        }),
 }

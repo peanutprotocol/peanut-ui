@@ -55,9 +55,9 @@ beforeEach(() => {
 
 describe('the standard burst', () => {
     it('fires one burst of 40 flat brand stars in two sizes', async () => {
-        const { shootStarConfetti } = await loadConfetti()
+        const { shootDoubleStarConfetti } = await loadConfetti()
 
-        shootStarConfetti()
+        shootDoubleStarConfetti()
         await flush()
 
         expect(fire).toHaveBeenCalledTimes(1)
@@ -68,30 +68,22 @@ describe('the standard burst', () => {
             flat: true,
             startVelocity: 17,
             spread: 360,
-            origin: { x: 0.5, y: 0.4 },
+            scalar: 1,
+            origin: { x: 0.5, y: 0.6 },
         })
         expect(options.shapes).toEqual([starShape(50), starShape(36)])
         // The stars carry their own colours; tinting is only for the fallback.
         expect(options.colors).toBeUndefined()
     })
 
-    it('lets a burst be anchored to an element', async () => {
-        const { shootStarConfetti } = await loadConfetti()
-
-        shootStarConfetti({ origin: { x: 0.2, y: 0.7 } })
-        await flush()
-
-        expect(fire.mock.calls[0][0].origin).toEqual({ x: 0.2, y: 0.7 })
-    })
-
     it('rasterises the star once and reuses it for later bursts', async () => {
-        const { shootStarConfetti } = await loadConfetti()
+        const { shootDoubleStarConfetti } = await loadConfetti()
         const now = Date.now()
 
-        shootStarConfetti()
+        shootDoubleStarConfetti()
         await flush()
         jest.spyOn(Date, 'now').mockReturnValue(now + 5_000)
-        shootStarConfetti()
+        shootDoubleStarConfetti()
         await flush()
 
         expect(fire).toHaveBeenCalledTimes(2)
@@ -101,17 +93,22 @@ describe('the standard burst', () => {
     it('falls back to a yellow star when the star file cannot be drawn, then retries it', async () => {
         mockLoadStarShapes.mockRejectedValueOnce(new Error('star.svg failed to load'))
         const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
-        const { shootStarConfetti } = await loadConfetti()
+        const { shootDoubleStarConfetti } = await loadConfetti()
         const now = Date.now()
 
-        shootStarConfetti()
+        shootDoubleStarConfetti()
         await flush()
 
-        expect(fire.mock.calls[0][0]).toMatchObject({ shapes: ['star'], colors: ['#ffc900'], particleCount: 40 })
+        expect(fire.mock.calls[0][0]).toMatchObject({
+            shapes: ['star'],
+            colors: ['#ffc900'],
+            scalar: 1.8,
+            particleCount: 40,
+        })
         expect(warn).toHaveBeenCalledWith('[confetti] star shape failed, using the fallback star:', expect.any(Error))
 
         jest.spyOn(Date, 'now').mockReturnValue(now + 5_000)
-        shootStarConfetti()
+        shootDoubleStarConfetti()
         await flush()
 
         expect(fire.mock.calls[1][0].shapes).toEqual([starShape(50), starShape(36)])
@@ -121,10 +118,10 @@ describe('the standard burst', () => {
         let finishLoad: (shapes: ReturnType<typeof starShape>[]) => void = () => {}
         mockLoadStarShapes.mockImplementationOnce(() => new Promise((resolve) => (finishLoad = resolve)))
         jest.spyOn(console, 'warn').mockImplementation(() => {})
-        const { shootStarConfetti } = await loadConfetti()
+        const { shootDoubleStarConfetti } = await loadConfetti()
         const now = Date.now()
 
-        shootStarConfetti()
+        shootDoubleStarConfetti()
         await new Promise((resolve) => setTimeout(resolve, 850))
 
         expect(fire).toHaveBeenCalledTimes(1)
@@ -133,7 +130,7 @@ describe('the standard burst', () => {
         // The load carried on: the next burst gets the brand star without a second load.
         finishLoad([starShape(50), starShape(36)])
         jest.spyOn(Date, 'now').mockReturnValue(now + 5_000)
-        shootStarConfetti()
+        shootDoubleStarConfetti()
         await flush()
 
         expect(fire.mock.calls[1][0].shapes).toEqual([starShape(50), starShape(36)])
@@ -141,12 +138,72 @@ describe('the standard burst', () => {
     })
 })
 
-describe('prefers-reduced-motion', () => {
-    it('tones the burst down rather than suppressing it — less motion, not no feedback', async () => {
-        setReducedMotion(true)
+describe('a screen tunes its own burst', () => {
+    it('passes amount, start point and movement through, and keeps the look', async () => {
+        const { shootDoubleStarConfetti } = await loadConfetti()
+
+        shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.3 }, particleCount: 30, spread: 180 })
+        await flush()
+
+        expect(fire.mock.calls[0][0]).toMatchObject({
+            particleCount: 30,
+            spread: 180,
+            origin: { x: 0.5, y: 0.3 },
+            flat: true,
+            shapes: [starShape(50), starShape(36)],
+        })
+    })
+
+    it('draws a smaller star for a smaller scalar instead of stretching the bitmap', async () => {
+        const { shootStarConfetti } = await loadConfetti()
+
+        shootStarConfetti({ particleCount: 10, scalar: 0.8, startVelocity: 10 })
+        await flush()
+
+        expect(mockLoadStarShapes).toHaveBeenCalledWith([40])
+        expect(fire.mock.calls[0][0]).toMatchObject({ particleCount: 10, startVelocity: 10, scalar: 1 })
+    })
+
+    it('caps the star size so no caller can hand an old phone a huge bitmap', async () => {
+        const { shootStarConfetti } = await loadConfetti()
+
+        shootStarConfetti({ scalar: 10 })
+        await flush()
+
+        expect(mockLoadStarShapes).toHaveBeenCalledWith([64])
+    })
+
+    it('a single burst is 20 stars in one size', async () => {
         const { shootStarConfetti } = await loadConfetti()
 
         shootStarConfetti()
+        await flush()
+
+        expect(mockLoadStarShapes).toHaveBeenCalledWith([50])
+        expect(fire.mock.calls[0][0].particleCount).toBe(20)
+    })
+
+    it.each([
+        ['success', { particleCount: 40, origin: { x: 0.5, y: 0.6 } }, [50, 36]],
+        ['celebration', { particleCount: 30, spread: 180, origin: { x: 0.5, y: 0.3 } }, [50, 36]],
+        ['gentle', { particleCount: 10, startVelocity: 10 }, [40]],
+    ] as const)('the %s preset keeps its tuning', async (name, expected, heights) => {
+        const { confettiPresets } = await loadConfetti()
+
+        confettiPresets[name]()
+        await flush()
+
+        expect(mockLoadStarShapes).toHaveBeenCalledWith(heights)
+        expect(fire.mock.calls[0][0]).toMatchObject(expected)
+    })
+})
+
+describe('prefers-reduced-motion', () => {
+    it('tones the burst down rather than suppressing it — less motion, not no feedback', async () => {
+        setReducedMotion(true)
+        const { shootDoubleStarConfetti } = await loadConfetti()
+
+        shootDoubleStarConfetti()
         await flush()
 
         expect(fire).toHaveBeenCalledTimes(1)
@@ -156,6 +213,16 @@ describe('prefers-reduced-motion', () => {
         expect(options.startVelocity).toBe(7)
         expect(options.ticks).toBe(40)
         expect(options.flat).toBe(true)
+    })
+
+    it('keeps a quarter of a large burst', async () => {
+        setReducedMotion(true)
+        const { shootStarConfetti } = await loadConfetti()
+
+        shootStarConfetti({ particleCount: 60 })
+        await flush()
+
+        expect(fire.mock.calls[0][0].particleCount).toBe(15)
     })
 
     it('never asks canvas-confetti to disable itself for reduced motion', async () => {
@@ -190,15 +257,16 @@ describe('native', () => {
         expect(create).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ useWorker: true }))
     })
 
-    it('fires the same burst as the web — one standard, no lighter native variant', async () => {
+    it('halves the double burst to one size', async () => {
         mockIsCapacitor.mockReturnValue(true)
-        const { shootStarConfetti } = await loadConfetti()
+        const { shootDoubleStarConfetti } = await loadConfetti()
 
-        shootStarConfetti()
+        shootDoubleStarConfetti()
         await flush()
 
         expect(fire).toHaveBeenCalledTimes(1)
-        expect(fire.mock.calls[0][0].particleCount).toBe(40)
+        expect(mockLoadStarShapes).toHaveBeenCalledWith([50])
+        expect(fire.mock.calls[0][0].particleCount).toBe(20)
     })
 })
 

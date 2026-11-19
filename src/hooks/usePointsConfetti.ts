@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { shootStarConfetti } from '@/utils/confetti'
+import { shootDoubleStarConfetti } from '@/utils/confetti'
 
 /**
  * Hook to trigger confetti animation when points are earned
@@ -20,7 +20,7 @@ export const usePointsConfetti = (points: number | undefined, elementRef: React.
                     const x = (rect.left + rect.width / 2) / window.innerWidth
                     const y = (rect.top + rect.height / 2) / window.innerHeight
 
-                    shootStarConfetti({ origin: { x, y } })
+                    shootDoubleStarConfetti({ origin: { x, y } })
                 }
             })
             return () => cancelAnimationFrame(frame)

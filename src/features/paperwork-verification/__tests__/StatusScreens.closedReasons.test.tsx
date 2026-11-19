@@ -5,7 +5,7 @@ import { ClosedFeaturesNotice } from '../components/StatusScreens'
 
 jest.mock('@/components/Global/PeanutMascot', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Setup/components/SetupLanguageSwitcher', () => ({ SetupLanguageSwitcher: () => null }))
-jest.mock('@/utils/confetti', () => ({ shootStarConfetti: jest.fn() }))
+jest.mock('@/utils/confetti', () => ({ confettiPresets: { success: jest.fn() } }))
 
 describe.each(['bank', 'card', 'local', 'qr'] as const)('closed %s', (feature) => {
     it.each(['us_citizen_not_supported', 'manteca_us_nationality', 'manteca_us_nationality_restricted'])(

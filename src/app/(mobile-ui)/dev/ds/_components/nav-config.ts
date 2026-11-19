@@ -516,7 +516,8 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             label: 'Celebrations',
             icon: Trophy,
             href: '/dev/ds/patterns/celebrations',
-            description: 'The one star confetti for success moments, plus three permitted celebrations not yet in use',
+            description:
+                'The star confetti for success moments and its tunings, plus three permitted celebrations not yet in use',
             status: 'production',
         },
     ],
@@ -572,7 +573,7 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             label: 'Shake & Confetti',
             icon: PartyPopper,
             href: '/dev/shake-test',
-            description: 'Tune shake intensity + hold-to-claim progress and fire the star confetti.',
+            description: 'Tune shake intensity + hold-to-claim progress and fire the double-star confetti burst.',
         },
         {
             label: 'Perk Success',

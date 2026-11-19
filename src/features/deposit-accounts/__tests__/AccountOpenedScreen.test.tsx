@@ -2,10 +2,10 @@ import { StrictMode } from 'react'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import messages from '@/i18n/app/messages/en.json'
-import { shootStarConfetti } from '@/utils/confetti'
+import { shootDoubleStarConfetti } from '@/utils/confetti'
 import { AccountOpenedScreen } from '../components/AccountOpenedScreen'
 
-jest.mock('@/utils/confetti', () => ({ shootStarConfetti: jest.fn() }))
+jest.mock('@/utils/confetti', () => ({ shootDoubleStarConfetti: jest.fn() }))
 
 it('celebrates once in Strict Mode and provides an accessible way to view the account', () => {
     const onContinue = jest.fn()
@@ -17,7 +17,7 @@ it('celebrates once in Strict Mode and provides an accessible way to view the ac
         </StrictMode>
     )
 
-    expect(shootStarConfetti).toHaveBeenCalledTimes(1)
+    expect(shootDoubleStarConfetti).toHaveBeenCalledTimes(1)
     expect(screen.getByRole('heading', { name: /EUR/ })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: messages.depositAccounts.opened.cta }))
     expect(onContinue).toHaveBeenCalledTimes(1)

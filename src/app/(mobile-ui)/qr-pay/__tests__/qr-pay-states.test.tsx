@@ -109,7 +109,7 @@ jest.mock('@/components/Global/SoundPlayer', () => ({
 
 // Confetti — no-op
 jest.mock('@/utils/confetti', () => ({
-    shootStarConfetti: jest.fn(),
+    shootDoubleStarConfetti: jest.fn(),
 }))
 
 // Assets — stubs
@@ -541,7 +541,7 @@ jest.mock('@/services/services.types', () => ({
 
 // ---------- import component under test AFTER all mocks ----------
 import QRPayPage from '../page'
-import { shootStarConfetti } from '@/utils/confetti'
+import { shootDoubleStarConfetti } from '@/utils/confetti'
 
 // ---------- helpers ----------
 
@@ -1820,7 +1820,7 @@ describe('GROUP 4: Success States', () => {
         await waitFor(() => {
             expect(screen.getByText('Go to Home')).toBeInTheDocument()
         })
-        expect(shootStarConfetti).toHaveBeenCalledTimes(1)
+        expect(shootDoubleStarConfetti).toHaveBeenCalledTimes(1)
         expect(posthog.capture).toHaveBeenCalledWith('reward_claimed', { amount_usd: 0.5, discount_pct: 5 })
 
         // The reveal talks to no one: the scan init and the completion are the
@@ -1860,7 +1860,7 @@ describe('GROUP 4: Success States', () => {
         await act(async () => {
             jest.advanceTimersByTime(2000)
         })
-        expect(shootStarConfetti).not.toHaveBeenCalled()
+        expect(shootDoubleStarConfetti).not.toHaveBeenCalled()
         for (const event of ['reward_claim_shown', 'surprise_moment_shown', 'reward_claimed']) {
             expect(posthog.capture).not.toHaveBeenCalledWith(event, expect.anything())
         }
@@ -1888,7 +1888,7 @@ describe('GROUP 4: Success States', () => {
         expect(screen.queryByRole('button', { name: /Claim Reward/i })).not.toBeInTheDocument()
         expect(screen.queryByText('Go to Home')).not.toBeInTheDocument()
         expect(screen.getByText('Split this bill')).toBeInTheDocument()
-        expect(shootStarConfetti).not.toHaveBeenCalled()
+        expect(shootDoubleStarConfetti).not.toHaveBeenCalled()
         for (const event of ['reward_claim_shown', 'surprise_moment_shown', 'reward_claimed']) {
             expect(posthog.capture).not.toHaveBeenCalledWith(event, expect.anything())
         }
@@ -1904,7 +1904,7 @@ describe('GROUP 4: Success States', () => {
         })
         expect(screen.queryByText('You earned a reward!')).not.toBeInTheDocument()
         expect(screen.queryByRole('button', { name: /Claim Reward/i })).not.toBeInTheDocument()
-        expect(shootStarConfetti).not.toHaveBeenCalled()
+        expect(shootDoubleStarConfetti).not.toHaveBeenCalled()
     })
 
     test('PIX success shows PIX icon', async () => {

@@ -26,7 +26,7 @@ import {
     readSignupAttributionAsync,
 } from '@/utils/signup-attribution'
 import { capturePasskeyDebugInfo } from '@/utils/passkeyDebug'
-import { shootStarConfetti } from '@/utils/confetti'
+import { confettiPresets } from '@/utils/confetti'
 import { UserOpSubmissionError } from '@/utils/userop-submission'
 import { signupControls } from '@/test-utils/signup-controls'
 import { FinalConfirmScreen } from '../FinalConfirmScreen'
@@ -91,7 +91,7 @@ jest.mock('@/hooks/useSetupFlow', () => ({
 }))
 jest.mock('@/app/actions/users', () => ({ updateUserById: jest.fn(async () => ({ data: {} })) }))
 jest.mock('@/utils/passkeyDebug', () => ({ capturePasskeyDebugInfo: jest.fn() }))
-jest.mock('@/utils/confetti', () => ({ shootStarConfetti: jest.fn() }))
+jest.mock('@/utils/confetti', () => ({ confettiPresets: { celebration: jest.fn(), success: jest.fn() } }))
 jest.mock('@/utils/haptics', () => ({ notifyHaptic: jest.fn() }))
 jest.mock('@/utils/auth.utils', () => ({ clearAuthState: jest.fn() }))
 jest.mock('@/utils/signup-attribution', () => ({
@@ -309,7 +309,7 @@ describe('11 Final confirm: states', () => {
         expect(events(ANALYTICS_EVENTS.SIGNUP_COMPLETED)).toEqual([expect.objectContaining({ test_tx: 'confirmed' })])
         expect(mockAddAccount).toHaveBeenCalledWith(expect.objectContaining({ accountIdentifier: WALLET }))
         expect(mockRouterReplace).not.toHaveBeenCalled()
-        expect(shootStarConfetti).not.toHaveBeenCalled()
+        expect(confettiPresets.celebration).not.toHaveBeenCalled()
         expect(setupState(container)).toBe('success')
         expect(primary(container)).toBeDisabled()
     })
@@ -347,7 +347,7 @@ describe('11 Final confirm: states', () => {
         )
         expect(view.container.querySelector('[data-testid="setup-redesign-celebration"]')).toBeNull()
         expect(screen.queryByText(copyRx('setupRedesign.done.title'))).toBeNull()
-        expect(shootStarConfetti).not.toHaveBeenCalled()
+        expect(confettiPresets.celebration).not.toHaveBeenCalled()
     })
 
     it('P4-38 a failed account save offers Retry account setup, which saves again without a second signature', async () => {
@@ -703,7 +703,7 @@ describe('11 Final confirm on /setup/finish', () => {
         confirm(container)
         await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledTimes(1))
         expect(mockRouterReplace).toHaveBeenCalledWith('/home')
-        expect(shootStarConfetti).toHaveBeenCalledTimes(1)
+        expect(confettiPresets.celebration).toHaveBeenCalledTimes(1)
         expect(events(ANALYTICS_EVENTS.SIGNUP_COMPLETED)).toHaveLength(1)
     })
 
@@ -717,7 +717,7 @@ describe('11 Final confirm on /setup/finish', () => {
         await waitFor(() => expect(later).toBeEnabled())
         fireEvent.click(later)
         await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledTimes(1))
-        expect(shootStarConfetti).not.toHaveBeenCalled()
+        expect(confettiPresets.celebration).not.toHaveBeenCalled()
         expect(events(ANALYTICS_EVENTS.SIGNUP_COMPLETED)).toEqual([expect.objectContaining({ test_tx: 'deferred' })])
     })
 })
@@ -784,7 +784,7 @@ describe('11 Final confirm: dev behaviour kept (ported from SignTestTransaction.
         await waitFor(() => expect(primary(container)).toBeEnabled())
         expect(mockAddAccount).not.toHaveBeenCalled()
         expect(onComplete).not.toHaveBeenCalled()
-        expect(shootStarConfetti).not.toHaveBeenCalled()
+        expect(confettiPresets.celebration).not.toHaveBeenCalled()
     })
 
     it('P4-38 on the finish route, Retry completes an ambiguous earlier commit and redirects once', async () => {
@@ -793,7 +793,7 @@ describe('11 Final confirm: dev behaviour kept (ported from SignTestTransaction.
         confirm(view.container)
         await waitFor(() => expect(label(primary(view.container))).toBe(copy('setupRedesign.final.retrySetup')))
         await waitFor(() => expect(primary(view.container)).toBeEnabled())
-        expect(shootStarConfetti).not.toHaveBeenCalled()
+        expect(confettiPresets.celebration).not.toHaveBeenCalled()
 
         // a later profile refresh shows that the first request did commit. The auth mock is no context, and the
         // shell keeps the mounted screen element, so a flow update re-renders the screen to read the new accounts.
@@ -805,7 +805,7 @@ describe('11 Final confirm: dev behaviour kept (ported from SignTestTransaction.
         expect(mockAddAccount).toHaveBeenCalledTimes(1)
         expect(mockRouterPush).not.toHaveBeenCalled()
         expect(mockRouterReplace).toHaveBeenCalledTimes(1)
-        expect(shootStarConfetti).toHaveBeenCalledTimes(1)
+        expect(confettiPresets.celebration).toHaveBeenCalledTimes(1)
     })
 
     it('P4-49 a Retry that finds the wallet already saved still sends the current choices, without signing again', async () => {
@@ -859,7 +859,7 @@ describe('11 Final confirm: dev behaviour kept (ported from SignTestTransaction.
         await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1))
         expect(mockRouterReplace).not.toHaveBeenCalled()
         expect(getRedirectUrl()).toBe('/receipt?id=abc')
-        expect(shootStarConfetti).not.toHaveBeenCalled()
+        expect(confettiPresets.celebration).not.toHaveBeenCalled()
     })
 
     it('P4-37 in the sign-up an account that already has a wallet still asks for the confirmation', async () => {

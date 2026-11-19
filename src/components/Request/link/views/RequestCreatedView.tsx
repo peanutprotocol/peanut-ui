@@ -10,7 +10,7 @@ import PeanutMascot from '@/components/Global/PeanutMascot'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import ShareButton from '@/components/Global/ShareButton'
 import { RequestBankTransferCard } from '@/features/deposit-accounts/components/RequestBankTransferCard'
-import { shootStarConfetti } from '@/utils/confetti'
+import { shootDoubleStarConfetti } from '@/utils/confetti'
 import { RequestFulfillmentNotice } from './RequestFulfillmentNotice'
 
 interface RequestCreatedViewProps {
@@ -38,7 +38,7 @@ export function RequestCreatedView({
     useEffect(() => {
         if (celebrated.current) return
         celebrated.current = true
-        shootStarConfetti()
+        shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.4 } })
     }, [])
 
     const shareLabel =
