@@ -84,7 +84,7 @@ export function CoinFlip({ reduced }: { reduced: boolean }) {
             </Card>
             <div
                 ref={coin}
-                className="absolute top-[35px] left-[200px] size-[100px] [transform:scale(0)] drop-shadow-[4px_4px_0_var(--color-border-default)]"
+                className="absolute top-[35px] left-[200px] size-[100px] [transform:scale(0)] drop-shadow-[4px_4px_0_var(--color-shadow-primary)]"
             >
                 <Image ref={usd} src={coinUsd} alt="" className="absolute inset-0 size-full" />
                 <Image ref={eur} src={coinEur} alt="" className="absolute inset-0 size-full [transform:scaleX(0)]" />

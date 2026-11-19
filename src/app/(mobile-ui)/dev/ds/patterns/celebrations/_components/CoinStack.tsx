@@ -120,7 +120,7 @@ export function CoinStack({ reduced }: { reduced: boolean }) {
                         }}
                         src={index % 2 ? coinEur : coinUsd}
                         alt=""
-                        className="size-full drop-shadow-[2px_2px_0_var(--color-border-default)]"
+                        className="size-full drop-shadow-[2px_2px_0_var(--color-shadow-primary)]"
                     />
                 </div>
             ))}
@@ -128,7 +128,7 @@ export function CoinStack({ reduced }: { reduced: boolean }) {
                 ref={hand}
                 src={stackCoin}
                 alt=""
-                className="absolute top-[52px] left-[210px] w-[104px] origin-[40%_80%] [transform:scale(0)] drop-shadow-[3px_3px_0_var(--color-border-default)]"
+                className="absolute top-[52px] left-[210px] w-[104px] origin-[40%_80%] [transform:scale(0)] drop-shadow-[3px_3px_0_var(--color-shadow-primary)]"
             />
         </>
     )
