@@ -18,7 +18,7 @@ import {
     APP_LOCALE_KEY,
     CONSUMED_KEY,
 } from '@/utils/deferred-link'
-import { getFromCookie } from '@/utils/general.utils'
+import { getPendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
 import { readInviteCode } from '@/utils/invite-stash'
 import { getPlatform } from '@/utils/capacitor'
 import { BASE_URL } from '@/constants/general.consts'
@@ -46,7 +46,7 @@ export default function DeferredLinkDevPage() {
             consumedFlag: localStorage.getItem(CONSUMED_KEY) ?? '(unset)',
             persistedLocale: localStorage.getItem(APP_LOCALE_KEY) ?? '(unset)',
             inviteStash: readInviteCode() || '(unset)',
-            campaignTagCookie: String(getFromCookie('campaignTag') ?? '(unset)'),
+            pendingBadgeCampaigns: getPendingBadgeCampaigns().join(', ') || '(unset)',
         })
     }, [])
 
