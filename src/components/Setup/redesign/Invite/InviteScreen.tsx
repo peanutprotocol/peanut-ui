@@ -117,10 +117,10 @@ export function InviteScreen(_props: StepComponentProps) {
                     if (canContinue) void onContinue()
                 }}
             />
-            <div className="mt-1 flex min-h-5 items-center text-body-xs" aria-live="polite">
+            <div className="mt-2 flex min-h-5 items-center text-body-xs" aria-live="polite">
                 <motion.div
                     key={status}
-                    className="flex items-center gap-1.5"
+                    className="flex items-center gap-1"
                     initial={found || missed ? { opacity: 0 } : false}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.2, ease: 'linear' }}

@@ -64,7 +64,7 @@ export function VerifyQuestionLayout({
         <div className={twMerge('flex w-full flex-col bg-background-page', SCREEN_HEIGHT)}>
             <div
                 data-verify-top-bar
-                className="sticky top-0 z-20 grid w-full shrink-0 grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center gap-6 bg-background-page px-4 pt-4 pb-6"
+                className="sticky top-0 z-20 grid w-full shrink-0 grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center gap-6 bg-background-page px-6 pt-4 pb-6"
             >
                 <div className="size-10">{onBack && <BackButton onBack={onBack} />}</div>
                 {progress && (
@@ -111,7 +111,7 @@ export function VerifyHeroLayout({
     return (
         <div className={twMerge('flex w-full flex-col bg-background-page', SCREEN_HEIGHT)}>
             {onBack && (
-                <div className="absolute top-4 z-20 px-4">
+                <div className="absolute top-4 z-20 px-6">
                     <BackButton onBack={onBack} screenId={screenId} />
                 </div>
             )}

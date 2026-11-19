@@ -4,8 +4,6 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
-import { LinkButton } from '@/components/0_Bruddle/LinkButton'
-import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
 import { Icon } from '@/components/Global/Icons/Icon'
 import SetupTitleBlock from '@/components/Setup/components/SetupTitleBlock'
 import type {
@@ -37,6 +35,7 @@ import {
 import { isZeroTaxId, taxIdOutcome, taxIdVerdict, useTaxIdChecker } from '../taxIdChecks'
 import { isSentenceField, QuestionFields } from './QuestionFields'
 import { VerifyFooter, VerifyQuestionLayout } from './VerifyLayout'
+import { WhyWeAskSheet } from './WhyWeAskSheet'
 
 const FORM_ERROR_KEYS: Record<AnswerFormError, string> = {
     retry: 'errors.retry',
@@ -51,6 +50,7 @@ const FORM_ERROR_KEYS: Record<AnswerFormError, string> = {
     existing_verification: 'errors.unavailable',
     conflict: 'errors.unavailable',
     session_changed: 'errors.unavailable',
+    retry_later: 'cpfRecord.retryLater',
 }
 
 /** Who keeps the phone number: the card partner when the card asks for it, else the local bank partner. */
@@ -68,6 +68,11 @@ function useStepHeading(step: PaperworkVerificationStep) {
             title: t(ssn ? 'tax.title.ssn' : 'tax.title.other'),
             description: t(ssn ? 'tax.description.ssn' : 'tax.description.other'),
         }
+    }
+    // after a name mismatch the step asks the name too; an irregular CPF asks only the CPF
+    if (step.id === 'cpfRecord') {
+        const kind = step.fields.some((f) => f.key === 'fullName') ? 'name' : 'status'
+        return { title: t(`cpfRecord.title.${kind}`), description: t(`cpfRecord.description.${kind}`) }
     }
     if (step.id === 'address' || step.id === 'declarations')
         return { title: t(`titles.${step.id}`), description: t(`descriptions.${step.id}`) }
@@ -117,49 +122,19 @@ export function WhyWeAsk({ steps }: { steps: Array<PaperworkVerificationStepId |
     const t = useTranslations('kyc.paperworkVerification')
     const track = usePaperworkVerificationTrack()
     const control = useKycControl()
-    const [open, setOpen] = useState(false)
     return (
-        <>
-            <LinkButton
-                onClick={() => {
-                    control.track('why', 'open')
-                    setOpen(true)
-                    track(ANALYTICS_EVENTS.KYC_PV_WHY_OPENED, { steps: steps.join('+') })
-                }}
-                data-testid="verify-why"
-            >
-                {t('whyAsk')}
-            </LinkButton>
-            <Drawer
-                open={open}
-                onOpenChange={(next) => {
-                    if (!next) control.track('why', 'dismiss')
-                    setOpen(next)
-                }}
-            >
-                <DrawerContent>
-                    <div className="flex flex-col gap-4 pb-4">
-                        <DrawerTitle>{t('whyTitle')}</DrawerTitle>
-                        {steps.map((step) => (
-                            <p key={step} className="text-body-s text-foreground-secondary">
-                                {t(`why.${step}`)}
-                            </p>
-                        ))}
-                        <p className="text-body-s text-foreground-secondary">{t('whyShared')}</p>
-                        <Button
-                            variant="secondary"
-                            shadowSize="4"
-                            onClick={() => {
-                                control.track('why_got_it', 'tap')
-                                setOpen(false)
-                            }}
-                        >
-                            {t('gotIt')}
-                        </Button>
-                    </div>
-                </DrawerContent>
-            </Drawer>
-        </>
+        <WhyWeAskSheet
+            link={t('whyAsk')}
+            title={t('whyTitle')}
+            reasons={[...steps.map((step) => t(`why.${step}`)), t('whyShared')]}
+            testId="verify-why"
+            onOpen={() => {
+                control.track('why', 'open')
+                track(ANALYTICS_EVENTS.KYC_PV_WHY_OPENED, { steps: steps.join('+') })
+            }}
+            onDismiss={() => control.track('why', 'dismiss')}
+            onGotIt={() => control.track('why_got_it', 'tap')}
+        />
     )
 }
 
@@ -167,7 +142,7 @@ export function WhyWeAsk({ steps }: { steps: Array<PaperworkVerificationStepId |
  * One or more question steps on one screen. The per-step flow passes one step
  * (its sentences are the heading); add-later passes every open step of a
  * feature. A step with a heading of its own (address, phone, tax,
- * declarations) shows it in every flow, so it looks the same whatever the
+ * declarations, cpfRecord) shows it in every flow, so it looks the same whatever the
  * provider or feature (Aleks, 2026-11-14); `title` is the heading only for a
  * screen whose step has none. Continue saves each step in order.
  */

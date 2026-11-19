@@ -13,6 +13,8 @@ import { EInviteType } from '@/services/services.types'
 import { getValidRedirectUrl, saveRedirectUrl } from '@/utils/general.utils'
 import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import { useLogin } from '@/hooks/useLogin'
+import { useLoginRecovery } from '@/hooks/useLoginRecovery'
+import { LoginRecoveryDrawer } from '@/components/Setup/Views/LoginRecoveryDrawer'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import UnsupportedBrowserModal from '../Global/UnsupportedBrowserModal'
 import posthog from 'posthog-js'
@@ -30,7 +32,7 @@ import {
     isConfirmedBadgeCampaignClaim,
     isUnavailableBadgeCampaignClaim,
 } from '@/services/badge-campaigns'
-import { getPasskeyErrorSetupKey } from '@/utils/webauthn.utils'
+import { getPasskeyErrorCode, getPasskeyErrorSetupKey } from '@/utils/webauthn.utils'
 import { stashInvite } from '@/utils/invite-stash'
 
 function InvitePageContent() {
@@ -55,6 +57,10 @@ function InvitePageContent() {
 
     const router = useRouter()
     const { handleLoginClick, isLoggingIn } = useLogin()
+    const { offersRecovery, openRecovery, recoveryDrawer } = useLoginRecovery({
+        onRetry: () => handleLoginWithBadgeCampaign(),
+        onSignUp: () => handleClaim(),
+    })
     const [isClaimingBadgeCampaigns, setIsClaimingBadgeCampaigns] = useState(false)
     const hasStartedBadgeClaimingRef = useRef(false)
 
@@ -287,6 +293,7 @@ function InvitePageContent() {
         // Known codes render the translated catalog copy instead of the
         // error's hardcoded English message.
         handleLoginClick().catch((error: unknown) => {
+            if (offersRecovery(getPasskeyErrorCode(error))) return openRecovery()
             const i18nKey = getPasskeyErrorSetupKey(error)
             toast.error(i18nKey ? tSetup(i18nKey) : (error instanceof Error && error.message) || tSetup('loginFailed'))
         })
@@ -350,6 +357,7 @@ function InvitePageContent() {
                 </div>
             </div>
             {storeHandoffModal}
+            <LoginRecoveryDrawer {...recoveryDrawer} />
             <UnsupportedBrowserModal allowClose={false} />
         </InvitesPageLayout>
     )

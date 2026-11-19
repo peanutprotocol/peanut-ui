@@ -12,6 +12,7 @@ export type PlanLabelKey =
     | 'fundPeanut'
     | 'fundCrypto'
     | 'payQr'
+    | 'payQrAbroad'
     | 'payCard'
     | 'payPeanut'
     | 'peanutPill'

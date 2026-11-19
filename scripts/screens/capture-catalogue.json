@@ -460,6 +460,11 @@
         "route": "/dev/surfaces?s=setup-redesign-email-filled"
     },
     {
+        "id": "fixture-setup-redesign-email-deferred",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=setup-redesign-email-filled"
+    },
+    {
         "id": "fixture-setup-redesign-email-save-failed",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=setup-redesign-email-filled"
@@ -630,6 +635,21 @@
         "route": "/add-money/pix"
     },
     {
+        "id": "fixture-pix-setup-cpf-record-name",
+        "flow": "Setup and login",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-setup-cpf-record-status",
+        "flow": "Setup and login",
+        "route": "/add-money/pix"
+    },
+    {
+        "id": "fixture-pix-setup-cpf-record-retry-later",
+        "flow": "Setup and login",
+        "route": "/add-money/pix"
+    },
+    {
         "id": "fixture-pix-setup-open-failed",
         "flow": "Setup and login",
         "route": "/add-money/pix"
@@ -657,7 +677,7 @@
     {
         "id": "fixture-paperwork-verification-closed-residence",
         "flow": "Setup and login",
-        "route": "/verify?step=saved"
+        "route": "/verify?step=id"
     },
     {
         "id": "fixture-paperwork-verification-needs-signup",
@@ -712,6 +732,12 @@
         "source": "Setup/redesign/Notifications/NotificationsSwitchesScreen.tsx"
     },
     {
+        "id": "07-f-setup-verify-start",
+        "flow": "Setup and login",
+        "route": "/dev/surfaces?s=07-f-setup-verify-start",
+        "source": "Setup/redesign/VerifyStart/VerifyStartScreen.tsx"
+    },
+    {
         "id": "08-b-loginrecoverydrawer",
         "flow": "Setup and login",
         "route": "/dev/surfaces?s=08-b-loginrecoverydrawer",
@@ -761,6 +787,11 @@
     },
     {
         "id": "fixture-home",
+        "flow": "Home and shared states",
+        "route": "/home"
+    },
+    {
+        "id": "fixture-home-low-balance-top-up",
         "flow": "Home and shared states",
         "route": "/home"
     },
@@ -972,17 +1003,17 @@
     {
         "id": "fixture-paperwork-verification-closed-nationality",
         "flow": "Home and shared states",
-        "route": "/verify?step=saved"
+        "route": "/verify?step=id"
     },
     {
         "id": "fixture-paperwork-verification-closed-tax",
         "flow": "Home and shared states",
-        "route": "/verify?step=saved"
+        "route": "/verify?step=id"
     },
     {
         "id": "fixture-paperwork-verification-closed-unknown",
         "flow": "Home and shared states",
-        "route": "/verify?step=saved"
+        "route": "/verify?step=id"
     },
     {
         "id": "fixture-paperwork-verification-policy-hold",
@@ -1045,7 +1076,7 @@
         "route": "/verify?step=tax"
     },
     {
-        "id": "fixture-paperwork-verification-midpoint",
+        "id": "fixture-paperwork-verification-questions-answered",
         "flow": "Home and shared states",
         "route": "/verify"
     },
@@ -1554,6 +1585,16 @@
     },
     {
         "id": "fixture-add-money-argentina-deposit-open",
+        "flow": "Add money",
+        "route": "/add-money/argentina/manteca?step=inputAmount&currency=ARS"
+    },
+    {
+        "id": "fixture-add-money-argentina-bank-step-unfinished",
+        "flow": "Add money",
+        "route": "/add-money/argentina/manteca?step=inputAmount&currency=ARS"
+    },
+    {
+        "id": "fixture-add-money-argentina-bank-step-expired",
         "flow": "Add money",
         "route": "/add-money/argentina/manteca?step=inputAmount&currency=ARS"
     },

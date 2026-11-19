@@ -1,6 +1,6 @@
 'use client'
 
-import { forwardRef, useId, useState } from 'react'
+import { forwardRef, useId, useState, type ReactNode } from 'react'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
 import { Icon } from '@/components/Global/Icons/Icon'
 import type { EmailMode } from './useEmailStep'
@@ -16,6 +16,8 @@ type EmailFieldProps = {
     /** The line under the field: an error (`role="alert"` while present) or, with `status`, a note (`role="status"`). */
     message?: string
     status?: string
+    /** a line for the help row when it holds no message or status: the "Did you mean" fix */
+    hint?: ReactNode
     onChange: (value: string) => void
     onBlur: () => void
 }
@@ -27,7 +29,10 @@ type EmailFieldProps = {
  * failed save keeps it neutral with its check.
  */
 export const EmailField = forwardRef<HTMLInputElement, EmailFieldProps>(
-    ({ label, placeholder, clearLabel, value, mode, valid, disabled, message, status, onChange, onBlur }, ref) => {
+    (
+        { label, placeholder, clearLabel, value, mode, valid, disabled, message, status, hint, onChange, onBlur },
+        ref
+    ) => {
         const id = useId()
         const [focused, setFocused] = useState(false)
         const bad = mode === 'invalid' || mode === 'taken'
@@ -39,7 +44,7 @@ export const EmailField = forwardRef<HTMLInputElement, EmailFieldProps>(
                 <label
                     id={`${id}-label`}
                     htmlFor={id}
-                    className="mt-4 mb-1.5 text-label-l text-foreground-primary signup-sm:mt-3"
+                    className="mt-4 mb-1 text-label-l text-foreground-primary signup-sm:mt-3"
                 >
                     {label}
                 </label>
@@ -94,16 +99,20 @@ export const EmailField = forwardRef<HTMLInputElement, EmailFieldProps>(
                         {bad && <Icon name="error" size={20} aria-hidden="true" className="text-foreground-error" />}
                     </span>
                 </div>
-                <div className="mt-1 flex min-h-5 items-center text-body-xs">
+                <div className="mt-2 flex min-h-5 items-center text-body-xs">
                     {status ? (
                         <p id={`${id}-msg`} role="status" className="text-foreground-secondary">
                             {status}
                         </p>
-                    ) : (
+                    ) : message || !hint ? (
                         // an alert only while it holds a line: an empty one would be an alert with nothing to say
                         <p id={`${id}-msg`} role={message ? 'alert' : undefined} className="text-foreground-error">
                             {message}
                         </p>
+                    ) : (
+                        <div id={`${id}-msg`} className="text-foreground-secondary">
+                            {hint}
+                        </div>
                     )}
                 </div>
             </div>

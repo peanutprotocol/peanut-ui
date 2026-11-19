@@ -6,6 +6,7 @@ const mockPush = jest.fn()
 const mockReplace = jest.fn()
 const mockFetchUser = jest.fn().mockResolvedValue(null)
 const mockLogin = jest.fn().mockResolvedValue(undefined)
+const mockToastError = jest.fn()
 const mockClaimBadgeCampaigns = jest.fn()
 const mockQueuePendingBadgeCampaigns = jest.fn((badgeCampaigns: readonly string[], _days?: number) => [
     ...badgeCampaigns,
@@ -56,7 +57,15 @@ jest.mock('@/utils/invite-stash', () => ({
 jest.mock('@/hooks/useLogin', () => ({ useLogin: () => ({ handleLoginClick: mockLogin, isLoggingIn: false }) }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({
     ...jest.requireActual('@/components/0_Bruddle/Toast'),
-    useToast: () => ({ error: jest.fn(), success: jest.fn() }),
+    useToast: () => ({ error: mockToastError, success: jest.fn() }),
+}))
+jest.mock('@/components/Setup/Views/LoginRecoveryDrawer', () => ({
+    LoginRecoveryDrawer: ({ visible, onRetry }: { visible: boolean; onRetry: () => void }) =>
+        visible ? (
+            <div data-testid="login-recovery">
+                <button onClick={onRetry}>drawer retry</button>
+            </div>
+        ) : null,
 }))
 jest.mock('@/hooks/useGuestStoreHandoff', () => ({
     useGuestStoreHandoff: (opts: { trackImpressionWhenGuest?: boolean }) => {
@@ -715,5 +724,38 @@ describe('invite and badge campaign routing boundaries', () => {
         expect(mockSaveToCookie).not.toHaveBeenCalled()
         expect(mockQueuePendingBadgeCampaigns).toHaveBeenCalledWith(['nita'])
         expect(mockPush).toHaveBeenCalledWith('/setup?step=signup')
+    })
+
+    describe('existing-user login failures', () => {
+        const passkeyError = (code: string) => Object.assign(new Error(code), { name: 'PasskeyError', code })
+        const tapLogIn = async () => {
+            mockAuth.user = null
+            mockSearch = 'code=alice'
+            mockQueryResult.data = {
+                success: true,
+                attributionResolved: true,
+                onboardingResolved: true,
+                username: 'alice',
+            }
+            render(<InvitesPage />)
+            fireEvent.click(await screen.findByRole('button', { name: /already have an account/i }))
+        }
+
+        it('PASSKEY_NOT_FOUND opens the recovery drawer instead of a toast', async () => {
+            mockLogin.mockRejectedValueOnce(passkeyError('PASSKEY_NOT_FOUND'))
+            await tapLogIn()
+            expect(await screen.findByTestId('login-recovery')).toBeInTheDocument()
+            expect(mockToastError).not.toHaveBeenCalled()
+
+            fireEvent.click(screen.getByText('drawer retry'))
+            await waitFor(() => expect(mockLogin).toHaveBeenCalledTimes(2))
+        })
+
+        it('another login error keeps the toast and opens no drawer', async () => {
+            mockLogin.mockRejectedValueOnce(passkeyError('LOGIN_ERROR'))
+            await tapLogIn()
+            await waitFor(() => expect(mockToastError).toHaveBeenCalledTimes(1))
+            expect(screen.queryByTestId('login-recovery')).not.toBeInTheDocument()
+        })
     })
 })

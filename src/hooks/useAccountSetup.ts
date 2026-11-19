@@ -28,12 +28,15 @@ export const useAccountSetup = () => {
      * A deep link the person actually asked for still wins, stored or passed
      * as `redirect_uri`.
      */
-    const handleRedirect = (options?: { isNewAccount?: boolean }): boolean => {
-        const redirect = consumePostAuthRedirect(searchParams.get('redirect_uri'), {
+    const consumeRedirect = (options?: { isNewAccount?: boolean }) =>
+        consumePostAuthRedirect(searchParams.get('redirect_uri'), {
             deferStoredRedirect: (destination) =>
                 POST_SIGNUP_ACTIONS.some((action) => action.pathPattern.test(destination)),
             rejectSessionEndOrigin: options?.isNewAccount,
         })
+
+    const handleRedirect = (options?: { isNewAccount?: boolean }): boolean => {
+        const redirect = consumeRedirect(options)
 
         console.log('[useAccountSetup] Resolved post-auth redirect:', redirect)
         router.replace(redirect.destination)
@@ -113,5 +116,7 @@ export const useAccountSetup = () => {
         error,
         setError,
         handleRedirect,
+        /** handleRedirect's bookkeeping without the navigation, for a screen that sends the person elsewhere. */
+        consumeRedirect,
     }
 }

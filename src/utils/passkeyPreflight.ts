@@ -6,12 +6,16 @@
  */
 
 import { isCapacitor, getNativeRpId } from '@/utils/capacitor'
+import { openAppSettings } from '@/utils/native-settings'
+import { loadPasskeyDeviceFacts } from '@/utils/passkey-failure-fields'
 
 /** Catalog keys under `setupRedesign.passkey.preflight`, one per warning below, so screens show it in the user's language. */
 export type PasskeyPreflightWarningKey =
     | 'nativeAndroid'
     | 'nativeOther'
     | 'nativeCheckFailed'
+    | 'nativeScreenLock'
+    | 'nativeNoProvider'
     | 'insecure'
     | 'browserUnsupported'
     | 'chromeOutdated'
@@ -27,6 +31,8 @@ export interface PasskeyPreflightResult {
      */
     warning: string | null
     warningKey: PasskeyPreflightWarningKey | null
+    /** The device setting that resolves the warning; screens offer {@link openPasskeySettings} for it. */
+    fix?: 'security-settings'
     diagnostics: {
         hasPublicKeyCredential: boolean
         isHttps: boolean
@@ -48,6 +54,32 @@ const withWarning = (
     diagnostics: PasskeyPreflightResult['diagnostics']
 ): PasskeyPreflightResult => ({ isSupported, warning: `preflight:${warningKey}`, warningKey, diagnostics })
 
+type PasskeyPlugin = typeof import('@capgo/capacitor-passkey').CapacitorPasskey
+
+/**
+ * isSupported() checks only the API level, so a phone with no screen lock or no provider opens a sheet that fails.
+ * Binaries before patch peanut.3 have no getReadiness: they reject, and the check passes as before.
+ */
+async function readAndroidReadiness(
+    plugin: PasskeyPlugin
+): Promise<{ deviceSecure?: boolean; providerReady?: boolean }> {
+    try {
+        return (await plugin.getReadiness?.()) ?? {}
+    } catch {
+        return {}
+    }
+}
+
+/** Opens Android Security settings, where the screen lock is set. Binaries before patch peanut.3 open the app's settings. */
+export async function openPasskeySettings(): Promise<void> {
+    try {
+        const { CapacitorPasskey } = await import('@capgo/capacitor-passkey')
+        await CapacitorPasskey.openSecuritySettings()
+    } catch {
+        await openAppSettings()
+    }
+}
+
 /**
  * checks if the current environment supports passkeys and identifies common issues
  *
@@ -66,6 +98,7 @@ export async function checkPasskeySupport(): Promise<PasskeyPreflightResult> {
             isAndroid: /android/i.test(navigator.userAgent),
             rpId: getNativeRpId(),
         }
+        void loadPasskeyDeviceFacts()
         try {
             const { CapacitorPasskey } = await import('@capgo/capacitor-passkey')
             const support = await CapacitorPasskey.isSupported()
@@ -73,6 +106,13 @@ export async function checkPasskeySupport(): Promise<PasskeyPreflightResult> {
             diagnostics.conditionalMediationAvailable = support.conditionalMediation
             if (!support.available) {
                 return withWarning(false, diagnostics.isAndroid ? 'nativeAndroid' : 'nativeOther', diagnostics)
+            }
+            if (diagnostics.isAndroid) {
+                const readiness = await readAndroidReadiness(CapacitorPasskey)
+                if (readiness.deviceSecure === false) {
+                    return { ...withWarning(false, 'nativeScreenLock', diagnostics), fix: 'security-settings' }
+                }
+                if (readiness.providerReady === false) return withWarning(false, 'nativeNoProvider', diagnostics)
             }
         } catch (e) {
             console.warn('[PasskeyPreflight] native isSupported() check failed:', e)

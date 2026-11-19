@@ -37,6 +37,8 @@ jest.mock('lottie-web/build/player/lottie_light', () => ({
 }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: jest.fn() }) }))
 jest.mock('@/hooks/useSetupFlow', () => ({ useSetupFlow: () => ({ handleNext: mockNext, isLoading: false }) }))
+const mockLogin = jest.fn(async (_options?: unknown) => true)
+jest.mock('@/hooks/useLogin', () => ({ useLogin: () => ({ handleLoginClick: mockLogin, isLoggingIn: false }) }))
 jest.mock('@/app/actions/users', () => ({ updateUserById: (...args: unknown[]) => mockUpdateUser(...args) }))
 jest.mock('@/utils/sentry-lazy', () => ({
     captureException: jest.fn(),
@@ -92,6 +94,7 @@ beforeEach(() => {
     mockUpdateUser.mockReset().mockResolvedValue({})
     mockNext.mockReset().mockResolvedValue(undefined)
     mockFetchUser.mockReset().mockResolvedValue(undefined)
+    mockLogin.mockReset().mockResolvedValue(true)
     mockUser = { user: { userId: 'new-user', email: '' } }
     queryClient = new QueryClient({ defaultOptions: { queries: { gcTime: Infinity } } })
     urlUpdates = []
@@ -199,8 +202,8 @@ describe('09 Email', () => {
         expect(mockUpdateUser).not.toHaveBeenCalled()
     })
 
-    it('P4-11 EMAIL_IN_USE: already-registered with "Use another email" and the recovery link; breadcrumb, no failure report', async () => {
-        mockUpdateUser.mockResolvedValue({ status: 409, code: 'EMAIL_IN_USE', error: 'whatever' })
+    it('P4-11 EMAIL_ON_ACTIVE_ACCOUNT: already-registered with "Log in to that account" first, then the recovery link', async () => {
+        mockUpdateUser.mockResolvedValue({ status: 409, code: 'EMAIL_ON_ACTIVE_ACCOUNT', error: 'whatever' })
         const { container } = render()
         type('taken@mail.com')
         fireEvent.click(continueButton(container))
@@ -209,7 +212,7 @@ describe('09 Email', () => {
         expect(field()).toHaveAttribute('aria-invalid', 'true')
         const foot = within(footer(container)!)
         // the primary's label crossfades in 100 ms
-        expect(await foot.findByRole('button', { name: copyRx('setupRedesign.email.useOther') })).toBeEnabled()
+        expect(await foot.findByRole('button', { name: copyRx('setupRedesign.email.logIn') })).toBeEnabled()
         expect(foot.queryByRole('button', { name: copyRx('setupRedesign.common.continue') })).not.toBeInTheDocument()
         expect(foot.getByText(copyRx('setupRedesign.email.recover'))).toBeInTheDocument()
         expect(controls()).toContain('email:error:already_registered')
@@ -220,17 +223,8 @@ describe('09 Email', () => {
         expect(mockNext).not.toHaveBeenCalled()
     })
 
-    it('P4-11 the legacy duplicate message is also already-registered', async () => {
-        mockUpdateUser.mockResolvedValue({ error: 'This email is already associated with another account' })
-        const { container } = render()
-        type('taken@mail.com')
-        fireEvent.click(continueButton(container))
-        expect(await screen.findByRole('alert')).toHaveTextContent(copyRx('setupRedesign.email.taken'))
-        expect(setupState(container)).toBe('already-registered')
-    })
-
-    it('P4-12 "Use another email" empties and focuses the field; the recovery link opens the account-recovery doc', async () => {
-        mockUpdateUser.mockResolvedValue({ status: 409, code: 'EMAIL_IN_USE', error: 'x' })
+    it('P4-12 "Log in to that account" opens the passkey login; a cancel stays quiet; the recovery link opens the doc', async () => {
+        mockUpdateUser.mockResolvedValue({ status: 409, code: 'EMAIL_ON_ACTIVE_ACCOUNT', error: 'x' })
         const { container } = render()
         type('taken@mail.com')
         fireEvent.click(continueButton(container))
@@ -240,14 +234,96 @@ describe('09 Email', () => {
         if (link.tagName === 'A') expect(link.getAttribute('href')).toMatch(/\/help\/account-recovery$/)
         fireEvent.click(link)
         expect(controls()).toContain('account-recovery_doc:open')
+        mockLogin.mockRejectedValueOnce(Object.assign(new Error('cancelled'), { name: 'NotAllowedError' }))
         fireEvent.click(
-            await within(footer(container)!).findByRole('button', { name: copyRx('setupRedesign.email.useOther') })
+            await within(footer(container)!).findByRole('button', { name: copyRx('setupRedesign.email.logIn') })
         )
-        expect(field()).toHaveValue('')
-        expect(field()).toHaveFocus()
-        expect(setupState(container)).toBe('default')
+        await waitFor(() => expect(mockLogin).toHaveBeenCalledTimes(1))
+        // unscoped: the signed-in user is the new account, the email's holder is an older one
+        expect(mockLogin).toHaveBeenCalledWith({ scopeToUser: false, stayIfUserId: 'new-user' })
+        expect(controls()).toContain('log_in:tap')
+        expect(within(footer(container)!).getByText(copyRx('setupRedesign.email.recover'))).toBeInTheDocument()
+        // the save is not retried and the step does not advance: logging in is the way on
+        expect(mockUpdateUser).toHaveBeenCalledTimes(1)
+        expect(mockNext).not.toHaveBeenCalled()
+    })
+
+    it('the passkey picked opens the new sign-up itself: stays on Email with the pick-the-other-passkey line', async () => {
+        mockUpdateUser.mockResolvedValue({ status: 409, code: 'EMAIL_ON_ACTIVE_ACCOUNT', error: 'x' })
+        const { container } = render()
+        type('taken@mail.com')
+        fireEvent.click(continueButton(container))
+        expect(await screen.findByRole('alert')).toHaveTextContent(copyRx('setupRedesign.email.taken'))
+        mockLogin.mockResolvedValueOnce(false) // useLogin did not redirect: same user id
+        fireEvent.click(
+            await within(footer(container)!).findByRole('button', { name: copyRx('setupRedesign.email.logIn') })
+        )
+        expect(await screen.findByText(copyRx('setupRedesign.email.sameAccount'))).toBeInTheDocument()
+        expect(screen.queryByText(copyRx('setupRedesign.email.taken'))).not.toBeInTheDocument()
+        expect(within(footer(container)!).getByText(copyRx('setupRedesign.email.recover'))).toBeInTheDocument()
+        expect(mockNext).not.toHaveBeenCalled()
+        // another address goes back to the field's normal lines
+        type('other@mail.com')
+        expect(screen.queryByText(copyRx('setupRedesign.email.sameAccount'))).not.toBeInTheDocument()
+    })
+
+    it('a failed login (no passkey for that account here) leaves only the recovery link, no support line', async () => {
+        mockUpdateUser.mockResolvedValue({ status: 409, code: 'EMAIL_ON_ACTIVE_ACCOUNT', error: 'x' })
+        const { container } = render()
+        type('taken@mail.com')
+        fireEvent.click(continueButton(container))
+        await screen.findByRole('alert')
+        mockLogin.mockRejectedValueOnce(new Error('no credentials available'))
+        fireEvent.click(
+            await within(footer(container)!).findByRole('button', { name: copyRx('setupRedesign.email.logIn') })
+        )
+        // the recovery page ends with Contact support, so the footer keeps only the recovery link (Kush, 2026-11-18)
+        await waitFor(() => expect(mockLogin).toHaveBeenCalledTimes(1))
+        const foot = within(footer(container)!)
+        expect(await foot.findByRole('button', { name: copyRx('setupRedesign.email.logIn') })).toBeEnabled()
+        expect(foot.getByText(copyRx('setupRedesign.email.recover'))).toBeInTheDocument()
+        expect(screen.queryByText(/contact support/i)).not.toBeInTheDocument()
+    })
+
+    it.each([
+        ['EMAIL_IN_USE', { status: 409, code: 'EMAIL_IN_USE', error: 'x' }],
+        ['the text alone', { error: 'This email is already associated with another account' }],
+    ])(
+        'an older API (%s) cannot tell holders apart: the taken state, never the deferred one',
+        async (_label, response) => {
+            mockUpdateUser.mockResolvedValue(response)
+            const { container } = render()
+            type('someone@mail.com')
+            fireEvent.click(continueButton(container))
+            expect(await screen.findByRole('alert')).toHaveTextContent(copyRx('setupRedesign.email.taken'))
+            expect(setupState(container)).toBe('already-registered')
+            expect(screen.queryByText(copyRx('setupRedesign.email.deferred'))).not.toBeInTheDocument()
+            expect(controls()).toContain('email:error:already_registered')
+            expect(mockNext).not.toHaveBeenCalled()
+        }
+    )
+
+    it('held by an account that is not established: the deferred note, no error, Continue goes on unsaved', async () => {
+        mockUpdateUser.mockResolvedValue({ status: 409, code: 'EMAIL_ON_DORMANT_ACCOUNT', error: 'x' })
+        const { container } = render()
+        type('dormant@mail.com')
+        fireEvent.click(continueButton(container))
+        const note = await screen.findByText(copyRx('setupRedesign.email.deferred'))
+        expect(note).toHaveAttribute('role', 'status')
+        // the field names the note as its description
+        expect(describedText()).toMatch(copyRx('setupRedesign.email.deferred'))
+        expect(setupState(container)).toBe('deferred')
         expect(screen.queryByRole('alert')).not.toBeInTheDocument()
-        expect(controls()).toContain('use_another_email:tap')
+        expect(field()).not.toHaveAttribute('aria-invalid')
+        expect(validCheck()).toBeInTheDocument()
+        expect(controls()).toContain('email:error:deferred')
+        expect(reportEmailSaveFailure).not.toHaveBeenCalled()
+        expect(mockNext).not.toHaveBeenCalled()
+        // Continue now advances without a second save; a double tap advances once
+        fireEvent.click(continueButton(container))
+        fireEvent.click(primary(container))
+        await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+        expect(mockUpdateUser).toHaveBeenCalledTimes(1)
     })
 
     it('P4-13 a generic failure: save-failed line, no aria-invalid, check kept, Continue retries, one report per attempt', async () => {
@@ -363,7 +439,7 @@ describe('09 Email', () => {
     })
 
     it('P4-16 email:change once per mount however many keystrokes; no control property carries the address', async () => {
-        mockUpdateUser.mockResolvedValue({ status: 409, code: 'EMAIL_IN_USE', error: 'x' })
+        mockUpdateUser.mockResolvedValue({ status: 409, code: 'EMAIL_ON_ACTIVE_ACCOUNT', error: 'x' })
         const { container } = render()
         for (const value of ['p', 'pr', 'priv@', 'private@mail.com']) type(value)
         fireEvent.click(continueButton(container))
@@ -472,7 +548,7 @@ describe('09 Email: ported dev cases', () => {
     )
 
     it('P4-11 editing the address clears the duplicate line and brings Continue back', async () => {
-        mockUpdateUser.mockResolvedValueOnce({ status: 409, code: 'EMAIL_IN_USE', error: 'x' })
+        mockUpdateUser.mockResolvedValueOnce({ status: 409, code: 'EMAIL_ON_ACTIVE_ACCOUNT', error: 'x' })
         const { container } = render()
         type('existing@mail.com')
         fireEvent.click(continueButton(container))
@@ -516,5 +592,61 @@ describe('09 Email: ported dev cases', () => {
         fireEvent.click(continueButton(container))
         fireEvent.click(await screen.findByRole('button', { name: 'Back to email' }))
         expect(field()).toHaveValue('money@mail.com')
+    })
+})
+
+/** v7 `etypo`: a misspelled common domain gets a one-tap fix. */
+describe('09 Email: domain typo help', () => {
+    const suggestion = () => screen.queryByTestId('setup-redesign-email-suggestion')
+
+    it('offers the fixed address; one tap fills the field and Continue saves it', async () => {
+        const { container } = render()
+        type('maria@gmial.com')
+        expect(suggestion()).toHaveTextContent('Did you mean maria@gmail.com?')
+        fireEvent.click(within(suggestion()!).getByRole('button', { name: 'maria@gmail.com' }))
+        expect(field()).toHaveValue('maria@gmail.com')
+        expect(suggestion()).not.toBeInTheDocument()
+        fireEvent.click(continueButton(container))
+        await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+        expect(mockUpdateUser).toHaveBeenCalledWith({ userId: 'new-user', email: 'maria@gmail.com' })
+    })
+
+    it('is a hint, not a gate: Continue saves the address as typed', async () => {
+        const { container } = render()
+        type('maria@company.con')
+        expect(suggestion()).toHaveTextContent('maria@company.com')
+        expect(continueButton(container)).toBeEnabled()
+        fireEvent.click(continueButton(container))
+        await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
+        expect(mockUpdateUser).toHaveBeenCalledWith({ userId: 'new-user', email: 'maria@company.con' })
+    })
+
+    it('shows nothing for a right domain, an invalid address or the already-registered state', async () => {
+        const { container } = render()
+        type('maria@gmail.com')
+        expect(suggestion()).not.toBeInTheDocument()
+        type('maria@gmial')
+        expect(suggestion()).not.toBeInTheDocument()
+        mockUpdateUser.mockResolvedValue({ status: 409, code: 'EMAIL_ON_ACTIVE_ACCOUNT', error: 'x' })
+        type('maria@gmial.com')
+        fireEvent.click(continueButton(container))
+        await screen.findByRole('alert')
+        expect(suggestion()).not.toBeInTheDocument()
+    })
+
+    it('tracks the tap without the address', () => {
+        render()
+        type('private@hotmial.com')
+        fireEvent.click(within(suggestion()!).getByRole('button'))
+        expect(controls()).toEqual(['email:change', 'email_suggestion:tap'])
+        expect(JSON.stringify(capture.mock.calls)).not.toMatch(/private|hotmail/)
+    })
+
+    it('renders the es-AR line', () => {
+        render({ locale: 'es-AR' })
+        fireEvent.change(screen.getByRole('textbox', { name: copyRx('setupRedesign.email.label', {}, 'es-AR') }), {
+            target: { value: 'maria@gmial.com' },
+        })
+        expect(suggestion()).toHaveTextContent('¿Quisiste decir maria@gmail.com?')
     })
 })

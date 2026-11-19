@@ -109,6 +109,10 @@
     },
     "home": {
         "rewards": "Pontos",
+        "addMoneyPill": {
+            "addMoney": "Adicionar dinheiro",
+            "topUp": "Recarregar"
+        },
         "activation": {
             "addEmail": {
                 "title": "Adicionar e-mail",
@@ -141,7 +145,7 @@
         },
         "gettingStarted": {
             "createAccount": "Criar conta",
-            "createAccountDone": "Usuário pronto",
+            "createAccountDone": "Nome de usuário pronto",
             "addMoney": "Adicionar dinheiro",
             "firstPayment": "Primeiro pagamento",
             "addMoneyRoutes": "Transferência ou cripto",
@@ -292,6 +296,7 @@
             },
             "addEmail": {
                 "title": "Adicione seu e-mail",
+                "deferred": "Informe este e-mail de novo quando verificar sua identidade.",
                 "description": "Receba comprovantes e alertas da conta por e-mail."
             },
             "rewards": {
@@ -1141,14 +1146,16 @@
             "cardAmount": "USD 1.200",
             "cta": "Criar conta",
             "loginBtn": "Entrar",
-            "recover": "Precisa recuperar uma conta Peanut?"
+            "recover": "Precisa recuperar uma conta Peanut?",
+            "invitedTitle": "Convite de @{username}.",
+            "trustLine": "As transferências bancárias passam por parceiros licenciados."
         },
         "username": {
-            "title": "Garanta seu usuário.",
+            "title": "Garanta seu nome de usuário.",
             "desc": "Assim te encontram e te pagam.",
             "dice": "Jogar o dado",
             "rolling": "Procurando um disponível…",
-            "checkFailed": "Não conseguimos verificar esse usuário. Tente de novo ou <link>fale com o suporte</link>.",
+            "checkFailed": "Não conseguimos verificar esse nome de usuário. Tente de novo ou <link>fale com o suporte</link>.",
             "tooLong": "{n, plural, one {Máximo 12. Tire 1 letra.} other {Máximo 12. Tire # letras.}}",
             "taken": "@{name} já está em uso.",
             "takenLead": "Disponíveis:",
@@ -1157,9 +1164,9 @@
             "rule": "De 4 a 12 letras ou números, sem espaços nem acentos.",
             "available": "Disponível",
             "clear": "Limpar",
-            "cta": "Usar esse usuário",
+            "cta": "Usar esse nome de usuário",
             "ctaNamed": "Usar @{name}",
-            "fieldAria": "Usuário",
+            "fieldAria": "Nome de usuário",
             "reserved": "Esse nome de usuário é reservado. Tente outro."
         },
         "passkey": {
@@ -1173,8 +1180,8 @@
             "terms": "Ao criar sua conta, você aceita os <terms>termos</terms> e a <privacy>política de privacidade</privacy> do Peanut.",
             "cancelled": "A passkey foi cancelada. Tente de novo quando quiser.",
             "takenTitle": "{name} não está mais disponível.",
-            "takenLead": "Esse usuário já tem uma conta. Se você já criou a conta neste celular, é só entrar: sua passkey está pronta. Se não, escolha outro.",
-            "takenCta": "Escolher outro usuário",
+            "takenLead": "Esse nome de usuário já tem uma conta. Se você já criou a conta neste celular, é só entrar: sua passkey está pronta. Se não, escolha outro.",
+            "takenCta": "Escolher outro nome de usuário",
             "logIn": "Entrar",
             "ask": "Criar uma passkey?",
             "yes": "Sim",
@@ -1192,6 +1199,26 @@
             "cannot2": "Escolha o Gerenciador de senhas do Google e tente de novo.",
             "cannotOther": "Use outro gerenciador de senhas e tente de novo.",
             "browser": "Crie sua conta em peanut.me no navegador",
+            "secondCancelTitle": "Tente outro gerenciador de senhas.",
+            "secondCancelLead": "Seu celular pode ter aberto o Samsung Pass ou outro app.",
+            "secondCancel1": "Toque em Tentar de novo.",
+            "secondCancel2": "Se o Samsung Pass abrir, escolha o Gerenciador de senhas do Google.",
+            "secondCancel3": "Confirme com sua digital, rosto ou PIN.",
+            "tookTooLongTitle": "Demorou demais.",
+            "tookTooLongLead": "A passkey não foi salva. Tente de novo.",
+            "leftAppTitle": "A passkey não foi finalizada.",
+            "leftAppLead": "Você saiu antes de terminar. Toque em Tentar de novo para continuar.",
+            "screenLockTitle": "Primeiro, ative o bloqueio de tela.",
+            "screenLockLead": "As passkeys precisam de um bloqueio de tela neste celular.",
+            "screenLock1": "Abra Configurações → Segurança → Bloqueio de tela e defina um PIN, padrão ou digital.",
+            "screenLock2": "Confira se você entrou em uma conta do Google.",
+            "screenLock3": "Volte e toque em Tentar de novo.",
+            "noProviderTitle": "Primeiro, ative um gerenciador de senhas.",
+            "noProviderLead": "As passkeys precisam de um gerenciador de senhas neste celular.",
+            "noProvider1": "Abra Configurações → Senhas, chaves de acesso e contas.",
+            "noProvider2": "Ative o Gerenciador de senhas do Google com sua conta do Google.",
+            "noProvider3": "Volte e toque em Tentar de novo.",
+            "openSettings": "Abrir configurações",
             "preflight": {
                 "nativeAndroid": "As passkeys ainda não estão disponíveis. Entre em uma conta do Google e atualize o Google Play Services, depois tente de novo.",
                 "nativeOther": "As passkeys ainda não estão disponíveis neste dispositivo. Confira as configurações do dispositivo e tente de novo.",
@@ -1201,21 +1228,23 @@
                 "chromeOutdated": "Atualize o Chrome para usar passkeys.",
                 "androidOutdated": "Sua versão do Android é antiga demais para passkeys. Atualize para o Android 9 ou mais recente.",
                 "screenLock": "Ative o bloqueio de tela com PIN ou biometria nas configurações do dispositivo.",
-                "limitedSupport": "Seu dispositivo pode ter suporte limitado a passkeys. Se a configuração falhar, tente atualizar o Google Play Services."
+                "limitedSupport": "Seu dispositivo pode ter suporte limitado a passkeys. Se a configuração falhar, tente atualizar o Google Play Services.",
+                "nativeScreenLock": "As passkeys precisam de um bloqueio de tela neste celular. Defina um PIN, padrão ou digital em Configurações e tente de novo.",
+                "nativeNoProvider": "As passkeys precisam de um gerenciador de senhas neste celular. Ative o Gerenciador de senhas do Google em Configurações e tente de novo."
             }
         },
         "invite": {
             "title": "Alguém te convidou?",
-            "desc": "Digite o usuário para vocês dois ganharem recompensas.",
-            "placeholder": "Usuário",
-            "fieldLabel": "Usuário de quem convidou você",
+            "desc": "Digite o nome de usuário para vocês dois ganharem recompensas.",
+            "placeholder": "Nome de usuário",
+            "fieldLabel": "Nome de usuário de quem convidou você",
             "found": "Encontramos @{name}.",
             "notFound": "Não encontramos esse usuário.",
-            "isSelf": "Esse é o seu próprio usuário.",
+            "isSelf": "Esse é o seu próprio nome de usuário.",
             "clearAria": "Limpar",
             "suggestOne": "Você quis dizer {a}?",
             "suggestTwo": "Você quis dizer {a} ou {b}?",
-            "checkFailed": "Não conseguimos verificar esse usuário. Tente de novo."
+            "checkFailed": "Não conseguimos verificar esse nome de usuário. Tente de novo."
         },
         "accounts": {
             "title": "Dados bancários em USD e EUR.",
@@ -1237,7 +1266,7 @@
             "sameRow": "O mesmo país",
             "search": "Buscar países",
             "noCountry": "Nenhum país corresponde a “{query}”.",
-            "refusedPassport": "Não conseguimos verificar passaportes nem documentos de identidade deste país: {nationality}. Para verificar sua identidade, use seu cartão de residência ({residence}).",
+            "refusedPassport": "Não conseguimos verificar documentos de identidade deste país: {nationality}. Use seu cartão de residência ({residence}).",
             "compareTitle": "Escolha só um país.",
             "compareRule": "Tem autorização de residência? Escolha esse país. Se não, escolha o que emitiu seu documento.",
             "itemPix": "Pagamentos e transferências Pix",
@@ -1247,7 +1276,8 @@
             "itemCard": "Peanut Card",
             "itemP2p": "De Peanut para Peanut",
             "select": "Escolher {country}",
-            "compareCurrencyNote": "Transferências em outra moeda exigem uma conta bancária nessa moeda."
+            "compareCurrencyNote": "Transferências em outra moeda exigem uma conta bancária nessa moeda.",
+            "popular": "Populares"
         },
         "plan": {
             "title": "Como você vai usar o Peanut?",
@@ -1268,6 +1298,7 @@
             "payCard": "Peanut Card",
             "payPeanut": "Pagar um usuário do Peanut",
             "peanutPill": "Usuário do Peanut",
+            "payQrAbroad": "Pagamentos QR na Argentina e no Brasil",
             "changeLater": "Você pode mudar isso depois"
         },
         "email": {
@@ -1279,8 +1310,11 @@
             "note": "Você pode desativar novidades e ofertas quando quiser.",
             "invalid": "Digite um e-mail válido.",
             "taken": "Esse e-mail já tem uma conta no Peanut.",
-            "useOther": "Usar outro e-mail",
-            "recover": "Como recuperar essa conta",
+            "deferred": "Informe este e-mail de novo quando verificar sua identidade.",
+            "suggest": "Você quis dizer {a}?",
+            "logIn": "Entrar nessa conta",
+            "recover": "Recuperar minha conta",
+            "sameAccount": "Essa é a conta que você acabou de criar. Escolha a outra passkey.",
             "clearAria": "Limpar"
         },
         "notif": {
@@ -1308,7 +1342,8 @@
             "cta": "Confirmar e concluir",
             "what": "<link>O que é uma passkey?</link>",
             "busy": "Ainda não conseguimos confirmar. Tente de novo em instantes.",
-            "later": "<link>Confirmar depois</link>"
+            "later": "<link>Confirmar depois</link>",
+            "recovery": "{platform, select, android {Sua passkey fica salva no gerenciador de senhas do celular, como o do Google ou o Samsung Pass. Ela só vai para um celular novo se esse gerenciador sincronizar.} ios {Sua passkey fica salva nas Senhas do iCloud. Ela vai para um iPhone novo com o mesmo ID Apple se as Senhas do iCloud estiverem ativadas.} other {Sua passkey fica salva no navegador ou no gerenciador de senhas. Ela só vai para um dispositivo novo se esse gerenciador sincronizar.}}"
         },
         "done": {
             "title": "Agora você pode verificar sua identidade e adicionar dinheiro.",
@@ -1317,6 +1352,16 @@
             "claimTitle": "Tudo pronto!",
             "claimSub": "Sua conta do Peanut foi criada.",
             "claimGoing": "Voltando para o seu link…"
+        },
+        "verifyStart": {
+            "title": "Verificar agora",
+            "sub": "Isso libera seus dados bancários.",
+            "subCard": "Depois, peça um cartão.",
+            "stepQuestions": "Algumas perguntas que somos obrigados a fazer",
+            "stepPhoto": "Foto do documento e selfie",
+            "verifyNow": "Verificar agora · 3 min",
+            "verifyNowIdOnly": "Verificar agora · 2 min",
+            "remindLater": "Lembrar mais tarde"
         }
     },
     "loadingStates": {
@@ -1404,22 +1449,22 @@
         },
         "contacts": {
             "searchPlaceholder": "Destinatário",
-            "searchLabel": "Usuário do Peanut ou contato",
-            "exactUsername": "Usuário exato",
+            "searchLabel": "Nome de usuário do Peanut ou contato",
+            "exactUsername": "Nome de usuário exato",
             "usernameFound": "@{username} encontrado",
             "continueToSend": "Continuar para enviar dinheiro",
-            "usernameNotFound": "Não encontramos esse usuário exato.",
-            "invalidUsername": "Insira um usuário do Peanut válido.",
-            "lookupLimitReached": "Muitas verificações de usuário. Tente novamente mais tarde.",
-            "lookupError": "Não foi possível verificar esse usuário. Tente novamente.",
+            "usernameNotFound": "Não encontramos esse nome de usuário exato.",
+            "invalidUsername": "Insira um nome de usuário do Peanut válido.",
+            "lookupLimitReached": "Muitas verificações de nomes de usuário. Tente novamente mais tarde.",
+            "lookupError": "Não foi possível verificar esse nome de usuário. Tente novamente.",
             "yourContacts": "Contatos",
             "loadingMore": "Carregando mais...",
             "errorTitle": "Não foi possível carregar os contatos",
             "errorDescription": "Não conseguimos carregar seus contatos. Tente de novo.",
             "noResultsTitle": "Usuário ou contato não encontrado",
-            "noResultsDescription": "Confira o usuário exato do Peanut e tente de novo.",
+            "noResultsDescription": "Confira o nome de usuário exato do Peanut e tente de novo.",
             "emptyTitle": "Nenhum contato ainda",
-            "emptyDescription": "Digite acima um usuário exato do Peanut ou envie por link"
+            "emptyDescription": "Digite acima um nome de usuário exato do Peanut ou envie por link"
         },
         "link": {
             "createLink": "Criar link",
@@ -3288,6 +3333,8 @@
         "cardReadyTitle": "Avisamos sobre cada pagamento no cartão",
         "cardReadyDescription": "Uma notificação por pagamento, aprovado ou recusado.",
         "qrFirstScanTitle": "Confirmamos cada pagamento QR",
+        "firstDepositTitle": "Saiba quando seu dinheiro se mexer",
+        "firstDepositDescription": "Avisamos quando chegar dinheiro ou um pagamento for concluído.",
         "qrFirstScanDescription": "Uma notificação quando o pagamento for concluído."
     },
     "kyc": {
@@ -3295,7 +3342,6 @@
         "identityVerification": "Verificação de identidade",
         "doesntStoreDocuments": "O Peanut não armazena nenhum dos seus documentos",
         "doesntStoreDocumentsPeriod": "O Peanut não armazena nenhum dos seus documentos.",
-        "countryRegion": "País/Região",
         "verified": "Verificado",
         "actionNeeded": "Ação necessária",
         "statusProcessing": "Em análise",
@@ -3340,6 +3386,7 @@
         "errorNoResponse": "Sem resposta do servidor. Tente novamente.",
         "errorStartDocVerification": "Não conseguimos iniciar a verificação de documentos. Tente novamente.",
         "initiate": {
+            "titleBankSetup": "Conclua a configuração da sua conta bancária",
             "titleBlocked": "Não conseguimos desbloquear",
             "titleRestartIdentity": "Verifique com outro documento",
             "titleIdentityDocumentMissing": "Conclua sua verificação",
@@ -3855,7 +3902,8 @@
                 "phone": "Nossos parceiros guardam seu número de telefone para proteger sua conta.",
                 "tax": "As contas no seu país precisam estar vinculadas ao seu número fiscal.",
                 "declarations": "As regras financeiras do seu país fazem estas perguntas a todos. Se alguma se aplicar, podemos pedir um documento depois.",
-                "nationality": "Usamos sua nacionalidade para mostrar o passaporte e o documento nacional de identidade com os quais você pode se verificar."
+                "nationality": "Usamos sua nacionalidade para mostrar o passaporte e o documento nacional de identidade com os quais você pode se verificar.",
+                "cpfRecord": "Nosso parceiro de Pix confere o CPF e o nome com o cadastro da Receita Federal."
             },
             "sentence": {
                 "cardPurpose": "Vou usar meu cartão <nw>para <pill></pill></nw>",
@@ -4045,7 +4093,8 @@
                 "isPep": "Ocupo um cargo público",
                 "isFatca": "Tenho cidadania ou residência fiscal nos EUA",
                 "isFep": "Sou obrigado a reportar à UIF",
-                "cityOfBirth": "Cidade de nascimento"
+                "cityOfBirth": "Cidade de nascimento",
+                "fullName": "Nome completo"
             },
             "tax": {
                 "title": {
@@ -4212,10 +4261,6 @@
                     "bankCheck": "Conclua a verificação das transferências bancárias"
                 }
             },
-            "saved": {
-                "title": "Respostas salvas!",
-                "description": "Agora, uma foto do seu documento e uma selfie rápida."
-            },
             "featureNames": {
                 "bank": "contas bancárias",
                 "card": "cartão",
@@ -4275,6 +4320,17 @@
             "taxConfirm": "Confirmo",
             "documentMismatch": {
                 "description": "Parece que você enviou um documento de um país diferente do que declarou. Veja o que cada um libera."
+            },
+            "cpfRecord": {
+                "title": {
+                    "name": "CPF e nome como no cadastro da Receita Federal",
+                    "status": "Situação do CPF na Receita Federal"
+                },
+                "description": {
+                    "name": "Nosso parceiro de Pix não conseguiu conferir este CPF com este nome. Confira os dois.",
+                    "status": "Nosso parceiro de Pix encontrou este CPF irregular ou inexistente. Confira no gov.br e digite o CPF de novo."
+                },
+                "retryLater": "Este CPF foi verificado há menos de um dia. Regularize a situação na Receita Federal e tente de novo amanhã."
             }
         }
     },
@@ -4356,6 +4412,7 @@
             "card_needs_review": "Nosso parceiro de cartões precisa conferir mais alguns detalhes.",
             "manteca_us_nationality": "Pagamentos deste país não estão disponíveis para cidadãos dos EUA no momento.",
             "country_not_supported": "Este método exige um documento de um país compatível. Você pode verificar com outro documento.",
+            "manteca_action_incomplete": "Sua conta bancária ainda não está pronta. Conclua a verificação rápida para depositar e sacar pesos por transferência.",
             "manteca_action_expired": "A configuração da sua conta bancária expirou. Conclua a breve verificação para liberar depósitos e saques locais.",
             "manteca_action_correction_required": "Corrija as informações para verificar sua conta bancária.",
             "tax_id_unresolved": "Não conseguimos ler o número de identificação fiscal que os depósitos e saques locais exigem. Você pode verificar novamente para fornecê-lo. Os pagamentos por QR não são afetados.",
@@ -4790,8 +4847,7 @@
         "rainCooldownPill": "Resfriamento do cartão",
         "easterEggImageAlt": "Ilustração de easter egg",
         "reConsent": {
-            "reassurance": "Nada muda nas suas taxas, nos seus fundos ou na forma como tratamos seus dados.",
-            "whatChanged": "Reescrevemos os documentos abaixo em linguagem simples para que reflitam o que o Peanut é hoje, incluindo o Peanut Card e as Recompensas. Não tem pressa: leia quando quiser e continue usando o Peanut normalmente.",
+            "whatChanged": "As principais mudanças: adicionamos a Avenia como parceiro de pagamentos para o Pix no Brasil, e a Política de privacidade agora descreve as gravações de sessão e cita mais prestadores de serviço que usamos.",
             "title": "Uma pequena atualização dos nossos termos",
             "acceptLabel": "Aceito os documentos atualizados",
             "acceptCta": "Aceitar e continuar",

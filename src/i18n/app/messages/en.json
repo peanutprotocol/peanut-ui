@@ -109,6 +109,10 @@
     },
     "home": {
         "rewards": "Points",
+        "addMoneyPill": {
+            "addMoney": "Add money",
+            "topUp": "Top up"
+        },
         "activation": {
             "addEmail": {
                 "title": "Add email",
@@ -292,6 +296,7 @@
             },
             "addEmail": {
                 "title": "Add your email",
+                "deferred": "Add this email again when you verify your identity.",
                 "description": "Get receipts and account alerts by email."
             },
             "rewards": {
@@ -1019,7 +1024,7 @@
         "passkey": {
             "create": "Create passkey",
             "notAvailable": "Passkeys aren't available on this device yet. Please try again.",
-            "cancelled": "Passkey setup was cancelled. Please try again when ready.",
+            "cancelled": "Passkey setup was cancelled. Try again when ready.",
             "tookTooLong": "This is taking longer than it should. Please try again.",
             "notReady": "The app is still getting ready for passkeys. Wait a moment and try again.",
             "deviceState": "There was a problem with the passkey on this device. Restart the app and try again.",
@@ -1141,7 +1146,9 @@
             "cardAmount": "USD 1,200",
             "cta": "Sign up",
             "loginBtn": "Log in",
-            "recover": "Need to recover a Peanut account?"
+            "recover": "Need to recover a Peanut account?",
+            "invitedTitle": "Invited by @{username}.",
+            "trustLine": "Bank transfers go through licensed partners."
         },
         "username": {
             "title": "Claim a username.",
@@ -1192,6 +1199,26 @@
             "cannot2": "Pick Google Password Manager, then try again.",
             "cannotOther": "Use another password manager, then try again.",
             "browser": "Sign up at peanut.me in a browser",
+            "secondCancelTitle": "Try another password manager.",
+            "secondCancelLead": "Your phone may have opened Samsung Pass or another app.",
+            "secondCancel1": "Tap Try again.",
+            "secondCancel2": "If Samsung Pass opens, choose Google Password Manager instead.",
+            "secondCancel3": "Confirm with your fingerprint, face or PIN.",
+            "tookTooLongTitle": "That took too long.",
+            "tookTooLongLead": "The passkey wasn’t saved. Try again.",
+            "leftAppTitle": "Passkey not finished.",
+            "leftAppLead": "You left before finishing. Tap Try again to continue.",
+            "screenLockTitle": "Turn on a screen lock first.",
+            "screenLockLead": "Passkeys need a screen lock on this phone.",
+            "screenLock1": "Open Settings → Security → Screen lock, and set a PIN, pattern or fingerprint.",
+            "screenLock2": "Make sure you’re signed in to a Google account.",
+            "screenLock3": "Come back and tap Try again.",
+            "noProviderTitle": "Turn on a password manager first.",
+            "noProviderLead": "Passkeys need a password manager on this phone.",
+            "noProvider1": "Open Settings → Passwords, passkeys and accounts.",
+            "noProvider2": "Turn on Google Password Manager, signed in to your Google account.",
+            "noProvider3": "Come back and tap Try again.",
+            "openSettings": "Open settings",
             "preflight": {
                 "nativeAndroid": "Passkeys aren’t available yet. Sign in to a Google account and update Google Play Services, then try again.",
                 "nativeOther": "Passkeys aren’t available on this device yet. Check your device settings and try again.",
@@ -1201,7 +1228,9 @@
                 "chromeOutdated": "Update Chrome to use passkeys.",
                 "androidOutdated": "Your Android version is too old for passkeys. Update to Android 9 or later.",
                 "screenLock": "Turn on a screen lock with a PIN or biometrics in your device settings.",
-                "limitedSupport": "Your device may have limited passkey support. If setup fails, try updating Google Play Services."
+                "limitedSupport": "Your device may have limited passkey support. If setup fails, try updating Google Play Services.",
+                "nativeScreenLock": "Passkeys need a screen lock on this phone. Set a PIN, pattern or fingerprint in Settings, then try again.",
+                "nativeNoProvider": "Passkeys need a password manager on this phone. Turn on Google Password Manager in Settings, then try again."
             }
         },
         "invite": {
@@ -1237,7 +1266,7 @@
             "sameRow": "The same country",
             "search": "Search countries",
             "noCountry": "No country matches “{query}”.",
-            "refusedPassport": "We can’t verify passports or ID cards from {nationality}. Use your residence card from {residence} when you verify your identity.",
+            "refusedPassport": "We can’t verify IDs from {nationality}. Use your residence card from {residence}.",
             "compareTitle": "Pick one country.",
             "compareRule": "Have a residence permit? Pick that country. If not, pick the one that issued your ID.",
             "itemPix": "Pix payments and transfers",
@@ -1247,7 +1276,8 @@
             "itemCard": "Peanut Card",
             "itemP2p": "Peanut to Peanut",
             "select": "Select {country}",
-            "compareCurrencyNote": "Transfers in another currency need a bank account in that currency."
+            "compareCurrencyNote": "Transfers in another currency need a bank account in that currency.",
+            "popular": "Popular"
         },
         "plan": {
             "title": "How will you use Peanut?",
@@ -1268,6 +1298,7 @@
             "payCard": "Peanut Card",
             "payPeanut": "Pay a Peanut user",
             "peanutPill": "Another Peanut user",
+            "payQrAbroad": "QR payments in Argentina and Brazil",
             "changeLater": "You can change this later"
         },
         "email": {
@@ -1279,8 +1310,11 @@
             "note": "You can turn off news and offers anytime.",
             "invalid": "Enter a valid email address.",
             "taken": "This email already has a Peanut account.",
-            "useOther": "Use another email",
-            "recover": "How to recover that account",
+            "deferred": "Add this email again when you verify your identity.",
+            "suggest": "Did you mean {a}?",
+            "logIn": "Log in to that account",
+            "recover": "Recover my account",
+            "sameAccount": "That’s the account you just made. Pick the other passkey.",
             "clearAria": "Clear"
         },
         "notif": {
@@ -1308,7 +1342,8 @@
             "cta": "Confirm & finish",
             "what": "<link>What’s a passkey?</link>",
             "busy": "We couldn’t confirm yet. Try again in a moment.",
-            "later": "<link>Confirm later</link>"
+            "later": "<link>Confirm later</link>",
+            "recovery": "{platform, select, android {Your passkey is saved in your phone’s password manager, like Google Password Manager or Samsung Pass. It moves to a new phone only if that manager syncs it.} ios {Your passkey is saved in iCloud Keychain. It moves to a new iPhone with the same Apple ID if iCloud Keychain is on.} other {Your passkey is saved in your browser or password manager. It moves to a new device only if that password manager syncs it.}}"
         },
         "done": {
             "title": "You’re ready to verify your identity and add money.",
@@ -1317,6 +1352,16 @@
             "claimTitle": "All set!",
             "claimSub": "Your Peanut account is created.",
             "claimGoing": "Taking you back to your link…"
+        },
+        "verifyStart": {
+            "title": "Verify now",
+            "sub": "This will unlock bank details.",
+            "subCard": "Then apply for a card.",
+            "stepQuestions": "A few questions we’re required to ask",
+            "stepPhoto": "ID photo and selfie",
+            "verifyNow": "Verify now · 3 min",
+            "verifyNowIdOnly": "Verify now · 2 min",
+            "remindLater": "Remind me later"
         }
     },
     "loadingStates": {
@@ -3288,6 +3333,8 @@
         "cardReadyTitle": "Know every card payment",
         "cardReadyDescription": "One notification per payment or decline.",
         "qrFirstScanTitle": "Confirmation for each QR payment",
+        "firstDepositTitle": "Know when your money moves",
+        "firstDepositDescription": "We’ll tell you when money arrives or a payment goes through.",
         "qrFirstScanDescription": "One notification when it completes."
     },
     "kyc": {
@@ -3295,7 +3342,6 @@
         "identityVerification": "Identity verification",
         "doesntStoreDocuments": "Peanut doesn't store any of your documents",
         "doesntStoreDocumentsPeriod": "Peanut doesn't store any of your documents.",
-        "countryRegion": "Country/Region",
         "verified": "Verified",
         "actionNeeded": "Action needed",
         "statusProcessing": "Processing",
@@ -3340,6 +3386,7 @@
         "errorNoResponse": "No response from server. Please try again.",
         "errorStartDocVerification": "Could not start document verification. Please try again.",
         "initiate": {
+            "titleBankSetup": "Finish your bank setup",
             "titleBlocked": "We couldn't unlock this",
             "titleRestartIdentity": "Verify with a different document",
             "titleIdentityDocumentMissing": "Complete your verification",
@@ -3855,7 +3902,8 @@
                 "phone": "Our partners keep your phone number on file to protect your account.",
                 "tax": "Accounts in your country must be linked to your tax number.",
                 "declarations": "Financial rules in your country ask everyone these questions. If one applies, we may ask for a document later.",
-                "nationality": "We use your nationality to show the passport and national ID card you can verify with."
+                "nationality": "We use your nationality to show the passport and national ID card you can verify with.",
+                "cpfRecord": "Our Pix partner checks the CPF and name against the Receita Federal record."
             },
             "sentence": {
                 "cardPurpose": "I’ll use my card <nw>for <pill></pill></nw>",
@@ -4045,7 +4093,8 @@
                 "isPep": "I hold a public office",
                 "isFatca": "I’m a US citizen or tax resident",
                 "isFep": "I must report to the UIF",
-                "cityOfBirth": "City of birth"
+                "cityOfBirth": "City of birth",
+                "fullName": "Full name"
             },
             "tax": {
                 "title": {
@@ -4212,10 +4261,6 @@
                     "bankCheck": "Finish the bank transfer check"
                 }
             },
-            "saved": {
-                "title": "Answers saved!",
-                "description": "Next, a photo of your ID and a quick selfie."
-            },
             "featureNames": {
                 "bank": "bank accounts",
                 "card": "card",
@@ -4275,6 +4320,17 @@
             "taxConfirm": "I confirm",
             "documentMismatch": {
                 "description": "It seems like you submitted a document from a different country than the one you declared. Here’s what each country unlocks."
+            },
+            "cpfRecord": {
+                "title": {
+                    "name": "CPF and name as on the Receita Federal record",
+                    "status": "CPF status at Receita Federal"
+                },
+                "description": {
+                    "name": "Our Pix partner could not match this CPF and name. Check both.",
+                    "status": "Our Pix partner found this CPF irregular or missing. Check it at gov.br, then type it again."
+                },
+                "retryLater": "This CPF was checked less than a day ago. Regularize the status with Receita Federal and try again tomorrow."
             }
         }
     },
@@ -4356,6 +4412,7 @@
             "card_needs_review": "Our card partner needs to check a few more details.",
             "manteca_us_nationality": "Payments from this country are not available for US citizens at this time.",
             "country_not_supported": "This payment method needs a document from a supported country. You can verify with a different ID.",
+            "manteca_action_incomplete": "Your bank setup isn't finished. Complete the short verification to add and withdraw pesos by bank transfer.",
             "manteca_action_expired": "Your bank account setup timed out. Finish the short verification to unlock local deposits and withdrawals.",
             "manteca_action_correction_required": "Please correct the information for your bank account verification.",
             "tax_id_unresolved": "We couldn't read the tax ID that local deposits and withdrawals need. You can verify again to provide it. QR payments aren't affected.",
@@ -4790,8 +4847,7 @@
         "rainCooldownPill": "Card cool-down",
         "easterEggImageAlt": "Easter egg illustration",
         "reConsent": {
-            "reassurance": "Nothing changes about your fees, your funds, or how we handle your data.",
-            "whatChanged": "We've rewritten the documents below in plain language so they match what Peanut is today, including the Peanut Card and Rewards. There's no rush, read them whenever, and keep using Peanut as usual.",
+            "whatChanged": "The main changes: we added Avenia as a payment partner for Pix in Brazil, and the Privacy Policy now describes session recordings and names more of the service providers we use.",
             "title": "A small update to our terms",
             "acceptLabel": "I accept the updated documents",
             "acceptCta": "Accept & continue",

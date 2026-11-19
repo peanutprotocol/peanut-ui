@@ -32,7 +32,7 @@ export function ShellTopBar({
     return (
         <div
             data-setup-top-bar
-            className="absolute top-[var(--sr-topbar-top)] right-4 left-4 z-30 flex h-10 items-center justify-between"
+            className="absolute top-[var(--sr-topbar-top)] right-[var(--sr-gutter)] left-[var(--sr-gutter)] z-30 flex h-10 items-center justify-between"
         >
             <div className={twMerge('size-10 shrink-0', fade, !showBack && 'pointer-events-none opacity-0')}>
                 {showBack && (

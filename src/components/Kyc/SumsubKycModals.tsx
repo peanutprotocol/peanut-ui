@@ -88,7 +88,6 @@ export const SumsubKycModals = ({ flow, onCooldownClose }: SumsubKycModalsProps)
                 onClose={flow.handleModalClose}
                 phase={flow.modalPhase}
                 onAcceptTerms={flow.handleAcceptTerms}
-                onSkipTerms={flow.handleSkipTerms}
                 onStartSupplement={() => void flow.handleStartSupplement()}
                 onSkipSupplement={flow.handleSkipSupplement}
                 onContinue={flow.completeFlow}

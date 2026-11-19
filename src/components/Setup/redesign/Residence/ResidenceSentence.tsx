@@ -44,56 +44,49 @@ export function ResidenceSentence({
         remeasure: refusedPassport,
         fitLabels: false,
     })
+    // The callout can run past the footer on a short phone; the shell lifts the stage for it (useShellFit).
     return (
-        // With the callout, a three-line sentence on a 320 phone leaves no room for five callout lines, and the small
-        // sentence size is the regular size there. So the block stops 16 px (CTA_GAP) above the button and scrolls
-        // rather than running under it (review R2-05).
-        <div
-            className={refusedPassport ? 'max-h-[calc(var(--sr-panel-to-cta)-16px)] overflow-y-auto' : undefined}
-            data-residence-scroll
-        >
-            <div ref={blockRef} data-setup-screen="residence">
-                <p className={twMerge('[text-wrap:pretty] text-foreground-primary', sentenceClass)}>
-                    {t.rich('sentence', {
-                        nw: (chunks) => (
-                            <span
-                                className="inline-flex max-w-full items-center align-middle whitespace-nowrap"
-                                data-fit-group
-                            >
-                                {chunks}
-                            </span>
-                        ),
-                        residence: () => (
-                            <CountryPill
-                                title={t('sheetResidence')}
-                                value={residence}
-                                options={options}
-                                testId="setup-residence-country"
-                                control="residence_country"
-                                onChange={onResidence}
-                                onSheetChange={onResidenceSheet}
-                            />
-                        ),
-                        nationality: () => (
-                            <CountryPill
-                                title={t('sheetNationality')}
-                                value={nationality}
-                                same={residence}
-                                options={options}
-                                testId="setup-nationality-country"
-                                control="nationality_country"
-                                onChange={onNationality}
-                                onSheetChange={onNationalitySheet}
-                            />
-                        ),
-                    })}
-                </p>
-                {refusedPassport && (
-                    <Callout priority="attention" className="mt-3 signup-sm:mt-1.5">
-                        {t('refusedPassport', { nationality: labelOf(nationality), residence: labelOf(residence) })}
-                    </Callout>
-                )}
-            </div>
+        <div ref={blockRef} data-setup-screen="residence">
+            <p className={twMerge('[text-wrap:pretty] text-foreground-primary', sentenceClass)}>
+                {t.rich('sentence', {
+                    nw: (chunks) => (
+                        <span
+                            className="inline-flex max-w-full items-center align-middle whitespace-nowrap"
+                            data-fit-group
+                        >
+                            {chunks}
+                        </span>
+                    ),
+                    residence: () => (
+                        <CountryPill
+                            title={t('sheetResidence')}
+                            value={residence}
+                            options={options}
+                            testId="setup-residence-country"
+                            control="residence_country"
+                            onChange={onResidence}
+                            onSheetChange={onResidenceSheet}
+                        />
+                    ),
+                    nationality: () => (
+                        <CountryPill
+                            title={t('sheetNationality')}
+                            value={nationality}
+                            same={residence}
+                            options={options}
+                            testId="setup-nationality-country"
+                            control="nationality_country"
+                            onChange={onNationality}
+                            onSheetChange={onNationalitySheet}
+                        />
+                    ),
+                })}
+            </p>
+            {refusedPassport && (
+                <Callout priority="attention" className="mt-3 signup-sm:mt-2">
+                    {t('refusedPassport', { nationality: labelOf(nationality), residence: labelOf(residence) })}
+                </Callout>
+            )}
         </div>
     )
 }

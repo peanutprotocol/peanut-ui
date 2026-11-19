@@ -238,8 +238,17 @@ class SignupStub {
                 const update = body as Record<string, unknown>
                 if (!this.registered) return { status: 401, json: { error: 'unauthorized' } }
                 if (typeof update.email === 'string') {
+                    // taken@: an established account holds it; dormant@: one that is not established
                     if (/^taken@/i.test(update.email))
-                        return { status: 409, json: { code: 'EMAIL_IN_USE', message: 'Email already in use' } }
+                        return {
+                            status: 409,
+                            json: { code: 'EMAIL_ON_ACTIVE_ACCOUNT', message: 'Email already in use' },
+                        }
+                    if (/^dormant@/i.test(update.email))
+                        return {
+                            status: 409,
+                            json: { code: 'EMAIL_ON_DORMANT_ACCOUNT', message: 'Email already in use' },
+                        }
                     this.registered.email = update.email
                 }
                 if ('residenceCountry' in update || 'nationality' in update) this.registered.residence = update
@@ -589,6 +598,18 @@ async function landingToUsername(page: Page, locale: Locale) {
     await expect(panelOf(page)).toContainText('Argentina')
     // owner ruling 17 Nov: "My residence is in [X], my nationality is [Y]."
     await expect(panelOf(page)).toContainText(t('setupRedesign.residence.sentence').split(',')[0].trim())
+    // v7: "Why do we ask?" under Continue opens the nationality reason
+    await page.getByTestId('setup-residence-why').click()
+    await expect(drawer(page)).toContainText(t('kyc.paperworkVerification.why.nationality'))
+    await drawer(page)
+        .getByRole('button', { name: t('kyc.paperworkVerification.gotIt') })
+        .click()
+    await expect(drawer(page)).toHaveCount(0)
+    // v7: the country list leads with Argentina and Brazil under "Popular"
+    await page.getByTestId('setup-residence-country').click()
+    await expect(drawer(page).getByRole('heading', { name: t('setupRedesign.residence.popular') })).toBeVisible()
+    await drawer(page).getByRole('button', { name: 'Argentina', exact: true }).click()
+    await expect(drawer(page)).toHaveCount(0)
     await primary(page, t('setupRedesign.common.continue')).click()
 
     // 08: Argentina offers a bank and QR; pick both, then Continue
@@ -681,7 +702,12 @@ async function emailToFinal(page: Page, locale: Locale, email: string) {
     await expectScreen(page, 'advantage-control', 'default')
 }
 
-async function confirmAndCelebrate(page: Page, locale: Locale, state: 'default' | 'claim-link' = 'default') {
+async function confirmAndCelebrate(
+    page: Page,
+    locale: Locale,
+    // a default sign-up gets the Celebration's buttons; a claim link keeps the claim copy and its redirect
+    state: 'claim-link' | 'buttons' = 'buttons'
+) {
     if (!STUB_BUNDLER) {
         test.info().annotations.push({ type: 'not checked', description: '11 → 12: no stub bundler in this build' })
         return false
@@ -694,6 +720,18 @@ async function confirmAndCelebrate(page: Page, locale: Locale, state: 'default' 
     await expect(page.locator('[data-mascot-pose="waving-chill"]')).toHaveCount(1)
     await expect(page.locator('[data-mascot-pose="cheering"]')).toHaveCount(0)
     return true
+}
+
+/** Every screen from Landing to 12, for a default (organic) sign-up. */
+async function organicSignupToCelebration(page: Page, context: BrowserContext, baseURL: string, username: string) {
+    await addAuthenticator(page)
+    await openSetup(page, context, baseURL)
+    await landingToUsername(page, 'en')
+    await claimUsername(page, 'en', username)
+    await inviteSkip(page, 'en')
+    await createPasskey(page, 'en')
+    await emailToFinal(page, 'en', `${username}@gmail.com`)
+    return confirmAndCelebrate(page, 'en')
 }
 
 /** The three POSTs that turn a reserved name into an account, in order, for this username. */
@@ -883,6 +921,67 @@ test.describe('sign-up redesign journeys', () => {
             await expect.poll(() => new URL(page.url()).pathname, { timeout: 15_000 }).toBe('/claim')
         })
 
+        test.describe('12 Celebration and the one verify screen (signup v7)', () => {
+            const verifyNow = (page: Page) => primary(page, copy('en', 'setupRedesign.verifyStart.verifyNow'))
+            const remindLater = (page: Page) =>
+                page.getByRole('button', { name: copy('en', 'setupRedesign.verifyStart.remindLater') })
+
+            test('Celebration: Verify now and Remind me later, no redirect; Remind me later opens Home', async ({
+                page,
+                context,
+                baseURL,
+            }) => {
+                if (!(await organicSignupToCelebration(page, context, baseURL!, 'luckyotter'))) return
+                await expect(verifyNow(page)).toBeVisible()
+                await expect(remindLater(page)).toBeVisible()
+                // the 4.5 s redirect is gone on this path
+                await page.waitForTimeout(6000)
+                expect(new URL(page.url()).pathname).toBe('/setup')
+                await remindLater(page).click()
+                await expect.poll(() => new URL(page.url()).pathname, { timeout: 15_000 }).toBe('/home')
+            })
+
+            test("Celebration → Verify now opens Verify start on /verify, or today's check over the Celebration", async ({
+                page,
+                context,
+                baseURL,
+            }) => {
+                if (!(await organicSignupToCelebration(page, context, baseURL!, 'luckyotter'))) return
+                await verifyNow(page).click()
+                // /verify for a Smart Paperwork Verification user; today's check (its Verify start) otherwise
+                await expect(page.getByTestId('setup-redesign-verify-start')).toBeVisible({ timeout: 15_000 })
+                await expect(
+                    page.getByTestId('setup-redesign-verify-steps').getByRole('listitem').last()
+                ).toContainText(copy('en', 'setupRedesign.verifyStart.stepPhoto'))
+                // one footer on /verify: the sign-up shell is gone with its footer (TASK-25063)
+                if (new URL(page.url()).pathname === '/verify')
+                    await expect(page.locator('[data-setup-footer]')).toHaveCount(1)
+                await expect(page.getByTestId('verify-steps')).toHaveCount(0)
+            })
+
+            test('Verify start after sign-up: Remind me later opens Home', async ({ page, context, baseURL }) => {
+                if (!(await organicSignupToCelebration(page, context, baseURL!, 'luckyotter'))) return
+                await verifyNow(page).click()
+                await expect(page.getByTestId('setup-redesign-verify-start')).toBeVisible({ timeout: 15_000 })
+                await remindLater(page).click()
+                await expect.poll(() => new URL(page.url()).pathname, { timeout: 15_000 }).toBe('/home')
+            })
+
+            test('a claim-link sign-up keeps its copy and the auto-redirect', async ({ page, context, baseURL }) => {
+                await addAuthenticator(page)
+                const claim = '/claim?c=42161&v=v4.3&i=7#p=e2e'
+                await openSetup(page, context, baseURL!, `/setup?redirect_uri=${encodeURIComponent(claim)}`)
+                await anyEntryToUsername(page, 'en')
+                await claimUsername(page, 'en', 'luckyotter')
+                await inviteSkip(page, 'en')
+                await createPasskey(page, 'en')
+                await emailToFinal(page, 'en', 'luckyotter@gmail.com')
+                if (!(await confirmAndCelebrate(page, 'en', 'claim-link'))) return
+                await expect(remindLater(page)).toHaveCount(0)
+                await expect.poll(() => new URL(page.url()).pathname, { timeout: 15_000 }).toBe('/claim')
+            })
+        })
+
         test('resume after a refresh: 08 keeps residence and plan, 03 keeps the username (P3-35, C-62)', async ({
             page,
             context,
@@ -990,6 +1089,76 @@ test.describe('sign-up redesign journeys', () => {
             await goBack(page).click()
             await expectScreen(page, 'notification-email', 'filled')
             await expect(field).toHaveValue('luckyotter@gmail.com')
+        })
+
+        test('a misspelled domain offers a one-tap fix, and the fixed address is saved (v7 etypo)', async ({
+            page,
+            context,
+            baseURL,
+        }) => {
+            await addAuthenticator(page)
+            await openSetup(page, context, baseURL!)
+            await landingToUsername(page, 'en')
+            await claimUsername(page, 'en', 'luckyotter')
+            await inviteSkip(page, 'en')
+            await createPasskey(page, 'en')
+            await expectScreen(page, 'notification-email', 'default', 30_000)
+            const field = page.getByRole('textbox', { name: copy('en', 'setupRedesign.email.label') })
+            await field.fill('luckyotter@gmial.com')
+            const suggestion = page.getByTestId('setup-redesign-email-suggestion')
+            await expect(suggestion).toHaveText(/Did you mean\s*luckyotter@gmail\.com\?/)
+            await suggestion.getByRole('button', { name: 'luckyotter@gmail.com' }).click()
+            await expect(field).toHaveValue('luckyotter@gmail.com')
+            await expect(suggestion).toHaveCount(0)
+            await expectScreen(page, 'notification-email', 'filled')
+            await primary(page, copy('en', 'setupRedesign.common.continue')).click()
+            await expectScreen(page, 'notification-permission', 'default')
+        })
+
+        test('an email on an established account: Log in to that account, then the recovery link; nothing saved', async ({
+            page,
+            context,
+            baseURL,
+        }) => {
+            await addAuthenticator(page)
+            await openSetup(page, context, baseURL!)
+            await landingToUsername(page, 'en')
+            await claimUsername(page, 'en', 'luckyotter')
+            await inviteSkip(page, 'en')
+            await createPasskey(page, 'en')
+            await expectScreen(page, 'notification-email', 'default', 30_000)
+            await page.getByRole('textbox', { name: copy('en', 'setupRedesign.email.label') }).fill('taken@gmail.com')
+            await primary(page, copy('en', 'setupRedesign.common.continue')).click()
+            await expectScreen(page, 'notification-email', 'already-registered')
+            await expect(primary(page, copy('en', 'setupRedesign.email.logIn'))).toBeEnabled()
+            await expect(footer(page).getByText(copy('en', 'setupRedesign.email.recover'))).toBeVisible()
+            // the sheet is not scoped to the new account: the email belongs to an older one
+            const before = stub.seen('POST', '/passkeys/login/options').length
+            await primary(page, copy('en', 'setupRedesign.email.logIn')).click()
+            await expect
+                .poll(() => stub.seen('POST', '/passkeys/login/options').length, { timeout: 15_000 })
+                .toBe(before + 1)
+            expect(stub.seen('POST', '/passkeys/login/options').at(-1)!.headers['x-username']).toBeUndefined()
+        })
+
+        test('an email on an account that is not established: the add-it-again-at-verification note, then on unsaved', async ({
+            page,
+            context,
+            baseURL,
+        }) => {
+            await addAuthenticator(page)
+            await openSetup(page, context, baseURL!)
+            await landingToUsername(page, 'en')
+            await claimUsername(page, 'en', 'luckyotter')
+            await inviteSkip(page, 'en')
+            await createPasskey(page, 'en')
+            await expectScreen(page, 'notification-email', 'default', 30_000)
+            await page.getByRole('textbox', { name: copy('en', 'setupRedesign.email.label') }).fill('dormant@gmail.com')
+            await primary(page, copy('en', 'setupRedesign.common.continue')).click()
+            await expectScreen(page, 'notification-email', 'deferred')
+            await expect(page.getByText(copy('en', 'setupRedesign.email.deferred'))).toBeVisible()
+            await primary(page, copy('en', 'setupRedesign.common.continue')).click()
+            await expectScreen(page, 'notification-permission', 'default')
         })
 
         test('demo reviewer username: no check, no reservation, no passkey; the app opens on the last step', async ({

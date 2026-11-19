@@ -57,7 +57,7 @@ export function InviteField({
         <motion.div
             animate={shake}
             className={twMerge(
-                'mt-3.5 flex h-12 items-center gap-1 rounded-sm border border-border-default bg-background-default pr-1 pl-4 signup-sm:mt-1',
+                'mt-4 flex h-12 items-center gap-1 rounded-sm border border-border-default bg-background-default pr-1 pl-4 signup-sm:mt-3',
                 'focus-within:border-transparent focus-within:outline-[3px] focus-within:outline-action-focus focus-within:outline-solid',
                 invalid && 'border-border-error'
             )}

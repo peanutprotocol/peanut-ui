@@ -42,7 +42,16 @@ import {
     openDialog,
 } from '../../Accounts/__tests__/redesignHarness'
 
+// the Celebration's Verify now has its own suite (CelebrationScreen.test)
+jest.mock('@/components/Setup/redesign/Celebration/useCelebrationVerify', () => ({
+    useCelebrationVerify: () => ({ start: jest.fn(), starting: false, kycFlow: {}, modals: null }),
+}))
 jest.mock('@/services/signup-geo', () => ({ attachSignupGeo: jest.fn() }))
+// 12's verify start has its own suite (CelebrationScreen.test); here 12 is the plain celebration
+jest.mock('@/components/Setup/redesign/Celebration/useVerifyStartEligible', () => ({
+    useVerifyStartEligible: () => false,
+}))
+jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))
 
 const WALLET = '0x1111111111111111111111111111111111111111'
 const HASH = `0x${'ab'.repeat(32)}` as const
@@ -320,6 +329,27 @@ describe('11 Final confirm: states', () => {
         expect(view.container.querySelector('[data-testid="setup-redesign-final-confirm"]')).toBeNull()
     })
 
+    it('P4-37 on the sign-up step, Confirm later swaps 11 for the quiet redirect, not the celebration (FinalStep)', async () => {
+        saveSignupTestTransaction('user-1', pending())
+        mockSend.mockRejectedValueOnce(stalled())
+        let setCompleted: ((v: boolean) => void) | null = null
+        const view = renderRedesign(<FinalStep onComplete={() => setCompleted?.(true)} />, {
+            screenId: 'advantage-control',
+        })
+        setCompleted = view.flow().setSignupCompleted
+        confirm(view.container)
+        await screen.findByText(textMatch(copy('setupRedesign.final.busy')))
+        const later = footerControl(view.container, copyRx('setupRedesign.final.later'))
+        await waitFor(() => expect(later).toBeEnabled())
+        fireEvent.click(later)
+        await waitFor(() =>
+            expect(view.container.querySelector('[data-testid="setup-redesign-final-confirm"]')).toBeNull()
+        )
+        expect(view.container.querySelector('[data-testid="setup-redesign-celebration"]')).toBeNull()
+        expect(screen.queryByText(copyRx('setupRedesign.done.title'))).toBeNull()
+        expect(confettiPresets.celebration).not.toHaveBeenCalled()
+    })
+
     it('P4-38 a failed account save offers Retry account setup, which saves again without a second signature', async () => {
         mockAddAccount.mockRejectedValueOnce(
             new AccountSetupError('Account creation could not be confirmed', {
@@ -378,6 +408,8 @@ describe('11 Final confirm: states', () => {
         await waitFor(() => expect(later).toBeEnabled())
         fireEvent.click(later)
         await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1))
+        // the step skips the celebration for an unconfirmed account
+        expect(onComplete).toHaveBeenCalledWith({ deferred: true })
         expect(signupControls(capture)).toContain('finish_later:tap')
         expect(events(ANALYTICS_EVENTS.SIGNUP_TEST_TX_DEFERRED)).toEqual([
             { transient_failures: 2, signature_check: 'valid' },
@@ -386,6 +418,54 @@ describe('11 Final confirm: states', () => {
         expect(mockAddAccount).toHaveBeenCalledTimes(1)
         expect(mockSend).toHaveBeenCalledTimes(1)
         expect(readSignupTestTransaction('user-1')).toMatchObject({ deferred: true, mined: false })
+    })
+})
+
+describe('11 Final confirm: where the passkey is saved', () => {
+    const UA = {
+        android: 'Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile',
+        ios: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148',
+        web: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36',
+    }
+    const recovery = (container: HTMLElement) =>
+        container.querySelector<HTMLElement>('[data-testid="setup-redesign-final-recovery"]')
+    afterEach(() => jest.restoreAllMocks())
+
+    it.each([
+        ['android', 'Google Password Manager or Samsung Pass'],
+        ['ios', 'iCloud Keychain'],
+        ['web', 'browser or password manager'],
+    ] as const)('on %s the line names where the passkey is saved', (platform, store) => {
+        jest.spyOn(window.navigator, 'userAgent', 'get').mockReturnValue(UA[platform])
+        const { container } = render({ onComplete: jest.fn() })
+        const line = recovery(container)
+        expect(line).toHaveTextContent(copy('setupRedesign.final.recovery', { platform }))
+        expect(line).toHaveTextContent(store)
+    })
+
+    it('the line follows the language (es-AR on Android)', () => {
+        jest.spyOn(window.navigator, 'userAgent', 'get').mockReturnValue(UA.android)
+        const { container } = render({ onComplete: jest.fn(), locale: 'es-AR' })
+        expect(recovery(container)).toHaveTextContent(
+            copy('setupRedesign.final.recovery', { platform: 'android' }, 'es-AR')
+        )
+    })
+
+    it.each(['en', 'es-419', 'es-AR', 'pt-BR'] as const)('%s has a distinct line for each platform', (locale) => {
+        const lines = ['android', 'ios', 'web'].map((platform) =>
+            copy('setupRedesign.final.recovery', { platform }, locale)
+        )
+        expect(new Set(lines).size).toBe(3)
+        expect(lines[1]).toMatch(/iPhone/)
+    })
+
+    it('an error takes the line’s place so it stays next to the button', async () => {
+        mockSend.mockRejectedValue(aa24())
+        const { container } = render({ onComplete: jest.fn() })
+        expect(recovery(container)).not.toBeNull()
+        confirm(container)
+        await waitFor(() => expect(setupState(container)).toBe('error-provider'))
+        expect(recovery(container)).toBeNull()
     })
 })
 
@@ -625,6 +705,20 @@ describe('11 Final confirm on /setup/finish', () => {
         expect(mockRouterReplace).toHaveBeenCalledWith('/home')
         expect(confettiPresets.celebration).toHaveBeenCalledTimes(1)
         expect(events(ANALYTICS_EVENTS.SIGNUP_COMPLETED)).toHaveLength(1)
+    })
+
+    it('Confirm later on the finish route redirects with no confetti', async () => {
+        saveSignupTestTransaction('user-1', pending())
+        mockSend.mockRejectedValueOnce(stalled())
+        const { container } = render({ showLogout: true })
+        confirm(container)
+        await screen.findByText(textMatch(copy('setupRedesign.final.busy')))
+        const later = footerControl(container, copyRx('setupRedesign.final.later'))
+        await waitFor(() => expect(later).toBeEnabled())
+        fireEvent.click(later)
+        await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledTimes(1))
+        expect(confettiPresets.celebration).not.toHaveBeenCalled()
+        expect(events(ANALYTICS_EVENTS.SIGNUP_COMPLETED)).toEqual([expect.objectContaining({ test_tx: 'deferred' })])
     })
 })
 

@@ -1,7 +1,8 @@
 'use client'
 
 import { NotificationsSwitchesScreen } from '@/components/Setup/redesign/Notifications/NotificationsSwitchesScreen'
-import { CelebrationScreen } from '@/components/Setup/redesign/Celebration/CelebrationScreen'
+import { FinalStep } from '@/components/Setup/redesign/FinalConfirm/FinalStep'
+import { VerifyStartIntro } from '@/components/Setup/redesign/VerifyStart/VerifyStartIntro'
 import { TestBuildRibbonView } from '@/components/Global/TestBuildRibbon'
 import { API_CONTRACT_STATES } from './api-contract-states'
 import AmountInput from '@/components/Global/AmountInput'
@@ -35,13 +36,15 @@ import { SetupFlowProvider, useSetupFlowContext } from '@/features/setup/SetupFl
 import { SetupNotificationsPrompt } from '@/components/Notifications/SetupNotificationsModal'
 import { setupScreenIds, setupSteps } from '@/components/Setup/Setup.consts'
 import { SetupShell } from '@/components/Setup/redesign/shell/SetupShell'
-import { NO_DOT_SCREENS } from '@/components/Setup/redesign/shell/shell.consts'
+import { setupProgress } from '@/components/Setup/redesign/shell/setupProgress'
 import type { ScreenId } from '@/components/Setup/Setup.types'
 import type { SetupFundingChannel, SetupPaymentChannel } from '@/features/setup/paymentChannels'
 import type { SignupEntryFlow } from '@/features/setup/signup-analytics'
 import { FinalConfirmScreen } from '@/components/Setup/redesign/FinalConfirm/FinalConfirmScreen'
 
 import { PasskeySetupHelpDrawer } from '@/components/Setup/Views/PasskeySetupHelpDrawer'
+import { PasskeyScreenView } from '@/components/Setup/redesign/Passkey/PasskeyScreenView'
+import { previewPasskey } from './passkey-preview'
 import { LoginRecoveryDrawer } from '@/components/Setup/Views/LoginRecoveryDrawer'
 import ConfirmInviteModal from '@/components/Global/ConfirmInviteModal'
 import EarlyUserDrawer from '@/components/Global/EarlyUserDrawer'
@@ -211,14 +214,9 @@ function SetupScreenBody({
     )
         return null
     const View = step.component
-    const dotSteps = setupSteps.filter((entry) => !NO_DOT_SCREENS.includes(entry.screenId))
-    const dotIndex = dotSteps.indexOf(step)
+    const dots = setupProgress(setupSteps, step.screenId)
     return (
-        <SetupShell
-            screenId={step.screenId}
-            showBackButton={step.showBackButton}
-            progress={showProgress && dotIndex >= 0 ? { index: dotIndex, total: dotSteps.length } : null}
-        >
+        <SetupShell screenId={step.screenId} showBackButton={step.showBackButton} progress={showProgress ? dots : null}>
             {children ?? <View />}
         </SetupShell>
     )
@@ -288,17 +286,12 @@ function RedesignStepBody({
     const step = setupSteps.find((entry) => entry.screenId === screenId)
     if (!seeded || !step) return null
     const View = step.component
-    const dotSteps = setupSteps.filter((entry) => !NO_DOT_SCREENS.includes(entry.screenId))
-    const dotIndex = dotSteps.indexOf(step)
+    const dots = setupProgress(setupSteps, step.screenId)
     return (
         <SetupShell
             screenId={finishRoute ? 'sign-test-transaction' : step.screenId}
             showBackButton={step.showBackButton && !finishRoute}
-            progress={
-                dotIndex >= 0 && !seed.signupCompleted && !finishRoute
-                    ? { index: dotIndex, total: dotSteps.length }
-                    : null
-            }
+            progress={!seed.signupCompleted && !finishRoute ? dots : null}
         >
             {/* as /setup passes it: without it 11 treats the demo account as a log-in and leaves for /home */}
             {finishRoute ? <FinalConfirmScreen showLogout /> : <View onComplete={noop} />}
@@ -316,11 +309,15 @@ const FUNDED_CARD_ONBOARDING: OnboardingState = {
 }
 const noop = () => {}
 
-/** 12 needs a completed sign-up in the flow context; it then redirects on its own after 4.5 s, as on /setup. */
+/**
+ * 12 needs a completed sign-up in the flow context; it then redirects on its own after 4.5 s, as on /setup. With
+ * Verify now and Remind me later, its Verify now opens the Verify start, as on /setup.
+ */
 function CompletedCelebration() {
-    const { setSignupCompleted } = useSetupFlowContext()
+    const { signupCompleted, setSignupCompleted } = useSetupFlowContext()
     React.useLayoutEffect(() => setSignupCompleted(true), [setSignupCompleted])
-    return <CelebrationScreen />
+    // FinalStep shows the final confirm until sign-up completes, and that screen sends a signed-in user Home
+    return signupCompleted ? <FinalStep /> : null
 }
 
 const asyncNoop = async () => {}
@@ -886,6 +883,11 @@ export const SURFACES: Record<string, Surface> = {
                 <CompletedCelebration />
             </SetupScreen>
         ),
+    },
+    '07-f-setup-verify-start': {
+        ...SURFACE_META['07-f-setup-verify-start'],
+        // /verify's intro for a new user: the questions, then the ID photo
+        render: () => <VerifyStartIntro controlScreen="steps-overview" questions onVerify={noop} onLater={noop} />,
     },
     '07-b-advantage-control': {
         ...SURFACE_META['07-b-advantage-control'],
@@ -1755,6 +1757,63 @@ export const SURFACES: Record<string, Surface> = {
             />
         ),
     },
+    'setup-redesign-passkey-second-cancel': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-passkey-second-cancel'],
+        render: () => (
+            <SetupScreen screenId="passkey" username="luckyotter">
+                <PasskeyScreenView passkey={previewPasskey('android-cancel')} />
+            </SetupScreen>
+        ),
+    },
+    'setup-redesign-passkey-took-too-long': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-passkey-took-too-long'],
+        render: () => (
+            <SetupScreen screenId="passkey" username="luckyotter">
+                <PasskeyScreenView passkey={previewPasskey('took-too-long')} />
+            </SetupScreen>
+        ),
+    },
+    'setup-redesign-passkey-left-app': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-passkey-left-app'],
+        render: () => (
+            <SetupScreen screenId="passkey" username="luckyotter">
+                <PasskeyScreenView passkey={previewPasskey('left-app')} />
+            </SetupScreen>
+        ),
+    },
+    'setup-redesign-passkey-check-screen-lock': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-passkey-check-screen-lock'],
+        render: () => (
+            <SetupScreen screenId="passkey" username="luckyotter">
+                <PasskeyScreenView passkey={previewPasskey('screen-lock')} />
+            </SetupScreen>
+        ),
+    },
+    'setup-redesign-passkey-check-no-provider': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-passkey-check-no-provider'],
+        render: () => (
+            <SetupScreen screenId="passkey" username="luckyotter">
+                <PasskeyScreenView passkey={previewPasskey('no-provider')} />
+            </SetupScreen>
+        ),
+    },
+    'setup-redesign-passkey-login-recovery': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-passkey-login-recovery'],
+        render: () => {
+            const base = previewPasskey(null)
+            return (
+                <SetupScreen screenId="passkey" username="luckyotter">
+                    <PasskeyScreenView
+                        passkey={{
+                            ...base,
+                            usernameTaken: true,
+                            recoveryDrawer: { ...base.recoveryDrawer, visible: true },
+                        }}
+                    />
+                </SetupScreen>
+            )
+        },
+    },
     'setup-redesign-invite': {
         ...SETUP_REDESIGN_SURFACES['setup-redesign-invite'],
         render: () => <RedesignStepSurface screenId="invite" seed={{ username: 'luckyotter' }} />,
@@ -1810,6 +1869,14 @@ export const SURFACES: Record<string, Surface> = {
         ...SETUP_REDESIGN_SURFACES['setup-redesign-plan-single'],
         render: () => <RedesignStepSurface screenId="payment-plan" seed={{ residenceCountry: 'PT' }} />,
     },
+    'setup-redesign-plan-us': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-plan-us'],
+        render: () => <RedesignStepSurface screenId="payment-plan" seed={{ residenceCountry: 'US' }} />,
+    },
+    'setup-redesign-plan-pt': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-plan-pt'],
+        render: () => <RedesignStepSurface screenId="payment-plan" seed={{ residenceCountry: 'PT' }} />,
+    },
     'setup-redesign-email': {
         ...SETUP_REDESIGN_SURFACES['setup-redesign-email'],
         render: () => <RedesignStepSurface screenId="notification-email" seed={{ username: 'luckyotter' }} />,
@@ -1820,6 +1887,15 @@ export const SURFACES: Record<string, Surface> = {
             <RedesignStepSurface
                 screenId="notification-email"
                 seed={{ username: 'luckyotter', notificationEmail: 'luckyotter@gmail.com' }}
+            />
+        ),
+    },
+    'setup-redesign-email-typo': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-email-typo'],
+        render: () => (
+            <RedesignStepSurface
+                screenId="notification-email"
+                seed={{ username: 'luckyotter', notificationEmail: 'maria@gmial.com' }}
             />
         ),
     },

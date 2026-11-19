@@ -7,14 +7,15 @@ import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { SetupScreen } from '@/components/Setup/redesign/shell/SetupScreen'
 import type { SetupFooterButton } from '@/components/Setup/redesign/shell/shell.types'
 import { useSignupControl } from '@/features/setup/useSignupControl'
+import { useDeviceType } from '@/hooks/useGetDeviceType'
 import { FinalConfirmArt } from './FinalConfirmArt'
 import { PasskeyInfoSheet } from './PasskeyInfoSheet'
 import { useFinalConfirm } from './useFinalConfirm'
 import { SETUP_LEAD_CLASS } from '@/components/Setup/redesign/shell/shell.consts'
 
 export type FinalConfirmScreenProps = {
-    /** Called once the account is set up; the step then shows the celebration. */
-    onComplete?: () => void
+    /** Called once the account is set up; the step then shows the celebration, or skips it after Confirm later. */
+    onComplete?: (outcome: { deferred: boolean }) => void
     /** `/setup/finish` (a signed-in user who never finished): a "Log out" link under the button. */
     showLogout?: boolean
 }
@@ -44,6 +45,7 @@ export function FinalConfirmScreen({ onComplete, showLogout }: FinalConfirmScree
     const { track } = useSignupControl()
     const f = useFinalConfirm({ onComplete })
     const [infoOpen, setInfoOpen] = useState(false)
+    const { deviceType } = useDeviceType()
 
     const busy = f.errorKey === BUSY
     const setupFailed = f.errorKey === SETUP_FAILED
@@ -154,8 +156,18 @@ export function FinalConfirmScreen({ onComplete, showLogout }: FinalConfirmScree
         >
             <div data-testid="setup-redesign-final-confirm" data-setup-state={state}>
                 <p className={SETUP_LEAD_CLASS}>{t('final.desc')}</p>
+                {/* Body-s, not the lead: at 375x667 the lead's 16/26 pushes the line under the footer. An error takes
+                    its place so the error stays next to the button. */}
+                {!displayError && (
+                    <p
+                        className="mt-2 text-body-s text-foreground-secondary signup-sm:mt-1 signup-sm:text-body-xs"
+                        data-testid="setup-redesign-final-recovery"
+                    >
+                        {t('final.recovery', { platform: deviceType })}
+                    </p>
+                )}
                 {displayError && (
-                    <Callout priority={busy ? 'attention' : 'error'} className="mt-3.5 signup-sm:mt-3">
+                    <Callout priority={busy ? 'attention' : 'error'} className="mt-4 signup-sm:mt-3">
                         {displayError}
                     </Callout>
                 )}

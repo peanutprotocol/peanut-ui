@@ -7,6 +7,7 @@
  * A suite that renders through the shell mocks the language switcher in its own file (jest hoists mocks per file):
  *   jest.mock('@/components/Setup/components/SetupLanguageSwitcher', () => ({ SetupLanguageSwitcher: () => null }))
  */
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render } from '@testing-library/react'
 import { createTranslator, NextIntlClientProvider } from 'next-intl'
 import { cloneElement, type ReactElement, type ReactNode } from 'react'
@@ -77,23 +78,36 @@ export type ShellOptions = {
     wrap?: (node: ReactElement) => ReactElement
 }
 
+/** A query client per render, as the app's PeanutProvider gives one; no retries, so a failed lookup settles at once. */
+export const testQueryClient = () => new QueryClient({ defaultOptions: { queries: { retry: false } } })
+
 /** The screen as the page renders it: inside SetupShell (footer, top bar, screen id), with the real catalog. */
-export function shellTree(screenId: ScreenId, screen: ReactElement, options: ShellOptions = {}) {
+export function shellTree(
+    screenId: ScreenId,
+    screen: ReactElement,
+    options: ShellOptions = {},
+    queryClient: QueryClient = testQueryClient()
+) {
     const inner = (
         <SetupShell screenId={screenId} showBackButton={options.showBackButton} onBack={options.onBack}>
             {screen}
         </SetupShell>
     )
-    return <IntlProvider locale={options.locale}>{options.wrap ? options.wrap(inner) : inner}</IntlProvider>
+    return (
+        <QueryClientProvider client={queryClient}>
+            <IntlProvider locale={options.locale}>{options.wrap ? options.wrap(inner) : inner}</IntlProvider>
+        </QueryClientProvider>
+    )
 }
 
 export function renderInShell(screenId: ScreenId, screen: ReactElement, options: ShellOptions = {}) {
-    const view = render(shellTree(screenId, screen, options))
+    const queryClient = testQueryClient()
+    const view = render(shellTree(screenId, screen, options, queryClient))
     return {
         ...view,
         /** A fresh element each time, so the screen re-renders and reads changed mock state. */
         rerenderInShell: (next: ReactElement = screen) =>
-            view.rerender(shellTree(screenId, cloneElement(next), options)),
+            view.rerender(shellTree(screenId, cloneElement(next), options, queryClient)),
     }
 }
 

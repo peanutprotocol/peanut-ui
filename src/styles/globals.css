@@ -83,6 +83,8 @@
     --color-background-google-wallet: #1f1f1f;
     /* The fill above under Material's 10% pressed state layer (#e3e3e3 at 10%). */
     --color-background-google-wallet-press: #333333;
+    /* Material's touch ripple on that pill, drawn at 24% opacity. */
+    --color-background-google-wallet-ripple: #e3e3e3;
     --color-border-google-wallet: #747775;
 
     --color-background-icon-bubble-green: #29cc6a;
@@ -855,13 +857,15 @@
         --sr-stage-std-base: min(393px, calc(var(--sr-h) * 0.515));
         --sr-stage-compact-base: min(253px, calc(var(--sr-h) * 0.332));
         --sr-stage-full-base: var(--sr-h);
-        --sr-stage-tall: var(--sr-stage-tall-base);
-        --sr-stage-std: var(--sr-stage-std-base);
-        --sr-stage-compact: var(--sr-stage-compact-base);
+        /* --sr-fit-lift: the stage gives way to panel content that would run under the footer (useShellFit) */
+        --sr-stage-tall: calc(var(--sr-stage-tall-base) - var(--sr-fit-lift, 0px));
+        --sr-stage-std: calc(var(--sr-stage-std-base) - var(--sr-fit-lift, 0px));
+        --sr-stage-compact: calc(var(--sr-stage-compact-base) - var(--sr-fit-lift, 0px));
         --sr-stage-full: var(--sr-stage-full-base);
         --sr-cta-top: calc(var(--sr-h) - 112px);
-        --sr-topbar-top: 4px;
-        --sr-title-top: 61px;
+        /* L/16 below the safe area, as NavHeader and /verify; the title keeps L/16 under the 40 px bar */
+        --sr-topbar-top: 16px;
+        --sr-title-top: 72px;
         --sr-gutter: 24px;
         --sr-panel-pad: 32px;
         --sr-slot-h: 64px;
@@ -878,10 +882,11 @@
             --sr-stage-std-base: 260px;
             --sr-stage-compact-base: 220px;
             --sr-cta-top: calc(var(--sr-h) - 100px);
-            --sr-title-top: 52px;
-            --sr-gutter: 20px;
+            --sr-topbar-top: 8px;
+            --sr-title-top: 56px;
+            /* L/16: 20 px is off the spacing scale, and the 320 column needs the width */
+            --sr-gutter: 16px;
             --sr-panel-pad: 16px;
-            --sr-slot-h: 44px;
             --sr-lift-2: 20px;
             --sr-lift-3: 44px;
         }
@@ -903,7 +908,7 @@
         --sr-stage-compact: var(--sr-fold-stage);
     }
     .signup-shell[data-fold] [data-setup-art-box],
-    .signup-shell[data-fold='bar'] [data-setup-art-layer] h1 {
+    .signup-shell[data-fold='bar'] [data-setup-title] {
         visibility: hidden;
     }
     /*

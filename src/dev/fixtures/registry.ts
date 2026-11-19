@@ -505,6 +505,22 @@ const AVENIA_MISSING_STEPS = {
         answered: false,
         fields: [{ key: 'taxId', kind: 'taxId', required: true, format: 'cpf', value: null }],
     },
+    // After Avenia rejected the CPF and name (TASK-25108): a made-up CPF (111.444.777-35), shown masked.
+    cpfRecordName: {
+        id: 'cpfRecord',
+        features: [],
+        answered: false,
+        fields: [
+            { key: 'taxId', kind: 'taxId', required: true, format: 'cpf', value: '•••• 7735' },
+            { key: 'fullName', kind: 'text', required: true, value: 'Ana Souza' },
+        ],
+    },
+    cpfRecordStatus: {
+        id: 'cpfRecord',
+        features: [],
+        answered: false,
+        fields: [{ key: 'taxId', kind: 'taxId', required: true, format: 'cpf', value: null }],
+    },
 } as const
 /**
  * Avenia's first use for a verified resident of Brazil whose verification lacks what Avenia needs:
@@ -518,11 +534,13 @@ const aveniaMissingResponses = (step: keyof typeof AVENIA_MISSING_STEPS) => ({
             attemptId: null,
             residence: 'BR',
             steps: [AVENIA_MISSING_STEPS[step]],
-            firstUnanswered: step,
+            firstUnanswered: AVENIA_MISSING_STEPS[step].id,
             progress: { done: 0, total: 1 },
         },
     },
-    rejects: { [ACTIVATE_PIX]: { status: 409, body: { code: 'questions_missing', step } } },
+    rejects: {
+        [ACTIVATE_PIX]: { status: 409, body: { code: 'questions_missing', step: AVENIA_MISSING_STEPS[step].id } },
+    },
 })
 
 /** The Avenia rail while Avenia reviews the shared verification, with the route's reason. */
@@ -1702,6 +1720,39 @@ const MANTECA_AR_CAPABILITIES = {
     restrictions: [],
 }
 
+/** The ARS bank rail waits on the person's Manteca step (questionnaire and phone check), as the API reports it. */
+const mantecaArStepCapabilities = (code: 'manteca_action_incomplete' | 'manteca_action_expired') => {
+    const userMessage =
+        code === 'manteca_action_incomplete'
+            ? 'Your bank setup is not finished. Complete the short verification to unlock local deposits and withdrawals.'
+            : 'Your bank account setup timed out. Finish the short verification to unlock local deposits and withdrawals.'
+    const nextAction = { key: 'manteca-kyc-action:AR', kind: 'sumsub', purpose: 'unlock-manteca-bank' }
+    return {
+        rails: [
+            {
+                ...MANTECA_AR_CAPABILITIES.rails[0],
+                status: 'requires-info',
+                blockingActions: [nextAction.key],
+                reason: { code, userMessage },
+                resolved: {
+                    status: 'fixable',
+                    blocking: { code, userMessage, selfHealable: true },
+                    nextAction,
+                },
+            },
+        ],
+        nextActions: [nextAction],
+        restrictions: [],
+        features: {
+            local: {
+                state: 'action_required',
+                action: nextAction.key,
+                accounts: { ARS: { state: 'action_required', action: nextAction.key } },
+            },
+        },
+    }
+}
+
 /** A Colombian user: one Bre-B corridor and nothing else. */
 const BRIDGE_CO_CAPABILITIES = {
     rails: [
@@ -2345,11 +2396,30 @@ const SETUP_REDESIGN_FIXTURES: Record<string, Fixture> = {
     'setup-redesign-email-default': setupRedesign('email', '09 Email: empty field, Continue off.'),
     'setup-redesign-email-filled': setupRedesign('email-filled', '09 Email: a valid address, Continue on.'),
     'setup-redesign-email-invalid': setupRedesign('email', '09 Email: an address without a domain, after blur.'),
-    'setup-redesign-email-already-registered': setupRedesign('email-filled', '09 Email: the address has an account.', {
-        rejects: {
-            'POST /update-user': { status: 409, body: { code: 'EMAIL_IN_USE', message: 'Email already in use' } },
-        },
-    }),
+    'setup-redesign-email-already-registered': setupRedesign(
+        'email-filled',
+        '09 Email: an established account has the address; log in to it.',
+        {
+            rejects: {
+                'POST /update-user': {
+                    status: 409,
+                    body: { code: 'EMAIL_ON_ACTIVE_ACCOUNT', message: 'Email already in use' },
+                },
+            },
+        }
+    ),
+    'setup-redesign-email-deferred': setupRedesign(
+        'email-filled',
+        '09 Email: an account that is not established has the address; added again at verification.',
+        {
+            rejects: {
+                'POST /update-user': {
+                    status: 409,
+                    body: { code: 'EMAIL_ON_DORMANT_ACCOUNT', message: 'Email already in use' },
+                },
+            },
+        }
+    ),
     'setup-redesign-email-save-failed': setupRedesign('email-filled', '09 Email: the save failed, Continue retries.', {
         fails: ['POST /update-user'],
     }),
@@ -2474,6 +2544,12 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: { 'GET /users/me': null },
     },
     home: { route: '/home', about: 'Home: balance, activity and CTAs for a verified user.' },
+    // TASK-25076: a verified balance under $10 turns Add into the labelled pill.
+    'home-low-balance-top-up': {
+        route: '/home',
+        balance: '4.20',
+        about: 'Verified user who has been paid before, $4.20 left: Add is the pink Top up pill, Send centred, Request at the end.',
+    },
     'full-maintenance': {
         route: '/maintenance',
         about: 'Full maintenance is on: every app page sends the user to the maintenance screen.',
@@ -2613,6 +2689,30 @@ export const FIXTURES: Record<string, Fixture> = {
                 status: 'PROCESSING',
                 stage: 1,
                 expired: false,
+            },
+        },
+    },
+    // The Manteca step is open (before the 72-hour park): the peso screen offers to continue it.
+    'add-money-argentina-bank-step-unfinished': {
+        route: '/add-money/argentina/manteca?step=inputAmount&currency=ARS',
+        geoCountry: 'AR',
+        about: 'ARS deposit while the Manteca bank step is unfinished: the page offers to continue it.',
+        responses: {
+            'GET /users/me': {
+                residence: { declared: 'AR', verified: 'AR', pending: null, declaredSecond: null },
+                capabilities: mantecaArStepCapabilities('manteca_action_incomplete'),
+            },
+        },
+    },
+    // After the 72-hour park the same page explains the step timed out.
+    'add-money-argentina-bank-step-expired': {
+        route: '/add-money/argentina/manteca?step=inputAmount&currency=ARS',
+        geoCountry: 'AR',
+        about: 'ARS deposit after the Manteca bank step expired: the page offers to restart it.',
+        responses: {
+            'GET /users/me': {
+                residence: { declared: 'AR', verified: 'AR', pending: null, declaredSecond: null },
+                capabilities: mantecaArStepCapabilities('manteca_action_expired'),
             },
         },
     },
@@ -3124,6 +3224,25 @@ export const FIXTURES: Record<string, Fixture> = {
         route: '/add-money/pix',
         about: "Avenia needs a CPF the verification lacks: the verify flow's tax step, asked on the Pix page.",
         ...aveniaMissingResponses('tax'),
+    },
+    'pix-setup-cpf-record-name': {
+        route: '/add-money/pix',
+        about: 'Avenia rejected the CPF and name as not matching the Receita Federal record: the CPF record step asks both, prefilled.',
+        ...aveniaMissingResponses('cpfRecordName'),
+    },
+    'pix-setup-cpf-record-status': {
+        route: '/add-money/pix',
+        about: 'Avenia found the CPF irregular at Receita Federal: the CPF record step asks the CPF again after a gov.br check.',
+        ...aveniaMissingResponses('cpfRecordStatus'),
+    },
+    'pix-setup-cpf-record-retry-later': {
+        route: '/add-money/pix',
+        about: 'The same irregular CPF again within a day of the rejection: the save answers retry_later and the step says to try again tomorrow.',
+        responses: aveniaMissingResponses('cpfRecordStatus').responses,
+        rejects: {
+            ...aveniaMissingResponses('cpfRecordStatus').rejects,
+            'PUT /users/kyc/answers/cpfRecord': { status: 409, body: { code: 'retry_later' } },
+        },
     },
     'pix-activation-refused': {
         route: '/add-money/pix',

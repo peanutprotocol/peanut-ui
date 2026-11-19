@@ -19,6 +19,7 @@ const MOMENT_COPY = {
     [PUSH_PROMPT_TRIGGERS.REQUEST_CREATED]: { title: 'requestCreatedTitle', description: 'requestCreatedDescription' },
     [PUSH_PROMPT_TRIGGERS.CARD_READY]: { title: 'cardReadyTitle', description: 'cardReadyDescription' },
     [PUSH_PROMPT_TRIGGERS.QR_FIRST_SCAN]: { title: 'qrFirstScanTitle', description: 'qrFirstScanDescription' },
+    [PUSH_PROMPT_TRIGGERS.FIRST_DEPOSIT]: { title: 'firstDepositTitle', description: 'firstDepositDescription' },
 } as const
 
 export default function SetupNotificationsModal() {

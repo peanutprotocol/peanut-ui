@@ -13,7 +13,7 @@ import { useShellDevice } from '@/components/Setup/redesign/shell/useShellDevice
 import { MoneyCard } from './MoneyCard'
 import { useX1Walk } from './useX1Walk'
 import { WalkingRig } from './WalkingRig'
-import { COIN_KINDS, COIN_TOP, COIN_W, minBodyTop, RIG_H, RIG_W, rigFrame, SEAM, world, X1_LAYOUT } from './x1-walk'
+import { COIN_TOP, COIN_W, coinRow, minBodyTop, RIG_H, RIG_W, rigFrame, SEAM, world, X1_LAYOUT } from './x1-walk'
 
 const COIN_FACE = { usd: coinUsdFace, eur: coinEurFace }
 const POP: [number, number, number, number] = [0.34, 1.56, 0.64, 1]
@@ -42,6 +42,7 @@ export function X1Hero() {
 
     const [cardX, cardY, cardScale] = layout.card
     const [bandX, bandW] = layout.band
+    const [coinBandX, coinBandW] = layout.coinBand
     const bandTop = Math.floor(COIN_TOP) - 4
     // The walker box is fixed: from the walk's highest body top to the seam, wide enough for the comp.
     const box = useMemo(() => {
@@ -55,20 +56,20 @@ export function X1Hero() {
         <div className="absolute inset-0" data-testid="landing-hero">
             <div
                 className="absolute z-[3] overflow-hidden"
-                style={{ left: bandX, top: bandTop, width: bandW, height: SEAM - bandTop }}
+                style={{ left: coinBandX, top: bandTop, width: coinBandW, height: SEAM - bandTop }}
                 aria-hidden="true"
                 data-testid="landing-coin-band"
             >
-                {COIN_KINDS.map((kind, i) => (
+                {coinRow(coins).map(({ x, kind, key }) => (
                     <div
-                        key={i}
+                        key={key}
                         className="absolute left-0 will-change-transform"
                         style={{
                             top: COIN_TOP - bandTop,
                             width: COIN_W,
-                            transform: `translateX(${(coins[i] - bandX).toFixed(2)}px)`,
+                            transform: `translateX(${(x - coinBandX).toFixed(2)}px)`,
                             // the coin further left stands in front
-                            zIndex: 1000 - Math.round(coins[i]),
+                            zIndex: 1000 - Math.round(x),
                         }}
                         data-coin-face={kind}
                     >

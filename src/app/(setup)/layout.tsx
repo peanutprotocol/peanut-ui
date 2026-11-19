@@ -20,7 +20,8 @@ import {
 import { setupCountrySuggestion } from '@/features/setup/country-signals'
 import { useSetupCountrySignals } from '@/features/setup/useSetupCountrySignals'
 import { useAuth } from '@/context/authContext'
-import { readInviteCode, readInviteIntent, subscribeInviteStash } from '@/utils/invite-stash'
+import { readInviteIntent } from '@/utils/invite-stash'
+import { useStashedInviteCode } from '@/features/setup/useStashedInviteCode'
 import { readSignupDraft } from '@/features/setup/signup-draft'
 
 function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
@@ -29,12 +30,7 @@ function SetupLayoutContent({ children }: { children?: React.ReactNode }) {
     const residenceRestrictions = useResidenceRestrictionSets()
     const { user } = useAuth()
     const invitedBy = user?.invitedBy
-    const [inviteCode, setInviteCode] = useState('')
-    useEffect(() => {
-        const update = () => setInviteCode(readInviteCode())
-        update()
-        return subscribeInviteStash(update)
-    }, [])
+    const inviteCode = useStashedInviteCode()
     const suggestedCountry = setupCountrySuggestion(useSetupCountrySignals())?.country ?? null
     const sellCountry = sellScreensCountry === undefined ? suggestedCountry : sellScreensCountry
     const { deviceType } = useDeviceType()

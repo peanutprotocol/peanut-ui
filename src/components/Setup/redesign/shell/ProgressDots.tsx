@@ -6,7 +6,7 @@ import { twMerge } from '@/utils/tw'
 import { ART_DELAY_S } from './shell.motion'
 
 /**
- * One dot per step after the landing: done dots filled, the current one a 20 px pill that hops once when it
+ * One dot per step, the landing counted as done (setupProgress): done dots filled, the current one a 20 px pill that hops once when it
  * becomes current (mock shell.css .dots, shell.js updateChrome). Decorative: the step count is not announced.
  */
 export function ProgressDots({ index, total, reduced }: { index: number; total: number; reduced: boolean }) {
@@ -16,7 +16,7 @@ export function ProgressDots({ index, total, reduced }: { index: number; total: 
         firstPaint.current = false
     }, [])
     return (
-        <span aria-hidden="true" className="flex items-center gap-[5px]" data-setup-dots>
+        <span aria-hidden="true" className="flex items-center gap-1" data-setup-dots>
             {Array.from({ length: total }, (_, i) => (
                 <motion.i
                     key={i === index ? `now-${index}` : i}

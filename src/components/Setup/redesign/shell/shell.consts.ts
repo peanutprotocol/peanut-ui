@@ -30,9 +30,6 @@ export const GROUND_VAR: Record<SetupGround, string> = {
 export const SETUP_LEAD_CLASS =
     'text-body-m leading-[26px] text-foreground-secondary signup-sm:text-body-s signup-sm:leading-5'
 
-/** The step list's screens that carry no progress dot (the mock's landing). The celebration hides its dots itself. */
-export const NO_DOT_SCREENS: readonly string[] = ['landing']
-
 /**
  * Where each approved pose's figure sits inside the 1050 x 1000 comp at its hold frame, in comp units (mock
  * core/mascot.js HOLD_BOX, measured on boat.dev 13 Nov 2026; worried at frame 30).

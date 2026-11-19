@@ -30228,10 +30228,20 @@
 										{
 											"properties": {
 												"code": {
-													"enum": [
-														"EMAIL_IN_USE"
-													],
-													"type": "string"
+													"anyOf": [
+														{
+															"enum": [
+																"EMAIL_ON_ACTIVE_ACCOUNT"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"EMAIL_ON_DORMANT_ACCOUNT"
+															],
+															"type": "string"
+														}
+													]
 												},
 												"error": {
 													"type": "string"
@@ -36140,6 +36150,12 @@
 																"tax"
 															],
 															"type": "string"
+														},
+														{
+															"enum": [
+																"cpfRecord"
+															],
+															"type": "string"
 														}
 													]
 												},
@@ -40911,6 +40927,12 @@
 																"tax"
 															],
 															"type": "string"
+														},
+														{
+															"enum": [
+																"cpfRecord"
+															],
+															"type": "string"
 														}
 													]
 												},
@@ -41095,6 +41117,12 @@
 															{
 																"enum": [
 																	"tax"
+																],
+																"type": "string"
+															},
+															{
+																"enum": [
+																	"cpfRecord"
 																],
 																"type": "string"
 															}
@@ -43630,6 +43658,7 @@
 											"status": "clear",
 											"versions": []
 										},
+										"firstDepositReceived": false,
 										"firstPeerPaymentAt": null,
 										"hasMadeQrPayment": false,
 										"hasReceivedRequestPayment": false,
@@ -44125,6 +44154,16 @@
 													],
 													"type": "object"
 												},
+												"firstDepositReceived": {
+													"anyOf": [
+														{
+															"type": "boolean"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
 												"firstPeerPaymentAt": {
 													"anyOf": [
 														{
@@ -44303,6 +44342,7 @@
 												"hasMadeQrPayment",
 												"hasReceivedRequestPayment",
 												"bankDepositReceived",
+												"firstDepositReceived",
 												"consent"
 											],
 											"type": "object"

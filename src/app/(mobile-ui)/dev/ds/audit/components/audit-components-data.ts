@@ -730,15 +730,6 @@ export const BIG_COMPONENT_CATEGORIES: UsageCategory[] = [
                     'Now renders 0_Bruddle/Notification with `items`, so the check-row markup comes from the primitive instead of being hand-built.',
             },
             {
-                name: 'CountryRegionRow',
-                realUsages: 0,
-                status: 'dead',
-                source: 'components/Kyc/CountryRegionRow.tsx',
-                divergence:
-                    'Still dead. Two greps agree: `<CountryRegionRow` finds zero app renders, and a plain text grep for the name across all of src finds only its own definition and the audit data file that describes it. Thin wrapper over PaymentInfoRow. Delete candidate.',
-                verified: true,
-            },
-            {
                 name: 'PaymentMethodActionList',
                 realUsages: 2,
                 status: 'live',

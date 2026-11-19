@@ -23,6 +23,7 @@ import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { buildResidenceCountryOptions } from '@/utils/residence-options'
 import { ResidenceCompareView } from './ResidenceCompareView'
 import { ResidenceSentence } from './ResidenceSentence'
+import { ResidenceWhyLink } from './ResidenceWhyLink'
 import { useCompareColumns } from './useCompareColumns'
 
 type PartialRestriction = 'card' | 'banking'
@@ -200,6 +201,9 @@ export function ResidenceScreen(_props: StepComponentProps) {
         testId: `setup-residence-select-${iso2}`,
     })
 
+    // "Why do we ask?" under Continue (v7). The refused-passport callout leaves no room for it (v7 resrestricted).
+    const whyLink = refusedPassport ? null : <ResidenceWhyLink />
+
     if (comparing)
         return (
             <SetupScreen
@@ -240,6 +244,7 @@ export function ResidenceScreen(_props: StepComponentProps) {
                     loading: advancing,
                     testId: 'setup-residence-continue',
                 },
+                slot: whyLink ?? undefined,
             }}
         >
             <ResidenceSentence

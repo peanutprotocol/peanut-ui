@@ -86,7 +86,7 @@ export function UsernameField({
     return (
         <div
             className={twMerge(
-                'relative mt-3.5 flex h-12 items-center gap-0.5 rounded-sm border border-border-default bg-background-default pr-0.5 pl-4 text-body-m-semibold text-foreground-primary transition-colors duration-instant signup-sm:mt-2.5',
+                'relative mt-4 flex h-12 items-center gap-0.5 rounded-sm border border-border-default bg-background-default pr-0.5 pl-4 text-body-m-semibold text-foreground-primary transition-colors duration-instant signup-sm:mt-3',
                 // an error keeps its red border while focused and draws no focus ring
                 isError
                     ? 'border-border-error'

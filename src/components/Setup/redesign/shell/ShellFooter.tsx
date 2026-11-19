@@ -131,7 +131,7 @@ export function ShellFooter({
             data-stack={stack}
         >
             <Button
-                variant="primary"
+                variant={primary.variant ?? 'primary'}
                 className="w-full"
                 disabled={primary.disabled}
                 loading={primary.loading}
@@ -163,7 +163,7 @@ export function ShellFooter({
                         <div
                             className={twMerge(
                                 'flex h-6 items-center justify-center text-center text-body-xs text-foreground-secondary',
-                                stack === '3' ? 'mt-1.5 signup-sm:mt-2' : 'mt-2'
+                                'mt-2'
                             )}
                             data-setup-footer-links
                         >
