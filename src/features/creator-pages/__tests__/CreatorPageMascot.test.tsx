@@ -1,7 +1,8 @@
 /** @jest-environment jsdom */
 import { act, render } from '@testing-library/react'
-import { renderToString } from 'react-dom/server'
 import { CreatorPageMascot } from '../CreatorPageMascot'
+// The browser server build that jsdom picks needs MessageChannel, which jsdom lacks: use the Node one.
+const { renderToString } = require('react-dom/server.node') as typeof import('react-dom/server')
 
 jest.mock('@/components/Global/PeanutMascot', () => ({
     __esModule: true,
