@@ -1,4 +1,10 @@
-import { getFromCookie, getFromLocalStorage, removeFromCookie, saveToLocalStorage } from '@/utils/general.utils'
+import {
+    getFromCookie,
+    getFromLocalStorage,
+    removeFromCookie,
+    saveToCookie,
+    saveToLocalStorage,
+} from '@/utils/general.utils'
 
 /**
  * Badge campaigns are opaque backend-owned identities. The UI may transport them,
@@ -7,15 +13,16 @@ import { getFromCookie, getFromLocalStorage, removeFromCookie, saveToLocalStorag
  * `?badge_campaign=nita` is also present.
  */
 /**
- * The pending queue is one localStorage record with its expiry inside, NOT a
- * cookie: iOS WKWebView (capacitor://localhost) ignores cookie writes, so no
- * iOS badge campaign survived to signup (TASK-25110). Same move as invite-stash.ts.
+ * The pending queue is one localStorage record with its expiry inside; the
+ * cookies below are only a mirror. iOS WKWebView (capacitor://localhost) ignores
+ * cookie writes, so no iOS badge campaign survived to signup (TASK-25110).
+ * Same move as invite-stash.ts.
  */
 export const PENDING_BADGE_CAMPAIGNS_STORAGE_KEY = 'peanut:pending-badge-campaigns'
 const PENDING_BADGE_CAMPAIGNS_TTL_DAYS = 30
-/** Cookie written by older bundles; still read once, then removed. Do not rename the string value. */
+/** Cookie mirror read by older bundles. Do not rename the string value. */
 export const LEGACY_PENDING_BADGE_CAMPAIGN_COOKIE = 'campaignTag'
-/** Lossless cookie queue written by older bundles; still read once, then removed. */
+/** Lossless cookie mirror read by older bundles. */
 export const LEGACY_PENDING_BADGE_CAMPAIGNS_V2_COOKIE = 'campaignTagsV2'
 /** Persisted account-boundary epoch; the string value is compatibility state. */
 export const PENDING_BADGE_CAMPAIGN_INTENT_EPOCH_STORAGE_KEY = 'campaignIntentEpoch'
@@ -187,23 +194,12 @@ function writeStoredBadgeCampaigns(badgeCampaigns: readonly string[], expiryDays
     }
 }
 
-function removeLegacyBadgeCampaignCookies(): void {
-    removeFromCookie(LEGACY_PENDING_BADGE_CAMPAIGN_COOKIE)
-    removeFromCookie(LEGACY_PENDING_BADGE_CAMPAIGNS_V2_COOKIE)
-}
-
 export function getPendingBadgeCampaigns(): string[] {
-    const stored = readStoredBadgeCampaigns()
-    // Queues written before the move to localStorage live in cookies on web
-    // and Android. Move them over once; a cookie value counts as the newest.
+    // Cookies hold queues from older bundles and the mirror below; a cookie
+    // value counts as the newest. They are read, never deleted here.
     const v2 = parsePendingBadgeCampaigns(getFromCookie(LEGACY_PENDING_BADGE_CAMPAIGNS_V2_COOKIE))
     const legacy = parsePendingBadgeCampaigns(getFromCookie(LEGACY_PENDING_BADGE_CAMPAIGN_COOKIE))
-    if (v2.length === 0 && legacy.length === 0) return stored
-
-    const merged = mergeBadgeCampaignQueues(stored, mergeBadgeCampaignQueues(v2, legacy))
-    writeStoredBadgeCampaigns(merged)
-    removeLegacyBadgeCampaignCookies()
-    return merged
+    return mergeBadgeCampaignQueues(readStoredBadgeCampaigns(), mergeBadgeCampaignQueues(v2, legacy))
 }
 
 export function getPendingBadgeCampaignIntentGeneration(): string {
@@ -211,8 +207,16 @@ export function getPendingBadgeCampaignIntentGeneration(): string {
 }
 
 export function savePendingBadgeCampaigns(badgeCampaigns: readonly string[], expiryDays?: number): void {
-    writeStoredBadgeCampaigns(sanitizeBadgeCampaignIdentities(badgeCampaigns), expiryDays)
-    removeLegacyBadgeCampaignCookies()
+    const pending = sanitizeBadgeCampaignIdentities(badgeCampaigns)
+    writeStoredBadgeCampaigns(pending, expiryDays)
+    // Cookie mirror for old-bundle tabs and a rollback; no-op on iOS. Drop it one release later.
+    if (pending.length === 0) {
+        removeFromCookie(LEGACY_PENDING_BADGE_CAMPAIGN_COOKIE)
+        removeFromCookie(LEGACY_PENDING_BADGE_CAMPAIGNS_V2_COOKIE)
+        return
+    }
+    saveToCookie(LEGACY_PENDING_BADGE_CAMPAIGNS_V2_COOKIE, pending, expiryDays)
+    saveToCookie(LEGACY_PENDING_BADGE_CAMPAIGN_COOKIE, pending[pending.length - 1], expiryDays)
 }
 
 /** Add acquisition intent without dropping an earlier retryable campaign. */
@@ -244,6 +248,5 @@ export function clearPendingBadgeCampaigns(): void {
     processBadgeCampaignIntentGeneration += 1
     const durableEpoch = getDurableBadgeCampaignIntentEpoch()
     saveToLocalStorage(PENDING_BADGE_CAMPAIGN_INTENT_EPOCH_STORAGE_KEY, Math.max(Date.now(), durableEpoch + 1))
-    writeStoredBadgeCampaigns([])
-    removeLegacyBadgeCampaignCookies()
+    savePendingBadgeCampaigns([])
 }

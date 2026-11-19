@@ -784,17 +784,19 @@ describe('parseReferrerCampaign', () => {
 })
 
 describe('applyDeferredPayload', () => {
-    it('stashes the invite outside cookies and queues the campaign list', () => {
+    it('stashes the invite outside cookies and writes a 30-day campaign list', () => {
         applyDeferredPayload({ invite: 'abc', campaign: 'off' })
         expect(readInviteCode()).toBe('abc')
         expect(mockSaveToCookie).not.toHaveBeenCalledWith('inviteCode', expect.anything())
         expect(getPendingBadgeCampaigns()).toEqual(['off'])
+        expect(mockSaveToCookie).toHaveBeenCalledWith('campaignTag', 'off', 30)
     })
 
     it('normalizes invite separately while preserving campaign spelling after outer trim', () => {
         applyDeferredPayload({ invite: ' @Alice ', campaign: ' OFFRAMP ' })
         expect(readInviteCode()).toBe('alice')
         expect(getPendingBadgeCampaigns()).toEqual(['OFFRAMP'])
+        expect(mockSaveToCookie).toHaveBeenCalledWith('campaignTag', 'OFFRAMP', 30)
     })
 
     it('strips the marketing locale prefix from dest (native export has no /{locale} routes)', () => {

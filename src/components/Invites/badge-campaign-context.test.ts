@@ -5,6 +5,7 @@ import {
     MAX_BADGE_CAMPAIGNS,
     LEGACY_PENDING_BADGE_CAMPAIGN_COOKIE,
     LEGACY_PENDING_BADGE_CAMPAIGNS_V2_COOKIE,
+    PENDING_BADGE_CAMPAIGNS_STORAGE_KEY,
     badgeCampaignForLegacyWire,
     badgeCampaignsFromSearchParams,
     clearPendingBadgeCampaigns,
@@ -153,19 +154,18 @@ describe('badge campaign identity transport', () => {
         expect(parsePendingBadgeCampaigns('legacy-tag')).toEqual(['legacy-tag'])
     })
 
-    it('stores the lossless queue without writing cookies', () => {
+    it('mirrors the queue into the v2 cookie and keeps the legacy key scalar', () => {
         savePendingBadgeCampaigns(['first', 'second'])
+        expect(getFromCookie(LEGACY_PENDING_BADGE_CAMPAIGN_COOKIE)).toBe('second')
+        expect(getFromCookie(LEGACY_PENDING_BADGE_CAMPAIGNS_V2_COOKIE)).toEqual(['first', 'second'])
         expect(getPendingBadgeCampaigns()).toEqual(['first', 'second'])
-        expect(getFromCookie(LEGACY_PENDING_BADGE_CAMPAIGN_COOKIE)).toBeNull()
-        expect(getFromCookie(LEGACY_PENDING_BADGE_CAMPAIGNS_V2_COOKIE)).toBeNull()
         clearPendingBadgeCampaigns()
     })
 
-    it('migrates the previous array-shaped legacy cookie', () => {
+    it('reads the previous array-shaped legacy cookie', () => {
         saveToCookie(LEGACY_PENDING_BADGE_CAMPAIGN_COOKIE, ['legacy-first', 'legacy-newest'])
 
         expect(getPendingBadgeCampaigns()).toEqual(['legacy-first', 'legacy-newest'])
-        expect(getFromCookie(LEGACY_PENDING_BADGE_CAMPAIGN_COOKIE)).toBeNull()
 
         clearPendingBadgeCampaigns()
     })
@@ -179,7 +179,7 @@ describe('badge campaign identity transport', () => {
 
         // Its terminal cleanup removes only the scalar it understands.
         removeFromCookie(LEGACY_PENDING_BADGE_CAMPAIGN_COOKIE)
-        expect(getPendingBadgeCampaigns()).toEqual(['v2-first', 'v2-second', 'old-bundle-newest'])
+        expect(getPendingBadgeCampaigns()).toEqual(['v2-first', 'v2-second'])
 
         clearPendingBadgeCampaigns()
         expect(getPendingBadgeCampaigns()).toEqual([])
@@ -247,38 +247,53 @@ describe('pending badge queue in an iOS WebView without cookies', () => {
     })
 })
 
-describe('pending badge queue written by a pre-localStorage bundle', () => {
+describe('pending badge queue dual-written to localStorage and cookies', () => {
     beforeEach(() => localStorage.clear())
+    afterEach(() => jest.restoreAllMocks())
 
-    it('still reads the legacy cookies and moves them into localStorage', () => {
+    it('reads cookies written by an older bundle without deleting them', () => {
         saveToCookie(LEGACY_PENDING_BADGE_CAMPAIGNS_V2_COOKIE, ['v2-first'], 30)
         saveToCookie(LEGACY_PENDING_BADGE_CAMPAIGN_COOKIE, 'scalar-newest', 30)
 
         expect(getPendingBadgeCampaigns()).toEqual(['v2-first', 'scalar-newest'])
-        expect(getFromCookie(LEGACY_PENDING_BADGE_CAMPAIGNS_V2_COOKIE)).toBeNull()
-        expect(getFromCookie(LEGACY_PENDING_BADGE_CAMPAIGN_COOKIE)).toBeNull()
-        expect(getPendingBadgeCampaigns()).toEqual(['v2-first', 'scalar-newest'])
+        expect(getFromCookie(LEGACY_PENDING_BADGE_CAMPAIGNS_V2_COOKIE)).toEqual(['v2-first'])
+        expect(getFromCookie(LEGACY_PENDING_BADGE_CAMPAIGN_COOKIE)).toBe('scalar-newest')
 
         clearPendingBadgeCampaigns()
     })
 
-    it('clears both stores when the queue is consumed', () => {
+    it('keeps the cookie queue readable when localStorage rejects the write', () => {
+        jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+            throw new DOMException('quota', 'QuotaExceededError')
+        })
+        queuePendingBadgeCampaigns(['nita'], 30)
+        jest.restoreAllMocks()
+
+        expect(getPendingBadgeCampaigns()).toEqual(['nita'])
+        clearPendingBadgeCampaigns()
+    })
+
+    it('clears both stores', () => {
         queuePendingBadgeCampaigns(['stored'], 30)
-        saveToCookie(LEGACY_PENDING_BADGE_CAMPAIGN_COOKIE, 'cookie-only', 30)
 
-        savePendingBadgeCampaigns([])
+        clearPendingBadgeCampaigns()
 
+        expect(localStorage.getItem(PENDING_BADGE_CAMPAIGNS_STORAGE_KEY)).toBeNull()
+        expect(getFromCookie(LEGACY_PENDING_BADGE_CAMPAIGNS_V2_COOKIE)).toBeNull()
         expect(getFromCookie(LEGACY_PENDING_BADGE_CAMPAIGN_COOKIE)).toBeNull()
+    })
+
+    it('does not resurrect a queue from either store after a clear or a consume', () => {
+        queuePendingBadgeCampaigns(['stored'], 30)
+        // An old bundle consumed the cookies only; localStorage still holds the queue.
+        removeFromCookie(LEGACY_PENDING_BADGE_CAMPAIGN_COOKIE)
+        removeFromCookie(LEGACY_PENDING_BADGE_CAMPAIGNS_V2_COOKIE)
+        clearPendingBadgeCampaigns()
         expect(getPendingBadgeCampaigns()).toEqual([])
-    })
 
-    it('clears both stores on an account switch', () => {
         queuePendingBadgeCampaigns(['stored'], 30)
-        saveToCookie(LEGACY_PENDING_BADGE_CAMPAIGNS_V2_COOKIE, ['cookie-only'], 30)
-
-        clearPendingBadgeCampaigns()
-
-        expect(getFromCookie(LEGACY_PENDING_BADGE_CAMPAIGNS_V2_COOKIE)).toBeNull()
+        localStorage.clear()
+        savePendingBadgeCampaigns([])
         expect(getPendingBadgeCampaigns()).toEqual([])
     })
 })
