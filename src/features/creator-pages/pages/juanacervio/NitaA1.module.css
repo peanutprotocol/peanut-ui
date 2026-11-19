@@ -461,7 +461,8 @@
     font-weight: var(--text-body-s-semibold--font-weight);
     line-height: var(--text-body-s-semibold--line-height);
 }
-.close > img {
+/* The mascot's box (CreatorPageMascot). */
+.close > .mascot {
     width: 7rem;
     height: 7rem;
     margin: 0.5rem auto 0;
@@ -469,7 +470,7 @@
 .close > .inv {
     color: var(--color-foreground-over-color-primary);
 }
-.close > div {
+.close > .legal {
     margin-top: 1.5rem;
     color: var(--color-foreground-over-color-primary);
     font-size: var(--text-body-xs);
@@ -477,7 +478,7 @@
     line-height: var(--text-body-xs--line-height);
     text-align: left;
 }
-.close > div > p:nth-child(2) {
+.close > .legal > p:nth-child(2) {
     margin-top: 0.5rem;
     font-weight: 800;
 }

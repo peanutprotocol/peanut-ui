@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import { LOGO_LOCKUP } from '@/assets/brand'
 import { CreatorPageCta } from '../../CreatorPageCta'
+import { CreatorPageMascot } from '../../CreatorPageMascot'
 import { CreatorPageShell } from '../../CreatorPageShell'
 import type { CreatorPageVariantProps } from '../../variant-props'
 import { E1Lettering } from './e1/E1Lettering'
@@ -68,15 +69,7 @@ export function NitaE1(props: CreatorPageVariantProps) {
                     {/* The space the pinned strip covers while the poster is on screen, with the pieces
                         that stand on the strip's edge. */}
                     <div className={styles.stand}>
-                        <Image
-                            src={`${ASSETS}/e1-mascot-sticker.webp`}
-                            alt=""
-                            width={240}
-                            height={343}
-                            sizes="113px"
-                            className={styles.sticker}
-                        />
-                        <span className={`${tears.tapeShape} ${styles.tape} ${styles.tapeSticker}`} aria-hidden />
+                        <CreatorPageMascot className={styles.sticker} />
                         <div className={styles.guest}>
                             <Image src={LOGO_LOCKUP} alt={copy.peanutAlt} />
                         </div>
