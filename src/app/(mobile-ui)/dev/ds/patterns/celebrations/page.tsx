@@ -152,7 +152,7 @@ usePointsConfetti(pointsEarned, pointsRowRef)`}
                     {TUNINGS.map((tuning) => (
                         <div key={tuning.name} className="flex items-center justify-between gap-4 py-3">
                             <div className="min-w-0">
-                                <p className="text-body-s font-bold">{tuning.name}</p>
+                                <p className="text-label-l">{tuning.name}</p>
                                 <p className="text-body-s text-foreground-secondary">{tuning.where}</p>
                                 <code className="text-body-xs break-all text-foreground-secondary">{tuning.code}</code>
                             </div>

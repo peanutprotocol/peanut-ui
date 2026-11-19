@@ -242,6 +242,18 @@ describe('prefers-reduced-motion', () => {
         expect(fire.mock.calls[0][0].particleCount).toBe(15)
     })
 
+    it('fires the same few stars when only the outline can be drawn', async () => {
+        setReducedMotion(true)
+        mockLoadStarShapes.mockRejectedValueOnce(new Error('bitmap confetti unsupported'))
+        jest.spyOn(console, 'warn').mockImplementation(() => {})
+        const { shootDoubleStarConfetti } = await loadConfetti()
+
+        shootDoubleStarConfetti()
+        await flush()
+
+        expect(fire.mock.calls[0][0]).toMatchObject({ shapes: [silhouette(36)], particleCount: 8, startVelocity: 7 })
+    })
+
     it('never asks canvas-confetti to disable itself for reduced motion', async () => {
         setReducedMotion(true)
         const { shootStarConfetti } = await loadConfetti()

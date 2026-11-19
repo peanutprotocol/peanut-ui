@@ -5,6 +5,9 @@ import { useReducedMotion } from 'framer-motion'
 import Badge from '@/components/Global/Badges/Badge'
 import { Button } from '@/components/0_Bruddle/Button'
 
+// the stage is as tall as its demo needs, in px
+const STAGE_HEIGHT = { 310: 'h-[310px]', 240: 'h-[240px]', 230: 'h-[230px]' }
+
 /**
  * Frame for one permitted celebration: a fixed 320 px stage, a replay button
  * and the "not in the app" label. Replay remounts the demo, which restarts it.
@@ -19,7 +22,7 @@ export function CelebrationStage({
     name: string
     idea: string
     reducedIdea: string
-    height: number
+    height: keyof typeof STAGE_HEIGHT
     children: (reduced: boolean) => ReactNode
 }) {
     const [run, setRun] = useState(0)
@@ -33,7 +36,7 @@ export function CelebrationStage({
             <p className="text-body-s text-foreground-secondary">{idea}</p>
             <p className="text-body-s text-foreground-secondary">Reduced motion: {reducedIdea}</p>
             <div className="overflow-hidden rounded-sm border border-dashed border-border-default bg-background-page py-2">
-                <div key={run} className="relative mx-auto w-[320px] max-w-full" style={{ height }}>
+                <div key={run} className={`relative mx-auto w-[320px] max-w-full ${STAGE_HEIGHT[height]}`}>
                     {children(reduced)}
                 </div>
             </div>

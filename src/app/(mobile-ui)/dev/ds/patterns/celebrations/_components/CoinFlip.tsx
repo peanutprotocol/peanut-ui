@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import Image from 'next/image'
+import Card from '@/components/Global/Card'
 import sparkle from '@/assets/illustrations/sparkle.svg'
 import star from '@/assets/illustrations/star.svg'
 import coinEur from '@/assets/onboarding/coin-eur-face.svg'
@@ -77,13 +78,13 @@ export function CoinFlip({ reduced }: { reduced: boolean }) {
                 <p className="text-body-m">You paid</p>
                 <p className="text-heading-l">25 EUR</p>
             </div>
-            <div className="absolute top-[170px] left-0 flex h-12 w-[316px] items-center gap-2 rounded-sm border border-border-default bg-background-default px-4">
+            <Card className="absolute top-[170px] left-0 flex h-12 w-[316px] items-center gap-2 px-4 py-0">
                 <Image src={star} alt="" className="h-5 w-auto" />
                 <p className="text-body-m">You earned 25 points</p>
-            </div>
+            </Card>
             <div
                 ref={coin}
-                className="absolute top-[35px] left-[200px] size-[100px] [transform:scale(0)] drop-shadow-[4px_4px_0_#000]"
+                className="absolute top-[35px] left-[200px] size-[100px] [transform:scale(0)] drop-shadow-[4px_4px_0_var(--color-border-default)]"
             >
                 <Image ref={usd} src={coinUsd} alt="" className="absolute inset-0 size-full" />
                 <Image ref={eur} src={coinEur} alt="" className="absolute inset-0 size-full [transform:scaleX(0)]" />

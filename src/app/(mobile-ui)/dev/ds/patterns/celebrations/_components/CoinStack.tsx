@@ -14,6 +14,17 @@ const GAP = 36
 const FIRST_X = 4
 // coins rest on the card's top edge
 const REST_TOP = 68
+// FIRST_X + index * GAP, as classes: an inline style is not allowed here
+const COIN_LEFT = [
+    'left-[4px]',
+    'left-[40px]',
+    'left-[76px]',
+    'left-[112px]',
+    'left-[148px]',
+    'left-[184px]',
+    'left-[220px]',
+    'left-[256px]',
+]
 // they hop out of the middle of the card
 const ORIGIN = { x: 160, y: 175 }
 // and gather where the glove stamps
@@ -101,8 +112,7 @@ export function CoinStack({ reduced }: { reduced: boolean }) {
                     ref={(element) => {
                         wraps.current[index] = element
                     }}
-                    className="absolute [transform:scale(0)]"
-                    style={{ left: FIRST_X + index * GAP, top: REST_TOP, width: SIZE, height: SIZE }}
+                    className={`absolute top-[68px] size-[56px] [transform:scale(0)] ${COIN_LEFT[index]}`}
                 >
                     <Image
                         ref={(element) => {
@@ -110,7 +120,7 @@ export function CoinStack({ reduced }: { reduced: boolean }) {
                         }}
                         src={index % 2 ? coinEur : coinUsd}
                         alt=""
-                        className="size-full drop-shadow-[2px_2px_0_#000]"
+                        className="size-full drop-shadow-[2px_2px_0_var(--color-border-default)]"
                     />
                 </div>
             ))}
@@ -118,7 +128,7 @@ export function CoinStack({ reduced }: { reduced: boolean }) {
                 ref={hand}
                 src={stackCoin}
                 alt=""
-                className="absolute top-[52px] left-[210px] w-[104px] origin-[40%_80%] [transform:scale(0)] drop-shadow-[3px_3px_0_#000]"
+                className="absolute top-[52px] left-[210px] w-[104px] origin-[40%_80%] [transform:scale(0)] drop-shadow-[3px_3px_0_var(--color-border-default)]"
             />
         </>
     )
