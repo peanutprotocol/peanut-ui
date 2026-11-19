@@ -3,7 +3,7 @@ import { walletScenario } from './review-acceptance-adapter'
 
 const card = { id: 'synthetic-current-card', last4: '4242' }
 
-it('releases a hung lookup after five seconds and ignores its late result', async () => {
+it('releases a hung lookup after five seconds, then offers native add when its late result lands', async () => {
     jest.useFakeTimers()
     try {
         const scenario = await walletScenario({ platform: 'android', card, deferLookup: true })
@@ -13,7 +13,7 @@ it('releases a hung lookup after five seconds and ignores its late result', asyn
         })
         expect(scenario.state()).toMatchObject({ action: 'manual', added: false })
         await scenario.settleLookup({ available: true, alreadyInWallet: false })
-        expect(scenario.state()).toMatchObject({ action: 'manual', added: false, nativeAddCalls: 0 })
+        expect(scenario.state()).toMatchObject({ action: 'native', added: false, nativeAddCalls: 0 })
         scenario.unmount()
     } finally {
         jest.useRealTimers()
