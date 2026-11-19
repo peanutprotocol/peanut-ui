@@ -116,16 +116,23 @@ const YourCardScreen: FC<Props> = ({
     const userId = user?.user?.userId
     const { access: fundingAccess } = useCardFundingAccess()
 
+    const [walletAddFailedCardId, setWalletAddFailedCardId] = useState<string | null>(null)
+
     const handleAddToWallet = useCallback(async () => {
         if (isAdding) return
+        const cardId = card.id
         const result = await addToWallet()
         if (result.added || result.alreadyInWallet) {
+            setWalletAddFailedCardId(null)
             triggerHaptic()
             toast.success(walletAddedLabel ?? t('walletAddSuccess'))
         } else if (!result.canceled) {
+            setWalletAddFailedCardId(cardId)
             toast.error(t('walletAddFailed'))
         }
-    }, [isAdding, addToWallet, triggerHaptic, toast, t, walletAddedLabel])
+    }, [isAdding, card.id, addToWallet, triggerHaptic, toast, t, walletAddedLabel])
+
+    const walletAddFailed = walletAddFailedCardId === card.id
 
     // The official button replaces the manual row only where it starts the native add.
     const walletButton = !nativeAvailable ? null : walletPlatform === 'android' ? (
@@ -293,8 +300,8 @@ const YourCardScreen: FC<Props> = ({
                         chevron
                         onClick={() => router.push('/card/physical')}
                     />
-                    {/* manual steps until the platform flag and native SDK show the wallet control below */}
-                    {walletLabel && !isChecking && !alreadyInWallet && !walletButton && (
+                    {/* manual steps until the native wallet control below can add, and again after it fails */}
+                    {walletLabel && !isChecking && !alreadyInWallet && (!walletButton || walletAddFailed) && (
                         <ListItem
                             title={walletLabel}
                             leading={<Icon name="wallet" size={24} />}

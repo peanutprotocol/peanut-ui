@@ -104,6 +104,34 @@ it('stays quiet when the Google sheet is closed', async () => {
     expect(mockToastError).not.toHaveBeenCalled()
 })
 
+it('brings the manual row back beside the Google button after a failed add', async () => {
+    mockAdd.mockResolvedValue({ added: false, error: 'TapAndPay unavailable' })
+    renderScreen()
+    fireEvent.click(screen.getByRole('button', { name: 'Add to Google Wallet' }))
+    await waitFor(() => expect(mockToastError).toHaveBeenCalled())
+    const controls = await screen.findAllByRole('button', { name: 'Add to Google Wallet' })
+    expect(controls).toHaveLength(2)
+    const manualRow = controls.find((control) => control.querySelector('img') === null)
+    fireEvent.click(manualRow!)
+    expect(mockPush).toHaveBeenCalledWith('/card/add-to-wallet')
+})
+
+it('keeps only the Google button after the sheet is closed', async () => {
+    renderScreen()
+    fireEvent.click(screen.getByRole('button', { name: 'Add to Google Wallet' }))
+    await waitFor(() => expect(mockAdd).toHaveBeenCalled())
+    expect(screen.getAllByRole('button', { name: 'Add to Google Wallet' })).toHaveLength(1)
+})
+
+it('brings the manual Apple row back after a failed add', async () => {
+    mockPlatform = 'ios'
+    mockAdd.mockResolvedValue({ added: false, error: 'unknown' })
+    renderScreen()
+    fireEvent.click(screen.getByRole('button', { name: 'Add to Apple Wallet' }))
+    await waitFor(() => expect(mockToastError).toHaveBeenCalled())
+    expect(await screen.findAllByRole('button', { name: 'Add to Apple Wallet' })).toHaveLength(2)
+})
+
 it('disables the Google control during provisioning', () => {
     mockProvisioning.isAdding = true
     renderScreen()
