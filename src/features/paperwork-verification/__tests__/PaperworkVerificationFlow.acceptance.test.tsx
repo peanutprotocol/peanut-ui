@@ -422,7 +422,7 @@ describe('feature re-verification candidate', () => {
         mockStatus.mockResolvedValue('REJECTED')
         mockPlan.mockResolvedValue(plan)
         renderFlow('', { candidate, returnTo })
-        expect(await screen.findByText(/couldn.t set up your card/i)).toBeInTheDocument()
+        expect(await screen.findByText('Card setup failed. Your existing accounts stay available.')).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: /try again/i })).not.toBeInTheDocument()
         expect(mockToken).not.toHaveBeenCalled()
         expect(mockPush).not.toHaveBeenCalled()
@@ -486,7 +486,9 @@ describe('canonical identity recovery acceptance', () => {
     it('a document-policy hold explains the document replacement and never resubmits the held ID', async () => {
         mockIdentityReason = 'document_policy_hold'
         mockStatus.mockResolvedValue('ACTION_REQUIRED')
-        renderFlow()
+        await act(async () => {
+            renderFlow()
+        })
         const choose = await screen.findByRole('button', { name: 'Use a different ID' })
         await waitFor(() => expect(choose).toBeEnabled())
         expect(screen.getByTestId('verify-replacement-document')).toBe(choose)

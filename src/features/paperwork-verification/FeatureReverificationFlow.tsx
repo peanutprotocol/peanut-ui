@@ -127,6 +127,7 @@ function OwnedReverificationFlow({
     onExit,
 }: FlowProps & { owner: string }) {
     const t = useTranslations('kyc.paperworkVerification')
+    const tSetup = useTranslations('kyc.setup')
     const router = useRouter()
     const routerRef = useRef(router)
     routerRef.current = router
@@ -368,7 +369,11 @@ function OwnedReverificationFlow({
                             disabled={busy || retryAt > 0}
                             data-testid="verify-reverification-start"
                         >
-                            {t(error ? 'loadFailed.retry' : entry.attemptId ? 'continue' : 'reverify.start')}
+                            {error
+                                ? t('loadFailed.retry')
+                                : entry.attemptId
+                                  ? t('continue')
+                                  : tSetup('verifyAgainPlain')}
                         </Button>
                     }
                 />

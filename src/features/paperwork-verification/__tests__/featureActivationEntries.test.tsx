@@ -138,8 +138,8 @@ describe.each(entries)('%s activation entry', (_name, feature, Entry) => {
             render(<Entry />, { wrapper: NuqsTestingAdapter })
             expect(activateKycFeature).not.toHaveBeenCalled()
             fireEvent.click(screen.getByRole('button', { name: `activation.cta.${feature}` }))
-            await waitFor(() => expect(activateKycFeature).toHaveBeenCalledTimes(1))
-            expect(screen.getByText('existing setting up screen')).toBeInTheDocument()
+            expect(await screen.findByText('existing setting up screen')).toBeInTheDocument()
+            expect(activateKycFeature).toHaveBeenCalledTimes(1)
             expect(mockProvider).not.toHaveBeenCalled()
         }
     )

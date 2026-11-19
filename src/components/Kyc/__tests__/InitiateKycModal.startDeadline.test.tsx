@@ -9,7 +9,10 @@ import en from '@/i18n/app/messages/en.json'
 
 jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform-mock').createNativePlatformMock())
 jest.mock('@/hooks/useWebSocket', () => ({ useWebSocket: () => {} }))
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { username: 'deadline-user' } } }) }))
+jest.mock('@/context/authContext', () => {
+    const auth = () => ({ user: { user: { userId: 'deadline-user', username: 'deadline-user' } } })
+    return { useAuth: auth, useOptionalAuth: auth }
+})
 jest.mock('@/app/actions/kyc-workflow', () => ({
     findKycDocumentPlan: jest.fn(async () => null),
     findKycReplacementPlan: jest.fn(async () => null),
