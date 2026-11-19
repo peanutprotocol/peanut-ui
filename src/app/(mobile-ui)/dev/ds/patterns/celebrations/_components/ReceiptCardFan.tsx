@@ -9,11 +9,12 @@ import { SHARP, SPRING } from './timeline'
 const UP = 'translate(0, 0)'
 const DOWN = 'translate(4px, 4px)'
 const CHIP_TILT = 'rotate(-3deg)'
-// lavender, yellow, pink — dealt back to front
+// lavender, yellow, pink — dealt back to front. The cards shrink a little as
+// they tilt, so their corners stay inside the stage on a narrow phone.
 const FAN = [
-    ['bg-blue-300', 'translate(-20px, -150px) rotate(-11deg)'],
-    ['bg-background-accent-yellow', 'translate(18px, -104px) rotate(9deg)'],
-    ['bg-background-brand', 'translate(-8px, -54px) rotate(-5deg)'],
+    ['bg-blue-300', 'translate(-20px, -150px) rotate(-11deg) scale(0.88)'],
+    ['bg-background-accent-yellow', 'translate(18px, -104px) rotate(9deg) scale(0.88)'],
+    ['bg-background-brand', 'translate(-8px, -54px) rotate(-5deg) scale(0.88)'],
 ] as const
 
 /**
