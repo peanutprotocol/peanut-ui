@@ -33,7 +33,7 @@ jobs:
             head: ${{ steps.pr.outputs.head }}
             base: ${{ steps.pr.outputs.base }}
         steps:
-            - uses: actions/github-script@v7
+            - uses: actions/github-script@v9
               id: pr
               env:
                   PR_NUMBER: ${{ inputs.pr_number }}
