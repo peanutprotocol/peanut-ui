@@ -2244,7 +2244,7 @@ describe('GROUP 5: Error States', () => {
 
         // Still inside the cooldown: no replacement quote yet, Pay is blocked.
         expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
-        expect(screen.getByTestId('button')).toBeDisabled()
+        expect(screen.getByRole('button', { name: 'Pay' })).toBeDisabled()
 
         await act(async () => {
             await jest.advanceTimersByTimeAsync(3_100)
