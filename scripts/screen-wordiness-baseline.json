@@ -32,7 +32,6 @@
         "components/Card/CardPinScreen.tsx": 105,
         "components/Card/CardTermsScreen.tsx": 118,
         "components/Card/LockCardModal.tsx": 101,
-        "components/Card/PhysicalCardScreen.tsx": 92,
         "components/Card/YourCardScreen.tsx": 265,
         "components/Claim/Link/Initial.view.tsx": 286,
         "components/Claim/Link/Onchain/Success.view.tsx": 195,
