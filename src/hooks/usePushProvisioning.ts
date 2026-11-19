@@ -5,7 +5,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useFeatureFlags } from '@/hooks/useFeatureFlag'
-import { rainApi } from '@/services/rain'
+import { ApiError } from '@/services/api-error'
+import { rainApi, RainCardRateLimitError } from '@/services/rain'
 import { getClearEpoch } from '@/utils/auth-token'
 import { getWalletProvisioningOwner } from '@/utils/wallet-provisioning-owner'
 import { isIOSNative } from '@/utils/capacitor'
@@ -21,6 +22,34 @@ import {
 } from '@/utils/push-provisioning'
 
 const AVAILABILITY_TIMEOUT_MS = 5000
+const MAX_CONSECUTIVE_ADD_FAILURES = 2
+
+const TERMINAL_MPP_ERROR_CODES = {
+    STABLE_HARDWARE_ID_ERROR: 2,
+    NOT_INITIALIZED: 101,
+    OS_VERSION_NOT_SUPPORTED: 102,
+    DEBUGGER_ATTACHED: 106,
+    SDK_DEBUG_IN_APP_RELEASE_NOT_ALLOWED: 112,
+    VERSION_ROLLBACK: 503,
+    INCORRECT_INPUT_DATA: 505,
+    DATA_VALIDATION_ERROR: 601,
+    HEADER_API_KEY_ID_ERROR: 603,
+    HEADER_TRACE_ID_ERROR: 604,
+    HEADER_SECRET_ERROR: 605,
+    MASTERCARD_SETUP_ERROR: 608,
+}
+const terminalMppCodes = new Set(Object.values(TERMINAL_MPP_ERROR_CODES))
+const terminalPluginCodes = new Set(['UNAVAILABLE', 'SDK_ERROR', 'BAD_PARAMS'])
+
+type WalletFailure = Pick<AddCardToWalletResult, 'code' | 'error' | 'mppErrorCode'> & { status?: number }
+
+export function isTerminalWalletFailure({ status, code, mppErrorCode }: WalletFailure): boolean {
+    return (
+        (status !== undefined && status >= 400 && status < 500 && status !== 429) ||
+        (code !== undefined && terminalPluginCodes.has(code)) ||
+        (mppErrorCode !== undefined && terminalMppCodes.has(mppErrorCode))
+    )
+}
 
 async function getBoundedPushProvisioningAvailability(last4: string) {
     let timeout: ReturnType<typeof setTimeout> | undefined
@@ -53,6 +82,8 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
     const [isAdding, setIsAdding] = useState(false)
     const [alreadyInWallet, setAlreadyInWallet] = useState(false)
     const addingRef = useRef(false)
+    const consecutiveAddFailures = useRef(0)
+    const [pushDisabledScope, setPushDisabledScope] = useState('')
     const statusSequence = useRef(0)
     const appliedStatusSequence = useRef(0)
     const presenceSource = useRef<'exact' | 'suffix' | null>(null)
@@ -65,6 +96,8 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
     useEffect(() => {
         availabilityScopeRef.current = availabilityScope
         latestSelectionRef.current = { cardId: card.id, last4: card.last4, flagOn }
+        consecutiveAddFailures.current = 0
+        setPushDisabledScope('')
         return () => {
             availabilityScopeRef.current = ''
             latestSelectionRef.current = { cardId: card.id, last4: card.last4, flagOn }
@@ -77,6 +110,7 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
         const sequence = ++statusSequence.current
         presenceSource.current = null
         initialAvailability.current = null
+        setCheckedScope('')
         setAlreadyInWallet(false)
         if (!flagOn || wallet === null) {
             setNativeAvailable(false)
@@ -205,50 +239,78 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
     }, [availabilityScope, card.id, card.last4, flagOn, wallet])
 
     const addToWallet = useCallback(async (): Promise<AddCardToWalletResult> => {
-        if (!flagOn || wallet === null || !nativeAvailable || checkedScope !== availabilityScope || addingRef.current) {
+        if (
+            !flagOn ||
+            wallet === null ||
+            !nativeAvailable ||
+            checkedScope !== availabilityScope ||
+            availabilityScopeRef.current !== availabilityScope ||
+            addingRef.current ||
+            consecutiveAddFailures.current >= MAX_CONSECUTIVE_ADD_FAILURES
+        ) {
             return { added: false, error: 'unavailable' }
         }
         addingRef.current = true
         const scopeAtStart = availabilityScope
+        const selectionAtStart = latestSelectionRef.current
         const authEpochAtStart = getClearEpoch()
+        const isCurrentSelection = () =>
+            availabilityScopeRef.current === scopeAtStart && latestSelectionRef.current === selectionAtStart
+        const recordAddFailure = ({ error, status, code, mppErrorCode }: WalletFailure) => {
+            if (!isCurrentSelection() || getClearEpoch() !== authEpochAtStart) return
+            const terminal = isTerminalWalletFailure({ status, code, mppErrorCode })
+            consecutiveAddFailures.current = terminal
+                ? MAX_CONSECUTIVE_ADD_FAILURES
+                : consecutiveAddFailures.current + 1
+            const disablesPush = consecutiveAddFailures.current >= MAX_CONSECUTIVE_ADD_FAILURES
+            if (disablesPush) setPushDisabledScope(scopeAtStart)
+            posthog.capture(ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_FAILED, {
+                wallet,
+                ...(typeof error === 'string' ? { error } : {}),
+                ...(typeof mppErrorCode === 'number' && Number.isFinite(mppErrorCode) ? { mppErrorCode } : {}),
+                ...(typeof status === 'number' && Number.isFinite(status) ? { httpStatus: status } : {}),
+                ...(typeof code === 'string' ? { pluginCode: code } : {}),
+                failureClass: terminal ? 'terminal' : disablesPush ? 'second_failure' : 'temporary',
+            })
+        }
         posthog.capture(ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_TAPPED, { wallet })
         setIsAdding(true)
+        const cancelStaleAdd = async (nativeWriteStarted: boolean): Promise<AddCardToWalletResult | null> => {
+            const loggedOut = getClearEpoch() !== authEpochAtStart
+            if (isCurrentSelection() && !loggedOut) return null
+            if (loggedOut && isCurrentSelection()) {
+                setNativeAvailable(false)
+                presenceSource.current = null
+                setAlreadyInWallet(false)
+            }
+            const currentSelection = () =>
+                (availabilityScopeRef.current === '' && getWalletProvisioningOwner()) || latestSelectionRef.current
+            const latest = currentSelection()
+            const cardChanged = latest.cardId !== card.id
+            // Unmounting the card screen cancels the sheet, but Home still
+            // owns this active card's Wallet metadata and grant. Only a
+            // replacement card, disabled rollout, or logout may erase it.
+            if (nativeWriteStarted && (cardChanged || !latest.flagOn || loggedOut)) {
+                await clearWalletStateIfCardMatches(card.id)
+                // A late A write can have landed after B's app-wide mirror.
+                // Re-read after the clear: selection, flag, or auth may have
+                // changed while the native bridge was in flight.
+                const replacement = currentSelection()
+                if (
+                    getClearEpoch() === authEpochAtStart &&
+                    replacement.flagOn &&
+                    replacement.cardId &&
+                    replacement.last4 &&
+                    isIOSNative()
+                ) {
+                    await rememberCardForWallet({ peanutCardId: replacement.cardId, last4: replacement.last4 })
+                }
+            }
+            posthog.capture(ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_CANCELED, { wallet, error: 'card_changed' })
+            return { added: false, canceled: true }
+        }
         try {
             const data = await rainApi.getProvisioningData(card.id, wallet)
-            const cancelStaleAdd = async (nativeWriteStarted: boolean): Promise<AddCardToWalletResult | null> => {
-                const loggedOut = getClearEpoch() !== authEpochAtStart
-                if (availabilityScopeRef.current === scopeAtStart && !loggedOut) return null
-                if (loggedOut && availabilityScopeRef.current === scopeAtStart) {
-                    setNativeAvailable(false)
-                    presenceSource.current = null
-                    setAlreadyInWallet(false)
-                }
-                const currentSelection = () =>
-                    (availabilityScopeRef.current === '' && getWalletProvisioningOwner()) || latestSelectionRef.current
-                const latest = currentSelection()
-                const cardChanged = latest.cardId !== card.id
-                // Unmounting the card screen cancels the sheet, but Home still
-                // owns this active card's Wallet metadata and grant. Only a
-                // replacement card, disabled rollout, or logout may erase it.
-                if (nativeWriteStarted && (cardChanged || !latest.flagOn || loggedOut)) {
-                    await clearWalletStateIfCardMatches(card.id)
-                    // A late A write can have landed after B's app-wide mirror.
-                    // Re-read after the clear: selection, flag, or auth may have
-                    // changed while the native bridge was in flight.
-                    const replacement = currentSelection()
-                    if (
-                        getClearEpoch() === authEpochAtStart &&
-                        replacement.flagOn &&
-                        replacement.cardId &&
-                        replacement.last4 &&
-                        isIOSNative()
-                    ) {
-                        await rememberCardForWallet({ peanutCardId: replacement.cardId, last4: replacement.last4 })
-                    }
-                }
-                posthog.capture(ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_CANCELED, { wallet, error: 'card_changed' })
-                return { added: false, canceled: true }
-            }
             const staleAfterFetch = await cancelStaleAdd(false)
             if (staleAfterFetch) return staleAfterFetch
             if (wallet === 'apple' && data.walletAuthorizationToken && data.walletAuthorizationExpiresIn) {
@@ -277,17 +339,23 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
             // result must not update a cleared or replaced app session.
             const staleAfterAdd = await cancelStaleAdd(wallet === 'apple')
             if (staleAfterAdd) return staleAfterAdd
+            if (result.canceled) {
+                posthog.capture(ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_CANCELED, { wallet, error: result.error })
+                return result
+            }
+            if (!result.added && !result.alreadyInWallet) {
+                recordAddFailure({ error: result.error, code: result.code, mppErrorCode: result.mppErrorCode })
+                return result
+            }
             posthog.capture(
                 result.alreadyInWallet
                     ? ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_ALREADY_ADDED
-                    : result.added
-                      ? ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_SUCCEEDED
-                      : result.canceled
-                        ? ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_CANCELED
-                        : ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_FAILED,
+                    : ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_SUCCEEDED,
                 { wallet, error: result.error }
             )
-            if (wallet === 'google' && (result.added || result.alreadyInWallet)) {
+            consecutiveAddFailures.current = 0
+            setPushDisabledScope('')
+            if (wallet === 'google') {
                 appliedStatusSequence.current = ++statusSequence.current
                 if (availabilityScopeRef.current === scopeAtStart) {
                     presenceSource.current = 'exact'
@@ -311,10 +379,11 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
             }
             return result
         } catch (e) {
-            // Step-up cancel/timeout or the provisioning-data fetch failing
-            // (429 rate limit, 409 billing missing) all land here.
+            const stale = await cancelStaleAdd(false)
+            if (stale) return stale
             const error = e instanceof Error ? e.message : 'unknown'
-            posthog.capture(ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_FAILED, { wallet, error })
+            const status = e instanceof ApiError ? e.status : e instanceof RainCardRateLimitError ? 429 : undefined
+            recordAddFailure({ error, status })
             return { added: false, error }
         } finally {
             addingRef.current = false
@@ -322,12 +391,15 @@ export function usePushProvisioning(card: { id: string; last4: string }) {
         }
     }, [availabilityScope, card.id, card.last4, checkedScope, flagOn, nativeAvailable, wallet])
 
+    const pushDisabled = pushDisabledScope === availabilityScope
     return {
         nativeAvailable:
             flagOn &&
             checkedScope === availabilityScope &&
             nativeAvailable &&
+            !pushDisabled &&
             !(wallet === 'google' && alreadyInWallet),
+        pushDisabled,
         alreadyInWallet: flagOn && checkedScope === availabilityScope && alreadyInWallet,
         isChecking: flagOn && checkedScope !== availabilityScope,
         isAdding,

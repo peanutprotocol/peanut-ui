@@ -4,6 +4,7 @@ import { renderHook, act, waitFor } from '@testing-library/react'
 import posthog from 'posthog-js'
 import { usePushProvisioning } from '@/hooks/usePushProvisioning'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { ApiError } from '@/services/api-error'
 import { rainApi, RainCardRateLimitError, type RainProvisioningDataResponse } from '@/services/rain'
 import { isAndroidNative, isIOSNative } from '@/utils/capacitor'
 import { getClearEpoch } from '@/utils/auth-token'
@@ -60,6 +61,11 @@ const mockedIsAndroid = isAndroidNative as jest.MockedFunction<typeof isAndroidN
 const mockedClearEpoch = getClearEpoch as jest.MockedFunction<typeof getClearEpoch>
 
 const card = { id: 'card-1', last4: '0420' }
+const failureEvents = () =>
+    jest
+        .mocked(posthog.capture)
+        .mock.calls.filter(([event]) => event === ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_FAILED)
+        .map(([, properties]) => properties)
 
 // Like the Android plugin: a token match only when the lookup gets last four.
 const googleWalletHolds =
@@ -87,6 +93,7 @@ const provisioningData: RainProvisioningDataResponse = {
 describe('usePushProvisioning', () => {
     beforeEach(() => {
         jest.clearAllMocks()
+        mockedAddCard.mockReset()
         clearWalletProvisioningOwner()
         window.localStorage.clear()
         mockedFlag.mockReturnValue(true)
@@ -244,6 +251,7 @@ describe('usePushProvisioning', () => {
             wallet: 'apple',
             error: undefined,
         })
+        expect(failureEvents()).toStrictEqual([])
     })
 
     it('resolves rather than rejects when the provisioning-data fetch fails', async () => {
@@ -258,11 +266,166 @@ describe('usePushProvisioning', () => {
 
         expect(outcome).toEqual({ added: false, error: 'slow down' })
         expect(mockedAddCard).not.toHaveBeenCalled()
+        expect(result.current.pushDisabled).toBe(false)
         expect(result.current.nativeAvailable).toBe(true)
-        expect(posthog.capture).toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_ADD_TO_WALLET_FAILED, {
-            wallet: 'apple',
-            error: 'slow down',
+        const reportedFailure = { wallet: 'apple', error: 'slow down', httpStatus: 429 }
+        expect(failureEvents()).toStrictEqual([{ ...reportedFailure, failureClass: 'temporary' }])
+
+        await act(async () => {
+            await result.current.addToWallet()
         })
+        expect(result.current.pushDisabled).toBe(true)
+        expect(failureEvents()).toStrictEqual([
+            { ...reportedFailure, failureClass: 'temporary' },
+            { ...reportedFailure, failureClass: 'second_failure' },
+        ])
+    })
+
+    it.each([400, 409, 499])('disables push after Rain returns %i', async (status) => {
+        mockedGetProvisioningData.mockRejectedValueOnce(
+            new ApiError('Provisioning rejected', { status, code: 'BACKEND_ONLY' })
+        )
+        const { result } = renderHook(() => usePushProvisioning(card))
+        await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
+        await act(async () => {
+            expect(await result.current.addToWallet()).toEqual({ added: false, error: 'Provisioning rejected' })
+        })
+
+        expect(result.current.pushDisabled).toBe(true)
+        expect(result.current.nativeAvailable).toBe(false)
+        expect(mockedAddCard).not.toHaveBeenCalled()
+        expect(failureEvents()).toStrictEqual([
+            { wallet: 'apple', error: 'Provisioning rejected', httpStatus: status, failureClass: 'terminal' },
+        ])
+    })
+
+    it.each([
+        ['HTTP 429', new ApiError('Rate limited', { status: 429 })],
+        ['HTTP 503', new ApiError('Unavailable', { status: 503 })],
+        ['network failure', new TypeError('Failed to fetch')],
+        ['step-up timeout', new Error('Step-up timed out')],
+    ])('keeps push available after a single %s', async (_name, error) => {
+        mockedGetProvisioningData.mockRejectedValueOnce(error)
+        const { result } = renderHook(() => usePushProvisioning(card))
+        await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
+        await act(async () => {
+            await result.current.addToWallet()
+        })
+
+        expect(result.current.pushDisabled).toBe(false)
+        expect(result.current.nativeAvailable).toBe(true)
+    })
+
+    it.each(['UNAVAILABLE', 'SDK_ERROR', 'BAD_PARAMS'])('disables iOS push on a %s plugin rejection', async (code) => {
+        mockedAddCard.mockResolvedValueOnce({ added: false, code })
+        const { result } = renderHook(() => usePushProvisioning(card))
+        await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
+        await act(async () => {
+            await result.current.addToWallet()
+        })
+
+        expect(result.current.pushDisabled).toBe(true)
+        expect(result.current.nativeAvailable).toBe(false)
+        expect(failureEvents()).toStrictEqual([{ wallet: 'apple', pluginCode: code, failureClass: 'terminal' }])
+    })
+
+    it('reports a terminal failure as terminal when it follows a temporary failure', async () => {
+        mockedGetProvisioningData.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+        mockedAddCard.mockResolvedValueOnce({ added: false, code: 'UNAVAILABLE' })
+        const { result } = renderHook(() => usePushProvisioning(card))
+        await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
+        await act(async () => {
+            await result.current.addToWallet()
+            await result.current.addToWallet()
+        })
+
+        expect(result.current.pushDisabled).toBe(true)
+        expect(failureEvents()).toStrictEqual([
+            { wallet: 'apple', error: 'Failed to fetch', failureClass: 'temporary' },
+            { wallet: 'apple', pluginCode: 'UNAVAILABLE', failureClass: 'terminal' },
+        ])
+    })
+
+    it('clears the failure count on a successful iOS add when a paired Watch can still take the card', async () => {
+        mockedAddCard
+            .mockResolvedValueOnce({ added: false, code: 'INIT_FAILED' })
+            .mockResolvedValueOnce({ added: true })
+            .mockResolvedValueOnce({ added: false, code: 'CARD_CHANGED' })
+        const { result } = renderHook(() => usePushProvisioning(card))
+        await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
+        for (const outcome of [{ added: false }, { added: true }, { added: false }]) {
+            await act(async () => {
+                expect(await result.current.addToWallet()).toMatchObject(outcome)
+            })
+            expect(result.current.pushDisabled).toBe(false)
+            expect(result.current.nativeAvailable).toBe(true)
+        }
+    })
+
+    it('discards a late terminal fetch failure after returning to the same card', async () => {
+        let rejectFetch!: (error: ApiError) => void
+        mockedGetProvisioningData.mockReturnValueOnce(new Promise((_resolve, reject) => (rejectFetch = reject)))
+        const { result, rerender } = renderHook(usePushProvisioning, { initialProps: card })
+        await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
+        let pending!: ReturnType<typeof result.current.addToWallet>
+        act(() => {
+            pending = result.current.addToWallet()
+        })
+        rerender({ id: 'card-2', last4: '2222' })
+        rerender(card)
+        await act(async () => {
+            rejectFetch(new ApiError('Provisioning rejected', { status: 409 }))
+            expect(await pending).toEqual({ added: false, canceled: true })
+        })
+
+        expect(result.current.pushDisabled).toBe(false)
+        await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
+    })
+
+    it('discards a late terminal fetch failure after logout', async () => {
+        let rejectFetch!: (error: ApiError) => void
+        mockedGetProvisioningData.mockReturnValueOnce(new Promise((_resolve, reject) => (rejectFetch = reject)))
+        const { result } = renderHook(() => usePushProvisioning(card))
+        await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
+        let pending!: ReturnType<typeof result.current.addToWallet>
+        act(() => {
+            pending = result.current.addToWallet()
+        })
+        mockedClearEpoch.mockReturnValue(1)
+        await act(async () => {
+            rejectFetch(new ApiError('Provisioning rejected', { status: 409 }))
+            expect(await pending).toEqual({ added: false, canceled: true })
+        })
+
+        expect(result.current.pushDisabled).toBe(false)
+        expect(result.current.nativeAvailable).toBe(false)
+        expect(failureEvents()).toStrictEqual([])
+    })
+
+    it('checks availability again when returning to a card before another lookup settles', async () => {
+        const { result, rerender } = renderHook(usePushProvisioning, { initialProps: card })
+        await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
+        let finishOtherLookup!: (availability: Awaited<ReturnType<typeof mockedAvailability>>) => void
+        let finishLookup!: (availability: Awaited<ReturnType<typeof mockedAvailability>>) => void
+        mockedAvailability
+            .mockReturnValueOnce(new Promise((resolve) => (finishOtherLookup = resolve)))
+            .mockReturnValueOnce(new Promise((resolve) => (finishLookup = resolve)))
+
+        rerender({ id: 'card-2', last4: '2222' })
+        expect(result.current.isChecking).toBe(true)
+        rerender(card)
+        expect(result.current.isChecking).toBe(true)
+        expect(result.current.nativeAvailable).toBe(false)
+
+        await act(async () => {
+            finishOtherLookup({ available: false, alreadyInWallet: false })
+        })
+        expect(result.current.isChecking).toBe(true)
+        await act(async () => {
+            finishLookup({ available: true, alreadyInWallet: false })
+        })
+        expect(result.current.isChecking).toBe(false)
+        expect(result.current.nativeAvailable).toBe(true)
     })
 
     it('does not save a stale authorization when the selected card changes during the fetch', async () => {
@@ -497,6 +660,81 @@ describe('usePushProvisioning', () => {
             mockedIsIOS.mockReturnValue(false)
             mockedIsAndroid.mockReturnValue(true)
             mockedFlag.mockImplementation((key: string) => key === 'push-provisioning-google')
+        })
+
+        it.each([2, 101, 102, 106, 112, 503, 505, 601, 603, 604, 605, 608])(
+            'disables push on the first MeaWallet failure with code %i',
+            async (mppErrorCode) => {
+                mockedAddCard.mockResolvedValueOnce({ added: false, mppErrorCode })
+                const { result } = renderHook(() => usePushProvisioning(card))
+                await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
+                await act(async () => {
+                    await result.current.addToWallet()
+                })
+
+                expect(result.current.pushDisabled).toBe(true)
+                expect(result.current.nativeAvailable).toBe(false)
+                expect(failureEvents()).toStrictEqual([{ wallet: 'google', mppErrorCode, failureClass: 'terminal' }])
+            }
+        )
+
+        it.each([109, 201, 202, 204, 207, 208, 501, 507, 508, 606, 607, 701, 702, 703, 999])(
+            'disables push only after two MeaWallet failures with code %i despite cancellations',
+            async (mppErrorCode) => {
+                const failure = { added: false, mppErrorCode }
+                const cancel = { added: false, canceled: true }
+                mockedAddCard
+                    .mockResolvedValueOnce(cancel)
+                    .mockResolvedValueOnce(failure)
+                    .mockResolvedValueOnce(cancel)
+                    .mockResolvedValueOnce(failure)
+                const { result } = renderHook(() => usePushProvisioning(card))
+                await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
+
+                for (const outcome of [cancel, failure, cancel]) {
+                    await act(async () => {
+                        expect(await result.current.addToWallet()).toEqual(outcome)
+                    })
+                    expect(result.current.pushDisabled).toBe(false)
+                    expect(result.current.nativeAvailable).toBe(true)
+                }
+                await act(async () => {
+                    expect(await result.current.addToWallet()).toEqual(failure)
+                })
+                expect(result.current.pushDisabled).toBe(true)
+                expect(result.current.nativeAvailable).toBe(false)
+                expect(failureEvents()).toStrictEqual([
+                    { wallet: 'google', mppErrorCode, failureClass: 'temporary' },
+                    { wallet: 'google', mppErrorCode, failureClass: 'second_failure' },
+                ])
+            }
+        )
+
+        it('starts with a fresh attempt budget on a different card, on return, and on remount', async () => {
+            mockedAddCard.mockResolvedValue({ added: false, mppErrorCode: 2 })
+            const { result, rerender, unmount } = renderHook(usePushProvisioning, { initialProps: card })
+            await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
+            await act(async () => {
+                await result.current.addToWallet()
+            })
+            expect(result.current.pushDisabled).toBe(true)
+
+            rerender({ id: 'card-2', last4: card.last4 })
+            await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
+            expect(result.current.pushDisabled).toBe(false)
+            rerender(card)
+            await waitFor(() => expect(result.current.nativeAvailable).toBe(true))
+            expect(result.current.pushDisabled).toBe(false)
+
+            await act(async () => {
+                await result.current.addToWallet()
+            })
+            expect(result.current.pushDisabled).toBe(true)
+            unmount()
+
+            const fresh = renderHook(() => usePushProvisioning(card))
+            await waitFor(() => expect(fresh.result.current.nativeAvailable).toBe(true))
+            expect(fresh.result.current.pushDisabled).toBe(false)
         })
 
         it('requests Google provisioning while Apple stays disabled, without writing Apple extension state', async () => {

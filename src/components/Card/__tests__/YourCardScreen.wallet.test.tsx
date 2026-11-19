@@ -1,5 +1,5 @@
 import React from 'react'
-import { fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, screen, waitFor } from '@testing-library/react'
 import YourCardScreen from '@/components/Card/YourCardScreen'
 import { renderWithIntl } from '@/test-utils/intl'
 import type { RainCardOverview, RainCardSummary } from '@/services/rain'
@@ -7,7 +7,14 @@ import type { RainCardOverview, RainCardSummary } from '@/services/rain'
 const mockPush = jest.fn()
 const mockAdd = jest.fn()
 let mockPlatform = 'android'
-let mockProvisioning = { nativeAvailable: true, alreadyInWallet: false, isAdding: false }
+const available = {
+    nativeAvailable: true,
+    pushDisabled: false,
+    alreadyInWallet: false,
+    isChecking: false,
+    isAdding: false,
+}
+let mockProvisioning = { ...available }
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))
 jest.mock('@/hooks/useWalletPlatform', () => ({ useWalletPlatform: () => mockPlatform }))
 jest.mock('@/hooks/usePushProvisioning', () => ({
@@ -51,7 +58,7 @@ const renderScreen = () => renderWithIntl(<YourCardScreen card={card} overview={
 beforeEach(() => {
     jest.clearAllMocks()
     mockPlatform = 'android'
-    mockProvisioning = { nativeAvailable: true, alreadyInWallet: false, isAdding: false }
+    mockProvisioning = { ...available }
     mockAdd.mockResolvedValue({ added: false, canceled: true })
 })
 
@@ -68,23 +75,6 @@ it('starts Android provisioning only from the official Google button', () => {
     expect(mockPush).not.toHaveBeenCalled()
 })
 
-it('preserves manual instructions when the Google flag or native SDK is unavailable', () => {
-    mockProvisioning.nativeAvailable = false
-    renderScreen()
-    const row = screen.getByRole('button', { name: 'Add to Google Wallet' })
-    expect(row.querySelector('img')).toBeNull()
-    fireEvent.click(row)
-    expect(mockPush).toHaveBeenCalledWith('/card/add-to-wallet')
-    expect(mockAdd).not.toHaveBeenCalled()
-})
-
-it('hides every Google add action once the card is in Google Wallet, without a standing status', () => {
-    mockProvisioning = { nativeAvailable: false, alreadyInWallet: true, isAdding: false }
-    renderScreen()
-    expect(screen.queryByText('Added to Google Wallet')).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Add to Google Wallet' })).not.toBeInTheDocument()
-})
-
 it.each([
     ['a new add', { added: true }],
     ['a card already in the wallet', { added: false, alreadyInWallet: true }],
@@ -96,63 +86,73 @@ it.each([
     expect(mockToastError).not.toHaveBeenCalled()
 })
 
-it('stays quiet when the Google sheet is closed', async () => {
-    renderScreen()
-    fireEvent.click(screen.getByRole('button', { name: 'Add to Google Wallet' }))
-    await waitFor(() => expect(mockAdd).toHaveBeenCalled())
-    expect(mockToastSuccess).not.toHaveBeenCalled()
-    expect(mockToastError).not.toHaveBeenCalled()
-})
+describe.each([
+    ['android', 'Google'],
+    ['ios', 'Apple'],
+])('%s wallet controls', (platform, wallet) => {
+    const addLabel = `Add to ${wallet} Wallet`
+    const controls = () => screen.queryAllByRole('button', { name: addLabel })
 
-it('brings the manual row back beside the Google button after a failed add', async () => {
-    mockAdd.mockResolvedValue({ added: false, error: 'TapAndPay unavailable' })
-    renderScreen()
-    fireEvent.click(screen.getByRole('button', { name: 'Add to Google Wallet' }))
-    await waitFor(() => expect(mockToastError).toHaveBeenCalled())
-    const controls = await screen.findAllByRole('button', { name: 'Add to Google Wallet' })
-    expect(controls).toHaveLength(2)
-    const manualRow = controls.find((control) => control.querySelector('img') === null)
-    fireEvent.click(manualRow!)
-    expect(mockPush).toHaveBeenCalledWith('/card/add-to-wallet')
-})
+    beforeEach(() => {
+        mockPlatform = platform
+    })
 
-it('keeps only the Google button after the sheet is closed', async () => {
-    renderScreen()
-    fireEvent.click(screen.getByRole('button', { name: 'Add to Google Wallet' }))
-    await waitFor(() => expect(mockAdd).toHaveBeenCalled())
-    expect(screen.getAllByRole('button', { name: 'Add to Google Wallet' })).toHaveLength(1)
-})
+    it.each([
+        ['checking', { isChecking: true }],
+        ['already in the wallet', { alreadyInWallet: true, nativeAvailable: false }],
+    ])('shows neither control nor a status when %s', (_state, fields) => {
+        mockProvisioning = { ...available, ...fields }
+        renderScreen()
+        expect(controls()).toHaveLength(0)
+        expect(screen.queryByText(`Added to ${wallet} Wallet`)).not.toBeInTheDocument()
+    })
 
-it('brings the manual Apple row back after a failed add', async () => {
-    mockPlatform = 'ios'
-    mockAdd.mockResolvedValue({ added: false, error: 'unknown' })
-    renderScreen()
-    fireEvent.click(screen.getByRole('button', { name: 'Add to Apple Wallet' }))
-    await waitFor(() => expect(mockToastError).toHaveBeenCalled())
-    expect(await screen.findAllByRole('button', { name: 'Add to Apple Wallet' })).toHaveLength(2)
+    it.each([
+        ['push unavailable', { nativeAvailable: false }],
+        ['push disabled', { pushDisabled: true }],
+    ])('shows only the manual row with %s', (_state, fields) => {
+        mockProvisioning = { ...available, ...fields }
+        renderScreen()
+        expect(controls()).toHaveLength(1)
+        const row = screen.getByRole('button', { name: addLabel })
+        expect(row.querySelector('img')).toBeNull()
+        fireEvent.click(row)
+        expect(mockPush).toHaveBeenCalledWith('/card/add-to-wallet')
+        expect(mockAdd).not.toHaveBeenCalled()
+    })
+
+    it.each([false, true])('shows the failure toast and one control when pushDisabled is %s', async (pushDisabled) => {
+        mockAdd.mockResolvedValue({ added: false, error: 'Push failed' })
+        const { rerender } = renderScreen()
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: addLabel }))
+        })
+        mockProvisioning.pushDisabled = pushDisabled
+        rerender(<YourCardScreen card={card} overview={overview} />)
+
+        expect(mockToastError).toHaveBeenCalledWith("Couldn't add the card to your wallet. Please try again.")
+        expect(mockToastSuccess).not.toHaveBeenCalled()
+        expect(controls()).toHaveLength(1)
+        expect(Boolean(controls()[0].querySelector('img'))).toBe(!pushDisabled)
+    })
+
+    it('keeps the official control and stays quiet when the sheet is closed', async () => {
+        renderScreen()
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: addLabel }))
+        })
+        expect(mockAdd).toHaveBeenCalledTimes(1)
+        expect(mockToastSuccess).not.toHaveBeenCalled()
+        expect(mockToastError).not.toHaveBeenCalled()
+        expect(controls()).toHaveLength(1)
+        expect(controls()[0].querySelector('img')).toBeInTheDocument()
+    })
 })
 
 it('disables the Google control during provisioning', () => {
     mockProvisioning.isAdding = true
     renderScreen()
     expect(screen.getByRole('button', { name: 'Add to Google Wallet' })).toBeDisabled()
-})
-
-it('hides the Apple row once the card is in Apple Wallet, without a standing status', () => {
-    mockPlatform = 'ios'
-    mockProvisioning = { nativeAvailable: false, alreadyInWallet: true, isAdding: false }
-    renderScreen()
-    expect(screen.queryByText('Added to Apple Wallet')).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Add to Apple Wallet' })).not.toBeInTheDocument()
-})
-
-it('keeps the manual Apple row while the card is not confirmed in Apple Wallet', () => {
-    mockPlatform = 'ios'
-    mockProvisioning = { nativeAvailable: false, alreadyInWallet: false, isAdding: false }
-    renderScreen()
-    expect(screen.queryByText('Added to Apple Wallet')).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Add to Apple Wallet' }))
-    expect(mockPush).toHaveBeenCalledWith('/card/add-to-wallet')
 })
 
 it('starts Apple provisioning only from the Apple Pay row', () => {

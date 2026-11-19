@@ -411,6 +411,7 @@ public class PushProvisioningPlugin extends Plugin {
             return out;
         }
         out.put("error", error != null ? error.getMessage() : "unknown");
+        if (error != null) out.put("mppErrorCode", error.getCode());
         return out;
     }
 
