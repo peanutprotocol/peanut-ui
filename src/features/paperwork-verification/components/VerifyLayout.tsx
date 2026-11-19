@@ -11,7 +11,7 @@ import CenteredStatusCard from '@/components/Global/EmptyStates/CenteredStatusCa
 import type { MascotPose } from '@/components/Global/PeanutMascot/PeanutMascot.types'
 import SetupFooter from '@/components/Setup/components/SetupFooter'
 import SetupTitleBlock from '@/components/Setup/components/SetupTitleBlock'
-import { confettiPresets } from '@/utils/confetti'
+import { shootStarConfetti } from '@/utils/confetti'
 import { twMerge } from '@/utils/tw'
 import { useVerifyShellHold } from '@/utils/verify-shell'
 import { useInsetColor } from '../useInsetColor'
@@ -172,7 +172,7 @@ export function VerifyCelebrationLayout({
     useEffect(() => {
         if (!celebrate || celebrated.current) return
         celebrated.current = true
-        confettiPresets.success()
+        shootStarConfetti()
     }, [celebrate])
     return (
         <div className={twMerge('relative flex w-full flex-col bg-background-page', SCREEN_HEIGHT)}>

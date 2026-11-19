@@ -15,7 +15,7 @@ jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
 jest.mock('framer-motion', () => ({ useReducedMotion: () => false }))
 jest.mock('@/hooks/useAppHaptic', () => ({ useAppHaptic: () => ({ triggerHaptic: mockHaptic }) }))
-jest.mock('@/utils/confetti', () => ({ shootDoubleStarConfetti: jest.fn() }))
+jest.mock('@/utils/confetti', () => ({ shootStarConfetti: jest.fn() }))
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Card/share-asset/ScaledPixelatedCardFace', () => ({ ScaledPixelatedCardFace: () => null }))
 // The real hold gesture has its own keyboard/pointer/haptic tests. This seam

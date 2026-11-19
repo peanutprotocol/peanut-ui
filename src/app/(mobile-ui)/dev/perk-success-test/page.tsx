@@ -10,7 +10,7 @@ import GlobalCard from '@/components/Global/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
 import { SoundPlayer } from '@/components/Global/SoundPlayer'
 import { useAppHaptic } from '@/hooks/useAppHaptic'
-import { shootDoubleStarConfetti } from '@/utils/confetti'
+import { shootStarConfetti } from '@/utils/confetti'
 import { extractInviteeName } from '@/utils/general.utils'
 import DevPageShell from '../_components/DevPageShell'
 
@@ -68,7 +68,7 @@ export default function PerkSuccessTestPage() {
         setCanDismiss(false)
         setPlaySound(true)
         triggerHaptic()
-        shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.4 } })
+        shootStarConfetti()
 
         // Enable dismiss after 2 seconds
         setTimeout(() => setCanDismiss(true), 2000)

@@ -17,7 +17,7 @@ jest.mock('@/hooks/useResidenceRestrictions', () => ({
 }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn(), setPersonProperties: jest.fn() } }))
 jest.mock('@/components/Global/PeanutMascot', () => ({ __esModule: true, default: () => null }))
-jest.mock('@/utils/confetti', () => ({ confettiPresets: { success: jest.fn() } }))
+jest.mock('@/utils/confetti', () => ({ shootStarConfetti: jest.fn() }))
 jest.mock('@/components/Provider/ProviderRow', () => ({
     ProviderRow: ({
         onOpenChange,

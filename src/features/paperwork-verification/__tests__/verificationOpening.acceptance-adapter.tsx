@@ -27,7 +27,7 @@ jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn(), apiFetch: jest.f
 const mockPush = jest.fn()
 const mockReplace = jest.fn()
 const mockExit = jest.fn()
-jest.mock('@/utils/confetti', () => ({ confettiPresets: { success: jest.fn() } }))
+jest.mock('@/utils/confetti', () => ({ shootStarConfetti: jest.fn() }))
 jest.mock('@/components/Setup/components/SetupLanguageSwitcher', () => ({ SetupLanguageSwitcher: () => null }))
 // Verify start reads the residence's open doors; this suite is about the opening, not that copy
 jest.mock('@/hooks/useResidenceRestrictions', () => ({

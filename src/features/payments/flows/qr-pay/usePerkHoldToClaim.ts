@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { PERK_HOLD_DURATION_MS } from '@/constants/general.consts'
-import { shootDoubleStarConfetti } from '@/utils/confetti'
+import { shootStarConfetti } from '@/utils/confetti'
 import { cancelHaptic, notifyHaptic, vibrateHaptic } from '@/utils/haptics'
 import type { ShakeIntensity } from '@/utils/perk.utils'
 import type { PaidReward } from './paidReward'
@@ -140,7 +140,7 @@ export function usePerkHoldToClaim(reward: PaidReward | null, onClaimed: () => v
         notifyHaptic('success')
 
         // 4. Trigger confetti immediately
-        shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.5 } })
+        shootStarConfetti()
 
         // 5. Surface the reward. The perk was already issued server-side during
         //    QR-payment processing, and reward.perk already carries the

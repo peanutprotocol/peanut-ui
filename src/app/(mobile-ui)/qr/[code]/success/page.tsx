@@ -9,7 +9,7 @@ import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { useEffect } from 'react'
 import Loading from '@/components/Global/Loading'
 import { Icon } from '@/components/Global/Icons/Icon'
-import { confettiPresets } from '@/utils/confetti'
+import { shootStarConfetti } from '@/utils/confetti'
 import { useRedirectQrStatus } from '@/hooks/useRedirectQrStatus'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import { copyTextToClipboard } from '@/utils/clipboard.utils'
@@ -30,7 +30,7 @@ export default function RedirectQrSuccessPage() {
 
     useEffect(() => {
         const timer = setTimeout(() => {
-            confettiPresets.success()
+            shootStarConfetti()
         }, 300)
 
         return () => clearTimeout(timer)

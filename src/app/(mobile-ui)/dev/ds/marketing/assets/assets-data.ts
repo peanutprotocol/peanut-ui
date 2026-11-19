@@ -31,6 +31,8 @@ import scribbleCircle from '@/assets/illustrations/scribble-circle.svg'
 import sparkle from '@/assets/illustrations/sparkle.svg'
 import stackCoin from '@/assets/illustrations/stack-coin.svg'
 import star from '@/assets/illustrations/star.svg'
+import coinEurFace from '@/assets/onboarding/coin-eur-face.svg'
+import coinUsdFace from '@/assets/onboarding/coin-usd-face.svg'
 
 export interface MascotEntry {
     pose: MascotPose
@@ -101,7 +103,7 @@ export const DOODLE_ENTRIES: ArtEntry[] = [
         label: 'star',
         asset: star,
         path: 'assets/illustrations/star.svg',
-        usedIn: 'Stars/ProseStars mdx, ExchangeWidget, ProductSplitHero',
+        usedIn: 'Stars/ProseStars mdx, ExchangeWidget, ProductSplitHero, star confetti (utils/confetti)',
     },
     {
         label: 'sparkle',
@@ -113,7 +115,19 @@ export const DOODLE_ENTRIES: ArtEntry[] = [
         label: 'stack-coin',
         asset: stackCoin,
         path: 'assets/illustrations/stack-coin.svg',
-        usedIn: 'no current call site',
+        usedIn: 'no app call site; permitted celebration "Coins land, get stacked"',
+    },
+    {
+        label: 'coin-usd-face',
+        asset: coinUsdFace,
+        path: 'assets/onboarding/coin-usd-face.svg',
+        usedIn: 'Sign-up landing hero (X1Hero); permitted celebrations "Coins land, get stacked" and "One coin flip"',
+    },
+    {
+        label: 'coin-eur-face',
+        asset: coinEurFace,
+        path: 'assets/onboarding/coin-eur-face.svg',
+        usedIn: 'Sign-up landing hero (X1Hero); permitted celebrations "Coins land, get stacked" and "One coin flip"',
     },
     {
         label: 'peanut-card-hand',

@@ -8,7 +8,7 @@ import { startVerifySource } from '@/features/paperwork-verification/verifySourc
 import { StrictMode } from 'react'
 import { act, fireEvent, screen } from '@testing-library/react'
 import posthog from 'posthog-js'
-import { confettiPresets } from '@/utils/confetti'
+import { shootStarConfetti } from '@/utils/confetti'
 import { notifyHaptic } from '@/utils/haptics'
 import { disableDemoMode, enableDemoMode } from '@/utils/demo'
 import { getStoredRedirect, setRedirectUrl } from '@/utils/general.utils'
@@ -31,7 +31,7 @@ jest.mock('@/context/authContext', () => ({
         fetchUser: jest.fn(),
     }),
 }))
-jest.mock('@/utils/confetti', () => ({ confettiPresets: { success: jest.fn(), celebration: jest.fn() } }))
+jest.mock('@/utils/confetti', () => ({ shootStarConfetti: jest.fn() }))
 jest.mock('@/utils/haptics', () => ({ notifyHaptic: jest.fn() }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn(), setPersonProperties: jest.fn() } }))
 // The verify start: the door checks, and the ID-check start's boundaries (the start's own routing is
@@ -145,7 +145,7 @@ describe('12 Celebration', () => {
         expect(container.querySelector('[data-testid="setup-redesign-celebration"]')).toBeNull()
         expect(container.querySelector('[data-setup-stage]')).toBeNull()
         expect(screen.queryByRole('heading')).toBeNull()
-        expect(confettiPresets.success).not.toHaveBeenCalled()
+        expect(shootStarConfetti).not.toHaveBeenCalled()
         act(() => jest.advanceTimersByTime(5000))
         expect(mockReplace).not.toHaveBeenCalled()
     })
@@ -177,7 +177,7 @@ describe('12 Celebration', () => {
         view.rerenderSame()
         expect(notifyHaptic).toHaveBeenCalledTimes(1)
         expect(notifyHaptic).toHaveBeenCalledWith('success')
-        expect(confettiPresets.success).toHaveBeenCalledTimes(1)
+        expect(shootStarConfetti).toHaveBeenCalledTimes(1)
         expect(signupControls(posthog.capture as jest.Mock)).toEqual(['celebration:open'])
         expect((posthog.capture as jest.Mock).mock.calls[0][1]).toEqual(
             expect.objectContaining({ screen_id: 'advantage-control' })
@@ -204,7 +204,7 @@ describe('12 Celebration', () => {
         })
         expect(screen.queryByTestId('setup-redesign-celebration')).toBeNull()
         expect(screen.queryByTestId('setup-redesign-celebration-verify-now')).toBeNull()
-        expect(confettiPresets.success).not.toHaveBeenCalled()
+        expect(shootStarConfetti).not.toHaveBeenCalled()
         expect(notifyHaptic).not.toHaveBeenCalled()
         act(() => jest.advanceTimersByTime(0))
         expect(mockReplace).toHaveBeenCalledTimes(1)
@@ -305,7 +305,7 @@ describe('12 Celebration and the one verify screen (a default sign-up)', () => {
         expect(celebrationVerify()).toHaveClass('btn-secondary')
         // design.md: a defer action is the tertiary link, never a Button
         expect(later()).not.toHaveClass('btn')
-        expect(confettiPresets.success).toHaveBeenCalledTimes(1)
+        expect(shootStarConfetti).toHaveBeenCalledTimes(1)
         act(() => jest.advanceTimersByTime(10000))
         expect(mockReplace).not.toHaveBeenCalled()
     })

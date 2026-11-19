@@ -199,7 +199,7 @@ jest.mock('@/components/Global/PeanutActionCard', () => ({
 }))
 
 jest.mock('@/components/Global/PeanutMascot', () => ({ __esModule: true, default: () => null }))
-jest.mock('@/utils/confetti', () => ({ shootDoubleStarConfetti: jest.fn() }))
+jest.mock('@/utils/confetti', () => ({ shootStarConfetti: jest.fn() }))
 
 jest.mock('@/components/Global/QRCodeWrapper', () => ({
     __esModule: true,

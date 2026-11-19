@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSignupControl } from '@/features/setup/useSignupControl'
 import { useAccountSetup } from '@/hooks/useAccountSetup'
-import { confettiPresets } from '@/utils/confetti'
+import { shootStarConfetti } from '@/utils/confetti'
 import { isDemoMode } from '@/utils/demo'
 import { notifyHaptic } from '@/utils/haptics'
 
@@ -32,7 +32,7 @@ export function useCelebrationRedirect(enabled: boolean, hold = false, quiet = f
         celebrated.current = true
         notifyHaptic('success')
         track('celebration', 'open')
-        confettiPresets.success()
+        shootStarConfetti()
     }, [enabled, quiet, track])
 
     useEffect(() => {

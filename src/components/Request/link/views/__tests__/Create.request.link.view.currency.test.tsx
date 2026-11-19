@@ -14,7 +14,7 @@ jest.mock('@/components/Global/ShareButton', () => ({
     default: ({ children }: { children: React.ReactNode }) => <button>{children}</button>,
 }))
 jest.mock('@/components/Global/PeanutMascot', () => ({ __esModule: true, default: () => null }))
-jest.mock('@/utils/confetti', () => ({ shootDoubleStarConfetti: jest.fn() }))
+jest.mock('@/utils/confetti', () => ({ shootStarConfetti: jest.fn() }))
 jest.mock('@/components/Request/useRequestBack', () => ({ useRequestBack: () => jest.fn() }))
 jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({ useDepositAccountsEnabled: () => false }))
 jest.mock('../RequestFulfillmentNotice', () => ({ RequestFulfillmentNotice: () => null }))

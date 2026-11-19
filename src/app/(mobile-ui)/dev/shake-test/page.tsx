@@ -12,7 +12,7 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import { isCapacitor } from '@/utils/capacitor'
 import { cancelHaptic, vibrateHaptic } from '@/utils/haptics'
-import { shootDoubleStarConfetti } from '@/utils/confetti'
+import { shootStarConfetti } from '@/utils/confetti'
 import { getShakeClass, type ShakeIntensity } from '@/utils/perk.utils'
 import { PERK_HOLD_DURATION_MS } from '@/constants/general.consts'
 import DevPageShell from '../_components/DevPageShell'
@@ -98,7 +98,7 @@ export default function DevShakeTestPage() {
             // Show success and trigger confetti
             setShowSuccess(true)
             setTimeout(() => {
-                shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.5 } })
+                shootStarConfetti()
             }, 100)
         }, PERK_HOLD_DURATION_MS)
 

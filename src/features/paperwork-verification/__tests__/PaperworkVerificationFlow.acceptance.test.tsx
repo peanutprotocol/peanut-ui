@@ -22,7 +22,7 @@ jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn()
 const mockPush = jest.fn()
 const mockReplace = jest.fn()
 const mockExit = jest.fn()
-jest.mock('@/utils/confetti', () => ({ confettiPresets: { success: jest.fn() } }))
+jest.mock('@/utils/confetti', () => ({ shootStarConfetti: jest.fn() }))
 jest.mock('@/components/Setup/components/SetupLanguageSwitcher', () => ({ SetupLanguageSwitcher: () => null }))
 jest.mock('@/features/paperwork-verification/components/IdCardScanAnimation', () => ({
     IdCardScanAnimation: () => null,

@@ -20,7 +20,7 @@ import { useAppHaptic } from '@/hooks/useAppHaptic'
 import type { ShakeIntensity } from '@/hooks/useHoldToClaim'
 import { getShakeClass } from '@/utils/perk.utils'
 import { readStoredValue, writeStoredValue } from '@/utils/safe-storage'
-import { shootDoubleStarConfetti } from '@/utils/confetti'
+import { shootStarConfetti } from '@/utils/confetti'
 import { withReturnTo } from '@/utils/return-to.utils'
 import {
     captureCardGateAddFundsTapped,
@@ -41,13 +41,12 @@ export function CardMilestoneScreen({
 }) {
     const t = useTranslations('card.onboarding')
     const tCommon = useTranslations('common')
-    const reducedMotion = useReducedMotion()
     const celebrated = useRef(false)
     useEffect(() => {
         if (celebrated.current) return
         celebrated.current = true
-        if (!reducedMotion) shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.4 } })
-    }, [reducedMotion])
+        shootStarConfetti()
+    }, [])
     return (
         <PageStack>
             <NavHeader title={t('navTitle')} hideBackBtn />

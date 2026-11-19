@@ -17,7 +17,7 @@
 import React from 'react'
 import posthog from 'posthog-js'
 import { render, act } from '@testing-library/react'
-import { shootDoubleStarConfetti } from '@/utils/confetti'
+import { shootStarConfetti } from '@/utils/confetti'
 import { notifyHaptic, vibrateHaptic } from '@/utils/haptics'
 
 jest.mock('posthog-js', () => ({
@@ -26,7 +26,7 @@ jest.mock('posthog-js', () => ({
 }))
 
 jest.mock('@/utils/confetti', () => ({
-    shootDoubleStarConfetti: jest.fn(),
+    shootStarConfetti: jest.fn(),
 }))
 
 jest.mock('@/utils/haptics', () => ({
@@ -179,7 +179,7 @@ describe('failed payout (eligible kept for reconciliation)', () => {
         act(() => {
             jest.advanceTimersByTime(PERK_HOLD_DURATION_MS)
         })
-        expect(shootDoubleStarConfetti).not.toHaveBeenCalled()
+        expect(shootStarConfetti).not.toHaveBeenCalled()
         expect(notifyHaptic).not.toHaveBeenCalled()
         expect(rewardEvents()).toEqual([])
         expect(mockOnClaimed).not.toHaveBeenCalled()
@@ -203,7 +203,7 @@ describe('failed payout (eligible kept for reconciliation)', () => {
         act(() => {
             jest.advanceTimersByTime(PERK_HOLD_DURATION_MS)
         })
-        expect(shootDoubleStarConfetti).not.toHaveBeenCalled()
+        expect(shootStarConfetti).not.toHaveBeenCalled()
         expect(notifyHaptic).not.toHaveBeenCalled()
         expect(posthog.capture).not.toHaveBeenCalledWith('reward_claimed', expect.anything())
         expect(mockOnClaimed).not.toHaveBeenCalled()
@@ -227,7 +227,7 @@ describe.each([
         act(() => {
             jest.advanceTimersByTime(PERK_HOLD_DURATION_MS + 100)
         })
-        expect(shootDoubleStarConfetti).toHaveBeenCalledTimes(1)
+        expect(shootStarConfetti).toHaveBeenCalledTimes(1)
         expect(notifyHaptic).toHaveBeenCalledWith('success')
         expect(posthog.capture).toHaveBeenCalledWith('reward_claimed', { amount_usd: 0.5, discount_pct: 5 })
         expect(latest?.perkClaimed).toBe(true)

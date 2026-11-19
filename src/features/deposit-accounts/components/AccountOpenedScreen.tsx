@@ -6,7 +6,7 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import NavHeader from '@/components/Global/NavHeader'
-import { shootDoubleStarConfetti } from '@/utils/confetti'
+import { shootStarConfetti } from '@/utils/confetti'
 import { useDepositAccountCopy } from '../useDepositAccountCopy'
 
 export function AccountOpenedScreen({ currency, onContinue }: { currency: string; onContinue: () => void }) {
@@ -16,7 +16,7 @@ export function AccountOpenedScreen({ currency, onContinue }: { currency: string
     useEffect(() => {
         if (celebrated.current) return
         celebrated.current = true
-        shootDoubleStarConfetti({ origin: { x: 0.5, y: 0.4 } })
+        shootStarConfetti()
     }, [])
 
     return (
