@@ -1,4 +1,5 @@
 import { serverFetch } from '@/utils/api-fetch'
+import { kycClientHeaders } from '@/utils/kyc-client-headers'
 
 export interface IncreaseLimitsResponse {
     token: string | null
@@ -7,17 +8,29 @@ export interface IncreaseLimitsResponse {
     message?: string
 }
 
-export const initiateIncreaseLimits = async (): Promise<{ data?: IncreaseLimitsResponse; error?: string }> => {
+export const initiateIncreaseLimits = async (): Promise<{
+    data?: IncreaseLimitsResponse
+    error?: string
+    code?: string
+}> => {
     try {
         const response = await serverFetch('/users/increase-limits', {
             method: 'POST',
+            headers: kycClientHeaders(),
             body: JSON.stringify({}),
         })
 
         const responseJson = await response.json()
 
         if (!response.ok) {
-            return { error: responseJson.message || responseJson.error || 'Failed to initiate limit increase' }
+            return {
+                code: responseJson.code,
+                error:
+                    responseJson.userMessage ||
+                    responseJson.message ||
+                    responseJson.error ||
+                    'Failed to initiate limit increase',
+            }
         }
 
         return { data: responseJson }

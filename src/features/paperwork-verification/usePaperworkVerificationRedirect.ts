@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useOptionalAuth } from '@/context/authContext'
 import { paperworkVerificationEntryRoute, type PaperworkVerificationEntry } from './paperworkVerificationEntry'
 import { markVerifySource, type VerifySource } from './verifySource'
 
@@ -19,23 +20,26 @@ export function usePaperworkVerificationRedirect(
     const router = useRouter()
     const routerRef = useRef(router)
     routerRef.current = router
-    const [stay, setStay] = useState(false)
+    const userId = useOptionalAuth()?.user?.user.userId
+    const [legacyEntry, setLegacyEntry] = useState<string | null>(null)
     const enabled = active && !!entry
-    const entryKey = JSON.stringify(entry ?? null)
+    const entryKey = JSON.stringify([userId, entry ?? null])
+    const currentEntry = useRef(entryKey)
+    currentEntry.current = entryKey
     useEffect(() => {
-        setStay(false)
+        setLegacyEntry(null)
         if (!enabled || !entry) return
         let cancelled = false
         void paperworkVerificationEntryRoute(entry).then((route) => {
-            if (cancelled) return
+            if (cancelled || currentEntry.current !== entryKey) return
             if (route === '/verify') markVerifySource(source)
             if (route) routerRef.current.push(route)
-            else setStay(true)
+            else setLegacyEntry(entryKey)
         })
         return () => {
             cancelled = true
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps -- `entryKey` stands for `entry`
     }, [enabled, entryKey])
-    return enabled && !stay
+    return enabled && legacyEntry !== entryKey
 }

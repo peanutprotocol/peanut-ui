@@ -615,7 +615,8 @@ export const useMultiPhaseKycFlow = ({
             levelName?: string,
             crossRegion?: boolean,
             targetCountry?: string,
-            corridor?: DepositCorridor
+            corridor?: DepositCorridor,
+            beforeRedirect?: () => Promise<void>
         ) => {
             if (blockIfFinal()) return false
             const intent = overrideIntent ?? regionIntent
@@ -658,7 +659,8 @@ export const useMultiPhaseKycFlow = ({
                 targetCountry,
                 false,
                 corridor,
-                !resumingRef.current
+                !resumingRef.current,
+                beforeRedirect
             )
         },
         [originalHandleInitiateKyc, clearPreparingTimer, regionIntent, acquisitionSource, blockIfFinal]
@@ -666,14 +668,15 @@ export const useMultiPhaseKycFlow = ({
 
     useSumsubReloadResume(
         showWrapper ? lastInitiateArgsRef.current : null,
-        async (state) => {
+        async (state, { consume }) => {
             resumingRef.current = true
             const opened = await handleInitiateKyc(
                 state.intent,
                 state.levelName,
                 state.crossRegion,
                 state.targetCountry,
-                state.corridor
+                state.corridor,
+                consume
             )
             resumingRef.current = false
             return !!opened

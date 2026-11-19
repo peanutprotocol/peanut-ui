@@ -73,7 +73,7 @@ export function kycFeatures(user: IUserProfile | null): { features: FeatureRepor
     return { features: user?.capabilities?.features }
 }
 
-export function kycPlan(user: IUserProfile | null): Required<KycDocumentPlan> {
+export function kycPlan(user: IUserProfile | null): KycDocumentPlan {
     const report = user?.capabilities?.features
     return {
         available: false,

@@ -1,5 +1,7 @@
 import { useState, useCallback, useRef } from 'react'
 import { useTranslations } from 'next-intl'
+import { useRouter } from 'next/navigation'
+import { identityStartRefusalPath } from '@/features/paperwork-verification/paperworkVerificationEntry'
 
 export interface ActionFlowResponse {
     token: string | null
@@ -9,7 +11,7 @@ export interface ActionFlowResponse {
 }
 
 interface ActionTokenFetcher {
-    (): Promise<{ data?: ActionFlowResponse; error?: string }>
+    (): Promise<{ data?: ActionFlowResponse; error?: string; code?: string }>
 }
 
 interface UseSumsubActionFlowOptions {
@@ -32,6 +34,7 @@ interface UseSumsubActionFlowOptions {
  */
 export function useSumsubActionFlow({ fetchToken, onSuccess, onNeedsSupport }: UseSumsubActionFlowOptions) {
     const t = useTranslations('kyc')
+    const router = useRouter()
     const [accessToken, setAccessToken] = useState<string | null>(null)
     const [showWrapper, setShowWrapper] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
@@ -53,6 +56,11 @@ export function useSumsubActionFlow({ fetchToken, onSuccess, onNeedsSupport }: U
         try {
             const response = await fetchTokenRef.current()
 
+            const refusalPath = identityStartRefusalPath(response.code)
+            if (refusalPath) {
+                router.push(refusalPath)
+                return
+            }
             if (response.error) {
                 setError(response.error)
                 return
@@ -90,7 +98,7 @@ export function useSumsubActionFlow({ fetchToken, onSuccess, onNeedsSupport }: U
         } finally {
             setIsLoading(false)
         }
-    }, [t])
+    }, [router, t])
 
     // called when SDK signals verification was submitted
     const handleSdkComplete = useCallback(() => {
@@ -112,13 +120,18 @@ export function useSumsubActionFlow({ fetchToken, onSuccess, onNeedsSupport }: U
     const refreshToken = useCallback(async (): Promise<string> => {
         const response = await fetchTokenRef.current()
 
+        const refusalPath = identityStartRefusalPath(response.code)
+        if (refusalPath) {
+            setShowWrapper(false)
+            router.push(refusalPath)
+        }
         if (response.error || !response.data?.token) {
             throw new Error(response.error || 'Failed to refresh token')
         }
 
         setAccessToken(response.data.token)
         return response.data.token
-    }, [])
+    }, [router])
 
     return {
         isLoading,

@@ -44,7 +44,7 @@ let mockRestrictions = { banking: false, card: false }
 jest.mock('@/hooks/useResidenceRestrictions', () => ({ useResidenceRestrictions: () => mockRestrictions }))
 let mockOpensVerify = true
 jest.mock('@/features/paperwork-verification/usePaperworkVerificationStart', () => ({
-    usePaperworkVerificationStart: () => async () => mockOpensVerify,
+    usePaperworkVerificationStart: () => async () => (mockOpensVerify ? '/verify' : null),
 }))
 let mockKycOptions: { onKycSuccess?: () => void } = {}
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({

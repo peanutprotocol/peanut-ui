@@ -9,6 +9,15 @@ import { APPROVED_STATUSES } from './paperworkVerification.utils'
 
 export const paperworkVerificationFeaturePath = (feature: PaperworkVerificationFeature) =>
     `/verify?${new URLSearchParams({ feature })}`
+// These redirects carry display context only. The API authorizes verification.
+export const RESIDENCE_NOT_SUPPORTED_PATH = '/verify?reason=residence_not_supported'
+
+export function identityStartRefusalPath(code?: string): string | null {
+    if (code === 'paperwork_verification_required') return '/verify'
+    if (code === 'residence_not_supported') return RESIDENCE_NOT_SUPPORTED_PATH
+    return null
+}
+
 export const paperworkVerificationDocumentPath = () => `/verify?${new URLSearchParams({ step: 'id' })}`
 export const VERIFY_RESTART_PARAM = 'restart'
 /** The ID screen for a verified user's new identity check, on the documents the restart plan offers. */
@@ -50,12 +59,15 @@ export async function paperworkVerificationRoute(
     report?: FeatureReport,
     signal?: AbortSignal
 ): Promise<string | null> {
-    if (plan?.flow !== PAPERWORK_VERIFICATION_FLOW) return null
+    if (plan?.unavailableReason === 'residence_not_supported') return RESIDENCE_NOT_SUPPORTED_PATH
+    if (!plan || plan.flow === undefined) return '/verify'
+    if (plan.flow !== PAPERWORK_VERIFICATION_FLOW) return null
     const status = await getKycDocumentStatus(signal).catch(() => undefined)
     if (signal?.aborted) throw signal.reason
     if (!status || !APPROVED_STATUSES.has(status)) return '/verify'
     if (!feature) return null
-    const state = report?.[feature].state
+    const state = report?.[feature]?.state
+    if (!state && typeof plan.features?.[feature] !== 'boolean') return '/verify'
     const opensAddLater = state ? state === 'ready' || state === 'refused' : !plan.features[feature]
     return opensAddLater ? paperworkVerificationFeaturePath(feature) : null
 }
@@ -69,17 +81,20 @@ export interface PaperworkVerificationEntry {
 
 /**
  * Where an entry point's Verify goes for a Smart Paperwork Verification user,
- * read before any start modal opens; null keeps today's start. A plan that
- * cannot be read keeps it too: the API refuses that start for a Smart Paperwork
- * Verification user, and the start then opens /verify.
+ * read before any start modal opens. A failed read goes to verification recovery.
  */
 export async function paperworkVerificationEntryRoute(entry: PaperworkVerificationEntry): Promise<string | null> {
     // The report read at the tap: fresh, and a failed read falls back to the plan's saved features.
-    const [plan, report] = await Promise.all([
-        findKycDocumentPlan('entry').catch(() => null),
-        Promise.resolve()
-            .then(() => getKycFeatures())
-            .catch(() => undefined),
-    ])
-    return paperworkVerificationRoute(plan, entryFeature(entry), report)
+    try {
+        const plan = await findKycDocumentPlan('entry')
+        const report =
+            plan?.flow === PAPERWORK_VERIFICATION_FLOW && !plan.unavailableReason
+                ? await Promise.resolve()
+                      .then(() => getKycFeatures())
+                      .catch(() => undefined)
+                : undefined
+        return await paperworkVerificationRoute(plan, entryFeature(entry), report)
+    } catch (error) {
+        return identityStartRefusalPath((error as { code?: string } | null)?.code) ?? '/verify'
+    }
 }

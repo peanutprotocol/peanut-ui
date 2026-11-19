@@ -5,7 +5,6 @@ import {
     skipProofOfAddress,
     startPaperworkVerificationIdentity,
 } from '@/app/actions/kyc-paperwork-verification'
-import { isKycFlowHandedBack } from '@/app/actions/kyc-flow-hand-back'
 import { serverFetch } from '@/utils/api-fetch'
 
 jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
@@ -265,29 +264,24 @@ describe('skipProofOfAddress', () => {
         mockFetch.mockRejectedValue(new Error('offline'))
         await expect(skipProofOfAddress()).resolves.toBe('failed')
     })
-
-    it("reports a user the API handed back to today's flow", async () => {
-        mockFetch.mockResolvedValue(reply(409, { code: 'existing_verification' }))
-        await expect(skipProofOfAddress()).resolves.toBe('handed_back')
-    })
 })
 
-describe("a user handed back to today's flow", () => {
-    it('makes the questions read throw the hand-back error, not the generic one', async () => {
+describe('existing legacy verification', () => {
+    it('keeps the existing_verification code on the questions refusal', async () => {
         mockFetch.mockResolvedValue(reply(409, { code: 'existing_verification' }))
         const error = await getKycQuestions().catch((e: unknown) => e)
-        expect(isKycFlowHandedBack(error)).toBe(true)
+        expect(error).toMatchObject({ status: 409, code: 'existing_verification' })
     })
 
     it('keeps the generic error for any other refusal', async () => {
         mockFetch.mockResolvedValue(reply(409, { code: 'feature_not_selected' }))
         const error = await getKycQuestions().catch((e: unknown) => e)
-        expect(isKycFlowHandedBack(error)).toBe(false)
+        expect(error).toMatchObject({ status: 409, code: 'feature_not_selected' })
         expect(error).toEqual(new Error('KYC questions unavailable'))
     })
 })
 
-describe('identity token hand-back', () => {
+describe('identity token conflicts', () => {
     it.each([
         { code: 'existing_verification' },
         {
@@ -295,10 +289,10 @@ describe('identity token hand-back', () => {
             userMessage: 'Continue your existing identity verification.',
             error: 'existing_verification',
         },
-    ])('maps the existing-verification token conflict to a hand-back: %j', async (body) => {
+    ])('identifies the existing legacy verification: %j', async (body) => {
         mockFetch.mockResolvedValue(reply(409, body))
         await expect(
             startPaperworkVerificationIdentity('attempt-1', { type: 'PASSPORT', issuingCountry: 'US' })
-        ).resolves.toMatchObject({ kind: 'handed-back' })
+        ).resolves.toMatchObject({ kind: 'existing-verification' })
     })
 })

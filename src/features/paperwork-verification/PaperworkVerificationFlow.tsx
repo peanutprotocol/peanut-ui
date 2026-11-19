@@ -29,7 +29,6 @@ import {
 import { updateUserById } from '@/app/actions/users'
 import { ResidenceCompare } from '@/components/Setup/components/ResidenceCompare'
 import { storeDeclaredResidence } from '@/utils/declared-residence.storage'
-import { isKycFlowHandedBack } from '@/app/actions/kyc-flow-hand-back'
 import { findKycDocumentPlan, getKycDocumentStatus, refreshKycIdentityStatus } from '@/app/actions/kyc-workflow'
 import type { SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 import type {
@@ -48,7 +47,7 @@ import { pendingResidenceCountry } from '@/utils/residence-profile'
 import { identityDocuments } from '@/utils/kyc-document-plan.utils'
 import { IdentityDocumentScreen } from './components/IdentityDocumentScreen'
 import { QuestionStepScreen, trackSaveOutcome } from './components/QuestionStepScreen'
-import { LoadFailed, VerifyLoading } from './components/LoadScreens'
+import { LoadFailed, ResidenceNotSupported, VerifyLoading } from './components/LoadScreens'
 import { VerifySetupPrelude } from './components/VerifySetupPrelude'
 import { restoreNativeStatusBar } from './useInsetColor'
 import { ClosedFeaturesNotice, ProofOfAddressScreen, ReviewScreen } from './components/StatusScreens'
@@ -91,7 +90,7 @@ import {
     type VerifyStep,
 } from './paperworkVerification.utils'
 import { saveSteps, type AnswerFormError, type SaveOutcome } from './useAnswerForm'
-import { paperworkVerificationFeaturePath } from './paperworkVerificationEntry'
+import { paperworkVerificationFeaturePath, RESIDENCE_NOT_SUPPORTED_PATH } from './paperworkVerificationEntry'
 import { useVerificationOpening } from './useVerificationOpening'
 
 const STATUS_POLL_MS = 15_000
@@ -112,20 +111,26 @@ function cachedLoad(queryClient: QueryClient, userId?: string): Loaded | null {
         ...PAPERWORK_VERIFICATION_QUESTIONS_QUERY_KEY,
         userId,
     ])
-    if (plan?.flow !== PAPERWORK_VERIFICATION_FLOW || plan.needs?.length || !questions?.available) return null
+    if (
+        plan?.flow !== PAPERWORK_VERIFICATION_FLOW ||
+        plan.unavailableReason ||
+        plan.needs?.length ||
+        !questions?.available
+    )
+        return null
     const status = queryClient.getQueryData<SumsubKycStatus>([...PAPERWORK_VERIFICATION_STATUS_QUERY_KEY, userId])
     return { questions, plan, status }
 }
 
-/** The screens a load opens on: a fresh read that differs from the cached one reopens the flow. */
-/** The questions, or null when they cannot be read; a user handed back to today's flow goes to Home. */
-const readQuestions = (router: { replace: (href: string) => void }, current = () => true) =>
-    getKycQuestions().catch((error: unknown) => {
-        if (current() && isKycFlowHandedBack(error)) router.replace('/home')
+const readQuestions = (router: { replace: (href: string) => void }, current: () => boolean) =>
+    getKycQuestions().catch((error: { status?: number; code?: string } | null) => {
+        if (current()) {
+            if (error?.status === 409 && error.code === 'existing_verification') router.replace('/home')
+            if (error?.status === 403 && error.code === 'residence_not_supported')
+                router.replace(RESIDENCE_NOT_SUPPORTED_PATH)
+        }
         return null
     })
-
-const HANDED_BACK = 'handed_back' as const
 
 const shapeOf = ({ questions, plan, status }: Loaded) =>
     JSON.stringify([
@@ -244,6 +249,7 @@ function PaperworkVerificationAccount({ userId }: { userId?: string }) {
     const [state, setState] = useState<
         | { kind: 'loading' }
         | { kind: 'failed' }
+        | { kind: 'residence-not-supported' }
         | { kind: 'rejected'; status?: SumsubKycStatus }
         | { kind: 'setup'; needs: KycPlanNeed[] }
         | ({ kind: 'ready'; fresh?: Loaded } & Loaded)
@@ -273,44 +279,41 @@ function PaperworkVerificationAccount({ userId }: { userId?: string }) {
         const current = () => generation === loadGeneration.current
         if (!quiet) setState({ kind: 'loading' })
         try {
-            const [questionsRead, planRead, statusRead] = await Promise.allSettled([
-                // an older account the questions cannot be built for yet answers the setup screens first
-                getKycQuestions().catch((error: unknown) => (isKycFlowHandedBack(error) ? HANDED_BACK : null)),
-                findKycDocumentPlan('verify'),
-                readIdentityStatus(),
-            ])
+            const plan = await findKycDocumentPlan('verify')
             if (!current()) return
-            const questions = questionsRead.status === 'fulfilled' ? questionsRead.value : null
-            const onFlow =
-                questions !== HANDED_BACK &&
-                !!questions?.available &&
-                planRead.status === 'fulfilled' &&
-                planRead.value?.flow === PAPERWORK_VERIFICATION_FLOW
-            const statusValue = statusRead.status === 'fulfilled' ? statusRead.value : undefined
-            if (!onFlow && decidedRejection(identityRef.current, statusValue)) {
-                setState({ kind: 'rejected', status: statusValue })
+            if (plan?.unavailableReason === 'residence_not_supported') {
+                setState({ kind: 'residence-not-supported' })
                 return
             }
-            // A hand-back is definitive, even when the plan or status read beside it failed.
-            if (questions === HANDED_BACK) {
+            if (!plan || plan.flow === undefined) throw new Error('KYC plan unavailable')
+            const [questionsRead, statusRead] = await Promise.allSettled([getKycQuestions(), readIdentityStatus()])
+            if (!current()) return
+            const questions = questionsRead.status === 'fulfilled' ? questionsRead.value : null
+            const status = statusRead.status === 'fulfilled' ? statusRead.value : undefined
+            const onFlow = questions?.available && plan.flow === PAPERWORK_VERIFICATION_FLOW
+            if (!onFlow && decidedRejection(identityRef.current, status)) {
+                setState({ kind: 'rejected', status })
+                return
+            }
+            if (
+                questionsRead.status === 'rejected' &&
+                questionsRead.reason?.status === 409 &&
+                questionsRead.reason?.code === 'existing_verification'
+            ) {
                 routerRef.current.replace('/home')
                 return
             }
-            // a plan or status that cannot be read throws: the retry screen, not Home
-            if (planRead.status === 'rejected') throw planRead.reason
             if (statusRead.status === 'rejected') throw statusRead.reason
-            const plan = planRead.value
-            const status = statusRead.value
-            if (plan?.flow === PAPERWORK_VERIFICATION_FLOW && plan.needs?.length) {
+            if (plan.flow === PAPERWORK_VERIFICATION_FLOW && plan.needs?.length) {
                 setState({ kind: 'setup', needs: plan.needs })
                 return
             }
-            if (!questions) throw new Error('KYC questions unavailable')
-            // A stale link or a user the server keeps on today's flow: that flow starts from Home.
-            if (!questions.available || plan?.flow !== PAPERWORK_VERIFICATION_FLOW) {
+            if (plan.flow === null) {
                 routerRef.current.replace('/home')
                 return
             }
+            if (questionsRead.status === 'rejected') throw questionsRead.reason
+            if (!questions?.available) throw new Error('KYC questions unavailable')
             const addLater = featureOpenAfterApproval(questions, status)
             if (addLater) {
                 routerRef.current.replace(paperworkVerificationFeaturePath(addLater))
@@ -323,8 +326,17 @@ function PaperworkVerificationAccount({ userId }: { userId?: string }) {
             }
             setState({ kind: 'ready', ...loaded })
             setGeneration((g) => g + 1)
-        } catch {
+        } catch (error) {
             if (!current()) return
+            const failure = error as { code?: string; status?: number } | null
+            if (failure?.status === 403 && failure.code === 'residence_not_supported') {
+                setState({ kind: 'residence-not-supported' })
+                return
+            }
+            if (decidedRejection(identityRef.current, undefined)) {
+                setState({ kind: 'rejected' })
+                return
+            }
             // the cached screens stay; the next answer or ID step reads the server again
             if (quiet) return
             trackPaperworkVerification(
@@ -352,6 +364,7 @@ function PaperworkVerificationAccount({ userId }: { userId?: string }) {
                 )}
             </PaperworkVerificationTrackingProvider>
         )
+    if (state.kind === 'residence-not-supported') return <ResidenceNotSupported onBack={exit} />
     if (state.kind === 'rejected')
         return (
             <PaperworkVerificationTrackingProvider value={{ flow: 'paperwork_verification', residence: null }}>
@@ -423,7 +436,10 @@ function PaperworkVerificationSteps({
     const [documentMismatch, setDocumentMismatch] = useState<{ declared: string; document: string } | null>(null)
     const [mismatchBusy, setMismatchBusy] = useState(false)
     const [documentRequired, setDocumentRequired] = useState(false)
-    const identity = usePaperworkVerificationIdentity({ onHandedBack: () => router.replace('/home') })
+    const identity = usePaperworkVerificationIdentity({
+        onExistingVerification: () => router.replace('/home'),
+        onResidenceNotSupported: () => router.replace(RESIDENCE_NOT_SUPPORTED_PATH),
+    })
     if (identity.session) activeSdk.current = identity.session
     const queryClient = useQueryClient()
     // Decided once per load, so Back shows the same screens the user came through.
@@ -718,14 +734,18 @@ function PaperworkVerificationSteps({
 
     /** Takes the user where a refused save points; false leaves them on the refused step. */
     const onConflict = (error: AnswerFormError, message?: string): boolean => {
-        // Not (or no longer) a Smart Paperwork Verification user: today's flow starts from Home.
-        if (error === 'unavailable' || error === 'existing_verification' || error === 'session_changed') {
+        if (error === 'existing_verification' || error === 'session_changed') {
             router.replace('/home')
             return true
         }
         // The ID went in or the check ended (perhaps on another device), or the features changed:
         // the status and the questions are read again.
-        if (error === 'identity_submitted' || error === 'verification_complete' || error === 'feature_not_selected') {
+        if (
+            error === 'unavailable' ||
+            error === 'identity_submitted' ||
+            error === 'verification_complete' ||
+            error === 'feature_not_selected'
+        ) {
             void reload()
             return true
         }
@@ -753,7 +773,7 @@ function PaperworkVerificationSteps({
         }
         let attemptId = identity.attemptIdRef.current ?? questions.attemptId ?? plan?.activeAttemptId ?? null
         if (!attemptId) {
-            const fresh = await readQuestions(router)
+            const fresh = await readQuestions(router, session.current)
             if (fresh) setQuestions(fresh)
             attemptId = fresh?.attemptId ?? null
         }
@@ -769,7 +789,9 @@ function PaperworkVerificationSteps({
                 ...(outcome.kind === 'questions-missing' && { missing_step: outcome.step }),
             })
         if (outcome.kind === 'opened') setQuestions((current) => ({ ...current, attemptId: outcome.attemptId }))
-        if (outcome.kind === 'handed-back') router.replace('/home')
+        if (!session.current()) return
+        if (outcome.kind === 'existing-verification') router.replace('/home')
+        if (outcome.kind === 'residence-not-supported') router.replace(RESIDENCE_NOT_SUPPORTED_PATH)
         if (outcome.kind === 'document-required') {
             setDocumentRequired(true)
             setStatus('NOT_STARTED')
@@ -784,7 +806,7 @@ function PaperworkVerificationSteps({
             setDocumentRequired(false)
             setStatus('NOT_STARTED')
             setSubmitted(false)
-            const fresh = await readQuestions(router)
+            const fresh = await readQuestions(router, session.current)
             if (fresh) setQuestions(fresh)
             const target = outcome.step ?? (fresh && resumeStep(fresh))
             if (target && outcome.message) setReturned({ step: target, message: outcome.message })
@@ -885,9 +907,11 @@ function PaperworkVerificationSteps({
     useEffect(() => {
         if (!decided || approvedAtOpen.current || approvalHandled.current) return
         approvalHandled.current = true
+        const session = captureSession()
         void fetchUser()
-        void Promise.all([findKycDocumentPlan().catch(() => null), readQuestions(router)]).then(
+        void Promise.all([findKycDocumentPlan().catch(() => null), readQuestions(router, session.current)]).then(
             ([fresh, freshQuestions]) => {
+                if (!session.current()) return
                 const addLater = freshQuestions && featureOpenAfterApproval(freshQuestions, status)
                 if (addLater) {
                     router.replace(paperworkVerificationFeaturePath(addLater))
@@ -897,7 +921,7 @@ function PaperworkVerificationSteps({
                 void stepper.goTo(fresh?.proofOfAddress === 'suggested' ? 'address-proof' : 'verified')
             }
         )
-    }, [decided, fetchUser, stepper, status, router])
+    }, [decided, fetchUser, stepper, status, router, captureSession])
 
     const tracking = useMemo<PaperworkVerificationTrackingContext>(
         () => ({ flow: 'paperwork_verification', residence: questions.residence, features: plan?.features }),
@@ -1066,6 +1090,8 @@ function PaperworkVerificationSteps({
         )
     }
 
+    if (plan?.unavailableReason === 'residence_not_supported') return <ResidenceNotSupported onBack={exit} />
+
     return (
         <PaperworkVerificationTrackingProvider value={tracking}>
             {screen}
@@ -1143,7 +1169,6 @@ function ProofOfAddressStep({
     onUploadStarted: () => void
 }) {
     const flow = useSumsubKycFlow({ onKycSuccess: () => onDone('uploaded') })
-    const router = useRouter()
     return (
         <>
             <ProofOfAddressScreen
@@ -1157,9 +1182,7 @@ function ProofOfAddressStep({
                 }}
                 onSkip={() => {
                     // Best effort: a failed save only means the suggestion can come back next visit.
-                    void skipProofOfAddress().then((outcome) => {
-                        if (outcome === 'handed_back') router.replace('/home')
-                    })
+                    void skipProofOfAddress()
                     onDone('skipped')
                 }}
             />

@@ -11890,6 +11890,67 @@
 				]
 			}
 		},
+		"/manteca/deposit/open": {
+			"get": {
+				"description": "Return the newest unpaid, unexpired ARS deposit order from its saved Manteca snapshot.",
+				"parameters": [
+					{
+						"in": "query",
+						"name": "currency",
+						"required": true,
+						"schema": {
+							"enum": [
+								"ARS"
+							],
+							"type": "string"
+						}
+					},
+					{
+						"in": "header",
+						"name": "Authorization",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"example": {
+									"data": null
+								},
+								"schema": {
+									"properties": {
+										"data": {
+											"anyOf": [
+												{
+													"additionalProperties": {},
+													"type": "object"
+												},
+												{
+													"type": "null"
+												}
+											]
+										}
+									},
+									"required": [
+										"data"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					}
+				},
+				"summary": "Get open deposit order",
+				"tags": [
+					"manteca"
+				]
+			}
+		},
 		"/manteca/deposit/{depositId}/cancel": {
 			"patch": {
 				"description": "Cancel a deposit order created via Manteca.",
@@ -22165,48 +22226,96 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"properties": {
-										"code": {
+									"anyOf": [
+										{
 											"anyOf": [
 												{
-													"enum": [
-														"geo-blocked"
+													"properties": {
+														"code": {
+															"enum": [
+																"residence_not_supported"
+															],
+															"type": "string"
+														},
+														"error": {
+															"type": "string"
+														},
+														"message": {
+															"type": "string"
+														},
+														"userMessage": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"code",
+														"userMessage",
+														"message",
+														"error"
 													],
-													"type": "string"
+													"type": "object"
 												},
 												{
-													"enum": [
-														"pending-residence-blocked"
+													"properties": {
+														"error": {
+															"enum": [
+																"Forbidden"
+															],
+															"type": "string"
+														}
+													},
+													"required": [
+														"error"
 													],
-													"type": "string"
-												},
-												{
-													"enum": [
-														"provider-not-in-plan"
-													],
-													"type": "string"
+													"type": "object"
 												}
 											]
 										},
-										"message": {
-											"type": "string"
-										},
-										"reason": {
-											"type": "string"
-										},
-										"status": {
-											"enum": [
-												"error"
+										{
+											"properties": {
+												"code": {
+													"anyOf": [
+														{
+															"enum": [
+																"geo-blocked"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"pending-residence-blocked"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"provider-not-in-plan"
+															],
+															"type": "string"
+														}
+													]
+												},
+												"message": {
+													"type": "string"
+												},
+												"reason": {
+													"type": "string"
+												},
+												"status": {
+													"enum": [
+														"error"
+													],
+													"type": "string"
+												}
+											},
+											"required": [
+												"status",
+												"code",
+												"message"
 											],
-											"type": "string"
+											"type": "object"
 										}
-									},
-									"required": [
-										"status",
-										"code",
-										"message"
-									],
-									"type": "object"
+									]
 								}
 							}
 						},
@@ -22216,45 +22325,99 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"properties": {
-										"code": {
+									"anyOf": [
+										{
 											"anyOf": [
 												{
-													"enum": [
-														"application-outcome-unknown"
+													"properties": {
+														"code": {
+															"enum": [
+																"paperwork_verification_required"
+															],
+															"type": "string"
+														},
+														"error": {
+															"type": "string"
+														},
+														"message": {
+															"type": "string"
+														},
+														"userMessage": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"code",
+														"userMessage",
+														"message",
+														"error"
 													],
-													"type": "string"
+													"type": "object"
 												},
 												{
-													"enum": [
-														"paperwork_verification_required"
+													"properties": {
+														"code": {
+															"enum": [
+																"kyc_client_update_required"
+															],
+															"type": "string"
+														},
+														"error": {
+															"type": "string"
+														},
+														"message": {
+															"type": "string"
+														},
+														"userMessage": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"code",
+														"userMessage",
+														"message",
+														"error"
 													],
-													"type": "string"
-												},
-												{
-													"enum": [
-														"CARD_APP_UPDATE_REQUIRED"
-													],
-													"type": "string"
+													"type": "object"
 												}
 											]
 										},
-										"message": {
-											"type": "string"
-										},
-										"status": {
-											"enum": [
-												"error"
+										{
+											"properties": {
+												"code": {
+													"anyOf": [
+														{
+															"enum": [
+																"application-outcome-unknown"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"CARD_APP_UPDATE_REQUIRED"
+															],
+															"type": "string"
+														}
+													]
+												},
+												"message": {
+													"type": "string"
+												},
+												"status": {
+													"enum": [
+														"error"
+													],
+													"type": "string"
+												}
+											},
+											"required": [
+												"status",
+												"code",
+												"message"
 											],
-											"type": "string"
+											"type": "object"
 										}
-									},
-									"required": [
-										"status",
-										"code",
-										"message"
-									],
-									"type": "object"
+									]
 								}
 							}
 						},
@@ -34543,7 +34706,127 @@
 					}
 				],
 				"responses": {
-					"200": {
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"anyOf": [
+										{
+											"properties": {
+												"code": {
+													"enum": [
+														"residence_not_supported"
+													],
+													"type": "string"
+												},
+												"error": {
+													"type": "string"
+												},
+												"message": {
+													"type": "string"
+												},
+												"userMessage": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"code",
+												"userMessage",
+												"message",
+												"error"
+											],
+											"type": "object"
+										},
+										{
+											"properties": {
+												"error": {
+													"enum": [
+														"Forbidden"
+													],
+													"type": "string"
+												}
+											},
+											"required": [
+												"error"
+											],
+											"type": "object"
+										}
+									]
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"anyOf": [
+										{
+											"anyOf": [
+												{
+													"properties": {
+														"code": {
+															"enum": [
+																"paperwork_verification_required"
+															],
+															"type": "string"
+														},
+														"error": {
+															"type": "string"
+														},
+														"message": {
+															"type": "string"
+														},
+														"userMessage": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"code",
+														"userMessage",
+														"message",
+														"error"
+													],
+													"type": "object"
+												},
+												{
+													"properties": {
+														"code": {
+															"enum": [
+																"kyc_client_update_required"
+															],
+															"type": "string"
+														},
+														"error": {
+															"type": "string"
+														},
+														"message": {
+															"type": "string"
+														},
+														"userMessage": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"code",
+														"userMessage",
+														"message",
+														"error"
+													],
+													"type": "object"
+												}
+											]
+										},
+										{
+											"additionalProperties": true,
+											"properties": {},
+											"type": "object"
+										}
+									]
+								}
+							}
+						},
 						"description": "Default Response"
 					}
 				}
@@ -34779,15 +35062,45 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"properties": {
-										"error": {
-											"type": "string"
+									"anyOf": [
+										{
+											"properties": {
+												"code": {
+													"enum": [
+														"residence_not_supported"
+													],
+													"type": "string"
+												},
+												"error": {
+													"type": "string"
+												},
+												"message": {
+													"type": "string"
+												},
+												"userMessage": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"code",
+												"userMessage",
+												"message",
+												"error"
+											],
+											"type": "object"
+										},
+										{
+											"properties": {
+												"error": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"error"
+											],
+											"type": "object"
 										}
-									},
-									"required": [
-										"error"
-									],
-									"type": "object"
+									]
 								}
 							}
 						},
@@ -34797,36 +35110,96 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"properties": {
-										"code": {
-											"type": "string"
+									"anyOf": [
+										{
+											"anyOf": [
+												{
+													"properties": {
+														"code": {
+															"enum": [
+																"paperwork_verification_required"
+															],
+															"type": "string"
+														},
+														"error": {
+															"type": "string"
+														},
+														"message": {
+															"type": "string"
+														},
+														"userMessage": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"code",
+														"userMessage",
+														"message",
+														"error"
+													],
+													"type": "object"
+												},
+												{
+													"properties": {
+														"code": {
+															"enum": [
+																"kyc_client_update_required"
+															],
+															"type": "string"
+														},
+														"error": {
+															"type": "string"
+														},
+														"message": {
+															"type": "string"
+														},
+														"userMessage": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"code",
+														"userMessage",
+														"message",
+														"error"
+													],
+													"type": "object"
+												}
+											]
 										},
-										"document": {
+										{
 											"properties": {
-												"issuingCountry": {
+												"code": {
 													"type": "string"
 												},
-												"type": {
+												"document": {
+													"properties": {
+														"issuingCountry": {
+															"type": "string"
+														},
+														"type": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"type",
+														"issuingCountry"
+													],
+													"type": "object"
+												},
+												"error": {
+													"type": "string"
+												},
+												"userMessage": {
 													"type": "string"
 												}
 											},
 											"required": [
-												"type",
-												"issuingCountry"
+												"error"
 											],
 											"type": "object"
-										},
-										"error": {
-											"type": "string"
-										},
-										"userMessage": {
-											"type": "string"
 										}
-									},
-									"required": [
-										"error"
-									],
-									"type": "object"
+									]
 								}
 							}
 						},
@@ -34914,7 +35287,55 @@
 					"required": true
 				},
 				"responses": {
-					"200": {
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"anyOf": [
+										{
+											"properties": {
+												"code": {
+													"enum": [
+														"residence_not_supported"
+													],
+													"type": "string"
+												},
+												"error": {
+													"type": "string"
+												},
+												"message": {
+													"type": "string"
+												},
+												"userMessage": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"code",
+												"userMessage",
+												"message",
+												"error"
+											],
+											"type": "object"
+										},
+										{
+											"properties": {
+												"error": {
+													"enum": [
+														"Forbidden"
+													],
+													"type": "string"
+												}
+											},
+											"required": [
+												"error"
+											],
+											"type": "object"
+										}
+									]
+								}
+							}
+						},
 						"description": "Default Response"
 					}
 				}
@@ -34943,7 +35364,127 @@
 		"/users/increase-limits": {
 			"post": {
 				"responses": {
-					"200": {
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"anyOf": [
+										{
+											"properties": {
+												"code": {
+													"enum": [
+														"residence_not_supported"
+													],
+													"type": "string"
+												},
+												"error": {
+													"type": "string"
+												},
+												"message": {
+													"type": "string"
+												},
+												"userMessage": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"code",
+												"userMessage",
+												"message",
+												"error"
+											],
+											"type": "object"
+										},
+										{
+											"properties": {
+												"error": {
+													"enum": [
+														"Forbidden"
+													],
+													"type": "string"
+												}
+											},
+											"required": [
+												"error"
+											],
+											"type": "object"
+										}
+									]
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"anyOf": [
+										{
+											"anyOf": [
+												{
+													"properties": {
+														"code": {
+															"enum": [
+																"paperwork_verification_required"
+															],
+															"type": "string"
+														},
+														"error": {
+															"type": "string"
+														},
+														"message": {
+															"type": "string"
+														},
+														"userMessage": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"code",
+														"userMessage",
+														"message",
+														"error"
+													],
+													"type": "object"
+												},
+												{
+													"properties": {
+														"code": {
+															"enum": [
+																"kyc_client_update_required"
+															],
+															"type": "string"
+														},
+														"error": {
+															"type": "string"
+														},
+														"message": {
+															"type": "string"
+														},
+														"userMessage": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"code",
+														"userMessage",
+														"message",
+														"error"
+													],
+													"type": "object"
+												}
+											]
+										},
+										{
+											"additionalProperties": true,
+											"properties": {},
+											"type": "object"
+										}
+									]
+								}
+							}
+						},
 						"description": "Default Response"
 					}
 				}
@@ -36208,6 +36749,57 @@
 						},
 						"description": "Default Response"
 					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"anyOf": [
+										{
+											"properties": {
+												"code": {
+													"enum": [
+														"residence_not_supported"
+													],
+													"type": "string"
+												},
+												"error": {
+													"type": "string"
+												},
+												"message": {
+													"type": "string"
+												},
+												"userMessage": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"code",
+												"userMessage",
+												"message",
+												"error"
+											],
+											"type": "object"
+										},
+										{
+											"properties": {
+												"error": {
+													"enum": [
+														"Forbidden"
+													],
+													"type": "string"
+												}
+											},
+											"required": [
+												"error"
+											],
+											"type": "object"
+										}
+									]
+								}
+							}
+						},
+						"description": "Default Response"
+					},
 					"404": {
 						"content": {
 							"application/json": {
@@ -36639,6 +37231,57 @@
 						},
 						"description": "Default Response"
 					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"anyOf": [
+										{
+											"properties": {
+												"code": {
+													"enum": [
+														"residence_not_supported"
+													],
+													"type": "string"
+												},
+												"error": {
+													"type": "string"
+												},
+												"message": {
+													"type": "string"
+												},
+												"userMessage": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"code",
+												"userMessage",
+												"message",
+												"error"
+											],
+											"type": "object"
+										},
+										{
+											"properties": {
+												"error": {
+													"enum": [
+														"Forbidden"
+													],
+													"type": "string"
+												}
+											},
+											"required": [
+												"error"
+											],
+											"type": "object"
+										}
+									]
+								}
+							}
+						},
+						"description": "Default Response"
+					},
 					"404": {
 						"content": {
 							"application/json": {
@@ -36654,28 +37297,88 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"properties": {
-										"code": {
-											"type": "string"
-										},
-										"error": {
-											"type": "string"
-										},
-										"step": {
+									"anyOf": [
+										{
 											"anyOf": [
 												{
-													"type": "string"
+													"properties": {
+														"code": {
+															"enum": [
+																"paperwork_verification_required"
+															],
+															"type": "string"
+														},
+														"error": {
+															"type": "string"
+														},
+														"message": {
+															"type": "string"
+														},
+														"userMessage": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"code",
+														"userMessage",
+														"message",
+														"error"
+													],
+													"type": "object"
 												},
 												{
-													"type": "null"
+													"properties": {
+														"code": {
+															"enum": [
+																"kyc_client_update_required"
+															],
+															"type": "string"
+														},
+														"error": {
+															"type": "string"
+														},
+														"message": {
+															"type": "string"
+														},
+														"userMessage": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"code",
+														"userMessage",
+														"message",
+														"error"
+													],
+													"type": "object"
 												}
 											]
 										},
-										"userMessage": {
-											"type": "string"
+										{
+											"properties": {
+												"code": {
+													"type": "string"
+												},
+												"error": {
+													"type": "string"
+												},
+												"step": {
+													"anyOf": [
+														{
+															"type": "string"
+														},
+														{
+															"type": "null"
+														}
+													]
+												},
+												"userMessage": {
+													"type": "string"
+												}
+											},
+											"type": "object"
 										}
-									},
-									"type": "object"
+									]
 								}
 							}
 						},
@@ -39140,6 +39843,12 @@
 													"type": "null"
 												}
 											]
+										},
+										"unavailableReason": {
+											"enum": [
+												"residence_not_supported"
+											],
+											"type": "string"
 										}
 									},
 									"required": [
@@ -40407,6 +41116,20 @@
 																		}
 																	]
 																},
+																"heldAt": {
+																	"anyOf": [
+																		{
+																			"format": "date-time",
+																			"type": "string"
+																		},
+																		{
+																			"type": "null"
+																		}
+																	]
+																},
+																"manualReview": {
+																	"type": "boolean"
+																},
 																"secondCountry": {
 																	"anyOf": [
 																		{
@@ -41169,6 +41892,57 @@
 						},
 						"description": "Default Response"
 					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"anyOf": [
+										{
+											"properties": {
+												"code": {
+													"enum": [
+														"residence_not_supported"
+													],
+													"type": "string"
+												},
+												"error": {
+													"type": "string"
+												},
+												"message": {
+													"type": "string"
+												},
+												"userMessage": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"code",
+												"userMessage",
+												"message",
+												"error"
+											],
+											"type": "object"
+										},
+										{
+											"properties": {
+												"error": {
+													"enum": [
+														"Forbidden"
+													],
+													"type": "string"
+												}
+											},
+											"required": [
+												"error"
+											],
+											"type": "object"
+										}
+									]
+								}
+							}
+						},
+						"description": "Default Response"
+					},
 					"409": {
 						"content": {
 							"application/json": {
@@ -41369,6 +42143,120 @@
 										}
 									},
 									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"anyOf": [
+										{
+											"properties": {
+												"code": {
+													"enum": [
+														"residence_not_supported"
+													],
+													"type": "string"
+												},
+												"error": {
+													"type": "string"
+												},
+												"message": {
+													"type": "string"
+												},
+												"userMessage": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"code",
+												"userMessage",
+												"message",
+												"error"
+											],
+											"type": "object"
+										},
+										{
+											"additionalProperties": true,
+											"properties": {},
+											"type": "object"
+										}
+									]
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"anyOf": [
+										{
+											"anyOf": [
+												{
+													"properties": {
+														"code": {
+															"enum": [
+																"paperwork_verification_required"
+															],
+															"type": "string"
+														},
+														"error": {
+															"type": "string"
+														},
+														"message": {
+															"type": "string"
+														},
+														"userMessage": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"code",
+														"userMessage",
+														"message",
+														"error"
+													],
+													"type": "object"
+												},
+												{
+													"properties": {
+														"code": {
+															"enum": [
+																"kyc_client_update_required"
+															],
+															"type": "string"
+														},
+														"error": {
+															"type": "string"
+														},
+														"message": {
+															"type": "string"
+														},
+														"userMessage": {
+															"type": "string"
+														}
+													},
+													"required": [
+														"code",
+														"userMessage",
+														"message",
+														"error"
+													],
+													"type": "object"
+												}
+											]
+										},
+										{
+											"additionalProperties": true,
+											"properties": {},
+											"type": "object"
+										}
+									]
 								}
 							}
 						},
@@ -43121,6 +44009,20 @@
 																				}
 																			]
 																		},
+																		"heldAt": {
+																			"anyOf": [
+																				{
+																					"format": "date-time",
+																					"type": "string"
+																				},
+																				{
+																					"type": "null"
+																				}
+																			]
+																		},
+																		"manualReview": {
+																			"type": "boolean"
+																		},
 																		"secondCountry": {
 																			"anyOf": [
 																				{
@@ -44564,6 +45466,8 @@
 									"residence": {
 										"declared": {
 											"country": "PT",
+											"heldAt": "2026-01-01T00:00:00.000Z",
+											"manualReview": true,
 											"secondCountry": null,
 											"status": "REVIEW_PENDING",
 											"updatedAt": "2026-01-01T00:00:00.000Z"
@@ -44735,6 +45639,20 @@
 																			"type": "null"
 																		}
 																	]
+																},
+																"heldAt": {
+																	"anyOf": [
+																		{
+																			"format": "date-time",
+																			"type": "string"
+																		},
+																		{
+																			"type": "null"
+																		}
+																	]
+																},
+																"manualReview": {
+																	"type": "boolean"
 																},
 																"secondCountry": {
 																	"anyOf": [

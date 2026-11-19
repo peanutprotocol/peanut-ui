@@ -1598,6 +1598,7 @@
         "shareJoin": "Unite a Peanut conmigo: {link}"
     },
     "kyc": {
+        "clientUpdateRequired": "Actualizá la app de Peanut para continuar con la verificación.",
         "rejectLabelsFallbackDescription": "Necesitamos un poco más de información para confirmar tu identidad. Enviá los datos solicitados para continuar.",
         "terminalDescription": "Primero necesitamos revisar tu cuenta. Tus fondos siguen en tu cuenta.",
         "failedDescriptionRetry": "No pudimos confirmar tu identidad. Podés intentarlo otra vez.",
