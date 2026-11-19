@@ -9,6 +9,7 @@ import { useQrIdentityCheck } from '../useQrIdentityCheck'
 
 const mockFlow = {
     handleInitiateKyc: jest.fn(),
+    handleUnlockQr: jest.fn(),
     handleRestartIdentity: jest.fn(),
     completeFlow: jest.fn(),
     showWrapper: false,
@@ -55,7 +56,8 @@ describe('useQrIdentityCheck', () => {
     it('starts the verification QR pay starts', () => {
         const { result } = renderHook(() => useQrIdentityCheck())
         act(() => result.current.start())
-        expect(mockFlow.handleInitiateKyc).toHaveBeenCalledWith('LATAM')
+        expect(mockFlow.handleUnlockQr).toHaveBeenCalledWith()
+        expect(mockFlow.handleInitiateKyc).not.toHaveBeenCalled()
     })
 
     // TASK-22698: the start route answers "already approved" for this user and

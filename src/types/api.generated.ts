@@ -6622,6 +6622,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/manteca/deposit/open": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get open deposit order
+         * @description Return the newest unpaid, unexpired ARS deposit order from its saved Manteca snapshot.
+         */
+        get: {
+            parameters: {
+                query: {
+                    currency: "ARS";
+                };
+                header: {
+                    Authorization: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "data": null
+                         *     }
+                         */
+                        "application/json": {
+                            data: {
+                                [key: string]: unknown;
+                            } | null;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/manteca/deposit/{depositId}/cancel": {
         parameters: {
             query?: never;
@@ -11322,6 +11374,24 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            /** @enum {string} */
+                            code: "feature_reverification_required";
+                            entry: {
+                                attemptId: string | null;
+                                feature: "bank" | "card" | "local";
+                                /** @enum {string} */
+                                kind: "reverify_for_feature";
+                                targetProvider: "BRIDGE" | "RAIN" | "MANTECA" | "AVENIA";
+                            };
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        } | {
+                            code: "feature_setup_unavailable" | "feature_setup_pending" | "feature_not_open";
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        } | {
                             code: "application-outcome-unknown" | "paperwork_verification_required" | "CARD_APP_UPDATE_REQUIRED";
                             message: string;
                             /** @enum {string} */
@@ -11342,6 +11412,29 @@ export interface paths {
                             /** @enum {string} */
                             status: "error";
                         };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code: "feature_setup_unavailable" | "feature_setup_pending" | "feature_not_open";
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        } | {
+                            message: string;
+                            /** @enum {string} */
+                            status: "error";
+                        } | ({
+                            code?: string;
+                            error: string;
+                        } & {
+                            [key: string]: unknown;
+                        });
                     };
                 };
             };
@@ -14237,6 +14330,24 @@ export interface paths {
                     content: {
                         "application/json": {
                             /** @enum {string} */
+                            code: "feature_reverification_required";
+                            entry: {
+                                attemptId: string | null;
+                                feature: "bank" | "card" | "local";
+                                /** @enum {string} */
+                                kind: "reverify_for_feature";
+                                targetProvider: "BRIDGE" | "RAIN" | "MANTECA" | "AVENIA";
+                            };
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        } | {
+                            code: "feature_setup_unavailable" | "feature_setup_pending" | "feature_not_open";
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        } | {
+                            /** @enum {string} */
                             code: "verification_task_changed";
                         };
                     };
@@ -14248,6 +14359,11 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            code: "feature_setup_unavailable" | "feature_setup_pending" | "feature_not_open";
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        } | {
                             /** @enum {string} */
                             code: "verification_task_unavailable";
                         };
@@ -16920,6 +17036,24 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            /** @enum {string} */
+                            code: "feature_reverification_required";
+                            entry: {
+                                attemptId: string | null;
+                                feature: "bank" | "card" | "local";
+                                /** @enum {string} */
+                                kind: "reverify_for_feature";
+                                targetProvider: "BRIDGE" | "RAIN" | "MANTECA" | "AVENIA";
+                            };
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        } | {
+                            code: "feature_setup_unavailable" | "feature_setup_pending" | "feature_not_open";
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        } | {
                             code?: string;
                             error: string;
                         };
@@ -16933,6 +17067,20 @@ export interface paths {
                     content: {
                         "application/json": {
                             error: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code: "feature_setup_unavailable" | "feature_setup_pending" | "feature_not_open";
+                            error: string;
+                            message: string;
+                            userMessage: string;
                         };
                     };
                 };
@@ -17154,14 +17302,60 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody?: {
+                content: {
+                    "application/json": {
+                        feature?: "bank" | "card" | "local" | "qr";
+                    } & {
+                        [key: string]: unknown;
+                    };
+                };
+            };
             responses: {
                 /** @description Default Response */
-                200: {
+                409: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            code: "feature_reverification_required";
+                            entry: {
+                                attemptId: string | null;
+                                feature: "bank" | "card" | "local";
+                                /** @enum {string} */
+                                kind: "reverify_for_feature";
+                                targetProvider: "BRIDGE" | "RAIN" | "MANTECA" | "AVENIA";
+                            };
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        } | {
+                            code: "feature_setup_unavailable" | "feature_setup_pending" | "feature_not_open";
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        } | {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code: "feature_setup_unavailable" | "feature_setup_pending" | "feature_not_open";
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        } | {
+                            [key: string]: unknown;
+                        };
+                    };
                 };
             };
         };
@@ -17435,11 +17629,50 @@ export interface paths {
             requestBody?: never;
             responses: {
                 /** @description Default Response */
-                200: {
+                409: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            code: "feature_reverification_required";
+                            entry: {
+                                attemptId: string | null;
+                                feature: "bank" | "card" | "local";
+                                /** @enum {string} */
+                                kind: "reverify_for_feature";
+                                targetProvider: "BRIDGE" | "RAIN" | "MANTECA" | "AVENIA";
+                            };
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        } | {
+                            code: "feature_setup_unavailable" | "feature_setup_pending" | "feature_not_open";
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        } | {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code: "feature_setup_unavailable" | "feature_setup_pending" | "feature_not_open";
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        } | {
+                            error: string;
+                            userMessage: string;
+                        };
+                    };
                 };
             };
         };
@@ -17713,6 +17946,7 @@ export interface paths {
         put: {
             parameters: {
                 query?: {
+                    attemptId?: string;
                     feature?: "bank" | "card" | "local" | "pix";
                 };
                 header?: never;
@@ -17912,6 +18146,17 @@ export interface paths {
                         "application/json": Record<string, never>;
                     };
                 };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code: string;
+                        };
+                    };
+                };
             };
         };
         put?: never;
@@ -18026,6 +18271,18 @@ export interface paths {
                             error?: string;
                             step?: string | null;
                             userMessage?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            userMessage: string;
                         };
                     };
                 };
@@ -18509,8 +18766,35 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            /** @enum {string} */
+                            code: "feature_reverification_required";
+                            entry: {
+                                attemptId: string | null;
+                                feature: "bank" | "card" | "local";
+                                /** @enum {string} */
+                                kind: "reverify_for_feature";
+                                targetProvider: "BRIDGE" | "RAIN" | "MANTECA" | "AVENIA";
+                            };
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        } | {
                             code: "identity_not_approved" | "feature_not_open" | "questions_missing";
                             step?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code: "feature_setup_unavailable" | "feature_setup_pending" | "feature_not_open";
+                            error: string;
+                            message: string;
+                            userMessage: string;
                         };
                     };
                 };
@@ -18533,7 +18817,9 @@ export interface paths {
         put?: never;
         post: {
             parameters: {
-                query?: never;
+                query?: {
+                    attemptId?: string;
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -18553,6 +18839,18 @@ export interface paths {
                          */
                         "application/json": {
                             status: string | null;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            code?: "attempt_not_active";
                         };
                     };
                 };
@@ -18911,6 +19209,8 @@ export interface paths {
             parameters: {
                 query?: {
                     restart?: boolean;
+                    feature?: "bank" | "card" | "local" | "qr";
+                    attemptId?: string;
                 };
                 header?: never;
                 path?: never;
@@ -18981,6 +19281,14 @@ export interface paths {
                                     [key: string]: ("qr" | "local" | "card" | "bank")[];
                                 };
                             };
+                            entry?: {
+                                attemptId: string | null;
+                                feature: "bank" | "card" | "local";
+                                /** @enum {string} */
+                                kind: "reverify_for_feature";
+                                prepared?: boolean;
+                                targetProvider: "BRIDGE" | "RAIN" | "MANTECA" | "AVENIA";
+                            };
                             features: {
                                 bank: boolean;
                                 card: boolean;
@@ -19010,6 +19318,32 @@ export interface paths {
                                 until: string;
                             } | null;
                             terminal?: "rejected" | null;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            code: "attempt_not_active";
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code: "feature_setup_unavailable" | "feature_setup_pending" | "feature_not_open";
+                            error: string;
+                            message: string;
+                            userMessage: string;
                         };
                     };
                 };
@@ -19105,6 +19439,7 @@ export interface paths {
                          *               ]
                          *             }
                          *           ],
+                         *           "retryRequestedAt": null,
                          *           "reviewedAt": null,
                          *           "revision": 2,
                          *           "sourceAttemptId": null,
@@ -19232,6 +19567,7 @@ export interface paths {
                                     kind: "CHECK";
                                     requiredBy: ("SUMSUB" | "BRIDGE" | "MANTECA" | "RAIN" | "AVENIA")[];
                                 })[];
+                                retryRequestedAt: string | null;
                                 reviewedAt: string | null;
                                 revision: number;
                                 sourceAttemptId: string | null;
@@ -19313,6 +19649,8 @@ export interface paths {
                             residence: {
                                 declared: {
                                     country: string | null;
+                                    heldAt?: string | null;
+                                    manualReview?: boolean;
                                     secondCountry: string | null;
                                     status: "UNVERIFIED" | "COLLECTING" | "REVIEW_PENDING" | "REJECTED" | "BLOCKED";
                                     updatedAt: string | null;
@@ -19402,6 +19740,7 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
+                    attemptId?: string;
                     feature?: "bank" | "card" | "local" | "pix";
                 };
                 header?: never;
@@ -19640,6 +19979,142 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users/kyc/reverification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: {
+                    /** @description Feature re-verification requires version 3 or higher. */
+                    "x-kyc-client"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        feature: "bank" | "card" | "local";
+                        /** Format: uuid */
+                        requestKey: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "attemptId": "00000000-0000-4000-8000-000000000001",
+                         *       "entry": {
+                         *         "attemptId": "00000000-0000-4000-8000-000000000001",
+                         *         "feature": "bank",
+                         *         "kind": "reverify_for_feature",
+                         *         "targetProvider": "BRIDGE"
+                         *       },
+                         *       "status": "COLLECTING"
+                         *     }
+                         */
+                        "application/json": {
+                            attemptId: string;
+                            entry: {
+                                attemptId: string | null;
+                                feature: "bank" | "card" | "local";
+                                /** @enum {string} */
+                                kind: "reverify_for_feature";
+                                targetProvider: "BRIDGE" | "RAIN" | "MANTECA" | "AVENIA";
+                            };
+                            status: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code: string;
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        } | {
+                            code: string;
+                            error: string;
+                            message: string;
+                            statusCode: number;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code: string;
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            code: "reverification_finished";
+                            error: string;
+                            message: string;
+                            outcome: "APPROVED" | "REJECTED" | "SUPERSEDED";
+                            userMessage: string;
+                        } | {
+                            code: "kyc_client_update_required" | "reverification_not_required" | "feature_not_open" | "feature_setup_pending";
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code: string;
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users/kyc/start-action": {
         parameters: {
             query?: never;
@@ -19690,6 +20165,51 @@ export interface paths {
                             status?: "collecting" | "completed";
                             sumsubAccessToken?: string;
                             verificationUrl?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            code: "feature_reverification_required";
+                            entry: {
+                                attemptId: string | null;
+                                feature: "bank" | "card" | "local";
+                                /** @enum {string} */
+                                kind: "reverify_for_feature";
+                                targetProvider: "BRIDGE" | "RAIN" | "MANTECA" | "AVENIA";
+                            };
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        } | {
+                            code: "feature_setup_unavailable" | "feature_setup_pending" | "feature_not_open";
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        } | {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code: "feature_setup_unavailable" | "feature_setup_pending" | "feature_not_open";
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        } | {
+                            [key: string]: unknown;
                         };
                     };
                 };
@@ -20054,6 +20574,8 @@ export interface paths {
                             residence: {
                                 declared: {
                                     country: string | null;
+                                    heldAt?: string | null;
+                                    manualReview?: boolean;
                                     secondCountry: string | null;
                                     status: "UNVERIFIED" | "COLLECTING" | "REVIEW_PENDING" | "REJECTED" | "BLOCKED";
                                     updatedAt: string | null;
@@ -20603,6 +21125,8 @@ export interface paths {
                          *       "residence": {
                          *         "declared": {
                          *           "country": "PT",
+                         *           "heldAt": "2026-01-01T00:00:00.000Z",
+                         *           "manualReview": true,
                          *           "secondCountry": null,
                          *           "status": "REVIEW_PENDING",
                          *           "updatedAt": "2026-01-01T00:00:00.000Z"
@@ -20645,6 +21169,8 @@ export interface paths {
                             residence: {
                                 declared: {
                                     country: string | null;
+                                    heldAt?: string | null;
+                                    manualReview?: boolean;
                                     secondCountry: string | null;
                                     status: "UNVERIFIED" | "COLLECTING" | "REVIEW_PENDING" | "REJECTED" | "BLOCKED";
                                     updatedAt: string | null;
@@ -21099,6 +21625,20 @@ export interface paths {
                 };
                 /** @description Default Response */
                 502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            retryAfterSeconds?: number;
+                            userMessage?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
                     headers: {
                         [name: string]: unknown;
                     };

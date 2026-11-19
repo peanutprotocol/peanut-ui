@@ -49,7 +49,7 @@ describe('saveKycAnswers', () => {
             expect.objectContaining({
                 method: 'PUT',
                 body: JSON.stringify({ values: { cardPurpose: 'travel' } }),
-                headers: { 'x-kyc-client': '2' },
+                headers: { 'x-kyc-client': '3' },
                 redactTelemetry: true,
                 cache: 'no-store',
             })
@@ -342,7 +342,7 @@ describe('savePaperworkVerificationFeatures', () => {
         await expect(savePaperworkVerificationFeatures(features)).resolves.toEqual({ kind: 'saved' })
         expect(mockFetch).toHaveBeenCalledWith(
             '/users/kyc-intents',
-            expect.objectContaining({ method: 'PUT', headers: { 'x-kyc-client': '2' } })
+            expect.objectContaining({ method: 'PUT', headers: { 'x-kyc-client': '3' } })
         )
     })
 
@@ -371,7 +371,7 @@ describe('skipProofOfAddress', () => {
             expect.objectContaining({
                 method: 'POST',
                 body: '{}',
-                headers: { 'x-kyc-client': '2' },
+                headers: { 'x-kyc-client': '3' },
                 cache: 'no-store',
                 redactTelemetry: true,
             })

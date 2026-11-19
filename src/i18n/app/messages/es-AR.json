@@ -1058,7 +1058,7 @@
             "restartTitle": "Verificate con otro documento",
             "fixableDescription": "Necesitamos un documento actualizado para habilitar los pagos con QR. Subí una foto más clara de tu identificación.",
             "restartDescription": "Los pagos con QR necesitan un documento de un país compatible. Podés verificarte con otra identificación.",
-            "blockedDescription": "Los pagos con QR no están disponibles para tu cuenta. Contactá a soporte para recibir ayuda.",
+            "blockedDescription": "Los pagos con QR no están disponibles para tu cuenta. Contactá a soporte.",
             "verifyAgain": {
                 "documentMissing": {
                     "title": "Agregá tu documento otra vez",
@@ -1868,6 +1868,11 @@
             "servedElsewhere": "Los depósitos, retiros, transferencias y pagos con QR por Pix están disponibles donde vivís."
         },
         "paperworkVerification": {
+            "reverify": {
+                "inviteTitle": "Volvé a verificar tu identidad",
+                "documentMismatch": "Tu documento es de otro país. Elegí uno para volver a intentarlo.",
+                "pendingDescription": "Podés seguir usando tus cuentas actuales."
+            },
             "phoneHelp": "Incluí el código de tu país, como +54.",
             "hints": {
                 "purpose": "Elegí la opción más parecida.",

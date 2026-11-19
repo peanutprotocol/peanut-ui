@@ -1808,10 +1808,10 @@
             "notNow": "Not now",
             "fixableTitle": "We need an updated document",
             "restartTitle": "Verify with a different document",
-            "blockedTitle": "QR payments are not available",
+            "blockedTitle": "QR payments unavailable",
             "fixableDescription": "We need an updated document to enable QR payments. Please upload a clearer photo of your ID.",
             "restartDescription": "QR payments need a document from a supported country. You can verify with a different ID.",
-            "blockedDescription": "QR payments are not available for your account. Contact support for help.",
+            "blockedDescription": "QR payments are unavailable for your account. Contact support.",
             "uploadDocument": "Upload document",
             "verifyAgain": {
                 "documentMissing": {
@@ -3870,6 +3870,19 @@
             "servedElsewhere": "Pix deposits, withdrawals, transfers and QR payments are available where you live."
         },
         "paperworkVerification": {
+            "reverify": {
+                "inviteTitle": "Verify your identity again",
+                "inviteCard": "Required to set up your card.",
+                "inviteBank": "Required to open your bank account.",
+                "inviteLocal": "Required to open your local account.",
+                "documentMismatch": "Your ID is from another country. Choose a document to retry.",
+                "pendingTitle": "We’re reviewing your identity",
+                "pendingDescription": "Your existing accounts stay available.",
+                "refusalTitle": "We couldn’t verify your identity again",
+                "refusalCard": "Card setup failed. Your existing accounts stay available.",
+                "refusalBank": "Bank account setup failed. Your existing accounts stay available.",
+                "refusalLocal": "Local account setup failed. Your existing accounts stay available."
+            },
             "back": "Go back",
             "progress": "Step {current} of {total}",
             "continue": "Continue",

@@ -17,10 +17,16 @@ import type {
 } from './types/kyc-paperwork-verification.types'
 import { KycFlowHandedBackError } from './kyc-flow-hand-back'
 
-const featureQuery = (feature?: PaperworkQuestionsFeature) => (feature ? `?feature=${feature}` : '')
+const featureQuery = (feature?: PaperworkQuestionsFeature, attemptId?: string) => {
+    const query = new URLSearchParams()
+    if (feature) query.set('feature', feature)
+    if (attemptId) query.set('attemptId', attemptId)
+    const search = query.toString()
+    return search ? `?${search}` : ''
+}
 
 // Answers carry tax numbers and addresses: never in telemetry, never cached.
-async function call(path: string, step: string, init?: RequestInit) {
+async function call(path: string, step: string, init?: RequestInit & { beforeDispatch?: () => boolean }) {
     try {
         const response = await serverFetch(path, {
             ...init,
@@ -114,9 +120,17 @@ export async function searchKycPlaces(country: string, query: string): Promise<K
 
 const valueKind = (value: unknown): string => (value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value)
 
-export async function getKycQuestions(feature?: PaperworkQuestionsFeature): Promise<PaperworkVerificationQuestions> {
+export async function getKycQuestions(
+    feature?: PaperworkQuestionsFeature,
+    attemptId?: string,
+    beforeDispatch?: () => boolean
+): Promise<PaperworkVerificationQuestions> {
     for (let attempt = 0; attempt < 2; attempt++) {
-        const response = await call(`/users/kyc/questions${featureQuery(feature)}`, 'questions_read')
+        const response = await call(
+            `/users/kyc/questions${featureQuery(feature, attemptId)}`,
+            'questions_read',
+            beforeDispatch ? { beforeDispatch } : undefined
+        )
         if (!response.ok) {
             const body = await json(response)
             if (handedBack(response, body)) throw new KycFlowHandedBackError()
@@ -167,13 +181,16 @@ export async function saveKycAnswers(
     step: PaperworkVerificationStepId,
     values: PaperworkVerificationAnswers,
     feature?: PaperworkQuestionsFeature,
-    expectedUserId?: string
+    expectedUserId?: string,
+    attemptId?: string,
+    beforeDispatch?: () => boolean
 ): Promise<SaveAnswersResult> {
     let response: Response
     try {
-        response = await call(`/users/kyc/answers/${step}${featureQuery(feature)}`, 'step_save', {
+        response = await call(`/users/kyc/answers/${step}${featureQuery(feature, attemptId)}`, 'step_save', {
             method: 'PUT',
             body: JSON.stringify({ values, ...(expectedUserId && { expectedUserId }) }),
+            ...(beforeDispatch && { beforeDispatch }),
         })
     } catch {
         return { kind: 'retry' }
@@ -208,13 +225,15 @@ export type PaperworkVerificationTokenResult =
 
 export async function startPaperworkVerificationIdentity(
     attemptId: string,
-    document?: PaperworkVerificationDocument
+    document?: PaperworkVerificationDocument,
+    beforeDispatch?: () => boolean
 ): Promise<PaperworkVerificationTokenResult> {
     let response: Response
     try {
         response = await call(`/users/kyc/attempts/${encodeURIComponent(attemptId)}/token`, 'identity_session', {
             method: 'POST',
             body: JSON.stringify({ document }),
+            ...(beforeDispatch && { beforeDispatch }),
         })
     } catch {
         return { kind: 'failed' }
@@ -231,6 +250,7 @@ export async function startPaperworkVerificationIdentity(
     }
     if (!response.ok) return { kind: 'failed', ...message }
     try {
+        if (beforeDispatch && body?.attemptId !== attemptId) throw new Error('KYC session belongs to another attempt')
         return { kind: 'session', session: validSession(body, !!document) }
     } catch (error) {
         Sentry.captureException(error, { tags: { ...criticalFlowTags('kyc'), kyc_step: 'identity_session' } })
