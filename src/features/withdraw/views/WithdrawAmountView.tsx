@@ -129,6 +129,7 @@ export const WithdrawAmountView: FC<WithdrawAmountViewProps> = ({
                 <Button
                     variant="primary"
                     shadowSize="4"
+                    data-testid="withdraw-amount-continue"
                     onClick={onContinue}
                     disabled={continueDisabled}
                     loading={isLoading}

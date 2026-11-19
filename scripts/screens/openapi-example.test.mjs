@@ -33,7 +33,10 @@ const SPEC = {
         },
         '/codes/text': { get: { responses: { 200: { content: { 'text/plain': { example: 'plain' } } } } } },
         '/codes/errors-only': { get: { responses: { 400: json({ error: 'bad' }) } } },
-        '/codes/no-body': { delete: { responses: { 204: json(null) } } },
+        '/codes/no-body': {
+            delete: { responses: { 204: json(null) } },
+            head: { responses: { 200: { description: 'Available' } } },
+        },
         '/codes/null': { get: { responses: { 200: json(null) } } },
         '/examples': {
             get: {
@@ -148,6 +151,7 @@ test('answers with the lowest 2xx JSON response that documents an example', () =
             ['GET', '/codes/text'],
             ['GET', '/codes/errors-only'],
             ['DELETE', '/codes/no-body'],
+            ['HEAD', '/codes/no-body'],
             ['GET', '/codes/null'],
         ]),
         [
@@ -155,7 +159,8 @@ test('answers with the lowest 2xx JSON response that documents an example', () =
             { status: 201, data: { created: true } },
             'none',
             'none',
-            'none',
+            { status: 204 },
+            { status: 200 },
             { status: 200, data: null },
         ]
     )

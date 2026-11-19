@@ -45,7 +45,9 @@ export function ContributorsDrawer({ contributors }: ContributorsDrawerProps) {
     return (
         <Drawer>
             <DrawerTrigger asChild>
-                <LinkButton className="self-start">{t('contributors.seeAll')}</LinkButton>
+                <LinkButton data-testid="contributors-open" className="self-start">
+                    {t('contributors.seeAll')}
+                </LinkButton>
             </DrawerTrigger>
             <DrawerContent className="py-6">
                 <DrawerHeader>

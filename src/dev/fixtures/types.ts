@@ -1,3 +1,20 @@
+export const OPEN_DIALOG = '[role="dialog"]:not([aria-modal="false"])'
+export const HOME_ADD_DRAWER_CHECKPOINT = '[role="dialog"][data-state="open"] [data-testid="home-drawer-add-more"]'
+export type CaptureRecipe = {
+    /** Optional stable control(s) to reach the state before capture. */
+    actions?: Array<
+        | { click: string }
+        | { clickSelector: string }
+        | { tap: string }
+        | { tapSelector: string }
+        | { reveal: string }
+        | { fill: { selector: string; value: string } }
+    >
+    /** Visible component-owned evidence that the requested state rendered. */
+    expectSelector?: string
+    requiresSource?: string
+}
+
 /** One named app state — a screen plus the API answers that produce it. */
 export type Fixture = {
     /** Route the fixture is built for. The listing page links here with the param applied. */
@@ -7,6 +24,19 @@ export type Fixture = {
      * under test. The capture opens `route` and shoots once it lands here.
      */
     landsOn?: string
+    /** Optional interaction and visible evidence supplied by the state owner. */
+    capture?: CaptureRecipe
+    /** Additional named views of the same fixture, e.g. a drawer reached from its page. */
+    views?: Array<
+        CaptureRecipe & {
+            id: string
+            name: string
+            flow: string
+            route: string
+            camera?: 'synthetic' | 'denied'
+            clickTestIds?: string[]
+        }
+    >
     /** What the fixture proves. One line, shown on /dev/fixtures. */
     about: string
     /**
@@ -21,6 +51,8 @@ export type Fixture = {
      * So an empty state is `{ entries: [] }` and a renamed user is one line.
      */
     responses?: Record<string, unknown>
+    /** Entries in responses that specify the entire answer, including which fields are absent. */
+    completeResponses?: string[]
     /**
      * Wallet balance in USD, e.g. `'0.17'`. The balance is not an API answer —
      * fixtures ride the demo balance overlay — so a state that depends on it

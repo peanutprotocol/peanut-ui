@@ -143,6 +143,7 @@ const InputAmountStep = ({
                 <Button
                     variant="primary"
                     shadowSize="4"
+                    data-testid="deposit-amount-continue"
                     onClick={onSubmit}
                     disabled={
                         !!error ||

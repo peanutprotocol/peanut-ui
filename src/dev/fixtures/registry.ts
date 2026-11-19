@@ -9,7 +9,7 @@
 // responses were checked against production on 2026-04-16. That file is gone;
 // this registry replaced it.
 
-import type { Fixture } from './types'
+import { OPEN_DIALOG, HOME_ADD_DRAWER_CHECKPOINT, type Fixture } from './types'
 import ATTENTION_POLICY from '@/features/attention/catalogue.generated.json'
 import { DOWNLOAD_PROMPT_FIXTURE } from './active'
 import type { RainCardFunding, RainFundingAccess, RainFundingManagementStatus } from '@/services/rain'
@@ -98,7 +98,18 @@ const KYC_FEATURE_ACTIVATION_FIXTURES: Record<string, Fixture> = Object.fromEntr
                 `feature-activation-${feature}-${state.replaceAll('_', '-')}`,
                 {
                     route,
+                    capture:
+                        ['bank', 'local'].includes(feature) && !['ready', 'on'].includes(state)
+                            ? { actions: [{ clickSelector: '[data-testid="kyc-activation-continue"]' }] }
+                            : undefined,
                     about: `First use ${feature}: ${state}; approved workflow identity, synthetic provider responses only.`,
+                    completeResponses: [
+                        key,
+                        'GET /users/kyc/questions',
+                        'GET /users/kyc/plan',
+                        'GET /users/kyc/profile',
+                        'POST /users/kyc/start-action',
+                    ],
                     balance: '20',
                     responses: {
                         ...PAPERWORK_VERIFICATION_FIXTURES['paperwork-verification-verified'].responses,
@@ -2285,7 +2296,10 @@ const SETUP_REDESIGN_FIXTURES: Record<string, Fixture> = {
     'setup-redesign-username-return-taken': setupRedesign(
         'username-return',
         '02 Username opened again on a name someone just registered: taken, field focused.',
-        { responses: { 'HEAD /users/username/luckyotter': USERNAME_TAKEN_ANSWER } }
+        {
+            capture: { expectSelector: '[data-setup-stage][data-setup-state="taken"]' },
+            responses: { 'HEAD /users/username/luckyotter': USERNAME_TAKEN_ANSWER },
+        }
     ),
 
     'setup-redesign-passkey-default': setupRedesign('passkey', '03 Passkey: create the passkey for @luckyotter.', {
@@ -2447,7 +2461,8 @@ const SETUP_REDESIGN_FIXTURES: Record<string, Fixture> = {
     'setup-redesign-final-success': setupRedesign('final', '11 Final confirm: signed, finishing.'),
     'setup-redesign-final-network-busy': setupRedesign(
         'final',
-        '11 Final confirm: the network is busy, Confirm later.'
+        '11 Final confirm: the network is busy, Confirm later.',
+        { capture: { expectSelector: '[data-testid="setup-redesign-final-confirm"][data-setup-state="network-busy"]' } }
     ),
     'setup-redesign-final-network-busy-first': setupRedesign('final', '11 Final confirm: the first busy answer.'),
     'setup-redesign-final-setup-failed': setupRedesign('final', '11 Final confirm: the account setup failed.'),
@@ -2467,19 +2482,33 @@ const SETUP_REDESIGN_FIXTURES: Record<string, Fixture> = {
     'setup-redesign-final-error-passkey': setupRedesign('final', '11 Final confirm: the passkey was interrupted.'),
     'setup-redesign-final-finish-route': setupRedesign(
         'final-finish',
-        '11 Final confirm on /setup/finish, with Log out.'
+        '11 Final confirm on /setup/finish, with Log out.',
+        {
+            responses: { 'GET /users/me': { accounts: [] } },
+            capture: { expectSelector: '[data-testid="setup-redesign-below"]' },
+        }
     ),
 
     'setup-redesign-celebration-default': setupRedesign(
         'celebration',
-        '12 Celebration: ready to verify and add money.'
+        '12 Celebration: ready to verify and add money.',
+        { capture: { expectSelector: '[data-testid="setup-redesign-celebration"]' } }
     ),
-    'setup-redesign-celebration-claim-link': setupRedesign('celebration-claim', '12 Celebration after a claim link.'),
+    'setup-redesign-celebration-claim-link': setupRedesign('celebration-claim', '12 Celebration after a claim link.', {
+        capture: { expectSelector: '[data-testid="setup-redesign-celebration"][data-setup-state="claim-link"]' },
+    }),
 }
 
 export const FIXTURES: Record<string, Fixture> = {
     ...SETUP_REDESIGN_FIXTURES,
     'setup-signup-reserved': {
+        capture: {
+            actions: [
+                { fill: { selector: '[data-testid="username-input"]', value: 'kimchi' } },
+                { clickSelector: '[data-testid="username-claim"]' },
+            ],
+            expectSelector: '[data-setup-stage][data-setup-state="reserved"]',
+        },
         route: '/dev/surfaces?s=06-a-signup',
         about: 'Claim username — reserved-name error returned by the server.',
         rejects: {
@@ -2488,6 +2517,10 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'setup-passkey-username-taken': {
+        capture: {
+            actions: [{ clickSelector: '[data-testid="passkey-create"]' }],
+            expectSelector: '[data-testid="passkey-log-in"]',
+        },
         route: '/dev/surfaces?s=06-c-passkey',
         about: 'Create passkey — username taken error with Log in offered.',
         responses: {
@@ -2497,6 +2530,9 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'profile-accounts-card-state-blocked': {
+        capture: {
+            expectSelector: '[role="dialog"][data-state="open"][data-testid="closed-row-drawer"]',
+        },
         route: '/dev/surfaces?s=deposit-card-state-blocked',
         about: 'Closed card row drawer — card unavailable in a US resident’s state.',
         responses: {
@@ -2589,6 +2625,16 @@ export const FIXTURES: Record<string, Fixture> = {
     },
     profile: { route: '/settings', about: 'Profile menu, verified user, card row present.' },
     'profile-edit': {
+        views: [
+            {
+                id: 'qr-camera-permission',
+                name: 'QR scanner — camera permission needed',
+                flow: 'Payments',
+                route: '/dev/surfaces?s=54-d-qrbottomdrawer',
+                camera: 'denied',
+                expectSelector: '[data-testid="camera-permission-title"]',
+            },
+        ],
         route: '/settings/details',
         about: 'Account details with email settings.',
         responses: { 'GET /users/me': { profileNameLocked: true }, 'POST /users/email-change': { success: true } },
@@ -2656,6 +2702,7 @@ export const FIXTURES: Record<string, Fixture> = {
         (['pending', 'expired'] as const).map((status) => [
             `add-money-argentina-deposit-${status}`,
             {
+                capture: { actions: [{ clickSelector: '[data-testid="deposit-amount-continue"]' }] },
                 route: '/add-money/argentina/manteca?step=inputAmount&amount=10000&currency=ARS',
                 geoCountry: 'AR',
                 about: `ARS deposit ${status}: continue to ${status === 'pending' ? 'the transfer deadline' : 'the expired order and start-over button'}.`,
@@ -3668,6 +3715,10 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'qr-pay-avenia-amount-held': {
+        capture: {
+            actions: [{ clickSelector: '[data-testid="qr-pay-confirm"]' }, { reveal: '[data-testid="error-alert"]' }],
+            expectSelector: '[data-testid="error-alert"]',
+        },
         route: qrPayRoute(PIX_QR_FIXED_AMOUNT),
         about: 'A Pix code whose amount another open payment of the user still holds (409 WITHDRAWAL_IN_PROGRESS at Pay): the QR line that says so.',
         responses: aveniaQrResponses(),
@@ -3871,6 +3922,15 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'qr-pay-brazil-resident': {
+        views: [
+            {
+                id: 'qr-scanner-brazil-resident',
+                name: 'QR scanner — Brazilian resident, Pix hidden',
+                flow: 'Payments',
+                route: '/dev/surfaces?s=54-d-qrbottomdrawer',
+                camera: 'synthetic',
+            },
+        ],
         route: PIX_QR_ROUTE,
         about: 'A Brazilian resident reaches a Pix deep link: the pay route refuses the residence before init.',
         responses: {
@@ -4105,6 +4165,7 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'card-verification-open': {
+        capture: { expectSelector: '[data-testid="card-verification-continue"]' },
         route: '/card',
         about: 'Existing cardholder can complete a pending card verification while card controls remain available.',
         responses: {
@@ -4123,6 +4184,7 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'card-verification-checking': {
+        capture: { expectSelector: '[data-testid="your-card-screen"]' },
         route: '/card',
         about: 'Existing cardholder while a previously opened card verification is being checked.',
         responses: {
@@ -4140,6 +4202,7 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'card-verification-unavailable': {
+        capture: { expectSelector: '[data-testid="your-card-screen"]' },
         route: '/card',
         about: 'Existing cardholder when the optional card verification status cannot be read.',
         responses: {
@@ -4458,6 +4521,7 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'card-pending': {
+        isLoadingState: true,
         route: '/card',
         about: 'Existing card application keeps its provider review status.',
         responses: {
@@ -4998,6 +5062,7 @@ export const FIXTURES: Record<string, Fixture> = {
     },
 
     reconsent: {
+        capture: { expectSelector: '[data-testid="reconsent-documents"]' },
         route: '/home',
         about: 'Re-consent modal over home: two updated documents as a centered link line.',
         responses: {
@@ -5058,6 +5123,7 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'avatar-picker': {
+        capture: { requiresSource: 'src/components/Avatar/AvatarPicker.tsx' },
         route: AVATAR_PICKER_PATH,
         about: 'Avatar picker open: one 3x3 screen on every phone, the initial first, a Bug Whisperer avatar guaranteed, beetle selected, the die last.',
         responses: {
@@ -5093,6 +5159,7 @@ export const FIXTURES: Record<string, Fixture> = {
     },
 
     'early-user': {
+        capture: { expectSelector: '[data-testid="early-user-content"]' },
         route: '/home',
         about: 'Early-user reward drawer over home, opened by the user flag.',
         responses: {
@@ -5307,6 +5374,16 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: VA_READY_RESPONSE,
     },
     'profile-accounts-br-resident': {
+        views: [
+            {
+                id: 'profile-brazil-qr-details',
+                name: 'Brazilian resident — Argentina QR payments remain available',
+                flow: 'Payments',
+                route: '/profile/payments',
+                clickTestIds: ['method-row-qr-pay'],
+                expectSelector: '[role="dialog"][data-state="open"] [data-testid="payment-method-details-title"]',
+            },
+        ],
         route: '/profile/accounts',
         about: "Accounts page, a Brazilian resident whose Pix deposit route is Avenia's: no BRL row, Pix leads Home's Add money drawer instead (Aleks, 2026-11-12 and 2026-11-14).",
         responses: {
@@ -5321,6 +5398,17 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'profile-accounts-br-pix-refused': {
+        views: [
+            {
+                id: 'profile-brazil-bank-details',
+                name: "Brazilian resident — BRL row closed by its refused Pix route, the drawer says the route's reason",
+                flow: 'Payments',
+                route: '/profile/accounts',
+                clickTestIds: ['bank-row-brl'],
+                // the open drawer's own title; a bare [role="dialog"] can match a hidden one first
+                expectSelector: '[role="dialog"][data-state="open"] [data-testid="closed-row-title"]',
+            },
+        ],
         route: '/profile/accounts',
         about: "Accounts page, a Brazilian resident whose Pix deposit route is refused: the BRL row stays, closed, and its drawer says the route's reason.",
         responses: (() => {
@@ -5551,10 +5639,12 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'home-send-drawer': {
+        capture: { expectSelector: OPEN_DIALOG },
         route: '/home?drawer=send',
         about: 'The Send drawer — send to friends, or withdraw to own accounts.',
     },
     'home-add-drawer': {
+        capture: { expectSelector: HOME_ADD_DRAWER_CHECKPOINT },
         route: '/home?drawer=add',
         about: 'Returning user with a usable EUR account and a completed peer payment.',
         responses: {
@@ -5566,6 +5656,7 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     'add-money-picker-first-time': {
+        capture: { expectSelector: '[data-testid="add-money-method-crypto"]' },
         route: '/add-money',
         balance: '0',
         about: 'First-time Add money picker for a resident of Portugal, with Crypto available before identity verification, and no Pix row (the owner, 15 Nov).',
@@ -5586,11 +5677,19 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: aveniaResponses('enabled'),
     },
     'home-add-drawer-pix': {
+        capture: { expectSelector: '[role="dialog"][data-state="open"] [data-testid="home-drawer-add-pix"]' },
         route: '/home?drawer=add',
         about: 'The Add drawer for a resident of Brazil on Avenia: Pix leads, bank transfer next, crypto last (Aleks, 2026-11-12 and 2026-11-14).',
-        responses: aveniaResponses('enabled'),
+        responses: {
+            ...aveniaResponses('enabled'),
+            'GET /users/me': {
+                ...aveniaResponses('enabled')['GET /users/me'],
+                user: { fullName: 'Ana Souza', firstPaymentAt: '2026-09-15T00:00:00Z' },
+            },
+        },
     },
     'home-add-drawer-pix-paused': {
+        capture: { expectSelector: OPEN_DIALOG },
         route: '/home?drawer=add',
         about: 'The Add drawer for a returning resident of Brazil under the Brazil pause: no Pix row; bank accounts, crypto and more ways (the owner, 15 Nov).',
         responses: {
@@ -5622,6 +5721,7 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: { ...VA_READY_RESPONSE, 'GET /users/deposit-accounts': { depositAccounts: [] } },
     },
     'home-request-drawer': {
+        capture: { expectSelector: OPEN_DIALOG },
         route: '/home?drawer=request',
         about: 'The Request drawer — share a request link, or share standing bank details.',
     },
