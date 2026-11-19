@@ -81,7 +81,7 @@ jobs:
             # For a workflow_run event github.sha is the default branch head,
             # so this checks out trusted code — never the PR. No git commands
             # run after checkout, so the token is not persisted.
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v7
               with:
                   persist-credentials: false
 
