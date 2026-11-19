@@ -273,8 +273,7 @@ export const APP_ICON_ENTRIES: ArtEntry[] = [
 export const INVITE_HEART_ENTRY = {
     label: 'invite-heart',
     path: 'components/Global/Icons/invite-heart.tsx',
-    usedIn:
-        'Invite buttons and invite rows: profile header, Rewards, QR pay success, receipt referral action. Also the perk gift box and the charitable donations answer in the paperwork questions',
+    usedIn: 'Invite buttons and invite rows: profile header, Rewards, QR pay success, receipt referral action. Also the perk gift box and the charitable donations answer in the paperwork questions',
 }
 
 export const APP_ICON_RULE =
