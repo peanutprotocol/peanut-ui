@@ -428,7 +428,8 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             label: 'ScanFrame',
             icon: ScanLine,
             href: '/dev/ds/primitives/scan-frame',
-            description: 'Scanner corner marks round approved art, with an optional scan line. Code-only, ruling pending',
+            description:
+                'Scanner corner marks round approved art, with an optional scan line. Code-only, ruling pending',
             status: 'limited',
         },
         {
