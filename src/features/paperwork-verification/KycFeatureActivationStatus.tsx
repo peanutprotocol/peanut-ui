@@ -10,6 +10,9 @@ import { VerifyFooter, VerifyHeroLayout } from './components/VerifyLayout'
 import { FeatureReadyScreen } from './components/StatusScreens'
 import { useKycControl } from './analytics'
 import type { FeatureReportEntry } from '@/types/capabilities'
+import type { FeatureReverificationEntry } from '@/app/actions/types/kyc-reverification.types'
+import { currentReverificationDestination, featureReverificationPath } from '@/utils/kyc-reverification'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 
 export function KycFeatureActivationStatus({
     feature,
@@ -19,6 +22,7 @@ export function KycFeatureActivationStatus({
     isLoading,
     onRetry,
     onBack,
+    reverification,
 }: {
     /** The feature whose words the screen shows; the Pix screens show local's for `pix`. */
     feature: Exclude<KycActivationFeature, 'pix'>
@@ -28,10 +32,44 @@ export function KycFeatureActivationStatus({
     isLoading: boolean
     onRetry: () => void
     onBack: () => void
+    reverification?: FeatureReverificationEntry | null
 }) {
     const t = useTranslations('kyc.paperworkVerification')
     const controls = useKycControl('feature-status', 'kyc_status')
     const tKyc = useTranslations('kyc')
+    const entry =
+        reverification ??
+        (result?.kind === 'conflict' && result.code === 'feature_reverification_required' ? result.entry : null)
+    if (entry)
+        return (
+            <VerifyHeroLayout
+                statusTone="warning"
+                screenId="feature-reverification-invitation"
+                pose="thinking"
+                onBack={onBack}
+                title={t('reverify.inviteTitle')}
+                description={t(
+                    entry.feature === 'card'
+                        ? 'reverify.inviteCard'
+                        : entry.feature === 'bank'
+                          ? 'reverify.inviteBank'
+                          : 'reverify.inviteLocal'
+                )}
+                footer={
+                    <VerifyFooter
+                        actions={
+                            <LinkButton
+                                data-testid="feature-reverification-open"
+                                className="w-full"
+                                href={featureReverificationPath(entry, currentReverificationDestination())}
+                            >
+                                {t('continue')}
+                            </LinkButton>
+                        }
+                    />
+                }
+            />
+        )
     const report = accountStatus ?? (result?.kind === 'report' ? result.report : null)
     if (report?.state === 'action_required' && report.action?.startsWith('supplement:')) {
         return <FeatureAction action={report.action} onBack={onBack} onDone={onRetry} />

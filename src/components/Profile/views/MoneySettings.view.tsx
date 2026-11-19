@@ -233,9 +233,11 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
         if (openView === 'residence') router.replace(RESIDENCE_CHANGE_HREF)
     }, [openView, router])
     const [activeRegionIntent, setActiveRegionIntent] = useState<KYCRegionIntent | undefined>(undefined)
+    const [activeQrUnlock, setActiveQrUnlock] = useState(false)
     const [errorAcknowledged, setErrorAcknowledged] = useState(false)
 
     const clickedRegionIntent = selectedRegion ? getRegionIntent(selectedRegion.path) : undefined
+    const unlockingQr = selectedRowKey === 'qrPay'
     const clickedRegionProvider = providerForRegionIntent(clickedRegionIntent)
     // Same scope `bankChipFor` reads the chip from: the QR row has no country
     // of its own (the pool rails span both), so it keeps the provider-wide read.
@@ -340,13 +342,15 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
     // its Continue only lands there (the start answers paperwork_verification_required).
     const redirectingToVerify = usePaperworkVerificationRedirect(
         modalVariant === 'start' && !isRegionRestricted,
-        clickedRegionIntent
-            ? {
-                  intent: clickedRegionIntent,
-                  targetCountry:
-                      clickedRegionProvider === 'manteca' && clickedRowCountry ? clickedRowCountry : undefined,
-              }
-            : undefined,
+        unlockingQr
+            ? { feature: 'qr' }
+            : clickedRegionIntent
+              ? {
+                    intent: clickedRegionIntent,
+                    targetCountry:
+                        clickedRegionProvider === 'manteca' && clickedRowCountry ? clickedRowCountry : undefined,
+                }
+              : undefined,
         'payment_methods'
     )
 
@@ -354,6 +358,7 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
         setSelectedRegion(null)
         setSelectedRowKey(null)
         setActiveRegionIntent(undefined)
+        setActiveQrUnlock(false)
     }, [])
 
     const flow = useMultiPhaseKycFlow({
@@ -363,6 +368,7 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
             setSelectedRegion(null)
             setSelectedRowKey(null)
             setActiveRegionIntent(undefined)
+            setActiveQrUnlock(false)
         },
     })
 
@@ -371,15 +377,19 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
         setSelectedRowKey(null)
     }, [])
 
-    // Deliberately NO card redirect here (the old screen's Europe→/card hijack):
-    // the card is its own row with its own destination, so a bank-method tap can
-    // only ever start bank KYC.
+    // The card has its own destination. Bank rows use their corridor intent and the QR row uses pool access.
+    const { handleInitiateKyc, handleUnlockQr } = flow
     const handleStartKyc = useCallback(async () => {
-        const intent = selectedRegion ? getRegionIntent(selectedRegion.path) : undefined
-        if (intent) setActiveRegionIntent(intent)
         setErrorAcknowledged(false)
         setSelectedRegion(null)
         setSelectedRowKey(null)
+        setActiveQrUnlock(unlockingQr)
+        if (unlockingQr) {
+            setActiveRegionIntent(undefined)
+            await handleUnlockQr()
+            return
+        }
+        if (clickedRegionIntent) setActiveRegionIntent(clickedRegionIntent)
         // The backend only reads a target country as a Manteca geo (and refuses
         // any other), so the row's country goes along for the Manteca rows: it
         // names which of the two LATAM flows the tap meant, where a residence
@@ -387,8 +397,8 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
         const targetCountry = clickedRegionProvider === 'manteca' && clickedRowCountry ? clickedRowCountry : undefined
         // Always cross-region: a locked method has no functional rail behind it,
         // and the flag is a no-op for first-time KYC (retired UnlockedRegions view).
-        await flow.handleInitiateKyc(intent, undefined, true, targetCountry)
-    }, [flow.handleInitiateKyc, selectedRegion, clickedRegionProvider, clickedRowCountry])
+        await handleInitiateKyc(clickedRegionIntent, undefined, true, targetCountry)
+    }, [handleInitiateKyc, handleUnlockQr, unlockingQr, clickedRegionIntent, clickedRegionProvider, clickedRowCountry])
 
     const handleRowClick = useCallback(
         (row: UnlockRow) => {
@@ -415,6 +425,10 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
                 setDetailsRow(row)
                 return
             }
+            if (row.labelKey === 'qrPay' && activeQrUnlock && flow.isQrUnlockBlocked) {
+                setErrorAcknowledged(false)
+                return
+            }
             if (!row.regionPath) return
             // During a verification outage the unlock modal renders its degraded
             // variant (choke point in InitiateKycModal covers the other gates);
@@ -425,7 +439,17 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
             // name (display); icons are not shown in the modal itself.
             setSelectedRegion({ path: row.regionPath, name: t(`groups.${regionGroupKey(row.regionPath)}`), icon: '' })
         },
-        [router, t, isKycDegraded, cardEntry, arsSupportEntry, nextActions, setIsSupportModalOpen]
+        [
+            router,
+            t,
+            isKycDegraded,
+            cardEntry,
+            arsSupportEntry,
+            nextActions,
+            setIsSupportModalOpen,
+            activeQrUnlock,
+            flow.isQrUnlockBlocked,
+        ]
     )
 
     // What both forms of the shared list take from this screen.
@@ -436,7 +460,9 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
         isKycDegraded,
     }
 
-    const failedRegionRetriable = providerForRegionIntent(activeRegionIntent) !== null
+    const failedRegionRetriable = activeQrUnlock
+        ? !flow.isTerminalError
+        : providerForRegionIntent(activeRegionIntent) !== null
 
     // In-review line: submittedAt drives both the date and the 7-day
     // escalation. reviewedAt/updatedAt deliberately not used — the user cares
@@ -614,7 +640,7 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
                     hasQuestions={selectedRegion?.path === 'latam'}
                     source="payment_methods"
                     providerId={clickedProviderId}
-                    busy={flow.isLoading}
+                    busy={flow.isLoading || (unlockingQr && flow.isQrUnlockBlocked)}
                     onBack={handleModalClose}
                     onContinue={handleStartKyc}
                 />
@@ -728,9 +754,10 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
                                   text: tCommon('tryAgain'),
                                   variant: 'primary',
                                   shadowSize: '4',
-                                  disabled: flow.isLoading,
+                                  disabled: flow.isLoading || (activeQrUnlock && flow.isQrUnlockBlocked),
                                   onClick: () => {
-                                      void flow.handleInitiateKyc(activeRegionIntent, undefined, true)
+                                      if (activeQrUnlock) void handleUnlockQr()
+                                      else void handleInitiateKyc(activeRegionIntent, undefined, true)
                                   },
                               },
                           ]

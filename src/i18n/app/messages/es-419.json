@@ -1808,10 +1808,10 @@
             "notNow": "Ahora no",
             "fixableTitle": "Necesitamos un documento actualizado",
             "restartTitle": "Verifícate con otro documento",
-            "blockedTitle": "Los pagos con QR no están disponibles",
+            "blockedTitle": "Pagos con QR no disponibles",
             "fixableDescription": "Necesitamos un documento actualizado para habilitar los pagos con QR. Sube una foto más clara de tu identificación.",
             "restartDescription": "Los pagos con QR necesitan un documento de un país compatible. Puedes verificarte con otra identificación.",
-            "blockedDescription": "Los pagos con QR no están disponibles para tu cuenta. Contacta a soporte para recibir ayuda.",
+            "blockedDescription": "Los pagos con QR no están disponibles para tu cuenta. Contacta a soporte.",
             "uploadDocument": "Subir documento",
             "verifyAgain": {
                 "documentMissing": {
@@ -3870,6 +3870,19 @@
             "servedElsewhere": "Los depósitos, retiros, transferencias y pagos con QR por Pix están disponibles donde vives."
         },
         "paperworkVerification": {
+            "reverify": {
+                "inviteTitle": "Vuelve a verificar tu identidad",
+                "inviteCard": "Es necesario para configurar tu tarjeta.",
+                "inviteBank": "Es necesario para abrir tu cuenta bancaria.",
+                "inviteLocal": "Es necesario para abrir tu cuenta local.",
+                "documentMismatch": "Tu documento es de otro país. Elige uno para volver a intentarlo.",
+                "pendingTitle": "Estamos revisando tu identidad",
+                "pendingDescription": "Puedes seguir usando tus cuentas actuales.",
+                "refusalTitle": "No pudimos volver a verificar tu identidad",
+                "refusalCard": "No pudimos configurar tu tarjeta. Tus cuentas actuales siguen disponibles.",
+                "refusalBank": "No pudimos abrir tu cuenta bancaria. Tus cuentas actuales siguen disponibles.",
+                "refusalLocal": "No pudimos abrir tu cuenta local. Tus cuentas actuales siguen disponibles."
+            },
             "back": "Volver",
             "progress": "Paso {current} de {total}",
             "continue": "Continuar",

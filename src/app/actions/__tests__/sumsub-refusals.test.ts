@@ -30,10 +30,11 @@ jest.mock('@/utils/api-fetch', () => ({ serverFetch: jest.fn() }))
 
 const mockFetch = serverFetch as jest.MockedFunction<typeof serverFetch>
 
-const respondWith = (status: number, body: unknown) => {
+const respondWith = (status: number, body: unknown, retryAfter?: string) => {
     mockFetch.mockResolvedValue({
         ok: status >= 200 && status < 300,
         status,
+        headers: { get: (key: string) => (key.toLowerCase() === 'retry-after' ? (retryAfter ?? null) : null) },
         json: async () => body,
     } as unknown as Response)
 }
@@ -46,7 +47,7 @@ describe('initiateSumsubKyc — Smart Paperwork Verification users', () => {
         await initiateSumsubKyc({ regionIntent: 'EU' })
         expect(mockFetch).toHaveBeenCalledWith(
             '/users/identity',
-            expect.objectContaining({ headers: expect.objectContaining({ 'x-kyc-client': '2' }) })
+            expect.objectContaining({ headers: expect.objectContaining({ 'x-kyc-client': '3' }) })
         )
     })
 
@@ -54,6 +55,30 @@ describe('initiateSumsubKyc — Smart Paperwork Verification users', () => {
         respondWith(409, { error: 'paperwork_verification_required', code: 'paperwork_verification_required' })
         const result = await initiateSumsubKyc({ regionIntent: 'EU' })
         expect(result.code).toBe('paperwork_verification_required')
+        expect(result.data).toBeUndefined()
+    })
+})
+
+describe('explicit QR identity request', () => {
+    it('posts only the QR feature and accepts the pool approval without an SDK token', async () => {
+        const approval = { token: null, applicantId: 'applicant-1', status: 'APPROVED' }
+        respondWith(200, approval)
+        await expect(initiateSumsubKyc({ feature: 'qr' })).resolves.toMatchObject({ data: approval })
+        const [path, request] = mockFetch.mock.calls[0]
+        expect(path).toBe('/users/identity')
+        expect(request?.method).toBe('POST')
+        expect(JSON.parse(String(request?.body))).toEqual({ feature: 'qr' })
+    })
+
+    it.each([
+        [409, 'feature_not_open', undefined],
+        [503, 'feature_setup_unavailable', '2'],
+    ] as const)('preserves the QR refusal contract for %s %s', async (status, code, retryAfter) => {
+        const copy = 'QR payments are unavailable for this account.'
+        respondWith(status, { code, userMessage: copy, message: copy, error: copy }, retryAfter)
+        const result = await initiateSumsubKyc({ feature: 'qr' })
+        expect(result).toMatchObject({ code, error: copy })
+        expect(result.retryAfter).toBe(retryAfter)
         expect(result.data).toBeUndefined()
     })
 })
@@ -132,7 +157,7 @@ describe('initiateSumsubKyc — backend refusals', () => {
         expect(mockFetch).toHaveBeenCalledWith(
             '/users/identity',
             expect.objectContaining({
-                headers: { 'x-residence-format': 'compact', 'x-kyc-client': '2' },
+                headers: { 'x-residence-format': 'compact', 'x-kyc-client': '3' },
             })
         )
     })
@@ -159,7 +184,7 @@ describe('restartIdentityVerification — wire shape', () => {
             '/users/identity/restart',
             expect.objectContaining({
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-residence-format': 'compact', 'x-kyc-client': '2' },
+                headers: { 'Content-Type': 'application/json', 'x-residence-format': 'compact', 'x-kyc-client': '3' },
                 body: JSON.stringify({ regionIntent: 'LATAM' }),
             })
         )
@@ -282,7 +307,7 @@ describe('startResidenceChangeVerification — wire shape', () => {
 
         expect(mockFetch).toHaveBeenCalledWith('/users/residence-change/start', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-kyc-client': '2' },
+            headers: { 'Content-Type': 'application/json', 'x-kyc-client': '3' },
             body: JSON.stringify({ targetCountry: 'PT' }),
         })
         expect(result.data?.targetCountry).toBe('PT')
@@ -534,7 +559,7 @@ describe('KYC client version on every request', () => {
         respondWith(200, { token: 'token', applicantId: 'app', targetCountry: 'PT' })
         await call()
         expect(mockFetch).toHaveBeenCalledTimes(1)
-        expect(mockFetch.mock.calls[0][1]?.headers).toMatchObject({ 'x-kyc-client': '2' })
+        expect(mockFetch.mock.calls[0][1]?.headers).toMatchObject({ 'x-kyc-client': '3' })
     })
 })
 

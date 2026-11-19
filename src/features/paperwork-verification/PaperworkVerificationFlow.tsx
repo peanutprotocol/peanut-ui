@@ -18,6 +18,7 @@ import { verifiedFollowUps } from './followUps'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { useSessionFence } from '@/hooks/useSessionFence'
+import { captureSessionFence } from '@/utils/session-fence'
 import { useSumsubKycFlow } from '@/hooks/useSumsubKycFlow'
 import { useWebSocket } from '@/hooks/useWebSocket'
 import {
@@ -31,6 +32,8 @@ import { ResidenceCompare } from '@/components/Setup/components/ResidenceCompare
 import { storeDeclaredResidence } from '@/utils/declared-residence.storage'
 import { isKycFlowHandedBack } from '@/app/actions/kyc-flow-hand-back'
 import { findKycDocumentPlan, getKycDocumentStatus, refreshKycIdentityStatus } from '@/app/actions/kyc-workflow'
+import type { FeatureReverificationEntry } from '@/app/actions/types/kyc-reverification.types'
+import { safeReverificationReturnTo } from '@/utils/kyc-reverification'
 import type { SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 import type {
     PaperworkVerificationAnswers,
@@ -97,6 +100,36 @@ import { useVerificationOpening } from './useVerificationOpening'
 const STATUS_POLL_MS = 15_000
 const REFRESH_EVERY_POLLS = 4
 const SAVE_RETRY_DELAYS_MS = [1_000, 3_000]
+
+type Candidate = FeatureReverificationEntry & { attemptId: string }
+type CandidateProps = { candidate?: Candidate; startedStatus?: SumsubKycStatus; returnTo?: string | null }
+
+async function readCandidatePlan(candidate: Candidate) {
+    const plan = await findKycDocumentPlan('verify', undefined, undefined, candidate.attemptId)
+    const entry = plan?.entry
+    if (
+        entry?.attemptId !== candidate.attemptId ||
+        entry.feature !== candidate.feature ||
+        entry.targetProvider !== candidate.targetProvider ||
+        entry.prepared === false
+    )
+        return null
+    return plan ? { ...plan, proofOfAddress: undefined } : null
+}
+
+const normalizeCandidateStatus = (status: SumsubKycStatus): SumsubKycStatus =>
+    status === 'REVERIFYING' ? 'IN_REVIEW' : status
+
+const candidateSubmissionKey = (userId: string | undefined, attemptId: string) =>
+    `kyc:feature-reverification:submitted:${JSON.stringify([userId, attemptId])}`
+
+function candidateSubmissionPending(key: string) {
+    try {
+        return sessionStorage.getItem(key) === '1'
+    } catch {
+        return false
+    }
+}
 
 type Loaded = {
     questions: PaperworkVerificationQuestions
@@ -211,11 +244,14 @@ async function saveWithRetries(
     steps: PaperworkVerificationStep[],
     values: PaperworkVerificationAnswers,
     userId: string | undefined,
-    current: () => boolean
+    current: () => boolean,
+    candidate?: Candidate
 ): Promise<SaveOutcome> {
     for (let attempt = 0; ; attempt++) {
         if (!current()) return { ok: false, error: 'session_changed', formError: 'unavailable' } as const
-        const outcome = await saveSteps(steps, values, undefined, userId, current).catch(() => RETRY)
+        const outcome = await saveSteps(steps, values, candidate?.feature, userId, current, candidate?.attemptId).catch(
+            () => RETRY
+        )
         if (!current()) return { ok: false, error: 'session_changed', formError: 'unavailable' } as const
         if (outcome.ok || outcome.error !== 'retry' || attempt >= SAVE_RETRY_DELAYS_MS.length) return outcome
         await new Promise((resolve) => setTimeout(resolve, SAVE_RETRY_DELAYS_MS[attempt]))
@@ -228,14 +264,30 @@ async function saveWithRetries(
  * midpoint picks the ID, then Sumsub takes the photos and the selfie. The
  * server is the source of truth for every answer and for where to resume.
  */
-export function PaperworkVerificationFlow() {
+export function PaperworkVerificationFlow(props: CandidateProps = {}) {
     const { user } = useAuth()
     const userId = user?.user.userId
     // An account change remounts the private state and cancels its continuations.
-    return <PaperworkVerificationAccount key={userId ?? 'signed-out'} userId={userId} />
+    return (
+        <PaperworkVerificationAccount
+            key={JSON.stringify([
+                userId,
+                props.candidate?.attemptId,
+                props.candidate?.feature,
+                props.candidate?.targetProvider,
+            ])}
+            userId={userId}
+            {...props}
+        />
+    )
 }
 
-function PaperworkVerificationAccount({ userId }: { userId?: string }) {
+function PaperworkVerificationAccount({
+    userId,
+    candidate,
+    startedStatus,
+    returnTo,
+}: CandidateProps & { userId?: string }) {
     const router = useRouter()
     const queryClient = useQueryClient()
     const { user } = useAuth()
@@ -246,9 +298,10 @@ function PaperworkVerificationAccount({ userId }: { userId?: string }) {
         | { kind: 'failed' }
         | { kind: 'rejected'; status?: SumsubKycStatus }
         | { kind: 'setup'; needs: KycPlanNeed[] }
+        | { kind: 'candidate-terminal'; status: 'APPROVED' | 'REJECTED' }
         | ({ kind: 'ready'; fresh?: Loaded } & Loaded)
     >(() => {
-        const cached = cachedLoad(queryClient, userId)
+        const cached = candidate ? null : cachedLoad(queryClient, userId)
         return cached ? { kind: 'ready', ...cached } : { kind: 'loading' }
     })
     const opened = useRef(state.kind === 'ready' ? shapeOf(state) : null)
@@ -267,12 +320,46 @@ function PaperworkVerificationAccount({ userId }: { userId?: string }) {
         []
     )
 
+    const owner = useRef({ candidate, startedStatus, userId })
+    owner.current = { candidate, startedStatus, userId }
+
     // `quiet` refreshes a cached open behind its screens instead of showing the loading one.
     const load = useCallback(async (quiet = false) => {
         const generation = ++loadGeneration.current
-        const current = () => generation === loadGeneration.current
+        const { candidate, startedStatus, userId } = owner.current
+        const fence = candidate ? captureSessionFence(userId) : null
+        const current = () => generation === loadGeneration.current && (fence?.current() ?? true)
         if (!quiet) setState({ kind: 'loading' })
         try {
+            if (candidate) {
+                if (fence?.ready) await fence.ready
+                if (!current()) return
+                const status = (await getKycDocumentStatus(undefined, candidate.attemptId)) ?? startedStatus
+                if (!current()) return
+                if (status === 'APPROVED' || status === 'REJECTED') {
+                    setState({ kind: 'candidate-terminal', status })
+                    return
+                }
+                const [questions, candidatePlan] = await Promise.all([
+                    getKycQuestions(candidate.feature, candidate.attemptId, current),
+                    readCandidatePlan(candidate),
+                ])
+                if (!current()) return
+                if (!questions.available || questions.attemptId !== candidate.attemptId || !candidatePlan || !status)
+                    throw new Error('Candidate unavailable')
+                setState({
+                    kind: 'ready',
+                    questions,
+                    plan: candidatePlan,
+                    status:
+                        status === 'NOT_STARTED' &&
+                        candidateSubmissionPending(candidateSubmissionKey(userId, candidate.attemptId))
+                            ? 'PENDING'
+                            : normalizeCandidateStatus(status),
+                })
+                setGeneration((generation) => generation + 1)
+                return
+            }
             const [questionsRead, planRead, statusRead] = await Promise.allSettled([
                 // an older account the questions cannot be built for yet answers the setup screens first
                 getKycQuestions().catch((error: unknown) => (isKycFlowHandedBack(error) ? HANDED_BACK : null)),
@@ -328,7 +415,11 @@ function PaperworkVerificationAccount({ userId }: { userId?: string }) {
             // the cached screens stay; the next answer or ID step reads the server again
             if (quiet) return
             trackPaperworkVerification(
-                { flow: 'paperwork_verification', residence: null },
+                {
+                    flow: 'paperwork_verification',
+                    residence: null,
+                    ...(candidate && { purpose: 'reverify_for_feature' as const, feature: candidate.feature }),
+                },
                 ANALYTICS_EVENTS.KYC_PV_LOAD_FAILED
             )
             setState({ kind: 'failed' })
@@ -344,7 +435,13 @@ function PaperworkVerificationAccount({ userId }: { userId?: string }) {
 
     if (state.kind === 'loading' || state.kind === 'failed')
         return (
-            <PaperworkVerificationTrackingProvider value={{ flow: 'paperwork_verification', residence: null }}>
+            <PaperworkVerificationTrackingProvider
+                value={{
+                    flow: 'paperwork_verification',
+                    residence: null,
+                    ...(candidate && { purpose: 'reverify_for_feature' as const, feature: candidate.feature }),
+                }}
+            >
                 {state.kind === 'loading' ? (
                     <VerifyLoading onBack={exit} />
                 ) : (
@@ -359,6 +456,9 @@ function PaperworkVerificationAccount({ userId }: { userId?: string }) {
             </PaperworkVerificationTrackingProvider>
         )
     if (state.kind === 'setup') return <VerifySetupPrelude needs={state.needs} onDone={load} onExit={exit} />
+    if (state.kind === 'candidate-terminal' && candidate)
+        return <CandidateTerminal candidate={candidate} status={state.status} returnTo={returnTo} />
+    if (state.kind !== 'ready') return null
     return (
         <PaperworkVerificationSteps
             key={generation}
@@ -366,8 +466,76 @@ function PaperworkVerificationAccount({ userId }: { userId?: string }) {
             fresh={state.fresh}
             reload={load}
             introShown={introShown}
+            candidate={candidate}
+            returnTo={returnTo}
         />
     )
+}
+
+function CandidateTerminal({
+    candidate,
+    status,
+    returnTo,
+}: {
+    candidate: Candidate
+    status: 'APPROVED' | 'REJECTED'
+    returnTo?: string | null
+}) {
+    const t = useTranslations('kyc.paperworkVerification')
+    const router = useRouter()
+    const goHome = () => router.replace('/home')
+    const approved = status === 'APPROVED'
+    const complete = useCandidateReturn(returnTo)
+    const tracking = {
+        flow: 'paperwork_verification',
+        purpose: 'reverify_for_feature',
+        feature: candidate.feature,
+        residence: null,
+    } as const
+    useEffect(() => {
+        trackPaperworkVerification(
+            tracking,
+            approved ? ANALYTICS_EVENTS.KYC_PV_VERIFIED_VIEWED : ANALYTICS_EVENTS.KYC_PV_REVIEW_VIEWED
+        )
+        // This component is mounted for the candidate's terminal result.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+    return (
+        <PaperworkVerificationTrackingProvider value={tracking}>
+            {approved ? (
+                <StepsScreen phase="verified" cta={t('continue')} onBack={goHome} onContinue={complete} />
+            ) : (
+                <ReviewScreen
+                    rejection={identityRejection({ retryable: false })}
+                    onHome={goHome}
+                    copy={{
+                        title: t('reverify.refusalTitle'),
+                        description: t(
+                            candidate.feature === 'card'
+                                ? 'reverify.refusalCard'
+                                : candidate.feature === 'bank'
+                                  ? 'reverify.refusalBank'
+                                  : 'reverify.refusalLocal'
+                        ),
+                    }}
+                />
+            )}
+        </PaperworkVerificationTrackingProvider>
+    )
+}
+
+function useCandidateReturn(returnTo?: string | null) {
+    const router = useRouter()
+    const { fetchUser } = useAuth()
+    const captureSession = useSessionFence()
+    const returning = useRef(false)
+    return async () => {
+        if (returning.current) return
+        const session = captureSession()
+        returning.current = true
+        await Promise.resolve(fetchUser()).catch(() => {})
+        if (session.current()) router.replace(safeReverificationReturnTo(returnTo) ?? '/home')
+    }
 }
 
 function PaperworkVerificationSteps({
@@ -375,7 +543,9 @@ function PaperworkVerificationSteps({
     fresh,
     reload,
     introShown,
-}: {
+    candidate,
+    returnTo,
+}: CandidateProps & {
     initial: Loaded
     /** the server's read behind a cached open, with the same screens */
     fresh?: Loaded
@@ -387,6 +557,7 @@ function PaperworkVerificationSteps({
     const locale = useLocale()
     const router = useRouter()
     const { user, fetchUser } = useAuth()
+    const completeCandidate = useCandidateReturn(returnTo)
     const modals = useModalsContextOptional()
     // What a feature still waits on once the identity is verified: steps of the verified timeline.
     const tRoot = useTranslations()
@@ -407,23 +578,32 @@ function PaperworkVerificationSteps({
     const latestStatus = useRef(status)
     const activeSdk = useRef<ReturnType<typeof usePaperworkVerificationIdentity>['session']>(null)
     const approvedSdk = useRef<ReturnType<typeof usePaperworkVerificationIdentity>['session']>(null)
-    const setStatus = useCallback((next: Loaded['status']) => {
-        latestStatus.current = next
-        if (next === 'APPROVED') approvedSdk.current = activeSdk.current
-        setStatusState(next)
-    }, [])
-    const [stepParam] = useQueryState('step')
+    const setStatus = useCallback(
+        (next: Loaded['status']) => {
+            if (candidate && (latestStatus.current === 'APPROVED' || latestStatus.current === 'REJECTED')) return
+            latestStatus.current = next
+            if (next === 'APPROVED') approvedSdk.current = activeSdk.current
+            setStatusState(next)
+        },
+        [candidate]
+    )
+    const [queryStep] = useQueryState('step')
+    const stepParam = candidate ? null : queryStep
     const [returnToFeature] = useQueryState('returnToFeature')
     const linkedQuestion = useRef(stepParam)
     const enterLastPage = useRef<PaperworkVerificationStepId | undefined>(undefined)
     // A replacement hands off before its submission webhook necessarily arrives.
-    const [submitted, setSubmitted] = useState(stepParam === 'review')
+    const [submitted, setSubmitted] = useState(candidate ? initial.status === 'PENDING' : stepParam === 'review')
     const [idError, setIdError] = useState<string | null>(null)
     // Sumsub recognised the uploaded ID as another country's: which country the profile belongs to.
     const [documentMismatch, setDocumentMismatch] = useState<{ declared: string; document: string } | null>(null)
     const [mismatchBusy, setMismatchBusy] = useState(false)
     const [documentRequired, setDocumentRequired] = useState(false)
-    const identity = usePaperworkVerificationIdentity({ onHandedBack: () => router.replace('/home') })
+    const identity = usePaperworkVerificationIdentity({
+        onHandedBack: () => (candidate ? void reload() : router.replace('/home')),
+        candidateAttemptId: candidate?.attemptId,
+    })
+    const closeIdentity = identity.close
     if (identity.session) activeSdk.current = identity.session
     const queryClient = useQueryClient()
     // Decided once per load, so Back shows the same screens the user came through.
@@ -449,11 +629,16 @@ function PaperworkVerificationSteps({
     const approved = !!status && APPROVED_STATUSES.has(status)
     const failed = !!status && FAILED_STATUSES.has(status)
     const policyHold =
+        !candidate &&
         failed &&
         (user?.identityVerification?.reason?.code === 'document_policy_hold' ||
             user?.identityVerification?.rejectLabels?.includes('DOCUMENT_POLICY_HOLD') === true)
-    const identityVerification = user?.identityVerification
-    const retryable = !!status && RETRYABLE_STATUSES.has(status) && identityVerification?.rejectType !== 'FINAL'
+    const identityVerification = candidate ? undefined : user?.identityVerification
+    const retryable =
+        !!status &&
+        (candidate
+            ? status === 'ACTION_REQUIRED'
+            : RETRYABLE_STATUSES.has(status) && identityVerification?.rejectType !== 'FINAL')
     const rejection = useMemo(
         () =>
             identityRejection({
@@ -467,8 +652,8 @@ function PaperworkVerificationSteps({
     const fetchUserRef = useRef(fetchUser)
     fetchUserRef.current = fetchUser
     useEffect(() => {
-        if (failed) void Promise.resolve(fetchUserRef.current()).catch(() => {})
-    }, [failed])
+        if (!candidate && failed) void Promise.resolve(fetchUserRef.current()).catch(() => {})
+    }, [candidate, failed])
     const reviewing = submitted || (!!status && IN_REVIEW_STATUSES.has(status))
     const asking = !approved && !reviewing && !failed
     useVerificationOpening(asking, questions.entryScope)
@@ -476,7 +661,7 @@ function PaperworkVerificationSteps({
 
     // A visit that still has questions or the ID ahead opens on Verify start, the one verify intro, in front
     // of the open step; a deep link to a step skips it.
-    const [intro, setIntro] = useState(() => asking && !introShown.current && !stepParam)
+    const [intro, setIntro] = useState(() => !candidate && asking && !introShown.current && !stepParam)
     const showIntro = intro && asking
     // While asking, the clean URL keeps meaning the step this visit opened on, so moving on to
     // a step that has since become the entry (the ID, once every answer is in) still writes it.
@@ -588,11 +773,12 @@ function PaperworkVerificationSteps({
         const ids = shown.map((s) => s.id)
         // A shared screen also shows steps answered before; only new or edited answers are saved.
         const changed = shown.filter((s) => !stepUnchanged(s, values))
-        const waitForSave = changed.some((s) => s.id === 'address' || s.fields.some((field) => field.format === 'cuit'))
+        const waitForSave =
+            !!candidate || changed.some((s) => s.id === 'address' || s.fields.some((field) => field.format === 'cuit'))
         const stepTracking = { ...tracking, step: ids[0] }
         const persist = async () => {
             if (!current()) return false
-            const outcome = await saveWithRetries(changed, values, user?.user.userId, current)
+            const outcome = await saveWithRetries(changed, values, user?.user.userId, current, candidate)
             if (!current()) return false
             trackSaveOutcome(
                 (event, properties) =>
@@ -651,8 +837,8 @@ function PaperworkVerificationSteps({
         settled.current = saves.current.then(async () => {
             if (!checkpointCurrent()) return
             const [freshQuestions, freshPlan] = await Promise.all([
-                readQuestions(router, checkpointCurrent),
-                findKycDocumentPlan('verify').catch(() => null),
+                readFlowQuestions(checkpointCurrent),
+                readFlowPlan(),
             ])
             if (!checkpointCurrent() || stepRef.current !== 'id') return
             if (freshPlan) setPlan(freshPlan)
@@ -676,17 +862,28 @@ function PaperworkVerificationSteps({
     }, [fresh, setStatus])
     // The next visit opens on what this one ends with.
     useEffect(() => {
-        if (user?.user.userId)
+        if (!candidate && user?.user.userId)
             queryClient.setQueryData([...PAPERWORK_VERIFICATION_QUESTIONS_QUERY_KEY, user.user.userId], questions)
-    }, [queryClient, questions, user?.user.userId])
+    }, [candidate, queryClient, questions, user?.user.userId])
     useEffect(() => {
-        if (user?.user.userId)
+        if (!candidate && user?.user.userId)
             queryClient.setQueryData([...PAPERWORK_VERIFICATION_PLAN_QUERY_KEY, user.user.userId], plan)
-    }, [queryClient, plan, user?.user.userId])
+    }, [candidate, queryClient, plan, user?.user.userId])
     useEffect(() => {
-        if (status && user?.user.userId)
+        if (!candidate && status && user?.user.userId)
             queryClient.setQueryData([...PAPERWORK_VERIFICATION_STATUS_QUERY_KEY, user.user.userId], status)
-    }, [queryClient, status, user?.user.userId])
+    }, [candidate, queryClient, status, user?.user.userId])
+
+    const readFlowPlan = useCallback(async () => {
+        if (!candidate) return findKycDocumentPlan('verify').catch(() => null)
+        return readCandidatePlan(candidate).catch(() => null)
+    }, [candidate])
+
+    const readFlowQuestions = async (current: () => boolean = () => true) => {
+        if (!candidate) return readQuestions(router, current)
+        const questions = await getKycQuestions(candidate.feature, candidate.attemptId, current).catch(() => null)
+        return questions?.available && questions.attemptId === candidate.attemptId ? questions : null
+    }
 
     // A plan read before the attempt existed can lack the ID's documents: read it once more on the ID screen.
     const documentsReread = useRef(false)
@@ -696,13 +893,11 @@ function PaperworkVerificationSteps({
         if (!needsDocuments || documentsReread.current) return
         documentsReread.current = true
         setDocumentsLoading(true)
-        void findKycDocumentPlan('verify')
-            .catch(() => null)
-            .then((current) => {
-                if (current) setPlan(current)
-                setDocumentsLoading(false)
-            })
-    }, [needsDocuments])
+        void readFlowPlan().then((current) => {
+            if (current) setPlan(current)
+            setDocumentsLoading(false)
+        })
+    }, [needsDocuments, readFlowPlan])
 
     /** Back to the ID picker, on the documents the server offers now. */
     const backToDocuments = (error: string | null) => {
@@ -710,9 +905,7 @@ function PaperworkVerificationSteps({
         setStatus('NOT_STARTED')
         setSubmitted(false)
         setIdError(error)
-        void findKycDocumentPlan('verify')
-            .catch(() => null)
-            .then((current) => current && setPlan(current))
+        void readFlowPlan().then((current) => current && setPlan(current))
         void stepper.goTo('id')
     }
 
@@ -720,7 +913,8 @@ function PaperworkVerificationSteps({
     const onConflict = (error: AnswerFormError, message?: string): boolean => {
         // Not (or no longer) a Smart Paperwork Verification user: today's flow starts from Home.
         if (error === 'unavailable' || error === 'existing_verification' || error === 'session_changed') {
-            router.replace('/home')
+            if (candidate && error !== 'session_changed') void reload()
+            else router.replace('/home')
             return true
         }
         // The ID went in or the check ended (perhaps on another device), or the features changed:
@@ -743,17 +937,30 @@ function PaperworkVerificationSteps({
         const session = captureSession()
         setSettling(true)
         await settled.current
+        if (candidate && session.ready) await session.ready
         setSettling(false)
-        if (back !== backRevision.current || !session.current() || stepRef.current !== from || saveRefused.current)
+        if (
+            back !== backRevision.current ||
+            !session.current() ||
+            stepRef.current !== from ||
+            saveRefused.current ||
+            (candidate && (latestStatus.current === 'APPROVED' || latestStatus.current === 'REJECTED'))
+        )
             return
         setIdError(null)
         if (document) {
             const key = DOCUMENT_KEYS[document.type as keyof typeof DOCUMENT_KEYS]
             setIdentityStepTitle(key ? tDocuments(key) : undefined)
         }
-        let attemptId = identity.attemptIdRef.current ?? questions.attemptId ?? plan?.activeAttemptId ?? null
+        let attemptId =
+            candidate?.attemptId ??
+            identity.attemptIdRef.current ??
+            questions.attemptId ??
+            plan?.activeAttemptId ??
+            null
         if (!attemptId) {
-            const fresh = await readQuestions(router)
+            const fresh = await readFlowQuestions(session.current)
+            if (!session.current()) return
             if (fresh) setQuestions(fresh)
             attemptId = fresh?.attemptId ?? null
         }
@@ -761,7 +968,12 @@ function PaperworkVerificationSteps({
             setIdError(t('midpoint.failed'))
             return
         }
-        const outcome = await identity.open(attemptId, document)
+        const outcome = await identity.open(attemptId, document, candidate ? session.current : undefined)
+        if (
+            !session.current() ||
+            (candidate && (latestStatus.current === 'APPROVED' || latestStatus.current === 'REJECTED'))
+        )
+            return
         if (outcome.kind !== 'busy')
             track(ANALYTICS_EVENTS.KYC_PV_ID_OUTCOME, {
                 outcome: outcome.kind,
@@ -769,7 +981,10 @@ function PaperworkVerificationSteps({
                 ...(outcome.kind === 'questions-missing' && { missing_step: outcome.step }),
             })
         if (outcome.kind === 'opened') setQuestions((current) => ({ ...current, attemptId: outcome.attemptId }))
-        if (outcome.kind === 'handed-back') router.replace('/home')
+        if (outcome.kind === 'handed-back') {
+            if (candidate) void reload()
+            else router.replace('/home')
+        }
         if (outcome.kind === 'document-required') {
             setDocumentRequired(true)
             setStatus('NOT_STARTED')
@@ -784,7 +999,8 @@ function PaperworkVerificationSteps({
             setDocumentRequired(false)
             setStatus('NOT_STARTED')
             setSubmitted(false)
-            const fresh = await readQuestions(router)
+            const fresh = await readFlowQuestions(session.current)
+            if (!session.current()) return
             if (fresh) setQuestions(fresh)
             const target = outcome.step ?? (fresh && resumeStep(fresh))
             if (target && outcome.message) setReturned({ step: target, message: outcome.message })
@@ -810,10 +1026,27 @@ function PaperworkVerificationSteps({
     const sumsubOpenRef = useRef(false)
     sumsubOpenRef.current = !!identity.session && !submitted
     const checkIdentityDocument = async () => {
-        const attemptId = identity.attemptIdRef.current
+        const sdk = identity.session
+        const session = captureSession()
+        const attemptId = candidate?.attemptId ?? identity.attemptIdRef.current
         const declared = questions.residence
         if (!attemptId || !declared) return
         const mismatch = await getIdentityDocumentMismatch(attemptId)
+        if (candidate) {
+            if (
+                !sdk ||
+                activeSdk.current !== sdk ||
+                !session.current() ||
+                !mismatch ||
+                latestStatus.current === 'APPROVED' ||
+                latestStatus.current === 'REJECTED'
+            )
+                return
+            activeSdk.current = null
+            identity.close()
+            backToDocuments(t('reverify.documentMismatch'))
+            return
+        }
         if (!mismatch || mismatch.recognised === declared || !sumsubOpenRef.current) return
         track(ANALYTICS_EVENTS.KYC_PV_DOCUMENT_COUNTRY_MISMATCH, {
             picked: mismatch.picked,
@@ -864,26 +1097,72 @@ function PaperworkVerificationSteps({
     // The review result arrives on the websocket; the read-only status poll covers a missed event.
     useWebSocket({
         username: user?.user.username ?? undefined,
-        autoConnect: true,
-        onSumsubKycStatusUpdate: (next) => setStatus(next as SumsubKycStatus),
+        autoConnect: !candidate,
+        onSumsubKycStatusUpdate: candidate ? undefined : (next) => setStatus(next as SumsubKycStatus),
     })
     useEffect(() => {
-        if (step !== 'review' || failed) return
+        if (candidate ? approved || status === 'REJECTED' : step !== 'review' || failed) return
+        const controller = new AbortController()
+        const fence = candidate ? captureSessionFence(user?.user.userId, () => !controller.signal.aborted) : null
+        let reading = false
         let polls = 0
         const timer = setInterval(() => {
             // Every fourth poll asks the API to re-read Sumsub, so a lost webhook can't hold the review for hours.
-            const read = ++polls % REFRESH_EVERY_POLLS === 0 ? refreshKycIdentityStatus() : getKycDocumentStatus()
-            void read.then((next) => next && setStatus(next)).catch(() => {})
+            if (reading || fence?.current() === false) return
+            reading = true
+            const refresh = ++polls % REFRESH_EVERY_POLLS === 0 && step === 'review' && !failed
+            const read = candidate
+                ? refresh
+                    ? refreshKycIdentityStatus(candidate.attemptId, controller.signal)
+                    : getKycDocumentStatus(controller.signal, candidate.attemptId)
+                : refresh
+                  ? refreshKycIdentityStatus()
+                  : getKycDocumentStatus()
+            void read
+                .then((next) => {
+                    if (!next || controller.signal.aborted || fence?.current() === false) return
+                    if (candidate && (latestStatus.current === 'APPROVED' || (submitted && next === 'NOT_STARTED')))
+                        return
+                    setStatus(candidate ? normalizeCandidateStatus(next) : next)
+                })
+                .catch(() => {})
+                .finally(() => {
+                    reading = false
+                })
         }, STATUS_POLL_MS)
-        return () => clearInterval(timer)
-    }, [step, failed, setStatus])
+        return () => {
+            controller.abort()
+            clearInterval(timer)
+        }
+    }, [approved, candidate, step, failed, setStatus, status, submitted, user?.user.userId])
     // An approval that arrives during the visit, whether the review was opened here or on an earlier visit.
     // REVERIFYING preserves existing access but is not the replacement's decision.
     const decided = submitted || identity.session ? status === 'APPROVED' : approved
+    useEffect(() => {
+        if (!candidate) return
+        if (approved || failed || status === 'IN_REVIEW') {
+            try {
+                sessionStorage.removeItem(candidateSubmissionKey(user?.user.userId, candidate.attemptId))
+            } catch {
+                // The server still owns the review state.
+            }
+        }
+        if (status === 'ACTION_REQUIRED') setSubmitted(false)
+        if (approved) {
+            closeIdentity()
+            void goToStep('verified')
+        } else if (reviewing || failed) {
+            if (status === 'REJECTED') {
+                activeSdk.current = null
+                closeIdentity()
+            }
+            void goToStep('review')
+        }
+    }, [candidate, approved, reviewing, failed, status, goToStep, closeIdentity, user?.user.userId])
     const approvedAtOpen = useRef(decided)
     const approvalHandled = useRef(false)
     useEffect(() => {
-        if (!decided || approvedAtOpen.current || approvalHandled.current) return
+        if (candidate || !decided || approvedAtOpen.current || approvalHandled.current) return
         approvalHandled.current = true
         void fetchUser()
         void Promise.all([findKycDocumentPlan().catch(() => null), readQuestions(router)]).then(
@@ -897,11 +1176,19 @@ function PaperworkVerificationSteps({
                 void stepper.goTo(fresh?.proofOfAddress === 'suggested' ? 'address-proof' : 'verified')
             }
         )
-    }, [decided, fetchUser, stepper, status, router])
+    }, [candidate, decided, fetchUser, stepper, status, router])
 
     const tracking = useMemo<PaperworkVerificationTrackingContext>(
-        () => ({ flow: 'paperwork_verification', residence: questions.residence, features: plan?.features }),
-        [questions.residence, plan?.features]
+        () =>
+            candidate
+                ? {
+                      flow: 'paperwork_verification',
+                      residence: null,
+                      purpose: 'reverify_for_feature',
+                      feature: candidate.feature,
+                  }
+                : { flow: 'paperwork_verification', residence: questions.residence, features: plan?.features },
+        [candidate, questions.residence, plan?.features]
     )
     const track = (event: Parameters<typeof trackPaperworkVerification>[1], properties?: Record<string, unknown>) =>
         trackPaperworkVerification(tracking, event, properties)
@@ -931,7 +1218,8 @@ function PaperworkVerificationSteps({
     // Mounted from the first opening on: its restriction fetch only runs for a user who asks to move.
     const [residenceMounted, setResidenceMounted] = useState(false)
 
-    const goHome = () => (returnToFeature === '1' ? exit() : router.replace('/home'))
+    const goHome = () =>
+        candidate ? router.replace('/home') : returnToFeature === '1' ? exit() : router.replace('/home')
     const residenceName = questions.residence
         ? localizedCountryName(locale, questions.residence, questions.residence)
         : ''
@@ -972,6 +1260,7 @@ function PaperworkVerificationSteps({
         screen = (
             <QuestionStepScreen
                 key={current.id}
+                useDraft={!candidate}
                 steps={shown}
                 residence={questions.residence}
                 progress={{
@@ -984,11 +1273,15 @@ function PaperworkVerificationSteps({
                 onSubmitted={(values, seconds) => submitAnswers(shown, values, seconds)}
                 returned={returned && shown.some((s) => s.id === returned.step) ? returned : undefined}
                 onConflict={onConflict}
-                onContinueWithoutLocal={continueWithoutLocal}
-                onChangeResidence={() => {
-                    setResidenceMounted(true)
-                    setResidenceOpen(true)
-                }}
+                onContinueWithoutLocal={candidate ? undefined : continueWithoutLocal}
+                onChangeResidence={
+                    candidate
+                        ? undefined
+                        : () => {
+                              setResidenceMounted(true)
+                              setResidenceOpen(true)
+                          }
+                }
             />
         )
     } else if (step === 'id') {
@@ -1005,18 +1298,36 @@ function PaperworkVerificationSteps({
                 onBack={backThroughQuestions}
                 onExit={exit}
                 onContinue={(document) => void startIdentity(document)}
-                onChangeResidence={() => {
-                    track(ANALYTICS_EVENTS.KYC_PV_RESIDENCE_CHANGE_OPENED, { step: 'id' })
-                    setResidenceMounted(true)
-                    setResidenceOpen(true)
-                }}
+                onChangeResidence={
+                    candidate
+                        ? undefined
+                        : () => {
+                              track(ANALYTICS_EVENTS.KYC_PV_RESIDENCE_CHANGE_OPENED, { step: 'id' })
+                              setResidenceMounted(true)
+                              setResidenceOpen(true)
+                          }
+                }
             />
         )
     } else if (step === 'review') {
         screen = failed ? (
             <ReviewScreen
                 rejection={rejection}
-                {...rejectionExits}
+                {...(candidate ? {} : rejectionExits)}
+                copy={
+                    candidate && !retryable
+                        ? {
+                              title: t('reverify.refusalTitle'),
+                              description: t(
+                                  candidate.feature === 'card'
+                                      ? 'reverify.refusalCard'
+                                      : candidate.feature === 'bank'
+                                        ? 'reverify.refusalBank'
+                                        : 'reverify.refusalLocal'
+                              ),
+                          }
+                        : undefined
+                }
                 onHome={goHome}
                 policyHold={policyHold}
                 onRetry={
@@ -1031,7 +1342,14 @@ function PaperworkVerificationSteps({
                 error={idError}
             />
         ) : (
-            <StepsScreen phase="review" hasQuestions={questionIds.length > 0} onBack={goHome} onContinue={goHome} />
+            <StepsScreen
+                phase="review"
+                title={candidate ? t('reverify.pendingTitle') : undefined}
+                note={candidate ? t('reverify.pendingDescription') : undefined}
+                hasQuestions={questionIds.length > 0}
+                onBack={goHome}
+                onContinue={goHome}
+            />
         )
     } else if (step === 'verified') {
         screen = (
@@ -1040,12 +1358,14 @@ function PaperworkVerificationSteps({
                 hasQuestions={questionIds.length > 0}
                 // The identity's own status page also names what a feature still asks for (Rain's
                 // proof of address, a bank's document) as steps of its own, before Unlock.
-                followUps={followUps.map((followUp) => followUp.label)}
-                note={followUps[0] && tRoot(followUps[0].note)}
-                cta={followUps[0] && t('continue')}
-                aside={bankRefusal && <BankRefusalNotice refusal={bankRefusal} />}
+                followUps={candidate ? undefined : followUps.map((followUp) => followUp.label)}
+                note={!candidate && followUps[0] ? tRoot(followUps[0].note) : undefined}
+                cta={candidate || followUps[0] ? t('continue') : undefined}
+                aside={!candidate && bankRefusal && <BankRefusalNotice refusal={bankRefusal} />}
                 onBack={goHome}
-                onContinue={() => router.push(followUps[0]?.href ?? PAYMENT_METHODS_HREF)}
+                onContinue={
+                    candidate ? completeCandidate : () => router.push(followUps[0]?.href ?? PAYMENT_METHODS_HREF)
+                }
             />
         )
     } else if (step === 'address-proof') {
@@ -1097,29 +1417,45 @@ function PaperworkVerificationSteps({
                 preselection="preferred"
                 identityStepTitle={identityStepTitle}
                 onClose={() => {
+                    if (identity.session && activeSdk.current !== identity.session) return
+                    activeSdk.current = null
                     track(ANALYTICS_EVENTS.KYC_PV_IDENTITY_CLOSED)
                     identity.close()
                 }}
                 onComplete={() => {
                     const sdk = identity.session
                     if (!sdk || activeSdk.current !== sdk) return
+                    const session = captureSession()
+                    if (candidate && (!session.current() || latestStatus.current === 'REJECTED')) return
                     activeSdk.current = null
                     identity.close()
                     // An approval can arrive while the SDK is still closing. Its
                     // route may be a follow-up, so leave that decision in place.
                     if (latestStatus.current === 'APPROVED' || approvedSdk.current === sdk) return
                     track(ANALYTICS_EVENTS.KYC_PV_IDENTITY_SUBMITTED)
-                    const session = captureSession()
+                    if (candidate) {
+                        try {
+                            sessionStorage.setItem(candidateSubmissionKey(user?.user.userId, candidate.attemptId), '1')
+                        } catch {
+                            // The mounted view can still show review while storage is unavailable.
+                        }
+                    }
                     setStatus('PENDING')
                     setSubmitted(true)
-                    queryClient.setQueryData([...PAPERWORK_VERIFICATION_STATUS_QUERY_KEY, user?.user.userId], 'PENDING')
+                    if (!candidate)
+                        queryClient.setQueryData(
+                            [...PAPERWORK_VERIFICATION_STATUS_QUERY_KEY, user?.user.userId],
+                            'PENDING'
+                        )
                     void stepper.goTo('review')
                     // Home reads the identity from the user: refreshed once the server has read Sumsub.
-                    void refreshKycIdentityStatus()
+                    const read = candidate ? refreshKycIdentityStatus(candidate.attemptId) : refreshKycIdentityStatus()
+                    void read
                         .then((next) => {
                             if (!session.current() || activeSdk.current) return
-                            if (next && next !== 'NOT_STARTED' && latestStatus.current !== 'APPROVED') setStatus(next)
-                            void fetchUser()
+                            if (next && next !== 'NOT_STARTED' && latestStatus.current !== 'APPROVED')
+                                setStatus(candidate ? normalizeCandidateStatus(next) : next)
+                            if (!candidate || next === 'APPROVED') void fetchUser()
                         })
                         .catch(() => {})
                 }}

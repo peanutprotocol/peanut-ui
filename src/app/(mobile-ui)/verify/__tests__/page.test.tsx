@@ -19,6 +19,9 @@ jest.mock('@/features/paperwork-verification/AddFeatureFlow', () => ({
 jest.mock('@/features/paperwork-verification/IdentityRestartFlow', () => ({
     IdentityRestartFlow: () => <div>identity-restart</div>,
 }))
+jest.mock('@/features/paperwork-verification/FeatureReverificationFlow', () => ({
+    FeatureReverificationFlow: ({ feature }: { feature: string }) => <div>reverify-{feature}</div>,
+}))
 
 const renderAt = (search: string) =>
     render(
@@ -39,6 +42,7 @@ describe('/verify', () => {
         ['?step=id&restart=1', 'identity-restart'],
         ['?step=id', 'paperwork-verification'],
         ['?feature=bank', 'add-bank'],
+        ['?mode=reverify&feature=bank&restart=1', 'reverify-bank'],
         ['?restart=yes', 'paperwork-verification'],
     ])('%s opens %s', async (search, shown) => {
         renderAt(search)
@@ -48,9 +52,27 @@ describe('/verify', () => {
 
 describe('/verify during a verification outage', () => {
     it.each([
-        ['?step=id', { flow: 'paperwork_verification', residence: null }],
+        [
+            '?step=id',
+            {
+                flow: 'paperwork_verification',
+                residence: null,
+                kyc_flow: 'verify-once',
+                verification_purpose: 'initial',
+            },
+        ],
         ['?feature=card', { flow: 'add_later', residence: null, feature: 'card' }],
         ['?step=id&restart=1', { flow: 'paperwork_verification', residence: null, restart: true }],
+        [
+            '?mode=reverify&feature=bank&restart=1',
+            {
+                flow: 'paperwork_verification',
+                residence: null,
+                feature: 'bank',
+                kyc_flow: 'verify-once',
+                verification_purpose: 'feature_reverification',
+            },
+        ],
     ])('%s reports the outage controls as the flow it would have opened', async (search, flow) => {
         mockDegraded = true
         renderAt(search)

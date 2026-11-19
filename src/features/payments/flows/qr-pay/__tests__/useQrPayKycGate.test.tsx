@@ -11,6 +11,7 @@ import { useQrPayKycGate } from '../useQrPayKycGate'
 
 const mockFlow = {
     handleInitiateKyc: jest.fn(),
+    handleUnlockQr: jest.fn(),
     handleRestartIdentity: jest.fn(),
     completeFlow: jest.fn(),
     showWrapper: false,
@@ -80,10 +81,11 @@ describe('useQrPayKycGate — startVerification', () => {
         expect(result.current.shouldBlockPay).toBe(false)
         expect(mockFlow.completeFlow).toHaveBeenCalledTimes(1)
     })
-    it('starts the QR check for the scanned country', () => {
+    it('starts the QR pool check without requesting a local country', () => {
         const { result } = renderHook(() => useQrPayKycGate())
-        act(() => result.current.startVerification('BR'))
-        expect(mockFlow.handleInitiateKyc).toHaveBeenCalledWith('LATAM', undefined, true, 'BR')
+        act(() => result.current.startVerification())
+        expect(mockFlow.handleUnlockQr).toHaveBeenCalledWith()
+        expect(mockFlow.handleInitiateKyc).not.toHaveBeenCalled()
         expect(mockFlow.handleRestartIdentity).not.toHaveBeenCalled()
     })
 
@@ -91,7 +93,7 @@ describe('useQrPayKycGate — startVerification', () => {
         mockNextActions = [{ key: 'restart-identity', kind: 'restart-identity', purpose: 'identity_missing' }]
         const { result } = renderHook(() => useQrPayKycGate())
         expect(result.current.needsIdentityRestart).toBe(true)
-        act(() => result.current.startVerification('BR'))
+        act(() => result.current.startVerification())
         expect(mockFlow.handleRestartIdentity).toHaveBeenCalledTimes(1)
         expect(mockFlow.handleInitiateKyc).not.toHaveBeenCalled()
     })

@@ -8,6 +8,7 @@ import {
     isPaperworkVerificationIdentity,
 } from '@/app/actions/kyc-workflow'
 import { serverFetch } from '@/utils/api-fetch'
+import type { FeatureReverificationRefreshNotActive } from '../types/kyc-reverification.types'
 import posthog from 'posthog-js'
 import * as Sentry from '@/utils/sentry-lazy'
 
@@ -349,4 +350,46 @@ describe('attempt token domain 404', () => {
         await expect(resumeKycDocumentAttempt('attempt-1')).rejects.toMatchObject({ code: 'api_contract_error' })
         expect(Sentry.captureMessage).toHaveBeenCalled()
     })
+})
+
+describe('candidate refresh after terminal transition', () => {
+    const inactive = { code: 'attempt_not_active' } satisfies FeatureReverificationRefreshNotActive
+    it.each([
+        ['APPROVED', inactive],
+        ['REJECTED', inactive],
+        ['APPROVED', {}],
+    ])(
+        'uses the candidate %s status after archived attempt response %j without error telemetry',
+        async (candidateStatus, archivedResponse) => {
+            jest.clearAllMocks()
+            mockFetch
+                .mockResolvedValueOnce({
+                    ok: false,
+                    status: 404,
+                    json: async () => archivedResponse,
+                } as Response)
+                .mockResolvedValueOnce({
+                    ok: true,
+                    status: 200,
+                    json: async () => ({
+                        identity: { canonicalStatus: 'APPROVED' },
+                        attempts: [
+                            { id: 'old', kind: 'IDENTITY', status: 'APPROVED' },
+                            { id: 'candidate', kind: 'IDENTITY', status: candidateStatus },
+                        ],
+                    }),
+                } as Response)
+
+            await expect(refreshKycIdentityStatus('candidate')).resolves.toBe(candidateStatus)
+            expect(mockFetch).toHaveBeenNthCalledWith(
+                1,
+                '/users/kyc/identity/refresh?attemptId=candidate',
+                expect.objectContaining({ method: 'POST' })
+            )
+            expect(mockFetch).toHaveBeenNthCalledWith(2, '/users/kyc/profile', expect.anything())
+            expect(Sentry.captureMessage).not.toHaveBeenCalled()
+            expect(Sentry.captureException).not.toHaveBeenCalled()
+            expect(posthog.capture).not.toHaveBeenCalled()
+        }
+    )
 })

@@ -862,7 +862,7 @@ describe('GROUP 1: Loading & KYC Gate', () => {
 
         renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
 
-        expect(screen.getByText('QR payments are not available')).toBeInTheDocument()
+        expect(screen.getByText('QR payments unavailable')).toBeInTheDocument()
         expect(screen.getByText('Contact support to continue.')).toBeInTheDocument()
     })
 
@@ -897,7 +897,7 @@ describe('GROUP 1: Loading & KYC Gate', () => {
 
         renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
 
-        expect(screen.getByText('QR payments are not available')).toBeInTheDocument()
+        expect(screen.getByText('QR payments unavailable')).toBeInTheDocument()
         expect(screen.queryByText('Upload document')).not.toBeInTheDocument()
     })
 

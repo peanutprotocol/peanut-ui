@@ -1808,10 +1808,10 @@
             "notNow": "Agora não",
             "fixableTitle": "Precisamos de um documento atualizado",
             "restartTitle": "Verifique com outro documento",
-            "blockedTitle": "Pagamentos com QR não estão disponíveis",
+            "blockedTitle": "Pagamentos com QR indisponíveis",
             "fixableDescription": "Precisamos de um documento atualizado para habilitar pagamentos com QR. Envie uma foto mais nítida do seu documento.",
             "restartDescription": "Pagamentos com QR precisam de um documento de um país compatível. Você pode verificar com outro documento.",
-            "blockedDescription": "Pagamentos com QR não estão disponíveis para a sua conta. Fale com o suporte para receber ajuda.",
+            "blockedDescription": "Os pagamentos com QR estão indisponíveis para sua conta. Fale com o suporte.",
             "uploadDocument": "Enviar documento",
             "verifyAgain": {
                 "documentMissing": {
@@ -3870,6 +3870,19 @@
             "servedElsewhere": "Depósitos, saques, transferências e pagamentos por QR via Pix estão disponíveis onde você mora."
         },
         "paperworkVerification": {
+            "reverify": {
+                "inviteTitle": "Verifique sua identidade novamente",
+                "inviteCard": "Etapa necessária para configurar seu cartão.",
+                "inviteBank": "Etapa necessária para abrir sua conta bancária.",
+                "inviteLocal": "Etapa necessária para abrir sua conta local.",
+                "documentMismatch": "Seu documento é de outro país. Escolha um documento para tentar de novo.",
+                "pendingTitle": "Estamos analisando sua identidade",
+                "pendingDescription": "Suas contas atuais continuam disponíveis.",
+                "refusalTitle": "Não conseguimos verificar sua identidade novamente",
+                "refusalCard": "Não conseguimos configurar seu cartão. Suas contas atuais continuam disponíveis.",
+                "refusalBank": "Não conseguimos abrir sua conta bancária. Suas contas atuais continuam disponíveis.",
+                "refusalLocal": "Não conseguimos abrir sua conta local. Suas contas atuais continuam disponíveis."
+            },
             "back": "Voltar",
             "progress": "Passo {current} de {total}",
             "continue": "Continuar",

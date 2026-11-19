@@ -44,6 +44,7 @@ export function KycFeatureActivationGate({
         <KycFeatureActivationStatus
             feature={feature}
             result={activation.result}
+            reverification={activation.reverification}
             accountCurrency={selectedCurrency ?? (activation.arsProvisioning ? 'ARS' : undefined)}
             accountStatus={activation.selectedStatus}
             isLoading={activation.isLoading}
