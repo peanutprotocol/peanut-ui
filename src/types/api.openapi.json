@@ -35275,9 +35275,6 @@
 					}
 				},
 				"responses": {
-					"200": {
-						"description": "Default Response"
-					},
 					"409": {
 						"content": {
 							"application/json": {
@@ -35895,9 +35892,6 @@
 		"/users/increase-limits": {
 			"post": {
 				"responses": {
-					"200": {
-						"description": "Default Response"
-					},
 					"409": {
 						"content": {
 							"application/json": {
@@ -36064,46 +36058,65 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"properties": {
-										"code": {
-											"anyOf": [
-												{
-													"enum": [
-														"feature_setup_unavailable"
-													],
+									"anyOf": [
+										{
+											"properties": {
+												"code": {
+													"anyOf": [
+														{
+															"enum": [
+																"feature_setup_unavailable"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"feature_setup_pending"
+															],
+															"type": "string"
+														},
+														{
+															"enum": [
+																"feature_not_open"
+															],
+															"type": "string"
+														}
+													]
+												},
+												"error": {
 													"type": "string"
 												},
-												{
-													"enum": [
-														"feature_setup_pending"
-													],
+												"message": {
 													"type": "string"
 												},
-												{
-													"enum": [
-														"feature_not_open"
-													],
+												"userMessage": {
 													"type": "string"
 												}
-											]
+											},
+											"required": [
+												"code",
+												"userMessage",
+												"message",
+												"error"
+											],
+											"type": "object"
 										},
-										"error": {
-											"type": "string"
-										},
-										"message": {
-											"type": "string"
-										},
-										"userMessage": {
-											"type": "string"
+										{
+											"properties": {
+												"error": {
+													"type": "string"
+												},
+												"userMessage": {
+													"type": "string"
+												}
+											},
+											"required": [
+												"error",
+												"userMessage"
+											],
+											"type": "object"
 										}
-									},
-									"required": [
-										"code",
-										"userMessage",
-										"message",
-										"error"
-									],
-									"type": "object"
+									]
 								}
 							}
 						},
@@ -37865,6 +37878,28 @@
 											"type": "string"
 										}
 									},
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"error": {
+											"type": "string"
+										},
+										"userMessage": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error",
+										"userMessage"
+									],
 									"type": "object"
 								}
 							}
@@ -47811,6 +47846,33 @@
 						"description": "Default Response"
 					},
 					"502": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"code": {
+											"type": "string"
+										},
+										"error": {
+											"type": "string"
+										},
+										"retryAfterSeconds": {
+											"type": "number"
+										},
+										"userMessage": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"error"
+									],
+									"type": "object"
+								}
+							}
+						},
+						"description": "Default Response"
+					},
+					"503": {
 						"content": {
 							"application/json": {
 								"schema": {

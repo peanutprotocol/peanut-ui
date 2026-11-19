@@ -17313,13 +17313,6 @@ export interface paths {
             };
             responses: {
                 /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Default Response */
                 409: {
                     headers: {
                         [name: string]: unknown;
@@ -17636,13 +17629,6 @@ export interface paths {
             requestBody?: never;
             responses: {
                 /** @description Default Response */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Default Response */
                 409: {
                     headers: {
                         [name: string]: unknown;
@@ -17681,6 +17667,9 @@ export interface paths {
                             code: "feature_setup_unavailable" | "feature_setup_pending" | "feature_not_open";
                             error: string;
                             message: string;
+                            userMessage: string;
+                        } | {
+                            error: string;
                             userMessage: string;
                         };
                     };
@@ -18282,6 +18271,18 @@ export interface paths {
                             error?: string;
                             step?: string | null;
                             userMessage?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            userMessage: string;
                         };
                     };
                 };
@@ -21624,6 +21625,20 @@ export interface paths {
                 };
                 /** @description Default Response */
                 502: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            code?: string;
+                            error: string;
+                            retryAfterSeconds?: number;
+                            userMessage?: string;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                503: {
                     headers: {
                         [name: string]: unknown;
                     };
