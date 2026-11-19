@@ -6,6 +6,7 @@ import { MERCADO_PAGO } from '@/assets/payment-apps'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
+import { PhoneFrame } from '@/components/Marketing/StarLp/PhoneFrame'
 import { marketingBase } from '@/i18n/app/messages.marketing'
 import {
     QR_AR_MERCHANT,
@@ -61,8 +62,12 @@ export function QrArgentinaReview({ usdArs }: QrArgentinaReviewProps) {
 
     return (
         // md+ scales the whole phone (zoom keeps its proportions) so it balances the headline
-        <div className="star-lp-phone mx-auto w-full max-w-[18.5rem] border-4 border-border-default bg-background-default p-2 shadow-4 md:[zoom:1.1] lg:[zoom:1.4]">
-            <div className="star-lp-phone-screen flex flex-col gap-3 bg-background-page px-3 pt-3 pb-4 text-left text-foreground-primary">
+        // the screen holds the real Pay button, so the frame is not hidden from assistive tech
+        <PhoneFrame
+            interactive
+            className="max-w-[18.5rem] md:[zoom:1.1] lg:[zoom:1.4]"
+            screenClassName="gap-3 overflow-visible pb-4"
+        >
                 <p className="sr-only">
                     {`The Peanut pay screen: paying ${QR_AR_MERCHANT} ${price}${
                         usd && rate ? `, about ${usd}, at ${rate}` : ''
@@ -117,7 +122,6 @@ export function QrArgentinaReview({ usdArs }: QrArgentinaReviewProps) {
                 >
                     Pay
                 </Button>
-            </div>
-        </div>
+        </PhoneFrame>
     )
 }

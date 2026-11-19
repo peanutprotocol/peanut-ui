@@ -38,7 +38,3 @@ export interface QrBrazilPayButtonPressProps {
     pressed: boolean
 }
 
-export interface QrBrazilScanFrameProps {
-    children: ReactNode
-    className?: string
-}

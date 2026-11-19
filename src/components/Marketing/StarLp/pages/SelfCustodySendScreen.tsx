@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import sendCapture from '@/assets/star-lp/self-custody-send.webp'
 import { PhoneFrame } from '@/components/Marketing/StarLp/PhoneFrame'
+import { ScanLine } from '@/components/Marketing/StarLp/ScanLine'
 import { SelfCustodyAppLink } from './SelfCustodyAppLink'
 import { SelfCustodyPasskeyGlyph } from './SelfCustodyPasskeyGlyph'
 
@@ -48,10 +49,7 @@ export function SelfCustodySendScreen() {
                     <div className="absolute inset-x-0 bottom-0 grid justify-items-center gap-1 rounded-t-sm border-t border-border-disabled bg-background-disabled px-4 pt-2 pb-2 text-center motion-safe:animate-[sc-sheet-up_0.6s_var(--ease-spring)_1.1s_both] md:flex md:items-center md:gap-3 md:py-3 md:text-left">
                         <span className="relative inline-block overflow-hidden motion-safe:animate-[sc-glyph-beat_0.5s_var(--ease-spring)_2.5s_both]">
                             <SelfCustodyPasskeyGlyph className="h-8 w-8" />
-                            <span
-                                aria-hidden
-                                className="absolute inset-x-0 top-0 h-0.5 bg-background-brand opacity-0 motion-safe:animate-[sc-scan_0.7s_ease-in-out_1.8s_both]"
-                            />
+                            <ScanLine className="opacity-0 motion-safe:animate-[sc-scan_0.7s_ease-in-out_1.8s_both]" />
                         </span>
                         <p className="text-body-m-semibold md:flex-1">Use your passkey?</p>
                         <div className="w-full rounded-sm border-2 border-border-default bg-background-icon-bubble-blue py-2 text-center text-body-m-semibold text-foreground-primary md:w-auto md:px-8">
