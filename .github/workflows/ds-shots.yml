@@ -243,11 +243,11 @@ jobs:
                   node-version: '20'
                   cache: 'pnpm'
             - run: pnpm install --frozen-lockfile --ignore-scripts --ignore-pnpmfile
-            - uses: actions/download-artifact@v4
+            - uses: actions/download-artifact@v8
               with:
                   name: ds-shots-base-${{ github.run_attempt }}
                   path: e2e/__shots__/base
-            - uses: actions/download-artifact@v4
+            - uses: actions/download-artifact@v8
               with:
                   name: ds-shots-head-${{ github.run_attempt }}
                   path: e2e/__shots__/head

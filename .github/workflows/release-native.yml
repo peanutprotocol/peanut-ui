@@ -94,7 +94,7 @@ jobs:
 
             - name: Read native-incompatible OTA evidence
               if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'failure' }}
-              uses: actions/download-artifact@v4
+              uses: actions/download-artifact@v8
               with:
                   name: ota-native-incompatible-${{ github.event.workflow_run.id }}
                   run-id: ${{ github.event.workflow_run.id }}
