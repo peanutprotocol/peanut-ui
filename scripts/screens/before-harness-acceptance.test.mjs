@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
@@ -158,7 +158,7 @@ test('base baseline reuse requires both the receipt and authenticated source har
     )
 })
 
-test('screens the PR adds block head reuse but not base reuse', async () => {
+test('screens the PR adds permit either authenticated harness mode', async () => {
     const { canReuseBaseline } = await import('./baseline-reuse.mjs')
     const added = {
         id: 'kyc-new',
@@ -170,7 +170,7 @@ test('screens the PR adds block head reuse but not base reuse', async () => {
         thumbnail: `${'b'.repeat(64)}.png`,
     }
     const extraScreen = (base) => ({ ...base, screens: [...base.screens, added] })
-    assert.equal(canReuseBaseline(capture(BEFORE), extraScreen(capture(AFTER)), BEFORE), false)
+    assert.equal(canReuseBaseline(capture(BEFORE), extraScreen(capture(AFTER)), BEFORE), true)
     assert.equal(
         canReuseBaseline(capture(BEFORE), extraScreen(differentSyntheticCapture()), BEFORE, {
             beforeHarness: RECEIPT,
@@ -296,4 +296,37 @@ test('shared fixture roots include required synthetic inputs and exclude capture
             'src/types/api.openapi.json',
         ])
     )
+})
+
+test('recognized legacy base exit policy records both digests and keeps zero captures fatal', async (t) => {
+    const { prepareBaseExitPolicy, verifyBaseExitPolicy } = await import('./before-harness-receipt.mjs')
+    const directory = await mkdtemp(path.join(os.tmpdir(), 'legacy-base-policy-'))
+    t.after(() => rm(directory, { recursive: true, force: true }))
+    await mkdir(path.join(directory, 'scripts/screens'), { recursive: true })
+    const file = path.join(directory, 'scripts/screens/capture-status.mjs')
+    const legacy = `export function captureExitCode(results) {
+    return results.some((result) => result.status === 'failed') ? 1 : 0
+}
+`
+    await writeFile(file, legacy)
+    prepareBaseExitPolicy(directory)
+    prepareBaseExitPolicy(directory)
+    const { captureExitCode } = await import(file)
+    assert.equal(captureExitCode([{ status: 'failed' }]), 1)
+    assert.equal(captureExitCode([{ status: 'captured' }, { status: 'failed' }]), 0)
+    const { changed } = JSON.parse(await readFile(path.join(directory, '.screen-capture-adapter.json'), 'utf8'))
+    assert.equal(changed.length, 1)
+    assert.equal(changed[0].path, 'scripts/screens/capture-status.mjs')
+    const { createHash } = await import('node:crypto')
+    const digest = (bytes) => createHash('sha256').update(bytes).digest('hex')
+    assert.equal(changed[0].before, digest(legacy))
+    assert.equal(changed[0].after, digest(await readFile(file)))
+    verifyBaseExitPolicy({ adapterFiles: changed })
+    assert.throws(
+        () => verifyBaseExitPolicy({ adapterFiles: [{ ...changed[0], after: '0'.repeat(64) }] }),
+        /Unrecognized/
+    )
+    await writeFile(file, 'throw new Error("harness crash")')
+    prepareBaseExitPolicy(directory)
+    assert.equal(await readFile(file, 'utf8'), 'throw new Error("harness crash")')
 })

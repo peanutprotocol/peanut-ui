@@ -1,17 +1,14 @@
-import { readFileSync } from 'fs'
-import { join } from 'path'
-import catalogue from '../../../../scripts/screens/capture-catalogue.json'
+import { SCREENS } from '../../screens/catalogue'
 import { API_CONTRACT_STATES } from '../api-contract-states'
-import { SURFACE_META } from '../list'
+import { SETUP_REDESIGN_SURFACES, SURFACE_META } from '../list'
 
-// The Screen Library capture (trusted copy from dev) finds a surface by searching list.ts's source text.
-it('names every catalogued /dev/surfaces state literally in list.ts', () => {
-    const text = readFileSync(join(__dirname, '../list.ts'), 'utf8')
-    const ids = JSON.stringify(catalogue)
-        .match(/\/dev\/surfaces\?s=[\w-]+/g)!
-        .map((route) => route.split('s=')[1])
-    expect(ids.length).toBeGreaterThan(0)
-    expect([...new Set(ids)].filter((id) => !text.includes(id))).toEqual([])
+it('resolves every catalogue surface route through the live application registries', () => {
+    const known = new Set([...Object.keys(SURFACE_META), ...Object.keys(SETUP_REDESIGN_SURFACES)])
+    const surfaces = SCREENS.map((screen) => new URL(screen.route, 'http://localhost')).filter(
+        (url) => url.pathname === '/dev/surfaces'
+    )
+    expect(surfaces.length).toBeGreaterThan(0)
+    expect(surfaces.filter((url) => !known.has(url.searchParams.get('s') ?? '')).map((url) => url.search)).toEqual([])
 })
 
 it('lists every API ribbon state', () => {

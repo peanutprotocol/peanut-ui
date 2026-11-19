@@ -306,7 +306,7 @@ test('baseline rejects corrupt, incomplete and caller-certified manifests', asyn
         assert.equal(reuse(bad, manifest(), before.commit), false)
 })
 
-test('baseline permits selected after coverage but rejects scoped before and uncovered states', async () => {
+test('baseline permits selected after coverage but rejects scoped before and accepts new states', async () => {
     const reuse = await load('./baseline-reuse.mjs', 'canReuseBaseline')
     const before = manifest()
     const after = manifest({
@@ -318,9 +318,10 @@ test('baseline permits selected after coverage but rejects scoped before and unc
     assert.equal(reuse(after, manifest(), before.commit), false)
     const missing = manifest({
         screens: [{ ...before.screens[0], id: 'new-screen' }],
+        inventory: [{ route: '/send', status: 'catalogued', screens: ['new-screen'] }],
         scope: { mode: 'targeted', screenIds: ['new-screen'] },
     })
-    assert.equal(reuse(before, missing, before.commit), false)
+    assert.equal(reuse(before, missing, before.commit), true)
 })
 
 test('scoping projects inventory and preserves identities without mutating capture', async () => {

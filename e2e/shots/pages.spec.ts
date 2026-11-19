@@ -17,6 +17,7 @@
  */
 
 import { expect, test } from '@playwright/test'
+import { revealCheckpoint } from '../../scripts/screens/fixture-readiness.mjs'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { FIXTURE_STORAGE_KEY } from '../../src/dev/fixtures/active'
@@ -87,6 +88,8 @@ for (const capture of CAPTURES) {
         for (const action of capture.actions ?? []) {
             if ('click' in action) await page.getByText(action.click, { exact: false }).first().click()
             else if ('clickSelector' in action) await page.locator(action.clickSelector).first().click()
+            else if ('reveal' in action) await revealCheckpoint(page, action.reveal)
+            else if ('tapSelector' in action) await page.locator(action.tapSelector).tap()
             else if ('tap' in action) await page.getByText(action.tap, { exact: true }).tap()
             else {
                 await page.locator(action.fill.selector).fill(action.fill.value)

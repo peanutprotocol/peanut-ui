@@ -771,7 +771,9 @@ const MoneySettings = ({ view }: { view: 'methods' | 'bank' }) => {
                             <div className="flex flex-col items-center gap-4 text-center">
                                 {rowLeading(detailsRow, 'm')}
                                 <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
-                                    <DrawerTitle>{t(`rows.${detailsRow.labelKey}`)}</DrawerTitle>
+                                    <DrawerTitle data-testid="payment-method-details-title">
+                                        {t(`rows.${detailsRow.labelKey}`)}
+                                    </DrawerTitle>
                                     {/* A send-led BRL row opens on the send; its bank rail
                                         and that rail's status stay below. */}
                                     <DrawerDescription>

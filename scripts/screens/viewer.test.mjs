@@ -830,8 +830,35 @@ test('changed mode shows only visual changes and can switch to the full catalogu
     )
 })
 
+test('the library displays not-captured reasons with no image in both legacy and current manifests', async () => {
+    for (const status of ['failed', 'unavailable']) {
+        const report = {
+            schema: 1,
+            type: 'capture',
+            locale: 'en',
+            complete: false,
+            commit: 'b'.repeat(40),
+            screens: [
+                {
+                    id: 'miss',
+                    name: 'Missing example',
+                    kind: 'route',
+                    flow: 'Home',
+                    status,
+                    reason: 'Missing HEAD /users/fixture',
+                },
+            ],
+        }
+        const elements = await loadLanding('/screens/2026-10-06/dev/en/' + report.commit + '/', { report })
+        const tile = elements.get('screens').children[0]
+        assert.match(elementText(tile), /Not captured/)
+        assert.match(elementText(tile), /Missing HEAD/)
+        assert.equal(imageSources(tile).length, 0)
+    }
+})
+
 for (const channel of ['pr-3392', 'compare-main'])
-    test(`${channel}: new and legacy after-only screens stay in visual changes with a New screen placeholder`, async () => {
+    test(`${channel}: catalogue additions are visual changes and missing captures show the reason`, async () => {
         const image = 'a'.repeat(64) + '.png'
         const reason = 'This revision has no compatible scenario harness for this component'
         const row = (id, status, baselineStatus = 'unavailable') => ({
@@ -852,7 +879,7 @@ for (const channel of ['pr-3392', 'compare-main'])
             after: { width: 393, height: 852 },
             screens: [
                 row('legacy', 'unavailable'),
-                row('modern', 'new'),
+                { ...row('modern', 'new'), before: undefined },
                 row('added', 'added', 'absent'),
                 row('failed-baseline', 'failed', 'failed'),
                 row('excluded-baseline', 'excluded', 'excluded'),
@@ -869,15 +896,15 @@ for (const channel of ['pr-3392', 'compare-main'])
         })
         assert.deepEqual(
             elements.get('screens').children.map(({ id }) => id),
-            ['legacy', 'modern', 'added']
+            ['modern', 'added']
         )
-        assert.match(elements.get('coverage').textContent, /2 new screens/)
+        assert.match(elements.get('coverage').textContent, /1 new screens?/)
         assert.match(elements.get('coverage').textContent, /Incomplete capture/)
         for (const tile of elements.get('screens').children) {
             const before = tile.children[1].children[0]
             assert.match(elementText(before), /New screen No before screenshot/)
             assert.equal(imageSources(before).length, 0)
-            assert.equal(before.children[1].title, reason)
+            if (tile.id === 'added') assert.equal(before.children[1].title, reason)
             assert.equal(imageSources(tile).length, 1)
             tile.children[1].children[1].children[1].onclick()
             assert.match(elementText(elements.get('zoom-images')), /New screen No before screenshot/)
@@ -887,9 +914,17 @@ for (const channel of ['pr-3392', 'compare-main'])
         elements.get('status').dispatch('input')
         assert.deepEqual(
             elements.get('screens').children.map(({ id }) => id),
-            ['legacy', 'modern']
+            ['modern']
         )
         assert.equal(elements.get('view-mode').checked, false)
+        elements.get('status').value = 'not-comparable'
+        elements.get('status').dispatch('input')
+        assert.deepEqual(
+            elements.get('screens').children.map(({ id }) => id),
+            ['legacy', 'failed-baseline', 'excluded-baseline', 'after-gap']
+        )
+        for (const tile of elements.get('screens').children)
+            assert.match(elementText(tile), /compatible scenario harness/)
         elements.get('view-mode').checked = true
         elements.get('view-mode').dispatch('change')
         assert.equal(

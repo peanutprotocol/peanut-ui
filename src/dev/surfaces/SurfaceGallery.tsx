@@ -30,13 +30,15 @@ function SurfaceHost({ id }: { id: string }) {
     if (!surface)
         return (
             <Callout priority="error" className="m-4">
-                Unknown surface: {id}
+                <span data-capture-unavailable={`Unknown surface: ${id}`}>Unknown surface: {id}</span>
             </Callout>
         )
-    if (surface.blocked) {
+    const reason =
+        surface.blocked ?? (!surface.render && !surface.modalsContextFlag ? 'Missing surface renderer' : undefined)
+    if (reason) {
         return (
-            <div className="p-4">
-                <EmptyState icon="ban" title="Not capturable" description={surface.blocked} />
+            <div className="p-4" data-capture-unavailable={reason}>
+                <EmptyState icon="ban" title="Not capturable" description={reason} />
             </div>
         )
     }

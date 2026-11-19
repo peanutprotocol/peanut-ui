@@ -196,6 +196,7 @@ export function QrPayFormView() {
 
                     {/* Send Button */}
                     <Button
+                        data-testid="qr-pay-confirm"
                         onClick={payQR}
                         shadowSize="4"
                         loading={isLoading || isQuoteRecovering}
