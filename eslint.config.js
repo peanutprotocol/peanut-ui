@@ -516,6 +516,37 @@ module.exports = [
         },
     },
     {
+        // iOS WKWebView (capacitor://localhost) ignores cookie writes and reads
+        // '', so state kept in document.cookie is lost on iOS (TASK-25110).
+        // Client-persisted state goes in localStorage (see utils/invite-stash.ts).
+        files: ['src/**/*.{ts,tsx}'],
+        ignores: [
+            'src/**/__tests__/**',
+            'src/**/*.test.{ts,tsx}',
+            'src/utils/cookie-url.utils.ts', // the cookie helper itself
+            'src/utils/general.utils.ts', // removeFromCookie, beside the helpers it re-exports
+            'src/features/creator-pages/CreatorPageProvider.tsx', // web-only /go variant cookie the server reads
+            'src/features/marketing-qr/consent.ts', // reads PostHog's own opt-out cookie
+            'src/components/LandingPage/noFees.tsx', // web landing page reads the auth cookie
+            'src/components/Setup/setup-entry.ts', // reads the WebAuthn cookie
+            'src/utils/auth-token.ts', // clears the auth cookie the backend sets
+            'src/context/ReproduceBootstrap.tsx', // dev reproduce tooling
+            'src/context/PeanutDebug.tsx', // dev console cheats
+            'src/dev/fixtures/active.ts', // dev fixture session
+        ],
+        rules: {
+            'no-restricted-properties': [
+                'error',
+                {
+                    object: 'document',
+                    property: 'cookie',
+                    message:
+                        'iOS WKWebView drops document.cookie. Persist client state in localStorage (see utils/invite-stash.ts).',
+                },
+            ],
+        },
+    },
+    {
         // Dev-only tooling: /dev pages, the window.debug console cheats, and the
         // InvitesGraph debug visualization. The cheat API is intrinsically dynamic
         // and d3/force-graph mutate node objects at runtime — typing them buys no
