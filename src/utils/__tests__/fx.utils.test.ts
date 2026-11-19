@@ -238,8 +238,8 @@ const liveMarkup = {
 }
 
 const staticMarkup = {
-    currency: 'BRL',
-    markupPct: '0.07',
+    currency: 'ARS',
+    markupPct: '0.0913',
     source: 'static',
     indicative: true,
     effectiveAt: null,
@@ -287,11 +287,11 @@ describe('fetchCardMarkup — card comparison contract', () => {
     it('ignores a locked price on a static answer, which has no components to recompute from', async () => {
         mockApiFetch.mockResolvedValue({ ok: true, status: 200, json: async () => staticMarkup })
 
-        await expect(fetchCardMarkup('BRL', 6)).resolves.toEqual({ rate: 0.07, source: 'static' })
+        await expect(fetchCardMarkup('ARS', 1600)).resolves.toEqual({ rate: 0.0913, source: 'static' })
     })
 
     it.each([
-        ['a mismatched currency echo', { ...liveMarkup, currency: 'BRL' }],
+        ['a mismatched currency echo', { ...liveMarkup, currency: 'CLP' }],
         ['a non-indicative payload', { ...liveMarkup, indicative: false }],
         ['an exponent-notation markup', { ...liveMarkup, markupPct: '5.36e-2' }],
         ['an implausible markup', { ...liveMarkup, markupPct: '0.9' }],
@@ -317,7 +317,7 @@ describe('fetchCardMarkup — card comparison contract', () => {
             json: async () => ({ ...staticMarkup, markupPct: '0' }),
         })
 
-        await expect(fetchCardMarkup('BRL')).resolves.toBeNull()
+        await expect(fetchCardMarkup('ARS')).resolves.toBeNull()
     })
 
     it.each(['0', '0.0', '0.00'])('treats %s as no comparison, not as a broken contract', async (zero) => {
@@ -329,7 +329,7 @@ describe('fetchCardMarkup — card comparison contract', () => {
             json: async () => ({ ...staticMarkup, markupPct: zero }),
         })
 
-        await expect(fetchCardMarkup('BRL')).resolves.toBeNull()
+        await expect(fetchCardMarkup('ARS')).resolves.toBeNull()
     })
 
     it('publishes no comparison when a locked price does not beat the card', async () => {

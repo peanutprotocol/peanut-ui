@@ -59,8 +59,12 @@ export function QrPaySuccessView() {
 
     // Live card-vs-local-rail markup, driven by Manteca's rate + (for ARS)
     // BCRA's official rate. Same hook (and cache entry) the confirm screen's
-    // "Save vs card" row reads — keeps the two in sync.
-    const { data: cardMarkup } = useCardMarkupRate(currency?.code, currency?.price)
+    // "Save vs card" row reads — keeps the two in sync. A currency with no card
+    // comparison (BRL) sends no request at all.
+    const { data: cardMarkup } = useCardMarkupRate(
+        hasCardMarkupComparison(currency?.code) ? currency?.code : undefined,
+        currency?.price
+    )
 
     const receiptTransaction = useQrReceipt()
 
@@ -69,7 +73,7 @@ export function QrPaySuccessView() {
     if (!paidLocalAmount || !currency) return null
 
     // Show "saved $X vs card" only for currencies with a meaningful
-    // card-vs-local-rail gap (ARS, BRL — see CARD_FX_MARKUP_BY_CURRENCY).
+    // card-vs-local-rail gap (ARS; never BRL — see CARD_FX_MARKUP_BY_CURRENCY).
     // Rate is live (BCRA for ARS) via useCardMarkupRate above.
     const savingsInCents = calculateSavingsInCents(usdAmount, cardMarkup?.rate)
     const showSavingsMessage = savingsInCents > 0 && hasCardMarkupComparison(currency?.code)

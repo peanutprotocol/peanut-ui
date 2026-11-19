@@ -34,7 +34,7 @@ export function PaymentDetailsCard({
     /** The local currency per USD, as the quote gives it, and the currency's code; null while no quote is in hand, left out shows no row. */
     rate: { price: number; code: string } | null | undefined
     /** The USD saved against a foreign card, formatted, with the currency the comparison is for. */
-    savings?: { usd: string; currencyCode: string } | null
+    savings?: { usd: string } | null
     /** The provider's flat fee, formatted ("R$0.75"); null or undefined shows no row. */
     providerFee?: string | null
     /** The exact local amount the quote pays out ("R$503"), where it was not typed; null waits for the quote, left out shows no row. */
@@ -63,10 +63,8 @@ export function PaymentDetailsCard({
             key: 'savings',
             label: t('info.saveVsCard'),
             value: `~$${savings.usd}`,
-            moreInfoText:
-                savings.currencyCode.toUpperCase() === 'BRL'
-                    ? t('info.saveVsCardTooltipBrl')
-                    : t('info.saveVsCardTooltipArs'),
+            // ARS is the only currency with a card comparison (see CARD_FX_MARKUP_BY_CURRENCY)
+            moreInfoText: t('info.saveVsCardTooltipArs'),
         })
     }
     rows.push({ key: 'peanut-fee', label: tCommon('peanutFee'), value: tCommon('sponsoredByPeanut') })

@@ -91,7 +91,7 @@ describe('QrPayFormView', () => {
     })
 
     // the shared form (ruling 2026-11-12): the look the Pix withdrawal copies
-    it('leads with Paying, the holder, their CPF and bank; offers to save the key; shows the rate, the savings against a card, the sponsored Peanut fee and the provider', () => {
+    it('leads with Paying, the holder, their CPF and bank; offers to save the key; shows the rate, the sponsored Peanut fee and the provider, and no saving against a card for BRL', () => {
         renderWithIntl(<QrPayFormView />)
         expect(screen.getByText(en.qrPay.youArePaying)).toBeInTheDocument()
         expect(screen.getByText('Ana Souza')).toBeInTheDocument()
@@ -99,9 +99,9 @@ describe('QrPayFormView', () => {
         expect(screen.getByText('Banco Inter')).toBeInTheDocument()
         expect(screen.getByText(en.global.savedAddresses.savePrompt)).toBeInTheDocument()
         expect(screen.getByText('1 USD = 5.40 BRL')).toBeInTheDocument()
-        // $18.52 × 5% against a foreign card
-        expect(screen.getByText(en.qrPay.info.saveVsCard)).toBeInTheDocument()
-        expect(screen.getByText('~$0.93')).toBeInTheDocument()
+        // BRL has no card comparison, even when a backend still publishes a rate (pricing.md B-4)
+        expect(screen.queryByText(en.qrPay.info.saveVsCard)).toBeNull()
+        expect(screen.queryByText('~$0.93')).toBeNull()
         expect(screen.getByText(en.common.sponsoredByPeanut)).toBeInTheDocument()
         expect(screen.getByText(PROVIDERS['manteca-br'].brand)).toBeInTheDocument()
         expect(screen.getByRole('button', { name: en.navigation.pay })).toBeEnabled()

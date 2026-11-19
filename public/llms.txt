@@ -9,7 +9,7 @@ Peanut is a self-custody money app built on digital dollars (USDC). You hold dol
 - Scan any merchant **PIX QR code** and pay in seconds — the same instant payment network ~150 million Brazilians use every day.
 - **No CPF (Brazilian tax ID) and no Brazilian bank account required** — normally both are mandatory to use PIX. Verify with a passport from any country instead.
 - The merchant receives BRL instantly and sees a normal PIX payment — Peanut is invisible on their end.
-- Your dollars convert to BRL at the market ("cripto dólar") rate, locked the moment you confirm. IOF (Brazil's financial-operations tax) does not apply to the conversion — saving up to ~3.5% versus cards and bank transfers on cross-border spending.
+- Your dollars convert to BRL at the market ("cripto dólar") rate, locked the moment you confirm.
 - No Peanut fee on PIX payments. Available 24/7/365. Scan the QR, or paste a copied "copia e cola" code with the scanner's Paste button.
 - To pay a person rather than a merchant, share a Peanut Link — they claim it and can withdraw to their own PIX instantly, no Peanut account needed.
 
