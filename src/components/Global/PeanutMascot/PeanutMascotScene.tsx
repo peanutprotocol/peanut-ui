@@ -19,13 +19,7 @@ const PaperPlane = () => (
 )
 
 /** Reusable mascot scenes; all looping movement stops for reduced motion. */
-export const PeanutMascotScene = ({
-    scene,
-    className,
-}: {
-    scene: PeanutMascotSceneName
-    className?: string
-}) => {
+export const PeanutMascotScene = ({ scene, className }: { scene: PeanutMascotSceneName; className?: string }) => {
     const reducedMotion = useReducedMotion()
 
     return (
