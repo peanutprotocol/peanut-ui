@@ -64,6 +64,7 @@ import {
     TextAlignStart,
     TextCursorInput,
     ToggleLeft,
+    Trophy,
     Type,
     Vibrate,
     Wrench,
@@ -510,6 +511,14 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             description: 'Percentage slider with magnetic snap points. Used by AmountInput in contribute-pot',
             status: 'production',
             usages: 1,
+        },
+        {
+            label: 'Celebrations',
+            icon: Trophy,
+            href: '/dev/ds/patterns/celebrations',
+            description:
+                'The star confetti for success moments and its tunings, plus three permitted celebrations not yet in use',
+            status: 'production',
         },
     ],
     // the marketing surfaces' chapter of the doc site: what the live site ships is the brand.
