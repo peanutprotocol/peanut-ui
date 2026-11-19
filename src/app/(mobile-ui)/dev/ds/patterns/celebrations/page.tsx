@@ -33,6 +33,10 @@ const STANDARD = [
         'A quarter of the stars (at least 8), small and slow, staying near the start point. Only the card milestone screen still skips the burst, as it did before',
     ],
     ['Repeat', 'A second burst within 1.5 s is dropped'],
+    [
+        'Old browsers',
+        'Where the star cannot be drawn as an image (Safari before 16.4), the same star as a plain yellow outline. Never another shape',
+    ],
 ] as const
 
 // The tunings in use, as each screen calls them.

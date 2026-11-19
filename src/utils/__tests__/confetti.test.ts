@@ -17,6 +17,12 @@ jest.mock('@/utils/confetti-star-shapes', () => ({
     loadStarShapes: (heights: readonly number[]) => mockLoadStarShapes(heights),
 }))
 
+const silhouette = (height: number) => ({ type: 'path', path: `outline-${height}`, matrix: [1, 0, 0, 1, 0, 0] })
+const mockStarSilhouettes = jest.fn((heights: readonly number[]) => heights.map(silhouette))
+jest.mock('@/utils/confetti-star-silhouette', () => ({
+    starSilhouettes: (heights: readonly number[]) => mockStarSilhouettes(heights),
+}))
+
 const mockIsCapacitor = jest.fn().mockReturnValue(false)
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => mockIsCapacitor() }))
 
@@ -50,6 +56,7 @@ beforeEach(() => {
     fire.mockResolvedValue(undefined)
     mockIsCapacitor.mockReturnValue(false)
     mockLoadStarShapes.mockImplementation((heights: readonly number[]) => Promise.resolve(heights.map(starShape)))
+    mockStarSilhouettes.mockImplementation((heights: readonly number[]) => heights.map(silhouette))
     setReducedMotion(false)
 })
 
@@ -72,7 +79,7 @@ describe('the standard burst', () => {
             origin: { x: 0.5, y: 0.6 },
         })
         expect(options.shapes).toEqual([starShape(50), starShape(36)])
-        // The stars carry their own colours; tinting is only for the fallback.
+        // The stars carry their own colours; tinting is only for the outline fallback.
         expect(options.colors).toBeUndefined()
     })
 
@@ -90,7 +97,7 @@ describe('the standard burst', () => {
         expect(mockLoadStarShapes).toHaveBeenCalledTimes(1)
     })
 
-    it('falls back to a yellow star when the star file cannot be drawn, then retries it', async () => {
+    it('falls back to the same star as a yellow outline when the bitmap cannot be drawn, then retries it', async () => {
         mockLoadStarShapes.mockRejectedValueOnce(new Error('star.svg failed to load'))
         const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
         const { shootDoubleStarConfetti } = await loadConfetti()
@@ -99,14 +106,15 @@ describe('the standard burst', () => {
         shootDoubleStarConfetti()
         await flush()
 
+        // same sizes, same amount, same movement: only the drawing is simpler
         expect(fire.mock.calls[0][0]).toMatchObject({
-            shapes: ['star'],
+            shapes: [silhouette(50), silhouette(36)],
             colors: ['#ffc900'],
-            scalar: 1.8,
-            // plain stars read thinner, so the fallback fires the old plain-star count
-            particleCount: 200,
+            scalar: 1,
+            flat: true,
+            particleCount: 40,
         })
-        expect(warn).toHaveBeenCalledWith('[confetti] star shape failed, using the fallback star:', expect.any(Error))
+        expect(warn).toHaveBeenCalledWith('[confetti] star bitmap failed, using the star outline:', expect.any(Error))
 
         jest.spyOn(Date, 'now').mockReturnValue(now + 5_000)
         shootDoubleStarConfetti()
@@ -115,28 +123,35 @@ describe('the standard burst', () => {
         expect(fire.mock.calls[1][0].shapes).toEqual([starShape(50), starShape(36)])
     })
 
-    it('does not wait on a slow star file — the burst goes out with the fallback star', async () => {
-        let finishLoad: (shapes: ReturnType<typeof starShape>[]) => void = () => {}
-        mockLoadStarShapes.mockImplementationOnce(() => new Promise((resolve) => (finishLoad = resolve)))
-        jest.spyOn(console, 'warn').mockImplementation(() => {})
+    it('fires nothing rather than another shape when the outline cannot be drawn either', async () => {
+        mockLoadStarShapes.mockRejectedValueOnce(new Error('bitmap confetti unsupported'))
+        mockStarSilhouettes.mockImplementationOnce(() => {
+            throw new Error('path confetti unsupported')
+        })
+        const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
         const { shootDoubleStarConfetti } = await loadConfetti()
-        const now = Date.now()
 
-        shootDoubleStarConfetti()
-        await new Promise((resolve) => setTimeout(resolve, 850))
-
-        expect(fire).toHaveBeenCalledTimes(1)
-        expect(fire.mock.calls[0][0]).toMatchObject({ shapes: ['star'], colors: ['#ffc900'], particleCount: 200 })
-        expect(fire.mock.calls[0][0]).not.toHaveProperty('countRatio')
-
-        // The load carried on: the next burst gets the brand star without a second load.
-        finishLoad([starShape(50), starShape(36)])
-        jest.spyOn(Date, 'now').mockReturnValue(now + 5_000)
         shootDoubleStarConfetti()
         await flush()
 
-        expect(fire.mock.calls[1][0].shapes).toEqual([starShape(50), starShape(36)])
-        expect(mockLoadStarShapes).toHaveBeenCalledTimes(1)
+        expect(fire).not.toHaveBeenCalled()
+        expect(warn).toHaveBeenCalledWith('[confetti] burst failed:', expect.any(Error))
+    })
+
+    it('waits for the star file instead of sending another star first', async () => {
+        let finishLoad: (shapes: ReturnType<typeof starShape>[]) => void = () => {}
+        mockLoadStarShapes.mockImplementationOnce(() => new Promise((resolve) => (finishLoad = resolve)))
+        const { shootDoubleStarConfetti } = await loadConfetti()
+
+        shootDoubleStarConfetti()
+        await flush()
+        expect(fire).not.toHaveBeenCalled()
+
+        finishLoad([starShape(50), starShape(36)])
+        await flush()
+
+        expect(fire).toHaveBeenCalledTimes(1)
+        expect(fire.mock.calls[0][0].shapes).toEqual([starShape(50), starShape(36)])
     })
 })
 

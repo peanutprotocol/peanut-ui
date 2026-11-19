@@ -1,6 +1,7 @@
 import type { CreateTypes, Shape } from 'canvas-confetti'
 import { isCapacitor } from '@/utils/capacitor'
 import { loadStarShapes } from '@/utils/confetti-star-shapes'
+import { starSilhouettes } from '@/utils/confetti-star-silhouette'
 
 export interface ConfettiOptions {
     /** Stars in the burst. Counts are brand stars, about a fifth of the old plain-star counts. */
@@ -45,14 +46,9 @@ function starHeight(scalar: number): number {
     return Math.min(MAX_STAR_HEIGHT, Math.max(MIN_STAR_HEIGHT, Math.round(STAR_HEIGHT * scalar)))
 }
 
-// Only if the star file cannot be rasterised: the library's own star in brand
-// yellow (yellow-500), so a broken image never means no celebration.
-const FALLBACK_SHAPES: Shape[] = ['star']
-const FALLBACK_COLORS = ['#ffc900']
-const FALLBACK_SCALAR = 1.8
-// One brand star reads as about five plain ones, so the fallback fires the
-// plain-star counts the app used before.
-const FALLBACK_COUNT_RATIO = 5
+// Only where the star file cannot be drawn as a bitmap: the same star as a
+// plain outline filled brand yellow (yellow-500). Never another shape.
+const SILHOUETTE_COLORS = ['#ffc900']
 
 /*
  * prefers-reduced-motion asks for less motion, not less feedback.
@@ -146,28 +142,15 @@ function getStarShapes(heights: readonly number[]): Promise<Shape[]> {
     return promise
 }
 
-// A slow star file must not hold the celebration back: past this, the burst
-// goes out with the fallback star. The load carries on and stays memoized, so
-// the next burst gets the brand star.
-const STAR_SHAPE_TIMEOUT_MS = 800
-
-function getShapeOptions(heights: readonly number[], fallbackScalar: number) {
-    let timer: ReturnType<typeof setTimeout>
-    const timeout = new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new Error('star shape timed out')), STAR_SHAPE_TIMEOUT_MS)
-    })
-    return Promise.race([getStarShapes(heights), timeout])
-        .then(
-            (shapes) => ({ countRatio: 1, shapeOptions: { shapes } }),
-            (error: unknown) => {
-                console.warn('[confetti] star shape failed, using the fallback star:', error)
-                return {
-                    countRatio: FALLBACK_COUNT_RATIO,
-                    shapeOptions: { shapes: FALLBACK_SHAPES, colors: FALLBACK_COLORS, scalar: fallbackScalar },
-                }
-            }
-        )
-        .finally(() => clearTimeout(timer))
+function getShapeOptions(heights: readonly number[]) {
+    return getStarShapes(heights).then(
+        (shapes) => ({ shapes }),
+        (error: unknown) => {
+            console.warn('[confetti] star bitmap failed, using the star outline:', error)
+            // Throws where paths are unsupported too; the burst is then skipped.
+            return { shapes: starSilhouettes(heights), colors: SILHOUETTE_COLORS }
+        }
+    )
 }
 
 /** One burst of `particleCount` stars, spread evenly over the given sizes. */
@@ -181,8 +164,8 @@ const fireStars = (options: ConfettiOptions, scalars: readonly number[]) => {
     // only resize the box it is painted into.
     const heights = [...new Set(sizes.map(starHeight))]
 
-    Promise.all([getConfetti(), getShapeOptions(heights, FALLBACK_SCALAR * Math.max(...sizes))])
-        .then(([fire, { countRatio, shapeOptions }]) =>
+    Promise.all([getConfetti(), getShapeOptions(heights)])
+        .then(([fire, shapeOptions]) =>
             fire({
                 ...defaultConfettiConfig,
                 ...otherOptions,
@@ -190,7 +173,7 @@ const fireStars = (options: ConfettiOptions, scalars: readonly number[]) => {
                 ...shapeOptions,
                 particleCount: reduced
                     ? Math.max(REDUCED_MOTION_MIN_PARTICLES, Math.round(particleCount * REDUCED_MOTION_PARTICLE_RATIO))
-                    : particleCount * countRatio,
+                    : particleCount,
                 origin,
             })
         )
