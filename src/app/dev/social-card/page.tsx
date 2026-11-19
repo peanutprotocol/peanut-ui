@@ -22,11 +22,11 @@ export default async function SocialCardPage({ searchParams }: { searchParams: P
             className="bg-background-brand text-foreground-primary fixed left-0 top-0 z-50 overflow-hidden"
             style={SOCIAL_CARD_SIZE}
         >
-            <div className="absolute flex flex-col items-start" style={{ left: 92, top: 196 }}>
+            <div className="absolute flex flex-col items-start" style={{ left: 92, top: 156 }}>
                 <span className="font-roboto-flex-extrabold uppercase" style={{ fontSize: 68, marginLeft: 6 }}>
                     Buttery smooth
                 </span>
-                <span style={{ fontSize: 205, marginTop: 34 }}>
+                <span style={{ fontSize: 170, marginTop: 28 }}>
                     <Title text={'GLOBAL\nMONEY'} />
                 </span>
             </div>
