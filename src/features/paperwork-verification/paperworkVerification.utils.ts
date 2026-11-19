@@ -2,7 +2,6 @@ import type { SumsubKycStatus } from '@/app/actions/types/sumsub.types'
 import type { KycDocumentPlan } from '@/app/actions/types/kyc-workflow.types'
 import type {
     PaperworkVerificationAnswers,
-    PaperworkVerificationClosedFeature,
     PaperworkVerificationFeature,
     PaperworkVerificationField,
     PaperworkVerificationFieldKind,
@@ -112,12 +111,6 @@ export function questionPages(
     }
     return pages
 }
-
-/** The picked features less the ones the residence or an answer closed: what the ID check will set up. */
-export const openFeatures = <F extends Partial<Record<PaperworkVerificationClosedFeature['feature'], boolean>>>(
-    features: F | undefined,
-    closed: PaperworkVerificationClosedFeature[] | undefined
-): F | undefined => features && { ...features, ...Object.fromEntries((closed ?? []).map((c) => [c.feature, false])) }
 
 /** The screen a step is asked on. */
 export const screenOfStep = <S extends string>(
@@ -273,10 +266,6 @@ export const stepComplete = (
         if (f.kind === 'taxId' && looksLikeItin(f.format, value)) return false
         return !f.required || f.locked || !!value
     })
-
-/** Add-later: the open steps of one feature, in the server's order. */
-export const openSteps = (questions: PaperworkVerificationQuestions): PaperworkVerificationStep[] =>
-    questions.steps.filter((s) => !s.answered)
 
 const ERROR_KEYS: Record<string, string> = {
     required: 'required',

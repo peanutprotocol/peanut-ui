@@ -19,7 +19,6 @@ interface KycVerificationInProgressModalProps {
     onClose: () => void
     phase?: KycModalPhase
     onAcceptTerms?: () => void
-    onSkipTerms?: () => void
     onStartSupplement?: () => void
     onSkipSupplement?: () => void
     onContinue?: () => void
@@ -40,7 +39,7 @@ const PHASE_SCREEN: Record<KycModalPhase, string> = {
 }
 
 // multi-phase modal shown during and after kyc verification.
-// phase transitions are controlled by the parent orchestrator (SumsubKycFlow).
+// useMultiPhaseKycFlow controls phase transitions.
 export const KycVerificationInProgressModal = ({
     isOpen,
     onClose,

@@ -265,7 +265,6 @@ jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
         handleModalClose: jest.fn(),
         modalPhase: null,
         handleAcceptTerms: jest.fn(),
-        handleSkipTerms: jest.fn(),
         completeFlow: jest.fn(),
         tosError: null,
         isLoadingTos: false,

@@ -341,8 +341,6 @@ export const ANALYTICS_EVENTS = {
     KYC_PV_RESIDENCE_CHANGE_OPENED: 'kyc_paperwork_residence_change_opened',
     KYC_PV_DOCUMENT_COUNTRY_MISMATCH: 'kyc_paperwork_document_country_mismatch',
     KYC_PV_DOCUMENT_COUNTRY_CHOSEN: 'kyc_paperwork_document_country_chosen',
-    KYC_PV_LOCAL_REFUSED: 'kyc_paperwork_local_refused',
-    KYC_PV_CONTINUE_WITHOUT_LOCAL: 'kyc_paperwork_continue_without_local',
     KYC_PV_ID_VIEWED: 'kyc_paperwork_id_viewed',
     KYC_PV_ID_SUBMITTED: 'kyc_paperwork_id_submitted',
     // outcome: opened | document-required | questions-missing | failed
@@ -581,9 +579,7 @@ export const MODAL_TYPES = {
     NOTIFICATIONS: 'notifications',
     EARLY_USER: 'early_user',
     POST_SIGNUP: 'post_signup',
-    POST_VERIFICATION_ACTION: 'post_verification_action',
     BALANCE_WARNING: 'balance_warning',
-    KYC_COMPLETED: 'kyc_completed',
     INVITE: 'invite',
     MIGRATION_DOWNLOAD: 'migration_download',
     RE_CONSENT: 're_consent',
