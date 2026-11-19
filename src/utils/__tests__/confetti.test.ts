@@ -118,7 +118,7 @@ describe('the standard burst', () => {
     })
 
     it('does not wait on a slow star file — the burst goes out with the fallback star', async () => {
-        let finishLoad: (shapes: unknown[]) => void = () => {}
+        let finishLoad: (shapes: ReturnType<typeof starShape>[]) => void = () => {}
         mockLoadStarShapes.mockImplementationOnce(() => new Promise((resolve) => (finishLoad = resolve)))
         jest.spyOn(console, 'warn').mockImplementation(() => {})
         const { shootStarConfetti } = await loadConfetti()

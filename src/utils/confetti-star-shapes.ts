@@ -35,7 +35,10 @@ async function starShape(image: HTMLImageElement, height: number): Promise<Shape
     // An ImageBitmap, not the canvas: the burst is posted to a worker on web and
     // a canvas element cannot be cloned across.
     const bitmap = await createImageBitmap(canvas)
-    return { type: 'bitmap', bitmap, matrix: [1, 0, 0, 1, -side / 2, -side / 2] }
+    // The library reads the matrix as a plain six-number array (it has to survive
+    // the post to the worker); its types call it a DOMMatrix.
+    const matrix = [1, 0, 0, 1, -side / 2, -side / 2] as unknown as DOMMatrix
+    return { type: 'bitmap', bitmap, matrix }
 }
 
 /**
