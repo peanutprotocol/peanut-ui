@@ -22,6 +22,7 @@ import {
     AVATAR_LETTER_ENTRIES,
     AVATAR_SIZE_RULE,
     BADGE_ENTRIES,
+    BADGE_REUSE_ENTRIES,
     BADGE_VARIANT_ENTRIES,
     COIN_ENTRIES,
     COIN_RULE,
@@ -35,6 +36,8 @@ import {
     LOGO_ENTRIES,
     MASCOT_ENTRIES,
     MASCOT_STILL_ENTRIES,
+    NATIVE_ART_EXCEPTION_ENTRIES,
+    NATIVE_ART_EXCEPTION_RULE,
     OG_DOODLE_ENTRIES,
     OG_DOODLE_RULE,
     PRESS_STILL_ENTRIES,
@@ -238,6 +241,22 @@ export default function MarketingAssetsPage() {
                 </ArtGrid>
             </DocSection>
 
+            <DocSection
+                title="Native app art"
+                description="Pictures the iPhone app draws itself, outside the web app. Approved exceptions."
+            >
+                <DesignNote type="info">{NATIVE_ART_EXCEPTION_RULE}</DesignNote>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {NATIVE_ART_EXCEPTION_ENTRIES.map((entry) => (
+                        <Card key={entry.label} className="flex h-full flex-col gap-2 p-3">
+                            <p className="font-mono text-label-m">{entry.label}</p>
+                            <p className="font-mono text-body-xs break-all text-foreground-secondary">{entry.path}</p>
+                            <p className="text-body-xs text-foreground-secondary">{entry.usedIn}</p>
+                        </Card>
+                    ))}
+                </div>
+            </DocSection>
+
             <DocSection title="Easter eggs" description="Hidden. Eight no-banking territories in EasterEggDrawer.">
                 <DesignNote type="info">{EASTER_EGG_RULE}</DesignNote>
                 <PublicArtGrid entries={EASTER_EGG_ENTRIES} tile="h-16" />
@@ -312,6 +331,8 @@ export default function MarketingAssetsPage() {
                     </p>
                     <p className="text-label-m">Badge variants — one named use each</p>
                     <ArtGrid entries={BADGE_VARIANT_ENTRIES} />
+                    <p className="text-label-m">Badge art reused outside badges — one named use each</p>
+                    <PublicArtGrid entries={BADGE_REUSE_ENTRIES} tile="h-12" />
                     <p className="text-label-m">Points tiers</p>
                     <ArtGrid entries={TIER_BADGE_ENTRIES} />
                 </DocSection.Content>
