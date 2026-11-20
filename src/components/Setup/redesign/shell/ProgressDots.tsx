@@ -16,14 +16,14 @@ export function ProgressDots({ index, total, reduced }: { index: number; total: 
         firstPaint.current = false
     }, [])
     return (
-        <span aria-hidden="true" className="flex items-center gap-[5px]" data-setup-dots>
+        <span role="img" aria-label={`Step ${index + 1} of ${total}`} className="flex items-center gap-2" data-setup-dots>
             {Array.from({ length: total }, (_, i) => (
                 <motion.i
                     key={i === index ? `now-${index}` : i}
                     className={twMerge(
-                        'block h-[7px] w-[7px] origin-bottom rounded-full border-[1.5px] border-solid border-foreground-primary',
+                        'block size-2 origin-bottom rounded-full border-[1.5px] border-solid border-foreground-primary',
                         i < index && 'bg-foreground-primary',
-                        i === index && 'w-5 bg-background-default',
+                        i === index && 'h-2 w-6 bg-background-default',
                         reduced
                             ? 'transition-colors duration-fast'
                             : 'transition-[width,background-color] duration-moderate ease-spring'
