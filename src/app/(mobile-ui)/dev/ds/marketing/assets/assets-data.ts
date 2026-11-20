@@ -174,7 +174,7 @@ export const DOODLE_ENTRIES: ArtEntry[] = [
         label: 'stack-coin',
         asset: stackCoin,
         path: 'assets/illustrations/stack-coin.svg',
-        usedIn: 'no app call site; permitted celebration "Coins land, get stacked"',
+        usedIn: 'Pot status line at 18 px (PotProgress: "Goal achieved!", "Goal exceeded!" and the below-goal line on a closed pot); permitted celebration "Coins land, get stacked"',
     },
     {
         label: 'peanut-card-hand',
@@ -428,6 +428,33 @@ export const BADGE_VARIANT_ENTRIES: ArtEntry[] = [
         usedIn: 'White-paper variant of the first_invite badge, for coloured panels: sign-up Email step (EmailArt)',
     },
 ]
+
+/**
+ * Production badge files with one more named use outside the badge set.
+ * Approved by Konrad, 2026-11-20.
+ */
+export const BADGE_REUSE_ENTRIES: PublicArtEntry[] = [
+    {
+        label: 'mini_influencer',
+        src: '/badges/mini_influencer.svg',
+        usedIn: "The megaphone next to the waving mascot on the 'Get money alerts' prompt (PeanutMascotScene, SetupNotificationsModal)",
+    },
+]
+
+/**
+ * Art outside the web app that Konrad approved as it is. Each is an exception:
+ * it is not redrawn to the house style and not reused anywhere else.
+ */
+export const NATIVE_ART_EXCEPTION_ENTRIES = [
+    {
+        label: 'wallet-card-artwork',
+        path: 'ios/App/App/WalletCardArtwork.swift',
+        usedIn: 'iPhone Wallet, "From Apps on Your iPhone" list: the picture next to the Peanut card (IssuerExtensionHandler). Drawn by UIKit at 160 x 160; there is no image file, so this page does not show it.',
+    },
+]
+
+export const NATIVE_ART_EXCEPTION_RULE =
+    'Approved exception: keep the iPhone Wallet card picture exactly as it is today. Do not change it and do not copy it to another surface. Approved by Konrad, 2026-11-20.'
 
 export const TIER_BADGE_ENTRIES: ArtEntry[] = [0, 1, 2, 3].map((tier) => ({
     label: `tier${tier}`,

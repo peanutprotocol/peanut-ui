@@ -11,8 +11,12 @@ import { findKycDocumentPlan, getKycDocumentStatus } from '@/app/actions/kyc-wor
 import { InitiateKycModal } from '../InitiateKycModal'
 
 const mockPush = jest.fn()
+const mockReplace = jest.fn()
 jest.mock('@/components/Setup/components/SetupLanguageSwitcher', () => ({ SetupLanguageSwitcher: () => null }))
-jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }), usePathname: () => '/add-money' }))
+jest.mock('next/navigation', () => ({
+    useRouter: () => ({ push: mockPush, replace: mockReplace }),
+    usePathname: () => '/add-money',
+}))
 jest.mock('@/app/actions/kyc-workflow', () => ({ findKycDocumentPlan: jest.fn(), getKycDocumentStatus: jest.fn() }))
 jest.mock('@/hooks/useResidenceRestrictions', () => ({ useResidenceRestrictions: () => ({ banking: false }) }))
 let mockRegionRestricted = false
@@ -30,12 +34,12 @@ const plan = (flow: string | null) => ({
     flow,
     features: { qr: true, bank: false, local: false, card: false },
 })
-const renderModal = () =>
+const renderModal = (presentation: 'page' | 'modal' = 'page') =>
     render(
         <IntlWrapper>
             <InitiateKycModal
                 visible
-                presentation="page"
+                presentation={presentation}
                 navTitle="Add money"
                 onClose={jest.fn()}
                 onVerify={jest.fn()}
@@ -55,15 +59,17 @@ it('sends a verify-once user to /verify without painting the unlock offer', asyn
     renderModal()
 
     expect(screen.queryByTestId('kyc-initiate-cta')).not.toBeInTheDocument()
-    await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/verify'))
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/verify'))
+    expect(mockPush).not.toHaveBeenCalled()
     expect(screen.queryByTestId('kyc-initiate-cta')).not.toBeInTheDocument()
 
     // a user the plan keeps on today's flow gets the offer
     jest.mocked(findKycDocumentPlan).mockResolvedValue(plan(null) as never)
-    mockPush.mockClear()
+    mockReplace.mockClear()
     renderModal()
     expect(await screen.findByTestId('kyc-initiate-cta')).toBeInTheDocument()
     expect(mockPush).not.toHaveBeenCalled()
+    expect(mockReplace).not.toHaveBeenCalled()
 
     // the region ending outranks the redirect
     mockRegionRestricted = true
@@ -71,4 +77,14 @@ it('sends a verify-once user to /verify without painting the unlock offer', asyn
     renderModal()
     expect(screen.getAllByText('region-restricted').length).toBeGreaterThan(0)
     expect(findKycDocumentPlan).not.toHaveBeenCalled()
+})
+
+// a page gate replaces itself with /verify, or back lands on the gate and it
+// redirects again (TASK-25011). a modal the user opened keeps its screen in history.
+it('keeps the opener in history when the unlock is a modal', async () => {
+    jest.mocked(findKycDocumentPlan).mockResolvedValue(plan('verify-once') as never)
+    renderModal('modal')
+
+    await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/verify'))
+    expect(mockReplace).not.toHaveBeenCalled()
 })
