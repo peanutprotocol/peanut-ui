@@ -14,7 +14,7 @@
  * pre-processed copy of the art to keep in step with the approved files.
  * The name is historical: the tease used to be chunky pixels.
  *
- * Shared between the internal share builder, application preview, and the
+ * Shared between the application preview and the
  * `/shhhhh` LP hero.
  */
 
