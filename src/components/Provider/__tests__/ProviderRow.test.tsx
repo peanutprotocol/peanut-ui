@@ -147,11 +147,13 @@ describe('ProviderSheet rows', () => {
         const sheet = openSheet('Bridge')
         // the role also names the dialog for screen readers, so read it from its row
         const roleRow = within(sheet).getByText('Role').closest('.border-dashed') as HTMLElement
-        expect(roleRow).toHaveTextContent('Bank transfers and your bank details')
+        expect(roleRow).toHaveTextContent('Provides bank details and bank transfers')
         expect(
-            within(sheet).getByText('Bridge handles the bank transfer and the currency conversion')
+            within(sheet).getByText('Bridge handles the bank transfer; you control your Peanut wallet')
         ).toBeInTheDocument()
-        expect(within(sheet).getByText('Peanut makes the wallet app. It does not hold your money.')).toBeInTheDocument()
+        expect(
+            within(sheet).getByText('Peanut provides the self-custodial wallet software, not the transfer service.')
+        ).toBeInTheDocument()
         expect(within(sheet).queryByRole('status')).not.toBeInTheDocument()
     })
 })

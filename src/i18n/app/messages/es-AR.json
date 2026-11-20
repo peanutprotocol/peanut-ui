@@ -2474,6 +2474,10 @@
         "role": {
             "rhino": "Mueve tu cripto entre redes. Peanut es cliente de Rhino; vos no tenés cuenta en Rhino."
         },
+        "execution": {
+            "bridge": "{brand} se encarga de la transferencia bancaria; vos controlás tu billetera Peanut",
+            "bridgeEea": "{brand} se encarga de la transferencia bancaria; vos controlás tu billetera Peanut"
+        },
         "cardRelationship": "Tenés una relación directa con Third National bajo los términos de la tarjeta.",
         "cardRelationshipProspective": "Cuando aceptes los términos de la tarjeta, tu relación va a ser directamente con Third National."
     }
