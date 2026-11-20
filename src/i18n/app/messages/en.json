@@ -4860,7 +4860,7 @@
         "rainCooldownPill": "Card cool-down",
         "easterEggImageAlt": "Easter egg illustration",
         "reConsent": {
-            "whatChanged": "The main changes: we added Avenia as a payment partner for Pix in Brazil, and the Privacy Policy now describes session recordings and names more of the service providers we use.",
+            "whatChanged": "We added Avenia as our Pix partner in Brazil. Read more in the documents below.",
             "title": "A small update to our terms",
             "acceptLabel": "I accept the updated documents",
             "acceptCta": "Accept & continue",

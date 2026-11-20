@@ -30,10 +30,6 @@ jest.mock('@/services/consent', () => ({
         getStatus: (...args: unknown[]) => mockGetStatus(...args),
         accept: (...args: unknown[]) => mockAccept(...args),
     },
-    acceptedLegalDocument: (doc: string | { slug: string }) => {
-        const slug = typeof doc === 'string' ? doc : doc.slug
-        return jest.requireActual('@/services/consent').acceptedLegalDocument(slug)
-    },
 }))
 
 let mockUser: { user: { userId: string; username: string }; showEarlyUserModal?: boolean } | null = null
