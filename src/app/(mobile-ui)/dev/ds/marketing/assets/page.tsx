@@ -22,7 +22,6 @@ import {
     AVATAR_LETTER_ENTRIES,
     AVATAR_SIZE_RULE,
     BADGE_ENTRIES,
-    BADGE_REUSE_ENTRIES,
     BADGE_VARIANT_ENTRIES,
     COIN_ENTRIES,
     COIN_RULE,
@@ -331,8 +330,6 @@ export default function MarketingAssetsPage() {
                     </p>
                     <p className="text-label-m">Badge variants — one named use each</p>
                     <ArtGrid entries={BADGE_VARIANT_ENTRIES} />
-                    <p className="text-label-m">Badge art reused outside badges — one named use each</p>
-                    <PublicArtGrid entries={BADGE_REUSE_ENTRIES} tile="h-12" />
                     <p className="text-label-m">Points tiers</p>
                     <ArtGrid entries={TIER_BADGE_ENTRIES} />
                 </DocSection.Content>

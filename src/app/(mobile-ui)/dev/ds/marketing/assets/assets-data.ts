@@ -37,6 +37,7 @@ import scribbleCircle from '@/assets/illustrations/scribble-circle.svg'
 import sparkle from '@/assets/illustrations/sparkle.svg'
 import stackCoin from '@/assets/illustrations/stack-coin.svg'
 import star from '@/assets/illustrations/star.svg'
+import idCardGlove from '@/assets/kyc/id-card-glove.svg'
 import coinEurFace from '@/assets/onboarding/coin-eur-face.svg'
 import coinEurRig from '@/assets/onboarding/coin-eur-rig.png'
 import coinUsdFace from '@/assets/onboarding/coin-usd-face.svg'
@@ -86,13 +87,13 @@ export const MASCOT_STILL_ENTRIES: ArtEntry[] = [
         label: 'peanut-club',
         asset: PEANUTMAN_MOBILE,
         path: 'assets/mascot/peanut-club.webp',
-        usedIn: 'PEANUTMAN_MOBILE: app-install banner (useHomeCarouselCTAs), MigrationHero',
+        usedIn: 'PEANUTMAN_MOBILE: app-install banner (useHomeCarouselCTAs), MigrationHero. Flat redraw, walking, approved by Konrad 2026-11-20.',
     },
     {
         label: 'peanut-sitting',
         asset: PEANUT_SITTING,
         path: 'assets/mascot/peanut-sitting.webp',
-        usedIn: 'PEANUT_SITTING: creator invite page A1 (NitaA1), the still behind the pointing-down loop on creator pages A1 and E1 (CreatorPageMascot), DS receipt card fan demo (ReceiptCardFan). It must always sit on a horizontal divider or edge, seat on the line; it never floats.',
+        usedIn: 'PEANUT_SITTING: creator invite page A1 (NitaA1), the still behind the pointing-down loop on creator pages A1 and E1 (CreatorPageMascot), DS receipt card fan demo (ReceiptCardFan); emails use a straight 333 x 402 PNG copy, public/email/peanut-sitting-3x.png, shown at 111 x 134. It must always sit on a horizontal divider or edge, seat on the line; it never floats.',
     },
 ]
 
@@ -305,6 +306,12 @@ export const GLOVE_ENTRIES: ArtEntry[] = [
         path: 'assets/illustrations/hand-thumbs-up.svg',
         usedIn: 'FooterChrome hand row; home marquee default image; MarketingHero/mdx Hero; securityBuiltIn icon; kyc success; PublicProfile join button',
     },
+    {
+        label: 'id-card-glove',
+        asset: idCardGlove,
+        path: 'assets/kyc/id-card-glove.svg',
+        usedIn: 'Verify step "Which document will you use?" hero (IdCardScanAnimation): pops in, then a flat scan band sweeps the card. Approved by Konrad, 2026-11-20.',
+    },
     { label: 'got-it-hand', asset: gotItHand, path: 'assets/illustrations/got-it-hand.svg', usedIn: 'Landing folds' },
     {
         label: 'got-it-hand-flipped',
@@ -426,18 +433,6 @@ export const BADGE_VARIANT_ENTRIES: ArtEntry[] = [
         asset: firstInviteWhite,
         path: 'assets/onboarding/first-invite-white.svg',
         usedIn: 'White-paper variant of the first_invite badge, for coloured panels: sign-up Email step (EmailArt)',
-    },
-]
-
-/**
- * Production badge files with one more named use outside the badge set.
- * Approved by Konrad, 2026-11-20.
- */
-export const BADGE_REUSE_ENTRIES: PublicArtEntry[] = [
-    {
-        label: 'mini_influencer',
-        src: '/badges/mini_influencer.svg',
-        usedIn: "The megaphone next to the waving mascot on the 'Get money alerts' prompt (PeanutMascotScene, SetupNotificationsModal)",
     },
 ]
 
