@@ -5,6 +5,7 @@ import Star from '@/assets/illustrations/star.svg'
 import { PEANUT_SITTING } from '@/assets/mascot'
 import { Card } from '@/components/0_Bruddle/Card'
 import { Icon } from '@/components/Global/Icons/Icon'
+import { CreatorPageMascot } from '../../CreatorPageMascot'
 import { CreatorPageShell } from '../../CreatorPageShell'
 import type { CreatorPageVariantProps } from '../../variant-props'
 import { A1_AVATAR_SRC } from './a1/a1-avatar.consts'
@@ -17,9 +18,6 @@ import { A1SampleRow } from './a1/A1SampleRow'
 import { A1StickyCta } from './a1/A1StickyCta'
 import { NITA_A1_COPY as copy } from './nita-a1.copy'
 import styles from './NitaA1.module.css'
-
-/** A still frame of the approved `pointing-down` mascot pose (mono assets/mascot/lottie), 256px WebP. */
-const POINTING_MASCOT_SRC = '/creator-pages/juanacervio/a1-mascot-pointing-down.webp'
 
 /**
  * Nita's page, variant A1: her X post redrawn large, with the store button inside the post.
@@ -136,11 +134,10 @@ export function NitaA1(props: CreatorPageVariantProps) {
             <section className={styles.close}>
                 <p>{close.quote}</p>
                 <p>{close.by}</p>
-                {/* eslint-disable-next-line @next/next/no-img-element -- a sized WebP in public/: the image optimizer would add a round trip and save nothing */}
-                <img src={POINTING_MASCOT_SRC} width={256} height={256} alt="" loading="lazy" />
+                <CreatorPageMascot className={styles.mascot} />
                 <A1Cta position="footer" />
                 <A1InviteLine />
-                <div>
+                <div className={styles.legal}>
                     <p>{close.legal}</p>
                     <p>{copy.notABank}</p>
                 </div>
