@@ -15,7 +15,7 @@ jest.mock('@/features/tracked-links/contract', () => {
 jest.mock('next/headers', () => ({ headers: jest.fn() }))
 jest.mock('@/features/tracked-links/go-map', () => {
     const actual = jest.requireActual('@/features/tracked-links/go-map')
-    const redirects = { shortlink: '/en/pricing?utm_source=flyer', 'promo/flyer': '/app' }
+    const redirects = { shortlink: '/en/pricing?utm_source=flyer', 'promo/flyer': '/app', 'press-kit': '/en/press' }
     return { ...actual, resolveGoRedirect: (segments: string[]) => actual.resolveGoRedirect(segments, redirects) }
 })
 jest.mock('@/features/creator-pages/registry', () => ({ selectCreatorPage: jest.fn() }))
@@ -260,8 +260,16 @@ describe('short links', () => {
         expect(global.fetch).not.toHaveBeenCalled()
     })
 
+    it('answers a key that is not a valid username', async () => {
+        const response = await open('press-kit')
+        expect(response.status).toBe(307)
+        expect(location(response)).toBe('/en/press')
+        expect(global.fetch).not.toHaveBeenCalled()
+    })
+
     it('wins over a creator with the same username only on the mapped path', async () => {
         expect(location(await open('promo', '', ['flyer']))).toBe('/app')
+        await generateMetadata(pageProps(new URL('https://peanut.me/go/promo/flyer'), 'promo', ['flyer']))
         expect(global.fetch).not.toHaveBeenCalled()
         expect(handoff(await open('promo', '', ['ig']))).toEqual({
             app_entry: '1',

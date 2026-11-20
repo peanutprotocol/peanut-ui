@@ -1,3 +1,5 @@
+import { getPathMatch } from 'next/dist/shared/lib/router/utils/path-match'
+import redirectRules from '../../../../redirects.json'
 import {
     GO_REDIRECT_KEY,
     GO_REDIRECTS,
@@ -9,9 +11,19 @@ import {
 it('keeps every GO_REDIRECTS entry on peanut.me and out of /go/', () => {
     for (const [key, target] of Object.entries(GO_REDIRECTS)) {
         expect(key).toMatch(GO_REDIRECT_KEY)
-        expect(target.startsWith('/')).toBe(true)
-        expect(target).not.toMatch(/^\/go(\/|$|\?|#)/i)
-        expect(goRedirectDestination(target)).toBe(target)
+        // A bad line fails naming its key; goRedirectDestination refuses other sites and /go/ paths.
+        expect([key, goRedirectDestination(target)]).toEqual([key, target])
+    }
+})
+
+// next.config.js runs redirects.json before the /go/ page, so a key that one of its rules matches never gets here.
+const takenByRedirectsJson = (key: string) =>
+    redirectRules.some((rule) => !('has' in rule) && getPathMatch(rule.source)(`/go/${key}`))
+
+it('uses no key that a redirects.json rule answers first', () => {
+    expect(takenByRedirectsJson('team')).toBe(true)
+    for (const key of Object.keys(GO_REDIRECTS)) {
+        expect([key, takenByRedirectsJson(key)]).toEqual([key, false])
     }
 })
 
@@ -53,6 +65,10 @@ describe('resolveGoRedirect', () => {
             expect(resolveGoRedirect([key])).toBeNull()
         }
     )
+
+    it('ignores a key the map only inherits', () => {
+        expect(resolveGoRedirect(['flyer'], Object.create({ flyer: '/app' }))).toBeNull()
+    })
 
     it.each(['evil', 'protocol', 'backslash', 'encoded', 'loop', 'dotloop', 'bare'])(
         'refuses the %s destination at request time',

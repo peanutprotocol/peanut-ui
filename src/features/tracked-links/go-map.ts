@@ -2,13 +2,16 @@ import { TRACKED_LINK_ORIGIN } from '@/features/tracked-links/contract'
 
 /**
  * Short links: peanut.me/go/<key> answers a 307 to the path on the right.
+ * Rules: mono engineering/ui/tracked-links.md § Redirect map.
  *
- * To add one, add a line such as `'lisbon/flyer': '/en/send-money-to-brazil?utm_source=flyer',`.
+ * To add one, add a line such as `'lisbon/flyer': '/en/send-money-to/brazil?utm_source=flyer',`.
  * - The key is everything after /go/: lowercase letters, digits, `-` and `_`, segments joined by `/`.
  * - The value is a path on peanut.me that starts with `/`. Query and hash are fine.
  *   Never a full URL or another site, and never a /go/ path. go-map.test.ts fails on a bad line.
  * - A key wins over a creator with the same username: `konrad/1` here would take over Konrad's /go link.
  * - The visitor's own query string is dropped.
+ * - In production redirects.json answers first, so it takes some keys: today team, blog and four deposit/ and
+ *   withdraw/ paths. go-map.test.ts fails on such a key.
  */
 export const GO_REDIRECTS: Readonly<Record<string, string>> = {
     app: '/app',

@@ -48,7 +48,7 @@ export async function generateMetadata({ params }: GoPageProps): Promise<Metadat
 
 export default async function GoPage({ params, searchParams }: GoPageProps) {
     const { slug, rest = [] } = await params
-    // A short link wins over a creator with the same username.
+    // Before the username check: a short link wins over a creator with the same username, and its key may hold - and _.
     const destination = resolveGoRedirect([slug, ...rest])
     if (destination) redirect(destination)
     const username = slug.toLowerCase()
