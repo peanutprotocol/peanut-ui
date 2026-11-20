@@ -100,18 +100,20 @@ interface Candidate {
     verdict: NonNullable<RailCapability['resolved']>
 }
 
-/** New bank accounts are the entry the address step answers (api `ADDRESS_GATED_FEATURES`). */
+/** Accounts and cards gated by the address step (api `ADDRESS_GATED_FEATURES`). */
 function addressEntry(
     input: FeatureReportInput,
     feature: KycIntent,
     actions: Map<string, NextAction>
 ): FeatureReportEntry | null {
-    if (!input.residenceAddressStep || (feature !== 'bank' && feature !== 'card')) return null
+    if (!input.residenceAddressStep || (feature !== 'bank' && feature !== 'card' && feature !== 'local')) return null
     if (feature === 'card' && input.hasCardApplication) return null
     if (input.residenceAddressStep === 'in_review')
         return { state: 'setting_up', reason: 'residence_address_in_review' }
     const action = actions.get('sumsub:address_of_residence')
-    return action ? { state: 'action_required', reason: 'residence_unresolved', action: action.key } : null
+    return action
+        ? { state: 'action_required', reason: 'residence_unresolved', action: action.key }
+        : { state: 'setting_up', reason: 'residence_unresolved' }
 }
 
 export function featureReport(input: FeatureReportInput): FeatureReport {

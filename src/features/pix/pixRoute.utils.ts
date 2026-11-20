@@ -1,4 +1,5 @@
-import { VERIFY_ACTION } from '@/features/kyc-features/report'
+import { accountEntry, VERIFY_ACTION } from '@/features/kyc-features/report'
+import { residenceAddressEntry } from '@/features/kyc-features/residenceAddressEntry'
 import type { CapabilityRoute, FeatureReport, FeatureReportEntry } from '@/types/capabilities'
 import type { GateState } from '@/utils/capability-gate'
 import { PIX_ADD_MONEY_PATH, PIX_WITHDRAW_PATH } from '@/features/pix/pix.routes'
@@ -173,6 +174,7 @@ export function pixRouteReportEntry(route: CapabilityRoute): FeatureReportEntry 
 
 /** The feature report with the BRL account read from the Pix deposit route, where the API sends one. */
 export function withPixRoute(report: FeatureReport, routes: CapabilityRoute[] | undefined): FeatureReport {
+    if (residenceAddressEntry(accountEntry(report, 'local', 'BRL'), [])) return report
     const route = findPixRoute(routes, 'deposit')
     if (!route) return report
     return {
