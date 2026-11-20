@@ -78,9 +78,9 @@ describe('ProviderSheet rows', () => {
                 'Registered office',
                 'Registration',
                 'Tax ID',
-                'Regulator and licence',
+                'Regulator and license',
                 'Role',
-                'How this executes',
+                'How it works',
                 "Peanut's role",
                 'Terms',
                 'Privacy',
@@ -94,9 +94,9 @@ describe('ProviderSheet rows', () => {
                 'Legal name',
                 'Registered office',
                 'Registration',
-                'Regulator and licence',
+                'Regulator and license',
                 'Role',
-                'How this executes',
+                'How it works',
                 "Peanut's role",
                 'Terms',
                 'Privacy',
@@ -110,17 +110,17 @@ describe('ProviderSheet rows', () => {
                 'Legal name',
                 'Registered office',
                 'Tax ID',
-                'Regulator and licence',
+                'Regulator and license',
                 'Role',
-                'How this executes',
+                'How it works',
                 "Peanut's role",
                 'Terms',
                 'Privacy',
                 'Support',
             ],
         ],
-        ['manteca-br', 'Manteca', ['Role', 'How this executes', "Peanut's role", 'Terms', 'Privacy', 'Support']],
-        ['rhino', 'Rhino.fi', ['Legal name', 'Role', 'How this executes', "Peanut's role", 'Terms', 'Privacy']],
+        ['manteca-br', 'Manteca', ['Role', 'How it works', "Peanut's role", 'Terms', 'Privacy', 'Support']],
+        ['rhino', 'Rhino.fi', ['Legal name', 'Role', 'How it works', "Peanut's role", 'Terms', 'Privacy']],
         [
             'third-national',
             'Rain',
@@ -130,13 +130,13 @@ describe('ProviderSheet rows', () => {
                 'Registration',
                 'Role',
                 'Program manager',
-                'How this executes',
+                'How it works',
                 "Peanut's role",
                 'Privacy',
                 'Support',
             ],
         ],
-        ['bridge', 'Bridge', ['Role', 'How this executes', "Peanut's role", 'Terms']],
+        ['bridge', 'Bridge', ['Role', 'How it works', "Peanut's role", 'Terms']],
     ])('%s prints its verified rows in order', (id, brand, labels) => {
         withIntl(<ProviderRow providerId={id} />)
         expect(rowLabels(openSheet(brand))).toEqual(labels)
@@ -147,11 +147,11 @@ describe('ProviderSheet rows', () => {
         const sheet = openSheet('Bridge')
         // the role also names the dialog for screen readers, so read it from its row
         const roleRow = within(sheet).getByText('Role').closest('.border-dashed') as HTMLElement
-        expect(roleRow).toHaveTextContent('Fiat on-ramp, off-ramp and account provider')
-        expect(within(sheet).getByText('Signed by you, Bridge pays out')).toBeInTheDocument()
+        expect(roleRow).toHaveTextContent('Bank transfers and your bank details')
         expect(
-            within(sheet).getByText('Self-custodial wallet software provider; not a party to provider trades')
+            within(sheet).getByText('Bridge handles the bank transfer and the currency conversion')
         ).toBeInTheDocument()
+        expect(within(sheet).getByText('Peanut makes the wallet app. It does not hold your money.')).toBeInTheDocument()
         expect(within(sheet).queryByRole('status')).not.toBeInTheDocument()
     })
 })
@@ -179,6 +179,9 @@ describe('ProviderFinePrint', () => {
         expect(within(sheet).getByRole('heading', { name: 'Rain' })).toBeInTheDocument()
         expect(within(sheet).getByText('Nimbus LLC, doing business as Third National')).toBeInTheDocument()
         expect(within(sheet).getByText('Third National issues and settles')).toBeInTheDocument()
+        expect(
+            within(sheet).getByText('Peanut makes the wallet app. It is not the card issuer or a lender.')
+        ).toBeInTheDocument()
     })
 
     it('reads "Provider · Manteca" with the (?)', () => {
@@ -189,10 +192,12 @@ describe('ProviderFinePrint', () => {
         expect(within(sheet).queryByText(/CNPJ/)).not.toBeInTheDocument()
     })
 
-    it('says Manteca settles, since the brazil sheet also opens from qr pay', () => {
+    it('says Manteca handles the payment, since the brazil sheet also opens from qr pay', () => {
         withIntl(<ProviderFinePrint providerId="manteca-br" />)
         const sheet = openSheet('Manteca')
-        expect(within(sheet).getByText('Settled by Manteca')).toBeInTheDocument()
+        expect(
+            within(sheet).getByText('Manteca handles the local payment and the currency conversion')
+        ).toBeInTheDocument()
         expect(within(sheet).queryByText('Paid from your bank app')).not.toBeInTheDocument()
     })
 })

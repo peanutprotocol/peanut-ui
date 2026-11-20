@@ -5491,41 +5491,49 @@
             "legalName": "Legal name",
             "registeredOffice": "Registered office",
             "registration": "Registration",
-            "regulator": "Regulator and licence",
+            "regulator": "Regulator and license",
             "terms": "Terms",
             "privacy": "Privacy",
             "view": "View",
             "taxId": "Tax ID",
             "role": "Role",
             "programManager": "Program manager",
-            "execution": "How this executes",
+            "execution": "How it works",
             "peanutRole": "Peanut's role",
             "support": "Support",
             "viewTerms": "View terms",
             "viewPrivacy": "View privacy policy"
         },
         "role": {
-            "bridge": "Fiat on-ramp, off-ramp and account provider",
-            "rhino": "Cross-chain deposit addresses and bridge liquidity. Peanut is Rhino's customer; you hold no Rhino account.",
-            "thirdNational": "Card issuer, a Rain subsidiary",
-            "bridgeEea": "Fiat on-ramp, off-ramp and virtual IBAN provider",
+            "bridge": "Bank transfers and your bank details",
+            "rhino": "Moves your crypto between networks. Peanut is Rhino's customer; you do not have a Rhino account.",
+            "thirdNational": "Card issuer",
+            "bridgeEea": "Bank transfers and your IBAN",
             "mantecaAr": "Deposits, withdrawals and QR payments in Argentina",
             "mantecaBr": "Pix payments and transfers for users who do not live in Brazil",
             "aveniaBr": "Pix deposits for Brazil residents, and Pix withdrawals, transfers and QR payments for users anywhere"
         },
         "about": "About {brand}",
         "execution": {
-            "bridge": "Signed by you, {brand} pays out",
-            "bridgeEea": "Signed by you, {brand} pays out",
-            "mantecaAr": "Settled by {brand}",
-            "mantecaBr": "Settled by {brand}",
-            "rhino": "Signed by you, {brand} bridges",
+            "bridge": "{brand} handles the bank transfer and the currency conversion",
+            "bridgeEea": "{brand} handles the bank transfer and the currency conversion",
+            "mantecaAr": "{brand} handles the local payment and the currency conversion",
+            "mantecaBr": "{brand} handles the local payment and the currency conversion",
+            "rhino": "{brand} moves your crypto between networks",
             "thirdNational": "Third National issues and settles",
-            "aveniaBr": "Settled by {brand}"
+            "aveniaBr": "{brand} handles the local payment and the currency conversion"
         },
-        "peanutRole": "Self-custodial wallet software provider; not a party to provider trades",
+        "peanutRole": "Peanut makes the wallet app. It does not hold your money.",
         "cardRelationship": "You have a direct relationship with Third National under the card terms.",
-        "cardRelationshipProspective": "When you accept the card terms, your relationship is directly with Third National."
+        "cardRelationshipProspective": "When you accept the card terms, your relationship is directly with Third National.",
+        "peanutRoleCard": "Peanut makes the wallet app. It is not the card issuer or a lender.",
+        "termsName": {
+            "bridgeUs": "Bridge US terms",
+            "bridgeEea": "Bridge EEA user terms",
+            "bridgeRow": "Bridge user terms",
+            "bridge": "Bridge terms",
+            "aveniaBr": "Avenia terms and conditions"
+        }
     },
     "brazilPause": {
         "title": "Brazil services paused",

@@ -66,7 +66,7 @@ export const ProviderSheet = ({
         { label: t('field.role'), value: t(`role.${provider.role}`) },
         provider.programManager && { label: t('field.programManager'), value: provider.programManager },
         { label: t('field.execution'), value: t(`execution.${provider.role}`, { brand }) },
-        { label: t('field.peanutRole'), value: t('peanutRole') },
+        { label: t('field.peanutRole'), value: t(isCard ? 'peanutRoleCard' : 'peanutRole') },
         provider.termsUrl && {
             label: t('field.terms'),
             value: documentLink('terms', t('field.viewTerms'), provider.termsUrl),

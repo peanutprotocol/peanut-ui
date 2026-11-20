@@ -223,7 +223,9 @@ export function ClaimAccountContent({
                         {providerId ? (
                             <p className="text-center text-body-xs text-foreground-secondary">
                                 {t.rich('claim.providerTerms', {
-                                    termsName: PROVIDERS[providerId].termsName ?? PROVIDERS[providerId].brand,
+                                    termsName: PROVIDERS[providerId].termsName
+                                        ? tProvider(`termsName.${PROVIDERS[providerId].termsName}`)
+                                        : PROVIDERS[providerId].brand,
                                     terms: (chunks) => (
                                         <a
                                             href={PROVIDERS[providerId].termsUrl}

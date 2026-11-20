@@ -5498,34 +5498,42 @@
             "taxId": "ID fiscal",
             "role": "Rol",
             "programManager": "Administrador del programa",
-            "execution": "Cómo se ejecuta",
+            "execution": "Cómo funciona",
             "peanutRole": "Rol de Peanut",
             "support": "Soporte",
             "viewTerms": "Ver términos",
             "viewPrivacy": "Ver política de privacidad"
         },
         "role": {
-            "bridge": "Proveedor de depósitos, retiros y cuentas en moneda fiat",
-            "rhino": "Direcciones de depósito entre redes y liquidez de puente. Peanut es cliente de Rhino; tú no tienes cuenta en Rhino.",
-            "thirdNational": "Emisor de la tarjeta, filial de Rain",
-            "bridgeEea": "Proveedor de depósitos, retiros e IBAN virtuales en moneda fiat",
+            "bridge": "Transferencias bancarias y tus datos bancarios",
+            "rhino": "Mueve tu cripto entre redes. Peanut es cliente de Rhino; tú no tienes cuenta en Rhino.",
+            "thirdNational": "Emisor de la tarjeta",
+            "bridgeEea": "Transferencias bancarias y tu IBAN",
             "mantecaAr": "Depósitos, retiros y pagos con QR en Argentina",
             "mantecaBr": "Pagos y transferencias por Pix para quienes no viven en Brasil",
             "aveniaBr": "Depósitos por Pix para residentes de Brasil, y retiros, transferencias y pagos con QR por Pix para usuarios de cualquier país"
         },
         "about": "Sobre {brand}",
         "execution": {
-            "bridge": "Lo firmas tú, {brand} paga",
-            "bridgeEea": "Lo firmas tú, {brand} paga",
-            "mantecaAr": "Liquidado por {brand}",
-            "mantecaBr": "Liquidado por {brand}",
-            "rhino": "Lo firmas tú, {brand} hace el puente",
+            "bridge": "{brand} se encarga de la transferencia bancaria y de la conversión de moneda",
+            "bridgeEea": "{brand} se encarga de la transferencia bancaria y de la conversión de moneda",
+            "mantecaAr": "{brand} se encarga del pago local y de la conversión de moneda",
+            "mantecaBr": "{brand} se encarga del pago local y de la conversión de moneda",
+            "rhino": "{brand} mueve tu cripto entre redes",
             "thirdNational": "Third National emite y liquida",
-            "aveniaBr": "Liquidado por {brand}"
+            "aveniaBr": "{brand} se encarga del pago local y de la conversión de moneda"
         },
-        "peanutRole": "Proveedor de software de billetera autocustodiada; no es parte de las operaciones del proveedor",
+        "peanutRole": "Peanut desarrolla la app de billetera. No guarda tu dinero.",
         "cardRelationship": "Tienes una relación directa con Third National bajo los términos de la tarjeta.",
-        "cardRelationshipProspective": "Cuando aceptes los términos de la tarjeta, tu relación será directamente con Third National."
+        "cardRelationshipProspective": "Cuando aceptes los términos de la tarjeta, tu relación será directamente con Third National.",
+        "peanutRoleCard": "Peanut desarrolla la app de billetera. No es el emisor de la tarjeta ni un prestamista.",
+        "termsName": {
+            "bridgeUs": "Términos de Bridge para EE. UU.",
+            "bridgeEea": "Términos de usuario de Bridge para el EEE",
+            "bridgeRow": "Términos de usuario de Bridge",
+            "bridge": "Términos de Bridge",
+            "aveniaBr": "Términos y condiciones de Avenia"
+        }
     },
     "brazilPause": {
         "title": "Servicios en Brasil en pausa",
