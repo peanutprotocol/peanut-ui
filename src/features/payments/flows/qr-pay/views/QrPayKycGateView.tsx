@@ -28,10 +28,9 @@ export function QrPayKycGateView() {
     const [kycPromptDismissed, setKycPromptDismissed] = useState(false)
     const unlockOffered =
         !kycPromptDismissed && !sumsubFlow.errorCooldown && kycGateState === QrKycState.REQUIRES_IDENTITY_VERIFICATION
-    // a Smart Paperwork Verification user starts on /verify, never on this offer
-    const redirecting = usePaperworkVerificationRedirect(unlockOffered && !refused, {
-        feature: 'qr',
-    })
+    // a Smart Paperwork Verification user starts on /verify, never on this offer.
+    // this view is the whole page, so it replaces itself (TASK-25011)
+    const redirecting = usePaperworkVerificationRedirect(unlockOffered && !refused, { feature: 'qr' }, undefined, true)
 
     return (
         <PageStack>
