@@ -40,7 +40,7 @@ export function UsernameAlternatives({
                 <div
                     ref={rowRef}
                     data-testid="username-alternatives"
-                    className="mt-2 flex flex-wrap items-center gap-2 text-body-xs text-foreground-secondary signup-sm:gap-1.5"
+                    className="mt-2 flex flex-wrap items-center gap-2 text-body-xs text-foreground-secondary signup-sm:gap-1"
                 >
                     <span>{t('takenLead')}</span>
                     {names.slice(0, shown).map((name, index) => (
@@ -58,7 +58,7 @@ export function UsernameAlternatives({
                                 onPointerDown={keepFocus}
                                 onMouseDown={keepFocus}
                                 onClick={() => onPick(name, index)}
-                                className="mx-0 px-2.5 text-body-m-semibold whitespace-nowrap"
+                                className="mx-0 px-2 text-body-m-semibold whitespace-nowrap"
                             >
                                 {`@${name}`}
                             </Button>

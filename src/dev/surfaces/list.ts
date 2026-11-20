@@ -7,6 +7,8 @@
  * to force; the gallery prints the reason instead of a staged mock.
  */
 
+import { DOWNLOAD_PROMPT_FIXTURE } from '../fixtures/active'
+import { OPEN_DIALOG, HOME_ADD_DRAWER_CHECKPOINT } from '../fixtures/types'
 import { API_CONTRACT_STATES } from './api-contract-states'
 
 export type SurfaceMeta = {
@@ -17,6 +19,11 @@ export type SurfaceMeta = {
     /** A visible element owned by the mounted component, not just the gallery shell. */
     expectSelector?: string
     blocked?: string
+    /** Capture on the app route when its own providers open the surface. */
+    captureRoute?: { route?: string; fixture: string; event?: 'rain:cooldown' | 'rain:stale-card-approval' }
+    camera?: 'synthetic' | 'denied'
+    sessionStorage?: Record<string, string>
+    expectsLoading?: boolean
     /** Fixture the shot spec must load instead of its default — for surfaces
      *  whose open state depends on an API answer the demo baseline lacks. */
     shotFixture?: string
@@ -39,7 +46,6 @@ const apiRibbon = (id: string): SurfaceMeta => {
     }
 }
 
-// Ids stay literal: the Screen Library capture finds surfaces by searching this file's text.
 export const SURFACE_META: Record<string, SurfaceMeta> = {
     'deposit-card-state-blocked': {
         name: 'Closed card row drawer — unavailable in this US state',
@@ -49,6 +55,7 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         expectSelector: '[role="dialog"][data-state="open"][data-testid="closed-row-drawer"]',
     },
     'deposit-address-launch-loading': {
+        expectsLoading: true,
         name: 'Bank address check — opening',
         path: 'features/deposit-accounts/components/AddressLaunchModal.tsx',
         captureState: ['visible=true', 'loading=true'],
@@ -67,6 +74,7 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         expectSelector: '[role="status"]',
     },
     'card-address-launch-loading': {
+        expectsLoading: true,
         name: 'Card address check — opening',
         path: 'features/card/components/CardResidenceAddressScreen.tsx',
         captureState: ['state=required', 'loading=true'],
@@ -114,12 +122,7 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         path: 'app/recover-wallet/page.tsx',
         expectSelector: '[data-testid="standalone-error-wallet-recovery"] h1',
     },
-    'api-ribbon-loading': apiRibbon('api-ribbon-loading'),
-    'api-ribbon-compatible': apiRibbon('api-ribbon-compatible'),
-    'api-ribbon-too-old': apiRibbon('api-ribbon-too-old'),
-    'api-ribbon-missing-version': apiRibbon('api-ribbon-missing-version'),
-    'api-ribbon-unavailable': apiRibbon('api-ribbon-unavailable'),
-    'api-ribbon-contract-error': apiRibbon('api-ribbon-contract-error'),
+    ...Object.fromEntries(Object.keys(API_CONTRACT_STATES).map((id) => [id, apiRibbon(id)])),
     'numeric-request-amount-4000': {
         name: 'Request amount — 4,000 USDC (input only, no navigation)',
         path: 'Global/AmountInput/index.tsx',
@@ -148,18 +151,21 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         name: 'Setup — funding methods',
         path: 'Setup/redesign/PaymentPlan/PaymentPlanScreen.tsx',
         shotClickTestId: 'setup-funding-channel',
+        expectSelector: '[role="dialog"]:not([aria-modal="false"])',
         shotFixture: 'setup-payment-plan',
     },
     '03-i-payment-methods': {
         name: 'Setup — payment methods',
         path: 'Setup/redesign/PaymentPlan/PaymentPlanScreen.tsx',
         shotClickTestId: 'setup-payment-channel',
+        expectSelector: '[role="dialog"]:not([aria-modal="false"])',
         shotFixture: 'setup-payment-plan',
     },
     '03-j-funding-methods-argentina': {
         name: 'Setup — funding methods, resident of Argentina',
         path: 'Setup/redesign/PaymentPlan/PaymentPlanScreen.tsx',
         shotClickTestId: 'setup-funding-channel',
+        expectSelector: '[role="dialog"]:not([aria-modal="false"])',
         shotFixture: 'setup-payment-plan',
     },
     '03-k-funding-pix-chosen': {
@@ -169,15 +175,19 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     },
     '03-a-residence-select': { name: 'Residence — select', path: 'Setup/redesign/Residence/ResidenceScreen.tsx' },
     '03-b-residence-compare': {
+        expectSelector: '[data-testid="setup-redesign-residence-column-BR"]',
         name: 'Residence — two countries compared',
         path: 'Setup/redesign/Residence/ResidenceCompareView.tsx',
         shotClickTestId: 'setup-residence-continue',
     },
     '05-a-signtesttransaction': {
+        shotFixture: 'setup-redesign-final-finish-route',
+        expectSelector: '[data-testid="setup-redesign-below"]',
         name: 'Final passkey confirmation',
         path: 'Setup/redesign/FinalConfirm/FinalConfirmScreen.tsx',
     },
     '05-b-signtesttransaction-network-busy': {
+        blocked: 'This state needs a busy test-transaction response from the wallet provider',
         name: 'Final passkey confirmation — network busy, confirm later',
         path: 'Setup/redesign/FinalConfirm/FinalConfirmScreen.tsx',
     },
@@ -187,7 +197,7 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         path: 'Setup/redesign/Passkey/PasskeyScreen.tsx',
         shotFixture: 'setup-passkey',
         captureState: ['username=kimchi', 'residence=PT', 'nationality=PT', 'funding=bank', 'payment=card'],
-        expectSelector: '[data-setup-footer] button',
+        expectSelector: '[data-testid="passkey-create"]',
     },
     '06-b-invite': { name: 'Invited by a friend', path: 'Setup/redesign/Invite/InviteScreen.tsx' },
     '02-b-advantage-card': { name: 'Setup benefit — card', path: 'Setup/redesign/Card/CardScreen.tsx' },
@@ -206,24 +216,31 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         path: 'Setup/redesign/Notifications/NotificationsSwitchesScreen.tsx',
     },
     '07-e-setup-celebration': {
+        expectSelector: '[data-testid="setup-redesign-celebration"]',
         name: 'Setup — full-screen account celebration',
         path: 'Setup/redesign/Celebration/CelebrationScreen.tsx',
     },
     '07-f-setup-verify-start': {
-        name: 'Setup — verify start',
+        name: 'Verify start — the one verify intro (/verify, new user)',
         path: 'Setup/redesign/VerifyStart/VerifyStartScreen.tsx',
     },
     '07-b-advantage-control': {
         name: 'Setup benefit — control',
         path: 'Setup/redesign/FinalConfirm/FinalConfirmScreen.tsx',
     },
-    '08-a-passkeysetuphelpmodal': { name: 'PasskeySetupHelpDrawer', path: 'Setup/Views/PasskeySetupHelpDrawer.tsx' },
+    '08-a-passkeysetuphelpmodal': {
+        expectSelector: OPEN_DIALOG,
+        name: 'PasskeySetupHelpDrawer',
+        path: 'Setup/Views/PasskeySetupHelpDrawer.tsx',
+    },
     '08-b-loginrecoverydrawer': {
+        expectSelector: OPEN_DIALOG,
         name: 'LoginRecoveryDrawer',
         path: 'Setup/Views/LoginRecoveryDrawer.tsx',
         captureState: ['platform=ios', 'signup=offered'],
     },
     '08-c-loginrecoverydrawer-web': {
+        expectSelector: OPEN_DIALOG,
         name: 'LoginRecoveryDrawer — web, no sign-up',
         path: 'Setup/Views/LoginRecoveryDrawer.tsx',
         captureState: ['platform=web', 'signup=omitted'],
@@ -234,20 +251,32 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         captureState: ['selectedMethod=Bank transfer'],
     },
     '11-a-earlyusermodal': {
+        expectSelector: '[role="dialog"] [data-testid="early-user-content"]',
+        captureRoute: { route: '/home', fixture: 'early-user' },
         name: 'EarlyUserDrawer',
         path: 'Global/EarlyUserDrawer/index.tsx',
         shotFixture: 'early-user',
     },
-    '12-a-eastereggmodal': { name: 'EasterEggDrawer', path: 'Global/EasterEggDrawer/index.tsx' },
+    '12-a-eastereggmodal': {
+        expectSelector: OPEN_DIALOG,
+        name: 'EasterEggDrawer',
+        path: 'Global/EasterEggDrawer/index.tsx',
+    },
     '13-a-guestloginmodal': { name: 'GuestLoginModal', path: 'Global/GuestLoginModal/index.tsx' },
     '14-a-guestverificationmodal': { name: 'GuestVerificationModal', path: 'Global/GuestVerificationModal/index.tsx' },
     '15-a-invitefriendsmodal': { name: 'InviteFriendsModal', path: 'Global/InviteFriendsModal/index.tsx' },
-    '17-a-nomorejailmodal': { name: 'NoMoreJailDrawer', path: 'Global/NoMoreJailDrawer/index.tsx' },
+    '17-a-nomorejailmodal': {
+        sessionStorage: { showNoMoreJailModal: 'true' },
+        expectSelector: OPEN_DIALOG,
+        name: 'NoMoreJailDrawer',
+        path: 'Global/NoMoreJailDrawer/index.tsx',
+    },
     '18-a-reconsentmodal': {
+        expectSelector: '[data-testid="reconsent-documents"]',
+        captureRoute: { route: '/home', fixture: 'reconsent' },
         name: 'ReConsentModal',
         path: 'Global/ReConsentModal/index.tsx',
-        blocked:
-            'Opens only when the consent-status endpoint reports outdated documents — needs a fixture that serves them, which does not exist yet.',
+        blocked: 'The account attention manager opens this prompt on Home when consent documents are outdated.',
     },
     '19-a-unsupportedbrowsermodal': {
         name: 'UnsupportedBrowserModal',
@@ -263,6 +292,7 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         path: 'Kyc/KycReverificationPendingModal.tsx',
     },
     '24-b-kycverificationinprogressmodal': {
+        expectsLoading: true,
         name: 'KycVerificationInProgressModal (verifying)',
         path: 'Kyc/KycVerificationInProgressModal.tsx',
     },
@@ -285,9 +315,17 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         name: 'KycRegionRestrictedModal',
         path: 'Kyc/modals/KycRegionRestrictedModal.tsx',
     },
-    '29-b-kycstatusdrawer': { name: 'KycStatusDrawer (action-needed)', path: 'Kyc/KycStatusDrawer.tsx' },
+    '29-b-kycstatusdrawer': {
+        expectSelector: OPEN_DIALOG,
+        name: 'KycStatusDrawer (action-needed)',
+        path: 'Kyc/KycStatusDrawer.tsx',
+    },
     '32-c-cancelcardmodal': { name: 'CancelCardModal (confirm phase)', path: 'Card/CancelCardModal.tsx' },
-    '33-c-cardlimiteditmodal': { name: 'CardLimitEditDrawer', path: 'Card/CardLimitEditDrawer.tsx' },
+    '33-c-cardlimiteditmodal': {
+        expectSelector: OPEN_DIALOG,
+        name: 'CardLimitEditDrawer',
+        path: 'Card/CardLimitEditDrawer.tsx',
+    },
     '34-c-lockcardmodal': { name: 'LockCardModal (lock)', path: 'Card/LockCardModal.tsx' },
     '35-c-googlewalletbutton': {
         name: 'Add to Google Wallet button (native Android only)',
@@ -311,26 +349,42 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         captureState: ['isAdding=true'],
         expectSelector: '[role="button"][aria-disabled="true"]',
     },
-    '36-c-badgedetailmodal': { name: 'BadgeDetailDrawer', path: 'Badges/BadgeDetailDrawer.tsx' },
-    '37-c-badgestatusdrawer': { name: 'BadgeStatusDrawer', path: 'Badges/BadgeStatusDrawer.tsx' },
-    '38-c-howtodepositmodal': { name: 'HowToDepositDrawer', path: 'AddMoney/components/HowToDepositDrawer.tsx' },
+    '36-c-badgedetailmodal': {
+        expectSelector: OPEN_DIALOG,
+        name: 'BadgeDetailDrawer',
+        path: 'Badges/BadgeDetailDrawer.tsx',
+    },
+    '37-c-badgestatusdrawer': {
+        expectSelector: OPEN_DIALOG,
+        name: 'BadgeStatusDrawer',
+        path: 'Badges/BadgeStatusDrawer.tsx',
+    },
+    '38-c-howtodepositmodal': {
+        expectSelector: OPEN_DIALOG,
+        name: 'HowToDepositDrawer',
+        path: 'AddMoney/components/HowToDepositDrawer.tsx',
+    },
     '39-c-onrampconfirmationmodal': {
         name: 'OnrampConfirmationModal',
         path: 'AddMoney/components/OnrampConfirmationModal.tsx',
     },
     '40-c-supportednetworksmodal': {
+        expectSelector: OPEN_DIALOG,
         name: 'SupportedNetworksDrawer',
         path: 'AddMoney/components/SupportedNetworksDrawer.tsx',
     },
     '41-c-migrationdownloadmodal': {
+        captureRoute: { route: '/home', fixture: DOWNLOAD_PROMPT_FIXTURE },
         name: 'MigrationDownloadModal (early)',
         path: 'Migration/MigrationDownloadModal.tsx',
-        blocked:
-            'Opens itself for a signed-in web user unless snoozed — no visible prop. Captured through the download-prompt fixture.',
     },
     '43-c-scantodownloadmodal': { name: 'ScanToDownloadModal', path: 'Migration/ScanToDownloadModal.tsx' },
     '44-c-otaupdatemodal': { name: 'OtaUpdateModal (normal)', path: 'Profile/components/OtaUpdateModal.tsx' },
-    '45-c-residencechangemodal': { name: 'ResidenceChangeDrawer', path: 'Profile/views/ResidenceChangeDrawer.tsx' },
+    '45-c-residencechangemodal': {
+        expectSelector: OPEN_DIALOG,
+        name: 'ResidenceChangeDrawer',
+        path: 'Profile/views/ResidenceChangeDrawer.tsx',
+    },
     '45-d-residence-review': {
         name: 'Residence change under review',
         path: 'Profile/views/ResidenceChangeDrawer.tsx',
@@ -341,40 +395,58 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         path: 'Profile/views/ResidenceChangeDrawer.tsx',
         captureState: ['pendingStatus=REVIEW_PENDING', 'pendingManualReview=true'],
     },
-    '48-c-balancewarningmodal': { name: 'BalanceWarningDrawer', path: 'Global/BalanceWarningDrawer/index.tsx' },
+    '48-c-balancewarningmodal': {
+        expectSelector: OPEN_DIALOG,
+        name: 'BalanceWarningDrawer',
+        path: 'Global/BalanceWarningDrawer/index.tsx',
+    },
     '50-d-transactiondetailsdrawer': {
+        expectSelector: OPEN_DIALOG,
         name: 'TransactionDetailsDrawer',
         path: 'TransactionDetails/TransactionDetailsDrawer.tsx',
     },
     '51-d-homeactiondrawers': {
+        expectSelector: HOME_ADD_DRAWER_CHECKPOINT,
+        captureRoute: { route: '/home?drawer=add', fixture: 'home-add-drawer' },
         name: 'HomeActionDrawers',
         path: 'features/home/components/HomeActionDrawers.tsx',
         blocked: 'Driven by the home screen’s own action state — nothing to force from outside.',
     },
     '52-d-contributorsdrawer': {
+        expectSelector: OPEN_DIALOG,
         name: 'ContributorsDrawer',
         path: 'features/payments/flows/contribute-pot/components/ContributorsDrawer.tsx',
-        shotClick: 'See all contributors',
+        shotClickTestId: 'contributors-open',
     },
-    '53-d-cancelsendlinkdrawer': { name: 'CancelSendLinkDrawer', path: 'Global/CancelSendLinkDrawer/index.tsx' },
+    '53-d-cancelsendlinkdrawer': {
+        expectSelector: OPEN_DIALOG,
+        name: 'CancelSendLinkDrawer',
+        path: 'Global/CancelSendLinkDrawer/index.tsx',
+    },
     '54-d-qrbottomdrawer': {
+        camera: 'synthetic',
+        expectSelector: '[role="dialog"][data-state="open"] [data-testid="qr-drawer-title"]',
         name: 'QRBottomDrawer',
         path: 'Global/QRBottomDrawer/index.tsx',
     },
     '55-d-supportdrawer': {
+        expectSelector: '[role="dialog"] [data-testid="support-chat-failed"]',
         name: 'SupportDrawer (chat-failed)',
         path: 'Global/SupportDrawer/index.tsx',
     },
     '56-d-camerapermissionmodal': {
+        expectSelector: OPEN_DIALOG,
         name: 'CameraPermissionDrawer',
         path: 'Global/QRScanner/CameraPermissionDrawer.tsx',
     },
     '57-d-raincooldownintromodal': {
+        captureRoute: { route: '/home', fixture: 'home', event: 'rain:cooldown' },
         name: 'RainCooldownIntroModal',
         path: 'Global/RainCooldown/IntroModal.tsx',
         blocked: 'Opens from RainCooldownContext after a card-collateral event.',
     },
     '58-d-stalecardapprovalreenablemodal': {
+        captureRoute: { route: '/home', fixture: 'home', event: 'rain:stale-card-approval' },
         name: 'StaleCardApprovalReEnableModal',
         path: 'Global/StaleCardApproval/ReEnableModal.tsx',
         blocked: 'Opens itself when the stale-approval check fails on a live card.',
@@ -392,8 +464,16 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
     '63-d-emptystate': { name: 'EmptyState', path: 'Global/EmptyStates/EmptyState.tsx' },
     '64-d-nodataemptystate': { name: 'NoDataEmptyState', path: 'Global/EmptyStates/NoDataEmptyState.tsx' },
     '65-d-faqs': { name: 'FAQs', path: 'Global/FAQs/index.tsx' },
-    '66-e-avatarpicker': { name: 'Avatar picker', path: 'Avatar/AvatarPicker.tsx' },
-    '67-e-provideemailstep': { name: 'Provide email', path: 'Kyc/ProvideEmailStep.tsx' },
+    '66-e-avatarpicker': {
+        captureRoute: { fixture: 'avatar-picker' },
+        name: 'Avatar picker',
+        path: 'Avatar/AvatarPicker.tsx',
+    },
+    '67-e-provideemailstep': {
+        expectSelector: '[data-testid="provide-email-form"]',
+        name: 'Provide email',
+        path: 'Kyc/ProvideEmailStep.tsx',
+    },
     '68-e-bridgetosstep': { name: 'Bridge terms', path: 'Kyc/BridgeTosStep.tsx' },
     '71-e-kycprepchecklist-hosted': { name: 'Verification checklist — hosted', path: 'Kyc/KycPrepChecklist.tsx' },
     '72-e-kycfailedcontent-terminal': {
@@ -433,6 +513,7 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         captureState: ['received=33', 'asked=58.51'],
     },
     '82-e-card-creating': {
+        expectsLoading: true,
         name: 'Card application — creating card',
         path: 'Card/ApplicationStatusScreen.tsx',
         captureState: ['variant=creating-card'],
@@ -499,14 +580,16 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         name: 'Request link — bank currency chooser',
         path: 'features/payments/flows/contribute-pot/components/BankTransferChooserDrawer.tsx',
         shotClickTestId: 'bank-transfer-chooser',
+        expectSelector: '[role="dialog"]:not([aria-modal="false"])',
     },
     '89-f-withdraw-review-insufficient': {
         name: 'Withdrawal review — insufficient balance before confirmation',
         path: 'features/withdraw/views/ConfirmWithdrawView.tsx',
         captureState: ['insufficientBalance=true', 'processing=false', 'alreadySpent=false'],
-        expectSelector: '[data-testid="app-page-surface-content"] button',
+        expectSelector: '[data-testid="withdraw-insufficient-balance"]',
     },
     '90-f-withdraw-review-processing': {
+        expectsLoading: true,
         name: 'Withdrawal review — processing after balance refresh',
         path: 'features/withdraw/views/ConfirmWithdrawView.tsx',
         captureState: ['insufficientBalance=true', 'processing=true', 'alreadySpent=false'],
@@ -539,6 +622,7 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         expectSelector: '[data-testid="app-page-surface-content"] canvas, [data-testid="app-page-surface-content"] svg',
     },
     '94-g-pix-withdraw-on-its-way': {
+        expectsLoading: true,
         name: 'Pix withdrawal — funded, the provider pays: the shared payment loader',
         path: 'features/pix/components/PixWithdrawOutcome.tsx',
         captureState: ['phase=funded', 'entry=PENDING', 'quoted arrival=60 s'],
@@ -597,6 +681,7 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         path: 'Home/FirstPaymentChooser.tsx',
         shotFixture: 'card-access',
         shotClickTestId: 'checklist-first-payment',
+        expectSelector: '[role="dialog"]:not([aria-modal="false"])',
     },
     '66-d-backupfaqlosephone': { name: 'Backup FAQ — lose phone', path: 'Profile/BackupFaqDrawers.tsx' },
     '67-d-backupfaqchangephone': { name: 'Backup FAQ — change phone', path: 'Profile/BackupFaqDrawers.tsx' },
@@ -699,6 +784,10 @@ export const SETUP_REDESIGN_SURFACES: Record<string, SurfaceMeta> = {
     'setup-redesign-email': { name: 'Sign-up redesign: 09 Email', path: 'Setup/redesign/Email/EmailScreen.tsx' },
     'setup-redesign-email-filled': {
         name: 'Sign-up redesign: 09 Email, prefilled',
+        path: 'Setup/redesign/Email/EmailScreen.tsx',
+    },
+    'setup-redesign-email-typo': {
+        name: 'Sign-up redesign: 09 Email, domain typo',
         path: 'Setup/redesign/Email/EmailScreen.tsx',
     },
     'setup-redesign-notifications': {

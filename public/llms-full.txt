@@ -9,13 +9,13 @@ Peanut is a self-custody money app built on digital dollars (USDC). Users hold d
 ## Headline differentiators
 
 ### Pay PIX in Brazil without a CPF
-PIX is Brazil's instant payment network — ~150 million people use it daily. Normally it requires a CPF (Brazilian tax ID) and a Brazilian bank account, which locks out tourists, nomads, and expats. Peanut lets anyone scan a merchant PIX QR and pay in BRL using a passport-verified account funded with digital dollars. The merchant receives BRL in seconds and sees an ordinary PIX payment. The conversion isn't subject to IOF (Brazil's financial-operations tax), saving up to ~3.5% versus cards and bank transfers. Free, 24/7/365. Scan the QR, or paste a copied "copia e cola" code in the scanner.
+PIX is Brazil's instant payment network — ~150 million people use it daily. Normally it requires a CPF (Brazilian tax ID) and a Brazilian bank account, which locks out tourists, nomads, and expats. Peanut lets anyone scan a merchant PIX QR and pay in BRL using a passport-verified account funded with digital dollars. The merchant receives BRL in seconds and sees an ordinary PIX payment. Free, 24/7/365. Scan the QR, or paste a copied "copia e cola" code in the scanner.
 
 ### Pay MercadoPago in Argentina without a DNI
 MercadoPago QR is accepted at 1,000,000+ merchants in Argentina. Locals need a DNI to open an account; Peanut gives access to the payment network without one — pay in pesos with a passport-verified account. Conversion uses the cripto dólar rate (a direct dollar-to-peso market rate that beats the regulated MEP rate cards use), typically several percent to ~11% more pesos per dollar. Free, instant, rate locked at payment.
 
 ### The Peanut Card
-The Peanut Card is a virtual Visa card for spending your Peanut balance wherever Visa is accepted. Complete identity verification in the app and apply; applications are subject to approval. No monthly or annual fees; a 1% Visa international service assessment applies to cross-currency purchases, and standard fees and limits apply under the cardholder terms. Get your card at https://peanut.me/shhhhh.
+The Peanut Card is a virtual Visa card for spending your Peanut balance wherever Visa is accepted. Complete identity verification in the app and apply; applications are subject to approval. No monthly or annual fees; a 1% Visa international service assessment applies to cross-currency purchases, and standard fees and limits apply under the cardholder terms. Get your card at https://peanut.me/peanut-card.
 
 ## Core features
 
@@ -61,7 +61,7 @@ Send from balance straight to any third-party bank account, and receive into the
 - Local QR spending live: Argentina (MercadoPago), Brazil (PIX).
 - Bank rails live: 36 SEPA-zone countries (EUR), US (ACH/wire), Mexico (SPEI), GBP (Faster Payments).
 - Crypto deposit/withdraw: global, all non-restricted countries.
-- Card: apply in the app after identity verification; applications are subject to approval — https://peanut.me/shhhhh
+- Card: apply in the app after identity verification; applications are subject to approval — https://peanut.me/peanut-card
 - Roadmap (not live): local payment methods in many more countries (CoDi, Transfiya, Yape, Bizum, MB WAY, UPI, and others). Only Argentina and Brazil have live local spending today.
 
 ## Who it's for
@@ -74,6 +74,6 @@ Tourists, digital nomads, expats, remote workers, freelancers, and families movi
 - Twitter/X: https://x.com/joinpeanut
 - GitHub: https://github.com/peanutprotocol
 - LinkedIn: https://www.linkedin.com/company/peanut-trade/
-- Peanut Card: https://peanut.me/shhhhh
+- Peanut Card: https://peanut.me/peanut-card
 - Careers: https://peanut.me/careers
 - Support: https://peanut.me/support

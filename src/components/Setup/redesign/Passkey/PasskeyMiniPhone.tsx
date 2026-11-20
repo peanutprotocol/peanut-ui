@@ -1,10 +1,10 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { ScanFace } from 'lucide-react'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import logo from '@/assets/brand/logo.svg'
+import { Icon } from '@/components/Global/Icons/Icon'
 import { ArtPiece } from '@/components/Setup/redesign/shell/ArtPiece'
 import { useSetupShell } from '@/components/Setup/redesign/shell/SetupShellContext'
 
@@ -66,7 +66,13 @@ export function PasskeyMiniPhone({
                     >
                         <span className="h-1 w-7 self-center rounded-full bg-background-badge-helper" />
                         <span className="flex items-start gap-[5px] text-base leading-5 font-extrabold text-foreground-primary">
-                            <ScanFace size={18} strokeWidth={2} className="mt-px shrink-0" aria-hidden="true" />
+                            <Icon
+                                name="scan-face"
+                                size={18}
+                                strokeWidth={2}
+                                className="mt-px shrink-0"
+                                aria-hidden="true"
+                            />
                             <span>{t('ask')}</span>
                         </span>
                         <span className="inline-flex h-[22px] max-w-full self-start overflow-hidden rounded-full bg-background-badge-helper px-2 text-xs leading-[22px] font-bold whitespace-nowrap text-foreground-primary">

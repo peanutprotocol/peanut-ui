@@ -7,4 +7,4 @@ const storage = await createStorage()
 const { entries, latest } = await updateIndexes(storage)
 
 console.log(`Indexed ${entries.length} retained Screen Library reports.`)
-if (latest) console.log(`Latest complete dev library: ${latest.path}`)
+if (latest) console.log(`Latest dev library: ${latest.path}`)

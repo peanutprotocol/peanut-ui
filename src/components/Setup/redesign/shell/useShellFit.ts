@@ -72,7 +72,8 @@ export function revealInPanel(field: HTMLElement) {
  * The on-screen keyboard: the native apps resize the page (`adjustResize`, Capacitor `resize: 'native'`) and a
  * browser shrinks only the visual viewport. Either way, while a text field in the shell has focus and the
  * visible height has dropped, the shell takes the visible height (`data-keyboard`), so the footer sits above the
- * keyboard, and the focused field is scrolled into the panel's visible part.
+ * keyboard, and the focused field is scrolled into the panel's visible part. The page stays at the top meanwhile,
+ * so the browser's own scroll to the field cannot push the shell up.
  *
  * The fold: when the keyboard is open, or the panel between the stage and the footer is too small to use (large
  * system text, a short window), the stage folds to just under the headline (`data-fold="title"`), or to the top
@@ -153,6 +154,20 @@ export function useShellFit({
         revealInPanel(field)
     }, [shellRef])
 
+    /*
+     * The page itself never scrolls while a field in the shell has focus: the shell already takes the visible height.
+     * iOS scrolls the page to show the field before the native resize (Capacitor's runs ~0.45 s after the keyboard)
+     * and keeps that offset after the page shrinks, which pushes the shell under the status bar and leaves a blank
+     * area over the keyboard (TASK-25063). Safari and Chrome move the visual viewport the same way.
+     */
+    const pinPage = useCallback(() => {
+        const shell = shellRef.current
+        const field = document.activeElement
+        if (!shell || !isTextEntry(field) || !shell.contains(field)) return
+        if (!window.matchMedia(KEYBOARD_DEVICE_QUERY).matches) return
+        if (window.scrollY > 0 || (window.visualViewport?.offsetTop ?? 0) > 0) window.scrollTo(0, 0)
+    }, [shellRef])
+
     const syncKeyboard = useCallback(() => {
         const shell = shellRef.current
         if (!shell) return
@@ -175,18 +190,21 @@ export function useShellFit({
             shell.style.removeProperty('--sr-h')
         }
         fit()
+        pinPage()
         if (open) {
             reveal()
             // again once the stage has folded and the panel has moved (500 ms)
             window.setTimeout(reveal, STEP_S * 1000 + 50)
         } else if (changed) window.setTimeout(fit, STEP_S * 1000 + 50)
-    }, [shellRef, fit, reveal])
+    }, [shellRef, fit, reveal, pinPage])
 
     useEffect(() => {
         const viewport = window.visualViewport
         const onFocus = () => window.setTimeout(syncKeyboard, 0)
         viewport?.addEventListener('resize', syncKeyboard)
         window.addEventListener('resize', syncKeyboard)
+        viewport?.addEventListener('scroll', pinPage)
+        window.addEventListener('scroll', pinPage)
         document.addEventListener('focusin', onFocus)
         document.addEventListener('focusout', onFocus)
         // a help line that appears while typing must not slip under the footer
@@ -196,11 +214,13 @@ export function useShellFit({
         return () => {
             viewport?.removeEventListener('resize', syncKeyboard)
             window.removeEventListener('resize', syncKeyboard)
+            viewport?.removeEventListener('scroll', pinPage)
+            window.removeEventListener('scroll', pinPage)
             document.removeEventListener('focusin', onFocus)
             document.removeEventListener('focusout', onFocus)
             document.removeEventListener('input', onInput)
         }
-    }, [syncKeyboard, reveal])
+    }, [syncKeyboard, reveal, pinPage])
 
     useLayoutEffect(() => {
         fit()

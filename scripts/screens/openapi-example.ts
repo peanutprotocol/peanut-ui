@@ -1,6 +1,6 @@
 /** Documented OpenAPI response examples, for capture requests no fixture or demo handler answers. */
 type Node = Record<string, unknown>
-export type OpenApiExample = { status: number; data: unknown }
+export type OpenApiExample = { status: number; data?: unknown }
 
 const isNode = (value: unknown): value is Node => !!value && typeof value === 'object' && !Array.isArray(value)
 const isParam = (segment: string) => /^\{[^/{}]+\}$/.test(segment)
@@ -79,17 +79,19 @@ function operationFor(spec: Node, method: string, path: string): Node | undefine
     return best?.operation
 }
 
-/** The lowest 2xx JSON response that documents an `example` or a first `examples` value. */
+/** The first documented success with a usable example or HTTP-defined empty body. */
 export function exampleFor(spec: unknown, method: string, path: string): OpenApiExample | undefined {
     if (!isNode(spec)) return undefined
     const responses = operationFor(spec, method, path)?.responses
     if (!isNode(responses)) return undefined
     const codes = Object.keys(responses)
-        .filter((code) => /^2\d\d$/.test(code) && !NO_BODY.has(code))
+        .filter((code) => /^2\d\d$/.test(code))
         .sort()
     for (const code of codes) {
         const response = deref(spec, responses[code])
-        const media = isNode(response) && isNode(response.content) ? response.content['application/json'] : undefined
+        if (!isNode(response)) continue
+        if (method.toUpperCase() === 'HEAD' || NO_BODY.has(code)) return { status: Number(code) }
+        const media = isNode(response.content) ? response.content['application/json'] : undefined
         if (!isNode(media)) continue
         if (media.example !== undefined) return { status: Number(code), data: media.example }
         const value = Object.values(isNode(media.examples) ? media.examples : {})

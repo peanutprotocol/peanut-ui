@@ -43,7 +43,7 @@ import { type FinishErrorKey, failureErrorKey } from './finishErrorKey'
  * With `onComplete` (the sign-up step) completion hands over to the celebration; without it (`/setup/finish`)
  * it fires confetti and redirects, and an account that already has a wallet redirects straight in.
  */
-export function useFinalConfirm({ onComplete }: { onComplete?: () => void }) {
+export function useFinalConfirm({ onComplete }: { onComplete?: (outcome: { deferred: boolean }) => void }) {
     const { address } = useZeroDev()
     const { sendTestTransaction } = useSignupTestTransaction()
     const { finalizeAccountSetup, isProcessing, error: setupError, handleRedirect } = useAccountSetup()
@@ -83,7 +83,8 @@ export function useFinalConfirm({ onComplete }: { onComplete?: () => void }) {
     const completeSignup = async () => {
         if (user?.user?.userId) await attachSignupGeo(user.user.userId)
         // The finish route redirects at once; the sign-up step celebrates on its own screen after onComplete.
-        if (!onComplete && !completionCelebratedRef.current) {
+        // An unconfirmed (Confirm later) account gets no confetti on either route.
+        if (!onComplete && !deferredRef.current && !completionCelebratedRef.current) {
             completionCelebratedRef.current = true
             confettiPresets.celebration()
         }
@@ -139,7 +140,7 @@ export function useFinalConfirm({ onComplete }: { onComplete?: () => void }) {
         if (onComplete) {
             // Keep the account-exists effect from consuming the saved destination before the celebration.
             redirectingRef.current = true
-            onComplete()
+            onComplete({ deferred: deferredRef.current })
         } else redirectToAccount()
     }
 

@@ -7,7 +7,7 @@ import { QrKycState } from '@/constants/kyc.consts'
 import { useAuth } from '@/context/authContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
-import { QR_IDENTITY_CHECK_INTENT, qrVerificationNeedsRestart, selectQrKycGate } from './qrKycGate.utils'
+import { qrVerificationNeedsRestart, selectQrKycGate } from './qrKycGate.utils'
 
 /**
  * The QR ID check started outside /qr-pay: Home's Verify row for a residence
@@ -49,16 +49,18 @@ export function useQrIdentityCheck(): { start: () => void; modals: ReactNode } {
     }, [canPayNow, showWrapper, isModalOpen, completeFlow])
 
     useEffect(() => {
-        if (error) toast.error(error)
+        if (!error) return
+        const id = toast.error(error)
+        return () => toast.dismiss?.(id)
         // eslint-disable-next-line react-hooks/exhaustive-deps -- once per failed start
     }, [error])
 
-    const { handleInitiateKyc, handleRestartIdentity } = flow
+    const { handleUnlockQr, handleRestartIdentity } = flow
     const start = useCallback(() => {
         startedRef.current = true
         if (needsRestart) void handleRestartIdentity()
-        else void handleInitiateKyc(QR_IDENTITY_CHECK_INTENT)
-    }, [needsRestart, handleInitiateKyc, handleRestartIdentity])
+        else void handleUnlockQr()
+    }, [needsRestart, handleUnlockQr, handleRestartIdentity])
 
     return { start, modals: <SumsubKycModals flow={flow} /> }
 }

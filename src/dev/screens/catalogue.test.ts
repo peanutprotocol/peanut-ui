@@ -1,3 +1,4 @@
+import { FIXTURES } from '../fixtures/registry'
 import { SCREENS } from './catalogue'
 
 describe('screen catalogue', () => {
@@ -87,17 +88,35 @@ describe('screen catalogue', () => {
     })
 
     it('waits for the open drawer title, never the first dialog on the page', () => {
-        for (const id of ['profile-brazil-bank-details', 'profile-brazil-qr-details'])
+        for (const [id, title] of [
+            ['profile-brazil-bank-details', 'closed-row-title'],
+            ['profile-brazil-qr-details', 'payment-method-details-title'],
+        ]) {
             expect(SCREENS.find((screen) => screen.id === id)?.expectSelector).toBe(
-                '[role="dialog"][data-state="open"] h2'
+                `[role="dialog"][data-state="open"] [data-testid="${title}"]`
             )
+        }
     })
 
-    // The harness taps `clicks` with getByText, so a selector there never matches.
-    it('lists visible text in clicks, not Playwright selectors', () => {
-        const selectorLike = /^(text|css|xpath|id|data-testid)=|^\w*\[[^\]]+\]|^[.#]\w/
-        expect(SCREENS.flatMap(({ id, clicks }) => clicks.filter((c) => selectorLike.test(c)).map(() => id))).toEqual(
-            []
-        )
+    it('derives every fixture capture from the fixture, including states without checkpoints', () => {
+        const byId = new Map(SCREENS.map((screen) => [screen.id, screen]))
+        for (const [id, fixture] of Object.entries(FIXTURES)) {
+            const screen = byId.get(`fixture-${id}`)
+            expect(screen).toBeDefined()
+            expect(screen?.actions).toEqual(fixture.capture?.actions)
+            expect(screen?.expectSelector).toEqual(fixture.capture?.expectSelector)
+            expect(screen?.waitFor).toBe(fixture.waitFor)
+        }
+    })
+
+    it('uses app-owned controls and checkpoints without locale-specific copy', () => {
+        for (const screen of SCREENS) {
+            expect(screen.clicks).toEqual([])
+            expect(screen.expectText).toBeUndefined()
+            for (const action of screen.actions ?? []) {
+                expect(action).not.toHaveProperty('click')
+                expect(action).not.toHaveProperty('tap')
+            }
+        }
     })
 })

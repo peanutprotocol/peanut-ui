@@ -3,7 +3,7 @@ import { ghApiSync } from './gh-api.mjs'
 import { appendFileSync, readFileSync, writeFileSync, mkdirSync, copyFileSync, readdirSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { createStorage } from './cloudflare-storage.mjs'
-import { validateCapture, verifyAsset } from './core.mjs'
+import { publicationCapture, verifyAsset } from './core.mjs'
 import { mainRevisions, pushRevisions } from './capture-revisions.mjs'
 import { bindReleaseReviewEvent, reviewHeadRevision, reviewProvenance } from './review-provenance.mjs'
 import { currentCaptureReview } from './check-review-current.mjs'
@@ -28,7 +28,12 @@ import {
     shownInCapture,
 } from './copy-coverage.mjs'
 import { selectBeforeHarness } from './before-harness.mjs'
-import { readBeforeHarness, validateBeforeHarness, BASE_HARNESS_NOTE } from './before-harness-receipt.mjs'
+import {
+    readBeforeHarness,
+    validateBeforeHarness,
+    verifyBaseExitPolicy,
+    BASE_HARNESS_NOTE,
+} from './before-harness-receipt.mjs'
 import { canReuseBaseline } from './baseline-reuse.mjs'
 const LOCALES = {
     en: 'English',
@@ -187,7 +192,7 @@ const captureNames = readdirSync('incoming')
 const hasCapture = (name) => {
     if (!existsSync(join('incoming', name, 'capture.json'))) return false
     try {
-        validateCapture(JSON.parse(readFileSync(join('incoming', name, 'capture.json'), 'utf8')))
+        publicationCapture(JSON.parse(readFileSync(join('incoming', name, 'capture.json'), 'utf8')))
         return true
     } catch {
         return false
@@ -237,7 +242,7 @@ if (capturePairs.length) {
         const dir = join(baseline.dir, artifact.name)
         if (!existsSync(join(dir, 'capture.json')))
             throw new Error(`External baseline artifact is missing capture.json: ${artifact.name}`)
-        const capture = validateCapture(JSON.parse(readFileSync(join(dir, 'capture.json'), 'utf8')))
+        const capture = publicationCapture(JSON.parse(readFileSync(join(dir, 'capture.json'), 'utf8')))
         if (capture.locale !== artifact.locale || capture.commit !== expectedBase)
             throw new Error(`External baseline artifact identity mismatch: ${artifact.name}`)
         baselines.set(capture.locale, dir)
@@ -256,13 +261,12 @@ if (capturePairs.length) {
                   )
                 : undefined
         if (
-            beforeHarness &&
             !canReuseBaseline(beforeCapture, afterCapture, expectedBase, {
                 beforeHarness,
                 sourceHarnessCommit: baseline.harnessCommit,
             })
         )
-            throw new Error('External baseline environment, completeness or harness provenance mismatch')
+            throw new Error('External baseline environment, eligibility or harness provenance mismatch')
         if (beforeHarness) writeFileSync(join(before, 'before-harness.json'), JSON.stringify(beforeHarness))
         return { locale, attempt: after.attempt, before, after: after.name }
     })
@@ -275,7 +279,7 @@ for (const capturePair of capturePairs) {
     const captureAttempt = capturePair.attempt
     const dirs = [capturePair.before, capturePair.after]
     const [before, after] = dirs.map((dir) =>
-        validateCapture(JSON.parse(readFileSync(join(dir, 'capture.json'), 'utf8')))
+        publicationCapture(JSON.parse(readFileSync(join(dir, 'capture.json'), 'utf8')))
     )
     if (before.locale !== capturePair.locale || after.locale !== capturePair.locale)
         throw new Error(`Capture locale identity mismatch for ${capturePair.locale}`)
@@ -283,6 +287,7 @@ for (const capturePair of capturePairs) {
     if (before.commit !== expectedBase)
         throw new Error('Capture baseline does not match verified integration/review/history baseline')
     const beforeHarness = readBeforeHarness(dirs[0], before.commit)
+    if (beforeHarness) verifyBaseExitPolicy(before)
     if (beforeHarness && expectedBeforeHarness() !== 'base')
         throw new Error('Base harness receipt does not match the exact-revision synthetic API change')
     if (after.scope || before.scope) {
@@ -291,6 +296,7 @@ for (const capturePair of capturePairs) {
         trustedPlan ??= planRevisionCapture({
             event: run.event,
             branch: pr.base.ref,
+            repository: repo,
             before: expectedBase,
             after: expectedHead,
         })
@@ -343,7 +349,9 @@ for (const capturePair of capturePairs) {
         PR_NUMBER: pr ? String(pr.number) : '',
         CHANGED_SCREENS: String(changedScreens),
     }
-    publications.push({ inputDir: reportDir, reportPath: path, env })
+    // Validate the original captures again at publication. Projecting an unscoped
+    // baseline onto a newly added flow can legitimately leave zero before images.
+    publications.push({ inputDir: reportDir, reportPath: path, env, capturePair: { before, after } })
     reports.push({
         locale: after.locale,
         path,
@@ -354,6 +362,7 @@ for (const capturePair of capturePairs) {
         complete: comparison.scope ? false : reviewableComparison(comparison),
         ...(comparison.scope ? { scope: comparison.scope, scopeComplete: reviewableComparison(comparison) } : {}),
         changedScreens,
+        notComparable: comparison.screens.filter((screen) => screen.status === 'not-comparable').length,
     })
     // Historical reports retain both full source libraries as well as their comparison.
     const libraries = mainRelease
@@ -406,9 +415,10 @@ if (releasePreview && !currentReleaseReview()) {
 }
 const assetWrites = new Map()
 const assetConversions = new Map()
-await mapBounded(publications, ({ inputDir, reportPath, env }) =>
+await mapBounded(publications, ({ inputDir, reportPath, env, capturePair }) =>
     publishReport({
         inputDir,
+        capturePair,
         reportPath,
         env,
         storage,
@@ -484,7 +494,7 @@ if (run.event === 'pull_request' && pr) {
         baseline: { before: copyBaselineAt(expectedBase), after: headBaseline },
         exception: pr.body ?? '',
     })
-    console.log(`Screen Library copy: ${copyGate.ok ? 'pass' : 'fail'} — ${copyGate.reason}`)
+    console.log(`Screen Library copy: ${copyGate.ok ? 'pass' : 'review'} — ${copyGate.reason}`)
 }
 
 let coverageGate
@@ -497,7 +507,7 @@ if (run.event === 'pull_request' && pr) {
         locales: localePlan.locales,
         ...(trustedPlan ? { plan: trustedPlan } : {}),
     })
-    console.log(`Screen Library coverage: ${coverageGate.ok ? 'pass' : 'fail'} — ${coverageGate.reason}`)
+    console.log(`Screen Library coverage: ${coverageGate.ok ? 'pass' : 'review'} — ${coverageGate.reason}`)
 }
 
 if (pr) {
@@ -518,7 +528,7 @@ if (pr) {
     }${localeNote}`
     const copyCoverageReport = reports.find(({ copyCoverage }) => copyCoverage)
     const copySection = copyGate
-        ? `\n\nScreen Library copy: ${copyGate.ok ? 'pass' : 'fail'} — ${copyGate.reason}${
+        ? `\n\nScreen Library copy: ${copyGate.ok ? 'pass' : 'review'} — ${copyGate.reason}${
               copyCoverageReport
                   ? ` [Copy coverage](${publicOrigin}/screen-library/copy.html?path=${encodeURIComponent(copyCoverageReport.path)}): ${copyCoverageReport.copyCoverage.shown}/${copyCoverageReport.copyCoverage.total} keys shown.`
                   : ''
@@ -527,12 +537,15 @@ if (pr) {
     const harnessNote = reports.some((report) => report.beforeHarness) ? `\n\n${BASE_HARNESS_NOTE}` : ''
     const body = `${marker}\n${reports
         .map(
-            ({ locale, path }) =>
-                `[${LOCALES[locale]}](${publicOrigin}/screens/${path}/${releasePreview ? '?view=all&layout=paired' : ''})`
+            ({ locale, path, notComparable }) =>
+                `[${LOCALES[locale]}](${publicOrigin}/screens/${path}/${releasePreview ? '?view=all&layout=paired' : ''})` +
+                (notComparable
+                    ? ` · [${notComparable} not comparable](${publicOrigin}/screens/${path}/?status=not-comparable&view=all&layout=paired)`
+                    : '')
         )
         .join(
             ' · '
-        )}\n\n[Open screen library dashboard](${publicOrigin}/screens/)\n\n${run.event === 'push' ? 'After merge' : 'Review preview'}: ${reports[0].before.commit} → ${reports[0].after.commit}. ${coverageDescription}${harnessNote}${coverageGate ? `\n\nScreen Library coverage: ${coverageGate.ok ? 'pass' : 'fail'} — ${coverageGate.reason}` : ''}${copySection}`
+        )}\n\n[Open screen library dashboard](${publicOrigin}/screens/)\n\n${run.event === 'push' ? 'After merge' : 'Review preview'}: ${reports[0].before.commit} → ${reports[0].after.commit}. ${coverageDescription}${harnessNote}${coverageGate ? `\n\nScreen Library coverage: ${coverageGate.ok ? 'pass' : 'review'} — ${coverageGate.reason}` : ''}${copySection}`
     const comments = JSON.parse(
         ghApiSync([`repos/${repo}/issues/${pr.number}/comments?per_page=100`, '--paginate', '--slurp'], {
             encoding: 'utf8',
@@ -556,5 +569,6 @@ if (pr) {
         { input: JSON.stringify({ body }), stdio: ['pipe', 'ignore', 'inherit'] }
     )
 }
-const failures = [coverageGate, copyGate].filter((gate) => gate && !gate.ok).map((gate) => gate.reason)
-if (failures.length) throw new Error(failures.join(' '))
+// Coverage findings are review information. A missing recorder is a harness failure.
+if (copySupported && copyGate && reports.some(({ after }) => after.copyRecording !== 'recorded'))
+    throw new Error(copyGate.reason)

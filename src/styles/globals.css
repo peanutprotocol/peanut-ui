@@ -863,8 +863,9 @@
         --sr-stage-compact: calc(var(--sr-stage-compact-base) - var(--sr-fit-lift, 0px));
         --sr-stage-full: var(--sr-stage-full-base);
         --sr-cta-top: calc(var(--sr-h) - 112px);
-        --sr-topbar-top: 4px;
-        --sr-title-top: 61px;
+        /* L/16 below the safe area, as NavHeader and /verify; the title keeps L/16 under the 40 px bar */
+        --sr-topbar-top: 16px;
+        --sr-title-top: 72px;
         --sr-gutter: 24px;
         --sr-panel-pad: 32px;
         --sr-slot-h: 64px;
@@ -881,10 +882,11 @@
             --sr-stage-std-base: 260px;
             --sr-stage-compact-base: 220px;
             --sr-cta-top: calc(var(--sr-h) - 100px);
-            --sr-title-top: 52px;
-            --sr-gutter: 20px;
+            --sr-topbar-top: 8px;
+            --sr-title-top: 56px;
+            /* L/16: 20 px is off the spacing scale, and the 320 column needs the width */
+            --sr-gutter: 16px;
             --sr-panel-pad: 16px;
-            --sr-slot-h: 44px;
             --sr-lift-2: 20px;
             --sr-lift-3: 44px;
         }
@@ -1554,100 +1556,11 @@ input::placeholder {
     animation: cyclingBlink 1.4s infinite both;
 }
 
-/* Gift box opening animations */
-@keyframes giftOpening {
-    0%,
-    100% {
-        transform: translateY(0) rotate(0deg) scale(1);
-    }
-    10%,
-    30%,
-    50%,
-    70%,
-    90% {
-        transform: translateY(-4px) rotate(-2deg) scale(1.02);
-    }
-    20%,
-    40%,
-    60%,
-    80% {
-        transform: translateY(-4px) rotate(2deg) scale(1.02);
-    }
-}
-
-@keyframes giftRevealed {
-    0% {
-        transform: scale(1.05);
-        opacity: 0.8;
-    }
-    50% {
-        transform: scale(1.02);
-        opacity: 1;
-    }
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
-
-@keyframes giftExit {
-    0% {
-        transform: scale(1) translateY(0);
-        opacity: 1;
-    }
-    100% {
-        transform: scale(0.95) translateY(-10px);
-        opacity: 0;
-    }
-}
-
-.animate-gift-opening {
-    animation: giftOpening 0.12s ease-in-out infinite;
-    transform-origin: center center;
-}
-
-.animate-gift-revealed {
-    animation: giftRevealed 0.4s ease-out forwards;
-}
-
-.animate-gift-exit {
-    animation: giftExit 0.4s ease-out forwards;
-}
-
-/* Gift box holographic shine effect */
-@keyframes giftShine {
-    0% {
-        left: -100%;
-    }
-    50%,
-    100% {
-        left: 150%;
-    }
-}
-
-.gift-box-shine::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 50%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-    animation: giftShine 3s ease-in-out infinite;
-    pointer-events: none;
-    z-index: 5;
-    border-radius: inherit;
-}
-
 @media (prefers-reduced-motion: reduce) {
     .perk-shake-weak,
     .perk-shake-medium,
     .perk-shake-strong,
-    .perk-shake-intense,
-    .animate-gift-opening,
-    .animate-gift-revealed,
-    .animate-gift-exit,
-    .gift-box-shine::before {
+    .perk-shake-intense {
         animation: none;
     }
 }

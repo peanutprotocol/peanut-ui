@@ -396,6 +396,7 @@ export const BankFlowManager = (props: IClaimScreenProps) => {
                 onClose={() => setShowKycModal(false)}
                 onVerify={() => gateActions.verify(gate, { provider: 'BRIDGE', ...verifyEntry })}
                 verifyEntry={verifyEntry}
+                source="guest_claim"
                 onContactSupport={() => {
                     setShowKycModal(false)
                     gateActions.contactSupport(gate)

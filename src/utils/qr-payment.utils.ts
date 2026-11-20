@@ -6,7 +6,7 @@ import { CARD_FX_MARKUP_BY_CURRENCY } from '@/constants/payment.consts'
  * rate (the fraction of the USD transaction value that a card user would
  * lose). Caller is responsible for sourcing the markup — typically from
  * `useCardMarkupRate`, which fetches live for ARS and falls back to a static
- * constant for BRL.
+ * constant when that call fails.
  */
 export function calculateSavingsInCents(
     usdAmount: string | null | undefined,
@@ -19,7 +19,7 @@ export function calculateSavingsInCents(
 
 /**
  * Whether a "vs card" comparison is meaningful for this currency. Only true
- * for currencies with a real card-vs-local-rail gap (ARS, BRL today). Gates
+ * for currencies with a real card-vs-local-rail gap (ARS today; never BRL). Gates
  * rendering of the comparison row before the live markup has resolved.
  */
 export function hasCardMarkupComparison(currencyCode: string | null | undefined): boolean {

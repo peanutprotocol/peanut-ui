@@ -173,13 +173,17 @@ it('puts PIN then Freeze beside the card, above Card management', () => {
         screen.getByRole('button', { name: 'PIN' }),
         screen.getByRole('button', { name: 'Freeze' }),
         screen.getByText('Spending limit'),
-        screen.getByText('Physical card'),
         screen.getByText('Red zone'),
         screen.getByText('Cancel card'),
     ]
     for (let i = 1; i < order.length; i++) {
         expect(order[i - 1].compareDocumentPosition(order[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     }
+})
+
+it('offers no physical-card list to join', () => {
+    renderScreen()
+    expect(screen.queryByText('Physical card')).not.toBeInTheDocument()
 })
 
 it('opens the PIN page from its control', () => {

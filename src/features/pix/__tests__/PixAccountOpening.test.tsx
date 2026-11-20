@@ -123,6 +123,19 @@ describe('PixAccountOpening', () => {
         expect(screen.queryByText('saving answers')).toBeNull()
     })
 
+    // TASK-25108: Avenia can reject the corrected CPF record after the activation sent it
+    it('asks the same step again after the answer went out and the provider asked it anew', () => {
+        mockActivation = missingStep('cpfRecord')
+        const { rerender } = renderOpening()
+        fireEvent.click(screen.getByRole('button', { name: 'questions pix cpfRecord' }))
+        mockActivation = { result: { kind: 'report', report: { state: 'setting_up' } } }
+        rerender(<PixAccountOpening title="Add money" onBack={jest.fn()} />)
+        expect(screen.getByText(en.pix.setup.reviewing)).toBeInTheDocument()
+        mockActivation = missingStep('cpfRecord')
+        rerender(<PixAccountOpening title="Add money" onBack={jest.fn()} />)
+        expect(screen.getByRole('button', { name: 'questions pix cpfRecord' })).toBeInTheDocument()
+    })
+
     // review finding 3: a redirect would send Back from /verify straight into /verify again
     it("shows Pix's verify screen for an identity not approved, and opens /verify only on a tap", () => {
         mockActivation = { result: { kind: 'conflict', code: 'identity_not_approved' } }

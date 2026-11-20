@@ -8,9 +8,9 @@ import { StepsScreen } from './StepsScreen'
 import { VerifyFooter, VerifyHeroLayout } from './VerifyLayout'
 import { useKycControl } from '../analytics'
 
-/** Every load in this flow opens on the steps overview, so its skeleton stands in: never a loading mascot. */
+/** Every load in this flow opens on the steps timeline with its rows still to fill: never a loading mascot. */
 export function VerifyLoading({ onBack }: { onBack: () => void }) {
-    return <StepsScreen loading onBack={onBack} />
+    return <StepsScreen phase="loading" onBack={onBack} />
 }
 
 export function LoadFailed({ onRetry, onHome }: { onRetry: () => void; onHome: () => void }) {

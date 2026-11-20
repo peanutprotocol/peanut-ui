@@ -23,7 +23,7 @@ describe('activateKycFeature public contract', () => {
             expect(fetchMock).toHaveBeenCalledTimes(1)
             expect(fetchMock).toHaveBeenCalledWith(`/users/kyc/features/${feature}/activate`, {
                 method: 'POST',
-                headers: { 'x-kyc-client': '2' },
+                headers: { 'x-kyc-client': '3' },
                 cache: 'no-store',
                 redactTelemetry: true,
             })

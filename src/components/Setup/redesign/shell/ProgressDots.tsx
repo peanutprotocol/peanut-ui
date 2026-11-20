@@ -16,7 +16,7 @@ export function ProgressDots({ index, total, reduced }: { index: number; total: 
         firstPaint.current = false
     }, [])
     return (
-        <span aria-hidden="true" className="flex items-center gap-[5px]" data-setup-dots>
+        <span aria-hidden="true" className="flex items-center gap-1" data-setup-dots>
             {Array.from({ length: total }, (_, i) => (
                 <motion.i
                     key={i === index ? `now-${index}` : i}

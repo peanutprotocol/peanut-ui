@@ -57,13 +57,13 @@ if (
     console.log('Trusted gallery-only workflow unavailable; retaining legacy capture/publication delivery.')
 }
 if (process.argv.includes('--impact') && mode !== 'skip' && event === 'pull_request' && !releasePreview) {
-    const capable = capabilities?.scopedCapture === 1
+    const capable = capabilities?.scopedCapture === 1 && capabilities?.impactInventory === 1
     if (!capable) {
         console.log('Trusted dev publisher has no scoped-capture capability; retaining full legacy pairs.')
     }
     if (capable) {
         const { planRevisionCapture } = await import('./capture-impact.mjs')
-        const plan = planRevisionCapture({ event, branch, before, after })
+        const plan = planRevisionCapture({ event, branch, before, after, repository })
         console.log(JSON.stringify(plan))
         mode = plan.mode
         only = mode === 'targeted' ? plan.screenIds.join(',') : ''

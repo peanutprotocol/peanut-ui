@@ -83,7 +83,7 @@ export function ResidenceSentence({
                 })}
             </p>
             {refusedPassport && (
-                <Callout priority="attention" className="mt-3 signup-sm:mt-1.5">
+                <Callout priority="attention" className="mt-3 signup-sm:mt-2">
                     {t('refusedPassport', { nationality: labelOf(nationality), residence: labelOf(residence) })}
                 </Callout>
             )}

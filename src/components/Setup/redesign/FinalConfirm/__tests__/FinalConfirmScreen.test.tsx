@@ -42,6 +42,10 @@ import {
     openDialog,
 } from '../../Accounts/__tests__/redesignHarness'
 
+// the Celebration's Verify now has its own suite (CelebrationScreen.test)
+jest.mock('@/components/Setup/redesign/Celebration/useCelebrationVerify', () => ({
+    useCelebrationVerify: () => ({ start: jest.fn(), starting: false, kycFlow: {}, modals: null }),
+}))
 jest.mock('@/services/signup-geo', () => ({ attachSignupGeo: jest.fn() }))
 // 12's verify start has its own suite (CelebrationScreen.test); here 12 is the plain celebration
 jest.mock('@/components/Setup/redesign/Celebration/useVerifyStartEligible', () => ({
@@ -325,6 +329,27 @@ describe('11 Final confirm: states', () => {
         expect(view.container.querySelector('[data-testid="setup-redesign-final-confirm"]')).toBeNull()
     })
 
+    it('P4-37 on the sign-up step, Confirm later swaps 11 for the quiet redirect, not the celebration (FinalStep)', async () => {
+        saveSignupTestTransaction('user-1', pending())
+        mockSend.mockRejectedValueOnce(stalled())
+        let setCompleted: ((v: boolean) => void) | null = null
+        const view = renderRedesign(<FinalStep onComplete={() => setCompleted?.(true)} />, {
+            screenId: 'advantage-control',
+        })
+        setCompleted = view.flow().setSignupCompleted
+        confirm(view.container)
+        await screen.findByText(textMatch(copy('setupRedesign.final.busy')))
+        const later = footerControl(view.container, copyRx('setupRedesign.final.later'))
+        await waitFor(() => expect(later).toBeEnabled())
+        fireEvent.click(later)
+        await waitFor(() =>
+            expect(view.container.querySelector('[data-testid="setup-redesign-final-confirm"]')).toBeNull()
+        )
+        expect(view.container.querySelector('[data-testid="setup-redesign-celebration"]')).toBeNull()
+        expect(screen.queryByText(copyRx('setupRedesign.done.title'))).toBeNull()
+        expect(confettiPresets.celebration).not.toHaveBeenCalled()
+    })
+
     it('P4-38 a failed account save offers Retry account setup, which saves again without a second signature', async () => {
         mockAddAccount.mockRejectedValueOnce(
             new AccountSetupError('Account creation could not be confirmed', {
@@ -383,6 +408,8 @@ describe('11 Final confirm: states', () => {
         await waitFor(() => expect(later).toBeEnabled())
         fireEvent.click(later)
         await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1))
+        // the step skips the celebration for an unconfirmed account
+        expect(onComplete).toHaveBeenCalledWith({ deferred: true })
         expect(signupControls(capture)).toContain('finish_later:tap')
         expect(events(ANALYTICS_EVENTS.SIGNUP_TEST_TX_DEFERRED)).toEqual([
             { transient_failures: 2, signature_check: 'valid' },
@@ -458,7 +485,7 @@ describe('11 Final confirm: art', () => {
     const intersects = (a: ReturnType<typeof box>, b: ReturnType<typeof box>) =>
         a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
 
-    it('P4-40 the coins sit beside the scan frame, never inside it, and the frame holds the smile', () => {
+    it('P4-40 the coins sit beside the scan frame, never inside it, and the frame holds the peanut', () => {
         const { container } = render({ onComplete: jest.fn() })
         const frameEl = container.querySelector('[data-testid="setup-redesign-final-confirm-frame"]')
         expect(frameEl).not.toBeNull()
@@ -478,7 +505,7 @@ describe('11 Final confirm: art', () => {
         expect(intersects(eur, frame)).toBe(false)
         expect(usd.right).toBeLessThanOrEqual(frame.left)
         expect(eur.left).toBeGreaterThanOrEqual(frame.right)
-        expect(frameEl!.querySelector('svg.lucide-smile')).not.toBeNull()
+        expect(frameEl!.querySelector('[data-mascot-pose="too-cool"]')).not.toBeNull()
     })
 
     it('P4-63 under reduced motion no entrance plays and the coins keep their still frame', () => {
@@ -678,6 +705,20 @@ describe('11 Final confirm on /setup/finish', () => {
         expect(mockRouterReplace).toHaveBeenCalledWith('/home')
         expect(confettiPresets.celebration).toHaveBeenCalledTimes(1)
         expect(events(ANALYTICS_EVENTS.SIGNUP_COMPLETED)).toHaveLength(1)
+    })
+
+    it('Confirm later on the finish route redirects with no confetti', async () => {
+        saveSignupTestTransaction('user-1', pending())
+        mockSend.mockRejectedValueOnce(stalled())
+        const { container } = render({ showLogout: true })
+        confirm(container)
+        await screen.findByText(textMatch(copy('setupRedesign.final.busy')))
+        const later = footerControl(container, copyRx('setupRedesign.final.later'))
+        await waitFor(() => expect(later).toBeEnabled())
+        fireEvent.click(later)
+        await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledTimes(1))
+        expect(confettiPresets.celebration).not.toHaveBeenCalled()
+        expect(events(ANALYTICS_EVENTS.SIGNUP_COMPLETED)).toEqual([expect.objectContaining({ test_tx: 'deferred' })])
     })
 })
 

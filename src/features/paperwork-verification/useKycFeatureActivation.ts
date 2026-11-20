@@ -13,6 +13,10 @@ import {
 import { entryAction, reportEntry, supportRefusal, type ReportScope } from '@/features/kyc-features/report'
 import type { FeatureReportEntry } from '@/types/capabilities'
 import { paperworkVerificationFeaturePath } from './paperworkVerificationEntry'
+import { markVerifySource } from './verifySource'
+import { findKycDocumentPlan } from '@/app/actions/kyc-workflow'
+import type { FeatureReverificationEntry } from '@/app/actions/types/kyc-reverification.types'
+import { currentReverificationDestination, featureReverificationPath } from '@/utils/kyc-reverification'
 
 export const KYC_ACTIVATION_POLL_MS = 15_000
 
@@ -136,6 +140,7 @@ export function useKycFeatureActivation(
     const mounted = useRef(true)
     const inFlight = useRef<{ scope: string; token: object; promise: Promise<boolean> } | null>(null)
     const [saved, setSaved] = useState<{ scope: string; result: KycFeatureActivationResult } | null>(null)
+    const [planEntry, setPlanEntry] = useState<{ scope: string; entry: FeatureReverificationEntry } | null>(null)
     const [loadingScope, setLoadingScope] = useState<string | null>(null)
     const result: KycFeatureActivationResult | null = arsProvisioning
         ? { kind: 'report', report: { state: ars.state } }
@@ -145,7 +150,51 @@ export function useKycFeatureActivation(
     // An automatic activation serves an identity of the older flow too: the API opens its account the same way.
     const gated = oneShot || automatic
     const hasSelectedStatus = !!selectedStatus
-    const allowed = !!userId && !hasSelectedStatus && (!gated || alreadyOn || canContinue(feature, result))
+    const reverification =
+        alreadyOn || !enabled
+            ? null
+            : result?.kind === 'conflict' && result.code === 'feature_reverification_required'
+              ? result.entry
+              : planEntry?.scope === scope
+                ? planEntry.entry
+                : null
+    const allowed =
+        !!userId && !reverification && !hasSelectedStatus && (!gated || alreadyOn || canContinue(feature, result))
+
+    useEffect(() => {
+        if (
+            !enabled ||
+            !userId ||
+            oneShot ||
+            automatic ||
+            alreadyOn ||
+            hasSelectedStatus ||
+            arsProvisioning ||
+            identityStatus !== 'verified' ||
+            feature === 'qr' ||
+            feature === 'pix'
+        )
+            return
+        const controller = new AbortController()
+        void findKycDocumentPlan('entry', controller.signal, feature)
+            .then((plan) => {
+                if (!controller.signal.aborted && currentScope.current === scope && plan?.entry)
+                    setPlanEntry({ scope, entry: plan.entry })
+            })
+            .catch(() => {})
+        return () => controller.abort()
+    }, [
+        enabled,
+        userId,
+        oneShot,
+        automatic,
+        alreadyOn,
+        hasSelectedStatus,
+        arsProvisioning,
+        identityStatus,
+        feature,
+        scope,
+    ])
 
     useEffect(() => {
         mounted.current = true
@@ -160,6 +209,16 @@ export function useKycFeatureActivation(
         (options?: { beforeRedirect?: () => Promise<void> }): Promise<boolean> => {
             if (!mounted.current || currentScope.current !== scope || !userId || !enabled) return Promise.resolve(false)
             if (arsProvisioning || hasSelectedStatus) return Promise.resolve(false)
+            const returnTo = currentReverificationDestination()
+            if (reverification) {
+                if (!automatic)
+                    return Promise.resolve(options?.beforeRedirect?.()).then(() => {
+                        if (mounted.current && currentScope.current === scope)
+                            routerRef.current.push(featureReverificationPath(reverification, returnTo))
+                        return false
+                    })
+                return Promise.resolve(false)
+            }
             if (!gated || alreadyOn) return Promise.resolve(true)
             if (inFlight.current?.scope === scope) return inFlight.current.promise
             setLoadingScope(scope)
@@ -189,12 +248,24 @@ export function useKycFeatureActivation(
                         return false
                 }
                 setSaved({ scope, result: next })
+                if (next.kind === 'conflict' && next.code === 'feature_reverification_required') {
+                    recovery.current.waiting = false
+                    if (!automatic) {
+                        await options?.beforeRedirect?.()
+                        if (mounted.current && currentScope.current === scope)
+                            routerRef.current.push(featureReverificationPath(next.entry, returnTo))
+                    }
+                    return false
+                }
                 if (next.kind === 'conflict' && next.code === 'identity_not_approved') {
                     // /verify is the identity's status screen; a failed check is decided, so nothing waits on it.
                     recovery.current.waiting = identityStatus !== 'failed'
                     if (!automatic) {
                         await options?.beforeRedirect?.()
-                        if (mounted.current && currentScope.current === scope) routerRef.current.push('/verify')
+                        if (mounted.current && currentScope.current === scope) {
+                            markVerifySource('unlock_payments')
+                            routerRef.current.push('/verify')
+                        }
                     }
                 } else {
                     recovery.current.waiting = false
@@ -231,6 +302,7 @@ export function useKycFeatureActivation(
             enabled,
             identityStatus,
             automatic,
+            reverification,
         ]
     )
 
@@ -285,6 +357,7 @@ export function useKycFeatureActivation(
         allowed,
         userReady: !!userId,
         result,
+        reverification,
         selectedStatus,
         arsProvisioning,
         isLoading: loadingScope === scope,

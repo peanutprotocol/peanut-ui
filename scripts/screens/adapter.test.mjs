@@ -18,7 +18,7 @@ function probeExternalPaidRequest(paths, method = 'GET') {
  for(const path of ${JSON.stringify(paths)}) {
  try {
  const response=await answer('history-request-paid-external',path,${JSON.stringify(method)});
- values.push({status:response.status,body:await response.json()});
+ values.push({status:response.status,body:response.body === null ? null : await response.json()});
  } catch(error) { values.push({error:String(error)}); }
  }
  console.log('RESULT:'+JSON.stringify({values,networkRequests}));
@@ -129,7 +129,7 @@ function probeWithSpec(fixture, requests, spec) {
  for(const [method,path] of ${JSON.stringify(requests)}) {
  try {
  const response=await answer(${JSON.stringify(fixture)},path,method,undefined,spec);
- values.push({status:response.status,body:await response.json()});
+ values.push({status:response.status,body:response.body === null ? null : await response.json()});
  } catch(error) { values.push({error:String(error)}); }
  }
  console.log('RESULT:'+JSON.stringify({values,networkRequests}));
@@ -295,4 +295,60 @@ test('the passkey fixture reserves its claimed username before the API schema ca
     const unrelated = probeWithSpec('home', [['POST', '/users/username/reservations']], {})
     assert.equal(unrelated.networkRequests, 0)
     assert.match(unrelated.values[0].error, /Unmapped capture API/)
+})
+
+test('HEAD uses the fixture or demo resource status, including an unknown name, with an empty body', () => {
+    const requests = [
+        ['HEAD', '/users/username/demo'],
+        ['HEAD', '/users/username/zippycomet'],
+        ['HEAD', '/users/username/luckyotter8'],
+        ['HEAD', '/users/username/kimchi'],
+    ]
+    // A broad documented HEAD success must not override the demo's known missing accounts.
+    const result = probeWithSpec('setup-passkey-username-taken', requests, {
+        paths: {
+            '/users/username/{username}': { head: { responses: { 200: { description: 'User found' } } } },
+        },
+    })
+    assert.deepEqual(
+        result.values,
+        [200, 404, 404, 200].map((status) => ({ status, body: null }))
+    )
+    assert.equal(result.networkRequests, 0)
+})
+
+test('documented empty responses preserve HTTP semantics and unknown HEAD operations stay unmapped', () => {
+    const paths = {
+        '/documented/head': { head: { responses: { 202: { description: 'Accepted' } } } },
+        '/documented/reset': { post: { responses: { 205: { description: 'Reset content' } } } },
+        '/documented/delete': { delete: { responses: { 204: { description: 'No content' } } } },
+    }
+    const result = probeWithSpec(
+        'home',
+        [
+            ['HEAD', '/documented/head'],
+            ['POST', '/documented/reset'],
+            ['DELETE', '/documented/delete'],
+            ['HEAD', '/not-a-fixture'],
+        ],
+        { paths }
+    )
+    assert.deepEqual(result.values, [
+        { status: 202, body: null },
+        { status: 205, body: null },
+        { status: 204, body: null },
+        { error: 'Error: Unmapped capture API: HEAD /not-a-fixture' },
+    ])
+    assert.equal(result.networkRequests, 0)
+})
+
+test('a named fixture overrides existing capture defaults', () => {
+    const result = probeWithSpec('setup-redesign-invite-found', [['POST', '/invites/validate']], {})
+    assert.equal(result.networkRequests, 0)
+    assert.deepEqual(result.values, [
+        {
+            status: 200,
+            body: { success: true, attributionResolved: true, onboardingResolved: true, username: 'fulano' },
+        },
+    ])
 })

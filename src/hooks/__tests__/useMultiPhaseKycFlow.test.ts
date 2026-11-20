@@ -561,10 +561,10 @@ describe('deposit session regression contracts', () => {
         })
         expect(result.current.showWrapper).toBe(true)
     })
-    it('skipping terms is dismissal, never successful verification', () => {
+    it('dismissing the modal does not complete verification', () => {
         const success = jest.fn()
         const { result } = renderHook(() => useMultiPhaseKycFlow({ onKycSuccess: success }))
-        act(() => result.current.handleSkipTerms())
+        act(() => result.current.handleModalClose())
         expect(success).not.toHaveBeenCalled()
     })
     it.each(['blocked', 'requires-info', 'unavailable', 'pending'])(

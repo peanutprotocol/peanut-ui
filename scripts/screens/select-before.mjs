@@ -51,7 +51,7 @@ if (source) {
         const capture = validateCapture(JSON.parse(bytes))
         const after = validateCapture(JSON.parse(readFileSync(join(afterDir, 'capture.json'), 'utf8')))
         if (!canReuseBaseline(capture, after, before, { beforeHarness, sourceHarnessCommit: source.harnessCommit }))
-            throw new Error('Baseline manifest identities, completeness or selected state coverage differ')
+            throw new Error('Baseline manifest identity or capture eligibility differs')
         for (const screen of capture.screens)
             if (screen.status === 'captured')
                 for (const name of [screen.image, screen.thumbnail])
@@ -75,7 +75,7 @@ if (source) {
             })
         )
         reused = true
-        reason = `Reused verified full ${locale} baseline from run ${source.run.id}; original capture provenance retained`
+        reason = `Reused verified ${locale} baseline from run ${source.run.id}; original capture provenance retained`
     } catch (error) {
         rmSync(destination, { recursive: true, force: true })
         reason = `Baseline candidate rejected: ${error.message}; capture before once`

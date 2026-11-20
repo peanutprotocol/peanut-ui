@@ -28,7 +28,7 @@ export function ResidenceCompareView({
             data-setup-screen="residence"
         >
             <p className={SETUP_LEAD_CLASS}>{t('compareRule')}</p>
-            <div className="mt-3.5 flex gap-4 signup-sm:mt-1.5 signup-sm:gap-3">
+            <div className="mt-4 flex gap-4 signup-sm:mt-3 signup-sm:gap-3">
                 {columns.map(({ iso2, items }, index) => (
                     <div key={iso2} className="contents">
                         {index > 0 && (

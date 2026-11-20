@@ -555,7 +555,10 @@ const SupportDrawer = () => {
                             </div>
                         )}
                         {isCrispFailed && (
-                            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-background-page px-8 text-center">
+                            <div
+                                data-testid="support-chat-failed"
+                                className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-background-page px-8 text-center"
+                            >
                                 <p className="text-body-m-semibold text-foreground-primary">
                                     {t('supportDrawer.chatLoadFailed')}
                                 </p>

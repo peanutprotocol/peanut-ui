@@ -379,17 +379,22 @@ test('a signed-out visitor to /card is redirected to /setup — public access is
     await page.waitForURL(/\/setup/, { timeout: 10_000 })
 })
 
-test('the public landing opens Google Play with the deferred card destination', async ({ page, context }) => {
+test('the legacy /shhhhh link lands on /peanut-card and opens Google Play with the card destination', async ({
+    page,
+    context,
+}) => {
     await stubSignedOutApi(page)
     await context.route('https://play.google.com/**', (route) => route.fulfill({ body: 'Store handoff' }))
-    await page.goto('/shhhhh')
-    await expect(page.getByRole('heading', { level: 1, name: 'Peanut Card Go Pink.' })).toBeVisible()
+    await page.goto('/shhhhh?campaign=event-alumni')
+    await expect(page).toHaveURL(/\/peanut-card\?campaign=event-alumni$/)
     await shot(page, 'landing')
 
     const opened = page.waitForEvent('popup')
-    await page.getByRole('button', { name: 'Get card', exact: true }).first().click()
+    await page.getByRole('link', { name: 'Get your virtual card' }).first().click()
     const store = await opened
     await expect(store).toHaveURL(/^https:\/\/play\.google\.com\/store\/apps\/details\?/)
     const referrer = new URL(store.url()).searchParams.get('referrer') ?? ''
     expect(new URLSearchParams(referrer).get('dest')).toBe('/card')
+    // The campaign from the old /shhhhh link rides the deferred install.
+    expect(new URLSearchParams(referrer).getAll('badge_campaign')).toContain('event-alumni')
 })

@@ -222,10 +222,15 @@ export const CardPage: FC = () => {
         // `onPrev` is not optional here: this screen carries no other control,
         // so omitting it made a poll that ran long (or never resolved) read as
         // a frozen app — animations running, nothing tappable.
-        if (activation && !activation.allowed && (activation.result || activation.isLoading)) {
+        if (
+            activation &&
+            !activation.allowed &&
+            (activation.reverification || activation.result || activation.isLoading)
+        ) {
             return (
                 <KycFeatureActivationStatus
                     feature="card"
+                    reverification={activation.reverification}
                     result={activation.result}
                     isLoading={activation.isLoading}
                     onRetry={() => void activation.activate()}
@@ -542,6 +547,7 @@ export const CardPage: FC = () => {
                 hasQuestions
                 providerId="third-national"
                 providerLabel="cardProvider"
+                source="card"
                 onBack={handleSumsubClose}
                 onContinue={() => setIntroDoneFor(sumsubToken)}
             />

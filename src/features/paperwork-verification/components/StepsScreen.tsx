@@ -7,7 +7,7 @@ import { NAV_CIRCLE_BUTTON_CLASSES } from '@/components/Global/NavHeader/navHead
 import { twMerge } from '@/utils/tw'
 import { useInsetColor } from '../useInsetColor'
 import { StepTimeline, type StepTimelineState } from './StepTimeline'
-import { useKycControl, type KycControlFlow } from '../analytics'
+import { useKycControl } from '../analytics'
 
 const SCREEN_HEIGHT = 'min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))]'
 
@@ -16,15 +16,18 @@ type StepKey = 'residence' | 'questions' | 'photo' | 'selfie' | 'review' | 'unlo
 export type FollowUpLabel = 'cardAddress' | 'cardIdentity' | 'bankDocument' | 'bankTerms' | 'bankCheck'
 type StepRow = { key: string; label: `steps.${StepKey}` | `steps.followUp.${FollowUpLabel}`; state: StepTimelineState }
 
-/** Before the ID check, waiting for its review, or verified: one timeline, its rows filled in as far as the user got. */
-export type StepsPhase = 'intro' | 'review' | 'verified'
+/**
+ * Loading, waiting for the review, or verified: one timeline, its rows filled in as far as the user got. Before
+ * the ID check the intro is Verify start (VerifyStartIntro), not this screen.
+ */
+export type StepsPhase = 'loading' | 'review' | 'verified'
 
-// the overview's rows while the server says which steps are left
+// the rows while the server says which steps are left
 const SKELETON_ROWS = 4
 const skeleton = 'animate-pulse bg-foreground-primary/10 motion-reduce:animate-none'
 
 const PHASE_COPY = {
-    intro: {
+    loading: {
         title: 'steps.title',
         note: null,
         cta: 'continue',
@@ -50,12 +53,7 @@ const PHASE_COPY = {
     },
 } as const
 
-function stepRows(
-    phase: StepsPhase,
-    hasQuestions: boolean,
-    questionsDone: boolean,
-    followUps: readonly FollowUpLabel[]
-): StepRow[] {
+function stepRows(phase: 'review' | 'verified', hasQuestions: boolean, followUps: readonly FollowUpLabel[]): StepRow[] {
     const keys: StepKey[] = [
         'residence',
         ...(hasQuestions ? (['questions'] as const) : []),
@@ -78,23 +76,7 @@ function stepRows(
         )
         return [...reviewed, ...asked, row('unlock', followUps.length ? 'next' : 'done')]
     }
-    if (phase === 'review')
-        return keys.map((key) => row(key, key === 'review' ? 'current' : key === 'unlock' ? 'next' : 'done'))
-    const photoCurrent = !hasQuestions || questionsDone
-    // before the start only the steps the person acts on: the review and the unlock are outcomes, shown once they
-    // carry live state (review and verified phases; Hugo 2026-11-17, Kush 2026-11-18)
-    return keys
-        .filter((key) => key !== 'review' && key !== 'unlock')
-        .map((key) =>
-            row(
-                key,
-                key === 'residence' || (key === 'questions' && questionsDone)
-                    ? 'done'
-                    : key === 'questions' || (key === 'photo' && photoCurrent)
-                      ? 'current'
-                      : 'next'
-            )
-        )
+    return keys.map((key) => row(key, key === 'review' ? 'current' : key === 'unlock' ? 'next' : 'done'))
 }
 
 /**
@@ -105,46 +87,35 @@ function stepRows(
  * user on to their payment methods, or first to what a feature still asks for.
  */
 export function StepsScreen({
-    phase = 'intro',
+    phase,
     hasQuestions = true,
-    questionsDone = false,
-    loading = false,
-    busy = false,
-    continueTestId,
     aside,
-    screenId,
-    controlFlow,
     followUps = [],
     note,
+    title,
     cta,
     onBack,
     onContinue,
 }: {
-    phase?: StepsPhase
+    phase: StepsPhase
     hasQuestions?: boolean
-    questionsDone?: boolean
-    loading?: boolean
-    /** while the start Continue makes is on its way */
-    busy?: boolean
-    continueTestId?: string
-    /** above the button: the provider today's flow opens an account with */
+    /** above the button: a notice for the next step (the bank's refusal) */
     aside?: React.ReactNode
-    /** the analytics screen id when the timeline stands in for another screen, and its flow off /verify */
-    screenId?: string
-    controlFlow?: KycControlFlow
     /** verified: the steps a feature still asks for, after the review and before Unlock */
     followUps?: readonly FollowUpLabel[]
     /** in place of the phase's note and button, for the open follow-up */
     note?: string
+    title?: string
     cta?: string
     onBack: () => void
     onContinue?: () => void
 }) {
     const t = useTranslations('kyc.paperworkVerification')
     useInsetColor(false)
-    const rows = stepRows(phase, hasQuestions, questionsDone, phase === 'verified' ? followUps : [])
+    const loading = phase === 'loading'
+    const rows = loading ? [] : stepRows(phase, hasQuestions, phase === 'verified' ? followUps : [])
     const copy = PHASE_COPY[phase]
-    const control = useKycControl(screenId ?? copy.screenId, controlFlow)
+    const control = useKycControl(copy.screenId)
     const noteText = note ?? (copy.note ? t(copy.note) : null)
     return (
         <div className={twMerge('flex w-full flex-col bg-background-page px-6 pt-4 pb-6', SCREEN_HEIGHT)}>
@@ -162,7 +133,7 @@ export function StepsScreen({
                     <Icon name="chevron-up" size={20} className="-rotate-90" />
                 </Button>
                 <h1 className="text-center text-heading-xs tracking-[-0.3px] whitespace-pre-line text-foreground-primary">
-                    {t(copy.title)}
+                    {title ?? t(copy.title)}
                 </h1>
                 <span />
             </div>
@@ -207,9 +178,8 @@ export function StepsScreen({
                         control.track(cta ? 'follow_up' : copy.control, 'tap')
                         onContinue?.()
                     }}
-                    loading={busy}
-                    disabled={loading || busy || !onContinue}
-                    data-testid={continueTestId ?? copy.testId}
+                    disabled={loading || !onContinue}
+                    data-testid={copy.testId}
                 >
                     {cta ?? t(copy.cta)}
                 </Button>

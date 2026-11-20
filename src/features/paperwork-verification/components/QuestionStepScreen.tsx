@@ -50,6 +50,7 @@ const FORM_ERROR_KEYS: Record<AnswerFormError, string> = {
     existing_verification: 'errors.unavailable',
     conflict: 'errors.unavailable',
     session_changed: 'errors.unavailable',
+    retry_later: 'cpfRecord.retryLater',
 }
 
 /** Who keeps the phone number: the card partner when the card asks for it, else the local bank partner. */
@@ -67,6 +68,11 @@ function useStepHeading(step: PaperworkVerificationStep) {
             title: t(ssn ? 'tax.title.ssn' : 'tax.title.other'),
             description: t(ssn ? 'tax.description.ssn' : 'tax.description.other'),
         }
+    }
+    // after a name mismatch the step asks the name too; an irregular CPF asks only the CPF
+    if (step.id === 'cpfRecord') {
+        const kind = step.fields.some((f) => f.key === 'fullName') ? 'name' : 'status'
+        return { title: t(`cpfRecord.title.${kind}`), description: t(`cpfRecord.description.${kind}`) }
     }
     if (step.id === 'address' || step.id === 'declarations')
         return { title: t(`titles.${step.id}`), description: t(`descriptions.${step.id}`) }
@@ -136,7 +142,7 @@ export function WhyWeAsk({ steps }: { steps: Array<PaperworkVerificationStepId |
  * One or more question steps on one screen. The per-step flow passes one step
  * (its sentences are the heading); add-later passes every open step of a
  * feature. A step with a heading of its own (address, phone, tax,
- * declarations) shows it in every flow, so it looks the same whatever the
+ * declarations, cpfRecord) shows it in every flow, so it looks the same whatever the
  * provider or feature (Aleks, 2026-11-14); `title` is the heading only for a
  * screen whose step has none. Continue saves each step in order.
  */
@@ -157,6 +163,7 @@ export function QuestionStepScreen({
     onConflict,
     onContinueWithoutLocal,
     onChangeResidence,
+    useDraft,
 }: {
     steps: PaperworkVerificationStep[]
     residence: string | null
@@ -183,9 +190,10 @@ export function QuestionStepScreen({
     onContinueWithoutLocal?: () => Promise<void>
     /** The locked country row's "Change your country of residence". */
     onChangeResidence?: () => void
+    useDraft?: boolean
 }) {
     const t = useTranslations('kyc.paperworkVerification')
-    const form = useAnswerForm(steps, feature, residence, returned)
+    const form = useAnswerForm(steps, feature, residence, returned, useDraft)
     const parentTracking = usePaperworkVerificationTrackingContext()
     const leadStep = steps[0]?.id
     const tracking = useMemo(

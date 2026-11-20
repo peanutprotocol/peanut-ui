@@ -226,6 +226,7 @@ jest.mock('@/context/ModalsContext', () => ({
 }))
 
 const mockInitiateKyc = jest.fn()
+const mockUnlockQr = jest.fn()
 const mockRestartIdentity = jest.fn()
 const mockResidenceChange = jest.fn()
 const mockDismissCooldown = jest.fn()
@@ -236,6 +237,7 @@ const mockFixableRejection = jest.fn()
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     useMultiPhaseKycFlow: () => ({
         handleInitiateKyc: mockInitiateKyc,
+        handleUnlockQr: mockUnlockQr,
         handleSelfHealResubmit: mockSelfHealResubmit,
         handleFixableRejection: mockFixableRejection,
         handleRestartIdentity: mockRestartIdentity,
@@ -1443,10 +1445,12 @@ describe('MoneySettings', () => {
             // lines at 375px; the description names it in one (Slava, 2026-09-25)
             expect(screen.getByText('Brazil and Argentina')).toBeInTheDocument()
 
-            // no Manteca rail yet: the row is the same unlock offer the bank
-            // row is, and the tap opens the same region intent
             fireEvent.click(screen.getByText('QR payments'))
             expect(screen.getByText('unlock-modal-open:no-provider:questions')).toBeInTheDocument()
+            expect(mockVerifyRedirect).toHaveBeenLastCalledWith(true, { feature: 'qr' })
+            fireEvent.click(screen.getByText('unlock now'))
+            expect(mockUnlockQr).toHaveBeenCalledWith()
+            expect(mockInitiateKyc).not.toHaveBeenCalled()
             expect(mockPush).not.toHaveBeenCalled()
         })
 

@@ -11,6 +11,7 @@ import { findKycDocumentPlan, getKycDocumentStatus } from '@/app/actions/kyc-wor
 import { InitiateKycModal } from '../InitiateKycModal'
 
 const mockPush = jest.fn()
+jest.mock('@/components/Setup/components/SetupLanguageSwitcher', () => ({ SetupLanguageSwitcher: () => null }))
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }), usePathname: () => '/add-money' }))
 jest.mock('@/app/actions/kyc-workflow', () => ({ findKycDocumentPlan: jest.fn(), getKycDocumentStatus: jest.fn() }))
 jest.mock('@/hooks/useResidenceRestrictions', () => ({ useResidenceRestrictions: () => ({ banking: false }) }))

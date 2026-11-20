@@ -12,6 +12,8 @@ export const PUSH_PROMPT_TRIGGERS = {
     CARD_READY: 'card_ready',
     /** a payable merchant QR was scanned */
     QR_FIRST_SCAN: 'qr_first_scan',
+    /** the Home ask once money of the user's own has arrived (bank or crypto deposit) */
+    FIRST_DEPOSIT: 'first_deposit',
     /** the context-free Home ask, for users no money moment has reached */
     HOME_FALLBACK: 'home_fallback',
 } as const

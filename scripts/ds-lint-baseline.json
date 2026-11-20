@@ -3,7 +3,7 @@
     "rawHexFiles": 3,
     "inlineStyle": 55,
     "stockTextSize": 2,
-    "dsTextScale": 1669,
+    "dsTextScale": 1672,
     "legacyTextScale": 0,
     "nonDsClassesInViews": 7,
     "useSearchParamsFiles": 34,
@@ -14,8 +14,8 @@
     "consumedUndefinedTokens": 0,
     "classNameSitesInPages": 77,
     "fontWeightOnTypeToken": 32,
-    "offScaleSpacing": 117,
-    "iconOffScale": 50,
+    "offScaleSpacing": 97,
+    "iconOffScale": 51,
     "offScaleRadius": 29,
     "rawDuration": 1,
     "retypedCardLiteral": 17,
@@ -172,6 +172,11 @@
             "date": "2026-11-17",
             "metrics": ["nonDsClassesInViews 6 -> 7"],
             "reason": "TASK-25047 moved PasskeyScreen's body into PasskeyScreenView so the dev gallery can render phone-only states; the existing max-w-[250px] title width now counts in a View. Moved, not added."
+        },
+        {
+            "date": "2026-11-20",
+            "metrics": ["iconOffScale 50 -> 51"],
+            "reason": "dev-side debt: ui#4176 (invite-heart tile at 40px on the DS assets page) and ui#4175 (scan-face at 32px, the size of the passkey glyph it replaced) each passed on their own base and merged to dev together; counted in on merge, not authored here. TASK-25138."
         }
     ]
 }

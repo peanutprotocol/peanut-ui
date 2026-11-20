@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { paperworkVerificationEntryRoute, type PaperworkVerificationEntry } from './paperworkVerificationEntry'
+import { markVerifySource, type VerifySource } from './verifySource'
+import { useOptionalAuth } from '@/context/authContext'
 
 /**
  * Sends a Smart Paperwork Verification user to /verify (or the add-later screen
@@ -10,8 +12,13 @@ import { paperworkVerificationEntryRoute, type PaperworkVerificationEntry } from
  * modal. True while the answer is pending or the user is being sent: the modal
  * must not paint then, or its Verify could still be tapped.
  */
-export function usePaperworkVerificationRedirect(active: boolean, entry: PaperworkVerificationEntry | undefined) {
+export function usePaperworkVerificationRedirect(
+    active: boolean,
+    entry: PaperworkVerificationEntry | undefined,
+    source: VerifySource = 'unlock_payments'
+) {
     const router = useRouter()
+    const userId = useOptionalAuth()?.user?.user.userId
     const routerRef = useRef(router)
     routerRef.current = router
     const [stay, setStay] = useState(false)
@@ -20,16 +27,21 @@ export function usePaperworkVerificationRedirect(active: boolean, entry: Paperwo
     useEffect(() => {
         setStay(false)
         if (!enabled || !entry) return
-        let cancelled = false
-        void paperworkVerificationEntryRoute(entry).then((route) => {
-            if (cancelled) return
-            if (route) routerRef.current.push(route)
-            else setStay(true)
-        })
+        const controller = new AbortController()
+        void paperworkVerificationEntryRoute(entry, controller.signal)
+            .then((route) => {
+                if (controller.signal.aborted) return
+                if (route === '/verify') markVerifySource(source)
+                if (route) routerRef.current.push(route)
+                else setStay(true)
+            })
+            .catch(() => {
+                if (!controller.signal.aborted) setStay(true)
+            })
         return () => {
-            cancelled = true
+            controller.abort()
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps -- `entryKey` stands for `entry`
-    }, [enabled, entryKey])
+    }, [enabled, entryKey, userId])
     return enabled && !stay
 }

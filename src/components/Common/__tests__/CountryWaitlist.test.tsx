@@ -36,27 +36,29 @@ beforeEach(() => {
 })
 it('confirms only a persisted signup', async () => {
     render()
-    const button = await screen.findByRole('button', { name: 'Notify me' })
+    const button = await screen.findByRole('button', { name: 'I want this' })
     await waitFor(() => expect(button).not.toBeDisabled())
     fireEvent.click(button)
-    await screen.findByText('On the list')
+    await screen.findByText('Thanks')
     expect(mockRequest).toHaveBeenCalledWith('AR', 'send', 'POST')
+    // No subscription backend sends anything to these rows (TASK-24171), so no notify promise.
+    expect(screen.queryByText(/let you know|notify|waitlist/i)).not.toBeInTheDocument()
 })
 it('does not show success when signup fails', async () => {
     mockRequest.mockImplementation((_country, _flow, method) =>
         method === 'POST' ? Promise.reject(new Error('offline')) : Promise.resolve({ joinedAt: null })
     )
     render()
-    const button = await screen.findByRole('button', { name: 'Notify me' })
+    const button = await screen.findByRole('button', { name: 'I want this' })
     await waitFor(() => expect(button).not.toBeDisabled())
     fireEvent.click(button)
-    await screen.findByText('Could not update the waitlist. Please try again.')
-    expect(screen.queryByText('On the list')).not.toBeInTheDocument()
+    await screen.findByText('Could not save your request. Please try again.')
+    expect(screen.queryByText('Thanks')).not.toBeInTheDocument()
 })
 it('asks guests to sign in without storing an anonymous signup', () => {
     mockUser = null
     render()
-    fireEvent.click(screen.getByRole('button', { name: 'Notify me' }))
+    fireEvent.click(screen.getByRole('button', { name: 'I want this' }))
     expect(mockSignIn).toHaveBeenCalledWith(true)
     expect(mockRequest).not.toHaveBeenCalled()
 })
@@ -64,13 +66,13 @@ it('asks guests to sign in without storing an anonymous signup', () => {
 it('keeps signup confirmation in the authenticated user cache', async () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     const first = render(client)
-    fireEvent.click(await screen.findByRole('button', { name: 'Notify me' }))
-    await screen.findByText('On the list')
+    fireEvent.click(await screen.findByRole('button', { name: 'I want this' }))
+    await screen.findByText('Thanks')
     expect(client.getQueryData(['country-waitlist', 'qa', 'AR', 'send'])).toEqual({ joinedAt: '2026-09-17T12:00:00Z' })
     first.unmount()
     mockUser = { user: { userId: 'different-user' } }
     render(client)
-    await screen.findByRole('button', { name: 'Notify me' })
-    expect(screen.queryByText('On the list')).not.toBeInTheDocument()
+    await screen.findByRole('button', { name: 'I want this' })
+    expect(screen.queryByText('Thanks')).not.toBeInTheDocument()
     expect(client.getQueryData(['country-waitlist', 'different-user', 'AR', 'send'])).toEqual({ joinedAt: null })
 })

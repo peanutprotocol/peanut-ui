@@ -26,6 +26,14 @@ const inviteRedirect = `/invite?code=alice&redirect_uri=${encodeURIComponent(set
 const replayMask = (request: CapturedNetworkRequest) => maskLinkSecretsInReplayRequest(maskQrReplayRequest(request))
 
 describe('stripLinkSecrets', () => {
+    it.each(['/verify', '/verify/'])('redacts re-verification return destinations at %s', (path) => {
+        const url =
+            path + '?mode=reverify&feature=local&returnTo=%2Fwithdraw%3Frecipient%3Dprivate&targetProvider=MANTECA'
+        expect(stripUrlSecrets(url)).toBe(
+            path + '?mode=reverify&feature=local&returnTo=redacted&targetProvider=MANTECA'
+        )
+        expect(replayMask({ name: url } as CapturedNetworkRequest).name).not.toContain('private')
+    })
     it.each(claimUrls)('drops the #p= fragment and keeps c, v and i: %s', (url) => {
         const stripped = stripLinkSecrets(url)
         expect(stripped).not.toContain(SECRET)

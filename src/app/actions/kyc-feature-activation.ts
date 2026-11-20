@@ -3,6 +3,8 @@ import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import type { paths } from '@/types/api.generated'
 import { serverFetch } from '@/utils/api-fetch'
 import { kycClientHeaders } from '@/utils/kyc-client-headers'
+import { featureReverificationConflict } from '@/utils/kyc-reverification'
+import type { FeatureReverificationConflict } from './types/kyc-reverification.types'
 
 type Activation = paths['/users/kyc/features/{feature}/activate']['post']
 export type KycActivationFeature = Activation['parameters']['path']['feature']
@@ -11,6 +13,7 @@ type Conflict = Activation['responses'][409]['content']['application/json']
 export type KycFeatureActivationResult =
     | { kind: 'report'; report: KycActivationReport }
     | ({ kind: 'conflict' } & Conflict)
+    | ({ kind: 'conflict' } & FeatureReverificationConflict)
     | { kind: 'failed' }
 
 const FEATURES: ReadonlySet<string> = new Set<KycActivationFeature>(['qr', 'bank', 'local', 'card', 'pix'])
@@ -41,6 +44,8 @@ export async function activateKycFeature(feature: KycActivationFeature): Promise
         })
         status = response.status
         const body = await response.json()
+        const reverification = featureReverificationConflict(status, body)
+        if (reverification) return { kind: 'conflict', ...reverification }
         if (!body || typeof body !== 'object' || Array.isArray(body)) {
             if (!(status >= 400 && status < 500))
                 Sentry.captureException(new Error('Invalid KYC activation response'), {

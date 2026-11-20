@@ -265,7 +265,6 @@ jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
         handleModalClose: jest.fn(),
         modalPhase: null,
         handleAcceptTerms: jest.fn(),
-        handleSkipTerms: jest.fn(),
         completeFlow: jest.fn(),
         tosError: null,
         isLoadingTos: false,
@@ -863,7 +862,7 @@ describe('GROUP 1: Loading & KYC Gate', () => {
 
         renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
 
-        expect(screen.getByText('QR payments are not available')).toBeInTheDocument()
+        expect(screen.getByText('QR payments unavailable')).toBeInTheDocument()
         expect(screen.getByText('Contact support to continue.')).toBeInTheDocument()
     })
 
@@ -898,7 +897,7 @@ describe('GROUP 1: Loading & KYC Gate', () => {
 
         renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
 
-        expect(screen.getByText('QR payments are not available')).toBeInTheDocument()
+        expect(screen.getByText('QR payments unavailable')).toBeInTheDocument()
         expect(screen.queryByText('Upload document')).not.toBeInTheDocument()
     })
 
@@ -2244,7 +2243,7 @@ describe('GROUP 5: Error States', () => {
 
         // Still inside the cooldown: no replacement quote yet, Pay is blocked.
         expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
-        expect(screen.getByTestId('button')).toBeDisabled()
+        expect(screen.getByRole('button', { name: 'Pay' })).toBeDisabled()
 
         await act(async () => {
             await jest.advanceTimersByTimeAsync(3_100)

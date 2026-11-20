@@ -13,7 +13,10 @@ import { validateNumericResponse } from '@/lib/numeric-response'
  */
 
 import { apiErrorFromResponse } from '@/services/api-error'
+import type { FeatureReverificationConflict } from '@/app/actions/types/kyc-reverification.types'
 import { apiFetch } from '@/utils/api-fetch'
+import { kycClientHeaders } from '@/utils/kyc-client-headers'
+import { featureReverificationConflict } from '@/utils/kyc-reverification'
 import type { ClaimableCorridor, DepositAccount, UnavailableCorridor } from '@/features/deposit-accounts/types'
 import type { paths } from '@/types/api.generated'
 
@@ -75,6 +78,13 @@ export async function fetchDepositAccounts(): Promise<DepositAccountsSnapshot> {
  */
 export type DepositClaimResult = ClaimResponse
 
+export class DepositClaimReverificationError extends Error {
+    constructor(readonly reverification: FeatureReverificationConflict) {
+        super(reverification.userMessage)
+        this.name = 'DepositClaimReverificationError'
+    }
+}
+
 /**
  * Claim the account for one corridor. Idempotent backend-side: claiming twice
  * returns the same account rather than opening a second one, and a corridor
@@ -84,8 +94,17 @@ export type DepositClaimResult = ClaimResponse
 export async function claimDepositAccount(method: string): Promise<DepositClaimResult> {
     const response = await apiFetch('/users/deposit-accounts', {
         method: 'POST',
+        headers: kycClientHeaders(),
         body: JSON.stringify({ method }),
     })
+    if (response.status === 409) {
+        const body = await response
+            .clone()
+            .json()
+            .catch(() => null)
+        const reverification = featureReverificationConflict(response.status, body)
+        if (reverification) throw new DepositClaimReverificationError(reverification)
+    }
     if (!response.ok) throw await apiErrorFromResponse(response, 'Could not open the account')
     return validateNumericResponse(await response.json()) as ClaimResponse
 }

@@ -41,14 +41,14 @@ beforeEach(() => {
 })
 
 describe('QrPayBlockedView — failed scan', () => {
-    it('a refusal for identity starts the verification for the scanned country', () => {
+    it('a refusal for identity starts QR pool verification without a target country', () => {
         const { container } = renderWithIntl(<QrPayBlockedView />)
 
         expect(screen.getByText(en.qrPay.errors.kycRequired)).toBeInTheDocument()
         expect(container.querySelector('[data-mascot-pose="sad"]')).toHaveAttribute('aria-hidden', 'true')
         fireEvent.click(screen.getByRole('button', { name: en.qrPay.kyc.unlockCta }))
 
-        expect(mockStartVerification).toHaveBeenCalledWith('BR')
+        expect(mockStartVerification).toHaveBeenCalledWith()
         // Go back stays, as the second choice
         fireEvent.click(screen.getByRole('button', { name: en.qrPay.maintenance.goBack }))
         expect(mockOnBack).toHaveBeenCalled()

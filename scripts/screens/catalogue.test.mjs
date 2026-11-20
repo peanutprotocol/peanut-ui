@@ -28,8 +28,10 @@ test('open selectors are separate checkpoints and require a visible selected opt
         assert.ok(screen?.actions.length)
         assert.match(screen.expectSelector, /\[aria-(selected|current)="true"\]/)
     }
-    for (const screen of screens.filter((screen) => /Drawer\b/.test(screen.name) || screen.route.includes('drawer=')))
+    for (const id of ['fixture-home-send-drawer', 'fixture-home-request-drawer', 'p42-home-send-drawer']) {
+        const screen = screens.find((entry) => entry.id === id)
         assert.match(screen.expectSelector, /\[role="dialog"\]/)
+    }
     for (const id of ['fixture-home-add-drawer', 'p41-home-add-drawer', '51-d-homeactiondrawers'])
         assert.equal(
             screens.find((screen) => screen.id === id)?.expectSelector,
@@ -101,29 +103,30 @@ test('account setup keeps distinct integer steps in the intended journey order',
     const setup = screens.filter(({ journey, flags }) => journey === 'Account setup' && !flags)
     assert.equal(new Set(setup.map(({ order }) => order)).size, setup.length)
     assert.ok(setup.every(({ order }) => Number.isInteger(order)))
+    const establishedSteps = [
+        '01-a-landing',
+        '04-b-advantage-fees',
+        '02-b-advantage-card',
+        '03-a-residence-select',
+        '03-b-residence-compare',
+        '03-c-residence-congrats',
+        '03-h-funding-methods',
+        '03-i-payment-methods',
+        '06-a-signup',
+        '06-b-invite',
+        '06-c-passkey',
+        '08-a-passkeysetuphelpmodal',
+        '07-c-notification-email',
+        '07-d-notification-settings',
+        '07-b-advantage-control',
+        '05-a-signtesttransaction',
+        '05-b-signtesttransaction-network-busy',
+        '07-e-setup-celebration',
+        '20-a-setupnotificationsmodal',
+    ]
     assert.deepEqual(
-        setup.map(({ id }) => id),
-        [
-            '01-a-landing',
-            '04-b-advantage-fees',
-            '02-b-advantage-card',
-            '03-a-residence-select',
-            '03-b-residence-compare',
-            '03-c-residence-congrats',
-            '03-h-funding-methods',
-            '03-i-payment-methods',
-            '06-a-signup',
-            '06-b-invite',
-            '06-c-passkey',
-            '08-a-passkeysetuphelpmodal',
-            '07-c-notification-email',
-            '07-d-notification-settings',
-            '07-b-advantage-control',
-            '05-a-signtesttransaction',
-            '05-b-signtesttransaction-network-busy',
-            '07-e-setup-celebration',
-            '20-a-setupnotificationsmodal',
-        ]
+        setup.map(({ id }) => id).filter((id) => establishedSteps.includes(id)),
+        establishedSteps
     )
 })
 

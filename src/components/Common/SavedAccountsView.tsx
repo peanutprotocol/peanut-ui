@@ -178,6 +178,7 @@ export function SavedAccountsMapping({
                             )
                         }
                         position="solo"
+                        data-testid={`saved-account-${account.id}`}
                         onClick={() => onItemClick(account, path)}
                         chevron={!onItemEdit}
                         trailing={

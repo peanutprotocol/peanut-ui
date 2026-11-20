@@ -3,7 +3,7 @@ import posthog from 'posthog-js'
 import { renderWithIntl } from '@/test-utils/intl'
 import { KycControlScreenProvider, PaperworkVerificationTrackingProvider } from '../analytics'
 import { StepsScreen } from '../components/StepsScreen'
-import { SavedScreen, ReviewScreen, FeatureReadyScreen, ProofOfAddressScreen } from '../components/StatusScreens'
+import { ReviewScreen, FeatureReadyScreen, ProofOfAddressScreen } from '../components/StatusScreens'
 import { identityRejection } from '@/utils/identity-rejection.utils'
 import { LoadFailed, VerificationOutage, VerifyLoading } from '../components/LoadScreens'
 import { IdentityCheckIntroScreen } from '../components/IdentityCheckIntroScreen'
@@ -11,6 +11,10 @@ import { VerifyHeroLayout, VerifyQuestionLayout } from '../components/VerifyLayo
 import { KycFeatureActivationStatus } from '../KycFeatureActivationStatus'
 import { FeatureAction } from '../FeatureAction'
 
+jest.mock('@/components/Setup/components/SetupLanguageSwitcher', () => ({ SetupLanguageSwitcher: () => null }))
+jest.mock('@/hooks/useResidenceRestrictions', () => ({
+    useResidenceRestrictions: () => ({ banking: false, card: false }),
+}))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn(), setPersonProperties: jest.fn() } }))
 jest.mock('@/components/Global/PeanutMascot', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/utils/confetti', () => ({ confettiPresets: { success: jest.fn() } }))
@@ -88,7 +92,6 @@ afterEach(() => {
 })
 
 it.each([
-    ['intro', 'steps-overview', 'verify-steps-continue', 'continue'],
     ['review', 'id-checking', 'verify-review-home', 'home'],
     ['verified', 'id-confirmed', 'verify-verified-payments', 'set_up_payments'],
 ] as const)('tracks %s timeline buttons once each with the provider context', (phase, id, testId, control) => {
@@ -142,12 +145,6 @@ it.each(['hero', 'question'] as const)('tracks the %s layout chrome with its scr
     expect(controls()[0]).toMatchObject({ flow: 'kyc_status' })
 })
 
-it('tracks saved answers Continue', () => {
-    renderWithIntl(inFlow(<SavedScreen onContinue={jest.fn()} />))
-    fireEvent.click(screen.getByTestId('verify-saved-continue'))
-    expectControls('answers-saved', [['continue', 'tap']])
-})
-
 it('tracks failed review retry and Home without capturing error text', () => {
     renderWithIntl(
         inFlow(
@@ -175,8 +172,8 @@ it('tracks the add-feature ready action', () => {
 })
 
 it('sends nothing from /verify-only screens rendered outside the flow', () => {
-    renderWithIntl(<SavedScreen onContinue={jest.fn()} />)
-    fireEvent.click(screen.getByTestId('verify-saved-continue'))
+    renderWithIntl(<ReviewScreen rejection={identityRejection({ retryable: true })} onHome={jest.fn()} />)
+    fireEvent.click(screen.getByTestId('verify-review-home'))
     expect(controls()).toEqual([])
 })
 
@@ -223,7 +220,7 @@ it('tracks the legacy identity handoff and its provider sheet, not the hardware 
     renderWithIntl(
         <IdentityCheckIntroScreen visible hasQuestions providerId="bridge" onBack={jest.fn()} onContinue={jest.fn()} />
     )
-    fireEvent.click(screen.getByTestId('verify-back'))
+    fireEvent.click(screen.getByRole('button', { name: 'Remind me later' }))
     fireEvent.click(screen.getByTestId('verify-steps-continue'))
     fireEvent.click(screen.getByText('provider-open'))
     fireEvent.click(screen.getByText('provider-close'))
@@ -231,7 +228,7 @@ it('tracks the legacy identity handoff and its provider sheet, not the hardware 
     fireEvent.click(screen.getByText('provider-privacy'))
     mockBack()
     expectControls('id-handoff', [
-        ['back', 'tap'],
+        ['later', 'tap'],
         ['continue', 'tap'],
         ['provider_help', 'open'],
         ['provider_help', 'dismiss'],

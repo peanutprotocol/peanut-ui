@@ -2,7 +2,7 @@
 
 import { NotificationsSwitchesScreen } from '@/components/Setup/redesign/Notifications/NotificationsSwitchesScreen'
 import { FinalStep } from '@/components/Setup/redesign/FinalConfirm/FinalStep'
-import { VerifyStartScreen } from '@/components/Setup/redesign/VerifyStart/VerifyStartScreen'
+import { VerifyStartIntro } from '@/components/Setup/redesign/VerifyStart/VerifyStartIntro'
 import { TestBuildRibbonView } from '@/components/Global/TestBuildRibbon'
 import { API_CONTRACT_STATES } from './api-contract-states'
 import AmountInput from '@/components/Global/AmountInput'
@@ -318,13 +318,6 @@ function CompletedCelebration() {
     React.useLayoutEffect(() => setSignupCompleted(true), [setSignupCompleted])
     // FinalStep shows the final confirm until sign-up completes, and that screen sends a signed-in user Home
     return signupCompleted ? <FinalStep /> : null
-}
-
-/** The Verify start after a completed default sign-up. */
-function CompletedVerifyStart() {
-    const { setSignupCompleted } = useSetupFlowContext()
-    React.useLayoutEffect(() => setSignupCompleted(true), [setSignupCompleted])
-    return <VerifyStartScreen />
 }
 
 const asyncNoop = async () => {}
@@ -824,10 +817,6 @@ export const SURFACES: Record<string, Surface> = {
     },
     '05-b-signtesttransaction-network-busy': {
         ...SURFACE_META['05-b-signtesttransaction-network-busy'],
-        render: () => (
-            // the busy state needs a failing test transaction, which the harness cannot fake: shows 11's default
-            <RedesignStepSurface screenId="advantage-control" finishRoute />
-        ),
     },
     '06-b-invite': {
         ...SURFACE_META['06-b-invite'],
@@ -893,11 +882,8 @@ export const SURFACES: Record<string, Surface> = {
     },
     '07-f-setup-verify-start': {
         ...SURFACE_META['07-f-setup-verify-start'],
-        render: () => (
-            <SetupScreen screenId="advantage-control" showProgress={false}>
-                <CompletedVerifyStart />
-            </SetupScreen>
-        ),
+        // /verify's intro for a new user: the questions, then the ID photo
+        render: () => <VerifyStartIntro controlScreen="steps-overview" questions onVerify={noop} onLater={noop} />,
     },
     '07-b-advantage-control': {
         ...SURFACE_META['07-b-advantage-control'],
@@ -946,9 +932,7 @@ export const SURFACES: Record<string, Surface> = {
     },
     '11-a-earlyusermodal': {
         // self-opens off user.showEarlyUserModal — the early-user fixture stubs it true
-        name: 'EarlyUserDrawer',
-        path: 'Global/EarlyUserDrawer/index.tsx',
-        shotFixture: 'early-user',
+        ...SURFACE_META['11-a-earlyusermodal'],
         render: () => (
             <EarlyUserDrawer
                 presentation="drawer"
@@ -960,8 +944,7 @@ export const SURFACES: Record<string, Surface> = {
         ),
     },
     '12-a-eastereggmodal': {
-        name: 'EasterEggDrawer',
-        path: 'Global/EasterEggDrawer/index.tsx',
+        ...SURFACE_META['12-a-eastereggmodal'],
         render: () => <EasterEggDrawer visible onClose={noop} countryCode="AQ" />,
     },
     '13-a-guestloginmodal': {
@@ -980,8 +963,7 @@ export const SURFACES: Record<string, Surface> = {
         ),
     },
     '15-a-invitefriendsmodal': {
-        name: 'InviteFriendsModal',
-        path: 'Global/InviteFriendsModal/index.tsx',
+        ...SURFACE_META['15-a-invitefriendsmodal'],
         render: () => <InviteFriendsModal visible onClose={noop} username="demo" />,
     },
     '17-a-nomorejailmodal': {
@@ -1163,8 +1145,7 @@ export const SURFACES: Record<string, Surface> = {
         ),
     },
     '38-c-howtodepositmodal': {
-        name: 'HowToDepositDrawer',
-        path: 'AddMoney/components/HowToDepositDrawer.tsx',
+        ...SURFACE_META['38-c-howtodepositmodal'],
         render: () => <HowToDepositDrawer visible onClose={noop} />,
     },
     '39-c-onrampconfirmationmodal': {
@@ -1172,13 +1153,11 @@ export const SURFACES: Record<string, Surface> = {
         render: () => <OnrampConfirmationModal visible onClose={noop} onConfirm={noop} />,
     },
     '40-c-supportednetworksmodal': {
-        name: 'SupportedNetworksDrawer',
-        path: 'AddMoney/components/SupportedNetworksDrawer.tsx',
+        ...SURFACE_META['40-c-supportednetworksmodal'],
         render: () => <SupportedNetworksDrawer visible onClose={noop} />,
     },
     '41-c-migrationdownloadmodal': {
-        name: 'MigrationDownloadModal',
-        path: 'Migration/MigrationDownloadModal.tsx',
+        ...SURFACE_META['41-c-migrationdownloadmodal'],
         render: () => (
             <MigrationDownloadModal
                 presentation="modal"
@@ -1247,8 +1226,7 @@ export const SURFACES: Record<string, Surface> = {
         ),
     },
     '48-c-balancewarningmodal': {
-        name: 'BalanceWarningDrawer',
-        path: 'Global/BalanceWarningDrawer/index.tsx',
+        ...SURFACE_META['48-c-balancewarningmodal'],
         render: () => <BalanceWarningDrawer visible onCloseAction={noop} />,
     },
     '50-d-transactiondetailsdrawer': {
@@ -1316,8 +1294,7 @@ export const SURFACES: Record<string, Surface> = {
         modalsContextFlag: 'support',
     },
     '56-d-camerapermissionmodal': {
-        name: 'CameraPermissionDrawer',
-        path: 'Global/QRScanner/CameraPermissionDrawer.tsx',
+        ...SURFACE_META['56-d-camerapermissionmodal'],
         render: () => <CameraPermissionDrawer visible onRetry={noop} onClose={noop} />,
     },
     '57-d-raincooldownintromodal': {
@@ -1719,23 +1696,19 @@ export const SURFACES: Record<string, Surface> = {
     '70-d-activationctas-outbound': {
         // the first-payment chooser opens on the row tap — the shot spec (or a
         // human) clicks the row; needs a fixture granting card access
-        name: 'First-payment chooser',
-        path: 'Home/FirstPaymentChooser.tsx',
+        ...SURFACE_META['70-d-activationctas-outbound'],
         render: () => <ActivationCTAs onboarding={FUNDED_CARD_ONBOARDING} />,
     },
     '66-d-backupfaqlosephone': {
-        name: 'Backup FAQ — lose phone',
-        path: 'Profile/BackupFaqDrawers.tsx',
+        ...SURFACE_META['66-d-backupfaqlosephone'],
         render: () => <BackupFaqDrawers active="lose-phone" onClose={noop} platform="ios" />,
     },
     '67-d-backupfaqchangephone': {
-        name: 'Backup FAQ — change phone',
-        path: 'Profile/BackupFaqDrawers.tsx',
+        ...SURFACE_META['67-d-backupfaqchangephone'],
         render: () => <BackupFaqDrawers active="change-phone" onClose={noop} platform="ios" />,
     },
     '68-d-backupfaqexportkeys': {
-        name: 'Backup FAQ — export keys',
-        path: 'Profile/BackupFaqDrawers.tsx',
+        ...SURFACE_META['68-d-backupfaqexportkeys'],
         render: () => <BackupFaqDrawers active="export-keys" onClose={noop} platform="ios" />,
     },
     // The redesigned sign-up (TASK-25016), one surface per step and seed. Fixtures `setup-redesign-<screen>--<state>`
@@ -1900,6 +1873,15 @@ export const SURFACES: Record<string, Surface> = {
             />
         ),
     },
+    'setup-redesign-email-typo': {
+        ...SETUP_REDESIGN_SURFACES['setup-redesign-email-typo'],
+        render: () => (
+            <RedesignStepSurface
+                screenId="notification-email"
+                seed={{ username: 'luckyotter', notificationEmail: 'maria@gmial.com' }}
+            />
+        ),
+    },
     'setup-redesign-notifications': {
         ...SETUP_REDESIGN_SURFACES['setup-redesign-notifications'],
         render: () => <RedesignStepSurface screenId="notification-permission" />,
@@ -1940,4 +1922,4 @@ export const OPTION_SURFACES: Record<string, { name: string; render: () => React
     'opt-passkey-d': { name: 'PasskeySetupHelpDrawer — D', render: () => <PasskeyHelpD /> },
 }
 
-export const SURFACE_IDS = Object.keys(SURFACE_META).sort()
+export { SURFACE_IDS } from './list'

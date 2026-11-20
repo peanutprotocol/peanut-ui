@@ -72,7 +72,7 @@ it('binds each answer PUT to the account that supplied the answers', async () =>
         expect.objectContaining({
             method: 'PUT',
             body: JSON.stringify({ values: { cardPurpose: 'travel' }, expectedUserId: 'user-a' }),
-            headers: { 'x-kyc-client': '2' },
+            headers: { 'x-kyc-client': '3' },
             redactTelemetry: true,
         })
     )

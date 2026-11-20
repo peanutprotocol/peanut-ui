@@ -26,6 +26,8 @@ export function HomePage() {
         address,
         username,
         isActivated,
+        onboarding,
+        isIdentityVerified,
         isOnboardingComplete,
         spendableBalance,
         isFetchingSpendableBalance,
@@ -46,6 +48,8 @@ export function HomePage() {
                 <HomeTopNav showRewards={isActivated} />
                 <BalanceSection
                     addMoneyEntry={addMoney.entry}
+                    isVerified={isIdentityVerified}
+                    hasFundedBefore={onboarding.addMoneyDone}
                     balance={spendableBalance}
                     isFetching={isFetchingSpendableBalance}
                     isStale={isSpendableBalanceStale}

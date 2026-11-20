@@ -119,3 +119,41 @@ it('a document-required refresh closes the SDK and requests the ID step', async 
     expect(result.current.session).toBeNull()
     expect(result.current.documentRequired).toBe(true)
 })
+
+it('rejects a token for a different candidate on both first open and refresh', async () => {
+    start
+        .mockResolvedValueOnce(session('different'))
+        .mockResolvedValueOnce(session('candidate'))
+        .mockResolvedValueOnce(session('different'))
+    const { result } = renderHook(() => usePaperworkVerificationIdentity({ candidateAttemptId: 'candidate' }))
+    await act(async () => {
+        await expect(result.current.open('candidate')).resolves.toEqual({ kind: 'failed' })
+    })
+    expect(result.current.session).toBeNull()
+    await act(async () => {
+        await result.current.open('candidate')
+    })
+    await act(async () => {
+        await expect(result.current.refreshToken()).rejects.toThrow('Failed to refresh verification token')
+    })
+    expect(result.current.session?.attemptId).toBe('candidate')
+    expect(start.mock.calls.map(([attemptId]) => attemptId)).toEqual(['candidate', 'candidate', 'candidate'])
+})
+
+it('drops a candidate token response after the initiating account changes', async () => {
+    let resolve!: (value: ReturnType<typeof session>) => void
+    start.mockReturnValue(
+        new Promise((done) => {
+            resolve = done
+        })
+    )
+    let owningAccount = true
+    const { result } = renderHook(() => usePaperworkVerificationIdentity({ candidateAttemptId: 'candidate' }))
+    await act(async () => {
+        const opening = result.current.open('candidate', undefined, () => owningAccount)
+        owningAccount = false
+        resolve(session('candidate'))
+        await expect(opening).resolves.toEqual({ kind: 'failed' })
+    })
+    expect(result.current.session).toBeNull()
+})

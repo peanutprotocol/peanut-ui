@@ -15,9 +15,10 @@ export const CELEBRATION_REDIRECT_MS = 4500
  * dev's celebration behaviour (`Views/Success.tsx`): once per mount, also under Strict Mode, a success haptic,
  * `celebration:open` and dev's confetti; after 4.5 s, once, demo mode opens /home and everyone else goes where
  * `handleRedirect` sends a new account (an explicit `redirect_uri`, such as a claim link, first). `hold` stops the
- * wait while the screen asks the person where to go (the verify start).
+ * wait while the screen asks the person where to go (the verify start). `quiet` (after Confirm later) skips the
+ * haptic, event and confetti and leaves at once.
  */
-export function useCelebrationRedirect(enabled: boolean, hold = false) {
+export function useCelebrationRedirect(enabled: boolean, hold = false, quiet = false) {
     const router = useRouter()
     const { handleRedirect } = useAccountSetup()
     const { track } = useSignupControl()
@@ -27,22 +28,25 @@ export function useCelebrationRedirect(enabled: boolean, hold = false) {
     const redirecting = useRef(false)
 
     useEffect(() => {
-        if (!enabled || celebrated.current) return
+        if (!enabled || quiet || celebrated.current) return
         celebrated.current = true
         notifyHaptic('success')
         track('celebration', 'open')
         confettiPresets.success()
-    }, [enabled, track])
+    }, [enabled, quiet, track])
 
     useEffect(() => {
         if (!enabled || hold) return
-        const timer = setTimeout(() => {
-            if (redirecting.current) return
-            redirecting.current = true
-            // Demo always opens the walkthrough home, even when sign-up came from a deep link.
-            if (isDemoMode()) router.replace('/home')
-            else redirect.current({ isNewAccount: true })
-        }, CELEBRATION_REDIRECT_MS)
+        const timer = setTimeout(
+            () => {
+                if (redirecting.current) return
+                redirecting.current = true
+                // Demo always opens the walkthrough home, even when sign-up came from a deep link.
+                if (isDemoMode()) router.replace('/home')
+                else redirect.current({ isNewAccount: true })
+            },
+            quiet ? 0 : CELEBRATION_REDIRECT_MS
+        )
         return () => clearTimeout(timer)
-    }, [enabled, hold, router])
+    }, [enabled, hold, quiet, router])
 }

@@ -99,7 +99,7 @@ jest.mock('@zerodev/passkey-validator', () => ({
 }))
 jest.mock('@/services/invites', () => ({ invitesApi: { acceptInvite: jest.fn() } }))
 jest.mock('@/services/invite-acquisition', () => ({ settleAcceptedInviteAcquisition: jest.fn() }))
-jest.mock('@/app/shhhhh/shhhhh-acquisition', () => ({ settleShhhhhCampaignContinuation: jest.fn() }))
+jest.mock('@/features/card/card-campaign-acquisition', () => ({ settleCardCampaignContinuation: jest.fn() }))
 jest.mock('@/components/Invites/badge-campaign-context', () => ({ getPendingBadgeCampaigns: () => [] }))
 jest.mock('@/services/badge-campaigns', () => ({
     claimAndSettlePendingBadgeCampaigns: jest.fn(),
@@ -166,6 +166,21 @@ it('completes login when PostHog capture throws', async () => {
     } finally {
         capture.mockReset()
     }
+})
+
+it('scopes the passkey sheet to the signed-in user unless told not to', async () => {
+    mockToWebAuthnKey.mockResolvedValue({ authenticatorId: 'k' })
+    mockHydrateLoginSession.mockResolvedValue({ user: { userId: 'u1' } })
+    const { result } = renderHook(() => useZeroDev())
+    await act(async () => {
+        await result.current.handleLogin()
+    })
+    expect(mockToWebAuthnKey.mock.calls[0][0].passkeyServerHeaders).toEqual({ 'x-username': 'alice' })
+    // the Email step's "Log in to that account": the email belongs to an older account, not the one loaded
+    await act(async () => {
+        await result.current.handleLogin({ scopeToUser: false })
+    })
+    expect(mockToWebAuthnKey.mock.calls[1][0].passkeyServerHeaders).toEqual({})
 })
 
 describe('useZeroDev handleLogin — passkey-server failures keep the session', () => {
@@ -548,7 +563,7 @@ it('waits for fresh session hydration before publishing the verified wallet key 
     )
     mockToWebAuthnKey.mockResolvedValue({ authenticatorId: 'verified' })
     const { result } = renderHook(() => useZeroDev())
-    let pending!: Promise<void>
+    let pending!: Promise<unknown>
     await act(async () => {
         pending = result.current.handleLogin()
     })
