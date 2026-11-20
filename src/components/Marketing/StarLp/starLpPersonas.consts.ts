@@ -8,11 +8,11 @@ import type { StarLpEarner, StarLpPersona } from './starLp.types'
  */
 export const STAR_LP_PERSONA = {
     /** The Peanut user: receives, requests and sends. */
-    main: { name: 'Fulano de Tal', short: 'Fulano', initials: 'FT', username: 'fulano' },
+    main: { name: 'Fulano de Tal', short: 'Fulano', username: 'fulano' },
     /** The other side: payer, client or send recipient. */
-    payer: { name: 'Mengano Gómez', short: 'Mengano', initials: 'MG', username: 'mengano' },
+    payer: { name: 'Mengano Gómez', short: 'Mengano', username: 'mengano' },
     /** A second friend in a group chat. Never shown with a link. */
-    friend: { name: 'Zutano', short: 'Zutano', initials: 'Z', username: 'zutano' },
+    friend: { name: 'Zutano', short: 'Zutano', username: 'zutano' },
 } as const satisfies Record<string, StarLpPersona>
 
 /**

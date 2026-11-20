@@ -127,11 +127,12 @@ export function ReceiptCardFan({ reduced }: { reduced: boolean }) {
                     </div>
                 </div>
             </div>
+            {/* Seat on the receipt's top edge at the left corner, clear of the text and the "Sent" chip. */}
             <Image
                 ref={mascot}
                 src={PEANUT_SITTING}
                 alt=""
-                className="absolute top-[65px] left-[103px] w-[110px] origin-[50%_80%]"
+                className="absolute top-[107px] left-[6px] w-[110px] origin-[50%_80%]"
             />
         </>
     )

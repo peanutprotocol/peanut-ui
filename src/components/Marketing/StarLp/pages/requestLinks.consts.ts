@@ -21,7 +21,6 @@ export const REQUEST_LINKS_PERSONA_CARDS: readonly StarLpPersonaCard[] = [
 export const REQUEST_LINKS_STORY = {
     payer: STAR_LP_PERSONA.payer.short,
     requester: STAR_LP_PERSONA.main.name,
-    initials: STAR_LP_PERSONA.main.initials,
     /** The handle the app shows on the request page and in Activity captures. */
     username: STAR_LP_PERSONA.main.username,
     payerUsername: STAR_LP_PERSONA.payer.username,

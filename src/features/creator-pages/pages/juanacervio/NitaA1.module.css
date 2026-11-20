@@ -111,9 +111,11 @@
     width: 0.75rem;
     height: 0.75rem;
 }
+/* 9px down: the seat rests on the card's top edge and the shoes hang over the card; the doodles stay put. */
 .lead > div > img:nth-child(3) {
     width: 100%;
     height: auto;
+    translate: 0 0.5625rem;
 }
 
 /* Under the post: what Peanut added, not a bank, the pointer down. */
