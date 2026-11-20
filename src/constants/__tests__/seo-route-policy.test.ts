@@ -88,12 +88,16 @@ describe('SEO route policy', () => {
         expect(receivesNoindexHeader(route)).toBe(false)
     })
 
-    it.each(['/home', '/home/activity', '/invite?code=abc&lid=campaign', '/api/og?type=send&username=alice&amount=10'])(
-        'renders a noindex header for %s through Next route matching',
-        async (route) => {
-            await expect(renderedRobotsHeader(route)).resolves.toBe('noindex, nofollow')
-        }
-    )
+    it.each([
+        '/home',
+        '/home/activity',
+        '/invite?code=abc&lid=campaign',
+        '/api/og?type=send&username=alice&amount=10',
+        '/go/juanacervio',
+        '/go/juanacervio/ig?utm_source=x',
+    ])('renders a noindex header for %s through Next route matching', async (route) => {
+        await expect(renderedRobotsHeader(route)).resolves.toBe('noindex, nofollow')
+    })
 
     it.each([
         '/lp',
