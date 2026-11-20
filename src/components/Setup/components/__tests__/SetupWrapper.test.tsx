@@ -451,7 +451,9 @@ describe('SetupWrapper transitions', () => {
         const shell = container.firstElementChild
         const hero = screen.getByTestId('mascot').closest('.setup-hero-background')
         const panel = screen.getByText('First step').closest('.bg-white')
-        expect(shell).toHaveClass('bg-background-setup-hero')
+        // a white ground under the white panel: no blue line at a fractional bottom edge
+        expect(shell).toHaveClass('bg-white')
+        expect(shell).not.toHaveClass('bg-background-setup-hero')
 
         rerender(
             <SetupWrapper
@@ -467,7 +469,6 @@ describe('SetupWrapper transitions', () => {
         )
 
         expect(container.firstElementChild).toBe(shell)
-        expect(shell).not.toHaveClass('bg-background-setup-hero')
         // One hero height per viewport on every step (.setup-hero-height); desktop keeps the full-height side hero.
         const nextHero = screen.getByTestId('mascot').closest('.setup-hero-background')
         expect(nextHero).toHaveClass('setup-hero-height', 'shrink-0', 'md:h-dvh')

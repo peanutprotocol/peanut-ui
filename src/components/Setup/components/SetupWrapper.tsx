@@ -478,10 +478,9 @@ export const SetupWrapper = memo(function SetupWrapper({
     return (
         <div
             className={twMerge(
+                // White, not the hero blue, on Welcome too: the rising first panel sits on its
+                // white slide, and a blue ground showed as a sub-pixel line under the panel.
                 'flex min-h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] flex-col overflow-x-hidden overflow-y-auto bg-white',
-                // The first panel rises from below the viewport. Fill the exposed
-                // space with the same blue as the hero, not the page beige.
-                screenId === 'landing' && 'bg-background-setup-hero',
                 fullScreen && 'bg-background-default'
             )}
         >

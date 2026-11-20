@@ -20,20 +20,28 @@
 import { expect, test, type Page } from '@playwright/test'
 import { KEEP_WEB_COOKIE, KEEP_WEB_TOKEN } from '../../src/constants/migration.consts'
 
+// saveToCookie stores JSON, and getFromCookie parses it: a bare token reads as no cookie, which
+// left the store-download landing up (its "Sign up on web" test link matched a loose "Sign up").
+const KEEP_WEB_COOKIE_VALUE = encodeURIComponent(JSON.stringify(KEEP_WEB_TOKEN))
+
 type Box = { x: number; y: number }
 type Sample = { switchers: Box[]; back: Box | null; heroes: string[] }
 const heroPart = (sample: Sample, index: 0 | 1 | 2 | 3) => Number(sample.heroes[0].split(',')[index])
 
-/** Samples the switcher(s) and the back button on every frame for `ms`. */
+/**
+ * Samples the hero, the switcher(s) and the back button on every frame from before `act` until
+ * `ms` after it resolves. A tap can wait for actionability (the no-backend connectivity toast
+ * can sit over the button for a moment), so the window starts counting when the tap lands.
+ */
 async function sampleDuring(page: Page, ms: number, act: () => Promise<void>): Promise<Sample[]> {
-    await page.evaluate((duration) => {
-        const w = window as unknown as { __topBarSamples: Sample[] }
+    await page.evaluate(() => {
+        const w = window as unknown as { __topBarSamples: Sample[]; __topBarStop: boolean }
         w.__topBarSamples = []
+        w.__topBarStop = false
         const box = (el: Element) => {
             const r = el.getBoundingClientRect()
             return { x: Math.round(r.x), y: Math.round(r.y) }
         }
-        const end = performance.now() + duration
         const tick = () => {
             const switchers = Array.from(document.querySelectorAll('button')).filter(
                 (button) => /^EN\b/.test(button.textContent?.trim() ?? '') && button.getBoundingClientRect().width > 0
@@ -44,13 +52,17 @@ async function sampleDuring(page: Page, ms: number, act: () => Promise<void>): P
                 return [r.x, r.y, r.width, r.height].map(Math.round).join(',')
             })
             w.__topBarSamples.push({ switchers: switchers.map(box), back: back ? box(back) : null, heroes })
-            if (performance.now() < end) requestAnimationFrame(tick)
+            if (!w.__topBarStop) requestAnimationFrame(tick)
         }
         requestAnimationFrame(tick)
-    }, ms)
+    })
     await act()
     await page.waitForTimeout(ms + 100)
-    return page.evaluate(() => (window as unknown as { __topBarSamples: Sample[] }).__topBarSamples)
+    return page.evaluate(() => {
+        const w = window as unknown as { __topBarSamples: Sample[]; __topBarStop: boolean }
+        w.__topBarStop = true
+        return w.__topBarSamples
+    })
 }
 
 // Real phone viewports once the browser bars take their share (Safari/Chrome), plus full-height ones.
@@ -98,9 +110,9 @@ for (const viewport of VIEWPORTS) {
                 : route.abort()
         )
         // web signup is app-only; the support keep-web cookie reopens it in this browser
-        await page.context().addCookies([{ name: KEEP_WEB_COOKIE, value: KEEP_WEB_TOKEN, url: baseURL! }])
+        await page.context().addCookies([{ name: KEEP_WEB_COOKIE, value: KEEP_WEB_COOKIE_VALUE, url: baseURL! }])
         await page.goto('/setup')
-        const signUp = page.getByRole('button', { name: 'Sign up' })
+        const signUp = page.getByRole('button', { name: 'Sign up', exact: true })
         await expect(signUp).toBeVisible({ timeout: 60_000 })
         await page.waitForTimeout(1500)
 
@@ -170,6 +182,7 @@ const STEP_SURFACES = [
 for (const viewport of VIEWPORTS) {
     test(`every step after Welcome keeps the board's hero, and every step a reachable primary, at ${viewport.width}x${viewport.height}`, async ({
         page,
+        baseURL,
     }) => {
         await page.setViewportSize(viewport)
         await page.addInitScript(() => {
@@ -207,12 +220,17 @@ for (const viewport of VIEWPORTS) {
         const [hero] = [...heroes]
         expect(Math.abs(hero - boardHero(viewport))).toBeLessThanOrEqual(boardHero(viewport) * 0.05)
 
-        // Welcome: the taller headline hero, with Sign up still fully on screen and tappable.
-        await page.goto('/dev/surfaces?s=01-a-landing&__fixture=profile-edit')
-        const signUp = page.locator('[data-setup-footer] button').first()
+        // Welcome, as /setup renders it with the support keep-web cookie (the surfaces gallery shows
+        // the web's store-download landing instead): the taller headline hero, with Sign up fully on
+        // screen and tappable.
+        await page.context().addCookies([{ name: KEEP_WEB_COOKIE, value: KEEP_WEB_COOKIE_VALUE, url: baseURL! }])
+        await page.goto('/setup')
+        const signUp = page.getByRole('button', { name: 'Sign up', exact: true })
         await expect(signUp).toBeInViewport({ ratio: 1, timeout: 60_000 })
         const welcome = await page.evaluate(() => {
-            const button = document.querySelector('[data-setup-footer] button')!
+            const button = [...document.querySelectorAll('[data-setup-footer] button')].find(
+                (b) => b.textContent?.trim() === 'Sign up'
+            )!
             const r = button.getBoundingClientRect()
             const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
             return {
@@ -221,7 +239,7 @@ for (const viewport of VIEWPORTS) {
                 scrolls: document.scrollingElement!.scrollHeight > innerHeight,
             }
         })
-        expect(welcome.hit, "Welcome: a tap at the primary's centre lands on it").toBe(true)
+        expect(welcome.hit, "Welcome: a tap at Sign up's centre lands on it").toBe(true)
         expect(welcome.scrolls, 'Welcome: the page does not scroll').toBe(false)
         expect(near(welcome.hero, welcomeHero(viewport)), `Welcome hero ${welcome.hero}`).toBe(true)
     })
