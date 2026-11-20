@@ -2,14 +2,13 @@ import Image from 'next/image'
 import Title from '@/components/0_Bruddle/Title'
 import LOGO_LOCKUP from '@/assets/brand/logo-lockup.svg'
 
-// Copy from mono content/_system/context/messaging.md (tagline and homepage
-// subline), split into a Roboto Flex lead and a Knerd accent the way the
-// homepage hero sets them side by side from 768 px.
+// The tagline from mono content/_system/context/messaging.md, split into a
+// Roboto Flex lead and a Knerd accent the way the homepage hero sets them
+// side by side from 768 px. Konrad dropped the subline on 20 Nov 2026.
 const TAGLINE = [
     { lead: 'Get paid', accent: 'GLOBALLY' },
     { lead: 'Spend', accent: 'LOCALLY' },
 ] as const
-const SUBLINE = 'Receive dollars and euros. Pay by card or QR.'
 
 /**
  * The page public/metadata-img.png is a screenshot of. The card covers the
@@ -43,17 +42,6 @@ export default function SocialCardPage() {
                         </span>
                     </div>
                 ))}
-                <p
-                    style={{
-                        marginTop: 28,
-                        fontSize: 30,
-                        fontWeight: 500,
-                        lineHeight: 1.22,
-                        letterSpacing: '-0.025em',
-                    }}
-                >
-                    {SUBLINE}
-                </p>
             </div>
         </main>
     )
