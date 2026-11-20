@@ -25,6 +25,8 @@ export type SumsubActionErrorCode =
     | 'feature_selection_required'
     // the user is on Smart Paperwork Verification: /verify starts their check, never this route
     | 'paperwork_verification_required'
+    | 'residence_not_supported'
+    | 'kyc_client_update_required'
     // Permanent refusals the backend names in its `error` field. A retry sends
     // the identical request and gets the identical answer, so callers must
     // suppress their retry CTA on these.
@@ -68,6 +70,8 @@ const TERMINAL_ACTION_CODES = new Set<string>([
     'manteca_us_nationality_restricted',
     'uk_resident_blocked',
     'residence_bank_restricted',
+    'residence_not_supported',
+    'kyc_client_update_required',
 ])
 
 /** True when the result is a refusal no retry can change. */
@@ -97,6 +101,11 @@ const backendOrFallback = (
     // Manteca no longer opens Brazil for this user: their Pix moved (409). The caller sends them to the Pix flow.
     if (responseJson.code === PIX_PROVIDER_MOVED)
         return { error: responseJson.userMessage || fallback, code: PIX_PROVIDER_MOVED }
+    if (status === 409 && (responseJson.code ?? responseJson.error) === 'paperwork_verification_required')
+        return {
+            code: 'paperwork_verification_required',
+            error: responseJson.userMessage || 'Continue your verification in the app',
+        }
     const terminal = terminalCodeOf(responseJson)
     // `userMessage` is written for users. On a 4xx, `error` is a code or an
     // English developer string ("No provider rejection found", provider
@@ -217,15 +226,6 @@ export const initiateSumsubKyc = async (
                     code: responseJson.code,
                     error: responseJson.userMessage,
                     ...(retryAfter && { retryAfter }),
-                }
-            }
-            if (
-                response.status === 409 &&
-                (responseJson.code ?? responseJson.error) === 'paperwork_verification_required'
-            ) {
-                return {
-                    code: 'paperwork_verification_required',
-                    error: responseJson.userMessage || 'Continue your verification in the app',
                 }
             }
             if (response.status === 409 && (responseJson.code ?? responseJson.error) === 'feature_selection_required') {

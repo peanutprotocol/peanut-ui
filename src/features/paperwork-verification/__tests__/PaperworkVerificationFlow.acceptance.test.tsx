@@ -653,10 +653,29 @@ describe('form protocol failure copy acceptance', () => {
     )
 })
 
-describe('identity-session hand-back recovery', () => {
-    it('a handed-back identity token routes Home without opening the SDK', async () => {
+describe('identity-session refusal recovery', () => {
+    it('a residence refusal on start opens the terminal screen route without an SDK', async () => {
         mockQuestions.mockResolvedValue(build({ purpose: true, money: true, tax: true }, null))
-        mockToken.mockResolvedValue({ kind: 'handed-back' } as never)
+        mockToken.mockResolvedValue({ kind: 'residence-not-supported' })
+        await startFlow()
+        fireEvent.click(await screen.findByTestId('verify-id-option-PASSPORT-US'))
+        await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/verify?reason=residence_not_supported'))
+        expect(screen.queryByText('sumsub-submit')).not.toBeInTheDocument()
+    })
+
+    it('a residence refusal on refresh closes the SDK and opens the terminal screen route', async () => {
+        mockStatus.mockResolvedValue('ACTION_REQUIRED')
+        mockToken.mockResolvedValueOnce(session()).mockResolvedValueOnce({ kind: 'residence-not-supported' })
+        renderFlow()
+        fireEvent.click(await screen.findByRole('button', { name: /try again/i }))
+        fireEvent.click(await screen.findByText('sumsub-refresh'))
+        await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/verify?reason=residence_not_supported'))
+        await waitFor(() => expect(screen.queryByText('sumsub-submit')).not.toBeInTheDocument())
+    })
+
+    it('an existing verification conflict on start routes Home without opening the SDK', async () => {
+        mockQuestions.mockResolvedValue(build({ purpose: true, money: true, tax: true }, null))
+        mockToken.mockResolvedValue({ kind: 'existing-verification' })
         await startFlow()
         fireEvent.click(await screen.findByTestId('verify-id-option-PASSPORT-US'))
         await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/home'))
@@ -665,9 +684,9 @@ describe('identity-session hand-back recovery', () => {
         expect(mockToken).toHaveBeenCalledTimes(1)
     })
 
-    it('a handed-back token refresh closes the stale SDK and routes Home', async () => {
+    it('an existing verification conflict on refresh closes the stale SDK and routes Home', async () => {
         mockStatus.mockResolvedValue('ACTION_REQUIRED')
-        mockToken.mockResolvedValueOnce(session()).mockResolvedValueOnce({ kind: 'handed-back' } as never)
+        mockToken.mockResolvedValueOnce(session()).mockResolvedValueOnce({ kind: 'existing-verification' })
         renderFlow()
         fireEvent.click(await screen.findByRole('button', { name: /try again/i }))
         fireEvent.click(await screen.findByText('sumsub-refresh'))

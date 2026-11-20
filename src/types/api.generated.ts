@@ -11358,7 +11358,16 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
+                        "application/json": ({
+                            /** @enum {string} */
+                            code: "residence_not_supported";
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        } | {
+                            /** @enum {string} */
+                            error: "Forbidden";
+                        }) | {
                             code: "geo-blocked" | "pending-residence-blocked" | "provider-not-in-plan";
                             message: string;
                             reason?: string;
@@ -11391,8 +11400,20 @@ export interface paths {
                             error: string;
                             message: string;
                             userMessage: string;
+                        } | ({
+                            /** @enum {string} */
+                            code: "paperwork_verification_required";
+                            error: string;
+                            message: string;
+                            userMessage: string;
                         } | {
-                            code: "application-outcome-unknown" | "paperwork_verification_required" | "CARD_APP_UPDATE_REQUIRED";
+                            /** @enum {string} */
+                            code: "kyc_client_update_required";
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        }) | {
+                            code: "application-outcome-unknown" | "CARD_APP_UPDATE_REQUIRED";
                             message: string;
                             /** @enum {string} */
                             status: "error";
@@ -13719,19 +13740,19 @@ export interface paths {
             requestBody?: never;
             responses: {
                 /** @description Default Response */
-                200: {
+                404: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": {
-                            joinedAt: string;
-                            position: number;
+                            code?: string;
+                            error: string;
                         };
                     };
                 };
                 /** @description Default Response */
-                404: {
+                410: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -17313,12 +17334,42 @@ export interface paths {
             };
             responses: {
                 /** @description Default Response */
-                409: {
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": {
+                            /** @enum {string} */
+                            code: "residence_not_supported";
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        } | {
+                            /** @enum {string} */
+                            error: "Forbidden";
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": ({
+                            /** @enum {string} */
+                            code: "paperwork_verification_required";
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        } | {
+                            /** @enum {string} */
+                            code: "kyc_client_update_required";
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        }) | {
                             /** @enum {string} */
                             code: "feature_reverification_required";
                             entry: {
@@ -17448,6 +17499,12 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            /** @enum {string} */
+                            code: "residence_not_supported";
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        } | {
                             error: string;
                         };
                     };
@@ -17458,7 +17515,19 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
+                        "application/json": ({
+                            /** @enum {string} */
+                            code: "paperwork_verification_required";
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        } | {
+                            /** @enum {string} */
+                            code: "kyc_client_update_required";
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        }) | {
                             code?: string;
                             document?: {
                                 issuingCountry: string;
@@ -17561,11 +17630,22 @@ export interface paths {
             };
             responses: {
                 /** @description Default Response */
-                200: {
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            code: "residence_not_supported";
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        } | {
+                            /** @enum {string} */
+                            error: "Forbidden";
+                        };
+                    };
                 };
             };
         };
@@ -17629,12 +17709,42 @@ export interface paths {
             requestBody?: never;
             responses: {
                 /** @description Default Response */
-                409: {
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": {
+                            /** @enum {string} */
+                            code: "residence_not_supported";
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        } | {
+                            /** @enum {string} */
+                            error: "Forbidden";
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": ({
+                            /** @enum {string} */
+                            code: "paperwork_verification_required";
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        } | {
+                            /** @enum {string} */
+                            code: "kyc_client_update_required";
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        }) | {
                             /** @enum {string} */
                             code: "feature_reverification_required";
                             entry: {
@@ -17999,6 +18109,24 @@ export interface paths {
                     };
                 };
                 /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            code: "residence_not_supported";
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        } | {
+                            /** @enum {string} */
+                            error: "Forbidden";
+                        };
+                    };
+                };
+                /** @description Default Response */
                 404: {
                     headers: {
                         [name: string]: unknown;
@@ -18252,6 +18380,24 @@ export interface paths {
                     };
                 };
                 /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            code: "residence_not_supported";
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        } | {
+                            /** @enum {string} */
+                            error: "Forbidden";
+                        };
+                    };
+                };
+                /** @description Default Response */
                 404: {
                     headers: {
                         [name: string]: unknown;
@@ -18266,7 +18412,19 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
+                        "application/json": ({
+                            /** @enum {string} */
+                            code: "paperwork_verification_required";
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        } | {
+                            /** @enum {string} */
+                            code: "kyc_client_update_required";
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        }) | {
                             code?: string;
                             error?: string;
                             step?: string | null;
@@ -19318,6 +19476,8 @@ export interface paths {
                                 until: string;
                             } | null;
                             terminal?: "rejected" | null;
+                            /** @enum {string} */
+                            unavailableReason?: "residence_not_supported";
                         };
                     };
                 };
@@ -19914,6 +20074,24 @@ export interface paths {
                     };
                 };
                 /** @description Default Response */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            code: "residence_not_supported";
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        } | {
+                            /** @enum {string} */
+                            error: "Forbidden";
+                        };
+                    };
+                };
+                /** @description Default Response */
                 409: {
                     headers: {
                         [name: string]: unknown;
@@ -20169,12 +20347,41 @@ export interface paths {
                     };
                 };
                 /** @description Default Response */
-                409: {
+                403: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": {
+                            /** @enum {string} */
+                            code: "residence_not_supported";
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        } | {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+                /** @description Default Response */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": ({
+                            /** @enum {string} */
+                            code: "paperwork_verification_required";
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        } | {
+                            /** @enum {string} */
+                            code: "kyc_client_update_required";
+                            error: string;
+                            message: string;
+                            userMessage: string;
+                        }) | {
                             /** @enum {string} */
                             code: "feature_reverification_required";
                             entry: {

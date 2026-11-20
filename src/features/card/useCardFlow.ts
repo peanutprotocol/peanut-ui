@@ -36,6 +36,10 @@ import { useKycFeatureActivation } from '@/features/paperwork-verification/useKy
 import { RESIDENCE_ADDRESS_ACTION_KEY } from '@/constants/kyc.consts'
 import { residenceAddressEntry } from '@/features/kyc-features/residenceAddressEntry'
 import { API_ERROR_CODES, ApiError, wireErrorCode } from '@/services/api-error'
+import {
+    identityStartRefusalPath,
+    paperworkVerificationEntryRoute,
+} from '@/features/paperwork-verification/paperworkVerificationEntry'
 import { markVerifySource } from '@/features/paperwork-verification/verifySource'
 import { currentReverificationDestination, featureReverificationPath } from '@/utils/kyc-reverification'
 
@@ -699,6 +703,28 @@ export function useCardFlow() {
         setIssuanceStillCreating(false)
     }, [finishIssuanceWait])
 
+    const identityStatus = user?.identityVerification?.status
+    const needsIdentityPlan = !identityStatus || identityStatus === 'not_started'
+
+    const openVerification = useCallback(
+        (path: string) => {
+            setSumsubToken(null)
+            if (path === '/verify') markVerifySource('card')
+            router.push(path)
+        },
+        [router]
+    )
+
+    const followIdentityStartRefusal = useCallback(
+        (error: unknown) => {
+            const path = error instanceof ApiError ? identityStartRefusalPath(error.code) : null
+            if (!path) return false
+            openVerification(path)
+            return true
+        },
+        [openVerification]
+    )
+
     // The user picked their residence country on the confirmation screen.
     // Re-apply with the pick — the backend validates it against its own
     // candidate recompute, repairs the Sumsub data, and usually answers
@@ -729,14 +755,22 @@ export function useCardFlow() {
                 }
                 advanceFromApplyResponse(res)
             } catch (e) {
-                if (changed()) return
+                if (changed() || followIdentityStartRefusal(e)) return
                 const message = e instanceof Error ? e.message : t('page.confirmCountryFailed')
                 console.error('[card apply] country confirm error:', e)
                 setApplyError(message)
                 posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_FAILED, { error_message: message })
             }
         },
-        [advanceFromApplyResponse, userId, connectedAddress, t, activation.activate, blockIfFinal]
+        [
+            advanceFromApplyResponse,
+            userId,
+            connectedAddress,
+            t,
+            activation.activate,
+            blockIfFinal,
+            followIdentityStartRefusal,
+        ]
     )
 
     // Returns the response only when the application went through to a state
@@ -785,6 +819,14 @@ export function useCardFlow() {
                     with_session_key: !!serializedApproval,
                 })
                 try {
+                    if (needsIdentityPlan) {
+                        const path = await paperworkVerificationEntryRoute({})
+                        if (changed()) return undefined
+                        if (path) {
+                            openVerification(path)
+                            return undefined
+                        }
+                    }
                     // Consent-ledger echo: on acceptance, send the exact documents
                     // CardTermsScreen displayed for this region (version + hash).
                     const acceptedDocuments = termsAccepted
@@ -811,13 +853,7 @@ export function useCardFlow() {
                     }
                     return res
                 } catch (e) {
-                    if (changed()) return undefined
-                    // A Smart Paperwork Verification user's identity check starts on /verify, never as a legacy applicant here.
-                    if (e instanceof ApiError && e.code === 'paperwork_verification_required') {
-                        markVerifySource('card')
-                        router.push('/verify')
-                        return undefined
-                    }
+                    if (changed() || followIdentityStartRefusal(e)) return undefined
                     // A re-issue whose card permission signature the chain would refuse.
                     const message =
                         wireErrorCode(e) === API_ERROR_CODES.CARD_APPROVAL_SIGNATURE_REJECTED
@@ -843,10 +879,12 @@ export function useCardFlow() {
             userId,
             connectedAddress,
             t,
-            router,
             activation.activate,
             user?.identityVerification?.oneShot,
+            needsIdentityPlan,
+            openVerification,
             blockIfFinal,
+            followIdentityStartRefusal,
         ]
     )
 
@@ -1031,7 +1069,7 @@ export function useCardFlow() {
             if (advanceFromApplyResponse(res))
                 posthog.capture(ANALYTICS_EVENTS.CARD_APPLY_SUCCEEDED, { outcome: res.status })
         } catch (e) {
-            if (controller.signal.aborted || changed()) return
+            if (controller.signal.aborted || changed() || followIdentityStartRefusal(e)) return
             const message = e instanceof Error ? e.message : t('page.applyFailed')
             console.error('[card apply] post-sumsub poll error:', e)
             setApplyError(message)
@@ -1046,7 +1084,7 @@ export function useCardFlow() {
             // successor now owns.
             if (isMountedRef.current && pollAbortRef.current === controller) setIsIssuing(false)
         }
-    }, [advanceFromApplyResponse, t, activation.activate, userId, connectedAddress])
+    }, [advanceFromApplyResponse, t, activation.activate, userId, connectedAddress, followIdentityStartRefusal])
 
     const handleSumsubClose = useCallback(() => {
         if (!sumsubCompletedRef.current) {
@@ -1065,8 +1103,19 @@ export function useCardFlow() {
             addressBlockedRef.current
         )
             return ''
-        const res = await rainApi.applyForCard({ termsAccepted: false })
-        if (!sameIdentity(identityRef.current, startedFor)) return ''
+        if (needsIdentityPlan) {
+            const path = await paperworkVerificationEntryRoute({})
+            if (!sameIdentity(identityRef.current, startedFor)) return ''
+            if (path) {
+                openVerification(path)
+                return ''
+            }
+        }
+        const res = await rainApi.applyForCard({ termsAccepted: false }).catch((error: unknown) => {
+            if (!sameIdentity(identityRef.current, startedFor) || followIdentityStartRefusal(error)) return null
+            throw error
+        })
+        if (!res || !sameIdentity(identityRef.current, startedFor)) return ''
         if ((res.status === 'incomplete' || res.status === 'main-kyc-required') && 'sumsubAccessToken' in res) {
             return res.sumsubAccessToken
         }
@@ -1075,7 +1124,15 @@ export function useCardFlow() {
         setSumsubToken(null)
         advanceFromApplyResponse(res)
         return ''
-    }, [advanceFromApplyResponse, activation.activate, userId, connectedAddress])
+    }, [
+        advanceFromApplyResponse,
+        activation.activate,
+        userId,
+        connectedAddress,
+        followIdentityStartRefusal,
+        needsIdentityPlan,
+        openVerification,
+    ])
 
     // Preserve an interrupted Sumsub session for installed Android PWAs that
     // remain reachable until the native migration cutoff.
@@ -1088,8 +1145,27 @@ export function useCardFlow() {
             addressBlockedRef.current
         )
             return false
-        const res = await rainApi.applyForCard({ termsAccepted: false })
-        if (!sameIdentity(identityRef.current, startedFor)) return false
+        const current = () => sameIdentity(identityRef.current, startedFor)
+        const redirect = async (path: string) => {
+            await consume()
+            if (current()) openVerification(path)
+        }
+        if (needsIdentityPlan) {
+            const path = await paperworkVerificationEntryRoute({})
+            if (!current()) return false
+            if (path) {
+                await redirect(path)
+                return false
+            }
+        }
+        const res = await rainApi.applyForCard({ termsAccepted: false }).catch(async (error: unknown) => {
+            if (!current()) return null
+            const path = error instanceof ApiError ? identityStartRefusalPath(error.code) : null
+            if (!path) throw error
+            await redirect(path)
+            return null
+        })
+        if (!res || !current()) return false
         if ((res.status === 'incomplete' || res.status === 'main-kyc-required') && 'sumsubAccessToken' in res) {
             if (blockIfFinal()) return false
             setSumsubToken(res.sumsubAccessToken)

@@ -3338,6 +3338,8 @@
         "qrFirstScanDescription": "One notification when it completes."
     },
     "kyc": {
+        "residenceNotSupported": "We can’t verify this country’s residents yet.",
+        "clientUpdateRequired": "Update the Peanut app to continue verification.",
         "statusDrawerTitle": "Verification status",
         "identityVerification": "Identity verification",
         "doesntStoreDocuments": "Peanut doesn't store any of your documents",
