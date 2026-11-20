@@ -13,6 +13,11 @@ jest.mock('@/features/tracked-links/contract', () => {
     return { ...actual, parseGoRequest: jest.fn(actual.parseGoRequest) }
 })
 jest.mock('next/headers', () => ({ headers: jest.fn() }))
+jest.mock('@/features/tracked-links/go-map', () => {
+    const actual = jest.requireActual('@/features/tracked-links/go-map')
+    const redirects = { shortlink: '/en/pricing?utm_source=flyer', 'promo/flyer': '/app' }
+    return { ...actual, resolveGoRedirect: (segments: string[]) => actual.resolveGoRedirect(segments, redirects) }
+})
 jest.mock('@/features/creator-pages/registry', () => ({ selectCreatorPage: jest.fn() }))
 jest.mock('@/features/tracked-links/TrackedLinkEntry', () => ({ __esModule: true, default: () => null }))
 // React's cache memoizes only inside a server request; this stands in for one, cleared per request.
@@ -240,6 +245,30 @@ describe('lookup answers', () => {
         jest.mocked(global.fetch).mockResolvedValue(Response.json({ linkId }))
         expect(location(await open(down))).toContain('acq_invite=')
         expect(global.fetch).toHaveBeenCalledTimes(5)
+    })
+})
+
+describe('short links', () => {
+    it('answers a 307 to the mapped path, dropping the query, without a creator lookup', async () => {
+        const response = await open('ShortLink', '?utm_source=mallory')
+        expect(response.status).toBe(307)
+        expect(location(response)).toBe('/en/pricing?utm_source=flyer')
+        expect(global.fetch).not.toHaveBeenCalled()
+        expect(await generateMetadata(pageProps(new URL('https://peanut.me/go/shortlink'), 'shortlink'))).toEqual({
+            robots: { index: false, follow: false },
+        })
+        expect(global.fetch).not.toHaveBeenCalled()
+    })
+
+    it('wins over a creator with the same username only on the mapped path', async () => {
+        expect(location(await open('promo', '', ['flyer']))).toBe('/app')
+        expect(global.fetch).not.toHaveBeenCalled()
+        expect(handoff(await open('promo', '', ['ig']))).toEqual({
+            app_entry: '1',
+            tl: 'promo',
+            acq_invite: 'promo',
+            tl_s: 'ig',
+        })
     })
 })
 
