@@ -28,7 +28,7 @@ class PlayVitalsReportTest(unittest.TestCase):
             {"aggregationPeriod": "DAILY", "latestEndTime": {"year": 2026, "month": 9, "day": 28,
                                                              "timeZone": {"id": "America/Los_Angeles"}}}]}}
         with patch.object(report, "request", side_effect=[freshness, {"rows": []}]) as request:
-            self.assertEqual(report.rate_rows("token", "apps/me.peanut.wallet"), [])
+            self.assertEqual(report.rate_rows("token", "apps/me.peanut.wallet", NOW), [])
         self.assertTrue(request.call_args_list[0].args[0].endswith("/apps/me.peanut.wallet/crashRateMetricSet"))
         spec = request.call_args_list[1].kwargs["data"]["timelineSpec"]
         self.assertEqual(spec["endTime"], {"year": 2026, "month": 9, "day": 28})
@@ -37,7 +37,23 @@ class PlayVitalsReportTest(unittest.TestCase):
     def test_rate_query_fails_without_daily_freshness(self):
         with patch.object(report, "request", return_value={"freshnessInfo": {"freshnesses": []}}):
             with self.assertRaisesRegex(RuntimeError, "no DAILY crash-rate freshness"):
-                report.rate_rows("token", "apps/me.peanut.wallet")
+                report.rate_rows("token", "apps/me.peanut.wallet", NOW)
+
+    def test_rate_query_fails_when_daily_freshness_is_stale(self):
+        # newest point 2026-09-24 is older than NOW (09-29) minus 4 days, so summarize would drop it
+        freshness = {"freshnessInfo": {"freshnesses": [
+            {"aggregationPeriod": "DAILY", "latestEndTime": {"year": 2026, "month": 9, "day": 25}}]}}
+        with patch.object(report, "request", return_value=freshness) as request:
+            with self.assertRaisesRegex(RuntimeError, "freshness is stale: 2026-09-25"):
+                report.rate_rows("token", "apps/me.peanut.wallet", NOW)
+        self.assertEqual(request.call_count, 1)
+
+    def test_rate_query_accepts_oldest_fresh_day(self):
+        # newest point 2026-09-25 is exactly NOW minus 4 days, which summarize still keeps
+        freshness = {"freshnessInfo": {"freshnesses": [
+            {"aggregationPeriod": "DAILY", "latestEndTime": {"year": 2026, "month": 9, "day": 26}}]}}
+        with patch.object(report, "request", side_effect=[freshness, {"rows": []}]):
+            self.assertEqual(report.rate_rows("token", "apps/me.peanut.wallet", NOW), [])
 
     def test_summary_excludes_report_text_and_untrusted_link(self):
         issues = [{"name": "apps/me.peanut.wallet/errorIssues/one", "distinctUsers": "2",

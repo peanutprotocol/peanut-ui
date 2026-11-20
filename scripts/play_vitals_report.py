@@ -19,6 +19,8 @@ API = "https://playdeveloperreporting.googleapis.com/v1beta1"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 SCOPE = "https://www.googleapis.com/auth/playdeveloperreporting"
 PACKAGE = "me.peanut.wallet"
+# a crash rate older than this is stale
+RATE_MAX_AGE = timedelta(days=4)
 PLAY_URL = ("https://play.google.com/console/u/4/developers/6236117264631812663/"
             "app/4974177704452980366/vitals/crashes?days=28&isUserPerceived=true")
 
@@ -108,7 +110,7 @@ def issue_rows(access_token, app, now):
     return pages("/%s/errorIssues:search" % app, "errorIssues", access_token, params)
 
 
-def rate_rows(access_token, app):
+def rate_rows(access_token, app, now):
     # play publishes daily vitals 1-2 days late and rejects a timeline past its
     # latest published day, so end at the freshness it reports (exclusive end)
     metric_set = request(API + "/%s/crashRateMetricSet" % app, token=access_token)
@@ -117,6 +119,10 @@ def rate_rows(access_token, app):
     if not isinstance(latest, dict) or not all(isinstance(latest.get(k), int) for k in ("year", "month", "day")):
         raise RuntimeError("Play Reporting returned no DAILY crash-rate freshness")
     end = date(latest["year"], latest["month"], latest["day"])
+    # the newest point is the day before the exclusive end; fail when summarize
+    # would drop it as stale, so a stalled feed never silences the crash rate
+    if end - timedelta(days=1) < (now - RATE_MAX_AGE).date():
+        raise RuntimeError("Play Reporting DAILY crash-rate freshness is stale: %s" % end.isoformat())
     start = end - timedelta(days=14)
     body = {"timelineSpec": {"aggregationPeriod": "DAILY",
                              "startTime": {"year": start.year, "month": start.month, "day": start.day},
@@ -145,7 +151,7 @@ def summarize(issues, rates, now):
                          "url": link})
     points = []
     for row in rates:
-        date = row.get("startTime") or {}
+        start = row.get("startTime") or {}
         for metric in row.get("metrics") or []:
             if metric.get("metric") == "userPerceivedCrashRate7dUserWeighted":
                 value = metric.get("decimalValue")
@@ -153,11 +159,11 @@ def summarize(issues, rates, now):
                 value = float(value)
                 if not math.isfinite(value) or value < 0:
                     raise RuntimeError("Play Reporting returned an invalid crash rate")
-                points.append(("%04d-%02d-%02d" % (date["year"], date["month"], date["day"]), value))
+                points.append(("%04d-%02d-%02d" % (start["year"], start["month"], start["day"]), value))
     rate = None
     if points:
         day, value = max(points)
-        if datetime.fromisoformat(day).date() >= (now - timedelta(days=4)).date():
+        if datetime.fromisoformat(day).date() >= (now - RATE_MAX_AGE).date():
             rate = {"day": day, "percent": value}
     return {"schema": 1, "checked_at": now.isoformat(), "issues": selected, "rate": rate}
 
@@ -173,4 +179,4 @@ def collect(now=None):
     except (ValueError, KeyError, TypeError):
         raise RuntimeError("PLAY_SERVICE_ACCOUNT_JSON is invalid") from None
     app = app_name(access_token)
-    return summarize(issue_rows(access_token, app, now), rate_rows(access_token, app), now)
+    return summarize(issue_rows(access_token, app, now), rate_rows(access_token, app, now), now)
