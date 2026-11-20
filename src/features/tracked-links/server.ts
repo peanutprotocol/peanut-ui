@@ -1,5 +1,6 @@
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import type { paths } from '@/types/api.generated'
+import { COMPANY_INVITER } from './go-aliases'
 
 export type InviteLinkLookup = { status: 'found'; linkId: string } | { status: 'not_found' } | { status: 'unavailable' }
 
@@ -28,6 +29,18 @@ export async function lookupInviteLink(slug: string): Promise<InviteLinkLookup> 
         cache.set(slug, { lookup, expiresAt: Date.now() + CACHE_TTL_MS })
     }
     return lookup
+}
+
+// The API mints no tracked link for its system account, so the company inviter's ID is fixed here,
+// derived as the API derives every link ID: `invite_` + SHA-256 of the account's public user ID.
+const COMPANY_LINK: InviteLinkLookup = {
+    status: 'found',
+    linkId: 'invite_4248470e96e8e07697e694852f03b3f4025ebfb354e5615cb8152eb56c9be0bf',
+}
+
+/** The link of a handoff's inviter: a creator through the API, or the company inviter of a `/go` alias. */
+export async function lookupGoInviter(username: string): Promise<InviteLinkLookup> {
+    return username === COMPANY_INVITER ? COMPANY_LINK : lookupInviteLink(username)
 }
 
 function evictForInsert(): void {

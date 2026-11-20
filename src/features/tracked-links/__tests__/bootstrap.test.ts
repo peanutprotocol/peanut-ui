@@ -16,6 +16,8 @@ import {
 } from '@/utils/signup-attribution'
 import { parseDeferredPayload as parseLegacyPayload } from '@/utils/__tests__/fixtures/legacy-native-attribution'
 import { bootstrapTrackedLinkEntry, EMPTY_TRACKED_LINK_BOOTSTRAP, enterGoPage } from '../bootstrap'
+import { bareGoVisit, goHandoffPath } from '../contract'
+import { GO_ALIASES, withGoAlias } from '../go-aliases'
 
 const WEB_ID = '44444444-4444-4444-8444-444444444444'
 const mockNative = new Map<string, string>()
@@ -310,6 +312,26 @@ describe('/go tags', () => {
         const result = await bootstrapTrackedLinkEntry(visit('/app?tl=juanacervio&acq_invite=juanacervio'), false)
         expect(getPendingBadgeCampaigns()).toEqual(['nita'])
         expect(new URLSearchParams(result.payload!).getAll('badge_campaign')).toEqual(['nita'])
+    })
+
+    it('stashes the company inviter for an alias handoff and records its poster code and campaign', async () => {
+        const handoff = goHandoffPath(withGoAlias({ ...bareGoVisit('squirrel'), code: 1 }, GO_ALIASES.palermo))
+        await bootstrapTrackedLinkEntry(visit(handoff.replace('/home', '/app')), false)
+        expect(readInviteCode()).toBe('squirrel')
+        expect(readInviteIntent()).toBe('acquisition')
+        expect(getPendingBadgeCampaigns()).toEqual([])
+        expect(readSignupAttribution()?.lastTouch).toEqual({
+            occurredAt: expect.any(String),
+            utmMedium: 'cpm',
+            utmCampaign: 'palermo',
+            utmContent: 'c1',
+        })
+        expect(visits()[0].body).toMatchObject({
+            slug: 'squirrel',
+            code: 1,
+            utm_medium: 'cpm',
+            utm_campaign: 'palermo',
+        })
     })
 
     it.each(['/app?tl=unmapped&acq_invite=unmapped', '/app?code=juanacervio', '/app?tl=constructor'])(

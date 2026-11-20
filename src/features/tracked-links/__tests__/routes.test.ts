@@ -13,6 +13,20 @@ jest.mock('@/features/tracked-links/contract', () => {
     return { ...actual, parseGoRequest: jest.fn(actual.parseGoRequest) }
 })
 jest.mock('next/headers', () => ({ headers: jest.fn() }))
+// Test aliases whose inviters go through the API lookup; palermo is the real register entry.
+jest.mock('@/features/tracked-links/go-aliases', () => {
+    const actual = jest.requireActual('@/features/tracked-links/go-aliases')
+    const aliases: Record<string, unknown> = {
+        ...actual.GO_ALIASES,
+        creatoralias: { inviter: 'aliascreator', medium: 'social', campaign: 'test' },
+        missingalias: { inviter: 'missinginviter', medium: 'social', campaign: 'test' },
+        downalias: { inviter: 'downinviter', medium: 'social', campaign: 'test' },
+    }
+    return {
+        ...actual,
+        goAlias: (slug: string) => (Object.prototype.hasOwnProperty.call(aliases, slug) ? aliases[slug] : undefined),
+    }
+})
 jest.mock('@/features/creator-pages/registry', () => ({ selectCreatorPage: jest.fn() }))
 jest.mock('@/features/tracked-links/TrackedLinkEntry', () => ({ __esModule: true, default: () => null }))
 // React's cache memoizes only inside a server request; this stands in for one, cleared per request.
@@ -347,5 +361,76 @@ describe('the creator page seam', () => {
         newRequest()
         const metadata = await generateMetadata(pageProps(new URL(`https://peanut.me/go/${slug}`), slug))
         expect(metadata).toEqual({ robots: { index: false, follow: false } })
+    })
+})
+
+describe('campaign aliases', () => {
+    const palermo = {
+        app_entry: '1',
+        tl: 'squirrel',
+        acq_invite: 'squirrel',
+        utm_medium: 'cpm',
+        utm_campaign: 'palermo',
+    }
+
+    it.each(['1', '2', '3'])(
+        'hands poster %s to the company inviter with its code and campaign, without a lookup',
+        async (code) => {
+            select({ variant: 'a1', experimentId: 'n1', Page: TestPage })
+            const response = await open('palermo', '', [code])
+            expect(response.status).toBe(307)
+            expect(new URL(location(response)!, 'https://peanut.me').pathname).toBe('/home')
+            expect(handoff(response)).toEqual({ ...palermo, tl_s: code })
+            expect(global.fetch).not.toHaveBeenCalled()
+            expect(selectCreatorPage).not.toHaveBeenCalled()
+        }
+    )
+
+    it('reads a capitalised alias, and keeps its own tags over the query', async () => {
+        const response = await open('Palermo', '?utm_campaign=forged&utm_medium=email&tl=mallory&acq_invite=mallory', [
+            '2',
+        ])
+        expect(handoff(response)).toEqual({ ...palermo, tl_s: '2' })
+    })
+
+    it('answers an alias even when the API is down', async () => {
+        jest.mocked(global.fetch).mockResolvedValue(new Response(null, { status: 503 }))
+        expect(handoff(await open('palermo'))).toEqual(palermo)
+    })
+
+    it('resolves a creator inviter through the lookup and wins over a same-named username', async () => {
+        const response = await open('creatoralias', '', ['ig'])
+        expect(handoff(response)).toEqual({
+            app_entry: '1',
+            tl: 'aliascreator',
+            acq_invite: 'aliascreator',
+            tl_s: 'ig',
+            utm_medium: 'social',
+            utm_campaign: 'test',
+        })
+        expect(global.fetch).toHaveBeenCalledTimes(1)
+        expect(global.fetch).toHaveBeenCalledWith(
+            'https://api.example.test/tracked-links/invites/aliascreator',
+            expect.anything()
+        )
+        expect(selectCreatorPage).not.toHaveBeenCalled()
+    })
+
+    it.each([
+        ['missingalias', () => Promise.resolve(linkNotFound())],
+        ['downalias', () => Promise.resolve(new Response(null, { status: 503 }))],
+    ])('sends %s to the plain store entry, never a 404, when its inviter does not resolve', async (slug, reply) => {
+        jest.mocked(global.fetch).mockImplementation(reply)
+        const response = await open(slug, '', ['1'])
+        expect(response.status).toBe(307)
+        expect(location(response)).toBe('/home?app_entry=1')
+    })
+
+    it('keeps an alias out of the index without a lookup or a page selection', async () => {
+        newRequest()
+        const metadata = await generateMetadata(pageProps(new URL('https://peanut.me/go/palermo/1'), 'palermo', ['1']))
+        expect(metadata).toEqual({ robots: { index: false, follow: false } })
+        expect(global.fetch).not.toHaveBeenCalled()
+        expect(selectCreatorPage).not.toHaveBeenCalled()
     })
 })

@@ -1,5 +1,6 @@
 /** @jest-environment node */
-import type { lookupInviteLink as LookupInviteLink } from '../server'
+import { createHash } from 'node:crypto'
+import type { lookupGoInviter as LookupGoInviter, lookupInviteLink as LookupInviteLink } from '../server'
 
 jest.mock('@/constants/general.consts', () => ({ PEANUT_API_URL: 'https://api.example.test' }))
 const originalFetch = global.fetch
@@ -13,9 +14,10 @@ async function fill(prefix: string, count: number) {
 
 // The cache is module state: each test starts with an empty one.
 let lookupInviteLink: typeof LookupInviteLink
+let lookupGoInviter: typeof LookupGoInviter
 beforeEach(async () => {
     jest.resetModules()
-    ;({ lookupInviteLink } = await import('../server'))
+    ;({ lookupInviteLink, lookupGoInviter } = await import('../server'))
     global.fetch = jest.fn(() => Promise.resolve(Response.json({ linkId: 'invite_x' })))
 })
 afterEach(() => {
@@ -50,4 +52,13 @@ it('drops expired entries before a live one', async () => {
     await lookupInviteLink('live')
 
     expect(fetched('live')).toBe(1)
+})
+
+it('gives the company inviter the link ID the API would derive, without a lookup', async () => {
+    // The system account's public user ID (peanut-api-ts SYSTEM_ATTRIBUTION_USER_ID, GET /users/username/squirrel).
+    const hash = createHash('sha256').update('c24fe48c-fe59-4380-b005-2bc99639b2e8').digest('hex')
+    expect(await lookupGoInviter('squirrel')).toEqual({ status: 'found', linkId: `invite_${hash}` })
+    expect(global.fetch).not.toHaveBeenCalled()
+    expect(await lookupGoInviter('alice')).toEqual({ status: 'found', linkId: 'invite_x' })
+    expect(fetched('alice')).toBe(1)
 })

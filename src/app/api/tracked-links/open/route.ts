@@ -7,7 +7,7 @@ import {
     readMarketingQrBody,
 } from '@/features/marketing-qr/server'
 import { captureTrackedLinkOpening, parseTrackedLinkOpening } from '@/features/tracked-links/capture'
-import { lookupInviteLink } from '@/features/tracked-links/server'
+import { lookupGoInviter } from '@/features/tracked-links/server'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -29,8 +29,8 @@ export async function POST(request: Request): Promise<Response> {
     ) {
         return new Response(null, { status: 204, headers })
     }
-    // The client names only the slug; the link ID in the event comes from the identity lookup.
-    const lookup = await lookupInviteLink(opening.slug)
+    // The client names only the slug (an alias hands off as its inviter); the link ID comes from the server.
+    const lookup = await lookupGoInviter(opening.slug)
     if (lookup.status !== 'found')
         return new Response(null, { status: lookup.status === 'not_found' ? 404 : 503, headers })
     after(() => captureTrackedLinkOpening(opening, lookup.linkId, origin, fromApp ? 'app' : 'web'))

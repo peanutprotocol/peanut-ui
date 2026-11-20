@@ -14,7 +14,8 @@ import {
     type GoVisit,
 } from '@/features/tracked-links/contract'
 import { e2eCreatorPage } from '@/features/tracked-links/e2e-creator-page'
-import { lookupInviteLink } from '@/features/tracked-links/server'
+import { goAlias, withGoAlias, type GoAlias } from '@/features/tracked-links/go-aliases'
+import { lookupGoInviter, lookupInviteLink } from '@/features/tracked-links/server'
 import CreatorPageBoundary from '@/features/tracked-links/CreatorPageBoundary'
 import TrackedLinkEntry from '@/features/tracked-links/TrackedLinkEntry'
 
@@ -34,7 +35,7 @@ const select = cache(
 
 export async function generateMetadata({ params }: GoPageProps): Promise<Metadata> {
     const username = (await params).slug.toLowerCase()
-    const link = isAcquisitionSlug(username) ? await lookup(username) : null
+    const link = isAcquisitionSlug(username) && !goAlias(username) ? await lookup(username) : null
     let selection: CreatorPageSelection | null = null
     try {
         selection = link?.status === 'found' ? await select(username, link.linkId) : null
@@ -48,6 +49,8 @@ export default async function GoPage({ params, searchParams }: GoPageProps) {
     const { slug, rest = [] } = await params
     const username = slug.toLowerCase()
     if (!isAcquisitionSlug(username)) notFound()
+    const alias = goAlias(username)
+    if (alias) redirect(await aliasHandoff(alias, rest, searchParams))
     const link = await lookup(username)
     if (link.status === 'not_found') notFound()
     // An unavailable identity service still reaches the store, without claiming attribution.
@@ -85,6 +88,24 @@ export default async function GoPage({ params, searchParams }: GoPageProps) {
             </CreatorPageBoundary>
         </>
     )
+}
+
+/** An alias hands off as its inviter's link with the alias's tags; it never shows a creator page. */
+async function aliasHandoff(
+    alias: GoAlias,
+    rest: string[],
+    searchParams: GoPageProps['searchParams']
+): Promise<string> {
+    // A printed QR never 404s: an inviter the lookup cannot confirm gets the outage path, without attribution.
+    if ((await lookupGoInviter(alias.inviter)).status !== 'found') return '/home?app_entry=1'
+    let visit = bareGoVisit(alias.inviter)
+    try {
+        const url = `${TRACKED_LINK_ORIGIN}/go?${queryOf(await searchParams)}`
+        visit = parseGoRequest({ url, headers: await headers() }, alias.inviter, rest) ?? visit
+    } catch (error) {
+        console.error('go alias fell back to the bare handoff', error)
+    }
+    return goHandoffPath(withGoAlias(visit, alias))
 }
 
 /** A bad label throws where a developer sees it; in production the creator keeps the plain redirect. */

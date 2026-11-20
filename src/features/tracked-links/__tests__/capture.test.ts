@@ -152,6 +152,19 @@ describe('open route', () => {
         expect(tasks).toHaveLength(0)
     })
 
+    it("records an alias opening against the company inviter's fixed link ID, without a lookup", async () => {
+        const body = { ...opening(), slug: 'squirrel', code: 1, utm_medium: 'cpm', utm_campaign: 'palermo' }
+        expect((await POST(request(body))).status).toBe(204)
+        await runTasks()
+        expect(lookups()).toBe(0)
+        expect(posthogBodies()[0].properties).toMatchObject({
+            link_id: 'invite_4248470e96e8e07697e694852f03b3f4025ebfb354e5615cb8152eb56c9be0bf',
+            code: 1,
+            utm_medium: 'cpm',
+            utm_campaign: 'palermo',
+        })
+    })
+
     it.each(['preview', 'development'])('does not forward events from %s', async (deployment) => {
         process.env.VERCEL_ENV = deployment
         await POST(request())
