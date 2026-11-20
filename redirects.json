@@ -1377,6 +1377,11 @@
         "permanent": true
     },
     {
+        "source": "/press/assets/mascots/peanut-angry.webp",
+        "destination": "/press/assets/mascots/peanut-worried.webp",
+        "permanent": true
+    },
+    {
         "source": "/:locale(en|es-419|es-ar|pt-br)/:path+/",
         "destination": "/:locale/:path+",
         "permanent": true
