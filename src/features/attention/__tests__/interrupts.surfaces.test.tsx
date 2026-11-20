@@ -34,10 +34,6 @@ jest.mock('@/services/consent', () => ({
         getStatus: (...args: unknown[]) => mockGetStatus(...args),
         accept: (...args: unknown[]) => mockAccept(...args),
     },
-    acceptedLegalDocument: (doc: string | { slug: string }) => {
-        const slug = typeof doc === 'string' ? doc : doc.slug
-        return { slug, version: `version-of-${slug}`, hash: 'a'.repeat(64) }
-    },
 }))
 
 let mockUser: { user: { userId: string; username: string }; showEarlyUserModal?: boolean } | null = null
@@ -262,9 +258,9 @@ describe('ReConsentModal', () => {
             fireEvent.click(screen.getByText(t.acceptCta))
         })
 
-        // "consentApi.accept(documents.map(acceptedLegalDocument))"
+        // the shown documents, each with the status endpoint's currentVersion (TASK-25073)
         expect(mockAccept).toHaveBeenCalledTimes(1)
-        expect(mockAccept).toHaveBeenCalledWith([expect.objectContaining({ slug: 'terms' })])
+        expect(mockAccept).toHaveBeenCalledWith(documents.map((d) => ({ slug: d.slug, version: d.currentVersion })))
         // "on success invalidate the consent query and call onActed"
         expect(invalidate).toHaveBeenCalledWith(
             expect.objectContaining({ queryKey: expect.arrayContaining(['consent-status']) })

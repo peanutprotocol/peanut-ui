@@ -31,10 +31,6 @@ jest.mock('@/services/consent', () => ({
         getStatus: (...args: unknown[]) => mockGetStatus(...args),
         accept: (...args: unknown[]) => mockAccept(...args),
     },
-    acceptedLegalDocument: (doc: string | { slug: string }) => {
-        const slug = typeof doc === 'string' ? doc : doc.slug
-        return jest.requireActual('@/services/consent').acceptedLegalDocument(slug)
-    },
 }))
 
 let mockUser: { user: { userId: string; username: string }; showEarlyUserModal?: boolean } | null = null
@@ -203,7 +199,6 @@ beforeEach(() => {
 import { legalReconsent } from '../registry'
 import { ledgerActions, readLedger } from '../ledger'
 import { isSilenced } from '../decide'
-import { acceptedLegalDocument } from '@/services/consent'
 import type { JourneyState } from '../types'
 jest.mock('../ledgerSync', () => ({ scheduleLedgerSync: jest.fn() }))
 test('reports the successful write before refresh can unmount the surface', async () => {
@@ -234,7 +229,7 @@ test('does not report acceptance when the write fails', async () => {
     })
     expect(onAccepted).not.toHaveBeenCalled()
 })
-test('accepting an older bundled version keeps outstanding current terms live', async () => {
+test('an acceptance the status check does not confirm keeps the current terms live', async () => {
     const documents = [{ slug: 'terms', currentVersion: '2099-01-01' }]
     const state = {
         now: Date.now(),
@@ -251,8 +246,8 @@ test('accepting an older bundled version keeps outstanding current terms live', 
     await act(async () => {
         fireEvent.click(screen.getByText(en.global.reConsent.acceptCta))
     })
-    expect(mockAccept).toHaveBeenCalledWith([acceptedLegalDocument('terms')])
-    expect(acceptedLegalDocument('terms').version < documents[0].currentVersion).toBe(true)
+    // the version sent is the status endpoint's own currentVersion, never a bundled one
+    expect(mockAccept).toHaveBeenCalledWith([{ slug: 'terms', version: '2099-01-01' }])
     expect(legalReconsent.eligible(state)).toBe('show')
     expect(isSilenced(legalReconsent, readLedger('alice')['legal-reconsent'], state)).toBe(false)
 })
