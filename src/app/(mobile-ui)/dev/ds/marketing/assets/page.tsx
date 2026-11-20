@@ -47,7 +47,7 @@ import {
 
 const tokenValue = (name: string) => COLOR_TOKENS.find((t) => t.name === name)?.value ?? '—'
 
-function ArtGrid({ entries }: { entries: ArtEntry[] }) {
+function ArtGrid({ entries, children }: { entries: ArtEntry[]; children?: React.ReactNode }) {
     return (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {entries.map((entry) => (
@@ -60,6 +60,7 @@ function ArtGrid({ entries }: { entries: ArtEntry[] }) {
                     <p className="text-body-xs text-foreground-secondary">{entry.usedIn}</p>
                 </Card>
             ))}
+            {children}
         </div>
     )
 }
@@ -223,8 +224,7 @@ export default function MarketingAssetsPage() {
 
             <DocSection title="App icons" description="Picture icons with one job each: points, regions, invites.">
                 <DesignNote type="info">{APP_ICON_RULE}</DesignNote>
-                <ArtGrid entries={APP_ICON_ENTRIES} />
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <ArtGrid entries={APP_ICON_ENTRIES}>
                     <Card className="flex h-full flex-col gap-2 p-3">
                         <div className="flex h-16 items-center justify-center rounded-sm bg-background-page p-2">
                             <Icon name="invite-heart" size={40} />
@@ -235,7 +235,7 @@ export default function MarketingAssetsPage() {
                         </p>
                         <p className="text-body-xs text-foreground-secondary">{INVITE_HEART_ENTRY.usedIn}</p>
                     </Card>
-                </div>
+                </ArtGrid>
             </DocSection>
 
             <DocSection title="Easter eggs" description="Hidden. Eight no-banking territories in EasterEggDrawer.">
