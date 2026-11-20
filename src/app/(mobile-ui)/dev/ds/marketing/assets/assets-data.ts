@@ -33,6 +33,7 @@ import handPeace from '@/assets/illustrations/hand-peace.svg'
 import handThumbsUp from '@/assets/illustrations/hand-thumbs-up.svg'
 import handWaving from '@/assets/illustrations/hand-waving.svg'
 import landingCountries from '@/assets/illustrations/landing-countries.svg'
+import phoneBuddy from '@/assets/illustrations/phone-buddy.webp'
 import scribbleCircle from '@/assets/illustrations/scribble-circle.svg'
 import sparkle from '@/assets/illustrations/sparkle.svg'
 import stackCoin from '@/assets/illustrations/stack-coin.svg'
@@ -141,6 +142,19 @@ export const COIN_ENTRIES: ArtEntry[] = [
         asset: coinEurRig,
         path: 'assets/onboarding/coin-eur-rig.png',
         usedIn: 'CoinCharacter still: sign-up Accounts, Payment plan, Final confirm, Celebration',
+    },
+]
+
+/**
+ * Object characters: a thing with a face, a thick outline and a white glove.
+ * One named use each.
+ */
+export const OBJECT_CHARACTER_ENTRIES: ArtEntry[] = [
+    {
+        label: 'phone-buddy',
+        asset: phoneBuddy,
+        path: 'assets/illustrations/phone-buddy.webp',
+        usedIn: "The 'Get money alerts' pop-up (SetupNotificationsModal), in place of the Peanut: one short buzz when it opens, still under reduced motion. Not on sign-up step 10. Approved by Konrad, 2026-11-20.",
     },
 ]
 

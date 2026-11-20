@@ -37,6 +37,7 @@ import {
     MASCOT_STILL_ENTRIES,
     NATIVE_ART_EXCEPTION_ENTRIES,
     NATIVE_ART_EXCEPTION_RULE,
+    OBJECT_CHARACTER_ENTRIES,
     OG_DOODLE_ENTRIES,
     OG_DOODLE_RULE,
     PRESS_STILL_ENTRIES,
@@ -174,6 +175,10 @@ export default function MarketingAssetsPage() {
                         Sign-up Accounts step, desktop side panel; CoinCharacter cuts its coins from it
                     </p>
                 </Card>
+            </DocSection>
+
+            <DocSection title="Object characters" description="A thing with a face and a white glove. One use each.">
+                <ArtGrid entries={OBJECT_CHARACTER_ENTRIES} />
             </DocSection>
 
             <DocSection
