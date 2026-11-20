@@ -1,13 +1,13 @@
 'use client'
 
 import { motion, MotionConfig } from 'framer-motion'
-import { STAR_LP_SPRING } from '@/components/Marketing/StarLp/starLp.consts'
-import { useEntranceArm } from '@/components/Marketing/StarLp/useEntranceArm'
 import { twMerge } from '@/utils/tw'
-import { QrArgentinaScanLine } from './QrArgentinaScanLine'
-import type { QrArgentinaScanFrameProps } from './qrArgentina.types'
+import { ScanLine } from './ScanLine'
+import { STAR_LP_SPRING } from './starLp.consts'
+import type { ScanFrameProps } from './starLp.types'
+import { useEntranceArm } from './useEntranceArm'
 
-// The four corners of the app's scanner frame, each with the diagonal it locks in from.
+// The four corners of the scanner frame, each with the diagonal it locks in from.
 const CORNERS = [
     { className: 'top-0 left-0 border-t-[5px] border-l-[5px] rounded-tl-card', x: -10, y: -10 },
     { className: 'top-0 right-0 border-t-[5px] border-r-[5px] rounded-tr-card', x: 10, y: -10 },
@@ -20,13 +20,15 @@ const SCAN_S = 0.7
 const PULSE_DELAY = SCAN_DELAY + SCAN_S
 
 /**
- * The app's scanner frame round the closing sticker. Once in view, the
- * corners spring in from outside, one scan line sweeps the sticker, and the
- * sticker gives one "detected" pulse. Plays once; at rest without JS, above
- * the fold or under reduced motion (useEntranceArm). `scanLine={false}` keeps
- * only the corners: no sweep and no pulse.
+ * The one scanner frame of the landing pages, round a sticker. The corners sit
+ * on the frame's own edge, so its padding sets their distance from the
+ * content. Once in view, the corners spring in from outside, one scan line
+ * sweeps the sticker, and the sticker gives one "detected" pulse. Plays once;
+ * at rest without JS, above the fold or under reduced motion (useEntranceArm).
+ * `scanLine={false}` keeps only the corners: no sweep and no pulse.
  */
-export function QrArgentinaScanFrame({ children, scanLine = true, className }: QrArgentinaScanFrameProps) {
+// TODO(TASK-25138): replace with src/components/Global/ScanFrame once the in-app scanner frame PR is on dev.
+export function ScanFrame({ children, scanLine = true, className }: ScanFrameProps) {
     const { ref, armed } = useEntranceArm()
     return (
         <MotionConfig reducedMotion="user">
@@ -84,7 +86,7 @@ export function QrArgentinaScanFrame({ children, scanLine = true, className }: Q
                                     },
                                 }}
                             >
-                                <QrArgentinaScanLine />
+                                <ScanLine />
                             </motion.span>
                         </motion.span>
                     </span>

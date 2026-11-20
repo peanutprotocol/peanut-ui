@@ -15,7 +15,9 @@ import { markVerifySource, type VerifySource } from './verifySource'
 export function usePaperworkVerificationRedirect(
     active: boolean,
     entry: PaperworkVerificationEntry | undefined,
-    source: VerifySource = 'unlock_payments'
+    source: VerifySource = 'unlock_payments',
+    // a page that is only this gate must not stay in history, or back re-mounts it and redirects again
+    replace = false
 ) {
     const router = useRouter()
     const userId = useOptionalAuth()?.user?.user.userId
@@ -30,22 +32,23 @@ export function usePaperworkVerificationRedirect(
         setLegacyEntry(null)
         if (!enabled || !entry) return
         const controller = new AbortController()
+        const go = (route: string) => (replace ? routerRef.current.replace(route) : routerRef.current.push(route))
         void paperworkVerificationEntryRoute(entry, controller.signal)
             .then((route) => {
                 if (controller.signal.aborted || currentEntry.current !== entryKey) return
                 if (route === '/verify') markVerifySource(source)
-                if (route) routerRef.current.push(route)
+                if (route) go(route)
                 else setLegacyEntry(entryKey)
             })
             .catch(() => {
                 if (controller.signal.aborted || currentEntry.current !== entryKey) return
                 markVerifySource(source)
-                routerRef.current.push('/verify')
+                go('/verify')
             })
         return () => {
             controller.abort()
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps -- `entryKey` stands for `entry`
-    }, [enabled, entryKey, source])
+    }, [enabled, entryKey, source, replace])
     return enabled && legacyEntry !== entryKey
 }

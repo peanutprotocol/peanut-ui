@@ -4,7 +4,7 @@ import PixIcon from '@/assets/payment-apps/pix.svg'
 import { Band } from '@/components/Marketing/StarLp/Band'
 import { SectionTitle } from '@/components/Marketing/StarLp/SectionTitle'
 import { TillSticker } from '@/components/Marketing/StarLp/TillSticker'
-import { QrArgentinaScanFrame } from '@/components/Marketing/StarLp/pages/QrArgentinaScanFrame'
+import { ScanFrame } from '@/components/Marketing/StarLp/ScanFrame'
 import { getStarLpLink } from '@/components/Marketing/StarLp/starLpNavigation'
 import type { HomePayLocalFoldProps } from './homeFolds.types'
 import { HOME_STICKER_CAPTION_CLASS, HOME_STICKER_LINK_CLASS } from './homeFolds.consts'
@@ -35,7 +35,7 @@ export function HomePayLocalFold({ strings, locale }: HomePayLocalFoldProps) {
                         />
                     </p>
                 </div>
-                <QrArgentinaScanFrame className="mt-0 w-fit p-4 md:w-fit lg:p-6 xl:p-8">
+                <ScanFrame className="mt-0 w-fit p-4 md:w-fit lg:p-6 xl:p-8">
                     <div className="flex items-start gap-3 xs:gap-4 lg:gap-6 xl:gap-8">
                         <Link
                             href={hrefs.argentina}
@@ -74,7 +74,7 @@ export function HomePayLocalFold({ strings, locale }: HomePayLocalFoldProps) {
                             <span className={HOME_STICKER_CAPTION_CLASS}>{strings.brazil}</span>
                         </Link>
                     </div>
-                </QrArgentinaScanFrame>
+                </ScanFrame>
             </div>
         </Band>
     )

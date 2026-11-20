@@ -37,6 +37,7 @@ import scribbleCircle from '@/assets/illustrations/scribble-circle.svg'
 import sparkle from '@/assets/illustrations/sparkle.svg'
 import stackCoin from '@/assets/illustrations/stack-coin.svg'
 import star from '@/assets/illustrations/star.svg'
+import idCardGlove from '@/assets/kyc/id-card-glove.svg'
 import coinEurFace from '@/assets/onboarding/coin-eur-face.svg'
 import coinEurRig from '@/assets/onboarding/coin-eur-rig.png'
 import coinUsdFace from '@/assets/onboarding/coin-usd-face.svg'
@@ -86,13 +87,13 @@ export const MASCOT_STILL_ENTRIES: ArtEntry[] = [
         label: 'peanut-club',
         asset: PEANUTMAN_MOBILE,
         path: 'assets/mascot/peanut-club.webp',
-        usedIn: 'PEANUTMAN_MOBILE: app-install banner (useHomeCarouselCTAs), MigrationHero',
+        usedIn: 'PEANUTMAN_MOBILE: app-install banner (useHomeCarouselCTAs), MigrationHero. Flat redraw, walking, approved by Konrad 2026-11-20.',
     },
     {
         label: 'peanut-sitting',
         asset: PEANUT_SITTING,
         path: 'assets/mascot/peanut-sitting.webp',
-        usedIn: 'PEANUT_SITTING: creator invite page A1 (NitaA1), DS receipt card fan demo (ReceiptCardFan). It always sits on a horizontal divider or edge; it never floats.',
+        usedIn: 'PEANUT_SITTING: creator invite page A1 (NitaA1), the still behind the pointing-down loop on creator pages A1 and E1 (CreatorPageMascot), DS receipt card fan demo (ReceiptCardFan); emails use a straight 333 x 402 PNG copy, public/email/peanut-sitting-3x.png, shown at 111 x 134. It must always sit on a horizontal divider or edge, seat on the line; it never floats.',
     },
 ]
 
@@ -174,7 +175,7 @@ export const DOODLE_ENTRIES: ArtEntry[] = [
         label: 'stack-coin',
         asset: stackCoin,
         path: 'assets/illustrations/stack-coin.svg',
-        usedIn: 'no app call site; permitted celebration "Coins land, get stacked"',
+        usedIn: 'Pot status line at 18 px (PotProgress: "Goal achieved!", "Goal exceeded!" and the below-goal line on a closed pot); permitted celebration "Coins land, get stacked"',
     },
     {
         label: 'peanut-card-hand',
@@ -273,7 +274,7 @@ export const APP_ICON_ENTRIES: ArtEntry[] = [
 export const INVITE_HEART_ENTRY = {
     label: 'invite-heart',
     path: 'components/Global/Icons/invite-heart.tsx',
-    usedIn: 'Invite buttons and invite rows: profile header, Rewards, QR pay success, receipt referral action. Also the perk gift box and the charitable donations answer in the paperwork questions',
+    usedIn: 'Invite buttons and invite rows: profile header, Rewards, QR pay success, receipt referral action. Also the charitable donations answer in the paperwork questions',
 }
 
 export const APP_ICON_RULE =
@@ -304,6 +305,12 @@ export const GLOVE_ENTRIES: ArtEntry[] = [
         asset: handThumbsUp,
         path: 'assets/illustrations/hand-thumbs-up.svg',
         usedIn: 'FooterChrome hand row; home marquee default image; MarketingHero/mdx Hero; securityBuiltIn icon; kyc success; PublicProfile join button',
+    },
+    {
+        label: 'id-card-glove',
+        asset: idCardGlove,
+        path: 'assets/kyc/id-card-glove.svg',
+        usedIn: 'Verify step "Which document will you use?" hero (IdCardScanAnimation): pops in, then a flat scan band sweeps the card. Approved by Konrad, 2026-11-20.',
     },
     { label: 'got-it-hand', asset: gotItHand, path: 'assets/illustrations/got-it-hand.svg', usedIn: 'Landing folds' },
     {
@@ -428,6 +435,21 @@ export const BADGE_VARIANT_ENTRIES: ArtEntry[] = [
         usedIn: 'White-paper variant of the first_invite badge, for coloured panels: sign-up Email step (EmailArt)',
     },
 ]
+
+/**
+ * Art outside the web app that Konrad approved as it is. Each is an exception:
+ * it is not redrawn to the house style and not reused anywhere else.
+ */
+export const NATIVE_ART_EXCEPTION_ENTRIES = [
+    {
+        label: 'wallet-card-artwork',
+        path: 'ios/App/App/WalletCardArtwork.swift',
+        usedIn: 'iPhone Wallet, "From Apps on Your iPhone" list: the picture next to the Peanut card (IssuerExtensionHandler). Drawn by UIKit at 160 x 160; there is no image file, so this page does not show it.',
+    },
+]
+
+export const NATIVE_ART_EXCEPTION_RULE =
+    'Approved exception: keep the iPhone Wallet card picture exactly as it is today. Do not change it and do not copy it to another surface. Approved by Konrad, 2026-11-20.'
 
 export const TIER_BADGE_ENTRIES: ArtEntry[] = [0, 1, 2, 3].map((tier) => ({
     label: `tier${tier}`,

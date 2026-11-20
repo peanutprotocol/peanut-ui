@@ -304,7 +304,7 @@ export function IdentityDocumentScreen({
                 )}
             </div>
             <div className="setup-hero-background relative h-68 w-full shrink-0 short:h-52">
-                <IdCardScanAnimation className="absolute bottom-2.5 left-1/2 h-51 w-61.5 -translate-x-1/2 short:h-36 short:w-43.5" />
+                <IdCardScanAnimation className="absolute bottom-2.5 left-1/2 size-55 -translate-x-1/2 short:size-40" />
             </div>
             <div className="flex min-h-0 flex-1 flex-col gap-3 px-6 pt-6 pb-6">
                 <h1 className="text-heading-m whitespace-pre-line text-foreground-primary">

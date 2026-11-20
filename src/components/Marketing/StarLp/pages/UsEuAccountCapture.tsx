@@ -1,4 +1,6 @@
 import Image from 'next/image'
+import coinEurFace from '@/assets/onboarding/coin-eur-face.svg'
+import coinUsdFace from '@/assets/onboarding/coin-usd-face.svg'
 import { DropIn } from '@/components/Marketing/StarLp/DropIn'
 import { twMerge } from '@/utils/tw'
 import type { UsEuAccountCaptureProps } from './usEuAccounts.types'
@@ -6,6 +8,9 @@ import type { UsEuAccountCaptureProps } from './usEuAccounts.types'
 /** The press, shared by the card and its sign so they sink together. */
 const PRESS =
     'group-active:translate-x-1 group-active:translate-y-1 group-active:shadow-none motion-safe:transition-[translate,box-shadow] motion-safe:duration-instant'
+
+/** The sign-up coin faces, so sign-up and the landing pages show one coin. */
+const COIN_FACE = { usd: coinUsdFace, eur: coinEurFace }
 
 /** Centred on the corner, tilted away from the card. The top corners sit under the Knerd (artTuck deep),
     the inner ones under the other card, so each capture gets the outer corner that stays clear. */
@@ -16,8 +21,8 @@ const BADGE_CORNER_CLASS: Record<UsEuAccountCaptureProps['badgeCorner'], string>
 }
 
 /**
- * A real bank-details screen as a sticker that drops in, with its currency sign
- * stuck on one corner. It sits in a link, so a press is the DS press: a 4px
+ * A real bank-details screen as a sticker that drops in, with its currency's
+ * coin stuck on one corner. It sits in a link, so a press is the DS press: a 4px
  * drop onto its hard shadow, which goes. The press is the link's `group-active`
  * state, not a framer `whileTap`, which would make this box its own keyboard
  * stop inside the decorative hero art. Hover adds no motion (design.md §
@@ -51,16 +56,12 @@ export function UsEuAccountCapture({
         </div>
     )
     const coin = (
-        <span
+        <Image
+            src={COIN_FACE[badge]}
+            alt=""
             aria-hidden
-            className={twMerge(
-                'font-roboto-flex-extrabold shadow-2 absolute grid size-12 place-items-center rounded-full border-2 border-border-default bg-background-accent-yellow text-heading-s',
-                BADGE_CORNER_CLASS[badgeCorner],
-                PRESS
-            )}
-        >
-            {badge}
-        </span>
+            className={twMerge('absolute size-12 object-contain', BADGE_CORNER_CLASS[badgeCorner], PRESS)}
+        />
     )
 
     if (entrance) {

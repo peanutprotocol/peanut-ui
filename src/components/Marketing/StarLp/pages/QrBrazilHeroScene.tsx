@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import mantecaScanner from '@/assets/iphone-ss/manteca_ss.webp'
+import { ScanLine } from '@/components/Marketing/StarLp/ScanLine'
 import { StarLpQrCode } from '@/components/Marketing/StarLp/StarLpQrCode'
 import { QrBrazilAppLink } from './QrBrazilAppLink'
 import { QrBrazilPixSticker } from './QrBrazilPixSticker'
@@ -48,7 +49,7 @@ export function QrBrazilHeroScene() {
                                 }}
                             >
                                 <StarLpQrCode campaign="qr-brazil" slot="hero-sticker" className="size-full" />
-                                <span aria-hidden className="qr-br-scanline" />
+                                <ScanLine className="qr-br-scanline" />
                             </div>
                         </div>
                     </div>
