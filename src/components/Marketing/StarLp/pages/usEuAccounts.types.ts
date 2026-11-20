@@ -12,8 +12,8 @@ export interface UsEuAccountCaptureProps {
     tilt: number
     /** Delay of the drop-in, in seconds. */
     delay: number
-    /** The currency sign stuck on the card ('$' or '€'), so the two captures tell apart at a glance. */
-    badge: string
+    /** The currency coin stuck on the card, so the two captures tell apart at a glance. */
+    badge: 'usd' | 'eur'
     /** The outer corner the sign sits on: the ones clear of the Knerd above and of the other card. */
     badgeCorner: 'bottom-left' | 'top-right'
     className?: string

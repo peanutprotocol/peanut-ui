@@ -1,23 +1,23 @@
 import { render } from '@testing-library/react'
-import { QrArgentinaScanFrame } from '../pages/QrArgentinaScanFrame'
+import { ScanFrame } from '../ScanFrame'
 
 const scanBar = (container: HTMLElement) => container.querySelector('.bg-background-brand')
 
-describe('QrArgentinaScanFrame', () => {
+describe('ScanFrame', () => {
     it('sweeps a scan line over the sticker by default', () => {
         const { container } = render(
-            <QrArgentinaScanFrame>
+            <ScanFrame>
                 <p>sticker</p>
-            </QrArgentinaScanFrame>
+            </ScanFrame>
         )
         expect(scanBar(container)).not.toBeNull()
     })
 
     it('draws only the corners without the scan line, and takes a wider frame', () => {
         const { container, getByText } = render(
-            <QrArgentinaScanFrame scanLine={false} className="w-full md:w-120">
+            <ScanFrame scanLine={false} className="w-full md:w-120">
                 <p>two stickers</p>
-            </QrArgentinaScanFrame>
+            </ScanFrame>
         )
         expect(scanBar(container)).toBeNull()
         expect(getByText('two stickers')).toBeInTheDocument()

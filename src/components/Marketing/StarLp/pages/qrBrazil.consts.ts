@@ -52,8 +52,7 @@ export const QR_BRAZIL_SCANNER_CODE = {
  * press (a 4px drop) on everything that opens signup. Transform and opacity only.
  */
 export const QR_BRAZIL_MOTION_CSS = `
-.qr-br-scanline{display:none;position:absolute;inset:0}
-.qr-br-scanline::before{content:'';position:absolute;inset-inline:0;top:0;height:2px;background:var(--color-pink-500)}
+.qr-br-scanline{display:none}
 .qr-br-press{transition:transform var(--transition-duration-instant) ease-out}
 .qr-br-press:active{transform:translate(4px,4px)}
 .qr-br-tap::after{content:'';position:absolute;left:3.2%;top:16.7%;width:92.5%;height:61.1%;border-radius:9999px;background:#000;opacity:0}

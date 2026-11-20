@@ -37,8 +37,3 @@ export interface QrBrazilPayButtonPressProps {
     variant: 'live' | 'norate'
     pressed: boolean
 }
-
-export interface QrBrazilScanFrameProps {
-    children: ReactNode
-    className?: string
-}
