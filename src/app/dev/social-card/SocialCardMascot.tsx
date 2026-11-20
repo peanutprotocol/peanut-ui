@@ -2,13 +2,13 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { MASCOT_ANIMATION_LOADERS } from '@/components/Global/PeanutMascot/PeanutMascot.consts'
+import type { MascotPose } from '@/components/Global/PeanutMascot/PeanutMascot.types'
 
 /**
- * One held frame of the walking loop. PeanutMascot always plays (and jitters
- * its frames), so a capture of it is not repeatable; this holds the frame the
- * card names. `data-lottie-ready` tells the render script when to shoot.
+ * One held frame of an approved pose. PeanutMascot always plays, so a
+ * capture of it is not repeatable; this holds the frame the card names. `data-lottie-ready` tells the render script when to shoot.
  */
-export function SocialCardMascot({ frame }: { frame: number }) {
+export function SocialCardMascot({ pose, frame }: { pose: MascotPose; frame: number }) {
     const stageRef = useRef<HTMLDivElement>(null)
     const [ready, setReady] = useState(false)
 
@@ -18,7 +18,7 @@ export function SocialCardMascot({ frame }: { frame: number }) {
         let cancelled = false
         let destroy = () => {}
 
-        void Promise.all([import('lottie-web/build/player/lottie_light'), MASCOT_ANIMATION_LOADERS.walking()]).then(
+        void Promise.all([import('lottie-web/build/player/lottie_light'), MASCOT_ANIMATION_LOADERS[pose]()]).then(
             ([lottie, animationData]) => {
                 if (cancelled) return
                 const animation = lottie.default.loadAnimation({
@@ -40,7 +40,7 @@ export function SocialCardMascot({ frame }: { frame: number }) {
             destroy()
             setReady(false)
         }
-    }, [frame])
+    }, [pose, frame])
 
     return <div ref={stageRef} className="size-full" data-lottie-ready={ready ? 'true' : 'false'} />
 }

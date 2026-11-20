@@ -28,8 +28,22 @@ try {
     const page = await browser.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 1 })
     const response = await page.goto(url.href, { waitUntil: 'networkidle' })
     if (!response?.ok()) throw new Error(`${url.href} answered ${response?.status()}`)
-    await page.waitForSelector('[data-social-card] [data-lottie-ready="true"]')
+    await page.waitForSelector('[data-social-card]')
+    // A card without a mascot has no Lottie to wait for.
+    await page.waitForFunction(
+        () =>
+            !document.querySelector('[data-lottie-ready="false"]') &&
+            [...document.images].every((image) => image.complete)
+    )
     await page.evaluate(() => document.fonts.ready)
+    // The card is the page; app chrome (toasts, the dev-mode badge) is not part of it.
+    await page.evaluate(() => {
+        const card = document.querySelector('[data-social-card]')
+        for (const element of document.body.querySelectorAll('*')) {
+            if (!element.contains(card) && !card.contains(element))
+                element.style.setProperty('display', 'none', 'important')
+        }
+    })
     await page.screenshot({ path: values.out, type: 'png' })
     console.log(`wrote ${values.out} from ${url.href}`)
 } finally {
