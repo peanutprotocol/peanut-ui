@@ -43,7 +43,7 @@ export function UsEuAccountPair({
                 tilt={-3}
                 delay={pairedEntrance ? 0 : 0.15}
                 entrance={entrance}
-                badge="$"
+                badge="usd"
                 badgeCorner="bottom-left"
                 priority={priority}
                 className="relative -ml-2 w-[97%] md:ml-0 md:w-[84%] lg:w-[54%]"
@@ -53,7 +53,7 @@ export function UsEuAccountPair({
                 tilt={2}
                 delay={pairedEntrance ? 0.1 : 0.45}
                 entrance={entrance}
-                badge="€"
+                badge="eur"
                 badgeCorner="top-right"
                 className={twMerge(
                     'relative z-10 -mt-3 -mr-2 ml-auto w-[97%] md:mr-0 md:w-[84%] lg:mt-16 lg:-ml-16 lg:w-[54%]',

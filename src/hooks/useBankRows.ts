@@ -10,6 +10,7 @@ import {
 } from '@/features/kyc-features/report'
 import { findPixRoute, pixDepositOffered, pixResidencePaused, withPixRoute } from '@/features/pix/pixRoute.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
+import { residenceAddressEntry } from '@/features/kyc-features/residenceAddressEntry'
 import type { FeatureReport, FeatureReportEntry } from '@/types/capabilities'
 import { readDeclaredResidence, readSecondResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
 import { useHydrationSnapshot } from '@/utils/native-platform'
@@ -94,7 +95,8 @@ export function useBankRows() {
     // for the route's own reason, never a residence rule, so the refusal has a place; without a route
     // the row keeps the report's rule.
     const pixRoute = findPixRoute(capabilities.routes, 'deposit')
-    const brlLeaves = pixDepositOffered(pixRoute) || pixResidencePaused(pixRoute)
+    const brlAddressStep = residenceAddressEntry(entryFor('brl'), nextActions)
+    const brlLeaves = !brlAddressStep && (pixDepositOffered(pixRoute) || pixResidencePaused(pixRoute))
     const pixRouteRefused = pixRoute?.state === 'refused'
 
     // Server copy first; the localStorage mirror of the signup answer covers

@@ -1,8 +1,9 @@
 import Image from 'next/image'
 import sendCapture from '@/assets/star-lp/self-custody-send.webp'
+import { Icon } from '@/components/Global/Icons/Icon'
 import { PhoneFrame } from '@/components/Marketing/StarLp/PhoneFrame'
+import { ScanLine } from '@/components/Marketing/StarLp/ScanLine'
 import { SelfCustodyAppLink } from './SelfCustodyAppLink'
-import { SelfCustodyPasskeyGlyph } from './SelfCustodyPasskeyGlyph'
 
 // CSS, so the server render already holds the start frame: no flash on
 // hydration, it still plays without JS, and reduced motion shows the end frame
@@ -18,8 +19,9 @@ const BEAT_KEYFRAMES = [
 
 /**
  * Hero art: the app's real send screen (fixture `send`, recipient set to the
- * page's payer persona). The passkey sheet is OS UI, so it stays drawn. The
- * phone leads where the CTA leads (signup, where the passkey is made).
+ * page's payer persona). The passkey sheet is OS UI built from DS pieces; its
+ * face-scan mark is the icon set's `scan-face`, the same one sign-up shows.
+ * The phone leads where the CTA leads (signup, where the passkey is made).
  * From md the screen is wider and cut just under the amount card, and the
  * sheet is one row, so the art grows without pushing the CTA out of the first
  * screen; the cut-off Send button takes no press there.
@@ -47,11 +49,8 @@ export function SelfCustodySendScreen() {
                         from md it is one row, so its top edge stays under the capture's balance line. */}
                     <div className="absolute inset-x-0 bottom-0 grid justify-items-center gap-1 rounded-t-sm border-t border-border-disabled bg-background-disabled px-4 pt-2 pb-2 text-center motion-safe:animate-[sc-sheet-up_0.6s_var(--ease-spring)_1.1s_both] md:flex md:items-center md:gap-3 md:py-3 md:text-left">
                         <span className="relative inline-block overflow-hidden motion-safe:animate-[sc-glyph-beat_0.5s_var(--ease-spring)_2.5s_both]">
-                            <SelfCustodyPasskeyGlyph className="h-8 w-8" />
-                            <span
-                                aria-hidden
-                                className="absolute inset-x-0 top-0 h-0.5 bg-background-brand opacity-0 motion-safe:animate-[sc-scan_0.7s_ease-in-out_1.8s_both]"
-                            />
+                            <Icon name="scan-face" size={32} aria-hidden />
+                            <ScanLine className="opacity-0 motion-safe:animate-[sc-scan_0.7s_ease-in-out_1.8s_both]" />
                         </span>
                         <p className="text-body-m-semibold md:flex-1">Use your passkey?</p>
                         <div className="w-full rounded-sm border-2 border-border-default bg-background-icon-bubble-blue py-2 text-center text-body-m-semibold text-foreground-primary md:w-auto md:px-8">

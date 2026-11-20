@@ -1,7 +1,7 @@
 import { Band } from '@/components/Marketing/StarLp/Band'
 import { KnerdTitle } from '@/components/Marketing/StarLp/KnerdTitle'
+import { ScanFrame } from '@/components/Marketing/StarLp/ScanFrame'
 import { StarLpCta } from '@/components/Marketing/StarLp/StarLpCta'
-import { QrArgentinaScanFrame } from './QrArgentinaScanFrame'
 import { QrArgentinaSticker } from './QrArgentinaSticker'
 
 /**
@@ -16,9 +16,9 @@ export function QrArgentinaClose() {
             <h2>
                 <KnerdTitle text="Scan it" size="hero" />
             </h2>
-            <QrArgentinaScanFrame>
+            <ScanFrame>
                 <QrArgentinaSticker slot="close-sticker" />
-            </QrArgentinaScanFrame>
+            </ScanFrame>
             {/* The code is the page's install link dressed as the till's sticker, so the
                 caption says which is which: without it the fold reads as a code to pay. */}
             <p className="mx-auto mt-4 max-w-xs text-body-s text-balance">

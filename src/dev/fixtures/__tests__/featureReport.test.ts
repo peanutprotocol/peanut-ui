@@ -3,6 +3,40 @@ import { featureReport, withFixtureFeatureReport } from '@/dev/fixtures/featureR
 import type { IUserProfile } from '@/interfaces/interfaces'
 
 describe('shared feature report contract', () => {
+    it.each(['required', 'rejected', 'in_review'] as const)('gates local accounts for address %s', (step) => {
+        const report = featureReport({
+            rails: [],
+            nextActions: [
+                {
+                    key: 'sumsub:address_of_residence',
+                    kind: 'sumsub',
+                    levelKey: 'address_of_residence',
+                    purpose: 'residence_address_required',
+                },
+            ],
+            identity: { status: 'verified' },
+            residence: null,
+            residenceAddressStep: step,
+        })
+        const expected =
+            step === 'in_review'
+                ? { state: 'setting_up', reason: 'residence_address_in_review' }
+                : { state: 'action_required', reason: 'residence_unresolved', action: 'sumsub:address_of_residence' }
+        expect(report.local).toMatchObject(expected)
+        expect(report.local.accounts.ARS).toEqual(expected)
+        expect(report.local.accounts.BRL).toEqual(expected)
+    })
+
+    it('keeps unresolved local addresses setting up when no action is available', () => {
+        const report = featureReport({
+            rails: [],
+            nextActions: [],
+            identity: { status: 'verified' },
+            residence: null,
+            residenceAddressStep: 'required',
+        })
+        expect(report.local.accounts.ARS).toEqual({ state: 'setting_up', reason: 'residence_unresolved' })
+    })
     it.each(['BD', { country: 'BD' }])('normalizes residence %p and applies paperwork product refusals', (declared) => {
         // Legacy fixture wire data uses both residence strings and country objects.
         const user = {

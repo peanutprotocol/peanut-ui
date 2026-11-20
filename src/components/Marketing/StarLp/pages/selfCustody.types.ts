@@ -1,9 +1,5 @@
 import type { ReactNode } from 'react'
 
-export interface SelfCustodyGlyphProps {
-    className?: string
-}
-
 export interface SelfCustodyAppLinkProps {
     children: ReactNode
     className?: string

@@ -1,9 +1,9 @@
 import Image from 'next/image'
 import mantecaScanner from '@/assets/iphone-ss/manteca_ss.webp'
 import { DropIn } from '@/components/Marketing/StarLp/DropIn'
+import { ScanLine } from '@/components/Marketing/StarLp/ScanLine'
 import { StarLpQrCode } from '@/components/Marketing/StarLp/StarLpQrCode'
 import { QrArgentinaAppLink } from './QrArgentinaAppLink'
-import { QrArgentinaScanLine } from './QrArgentinaScanLine'
 import { QrArgentinaSticker } from './QrArgentinaSticker'
 
 /**
@@ -51,7 +51,7 @@ export function QrArgentinaHeroArt() {
                                 aria-hidden
                                 className="absolute top-[23.33%] left-[18.8%] h-[31.33%] w-[62.3%] overflow-hidden"
                             >
-                                <QrArgentinaScanLine className="qr-ar-scan qr-ar-hero-scan" />
+                                <ScanLine className="qr-ar-scan qr-ar-hero-scan" />
                             </div>
                             <StarLpQrCode
                                 campaign="qr-argentina"

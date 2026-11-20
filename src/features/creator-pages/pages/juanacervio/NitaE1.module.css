@@ -277,20 +277,16 @@
 .placeholder {
     visibility: hidden;
 }
-.tapeSticker {
-    right: calc(var(--sticker-w) * 0.24);
-    bottom: calc(100% - 12 * var(--u) + var(--sticker-w) * 1.3);
-    z-index: 7;
-    width: calc(var(--sticker-w) * 0.7);
-    transform: rotate(-14deg);
-}
-.sticker {
+/* The mascot loop is a cut-out with no sticker border, so no tape holds it: it stands on the
+   poster beside the Peanut tag. The box has the ratio of the pointing-down artwork.
+   Two classes, to win over the position that CreatorPageMascot gives its own box. */
+.stand > .sticker {
     position: absolute;
     right: calc(6 * var(--u));
     bottom: calc(100% - 12 * var(--u));
     z-index: 7;
     width: var(--sticker-w);
-    height: auto;
+    aspect-ratio: 572.9 / 817.1;
     transform: rotate(9deg);
     filter: drop-shadow(0 calc(5 * var(--u)) calc(6 * var(--u)) rgba(0, 0, 0, 0.5));
 }

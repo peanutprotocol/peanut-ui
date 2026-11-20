@@ -3,8 +3,7 @@
 import { useFooterVisibility } from '@/context/footerVisibility'
 import { useMemo, type ReactNode } from 'react'
 // Imported directly, not through the barrel: `export *` pulls every sibling
-// into this chunk, including dropLink's nine repeat: Infinity animations,
-// which the landing page never renders.
+// into this chunk.
 import { Hero } from '@/components/LandingPage/hero'
 import { Marquee } from '@/components/LandingPage/marquee'
 import { StickyMobileCTA } from '@/components/LandingPage/StickyMobileCTA'

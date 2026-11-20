@@ -125,12 +125,6 @@ const groups: DevToolGroup[] = [
                 icon: 'bank',
             },
             {
-                name: 'Share asset builder',
-                description: 'Iterate the card share asset: badge set, hero variant, seed reroll, PNG capture',
-                path: '/dev/share-builder',
-                icon: 'docs',
-            },
-            {
                 name: 'Debug',
                 description: 'Sandbox-only: full setup, fund USDC, fast-forward KYC, complete intents',
                 path: '/dev/debug',

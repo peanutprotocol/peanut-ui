@@ -317,7 +317,7 @@ export default function DebugPage() {
                     key: 'promptGrantBadge',
                     label: 'Prompt: grant any badge code',
                     description:
-                        'Type any code from BADGE_CODES (BETA_TESTER, CARD_PIONEER, FOUNDER_HOUSE, SUPPORT_SURVIVOR, …). Useful for testing the badge-modal styling without restarting the user.',
+                        'Type any badge code (BETA_TESTER, CARD_PIONEER, FOUNDER_HOUSE, SUPPORT_SURVIVOR, …). Useful for testing the badge-modal styling without restarting the user.',
                     run: async () => {
                         openPrompt({
                             key: 'promptGrantBadge',

@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { motion, MotionConfig } from 'framer-motion'
+import { PhoneFrame } from '@/components/Marketing/StarLp/PhoneFrame'
+import { ShopLockScreen } from '@/components/Marketing/StarLp/ShopLockScreen'
 import { useStoryStep } from '@/components/Marketing/StarLp/useStoryStep'
 import { STAR_LP_SPRING } from '@/components/Marketing/StarLp/starLp.consts'
 import { QrBrazilAppLink } from './QrBrazilAppLink'
@@ -10,9 +12,6 @@ import { QR_BRAZIL_AMOUNT_BRL } from './qrBrazil.consts'
 import { qrBrazilUsdFor } from './qrBrazil.utils'
 import type { QrBrazilPayStoryProps } from './qrBrazil.types'
 
-/* PhoneFrame's look (bezel, hard shadow) around a capture or a coloured
-   screen, which PhoneFrame's cream/white `screen` prop cannot draw. */
-const BEZEL = 'star-lp-phone border-4 border-border-default bg-background-default p-2 shadow-4'
 const BRL = `R$ ${QR_BRAZIL_AMOUNT_BRL},00`
 /** One beat: your Pay screen and the shop's phone, then the Pay tap, then the push. */
 const STEP_MS = 800
@@ -46,11 +45,14 @@ export function QrBrazilPayStory({ usdBrl }: QrBrazilPayStoryProps) {
                     <QrBrazilAppLink
                         label={`Create an account. Peanut's Pay screen: ${BRL} to Padaria da Esquina${usd}, no Peanut fee.`}
                     >
-                        <span className={`${BEZEL} block transition-shadow duration-instant group-active:shadow-none`}>
-                            <span className="star-lp-phone-screen block overflow-hidden bg-background-page">
-                                <QrBrazilPayCapture usdBrl={usdBrl} pressed={step > 1} />
-                            </span>
-                        </span>
+                        {/* the link carries the name, so the frame takes no role of its own */}
+                        <PhoneFrame
+                            interactive
+                            className="max-w-none transition-shadow duration-instant group-active:shadow-none"
+                            screenClassName="block p-0"
+                        >
+                            <QrBrazilPayCapture usdBrl={usdBrl} pressed={step > 1} />
+                        </PhoneFrame>
                     </QrBrazilAppLink>
                 </div>
                 <motion.div
@@ -67,25 +69,27 @@ export function QrBrazilPayStory({ usdBrl }: QrBrazilPayStoryProps) {
                               : { duration: 0 }
                     }
                 >
-                    <div className={BEZEL}>
-                        <div className="star-lp-phone-screen grid min-h-56 content-start gap-3 bg-gray-950 px-2 py-4 text-center text-foreground-inverse md:min-h-64">
-                            <p className="text-heading-m">21:47</p>
+                    <ShopLockScreen
+                        time="21:47"
+                        lang="pt-BR"
+                        title="Pix recebido"
+                        className="max-w-none"
+                        screenClassName="content-start"
+                        noticeClassName="md:text-body-s"
+                        wrapNotice={(notice) => (
                             <motion.div
-                                lang="pt-BR"
-                                className="rounded-card bg-background-default p-2 text-left text-body-xs text-foreground-primary md:text-body-s"
                                 data-story-beat={2}
                                 initial={false}
                                 animate={pushed ? { y: 0, opacity: 1 } : { y: -14, opacity: 0 }}
                                 transition={pushed ? STAR_LP_SPRING.drop : { duration: 0 }}
                                 onAnimationComplete={() => setLanded(pushed)}
                             >
-                                <p className="font-bold">Pix recebido</p>
-                                <p>
-                                    Você recebeu <span className="whitespace-nowrap">{BRL}</span>
-                                </p>
+                                {notice}
                             </motion.div>
-                        </div>
-                    </div>
+                        )}
+                    >
+                        Você recebeu <span className="whitespace-nowrap">{BRL}</span>
+                    </ShopLockScreen>
                 </motion.div>
             </div>
         </MotionConfig>

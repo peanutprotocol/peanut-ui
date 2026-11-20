@@ -111,9 +111,11 @@
     width: 0.75rem;
     height: 0.75rem;
 }
+/* 9px down: the seat rests on the card's top edge and the shoes hang over the card; the doodles stay put. */
 .lead > div > img:nth-child(3) {
     width: 100%;
     height: auto;
+    translate: 0 0.5625rem;
 }
 
 /* Under the post: what Peanut added, not a bank, the pointer down. */
@@ -461,7 +463,8 @@
     font-weight: var(--text-body-s-semibold--font-weight);
     line-height: var(--text-body-s-semibold--line-height);
 }
-.close > img {
+/* The mascot's box (CreatorPageMascot). */
+.close > .mascot {
     width: 7rem;
     height: 7rem;
     margin: 0.5rem auto 0;
@@ -469,7 +472,7 @@
 .close > .inv {
     color: var(--color-foreground-over-color-primary);
 }
-.close > div {
+.close > .legal {
     margin-top: 1.5rem;
     color: var(--color-foreground-over-color-primary);
     font-size: var(--text-body-xs);
@@ -477,7 +480,7 @@
     line-height: var(--text-body-xs--line-height);
     text-align: left;
 }
-.close > div > p:nth-child(2) {
+.close > .legal > p:nth-child(2) {
     margin-top: 0.5rem;
     font-weight: 800;
 }
