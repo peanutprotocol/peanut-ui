@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import { twMerge } from '@/utils/tw'
 import { PEANUTMAN_MOBILE } from '@/assets/mascot'
-import starImage from '@/assets/icons/star.png'
+import starImage from '@/assets/illustrations/star.svg'
 
 const STARS = [
     'left-[8%] top-[18%] size-8',
@@ -21,7 +21,14 @@ export default function MigrationHero({ className }: { className?: string }) {
             )}
         >
             {STARS.map((pos) => (
-                <Image key={pos} src={starImage.src} alt="" width={38} height={38} className={`absolute z-10 ${pos}`} />
+                <Image
+                    key={pos}
+                    src={starImage}
+                    alt=""
+                    width={38}
+                    height={38}
+                    className={`absolute z-10 object-contain ${pos}`}
+                />
             ))}
             <Image
                 src={PEANUTMAN_MOBILE}

@@ -485,7 +485,7 @@ describe('11 Final confirm: art', () => {
     const intersects = (a: ReturnType<typeof box>, b: ReturnType<typeof box>) =>
         a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
 
-    it('P4-40 the coins sit beside the scan frame, never inside it, and the frame holds the smile', () => {
+    it('P4-40 the coins sit beside the scan frame, never inside it, and the frame holds the peanut', () => {
         const { container } = render({ onComplete: jest.fn() })
         const frameEl = container.querySelector('[data-testid="setup-redesign-final-confirm-frame"]')
         expect(frameEl).not.toBeNull()
@@ -505,7 +505,7 @@ describe('11 Final confirm: art', () => {
         expect(intersects(eur, frame)).toBe(false)
         expect(usd.right).toBeLessThanOrEqual(frame.left)
         expect(eur.left).toBeGreaterThanOrEqual(frame.right)
-        expect(frameEl!.querySelector('svg.lucide-smile')).not.toBeNull()
+        expect(frameEl!.querySelector('[data-mascot-pose="too-cool"]')).not.toBeNull()
     })
 
     it('P4-63 under reduced motion no entrance plays and the coins keep their still frame', () => {
