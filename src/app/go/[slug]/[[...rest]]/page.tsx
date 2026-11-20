@@ -14,6 +14,7 @@ import {
     type GoVisit,
 } from '@/features/tracked-links/contract'
 import { e2eCreatorPage } from '@/features/tracked-links/e2e-creator-page'
+import { resolveGoRedirect } from '@/features/tracked-links/go-map'
 import { lookupInviteLink } from '@/features/tracked-links/server'
 import CreatorPageBoundary from '@/features/tracked-links/CreatorPageBoundary'
 import TrackedLinkEntry from '@/features/tracked-links/TrackedLinkEntry'
@@ -33,8 +34,9 @@ const select = cache(
 )
 
 export async function generateMetadata({ params }: GoPageProps): Promise<Metadata> {
-    const username = (await params).slug.toLowerCase()
-    const link = isAcquisitionSlug(username) ? await lookup(username) : null
+    const { slug, rest = [] } = await params
+    const username = slug.toLowerCase()
+    const link = isAcquisitionSlug(username) && !resolveGoRedirect([slug, ...rest]) ? await lookup(username) : null
     let selection: CreatorPageSelection | null = null
     try {
         selection = link?.status === 'found' ? await select(username, link.linkId) : null
@@ -46,6 +48,9 @@ export async function generateMetadata({ params }: GoPageProps): Promise<Metadat
 
 export default async function GoPage({ params, searchParams }: GoPageProps) {
     const { slug, rest = [] } = await params
+    // Before the username check: a short link wins over a creator with the same username, and its key may hold - and _.
+    const destination = resolveGoRedirect([slug, ...rest])
+    if (destination) redirect(destination)
     const username = slug.toLowerCase()
     if (!isAcquisitionSlug(username)) notFound()
     const link = await lookup(username)
