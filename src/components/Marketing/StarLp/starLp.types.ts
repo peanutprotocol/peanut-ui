@@ -360,8 +360,6 @@ export interface StarLpPersona {
     name: string
     /** Chat-bubble and greeting form, e.g. "Fulano". */
     short: string
-    /** Avatar initials. */
-    initials: string
     /** peanut.me username. Checked unregistered on prod (20 Oct 2026). */
     username: string
 }

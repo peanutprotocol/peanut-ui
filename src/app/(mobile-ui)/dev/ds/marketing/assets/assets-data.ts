@@ -92,7 +92,7 @@ export const MASCOT_STILL_ENTRIES: ArtEntry[] = [
         label: 'peanut-sitting',
         asset: PEANUT_SITTING,
         path: 'assets/mascot/peanut-sitting.webp',
-        usedIn: 'PEANUT_SITTING: creator invite page A1 (NitaA1), DS receipt card fan demo (ReceiptCardFan). It always sits on a horizontal divider or edge; it never floats.',
+        usedIn: 'PEANUT_SITTING: creator invite page A1 (NitaA1), the still behind the pointing-down loop on creator pages A1 and E1 (CreatorPageMascot), DS receipt card fan demo (ReceiptCardFan). It must always sit on a horizontal divider or edge, seat on the line; it never floats.',
     },
 ]
 
