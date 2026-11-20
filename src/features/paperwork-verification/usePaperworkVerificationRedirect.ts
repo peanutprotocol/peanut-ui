@@ -18,9 +18,9 @@ export function usePaperworkVerificationRedirect(
     source: VerifySource = 'unlock_payments'
 ) {
     const router = useRouter()
+    const userId = useOptionalAuth()?.user?.user.userId
     const routerRef = useRef(router)
     routerRef.current = router
-    const userId = useOptionalAuth()?.user?.user.userId
     const [legacyEntry, setLegacyEntry] = useState<string | null>(null)
     const enabled = active && !!entry
     const entryKey = JSON.stringify([userId, entry ?? null])
@@ -29,17 +29,23 @@ export function usePaperworkVerificationRedirect(
     useEffect(() => {
         setLegacyEntry(null)
         if (!enabled || !entry) return
-        let cancelled = false
-        void paperworkVerificationEntryRoute(entry).then((route) => {
-            if (cancelled || currentEntry.current !== entryKey) return
-            if (route === '/verify') markVerifySource(source)
-            if (route) routerRef.current.push(route)
-            else setLegacyEntry(entryKey)
-        })
+        const controller = new AbortController()
+        void paperworkVerificationEntryRoute(entry, controller.signal)
+            .then((route) => {
+                if (controller.signal.aborted || currentEntry.current !== entryKey) return
+                if (route === '/verify') markVerifySource(source)
+                if (route) routerRef.current.push(route)
+                else setLegacyEntry(entryKey)
+            })
+            .catch(() => {
+                if (controller.signal.aborted || currentEntry.current !== entryKey) return
+                markVerifySource(source)
+                routerRef.current.push('/verify')
+            })
         return () => {
-            cancelled = true
+            controller.abort()
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps -- `entryKey` stands for `entry`
-    }, [enabled, entryKey])
+    }, [enabled, entryKey, source])
     return enabled && legacyEntry !== entryKey
 }

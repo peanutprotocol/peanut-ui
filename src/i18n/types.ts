@@ -167,10 +167,6 @@ export interface Translations {
     landingHeroSpend: string
     landingHeroLocally: string
 
-    // Landing page — drop-a-link section
-    landingDropLinkHeading: string
-    landingDropLinkBody: string
-
     // Landing page — CTAs
 
     // Legal page headers (privacy/terms carry no <Hero> in their verbatim markdown)

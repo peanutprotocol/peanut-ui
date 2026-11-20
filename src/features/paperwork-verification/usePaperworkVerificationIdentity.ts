@@ -15,6 +15,7 @@ type Session = {
     document?: PaperworkVerificationDocument
     token: string
     sdkConfig: KycAttemptSession['sdkConfig'] | undefined
+    beforeDispatch?: () => boolean
 }
 export type IdentityStartOutcome =
     | { kind: 'busy' }
@@ -39,9 +40,11 @@ const preselected = (sdkConfig: KycAttemptSession['sdkConfig'] | undefined) =>
 export function usePaperworkVerificationIdentity({
     onExistingVerification,
     onResidenceNotSupported,
+    candidateAttemptId,
 }: {
     onExistingVerification?: () => void
     onResidenceNotSupported?: () => void
+    candidateAttemptId?: string
 } = {}) {
     const userId = useOptionalAuth()?.user?.user.userId
     const [session, setSession] = useState<Session | null>(null)
@@ -59,21 +62,29 @@ export function usePaperworkVerificationIdentity({
     )
 
     const open = useCallback(
-        async (attemptId: string, document?: PaperworkVerificationDocument): Promise<IdentityStartOutcome> => {
+        async (
+            attemptId: string,
+            document?: PaperworkVerificationDocument,
+            beforeDispatch?: () => boolean
+        ): Promise<IdentityStartOutcome> => {
             if (busyRef.current) return { kind: 'busy' }
             const active = generation.current
             setDocumentRequired(false)
             busyRef.current = true
             setBusy(true)
             try {
-                const result = await startPaperworkVerificationIdentity(attemptId, document)
-                if (active !== generation.current) return { kind: 'failed' }
+                const result = await (beforeDispatch
+                    ? startPaperworkVerificationIdentity(attemptId, document, beforeDispatch)
+                    : startPaperworkVerificationIdentity(attemptId, document))
+                if (active !== generation.current || beforeDispatch?.() === false) return { kind: 'failed' }
                 if (result.kind !== 'session') return result
+                if (candidateAttemptId && result.session.attemptId !== candidateAttemptId) return { kind: 'failed' }
                 // The ID check opens only once every answer is saved.
-                forgetAnswerDraft(userId)
+                if (!candidateAttemptId) forgetAnswerDraft(userId)
                 const next = {
                     attemptId: result.session.attemptId,
                     document,
+                    beforeDispatch,
                     token: result.session.token,
                     sdkConfig: preselected(result.session.sdkConfig),
                 }
@@ -86,14 +97,17 @@ export function usePaperworkVerificationIdentity({
                 setBusy(false)
             }
         },
-        [userId]
+        [candidateAttemptId, userId]
     )
 
     const refreshToken = useCallback(async () => {
         const current = sessionRef.current
         if (!current) throw new Error('No verification session')
-        const result = await startPaperworkVerificationIdentity(current.attemptId, current.document)
-        if (sessionRef.current !== current) throw new Error('Verification session closed')
+        const result = await (current.beforeDispatch
+            ? startPaperworkVerificationIdentity(current.attemptId, current.document, current.beforeDispatch)
+            : startPaperworkVerificationIdentity(current.attemptId, current.document))
+        if (sessionRef.current !== current || current.beforeDispatch?.() === false)
+            throw new Error('Verification session closed')
         if (result.kind === 'existing-verification' || result.kind === 'residence-not-supported') {
             sessionRef.current = null
             setSession(null)
@@ -105,7 +119,8 @@ export function usePaperworkVerificationIdentity({
             setSession(null)
             setDocumentRequired(true)
         }
-        if (result.kind !== 'session') throw new Error('Failed to refresh verification token')
+        if (result.kind !== 'session' || (candidateAttemptId && result.session.attemptId !== candidateAttemptId))
+            throw new Error('Failed to refresh verification token')
         sessionRef.current = {
             ...current,
             attemptId: result.session.attemptId,
@@ -115,7 +130,7 @@ export function usePaperworkVerificationIdentity({
         attemptIdRef.current = result.session.attemptId
         setSession(sessionRef.current)
         return result.session.token
-    }, [onExistingVerification, onResidenceNotSupported])
+    }, [candidateAttemptId, onExistingVerification, onResidenceNotSupported])
 
     const close = useCallback(() => {
         generation.current += 1

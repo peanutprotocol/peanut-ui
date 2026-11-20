@@ -1,5 +1,7 @@
 import { serverFetch } from '@/utils/api-fetch'
+import type { FeatureReverificationConflict } from '@/app/actions/types/kyc-reverification.types'
 import { kycClientHeaders } from '@/utils/kyc-client-headers'
+import { featureReverificationConflict } from '@/utils/kyc-reverification'
 
 export interface IncreaseLimitsResponse {
     token: string | null
@@ -12,6 +14,7 @@ export const initiateIncreaseLimits = async (): Promise<{
     data?: IncreaseLimitsResponse
     error?: string
     code?: string
+    reverification?: FeatureReverificationConflict
 }> => {
     try {
         const response = await serverFetch('/users/increase-limits', {
@@ -23,6 +26,8 @@ export const initiateIncreaseLimits = async (): Promise<{
         const responseJson = await response.json()
 
         if (!response.ok) {
+            const reverification = featureReverificationConflict(response.status, responseJson)
+            if (reverification) return { reverification }
             return {
                 code: responseJson.code,
                 error:

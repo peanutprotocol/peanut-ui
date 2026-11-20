@@ -9,6 +9,8 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ userId: 'owner' }) }))
+
 const capture = jest.fn()
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: (...args: unknown[]) => capture(...args) } }))
 

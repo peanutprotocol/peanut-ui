@@ -41,6 +41,7 @@ import {
     paperworkVerificationEntryRoute,
 } from '@/features/paperwork-verification/paperworkVerificationEntry'
 import { markVerifySource } from '@/features/paperwork-verification/verifySource'
+import { currentReverificationDestination, featureReverificationPath } from '@/utils/kyc-reverification'
 
 const CARD_ISSUANCE_WAIT_MS = 12_000
 const CARD_ISSUANCE_POLL_MS = 2_000
@@ -437,6 +438,12 @@ export function useCardFlow() {
     // and stays inline. A held claim is not a successful application.
     const advanceFromApplyResponse = useCallback(
         (res: ApplyForCardResponse): boolean => {
+            if (res.status === 'feature-reverification-required' && 'reverification' in res) {
+                if (!isMountedRef.current) return false
+                setSumsubToken(null)
+                router.push(featureReverificationPath(res.reverification.entry, currentReverificationDestination()))
+                return false
+            }
             if (res.status === 'requires-support' && 'reason' in res && res.reason === 'verified-name-missing') {
                 setPendingApplication(null)
                 setPendingTerms(null)
@@ -555,6 +562,7 @@ export function useCardFlow() {
             invalidateOverview,
             refetchCardInfo,
             startFlowAction,
+            router,
             setPlanRefusal,
             fetchUser,
             blockIfFinal,
@@ -1164,7 +1172,8 @@ export function useCardFlow() {
             posthog.capture(ANALYTICS_EVENTS.CARD_SUMSUB_OPENED, { resumed: true })
             return true
         }
-        advanceFromApplyResponse(res)
+        if (res.status === 'feature-reverification-required') await consume()
+        if (sameIdentity(identityRef.current, startedFor)) advanceFromApplyResponse(res)
         return false
     })
 

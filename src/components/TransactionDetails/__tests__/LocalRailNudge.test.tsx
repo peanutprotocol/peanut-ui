@@ -2,8 +2,9 @@
  * LocalRailNudge — country → local-rail nudge on card-spend receipts.
  *
  * The nudge fires only for a Rain card spend whose merchant sits in a
- * country with a cheaper first-party rail (AR → QR, BR → Pix). Every other
+ * country with a first-party rail (AR → QR, BR → Pix). Every other
  * country, and every non-card-spend transaction, must render nothing.
+ * Brazil gets the callout without a number (mono product/pricing.md, B-4).
  *
  * The savings percentage now comes from useCardMarkupRate (single source
  * shared with the QR-pay confirm/success surfaces). Tests mock the hook to
@@ -41,9 +42,14 @@ describe('LocalRailNudge', () => {
         expect(screen.getByText(/In Argentina, paying with QR costs around 9% less/)).toBeInTheDocument()
     })
 
-    it('nudges Brazil card spends toward Pix (static fallback ≈ 7%)', () => {
+    it('tells Brazil card spends about Pix without a percentage, whatever the backend publishes', () => {
+        const { useCardMarkupRate } = jest.requireMock('@/hooks/useCardMarkupRate')
+        useCardMarkupRate.mockReturnValueOnce({ data: { rate: 0.07, source: 'static' } })
         render(<LocalRailNudge transaction={tx('card_pay', 'BR')} />)
-        expect(screen.getByText(/In Brazil, paying with Pix costs around 7% less/)).toBeInTheDocument()
+        expect(screen.getByText('In Brazil, you can also pay with Pix from Peanut.')).toBeInTheDocument()
+        expect(screen.queryByText(/%/)).toBeNull()
+        // no currency means the hook sends no request
+        expect(useCardMarkupRate).toHaveBeenLastCalledWith(undefined)
     })
 
     it('uses the live rate when the hook resolves with data', () => {
@@ -55,7 +61,7 @@ describe('LocalRailNudge', () => {
 
     it('recovers the country code from a city-joined value', () => {
         render(<LocalRailNudge transaction={tx('card_pay', 'São Paulo, BR')} />)
-        expect(screen.getByText(/In Brazil, paying with Pix/)).toBeInTheDocument()
+        expect(screen.getByText(/In Brazil, you can also pay with Pix/)).toBeInTheDocument()
     })
 
     it('localizes the country name and its Portuguese preposition', () => {
@@ -65,7 +71,7 @@ describe('LocalRailNudge', () => {
             </NextIntlClientProvider>
         )
         rtlRender(<LocalRailNudge transaction={tx('card_pay', 'BR')} />, { wrapper })
-        expect(screen.getByText(/No Brasil, pagar com Pix/)).toBeInTheDocument()
+        expect(screen.getByText('No Brasil, você também pode pagar com Pix pelo Peanut.')).toBeInTheDocument()
     })
 
     it('renders nothing for a country with no local rail', () => {

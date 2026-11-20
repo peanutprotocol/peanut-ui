@@ -1,7 +1,10 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { identityStartRefusalPath } from '@/features/paperwork-verification/paperworkVerificationEntry'
+import { useAuth } from '@/context/authContext'
+import type { FeatureReverificationConflict } from '@/app/actions/types/kyc-reverification.types'
+import { currentReverificationDestination, featureReverificationPath } from '@/utils/kyc-reverification'
 
 export interface ActionFlowResponse {
     token: string | null
@@ -11,7 +14,12 @@ export interface ActionFlowResponse {
 }
 
 interface ActionTokenFetcher {
-    (): Promise<{ data?: ActionFlowResponse; error?: string; code?: string }>
+    (): Promise<{
+        data?: ActionFlowResponse
+        error?: string
+        code?: string
+        reverification?: FeatureReverificationConflict
+    }>
 }
 
 interface UseSumsubActionFlowOptions {
@@ -35,6 +43,16 @@ interface UseSumsubActionFlowOptions {
 export function useSumsubActionFlow({ fetchToken, onSuccess, onNeedsSupport }: UseSumsubActionFlowOptions) {
     const t = useTranslations('kyc')
     const router = useRouter()
+    const { userId } = useAuth()
+    const owner = useRef(userId)
+    owner.current = userId
+    const mounted = useRef(true)
+    useEffect(() => {
+        mounted.current = true
+        return () => {
+            mounted.current = false
+        }
+    }, [])
     const [accessToken, setAccessToken] = useState<string | null>(null)
     const [showWrapper, setShowWrapper] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
@@ -47,14 +65,29 @@ export function useSumsubActionFlow({ fetchToken, onSuccess, onNeedsSupport }: U
     onSuccessRef.current = onSuccess
     const onNeedsSupportRef = useRef(onNeedsSupport)
     onNeedsSupportRef.current = onNeedsSupport
+    const goToReverification = useCallback(
+        (reverification: FeatureReverificationConflict, returnTo: string | null) => {
+            setShowWrapper(false)
+            setAccessToken(null)
+            router.push(featureReverificationPath(reverification.entry, returnTo))
+        },
+        [router]
+    )
 
     const handleInitiate = useCallback(async () => {
+        if (owner.current !== userId) return
+        const returnTo = currentReverificationDestination()
         setIsLoading(true)
         setError(null)
         setIsComplete(false)
 
         try {
             const response = await fetchTokenRef.current()
+            if (!mounted.current || owner.current !== userId) return
+            if (response.reverification) {
+                goToReverification(response.reverification, returnTo)
+                return
+            }
 
             const refusalPath = identityStartRefusalPath(response.code)
             if (refusalPath) {
@@ -93,12 +126,13 @@ export function useSumsubActionFlow({ fetchToken, onSuccess, onNeedsSupport }: U
                 setError(message || t('errorStartDocVerification'))
             }
         } catch (e: unknown) {
+            if (!mounted.current || owner.current !== userId) return
             const message = e instanceof Error ? e.message : t('unexpectedError')
             setError(message)
         } finally {
-            setIsLoading(false)
+            if (mounted.current && owner.current === userId) setIsLoading(false)
         }
-    }, [router, t])
+    }, [goToReverification, router, t, userId])
 
     // called when SDK signals verification was submitted
     const handleSdkComplete = useCallback(() => {
@@ -118,7 +152,14 @@ export function useSumsubActionFlow({ fetchToken, onSuccess, onNeedsSupport }: U
 
     // token refresh for the SDK
     const refreshToken = useCallback(async (): Promise<string> => {
+        if (owner.current !== userId) return ''
+        const returnTo = currentReverificationDestination()
         const response = await fetchTokenRef.current()
+        if (!mounted.current || owner.current !== userId) return ''
+        if (response.reverification) {
+            goToReverification(response.reverification, returnTo)
+            return ''
+        }
 
         const refusalPath = identityStartRefusalPath(response.code)
         if (refusalPath) {
@@ -131,7 +172,7 @@ export function useSumsubActionFlow({ fetchToken, onSuccess, onNeedsSupport }: U
 
         setAccessToken(response.data.token)
         return response.data.token
-    }, [router])
+    }, [goToReverification, router, userId])
 
     return {
         isLoading,

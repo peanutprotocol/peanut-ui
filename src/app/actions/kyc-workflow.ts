@@ -8,6 +8,12 @@ import * as Sentry from '@/utils/sentry-lazy'
 import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import type { FeatureReport } from '@/types/capabilities'
 import { isTestApiBuild, reportApiContractError } from '@/utils/api-contracts'
+import { featureReverificationConflict, isFeatureReverificationEntry } from '@/utils/kyc-reverification'
+import type {
+    FeatureReverificationRefreshNotActive,
+    FeatureReverificationStatus,
+    KycPlanFeature,
+} from './types/kyc-reverification.types'
 import {
     PAPERWORK_VERIFICATION_FLOW,
     type KycAttemptSession,
@@ -17,6 +23,7 @@ import {
 } from './types/kyc-workflow.types'
 
 type GuardedRequest = RequestInit & { beforeDispatch?: () => boolean }
+const ATTEMPT_NOT_ACTIVE: FeatureReverificationRefreshNotActive['code'] = 'attempt_not_active'
 
 async function readResponse<T>(path: string, options?: GuardedRequest): Promise<T> {
     const response = await serverFetch(path, {
@@ -30,6 +37,13 @@ async function readResponse<T>(path: string, options?: GuardedRequest): Promise<
     })
     const body: unknown = await response.json().catch(() => null)
     const object = body && typeof body === 'object' && !Array.isArray(body) ? (body as Record<string, unknown>) : null
+    // The API before addendum 1 returned an empty body for an archived candidate.
+    if (
+        response.status === 404 &&
+        path.startsWith('/users/kyc/identity/refresh?attemptId=') &&
+        (body === null || (object && Object.keys(object).length === 0))
+    )
+        throw Object.assign(new Error('KYC attempt no longer active'), { code: ATTEMPT_NOT_ACTIVE, status: 404 })
     if (
         (response.status === 404 &&
             (object?.code === 'route_not_found' ||
@@ -43,11 +57,13 @@ async function readResponse<T>(path: string, options?: GuardedRequest): Promise<
             object?.code === 'route_not_found' ? 'route_not_found' : 'invalid_response'
         )
     if (!response.ok) {
+        const reverification = featureReverificationConflict(response.status, object)
         throw Object.assign(new Error('KYC request failed'), {
             code: object?.code ?? object?.error,
             userMessage: typeof object?.userMessage === 'string' ? object.userMessage : undefined,
             feature: object?.feature,
             status: response.status,
+            ...(reverification && { entry: reverification.entry }),
         })
     }
     return body as T
@@ -59,7 +75,7 @@ async function read<T>(path: string, options?: GuardedRequest): Promise<T> {
         if (options?.signal?.aborted) throw error
         const failure = error as { status?: number; code?: string }
         if (
-            path !== '/users/kyc/identity/refresh' &&
+            !path.startsWith('/users/kyc/identity/refresh') &&
             failure?.code !== API_CONTRACT_ERROR &&
             !(failure?.status !== undefined && failure.status >= 400 && failure.status < 500)
         ) {
@@ -93,23 +109,35 @@ const KNOWN_STATUSES = new Set([
     'FAILED',
 ])
 
-export async function getKycDocumentPlan(restart = false, signal?: AbortSignal): Promise<KycDocumentPlan> {
-    const plan = await read<KycDocumentPlan>(`/users/kyc/plan${restart ? '?restart=true' : ''}`, { signal })
+export async function getKycDocumentPlan(
+    restart = false,
+    signal?: AbortSignal,
+    feature?: KycPlanFeature,
+    attemptId?: string
+): Promise<KycDocumentPlan> {
+    const query = new URLSearchParams()
+    if (restart) query.set('restart', 'true')
+    if (feature) query.set('feature', feature)
+    if (attemptId) query.set('attemptId', attemptId)
+    const search = query.toString()
+    const plan = await read<KycDocumentPlan>(`/users/kyc/plan${search ? `?${search}` : ''}`, { signal })
     if (
         typeof plan.available !== 'boolean' ||
         !Array.isArray(plan.routes) ||
         (plan.flow !== null && plan.flow !== PAPERWORK_VERIFICATION_FLOW && !plan.unavailableReason) ||
         (plan.unavailableReason !== undefined &&
-            (plan.available || plan.unavailableReason !== 'residence_not_supported'))
+            (plan.available || plan.unavailableReason !== 'residence_not_supported')) ||
+        (plan.entry != null && !isFeatureReverificationEntry(plan.entry))
     )
         throw contractError('/users/kyc/plan', 'GET', 200, 'invalid_plan')
     return plan
 }
 
 /** The API's feature report (`GET /users/kyc/features`); undefined when it cannot be read. */
-export async function getKycFeatures(): Promise<FeatureReport | undefined> {
+export async function getKycFeatures(signal?: AbortSignal): Promise<FeatureReport | undefined> {
     try {
-        return (await read<{ features?: FeatureReport }>('/users/kyc/features')).features
+        return (await read<{ features?: FeatureReport }>('/users/kyc/features', signal ? { signal } : undefined))
+            .features
     } catch {
         return undefined
     }
@@ -140,12 +168,14 @@ export class KycPlanUnavailableError extends Error {
  */
 export async function findKycDocumentPlan(
     source?: KycPlanReadSource,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    feature?: KycPlanFeature,
+    attemptId?: string
 ): Promise<KycDocumentPlan | null> {
     for (let attempt = 1; ; attempt++) {
         if (signal?.aborted) throw signal.reason
         try {
-            return await getKycDocumentPlan(false, signal)
+            return await getKycDocumentPlan(false, signal, feature, attemptId)
         } catch (error) {
             if (signal?.aborted) throw signal.reason
             const { status, code } = error as { status?: number; code?: string }
@@ -268,8 +298,33 @@ export async function resumeKycDocumentAttempt(
     }
 }
 /** Read-only fallback for a missed identity websocket event; never opens or refreshes an applicant. */
-export async function getKycDocumentStatus(signal?: AbortSignal): Promise<SumsubKycStatus | undefined> {
-    const profile = await read<{ identity: { canonicalStatus: string } | null }>('/users/kyc/profile', { signal })
+const CANDIDATE_STATUS: Record<FeatureReverificationStatus, SumsubKycStatus> = {
+    READY: 'NOT_STARTED',
+    COLLECTING: 'NOT_STARTED',
+    IN_REVIEW: 'IN_REVIEW',
+    APPROVED: 'APPROVED',
+    REJECTED: 'REJECTED',
+    SUPERSEDED: 'REJECTED',
+}
+
+export function candidateDocumentStatus(status: FeatureReverificationStatus): SumsubKycStatus {
+    return CANDIDATE_STATUS[status]
+}
+
+export async function getKycDocumentStatus(
+    signal?: AbortSignal,
+    attemptId?: string
+): Promise<SumsubKycStatus | undefined> {
+    if (attemptId) {
+        const profile = await read<KycProfile>('/users/kyc/profile', { signal })
+        if (!Array.isArray(profile.attempts)) throw contractError('/users/kyc/profile', 'GET', 200, 'invalid_attempts')
+        const attempt = profile.attempts.find((item) => item?.kind === 'IDENTITY' && item.id === attemptId)
+        if (!attempt || !Object.hasOwn(CANDIDATE_STATUS, attempt.status)) return undefined
+        if (attempt.status === 'COLLECTING' && (attempt.reviewedAt || attempt.retryRequestedAt))
+            return 'ACTION_REQUIRED'
+        return candidateDocumentStatus(attempt.status)
+    }
+    const profile = await read<Pick<KycProfile, 'identity'>>('/users/kyc/profile', { signal })
     const status = profile.identity?.canonicalStatus
     if (profile.identity !== null && (typeof status !== 'string' || !KNOWN_STATUSES.has(status)))
         throw contractError('/users/kyc/profile', 'GET', 200, 'invalid_status')
@@ -281,17 +336,28 @@ export async function getKycDocumentStatus(signal?: AbortSignal): Promise<Sumsub
  * waiting for the webhook. Right after the SDK the stored status can still say
  * NOT_STARTED; undefined when there is nothing to refresh or the call failed.
  */
-export async function refreshKycIdentityStatus(): Promise<SumsubKycStatus | undefined> {
+export async function refreshKycIdentityStatus(
+    attemptId?: string,
+    signal?: AbortSignal
+): Promise<SumsubKycStatus | undefined> {
     try {
-        const { status } = await read<{ status: string | null }>('/users/kyc/identity/refresh', {
+        const query = attemptId ? `?attemptId=${encodeURIComponent(attemptId)}` : ''
+        const refreshed = await read<{ status: string | null }>(`/users/kyc/identity/refresh${query}`, {
             method: 'POST',
-            body: '{}',
+            body: JSON.stringify({}),
+            ...(signal && { signal }),
+        }).catch((error: { status?: number; code?: string }) => {
+            if (attemptId && error.status === 404 && error.code === ATTEMPT_NOT_ACTIVE) return null
+            throw error
         })
+        // Read the candidate even when the refresh arrived after its claim was archived.
+        if (attemptId) return await getKycDocumentStatus(signal, attemptId)
+        const status = refreshed?.status
         if (status !== null && (typeof status !== 'string' || !KNOWN_STATUSES.has(status)))
             throw contractError('/users/kyc/identity/refresh', 'POST', 200, 'invalid_status')
         return status ? (status as SumsubKycStatus) : undefined
     } catch (error) {
-        if ((error as { code?: string })?.code !== API_CONTRACT_ERROR) {
+        if (!signal?.aborted && (error as { code?: string })?.code !== API_CONTRACT_ERROR) {
             Sentry.captureMessage('KYC identity refresh failed', {
                 level: 'warning',
                 tags: { ...criticalFlowTags('kyc'), kyc_step: 'identity_refresh' },

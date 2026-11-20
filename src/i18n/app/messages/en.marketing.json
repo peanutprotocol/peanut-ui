@@ -191,49 +191,6 @@
         "scanQr": "Scan QR"
     },
     "shhhhh": {
-        "hero": {
-            "wordmark": "Peanut Card",
-            "tagline": "Your money. Ready to spend.",
-            "cta": "Get card",
-            "disclaimer": "Verification and approval required. No monthly or annual fees. Standard fees and limits apply under the cardholder terms.",
-            "title": "Go Pink.",
-            "pitch": "One balance. 150 million places to spend it.",
-            "lead": "A virtual Visa card that spends your Peanut balance. Online, and in store with Apple Pay or Google Pay where supported."
-        },
-        "whatItDoes": {
-            "titleLine1": "It's a card.",
-            "titleLine2": "That's the whole trick.",
-            "body": "Top up the way you already move money: bank transfer, exchange withdrawal, or stablecoins. Then spend it wherever Visa is accepted.",
-            "statMerchants": "Visa-accepting merchants",
-            "statBalance": "balance",
-            "statMonthlyFees": "monthly fees",
-            "statAnnualFees": "annual fees"
-        },
-        "whoItsFor": {
-            "title": "Built for money that doesn't stay put.",
-            "body": "Nomads, expats, remote workers, frequent travellers. One balance, spendable wherever Visa is accepted."
-        },
-        "notForYou": {
-            "title": "Probably not for you.",
-            "body1": "If your money lives in one country and one currency, your bank card already works. Keep it.",
-            "body2": "If your money lives elsewhere, across borders, in dollars, in more than one place, the Peanut Card was built for you."
-        },
-        "howToApply": {
-            "title": "How to get it.",
-            "signInTitle": "Sign in.",
-            "signInBody": "Or create your account. Takes a minute.",
-            "verifyTitle": "Verify.",
-            "verifyBody": "One identity check, plus the cardholder terms.",
-            "spendTitle": "Spend.",
-            "spendBody": "Have $10 in your balance, apply, and pay."
-        },
-        "marquee": {
-            "peanutCard": "PEANUT CARD",
-            "contactless": "CONTACTLESS",
-            "available": "GET YOUR CARD",
-            "online": "ONLINE PAYMENTS",
-            "noMonthlyFee": "NO MONTHLY FEE"
-        },
         "faq": {
             "title": "FAQ.",
             "q1": {
@@ -262,13 +219,8 @@
             },
             "q8": {
                 "question": "Is a physical card available?",
-                "answer": "Peanut Card is virtual. You can register your interest in a physical card from the app."
+                "answer": "Peanut Card is virtual. A physical card is not available."
             }
-        },
-        "ready": {
-            "title": "Ready?",
-            "subtitle": "Sign in, verify, spend.",
-            "disclaimer": "Subject to eligibility. Identity verification required."
         }
     }
 }

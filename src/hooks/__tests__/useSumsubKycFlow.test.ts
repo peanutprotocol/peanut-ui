@@ -2,6 +2,7 @@ jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform
 
 import {
     findKycReplacementPlan,
+    findKycDocumentPlan,
     getKycDocumentStatus,
     getKycDocumentPlan,
     resumeKycDocumentAttempt,
@@ -77,6 +78,30 @@ describe('useSumsubKycFlow — cross-region routing', () => {
         mockInitiate.mockReset()
         mockResidenceChange.mockReset()
         mockWs.handler = undefined
+    })
+
+    it('uses the QR plan and identity request even when local setup is available', async () => {
+        jest.mocked(findKycDocumentPlan).mockClear()
+        jest.mocked(findKycDocumentPlan).mockResolvedValueOnce({
+            available: true,
+            flow: 'verify-once',
+            routes: [],
+            features: { qr: true, bank: false, card: false, local: false },
+        } as never)
+        jest.mocked(getKycDocumentStatus).mockResolvedValueOnce('APPROVED')
+        mockInitiate.mockResolvedValue({
+            data: { token: null, applicantId: 'app_1', status: 'APPROVED' },
+        })
+        const { result } = renderHook(() => useSumsubKycFlow({}))
+        mockRouterPush.mockClear()
+
+        await act(async () => {
+            await result.current.handleUnlockQr()
+        })
+
+        expect(findKycDocumentPlan).toHaveBeenCalledWith('initiate', expect.any(AbortSignal), 'qr')
+        expect(mockRouterPush).not.toHaveBeenCalled()
+        expect(mockInitiate).toHaveBeenCalledWith({ feature: 'qr' }, undefined, expect.any(AbortSignal))
     })
 
     // Regression for the "Unlock {region}" no-op loop (ROW). The BE approves identity

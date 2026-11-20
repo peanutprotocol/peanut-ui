@@ -39,7 +39,6 @@ describe('native-routes', () => {
             expect(isNativeExportPath('/home')).toBe(true)
             expect(isNativeExportPath('/home?x=1')).toBe(true)
             expect(isNativeExportPath('/profile/backup')).toBe(true)
-            expect(isNativeExportPath('/shhhhh')).toBe(true)
             expect(isNativeExportPath('/')).toBe(true)
         })
 
@@ -628,12 +627,16 @@ describe('native-routes', () => {
                 expect(deepLinkToNativePath('https://peanut.me/foodie')).toBeNull()
             })
 
+            it('opens legacy /shhhhh and /peanut-card links on the web, where /shhhhh redirects to the card LP', () => {
+                expect(deepLinkToNativePath('https://peanut.me/shhhhh')).toBeNull()
+                expect(deepLinkToNativePath('https://peanut.me/peanut-card')).toBeNull()
+                expect(isNativeExportPath('/shhhhh')).toBe(false)
+            })
+
             it('keeps roots the native export ships', () => {
                 expect(deepLinkToNativePath('https://peanut.me/home')).toBe('/home')
                 expect(deepLinkToNativePath('https://peanut.me/card')).toBe('/card')
                 expect(deepLinkToNativePath('https://peanut.me/pay-request?chargeId=x')).toBe('/pay-request?chargeId=x')
-                // outside (mobile-ui) but shipped in the export and linked from /profile
-                expect(deepLinkToNativePath('https://peanut.me/shhhhh')).toBe('/shhhhh')
             })
         })
 

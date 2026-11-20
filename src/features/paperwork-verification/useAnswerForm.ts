@@ -65,7 +65,8 @@ export async function saveSteps(
     values: PaperworkVerificationAnswers,
     feature?: PaperworkQuestionsFeature,
     userId?: string,
-    active: () => boolean = () => true
+    active: () => boolean = () => true,
+    attemptId?: string
 ): Promise<SaveOutcome> {
     const session = captureSessionFence(userId, active)
     if (session.ready) await session.ready
@@ -78,7 +79,9 @@ export async function saveSteps(
         const payload = stepPayload(step.fields, values)
         // A saved, masked number left as it is: there is nothing to send.
         if (!Object.keys(payload).length && step.fields.some((f) => maskedUntouched(f, values))) continue
-        const result = await saveKycAnswers(step.id, payload, feature, session.userId ?? undefined)
+        const result = await (attemptId
+            ? saveKycAnswers(step.id, payload, feature, session.userId ?? undefined, attemptId, current)
+            : saveKycAnswers(step.id, payload, feature, session.userId ?? undefined))
         if (!current()) return cancelled
         if (result.kind === 'invalid')
             return { ok: false, step: step.id, rejected: { step: step.id, errors: result.errors } }
@@ -96,7 +99,7 @@ export async function saveSteps(
                 step: step.id,
             }
         if (result.kind === 'retry') return { ok: false, error: 'retry', formError: 'retry', step: step.id }
-        forgetSavedAnswers(userId, Object.fromEntries(step.fields.map((f) => [f.key, values[f.key]])))
+        if (!attemptId) forgetSavedAnswers(userId, Object.fromEntries(step.fields.map((f) => [f.key, values[f.key]])))
         next = result.next
     }
     return { ok: true, next }
@@ -113,7 +116,8 @@ export function useAnswerForm(
     feature?: PaperworkQuestionsFeature,
     residence: string | null = null,
     /** what a background save of these steps came back with */
-    returned?: { errors?: Record<string, string>; formError?: AnswerFormError; message?: string }
+    returned?: { errors?: Record<string, string>; formError?: AnswerFormError; message?: string },
+    useDraft = true
 ) {
     const user = useOptionalAuth()?.user
     const userId = user?.user.userId
@@ -122,7 +126,8 @@ export function useAnswerForm(
     const declared = draftResidenceOf(user)
     const [values, setValues] = useState<PaperworkVerificationAnswers>(() => {
         const fields = steps.flatMap((s) => s.fields)
-        const initial = withAnswerDraft(initialValues(fields, residence), fields, readAnswerDraft(userId, declared))
+        const saved = useDraft ? readAnswerDraft(userId, declared) : {}
+        const initial = withAnswerDraft(initialValues(fields, residence), fields, saved)
         // These choices are only initial form values. Continue submits them alongside any edits.
         for (const step of steps) {
             if (step.answered) continue
@@ -168,11 +173,12 @@ export function useAnswerForm(
             setValues(update)
             // A status that answers the job changes the job too, so the device keeps both.
             const job = key === 'employmentStatus' && fields.some((f) => f.key === 'occupation')
-            keepAnswerDraft(
-                userId,
-                job ? { [key]: value, occupation: update(values).occupation ?? '' } : { [key]: value },
-                declared
-            )
+            if (useDraft)
+                keepAnswerDraft(
+                    userId,
+                    job ? { [key]: value, occupation: update(values).occupation ?? '' } : { [key]: value },
+                    declared
+                )
             setErrors((current) => {
                 if (!(key in current)) return current
                 const { [key]: _cleared, ...rest } = current
@@ -180,7 +186,7 @@ export function useAnswerForm(
             })
             setFormError(null)
         },
-        [steps, userId, declared, values, setFormError]
+        [steps, userId, declared, values, setFormError, useDraft]
     )
 
     const save = useCallback(

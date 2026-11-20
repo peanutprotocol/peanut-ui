@@ -480,6 +480,8 @@ describe('KYC control scopes', () => {
                 screen_id: 'tax',
                 control: 'continue',
                 action: 'tap',
+                kyc_flow: 'verify-once',
+                verification_purpose: 'initial',
             },
         ])
     })

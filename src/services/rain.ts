@@ -3,7 +3,7 @@ import { validateNumericResponse } from '@/lib/numeric-response'
  * Rain Card API Service
  *
  * Client-side service for every Rain card endpoint (overview, apply,
- * activate/lock/cancel, reveal, PIN, limits, physical waitlist,
+ * activate/lock/cancel, reveal, PIN, limits,
  * withdrawals, session-key grant). Uses the browser's JWT cookie directly
  * (via `js-cookie`) — matches the pattern in `services/manteca.ts`.
  */
@@ -19,6 +19,8 @@ import { isCapacitor } from '@/utils/capacitor'
 import type { SignedRainWithdrawal } from '@/hooks/wallet/useSignSpendBundle'
 import { API_ERROR_CODES, ApiError } from './api-error'
 import { kycClientHeaders } from '@/utils/kyc-client-headers'
+import type { FeatureReverificationConflict } from '@/app/actions/types/kyc-reverification.types'
+import { featureReverificationConflict } from '@/utils/kyc-reverification'
 import type { AcceptedLegalDocument } from '@/services/consent'
 import type { paths } from '@/types/api.generated'
 
@@ -353,11 +355,6 @@ export interface RainCardLimit {
     frequency: RainLimitFrequency
 }
 
-export interface PhysicalWaitlistState {
-    joinedAt: string | null
-    position: number | null
-}
-
 export class RainCardRateLimitError extends Error {
     readonly code = API_ERROR_CODES.CARD_SECRETS_RATE_LIMITED
     constructor(message: string) {
@@ -451,6 +448,7 @@ const RAIN_COOLDOWN_PATH = '/rain/cards/withdraw/prepare'
  * - any other string: existing application in that state (ENABLED / REJECTED / …).
  */
 export type ApplyForCardResponse =
+    | { status: 'feature-reverification-required'; reverification: FeatureReverificationConflict }
     | { status: 'requires-support'; reason: 'verified-name-missing'; message: string }
     | {
           status: 'incomplete'
@@ -557,7 +555,10 @@ interface RequestOpts {
     suppressStaleApprovalEvent?: boolean
 }
 
-async function rainRequest<T>(opts: RequestOpts): Promise<T> {
+async function rainRequest<T>(
+    opts: RequestOpts,
+    onReverification?: (conflict: FeatureReverificationConflict) => T
+): Promise<T> {
     // Auth rides apiFetch: Authorization header on web, the native cookie jar
     // on Capacitor — reading the cookie here would wrongly 401 native, where
     // JS never holds the token.
@@ -647,6 +648,8 @@ async function rainRequest<T>(opts: RequestOpts): Promise<T> {
 
     if (!response.ok) {
         const err = await response.json().catch(() => ({}))
+        const reverification = featureReverificationConflict(response.status, err)
+        if (reverification && onReverification) return onReverification(reverification)
         throw new ApiError(err.error || err.message || `Request failed: ${response.status}`, {
             status: response.status,
             code: err.code,
@@ -664,6 +667,12 @@ async function rainRequest<T>(opts: RequestOpts): Promise<T> {
 
 // ─── Public API ─────────────────────────────────────────────────────────────
 
+export class RainVerificationReverificationError extends Error {
+    constructor(readonly reverification: FeatureReverificationConflict) {
+        super(reverification.userMessage)
+    }
+}
+
 export const rainApi = {
     /** Authoritative card-section state: status + balance + cards. */
     getOverview: async (): Promise<RainCardOverview> => {
@@ -680,6 +689,7 @@ export const rainApi = {
         const response = await apiFetch('/rain/verification/resume', {
             method: 'POST',
             headers: {
+                ...kycClientHeaders(),
                 'x-kyc-entry-user': owner,
                 'x-kyc-entry-scope': scope,
             } satisfies paths['/rain/verification/resume']['post']['parameters']['header'],
@@ -693,8 +703,12 @@ export const rainApi = {
             callerReportsFailures: true,
             redactTelemetry: true,
         })
-        if (!response.ok) throw new Error('Card verification unavailable')
-        const body: unknown = await response.json()
+        const body: unknown = await response.json().catch(() => null)
+        if (!response.ok) {
+            const reverification = featureReverificationConflict(response.status, body)
+            if (reverification) throw new RainVerificationReverificationError(reverification)
+            throw new Error('Card verification unavailable')
+        }
         const token = body && typeof body === 'object' && 'token' in body ? body.token : undefined
         if (typeof token !== 'string' || !token.trim()) throw new Error('Card verification unavailable')
         return token
@@ -960,19 +974,22 @@ export const rainApi = {
             body.acceptedDocuments = opts.acceptedDocuments
         }
         try {
-            return await rainRequest<ApplyForCardResponse>({
-                method: 'POST',
-                path: '/rain/cards',
-                body,
-                headers: kycClientHeaders(),
-                // The first-time-application path runs 7 sequential Sumsub calls, a
-                // deliberate 2.5s readiness sleep, the Rain createApplication call,
-                // and an optional inline issueCard — routinely 7-13s. The default
-                // 10s fetch timeout clips that tail, aborting client-side while the
-                // backend completes (user sees a false failure on a card that was
-                // actually submitted). Give this one call generous headroom.
-                timeoutMs: 60_000,
-            })
+            return await rainRequest<ApplyForCardResponse>(
+                {
+                    method: 'POST',
+                    path: '/rain/cards',
+                    body,
+                    headers: kycClientHeaders(),
+                    // The first-time-application path runs 7 sequential Sumsub calls, a
+                    // deliberate 2.5s readiness sleep, the Rain createApplication call,
+                    // and an optional inline issueCard — routinely 7-13s. The default
+                    // 10s fetch timeout clips that tail, aborting client-side while the
+                    // backend completes (user sees a false failure on a card that was
+                    // actually submitted). Give this one call generous headroom.
+                    timeoutMs: 60_000,
+                },
+                (reverification) => ({ status: 'feature-reverification-required', reverification })
+            )
         } catch (e) {
             // Residence denials are HTTP 403s, so normalize both stable codes
             // into the success union. Keep a prohibited ACTIVE residence
@@ -1161,22 +1178,6 @@ export const rainApi = {
             stepUp: true,
             body: { pin },
             noStore: true,
-        })
-    },
-
-    /** Get the physical-card waitlist state for this card. */
-    getPhysicalWaitlist: async (cardId: string): Promise<PhysicalWaitlistState> => {
-        return rainRequest<PhysicalWaitlistState>({
-            method: 'GET',
-            path: `/rain/cards/${cardId}/physical-waitlist`,
-        })
-    },
-
-    /** Join the physical-card waitlist (idempotent). */
-    joinPhysicalWaitlist: async (cardId: string): Promise<{ joinedAt: string; position: number }> => {
-        return rainRequest<{ joinedAt: string; position: number }>({
-            method: 'POST',
-            path: `/rain/cards/${cardId}/physical-waitlist`,
         })
     },
 }

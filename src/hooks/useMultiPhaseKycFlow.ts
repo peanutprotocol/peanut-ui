@@ -418,10 +418,13 @@ export const useMultiPhaseKycFlow = ({
         errorCooldown,
         dismissErrorCooldown,
         isTerminalError,
+        isQrUnlockBlocked,
+        isQrUnlockRefused,
         showWrapper,
         accessToken,
         liveKycStatus,
         handleInitiateKyc: originalHandleInitiateKyc,
+        handleUnlockQr: originalHandleUnlockQr,
         handleRestartIdentity,
         handleResidenceChange,
         handleSelfHealResubmit,
@@ -616,10 +619,11 @@ export const useMultiPhaseKycFlow = ({
             crossRegion?: boolean,
             targetCountry?: string,
             corridor?: DepositCorridor,
-            beforeRedirect?: () => Promise<void>
+            beforeRedirect?: () => Promise<void>,
+            qrPool = false
         ) => {
             if (blockIfFinal()) return false
-            const intent = overrideIntent ?? regionIntent
+            const intent = qrPool ? undefined : (overrideIntent ?? regionIntent)
             flowGenerationRef.current += 1
             finishedRef.current = false
             completionNoticeRef.current = null
@@ -628,7 +632,9 @@ export const useMultiPhaseKycFlow = ({
             setSubmissionAttempt((attempt) => ({ id: attempt.id + 1, intent, residence: false }))
             lastIntentRef.current = intent
             setRequestedIntent(intent)
-            lastInitiateArgsRef.current = { intent, levelName, crossRegion, targetCountry, corridor }
+            lastInitiateArgsRef.current = qrPool
+                ? { feature: 'qr' }
+                : { intent, levelName, crossRegion, targetCountry, corridor }
             posthog.capture(
                 intent === 'LATAM' ? ANALYTICS_EVENTS.MANTECA_KYC_INITIATED : ANALYTICS_EVENTS.KYC_INITIATED,
                 {
@@ -652,6 +658,7 @@ export const useMultiPhaseKycFlow = ({
             isRealtimeFlowRef.current = false
             clearPreparingTimer()
 
+            if (qrPool) return originalHandleUnlockQr(!resumingRef.current, beforeRedirect)
             return originalHandleInitiateKyc(
                 overrideIntent,
                 levelName,
@@ -663,7 +670,21 @@ export const useMultiPhaseKycFlow = ({
                 beforeRedirect
             )
         },
-        [originalHandleInitiateKyc, clearPreparingTimer, regionIntent, acquisitionSource, blockIfFinal]
+        [
+            originalHandleInitiateKyc,
+            originalHandleUnlockQr,
+            clearPreparingTimer,
+            regionIntent,
+            acquisitionSource,
+            blockIfFinal,
+        ]
+    )
+    const handleUnlockQr = useCallback(
+        () =>
+            isLoading || isQrUnlockBlocked
+                ? Promise.resolve(false)
+                : handleInitiateKyc(undefined, undefined, undefined, undefined, undefined, undefined, true),
+        [handleInitiateKyc, isLoading, isQrUnlockBlocked]
     )
 
     useSumsubReloadResume(
@@ -676,7 +697,8 @@ export const useMultiPhaseKycFlow = ({
                 state.crossRegion,
                 state.targetCountry,
                 state.corridor,
-                consume
+                consume,
+                state.feature === 'qr'
             )
             resumingRef.current = false
             return !!opened
@@ -976,6 +998,7 @@ export const useMultiPhaseKycFlow = ({
     return {
         // initiation
         handleInitiateKyc,
+        handleUnlockQr,
         blockIfFinal,
         showVerificationReview,
         dismissVerificationReview,
@@ -993,6 +1016,8 @@ export const useMultiPhaseKycFlow = ({
         // terminal = the user has no action that changes the outcome; consumers
         // must suppress their retry CTA on it (TASK-21882)
         isTerminalError: isTerminalError || depositBlocked,
+        isQrUnlockBlocked,
+        isQrUnlockRefused,
         liveKycStatus,
 
         documentConfig,

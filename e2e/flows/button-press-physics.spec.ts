@@ -8,10 +8,12 @@
  * unit test cannot see this: the bug lives in which state wins in the
  * cascade, so it has to be read off computed style in a real browser.
  *
- * /shhhhh is the target because it renders a real primary and a real secondary
- * Button with no caller overrides, and needs no backend. The /dev/ds button
- * page would be the obvious home, but every /dev route sits behind a session
- * gate that never resolves in this harness, so it stays on "Loading...".
+ * The setup landing is the target because it renders a real primary (Sign up)
+ * and a real secondary (Log in) Button with no caller overrides, and needs no
+ * backend. A help page carries the NavHeader back circle (HeroBackNav). /shhhhh
+ * served both until it became a redirect (TASK-24171). The /dev/ds button page
+ * would be the obvious home, but every /dev route sits behind a session gate
+ * that never resolves in this harness, so it stays on "Loading...".
  *
  * Run: NEXT_PUBLIC_VERCEL_ENV=preview npm run build && npm run test:e2e:regression
  */
@@ -73,12 +75,22 @@ async function expectNoHoverFill(el: Locator) {
     expect(await background(el), 'no hover fill, so a press fill can only be :active').toBe('rgba(0, 0, 0, 0)')
 }
 
-test.describe('Button press physics', () => {
-    test.beforeEach(async ({ page }) => {
-        await page.goto('/shhhhh', { waitUntil: 'domcontentloaded' })
+// Web signup is app-only; the support keep-web cookie reopens it in this browser.
+// Same-origin only: an ipapi.co country would make the setup screens depend on
+// the runner's IP and ipapi's rate limit.
+async function openSetupLanding(page: Page, baseURL: string) {
+    await page.context().addCookies([{ name: KEEP_WEB_COOKIE, value: KEEP_WEB_COOKIE_VALUE, url: baseURL }])
+    await page.route('**/*', (route) => {
+        const { hostname } = new URL(route.request().url())
+        return hostname === '127.0.0.1' || hostname === 'localhost' ? route.continue() : route.abort()
     })
+    await page.goto('/setup', { waitUntil: 'domcontentloaded' })
+    await expect(page.getByRole('button', { name: 'Sign up' })).toBeVisible({ timeout: 60_000 })
+}
 
-    test('primary keeps its shadow on hover and drops into it on press', async ({ page }) => {
+test.describe('Button press physics', () => {
+    test('primary keeps its shadow on hover and drops into it on press', async ({ page, baseURL }) => {
+        await openSetupLanding(page, baseURL!)
         const primary = pressable(page, 'btn-primary')
         await expect(primary).toBeVisible()
 
@@ -102,6 +114,7 @@ test.describe('Button press physics', () => {
     })
 
     test('the nav circle fills pink on press, and never drops', async ({ page }) => {
+        await page.goto('/en/help', { waitUntil: 'domcontentloaded' })
         // nav board 17802:61534 draws this as a ring on the page background —
         // the ghost icon-only button. A shadow here would make the top nav
         // move 4px under the thumb, which is not a navigation gesture.
@@ -129,7 +142,7 @@ test.describe('Button press physics', () => {
         }
     })
 
-    // /shhhhh's back circle is the NavHeader one. The setup flow builds its own
+    // The help page's back circle is the NavHeader one. The setup flow builds its own
     // navigation row, and its circles were the last call site still drawing a
     // secondary button with the shadow stripped — a white chip on the #90a8ed
     // hero, which is the state the board does not have (kush QA 2026-09-21).
@@ -137,19 +150,8 @@ test.describe('Button press physics', () => {
     // login. (/setup/finish used to, through a log-out circle that moved under
     // its primary in the Release 164 smoke-test fixes.)
     test('the setup nav circle is a ring on the hero, not a white chip', async ({ page, baseURL }) => {
-        // web signup is app-only; the support keep-web cookie reopens it in this browser
-        await page.context().addCookies([{ name: KEEP_WEB_COOKIE, value: KEEP_WEB_COOKIE_VALUE, url: baseURL! }])
-        // Same-origin only. A country from ipapi.co, with no API to say what that
-        // country is offered, hides both sell screens, so the step after Welcome
-        // would depend on the runner's IP and ipapi's rate limit.
-        await page.route('**/*', (route) => {
-            const { hostname } = new URL(route.request().url())
-            return hostname === '127.0.0.1' || hostname === 'localhost' ? route.continue() : route.abort()
-        })
-        await page.goto('/setup', { waitUntil: 'domcontentloaded' })
-        const signUp = page.getByRole('button', { name: 'Sign up' })
-        await expect(signUp).toBeVisible({ timeout: 60_000 })
-        await signUp.click()
+        await openSetupLanding(page, baseURL!)
+        await page.getByRole('button', { name: 'Sign up' }).click()
         await expect(page).toHaveURL(/screen=advantage-fees/)
 
         const circle = page.getByRole('button', { name: 'Go back' })
@@ -173,7 +175,8 @@ test.describe('Button press physics', () => {
         }
     })
 
-    test('secondary turns brand pink while pressed', async ({ page }) => {
+    test('secondary turns brand pink while pressed', async ({ page, baseURL }) => {
+        await openSetupLanding(page, baseURL!)
         const secondary = pressable(page, 'btn-secondary')
         await expect(secondary).toBeVisible()
 

@@ -8,7 +8,7 @@
  * branch was unreachable — the user got a retryable applyError instead of
  * the terminal screen. Any other failure must still throw unchanged.
  */
-import { rainApi } from '@/services/rain'
+import { rainApi, RainVerificationReverificationError } from '@/services/rain'
 import { ApiError } from '@/services/api-error'
 
 const mockFetchWithSentry = jest.fn()
@@ -22,6 +22,44 @@ const jsonResponse = (status: number, body: unknown) =>
     ({ ok: status >= 200 && status < 300, status, json: async () => body }) as unknown as Response
 
 beforeEach(() => jest.clearAllMocks())
+
+describe('Rain first-use re-verification', () => {
+    const conflict = {
+        code: 'feature_reverification_required',
+        userMessage: 'Verify to use your card.',
+        message: 'Re-verification required',
+        error: 'Re-verification required',
+        entry: { kind: 'reverify_for_feature', feature: 'card', targetProvider: 'RAIN', attemptId: null },
+    }
+
+    it('returns the typed invitation for a valid 409', async () => {
+        mockFetchWithSentry.mockResolvedValue(jsonResponse(409, conflict))
+        await expect(rainApi.applyForCard()).resolves.toEqual({
+            status: 'feature-reverification-required',
+            reverification: conflict,
+        })
+    })
+
+    it('keeps an invalid re-verification payload on the existing error path', async () => {
+        mockFetchWithSentry.mockResolvedValue(jsonResponse(409, { ...conflict, entry: null }))
+        await expect(rainApi.applyForCard()).rejects.toThrow(ApiError)
+    })
+
+    it('advertises v3 and preserves the invitation when resuming card verification', async () => {
+        mockFetchWithSentry.mockResolvedValue(jsonResponse(409, conflict))
+        await expect(
+            rainApi.resumeVerification('user-1', 'a'.repeat(64), 'generation-1', new AbortController().signal)
+        ).rejects.toMatchObject({ reverification: conflict })
+        expect(mockFetchWithSentry).toHaveBeenCalledWith(
+            expect.stringMatching(/\/rain\/verification\/resume$/),
+            expect.objectContaining({ headers: expect.objectContaining({ 'x-kyc-client': '3' }) }),
+            10_000
+        )
+        await expect(
+            rainApi.resumeVerification('user-1', 'a'.repeat(64), 'generation-1', new AbortController().signal)
+        ).rejects.toBeInstanceOf(RainVerificationReverificationError)
+    })
+})
 
 describe('rainApi.applyForCard — geo-blocked normalization', () => {
     it("maps 403 code 'geo-blocked' into the union instead of throwing", async () => {

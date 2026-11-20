@@ -563,16 +563,6 @@
                     "applyCard": "Pedí tu tarjeta después de verificar tu identidad."
                 }
             },
-            "restricted": {
-                "title": "Atención",
-                "description": "Debido a regulaciones, las transferencias bancarias y la emisión de tarjetas no están disponibles para vos. Igual podés tener dólares digitales, enviar a cualquier @usuario y retirar tu saldo cuando quieras.",
-                "continueAnyway": "Continuar de todos modos",
-                "notifyMe": "Avisame cuando esté disponible",
-                "emailPlaceholder": "tu@ejemplo.com",
-                "notifySubmit": "Avisarme",
-                "notifyDone": "Listo. Te enviaremos un correo cuando esté disponible.",
-                "changeCountry": "Elegir otro país"
-            },
             "compare": {
                 "selectCountry": "Elegir {country}",
                 "guideTitle": "¿Qué país debés seleccionar?",
@@ -1068,7 +1058,7 @@
             "restartTitle": "Verificate con otro documento",
             "fixableDescription": "Necesitamos un documento actualizado para habilitar los pagos con QR. Subí una foto más clara de tu identificación.",
             "restartDescription": "Los pagos con QR necesitan un documento de un país compatible. Podés verificarte con otra identificación.",
-            "blockedDescription": "Los pagos con QR no están disponibles para tu cuenta. Contactá a soporte para recibir ayuda.",
+            "blockedDescription": "Los pagos con QR no están disponibles para tu cuenta. Contactá a soporte.",
             "verifyAgain": {
                 "documentMissing": {
                     "title": "Agregá tu documento otra vez",
@@ -1162,9 +1152,6 @@
                 "title": "Pago en proceso",
                 "description": "El pago todavía no se confirmó. Revisá Actividad antes de volver a intentarlo."
             }
-        },
-        "info": {
-            "saveVsCardTooltipBrl": "Con Peanut, tu pago se procesa a través de Pix al tipo de cambio actual del mercado. Las tarjetas extranjeras pueden sumar alrededor de un 3,5% de impuesto brasileño (IOF) y un 3% en comisiones por conversión de moneda."
         }
     },
     "card": {
@@ -1251,13 +1238,6 @@
         },
         "terms": {
             "description": "Revisá y aceptá"
-        },
-        "physical": {
-            "onListBody": "Te avisamos apenas puedas pedirla.",
-            "comingSoonBody": "Todavía no podés pedirla. Así va a funcionar:",
-            "stepJoin": "Unite hoy a la lista de espera",
-            "stepShip": "Pedila y te la enviamos",
-            "positionBadge": "Sos el #{position} en la lista"
         },
         "yourCard": {
             "completeVerification": "Completá la verificación",
@@ -1522,6 +1502,7 @@
         },
         "nudge": {
             "localRailTitle": "Pagá como local la próxima vez",
+            "localRailAvailableDescription": "En {country}, también podés pagar con {rail} desde Peanut.",
             "usdAbroadTitle": "Pagá en moneda local la próxima vez",
             "usdAbroadDescription": "Te cobraron en dólares. Cuando una terminal ofrezca cobrar en dólares, elegí la moneda local. El tipo de cambio de Peanut suele ser mejor."
         },
@@ -1886,6 +1867,11 @@
             "servedElsewhere": "Los depósitos, retiros, transferencias y pagos con QR por Pix están disponibles donde vivís."
         },
         "paperworkVerification": {
+            "reverify": {
+                "inviteTitle": "Volvé a verificar tu identidad",
+                "documentMismatch": "Tu documento es de otro país. Elegí uno para volver a intentarlo.",
+                "pendingDescription": "Podés seguir usando tus cuentas actuales."
+            },
             "phoneHelp": "Incluí el código de tu país, como +54.",
             "hints": {
                 "purpose": "Elegí la opción más parecida.",
@@ -2090,11 +2076,11 @@
         },
         "countryWaitlist": {
             "title": "Transferencias bancarias en {country}",
-            "body": "Las transferencias bancarias todavía no están disponibles acá. Sumate a la lista y te avisamos cuando lo estén.",
-            "join": "Avisarme",
-            "joinedTitle": "En la lista",
-            "joinedBody": "Te avisamos cuando las transferencias bancarias estén disponibles en {country}.",
-            "error": "No pudimos actualizar la lista de espera. Probá de nuevo."
+            "body": "Las transferencias bancarias todavía no están disponibles acá. Tocá abajo para decirnos que las querés.",
+            "join": "Las quiero",
+            "joinedTitle": "Gracias",
+            "joinedBody": "Anotamos que querés transferencias bancarias en {country}.",
+            "error": "No pudimos guardar tu pedido. Probá de nuevo."
         },
         "tokenSelector": {
             "selectAToken": "Elegí un token",
@@ -2131,8 +2117,6 @@
             }
         },
         "qrScannerOverlay": {
-            "notSupportedGetNotified": "¡Enterate cuando esté disponible!",
-            "getNotifiedCta": "¡Avisame!",
             "externalUrlIntro": "Peanut no admite este QR, pero podés abrirlo con tu navegador.",
             "externalUrlTrust": "¡Asegurate de confiar en este sitio web!",
             "pixRecurringBody": "Peanut no admite pagos PIX recurrentes: pedí un código QR de PIX normal.",
@@ -2332,28 +2316,6 @@
         }
     },
     "shhhhh": {
-        "hero": {
-            "tagline": "Tu plata. Lista para pagar.",
-            "cta": "Pedir tarjeta"
-        },
-        "whatItDoes": {
-            "body": "Cargala como ya movés tu plata: transferencia bancaria, retiro desde un exchange o stablecoins. Después pagá donde se acepta Visa."
-        },
-        "notForYou": {
-            "title": "Probablemente no es para vos.",
-            "body1": "Si tu plata vive en un solo país y una sola moneda, tu tarjeta bancaria ya funciona. Quedate con ella.",
-            "body2": "Si tu plata vive en otro lado, cruza fronteras, está en dólares o en más de un lugar, la Peanut Card se hizo para vos."
-        },
-        "howToApply": {
-            "signInTitle": "Iniciá sesión.",
-            "signInBody": "O creá tu cuenta. Toma un minuto.",
-            "verifyTitle": "Verificá.",
-            "spendTitle": "Pagá.",
-            "spendBody": "Tené USD 10 en tu saldo, pedila y pagá."
-        },
-        "marquee": {
-            "available": "OBTENÉ TU TARJETA"
-        },
         "faq": {
             "q3": {
                 "answer": "Los pagos con tarjeta usan USDC en un contrato inteligente dedicado. Podés agregar fondos de tu billetera Peanut al saldo de tu tarjeta."
@@ -2363,13 +2325,7 @@
             },
             "q6": {
                 "answer": "Sí. Para solicitar tu primera tarjeta necesitás al menos USD 10 en tu saldo de Peanut. No es una comisión: la plata sigue siendo tuya para gastarla con la tarjeta."
-            },
-            "q8": {
-                "answer": "Peanut Card es virtual. Podés registrar tu interés en una tarjeta física desde la app."
             }
-        },
-        "ready": {
-            "subtitle": "Iniciá sesión, verificá, pagá."
         }
     },
     "avatar": {

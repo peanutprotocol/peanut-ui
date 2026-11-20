@@ -1,11 +1,13 @@
 import { findKycDocumentPlan, getKycDocumentStatus, getKycFeatures } from '@/app/actions/kyc-workflow'
 import type { KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import type { PaperworkVerificationFeature } from '@/app/actions/types/kyc-paperwork-verification.types'
+import type { KycPlanFeature } from '@/app/actions/types/kyc-reverification.types'
 import { PAPERWORK_VERIFICATION_FLOW, type KycDocumentPlan } from '@/app/actions/types/kyc-workflow.types'
 import { DEPOSIT_RAILS } from '@/features/deposit-accounts/rails'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
 import type { FeatureReport } from '@/types/capabilities'
 import { APPROVED_STATUSES } from './paperworkVerification.utils'
+import { currentReverificationDestination, featureReverificationPath } from '@/utils/kyc-reverification'
 
 export const paperworkVerificationFeaturePath = (feature: PaperworkVerificationFeature) =>
     `/verify?${new URLSearchParams({ feature })}`
@@ -60,6 +62,8 @@ export async function paperworkVerificationRoute(
     signal?: AbortSignal
 ): Promise<string | null> {
     if (plan?.unavailableReason === 'residence_not_supported') return RESIDENCE_NOT_SUPPORTED_PATH
+    if (plan?.entry?.kind === 'reverify_for_feature')
+        return featureReverificationPath(plan.entry, currentReverificationDestination())
     if (!plan || plan.flow === undefined) return '/verify'
     if (plan.flow !== PAPERWORK_VERIFICATION_FLOW) return null
     const status = await getKycDocumentStatus(signal).catch(() => undefined)
@@ -74,6 +78,7 @@ export async function paperworkVerificationRoute(
 
 /** A Verify entry point: what it unlocks, as the start it would make names it. */
 export interface PaperworkVerificationEntry {
+    feature?: KycPlanFeature
     intent?: KYCRegionIntent
     corridor?: DepositCorridor
     targetCountry?: string
@@ -83,18 +88,33 @@ export interface PaperworkVerificationEntry {
  * Where an entry point's Verify goes for a Smart Paperwork Verification user,
  * read before any start modal opens. A failed read goes to verification recovery.
  */
-export async function paperworkVerificationEntryRoute(entry: PaperworkVerificationEntry): Promise<string | null> {
+export async function paperworkVerificationEntryRoute(
+    entry: PaperworkVerificationEntry,
+    signal?: AbortSignal
+): Promise<string | null> {
+    const feature = entry.feature ?? entryFeature(entry)
     // The report read at the tap: fresh, and a failed read falls back to the plan's saved features.
     try {
-        const plan = await findKycDocumentPlan('entry')
+        const plan = await (feature
+            ? findKycDocumentPlan('entry', signal, feature)
+            : signal
+              ? findKycDocumentPlan('entry', signal)
+              : findKycDocumentPlan('entry'))
         const report =
-            plan?.flow === PAPERWORK_VERIFICATION_FLOW && !plan.unavailableReason
+            plan?.flow === PAPERWORK_VERIFICATION_FLOW && !plan.unavailableReason && !plan.entry
                 ? await Promise.resolve()
-                      .then(() => getKycFeatures())
+                      .then(() => (signal ? getKycFeatures(signal) : getKycFeatures()))
                       .catch(() => undefined)
                 : undefined
-        return await paperworkVerificationRoute(plan, entryFeature(entry), report)
+        if (signal?.aborted) throw signal.reason
+        return await paperworkVerificationRoute(
+            feature === 'qr' && plan?.entry ? { ...plan, entry: undefined } : plan,
+            feature === 'qr' ? null : feature,
+            report,
+            signal
+        )
     } catch (error) {
+        if (signal?.aborted) throw signal.reason
         return identityStartRefusalPath((error as { code?: string } | null)?.code) ?? '/verify'
     }
 }

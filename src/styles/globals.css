@@ -1556,100 +1556,11 @@ input::placeholder {
     animation: cyclingBlink 1.4s infinite both;
 }
 
-/* Gift box opening animations */
-@keyframes giftOpening {
-    0%,
-    100% {
-        transform: translateY(0) rotate(0deg) scale(1);
-    }
-    10%,
-    30%,
-    50%,
-    70%,
-    90% {
-        transform: translateY(-4px) rotate(-2deg) scale(1.02);
-    }
-    20%,
-    40%,
-    60%,
-    80% {
-        transform: translateY(-4px) rotate(2deg) scale(1.02);
-    }
-}
-
-@keyframes giftRevealed {
-    0% {
-        transform: scale(1.05);
-        opacity: 0.8;
-    }
-    50% {
-        transform: scale(1.02);
-        opacity: 1;
-    }
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
-
-@keyframes giftExit {
-    0% {
-        transform: scale(1) translateY(0);
-        opacity: 1;
-    }
-    100% {
-        transform: scale(0.95) translateY(-10px);
-        opacity: 0;
-    }
-}
-
-.animate-gift-opening {
-    animation: giftOpening 0.12s ease-in-out infinite;
-    transform-origin: center center;
-}
-
-.animate-gift-revealed {
-    animation: giftRevealed 0.4s ease-out forwards;
-}
-
-.animate-gift-exit {
-    animation: giftExit 0.4s ease-out forwards;
-}
-
-/* Gift box holographic shine effect */
-@keyframes giftShine {
-    0% {
-        left: -100%;
-    }
-    50%,
-    100% {
-        left: 150%;
-    }
-}
-
-.gift-box-shine::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 50%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-    animation: giftShine 3s ease-in-out infinite;
-    pointer-events: none;
-    z-index: 5;
-    border-radius: inherit;
-}
-
 @media (prefers-reduced-motion: reduce) {
     .perk-shake-weak,
     .perk-shake-medium,
     .perk-shake-strong,
-    .perk-shake-intense,
-    .animate-gift-opening,
-    .animate-gift-revealed,
-    .animate-gift-exit,
-    .gift-box-shine::before {
+    .perk-shake-intense {
         animation: none;
     }
 }

@@ -155,6 +155,7 @@ beforeEach(() => {
     mockAddress = '0xA'
     mockCardPlanReason = undefined
     mockIdentityStatus = 'verified'
+    jest.mocked(findKycDocumentPlan).mockResolvedValue(null)
 })
 
 describe('useCardFlow', () => {
@@ -179,10 +180,6 @@ describe('useCardFlow', () => {
             mockApplyForCard.mockResolvedValue({ status: 'terms-required', isUsResident: true })
         })
 
-        afterEach(() => {
-            jest.mocked(findKycDocumentPlan).mockReset()
-        })
-
         it.each([
             { label: 'missing', status: undefined },
             { label: 'not_started', status: 'not_started' },
@@ -196,7 +193,7 @@ describe('useCardFlow', () => {
                     await result.current.handleApply()
                 })
 
-                expect(findKycDocumentPlan).toHaveBeenCalledTimes(1)
+                expect(findKycDocumentPlan).toHaveBeenCalledWith('entry')
                 expect(mockRouterPush).toHaveBeenCalledWith('/verify')
                 expect(mockApplyForCard).not.toHaveBeenCalled()
             }
@@ -209,7 +206,7 @@ describe('useCardFlow', () => {
                 await result.current.handleApply()
             })
 
-            expect(findKycDocumentPlan).not.toHaveBeenCalled()
+            expect(findKycDocumentPlan).not.toHaveBeenCalledWith('entry')
             expect(mockApplyForCard).toHaveBeenCalledTimes(1)
             expect(mockRouterPush).not.toHaveBeenCalledWith('/verify')
             expect(result.current.pendingTerms).toEqual({ isUsResident: true })
