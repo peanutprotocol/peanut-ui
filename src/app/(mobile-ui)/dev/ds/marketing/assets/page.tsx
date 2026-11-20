@@ -224,16 +224,18 @@ export default function MarketingAssetsPage() {
             <DocSection title="App icons" description="Picture icons with one job each: points, regions, invites.">
                 <DesignNote type="info">{APP_ICON_RULE}</DesignNote>
                 <ArtGrid entries={APP_ICON_ENTRIES} />
-                <Card className="flex w-fit flex-col gap-2 p-3">
-                    <div className="flex h-16 items-center justify-center rounded-sm bg-background-page p-2">
-                        <Icon name="invite-heart" size={40} />
-                    </div>
-                    <p className="font-mono text-label-m">{INVITE_HEART_ENTRY.label}</p>
-                    <p className="font-mono text-body-xs break-all text-foreground-secondary">
-                        {INVITE_HEART_ENTRY.path}
-                    </p>
-                    <p className="text-body-xs text-foreground-secondary">{INVITE_HEART_ENTRY.usedIn}</p>
-                </Card>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    <Card className="flex h-full flex-col gap-2 p-3">
+                        <div className="flex h-16 items-center justify-center rounded-sm bg-background-page p-2">
+                            <Icon name="invite-heart" size={40} />
+                        </div>
+                        <p className="font-mono text-label-m">{INVITE_HEART_ENTRY.label}</p>
+                        <p className="font-mono text-body-xs break-all text-foreground-secondary">
+                            {INVITE_HEART_ENTRY.path}
+                        </p>
+                        <p className="text-body-xs text-foreground-secondary">{INVITE_HEART_ENTRY.usedIn}</p>
+                    </Card>
+                </div>
             </DocSection>
 
             <DocSection title="Easter eggs" description="Hidden. Eight no-banking territories in EasterEggDrawer.">
