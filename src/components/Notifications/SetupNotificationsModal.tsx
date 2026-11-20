@@ -125,7 +125,7 @@ export function SetupNotificationsPrompt({
                 description={momentCopy ? t(momentCopy.description) : t('migrationSetupDescription')}
                 body={
                     <>
-                        <PeanutMascotScene scene="megaphone" className="h-40 max-w-48" />
+                        <PeanutMascotScene scene="waving" className="h-40 max-w-48" />
                         {error && <p role="alert">{error}</p>}
                     </>
                 }
