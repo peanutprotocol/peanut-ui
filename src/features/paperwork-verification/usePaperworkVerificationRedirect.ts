@@ -45,6 +45,6 @@ export function usePaperworkVerificationRedirect(
             controller.abort()
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps -- `entryKey` stands for `entry`
-    }, [enabled, entryKey, userId])
+    }, [enabled, entryKey, userId, replace])
     return enabled && !stay
 }

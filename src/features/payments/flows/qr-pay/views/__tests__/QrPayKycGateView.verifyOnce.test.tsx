@@ -11,9 +11,13 @@ import { QrKycState } from '@/constants/kyc.consts'
 import { QrPayKycGateView } from '../QrPayKycGateView'
 
 const mockPush = jest.fn()
+const mockReplace = jest.fn()
 let mockScannedCountry: string
 let mockRefusal: string | null
-jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }), usePathname: () => '/qr-pay' }))
+jest.mock('next/navigation', () => ({
+    useRouter: () => ({ push: mockPush, replace: mockReplace }),
+    usePathname: () => '/qr-pay',
+}))
 jest.mock('@/app/actions/kyc-workflow', () => ({ findKycDocumentPlan: jest.fn(), getKycDocumentStatus: jest.fn() }))
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))
 jest.mock('@/components/Kyc/modals/KycRegionRestrictedModal', () => ({ KycRegionRestrictedModal: () => null }))
@@ -63,14 +67,17 @@ it('keeps the stored refusal visible with a way back', () => {
 it('sends a verify-once user to /verify instead of the unlock offer; today’s flow keeps the offer', async () => {
     jest.mocked(findKycDocumentPlan).mockResolvedValue(plan('verify-once') as never)
     const { unmount } = renderView()
-    await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/verify'))
+    // the gate is the whole page: back from /verify must not land on it again (TASK-25011)
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/verify'))
+    expect(mockPush).not.toHaveBeenCalled()
     expect(screen.queryByText('Unlock QR payments')).not.toBeInTheDocument()
     unmount()
 
     jest.mocked(findKycDocumentPlan).mockResolvedValue(plan(null) as never)
-    mockPush.mockClear()
+    mockReplace.mockClear()
     renderView()
     expect(await screen.findByText('Unlock QR payments')).toBeInTheDocument()
+    expect(mockReplace).not.toHaveBeenCalled()
     expect(mockPush).not.toHaveBeenCalled()
 })
 
@@ -97,4 +104,5 @@ it.each(['AR', 'BR'])('keeps the %s QR unlock independent of the local-account p
     expect(await screen.findByText('Unlock QR payments')).toBeInTheDocument()
     expect(jest.mocked(findKycDocumentPlan).mock.calls.every(([, , feature]) => feature === 'qr')).toBe(true)
     expect(mockPush).not.toHaveBeenCalled()
+    expect(mockReplace).not.toHaveBeenCalled()
 })
