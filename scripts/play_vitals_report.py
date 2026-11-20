@@ -13,8 +13,7 @@ import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, timedelta, timezone
-from zoneinfo import ZoneInfo
+from datetime import date, datetime, timedelta, timezone
 
 API = "https://playdeveloperreporting.googleapis.com/v1beta1"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
@@ -109,12 +108,19 @@ def issue_rows(access_token, app, now):
     return pages("/%s/errorIssues:search" % app, "errorIssues", access_token, params)
 
 
-def rate_rows(access_token, app, now):
-    today = now.astimezone(ZoneInfo("America/Los_Angeles")).date()
-    start = today - timedelta(days=14)
+def rate_rows(access_token, app):
+    # play publishes daily vitals 1-2 days late and rejects a timeline past its
+    # latest published day, so end at the freshness it reports (exclusive end)
+    metric_set = request(API + "/%s/crashRateMetricSet" % app, token=access_token)
+    freshnesses = ((metric_set or {}).get("freshnessInfo") or {}).get("freshnesses") or []
+    latest = next((f.get("latestEndTime") for f in freshnesses if f.get("aggregationPeriod") == "DAILY"), None)
+    if not isinstance(latest, dict) or not all(isinstance(latest.get(k), int) for k in ("year", "month", "day")):
+        raise RuntimeError("Play Reporting returned no DAILY crash-rate freshness")
+    end = date(latest["year"], latest["month"], latest["day"])
+    start = end - timedelta(days=14)
     body = {"timelineSpec": {"aggregationPeriod": "DAILY",
                              "startTime": {"year": start.year, "month": start.month, "day": start.day},
-                             "endTime": {"year": today.year, "month": today.month, "day": today.day}},
+                             "endTime": {"year": end.year, "month": end.month, "day": end.day}},
             "metrics": ["userPerceivedCrashRate7dUserWeighted"], "pageSize": 1000}
     result = request(API + "/%s/crashRateMetricSet:query" % app, token=access_token, data=body)
     if not isinstance(result, dict) or not isinstance(result.get("rows", []), list):
@@ -167,4 +173,4 @@ def collect(now=None):
     except (ValueError, KeyError, TypeError):
         raise RuntimeError("PLAY_SERVICE_ACCOUNT_JSON is invalid") from None
     app = app_name(access_token)
-    return summarize(issue_rows(access_token, app, now), rate_rows(access_token, app, now), now)
+    return summarize(issue_rows(access_token, app, now), rate_rows(access_token, app), now)

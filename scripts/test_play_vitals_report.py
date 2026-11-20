@@ -22,6 +22,23 @@ class PlayVitalsReportTest(unittest.TestCase):
         self.assertEqual(params["interval.startTime.day"], 26)
         self.assertEqual(params["interval.endTime.hours"], 12)
 
+    def test_rate_query_ends_at_daily_freshness(self):
+        freshness = {"freshnessInfo": {"freshnesses": [
+            {"aggregationPeriod": "HOURLY", "latestEndTime": {"year": 2026, "month": 9, "day": 29, "hours": 10}},
+            {"aggregationPeriod": "DAILY", "latestEndTime": {"year": 2026, "month": 9, "day": 28,
+                                                             "timeZone": {"id": "America/Los_Angeles"}}}]}}
+        with patch.object(report, "request", side_effect=[freshness, {"rows": []}]) as request:
+            self.assertEqual(report.rate_rows("token", "apps/me.peanut.wallet"), [])
+        self.assertTrue(request.call_args_list[0].args[0].endswith("/apps/me.peanut.wallet/crashRateMetricSet"))
+        spec = request.call_args_list[1].kwargs["data"]["timelineSpec"]
+        self.assertEqual(spec["endTime"], {"year": 2026, "month": 9, "day": 28})
+        self.assertEqual(spec["startTime"], {"year": 2026, "month": 9, "day": 14})
+
+    def test_rate_query_fails_without_daily_freshness(self):
+        with patch.object(report, "request", return_value={"freshnessInfo": {"freshnesses": []}}):
+            with self.assertRaisesRegex(RuntimeError, "no DAILY crash-rate freshness"):
+                report.rate_rows("token", "apps/me.peanut.wallet")
+
     def test_summary_excludes_report_text_and_untrusted_link(self):
         issues = [{"name": "apps/me.peanut.wallet/errorIssues/one", "distinctUsers": "2",
                    "errorReportCount": "5", "lastErrorReportTime": "2026-09-29T11:00:00Z",
