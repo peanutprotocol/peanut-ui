@@ -7,21 +7,18 @@
 //   pnpm dev                                  # in another shell
 //   node scripts/render-social-card.mjs       # writes public/metadata-img.png
 //
-// Flags: --base <url> (default http://localhost:3000), --variant <key>
-// (default: the page's own default), --out <file>.
+// Flags: --base <url> (default http://localhost:3000), --out <file>.
 import { parseArgs } from 'node:util'
 import { chromium } from '@playwright/test'
 
 const { values } = parseArgs({
     options: {
         base: { type: 'string', default: 'http://localhost:3000' },
-        variant: { type: 'string' },
         out: { type: 'string', default: 'public/metadata-img.png' },
     },
 })
 
 const url = new URL('/dev/social-card', values.base)
-if (values.variant) url.searchParams.set('variant', values.variant)
 
 const browser = await chromium.launch()
 try {
@@ -29,12 +26,7 @@ try {
     const response = await page.goto(url.href, { waitUntil: 'networkidle' })
     if (!response?.ok()) throw new Error(`${url.href} answered ${response?.status()}`)
     await page.waitForSelector('[data-social-card]')
-    // A card without a mascot has no Lottie to wait for.
-    await page.waitForFunction(
-        () =>
-            !document.querySelector('[data-lottie-ready="false"]') &&
-            [...document.images].every((image) => image.complete)
-    )
+    await page.waitForFunction(() => [...document.images].every((image) => image.complete))
     await page.evaluate(() => document.fonts.ready)
     // The card is the page; app chrome (toasts, the dev-mode badge) is not part of it.
     await page.evaluate(() => {

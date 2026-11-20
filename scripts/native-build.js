@@ -71,9 +71,6 @@ const ITEMS_TO_DISABLE = [
     // Web-only preview of the /go creator pages. A dynamic route without generateStaticParams
     // cannot be statically exported.
     { path: 'dev/creator-pages', type: 'dir' },
-    // Web-only source of the link-preview card. It reads ?variant= on the server, which a
-    // static export cannot do.
-    { path: 'dev/social-card', type: 'dir' },
 ]
 
 module.exports = { ITEMS_TO_DISABLE }
