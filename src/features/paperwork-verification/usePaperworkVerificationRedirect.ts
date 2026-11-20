@@ -15,7 +15,9 @@ import { useOptionalAuth } from '@/context/authContext'
 export function usePaperworkVerificationRedirect(
     active: boolean,
     entry: PaperworkVerificationEntry | undefined,
-    source: VerifySource = 'unlock_payments'
+    source: VerifySource = 'unlock_payments',
+    // a page that is only this gate must not stay in history, or back re-mounts it and redirects again
+    replace = false
 ) {
     const router = useRouter()
     const userId = useOptionalAuth()?.user?.user.userId
@@ -32,7 +34,8 @@ export function usePaperworkVerificationRedirect(
             .then((route) => {
                 if (controller.signal.aborted) return
                 if (route === '/verify') markVerifySource(source)
-                if (route) routerRef.current.push(route)
+                if (route && replace) routerRef.current.replace(route)
+                else if (route) routerRef.current.push(route)
                 else setStay(true)
             })
             .catch(() => {
