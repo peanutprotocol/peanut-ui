@@ -79,7 +79,6 @@ const INLINE_STYLE_ALLOW = [
     'dev/journey/', // dev tooling
     'dev/full-graph/', // dev tooling
     'dev/payment-graph/', // dev tooling
-    'dev/share-builder/', // dev tooling
     'dev/loading-words/', // dev tooling
     'app/layout.tsx', // colorScheme on <html> — must be a style prop
     '0_Bruddle/BaseSelect.tsx', // width from radix var(--radix-select-trigger-width)

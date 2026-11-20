@@ -531,9 +531,9 @@ module.exports = [
         rules: { '@next/next/no-img-element': 'off' },
     },
     {
-        // Rasterized to PNG by html-to-image (see share-asset/captureShareAsset.ts).
-        // next/image's lazy loading and wrapper markup break the capture — the same
-        // class of bug as the runtime <canvas> that file already documents.
+        // PixelatedCardFace was built for html-to-image capture, which next/image
+        // broke, and still uses plain <img>. The capture path left with the share
+        // builder, so a move to next/image is open.
         files: ['src/components/Card/share-asset/**'],
         rules: { '@next/next/no-img-element': 'off' },
     },

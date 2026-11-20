@@ -37,7 +37,7 @@ const TIER_DESCRIPTIONS: Record<string, string> = {
     primitives: 'Building blocks under the patterns: Button, Card, Input, Select, Checkbox, Toast',
     patterns: 'Composed components: Modal, Drawer, Navigation, Loading, Feedback, Layouts',
     audit: 'Three lenses: Code Audit (DRY consolidation) · App Divergences (live vs showcase-only vs dead in product) · Big Components (modals, drawers, lists)',
-    playground: 'Interactive test harnesses: shake & confetti, perk success, share-asset builder',
+    playground: 'Interactive test harnesses: shake & confetti, perk success',
 }
 
 export default function DesignSystemPage() {

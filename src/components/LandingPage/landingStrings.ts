@@ -16,8 +16,6 @@ export interface LandingStrings {
     heroSpend: string
     heroLocally: string
     learnMore: string
-    dropLinkHeading: string
-    dropLinkBody: string
     getPaid: HomeGetPaidStrings
     personas: HomePersonaStrings
     request: HomeRequestStrings
@@ -70,8 +68,6 @@ export function landingStrings(i18n: Translations): LandingStrings {
         heroSpend: i18n.landingHeroSpend,
         heroLocally: i18n.landingHeroLocally,
         learnMore: i18n.landingLearnMore,
-        dropLinkHeading: i18n.landingDropLinkHeading,
-        dropLinkBody: i18n.landingDropLinkBody,
         getPaid: {
             heading: i18n.landingGetPaidHeading,
         },
