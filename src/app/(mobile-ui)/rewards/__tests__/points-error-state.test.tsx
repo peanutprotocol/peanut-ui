@@ -50,7 +50,6 @@ jest.mock('@/components/Global/Card', () => {
     }
 })
 jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => null }))
-jest.mock('@/components/Global/PeanutMascot/PeanutMascotScene', () => ({ PeanutMascotScene: () => null }))
 jest.mock('@/components/Global/NavHeader', () => () => null)
 jest.mock('@/components/Global/NavigationArrow', () => () => null)
 jest.mock('@/components/Global/InvitesGraph', () => () => null)

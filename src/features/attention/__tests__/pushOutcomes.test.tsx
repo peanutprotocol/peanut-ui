@@ -146,7 +146,6 @@ jest.mock('@/components/Global/DocsLink', () => ({
     __esModule: true,
     default: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
 }))
-jest.mock('@/components/Global/PeanutMascot/PeanutMascotScene', () => ({ PeanutMascotScene: () => null }))
 jest.mock('@/components/0_Bruddle/IconBubble', () => ({ IconBubble: () => null }))
 jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => null }))
 jest.mock('@/components/Global/ShareButton', () => ({
