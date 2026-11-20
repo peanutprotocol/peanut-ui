@@ -16,7 +16,12 @@ jest.mock('next/headers', () => ({ headers: jest.fn() }))
 jest.mock('@/features/tracked-links/go-map', () => {
     const actual = jest.requireActual('@/features/tracked-links/go-map')
     const redirects = { shortlink: '/en/pricing?utm_source=flyer', 'promo/flyer': '/app', 'press-kit': '/en/press' }
-    return { ...actual, resolveGoRedirect: (segments: string[]) => actual.resolveGoRedirect(segments, redirects) }
+    // Uses any map the page passes, so a page that hands over some other map fails here.
+    return {
+        ...actual,
+        resolveGoRedirect: (segments: string[], map?: Record<string, string>) =>
+            actual.resolveGoRedirect(segments, map ?? redirects),
+    }
 })
 jest.mock('@/features/creator-pages/registry', () => ({ selectCreatorPage: jest.fn() }))
 jest.mock('@/features/tracked-links/TrackedLinkEntry', () => ({ __esModule: true, default: () => null }))

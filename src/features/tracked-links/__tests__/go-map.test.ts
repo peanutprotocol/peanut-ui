@@ -1,18 +1,14 @@
 import { getPathMatch } from 'next/dist/shared/lib/router/utils/path-match'
 import redirectRules from '../../../../redirects.json'
-import {
-    GO_REDIRECT_KEY,
-    GO_REDIRECTS,
-    goRedirectDestination,
-    resolveGoRedirect,
-} from '@/features/tracked-links/go-map'
+import { GO_REDIRECT_KEY, GO_REDIRECTS, resolveGoRedirect } from '@/features/tracked-links/go-map'
 
 // A loop, not it.each, so an empty map still passes.
 it('keeps every GO_REDIRECTS entry on peanut.me and out of /go/', () => {
     for (const [key, target] of Object.entries(GO_REDIRECTS)) {
         expect(key).toMatch(GO_REDIRECT_KEY)
-        // A bad line fails naming its key; goRedirectDestination refuses other sites and /go/ paths.
-        expect([key, goRedirectDestination(target)]).toEqual([key, target])
+        // A bad line fails naming its key. This is the page's own lookup on the live map, which refuses other
+        // sites and /go/ paths.
+        expect([key, resolveGoRedirect(key.split('/'))]).toEqual([key, target])
     }
 })
 
