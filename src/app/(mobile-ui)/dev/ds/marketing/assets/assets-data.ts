@@ -1,5 +1,6 @@
-// Marketing asset inventory: the approved brand art — mascot, hero art, doodles,
-// gloves, logo set, easter eggs, residence stickers, avatars, badges — and where each piece is used.
+// Marketing asset inventory: the approved brand art — mascot, coin characters, hero art, doodles,
+// gloves, logo set, link-preview doodles, app icons, easter eggs, residence stickers, avatars,
+// badges — and where each piece is used.
 // An asset that is not listed here is not approved. Files decided fix-later in
 // the Oct 2026 sweep stay in production but are not listed.
 
@@ -14,6 +15,11 @@ import { getTierBadge } from '@/features/rewards/utils'
 import badgeAssets from '@/types/badge-assets.json'
 
 import peanutCardHand from '@/assets/cards/peanut-card-hand.svg'
+import europeGlobe from '@/assets/icons/europe-globe.svg'
+import latamGlobe from '@/assets/icons/latam-globe.svg'
+import northAmericaGlobe from '@/assets/icons/north-america-globe.svg'
+import restOfWorldGlobe from '@/assets/icons/rest-of-world-globe.svg'
+import starStraight from '@/assets/icons/starStraight.svg'
 import globalCashLocalFeel from '@/assets/illustrations/global-cash-local-feel.png'
 import borderCloud from '@/assets/illustrations/border-cloud.svg'
 import exclamations from '@/assets/illustrations/exclamations.svg'
@@ -32,7 +38,10 @@ import sparkle from '@/assets/illustrations/sparkle.svg'
 import stackCoin from '@/assets/illustrations/stack-coin.svg'
 import star from '@/assets/illustrations/star.svg'
 import coinEurFace from '@/assets/onboarding/coin-eur-face.svg'
+import coinEurRig from '@/assets/onboarding/coin-eur-rig.png'
 import coinUsdFace from '@/assets/onboarding/coin-usd-face.svg'
+import coinUsdRig from '@/assets/onboarding/coin-usd-rig.png'
+import firstInviteWhite from '@/assets/onboarding/first-invite-white.svg'
 
 export interface MascotEntry {
     pose: MascotPose
@@ -83,9 +92,59 @@ export const MASCOT_STILL_ENTRIES: ArtEntry[] = [
         label: 'peanut-sitting',
         asset: PEANUT_SITTING,
         path: 'assets/mascot/peanut-sitting.webp',
-        usedIn: 'PEANUT_SITTING: PeanutMascotScene',
+        usedIn: 'PEANUT_SITTING: creator invite page A1 (NitaA1), DS receipt card fan demo (ReceiptCardFan). It always sits on a horizontal divider or edge; it never floats.',
     },
 ]
+
+/**
+ * Press kit stills: one 320 px render of an approved pose each, served as
+ * downloads on the press page. Approved by Konrad, 2026-11-19.
+ */
+export const PRESS_STILL_ENTRIES: PublicArtEntry[] = [
+    ['peanut-waving-hello', 'waving-hello'],
+    ['peanut-cool', 'too-cool'],
+    ['peanut-walking', 'walking'],
+    ['peanut-pointing-down', 'pointing-down'],
+    ['peanut-worried', 'worried'],
+].map(([file, pose]) => ({
+    label: file,
+    src: `/press/assets/mascots/${file}.webp`,
+    usedIn: `Press kit download only; still of the ${pose} pose`,
+}))
+
+/**
+ * The coin characters: the $ and € coin faces of sign-up. Approved by Konrad,
+ * 2026-11-19.
+ */
+export const COIN_ENTRIES: ArtEntry[] = [
+    {
+        label: 'coin-usd-face',
+        asset: coinUsdFace,
+        path: 'assets/onboarding/coin-usd-face.svg',
+        usedIn: 'Sign-up Welcome coin row (X1Hero); the corner coins on the US/Europe accounts landing page; permitted celebrations "Coins land, get stacked" and "One coin flip"',
+    },
+    {
+        label: 'coin-eur-face',
+        asset: coinEurFace,
+        path: 'assets/onboarding/coin-eur-face.svg',
+        usedIn: 'Sign-up Welcome coin row (X1Hero); the corner coins on the US/Europe accounts landing page; permitted celebrations "Coins land, get stacked" and "One coin flip"',
+    },
+    {
+        label: 'coin-usd-rig',
+        asset: coinUsdRig,
+        path: 'assets/onboarding/coin-usd-rig.png',
+        usedIn: 'CoinCharacter still: sign-up Accounts, Payment plan, Final confirm, Celebration',
+    },
+    {
+        label: 'coin-eur-rig',
+        asset: coinEurRig,
+        path: 'assets/onboarding/coin-eur-rig.png',
+        usedIn: 'CoinCharacter still: sign-up Accounts, Payment plan, Final confirm, Celebration',
+    },
+]
+
+export const COIN_RULE =
+    'These coin faces are the only coin art. The moving coins are cut from the Accounts loop (assets/onboarding/accounts.json, shown below) by coinRig.ts, and the desktop sign-up side loops use the same coins. Approved by Konrad, 2026-11-19.'
 
 /** Hero artwork. The Knerd key visual on the landing hero. */
 export const HERO_ART_ENTRIES: ArtEntry[] = [
@@ -116,18 +175,6 @@ export const DOODLE_ENTRIES: ArtEntry[] = [
         asset: stackCoin,
         path: 'assets/illustrations/stack-coin.svg',
         usedIn: 'no app call site; permitted celebration "Coins land, get stacked"',
-    },
-    {
-        label: 'coin-usd-face',
-        asset: coinUsdFace,
-        path: 'assets/onboarding/coin-usd-face.svg',
-        usedIn: 'Sign-up landing hero (X1Hero); permitted celebrations "Coins land, get stacked" and "One coin flip"',
-    },
-    {
-        label: 'coin-eur-face',
-        asset: coinEurFace,
-        path: 'assets/onboarding/coin-eur-face.svg',
-        usedIn: 'Sign-up landing hero (X1Hero); permitted celebrations "Coins land, get stacked" and "One coin flip"',
     },
     {
         label: 'peanut-card-hand',
@@ -167,6 +214,70 @@ export const LANDING_ILLUSTRATION_ENTRIES: ArtEntry[] = [
         usedIn: 'no current call site',
     },
 ]
+
+/**
+ * Link-preview doodles: the scribble loop and the arrows on the Open Graph
+ * cards. Served from public/ because next/og loads them by URL. Approved by
+ * Konrad, 2026-11-19, for that use only.
+ */
+export const OG_DOODLE_ENTRIES: PublicArtEntry[] = [
+    ['scribble', '/scribble.svg', 'Scribble loop around the username: payment, invite and profile cards'],
+    ['top-left-arrows', '/arrows/top-left-arrows.svg', 'Payment card and invite card'],
+    ['top-right-arrow', '/arrows/top-right-arrow.svg', 'Payment card'],
+    ['top-right-arrow-2', '/arrows/top-right-arrow-2.svg', 'Invite card'],
+    ['bottom-left-arrow', '/arrows/bottom-left-arrow.svg', 'Payment card'],
+    ['bottom-right-arrow', '/arrows/bottom-right-arrow.svg', 'Payment card'],
+].map(([label, src, usedIn]) => ({ label, src, usedIn }))
+
+export const OG_DOODLE_RULE =
+    'Link-preview cards only (src/components/og, served by /api/og). Do not use the scribble or the arrows on an app screen, a marketing page or in new art; use scribble-circle and the doodles above there. Approved by Konrad, 2026-11-19, with this limit.'
+
+/**
+ * App icons that are pictures, not Lucide glyphs. Each has one job. Approved
+ * by Konrad, 2026-11-19.
+ */
+export const APP_ICON_ENTRIES: ArtEntry[] = [
+    {
+        label: 'starStraight',
+        asset: starStraight,
+        path: 'assets/icons/starStraight.svg',
+        usedIn: 'The points icon, and nothing else: next to a points number or the Points and Rewards entries',
+    },
+    {
+        label: 'europe-globe',
+        asset: europeGlobe,
+        path: 'assets/icons/europe-globe.svg',
+        usedIn: 'Region icon: Profile > Limits, Europe row',
+    },
+    {
+        label: 'north-america-globe',
+        asset: northAmericaGlobe,
+        path: 'assets/icons/north-america-globe.svg',
+        usedIn: 'Region icon: Profile > Limits, North America row',
+    },
+    {
+        label: 'latam-globe',
+        asset: latamGlobe,
+        path: 'assets/icons/latam-globe.svg',
+        usedIn: 'Region icon: Profile > Limits, LATAM row',
+    },
+    {
+        label: 'rest-of-world-globe',
+        asset: restOfWorldGlobe,
+        path: 'assets/icons/rest-of-world-globe.svg',
+        usedIn: 'Region icon: Profile > Limits, Rest of the world row',
+    },
+]
+
+/** The invite heart is an inline icon component, so the page renders it through Icon. */
+export const INVITE_HEART_ENTRY = {
+    label: 'invite-heart',
+    path: 'components/Global/Icons/invite-heart.tsx',
+    usedIn: 'Invite buttons and invite rows: profile header, Rewards, QR pay success, receipt referral action. Also the perk gift box and the charitable donations answer in the paperwork questions',
+}
+
+export const APP_ICON_RULE =
+    'Functional icons, approved as they are. The four globes work like country flags and keep their own colours. None of them is a doodle or a sticker; do not use them as decoration.'
 
 /** Gloves. Flat white with a black outline, no shading. */
 export const GLOVE_ENTRIES: ArtEntry[] = [
@@ -307,6 +418,16 @@ export const BADGE_ENTRIES: BadgeEntry[] = Array.from(
     }, new Map<string, string[]>()),
     ([src, codes]) => ({ src, codes })
 )
+
+/** Colour variants of a production badge, approved for one named use each. */
+export const BADGE_VARIANT_ENTRIES: ArtEntry[] = [
+    {
+        label: 'first-invite-white',
+        asset: firstInviteWhite,
+        path: 'assets/onboarding/first-invite-white.svg',
+        usedIn: 'White-paper variant of the first_invite badge, for coloured panels: sign-up Email step (EmailArt)',
+    },
+]
 
 export const TIER_BADGE_ENTRIES: ArtEntry[] = [0, 1, 2, 3].map((tier) => ({
     label: `tier${tier}`,

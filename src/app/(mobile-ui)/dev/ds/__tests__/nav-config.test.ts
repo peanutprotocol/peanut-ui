@@ -74,7 +74,7 @@ describe('filterNav', () => {
 
     it('searches across tiers', () => {
         const groups = filterNav('card')
-        expect(groups.map((g) => g.tier.key)).toEqual(['patterns', 'primitives', 'playground'])
+        expect(groups.map((g) => g.tier.key)).toEqual(['patterns', 'primitives'])
     })
 
     it('matches a tier label and keeps that tier whole', () => {

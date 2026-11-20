@@ -53,6 +53,7 @@ import {
     Rows2,
     Rows3,
     Ruler,
+    ScanLine,
     Shapes,
     Share2,
     SlidersHorizontal,
@@ -67,7 +68,6 @@ import {
     Trophy,
     Type,
     Vibrate,
-    Wrench,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -424,6 +424,14 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             status: 'limited',
         },
         {
+            label: 'ScanFrame',
+            icon: ScanLine,
+            href: '/dev/ds/primitives/scan-frame',
+            description:
+                'Scanner corner marks round approved art, with an optional scan line. Code-only, ruling pending',
+            status: 'limited',
+        },
+        {
             label: 'CloudsBackground',
             icon: Cloud,
             href: '/dev/ds/primitives/clouds-background',
@@ -543,7 +551,7 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             icon: Images,
             href: '/dev/ds/marketing/assets',
             description:
-                'The art you may use: mascot, doodles, gloves, logo set, easter eggs, avatars, badges. Not here = not approved',
+                'The art you may use: mascot, coin characters, doodles, gloves, logo set, app icons, easter eggs, avatars, badges. Not here = not approved',
             status: 'production',
         },
         {
@@ -580,12 +588,6 @@ export const SIDEBAR_CONFIG: Record<string, NavItem[]> = {
             icon: Gift,
             href: '/dev/perk-success-test',
             description: 'The perk-unlock success screen with mock perks — preview the celebration + confetti flow.',
-        },
-        {
-            label: 'Share Builder',
-            icon: Wrench,
-            href: '/dev/share-builder',
-            description: 'Iterator for the D3 card share asset — stress-test tiers, names and edge cases.',
         },
     ],
 }
