@@ -18,8 +18,8 @@
         "app/(mobile-ui)/verify/page.tsx": 429,
         "app/(mobile-ui)/withdraw/[country]/bank/page.tsx": 209,
         "app/(mobile-ui)/withdraw/[country]/page.tsx": 421,
-        "app/(mobile-ui)/withdraw/crypto/page.tsx": 145,
-        "app/(mobile-ui)/withdraw/manteca/page.tsx": 574,
+        "app/(mobile-ui)/withdraw/crypto/page.tsx": 132,
+        "app/(mobile-ui)/withdraw/manteca/page.tsx": 580,
         "app/(mobile-ui)/withdraw/pix/page.tsx": 159,
         "app/[...recipient]/page.tsx": 177,
         "app/invite/page.tsx": 91,
@@ -50,7 +50,7 @@
         "components/Profile/views/ResidenceChangeDrawer.tsx": 168,
         "components/Request/direct-request/views/Initial.direct.request.view.tsx": 187,
         "components/Request/link/views/RequestCreatedView.tsx": 220,
-        "components/Send/link/views/Initial.link.send.view.tsx": 68,
+        "components/Send/link/views/Initial.link.send.view.tsx": 98,
         "components/Send/views/Contacts.view.tsx": 96,
         "components/Send/views/SendRouter.view.tsx": 75,
         "components/Setup/redesign/Celebration/CelebrationScreen.tsx": 102,
@@ -90,7 +90,7 @@
         "features/withdraw/views/BridgeBankWithdrawView.tsx": 212,
         "features/withdraw/views/ConfirmWithdrawView.tsx": 137,
         "features/withdraw/views/WithdrawAmountView.tsx": 74,
-        "features/withdraw/views/WithdrawBankReviewView.tsx": 182,
+        "features/withdraw/views/WithdrawBankReviewView.tsx": 145,
         "features/withdraw/views/WithdrawMethodView.tsx": 99
     }
 }
