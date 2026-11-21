@@ -168,14 +168,19 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
     // USD amount handed over by the shared /withdraw amount step (TASK-21664)
     const [urlAmount] = useWithdrawAmount()
-    // a saved account arrives as its id; the account number stays off the URL (mantecaWithdrawUrl)
+    // A saved account arrives as `destination` + `isSavedAccount=true`, or by its id
+    // (`account`) in links made by the ui#4201 bundle (mantecaWithdrawUrl).
     const { user } = useAuth()
     const savedAccountId = searchParams.get('account')
-    const paramAddress = savedAccountId
+    const savedAccountIdentifier = savedAccountId
         ? (user?.accounts.find((account) => account.id === savedAccountId && account.type === AccountType.MANTECA)
               ?.identifier ?? null)
         : null
-    const isSavedAccount = !!paramAddress && validateCbuCvuAlias(paramAddress).valid
+    const paramAddress = searchParams.get('destination') ?? savedAccountIdentifier
+    const isSavedAccount =
+        (searchParams.get('isSavedAccount') === 'true' || !!savedAccountIdentifier) &&
+        !!paramAddress &&
+        validateCbuCvuAlias(paramAddress).valid
     const [destinationConfirmed, setDestinationConfirmed] = useState(isSavedAccount)
     const [destinationAddress, setDestinationAddress] = useState<string>(paramAddress ?? '')
     const [selectedBank, setSelectedBank] = useState<MantecaBankCode | null>(null)

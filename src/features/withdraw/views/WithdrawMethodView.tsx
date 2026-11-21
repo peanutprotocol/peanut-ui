@@ -289,8 +289,8 @@ export const WithdrawMethodView: FC<WithdrawMethodViewProps> = ({ pageTitle, onE
                                       ? PIX_SEND_PATH
                                       : mantecaWithdrawUrl({
                                             country: countryPath,
-                                            // the id, never the account number (mantecaWithdrawUrl)
-                                            account: account.id,
+                                            destination: account.identifier,
+                                            isSavedAccount: 'true',
                                             method: isBankFromSend && countryPath === 'brazil' ? 'pix' : undefined,
                                             sendMethod: isBankFromSend ? (methodParam ?? undefined) : undefined,
                                         })
