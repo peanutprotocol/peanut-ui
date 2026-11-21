@@ -66,7 +66,10 @@ jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({ setIsSupportModalOpen: jest.fn(), openSupportWithMessage: jest.fn() }),
 }))
 jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ rails: [], nextActions: [] }) }))
-jest.mock('@/hooks/useIdentityVerification', () => ({ useIdentityVerification: () => ({ isVerified: true }) }))
+jest.mock('@/hooks/useIdentityVerification', () => ({ useIdentityVerification: () => ({}) }))
+jest.mock('@/hooks/useVerification', () => ({
+    useVerification: () => ({ identityVerified: true, canUse: () => true }),
+}))
 jest.mock('@/utils/provider-rejection.utils', () => ({ deriveProviderRejection: () => ({ state: 'none' }) }))
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     useMultiPhaseKycFlow: () => ({ isModalOpen: false, errorCooldown: null, error: null }),
@@ -90,7 +93,8 @@ jest.mock('@/hooks/useSumsubActionFlow', () => ({
 }))
 jest.mock('@/app/actions/increase-limits', () => ({ initiateIncreaseLimits: jest.fn() }))
 jest.mock('@/hooks/useLimits', () => ({ useLimits: () => ({ mantecaLimits: null, refetch: jest.fn() }) }))
-jest.mock('@/utils/regions.utils', () => ({ isVerifiedForCountry: () => true }))
+// regions.utils reads AddMoney/consts at load, which this test mocks
+jest.mock('@/utils/regions.utils', () => ({}))
 jest.mock('@/components/AddMoney/consts', () => ({
     countryData: [{ type: 'country', path: 'argentina', id: 'AR', iso2: 'AR', currency: 'ARS', title: 'Argentina' }],
 }))

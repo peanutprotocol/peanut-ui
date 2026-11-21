@@ -11,8 +11,7 @@ import { renderHook } from '@testing-library/react'
 import { useAuth } from '@/context/authContext'
 import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { FIXTURES } from '@/dev/fixtures/registry'
-import { useCapabilities } from '@/hooks/useCapabilities'
-import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import { useVerification } from '@/hooks/useVerification'
 import type { IUserProfile } from '@/interfaces/interfaces'
 import type {
     IdentityVerification,
@@ -22,7 +21,7 @@ import type {
     RailOperation,
 } from '@/types/capabilities'
 import { capabilityStateForProfile } from '@/utils/capability-gate'
-import { deriveRegionAccess, isVerifiedForCountry } from '@/utils/regions.utils'
+import { deriveRegionAccess } from '@/utils/regions.utils'
 
 jest.mock('@/context/authContext', () => ({ useAuth: jest.fn() }))
 let mockDemoMode = false
@@ -158,16 +157,10 @@ const COUNTRIES = ['AR', 'ar', 'BR', 'US', 'MX', 'DE', 'GB']
 
 // ── The live answers, per caller meaning ──
 
-function useLiveAnswers() {
-    const { isKycApproved } = useCapabilities()
-    const { isVerified } = useIdentityVerification()
-    return { hasAnyEnabledRail: isKycApproved, identityVerified: isVerified }
-}
-
 function liveAnswers(user: IUserProfile | null) {
     const rails = user?.capabilities?.rails ?? []
     mockUseAuth.mockReturnValue({ user, isFetchingUser: false } as unknown as ReturnType<typeof useAuth>)
-    const { result, unmount } = renderHook(() => useLiveAnswers())
+    const { result, unmount } = renderHook(() => useVerification())
     const hook = result.current
     unmount()
     return {
@@ -175,7 +168,7 @@ function liveAnswers(user: IUserProfile | null) {
         restOfWorldUnlocked: deriveRegionAccess(rails).unlockedRegions.some((r) => r.name === 'Rest of the world'),
         identityVerified: hook.identityVerified,
         gateIdentityVerified: capabilityStateForProfile(user, false).identityVerified,
-        canUse: (op: RailOperation, country: string) => isVerifiedForCountry(rails, country, op),
+        canUse: hook.canUse,
     }
 }
 

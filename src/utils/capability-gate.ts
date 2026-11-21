@@ -25,6 +25,7 @@ import type {
     FeatureReportEntry,
 } from '@/types/capabilities'
 import type { IUserProfile } from '@/interfaces/interfaces'
+import { isIdentityVerified } from '@/utils/verification'
 import { IDENTITY_REGION_RESTRICTED_CODE } from '@/constants/kyc.consts'
 import {
     entryAction,
@@ -380,7 +381,7 @@ export interface CapabilityState {
      * reads the rails, as it did before the report.
      */
     features?: FeatureReport
-    /** identityVerification.status === 'verified' — NOT any-rail-enabled. */
+    /** The identity check passed ({@link isIdentityVerified}), NOT any-rail-enabled. */
     identityVerified?: boolean
     /** The identity check's hold, for a fallback that has no report: a hold only support can lift. */
     identityHold?: SupportCase
@@ -448,7 +449,7 @@ export function capabilityStateForProfile(user: IUserProfile | null | undefined,
         rails: user?.capabilities?.rails ?? [],
         nextActions: user?.capabilities?.nextActions ?? [],
         features: user?.capabilities?.features,
-        identityVerified: user?.identityVerification?.status === 'verified',
+        identityVerified: isIdentityVerified(user?.identityVerification),
         identityHold: identityHoldOf(user?.identityVerification),
         identityRejection:
             user?.identityVerification?.status === 'failed'

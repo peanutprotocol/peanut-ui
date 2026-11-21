@@ -47,7 +47,10 @@ jest.mock('@/context/ModalsContext', () => ({
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({ rails: [], nextActions: [], capabilities: { routes: [] } }),
 }))
-jest.mock('@/hooks/useIdentityVerification', () => ({ useIdentityVerification: () => ({ isVerified: true }) }))
+jest.mock('@/hooks/useIdentityVerification', () => ({ useIdentityVerification: () => ({}) }))
+jest.mock('@/hooks/useVerification', () => ({
+    useVerification: () => ({ identityVerified: true, canUse: () => true }),
+}))
 jest.mock('@/hooks/wallet/usePendingTransactions', () => ({
     usePendingTransactions: () => ({ hasPendingTransactions: false }),
 }))
@@ -59,7 +62,6 @@ jest.mock('@/features/limits/utils', () => ({
     getLimitsWarningCardProps: () => null,
     isBrUserEligibleForLimitIncrease: () => false,
 }))
-jest.mock('@/utils/regions.utils', () => ({ isVerifiedForCountry: () => true }))
 jest.mock('@/hooks/usePointsCalculation', () => ({ usePointsCalculation: () => ({}) }))
 jest.mock('@/hooks/usePointsConfetti', () => ({ usePointsConfetti: () => {} }))
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))

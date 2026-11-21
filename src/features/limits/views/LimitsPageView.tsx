@@ -16,6 +16,7 @@ import {
     type Region,
 } from '@/utils/regions.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
+import { useVerification } from '@/hooks/useVerification'
 import { useLimits } from '@/hooks/useLimits'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { useTranslations } from 'next-intl'
@@ -35,7 +36,9 @@ const LimitsPageView = () => {
     const tCommon = useTranslations('common')
     const router = useRouter()
     const goBack = useSafeBack('/settings', { replace: true })
-    const { isKycApproved, rails } = useCapabilities()
+    const { rails } = useCapabilities()
+    // any enabled rail unlocks the fiat-limits section
+    const { hasAnyEnabledRail } = useVerification()
     // MIGRATION-REVIEW: finishes the LimitsPageView migration the prior pass deferred
     // (f4eb9f70e left `useIdentityVerification` here for the region lists). unlockedRegions/
     // lockedRegions now derive from the capability rails via deriveRegionAccess — same Region
@@ -44,11 +47,6 @@ const LimitsPageView = () => {
     const { hasMantecaLimits } = useLimits()
     const { overview: rainCardOverview } = useRainCardOverview()
     const activeCard = findActiveCard(rainCardOverview)
-
-    // check if user has any kyc at all → any enabled rail unlocks the fiat-limits section.
-    // MIGRATION-REVIEW: old `isUserKycApproved` (any provider approved) → `isKycApproved` (any enabled
-    // rail). Equivalent for the limits-unlock gate.
-    const hasAnyKyc = isKycApproved
 
     // "pending" badge per REGION: a region is pending only when a mid-flight
     // bank rail belongs to that region's jurisdiction. The old page-level
@@ -86,7 +84,7 @@ const LimitsPageView = () => {
             <Callout priority="info">{t('pageDescription')}</Callout>
 
             {/* fiat limits section */}
-            {!hasAnyKyc && <FiatLimitsLockedCard />}
+            {!hasAnyEnabledRail && <FiatLimitsLockedCard />}
 
             {/* unlocked regions */}
             {unlockedRegions.length > 0 && (

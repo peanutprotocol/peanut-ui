@@ -1,11 +1,11 @@
 import { EUROPE_GLOBE_ICON, LATAM_GLOBE_ICON, NORTH_AMERICA_GLOBE_ICON, REST_OF_WORLD_GLOBE_ICON } from '@/assets/icons'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import { type KYCRegionIntent } from '@/app/actions/types/sumsub.types'
-import { type RailCapability, type RailOperation } from '@/types/capabilities'
+import { type RailCapability } from '@/types/capabilities'
 import { BRIDGE_ALPHA3_TO_ALPHA2, type CountryData } from '@/components/AddMoney/consts'
-import { isMantecaSupportedCountryCode } from '@/constants/manteca.consts'
 import { type ResidenceRestrictionSets } from '@/utils/residence-restriction-sets'
 import { deriveResidenceRestrictionsFrom } from '@/utils/residence-restrictions'
+import { hasAnyEnabledRail } from '@/utils/verification'
 import type { StaticImageData } from 'next/image'
 
 /**
@@ -188,7 +188,7 @@ const hasFunctionalRail = (rails: RailCapability[], provider: 'bridge' | 'mantec
  *       Old: `isSumsubApproved ? (regionIntent==='LATAM' || isMantecaApproved) : isMantecaApproved`.
  *       The regionIntent==='LATAM' optimism = a Manteca rail exists but hasn't
  *       enabled yet ⇒ `pending`/`requires-info`, covered by hasFunctionalRail.
- *   - Rest of the world ← `isKycApproved` (any enabled rail).
+ *   - Rest of the world ← `hasAnyEnabledRail` (any enabled rail).
  *       CONTRACT GAP (flagged): old gate was `isSumsubApproved` alone. Sumsub has
  *       NO rail in the capability model; the established proxy across this migration
  *       is "any enabled rail ⇒ identity cleared at least once". DIVERGENCE: a
@@ -209,11 +209,10 @@ export function deriveRegionAccess(rails: RailCapability[]): { unlockedRegions: 
     const hasManteca = hasFunctionalRail(rails, 'manteca')
     // LATAM is unlocked by any provider that serves it: Avenia's BRL account counts as Manteca's does
     const hasLatam = hasManteca || hasFunctionalRail(rails, 'avenia')
-    const isKycApproved = rails.some((rail) => rail.status === 'enabled')
     const isBridgeEnabled = rails.some((rail) => rail.provider === 'bridge' && rail.status === 'enabled')
 
     const isRegionUnlocked = (regionName: string): boolean => {
-        if (regionName === REST_OF_THE_WORLD_REGION) return isKycApproved
+        if (regionName === REST_OF_THE_WORLD_REGION) return hasAnyEnabledRail(rails)
         if (BRIDGE_SUPPORTED_REGIONS.includes(regionName)) return hasBridge
         if (MANTECA_SUPPORTED_REGIONS.includes(regionName)) return hasLatam
         return false
@@ -294,26 +293,4 @@ const BRIDGE_ALPHA2_SET = new Set(Object.values(BRIDGE_ALPHA3_TO_ALPHA2))
 export const isBridgeSupportedCountry = (code: string): boolean => {
     const upper = code.toUpperCase()
     return upper === 'US' || upper === 'MX' || upper in BRIDGE_ALPHA3_TO_ALPHA2 || BRIDGE_ALPHA2_SET.has(upper)
-}
-
-/**
- * True when the user may run `op` on a bank rail in `countryCode` — provider-blind.
- *
- *   - LATAM country (AR/BR/…): the bank rail for that country with `op`
- *     enabled. The operation matters: a pool-tier rail enables `pay` only,
- *     so every verified user can pay a Pix key while adding money (`deposit`)
- *     and withdrawing to an own account (`withdraw`) need the full account.
- *   - Other countries: any enabled bank rail.
- */
-export function isVerifiedForCountry(rails: RailCapability[], countryCode: string, op: RailOperation): boolean {
-    const upper = countryCode.toUpperCase()
-    if (isMantecaSupportedCountryCode(upper)) {
-        return rails.some(
-            (rail) =>
-                rail.channel === 'bank' &&
-                rail.country.toUpperCase() === upper &&
-                (rail.operations?.[op] ?? rail.status) === 'enabled'
-        )
-    }
-    return rails.some((rail) => rail.channel === 'bank' && rail.status === 'enabled')
 }

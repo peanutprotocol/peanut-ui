@@ -19,6 +19,7 @@ import { useFeatureFlags } from '@/hooks/useFeatureFlag'
 import { useGeoLocation } from '@/hooks/useGeoLocation'
 import { useArrivalPrompt } from '@/features/home/useArrivalPrompt'
 import { useIdentityVerification } from '@/hooks/useIdentityVerification'
+import { useVerification } from '@/hooks/useVerification'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useProviderRejection } from '@/hooks/useProviderRejection'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
@@ -329,7 +330,8 @@ export function useJourneyState(): JourneyState {
     const pathname = usePathname()
     const isHomeRoute = isSameRoute(pathname, '/home')
     const onHome = isHomeRoute || isSameRoute(pathname, '/dev/attention')
-    const { status, isVerified, needsAction, isTerminalFailure, isRegionRestricted } = useIdentityVerification()
+    const { status, needsAction, isTerminalFailure, isRegionRestricted } = useIdentityVerification()
+    const { identityVerified: isVerified } = useVerification()
     const { onboarding, isActivated, isLoading: onboardingLoading } = useActivationStatus()
     const { blockedCard } = useProviderRejection(onboarding)
     const { capabilities, nextActions, rails, channelOf, isLoading: capabilitiesLoading } = useCapabilities()
