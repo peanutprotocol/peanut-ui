@@ -227,6 +227,59 @@ describe('a provider-backed pending application reconciles card issuance', () =>
         expect(mockApply).toHaveBeenCalledTimes(1)
     })
 
+    it('reads a served creating-card at the deadline as still creating, and Retry keeps it until the card lands', async () => {
+        const { result } = await openApprovedEmpty()
+        mockGetOverview.mockResolvedValue({ ...APPROVED_EMPTY, cardState: 'creating-card' })
+        for (let tick = 0; tick < 7; tick++) {
+            await advance(2_000)
+        }
+        expect(result.current.state).toBe('creating-card')
+        expect(result.current.issuanceStillCreating).toBe(true)
+        expect(result.current.applyError).toBeNull()
+
+        await act(async () => {
+            await result.current.retryIssuance()
+        })
+        await advance(1)
+        expect(result.current.issuanceStillCreating).toBe(true)
+        expect(result.current.issuanceReadError).toBe(false)
+
+        mockGetOverview.mockResolvedValue({ ...CARD_ISSUED, cardState: 'active' })
+        await act(async () => {
+            await result.current.retryIssuance()
+        })
+        await advance(1)
+        expect(result.current.state).toBe('active')
+        expect(result.current.issuanceStillCreating).toBe(false)
+        expect(result.current.applyError).toBeNull()
+        expect(mockApply).toHaveBeenCalledTimes(1)
+    })
+
+    it('reads a served add-card at the deadline as a failed issue', async () => {
+        const { result } = await openApprovedEmpty()
+        mockGetOverview.mockResolvedValue({ ...APPROVED_EMPTY, cardState: 'add-card' })
+        for (let tick = 0; tick < 7; tick++) {
+            await advance(2_000)
+        }
+        expect(result.current.state).toBe('add-card')
+        expect(result.current.applyError).toBe('page.issueFailed')
+        expect(mockApply).toHaveBeenCalledTimes(1)
+    })
+
+    it('shows a served creating-card the user did not start without arming a deadline', async () => {
+        mockGetOverview.mockResolvedValue({ ...APPROVED_EMPTY, cardState: 'creating-card' })
+        const { result } = renderHook(() => useCardFlow(), { wrapper })
+        await waitFor(() => expect(result.current.state).toBe('creating-card'))
+        await advance(13_000)
+        expect(result.current.issuanceReadError).toBe(false)
+        expect(result.current.issuanceStillCreating).toBe(false)
+        expect(result.current.applyError).toBeNull()
+        mockGetOverview.mockResolvedValue({ ...CARD_ISSUED, cardState: 'active' })
+        await advance(30_100)
+        expect(result.current.state).toBe('active')
+        expect(mockApply).not.toHaveBeenCalled()
+    })
+
     it('keeps the pending screen while the overview has not caught up', async () => {
         const { result } = renderHook(() => useCardFlow(), { wrapper })
         await waitFor(() => expect(result.current.state).toBe('add-card'))
