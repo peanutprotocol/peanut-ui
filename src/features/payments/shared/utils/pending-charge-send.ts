@@ -40,6 +40,8 @@ export interface SendOrderRead {
     state: SendOrderState
     /** The transfer the owner holds for this order, when it knows one. */
     txHash?: Hash
+    /** Puts what was read on the screen; the recovery calls it only while the screen is still open. */
+    show?: () => void
 }
 
 export function chargeOrderState(status: string | null | undefined): SendOrderState {

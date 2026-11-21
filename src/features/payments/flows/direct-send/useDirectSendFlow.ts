@@ -84,22 +84,21 @@ export function useDirectSendFlow() {
     const readCharge = useCallback(
         async ({ chargeId }: PendingChargeSend) => {
             const found = await chargesApi.get(chargeId)
-            setCharge(found)
-            return { state: chargeOrderState(found.status) }
+            return { state: chargeOrderState(found.status), show: () => setCharge(found) }
         },
         [setCharge]
     )
     const recordFoundPayment = useCallback(
-        async ({ chargeId }: PendingChargeSend, txHash: string) =>
-            setPayment(
-                await recordPayment({
-                    chargeId,
-                    chainId: PEANUT_WALLET_CHAIN.id.toString(),
-                    txHash,
-                    tokenAddress: PEANUT_WALLET_TOKEN as Address,
-                    payerAddress: walletAddress as Address,
-                })
-            ),
+        async ({ chargeId }: PendingChargeSend, txHash: string) => {
+            const payment = await recordPayment({
+                chargeId,
+                chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                txHash,
+                tokenAddress: PEANUT_WALLET_TOKEN as Address,
+                payerAddress: walletAddress as Address,
+            })
+            return () => setPayment(payment)
+        },
         [recordPayment, walletAddress, setPayment]
     )
     const pendingSend = usePendingChargeSend({

@@ -1021,10 +1021,6 @@ describe('useBridgeOfframpFlow — a lost answer is read back, never sent again'
         expect(view.result.current.executedAmountUsd).toBe('50')
         expect(mockSetError).not.toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
         expect(posthog.capture).not.toHaveBeenCalledWith('withdraw_failed', expect.anything())
-
-        await act(async () => {
-            view.result.current.handleCreateAndInitiateOfframp()
-        })
         expect(mockCreateOfframp).toHaveBeenCalledTimes(1)
         expect(mockSendMoney).toHaveBeenCalledTimes(1)
     })
@@ -1045,10 +1041,6 @@ describe('useBridgeOfframpFlow — a lost answer is read back, never sent again'
         expect(mockConfirmOfframp).toHaveBeenLastCalledWith('tr-1', '0xtx')
         await waitFor(() => expect(view.result.current.step).toBe('success'))
         expect(window.localStorage.getItem(MARKER_KEY)).toBeNull()
-
-        await act(async () => {
-            view.result.current.handleCreateAndInitiateOfframp()
-        })
         expect(mockSendMoney).toHaveBeenCalledTimes(1)
     })
 

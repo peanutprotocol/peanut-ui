@@ -112,24 +112,23 @@ export function useSemanticRequestFlow() {
     const readCharge = useCallback(
         async ({ chargeId }: PendingChargeSend) => {
             const found = await fetchCharge(chargeId)
-            setCharge(found)
-            return { state: chargeOrderState(found.status) }
+            return { state: chargeOrderState(found.status), show: () => setCharge(found) }
         },
         [fetchCharge, setCharge]
     )
     const recordFoundPayment = useCallback(
-        async ({ chargeId }: PendingChargeSend, txHash: string) =>
-            setPayment(
-                await recordPayment({
-                    chargeId,
-                    chainId: PEANUT_WALLET_CHAIN.id.toString(),
-                    txHash,
-                    tokenAddress: PEANUT_WALLET_TOKEN as Address,
-                    payerAddress: walletAddress as Address,
-                    sourceChainId: selectedChainID || undefined,
-                    sourceTokenAddress: selectedTokenAddress || undefined,
-                })
-            ),
+        async ({ chargeId }: PendingChargeSend, txHash: string) => {
+            const payment = await recordPayment({
+                chargeId,
+                chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                txHash,
+                tokenAddress: PEANUT_WALLET_TOKEN as Address,
+                payerAddress: walletAddress as Address,
+                sourceChainId: selectedChainID || undefined,
+                sourceTokenAddress: selectedTokenAddress || undefined,
+            })
+            return () => setPayment(payment)
+        },
         [recordPayment, walletAddress, selectedChainID, selectedTokenAddress, setPayment]
     )
     const pendingSend = usePendingChargeSend({

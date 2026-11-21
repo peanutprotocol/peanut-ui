@@ -45,10 +45,11 @@ interface PendingChargeSendOptions {
     /** Reads the order the send pays from its owner. The flow keeps what it shows of it. */
     readOrder: (send: PendingChargeSend) => Promise<SendOrderRead>
     /**
-     * Books a hash the recovery found on an `unbooked` order. Without it, money
-     * that left the wallet ends as `sent`: the order's owner books it.
+     * Books a hash the recovery found on an `unbooked` order, and may resolve
+     * with what puts the booking on the screen (called only while it is open).
+     * Without it, money that left the wallet ends as `sent`: the order's owner books it.
      */
-    recordPayment?: (send: PendingChargeSend, txHash: Hash) => Promise<unknown>
+    recordPayment?: (send: PendingChargeSend, txHash: Hash) => Promise<(() => void) | void>
     /** The flow shows a screen that can start a payment: a pending send resumes its recovery there. */
     canResume: boolean
     setIsSuccess?: (success: boolean) => void
@@ -203,6 +204,7 @@ export function usePendingChargeSend({
                 if (!send) return finish('in-flight')
                 const order = await readOrder(send).catch(() => null)
                 if (hasLeftScreen.current) return 'cancelled'
+                order?.show?.()
                 if (order?.state === 'completed') return finish('completed', send.txHash ?? order.txHash)
                 if (!send.txHash && order?.txHash) {
                     send = { ...send, txHash: order.txHash }
@@ -238,11 +240,14 @@ export function usePendingChargeSend({
                     if (order?.state === 'unbooked' && !recordTried) {
                         recordTried = true
                         const recorded = await recordPayment(send, send.txHash).then(
-                            () => true,
-                            () => false
+                            (show) => ({ show }),
+                            () => null
                         )
                         if (hasLeftScreen.current) return 'cancelled'
-                        if (recorded) return finish('completed', send.txHash)
+                        if (recorded) {
+                            recorded.show?.()
+                            return finish('completed', send.txHash)
+                        }
                         continue
                     }
                 }

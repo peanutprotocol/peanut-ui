@@ -242,22 +242,21 @@ export default function WithdrawCryptoPage() {
     const readCharge = useCallback(
         async ({ chargeId }: PendingChargeSend) => {
             const found = await chargesApi.get(chargeId)
-            setChargeDetails(found)
-            return { state: chargeOrderState(found.status) }
+            return { state: chargeOrderState(found.status), show: () => setChargeDetails(found) }
         },
         [setChargeDetails]
     )
     const recordFoundPayment = useCallback(
-        async ({ chargeId }: PendingChargeSend, txHash: Hash) =>
-            setPaymentDetails(
-                await recordPayment({
-                    chargeId,
-                    chainId: PEANUT_WALLET_CHAIN.id.toString(),
-                    txHash,
-                    tokenAddress: PEANUT_WALLET_TOKEN as Address,
-                    payerAddress: address as Address,
-                })
-            ),
+        async ({ chargeId }: PendingChargeSend, txHash: Hash) => {
+            const payment = await recordPayment({
+                chargeId,
+                chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                txHash,
+                tokenAddress: PEANUT_WALLET_TOKEN as Address,
+                payerAddress: address as Address,
+            })
+            return () => setPaymentDetails(payment)
+        },
         [recordPayment, address, setPaymentDetails]
     )
     const showRecoveredView = useCallback(
