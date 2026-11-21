@@ -3,7 +3,6 @@
 import { sendLinkFromFoundDeposit, useCreateLink, type CreatedSendLink } from '@/components/Create/useCreateLink'
 import { usePendingChargeSend } from '@/features/payments/shared/hooks/usePendingChargeSend'
 import type { PendingChargeSend } from '@/features/payments/shared/utils/pending-charge-send'
-import { useAuth } from '@/context/authContext'
 import { Field } from '@/components/0_Bruddle/Field'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import CooldownErrorText from '@/components/Global/RainCooldown/CooldownErrorText'
@@ -72,8 +71,6 @@ const LinkSendInitialView = () => {
         formattedSpendableBalance,
         spendableBalanceDecimal,
     } = useWallet()
-    const { user } = useAuth()
-    const userId = user?.user?.userId
     const queryClient = useQueryClient()
     const { hasPendingTransactions } = usePendingTransactions()
 
@@ -139,10 +136,8 @@ const LinkSendInitialView = () => {
     const readLinkDeposit = useCallback(async () => ({ state: 'unbooked' as const }), [])
     const showFoundLink = useCallback(
         async ({ chargeId: pubKey }: PendingChargeSend, txHash: Hash) =>
-            showCreatedLink(
-                await sendLinkFromFoundDeposit({ userId, pubKey, txHash, sender: walletAddress as Address })
-            ),
-        [showCreatedLink, userId, walletAddress]
+            showCreatedLink(await sendLinkFromFoundDeposit({ pubKey, txHash, sender: walletAddress as Address })),
+        [showCreatedLink, walletAddress]
     )
     const showUnknownOutcome = useCallback(
         (unknown: boolean) =>

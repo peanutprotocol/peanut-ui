@@ -7,10 +7,10 @@ import { parseUnits } from 'viem'
 import MantecaWithdrawFlow from '../page'
 
 const mockPush = jest.fn()
-let mockParams = 'country=argentina&method=bank-transfer&account=acct-qa'
+let mockParams = 'country=argentina&method=bank-transfer&isSavedAccount=true&destination=qa.account'
 let mockBalance: bigint | undefined = parseUnits('10', 6)
 // The first-use activation has its own tests; the amount screen behind it is what these cover.
-// the saved account the withdraw URL names by id; its alias never rides in the URL
+// a saved account the withdraw URL may name by id (account=<id>)
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({
         user: { user: { userId: 'user-1' }, accounts: [{ id: 'acct-qa', type: 'manteca', identifier: 'qa.account' }] },
@@ -87,7 +87,7 @@ jest.mock('@/services/manteca', () => ({ mantecaApi: {} }))
 beforeEach(() => {
     mockPixBlock = null
     mockBalance = parseUnits('10', 6)
-    mockParams = 'country=argentina&method=bank-transfer&account=acct-qa'
+    mockParams = 'country=argentina&method=bank-transfer&isSavedAccount=true&destination=qa.account'
 })
 function setup() {
     renderWithIntl(
@@ -126,6 +126,12 @@ test('blocks an amount above the balance and allows an amount within it', () => 
 // TASK-22589: the amount is the last step now, so this flow is entered without
 // one and collects it here in the local currency.
 test('a saved destination opens the amount step', () => {
+    setup()
+    expect(screen.getByText(/amount to withdraw/i)).toBeInTheDocument()
+})
+
+test('a saved account named by its id (links from the ui#4201 bundle) also opens the amount step', () => {
+    mockParams = 'country=argentina&method=bank-transfer&account=acct-qa'
     setup()
     expect(screen.getByText(/amount to withdraw/i)).toBeInTheDocument()
 })

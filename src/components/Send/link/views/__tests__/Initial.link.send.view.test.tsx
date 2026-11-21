@@ -407,7 +407,7 @@ describe('LinkSendInitialView — a lost answer is read back, never deposited ag
 
         await waitFor(() =>
             expect(mockSendLinkFromFoundDeposit).toHaveBeenCalledWith(
-                expect.objectContaining({ userId: 'u1', pubKey: '0xlinkkey', txHash: '0xfound' })
+                expect.objectContaining({ pubKey: '0xlinkkey', txHash: '0xfound' })
             )
         )
         await waitFor(() =>

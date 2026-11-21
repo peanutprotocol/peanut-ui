@@ -84,8 +84,8 @@ it("reads the index of this wallet's deposit from the receipt, past another send
     expect(created.depositIdx).toBe(12)
     expect(created.amount).toBe(20_000000n)
     expect(created.link).toContain('i=12')
-    // the password is kept under the account, before anything was signed
-    expect(readSendLinkPassword('u1', created.pubKey as string)).not.toBeNull()
+    // the password is kept under the link's key, before anything was signed
+    expect(readSendLinkPassword(created.pubKey as string)).not.toBeNull()
 })
 
 it('a deposit with no receipt is handed to the recovery, never built from a guessed index', async () => {
