@@ -980,6 +980,7 @@
             "invalidPaymentUrlDescription": "El enlace está incompleto o mal escrito. Pedile a quien lo envió que lo comparta de nuevo.",
             "requestNotFoundDescription": "Esta solicitud de pago no existe o fue eliminada. Pedile un nuevo enlace a quien la envió.",
             "externalPaymentNotConfirmed": "No se pudo confirmar este pago. Si el dinero salió de tu billetera, contactá a soporte.",
+            "paymentNotSent": "Este pago no se completó y no salió dinero de tu billetera. Podés intentarlo de nuevo.",
             "requestTokenRetired": "Esta solicitud ya no se puede pagar. Pedí una nueva en USDC."
         },
         "bankTransfer": {

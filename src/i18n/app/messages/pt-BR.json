@@ -1641,6 +1641,7 @@
             "requestNotFoundDescription": "Esta cobrança não existe ou foi removida. Peça um novo link para quem enviou.",
             "requestClosedTitle": "Esta cobrança está encerrada",
             "externalPaymentNotConfirmed": "Não foi possível confirmar este pagamento. Se o dinheiro saiu da sua carteira, fale com o suporte.",
+            "paymentNotSent": "Este pagamento não foi concluído e nenhum dinheiro saiu da sua carteira. Você pode tentar de novo.",
             "requestTokenNotAccepted": "{symbol} não é aceito. Peça a quem enviou um link em USDC ou USDT.",
             "requestTokenRetired": "Esta cobrança não pode mais ser paga. Peça uma nova em USDC."
         },
