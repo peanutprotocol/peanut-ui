@@ -431,6 +431,22 @@ it('after a reload, the resume waits for the wallet before reading the chain', a
     expect(ctx.setIsSuccess).toHaveBeenLastCalledWith(true)
 })
 
+it('two taps in one tick start one payment: one charge, one send (BuggySameTick)', async () => {
+    let refuse!: (error: Error) => void
+    mockSendMoney.mockImplementation(() => new Promise((_resolve, reject) => (refuse = reject)))
+    const rendered = render()
+    act(() => {
+        void rendered.result.current.executePayment()
+        void rendered.result.current.executePayment()
+    })
+    await advance(0)
+    expect(mockCreateCharge).toHaveBeenCalledTimes(1)
+    expect(mockSendMoney).toHaveBeenCalledTimes(1)
+    // end the attempt cleanly, so no send stays running for the next case
+    refuse(new Error('AA21 did not pay prefund'))
+    await advance(0)
+})
+
 /*
  * Chip's review of ui#4198: four paths that offered Send again before it was
  * proven the first transfer cannot land twice. Each replays one Buggy config

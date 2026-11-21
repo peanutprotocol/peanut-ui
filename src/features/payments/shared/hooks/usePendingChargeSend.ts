@@ -62,6 +62,8 @@ interface PendingChargeSendOptions {
  * request pay, pot contribution), the Fixed variant of mono
  * engineering/api/state-machines/ChargeSendFlow.tla:
  *
+ * 0. `claim` latches the tap before the first await, so a second tap in the
+ *    same tick starts nothing; `release` lets it go once the attempt ended.
  * 1. `begin` saves a pending marker before anything is signed; `onBroadcast`
  *    adds each user op before it goes out; `markSent` adds the hash. When
  *    storage refuses `begin` or `onBroadcast`, they throw and nothing goes out.
@@ -103,6 +105,18 @@ export function usePendingChargeSend({
         return () => {
             hasLeftScreen.current = true
         }
+    }, [])
+
+    // Rendered state lags a tap: two taps in one tick both see Pay on.
+    const claimed = useRef(false)
+    const claim = useCallback(() => {
+        if (claimed.current) return false
+        if (key && (sending.has(key) || recovering.has(key) || readPendingChargeSend(key))) return false
+        claimed.current = true
+        return true
+    }, [key])
+    const release = useCallback(() => {
+        claimed.current = false
     }, [])
 
     const update = useCallback(
@@ -151,6 +165,7 @@ export function usePendingChargeSend({
     )
 
     const clear = useCallback(() => {
+        claimed.current = false
         if (!key) return
         sending.delete(key)
         writePendingChargeSend(key, null)
@@ -245,6 +260,7 @@ export function usePendingChargeSend({
         } finally {
             recovering.delete(key)
             sending.delete(key)
+            claimed.current = false
             setIsRecovering(false)
         }
     }, [
@@ -280,7 +296,7 @@ export function usePendingChargeSend({
 
     const isPending = parsePendingChargeSend(raw) !== null
     return useMemo(
-        () => ({ isPending, isRecovering, begin, onBroadcast, markSent, clear, mayHaveSent, recover }),
-        [isPending, isRecovering, begin, onBroadcast, markSent, clear, mayHaveSent, recover]
+        () => ({ isPending, isRecovering, claim, release, begin, onBroadcast, markSent, clear, mayHaveSent, recover }),
+        [isPending, isRecovering, claim, release, begin, onBroadcast, markSent, clear, mayHaveSent, recover]
     )
 }

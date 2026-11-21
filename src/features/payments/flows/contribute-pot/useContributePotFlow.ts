@@ -211,8 +211,9 @@ export function useContributePotFlow() {
                 setError({ showError: true, errorMessage: t('errors.pleaseLoginToContinue') })
                 return { success: false }
             }
-            // a contribution to this pot may still land: paying stays off until it is final
-            if (pendingSend.isPending) return { success: false }
+            // a contribution to this pot may still land, or a tap in this tick started one:
+            // paying stays off until it is final
+            if (!pendingSend.claim()) return { success: false }
 
             setIsLoading(true)
             clearError()
@@ -236,6 +237,7 @@ export function useContributePotFlow() {
             ) {
                 const live = await fetchCharge(charge.uuid).catch(() => null)
                 if (live?.status === 'PENDING') {
+                    pendingSend.release()
                     setCharge(live)
                     setIsLoading(false)
                     return { success: true }
@@ -327,6 +329,8 @@ export function useContributePotFlow() {
                 setError({ showError: true, errorMessage })
                 setIsLoading(false)
                 return { success: false }
+            } finally {
+                pendingSend.release()
             }
         },
         [
