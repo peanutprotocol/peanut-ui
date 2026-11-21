@@ -12,7 +12,7 @@ import type { BroadcastUserOp } from '@/hooks/wallet/spendBroadcast'
  */
 export interface PendingChargeSend {
     chargeId: string
-    /** When the send began (ms). A marker past MAX_AGE_MS is dropped. */
+    /** When the send began (ms). */
     startedAt: number
     /** Every user op this device signed for the charge, saved before it went to the bundler. */
     userOps: BroadcastUserOp[]
@@ -26,11 +26,13 @@ export interface PendingChargeSend {
 
 const PREFIX = 'peanut:pendingChargeSend:'
 /**
- * A signed op the bundler has not executed in a day was dropped from its
- * mempool long ago. Only someone holding the signed op could still send it,
- * and it would pay the same charge, so the marker stops blocking Pay.
+ * A signed op the bundler has not executed in a day left its mempool long ago.
+ * Past this, recovery counts an op it still cannot find as dropped: an
+ * assumption about the bundler, not a proof (the Drop action in the model).
+ * The marker is never dropped unread, so an op that did execute is still found.
  */
-const MAX_AGE_MS = 24 * 60 * 60 * 1000
+const WAIT_WINDOW_MS = 24 * 60 * 60 * 1000
+export const isPastWaitWindow = (send: PendingChargeSend) => Date.now() - send.startedAt > WAIT_WINDOW_MS
 const listeners = new Set<() => void>()
 // Where storage is unavailable (private mode, full), the guard still holds for this page.
 const memory = new Map<string, string>()
@@ -53,8 +55,9 @@ export function parsePendingChargeSend(raw: string | null): PendingChargeSend | 
     if (!raw) return null
     try {
         const send = JSON.parse(raw) as PendingChargeSend
-        if (typeof send?.chargeId !== 'string' || !Array.isArray(send.userOps)) return null
-        return typeof send.startedAt === 'number' && Date.now() - send.startedAt < MAX_AGE_MS ? send : null
+        return typeof send?.chargeId === 'string' && typeof send.startedAt === 'number' && Array.isArray(send.userOps)
+            ? send
+            : null
     } catch {
         return null
     }

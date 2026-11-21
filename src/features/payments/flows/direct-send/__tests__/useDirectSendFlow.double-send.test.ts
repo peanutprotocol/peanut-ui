@@ -370,3 +370,40 @@ it('a failure before the broadcast shows the error and keeps Send (no regression
     expect(window.localStorage.getItem(MARKER_KEY)).toBeNull()
     expect(rendered.result.current.isLoading).toBe(false)
 })
+
+it('after a day, a marker is still read: an op that executed is found, never offered again', async () => {
+    window.localStorage.setItem(
+        MARKER_KEY,
+        JSON.stringify({
+            chargeId: 'charge-1',
+            startedAt: Date.now() - 25 * 3600_000,
+            userOps: [OP],
+            backendBroadcast: false,
+        })
+    )
+    mockReadUserOpOutcome.mockResolvedValue({ executed: '0xfound' })
+    mockGetCharge.mockResolvedValueOnce(charge('PENDING')).mockResolvedValue(charge('COMPLETED'))
+    render()
+    await advance(0)
+    expect(mockRecordPayment).toHaveBeenCalledWith(expect.objectContaining({ txHash: '0xfound' }))
+    expect(ctx.setIsSuccess).toHaveBeenLastCalledWith(true)
+    expect(errorShown()).toBe(false)
+})
+
+it('after a day, an op still nowhere on chain counts as dropped and Send comes back', async () => {
+    window.localStorage.setItem(
+        MARKER_KEY,
+        JSON.stringify({
+            chargeId: 'charge-1',
+            startedAt: Date.now() - 25 * 3600_000,
+            userOps: [OP],
+            backendBroadcast: false,
+        })
+    )
+    const rendered = render()
+    await advance(0)
+    expect(mockReadUserOpOutcome).toHaveBeenCalled()
+    expect(ctx.setCurrentView).toHaveBeenLastCalledWith('INITIAL')
+    expect(window.localStorage.getItem(MARKER_KEY)).toBeNull()
+    expect(rendered.result.current.isLoading).toBe(false)
+})

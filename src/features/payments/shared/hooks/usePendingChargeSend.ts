@@ -8,6 +8,7 @@ import { spendMayHaveBroadcast, type SpendBroadcast } from '@/hooks/wallet/spend
 import { type PaymentCreationResponse, type TRequestChargeResponse } from '@/services/services.types'
 import { readUserOpOutcome } from '@/utils/userop-outcome'
 import {
+    isPastWaitWindow,
     leftDevice,
     parsePendingChargeSend,
     pendingChargeSendKey,
@@ -186,10 +187,11 @@ export function usePendingChargeSend({
                         send = { ...send, txHash: executed.executed }
                         writePendingChargeSend(key, send)
                     } else if (
-                        outcomes.every((outcome) => outcome === 'reverted' || outcome === 'replaced') &&
-                        !send.untrackedBroadcast &&
-                        // the backend owns a card-balance broadcast: its charge says how it ended
-                        (!send.backendBroadcast || CLOSED_CHARGE.has(status))
+                        isPastWaitWindow(send) ||
+                        (outcomes.every((outcome) => outcome === 'reverted' || outcome === 'replaced') &&
+                            !send.untrackedBroadcast &&
+                            // the backend owns a card-balance broadcast: its charge says how it ended
+                            (!send.backendBroadcast || CLOSED_CHARGE.has(status)))
                     ) {
                         return finish('not-sent')
                     }
