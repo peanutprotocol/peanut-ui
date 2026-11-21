@@ -1268,6 +1268,24 @@ describe('useSpendBundle — broadcast reports and the may-have-broadcast tag', 
             expect(onBroadcast).not.toHaveBeenCalled()
         })
 
+        it('an onBroadcast that throws stops the op before it leaves, untagged', async () => {
+            const notHeld = new Error('This payment is no longer held on this device')
+            const transport = jest.fn()
+            mockHandleSendUserOpEncoded.mockImplementationOnce(async (_calls, _chain, opts) => {
+                opts?.onBroadcastAttempt?.(OP)
+                transport()
+                return { userOpHash: OP.userOpHash, receipt: null }
+            })
+            const error = await run({
+                onBroadcast: () => {
+                    throw notHeld
+                },
+            })
+            expect(error).toBe(notHeld)
+            expect(transport).not.toHaveBeenCalled()
+            expect(spendMayHaveBroadcast(error)).toBe(false)
+        })
+
         it('does not tag a mined revert: its batch moved nothing', async () => {
             mockHandleSendUserOpEncoded.mockImplementationOnce(async (_calls, _chain, opts) => {
                 opts?.onBroadcastAttempt?.(OP)
@@ -1289,6 +1307,31 @@ describe('useSpendBundle — broadcast reports and the may-have-broadcast tag', 
         it('does not tag a 4xx refusal of /submit', async () => {
             mockSubmitWithdrawal.mockRejectedValueOnce(new ApiError('invalid signature', { status: 400 }))
             expect(spendMayHaveBroadcast(await run({ chargeId: 'charge-1' }))).toBe(false)
+        })
+
+        // Chip on ui#4198: these 4xx answers can follow a send the backend accepted
+        it.each([
+            ['a 408 timeout', new ApiError('request timeout', { status: 408 })],
+            [
+                'a 409 WITHDRAWAL_PENDING_CONFIRMATION',
+                new ApiError('still confirming', { status: 409, code: 'WITHDRAWAL_PENDING_CONFIRMATION' }),
+            ],
+        ])('tags %s from /submit as may-have-broadcast', async (_label, answer) => {
+            mockSubmitWithdrawal.mockRejectedValueOnce(answer)
+            expect(spendMayHaveBroadcast(await run({ chargeId: 'charge-1' }))).toBe(true)
+        })
+
+        it('an onBroadcast that throws stops /submit, untagged', async () => {
+            const notHeld = new Error('This payment is no longer held on this device')
+            const error = await run({
+                chargeId: 'charge-1',
+                onBroadcast: () => {
+                    throw notHeld
+                },
+            })
+            expect(error).toBe(notHeld)
+            expect(mockSubmitWithdrawal).not.toHaveBeenCalled()
+            expect(spendMayHaveBroadcast(error)).toBe(false)
         })
     })
 })

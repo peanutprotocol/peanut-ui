@@ -1238,7 +1238,7 @@ describe('crypto withdraw — a lost answer is read back, never sent again (TASK
 
     it('Confirm comes back once the chain proves nothing moved', async () => {
         sendLosesItsAnswer()
-        mockReadUserOpOutcome.mockResolvedValue('replaced')
+        mockReadUserOpOutcome.mockResolvedValue('reverted')
         jest.mocked(chargesApi.get).mockResolvedValue({ ...chargeDetails, status: 'PENDING' } as never)
 
         render(<WithdrawCryptoPage />)

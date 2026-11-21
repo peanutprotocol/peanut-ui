@@ -49,6 +49,7 @@ import {
 } from '@/features/paperwork-verification/answerDraft'
 import { forgetPixWithdrawDraft } from '@/features/pix/pixWithdrawDraft'
 import { forgetSendLinkPasswords } from '@/utils/send-link-password'
+import { forgetPersonalPendingChargeSends } from '@/features/payments/shared/utils/pending-charge-send'
 import { claimAndSettlePendingBadgeCampaigns, isConfirmedBadgeCampaignClaim } from '@/services/badge-campaigns'
 import { clearPendingBadgeCampaigns, getPendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
 import { clearInvite } from '@/utils/invite-stash'
@@ -442,6 +443,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         forgetPixWithdrawDraft(user?.user.userId)
         // Send link passwords are bearer secrets for the unclaimed funds.
         forgetSendLinkPasswords(user?.user.userId)
+        // A Manteca withdrawal's pending marker is keyed by its CBU or Pix key.
+        forgetPersonalPendingChargeSends(user?.user.userId)
 
         // NOTE: main also cancelled/cleared queries here. That already happens
         // above, deliberately BEFORE the token wipe — an in-flight /users/me can

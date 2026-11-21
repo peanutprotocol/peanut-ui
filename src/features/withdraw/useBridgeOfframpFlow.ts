@@ -143,6 +143,8 @@ export function useBridgeOfframpFlow() {
     // A recovery could not confirm the outcome: the confirming screen shows
     // and the withdrawal is never offered again meanwhile.
     const [isPaymentStatusUnknown, setIsPaymentStatusUnknown] = useState(false)
+    // The deposit the recovery found: the funds left on-chain, and Bridge has yet to confirm them.
+    const [sentTxHash, setSentTxHash] = useState<Hash | null>(null)
     // The USD amount the completed offramp actually moved. The success screen
     // renders THIS — `?amount=` stays user-editable after completion, and
     // rendering it would let a URL edit forge the confirmation (Chip round 8).
@@ -223,6 +225,7 @@ export function useBridgeOfframpFlow() {
         recordPayment: confirmFoundDeposit,
         canResume: step === 'review',
         setIsSuccess: showRecoveredWithdrawal,
+        setTxHash: setSentTxHash,
         setIsPaymentStatusUnknown,
         setCurrentView: showRecoveredReview,
         setError,
@@ -699,6 +702,7 @@ export function useBridgeOfframpFlow() {
         error,
         isLoading: isLoading || pendingSend.isRecovering,
         isPaymentStatusUnknown,
+        sentTxHash,
         balanceErrorMessage,
         reference,
         setReference,

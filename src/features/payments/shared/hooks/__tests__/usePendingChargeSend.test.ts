@@ -97,7 +97,7 @@ it('a lost answer after the broadcast is read back from the chain and booked: no
     unmount()
 })
 
-it('an order its owner books ends as sent once the owner reports the transfer', async () => {
+it('an order its owner books ends as sent while the owner settles it, and keeps the payment off', async () => {
     const { result, unmount } = render({ books: false })
     readOrder.mockResolvedValue({ state: 'settling', txHash: '0xcard' })
     let outcome: string | undefined
@@ -105,12 +105,35 @@ it('an order its owner books ends as sent once the owner reports the transfer', 
         result.current.claim()
         result.current.begin('prep-1')
         result.current.onBroadcast({ via: 'backend' })
-        outcome = await result.current.recover()
+        const recovery = result.current.recover()
+        await jest.advanceTimersByTimeAsync(65_000)
+        outcome = await recovery
     })
     expect(outcome).toBe('sent')
     expect(recordPayment).not.toHaveBeenCalled()
     expect(setters.setIsPaymentStatusUnknown).toHaveBeenLastCalledWith(true)
     expect(setters.setError).not.toHaveBeenCalled()
+    expect(window.localStorage.getItem(MARKER_KEY)).not.toBeNull()
+    expect(result.current.isPending).toBe(true)
+    unmount()
+})
+
+it('an order its owner books ends on success once the owner reports it completed', async () => {
+    const { result, unmount } = render({ books: false })
+    readOrder.mockResolvedValueOnce({ state: 'settling', txHash: '0xcard' }).mockResolvedValue({ state: 'completed' })
+    let outcome: string | undefined
+    await act(async () => {
+        result.current.claim()
+        result.current.begin('prep-1')
+        result.current.onBroadcast({ via: 'backend' })
+        const recovery = result.current.recover()
+        await jest.advanceTimersByTimeAsync(3_000)
+        outcome = await recovery
+    })
+    expect(outcome).toBe('completed')
+    expect(setters.setIsSuccess).toHaveBeenLastCalledWith(true)
+    expect(setters.setTxHash).toHaveBeenLastCalledWith('0xcard')
+    expect(window.localStorage.getItem(MARKER_KEY)).toBeNull()
     unmount()
 })
 

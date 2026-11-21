@@ -13,9 +13,14 @@ import {
 } from '@/hooks/wallet/signSpendRetry'
 import { describeSignedUserOp, markSpendMayHaveBroadcast, type SpendBroadcast } from '@/hooks/wallet/spendBroadcast'
 import { usePendingChargeSend } from '@/features/payments/shared/hooks/usePendingChargeSend'
-import type { PendingChargeSend, SendOrderRead } from '@/features/payments/shared/utils/pending-charge-send'
+import {
+    MANTECA_WITHDRAW_INTENT,
+    type PendingChargeSend,
+    type SendOrderRead,
+} from '@/features/payments/shared/utils/pending-charge-send'
 import { PaymentConfirmingView } from '@/features/payments/shared/components/PaymentConfirmingView'
 import { rainApi } from '@/services/rain'
+import { serverFetch } from '@/utils/api-fetch'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
@@ -135,13 +140,36 @@ function withdrawalBroadcast(artifact: SignedSpendArtifact): SpendBroadcast {
     }
 }
 
+type HistoryRow = { status?: string; extraData?: { provider?: string; kind?: string; isRefund?: boolean } }
+
 /**
- * Where a withdrawal whose answer was lost stands. The backend submits it, so
- * only the chain (the user op, read by the recovery) or the card preparation
- * can say; Manteca books it, so a found transfer ends as `sent`.
+ * The Manteca withdrawal the backend booked after this send began, from the
+ * user's activity. The guard allows one withdrawal per destination at a time,
+ * so only a single match counts; none or several says nothing (`settling`).
+ */
+async function readBookedWithdrawal(send: PendingChargeSend): Promise<SendOrderRead> {
+    const query = new URLSearchParams({ from: new Date(send.startedAt).toISOString(), limit: '20' })
+    const response = await serverFetch(`/users/history?${query.toString()}`, { method: 'GET', cache: 'no-store' })
+    if (!response.ok) throw new Error(`Failed to read the withdrawal: ${response.status}`)
+    const { entries } = (await response.json()) as { entries: HistoryRow[] }
+    const withdrawals = entries.filter(
+        (row) => row.extraData?.provider === 'MANTECA' && row.extraData.kind === 'OFFRAMP' && !row.extraData.isRefund
+    )
+    if (withdrawals.length !== 1) return { state: 'settling' }
+    const { status } = withdrawals[0]
+    if (status === 'COMPLETED') return { state: 'completed' }
+    return status === 'CANCELLED' || status === 'REFUNDED' ? { state: 'closed' } : { state: 'settling' }
+}
+
+/**
+ * Where a withdrawal whose answer was lost stands. The backend submits it
+ * before it creates the Manteca order, so the chain (the user op, read by the
+ * recovery) or the card preparation says whether money moved, and the booked
+ * order says whether it completed.
  */
 async function readWithdrawal(send: PendingChargeSend): Promise<SendOrderRead> {
-    if (!send.backendBroadcast) return { state: 'settling' }
+    const booked = await readBookedWithdrawal(send)
+    if (booked.state !== 'settling' || !send.backendBroadcast) return booked
     const preparation = await rainApi.getWithdrawalStatus(send.chargeId)
     if (preparation.state === 'failed' || preparation.state === 'cancelled') return { state: 'closed' }
     return preparation.state === 'completed' && preparation.txHash
@@ -272,6 +300,15 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
         },
         [stepper]
     )
+    // a recovered withdrawal that completed shows the success its answer would have
+    const showRecoveredSuccess = useCallback(
+        (success: boolean) => {
+            if (!success || !priceLock) return
+            setOutcome('success')
+            void stepper.goTo('success')
+        },
+        [priceLock, stepper]
+    )
     const showRecoveryError = useCallback(
         (error: { errorMessage: string }) => setErrorMessage(error.errorMessage, 'paymentNotSent'),
         [setErrorMessage]
@@ -279,11 +316,12 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
     const pendingSend = usePendingChargeSend({
         intent:
             destinationConfirmed && destinationAddress.trim()
-                ? `withdraw-manteca:${destinationAddress.trim().toLowerCase()}`
+                ? `${MANTECA_WITHDRAW_INTENT}${destinationAddress.trim().toLowerCase()}`
                 : null,
         walletAddress: walletAddress as Address | undefined,
         readOrder: readWithdrawal,
         canResume: step === 'amount' || step === 'review',
+        setIsSuccess: showRecoveredSuccess,
         setIsPaymentStatusUnknown,
         setCurrentView: showRecoveredReview,
         setError: showRecoveryError,
