@@ -116,6 +116,9 @@ export const API_ERROR_CODES = {
     PIX_QR_AMOUNT_FIXED: 'PIX_QR_AMOUNT_FIXED',
     /** A retried QR payment is past its signature: read the payment the refusal names (`intentId`). Sent with 409. */
     PIX_PAYMENT_EXISTS: 'PIX_PAYMENT_EXISTS',
+    /** The app is older than the oldest version the API serves. Sent with 426 and `update`:
+     *  `store` (native binary) or `reload` (bundle). Handled once, in api-fetch. */
+    CLIENT_UPDATE_REQUIRED: 'CLIENT_UPDATE_REQUIRED',
 } as const
 
 export type ApiErrorCode = (typeof API_ERROR_CODES)[keyof typeof API_ERROR_CODES]

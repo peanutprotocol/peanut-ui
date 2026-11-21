@@ -11,6 +11,8 @@ import { TestBuildRibbon } from '@/components/Global/TestBuildRibbon'
 import { ScreenOrientationLocker } from '@/components/Global/ScreenOrientationLocker'
 import { TranslationSafeWrapper } from '@/components/Global/TranslationSafeWrapper'
 import { UnsupportedWebViewScreen, hasUnsupportedWebViewBypass } from '@/components/Global/UnsupportedWebViewScreen'
+import { UpdateRequiredScreen } from '@/components/Global/UpdateRequiredScreen'
+import { getUpdateRequired, subscribeUpdateRequired } from '@/utils/update-required'
 import { MarketingIntlProvider } from '@/i18n/app/MarketingIntlProvider'
 import { PeanutProvider } from '@/config/peanut.config'
 import { ContextProvider } from '@/context/contextProvider'
@@ -71,6 +73,7 @@ if (typeof window !== 'undefined') applyLegacyAndroidSafeAreaZeroFromUserAgent()
 const subscribeWebViewSupport = () => () => {}
 const unsupportedWebView = () => isCapacitor() && !isWebViewCssSupported() && !hasUnsupportedWebViewBypass()
 const serverUnsupportedWebView = () => false
+const serverUpdateRequired = () => null
 
 const AppGlobals = dynamic(() => importWithChunkRetry(() => import('./AppGlobals')).then((m) => m.AppGlobals))
 // The full message catalog is 129 KB; app routes load it as their own chunk.
@@ -80,6 +83,8 @@ const AppIntlProvider = dynamic(() =>
 
 export function ClientProviders({ children }: { children: React.ReactNode }) {
     const unsupported = useSyncExternalStore(subscribeWebViewSupport, unsupportedWebView, serverUnsupportedWebView)
+    // Set by api-fetch on 426 CLIENT_UPDATE_REQUIRED: the API no longer serves this version.
+    const updateRequired = useSyncExternalStore(subscribeUpdateRequired, getUpdateRequired, serverUpdateRequired)
     useSplashGate()
     // App Links + push-tap routing must be registered on EVERY cold-start
     // destination (including logged-out /setup), hence here and not (mobile-ui).
@@ -103,14 +108,18 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
         </Suspense>
     )
 
-    if (unsupported) {
+    if (unsupported || updateRequired) {
         // notifyAppReady still has to run here, or the plugin's app-ready
         // timeout rolls the active OTA bundle back on this screen.
         return (
             <OtaUpdateProvider>
                 {harness}
                 <AppIntlProvider>
-                    <UnsupportedWebViewScreen />
+                    {unsupported || !updateRequired ? (
+                        <UnsupportedWebViewScreen />
+                    ) : (
+                        <UpdateRequiredScreen update={updateRequired.update} />
+                    )}
                 </AppIntlProvider>
             </OtaUpdateProvider>
         )

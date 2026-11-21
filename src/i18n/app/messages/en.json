@@ -5031,6 +5031,17 @@
         },
         "continueAnyway": "Continue anyway"
     },
+    "updateRequired": {
+        "title": "Update Peanut to keep going",
+        "body": {
+            "store": "This version of Peanut is no longer supported. Get the latest version from the store and open the app again.",
+            "reload": "A newer version of Peanut is ready. Reload to keep going."
+        },
+        "cta": {
+            "store": "Update Peanut",
+            "reload": "Reload"
+        }
+    },
     "avatar": {
         "title": "Avatar",
         "change": "Change avatar",

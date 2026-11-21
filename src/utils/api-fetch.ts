@@ -7,6 +7,8 @@ import { fetchWithSentry } from './sentry.utils'
 import { PEANUT_API_URL } from '@/constants/general.consts'
 import { isCapacitor } from './capacitor'
 import { getCachedBinaryVersion } from './app-version'
+import { noteUpdateRequired } from './update-required'
+import { WIRE_CLIENT_VERSION, WIRE_HEADER } from '@/constants/wire.consts'
 import { isDemoMode } from './demo'
 import { DEV_TOOLS_ENABLED } from '@/constants/dev-tools.consts'
 import { currentAppLocale } from '@/i18n/app/locale-store'
@@ -99,6 +101,9 @@ async function callApi(path: string, options?: FetchOptions): Promise<Response> 
         headers['Accept-Language'] = locale
     }
     Object.assign(headers, includeAuth ? getAuthHeaders(callerHeaders) : callerHeaders)
+    // Signed-in requests carry Authorization, so they pay a CORS preflight already. Public reads
+    // stay simple requests; they carry no status the API projects.
+    if (includeAuth) headers[WIRE_HEADER] = String(WIRE_CLIENT_VERSION)
 
     if (isCapacitor() && !Object.keys(callerHeaders).some((k) => k.toLowerCase() === 'x-app-binary-version')) {
         const version = await waitForReadiness(getCachedBinaryVersion(), signal)
@@ -133,6 +138,7 @@ async function callApi(path: string, options?: FetchOptions): Promise<Response> 
     try {
         if (signal?.aborted) throw cancelError(signal)
         const response = await fetchWithSentry(...args)
+        void noteUpdateRequired(response)
         captureApiTiming({
             route,
             method,

@@ -118,6 +118,20 @@ describe('apiFetch', () => {
         })
     })
 
+    describe('wire version header', () => {
+        const sentHeaders = () => mockFetchWithSentry.mock.calls[0][1]?.headers as Record<string, string>
+
+        it('tells the api which wire version this bundle understands', async () => {
+            await apiFetch('/users/history')
+            expect(sentHeaders()['x-peanut-wire']).toBe('1')
+        })
+
+        it('keeps public reads simple requests (no preflight)', async () => {
+            await apiFetch('/fx/rate?from=PLN&to=EUR', { includeAuth: false })
+            expect(sentHeaders()).not.toHaveProperty('x-peanut-wire')
+        })
+    })
+
     describe('accept-language header', () => {
         const sentHeaders = () => mockFetchWithSentry.mock.calls[0][1]?.headers as Record<string, string>
 
