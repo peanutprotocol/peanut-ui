@@ -82,8 +82,14 @@ let mockNextActions: unknown[] = []
 // A provider rejection only surfaces for an APPROVED user, so this has to be
 // settable — the residence-park case below is exactly that shape.
 let mockHasAnyEnabledRail = false
+/** null: the identity reads as verified exactly when a rail is enabled, as most cases here assume. */
+let mockIdentityVerifiedOverride: boolean | null = null
 jest.mock('@/hooks/useVerification', () => ({
-    useVerification: () => ({ hasAnyEnabledRail: mockHasAnyEnabledRail, identityVerified: false, canUse: () => false }),
+    useVerification: () => ({
+        hasAnyEnabledRail: mockHasAnyEnabledRail,
+        identityVerified: mockIdentityVerifiedOverride ?? false,
+        canUse: () => false,
+    }),
 }))
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({
@@ -106,13 +112,15 @@ jest.mock('@/hooks/useCapabilities', () => ({
         // mock that ignores `rail.country` would pass a split these rails
         // cannot actually support. Every rail fixture below names its country.
         gateFor: (op: string, scope?: Record<string, unknown>) =>
-            jest
-                .requireActual('@/utils/capability-gate')
-                .deriveGate(
-                    { ...mockCapabilityBlock(), identityVerified: mockHasAnyEnabledRail, isLoading: false },
-                    op,
-                    scope
-                ),
+            jest.requireActual('@/utils/capability-gate').deriveGate(
+                {
+                    ...mockCapabilityBlock(),
+                    identityVerified: mockIdentityVerifiedOverride ?? mockHasAnyEnabledRail,
+                    isLoading: false,
+                },
+                op,
+                scope
+            ),
     }),
 }))
 
@@ -359,6 +367,7 @@ beforeEach(() => {
     mockNextActions = []
     mockRoutes = []
     mockHasAnyEnabledRail = false
+    mockIdentityVerifiedOverride = null
     mockRestrictions = { banking: false, card: false }
     mockUser = null
     mockIdentity = { status: 'not_started' }
@@ -1058,6 +1067,21 @@ describe('MoneySettings', () => {
             expect.objectContaining({ provider: 'BRIDGE', reasonCode: 'residence_unresolved' })
         )
         expect(mockSelfHealResubmit).not.toHaveBeenCalled()
+    })
+
+    // Left as today (Hugo, 2026-11-21; a product decision with Kushagra and Alex later, TASK-25239):
+    // the provider-rejection screen opens on an ENABLED rail, since providers gate their own rails.
+    // A verified identity with no enabled rail does not open it.
+    it('a provider rejection needs an enabled rail; a verified identity alone does not open it', () => {
+        mockRails = [residenceParkedRail]
+        mockHasAnyEnabledRail = false
+        mockIdentityVerifiedOverride = true
+        mockIdentity = { status: 'verified' }
+        render()
+        fireEvent.click(screen.getByText('EUR'))
+
+        expect(screen.queryByText('Upload document')).toBeNull()
+        expect(mockFixableRejection).not.toHaveBeenCalled()
     })
 
     it('a Manteca requirement goes through the same router, which opens its own level', () => {
