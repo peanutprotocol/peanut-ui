@@ -60,7 +60,11 @@ jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({ rails: [], nextActions: [], capabilities: { routes: [] } }),
 }))
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: { user: { userId: 'user-1' } }, isAuthed: true, fetchUser: jest.fn() }),
+    useAuth: () => ({
+        user: { user: { userId: 'user-1' }, accounts: [{ id: 'acct-qa', type: 'manteca', identifier: 'qa.account' }] },
+        isAuthed: true,
+        fetchUser: jest.fn(),
+    }),
 }))
 jest.mock('@/utils/regions.utils', () => ({
     ...jest.requireActual('@/utils/regions.utils'),
@@ -177,8 +181,7 @@ function renderPage() {
     mockSearchParams.clear()
     mockSearchParams.set('country', 'argentina')
     mockSearchParams.set('method', 'bank')
-    mockSearchParams.set('destination', 'qa.account')
-    mockSearchParams.set('isSavedAccount', 'true')
+    mockSearchParams.set('account', 'acct-qa')
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     const view = () => (
         <NuqsTestingAdapter searchParams={Object.fromEntries(mockSearchParams)}>

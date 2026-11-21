@@ -11,7 +11,9 @@ import { withdrawCountryUrl } from '@/utils/native-routes'
 
 /**
  * /withdraw/manteca with its query contract (method, country, amount,
- * destination, isSavedAccount). Undefined/empty values are omitted.
+ * account). `account` is a saved account's id: the account number or Pix key
+ * itself never goes in the URL, where it reaches PostHog's `$current_url`, the
+ * browser history and the request logs. Undefined/empty values are omitted.
  */
 export function mantecaWithdrawUrl(params: Record<string, string | undefined>): string {
     const search = new URLSearchParams()
