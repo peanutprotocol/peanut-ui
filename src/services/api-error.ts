@@ -73,6 +73,9 @@ export const API_ERROR_CODES = {
     /** The payment destination (e.g. a PIX key) does not exist at the provider. */
     PAYMENT_DESTINATION_NOT_FOUND: 'PAYMENT_DESTINATION_NOT_FOUND',
     TRANSFER_ALREADY_CONFIRMED: 'TRANSFER_ALREADY_CONFIRMED',
+    /** A Manteca withdrawal for this signed spend is still confirming (409): it may
+     *  still move the money, so nothing is sent again. */
+    FUNDING_PENDING_CONFIRMATION: 'FUNDING_PENDING_CONFIRMATION',
     /** Bridge refused a saved bank account: it belongs to an earlier Bridge
      *  customer of the user. The API has switched the account off; the user
      *  adds it again. */

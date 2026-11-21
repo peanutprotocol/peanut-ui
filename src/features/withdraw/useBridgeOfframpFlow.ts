@@ -3,10 +3,20 @@
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_SYMBOL } from '@/constants/zerodev.consts'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
+import { markSpendMayHaveBroadcast } from '@/hooks/wallet/spendBroadcast'
+import { usePendingChargeSend } from '@/features/payments/shared/hooks/usePendingChargeSend'
+import type {
+    PendingChargeSend,
+    SendOrderRead,
+    SendOrderState,
+} from '@/features/payments/shared/utils/pending-charge-send'
+import { apiFetch } from '@/utils/api-fetch'
+import type { HistoryIntentStatus } from '@/utils/history.utils'
 import { usePendingTransactions } from '@/hooks/wallet/usePendingTransactions'
 import { isTxReverted } from '@/utils/general.utils'
 import { useParams, useRouter } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import type { Hash } from 'viem'
 import { useQueryClient } from '@tanstack/react-query'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
@@ -70,6 +80,30 @@ import {
     payoutNoteForRail,
 } from './bank-reference'
 
+/** Where a Bridge withdrawal stands, from its OFFRAMP intent. Bridge books it; confirm only adds the hash. */
+function offrampOrderState(status: HistoryIntentStatus | undefined): SendOrderState {
+    if (status === 'COMPLETED') return 'completed'
+    if (status === 'FAILED' || status === 'CANCELLED' || status === 'REFUNDED') return 'closed'
+    return 'unbooked'
+}
+
+async function readOfframp({ intentId }: PendingChargeSend): Promise<SendOrderRead> {
+    if (!intentId) return { state: 'unbooked' }
+    const response = await apiFetch(`/history/${encodeURIComponent(intentId)}?kind=OFFRAMP`)
+    if (!response.ok) throw new Error(`Failed to read the withdrawal: ${response.status}`)
+    const entry = (await response.json()) as { extraData?: { intentStatus?: HistoryIntentStatus } }
+    return { state: offrampOrderState(entry.extraData?.intentStatus) }
+}
+
+/** Confirms the deposit hash on the transfer. A second confirm of the same transfer answers 409. */
+async function confirmDeposit(transferId: string, txHash: Hash) {
+    const result = await confirmOfframp(transferId, txHash)
+    if (result.error && result.code !== API_ERROR_CODES.TRANSFER_ALREADY_CONFIRMED) throw new Error(result.error)
+}
+
+const confirmFoundDeposit = ({ chargeId: transferId }: PendingChargeSend, txHash: Hash) =>
+    confirmDeposit(transferId, txHash)
+
 /**
  * Flow hook for the Bridge bank-withdraw review page
  * (/withdraw/[country]/bank): the review → success stepper (named screen ids
@@ -84,13 +118,6 @@ export function useBridgeOfframpFlow() {
     const t = useTranslations('withdraw')
     const tErrors = useTranslations('errors')
     const toFriendlyError = useFriendlyError()
-    // Copy shown when the on-chain deposit to the Bridge address succeeded but the
-    // subsequent `/bridge/transfers/:id/confirm` call failed (most often a
-    // fetchWithSentry timeout). The Bridge transfer row exists on the BE; the
-    // poller / Bridge webhook will eventually complete it. We MUST NOT show a
-    // Retry button in this state — retrying re-runs sendMoney() and would send
-    // funds to the deposit address a second time (Sentry PEANUT-UI-QH9, 2026-06-01).
-    const confirmPendingCopy = t('bank.confirmPending')
 
     const { selectedBankAccount: bankAccount, setSelectedBankAccount, error, setError } = useWithdrawFlow()
     // The provider refused the saved account for good; the review offers to add it again instead of Retry.
@@ -108,15 +135,14 @@ export function useBridgeOfframpFlow() {
     // native/capacitor passes the country as ?country= instead of a path segment
     const [countryFromQuery] = useQueryState('country', parseAsString.withDefault(''))
     const [isLoading, setIsLoading] = useState(false)
-    // Set as soon as the on-chain wallet→Bridge tx confirms. If a subsequent
-    // confirmOfframp() call fails, this gates the UI into a "processing" state
-    // instead of showing a Retry button that would re-fire sendMoney().
-    const [submittedTxHash, setSubmittedTxHash] = useState<string | null>(null)
-    // Execution proof for the success step: set only after confirmOfframp
-    // succeeded. The ?step= param is user-editable — without this, a
+    // Execution proof for the success step: set only once the withdrawal is
+    // confirmed. The ?step= param is user-editable — without this, a
     // hand-edited ?step=success rendered a success screen for a withdrawal
     // that never ran.
-    const [completedTxHash, setCompletedTxHash] = useState<string | null>(null)
+    const [isCompleted, setIsCompleted] = useState(false)
+    // A recovery could not confirm the outcome: the confirming screen shows
+    // and the withdrawal is never offered again meanwhile.
+    const [isPaymentStatusUnknown, setIsPaymentStatusUnknown] = useState(false)
     // The USD amount the completed offramp actually moved. The success screen
     // renders THIS — `?amount=` stays user-editable after completion, and
     // rendering it would let a URL edit forge the confirmation (Chip round 8).
@@ -162,9 +188,39 @@ export function useBridgeOfframpFlow() {
 
     const stepper = useFlowStepper({
         steps: WITHDRAW_BANK_STEPS,
-        guards: bankStepGuards({ executed: !!completedTxHash }),
+        guards: bankStepGuards({ executed: isCompleted }),
     })
     const step = stepper.step
+
+    // The double-send guard (usePendingChargeSend): a lost answer after the
+    // deposit left the wallet is read back, never sent to Bridge again
+    // (Sentry PEANUT-UI-QH9). One withdrawal per saved account at a time.
+    const showRecoveredWithdrawal = useCallback(
+        (success: boolean) => {
+            if (!success) return
+            queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+            setIsCompleted(true)
+            void stepper.goTo('success')
+        },
+        [queryClient, stepper]
+    )
+    const showRecoveredReview = useCallback(
+        (view: 'INITIAL' | 'STATUS') => {
+            if (view === 'INITIAL') void stepper.goTo('review')
+        },
+        [stepper]
+    )
+    const pendingSend = usePendingChargeSend({
+        intent: bankAccount?.bridgeAccountId ? `withdraw-bridge:${bankAccount.bridgeAccountId}` : null,
+        walletAddress: address as Hash | undefined,
+        readOrder: readOfframp,
+        recordPayment: confirmFoundDeposit,
+        canResume: step === 'review',
+        setIsSuccess: showRecoveredWithdrawal,
+        setIsPaymentStatusUnknown,
+        setCurrentView: showRecoveredReview,
+        setError,
+    })
 
     // Bank amount typed in EUR, GBP, MXN or COP (TASK-23054): the USDC that
     // leaves the balance is the quote's, at the provider's current rate, and
@@ -196,7 +252,7 @@ export function useBridgeOfframpFlow() {
     const bankQuote = useBridgeOfframpQuote({
         currency: bankCurrency ?? accountCurrency,
         destinationAmount: bankCurrency ? destinationAmount : undefined,
-        enabled: step === 'review' && !isLoading && !submittedTxHash,
+        enabled: step === 'review' && !isLoading && !pendingSend.isPending,
     })
     const amountToWithdraw = bankCurrency ? (bankQuote.quote?.sourceAmount ?? '') : urlAmount
     // a quote whose refresh failed stays on screen but is not confirmed
@@ -410,20 +466,21 @@ export function useBridgeOfframpFlow() {
         }
         const amountUsd = amountCheck.normalized
 
-        setIsLoading(true)
-        setError({ showError: false, errorMessage: '' })
-
         if (!bankAccount || !user?.user.bridgeCustomerId || !address) {
             setError({ showError: true, errorMessage: t('errors.userDetailsMissing') })
-            setIsLoading(false)
             return
         }
 
         if (!bankAccount.bridgeAccountId) {
             setError({ showError: true, errorMessage: t('errors.bankAccountMissing') })
-            setIsLoading(false)
             return
         }
+
+        // A withdrawal to this account may still land, or a tap in this tick
+        // started one: nothing more goes out until it is final.
+        if (!pendingSend.claim()) return
+        setIsLoading(true)
+        setError({ showError: false, errorMessage: '' })
 
         posthog.capture(ANALYTICS_EVENTS.WITHDRAW_CONFIRMED, {
             amount_usd: amountUsd,
@@ -486,11 +543,12 @@ export function useBridgeOfframpFlow() {
             }
 
             // Step 2: prepare and send the transaction from peanut wallet to the deposit address
+            pendingSend.begin(data.transferId, data.intentId)
             const { receipt, userOpHash, txHash } = await sendMoney(
                 data.depositInstructions.toAddress as `0x${string}`,
                 createPayload.amount,
                 // Card-balance funding links to this offramp, so Activity shows one withdrawal
-                { kind: 'FIAT_OFFRAMP', fundsIntentId: data.intentId }
+                { kind: 'FIAT_OFFRAMP', fundsIntentId: data.intentId, onBroadcast: pendingSend.onBroadcast }
             )
 
             if (receipt !== null && isTxReverted(receipt)) {
@@ -503,27 +561,16 @@ export function useBridgeOfframpFlow() {
             // 32-byte tx hash — userOpHash is an account-abstraction bundler hash, not a
             // chain tx hash, and the BE rejects it.
             const txIdentifier = resolveSettledTxHash({ receipt, txHash, userOpHash }, 'withdraw-bank').hash
-            if (!txIdentifier) throw new Error('No transaction identifier returned from sendMoney')
+            // the send resolved, so it left this device: the deposit may have moved
+            if (!txIdentifier)
+                throw markSpendMayHaveBroadcast(new Error('No transaction identifier returned from sendMoney'))
 
-            // Mark the on-chain leg done BEFORE confirmOfframp. From this point on
-            // any error path (including a confirm timeout) must NOT offer Retry —
-            // re-running this handler would call sendMoney() again and double-pay.
-            setSubmittedTxHash(txIdentifier)
-
-            const confirmResult = await confirmOfframp(data.transferId, txIdentifier)
-
-            if (confirmResult.error) {
-                // On-chain tx succeeded, backend confirm failed. Bridge will still
-                // process the deposit (the funds are at the deposit address and the
-                // BE has the transfer row). Show a processing state, NOT an error
-                // with a Retry button — see confirmPendingCopy + the gate below.
-                setError({
-                    showError: true,
-                    errorMessage: confirmPendingCopy,
-                })
-                errorAlreadyDisplayed = true
-                throw new Error(confirmResult.error)
-            }
+            // The deposit left the wallet. From here on any failure (a confirm
+            // timeout included) goes to recovery, which confirms the same hash
+            // again — re-running this handler would send a second deposit.
+            pendingSend.markSent(txIdentifier as Hash)
+            await confirmDeposit(data.transferId, txIdentifier as Hash)
+            pendingSend.clear()
 
             // Invalidate the transactions query so the Activity widget shows
             // the pending OFFRAMP entry immediately, instead of waiting up to
@@ -533,7 +580,7 @@ export function useBridgeOfframpFlow() {
             // proof first, then the step — the success guard reads it. The
             // executed amount pins alongside it: the success screen must show
             // what moved, not what the URL says now.
-            setCompletedTxHash(txIdentifier)
+            setIsCompleted(true)
             setExecutedAmountUsd(amountUsd)
             setExecutedPayout(payout)
             void stepper.goTo('success')
@@ -547,7 +594,19 @@ export function useBridgeOfframpFlow() {
             // on-chain leg was prepared or signed. The offramp transfer row
             // exists but no funds moved, so this is control flow, not a failed
             // withdrawal: the user can run it again from the same screen.
-            if (e instanceof SpendRecoveryAbortedError) return
+            if (e instanceof SpendRecoveryAbortedError) {
+                pendingSend.clear()
+                return
+            }
+            // After the deposit left the wallet, any failure may hide money
+            // that moved: recovery answers it, and the withdrawal stays off.
+            if (pendingSend.mayHaveSent(e)) {
+                setExecutedAmountUsd(amountUsd)
+                setExecutedPayout(payout)
+                await pendingSend.recover()
+                return
+            }
+            pendingSend.clear()
 
             const error = toFriendlyError(e)
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, {
@@ -558,6 +617,7 @@ export function useBridgeOfframpFlow() {
                 setError({ showError: true, errorMessage: error })
             }
         } finally {
+            pendingSend.release()
             setIsLoading(false)
         }
     }
@@ -602,7 +662,13 @@ export function useBridgeOfframpFlow() {
         // unloaded balance must not be treated as headroom (Chip round 3) —
         // and, for GB/MX, until the FX rate behind the rail minimum has
         // loaded (Chip round 5)
-        isSubmitReady: balance !== undefined && isMinReady && (!bankCurrency || isQuoteCurrent) && isSpeedReady,
+        // and while a withdrawal to this account may still land
+        isSubmitReady:
+            balance !== undefined &&
+            isMinReady &&
+            (!bankCurrency || isQuoteCurrent) &&
+            isSpeedReady &&
+            !pendingSend.isPending,
         // the amount the completed offramp moved — success screens render this,
         // never the still-editable ?amount= (Chip round 8)
         executedAmountUsd,
@@ -626,10 +692,9 @@ export function useBridgeOfframpFlow() {
         fromSendFlow,
         user,
         error,
-        isLoading,
-        submittedTxHash,
+        isLoading: isLoading || pendingSend.isRecovering,
+        isPaymentStatusUnknown,
         balanceErrorMessage,
-        confirmPendingCopy,
         reference,
         setReference,
         referenceSpec,

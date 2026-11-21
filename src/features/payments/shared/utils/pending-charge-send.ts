@@ -2,8 +2,8 @@ import type { Hash } from 'viem'
 import type { BroadcastUserOp } from '@/hooks/wallet/spendBroadcast'
 
 /**
- * A charge payment this device started and may have sent. While one exists for
- * an intent, Pay stays off and a reload resumes the recovery, so a lost answer
+ * A payment this device started and may have sent. While one exists for an
+ * intent, Pay stays off and a reload resumes the recovery, so a lost answer
  * can never turn into a second transfer (mono
  * engineering/api/state-machines/ChargeSendFlow.tla, the Fixed variant).
  *
@@ -11,7 +11,10 @@ import type { BroadcastUserOp } from '@/hooks/wallet/spendBroadcast'
  * holds ids and hashes only, never personal data (mono design/design.md § state).
  */
 export interface PendingChargeSend {
+    /** The order the send pays: a charge id, or the provider's transfer or preparation id. */
     chargeId: string
+    /** The ledger intent of that order, for a flow that reads the order's state there. */
+    intentId?: string
     /** When the send began (ms). */
     startedAt: number
     /** Every user op this device signed for the charge, saved before it went to the bundler. */
@@ -22,6 +25,30 @@ export interface PendingChargeSend {
     untrackedBroadcast?: boolean
     /** The hash the send resolved with: the money left the wallet. */
     txHash?: Hash
+}
+
+/**
+ * Where the order a send pays stands, as its owner (the charge, the provider
+ * transfer) reports it:
+ * - `completed`: the payment is booked.
+ * - `unbooked`: open, with no payment recorded: recovery records the hash it found.
+ * - `settling`: open, and its owner is still working on it: recovery waits.
+ * - `closed`: failed or cancelled: it can book nothing.
+ */
+export type SendOrderState = 'completed' | 'unbooked' | 'settling' | 'closed'
+export interface SendOrderRead {
+    state: SendOrderState
+    /** The transfer the owner holds for this order, when it knows one. */
+    txHash?: Hash
+    /** Puts what was read on the screen; the recovery calls it only while the screen is still open. */
+    show?: () => void
+}
+
+export function chargeOrderState(status: string | null | undefined): SendOrderState {
+    if (status === 'COMPLETED') return 'completed'
+    if (status === 'PENDING') return 'unbooked'
+    if (status === 'FAILED' || status === 'CANCELLED') return 'closed'
+    return 'settling'
 }
 
 const PREFIX = 'peanut:pendingChargeSend:'
