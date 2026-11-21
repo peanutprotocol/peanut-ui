@@ -66,7 +66,6 @@ import { useQueryClient } from '@tanstack/react-query'
 import { captureNetworkTriagedFailure, isNetworkLayerFailure } from '@/utils/network-triage'
 import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
@@ -94,7 +93,7 @@ import { useSumsubActionFlow } from '@/hooks/useSumsubActionFlow'
 import { initiateIncreaseLimits } from '@/app/actions/increase-limits'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { useLimits } from '@/hooks/useLimits'
-import { isVerifiedForCountry } from '@/utils/regions.utils'
+import { useVerification } from '@/hooks/useVerification'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import { useWithdrawAmount } from '@/features/withdraw/useWithdrawAmount'
 import { shouldShowAmountError } from '@/features/limits/amount-error-gating'
@@ -259,7 +258,7 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
     // The pool→full upgrade gate reads identityVerification (Sumsub-cleared
     // the human), not rail-approval. Same fix-pattern as Profile/ProfileEdit.
     const { rails, nextActions } = useCapabilities()
-    const { isVerified: isUserIdentityVerified } = useIdentityVerification()
+    const { identityVerified: isUserIdentityVerified, canUse } = useVerification()
     const mantecaRejection = useMemo(() => deriveProviderRejection(rails, 'MANTECA', nextActions), [rails, nextActions])
     const { hasPendingTransactions } = usePendingTransactions()
 
@@ -320,9 +319,7 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
         if (!selectedCountry || !isMantecaSupportedCountryCode(selectedCountry.id)) return undefined
         return MANTECA_COUNTRIES_CONFIG[selectedCountry.id]
     }, [selectedCountry])
-    const isUserMantecaKycApprovedForCountry = selectedCountry
-        ? isVerifiedForCountry(rails, selectedCountry.id, 'withdraw')
-        : false
+    const isUserMantecaKycApprovedForCountry = selectedCountry ? canUse('withdraw', selectedCountry.id) : false
 
     const {
         code: currencyCode,

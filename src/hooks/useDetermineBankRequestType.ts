@@ -2,7 +2,7 @@ import { getUserById } from '@/app/actions/users'
 import { useAuth } from '@/context/authContext'
 import { useRequestFulfillmentFlow } from '@/context/RequestFulfillmentFlowContext'
 import { useEffect, useState } from 'react'
-import { useCapabilities } from './useCapabilities'
+import { useVerification } from './useVerification'
 
 export enum BankRequestType {
     GuestBankRequest = 'guest-bank-request',
@@ -23,13 +23,12 @@ export function useDetermineBankRequestType(requesterUserId: string): {
     const { user } = useAuth()
     const [requestType, setRequestType] = useState<BankRequestType>(BankRequestType.PayerKycNeeded)
     const { setRequesterDetails } = useRequestFulfillmentFlow()
-    // MIGRATION-REVIEW: was useKycStatus().isUserKycApproved. The payer is the CURRENT
-    // user → capability isKycApproved (any enabled rail), same proxy used elsewhere.
-    const { isKycApproved } = useCapabilities()
+    // The payer is the current user: an enabled rail means they can pay by bank.
+    const { hasAnyEnabledRail } = useVerification()
 
     useEffect(() => {
         const determineBankRequestType = async () => {
-            const payerKycApproved = isKycApproved
+            const payerKycApproved = hasAnyEnabledRail
 
             if (payerKycApproved) {
                 setRequestType(BankRequestType.UserBankRequest)
@@ -72,7 +71,7 @@ export function useDetermineBankRequestType(requesterUserId: string): {
         }
 
         determineBankRequestType()
-    }, [user, requesterUserId, setRequesterDetails, isKycApproved])
+    }, [user, requesterUserId, setRequesterDetails, hasAnyEnabledRail])
 
     return { requestType, setRequestType }
 }

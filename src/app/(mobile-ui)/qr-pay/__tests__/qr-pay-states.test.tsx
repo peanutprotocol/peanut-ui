@@ -621,7 +621,6 @@ function capabilitiesForGate(state: GateState, opts: GateOptions = {}) {
                       ),
         },
         isLoading: state === 'loading',
-        isKycApproved: payEnabled,
         canDo: (_op: string, o?: { provider?: string }) =>
             payEnabled && (o?.provider === undefined || o.provider === 'manteca'),
         railsForProvider: (provider: string) => rails.filter((r) => r.provider === provider),

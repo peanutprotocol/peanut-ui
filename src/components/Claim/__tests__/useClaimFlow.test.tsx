@@ -53,8 +53,9 @@ jest.mock('use-haptic', () => ({
     useHaptic: () => ({ triggerHaptic: jest.fn() }),
 }))
 
+jest.mock('@/hooks/useVerification', () => ({ useVerification: () => ({ hasAnyEnabledRail: false }) }))
 jest.mock('@/hooks/useCapabilities', () => ({
-    useCapabilities: () => ({ isKycApproved: false, bankRails: () => [] }),
+    useCapabilities: () => ({ bankRails: () => [] }),
 }))
 
 const mockSetFlowStep = jest.fn()
