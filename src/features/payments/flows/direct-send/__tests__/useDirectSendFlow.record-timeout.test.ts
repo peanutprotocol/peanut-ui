@@ -191,6 +191,8 @@ function expectNoReplayOrGenericFailure() {
 beforeEach(() => {
     jest.useFakeTimers()
     jest.clearAllMocks()
+    // a pending-send marker left by an earlier case belongs to another device
+    window.localStorage.clear()
     ctx.charge = { ...originalCharge, chainId: '42161' }
     ctx.amount = '10'
     ctx.usdAmount = '10'
