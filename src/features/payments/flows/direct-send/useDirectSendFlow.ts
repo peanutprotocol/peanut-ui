@@ -16,9 +16,8 @@ import { useCallback, useContext, useMemo } from 'react'
 import { type Address } from 'viem'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { useDirectSendFlowContext } from './DirectSendFlowContext'
-import { MutationResponseTimeoutError } from '@/utils/connection-timeout-error'
 import { chargesApi } from '@/services/charges'
-import { usePaymentStatusRecovery } from '@/features/payments/shared/hooks/usePaymentStatusRecovery'
+import { usePendingChargeSend } from '@/features/payments/shared/hooks/usePendingChargeSend'
 import { useChargeManager } from '@/features/payments/shared/hooks/useChargeManager'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -71,14 +70,6 @@ export function useDirectSendFlow() {
     const { setLoadingState } = useContext(loadingStateContext)
     const { createCharge, isCreating: isCreatingCharge } = useChargeManager()
     const { recordPayment, isRecording } = usePaymentRecorder()
-    const recoverPaymentStatus = usePaymentStatusRecovery({
-        fetchCharge: chargesApi.get,
-        setCharge,
-        setIsSuccess,
-        setCurrentView,
-        setError,
-        failureMessage: t('errors.externalPaymentNotConfirmed'),
-    })
     const {
         isConnected,
         address: walletAddress,
@@ -88,6 +79,30 @@ export function useDirectSendFlow() {
         hasSufficientSpendableBalance: hasSufficientBalance,
         isFetchingSpendableBalance,
     } = useWallet()
+
+    const recordFoundPayment = useCallback(
+        (chargeId: string, txHash: string) =>
+            recordPayment({
+                chargeId,
+                chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                txHash,
+                tokenAddress: PEANUT_WALLET_TOKEN as Address,
+                payerAddress: walletAddress as Address,
+            }),
+        [recordPayment, walletAddress]
+    )
+    const pendingSend = usePendingChargeSend({
+        intent: recipient ? `direct-send:${recipient.address.toLowerCase()}` : null,
+        walletAddress: walletAddress as Address | undefined,
+        fetchCharge: chargesApi.get,
+        recordPayment: recordFoundPayment,
+        canResume: currentView === 'INITIAL',
+        setCharge,
+        setPayment,
+        setIsSuccess,
+        setCurrentView,
+        setError,
+    })
 
     const isLoggedIn = !!user?.user?.userId
 
@@ -141,6 +156,8 @@ export function useDirectSendFlow() {
             setError({ showError: true, errorMessage: t('errors.missingData') })
             return
         }
+        // a send for this recipient may still land: Pay stays off until it is final
+        if (pendingSend.isPending) return
 
         setIsLoading(true)
         setLoadingState('Loading')
@@ -170,6 +187,7 @@ export function useDirectSendFlow() {
             chargeId = chargeResult.uuid
             const tChargeCreated = Date.now()
             failedStep = 'send-money'
+            pendingSend.begin(chargeResult.uuid)
 
             // step 2: send money via peanut wallet
             const txResult = await sendMoney(recipient.address, amount, {
@@ -179,10 +197,12 @@ export function useDirectSendFlow() {
                 // a collateral-contract tx). recordPayment below is then routed
                 // through the same trusted-completion path.
                 chargeId: chargeResult.uuid,
+                onBroadcast: pendingSend.onBroadcast,
             })
             const { hash, source: txHashSource } = resolveSettledTxHash(txResult, 'direct-send')
             const tMoneySent = Date.now()
 
+            pendingSend.markSent(hash)
             setTxHash(hash)
             failedStep = 'record-payment'
 
@@ -195,6 +215,7 @@ export function useDirectSendFlow() {
                 payerAddress: walletAddress as Address,
             })
 
+            pendingSend.clear()
             setPayment(paymentResult)
             setIsSuccess(true)
             setCurrentView('STATUS')
@@ -218,18 +239,22 @@ export function useDirectSendFlow() {
                 // analytics only — never user-visible
             }
         } catch (err) {
-            if (err instanceof MutationResponseTimeoutError && failedStep === 'record-payment' && chargeId) {
-                await recoverPaymentStatus(chargeId)
-                return
-            }
             // The card re-approval prompt was dismissed, or the screen was left,
             // before anything was prepared or signed: no charge was paid and
             // nothing is in flight. Control flow, not a failed send — no error
             // copy on a screen the user may have left, and no Sentry report.
-            if (err instanceof SpendRecoveryAbortedError) return
-
-            const errorMessage = toFriendlyError(err)
-            setError({ showError: true, errorMessage })
+            if (err instanceof SpendRecoveryAbortedError) {
+                pendingSend.clear()
+                return
+            }
+            // After the send left the wallet, any failure (a lost answer, a 5xx
+            // on recording, a dropped connection) may hide money that moved:
+            // recovery answers it, and Send stays off meanwhile.
+            const mayHaveSent = pendingSend.mayHaveSent(err)
+            if (!mayHaveSent) {
+                pendingSend.clear()
+                setError({ showError: true, errorMessage: toFriendlyError(err) })
+            }
 
             // Report here, at the flow level, rather than relying on the
             // console-capture integration: everything below this catch either
@@ -240,7 +265,7 @@ export function useDirectSendFlow() {
             // Fire-and-forget: the triage probes may take up to 2.5s and must
             // not hold up `finally` resetting the loading state.
             void captureNetworkTriagedFailure(err, {
-                tags: { ...criticalFlowTags('direct-send'), send_step: failedStep },
+                tags: { ...criticalFlowTags('direct-send'), send_step: failedStep, may_have_sent: String(mayHaveSent) },
                 extra: {
                     chargeId,
                     recipientAddress: recipient.address,
@@ -257,6 +282,7 @@ export function useDirectSendFlow() {
                     },
                 },
             })
+            if (mayHaveSent) await pendingSend.recover()
         } finally {
             setIsLoading(false)
             setLoadingState('Idle')
@@ -269,7 +295,7 @@ export function useDirectSendFlow() {
         walletAddress,
         createCharge,
         sendMoney,
-        recoverPaymentStatus,
+        pendingSend,
         recordPayment,
         setCharge,
         setTxHash,
@@ -296,7 +322,8 @@ export function useDirectSendFlow() {
         payment,
         txHash,
         error,
-        isLoading: isLoading || isCreatingCharge || isRecording,
+        // a pending send keeps Send busy until recovery says it is final
+        isLoading: isLoading || isCreatingCharge || isRecording || pendingSend.isPending,
         isSuccess,
 
         // computed

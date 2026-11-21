@@ -1641,6 +1641,7 @@
             "requestNotFoundDescription": "This payment request doesn't exist or was removed. Ask the sender for a new link.",
             "requestClosedTitle": "This request is closed",
             "externalPaymentNotConfirmed": "This payment could not be confirmed. If money left your wallet, contact support.",
+            "paymentNotSent": "This payment did not go through, and no money left your wallet. You can try again.",
             "requestTokenNotAccepted": "{symbol} isn’t supported. Ask the sender for a USDC or USDT link.",
             "requestTokenRetired": "This request can't be paid anymore. Ask for a new one in USDC."
         },
