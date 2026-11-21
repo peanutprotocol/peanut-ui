@@ -11,7 +11,10 @@ import type { BroadcastUserOp } from '@/hooks/wallet/spendBroadcast'
  * holds ids and hashes only, never personal data (mono design/design.md § state).
  */
 export interface PendingChargeSend {
+    /** Empty while the tap is claimed and the charge is not created yet. */
     chargeId: string
+    /** The tab that wrote it ({@link thisTab}); absent on markers written before tabs were told apart. */
+    owner?: string
     /** When the send began (ms). */
     startedAt: number
     /** Every user op this device signed for the charge, saved before it went to the bundler. */
@@ -48,6 +51,40 @@ export class PendingChargeSendNotSavedError extends Error {
 }
 
 export const pendingChargeSendKey = (userId: string, intent: string) => `${PREFIX}${userId}:${intent}`
+
+const TAB_KEY = 'peanut:pendingChargeSend:tab'
+let tab: string | undefined
+/** This tab's id. Session storage keeps it across a reload, and another tab has its own. */
+export function thisTab(): string {
+    if (tab) return tab
+    try {
+        tab = window.sessionStorage.getItem(TAB_KEY) ?? undefined
+    } catch {
+        // without session storage, a reload looks like another tab: its marker waits out the lease
+    }
+    if (!tab) {
+        tab = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
+        try {
+            window.sessionStorage.setItem(TAB_KEY, tab)
+        } catch {}
+    }
+    return tab
+}
+
+/**
+ * Another tab's attempt that has sent nothing yet keeps Pay off this long at
+ * most: past it, that tab was closed before its send left the device.
+ */
+const CLAIM_LEASE_MS = 15 * 60 * 1000
+
+/**
+ * A marker that sent nothing and may be dropped: this tab wrote it before a
+ * reload, or another tab's lease ran out. Another tab's live attempt is never
+ * dropped, so its Pay tap keeps this tab's Pay off.
+ */
+export const isAbandonedClaim = (send: PendingChargeSend) =>
+    !leftDevice(send) &&
+    (send.owner === undefined || send.owner === thisTab() || Date.now() - send.startedAt > CLAIM_LEASE_MS)
 
 /** True once anything left this device: before that, a reload cannot have sent money. */
 export const leftDevice = (send: PendingChargeSend) =>
