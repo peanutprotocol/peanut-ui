@@ -145,9 +145,12 @@ const LinkSendInitialView = () => {
         [showCreatedLink, userId, walletAddress]
     )
     const showUnknownOutcome = useCallback(
-        (unknown: boolean) => {
-            if (unknown) setErrorState({ showError: true, errorMessage: tPayment('confirmingPayment.description') })
-        },
+        (unknown: boolean) =>
+            setErrorState(
+                unknown
+                    ? { showError: true, errorMessage: tPayment('confirmingPayment.description') }
+                    : { showError: false, errorMessage: '' }
+            ),
         [setErrorState, tPayment]
     )
     const pendingSend = usePendingChargeSend({
