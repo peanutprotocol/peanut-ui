@@ -39,7 +39,6 @@ import {
 } from '@/services/badge-campaigns'
 import { getPendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
 import { settleCardCampaignContinuation } from '@/features/card/card-campaign-acquisition'
-import { signupConsentDocuments } from '@/services/consent'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { createNativeSignMessageCallback } from '@/utils/native-webauthn'
@@ -153,11 +152,10 @@ export const useZeroDev = () => {
                         passkeyName: _getPasskeyName(username),
                         passkeyServerUrl: PASSKEY_SERVER_URL as string,
                         mode: WebAuthnMode.Register,
-                        // Consent-ledger echo (tos-v1 phase 2): the ZeroDev SDK owns the
-                        // register/verify request body, so the terms+privacy versions the
-                        // signup screen displayed ride in a header the backend ledgers.
+                        // The ZeroDev SDK owns the register/verify request body, so
+                        // what the backend needs rides in headers. Signup consent needs
+                        // none: the API ledgers its own published terms + privacy versions.
                         passkeyServerHeaders: {
-                            'x-accepted-legal': JSON.stringify(signupConsentDocuments()),
                             'x-signup-analytics-state': signupAnalyticsState(),
                             'x-username-hold': usernameHold,
                         },

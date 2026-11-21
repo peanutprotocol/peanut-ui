@@ -80,9 +80,6 @@ const mockSerializeGrant = jest.fn()
 jest.mock('@/hooks/wallet/useGrantSessionKey', () => ({
     useGrantSessionKey: () => ({ serializeGrant: mockSerializeGrant }),
 }))
-jest.mock('@/services/consent', () => ({
-    cardConsentDocuments: jest.fn(() => []),
-}))
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({
         user: mockUser && {
@@ -487,7 +484,7 @@ describe('useCardFlow', () => {
             expect(order).toEqual(['apply', 'grant'])
             // handed over for exactly the user and wallet that accepted
             expect(mockGrantFunding).toHaveBeenCalledWith(CONSENT, { userId: 'user-1', connectedAddress: '0xA' })
-            expect(mockApplyForCard).toHaveBeenCalledWith({ termsAccepted: true, acceptedDocuments: [] })
+            expect(mockApplyForCard).toHaveBeenCalledWith({ termsAccepted: true })
             expect(result.current.isIssuing).toBe(false)
         })
 
@@ -718,7 +715,6 @@ describe('useCardFlow', () => {
             expect(mockSerializeGrant).toHaveBeenCalledWith({ userId: 'user-1', connectedAddress: '0xA' })
             expect(mockApplyForCard).toHaveBeenCalledWith({
                 termsAccepted: true,
-                acceptedDocuments: [],
                 serializedApproval: 'SERIALIZED_APPROVAL',
             })
             expect(mockGrantFunding).not.toHaveBeenCalled()
@@ -747,7 +743,7 @@ describe('useCardFlow', () => {
                 await result.current.handleAcceptTerms(null)
             })
             expect(mockSerializeGrant).not.toHaveBeenCalled()
-            expect(mockApplyForCard).toHaveBeenCalledWith({ termsAccepted: true, acceptedDocuments: [] })
+            expect(mockApplyForCard).toHaveBeenCalledWith({ termsAccepted: true })
             expect(mockGrantFunding).not.toHaveBeenCalled()
         })
 

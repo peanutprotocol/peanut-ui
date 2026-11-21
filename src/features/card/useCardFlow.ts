@@ -14,7 +14,6 @@ import { computeCardState, type CardTopLevelState } from '@/components/Card/card
 import { pollUntilApplyAdvances, pollUntilReady } from '@/components/Card/cardApply.utils'
 import { initiateSelfHealResubmission, startKycAction } from '@/app/actions/sumsub'
 import { rainApi, type ApplyForCardResponse, type RainFundingAccess } from '@/services/rain'
-import { cardConsentDocuments } from '@/services/consent'
 import { useRainFunding } from '@/hooks/wallet/useRainFunding'
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 import { fundingAccessQueryKey, useCardFundingAccess } from '@/hooks/useCardFundingAccess'
@@ -785,15 +784,9 @@ export function useCardFlow() {
                     with_session_key: !!serializedApproval,
                 })
                 try {
-                    // Consent-ledger echo: on acceptance, send the exact documents
-                    // CardTermsScreen displayed for this region (version + hash).
-                    const acceptedDocuments = termsAccepted
-                        ? cardConsentDocuments(pendingTerms?.isUsResident ?? false)
-                        : undefined
                     if (!(await activation.activate()) || changed() || addressBlockedRef.current) return undefined
                     const res = await rainApi.applyForCard({
                         termsAccepted,
-                        acceptedDocuments,
                         ...(serializedApproval ? { serializedApproval } : {}),
                     })
                     if (changed()) return undefined
@@ -838,7 +831,6 @@ export function useCardFlow() {
             advanceFromApplyResponse,
             residenceAddressStep,
             startFlowAction,
-            pendingTerms,
             needsFundingBeforeApply,
             userId,
             connectedAddress,
