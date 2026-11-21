@@ -55,7 +55,6 @@ export type FriendlyErrorCode =
     | 'transferTemporarilyUnavailable'
     | 'userOpReverted'
     | 'balanceSettling'
-    | 'paymentNotSaved'
     | 'insufficientFunds'
     | 'userRejectedTransaction'
     | 'notDeployedOnChain'
@@ -295,8 +294,6 @@ const classifyError = (error: unknown, opts?: FriendlyErrorOptions): FriendlyErr
     // Spend passed the displayed-balance gate but couldn't be routed yet
     // (in-transit collateral not landed) — nudge a retry rather than "add funds".
     // Match the typed error's name first (stable) and fall back to the message.
-    // The double-send guard could not save its marker, so nothing was signed.
-    if (name === 'PendingChargeSendNotSavedError') return code('paymentNotSaved')
     if (name === 'InsufficientSpendableError' || text.includes('Insufficient spendable balance'))
         return code('balanceSettling')
     if (text.includes('insufficient funds')) return code('insufficientFunds')

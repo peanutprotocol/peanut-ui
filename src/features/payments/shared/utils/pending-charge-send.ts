@@ -29,26 +29,20 @@ export interface PendingChargeSend {
 
 const PREFIX = 'peanut:pendingChargeSend:'
 /**
- * A signed op the bundler has not executed in a day left its mempool long ago.
- * Past this, recovery counts an op that every read answered for, and found
- * nowhere, as dropped: an assumption about the bundler, not a proof (the Drop
- * action in the model). A read that failed never counts: age alone releases
- * nothing.
+ * How long a hold may last without proof. Past it, recovery that proves
+ * neither a booked charge nor that nothing moved drops the marker and offers
+ * Pay again with the "could not be confirmed" error (`unconfirmed`, the
+ * ReleaseWarned action in the model). Nothing else bounds an op that is still
+ * valid, a card-balance send whose charge stays open, or money that moved
+ * into a charge that never books.
  */
 const WAIT_WINDOW_MS = 24 * 60 * 60 * 1000
 export const isPastWaitWindow = (send: PendingChargeSend) => Date.now() - send.startedAt > WAIT_WINDOW_MS
 const listeners = new Set<() => void>()
-// A marker local storage refused (full, blocked) is kept here and read first,
-// so the guard still holds on this page.
+// A marker local storage refused (full, blocked, private mode) is kept here
+// and read first: the guard holds for the life of this page, and the payment
+// goes on as it would without the guard.
 const memory = new Map<string, string>()
-
-/** Local storage refused the marker: a send it should guard must not start. */
-export class PendingChargeSendNotSavedError extends Error {
-    constructor() {
-        super('The pending payment marker could not be saved on this device')
-        this.name = 'PendingChargeSendNotSavedError'
-    }
-}
 
 export const pendingChargeSendKey = (userId: string, intent: string) => `${PREFIX}${userId}:${intent}`
 
@@ -75,7 +69,7 @@ export function thisTab(): string {
  * Another tab's attempt that has sent nothing yet keeps Pay off this long at
  * most: past it, that tab was closed before its send left the device.
  */
-const CLAIM_LEASE_MS = 15 * 60 * 1000
+export const CLAIM_LEASE_MS = 15 * 60 * 1000
 
 /**
  * A marker that sent nothing and may be dropped: this tab wrote it before a
@@ -115,11 +109,11 @@ export function parsePendingChargeSend(raw: string | null): PendingChargeSend | 
 export const readPendingChargeSend = (key: string) => parsePendingChargeSend(readPendingChargeSendRaw(key))
 
 /**
- * False when local storage refused the write: the marker then lives in this
- * page only, and a reload would lose it. A marker that could not be removed
- * stays in storage, so the guard fails closed.
+ * When local storage refuses the write, the marker lives in this page only.
+ * A marker that could not be removed stays in storage, so the guard fails
+ * closed.
  */
-export function writePendingChargeSend(key: string, send: PendingChargeSend | null): boolean {
+export function writePendingChargeSend(key: string, send: PendingChargeSend | null) {
     const raw = send ? JSON.stringify(send) : null
     let persisted = true
     try {
@@ -131,7 +125,6 @@ export function writePendingChargeSend(key: string, send: PendingChargeSend | nu
     if (raw && !persisted) memory.set(key, raw)
     else memory.delete(key)
     listeners.forEach((listener) => listener())
-    return persisted
 }
 
 /** Also hears other tabs: a send started in one keeps Pay off in the others. */

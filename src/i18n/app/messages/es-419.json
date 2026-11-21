@@ -4886,7 +4886,6 @@
         "testBuild": "Versión de prueba: rama {branch}"
     },
     "errors": {
-        "paymentNotSaved": "No pudimos guardar este pago en tu dispositivo, así que no lo enviamos. Libera espacio en tu dispositivo e inténtalo de nuevo.",
         "balanceSettling": "Tu saldo aún no está totalmente disponible. Inténtalo de nuevo en unos segundos.",
         "notEnoughBalanceAddFunds": "Saldo insuficiente. Agrega fondos para continuar.",
         "balanceShortBy": "A tu saldo le faltan ${amount}. Agrega dinero para continuar.",

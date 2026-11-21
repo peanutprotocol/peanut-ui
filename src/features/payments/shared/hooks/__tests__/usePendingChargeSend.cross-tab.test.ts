@@ -5,6 +5,7 @@
  * ChargeSendFlow.tla, _BuggyCrossTab). Two hook instances share no claim, as
  * two tabs share none.
  */
+import { act } from '@testing-library/react'
 import { renderHookWithIntl } from '@/test-utils/intl'
 
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: 'u1' } } }) }))
@@ -73,4 +74,51 @@ it("another tab's claim past its lease, and this tab's own from before a reload,
     claimOf({ chargeId: 'charge-1', owner: thisTab(), startedAt: Date.now(), userOps: [], backendBroadcast: false })
     screen()
     expect(window.localStorage.getItem(KEY)).toBeNull()
+})
+
+/*
+ * Audit of wave 1: another tab's lease was read only when a screen opened, so
+ * an open screen kept Pay off past the 15 minutes; and a tab whose claim was
+ * dropped after its lease still sent, with no marker (mono ChargeSendFlow.tla,
+ * _BuggyLeaseSteal).
+ */
+it("another tab's unsent claim ends with its lease while this screen stays open", async () => {
+    jest.useFakeTimers()
+    try {
+        claimOf({ chargeId: '', owner: 'other-tab', startedAt: Date.now(), userOps: [], backendBroadcast: false })
+        const tab = screen()
+        expect(tab.result.current.isPending).toBe(true)
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(15 * 60_000 + 1_000)
+        })
+        expect(tab.result.current.isPending).toBe(false)
+        expect(window.localStorage.getItem(KEY)).toBeNull()
+    } finally {
+        jest.useRealTimers()
+    }
+})
+
+it('a tab whose marker another tab dropped after the lease sends nothing', () => {
+    const tab = screen()
+    expect(tab.result.current.claim()).toBe(true)
+    tab.result.current.begin('charge-1')
+    // the other tab drops the marker as abandoned, then claims its own
+    claimOf({ chargeId: '', owner: 'other-tab', startedAt: Date.now(), userOps: [], backendBroadcast: false })
+    expect(() => tab.result.current.onBroadcast({ via: 'backend' })).toThrow()
+    expect(JSON.parse(window.localStorage.getItem(KEY) ?? 'null')?.backendBroadcast).toBe(false)
+    // its failure path leaves the other tab's claim alone
+    tab.result.current.clear()
+    expect(window.localStorage.getItem(KEY)).not.toBeNull()
+
+    window.localStorage.removeItem(KEY)
+    expect(() => tab.result.current.onBroadcast({ via: 'backend' })).toThrow()
+})
+
+it("this attempt's own marker lets its broadcast through", () => {
+    const tab = screen()
+    expect(tab.result.current.claim()).toBe(true)
+    tab.result.current.begin('charge-1')
+    tab.result.current.onBroadcast({ via: 'backend' })
+    expect(JSON.parse(window.localStorage.getItem(KEY) ?? 'null')?.backendBroadcast).toBe(true)
+    tab.result.current.clear()
 })
