@@ -391,6 +391,8 @@ export interface TCreateOfframpRequest {
         achReference?: string
     }
     sendLinkPubKey?: string
+    /** Required with sendLinkPubKey: link key signature over guestBankClaimMessage(sendLinkPubKey, destination.externalAccountId). */
+    sendLinkSignature?: string
     features?: {
         allowAnyFromAddress?: boolean
     }
