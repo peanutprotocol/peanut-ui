@@ -9,10 +9,7 @@ export interface UserListItem {
     email: string | null
     created_at: string
     updated_at: string | null
-    /** accountStanding() on the API (src/users/account-standing.ts): banned_at outranks deactivated_at. */
-    standing: 'ACTIVE' | 'DEACTIVATED' | 'BANNED'
-    deactivated_at: string | null
-    banned_at: string | null
+    is_active: boolean | null
     residence_country: string | null
     kyc_status: string | null
 }
