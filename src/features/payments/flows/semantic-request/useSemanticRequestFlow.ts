@@ -271,8 +271,9 @@ export function useSemanticRequestFlow() {
                 setError({ showError: true, errorMessage: t('errors.logInToContinue') })
                 return { success: false }
             }
-            // a payment to this recipient may still land: paying stays off until it is final
-            if (pendingSend.isPending) return { success: false }
+            // a payment to this recipient may still land, or a tap in this tick started one:
+            // paying stays off until it is final
+            if (!pendingSend.claim()) return { success: false }
 
             setIsLoading(true)
             clearError()
@@ -407,6 +408,8 @@ export function useSemanticRequestFlow() {
                 setError({ showError: true, errorMessage })
                 setIsLoading(false)
                 return { success: false }
+            } finally {
+                pendingSend.release()
             }
         },
         [
@@ -558,8 +561,9 @@ export function useSemanticRequestFlow() {
             await prepareRoute()
             return
         }
-        // a payment to this recipient may still land: paying stays off until it is final
-        if (pendingSend.isPending) return
+        // a payment to this recipient may still land, or a tap in this tick started one:
+        // paying stays off until it is final
+        if (!pendingSend.claim()) return
 
         setIsLoading(true)
         clearError()
@@ -667,6 +671,7 @@ export function useSemanticRequestFlow() {
             const errorMessage = toFriendlyError(err)
             setError({ showError: true, errorMessage })
         } finally {
+            pendingSend.release()
             setIsLoading(false)
         }
     }, [

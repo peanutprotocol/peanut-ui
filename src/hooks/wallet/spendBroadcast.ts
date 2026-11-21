@@ -1,6 +1,6 @@
 import type { Hash, Hex } from 'viem'
 import { getUserOperationHash, type SmartAccount, type UserOperation } from 'viem/account-abstraction'
-import { apiErrorStatus } from '@/services/api-error'
+import { API_ERROR_CODES, apiErrorStatus, wireErrorCode } from '@/services/api-error'
 import { userOpFailureKind } from '@/utils/userop-submission'
 import { isStaleKeyError } from '@/utils/walletCredential.utils'
 
@@ -78,16 +78,36 @@ function bundlerAnswered(error: unknown): boolean {
 }
 
 /**
+ * The answers of peanut-api-ts `POST /rain/cards/withdraw/submit` that prove
+ * it refused before it sent: a payload or session it refuses (400, 401, 403),
+ * an unknown or out-of-date preparation (404, 410), and the two 409 codes of
+ * a refusal before the send. Any other 4xx may hide a send the backend
+ * accepted: a 408 is a timeout, a 409 WITHDRAWAL_PENDING_CONFIRMATION says
+ * the send is confirming, and a 409 without a code can be "already completed".
+ */
+const REFUSED_BEFORE_SEND_STATUSES = new Set([400, 401, 403, 404, 410])
+const REFUSED_BEFORE_SEND_CONFLICTS = new Set<string>([
+    API_ERROR_CODES.STALE_CARD_APPROVAL,
+    API_ERROR_CODES.RAIN_CONTROLLER_CHANGED,
+])
+
+/**
  * True when whoever was asked to send answered "no" to the send itself, so
  * nothing was accepted: the bundler rejected the op (signature, validity
  * window or another validation error it named), or the backend refused the
- * card-balance broadcast with a 4xx. A timeout, a dropped connection, a 5xx or
- * "already known" is not a refusal: the op may still execute.
+ * card-balance broadcast before sending it. A timeout, a dropped connection,
+ * a 5xx or "already known" is not a refusal: the op may still execute.
  */
 export function isDefinitiveSendRefusal(error: unknown): boolean {
     if (isStaleKeyError(error)) return true
     const status = apiErrorStatus(error)
-    if (status !== undefined) return status >= 400 && status < 500
+    if (status !== undefined) {
+        const code = wireErrorCode(error)
+        return (
+            REFUSED_BEFORE_SEND_STATUSES.has(status) ||
+            (status === 409 && code !== undefined && REFUSED_BEFORE_SEND_CONFLICTS.has(code))
+        )
+    }
     const kind = userOpFailureKind(error)
     if (kind === 'signature_invalid' || kind === 'expired') return true
     return kind === 'terminal' && bundlerAnswered(error)

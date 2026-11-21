@@ -10,9 +10,11 @@ import { userOperationNonceSpent } from '@/utils/userop-submission'
  * - `executed`: it ran; the money moved in `txHash`.
  * - `reverted`: it was mined and reverted; its batch moved nothing.
  * - `replaced`: another op spent its nonce, so it can never execute.
- * - `unknown`: it may still execute (in the mempool, dropped but resendable, or a read failed).
+ * - `not-found`: every read answered: no receipt, and its nonce is still free.
+ *   It may still execute (in the mempool, or dropped but resendable).
+ * - `unknown`: a read failed, so nothing is known. Never proof that nothing moved.
  */
-export type UserOpOutcome = { executed: Hash } | 'reverted' | 'replaced' | 'unknown'
+export type UserOpOutcome = { executed: Hash } | 'reverted' | 'replaced' | 'not-found' | 'unknown'
 
 const config = PUBLIC_CLIENTS_BY_CHAIN[PEANUT_WALLET_CHAIN.id]
 let bundler: ReturnType<typeof createBundlerClient> | undefined
@@ -37,7 +39,7 @@ export async function readUserOpOutcome(op: BroadcastUserOp, sender: Address): P
         const receipt = await readReceipt(op.userOpHash)
         if (receipt) return receipt.success ? { executed: receipt.receipt.transactionHash } : 'reverted'
         if (!(await userOperationNonceSpent(config.client, USER_OP_ENTRY_POINT.address, sender, BigInt(op.nonce)))) {
-            return 'unknown'
+            return 'not-found'
         }
         // The nonce moved after the first look: this op may be the one that
         // spent it, so its receipt is read again before calling it replaced.

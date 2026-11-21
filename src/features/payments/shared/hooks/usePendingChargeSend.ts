@@ -16,13 +16,14 @@ import {
     readPendingChargeSendRaw,
     subscribePendingChargeSend,
     writePendingChargeSend,
+    PendingChargeSendNotSavedError,
     type PendingChargeSend,
 } from '../utils/pending-charge-send'
 
 /**
  * - `completed`: the charge is paid; the success screen shows.
  * - `sent`: the money left the wallet and the charge is not booked yet; the
- *   confirming screen shows.
+ *   confirming screen shows, Pay stays off, and the next visit books it again.
  * - `not-sent`: proven that nothing moved; Pay is offered again.
  * - `in-flight`: a send may still land; the confirming screen shows and Pay stays off.
  * - `cancelled`: the screen was left; the next visit resumes.
@@ -61,12 +62,16 @@ interface PendingChargeSendOptions {
  * request pay, pot contribution), the Fixed variant of mono
  * engineering/api/state-machines/ChargeSendFlow.tla:
  *
+ * 0. `claim` latches the tap before the first await, so a second tap in the
+ *    same tick starts nothing; `release` lets it go once the attempt ended.
  * 1. `begin` saves a pending marker before anything is signed; `onBroadcast`
- *    adds each user op before it goes out; `markSent` adds the hash.
+ *    adds each user op before it goes out; `markSent` adds the hash. When
+ *    storage refuses `begin` or `onBroadcast`, they throw and nothing goes out.
  * 2. A failure after the send left this device (`mayHaveSent`) goes to
  *    `recover`, never back to the amount screen.
  * 3. `recover` reads the charge and the chain until the send is final. Pay
- *    comes back only when it is proven that nothing moved.
+ *    comes back only when it is proven that nothing moved; a failed read
+ *    proves nothing. The marker goes only then, or once the charge is booked.
  * 4. While a marker exists, `isPending` keeps Pay off, and a reload resumes
  *    the recovery.
  */
@@ -102,36 +107,71 @@ export function usePendingChargeSend({
         }
     }, [])
 
+    // Rendered state lags a tap: two taps in one tick both see Pay on.
+    const claimed = useRef(false)
+    const claim = useCallback(() => {
+        if (claimed.current) return false
+        if (key && (sending.has(key) || recovering.has(key) || readPendingChargeSend(key))) return false
+        claimed.current = true
+        return true
+    }, [key])
+    const release = useCallback(() => {
+        claimed.current = false
+    }, [])
+
     const update = useCallback(
         (change: (send: PendingChargeSend) => PendingChargeSend) => {
             const send = key ? readPendingChargeSend(key) : null
-            if (key && send) writePendingChargeSend(key, change(send))
+            return key && send ? writePendingChargeSend(key, change(send)) : true
         },
         [key]
     )
+
+    // A marker left by a reload or an earlier visit resumes once; an attempt
+    // started on this screen never does, so a recovery that ran out of time
+    // waits for the next visit instead of starting over here.
+    const hasResumed = useRef(false)
 
     const begin = useCallback(
         (chargeId: string) => {
             if (!key) return
+            hasResumed.current = true
             sending.add(key)
-            writePendingChargeSend(key, { chargeId, startedAt: Date.now(), userOps: [], backendBroadcast: false })
+            const saved = writePendingChargeSend(key, {
+                chargeId,
+                startedAt: Date.now(),
+                userOps: [],
+                backendBroadcast: false,
+            })
+            // a send this device could not remember after a reload is not started
+            if (!saved) throw new PendingChargeSendNotSavedError()
         },
         [key]
     )
 
+    // Runs before the send leaves this device: a throw here stops it.
     const onBroadcast = useCallback(
-        (broadcast: SpendBroadcast) =>
-            update((send) => {
+        (broadcast: SpendBroadcast) => {
+            const saved = update((send) => {
                 if (broadcast.via === 'backend') return { ...send, backendBroadcast: true }
                 if (!broadcast.userOp) return { ...send, untrackedBroadcast: true }
                 return { ...send, userOps: [...send.userOps, broadcast.userOp] }
-            }),
+            })
+            if (!saved) throw new PendingChargeSendNotSavedError()
+        },
         [update]
     )
 
-    const markSent = useCallback((txHash: Hash) => update((send) => ({ ...send, txHash })), [update])
+    // The money already left: a refused write keeps the marker on this page.
+    const markSent = useCallback(
+        (txHash: Hash) => {
+            update((send) => ({ ...send, txHash }))
+        },
+        [update]
+    )
 
     const clear = useCallback(() => {
+        claimed.current = false
         if (!key) return
         sending.delete(key)
         writePendingChargeSend(key, null)
@@ -145,7 +185,9 @@ export function usePendingChargeSend({
 
     const recover = useCallback(async (): Promise<PendingSendOutcome> => {
         const finish = (outcome: Exclude<PendingSendOutcome, 'cancelled'>) => {
-            if (key && outcome !== 'in-flight') writePendingChargeSend(key, null)
+            // Only a booked charge or proof that nothing moved ends the guard.
+            // `sent` keeps it: the money left and the charge may still book it.
+            if (key && (outcome === 'completed' || outcome === 'not-sent')) writePendingChargeSend(key, null)
             if (outcome === 'not-sent') {
                 setIsPaymentStatusUnknown?.(false)
                 setError({ showError: true, errorMessage: t('errors.paymentNotSent') })
@@ -183,15 +225,22 @@ export function usePendingChargeSend({
                     )
                     if (hasLeftScreen.current) return 'cancelled'
                     const executed = outcomes.find((outcome) => typeof outcome === 'object')
+                    const pastWaitWindow = isPastWaitWindow(send)
                     if (executed) {
                         send = { ...send, txHash: executed.executed }
                         writePendingChargeSend(key, send)
                     } else if (
-                        isPastWaitWindow(send) ||
-                        (outcomes.every((outcome) => outcome === 'reverted' || outcome === 'replaced') &&
-                            !send.untrackedBroadcast &&
-                            // the backend owns a card-balance broadcast: its charge says how it ended
-                            (!send.backendBroadcast || CLOSED_CHARGE.has(status)))
+                        // each op is proven unsent; `unknown` (a read failed) never is
+                        outcomes.every(
+                            (outcome) =>
+                                outcome === 'reverted' ||
+                                outcome === 'replaced' ||
+                                (outcome === 'not-found' && pastWaitWindow)
+                        ) &&
+                        // an op without a hash cannot be read
+                        !send.untrackedBroadcast &&
+                        // the backend owns a card-balance broadcast: only its closed charge proves it
+                        (!send.backendBroadcast || CLOSED_CHARGE.has(status))
                     ) {
                         return finish('not-sent')
                     }
@@ -201,7 +250,7 @@ export function usePendingChargeSend({
                     // confirming screen sends the payer to support if it never shows.
                     if (CLOSED_CHARGE.has(status)) return finish('sent')
                     // PENDING means no payment was recorded. The backend answers a
-                    // repeated hash idempotently.
+                    // repeated hash idempotently, so every recovery tries once more.
                     if (status === 'PENDING' && !recordTried) {
                         recordTried = true
                         const payment = await recordPayment(send.chargeId, send.txHash).catch(() => null)
@@ -217,6 +266,7 @@ export function usePendingChargeSend({
         } finally {
             recovering.delete(key)
             sending.delete(key)
+            claimed.current = false
             setIsRecovering(false)
         }
     }, [
@@ -233,8 +283,6 @@ export function usePendingChargeSend({
         t,
     ])
 
-    // A marker left by a reload or an earlier visit: resume its recovery once.
-    const hasResumed = useRef(false)
     useEffect(() => {
         if (!canResume || !key || hasResumed.current || sending.has(key) || recovering.has(key)) return
         const send = readPendingChargeSend(key)
@@ -252,7 +300,7 @@ export function usePendingChargeSend({
 
     const isPending = parsePendingChargeSend(raw) !== null
     return useMemo(
-        () => ({ isPending, isRecovering, begin, onBroadcast, markSent, clear, mayHaveSent, recover }),
-        [isPending, isRecovering, begin, onBroadcast, markSent, clear, mayHaveSent, recover]
+        () => ({ isPending, isRecovering, claim, release, begin, onBroadcast, markSent, clear, mayHaveSent, recover }),
+        [isPending, isRecovering, claim, release, begin, onBroadcast, markSent, clear, mayHaveSent, recover]
     )
 }

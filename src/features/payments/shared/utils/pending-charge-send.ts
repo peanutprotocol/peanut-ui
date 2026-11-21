@@ -27,15 +27,25 @@ export interface PendingChargeSend {
 const PREFIX = 'peanut:pendingChargeSend:'
 /**
  * A signed op the bundler has not executed in a day left its mempool long ago.
- * Past this, recovery counts an op it still cannot find as dropped: an
- * assumption about the bundler, not a proof (the Drop action in the model).
- * The marker is never dropped unread, so an op that did execute is still found.
+ * Past this, recovery counts an op that every read answered for, and found
+ * nowhere, as dropped: an assumption about the bundler, not a proof (the Drop
+ * action in the model). A read that failed never counts: age alone releases
+ * nothing.
  */
 const WAIT_WINDOW_MS = 24 * 60 * 60 * 1000
 export const isPastWaitWindow = (send: PendingChargeSend) => Date.now() - send.startedAt > WAIT_WINDOW_MS
 const listeners = new Set<() => void>()
-// Where storage is unavailable (private mode, full), the guard still holds for this page.
+// A marker local storage refused (full, blocked) is kept here and read first,
+// so the guard still holds on this page.
 const memory = new Map<string, string>()
+
+/** Local storage refused the marker: a send it should guard must not start. */
+export class PendingChargeSendNotSavedError extends Error {
+    constructor() {
+        super('The pending payment marker could not be saved on this device')
+        this.name = 'PendingChargeSendNotSavedError'
+    }
+}
 
 export const pendingChargeSendKey = (userId: string, intent: string) => `${PREFIX}${userId}:${intent}`
 
@@ -44,10 +54,12 @@ export const leftDevice = (send: PendingChargeSend) =>
     send.userOps.length > 0 || send.backendBroadcast || !!send.untrackedBroadcast || !!send.txHash
 
 export function readPendingChargeSendRaw(key: string): string | null {
+    const kept = memory.get(key)
+    if (kept !== undefined) return kept
     try {
         return window.localStorage.getItem(key)
     } catch {
-        return memory.get(key) ?? null
+        return null
     }
 }
 
@@ -65,16 +77,24 @@ export function parsePendingChargeSend(raw: string | null): PendingChargeSend | 
 
 export const readPendingChargeSend = (key: string) => parsePendingChargeSend(readPendingChargeSendRaw(key))
 
-export function writePendingChargeSend(key: string, send: PendingChargeSend | null) {
+/**
+ * False when local storage refused the write: the marker then lives in this
+ * page only, and a reload would lose it. A marker that could not be removed
+ * stays in storage, so the guard fails closed.
+ */
+export function writePendingChargeSend(key: string, send: PendingChargeSend | null): boolean {
     const raw = send ? JSON.stringify(send) : null
+    let persisted = true
     try {
         if (raw) window.localStorage.setItem(key, raw)
         else window.localStorage.removeItem(key)
     } catch {
-        if (raw) memory.set(key, raw)
-        else memory.delete(key)
+        persisted = false
     }
+    if (raw && !persisted) memory.set(key, raw)
+    else memory.delete(key)
     listeners.forEach((listener) => listener())
+    return persisted
 }
 
 /** Also hears other tabs: a send started in one keeps Pay off in the others. */

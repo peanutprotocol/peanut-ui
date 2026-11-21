@@ -156,8 +156,9 @@ export function useDirectSendFlow() {
             setError({ showError: true, errorMessage: t('errors.missingData') })
             return
         }
-        // a send for this recipient may still land: Pay stays off until it is final
-        if (pendingSend.isPending) return
+        // a send for this recipient may still land, or a tap in this tick started one:
+        // Pay stays off until it is final
+        if (!pendingSend.claim()) return
 
         setIsLoading(true)
         setLoadingState('Loading')
@@ -284,6 +285,7 @@ export function useDirectSendFlow() {
             })
             if (mayHaveSent) await pendingSend.recover()
         } finally {
+            pendingSend.release()
             setIsLoading(false)
             setLoadingState('Idle')
         }
