@@ -1641,6 +1641,7 @@
             "requestNotFoundDescription": "Esta solicitud de pago no existe o fue eliminada. Pide un nuevo enlace a quien la envió.",
             "requestClosedTitle": "Esta solicitud está cerrada",
             "externalPaymentNotConfirmed": "No se pudo confirmar este pago. Si el dinero salió de tu billetera, contacta a soporte.",
+            "paymentNotSent": "Este pago no se completó y no salió dinero de tu billetera. Puedes intentarlo de nuevo.",
             "requestTokenNotAccepted": "{symbol} no es compatible. Pide a quien lo envió un enlace en USDC o USDT.",
             "requestTokenRetired": "Esta solicitud ya no se puede pagar. Pide una nueva en USDC."
         },

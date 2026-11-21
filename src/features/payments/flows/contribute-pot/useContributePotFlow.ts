@@ -18,9 +18,7 @@ import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { type Address } from 'viem'
 import { useContributePotFlowContext } from './ContributePotFlowContext'
 import { useChargeManager } from '@/features/payments/shared/hooks/useChargeManager'
-import { MutationResponseTimeoutError } from '@/utils/connection-timeout-error'
-import { usePaymentStatusRecovery } from '@/features/payments/shared/hooks/usePaymentStatusRecovery'
-import { type TRequestChargeResponse } from '@/services/services.types'
+import { usePendingChargeSend } from '@/features/payments/shared/hooks/usePendingChargeSend'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
@@ -76,15 +74,6 @@ export function useContributePotFlow() {
     const { user } = useAuth()
     const { createCharge, fetchCharge, isCreating: isCreatingCharge } = useChargeManager()
     const { recordPayment, isRecording } = usePaymentRecorder()
-    const recoverPaymentStatus = usePaymentStatusRecovery({
-        fetchCharge,
-        setCharge,
-        setIsSuccess,
-        setIsPaymentStatusUnknown,
-        setCurrentView,
-        setError,
-        failureMessage: t('errors.externalPaymentNotConfirmed'),
-    })
     const {
         isConnected,
         address: walletAddress,
@@ -94,6 +83,31 @@ export function useContributePotFlow() {
         hasSufficientSpendableBalance: hasSufficientBalance,
         isSpendableBalanceReady,
     } = useWallet()
+
+    const recordFoundPayment = useCallback(
+        (chargeId: string, txHash: string) =>
+            recordPayment({
+                chargeId,
+                chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                txHash,
+                tokenAddress: PEANUT_WALLET_TOKEN as Address,
+                payerAddress: walletAddress as Address,
+            }),
+        [recordPayment, walletAddress]
+    )
+    const pendingSend = usePendingChargeSend({
+        intent: request ? `pot:${request.uuid}` : null,
+        walletAddress: walletAddress as Address | undefined,
+        fetchCharge,
+        recordPayment: recordFoundPayment,
+        canResume: currentView === 'INITIAL',
+        setCharge,
+        setPayment,
+        setIsSuccess,
+        setIsPaymentStatusUnknown,
+        setCurrentView,
+        setError,
+    })
 
     const isLoggedIn = !!user?.user?.userId
 
@@ -197,6 +211,8 @@ export function useContributePotFlow() {
                 setError({ showError: true, errorMessage: t('errors.pleaseLoginToContinue') })
                 return { success: false }
             }
+            // a contribution to this pot may still land: paying stays off until it is final
+            if (pendingSend.isPending) return { success: false }
 
             setIsLoading(true)
             clearError()
@@ -226,7 +242,6 @@ export function useContributePotFlow() {
                 }
             }
 
-            let recordingCharge: TRequestChargeResponse | null = null
             try {
                 // step 1: create charge for this contribution
                 const chargeResult = await createCharge({
@@ -253,6 +268,7 @@ export function useContributePotFlow() {
                 }
 
                 // step 2: send money via peanut wallet
+                pendingSend.begin(chargeResult.uuid)
                 const txResult = await sendMoney(recipient.address, amount, {
                     kind: 'REQUEST_PAY',
                     // Lets the backend settle the charge directly when the spend
@@ -260,13 +276,14 @@ export function useContributePotFlow() {
                     // can't verify a collateral-contract tx). recordPayment below is
                     // then routed through the same trusted-completion path.
                     chargeId: chargeResult.uuid,
+                    onBroadcast: pendingSend.onBroadcast,
                 })
                 const { hash } = resolveSettledTxHash(txResult, 'contribute-pot')
 
+                pendingSend.markSent(hash)
                 setTxHash(hash)
 
                 // step 3: record payment to backend
-                recordingCharge = chargeResult
                 const paymentResult = await recordPayment({
                     chargeId: chargeResult.uuid,
                     chainId: PEANUT_WALLET_CHAIN.id.toString(),
@@ -275,6 +292,7 @@ export function useContributePotFlow() {
                     payerAddress: walletAddress as Address,
                 })
 
+                pendingSend.clear()
                 setPayment(paymentResult)
                 setIsSuccess(true)
                 setCurrentView('STATUS')
@@ -283,12 +301,15 @@ export function useContributePotFlow() {
                 void refetchRequestPot()
                 return { success: true }
             } catch (err) {
-                if (err instanceof MutationResponseTimeoutError && recordingCharge) {
-                    const outcome = await recoverPaymentStatus(recordingCharge.uuid)
+                // After the send left the wallet, any failure may hide money
+                // that moved: recovery answers it, and paying stays off meanwhile.
+                if (pendingSend.mayHaveSent(err)) {
+                    const outcome = await pendingSend.recover()
                     if (outcome !== 'cancelled') void refetchRequestPot()
                     setIsLoading(false)
                     return { success: outcome === 'completed' }
                 }
+                pendingSend.clear()
 
                 // Card re-approval dismissed, or the screen left, before
                 // anything was prepared or signed — control flow, not a failed
@@ -320,7 +341,7 @@ export function useContributePotFlow() {
             fetchCharge,
             createCharge,
             sendMoney,
-            recoverPaymentStatus,
+            pendingSend,
             recordPayment,
             refetchRequestPot,
             setCharge,
@@ -413,7 +434,8 @@ export function useContributePotFlow() {
         payment,
         txHash,
         error,
-        isLoading: isLoading || isCreatingCharge || isRecording,
+        // a pending contribution keeps paying busy until recovery says it is final
+        isLoading: isLoading || isCreatingCharge || isRecording || pendingSend.isPending,
         isSuccess,
         isPaymentStatusUnknown,
         isExternalWalletPayment,

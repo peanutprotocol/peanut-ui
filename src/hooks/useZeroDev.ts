@@ -60,6 +60,7 @@ import {
 } from '@/features/setup/username-reservation'
 import { bindSignupDraft, discardSignupDraft, readSignupDraft } from '@/features/setup/signup-draft'
 import { AccountType } from '@/interfaces/interfaces'
+import { describeSignedUserOp, type BroadcastUserOp } from '@/hooks/wallet/spendBroadcast'
 
 // types
 type UserOpEncodedParams = {
@@ -370,8 +371,9 @@ export const useZeroDev = () => {
                  *  "failures after this are execution-ambiguous" boundary. A
                  *  WebAuthn ceremony rejection INSIDE the broadcast call still
                  *  proves pre-broadcast (an unsigned op cannot submit) — see
-                 *  useSpendBundle's ceremony-rejection carve-out. */
-                onBroadcastAttempt?: () => void
+                 *  useSpendBundle's ceremony-rejection carve-out. Carries the
+                 *  signed op, so a caller can find it on chain later. */
+                onBroadcastAttempt?: (userOp: BroadcastUserOp | null) => void
             }
         ): Promise<{ userOpHash: Hash; receipt: TransactionReceipt | null }> => {
             // demo mode: simulated success, no chain.
@@ -409,7 +411,9 @@ export const useZeroDev = () => {
                     const signature = await client.account!.signUserOperation(
                         preparedOp as Parameters<NonNullable<typeof client.account>['signUserOperation']>[0]
                     )
-                    opts?.onBroadcastAttempt?.()
+                    opts?.onBroadcastAttempt?.(
+                        describeSignedUserOp(client.account!, Number(chainId), preparedOp, signature)
+                    )
                     return client.sendUserOperation({
                         ...preparedOp,
                         account: client.account!,
