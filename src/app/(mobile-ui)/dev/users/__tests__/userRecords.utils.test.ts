@@ -19,9 +19,7 @@ const user: UserListItem = {
     email: 'ana@example.test',
     created_at: '2026-09-16T08:46:00.000Z',
     updated_at: '2026-10-25T23:59:00.000Z',
-    standing: 'ACTIVE',
-    deactivated_at: null,
-    banned_at: null,
+    is_active: true,
     residence_country: 'DE',
     kyc_status: null,
 }
