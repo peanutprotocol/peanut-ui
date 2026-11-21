@@ -27,7 +27,10 @@ export type SpendBroadcast = { via: 'wallet'; userOp: BroadcastUserOp | null } |
  * be computed: the send goes on, and recovery then waits on the charge alone.
  */
 export function describeSignedUserOp(
-    account: Pick<SmartAccount, 'address' | 'entryPoint'>,
+    account: {
+        address: SmartAccount['address']
+        entryPoint: Pick<SmartAccount['entryPoint'], 'address' | 'version'>
+    },
     chainId: number,
     preparedOp: object,
     signature: Hex

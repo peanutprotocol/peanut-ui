@@ -19,7 +19,6 @@ test('only the processing withdrawal capture intentionally retains a visible spi
     for (const [id, expectsLoading] of [
         ['89-f-withdraw-review-insufficient', false],
         ['90-f-withdraw-review-processing', true],
-        ['91-f-withdraw-review-spent', false],
     ]) {
         const screen = screens.find((entry) => entry.id === id)
         assert.ok(screen, `${id} must be registered`)

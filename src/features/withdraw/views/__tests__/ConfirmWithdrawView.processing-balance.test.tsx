@@ -44,7 +44,6 @@ const baseProps = {
     onBack: jest.fn(),
     isProcessing: false,
     insufficientBalance: false,
-    alreadySpent: false,
     error: null,
     isFromSendFlow: false,
     isCrossChain: true,
@@ -54,24 +53,19 @@ const baseProps = {
 
 describe('ConfirmWithdrawView — processing balance gate', () => {
     it.each([
-        { isProcessing: false, alreadySpent: false, insufficientBalance: false, warning: false, disabled: false },
-        { isProcessing: false, alreadySpent: false, insufficientBalance: true, warning: true, disabled: true },
-        { isProcessing: false, alreadySpent: true, insufficientBalance: false, warning: false, disabled: false },
-        { isProcessing: false, alreadySpent: true, insufficientBalance: true, warning: false, disabled: false },
-        { isProcessing: true, alreadySpent: false, insufficientBalance: false, warning: false, disabled: true },
-        { isProcessing: true, alreadySpent: false, insufficientBalance: true, warning: false, disabled: true },
-        { isProcessing: true, alreadySpent: true, insufficientBalance: false, warning: false, disabled: true },
-        { isProcessing: true, alreadySpent: true, insufficientBalance: true, warning: false, disabled: true },
+        { isProcessing: false, insufficientBalance: false, warning: false, disabled: false },
+        { isProcessing: false, insufficientBalance: true, warning: true, disabled: true },
+        { isProcessing: true, insufficientBalance: false, warning: false, disabled: true },
+        { isProcessing: true, insufficientBalance: true, warning: false, disabled: true },
     ])(
-        'isProcessing=$isProcessing alreadySpent=$alreadySpent insufficientBalance=$insufficientBalance',
-        ({ isProcessing, alreadySpent, insufficientBalance, warning, disabled }) => {
+        'isProcessing=$isProcessing insufficientBalance=$insufficientBalance',
+        ({ isProcessing, insufficientBalance, warning, disabled }) => {
             const onConfirm = jest.fn()
             renderWithIntl(
                 <ConfirmWithdrawView
                     {...baseProps}
                     onConfirm={onConfirm}
                     isProcessing={isProcessing}
-                    alreadySpent={alreadySpent}
                     insufficientBalance={insufficientBalance}
                 />
             )
@@ -103,32 +97,6 @@ describe('ConfirmWithdrawView — processing balance gate', () => {
         expect(onConfirm).not.toHaveBeenCalled()
     })
 
-    it('keeps the balance warning hidden after funds moved and exposes record-only recovery', () => {
-        const onConfirm = jest.fn()
-        const view = renderWithIntl(
-            <ConfirmWithdrawView {...baseProps} onConfirm={onConfirm} isProcessing insufficientBalance />
-        )
-
-        expect(screen.queryByText(BALANCE_WARNING)).not.toBeInTheDocument()
-
-        view.rerender(
-            <ConfirmWithdrawView
-                {...baseProps}
-                onConfirm={onConfirm}
-                insufficientBalance
-                alreadySpent
-                error={BOOKKEEPING_ERROR}
-            />
-        )
-
-        expect(screen.queryByText(BALANCE_WARNING)).not.toBeInTheDocument()
-        expect(screen.getByText(BOOKKEEPING_ERROR)).toBeInTheDocument()
-        const retry = screen.getByRole('button', { name: /retry/i })
-        expect(retry).toBeEnabled()
-        fireEvent.click(retry)
-        expect(onConfirm).toHaveBeenCalledTimes(1)
-    })
-
     it('shows a recording error during processing but keeps Retry disabled against duplicate clicks', () => {
         const onConfirm = jest.fn()
         renderWithIntl(
@@ -137,7 +105,6 @@ describe('ConfirmWithdrawView — processing balance gate', () => {
                 onConfirm={onConfirm}
                 isProcessing
                 insufficientBalance
-                alreadySpent
                 error={BOOKKEEPING_ERROR}
             />
         )

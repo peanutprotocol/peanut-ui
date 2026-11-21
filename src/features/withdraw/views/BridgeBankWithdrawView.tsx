@@ -3,6 +3,7 @@
 import NavHeader from '@/components/Global/NavHeader'
 import { useReturnTo } from '@/hooks/useSafeBack'
 import PaymentSuccessView from '@/features/payments/shared/components/PaymentSuccessView'
+import { PaymentConfirmingView } from '@/features/payments/shared/components/PaymentConfirmingView'
 import { BridgeTosStep } from '@/components/Kyc/BridgeTosStep'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { KycReverificationPendingModal } from '@/components/Kyc/KycReverificationPendingModal'
@@ -65,7 +66,13 @@ export default function BridgeBankWithdrawView() {
     // the USDC for a typed bank amount comes from its quote — nothing to review
     // before the first one. A later refresh that fails keeps this page, and any
     // open KYC, terms or confirm step, mounted: the review shows the error inline.
-    if (step === 'review' && bankAmount && !bankAmount.quote && !flow.isLoading && !flow.submittedTxHash) {
+    // A recovery could not confirm the withdrawal, or confirmed one this visit
+    // did not start (its amounts are not known here): say so, claim nothing.
+    if (flow.isPaymentStatusUnknown || (step === 'success' && !successAmounts)) {
+        return <PaymentConfirmingView headerTitle={fromSendFlow ? tNav('send') : tNav('withdraw')} />
+    }
+
+    if (step === 'review' && bankAmount && !bankAmount.quote && !flow.isLoading) {
         return (
             <RateGateScreen
                 title={fromSendFlow ? tNav('send') : tNav('withdraw')}
@@ -101,10 +108,8 @@ export default function BridgeBankWithdrawView() {
                     verificationDeadline={flow.advisoryDeadline}
                     isLoading={flow.isLoading}
                     isSubmitReady={flow.isSubmitReady}
-                    submittedTxHash={flow.submittedTxHash}
                     error={flow.error}
                     balanceErrorMessage={flow.balanceErrorMessage}
-                    confirmPendingCopy={flow.confirmPendingCopy}
                     referenceSpec={flow.referenceSpec}
                     payoutNoteKey={flow.payoutNoteKey}
                     payoutDefaultReferenceNoteKey={flow.payoutDefaultReferenceNoteKey}
@@ -112,7 +117,6 @@ export default function BridgeBankWithdrawView() {
                     referenceProblem={flow.referenceProblem}
                     onReferenceChange={flow.setReference}
                     onSubmit={flow.handleCreateAndInitiateOfframp}
-                    onDone={leaveToHome}
                     onRetryQuote={bankAmount?.quoteFailed ? () => void bankAmount.refetchQuote() : undefined}
                     onAddBankAccountAgain={flow.onAddBankAccountAgain}
                     usdSpeed={flow.usdSpeed}

@@ -11,6 +11,11 @@ import {
     SpendRecoveryQuoteReviewError,
     submitSignedSpend,
 } from '@/hooks/wallet/signSpendRetry'
+import { describeSignedUserOp, markSpendMayHaveBroadcast, type SpendBroadcast } from '@/hooks/wallet/spendBroadcast'
+import { usePendingChargeSend } from '@/features/payments/shared/hooks/usePendingChargeSend'
+import type { PendingChargeSend, SendOrderRead } from '@/features/payments/shared/utils/pending-charge-send'
+import { PaymentConfirmingView } from '@/features/payments/shared/components/PaymentConfirmingView'
+import { rainApi } from '@/services/rain'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
@@ -18,7 +23,7 @@ import { Field } from '@/components/0_Bruddle/Field'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import CooldownErrorText from '@/components/Global/RainCooldown/CooldownErrorText'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { useSignSpendBundle } from '@/hooks/wallet/useSignSpendBundle'
+import { useSignSpendBundle, type SignedSpendArtifact } from '@/hooks/wallet/useSignSpendBundle'
 import { useRainControllerRepair } from '@/hooks/wallet/useRainControllerRepair'
 import { useSignedSpendRecovery } from '@/hooks/wallet/useSignedSpendRecovery'
 import { useStaleSessionGuard } from '@/hooks/wallet/useStaleSessionGuard'
@@ -50,7 +55,7 @@ import { formatCurrency } from '@/utils/general.utils'
 import { validateCbuCvuAlias } from '@/utils/withdraw.utils'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import AmountInput from '@/components/Global/AmountInput'
-import { parseUnits } from 'viem'
+import { parseUnits, type Address } from 'viem'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { useModalsContext } from '@/context/ModalsContext'
 import BaseSelect from '@/components/0_Bruddle/BaseSelect'
@@ -104,6 +109,44 @@ import { useTranslations } from 'next-intl'
 import { loadingStateKey } from '@/i18n/app/loading-states'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { KycControlFlowProvider } from '@/features/paperwork-verification/analytics'
+
+/** The order a signed withdrawal pays: the card preparation when it has one, else the price lock. */
+const withdrawalOrderId = (artifact: SignedSpendArtifact, priceLockCode: string) =>
+    artifact.strategy === 'collateral-only'
+        ? artifact.rainWithdrawal.preparationId
+        : artifact.strategy === 'mixed'
+          ? artifact.rainPreparationId
+          : priceLockCode
+
+/** What leaves this device with a signed withdrawal, so recovery can look it up. */
+function withdrawalBroadcast(artifact: SignedSpendArtifact): SpendBroadcast {
+    // the backend submits a card-balance withdrawal itself
+    if (artifact.strategy === 'collateral-only') return { via: 'backend' }
+    const { signedUserOp, chainId, entryPointAddress } = artifact.signedUserOp
+    // the wallet signs EntryPoint 0.7 ops (USER_OP_ENTRY_POINT)
+    const account = {
+        address: signedUserOp.sender,
+        entryPoint: { address: entryPointAddress, version: '0.7' as const },
+    }
+    return {
+        via: 'wallet',
+        userOp: describeSignedUserOp(account, Number(chainId), signedUserOp, signedUserOp.signature),
+    }
+}
+
+/**
+ * Where a withdrawal whose answer was lost stands. The backend submits it, so
+ * only the chain (the user op, read by the recovery) or the card preparation
+ * can say; Manteca books it, so a found transfer ends as `sent`.
+ */
+async function readWithdrawal(send: PendingChargeSend): Promise<SendOrderRead> {
+    if (!send.backendBroadcast) return { state: 'settling' }
+    const preparation = await rainApi.getWithdrawalStatus(send.chargeId)
+    if (preparation.state === 'failed' || preparation.state === 'cancelled') return { state: 'closed' }
+    return preparation.state === 'completed' && preparation.txHash
+        ? { state: 'settling', txHash: preparation.txHash as `0x${string}` }
+        : { state: 'settling' }
+}
 
 export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams: Pick<URLSearchParams, 'get'> }) {
     const t = useTranslations('withdraw')
@@ -192,7 +235,12 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
     // rewinds to home past every entry the flow pushed; a replace kept the
     // earlier entries, so back from home re-entered the flow
     const leaveToHome = useReturnTo('/home')
-    const { spendableBalance: balance, formattedSpendableBalance, spendableBalanceDecimal } = useWallet()
+    const {
+        address: walletAddress,
+        spendableBalance: balance,
+        formattedSpendableBalance,
+        spendableBalanceDecimal,
+    } = useWallet()
     const { signSpend } = useSignSpendBundle()
     const repairRainController = useRainControllerRepair()
     const recoverSignedSpend = useSignedSpendRecovery()
@@ -207,6 +255,33 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
     const { isVerified: isUserIdentityVerified } = useIdentityVerification()
     const mantecaRejection = useMemo(() => deriveProviderRejection(rails, 'MANTECA', nextActions), [rails, nextActions])
     const { hasPendingTransactions } = usePendingTransactions()
+
+    // The double-send guard (usePendingChargeSend): a submission whose answer
+    // was lost is read back, and no new quote is taken until its outcome is
+    // known. One withdrawal per destination account at a time.
+    const [isPaymentStatusUnknown, setIsPaymentStatusUnknown] = useState(false)
+    const showRecoveredReview = useCallback(
+        (view: 'INITIAL' | 'STATUS') => {
+            if (view === 'INITIAL') void stepper.goTo('review')
+        },
+        [stepper]
+    )
+    const showRecoveryError = useCallback(
+        (error: { errorMessage: string }) => setErrorMessage(error.errorMessage, 'paymentNotSent'),
+        [setErrorMessage]
+    )
+    const pendingSend = usePendingChargeSend({
+        intent:
+            destinationConfirmed && destinationAddress.trim()
+                ? `withdraw-manteca:${destinationAddress.trim().toLowerCase()}`
+                : null,
+        walletAddress: walletAddress as Address | undefined,
+        readOrder: readWithdrawal,
+        canResume: step === 'amount' || step === 'review',
+        setIsPaymentStatusUnknown,
+        setCurrentView: showRecoveredReview,
+        setError: showRecoveryError,
+    })
 
     // inline sumsub kyc flow for manteca users who need LATAM verification
     // regionIntent is NOT passed here to avoid creating a backend record on mount.
@@ -391,6 +466,8 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
         if (accountRejected) return
         // prevent duplicate requests from rapid clicks
         if (isLockingPrice) return
+        // a withdrawal to this account may still land: no new quote until it is final
+        if (pendingSend.isPending) return
         if (!validateSubmissionAmount()) {
             void stepper.goTo('amount')
             return
@@ -495,6 +572,7 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
         isAmountWithinLiveBalance,
         isUserMantecaKycApprovedForCountry,
         isLockingPrice,
+        pendingSend.isPending,
         validateSubmissionAmount,
         destinationConfirmed,
         handleMantecaError,
@@ -605,22 +683,27 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
             return
         }
 
+        // A withdrawal to this account may still land, or a tap in this tick
+        // started one: nothing is signed, and no new quote taken, until it is final.
+        if (!pendingSend.claim()) return
+
         posthog.capture(ANALYTICS_EVENTS.WITHDRAW_CONFIRMED, {
             amount_usd: usdAmount,
             method_type: 'manteca',
             country: countryPath,
         })
-        // The previous re-quote never landed: this tap retries the QUOTE only.
-        // The user then sees the fresh terms and taps again to pay.
-        if (requoteFailed) {
-            setErrorMessage('')
-            await runQuoteRecovery(new SpendRecoveryQuoteReviewError(new Error('quote refresh retry')))
-            return
-        }
-        // This tap IS the confirmation of whatever quote is on screen.
-        setQuoteUpdatedNotice(null)
 
         try {
+            // The previous re-quote never landed: this tap retries the QUOTE only.
+            // The user then sees the fresh terms and taps again to pay.
+            if (requoteFailed) {
+                setErrorMessage('')
+                await runQuoteRecovery(new SpendRecoveryQuoteReviewError(new Error('quote refresh retry')))
+                return
+            }
+            // This tap IS the confirmation of whatever quote is on screen.
+            setQuoteUpdatedNotice(null)
+
             setLoadingState('Preparing transaction')
 
             // Step 1: Sign the spend artifact (but don't broadcast yet).
@@ -760,7 +843,15 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
                     if (quoteExpired()) {
                         throw new SpendRecoveryQuoteReviewError(new Error('quote expired before send'))
                     }
-                    return mantecaApi.withdrawWithSignedTx(withdrawBody(candidate))
+                    // Saved before the request leaves: a replacement is only
+                    // signed once the attempt before it provably moved nothing.
+                    pendingSend.begin(withdrawalOrderId(candidate, priceLock.priceLockCode))
+                    pendingSend.onBroadcast(withdrawalBroadcast(candidate))
+                    // A transport failure after the request left: the backend
+                    // may have broadcast the withdrawal with the answer lost.
+                    return mantecaApi.withdrawWithSignedTx(withdrawBody(candidate)).catch((error: unknown) => {
+                        throw isNetworkLayerFailure(error) ? markSpendMayHaveBroadcast(error) : error
+                    })
                 },
                 {
                     // Observes the FINAL failure only — cache repair, no retry.
@@ -780,6 +871,15 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
                         ),
                 }
             )
+
+            // The backend failed without saying why, or this signed withdrawal is
+            // still confirming there: it submits the withdrawal before it creates
+            // the order, so the money may have moved.
+            if (result.error === 'Unexpected error' || result.code === API_ERROR_CODES.FUNDING_PENDING_CONFIRMATION) {
+                await pendingSend.recover()
+                return
+            }
+            pendingSend.clear()
 
             if (result.error) {
                 posthog.capture(ANALYTICS_EVENTS.WITHDRAW_FAILED, {
@@ -806,10 +906,6 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
                 // handle third-party account error with user-friendly message
                 if (result.error === 'TAX_ID_MISMATCH' || result.error === 'CUIT_MISMATCH') {
                     setErrorMessage(tCommon('ownAccountOnly'))
-                } else if (result.error === 'Unexpected error') {
-                    setErrorMessage(t('errors.unexpected'))
-                    setOutcome('failure')
-                    void stepper.goTo('failure')
                 } else if (result.code === 'USER_OP_REVERTED') {
                     setErrorMessage(toFriendlyError(result), 'userOpReverted')
                 } else {
@@ -826,6 +922,18 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
                 country: countryPath,
             })
         } catch (error) {
+            // The submission left this device and its answer was lost: read
+            // the withdrawal back instead of offering a new quote, which would
+            // start a second withdrawal (the QR payment says the same).
+            if (pendingSend.mayHaveSent(error)) {
+                void captureNetworkTriagedFailure(error, {
+                    tags: { ...criticalFlowTags('withdraw-manteca'), withdraw_step: 'submit', may_have_sent: 'true' },
+                    extra: { amountUsd: usdAmount, country: countryPath },
+                })
+                await pendingSend.recover()
+                return
+            }
+            pendingSend.clear()
             /*
              * Controller-recovery control flow, handled BEFORE any failure
              * surface: nothing moved and no provider order exists (a broadcast
@@ -869,6 +977,7 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
             setOutcome('failure')
             void stepper.goTo('failure')
         } finally {
+            pendingSend.release()
             setLoadingState('Idle')
         }
     }
@@ -1011,6 +1120,12 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
         priceLock ? lockedUsdDisplayAmount(priceLock.usdAmount) : (usdAmount ?? '0'),
         'USD'
     )}`
+
+    // A submission whose answer was lost and whose outcome the recovery could
+    // not read: say so, claim nothing, and offer no new quote.
+    if (isPaymentStatusUnknown) {
+        return <PaymentConfirmingView headerTitle={tNav(isFromSendFlow ? 'send' : 'withdraw')} />
+    }
 
     if (step === 'success') {
         return (
@@ -1226,7 +1341,8 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
                             !!balanceErrorMessage ||
                             limitsValidation.isLoading ||
                             limitsValidation.isBlocking ||
-                            isLockingPrice
+                            isLockingPrice ||
+                            pendingSend.isPending
                         }
                         className="w-full"
                     >
@@ -1380,9 +1496,13 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
                             // settling failure is retryable — don't dead-end the button on it.
                             // A failed re-quote is retryable too: the tap fetches
                             // a new quote and cannot submit the dead one.
-                            (!!errorMessage && errorCode !== 'balanceSettling' && !requoteFailed) ||
+                            (!!errorMessage &&
+                                errorCode !== 'balanceSettling' &&
+                                errorCode !== 'paymentNotSent' &&
+                                !requoteFailed) ||
                             isLoading ||
-                            isLockingPrice
+                            isLockingPrice ||
+                            pendingSend.isPending
                         }
                         shadowSize="4"
                     >
