@@ -22,12 +22,13 @@ import { kycClientHeaders } from '@/utils/kyc-client-headers'
 import type { FeatureReverificationConflict } from '@/app/actions/types/kyc-reverification.types'
 import { featureReverificationConflict } from '@/utils/kyc-reverification'
 import type { paths } from '@/types/api.generated'
+import type { RailStatus, RainCardStatus } from '@/constants/api-enums.generated'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface RainCardApplicationStatus {
     hasApplication: boolean
-    railStatus?: string
+    railStatus?: RailStatus
     applicationStatus?: string
     rainUserId?: string
     /** Collateral proxy address. */
@@ -121,7 +122,7 @@ export interface RainCardSummary {
     last4: string
     expiryMonth: number
     expiryYear: number
-    status: string
+    status: RainCardStatus
     network: string
     issuedAt: string
     /** Whether the user has granted the one-time session-key permission

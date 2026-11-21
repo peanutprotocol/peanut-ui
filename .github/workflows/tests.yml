@@ -153,6 +153,33 @@ jobs:
             - name: DS lint-count ratchet
               run: node scripts/ds-lint-counts.mjs --check
 
+    # API contract (state-machines wave 5). check:api regenerates the types and the status enums
+    # from the committed OpenAPI snapshot and fails when the committed files differ. The second step
+    # is a ratchet: hand-copied API enums in src/ may only go down (scripts/check-api-enum-copies.mjs).
+    api-contract:
+        needs: backdoor-scan
+        runs-on: ubuntu-latest
+        steps:
+            # no submodules: both checks read src/types and src/**/*.ts(x) only
+            - uses: actions/checkout@v4
+              with:
+                  persist-credentials: false
+
+            - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'pnpm'
+
+            - run: pnpm install --frozen-lockfile --ignore-scripts --ignore-pnpmfile
+
+            - name: Generated API types and enums match the snapshot
+              run: pnpm check:api
+
+            - name: Hand-copied API enum ratchet
+              run: pnpm check:api-enum-copies
+
     # Screen wordiness ratchet (founders daily 2026-09-23). Counts the English
     # copy each screen can show (https://github.com/peanutprotocol/mono/blob/main/engineering/ui/screen-wordiness.md) and prints the
     # heaviest screens to the job summary on every run. Fails when a screen
@@ -1488,6 +1515,7 @@ jobs:
                 format,
                 screen-tests,
                 ds-lint,
+                api-contract,
                 eslint,
                 typecheck,
                 native-export,
@@ -1515,6 +1543,7 @@ jobs:
                       echo "  format:    ${{ needs.format.result }}"
                       echo "  screen-tests: ${{ needs['screen-tests'].result }}"
                       echo "  ds-lint:   ${{ needs['ds-lint'].result }}"
+                      echo "  api-contract: ${{ needs['api-contract'].result }}"
                       echo "  eslint:    ${{ needs.eslint.result }}"
                       echo "  typecheck: ${{ needs.typecheck.result }}"
                       echo "  native-export: ${{ needs['native-export'].result }}"
