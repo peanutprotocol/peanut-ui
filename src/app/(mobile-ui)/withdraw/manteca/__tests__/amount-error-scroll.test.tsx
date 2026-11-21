@@ -7,11 +7,17 @@ import { parseUnits } from 'viem'
 import MantecaWithdrawFlow from '../page'
 
 const mockPush = jest.fn()
-let mockParams = 'country=argentina&method=bank-transfer&isSavedAccount=true&destination=qa.account'
+let mockParams = 'country=argentina&method=bank-transfer&account=acct-qa'
 let mockBalance: bigint | undefined = parseUnits('10', 6)
 // The first-use activation has its own tests; the amount screen behind it is what these cover.
-// the double-send guard keys its pending marker by the user
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: 'user-1' } } }) }))
+// the saved account the withdraw URL names by id; its alias never rides in the URL
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({
+        user: { user: { userId: 'user-1' }, accounts: [{ id: 'acct-qa', type: 'manteca', identifier: 'qa.account' }] },
+        isAuthed: true,
+        fetchUser: jest.fn(),
+    }),
+}))
 jest.mock('@/features/paperwork-verification/KycFeatureActivationGate', () => ({
     KycFeatureActivationGate: ({ children }: { children: React.ReactNode }) => children,
 }))
@@ -74,7 +80,7 @@ jest.mock('@/features/deposit-accounts/useResidenceIso2s', () => ({ useResidence
 jest.mock('@/features/withdraw/views/PixKeySendView', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/services/manteca', () => ({ mantecaApi: {} }))
 
-const ARS_PARAMS = 'country=argentina&method=bank-transfer&isSavedAccount=true&destination=qa.account'
+const ARS_PARAMS = 'country=argentina&method=bank-transfer&account=acct-qa'
 const MINIMUM_ERROR = /withdraw amount must be at least/i
 const scrollIntoView = jest.fn()
 const originalScrollIntoView = Element.prototype.scrollIntoView
