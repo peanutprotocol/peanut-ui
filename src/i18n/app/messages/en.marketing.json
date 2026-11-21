@@ -72,7 +72,6 @@
         "userAvatarAlt": "Avatar for {username}"
     },
     "errors": {
-        "paymentNotSaved": "We couldn't save this payment on your device, so we didn't send it. Free up space on your device, then try again.",
         "balanceSettling": "Your balance isn't fully available yet. Please try again in a few seconds.",
         "notEnoughBalanceAddFunds": "Not enough balance. Add funds to continue.",
         "balanceShortBy": "Your balance is ${amount} short. Add money to continue.",

@@ -1269,7 +1269,7 @@ describe('useSpendBundle — broadcast reports and the may-have-broadcast tag', 
         })
 
         it('an onBroadcast that throws stops the op before it leaves, untagged', async () => {
-            const notSaved = Object.assign(new Error('marker not saved'), { name: 'PendingChargeSendNotSavedError' })
+            const notHeld = new Error('This payment is no longer held on this device')
             const transport = jest.fn()
             mockHandleSendUserOpEncoded.mockImplementationOnce(async (_calls, _chain, opts) => {
                 opts?.onBroadcastAttempt?.(OP)
@@ -1278,10 +1278,10 @@ describe('useSpendBundle — broadcast reports and the may-have-broadcast tag', 
             })
             const error = await run({
                 onBroadcast: () => {
-                    throw notSaved
+                    throw notHeld
                 },
             })
-            expect(error).toBe(notSaved)
+            expect(error).toBe(notHeld)
             expect(transport).not.toHaveBeenCalled()
             expect(spendMayHaveBroadcast(error)).toBe(false)
         })
@@ -1322,14 +1322,14 @@ describe('useSpendBundle — broadcast reports and the may-have-broadcast tag', 
         })
 
         it('an onBroadcast that throws stops /submit, untagged', async () => {
-            const notSaved = Object.assign(new Error('marker not saved'), { name: 'PendingChargeSendNotSavedError' })
+            const notHeld = new Error('This payment is no longer held on this device')
             const error = await run({
                 chargeId: 'charge-1',
                 onBroadcast: () => {
-                    throw notSaved
+                    throw notHeld
                 },
             })
-            expect(error).toBe(notSaved)
+            expect(error).toBe(notHeld)
             expect(mockSubmitWithdrawal).not.toHaveBeenCalled()
             expect(spendMayHaveBroadcast(error)).toBe(false)
         })

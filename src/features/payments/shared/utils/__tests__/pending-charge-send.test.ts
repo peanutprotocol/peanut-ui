@@ -1,7 +1,7 @@
 /**
  * Chip on ui#4198: when local storage refuses the marker, the guard must still
- * see it, and the caller must learn it was not saved (mono
- * engineering/api/state-machines/ChargeSendFlow.tla, StorageFail).
+ * see it on this page (mono engineering/api/state-machines/ChargeSendFlow.tla,
+ * StorageFail).
  */
 import { readPendingChargeSend, writePendingChargeSend } from '../pending-charge-send'
 
@@ -14,26 +14,27 @@ afterEach(() => {
     window.localStorage.clear()
 })
 
-it('a write storage refuses reports false, and the marker is still read on this page', () => {
+it('a write storage refuses is still read on this page', () => {
     jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
         throw new DOMException('quota exceeded', 'QuotaExceededError')
     })
-    expect(writePendingChargeSend(KEY, SEND)).toBe(false)
+    writePendingChargeSend(KEY, SEND)
+    expect(window.localStorage.getItem(KEY)).toBeNull()
     expect(readPendingChargeSend(KEY)).toEqual(SEND)
 })
 
 it('a refused update is read over the older marker storage still holds', () => {
-    expect(writePendingChargeSend(KEY, SEND)).toBe(true)
+    writePendingChargeSend(KEY, SEND)
     jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
         throw new DOMException('quota exceeded', 'QuotaExceededError')
     })
     const sent = { ...SEND, txHash: `0x${'cd'.repeat(32)}` as const }
-    expect(writePendingChargeSend(KEY, sent)).toBe(false)
+    writePendingChargeSend(KEY, sent)
     expect(readPendingChargeSend(KEY)).toEqual(sent)
 })
 
-it('a saved write reports true and clearing removes both copies', () => {
-    expect(writePendingChargeSend(KEY, SEND)).toBe(true)
+it('a saved write lands in storage and clearing removes both copies', () => {
+    writePendingChargeSend(KEY, SEND)
     expect(window.localStorage.getItem(KEY)).not.toBeNull()
     writePendingChargeSend(KEY, null)
     expect(readPendingChargeSend(KEY)).toBeNull()
