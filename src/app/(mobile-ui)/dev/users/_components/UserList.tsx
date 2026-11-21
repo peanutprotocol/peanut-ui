@@ -86,7 +86,8 @@ export default function UserList({
                                             {user.residence_country && (
                                                 <span className="font-mono">{user.residence_country}</span>
                                             )}
-                                            {user.is_active === false && <span>Inactive</span>}
+                                            {user.standing === 'BANNED' && <span>Banned</span>}
+                                            {user.standing === 'DEACTIVATED' && <span>Deleted</span>}
                                         </span>
                                     </span>
                                 }

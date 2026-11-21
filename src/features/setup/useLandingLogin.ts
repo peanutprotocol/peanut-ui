@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useOptionalSetupFlow } from '@/features/setup/SetupFlowContext'
+import { clearAccountDeletedNotice, readAccountDeletedNotice } from '@/features/setup/account-deleted-notice'
 import { discardSignupDraft, readSignupDraft } from '@/features/setup/signup-draft'
 import { useSignupControl } from '@/features/setup/useSignupControl'
 import { useDeviceType } from '@/hooks/useGetDeviceType'
@@ -65,6 +66,11 @@ export function useLandingLogin() {
         disableDemoMode()
     }, [])
 
+    // A deletion from Settings ends the session (the API answers 401), so the notice comes from session storage.
+    useEffect(() => {
+        if (readAccountDeletedNotice()) setIsAccountDeleted(true)
+    }, [])
+
     const handleError = (error: unknown) => {
         const errorCode = error instanceof Error && 'code' in error ? String(error.code) : undefined
         const passkeyErrorCode = getPasskeyErrorCode(error)
@@ -94,6 +100,7 @@ export function useLandingLogin() {
     const login = async () => {
         trackError('log_in', null)
         setIsAccountDeleted(false)
+        clearAccountDeletedNotice()
         void loadPasskeyDeviceFacts()
         try {
             await handleLoginClick()
@@ -108,6 +115,7 @@ export function useLandingLogin() {
     }
 
     const signUp = () => {
+        clearAccountDeletedNotice()
         if (readSignupDraft()?.userId) {
             discardSignupDraft()
             flow?.resetSetupFlow()

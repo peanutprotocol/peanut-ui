@@ -20,7 +20,9 @@ const user = (id: string, name: string): UserListItem => ({
     email: null,
     created_at: '2026-10-01T00:00:00.000Z',
     updated_at: '2026-10-02T00:00:00.000Z',
-    is_active: true,
+    standing: 'ACTIVE',
+    deactivated_at: null,
+    banned_at: null,
     residence_country: null,
     kyc_status: null,
 })
@@ -43,5 +45,22 @@ describe('UserList selection', () => {
         expect(selected.closest('li')).toHaveAttribute('aria-current', 'true')
         expect(screen.getByRole('button', { name: /^Ana/ })).not.toHaveAccessibleName(/selected/)
         expect(screen.getByRole('button', { name: /^Ana/ }).closest('li')).not.toHaveAttribute('aria-current')
+    })
+})
+
+describe('UserList account standing', () => {
+    it('labels a banned and a deleted account, and leaves an active one unlabelled', async () => {
+        fetchUserList.mockResolvedValue({
+            users: [
+                user('u1', 'Ana'),
+                { ...user('u2', 'Ben'), standing: 'BANNED', banned_at: '2026-11-01T00:00:00.000Z' },
+                { ...user('u3', 'Cy'), standing: 'DEACTIVATED', deactivated_at: '2026-11-01T00:00:00.000Z' },
+            ],
+            next: null,
+        })
+        renderList(null)
+        expect(await screen.findByRole('button', { name: /^Ben/ })).toHaveTextContent('Banned')
+        expect(screen.getByRole('button', { name: /^Cy/ })).toHaveTextContent('Deleted')
+        expect(screen.getByRole('button', { name: /^Ana/ })).not.toHaveTextContent(/Banned|Deleted/)
     })
 })

@@ -27,6 +27,7 @@ import { SetupDocsProvider, type SetupDocuments } from '@/components/Setup/compo
 import { landing, resetLanding, setPlatform } from './landing-state'
 import { named, passkeyError, recoveryLinkText, setupCopyFor, signUpButton, tapLogIn } from './landing-helpers'
 import { controlsOf, msg, renderInShell, setupState, textOf } from './redesign-harness'
+import { markAccountDeleted, readAccountDeletedNotice } from '@/features/setup/account-deleted-notice'
 
 const recoveryLink = () => screen.queryByText(textOf(recoveryLinkText()))
 /** The open dialog, if any (vaul keeps a closed drawer in the DOM with data-state="closed"). */
@@ -263,6 +264,17 @@ describe('01 Landing — errors (K9, K10, S5)', () => {
 
         await tapLogIn()
         await waitFor(() => expect(screen.queryByTestId('account-deleted')).not.toBeInTheDocument())
+    })
+
+    it('P1-25b a deletion from Settings: the callout shows without a log-in; the next Log in clears it (api#2227)', async () => {
+        markAccountDeleted()
+        landing.login.mockResolvedValueOnce(undefined)
+        renderInShell('landing', <LandingScreen />)
+
+        expect(await screen.findByTestId('account-deleted')).toHaveTextContent(msg('setup.passkey.accountDeleted'))
+        await tapLogIn()
+        await waitFor(() => expect(screen.queryByTestId('account-deleted')).not.toBeInTheDocument())
+        expect(readAccountDeletedNotice()).toBe(false)
     })
 
     it('P1-26 web download-only, ACCOUNT_DELETED: the callout comes before the store buttons', async () => {
