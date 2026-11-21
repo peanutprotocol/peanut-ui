@@ -429,3 +429,15 @@ it('after a reload, the resume waits for the wallet before reading the chain', a
     expect(mockReadUserOpOutcome).toHaveBeenCalledWith(OP, '0x2222222222222222222222222222222222222222')
     expect(ctx.setIsSuccess).toHaveBeenLastCalledWith(true)
 })
+
+it('two taps in one tick start one payment: one charge, one send', async () => {
+    mockSendMoney.mockImplementation(() => new Promise(() => {}))
+    const rendered = render()
+    act(() => {
+        void rendered.result.current.executePayment()
+        void rendered.result.current.executePayment()
+    })
+    await advance(0)
+    expect(mockCreateCharge).toHaveBeenCalledTimes(1)
+    expect(mockSendMoney).toHaveBeenCalledTimes(1)
+})

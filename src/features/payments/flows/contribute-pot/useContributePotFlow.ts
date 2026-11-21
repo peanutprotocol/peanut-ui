@@ -19,6 +19,7 @@ import { type Address } from 'viem'
 import { useContributePotFlowContext } from './ContributePotFlowContext'
 import { useChargeManager } from '@/features/payments/shared/hooks/useChargeManager'
 import { usePendingChargeSend } from '@/features/payments/shared/hooks/usePendingChargeSend'
+import { chargeOrderState, type PendingChargeSend } from '@/features/payments/shared/utils/pending-charge-send'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
@@ -84,25 +85,33 @@ export function useContributePotFlow() {
         isSpendableBalanceReady,
     } = useWallet()
 
+    const readCharge = useCallback(
+        async ({ chargeId }: PendingChargeSend) => {
+            const found = await fetchCharge(chargeId)
+            setCharge(found)
+            return { state: chargeOrderState(found.status) }
+        },
+        [fetchCharge, setCharge]
+    )
     const recordFoundPayment = useCallback(
-        (chargeId: string, txHash: string) =>
-            recordPayment({
-                chargeId,
-                chainId: PEANUT_WALLET_CHAIN.id.toString(),
-                txHash,
-                tokenAddress: PEANUT_WALLET_TOKEN as Address,
-                payerAddress: walletAddress as Address,
-            }),
-        [recordPayment, walletAddress]
+        async ({ chargeId }: PendingChargeSend, txHash: string) =>
+            setPayment(
+                await recordPayment({
+                    chargeId,
+                    chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                    txHash,
+                    tokenAddress: PEANUT_WALLET_TOKEN as Address,
+                    payerAddress: walletAddress as Address,
+                })
+            ),
+        [recordPayment, walletAddress, setPayment]
     )
     const pendingSend = usePendingChargeSend({
         intent: request ? `pot:${request.uuid}` : null,
         walletAddress: walletAddress as Address | undefined,
-        fetchCharge,
+        readOrder: readCharge,
         recordPayment: recordFoundPayment,
         canResume: currentView === 'INITIAL',
-        setCharge,
-        setPayment,
         setIsSuccess,
         setIsPaymentStatusUnknown,
         setCurrentView,
@@ -211,8 +220,9 @@ export function useContributePotFlow() {
                 setError({ showError: true, errorMessage: t('errors.pleaseLoginToContinue') })
                 return { success: false }
             }
-            // a contribution to this pot may still land: paying stays off until it is final
-            if (pendingSend.isPending) return { success: false }
+            // a contribution to this pot may still land, or a tap in this tick started one:
+            // paying stays off until it is final
+            if (!pendingSend.claim()) return { success: false }
 
             setIsLoading(true)
             clearError()
@@ -236,6 +246,7 @@ export function useContributePotFlow() {
             ) {
                 const live = await fetchCharge(charge.uuid).catch(() => null)
                 if (live?.status === 'PENDING') {
+                    pendingSend.release()
                     setCharge(live)
                     setIsLoading(false)
                     return { success: true }
@@ -327,6 +338,8 @@ export function useContributePotFlow() {
                 setError({ showError: true, errorMessage })
                 setIsLoading(false)
                 return { success: false }
+            } finally {
+                pendingSend.release()
             }
         },
         [

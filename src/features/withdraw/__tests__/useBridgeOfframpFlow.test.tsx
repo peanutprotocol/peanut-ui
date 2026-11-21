@@ -182,8 +182,17 @@ jest.mock('@/hooks/useEeaUpliftFunnel', () => ({
 
 const mockFetchUser = jest.fn()
 jest.mock('@/context/authContext', () => ({
-    useAuth: () => ({ user: { user: { bridgeCustomerId: 'cust-1' } }, fetchUser: mockFetchUser }),
+    useAuth: () => ({ user: { user: { bridgeCustomerId: 'cust-1', userId: 'u1' } }, fetchUser: mockFetchUser }),
 }))
+
+// where a signed user op stands on chain, as the double-send recovery reads it
+const mockReadUserOpOutcome = jest.fn()
+jest.mock('@/utils/userop-outcome', () => ({
+    readUserOpOutcome: (...args: unknown[]) => mockReadUserOpOutcome(...args),
+}))
+// the OFFRAMP intent the recovery reads
+const mockApiFetch = jest.fn()
+jest.mock('@/utils/api-fetch', () => ({ apiFetch: (...args: unknown[]) => mockApiFetch(...args) }))
 
 const mockCreateOfframp = jest.fn()
 const mockConfirmOfframp = jest.fn()
@@ -225,6 +234,7 @@ import posthog from 'posthog-js'
 import { useBridgeOfframpFlow } from '../useBridgeOfframpFlow'
 import { useWithdrawAmount } from '../useWithdrawAmount'
 import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
+import { markSpendMayHaveBroadcast } from '@/hooks/wallet/spendBroadcast'
 
 // ---------- helpers ----------
 
@@ -245,6 +255,12 @@ const armHappyOfframp = () => {
 
 beforeEach(() => {
     jest.clearAllMocks()
+    window.localStorage.clear()
+    mockReadUserOpOutcome.mockReset().mockResolvedValue('unknown')
+    mockApiFetch.mockReset().mockResolvedValue({
+        ok: true,
+        json: async () => ({ extraData: { intentStatus: 'PENDING' } }),
+    })
     mockGateKind = 'ready'
     mockAdvisory = undefined
     mockBalance = 100n * 10n ** 6n
@@ -307,6 +323,7 @@ describe('useBridgeOfframpFlow — submit path (Chip review round 4)', () => {
         expect(mockSendMoney).toHaveBeenCalledWith('0xdead', '50', {
             kind: 'FIAT_OFFRAMP',
             fundsIntentId: 'offramp-intent-1',
+            onBroadcast: expect.any(Function),
         })
         expect(mockConfirmOfframp).toHaveBeenCalledWith('tr-1', '0xtx')
     })
@@ -705,6 +722,7 @@ describe('useBridgeOfframpFlow — bank amount typed in its currency (TASK-23054
         expect(mockSendMoney).toHaveBeenCalledWith('0xdead', '2233.39', {
             kind: 'FIAT_OFFRAMP',
             fundsIntentId: 'offramp-intent-1',
+            onBroadcast: expect.any(Function),
         })
     })
 
@@ -964,5 +982,118 @@ describe('useBridgeOfframpFlow — USD speed: standard ACH, same-day ACH or wire
         const view = renderFlow({ amount: '50', step: 'review', speed: 'wire' })
 
         expect(view.result.current.usdSpeed).toBeNull()
+    })
+})
+
+/**
+ * Replays the ChargeSendFlow.tla counterexamples on the Bridge withdrawal
+ * (mono engineering/api/state-machines/ChargeSendFlow.tla). The transfer is
+ * created before the deposit is sent; each trace ended, before the shared
+ * guard, with a second transfer and a second deposit for one withdrawal.
+ */
+describe('useBridgeOfframpFlow — a lost answer is read back, never sent again', () => {
+    const OP = { userOpHash: `0x${'ab'.repeat(32)}`, nonce: '7' }
+    const MARKER_KEY = 'peanut:pendingChargeSend:u1:withdraw-bridge:ext-1'
+    const armTransfer = () =>
+        mockCreateOfframp.mockResolvedValue({
+            data: { depositInstructions: { toAddress: '0xdead' }, transferId: 'tr-1', intentId: 'offramp-intent-1' },
+        })
+
+    it('a send that failed after its broadcast is found on chain and confirmed: one transfer, one deposit', async () => {
+        armTransfer()
+        mockSendMoney.mockImplementation(
+            async (_to: string, _amount: string, opts: { onBroadcast?: (b: unknown) => void }) => {
+                opts.onBroadcast?.({ via: 'wallet', userOp: OP })
+                throw markSpendMayHaveBroadcast(new Error('bundler request timed out'))
+            }
+        )
+        mockReadUserOpOutcome.mockResolvedValue({ executed: '0xfound' })
+        mockConfirmOfframp.mockResolvedValue({})
+        const view = renderFlow({ amount: '50', step: 'review' })
+
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+
+        expect(mockApiFetch).toHaveBeenCalledWith('/history/offramp-intent-1?kind=OFFRAMP')
+        expect(mockConfirmOfframp).toHaveBeenCalledWith('tr-1', '0xfound')
+        expect(view.result.current.step).toBe('success')
+        expect(view.result.current.executedAmountUsd).toBe('50')
+        expect(mockSetError).not.toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
+        expect(posthog.capture).not.toHaveBeenCalledWith('withdraw_failed', expect.anything())
+
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+        expect(mockCreateOfframp).toHaveBeenCalledTimes(1)
+        expect(mockSendMoney).toHaveBeenCalledTimes(1)
+    })
+
+    it('a confirm that fails after the deposit is retried by the recovery; a second confirm of it counts', async () => {
+        armTransfer()
+        mockSendMoney.mockResolvedValue({ receipt: null, userOpHash: undefined, txHash: '0xtx' })
+        mockConfirmOfframp
+            .mockResolvedValueOnce({ error: 'Request timed out' })
+            .mockResolvedValue({ error: 'Transfer has already been confirmed', code: 'TRANSFER_ALREADY_CONFIRMED' })
+        const view = renderFlow({ amount: '50', step: 'review' })
+
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+
+        expect(mockConfirmOfframp).toHaveBeenCalledTimes(2)
+        expect(mockConfirmOfframp).toHaveBeenLastCalledWith('tr-1', '0xtx')
+        expect(view.result.current.step).toBe('success')
+        expect(window.localStorage.getItem(MARKER_KEY)).toBeNull()
+
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+        expect(mockSendMoney).toHaveBeenCalledTimes(1)
+    })
+
+    it('while the deposit may still land, the withdrawal stays off and the confirming screen shows', async () => {
+        jest.useFakeTimers()
+        try {
+            armTransfer()
+            mockSendMoney.mockImplementation(
+                async (_to: string, _amount: string, opts: { onBroadcast?: (b: unknown) => void }) => {
+                    opts.onBroadcast?.({ via: 'wallet', userOp: OP })
+                    throw markSpendMayHaveBroadcast(new Error('fetch failed'))
+                }
+            )
+            const view = renderFlow({ amount: '50', step: 'review' })
+            await act(async () => {
+                view.result.current.handleCreateAndInitiateOfframp()
+                await jest.advanceTimersByTimeAsync(65_000)
+            })
+
+            expect(view.result.current.isPaymentStatusUnknown).toBe(true)
+            expect(view.result.current.isSubmitReady).toBe(false)
+            expect(window.localStorage.getItem(MARKER_KEY)).not.toBeNull()
+            await act(async () => {
+                view.result.current.handleCreateAndInitiateOfframp()
+                await jest.advanceTimersByTimeAsync(0)
+            })
+            expect(mockCreateOfframp).toHaveBeenCalledTimes(1)
+            expect(mockSendMoney).toHaveBeenCalledTimes(1)
+            view.unmount()
+        } finally {
+            jest.clearAllTimers()
+            jest.useRealTimers()
+        }
+    })
+
+    it('two taps in one tick create one transfer and send one deposit', async () => {
+        armHappyOfframp()
+        const view = renderFlow({ amount: '50', step: 'review' })
+
+        await act(async () => {
+            view.result.current.handleCreateAndInitiateOfframp()
+            view.result.current.handleCreateAndInitiateOfframp()
+        })
+
+        expect(mockCreateOfframp).toHaveBeenCalledTimes(1)
+        expect(mockSendMoney).toHaveBeenCalledTimes(1)
     })
 })

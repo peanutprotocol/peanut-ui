@@ -1,7 +1,8 @@
 'use client'
 
 import { MutationResponseTimeoutError } from '@/utils/connection-timeout-error'
-import { usePaymentStatusRecovery } from '@/features/payments/shared/hooks/usePaymentStatusRecovery'
+import { usePendingChargeSend } from '@/features/payments/shared/hooks/usePendingChargeSend'
+import { chargeOrderState, type PendingChargeSend } from '@/features/payments/shared/utils/pending-charge-send'
 import { PaymentConfirmingView } from '@/features/payments/shared/components/PaymentConfirmingView'
 import { formatBankAmount, formatFiniteDisplay } from '@/utils/currency'
 
@@ -20,6 +21,7 @@ import { cryptoStepGuards } from '@/features/withdraw/step-guards'
 import { cryptoWithdrawMinUsd, validateCryptoWithdrawAmount } from '@/features/withdraw/amount-validation'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
+import { markSpendMayHaveBroadcast } from '@/hooks/wallet/spendBroadcast'
 import { chargesApi } from '@/services/charges'
 import type { CreateChargeRequest, TCharge } from '@/services/services.types'
 import { NATIVE_TOKEN_ADDRESS } from '@/utils/token.utils'
@@ -34,7 +36,7 @@ import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { WITHDRAW_BACK_FALLBACK_URL } from '@/features/withdraw/routes'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
-import type { Address, Hex, TransactionReceipt } from 'viem'
+import type { Address, Hash, Hex, TransactionReceipt } from 'viem'
 import { parseUnits, formatUnits } from 'viem'
 import { WithdrawAmountView } from '@/features/withdraw/views/WithdrawAmountView'
 import { tokenSelectorContext } from '@/context/tokenSelector.context'
@@ -59,7 +61,6 @@ export default function WithdrawCryptoPage() {
     const t = useTranslations('withdraw')
     const tCommon = useTranslations('common')
     const tErrors = useTranslations('errors')
-    const tPayment = useTranslations('payment')
     const tNav = useTranslations('navigation')
     const toFriendlyError = useFriendlyError()
     const { isFromSendFlow } = useSendFlowOrigin()
@@ -99,6 +100,7 @@ export default function WithdrawCryptoPage() {
     // network keeps its name and loses its address, so the name keeps the
     // screen and the user picks another network there.
     const scannedEntry = recipient.address || recipient.name ? scannedRecipient : null
+    const [isPaymentStatusUnknown, setIsPaymentStatusUnknown] = useState(false)
 
     // the one typed amount (USD), carried in the URL from the shared amount step
     const [amountToWithdraw, setAmountToWithdraw] = useWithdrawAmount()
@@ -137,7 +139,9 @@ export default function WithdrawCryptoPage() {
         guards: cryptoStepGuards({
             hasDestination: !!destination,
             prepared: !!(chargeDetails && withdrawData),
-            executed: !!transactionHash,
+            // a recovery that could not confirm the outcome shows the
+            // confirming screen, which claims nothing
+            executed: !!transactionHash || isPaymentStatusUnknown,
         }),
     })
 
@@ -160,18 +164,6 @@ export default function WithdrawCryptoPage() {
 
     const { isRecording, error: recordError, recordPayment, reset: resetPaymentRecorder } = usePaymentRecorder()
 
-    // Once the on-chain leg has broadcast for a charge, Retry must NEVER
-    // broadcast again — a recordPayment failure after the spend used to
-    // re-run the whole flow and issue a second on-chain transfer
-    // (TASK-19581 double-spend). Stamped the moment a tx identifier
-    // exists; a retry for the same charge replays only the record.
-    const executedSpendRef = useRef<{
-        chargeId: string
-        txHash: Hex
-        minedTxHash: Hex | undefined
-        strategy: 'collateral-only' | 'smart-only' | 'mixed' | undefined
-    } | null>(null)
-
     // The USD amount the request/charge rows were created for, pinned to the
     // charge id. The confirm leg broadcasts THIS, not the still-editable
     // `?amount=` — otherwise an edit between review and confirm moves a
@@ -184,7 +176,6 @@ export default function WithdrawCryptoPage() {
     const cancelledChargeIdsRef = useRef(new Set<string>())
     const setupGenerationRef = useRef(0)
     const setupInFlightRef = useRef(false)
-    const executionInFlightRef = useRef(false)
     const cancelUnpaidDraft = useCallback((id: string) => {
         cancelledChargeIdsRef.current.add(id)
         void chargesApi.cancel(id).catch((error: unknown) => {
@@ -214,7 +205,6 @@ export default function WithdrawCryptoPage() {
 
     // local state for transaction execution
     const [isSendingTx, setIsSendingTx] = useState(false)
-    const [isPaymentStatusUnknown, setIsPaymentStatusUnknown] = useState(false)
     // crypto address book: prompt to save the destination on review, label it when already saved
     const { findSaved, save: saveAddress } = useSavedAddresses()
     const [saveToBook, setSaveToBook] = useState(false)
@@ -228,9 +218,6 @@ export default function WithdrawCryptoPage() {
     // THIS — `?amount=` stays user-editable after execution, and rendering it
     // would let a URL edit forge the receipt (Chip round 7).
     const [executedAmountUsd, setExecutedAmountUsd] = useState<string | null>(null)
-
-    // combined processing state
-    const isProcessing = useMemo(() => isSendingTx || isRecording, [isSendingTx, isRecording])
 
     // helper to manage errors consistently
     const setError = useCallback(
@@ -249,14 +236,57 @@ export default function WithdrawCryptoPage() {
         setError(null)
     }, [setError])
 
-    const recoverPaymentStatus = usePaymentStatusRecovery({
-        fetchCharge: chargesApi.get,
-        setCharge: setChargeDetails,
+    // The double-send guard (usePendingChargeSend): one withdrawal per
+    // destination at a time, and a lost answer is read back, never re-sent.
+    const readCharge = useCallback(
+        async ({ chargeId }: PendingChargeSend) => {
+            const found = await chargesApi.get(chargeId)
+            setChargeDetails(found)
+            return { state: chargeOrderState(found.status) }
+        },
+        [setChargeDetails]
+    )
+    const recordFoundPayment = useCallback(
+        async ({ chargeId }: PendingChargeSend, txHash: Hash) =>
+            setPaymentDetails(
+                await recordPayment({
+                    chargeId,
+                    chainId: PEANUT_WALLET_CHAIN.id.toString(),
+                    txHash,
+                    tokenAddress: PEANUT_WALLET_TOKEN as Address,
+                    payerAddress: address as Address,
+                })
+            ),
+        [recordPayment, address, setPaymentDetails]
+    )
+    // the success step's execution proof is the hash the recovery found
+    const keepFoundHash = useCallback(
+        (_success: boolean, txHash?: Hash) => {
+            if (txHash) setTransactionHash(txHash)
+        },
+        [setTransactionHash]
+    )
+    const showRecoveredView = useCallback(
+        (view: 'INITIAL' | 'STATUS') => void stepper.goTo(view === 'STATUS' ? 'success' : 'review'),
+        [stepper]
+    )
+    const showRecoveryError = useCallback((error: { errorMessage: string }) => setError(error.errorMessage), [setError])
+    const pendingSend = usePendingChargeSend({
+        intent: withdrawData
+            ? `withdraw-crypto:${withdrawData.chain.chainId}:${withdrawData.address.toLowerCase()}`
+            : null,
+        walletAddress: address as Address | undefined,
+        readOrder: readCharge,
+        recordPayment: recordFoundPayment,
+        canResume: stepper.step === 'review',
+        setIsSuccess: keepFoundHash,
         setIsPaymentStatusUnknown,
-        setCurrentView: (view) => void stepper.goTo(view === 'STATUS' ? 'success' : 'review'),
-        setError: (error) => setError(error.errorMessage),
-        failureMessage: tPayment('errors.externalPaymentNotConfirmed'),
+        setCurrentView: showRecoveredView,
+        setError: showRecoveryError,
     })
+
+    // combined processing state: a send that may still land keeps Confirm off
+    const isProcessing = isSendingTx || isRecording || pendingSend.isPending || pendingSend.isRecovering
 
     // reset on mount
     useEffect(() => {
@@ -294,8 +324,7 @@ export default function WithdrawCryptoPage() {
     // tx). Runs on entering the review step and again before signing when the
     // quote on screen has expired.
     const quoteRoute = useCallback(() => {
-        if (!chargeDetails || !withdrawData || !address || executedSpendRef.current?.chargeId === chargeDetails.uuid)
-            return Promise.resolve()
+        if (!chargeDetails || !withdrawData || !address) return Promise.resolve()
         return calculateRoute({
             source: {
                 address: address as Address,
@@ -328,7 +357,7 @@ export default function WithdrawCryptoPage() {
 
     const handleSetupReview = useCallback(
         async (data: Omit<WithdrawData, 'amount'>) => {
-            if (setupInFlightRef.current || executionInFlightRef.current) return
+            if (setupInFlightRef.current || pendingSend.isPending) return
             // fresh review → fresh save prompt (a previous destination's nickname must not carry over)
             setSaveToBook(false)
             setBookNickname('')
@@ -444,6 +473,7 @@ export default function WithdrawCryptoPage() {
             }
         },
         [
+            pendingSend.isPending,
             amountToWithdraw,
             liveResolvedAmount,
             spendableBalance,
@@ -484,7 +514,6 @@ export default function WithdrawCryptoPage() {
     }, [withdrawData, chargeDetails, isXChain, isDiffToken])
 
     const handleConfirmWithdrawal = useCallback(async () => {
-        if (executionInFlightRef.current) return
         if (!chargeDetails || !withdrawData || !amountToWithdraw || !address) {
             console.error('Withdraw data, active charge details, or amount missing for final confirmation')
             setError(t('errors.essentialInfoMissing'))
@@ -492,8 +521,7 @@ export default function WithdrawCryptoPage() {
         }
 
         if (cancelledChargeIdsRef.current.has(chargeDetails.uuid)) return
-        const alreadySpent = executedSpendRef.current?.chargeId === chargeDetails.uuid
-        if (!alreadySpent && (!transactions || transactions.length === 0)) {
+        if (!transactions || transactions.length === 0) {
             // Nothing prepared — the route never resolved, an expiry refresh
             // failed, or a route error (a quote rate-limit 429, a quote
             // failure) left nothing built. Quote again instead of dead-ending
@@ -511,10 +539,8 @@ export default function WithdrawCryptoPage() {
         // that NOW, at the tap — a render-time flag goes stale on a screen left
         // open — with the signing lead time the bridge path uses. Past expiry,
         // refresh and let the user confirm the fresh numbers instead of signing
-        // a stale pay amount — unless funds already moved for this charge (the
-        // record-only retry below must never re-quote).
-        const quoteExpired = quoteExpiresAt ? isQuoteNearExpiry(quoteExpiresAt) : false
-        if (quoteExpired && !alreadySpent) {
+        // a stale pay amount.
+        if (quoteExpiresAt && isQuoteNearExpiry(quoteExpiresAt)) {
             clearErrors()
             await quoteRoute()
             return
@@ -524,38 +550,35 @@ export default function WithdrawCryptoPage() {
         // `?amount=` stays editable between review and confirm, and re-reading
         // it here would move a different amount on-chain than the records say.
         // Re-validate it against the LIVE balance right before the money moves
-        // (Chip review round 4). The record-only replay path is exempt: funds
-        // already moved for that charge and only the bookkeeping replays.
+        // (Chip review round 4).
         const pinnedAmount =
             setupAmountRef.current?.chargeId === chargeDetails.uuid ? setupAmountRef.current.amountUsd : null
-        let broadcastAmount = pinnedAmount ?? liveResolvedAmount
-        if (executedSpendRef.current?.chargeId !== chargeDetails.uuid) {
-            // no route minimum here: setup checked it against this pinned
-            // amount, and the review CTA gates Rhino's quoted minimum
-            // (belowMinimumMessage)
-            const amountCheck = validateCryptoWithdrawAmount(broadcastAmount, spendableBalance, 0)
-            if (!amountCheck.ok) {
-                setError(
-                    amountCheck.reason === 'insufficientBalance'
-                        ? tErrors('notEnoughBalanceAddFunds')
-                        : amountCheck.reason === 'balanceLoading'
-                          ? t('errors.prepareFailed')
-                          : t('errors.invalidAmount')
-                )
-                return
-            }
-            broadcastAmount = amountCheck.normalized
-            // The CTA gate is a render-time value and the Retry button sits on
-            // a different branch, so re-check the fee against what is about to
-            // move. A fee that takes the whole amount strands the deposit at
-            // the SDA with nothing delivered.
-            if (isCrossChainWithdrawal && feeConsumesWithdrawal(feeUsd, parseFloat(broadcastAmount))) {
-                setError(t('errors.feeExceedsAmount'))
-                return
-            }
+        // no route minimum here: setup checked it against this pinned amount,
+        // and the review CTA gates Rhino's quoted minimum (belowMinimumMessage)
+        const amountCheck = validateCryptoWithdrawAmount(pinnedAmount ?? liveResolvedAmount, spendableBalance, 0)
+        if (!amountCheck.ok) {
+            setError(
+                amountCheck.reason === 'insufficientBalance'
+                    ? tErrors('notEnoughBalanceAddFunds')
+                    : amountCheck.reason === 'balanceLoading'
+                      ? t('errors.prepareFailed')
+                      : t('errors.invalidAmount')
+            )
+            return
+        }
+        const broadcastAmount = amountCheck.normalized
+        // The CTA gate is a render-time value and the Retry button sits on
+        // a different branch, so re-check the fee against what is about to
+        // move. A fee that takes the whole amount strands the deposit at
+        // the SDA with nothing delivered.
+        if (isCrossChainWithdrawal && feeConsumesWithdrawal(feeUsd, parseFloat(broadcastAmount))) {
+            setError(t('errors.feeExceedsAmount'))
+            return
         }
 
-        executionInFlightRef.current = true
+        // A withdrawal to this destination may still land, or a tap in this
+        // tick started one: Confirm stays off until it is final.
+        if (!pendingSend.claim()) return
         if (draftRef.current?.id === chargeDetails.uuid) draftRef.current.signingStarted = true
         clearErrors()
         setIsSendingTx(true)
@@ -574,6 +597,8 @@ export default function WithdrawCryptoPage() {
             method_type: 'crypto',
         })
 
+        let finalTxHash: Hex | undefined
+        pendingSend.begin(chargeDetails.uuid)
         try {
             // For same-chain + same-token withdraws, useCrossChainTransfer
             // produces a single `usdc.transfer(recipient, amount)` call. Route
@@ -582,27 +607,13 @@ export default function WithdrawCryptoPage() {
             // to the external recipient — no smart-account hop). Cross-chain
             // goes through Rhino SDA on the kernel, so it stays on the
             // sendTransactions mixed path.
-            let finalTxHash: Hex | undefined
             let receipt: TransactionReceipt | null = null
-            let minedTxHash: Hex | undefined
             // 'collateral-only' | 'smart-only' | 'mixed' — how the spend was
             // funded; drives how strictly the recordPayment result is treated
             // (see the recordPayment note below).
             let strategy: 'collateral-only' | 'smart-only' | 'mixed' | undefined
 
-            const executedSpend =
-                executedSpendRef.current?.chargeId === chargeDetails.uuid ? executedSpendRef.current : null
-            if (executedSpend) {
-                // A previous attempt already moved funds for this charge and
-                // failed at bookkeeping — replay ONLY the record.
-                finalTxHash = executedSpend.txHash
-                minedTxHash = executedSpend.minedTxHash
-                strategy = executedSpend.strategy
-                captureMessage('withdraw: retry with executed spend — record-only, skipping broadcast', {
-                    level: 'info',
-                    extra: { chargeId: chargeDetails.uuid, txHash: finalTxHash, strategy },
-                })
-            } else if (!isCrossChainWithdrawal) {
+            if (!isCrossChainWithdrawal) {
                 const {
                     userOpHash,
                     txHash,
@@ -617,6 +628,7 @@ export default function WithdrawCryptoPage() {
                     // rots PENDING and the successful withdrawal never shows in
                     // Activity (same contract as direct-send / request-pay).
                     chargeId: chargeDetails.uuid,
+                    onBroadcast: pendingSend.onBroadcast,
                 })
                 receipt = r
                 strategy = s
@@ -632,10 +644,11 @@ export default function WithdrawCryptoPage() {
                 // transfer reverts with `ERC20: transfer amount exceeds balance`.
                 const sourceUsdcAmount = payAmount ?? usdAmount.toString()
                 const requiredUsdcAmount = parseUnits(sourceUsdcAmount, PEANUT_WALLET_TOKEN_DECIMALS)
-                const txResult = await sendTransactions(transactions!, {
+                const txResult = await sendTransactions(transactions, {
                     chainId: PEANUT_WALLET_CHAIN.id.toString(),
                     requiredUsdcAmount,
                     kind: 'CRYPTO_WITHDRAW',
+                    onBroadcast: pendingSend.onBroadcast,
                 })
                 receipt = txResult.receipt
                 strategy = txResult.strategy
@@ -646,12 +659,11 @@ export default function WithdrawCryptoPage() {
                     .hash as Hex
             }
 
-            if (!finalTxHash) throw new Error('Withdrawal returned no transaction identifier')
+            // the send resolved, so it left this device: the money may have moved
+            if (!finalTxHash)
+                throw markSpendMayHaveBroadcast(new Error('Withdrawal returned no transaction identifier'))
 
-            // Funds are (or are about to be) moving on-chain — from here on,
-            // any failure must retry as record-only, never as a re-broadcast.
-            minedTxHash ??= receipt?.transactionHash as Hex | undefined
-            executedSpendRef.current = { chargeId: chargeDetails.uuid, txHash: finalTxHash, minedTxHash, strategy }
+            const minedTxHash = receipt?.transactionHash as Hex | undefined
 
             // Record the payment against the charge on EVERY path — completing
             // the user-facing charge is what makes the withdrawal appear in
@@ -682,6 +694,11 @@ export default function WithdrawCryptoPage() {
             // via the trusted path.
             const mixedWithoutMinedHash = strategy === 'mixed' && !isCrossChainWithdrawal && !minedTxHash
 
+            // Funds moved (a userOp hash is not a transfer the recovery can
+            // record): from here on, any failure goes to recovery, never to a
+            // second broadcast.
+            if (!mixedWithoutMinedHash) pendingSend.markSent(finalTxHash)
+
             let payment: Awaited<ReturnType<typeof recordPayment>> | null = null
             if (mixedWithoutMinedHash) {
                 captureMessage('withdraw: skipping recordPayment — mixed spend without mined receipt', {
@@ -698,20 +715,13 @@ export default function WithdrawCryptoPage() {
                         payerAddress: address as Address,
                     })
                 } catch (err) {
-                    if (err instanceof MutationResponseTimeoutError) {
-                        setTransactionHash(finalTxHash)
-                        setExecutedAmountUsd(broadcastAmount)
-                        setPaymentDetails(null)
-                        await recoverPaymentStatus(chargeDetails.uuid)
-                        return
-                    }
                     // Funds already moved on-chain. On collateral-routed same-chain
                     // paths a recordPayment hiccup must not read as a failed
                     // withdrawal (collateral-only is already settled server-side;
                     // mixed then just stays PENDING, exactly like pre-fix) —
-                    // degrade to the success view without payment details. Other
-                    // paths keep throwing, as they always have.
-                    if (!collateralRoutedSameChain) throw err
+                    // degrade to the success view without payment details. A
+                    // lost answer, and every other path, goes to recovery.
+                    if (!collateralRoutedSameChain || err instanceof MutationResponseTimeoutError) throw err
                     console.error('recordPayment failed after collateral-routed withdrawal (funds moved):', err)
                     captureMessage('withdraw: recordPayment failed after collateral-routed spend', {
                         level: 'warning',
@@ -720,6 +730,7 @@ export default function WithdrawCryptoPage() {
                 }
             }
 
+            pendingSend.clear()
             // Keep execution proof for this charge even after recording succeeds.
             setTransactionHash(finalTxHash)
             setExecutedAmountUsd(broadcastAmount)
@@ -736,30 +747,54 @@ export default function WithdrawCryptoPage() {
             // was prepared, signed or broadcast: nothing moved and no order
             // exists. Control flow, not a failed withdrawal — the review screen
             // stays as it was, with no error copy and no Sentry report.
-            if (err instanceof SpendRecoveryAbortedError) return
+            if (err instanceof SpendRecoveryAbortedError) {
+                pendingSend.clear()
+                return
+            }
+            // After the send left the wallet, any failure (a lost answer, a 5xx
+            // on recording, a dropped connection) may hide money that moved:
+            // recovery answers it, and Confirm stays off meanwhile.
+            const mayHaveSent = pendingSend.mayHaveSent(err)
+            if (!mayHaveSent) pendingSend.clear()
 
             console.error('Withdrawal execution failed:', toError(err))
             const errMsg = toFriendlyError(err)
             // Reported here rather than left to the console-capture integration,
             // which the noise filters then drop: a crypto withdrawal dying was
             // leaving no queryable Sentry record at all, and `error_message` is
-            // the LOCALIZED copy so it can't be grouped on (TASK-21956).
+            // the LOCALIZED copy so it can't be grouped on (TASK-21956). A
+            // withdrawal that may have moved money is not counted as failed.
             void captureNetworkTriagedFailure(err, {
-                tags: { ...criticalFlowTags('withdraw-crypto'), withdraw_step: 'execute' },
-                extra: { chargeId: chargeDetails?.uuid, usdAmount },
-                analytics: {
-                    event: ANALYTICS_EVENTS.WITHDRAW_FAILED,
-                    props: {
-                        method_type: 'crypto',
-                        error_message: errMsg,
-                        error_name: err instanceof Error ? err.name : 'unknown',
-                        error_raw: err instanceof Error ? err.message : String(err),
-                    },
+                tags: {
+                    ...criticalFlowTags('withdraw-crypto'),
+                    withdraw_step: 'execute',
+                    may_have_sent: String(mayHaveSent),
                 },
+                extra: { chargeId: chargeDetails?.uuid, usdAmount },
+                ...(mayHaveSent
+                    ? {}
+                    : {
+                          analytics: {
+                              event: ANALYTICS_EVENTS.WITHDRAW_FAILED,
+                              props: {
+                                  method_type: 'crypto',
+                                  error_message: errMsg,
+                                  error_name: err instanceof Error ? err.name : 'unknown',
+                                  error_raw: err instanceof Error ? err.message : String(err),
+                              },
+                          },
+                      }),
             })
-            setError(errMsg)
+            if (!mayHaveSent) {
+                setError(errMsg)
+                return
+            }
+            if (finalTxHash) setTransactionHash(finalTxHash)
+            setExecutedAmountUsd(broadcastAmount)
+            setPaymentDetails(null)
+            await pendingSend.recover()
         } finally {
-            executionInFlightRef.current = false
+            pendingSend.release()
             setIsSendingTx(false)
         }
     }, [
@@ -779,14 +814,12 @@ export default function WithdrawCryptoPage() {
         sendMoney,
         isCrossChainWithdrawal,
         recordPayment,
-        recoverPaymentStatus,
+        pendingSend,
         stepper,
         setTransactionHash,
         setPaymentDetails,
         clearErrors,
-        routeError,
         isCalculating,
-
         setError,
         triggerHaptic,
         t,
@@ -900,15 +933,6 @@ export default function WithdrawCryptoPage() {
         }
         return null
     }, [isCrossChainWithdrawal, payAmount, minDepositLimitUsd, networkFee, quoteAmount, withdrawData])
-
-    // Funds already moved for this charge, so the only thing Retry can still do
-    // is replay the bookkeeping — handleConfirmWithdrawal exempts this state
-    // from re-broadcasting and from the amount and fee checks. The CTA gates
-    // have to step aside too: a full-balance withdrawal leaves the wallet
-    // empty, which would otherwise read as insufficient balance and disable
-    // the only recovery the user has. Reading the ref in render is safe here —
-    // the record failure sets error state, and that is what drives this render.
-    const alreadySpent = !!chargeDetails && executedSpendRef.current?.chargeId === chargeDetails.uuid
 
     // the route the typed amount goes to, so its minimum is checked as the
     // amount changes (TASK-23878): the picked destination on the amount step,
@@ -1028,7 +1052,6 @@ export default function WithdrawCryptoPage() {
                     showHighFeeWarning={showHighFeeWarning}
                     insufficientBalance={insufficientBalance}
                     belowMinimumMessage={belowMinimumMessage}
-                    alreadySpent={alreadySpent}
                     isFromSendFlow={isFromSendFlow}
                     toNickname={existingSaved?.nickname}
                     confirmDisabled={!existingSaved && saveToBook && !trimmedBookNickname}
