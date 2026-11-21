@@ -1916,6 +1916,9 @@
 									"sendLinkPubKey": {
 										"type": "string"
 									},
+									"sendLinkSignature": {
+										"type": "string"
+									},
 									"source": {
 										"properties": {
 											"currency": {

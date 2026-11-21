@@ -1118,6 +1118,7 @@ export interface paths {
                         onBehalfOf: string;
                         provider?: string;
                         sendLinkPubKey?: string;
+                        sendLinkSignature?: string;
                         source: {
                             currency: "usdc" | "eurc" | "usdt" | "dai";
                             fromAddress?: string;
