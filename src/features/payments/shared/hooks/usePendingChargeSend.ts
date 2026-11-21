@@ -127,9 +127,15 @@ export function usePendingChargeSend({
         [key]
     )
 
+    // A marker left by a reload or an earlier visit resumes once; an attempt
+    // started on this screen never does, so a recovery that ran out of time
+    // waits for the next visit instead of starting over here.
+    const hasResumed = useRef(false)
+
     const begin = useCallback(
         (chargeId: string) => {
             if (!key) return
+            hasResumed.current = true
             sending.add(key)
             const saved = writePendingChargeSend(key, {
                 chargeId,
@@ -277,8 +283,6 @@ export function usePendingChargeSend({
         t,
     ])
 
-    // A marker left by a reload or an earlier visit: resume its recovery once.
-    const hasResumed = useRef(false)
     useEffect(() => {
         if (!canResume || !key || hasResumed.current || sending.has(key) || recovering.has(key)) return
         const send = readPendingChargeSend(key)
