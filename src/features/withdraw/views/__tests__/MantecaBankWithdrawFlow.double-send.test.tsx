@@ -125,6 +125,7 @@ jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({ SumsubKycWrapper: Nothin
 jest.mock('@/features/limits/components/LimitsWarningCard', () => ({ __esModule: true, default: Nothing }))
 jest.mock('@/components/Payment/PaymentInfoRow', () => ({ PaymentInfoRow: Nothing }))
 jest.mock('@/components/0_Bruddle/Field', () => ({ Field: Passthrough }))
+jest.mock('@/components/0_Bruddle/Callout', () => ({ Callout: Passthrough }))
 jest.mock('@/features/paperwork-verification/analytics', () => ({ KycControlFlowProvider: Passthrough }))
 jest.mock('@/components/Global/RainCooldown/CooldownErrorText', () => ({
     __esModule: true,
@@ -264,7 +265,7 @@ it('a backend that fails without a reason after it may have submitted is read ba
     expect(mockStepper.step).not.toBe('failure')
 })
 
-it('while the outcome is unknown, a revisit takes no new quote and signs nothing', async () => {
+it('while the outcome is unknown, a revisit resumes the read and offers no new quote', async () => {
     mockWithdrawWithSignedTx.mockRejectedValue(new TypeError('Failed to fetch'))
     const view = await openReview()
     fireEvent.click(withdrawButton())
@@ -274,14 +275,20 @@ it('while the outcome is unknown, a revisit takes no new quote and signs nothing
     expect(window.localStorage.getItem(MARKER_KEY)).not.toBeNull()
     view.unmount()
 
-    // a new visit opens on the amount step: the recovery resumes, Continue stays off
+    // a new visit opens on the amount step: the recovery resumes and says the outcome is unknown
     mockStepper.step = 'amount'
-    render(<MantecaBankWithdrawFlow searchParams={searchParams} />)
+    const revisit = render(<MantecaBankWithdrawFlow searchParams={searchParams} />)
     await flush()
-    fireEvent.click(screen.getByText('common.continue'))
-    await flush()
+    expect(mockReadUserOpOutcome.mock.calls.length).toBeGreaterThan(1)
+    expect(screen.getByTestId('payment-confirming')).toBeInTheDocument()
+    expect(screen.queryByText('common.continue')).toBeNull()
     expect(mockInitiateWithdraw).toHaveBeenCalledTimes(1)
     expect(mockSignSpend).toHaveBeenCalledTimes(1)
+    // leaving ends the resumed recovery at its next step
+    revisit.unmount()
+    await act(async () => {
+        await jest.advanceTimersByTimeAsync(5_000)
+    })
 })
 
 it('the review comes back once the chain proves nothing moved', async () => {

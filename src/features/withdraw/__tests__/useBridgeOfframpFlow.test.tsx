@@ -10,7 +10,7 @@
  * `gate.kind === 'loading'` no-op forever (dead button until remount).
  */
 import React from 'react'
-import { renderHook, act } from '@testing-library/react'
+import { renderHook, act, waitFor } from '@testing-library/react'
 import { NuqsTestingAdapter } from 'nuqs/adapters/testing'
 
 // ---------- module-level mocks ----------
@@ -1017,7 +1017,7 @@ describe('useBridgeOfframpFlow — a lost answer is read back, never sent again'
 
         expect(mockApiFetch).toHaveBeenCalledWith('/history/offramp-intent-1?kind=OFFRAMP')
         expect(mockConfirmOfframp).toHaveBeenCalledWith('tr-1', '0xfound')
-        expect(view.result.current.step).toBe('success')
+        await waitFor(() => expect(view.result.current.step).toBe('success'))
         expect(view.result.current.executedAmountUsd).toBe('50')
         expect(mockSetError).not.toHaveBeenCalledWith(expect.objectContaining({ showError: true }))
         expect(posthog.capture).not.toHaveBeenCalledWith('withdraw_failed', expect.anything())
@@ -1043,7 +1043,7 @@ describe('useBridgeOfframpFlow — a lost answer is read back, never sent again'
 
         expect(mockConfirmOfframp).toHaveBeenCalledTimes(2)
         expect(mockConfirmOfframp).toHaveBeenLastCalledWith('tr-1', '0xtx')
-        expect(view.result.current.step).toBe('success')
+        await waitFor(() => expect(view.result.current.step).toBe('success'))
         expect(window.localStorage.getItem(MARKER_KEY)).toBeNull()
 
         await act(async () => {

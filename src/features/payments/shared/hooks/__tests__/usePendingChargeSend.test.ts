@@ -26,6 +26,7 @@ const readOrder = jest.fn<Promise<SendOrderRead>, unknown[]>()
 const recordPayment = jest.fn<Promise<unknown>, unknown[]>()
 const setters = {
     setIsSuccess: jest.fn(),
+    setTxHash: jest.fn(),
     setIsPaymentStatusUnknown: jest.fn(),
     setCurrentView: jest.fn(),
     setError: jest.fn(),
@@ -90,7 +91,8 @@ it('a lost answer after the broadcast is read back from the chain and booked: no
     expect(outcome).toBe('completed')
     expect(mockReadUserOpOutcome).toHaveBeenCalledWith(OP, WALLET)
     expect(recordPayment).toHaveBeenCalledWith(expect.objectContaining({ chargeId: 'order-1' }), '0xfound')
-    expect(setters.setIsSuccess).toHaveBeenLastCalledWith(true, '0xfound')
+    expect(setters.setIsSuccess).toHaveBeenLastCalledWith(true)
+    expect(setters.setTxHash).toHaveBeenLastCalledWith('0xfound')
     expect(window.localStorage.getItem(MARKER_KEY)).toBeNull()
     unmount()
 })
@@ -152,6 +154,6 @@ it('a send still nowhere when the window ends keeps the payment off, and a revis
         await jest.advanceTimersByTimeAsync(0)
     })
     expect(recordPayment).toHaveBeenCalledWith(expect.objectContaining({ chargeId: 'order-1' }), '0xfound')
-    expect(setters.setIsSuccess).toHaveBeenLastCalledWith(true, '0xfound')
+    expect(setters.setIsSuccess).toHaveBeenLastCalledWith(true)
     second.unmount()
 })

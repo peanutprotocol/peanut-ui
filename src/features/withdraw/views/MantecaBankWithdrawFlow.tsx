@@ -55,7 +55,7 @@ import { formatCurrency } from '@/utils/general.utils'
 import { validateCbuCvuAlias } from '@/utils/withdraw.utils'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import AmountInput from '@/components/Global/AmountInput'
-import { parseUnits } from 'viem'
+import { parseUnits, type Address } from 'viem'
 import { PaymentInfoRow } from '@/components/Payment/PaymentInfoRow'
 import { useModalsContext } from '@/context/ModalsContext'
 import BaseSelect from '@/components/0_Bruddle/BaseSelect'
@@ -80,7 +80,7 @@ import {
     isMantecaSupportedCountryCode,
     type MantecaBankCode,
 } from '@/constants/manteca.consts'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_DECIMALS, USER_OP_ENTRY_POINT } from '@/constants/zerodev.consts'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import { MIN_MANTECA_WITHDRAW_AMOUNT } from '@/constants/payment.consts'
@@ -123,9 +123,10 @@ function withdrawalBroadcast(artifact: SignedSpendArtifact): SpendBroadcast {
     // the backend submits a card-balance withdrawal itself
     if (artifact.strategy === 'collateral-only') return { via: 'backend' }
     const { signedUserOp, chainId, entryPointAddress } = artifact.signedUserOp
+    // the wallet signs EntryPoint 0.7 ops (USER_OP_ENTRY_POINT)
     const account = {
         address: signedUserOp.sender,
-        entryPoint: { address: entryPointAddress, version: USER_OP_ENTRY_POINT.version },
+        entryPoint: { address: entryPointAddress, version: '0.7' as const },
     }
     return {
         via: 'wallet',
@@ -274,7 +275,7 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
             destinationConfirmed && destinationAddress.trim()
                 ? `withdraw-manteca:${destinationAddress.trim().toLowerCase()}`
                 : null,
-        walletAddress,
+        walletAddress: walletAddress as Address | undefined,
         readOrder: readWithdrawal,
         canResume: step === 'amount' || step === 'review',
         setIsPaymentStatusUnknown,
@@ -849,7 +850,7 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
                     // A transport failure after the request left: the backend
                     // may have broadcast the withdrawal with the answer lost.
                     return mantecaApi.withdrawWithSignedTx(withdrawBody(candidate)).catch((error: unknown) => {
-                        throw markSpendMayHaveBroadcast(error)
+                        throw isNetworkLayerFailure(error) ? markSpendMayHaveBroadcast(error) : error
                     })
                 },
                 {

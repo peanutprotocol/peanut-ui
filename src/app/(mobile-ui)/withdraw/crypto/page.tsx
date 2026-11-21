@@ -173,11 +173,12 @@ export default function WithdrawCryptoPage() {
     // Only drafts created by this mounted flow belong to its cleanup. Once
     // signing starts, a transport failure is ambiguous: never cancel that charge.
     const draftRef = useRef<{ id: string; signingStarted: boolean } | null>(null)
-    const cancelledChargeIdsRef = useRef(new Set<string>())
+    // Charges this page cancelled, or paid: nothing is quoted or sent for them again.
+    const closedChargeIdsRef = useRef(new Set<string>())
     const setupGenerationRef = useRef(0)
     const setupInFlightRef = useRef(false)
     const cancelUnpaidDraft = useCallback((id: string) => {
-        cancelledChargeIdsRef.current.add(id)
+        closedChargeIdsRef.current.add(id)
         void chargesApi.cancel(id).catch((error: unknown) => {
             void captureNetworkTriagedFailure(error, {
                 tags: { ...criticalFlowTags('withdraw-crypto'), withdraw_step: 'cancel-draft' },
@@ -259,13 +260,6 @@ export default function WithdrawCryptoPage() {
             ),
         [recordPayment, address, setPaymentDetails]
     )
-    // the success step's execution proof is the hash the recovery found
-    const keepFoundHash = useCallback(
-        (_success: boolean, txHash?: Hash) => {
-            if (txHash) setTransactionHash(txHash)
-        },
-        [setTransactionHash]
-    )
     const showRecoveredView = useCallback(
         (view: 'INITIAL' | 'STATUS') => void stepper.goTo(view === 'STATUS' ? 'success' : 'review'),
         [stepper]
@@ -279,7 +273,8 @@ export default function WithdrawCryptoPage() {
         readOrder: readCharge,
         recordPayment: recordFoundPayment,
         canResume: stepper.step === 'review',
-        setIsSuccess: keepFoundHash,
+        // the success step's execution proof is the hash the recovery found
+        setTxHash: setTransactionHash,
         setIsPaymentStatusUnknown,
         setCurrentView: showRecoveredView,
         setError: showRecoveryError,
@@ -324,7 +319,8 @@ export default function WithdrawCryptoPage() {
     // tx). Runs on entering the review step and again before signing when the
     // quote on screen has expired.
     const quoteRoute = useCallback(() => {
-        if (!chargeDetails || !withdrawData || !address) return Promise.resolve()
+        if (!chargeDetails || !withdrawData || !address || closedChargeIdsRef.current.has(chargeDetails.uuid))
+            return Promise.resolve()
         return calculateRoute({
             source: {
                 address: address as Address,
@@ -520,7 +516,7 @@ export default function WithdrawCryptoPage() {
             return
         }
 
-        if (cancelledChargeIdsRef.current.has(chargeDetails.uuid)) return
+        if (closedChargeIdsRef.current.has(chargeDetails.uuid)) return
         if (!transactions || transactions.length === 0) {
             // Nothing prepared — the route never resolved, an expiry refresh
             // failed, or a route error (a quote rate-limit 429, a quote
@@ -731,6 +727,7 @@ export default function WithdrawCryptoPage() {
             }
 
             pendingSend.clear()
+            closedChargeIdsRef.current.add(chargeDetails.uuid)
             // Keep execution proof for this charge even after recording succeeds.
             setTransactionHash(finalTxHash)
             setExecutedAmountUsd(broadcastAmount)
@@ -792,7 +789,8 @@ export default function WithdrawCryptoPage() {
             if (finalTxHash) setTransactionHash(finalTxHash)
             setExecutedAmountUsd(broadcastAmount)
             setPaymentDetails(null)
-            await pendingSend.recover()
+            // money that moved, or may still land, closes this charge
+            if ((await pendingSend.recover()) !== 'not-sent') closedChargeIdsRef.current.add(chargeDetails.uuid)
         } finally {
             pendingSend.release()
             setIsSendingTx(false)

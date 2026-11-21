@@ -51,8 +51,9 @@ interface PendingChargeSendOptions {
     recordPayment?: (send: PendingChargeSend, txHash: Hash) => Promise<unknown>
     /** The flow shows a screen that can start a payment: a pending send resumes its recovery there. */
     canResume: boolean
-    /** `txHash`: the transfer the money moved in, when the recovery knows it. */
-    setIsSuccess?: (success: boolean, txHash?: Hash) => void
+    setIsSuccess?: (success: boolean) => void
+    /** The transfer the money moved in, once the recovery knows it. */
+    setTxHash?: (txHash: Hash) => void
     setIsPaymentStatusUnknown?: (unknown: boolean) => void
     setCurrentView: (view: 'INITIAL' | 'STATUS') => void
     setError: (error: { showError: boolean; errorMessage: string }) => void
@@ -81,6 +82,7 @@ export function usePendingChargeSend({
     recordPayment,
     canResume,
     setIsSuccess,
+    setTxHash,
     setIsPaymentStatusUnknown,
     setCurrentView,
     setError,
@@ -124,9 +126,15 @@ export function usePendingChargeSend({
         [key]
     )
 
+    // A marker left by a reload or an earlier visit resumes once; an attempt
+    // started on this screen never does, so a recovery that ran out of time
+    // waits for the next visit instead of starting over here.
+    const hasResumed = useRef(false)
+
     const begin = useCallback(
         (chargeId: string, intentId?: string) => {
             if (!key) return
+            hasResumed.current = true
             sending.add(key)
             writePendingChargeSend(key, {
                 chargeId,
@@ -172,8 +180,9 @@ export function usePendingChargeSend({
                 setError({ showError: true, errorMessage: t('errors.paymentNotSent') })
                 setCurrentView('INITIAL')
             } else {
+                if (txHash) setTxHash?.(txHash)
                 setIsPaymentStatusUnknown?.(outcome !== 'completed')
-                setIsSuccess?.(outcome === 'completed', txHash)
+                setIsSuccess?.(outcome === 'completed')
                 setCurrentView('STATUS')
             }
             return outcome
@@ -255,14 +264,13 @@ export function usePendingChargeSend({
         readOrder,
         recordPayment,
         setIsSuccess,
+        setTxHash,
         setIsPaymentStatusUnknown,
         setCurrentView,
         setError,
         t,
     ])
 
-    // A marker left by a reload or an earlier visit: resume its recovery once.
-    const hasResumed = useRef(false)
     useEffect(() => {
         if (!canResume || !key || hasResumed.current || sending.has(key) || recovering.has(key)) return
         const send = readPendingChargeSend(key)
