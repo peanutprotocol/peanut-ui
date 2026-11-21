@@ -8,6 +8,7 @@ import { spendMayHaveBroadcast, type SpendBroadcast } from '@/hooks/wallet/spend
 import { type PaymentCreationResponse, type TRequestChargeResponse } from '@/services/services.types'
 import { readUserOpOutcome } from '@/utils/userop-outcome'
 import {
+    isAbandonedClaim,
     isPastWaitWindow,
     leftDevice,
     parsePendingChargeSend,
@@ -15,6 +16,7 @@ import {
     readPendingChargeSend,
     readPendingChargeSendRaw,
     subscribePendingChargeSend,
+    thisTab,
     writePendingChargeSend,
     PendingChargeSendNotSavedError,
     type PendingChargeSend,
@@ -38,6 +40,8 @@ const CLOSED_CHARGE = new Set(['FAILED', 'CANCELLED'])
 // running here is not resumed, and one recovery runs per intent.
 const sending = new Set<string>()
 const recovering = new Set<string>()
+// claimed by a screen of this page and not begun yet
+const claiming = new Set<string>()
 
 interface PendingChargeSendOptions {
     /** What one payment is for, such as `direct-send:<recipient address>`. Null until known. */
@@ -107,17 +111,36 @@ export function usePendingChargeSend({
         }
     }, [])
 
-    // Rendered state lags a tap: two taps in one tick both see Pay on.
+    // Rendered state lags a tap: two taps in one tick both see Pay on. The
+    // claim also writes a marker before the first await, so another tab's Pay
+    // goes off while this tab creates the charge; `begin` fills it in.
     const claimed = useRef(false)
     const claim = useCallback(() => {
         if (claimed.current) return false
-        if (key && (sending.has(key) || recovering.has(key) || readPendingChargeSend(key))) return false
+        if (key && (claiming.has(key) || sending.has(key) || recovering.has(key) || readPendingChargeSend(key))) {
+            return false
+        }
         claimed.current = true
+        // a refused write is caught by `begin`, which stops the send
+        if (key) {
+            claiming.add(key)
+            writePendingChargeSend(key, {
+                chargeId: '',
+                owner: thisTab(),
+                startedAt: Date.now(),
+                userOps: [],
+                backendBroadcast: false,
+            })
+        }
         return true
     }, [key])
     const release = useCallback(() => {
+        if (claimed.current && key) claiming.delete(key)
         claimed.current = false
-    }, [])
+        // an attempt that ended before `begin` leaves its claim behind
+        const send = key ? readPendingChargeSend(key) : null
+        if (key && send && !send.chargeId && send.owner === thisTab()) writePendingChargeSend(key, null)
+    }, [key])
 
     const update = useCallback(
         (change: (send: PendingChargeSend) => PendingChargeSend) => {
@@ -136,9 +159,11 @@ export function usePendingChargeSend({
         (chargeId: string) => {
             if (!key) return
             hasResumed.current = true
+            claiming.delete(key)
             sending.add(key)
             const saved = writePendingChargeSend(key, {
                 chargeId,
+                owner: thisTab(),
                 startedAt: Date.now(),
                 userOps: [],
                 backendBroadcast: false,
@@ -173,6 +198,7 @@ export function usePendingChargeSend({
     const clear = useCallback(() => {
         claimed.current = false
         if (!key) return
+        claiming.delete(key)
         sending.delete(key)
         writePendingChargeSend(key, null)
     }, [key])
@@ -226,15 +252,21 @@ export function usePendingChargeSend({
                     if (hasLeftScreen.current) return 'cancelled'
                     const executed = outcomes.find((outcome) => typeof outcome === 'object')
                     const pastWaitWindow = isPastWaitWindow(send)
+                    // A nonce another saved op of this send was mined with (it reverted):
+                    // an op of the same nonce without a receipt can never run.
+                    const ops = send.userOps
+                    const minedNonces = new Set(
+                        ops.filter((_op, i) => outcomes[i] === 'reverted').map((op) => op.nonce)
+                    )
                     if (executed) {
                         send = { ...send, txHash: executed.executed }
                         writePendingChargeSend(key, send)
                     } else if (
                         // each op is proven unsent; `unknown` (a read failed) never is
                         outcomes.every(
-                            (outcome) =>
+                            (outcome, i) =>
                                 outcome === 'reverted' ||
-                                outcome === 'replaced' ||
+                                (outcome === 'nonce-spent' && minedNonces.has(ops[i].nonce)) ||
                                 (outcome === 'not-found' && pastWaitWindow)
                         ) &&
                         // an op without a hash cannot be read
@@ -266,6 +298,7 @@ export function usePendingChargeSend({
         } finally {
             recovering.delete(key)
             sending.delete(key)
+            claiming.delete(key)
             claimed.current = false
             setIsRecovering(false)
         }
@@ -284,17 +317,22 @@ export function usePendingChargeSend({
     ])
 
     useEffect(() => {
-        if (!canResume || !key || hasResumed.current || sending.has(key) || recovering.has(key)) return
+        if (!canResume || !key || hasResumed.current || claiming.has(key) || sending.has(key) || recovering.has(key)) {
+            return
+        }
         const send = readPendingChargeSend(key)
         if (!send) return
-        // the chain reads need the sender, which loads after a reload
-        if (send.userOps.length > 0 && !walletAddress) return
-        hasResumed.current = true
-        // Nothing left this device before the reload: no money can have moved.
-        if (!leftDevice(send)) {
+        // Nothing left the device yet: this tab's marker from before a reload
+        // goes; another tab's live attempt keeps Pay off until it ends.
+        if (isAbandonedClaim(send)) {
             writePendingChargeSend(key, null)
             return
         }
+        // another tab's attempt that has sent nothing: nothing to look up yet
+        if (!leftDevice(send)) return
+        // the chain reads need the sender, which loads after a reload
+        if (send.userOps.length > 0 && !walletAddress) return
+        hasResumed.current = true
         void recover()
     }, [canResume, key, walletAddress, recover])
 

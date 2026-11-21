@@ -320,7 +320,7 @@ it('offers Send again only once the chain proves nothing moved', async () => {
             throw markSpendMayHaveBroadcast(new Error('fetch failed'))
         }
     )
-    mockReadUserOpOutcome.mockResolvedValue('replaced')
+    mockReadUserOpOutcome.mockResolvedValue('reverted')
     const rendered = render()
     const { done } = await tap(rendered)
     await advance(0, done)
@@ -564,4 +564,33 @@ it('Chip #3 (BuggyStorageFail): storage refuses the broadcast record, so the op 
     } finally {
         setItem.mockRestore()
     }
+})
+
+it('Chip #5 (BuggySpentNonce): a spent nonce without the op receipt keeps Send off: the op may be the one that spent it', async () => {
+    window.localStorage.setItem(
+        MARKER_KEY,
+        JSON.stringify({ chargeId: 'charge-1', startedAt: Date.now(), userOps: [OP], backendBroadcast: false })
+    )
+    mockReadUserOpOutcome.mockResolvedValue('nonce-spent')
+    const rendered = render()
+    await advance(65_000)
+    expect(ctx.setCurrentView).not.toHaveBeenCalledWith('INITIAL')
+    expect(window.localStorage.getItem(MARKER_KEY)).not.toBeNull()
+    expect(rendered.result.current.isLoading).toBe(true)
+})
+
+it('a spent nonce is proven taken when another saved op of that nonce reverted: Send comes back', async () => {
+    const sibling = { userOpHash: `0x${'cd'.repeat(32)}`, nonce: OP.nonce }
+    window.localStorage.setItem(
+        MARKER_KEY,
+        JSON.stringify({ chargeId: 'charge-1', startedAt: Date.now(), userOps: [OP, sibling], backendBroadcast: false })
+    )
+    mockReadUserOpOutcome.mockImplementation(async (op: { userOpHash: string }) =>
+        op.userOpHash === OP.userOpHash ? 'nonce-spent' : 'reverted'
+    )
+    const rendered = render()
+    await advance(0)
+    expect(ctx.setCurrentView).toHaveBeenLastCalledWith('INITIAL')
+    expect(window.localStorage.getItem(MARKER_KEY)).toBeNull()
+    expect(rendered.result.current.isLoading).toBe(false)
 })
