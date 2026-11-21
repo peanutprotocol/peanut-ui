@@ -12,6 +12,7 @@ import DeleteAccountButton from '@/components/Settings/DeleteAccountButton'
 import { AccountHasBalanceError } from '@/services/users'
 import { ApiError } from '@/services/api-error'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { clearAccountDeletedNotice, readAccountDeletedNotice } from '@/features/setup/account-deleted-notice'
 
 const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: IntlWrapper })
 
@@ -69,6 +70,7 @@ jest.mock('@/components/Global/ActionModal', () => ({
 
 beforeEach(() => {
     jest.clearAllMocks()
+    clearAccountDeletedNotice()
     mockWallet.spendableBalance = 0n
     mockWallet.formattedSpendableBalance = '0.00'
 })
@@ -92,6 +94,8 @@ describe('DeleteAccountButton', () => {
         expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.DELETE_ACCOUNT_CONFIRMED)
         await waitFor(() => expect(screen.getByText("We'll miss you")).toBeInTheDocument())
         expect(mockRequestDeletion).toHaveBeenCalledTimes(1)
+        // the API now ends the session at once, so the notice must survive a 401 that lands on /setup
+        expect(readAccountDeletedNotice()).toBe(true)
 
         fireEvent.click(screen.getByText('Goodbye'))
         expect(mockLogout).toHaveBeenCalledWith({ skipBackendCall: true })
@@ -109,6 +113,7 @@ describe('DeleteAccountButton', () => {
         // still on the confirm step, not signed out
         expect(screen.getByText('Leaving already?')).toBeInTheDocument()
         expect(mockLogout).not.toHaveBeenCalled()
+        expect(readAccountDeletedNotice()).toBe(false)
     })
 
     it.each([
