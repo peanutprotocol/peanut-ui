@@ -240,7 +240,12 @@ const IBAN_ACCOUNT = {
 } as unknown as Account
 
 const BANK_ACCOUNTS = [
-    { type: 'manteca', identifier: 'cbu-12345678901234567890', details: { countryName: 'argentina' } },
+    {
+        id: 'acct-manteca',
+        type: 'manteca',
+        identifier: 'cbu-12345678901234567890',
+        details: { countryName: 'argentina' },
+    },
     { type: 'iban', identifier: 'DE89370400440532013000', details: { countryName: 'germany' } },
 ]
 let mockUserAccounts: unknown[] = BANK_ACCOUNTS
