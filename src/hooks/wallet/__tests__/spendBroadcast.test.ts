@@ -62,7 +62,12 @@ describe('isDefinitiveSendRefusal', () => {
         ['a bundler validation error', rpc('AA21 did not pay prefund')],
         ['an invalid signature (AA24)', rpc('AA24 signature error')],
         ['a stale session', createStaleSessionError()],
-        ['a 4xx from the backend', new ApiError('bad request', { status: 400 })],
+        ['a refused payload (400)', new ApiError('bad request', { status: 400 })],
+        ['an out-of-date preparation (410)', new ApiError('start again', { status: 410 })],
+        [
+            'a stale card approval (409 STALE_CARD_APPROVAL)',
+            new ApiError('re-enable your card', { status: 409, code: 'STALE_CARD_APPROVAL' }),
+        ],
     ])('%s is a refusal', (_label, error) => {
         expect(isDefinitiveSendRefusal(error)).toBe(true)
     })
@@ -73,6 +78,16 @@ describe('isDefinitiveSendRefusal', () => {
         ['an op the bundler already holds', rpc('already known')],
         ['a spent nonce (this op may have spent it)', rpc('AA25 invalid account nonce')],
         ['a 5xx from the backend', new ApiError('bad gateway', { status: 502 })],
+        // Chip on ui#4198: a gateway can answer 408 after /submit was accepted
+        ['a submit timeout (408)', new ApiError('request timeout', { status: 408 })],
+        [
+            'a send still confirming (409 WITHDRAWAL_PENDING_CONFIRMATION)',
+            new ApiError('still confirming', { status: 409, code: 'WITHDRAWAL_PENDING_CONFIRMATION' }),
+        ],
+        [
+            'a 409 without a code ("Intent already completed")',
+            new ApiError('Intent already completed', { status: 409 }),
+        ],
     ])('%s is not', (_label, error) => {
         expect(isDefinitiveSendRefusal(error)).toBe(false)
     })

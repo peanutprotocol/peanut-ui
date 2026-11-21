@@ -72,6 +72,7 @@
         "userAvatarAlt": "Avatar de {username}"
     },
     "errors": {
+        "paymentNotSaved": "Não conseguimos salvar este pagamento no seu dispositivo, então não o enviamos. Libere espaço no dispositivo e tente de novo.",
         "balanceSettling": "Seu saldo ainda não está totalmente disponível. Tente novamente em alguns segundos.",
         "notEnoughBalanceAddFunds": "Saldo insuficiente. Adicione fundos para continuar.",
         "balanceShortBy": "Faltam ${amount} no seu saldo. Adicione dinheiro para continuar.",

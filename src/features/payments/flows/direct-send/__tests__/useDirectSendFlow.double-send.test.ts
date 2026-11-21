@@ -392,7 +392,7 @@ it('after a day, a marker is still read: an op that executed is found, never off
     expect(errorShown()).toBe(false)
 })
 
-it('after a day, an op still nowhere on chain counts as dropped and Send comes back', async () => {
+it('after a day, an op every read found nowhere counts as dropped and Send comes back', async () => {
     window.localStorage.setItem(
         MARKER_KEY,
         JSON.stringify({
@@ -402,6 +402,7 @@ it('after a day, an op still nowhere on chain counts as dropped and Send comes b
             backendBroadcast: false,
         })
     )
+    mockReadUserOpOutcome.mockResolvedValue('not-found')
     const rendered = render()
     await advance(0)
     expect(mockReadUserOpOutcome).toHaveBeenCalled()
@@ -428,4 +429,123 @@ it('after a reload, the resume waits for the wallet before reading the chain', a
     await advance(0)
     expect(mockReadUserOpOutcome).toHaveBeenCalledWith(OP, '0x2222222222222222222222222222222222222222')
     expect(ctx.setIsSuccess).toHaveBeenLastCalledWith(true)
+})
+
+/*
+ * Chip's review of ui#4198: four paths that offered Send again before it was
+ * proven the first transfer cannot land twice. Each replays one Buggy config
+ * of mono engineering/api/state-machines/ChargeSendFlow.tla.
+ */
+const quotaExceeded = () => {
+    throw new DOMException('quota exceeded', 'QuotaExceededError')
+}
+
+it('Chip #1 (BuggySentDeadline): money moved and recording keeps failing: the marker outlives the window, and the next visit books the hash', async () => {
+    mockRecordPayment.mockRejectedValue(new Error('Internal Server Error'))
+    const rendered = render()
+    const { done } = await tap(rendered)
+    await advance(65_000, done)
+    expect(ctx.setCurrentView).toHaveBeenLastCalledWith('STATUS')
+    expect(ctx.setIsSuccess).not.toHaveBeenCalledWith(true)
+    expect(JSON.parse(window.localStorage.getItem(MARKER_KEY) ?? 'null')?.txHash).toBe('0xmined')
+    expect(rendered.result.current.isLoading).toBe(true)
+    await act(async () => {
+        await rendered.result.current.executePayment()
+    })
+    expect(mockSendMoney).toHaveBeenCalledTimes(1)
+
+    // the next visit resumes and books the same hash
+    act(() => mounted.pop()?.())
+    mockRecordPayment.mockReset().mockResolvedValue({ uuid: 'p3' })
+    mockGetCharge.mockReset().mockResolvedValueOnce(charge('PENDING')).mockResolvedValue(charge('COMPLETED'))
+    render()
+    await advance(0)
+    expect(mockRecordPayment).toHaveBeenCalledWith(expect.objectContaining({ txHash: '0xmined' }))
+    expect(ctx.setIsSuccess).toHaveBeenLastCalledWith(true)
+    expect(window.localStorage.getItem(MARKER_KEY)).toBeNull()
+    expect(mockSendMoney).toHaveBeenCalledTimes(1)
+})
+
+it('Chip #2 (BuggyUnknownByAge): after a day, an op whose reads fail is never counted as dropped', async () => {
+    window.localStorage.setItem(
+        MARKER_KEY,
+        JSON.stringify({
+            chargeId: 'charge-1',
+            startedAt: Date.now() - 25 * 3600_000,
+            userOps: [OP],
+            backendBroadcast: false,
+        })
+    )
+    mockReadUserOpOutcome.mockResolvedValue('unknown')
+    mockGetCharge.mockRejectedValue(new TypeError('Failed to fetch'))
+    const rendered = render()
+    await advance(65_000)
+    expect(ctx.setCurrentView).not.toHaveBeenCalledWith('INITIAL')
+    expect(errorShown()).toBe(false)
+    expect(window.localStorage.getItem(MARKER_KEY)).not.toBeNull()
+    expect(rendered.result.current.isLoading).toBe(true)
+})
+
+it.each([
+    ['a card-balance broadcast on an open charge', { backendBroadcast: true }],
+    ['an op whose hash was never known', { untrackedBroadcast: true }],
+])('Chip #2 (BuggyUnknownByAge): after a day, %s keeps Send off', async (_label, broadcast) => {
+    window.localStorage.setItem(
+        MARKER_KEY,
+        JSON.stringify({
+            chargeId: 'charge-1',
+            startedAt: Date.now() - 25 * 3600_000,
+            userOps: [],
+            backendBroadcast: false,
+            ...broadcast,
+        })
+    )
+    const rendered = render()
+    await advance(65_000)
+    expect(ctx.setCurrentView).not.toHaveBeenCalledWith('INITIAL')
+    expect(window.localStorage.getItem(MARKER_KEY)).not.toBeNull()
+    expect(rendered.result.current.isLoading).toBe(true)
+})
+
+it('Chip #3 (BuggyStorageFail): storage refuses the marker, so nothing is signed', async () => {
+    const setItem = jest.spyOn(Storage.prototype, 'setItem').mockImplementation(quotaExceeded)
+    try {
+        const rendered = render()
+        const { done } = await tap(rendered)
+        await advance(0, done)
+        expect(mockSendMoney).not.toHaveBeenCalled()
+        expect(errorShown()).toBe(true)
+        expect(rendered.result.current.isLoading).toBe(false)
+    } finally {
+        setItem.mockRestore()
+    }
+})
+
+it('Chip #3 (BuggyStorageFail): storage refuses the broadcast record, so the op does not go out', async () => {
+    const transport = jest.fn()
+    mockSendMoney.mockImplementation(
+        async (_to: string, _amount: string, opts: { onBroadcast?: (b: unknown) => void }) => {
+            opts.onBroadcast?.({ via: 'wallet', userOp: OP })
+            transport()
+            return { txHash: '0xmined' }
+        }
+    )
+    const realSetItem = Storage.prototype.setItem
+    const setItem = jest
+        .spyOn(Storage.prototype, 'setItem')
+        // the marker `begin` writes is saved; the broadcast record after it is refused
+        .mockImplementationOnce((key: string, value: string) => realSetItem.call(window.localStorage, key, value))
+        .mockImplementation(quotaExceeded)
+    try {
+        const rendered = render()
+        const { done } = await tap(rendered)
+        await advance(0, done)
+        expect(transport).not.toHaveBeenCalled()
+        expect(mockRecordPayment).not.toHaveBeenCalled()
+        expect(errorShown()).toBe(true)
+        expect(window.localStorage.getItem(MARKER_KEY)).toBeNull()
+        expect(rendered.result.current.isLoading).toBe(false)
+    } finally {
+        setItem.mockRestore()
+    }
 })
