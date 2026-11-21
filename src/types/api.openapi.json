@@ -21753,6 +21753,58 @@
 										"balanceUnavailable": {
 											"type": "boolean"
 										},
+										"cardState": {
+											"anyOf": [
+												{
+													"enum": [
+														"add-card"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"creating-card"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"pending"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"manual-review"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"requires-info"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"requires-support"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"rejected"
+													],
+													"type": "string"
+												},
+												{
+													"enum": [
+														"active"
+													],
+													"type": "string"
+												}
+											]
+										},
 										"cards": {
 											"items": {
 												"properties": {
@@ -21921,7 +21973,8 @@
 										"status",
 										"balance",
 										"balanceUnavailable",
-										"cards"
+										"cards",
+										"cardState"
 									],
 									"type": "object"
 								}
