@@ -125,13 +125,15 @@ describe('useCrispUserData', () => {
         ).toBe(true)
     })
 
+    // The segment means "has a card application", held card or not, as before the served card state.
     it.each([
-        ['an application with no card', { cardState: 'add-card', cards: [] }, false],
-        ['a card on its way', { cardState: 'creating-card', cards: [] }, false],
-        ['a held card', { cardState: 'active', cards: [{ status: 'LOCKED' }] }, true],
-    ])('tags card-holder from the served card state: %s', (_name, overview, holder) => {
+        ['an application with no card', true, { cardState: 'add-card', cards: [] }, true],
+        ['a card on its way', true, { cardState: 'creating-card', cards: [] }, true],
+        ['a held card', true, { cardState: 'active', cards: [{ status: 'LOCKED' }] }, true],
+        ['no application', false, { cardState: 'add-card', cards: [] }, false],
+    ])('tags card-holder for any card application: %s', (_name, hasApplication, overview, holder) => {
         client.setQueryData([RAIN_CARD_OVERVIEW_QUERY_KEY, 'user-1'], {
-            status: { hasApplication: true, railStatus: 'ENABLED' },
+            status: { hasApplication, railStatus: hasApplication ? 'ENABLED' : null },
             balance: null,
             ...overview,
         })

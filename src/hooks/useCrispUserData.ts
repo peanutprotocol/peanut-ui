@@ -6,7 +6,6 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useModalsContext } from '@/context/ModalsContext'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
 import { readCachedRainOverview, readCachedSmartBalance } from '@/utils/support-cache'
-import { servedCardState } from '@/components/Card/servedCardState'
 import {
     buildAccountStats,
     buildAppContext,
@@ -226,8 +225,9 @@ function buildCrispUserData(input: CrispUserDataInput): CrispUserData {
             identityStatus: verification?.identityStatus,
             hasFailureReason: Boolean(verification?.failureReason),
             emailOnFile: verification?.emailOnFile,
-            // A held card, not an application: the served card state, as /card reads it.
-            hasCard: !!rainOverview && servedCardState(rainOverview) === 'active',
+            // An application, held card or not: support's card-holder segment (Hugo, 2026-11-21: kept as before
+            // the served card state; any change is a support-workflow decision, TASK-25239).
+            hasCard: Boolean(rainOverview?.status?.hasApplication),
             balanceKnown,
             isZeroBalance: displaySpendable === 0n,
             isOffline: client.isOffline,
