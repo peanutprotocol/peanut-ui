@@ -514,8 +514,11 @@ export function withFixtureFeatureReport(
     override: Partial<IUserProfile> | null | undefined,
     paperwork?: { products?: { product: string; available: boolean; reason?: string }[] }
 ): IUserProfile | null {
+    if (!user?.capabilities) return user
+    // An explicit report is the whole answer: merged over the demo report, it would keep the demo's steps.
+    const explicit = override?.capabilities?.features
+    if (explicit !== undefined) return { ...user, capabilities: { ...user.capabilities, features: explicit } }
     // The baseline's report describes the demo rails, not this fixture's.
-    if (!user?.capabilities || override?.capabilities?.features !== undefined) return user
     return {
         ...user,
         capabilities: {
