@@ -94,6 +94,7 @@ const route = {
 }
 jest.mock('@/features/payments/shared/hooks/useCrossChainTransfer', () => ({ useCrossChainTransfer: () => route }))
 
+const mockWalletAddress: { current: string | undefined } = { current: '0x2222222222222222222222222222222222222222' }
 const mockHasSufficientBalance = jest.fn(() => true)
 const mockSendMoney = jest.fn()
 const mockSendTransactions = jest.fn()
@@ -101,7 +102,7 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
     useWallet: () => ({
         isConnected: true,
         spendableBalanceDecimal: '100',
-        address: '0x2222222222222222222222222222222222222222',
+        address: mockWalletAddress.current,
         sendMoney: mockSendMoney,
         sendTransactions: (...args: unknown[]) => mockSendTransactions(...args),
         formattedSpendableBalance: '100',
@@ -200,6 +201,7 @@ beforeEach(() => {
     jest.useFakeTimers()
     jest.clearAllMocks()
     window.localStorage.clear()
+    mockWalletAddress.current = '0x2222222222222222222222222222222222222222'
     ctx.charge = null
     ctx.amount = '10'
     ctx.usdAmount = '10'
@@ -406,4 +408,24 @@ it('after a day, an op still nowhere on chain counts as dropped and Send comes b
     expect(ctx.setCurrentView).toHaveBeenLastCalledWith('INITIAL')
     expect(window.localStorage.getItem(MARKER_KEY)).toBeNull()
     expect(rendered.result.current.isLoading).toBe(false)
+})
+
+it('after a reload, the resume waits for the wallet before reading the chain', async () => {
+    window.localStorage.setItem(
+        MARKER_KEY,
+        JSON.stringify({ chargeId: 'charge-1', startedAt: Date.now(), userOps: [OP], backendBroadcast: false })
+    )
+    mockWalletAddress.current = undefined
+    mockReadUserOpOutcome.mockResolvedValue({ executed: '0xfound' })
+    mockGetCharge.mockResolvedValueOnce(charge('PENDING')).mockResolvedValue(charge('COMPLETED'))
+    const rendered = render()
+    await advance(0)
+    expect(mockGetCharge).not.toHaveBeenCalled()
+    expect(rendered.result.current.isLoading).toBe(true)
+
+    mockWalletAddress.current = '0x2222222222222222222222222222222222222222'
+    rendered.rerender()
+    await advance(0)
+    expect(mockReadUserOpOutcome).toHaveBeenCalledWith(OP, '0x2222222222222222222222222222222222222222')
+    expect(ctx.setIsSuccess).toHaveBeenLastCalledWith(true)
 })

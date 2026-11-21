@@ -239,6 +239,8 @@ export function usePendingChargeSend({
         if (!canResume || !key || hasResumed.current || sending.has(key) || recovering.has(key)) return
         const send = readPendingChargeSend(key)
         if (!send) return
+        // the chain reads need the sender, which loads after a reload
+        if (send.userOps.length > 0 && !walletAddress) return
         hasResumed.current = true
         // Nothing left this device before the reload: no money can have moved.
         if (!leftDevice(send)) {
@@ -246,7 +248,7 @@ export function usePendingChargeSend({
             return
         }
         void recover()
-    }, [canResume, key, recover])
+    }, [canResume, key, walletAddress, recover])
 
     const isPending = parsePendingChargeSend(raw) !== null
     return useMemo(
