@@ -23,7 +23,7 @@ const MARKER_KEY = 'peanut:pendingChargeSend:u1:withdraw:dest'
 const OP = { userOpHash: `0x${'ab'.repeat(32)}` as `0x${string}`, nonce: '7' }
 
 const readOrder = jest.fn<Promise<SendOrderRead>, unknown[]>()
-const recordPayment = jest.fn<Promise<unknown>, unknown[]>()
+const recordPayment = jest.fn<Promise<void>, unknown[]>()
 const setters = {
     setIsSuccess: jest.fn(),
     setTxHash: jest.fn(),
