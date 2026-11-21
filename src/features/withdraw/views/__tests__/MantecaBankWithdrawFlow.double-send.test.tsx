@@ -19,7 +19,11 @@ jest.mock('next-intl', () => ({
 }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 jest.mock('@tanstack/react-query', () => ({ useQueryClient: () => ({ invalidateQueries: jest.fn() }) }))
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: 'u1' } } }) }))
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({
+        user: { user: { userId: 'u1' }, accounts: [{ id: 'acct-1', type: 'manteca', identifier: 'mi.alias.peanut' }] },
+    }),
+}))
 
 const mockStepper = { step: 'amount' as string, goTo: jest.fn(), back: jest.fn(), reset: jest.fn(), isFirst: false }
 jest.mock('@/hooks/useFlowStepper', () => ({ useFlowStepper: () => mockStepper }))
@@ -165,7 +169,7 @@ import MantecaBankWithdrawFlow from '../MantecaBankWithdrawFlow'
 
 const DESTINATION = 'mi.alias.peanut'
 const MARKER_KEY = `peanut:pendingChargeSend:u1:withdraw-manteca:${DESTINATION}`
-const searchParams = new URLSearchParams({ country: 'argentina', destination: DESTINATION, isSavedAccount: 'true' })
+const searchParams = new URLSearchParams({ country: 'argentina', account: 'acct-1' })
 const LOCK = {
     priceLockCode: 'lock-1',
     price: '1000',
