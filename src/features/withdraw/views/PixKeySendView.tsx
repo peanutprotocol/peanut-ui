@@ -27,17 +27,23 @@ import { useTranslations } from 'next-intl'
  * Continue first resolves the key's owner, so /qr-pay can show who is paid and
  * an unknown key stops here instead of failing at payment.
  */
-/** `savedAccountId`: a saved key picked upstream, by id; the key itself never rides in the URL. */
-export default function PixKeySendView({ savedAccountId }: { savedAccountId?: string | null }) {
+/** The key comes as `destination`, or as a saved account's id (`savedAccountId`) from links made by the ui#4201 bundle. */
+export default function PixKeySendView({
+    destinationParam,
+    savedAccountId,
+}: {
+    destinationParam?: string | null
+    savedAccountId?: string | null
+}) {
     const router = useRouter()
     const { user } = useAuth()
-    const destinationParam = savedAccountId
-        ? user?.accounts.find((account) => account.id === savedAccountId)?.identifier
-        : undefined
+    const initialPixKey =
+        destinationParam ??
+        (savedAccountId ? user?.accounts.find((account) => account.id === savedAccountId)?.identifier : undefined)
     const onBack = useSafeBack('/send')
     const t = useTranslations('withdraw')
     const tCommon = useTranslations('common')
-    const [pixKey, setPixKey] = useState<string>(destinationParam ?? '')
+    const [pixKey, setPixKey] = useState<string>(initialPixKey ?? '')
     const [isValid, setIsValid] = useState(false)
     const [isChanging, setIsChanging] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)

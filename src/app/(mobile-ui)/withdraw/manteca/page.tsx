@@ -34,7 +34,12 @@ export default function MantecaWithdrawFlow() {
         if (pixKeySend.via === 'withdraw' || (pixKeySend.block === 'residence' && !isFromSendFlow))
             return <RouteAlias to={PIX_WITHDRAW_PATH} />
         if (pixKeySend.block) return <BrazilPausedScreen block={pixKeySend.block} />
-        return <PixKeySendView savedAccountId={searchParams.get('account')} />
+        return (
+            <PixKeySendView
+                destinationParam={searchParams.get('destination')}
+                savedAccountId={searchParams.get('account')}
+            />
+        )
     }
     // A BRL withdrawal to the user's own account lives on /withdraw/pix, where the backend's route
     // picks the provider; an old link or bookmark lands there rather than on a blank page.

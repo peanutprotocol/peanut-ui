@@ -20,9 +20,7 @@ const user = (id: string, name: string): UserListItem => ({
     email: null,
     created_at: '2026-10-01T00:00:00.000Z',
     updated_at: '2026-10-02T00:00:00.000Z',
-    standing: 'ACTIVE',
-    deactivated_at: null,
-    banned_at: null,
+    is_active: true,
     residence_country: null,
     kyc_status: null,
 })
@@ -48,19 +46,15 @@ describe('UserList selection', () => {
     })
 })
 
-describe('UserList account standing', () => {
-    it('labels a banned and a deleted account, and leaves an active one unlabelled', async () => {
+// Characterization of dev: GET /admin/users sends `is_active` (api#2227, which would send `standing`, is not merged).
+describe('UserList account status', () => {
+    it('labels an account the API marks inactive, and leaves an active one unlabelled', async () => {
         fetchUserList.mockResolvedValue({
-            users: [
-                user('u1', 'Ana'),
-                { ...user('u2', 'Ben'), standing: 'BANNED', banned_at: '2026-11-01T00:00:00.000Z' },
-                { ...user('u3', 'Cy'), standing: 'DEACTIVATED', deactivated_at: '2026-11-01T00:00:00.000Z' },
-            ],
+            users: [user('u1', 'Ana'), { ...user('u2', 'Ben'), is_active: false }],
             next: null,
         })
         renderList(null)
-        expect(await screen.findByRole('button', { name: /^Ben/ })).toHaveTextContent('Banned')
-        expect(screen.getByRole('button', { name: /^Cy/ })).toHaveTextContent('Deleted')
-        expect(screen.getByRole('button', { name: /^Ana/ })).not.toHaveTextContent(/Banned|Deleted/)
+        expect(await screen.findByRole('button', { name: /^Ben/ })).toHaveTextContent('Inactive')
+        expect(screen.getByRole('button', { name: /^Ana/ })).not.toHaveTextContent('Inactive')
     })
 })

@@ -48,7 +48,6 @@ import {
     forgetAnswerDraftOnResidenceChange,
 } from '@/features/paperwork-verification/answerDraft'
 import { forgetPixWithdrawDraft } from '@/features/pix/pixWithdrawDraft'
-import { forgetSendLinkPasswords } from '@/utils/send-link-password'
 import { forgetPersonalPendingChargeSends } from '@/features/payments/shared/utils/pending-charge-send'
 import { claimAndSettlePendingBadgeCampaigns, isConfirmedBadgeCampaignClaim } from '@/services/badge-campaigns'
 import { clearPendingBadgeCampaigns, getPendingBadgeCampaigns } from '@/components/Invites/badge-campaign-context'
@@ -441,8 +440,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         forgetAnswerDraft(user?.user.userId)
         // So does a Pix withdraw form not yet sent: it holds the Pix key.
         forgetPixWithdrawDraft(user?.user.userId)
-        // Send link passwords are bearer secrets for the unclaimed funds.
-        forgetSendLinkPasswords(user?.user.userId)
         // A Manteca withdrawal's pending marker is keyed by its CBU or Pix key.
         forgetPersonalPendingChargeSends(user?.user.userId)
 

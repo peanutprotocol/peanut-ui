@@ -15,7 +15,6 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { AccountHasBalanceError, usersApi } from '@/services/users'
 import { wireErrorCode } from '@/services/api-error'
 import { DELETION_BALANCE_DUST_UNITS } from '@/utils/balance.utils'
-import { markAccountDeleted } from '@/features/setup/account-deleted-notice'
 
 type ModalState = 'closed' | 'blocked' | 'confirm' | 'done'
 
@@ -75,7 +74,6 @@ const DeleteAccountButton: FC = () => {
         posthog.capture(ANALYTICS_EVENTS.DELETE_ACCOUNT_CONFIRMED)
         try {
             await usersApi.requestDeletion()
-            markAccountDeleted()
             setModalState('done')
         } catch (error) {
             if (error instanceof AccountHasBalanceError) {
