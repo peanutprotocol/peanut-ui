@@ -200,10 +200,16 @@ export function useBridgeOfframpFlow() {
             if (!success) return
             queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
             setIsCompleted(true)
-            void stepper.goTo('success')
         },
-        [queryClient, stepper]
+        [queryClient]
     )
+    // The success step's guard reads the proof, so the step follows it, for a
+    // live withdrawal and a recovered one alike: moving in the same tick as the
+    // proof can meet a render without it and bounce back to the review.
+    useEffect(() => {
+        if (isCompleted && step !== 'success') void stepper.goTo('success')
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- only a new proof moves the step
+    }, [isCompleted])
     const showRecoveredReview = useCallback(
         (view: 'INITIAL' | 'STATUS') => {
             if (view === 'INITIAL') void stepper.goTo('review')
@@ -577,13 +583,12 @@ export function useBridgeOfframpFlow() {
             // 30s tanstack staleTime + Bridge polling cadence.
             queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
 
-            // proof first, then the step — the success guard reads it. The
-            // executed amount pins alongside it: the success screen must show
-            // what moved, not what the URL says now.
+            // The proof; the step follows it (the effect above). The executed
+            // amount pins alongside it: the success screen must show what
+            // moved, not what the URL says now.
             setIsCompleted(true)
             setExecutedAmountUsd(amountUsd)
             setExecutedPayout(payout)
-            void stepper.goTo('success')
             posthog.capture(ANALYTICS_EVENTS.WITHDRAW_COMPLETED, {
                 amount_usd: amountUsd,
                 method_type: 'bridge',
