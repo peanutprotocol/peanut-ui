@@ -1,5 +1,6 @@
 import { isAddress } from 'viem'
 import { printableAddress } from '@/utils/general.utils'
+import { daysDifference } from '@/utils/dateGrouping.utils'
 
 export const SAVED_ADDRESS_NICKNAME_MAX = 15
 
@@ -26,7 +27,7 @@ export function shortSavedAddress(address: string): string {
     return printableAddress(address, isAddress(address) ? 6 : 4, 4)
 }
 
+/** Calendar days since `iso` in the device's time zone, so "yesterday" is the day before today (TASK-23927). */
 export function daysSince(iso: string, now: Date = new Date()): number {
-    const ms = now.getTime() - new Date(iso).getTime()
-    return Math.max(0, Math.floor(ms / 86_400_000))
+    return Math.max(0, daysDifference(now, new Date(iso)))
 }
