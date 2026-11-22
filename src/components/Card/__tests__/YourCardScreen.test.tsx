@@ -33,7 +33,14 @@ jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ success: j
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Card/CardFace', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/components/Card/CancelCardModal', () => ({ __esModule: true, default: () => null }))
-jest.mock('@/components/Card/LockCardModal', () => ({ __esModule: true, default: () => null }))
+jest.mock('@/components/Card/LockCardModal', () => ({
+    __esModule: true,
+    default: ({ mode, isOpen, onClose }: { mode: string; isOpen: boolean; onClose: () => void }) => (
+        <div data-testid="lock-modal" data-mode={mode} data-open={String(isOpen)}>
+            <button data-testid="lock-modal-close" onClick={onClose} />
+        </div>
+    ),
+}))
 const mockReturnCollateral = jest.fn()
 let mockIsReturning = false
 let mockReturnError: { kind: string } | null = null
@@ -251,5 +258,25 @@ describe('YourCardScreen — card debt', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'Contact support' }))
         expect(mockOpenSupport).toHaveBeenCalledWith(true)
+    })
+})
+
+// TASK-23923: the sheet's mode came from the open action, so closing an unfreeze
+// flipped it to "Block card?" while the sheet was still fading out
+describe('YourCardScreen — lock sheet', () => {
+    it('keeps the unfreeze copy while the sheet closes', () => {
+        render(
+            <YourCardScreen
+                overview={overview(null)}
+                card={{ ...CARD, status: 'LOCKED' }}
+                onCompleteVerification={jest.fn()}
+            />
+        )
+        fireEvent.click(screen.getByTestId('card-control-freeze'))
+        expect(screen.getByTestId('lock-modal')).toHaveAttribute('data-mode', 'unlock')
+
+        fireEvent.click(screen.getByTestId('lock-modal-close'))
+        expect(screen.getByTestId('lock-modal')).toHaveAttribute('data-open', 'false')
+        expect(screen.getByTestId('lock-modal')).toHaveAttribute('data-mode', 'unlock')
     })
 })
