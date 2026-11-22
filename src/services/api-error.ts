@@ -1,11 +1,12 @@
+import { ApiErrorCode as WireCode } from '@/constants/api-enums.generated'
+
 /**
  * Mirror of the wire codes peanut-api-ts emits (`src/errors/error-codes.ts`).
  *
- * The codes this app handles, kept by hand for their notes. The API's full
- * registry is generated as `ApiErrorCode` (`@/constants/api-enums.generated`).
- * This list is not typed against it yet: it still names the XCHAIN_* codes the
- * API stopped sending when it removed the cross-chain cap (peanut-api-ts
- * bbec29cff), and their handling has to go first.
+ * The codes this app handles, kept by hand for their notes. Each value comes
+ * from the generated registry (`ApiErrorCode`, `@/constants/api-enums.generated`),
+ * and the `satisfies` ties each key to its value, so a code the API no longer
+ * sends fails the typecheck.
  *
  * A code the backend adds but this list omits simply falls through to the
  * message matchers in `friendly-error.utils` — the same behaviour as before the
@@ -13,25 +14,25 @@
  * translation, never a crash.
  */
 export const API_ERROR_CODES = {
-    USER_OP_REVERTED: 'USER_OP_REVERTED',
+    USER_OP_REVERTED: WireCode.USER_OP_REVERTED,
     /** Bundler REFUSED the signed op at validation — definitive, nothing was
      *  executed. Emitted only by the modern broadcast-first mixed routes; an
      *  unknown/internal/already-known transport outcome never gets it. */
-    USER_OP_REJECTED: 'USER_OP_REJECTED',
-    INSUFFICIENT_COLLATERAL: 'INSUFFICIENT_COLLATERAL',
-    WITHDRAWAL_COOLDOWN_ACTIVE: 'WITHDRAWAL_COOLDOWN_ACTIVE',
-    WITHDRAWAL_SIGNATURE_COOLDOWN: 'WITHDRAWAL_SIGNATURE_COOLDOWN',
-    WITHDRAWAL_SIGNATURE_EXPIRED: 'WITHDRAWAL_SIGNATURE_EXPIRED',
-    WITHDRAWAL_SUBMISSION_FAILED: 'WITHDRAWAL_SUBMISSION_FAILED',
+    USER_OP_REJECTED: WireCode.USER_OP_REJECTED,
+    INSUFFICIENT_COLLATERAL: WireCode.INSUFFICIENT_COLLATERAL,
+    WITHDRAWAL_COOLDOWN_ACTIVE: WireCode.WITHDRAWAL_COOLDOWN_ACTIVE,
+    WITHDRAWAL_SIGNATURE_COOLDOWN: WireCode.WITHDRAWAL_SIGNATURE_COOLDOWN,
+    WITHDRAWAL_SIGNATURE_EXPIRED: WireCode.WITHDRAWAL_SIGNATURE_EXPIRED,
+    WITHDRAWAL_SUBMISSION_FAILED: WireCode.WITHDRAWAL_SUBMISSION_FAILED,
     /** A withdrawal for this user was sent and has not settled yet. Do not send
      *  it (or another one) again until it has. */
-    WITHDRAWAL_PENDING_CONFIRMATION: 'WITHDRAWAL_PENDING_CONFIRMATION',
-    STALE_CARD_APPROVAL: 'STALE_CARD_APPROVAL',
+    WITHDRAWAL_PENDING_CONFIRMATION: WireCode.WITHDRAWAL_PENDING_CONFIRMATION,
+    STALE_CARD_APPROVAL: WireCode.STALE_CARD_APPROVAL,
     /** The card permission store refused an approval the chain would refuse:
      *  its enable signature does not verify against the wallet's key at the
      *  live nonce (another passkey, other signed bytes, an unreadable layout,
      *  or a moved nonce). Nothing was stored. */
-    CARD_APPROVAL_SIGNATURE_REJECTED: 'CARD_APPROVAL_SIGNATURE_REJECTED',
+    CARD_APPROVAL_SIGNATURE_REJECTED: WireCode.CARD_APPROVAL_SIGNATURE_REJECTED,
     /** Rain rotated the controller (or the grant is bound to the old one), on an
      *  attempt with NO financial effect: refused by `/prepare` or by
      *  `verifyRainWithdrawal` before any order/claim/broadcast, or — for
@@ -40,84 +41,82 @@ export const API_ERROR_CODES = {
      *  strictly reported `success === false`) with the controller actually
      *  changed. The one failure the client may recover from in-flow by
      *  re-preparing; never inferred from another code. */
-    RAIN_CONTROLLER_CHANGED: 'RAIN_CONTROLLER_CHANGED',
-    NO_APPROVED_CARD: 'NO_APPROVED_CARD',
-    NO_ACTIVE_CARD: 'NO_ACTIVE_CARD',
-    NO_COLLATERAL_CONTRACT: 'NO_COLLATERAL_CONTRACT',
+    RAIN_CONTROLLER_CHANGED: WireCode.RAIN_CONTROLLER_CHANGED,
+    NO_APPROVED_CARD: WireCode.NO_APPROVED_CARD,
+    NO_ACTIVE_CARD: WireCode.NO_ACTIVE_CARD,
+    NO_COLLATERAL_CONTRACT: WireCode.NO_COLLATERAL_CONTRACT,
     /** A card cancel waits: the provider holds part of the card balance back for
      *  now (an unused withdrawal signature, or a deposit it has not counted).
      *  Sent with 409 and `retryAfterSec`. */
-    CARD_RETURN_BLOCKED: 'CARD_RETURN_BLOCKED',
+    CARD_RETURN_BLOCKED: WireCode.CARD_RETURN_BLOCKED,
     /** A card cancel waits: a return went through and part of the card balance
      *  is still in the card. Sent with 409 and `retryAfterSec`. */
-    CARD_BALANCE_REMAINS: 'CARD_BALANCE_REMAINS',
+    CARD_BALANCE_REMAINS: WireCode.CARD_BALANCE_REMAINS,
     /** The card balance could not be read, so a cancel is refused (502). Unknown
      *  is never an empty card. */
-    CARD_BALANCE_UNREADABLE: 'CARD_BALANCE_UNREADABLE',
-    CARD_SECRETS_RATE_LIMITED: 'CARD_SECRETS_RATE_LIMITED',
-    MANTECA_KYC_REQUIRED: 'MANTECA_KYC_REQUIRED',
-    MANTECA_ACCOUNT_REJECTED: 'MANTECA_ACCOUNT_REJECTED',
+    CARD_BALANCE_UNREADABLE: WireCode.CARD_BALANCE_UNREADABLE,
+    CARD_SECRETS_RATE_LIMITED: WireCode.CARD_SECRETS_RATE_LIMITED,
+    MANTECA_KYC_REQUIRED: WireCode.MANTECA_KYC_REQUIRED,
+    MANTECA_ACCOUNT_REJECTED: WireCode.MANTECA_ACCOUNT_REJECTED,
     /** The pool-lock sender carried an id the provider refuses. The user is
      *  verified, so a KYC prompt is a dead end: support corrects the id on
      *  file. Deterministic, never retried. */
-    MANTECA_SENDER_REJECTED: 'MANTECA_SENDER_REJECTED',
-    PAYER_BLOCKED: 'PAYER_BLOCKED',
-    MERCHANT_BLOCKED: 'MERCHANT_BLOCKED',
-    PIX_RESIDENCE_NOT_SUPPORTED: 'PIX_RESIDENCE_NOT_SUPPORTED',
-    MANTECA_TEMPORARILY_UNAVAILABLE: 'MANTECA_TEMPORARILY_UNAVAILABLE',
+    MANTECA_SENDER_REJECTED: WireCode.MANTECA_SENDER_REJECTED,
+    PAYER_BLOCKED: WireCode.PAYER_BLOCKED,
+    MERCHANT_BLOCKED: WireCode.MERCHANT_BLOCKED,
+    PIX_RESIDENCE_NOT_SUPPORTED: WireCode.PIX_RESIDENCE_NOT_SUPPORTED,
+    MANTECA_TEMPORARILY_UNAVAILABLE: WireCode.MANTECA_TEMPORARILY_UNAVAILABLE,
     /** The provider refused a Manteca deposit or withdrawal for a reason of the
      *  user's account (a document it still needs, a bank account it does not
      *  accept). Sent with 422 before any money moved. Deterministic: a retry
      *  gets the same answer. */
-    PROVIDER_REJECTED: 'PROVIDER_REJECTED',
-    QR_PAYMENT_CANCELLED: 'QR_PAYMENT_CANCELLED',
+    PROVIDER_REJECTED: WireCode.PROVIDER_REJECTED,
+    QR_PAYMENT_CANCELLED: WireCode.QR_PAYMENT_CANCELLED,
     /** The payment destination (e.g. a PIX key) does not exist at the provider. */
-    PAYMENT_DESTINATION_NOT_FOUND: 'PAYMENT_DESTINATION_NOT_FOUND',
-    TRANSFER_ALREADY_CONFIRMED: 'TRANSFER_ALREADY_CONFIRMED',
+    PAYMENT_DESTINATION_NOT_FOUND: WireCode.PAYMENT_DESTINATION_NOT_FOUND,
+    TRANSFER_ALREADY_CONFIRMED: WireCode.TRANSFER_ALREADY_CONFIRMED,
     /** A Manteca withdrawal for this signed spend is still confirming (409): it may
      *  still move the money, so nothing is sent again. */
-    FUNDING_PENDING_CONFIRMATION: 'FUNDING_PENDING_CONFIRMATION',
+    FUNDING_PENDING_CONFIRMATION: WireCode.FUNDING_PENDING_CONFIRMATION,
     /** Bridge refused a saved bank account: it belongs to an earlier Bridge
      *  customer of the user. The API has switched the account off; the user
      *  adds it again. */
-    BANK_ACCOUNT_NOT_USABLE: 'BANK_ACCOUNT_NOT_USABLE',
-    CHAIN_INFRA_UNAVAILABLE: 'CHAIN_INFRA_UNAVAILABLE',
-    LINK_ALREADY_CLAIMED: 'LINK_ALREADY_CLAIMED',
-    BELOW_MIN_BRIDGE_AMOUNT: 'BELOW_MIN_BRIDGE_AMOUNT',
-    XCHAIN_WITHDRAW_LIMIT_REACHED: 'XCHAIN_WITHDRAW_LIMIT_REACHED',
-    DEPOSIT_ACCOUNTS_NOT_AVAILABLE: 'DEPOSIT_ACCOUNTS_NOT_AVAILABLE',
-    XCHAIN_WITHDRAW_DISABLED: 'XCHAIN_WITHDRAW_DISABLED',
+    BANK_ACCOUNT_NOT_USABLE: WireCode.BANK_ACCOUNT_NOT_USABLE,
+    CHAIN_INFRA_UNAVAILABLE: WireCode.CHAIN_INFRA_UNAVAILABLE,
+    LINK_ALREADY_CLAIMED: WireCode.LINK_ALREADY_CLAIMED,
+    BELOW_MIN_BRIDGE_AMOUNT: WireCode.BELOW_MIN_BRIDGE_AMOUNT,
+    DEPOSIT_ACCOUNTS_NOT_AVAILABLE: WireCode.DEPOSIT_ACCOUNTS_NOT_AVAILABLE,
     /** POST /charges on a request that is no longer OPEN. Sent with 409. */
-    REQUEST_CLOSED: 'REQUEST_CLOSED',
+    REQUEST_CLOSED: WireCode.REQUEST_CLOSED,
     /** The provider is down, paused or not set up on this deployment (503). Retry later. */
-    PROVIDER_UNAVAILABLE: 'PROVIDER_UNAVAILABLE',
+    PROVIDER_UNAVAILABLE: WireCode.PROVIDER_UNAVAILABLE,
     /** A Pix deposit or withdrawal below the provider's minimum. Sent with 400. */
-    PIX_MIN_AMOUNT: 'PIX_MIN_AMOUNT',
+    PIX_MIN_AMOUNT: WireCode.PIX_MIN_AMOUNT,
     /** The backend's route does not serve this operation for this user (the capability route says why). Sent with 403. */
-    ROUTE_NOT_AVAILABLE: 'ROUTE_NOT_AVAILABLE',
+    ROUTE_NOT_AVAILABLE: WireCode.ROUTE_NOT_AVAILABLE,
     /** Manteca no longer serves the user's Pix: their pay route moved to another provider (409). */
-    PIX_PROVIDER_MOVED: 'PIX_PROVIDER_MOVED',
+    PIX_PROVIDER_MOVED: WireCode.PIX_PROVIDER_MOVED,
     /** The Pix account's monthly limit has no room for this amount. */
-    PIX_LIMIT_EXCEEDED: 'PIX_LIMIT_EXCEEDED',
+    PIX_LIMIT_EXCEEDED: WireCode.PIX_LIMIT_EXCEEDED,
     /** The withdrawal's quote had too little time left for the signature. Nothing moved; try again. */
-    PIX_QUOTE_EXPIRED: 'PIX_QUOTE_EXPIRED',
+    PIX_QUOTE_EXPIRED: WireCode.PIX_QUOTE_EXPIRED,
     /** The key's bank is on the provider's payout deny-list. */
-    PIX_KEY_BLOCKED: 'PIX_KEY_BLOCKED',
+    PIX_KEY_BLOCKED: WireCode.PIX_KEY_BLOCKED,
     /** One Pix key lookup per second per user. */
-    PIX_KEY_LOOKUP_THROTTLED: 'PIX_KEY_LOOKUP_THROTTLED',
+    PIX_KEY_LOOKUP_THROTTLED: WireCode.PIX_KEY_LOOKUP_THROTTLED,
     /** The Pix directory has no such key. Sent with 422 by the withdraw routes, 404 by the key lookup. */
-    PIX_KEY_NOT_FOUND: 'PIX_KEY_NOT_FOUND',
+    PIX_KEY_NOT_FOUND: WireCode.PIX_KEY_NOT_FOUND,
     /** A Pix BR Code sent where a key belongs (400): a code is paid from the scanner (`/pix/pay`). */
-    PIX_KEY_IS_QR_CODE: 'PIX_KEY_IS_QR_CODE',
+    PIX_KEY_IS_QR_CODE: WireCode.PIX_KEY_IS_QR_CODE,
     /** A withdrawal sized by the balance would now take more than that balance. Sent with 409; quote again. */
-    PIX_QUOTE_CHANGED: 'PIX_QUOTE_CHANGED',
+    PIX_QUOTE_CHANGED: WireCode.PIX_QUOTE_CHANGED,
     /** Another Pix withdrawal is still waiting for its signature. */
-    WITHDRAWAL_IN_PROGRESS: 'WITHDRAWAL_IN_PROGRESS',
+    WITHDRAWAL_IN_PROGRESS: WireCode.WITHDRAWAL_IN_PROGRESS,
     /** A merchant QR code with its own amount was sent another amount. Sent with 400; review the code's amount. */
-    PIX_QR_AMOUNT_FIXED: 'PIX_QR_AMOUNT_FIXED',
+    PIX_QR_AMOUNT_FIXED: WireCode.PIX_QR_AMOUNT_FIXED,
     /** A retried QR payment is past its signature: read the payment the refusal names (`intentId`). Sent with 409. */
-    PIX_PAYMENT_EXISTS: 'PIX_PAYMENT_EXISTS',
-} as const
+    PIX_PAYMENT_EXISTS: WireCode.PIX_PAYMENT_EXISTS,
+} as const satisfies { [Code in WireCode]?: Code }
 
 export type ApiErrorCode = (typeof API_ERROR_CODES)[keyof typeof API_ERROR_CODES]
 
