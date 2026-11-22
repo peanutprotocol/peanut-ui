@@ -279,3 +279,24 @@ describe('the account provider on the claim screen (TASK-23295)', () => {
         expect(screen.queryByRole('link', { name: 'Bridge terms' })).not.toBeInTheDocument()
     })
 })
+
+// TASK-24913: the subheading told EUR holders to share their details with
+// clients, but another individual cannot pay a EUR account (own account and businesses only)
+describe('the subheading names the payers the account takes', () => {
+    it('names businesses, not clients, where another individual cannot pay', () => {
+        // as the API sends EUR today (bridge-adapter, EUR_INDIVIDUAL_VOLUME_AGREED = false)
+        const eur = {
+            ...CLAIMABLE_EUR,
+            matching: { sender: 'business-only' as const },
+            rules: { ...CLAIMABLE_EUR.rules, thirdPartyIndividual: { policy: 'unavailable' as const } },
+        }
+        claim({ terms: eur })
+        expect(screen.getByText(messages.depositAccounts.claim.subheadingBusinessPayers)).toBeInTheDocument()
+        expect(screen.queryByText(messages.depositAccounts.claim.subheading)).not.toBeInTheDocument()
+    })
+
+    it('keeps clients where another person can pay', () => {
+        claim({ rail: DEPOSIT_RAILS.ACH_US, terms: CLAIMABLE_USD_PREVIEW })
+        expect(screen.getByText(messages.depositAccounts.claim.subheading)).toBeInTheDocument()
+    })
+})

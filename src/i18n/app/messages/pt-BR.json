@@ -5204,6 +5204,7 @@
         "claim": {
             "heading": "Receba pagamentos em {currency}",
             "subheading": "Dados bancários para receber pagamentos. Compartilhe com empregadores, clientes ou plataformas como a Deel.",
+            "subheadingBusinessPayers": "Dados bancários para receber pagamentos. Compartilhe com empregadores, empresas ou plataformas como a Deel.",
             "conditionTerms": "Quem pode pagar depende das regras de {currency}. Elas aparecem quando a conta for aberta.",
             "statePending": "As regras do seu estado são confirmadas quando você abre a conta.",
             "benefitStable": "Compartilhe uma vez e use em todos os pagamentos",

@@ -95,7 +95,12 @@ export function ClaimAccountContent({
                 <TitleBlock
                     size="s"
                     title={t('claim.heading', { currency: rail.currency })}
-                    description={t('claim.subheading')}
+                    description={t(
+                        // another individual cannot pay EUR, GBP or COP: no "clients" there (TASK-24913)
+                        terms?.rules?.thirdPartyIndividual.policy === 'unavailable'
+                            ? 'claim.subheadingBusinessPayers'
+                            : 'claim.subheading'
+                    )}
                 />
 
                 <ListGroup>
