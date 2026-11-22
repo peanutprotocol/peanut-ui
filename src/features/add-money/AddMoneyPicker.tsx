@@ -1,6 +1,5 @@
 'use client'
 
-import PIX from '@/assets/payment-apps/pix.svg'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
@@ -9,7 +8,6 @@ import NavHeader from '@/components/Global/NavHeader'
 import { useAddMoneyReadiness } from './useAddMoneyReadiness'
 import { PIX_ADD_MONEY_PATH } from '@/features/pix/pix.routes'
 import { withReturnTo } from '@/utils/return-to.utils'
-import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -44,7 +42,7 @@ export function AddMoneyPicker({ onBack, origin }: { onBack: () => void; origin:
         pix: {
             title: t('pix'),
             description: t('pixDetails'),
-            icon: <Image src={PIX} alt="" width={32} height={32} />,
+            icon: <IconBubble {...CONCEPT_ICONS.pix} size="s" />,
         },
         crypto: {
             title: t('crypto'),

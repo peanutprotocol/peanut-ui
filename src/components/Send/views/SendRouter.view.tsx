@@ -1,7 +1,6 @@
 'use client'
 import { useHydrationSnapshot } from '@/utils/native-platform'
 import { useRouter, useSearchParams } from 'next/navigation'
-import PIX from '@/assets/payment-apps/pix.svg'
 import LinkSendFlowManager from '../link/LinkSendFlowManager'
 import NavHeader from '@/components/Global/NavHeader'
 import Card from '@/components/Global/Card'
@@ -11,7 +10,6 @@ import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { ACTION_METHODS, type PaymentMethod } from '@/constants/actionlist.consts'
-import Image from 'next/image'
 import { useGeoFilteredPaymentOptions } from '@/hooks/useGeoFilteredPaymentOptions'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import posthog from 'posthog-js'
@@ -142,7 +140,7 @@ export const SendRouterView = () => {
                     return {
                         ...method,
                         description: t('methods.pixKeyDescription'),
-                        identifierIcon: <Image src={PIX} alt="Pix" className="size-8 min-w-8" />,
+                        identifierIcon: <IconBubble {...CONCEPT_ICONS.pix} size="s" />,
                     }
                 default:
                     return method

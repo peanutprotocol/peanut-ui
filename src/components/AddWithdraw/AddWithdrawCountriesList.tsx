@@ -10,7 +10,7 @@ import { type IconName } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { getColorForUsername } from '@/utils/color.utils'
-import Image, { type StaticImageData } from 'next/image'
+import { type StaticImageData } from 'next/image'
 import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
@@ -741,15 +741,9 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
                                             }}
                                         />
                                     ) : (
-                                        // decorative: the row title already names the method, and an
-                                        // id as alt text was read out as part of the button's name
-                                        <Image
-                                            src={method.icon as StaticImageData}
-                                            alt=""
-                                            className="h-8 w-8 rounded-full"
-                                            width={32}
-                                            height={32}
-                                        />
+                                        // the Pix or Mercado Pago mark (AddMoney/consts), drawn the way
+                                        // CONCEPT_ICONS draws it; the row title names the method
+                                        <IconBubble logo={method.icon as StaticImageData} size="s" />
                                     )
                                 }
                                 trailing={

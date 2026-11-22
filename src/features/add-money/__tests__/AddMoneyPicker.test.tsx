@@ -31,3 +31,11 @@ it.each([
     tap(key)
     expect(mockPush).toHaveBeenCalledWith(href)
 })
+
+// TASK-25018: the Pix mark comes from CONCEPT_ICONS through IconBubble, not a raw Image with its own size
+it('draws the Pix mark as the concept logo bubble', () => {
+    renderWithIntl(<AddMoneyPicker onBack={jest.fn()} origin={null} />)
+    const mark = screen.getByTestId('add-money-method-pix').querySelector('img')
+    expect(mark).toHaveClass('size-full')
+    expect(mark?.parentElement).toHaveClass('size-8', 'rounded-full')
+})
