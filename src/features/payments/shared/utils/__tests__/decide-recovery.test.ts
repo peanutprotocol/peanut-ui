@@ -277,7 +277,13 @@ const rows: Row[] = [
     // the one-day bound
     [
         'no proof, exactly one day old: still waits',
-        { send: send(), order: { state: 'unbooked' }, outcomes: ['not-found'], now: STARTED + DAY_MS },
+        {
+            send: send(),
+            order: { state: 'unbooked' },
+            outcomes: ['not-found'],
+            now: STARTED + DAY_MS,
+            deadline: STARTED + DAY_MS + 60_000,
+        },
         { action: 'Wait' },
     ],
     [
