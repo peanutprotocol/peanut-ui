@@ -3392,7 +3392,7 @@
             "titleIdentityDocumentMissing": "Complete your verification",
             "titleRegionUnavailable": "Not available for UK residents",
             "descriptionError": "{error} Please contact support for assistance.",
-            "descriptionBlocked": "We couldn't confirm your ID. Please contact support for assistance.",
+            "descriptionBlocked": "This isn't available for your account right now. Contact support and we'll look into it.",
             "descriptionRestartIdentity": "This payment method needs a document from a supported country. You can verify with a different ID.",
             "descriptionProviderRejection": "We need more information from you to continue.",
             "descriptionRegionUnavailable": "Due to UK regulations, bank transfers aren't available for UK residents. Your funds are safe. You can withdraw them as crypto anytime.",

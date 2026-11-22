@@ -3392,7 +3392,7 @@
             "titleIdentityDocumentMissing": "Completa tu verificación",
             "titleRegionUnavailable": "No disponible para residentes del Reino Unido",
             "descriptionError": "{error} Contacta a soporte para recibir ayuda.",
-            "descriptionBlocked": "No pudimos confirmar tu identidad. Contacta a soporte para recibir ayuda.",
+            "descriptionBlocked": "Esto no está disponible para tu cuenta por ahora. Contacta a soporte y lo revisamos.",
             "descriptionRestartIdentity": "Este medio de pago requiere un documento de un país compatible. Puedes verificarte con otro documento.",
             "descriptionProviderRejection": "Necesitamos más información tuya para continuar.",
             "descriptionRegionUnavailable": "Debido a las regulaciones del Reino Unido, las transferencias bancarias no están disponibles para sus residentes. Tus fondos están seguros: puedes retirarlos como cripto en cualquier momento.",
