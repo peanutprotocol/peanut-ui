@@ -117,8 +117,23 @@ const SERVED_STATES: ServedCardState[] = [
     'rejected',
     'active',
 ]
-const RAILS = [undefined, 'PENDING', 'ENABLED', 'REQUIRES_INFORMATION', 'REQUIRES_SUPPORT', 'REJECTED', 'FAILED']
-const CARD_ROWS = [[], ['ACTIVE'], ['LOCKED'], ['NOT_ACTIVATED'], ['CANCELED'], ['CANCELED', 'ACTIVE']]
+const RAILS: (RailStatus | undefined)[] = [
+    undefined,
+    'PENDING',
+    'ENABLED',
+    'REQUIRES_INFORMATION',
+    'REQUIRES_SUPPORT',
+    'REJECTED',
+    'FAILED',
+]
+const CARD_ROWS: RainCardStatus[][] = [
+    [],
+    ['ACTIVE'],
+    ['LOCKED'],
+    ['NOT_ACTIVATED'],
+    ['CANCELED'],
+    ['CANCELED', 'ACTIVE'],
+]
 
 describe('served card state', () => {
     it('returns the served state over every cohort, laying only geo-blocked over a rail-less add-card', () => {
