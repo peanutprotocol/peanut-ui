@@ -12,7 +12,8 @@
    shows the error on the input view, so the user can send again.
    Fixed = TRUE, as the code does: the order id and user-op hash are persisted before signing, any
    failure after signing goes to recovery, and recovery waits for the user op to be final before it
-   offers Send again. Recovery that runs out of time shows a "confirming" screen the user can
+   offers Send again, unless one saved op executed and the order is unbooked: then it books that
+   hash at once (RecoverRecord). Recovery that runs out of time shows a "confirming" screen the user can
    leave; the marker stays, so Send stays off and the next visit resumes. op = "dropped" means
    proven never to run: the op reverted, or another saved op of its nonce has a receipt. An op the
    bundler lost but that is still valid stays "inflight": nothing proves it.
@@ -210,8 +211,10 @@ Recover == /\ view = "recovering"
            /\ UNCHANGED <<chainTxs, taps, booked, Hist>>
 
 \* Fixed: money moved and the charge is unbooked; recovery records the hash
-\* (the backend answers a repeated hash idempotently) and it books.
-RecoverRecord == /\ Fixed /\ view = "recovering" /\ op = "landed" /\ orphans = 0 /\ ~booked
+\* (the backend answers a repeated hash idempotently) and it books. It books as
+\* soon as one saved op executed, also while another op still runs: every
+\* saved op pays the same order, which books once.
+RecoverRecord == /\ Fixed /\ view = "recovering" /\ op = "landed" /\ ~booked
                  /\ booked' = TRUE /\ view' = "status" /\ ClearMarker
                  /\ UNCHANGED <<op, orphans, chainTxs, taps, Hist>>
 
