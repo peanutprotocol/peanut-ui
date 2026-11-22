@@ -1,8 +1,9 @@
-import { type BridgeKycStatus } from '@/utils/bridge-accounts.utils'
+import type { BridgeKycStatus, RequestChargeStatus, RequestPaymentStatus } from '@/constants/api-enums.generated'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import type { paths } from '@/types/api.generated'
 
-export type TStatus = 'NEW' | 'PENDING' | 'COMPLETED' | 'EXPIRED' | 'FAILED' | 'SIGNED' | 'SUCCESSFUL' | 'CANCELLED'
+/** A charge or payment status: the timeline mixes both vocabularies. */
+export type TStatus = RequestChargeStatus | RequestPaymentStatus
 
 export interface TimelineEntry {
     status: TStatus

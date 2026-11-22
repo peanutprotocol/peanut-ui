@@ -1,10 +1,11 @@
 /**
  * Mirror of the wire codes peanut-api-ts emits (`src/errors/error-codes.ts`).
  *
- * Hand-maintained rather than derived from `api.generated.ts`: the backend
- * declares `code` as an open string in the shared error schema (a per-route
- * literal union would force every route to enumerate its codes and balloon the
- * openapi snapshot), so there is no generated union to narrow against.
+ * The codes this app handles, kept by hand for their notes. The API's full
+ * registry is generated as `ApiErrorCode` (`@/constants/api-enums.generated`).
+ * This list is not typed against it yet: it still names the XCHAIN_* codes the
+ * API stopped sending when it removed the cross-chain cap (peanut-api-ts
+ * bbec29cff), and their handling has to go first.
  *
  * A code the backend adds but this list omits simply falls through to the
  * message matchers in `friendly-error.utils` — the same behaviour as before the
