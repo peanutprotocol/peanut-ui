@@ -177,7 +177,7 @@ export const senderNoteText = (raw: string | null | undefined): string | undefin
 
 /** Which label a bank-account row carries. Callers map it to display text —
  *  this module stays copy-free. */
-export type BankAccountLabelKey = 'iban' | 'clabe' | 'accountNumber' | 'address' | 'pixKey'
+export type BankAccountLabelKey = 'iban' | 'clabe' | 'accountNumber' | 'address' | 'pixKey' | 'account'
 
 /** A payout account that is a Pix key (wire `pix`, `BANK_PIX`): the key it paid. */
 export const isPixAccountType = (type: string): boolean => type.toLowerCase().endsWith('pix')
@@ -193,6 +193,9 @@ export const bankAccountLabelKey = (type: string): BankAccountLabelKey => {
     if (t.endsWith('iban')) return 'iban'
     if (t.endsWith('clabe')) return 'clabe'
     if (isPixAccountType(type)) return 'pixKey'
+    // Argentina (Manteca): a CBU, a CVU or an alias such as a Mercado Pago one,
+    // and the type does not say which (TASK-23266)
+    if (t.endsWith('cbu') || t.endsWith('cvu')) return 'account'
     return 'accountNumber'
 }
 

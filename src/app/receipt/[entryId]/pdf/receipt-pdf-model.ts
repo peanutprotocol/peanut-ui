@@ -162,7 +162,9 @@ export function buildReceiptPdfModel(
                 ? t('transaction.rows.address')
                 : labelKey === 'pixKey'
                   ? t('withdraw.pixKey.placeholder')
-                  : (BANK_ACCOUNT_SCHEME_LABELS[labelKey] ?? t('transaction.rows.accountNumber'))
+                  : labelKey === 'account'
+                    ? t('setupRedesign.accounts.account')
+                    : (BANK_ACCOUNT_SCHEME_LABELS[labelKey] ?? t('transaction.rows.accountNumber'))
         const { identifier, type } = transaction.bankAccountDetails
         push(label, maskAccountIdentifier(labelKey === 'pixKey' ? formatPixKey(identifier) : identifier, type))
     }

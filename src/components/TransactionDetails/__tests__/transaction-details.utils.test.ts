@@ -105,6 +105,13 @@ describe('bankAccountLabelKey', () => {
         expect(bankAccountLabelKey('pix')).toBe('pixKey')
         expect(bankAccountLabelKey('BANK_PIX')).toBe('pixKey')
     })
+    // TASK-23266: a Mercado Pago alias read "Account number". The Argentine
+    // types carry a CBU, a CVU or an alias and do not say which.
+    test('an Argentine destination is an account, not an account number', () => {
+        expect(bankAccountLabelKey('BANK_CBU')).toBe('account')
+        expect(bankAccountLabelKey('BANK_CVU')).toBe('account')
+        expect(bankAccountLabelKey('BANK_ACH')).toBe('accountNumber')
+    })
 })
 
 describe('receiptStatusDate', () => {
