@@ -68,7 +68,7 @@ const PREFIX = 'peanut:pendingChargeSend:'
  * into a charge that never books.
  */
 const WAIT_WINDOW_MS = 24 * 60 * 60 * 1000
-export const isPastWaitWindow = (send: PendingChargeSend) => Date.now() - send.startedAt > WAIT_WINDOW_MS
+export const isPastWaitWindow = (send: PendingChargeSend, now: number) => now - send.startedAt > WAIT_WINDOW_MS
 const listeners = new Set<() => void>()
 // A marker local storage refused (full, blocked, private mode) is kept here
 // and read first: the guard holds for the life of this page, and the payment
