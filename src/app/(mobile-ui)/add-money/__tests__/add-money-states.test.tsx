@@ -798,7 +798,6 @@ type Gate =
 function setGate(kind: Gate) {
     let rails: any[] = []
     let nextActions: any[] = []
-    let isKycApproved = false
     let gateState: any = { kind: 'loading' }
 
     switch (kind) {
@@ -813,7 +812,6 @@ function setGate(kind: Gate) {
                     status: 'enabled',
                 },
             ]
-            isKycApproved = true
             gateState = { kind: 'ready' }
             break
         case 'accept-tos':
@@ -873,7 +871,6 @@ function setGate(kind: Gate) {
                     status: 'enabled',
                 },
             ]
-            isKycApproved = true
             gateState = { kind: 'needs-enrollment' }
             break
         case 'needs-identity':
@@ -883,7 +880,6 @@ function setGate(kind: Gate) {
         // the rail is provisioning: nothing for the user to do but wait
         case 'pending':
             rails = []
-            isKycApproved = true
             gateState = { kind: 'pending' }
             break
         // capabilities have not answered yet
@@ -913,7 +909,6 @@ function setGate(kind: Gate) {
         rails,
         capabilities: {},
         nextActions,
-        isKycApproved,
         gateFor: () => gateState,
         bankRails: () =>
             rails.filter((r) =>

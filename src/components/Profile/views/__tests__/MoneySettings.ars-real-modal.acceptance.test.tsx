@@ -80,12 +80,14 @@ let mockRails: unknown[] = []
 let mockNextActions: unknown[] = []
 // A provider rejection only surfaces for an APPROVED user, so this has to be
 // settable — the residence-park case below is exactly that shape.
-let mockIsKycApproved = false
+let mockHasAnyEnabledRail = false
+jest.mock('@/hooks/useVerification', () => ({
+    useVerification: () => ({ hasAnyEnabledRail: mockHasAnyEnabledRail, identityVerified: false, canUse: () => false }),
+}))
 jest.mock('@/hooks/useCapabilities', () => ({
     useCapabilities: () => ({
         capabilities: mockCapabilityBlock(),
         rails: mockCapabilityBlock().rails,
-        isKycApproved: mockIsKycApproved,
         railsForProvider: (provider: string) =>
             (mockRails as Array<Record<string, any>>).filter((rail) => rail.provider === provider),
         nextActions: mockCapabilityBlock().nextActions,
@@ -106,7 +108,7 @@ jest.mock('@/hooks/useCapabilities', () => ({
             jest
                 .requireActual('@/utils/capability-gate')
                 .deriveGate(
-                    { ...mockCapabilityBlock(), identityVerified: mockIsKycApproved, isLoading: false },
+                    { ...mockCapabilityBlock(), identityVerified: mockHasAnyEnabledRail, isLoading: false },
                     op,
                     scope
                 ),
@@ -301,7 +303,7 @@ beforeEach(() => {
     jest.clearAllMocks()
     mockRails = []
     mockNextActions = []
-    mockIsKycApproved = false
+    mockHasAnyEnabledRail = false
     mockRestrictions = { banking: false, card: false }
     mockUser = null
     mockIdentity = { status: 'not_started' }
@@ -319,7 +321,7 @@ describe('independent real-modal verification after the scoped ARS wait correcti
             residence: normalizeResidence({ declared: 'AR', verified: 'AR' }),
             user: { userId: 'synthetic-ars-user' },
         }
-        mockIsKycApproved = true
+        mockHasAnyEnabledRail = true
         mockIdentity = { status: 'verified' }
         mockSendsToVerify = true
     }

@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { FieldError } from '@/components/0_Bruddle/FieldError'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/context/authContext'
 import { useSafeBack } from '@/hooks/useSafeBack'
 import { Button } from '@/components/0_Bruddle/Button'
 import NavHeader from '@/components/Global/NavHeader'
@@ -26,12 +27,23 @@ import { useTranslations } from 'next-intl'
  * Continue first resolves the key's owner, so /qr-pay can show who is paid and
  * an unknown key stops here instead of failing at payment.
  */
-export default function PixKeySendView({ destinationParam }: { destinationParam?: string | null }) {
+/** The key comes as `destination`, or as a saved account's id (`savedAccountId`) from links made by the ui#4201 bundle. */
+export default function PixKeySendView({
+    destinationParam,
+    savedAccountId,
+}: {
+    destinationParam?: string | null
+    savedAccountId?: string | null
+}) {
     const router = useRouter()
+    const { user } = useAuth()
+    const initialPixKey =
+        destinationParam ??
+        (savedAccountId ? user?.accounts.find((account) => account.id === savedAccountId)?.identifier : undefined)
     const onBack = useSafeBack('/send')
     const t = useTranslations('withdraw')
     const tCommon = useTranslations('common')
-    const [pixKey, setPixKey] = useState<string>(destinationParam ?? '')
+    const [pixKey, setPixKey] = useState<string>(initialPixKey ?? '')
     const [isValid, setIsValid] = useState(false)
     const [isChanging, setIsChanging] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)

@@ -5,7 +5,6 @@ import type { Address, Hash } from 'viem'
 import { useTranslations } from 'next-intl'
 import { useAuth } from '@/context/authContext'
 import { spendMayHaveBroadcast, type SpendBroadcast } from '@/hooks/wallet/spendBroadcast'
-import { type PaymentCreationResponse, type TRequestChargeResponse } from '@/services/services.types'
 import { readUserOpOutcome } from '@/utils/userop-outcome'
 import {
     CLAIM_LEASE_MS,
@@ -20,12 +19,14 @@ import {
     thisTab,
     writePendingChargeSend,
     type PendingChargeSend,
+    type SendOrderRead,
 } from '../utils/pending-charge-send'
 
 /**
- * - `completed`: the charge is paid; the success screen shows.
- * - `sent`: the money left the wallet and the charge is not booked yet; the
- *   confirming screen shows, Pay stays off, and the next visit books it again.
+ * - `completed`: the order is paid; the success screen shows.
+ * - `sent`: the money left the wallet and the order is not booked yet; the
+ *   confirming screen shows, Pay stays off, and the next visit reads the
+ *   order again (and books the hash, where the flow books it).
  * - `not-sent`: proven that nothing moved; Pay is offered again.
  * - `in-flight`: a send may still land; the confirming screen shows and Pay stays off.
  * - `unconfirmed`: past the wait window with no proof either way; Pay is
@@ -36,7 +37,6 @@ export type PendingSendOutcome = 'completed' | 'sent' | 'not-sent' | 'in-flight'
 
 const RECOVERY_INTERVAL_MS = 3_000
 const RECOVERY_WINDOW_MS = 60_000
-const CLOSED_CHARGE = new Set(['FAILED', 'CANCELLED'])
 
 // Per page load, shared by every screen of a flow: an intent with a send
 // running here is not resumed, and one recovery runs per intent.
@@ -50,36 +50,42 @@ interface PendingChargeSendOptions {
     intent: string | null
     /** The user's smart account: the sender of every op the payment signed. */
     walletAddress: Address | undefined
-    fetchCharge: (chargeId: string) => Promise<TRequestChargeResponse>
-    /** Records the payment for a hash the recovery found. The flow adds chain, token and payer. */
-    recordPayment: (chargeId: string, txHash: Hash) => Promise<PaymentCreationResponse>
+    /** Reads the order the send pays from its owner. The flow keeps what it shows of it. */
+    readOrder: (send: PendingChargeSend) => Promise<SendOrderRead>
+    /**
+     * Books a hash the recovery found on an `unbooked` order, and may resolve
+     * with what puts the booking on the screen (called only while it is open).
+     * Without it, the order's owner books the money that left the wallet, and
+     * the recovery reads the order until it does.
+     */
+    recordPayment?: (send: PendingChargeSend, txHash: Hash) => Promise<(() => void) | void>
     /** The flow shows a screen that can start a payment: a pending send resumes its recovery there. */
     canResume: boolean
-    setCharge: (charge: TRequestChargeResponse) => void
-    setPayment?: (payment: PaymentCreationResponse) => void
-    setIsSuccess: (success: boolean) => void
+    setIsSuccess?: (success: boolean) => void
+    /** The transfer the money moved in, once the recovery knows it. */
+    setTxHash?: (txHash: Hash) => void
     setIsPaymentStatusUnknown?: (unknown: boolean) => void
     setCurrentView: (view: 'INITIAL' | 'STATUS') => void
     setError: (error: { showError: boolean; errorMessage: string }) => void
 }
 
 /**
- * The double-send guard of the charge-backed wallet sends (direct send,
- * request pay, pot contribution), the Fixed variant of mono
- * engineering/api/state-machines/ChargeSendFlow.tla:
+ * The double-send guard of every wallet payment that pays an order (direct
+ * send, request pay, pot contribution, crypto, Bridge and Manteca withdraw),
+ * the Fixed variant of mono engineering/api/state-machines/ChargeSendFlow.tla:
  *
  * 0. `claim` latches the tap before the first await, so a second tap in the
  *    same tick starts nothing; `release` lets it go once the attempt ended.
  * 1. `begin` saves a pending marker before anything is signed; `onBroadcast`
- *    adds each user op before it goes out, and throws (nothing goes out)
- *    when this attempt's marker is gone or another tab's; `markSent` adds the
- *    hash. When local storage refuses the marker, it lives in page memory:
- *    the guard holds on this page and the payment goes on.
+ *    adds each send before it leaves this device, and throws (nothing goes
+ *    out) when this attempt's marker is gone or another tab's; `markSent`
+ *    adds the hash. When local storage refuses the marker, it lives in page
+ *    memory: the guard holds on this page and the payment goes on.
  * 2. A failure after the send left this device (`mayHaveSent`) goes to
  *    `recover`, never back to the amount screen.
- * 3. `recover` reads the charge and the chain until the send is final. Pay
+ * 3. `recover` reads the order and the chain until the send is final. Pay
  *    comes back when it is proven that nothing moved; a failed read proves
- *    nothing. The marker goes then, once the charge is booked, or, past the
+ *    nothing. The marker goes then, once the order is booked, or, past the
  *    wait window with no proof, with the "could not be confirmed" error.
  * 4. While a marker exists, `isPending` keeps Pay off, and a reload resumes
  *    the recovery. Another tab's unsent claim keeps it off for its lease only.
@@ -87,12 +93,11 @@ interface PendingChargeSendOptions {
 export function usePendingChargeSend({
     intent,
     walletAddress,
-    fetchCharge,
+    readOrder,
     recordPayment,
     canResume,
-    setCharge,
-    setPayment,
     setIsSuccess,
+    setTxHash,
     setIsPaymentStatusUnknown,
     setCurrentView,
     setError,
@@ -118,7 +123,7 @@ export function usePendingChargeSend({
 
     // Rendered state lags a tap: two taps in one tick both see Pay on. The
     // claim also writes a marker before the first await, so another tab's Pay
-    // goes off while this tab creates the charge; `begin` fills it in.
+    // goes off while this tab creates the order; `begin` fills it in.
     const claimed = useRef(false)
     const claim = useCallback(() => {
         if (claimed.current) return false
@@ -126,7 +131,6 @@ export function usePendingChargeSend({
             return false
         }
         claimed.current = true
-        // a refused write is caught by `begin`, which stops the send
         if (key) {
             claiming.add(key)
             writePendingChargeSend(key, {
@@ -162,7 +166,7 @@ export function usePendingChargeSend({
     const attemptChargeId = useRef<string | null>(null)
 
     const begin = useCallback(
-        (chargeId: string) => {
+        (chargeId: string, intentId?: string) => {
             if (!key) return
             hasResumed.current = true
             attemptChargeId.current = chargeId
@@ -170,6 +174,7 @@ export function usePendingChargeSend({
             sending.add(key)
             writePendingChargeSend(key, {
                 chargeId,
+                ...(intentId ? { intentId } : {}),
                 owner: thisTab(),
                 startedAt: Date.now(),
                 userOps: [],
@@ -199,12 +204,7 @@ export function usePendingChargeSend({
     )
 
     // The money already left: a refused write keeps the marker on this page.
-    const markSent = useCallback(
-        (txHash: Hash) => {
-            update((send) => ({ ...send, txHash }))
-        },
-        [update]
-    )
+    const markSent = useCallback((txHash: Hash) => update((send) => ({ ...send, txHash })), [update])
 
     const clear = useCallback(() => {
         claimed.current = false
@@ -224,9 +224,9 @@ export function usePendingChargeSend({
     )
 
     const recover = useCallback(async (): Promise<PendingSendOutcome> => {
-        const finish = (outcome: Exclude<PendingSendOutcome, 'cancelled'>) => {
-            // A booked charge, proof that nothing moved, or the end of the wait
-            // window ends the guard. `sent` keeps it: the charge may still book it.
+        const finish = (outcome: Exclude<PendingSendOutcome, 'cancelled'>, txHash?: Hash) => {
+            // A booked order, proof that nothing moved, or the end of the wait
+            // window ends the guard. `sent` keeps it: the order may still book it.
             const ends = outcome === 'completed' || outcome === 'not-sent' || outcome === 'unconfirmed'
             if (key && ends) writePendingChargeSend(key, null)
             if (outcome === 'not-sent' || outcome === 'unconfirmed') {
@@ -239,8 +239,9 @@ export function usePendingChargeSend({
                 })
                 setCurrentView('INITIAL')
             } else {
+                if (txHash) setTxHash?.(txHash)
                 setIsPaymentStatusUnknown?.(outcome !== 'completed')
-                setIsSuccess(outcome === 'completed')
+                setIsSuccess?.(outcome === 'completed')
                 setCurrentView('STATUS')
             }
             return outcome
@@ -251,7 +252,7 @@ export function usePendingChargeSend({
         if (recovering.has(key)) return 'in-flight'
         recovering.add(key)
         setIsRecovering(true)
-        setIsSuccess(false)
+        setIsSuccess?.(false)
         setIsPaymentStatusUnknown?.(true)
         try {
             const deadline = Date.now() + RECOVERY_WINDOW_MS
@@ -259,11 +260,15 @@ export function usePendingChargeSend({
             for (;;) {
                 let send = readPendingChargeSend(key)
                 if (!send) return finish('in-flight')
-                const charge = await fetchCharge(send.chargeId).catch(() => null)
+                const order = await readOrder(send).catch(() => null)
                 if (hasLeftScreen.current) return 'cancelled'
-                if (charge) setCharge(charge)
-                const status = charge?.status ?? ''
-                if (status === 'COMPLETED') return finish('completed')
+                order?.show?.()
+                if (order?.state === 'completed') return finish('completed', send.txHash ?? order.txHash)
+                // the order's owner holds the transfer: the money moved in it
+                if (!send.txHash && order?.txHash) {
+                    send = { ...send, txHash: order.txHash }
+                    writePendingChargeSend(key, send)
+                }
 
                 if (!send.txHash) {
                     const outcomes = await Promise.all(
@@ -289,29 +294,39 @@ export function usePendingChargeSend({
                         ) &&
                         // an op without a hash cannot be read
                         !send.untrackedBroadcast &&
-                        // the backend owns a card-balance broadcast: only its closed charge proves it
-                        (!send.backendBroadcast || CLOSED_CHARGE.has(status))
+                        // the backend owns its broadcast: only its closed order proves it
+                        (!send.backendBroadcast || order?.state === 'closed')
                     ) {
                         return finish('not-sent')
                     }
                 }
                 if (send.txHash) {
-                    // Money left the wallet: a closed charge cannot book it, and the
+                    // Money left the wallet: a closed order cannot book it, and the
                     // confirming screen sends the payer to support if it never shows.
-                    if (CLOSED_CHARGE.has(status)) return finish(isPastWaitWindow(send) ? 'unconfirmed' : 'sent')
-                    // PENDING means no payment was recorded. The backend answers a
+                    if (order?.state === 'closed') {
+                        return finish(isPastWaitWindow(send) ? 'unconfirmed' : 'sent', send.txHash)
+                    }
+                    // `unbooked` means no payment was recorded. The owner answers a
                     // repeated hash idempotently, so every recovery tries once more.
-                    if (status === 'PENDING' && !recordTried) {
+                    if (recordPayment && order?.state === 'unbooked' && !recordTried) {
                         recordTried = true
-                        const payment = await recordPayment(send.chargeId, send.txHash).catch(() => null)
+                        const recorded = await recordPayment(send, send.txHash).then(
+                            (show) => ({ show }),
+                            () => null
+                        )
                         if (hasLeftScreen.current) return 'cancelled'
-                        if (payment) setPayment?.(payment)
+                        if (recorded) {
+                            recorded.show?.()
+                            return finish('completed', send.txHash)
+                        }
                         continue
                     }
                 }
                 // Nothing proved either way within a day: Pay comes back, with the warning.
                 if (isPastWaitWindow(send)) return finish('unconfirmed')
-                if (Date.now() + RECOVERY_INTERVAL_MS > deadline) return finish(send.txHash ? 'sent' : 'in-flight')
+                if (Date.now() + RECOVERY_INTERVAL_MS > deadline) {
+                    return send.txHash ? finish('sent', send.txHash) : finish('in-flight')
+                }
                 await new Promise((resolve) => setTimeout(resolve, RECOVERY_INTERVAL_MS))
                 if (hasLeftScreen.current) return 'cancelled'
             }
@@ -325,11 +340,10 @@ export function usePendingChargeSend({
     }, [
         key,
         walletAddress,
-        fetchCharge,
+        readOrder,
         recordPayment,
-        setCharge,
-        setPayment,
         setIsSuccess,
+        setTxHash,
         setIsPaymentStatusUnknown,
         setCurrentView,
         setError,

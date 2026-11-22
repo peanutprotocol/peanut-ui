@@ -19,6 +19,7 @@ import { useSemanticRequestFlowContext } from './SemanticRequestFlowContext'
 import { useChargeManager } from '@/features/payments/shared/hooks/useChargeManager'
 import { readChargeUntilFinal } from '@/features/payments/shared/utils/charge-receipt.utils'
 import { usePendingChargeSend } from '@/features/payments/shared/hooks/usePendingChargeSend'
+import { chargeOrderState, type PendingChargeSend } from '@/features/payments/shared/utils/pending-charge-send'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
 import { useCrossChainTransfer } from '@/features/payments/shared/hooks/useCrossChainTransfer'
 import { isQuoteNearExpiry } from '@/services/rhino-bridge'
@@ -108,9 +109,16 @@ export function useSemanticRequestFlow() {
     const { selectedChainID, selectedTokenAddress, selectedTokenData, setSelectedChainID, setSelectedTokenAddress } =
         useContext(tokenSelectorContext)
 
+    const readCharge = useCallback(
+        async ({ chargeId }: PendingChargeSend) => {
+            const found = await fetchCharge(chargeId)
+            return { state: chargeOrderState(found.status), show: () => setCharge(found) }
+        },
+        [fetchCharge, setCharge]
+    )
     const recordFoundPayment = useCallback(
-        (chargeId: string, txHash: string) =>
-            recordPayment({
+        async ({ chargeId }: PendingChargeSend, txHash: string) => {
+            const payment = await recordPayment({
                 chargeId,
                 chainId: PEANUT_WALLET_CHAIN.id.toString(),
                 txHash,
@@ -118,17 +126,17 @@ export function useSemanticRequestFlow() {
                 payerAddress: walletAddress as Address,
                 sourceChainId: selectedChainID || undefined,
                 sourceTokenAddress: selectedTokenAddress || undefined,
-            }),
-        [recordPayment, walletAddress, selectedChainID, selectedTokenAddress]
+            })
+            return () => setPayment(payment)
+        },
+        [recordPayment, walletAddress, selectedChainID, selectedTokenAddress, setPayment]
     )
     const pendingSend = usePendingChargeSend({
         intent: recipient ? `request:${recipient.resolvedAddress.toLowerCase()}` : null,
         walletAddress: walletAddress as Address | undefined,
-        fetchCharge,
+        readOrder: readCharge,
         recordPayment: recordFoundPayment,
         canResume: currentView === 'INITIAL' || currentView === 'CONFIRM',
-        setCharge,
-        setPayment,
         setIsSuccess,
         setIsPaymentStatusUnknown,
         setCurrentView,

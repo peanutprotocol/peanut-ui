@@ -1118,6 +1118,7 @@ export interface paths {
                         onBehalfOf: string;
                         provider?: string;
                         sendLinkPubKey?: string;
+                        sendLinkSignature?: string;
                         source: {
                             currency: "usdc" | "eurc" | "usdt" | "dai";
                             fromAddress?: string;
@@ -11221,6 +11222,7 @@ export interface paths {
                                 spendingPower: number;
                             };
                             balanceUnavailable: boolean;
+                            cardState: "add-card" | "creating-card" | "pending" | "manual-review" | "requires-info" | "requires-support" | "rejected" | "active";
                             cards: {
                                 expiryMonth: number;
                                 expiryYear: number;
@@ -15866,7 +15868,7 @@ export interface paths {
                             [key: string]: unknown;
                         };
                         avatarKey?: string | null;
-                        bridgeKycStatus?: "not_started" | "incomplete" | "under_review" | "approved" | "rejected";
+                        bridgeKycStatus?: "not_started" | "under_review" | "incomplete" | "approved" | "rejected";
                         bridge_customer_id?: string;
                         dismissActivationCelebration?: boolean;
                         email?: string;
@@ -22499,7 +22501,24 @@ export interface paths {
 }
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: never;
+    schemas: {
+        /** @enum {string} */
+        ApiErrorCode: "INSUFFICIENT_COLLATERAL" | "WITHDRAWAL_COOLDOWN_ACTIVE" | "WITHDRAWAL_SIGNATURE_COOLDOWN" | "WITHDRAWAL_SIGNATURE_EXPIRED" | "WITHDRAWAL_SUBMISSION_FAILED" | "WITHDRAWAL_PENDING_CONFIRMATION" | "STALE_CARD_APPROVAL" | "CARD_PERMISSION_MIGRATION_REQUIRED" | "CARD_APP_UPDATE_REQUIRED" | "CARD_PERMISSION_STATE_UNAVAILABLE" | "CARD_APPROVAL_SIGNATURE_REJECTED" | "WITHDRAWAL_PREPARATION_NOT_FOUND" | "WITHDRAWAL_STATUS_UNAVAILABLE" | "RAIN_CONTROLLER_CHANGED" | "NO_APPROVED_CARD" | "NO_ACTIVE_CARD" | "NO_COLLATERAL_CONTRACT" | "CARD_RETURN_BLOCKED" | "CARD_BALANCE_REMAINS" | "CARD_BALANCE_UNREADABLE" | "CARD_SECRETS_RATE_LIMITED" | "CARD_PROVISIONING_BILLING_MISSING" | "CARD_PROVISIONING_RATE_LIMITED" | "CARD_PROVISIONING_CARD_NOT_FOUND" | "CARD_PROVISIONING_UNAVAILABLE" | "CARD_PROVISIONING_FAILED" | "USER_OP_REVERTED" | "USER_OP_REJECTED" | "MANTECA_KYC_REQUIRED" | "MANTECA_SENDER_REJECTED" | "PAYER_BLOCKED" | "MERCHANT_BLOCKED" | "PIX_RESIDENCE_NOT_SUPPORTED" | "PIX_PROVIDER_MOVED" | "MANTECA_ACCOUNT_REJECTED" | "MANTECA_TEMPORARILY_UNAVAILABLE" | "PROVIDER_REJECTED" | "MANTECA_SOURCE_OVER_MONTHLY_CAP" | "MANTECA_MERCHANT_VOLUME_NEAR_CAP" | "MANTECA_MERCHANT_RECENT_REFUND" | "MANTECA_USER_NOT_PROVISIONED" | "PIX_MIN_AMOUNT" | "PIX_RECURRING_NOT_SUPPORTED" | "PAYMENT_DESTINATION_MISSING_AMOUNT" | "PAYMENT_DESTINATION_NOT_FOUND" | "PAYMENT_DESTINATION_EXPIRED" | "PAYMENT_DESTINATION_DECODING_ERROR" | "PROVIDER_UNAVAILABLE" | "QR_PAYMENT_CANCELLED" | "QR_PAYMENT_LOCK_USED" | "FUNDING_PENDING_CONFIRMATION" | "QR_INIT_IN_PROGRESS" | "QR_INIT_KEY_MISMATCH" | "QR_INIT_INVALID_KEY" | "TRANSFER_ALREADY_CONFIRMED" | "BANK_ACCOUNT_NOT_USABLE" | "LINK_ALREADY_CLAIMED" | "CLAIM_RECIPIENT_NOT_ALLOWED" | "DEPOSIT_ACCOUNTS_NOT_AVAILABLE" | "DEPOSIT_ACCOUNT_LIMIT" | "DEPOSIT_ACCOUNT_PROVIDER_REFUSED" | "DEPOSIT_ACCOUNT_NOT_ADOPTED" | "DEPOSIT_ACCOUNT_CLAIM_IN_FLIGHT" | "DEPOSIT_IN_FLIGHT" | "CHAIN_INFRA_UNAVAILABLE" | "BELOW_MIN_BRIDGE_AMOUNT" | "VERIFIED_ADDRESS_RATE_LIMITED" | "USER_NOT_FOUND" | "REQUEST_CLOSED" | "REQUEST_TOKEN_NOT_STABLECOIN" | "RECIPIENT_NOT_PEANUT_USER" | "ROUTE_NOT_AVAILABLE" | "PIX_QUOTE_CHANGED" | "PIX_LIMIT_EXCEEDED" | "PIX_KEY_BLOCKED" | "PIX_KEY_LOOKUP_THROTTLED" | "PIX_KEY_NOT_FOUND" | "PIX_KEY_IS_QR_CODE" | "WITHDRAWAL_IN_PROGRESS" | "PIX_QUOTE_EXPIRED" | "PIX_QR_AMOUNT_FIXED" | "PIX_PAYMENT_EXISTS";
+        /** @enum {string} */
+        BridgeKycStatus: "not_started" | "under_review" | "incomplete" | "approved" | "rejected";
+        /** @enum {string} */
+        RailStatus: "PENDING" | "ENABLED" | "REQUIRES_INFORMATION" | "REQUIRES_EXTRA_INFORMATION" | "REQUIRES_SUPPORT" | "REJECTED" | "FAILED";
+        /** @enum {string} */
+        RainCardStatus: "NOT_ACTIVATED" | "ACTIVE" | "LOCKED" | "CANCELED";
+        /** @enum {string} */
+        RequestChargeStatus: "COMPLETED" | "EXPIRED" | "FAILED" | "NEW" | "PENDING" | "SIGNED" | "CANCELLED";
+        /** @enum {string} */
+        RequestPaymentStatus: "PENDING" | "SUCCESSFUL" | "FAILED";
+        /** @enum {string} */
+        SendLinkStatus: "creating" | "completed" | "CLAIMING" | "CLAIMED" | "CANCELLED" | "FAILED";
+        /** @enum {string} */
+        TransactionIntentStatus: "PENDING" | "AWAITING_USER_ACTION" | "AWAITING_SETTLEMENT" | "PROCESSING" | "COMPLETED" | "FAILED" | "CANCELLED" | "REFUNDED";
+    };
     responses: never;
     parameters: never;
     requestBodies: never;

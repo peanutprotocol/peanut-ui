@@ -159,7 +159,6 @@ function setCapabilities(
             { rails: rails as RailCapability[], nextActions: [], restrictions: [] },
             { identity: { status: rails.some((r) => r.status === 'enabled') ? 'verified' : 'not_started' } }
         ),
-        isKycApproved: rails.some((r) => r.status === 'enabled'),
         gateFor: (op: string, scope: GateScopeArg) => {
             mockGateForOp(op, scope)
             return { kind: gateByScope?.(op, scope) ?? gateKind }

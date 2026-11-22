@@ -250,6 +250,19 @@ const BANK_ACCOUNTS = [
 // The same two bank accounts, but named by the user and with a last withdrawal
 // on them — what the picker sorts and titles by (TASK-22589). The Spanish one
 // was used more recently, so it sorts above the US one that was added later.
+// a saved Manteca account: the withdraw URL names it by id, never by its alias
+const MANTECA_ACCOUNT = {
+    id: 'fixture-manteca-1',
+    userId: 'demo-user',
+    bridgeAccountId: '',
+    type: 'manteca',
+    identifier: 'fixture.account',
+    details: { bankName: null, accountOwnerName: 'Demo User', countryCode: 'ARG', countryName: 'argentina' },
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    chainId: null,
+}
+
 const NAMED_BANK_ACCOUNTS = [
     { ...BANK_ACCOUNTS[0], label: 'Payroll', lastUsedAt: '2026-08-12T09:00:00.000Z' },
     { ...BANK_ACCOUNTS[1], label: null, lastUsedAt: '2026-06-02T09:00:00.000Z' },
@@ -3648,16 +3661,16 @@ export const FIXTURES: Record<string, Fixture> = {
     // Manteca is entered with no amount now and collects it itself, in the
     // local currency — the amount as the last step before the review.
     'withdraw-amount-last': {
-        route: '/withdraw/manteca?method=bank-transfer&country=argentina&destination=fixture.account&isSavedAccount=true',
+        route: '/withdraw/manteca?method=bank-transfer&country=argentina&account=fixture-manteca-1',
         about: 'Withdraw amount as the last step, in local currency, with its own minimum.',
-        responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...NAMED_BANK_ACCOUNTS] } },
+        responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...NAMED_BANK_ACCOUNTS, MANTECA_ACCOUNT] } },
     },
     // A saved destination opens amount entry; an amount below the minimum shows the field error.
     'withdraw-amount-error': {
-        route: '/withdraw/manteca?method=bank-transfer&country=argentina&destination=fixture.account&isSavedAccount=true&amount=0.01',
+        route: '/withdraw/manteca?method=bank-transfer&country=argentina&account=fixture-manteca-1&amount=0.01',
         about: 'Withdraw amount step with its inline error — the amount is below the minimum.',
         waitFor: 'p[role="alert"]',
-        responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...NAMED_BANK_ACCOUNTS] } },
+        responses: { 'GET /users/me': { accounts: [WALLET_ACCOUNT, ...NAMED_BANK_ACCOUNTS, MANTECA_ACCOUNT] } },
     },
     // ---- merchant Pix QR on Avenia, through the neutral pay routes (TASK-24947 M4) ----
     'qr-pay-avenia-form': {

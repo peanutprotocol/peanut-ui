@@ -11,7 +11,9 @@ import { withdrawCountryUrl } from '@/utils/native-routes'
 
 /**
  * /withdraw/manteca with its query contract (method, country, amount,
- * destination, isSavedAccount). Undefined/empty values are omitted.
+ * destination, isSavedAccount). The readers also accept `account=<saved
+ * account id>`, which links made by the ui#4201 bundle carry. Undefined/empty
+ * values are omitted.
  */
 export function mantecaWithdrawUrl(params: Record<string, string | undefined>): string {
     const search = new URLSearchParams()

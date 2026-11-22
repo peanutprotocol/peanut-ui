@@ -18,6 +18,7 @@ import { loadingStateContext } from '@/context/loadingStates.context'
 import { useDirectSendFlowContext } from './DirectSendFlowContext'
 import { chargesApi } from '@/services/charges'
 import { usePendingChargeSend } from '@/features/payments/shared/hooks/usePendingChargeSend'
+import { chargeOrderState, type PendingChargeSend } from '@/features/payments/shared/utils/pending-charge-send'
 import { useChargeManager } from '@/features/payments/shared/hooks/useChargeManager'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -80,25 +81,32 @@ export function useDirectSendFlow() {
         isFetchingSpendableBalance,
     } = useWallet()
 
+    const readCharge = useCallback(
+        async ({ chargeId }: PendingChargeSend) => {
+            const found = await chargesApi.get(chargeId)
+            return { state: chargeOrderState(found.status), show: () => setCharge(found) }
+        },
+        [setCharge]
+    )
     const recordFoundPayment = useCallback(
-        (chargeId: string, txHash: string) =>
-            recordPayment({
+        async ({ chargeId }: PendingChargeSend, txHash: string) => {
+            const payment = await recordPayment({
                 chargeId,
                 chainId: PEANUT_WALLET_CHAIN.id.toString(),
                 txHash,
                 tokenAddress: PEANUT_WALLET_TOKEN as Address,
                 payerAddress: walletAddress as Address,
-            }),
-        [recordPayment, walletAddress]
+            })
+            return () => setPayment(payment)
+        },
+        [recordPayment, walletAddress, setPayment]
     )
     const pendingSend = usePendingChargeSend({
         intent: recipient ? `direct-send:${recipient.address.toLowerCase()}` : null,
         walletAddress: walletAddress as Address | undefined,
-        fetchCharge: chargesApi.get,
+        readOrder: readCharge,
         recordPayment: recordFoundPayment,
         canResume: currentView === 'INITIAL',
-        setCharge,
-        setPayment,
         setIsSuccess,
         setCurrentView,
         setError,

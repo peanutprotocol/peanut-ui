@@ -19,6 +19,7 @@ import { type Address } from 'viem'
 import { useContributePotFlowContext } from './ContributePotFlowContext'
 import { useChargeManager } from '@/features/payments/shared/hooks/useChargeManager'
 import { usePendingChargeSend } from '@/features/payments/shared/hooks/usePendingChargeSend'
+import { chargeOrderState, type PendingChargeSend } from '@/features/payments/shared/utils/pending-charge-send'
 import { usePaymentRecorder } from '@/features/payments/shared/hooks/usePaymentRecorder'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
@@ -84,25 +85,32 @@ export function useContributePotFlow() {
         isSpendableBalanceReady,
     } = useWallet()
 
+    const readCharge = useCallback(
+        async ({ chargeId }: PendingChargeSend) => {
+            const found = await fetchCharge(chargeId)
+            return { state: chargeOrderState(found.status), show: () => setCharge(found) }
+        },
+        [fetchCharge, setCharge]
+    )
     const recordFoundPayment = useCallback(
-        (chargeId: string, txHash: string) =>
-            recordPayment({
+        async ({ chargeId }: PendingChargeSend, txHash: string) => {
+            const payment = await recordPayment({
                 chargeId,
                 chainId: PEANUT_WALLET_CHAIN.id.toString(),
                 txHash,
                 tokenAddress: PEANUT_WALLET_TOKEN as Address,
                 payerAddress: walletAddress as Address,
-            }),
-        [recordPayment, walletAddress]
+            })
+            return () => setPayment(payment)
+        },
+        [recordPayment, walletAddress, setPayment]
     )
     const pendingSend = usePendingChargeSend({
         intent: request ? `pot:${request.uuid}` : null,
         walletAddress: walletAddress as Address | undefined,
-        fetchCharge,
+        readOrder: readCharge,
         recordPayment: recordFoundPayment,
         canResume: currentView === 'INITIAL',
-        setCharge,
-        setPayment,
         setIsSuccess,
         setIsPaymentStatusUnknown,
         setCurrentView,

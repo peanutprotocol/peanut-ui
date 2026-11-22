@@ -228,6 +228,7 @@ jest.mock('@/utils/native-routes', () => ({
 }))
 
 const MANTECA_ACCOUNT = {
+    id: 'acct-manteca',
     type: 'manteca',
     identifier: 'cbu-12345678901234567890',
     details: { countryName: 'argentina' },
@@ -239,7 +240,12 @@ const IBAN_ACCOUNT = {
 } as unknown as Account
 
 const BANK_ACCOUNTS = [
-    { type: 'manteca', identifier: 'cbu-12345678901234567890', details: { countryName: 'argentina' } },
+    {
+        id: 'acct-manteca',
+        type: 'manteca',
+        identifier: 'cbu-12345678901234567890',
+        details: { countryName: 'argentina' },
+    },
     { type: 'iban', identifier: 'DE89370400440532013000', details: { countryName: 'germany' } },
 ]
 let mockUserAccounts: unknown[] = BANK_ACCOUNTS
@@ -302,7 +308,7 @@ beforeEach(() => {
 import { stashScannedDestination, takeScannedDestination } from '@/features/withdraw/destination'
 
 describe('WithdrawMethodView — destination state and routing (Chip review round 7)', () => {
-    it('a saved Manteca account forwards destination + isSavedAccount into /withdraw/manteca', () => {
+    it('a saved Manteca account forwards destination + isSavedAccount into /withdraw/manteca (dev contract)', () => {
         renderView()
         fireEvent.click(screen.getByTestId(`account-${MANTECA_ACCOUNT.identifier}`))
 
@@ -322,7 +328,12 @@ describe('WithdrawMethodView — destination state and routing (Chip review roun
     })
 
     describe('a saved Brazil PIX key', () => {
-        const BR_PIX_ACCOUNT = { type: 'manteca', identifier: 'maria@silva.com.br', details: { countryName: 'brazil' } }
+        const BR_PIX_ACCOUNT = {
+            id: 'acct-pix',
+            type: 'manteca',
+            identifier: 'maria@silva.com.br',
+            details: { countryName: 'brazil' },
+        }
 
         it('in Send, opens the PIX key screen with the key filled in', () => {
             mockIsBankFromSend = true

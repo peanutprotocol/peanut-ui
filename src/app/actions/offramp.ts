@@ -187,7 +187,7 @@ export async function createOfframpForGuest(
 export async function confirmOfframp(
     transferId: string,
     txHash: string
-): Promise<{ data?: { success: boolean }; error?: string }> {
+): Promise<{ data?: { success: boolean }; error?: string; code?: string }> {
     try {
         const response = await serverFetch(`/bridge/transfers/${transferId}/confirm`, {
             method: 'POST',
@@ -197,7 +197,11 @@ export async function confirmOfframp(
 
         if (!response.ok) {
             const data = await response.json()
-            return { error: data.userMessage || data.error || 'Failed to confirm off-ramp transfer.' }
+            return {
+                error: data.userMessage || data.error || 'Failed to confirm off-ramp transfer.',
+                // TRANSFER_ALREADY_CONFIRMED: a recovery's second confirm of the same deposit
+                ...(typeof data.code === 'string' ? { code: data.code } : {}),
+            }
         }
 
         return { data: { success: true } }

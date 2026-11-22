@@ -1,18 +1,25 @@
 import type { Hash } from 'viem'
 import type { BroadcastUserOp } from '@/hooks/wallet/spendBroadcast'
+import { storedKeysWithPrefix } from '@/utils/safe-storage'
 
 /**
- * A charge payment this device started and may have sent. While one exists for
- * an intent, Pay stays off and a reload resumes the recovery, so a lost answer
+ * A payment this device started and may have sent. While one exists for an
+ * intent, Pay stays off and a reload resumes the recovery, so a lost answer
  * can never turn into a second transfer (mono
  * engineering/api/state-machines/ChargeSendFlow.tla, the Fixed variant).
  *
  * Local storage, per user and intent, so it survives the app being killed. It
- * holds ids and hashes only, never personal data (mono design/design.md § state).
+ * holds ids and hashes; the one key that names an account goes at sign-out
+ * ({@link forgetPersonalPendingChargeSends}).
  */
 export interface PendingChargeSend {
-    /** Empty while the tap is claimed and the charge is not created yet. */
+    /**
+     * The order the send pays: a charge id, or the provider's transfer or
+     * preparation id. Empty while the tap is claimed and the order is not created yet.
+     */
     chargeId: string
+    /** The ledger intent of that order, for a flow that reads the order's state there. */
+    intentId?: string
     /** The tab that wrote it ({@link thisTab}); absent on markers written before tabs were told apart. */
     owner?: string
     /** When the send began (ms). */
@@ -25,6 +32,30 @@ export interface PendingChargeSend {
     untrackedBroadcast?: boolean
     /** The hash the send resolved with: the money left the wallet. */
     txHash?: Hash
+}
+
+/**
+ * Where the order a send pays stands, as its owner (the charge, the provider
+ * transfer) reports it:
+ * - `completed`: the payment is booked.
+ * - `unbooked`: open, with no payment recorded: recovery records the hash it found.
+ * - `settling`: open, and its owner is still working on it: recovery waits.
+ * - `closed`: failed or cancelled: it can book nothing.
+ */
+export type SendOrderState = 'completed' | 'unbooked' | 'settling' | 'closed'
+export interface SendOrderRead {
+    state: SendOrderState
+    /** The transfer the owner holds for this order, when it knows one. */
+    txHash?: Hash
+    /** Puts what was read on the screen; the recovery calls it only while the screen is still open. */
+    show?: () => void
+}
+
+export function chargeOrderState(status: string | null | undefined): SendOrderState {
+    if (status === 'COMPLETED') return 'completed'
+    if (status === 'PENDING') return 'unbooked'
+    if (status === 'FAILED' || status === 'CANCELLED') return 'closed'
+    return 'settling'
 }
 
 const PREFIX = 'peanut:pendingChargeSend:'
@@ -45,6 +76,23 @@ const listeners = new Set<() => void>()
 const memory = new Map<string, string>()
 
 export const pendingChargeSendKey = (userId: string, intent: string) => `${PREFIX}${userId}:${intent}`
+
+/** A Manteca withdrawal's intent names the bank account or Pix key it pays to: personal data. */
+export const MANTECA_WITHDRAW_INTENT = 'withdraw-manteca:'
+
+/**
+ * Removes this user's markers whose key holds personal data, at sign-out: the
+ * next account on this device must not read them (mono design/design.md § state).
+ */
+export function forgetPersonalPendingChargeSends(userId: string | undefined | null) {
+    if (!userId) return
+    const prefix = pendingChargeSendKey(userId, MANTECA_WITHDRAW_INTENT)
+    const keys = new Set([
+        ...storedKeysWithPrefix(prefix),
+        ...[...memory.keys()].filter((key) => key.startsWith(prefix)),
+    ])
+    keys.forEach((key) => writePendingChargeSend(key, null))
+}
 
 const TAB_KEY = 'peanut:pendingChargeSend:tab'
 let tab: string | undefined

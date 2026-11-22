@@ -11,10 +11,10 @@ import { cardApi, type CardInfoResponse } from '@/services/card'
 import { useAuth } from '@/context/authContext'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY, useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { computeCardState, type CardTopLevelState } from '@/components/Card/cardState.utils'
+import { servedCardState } from '@/components/Card/servedCardState'
 import { pollUntilApplyAdvances, pollUntilReady } from '@/components/Card/cardApply.utils'
 import { initiateSelfHealResubmission, startKycAction } from '@/app/actions/sumsub'
 import { rainApi, type ApplyForCardResponse, type RainFundingAccess } from '@/services/rain'
-import { cardConsentDocuments } from '@/services/consent'
 import { useRainFunding } from '@/hooks/wallet/useRainFunding'
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 import { fundingAccessQueryKey, useCardFundingAccess } from '@/hooks/useCardFundingAccess'
@@ -594,6 +594,7 @@ export function useCardFlow() {
         if (
             baseState !== 'loading' &&
             baseState !== 'add-card' &&
+            baseState !== 'creating-card' &&
             baseState !== 'pending' &&
             baseState !== 'manual-review'
         ) {
@@ -606,17 +607,22 @@ export function useCardFlow() {
     refreshIssuanceRef.current = refetchOverview
     const translateIssuanceRef = useRef(t)
     translateIssuanceRef.current = t
-    const finishIssuanceWait = useCallback((data: typeof overview) => {
-        if (
-            data?.status.hasApplication &&
-            data.status.railStatus === 'ENABLED' &&
-            data.cards.every((card) => card.status === 'CANCELED')
-        ) {
+    // The served state decides: the API still issuing reads as still creating; an application with
+    // nothing held and nothing issuing reads as a failed issue. Returns whether the card is still on its way.
+    const finishIssuanceWait = useCallback((data: typeof overview): boolean => {
+        if (!data) return false
+        const served = servedCardState(data)
+        if (served === 'creating-card') {
+            setIssuanceStillCreating(true)
+            return true
+        }
+        if (served === 'add-card' && data.status.hasApplication) {
             awaitingIssuanceRef.current = false
             issuanceOwnerRef.current = null
             setIssuanceExpired(true)
             setApplyError(translateIssuanceRef.current('page.issueFailed'))
         }
+        return false
     }, [])
 
     useEffect(() => {
@@ -628,14 +634,15 @@ export function useCardFlow() {
             !refreshIssuanceRef.current
         )
             return
+        // A served creating-card the user did not start here has no wait to bound: the overview poll ends it.
+        const owner = issuanceOwnerRef.current
+        if (!owner) return
         const deadline = issuanceDeadlineRef.current ?? Date.now() + CARD_ISSUANCE_WAIT_MS
         issuanceDeadlineRef.current = deadline
         if (Date.now() >= deadline) {
             setIssuanceReadError(true)
             return
         }
-        const owner = issuanceOwnerRef.current
-        if (!owner) return
         const ownsAttempt = () => issuanceOwnerRef.current === owner && sameIdentity(owner, identityRef.current)
         let stopped = false
         let busy = false
@@ -692,11 +699,12 @@ export function useCardFlow() {
         if (!owner || !sameIdentity(owner, identityRef.current) || !refreshIssuanceRef.current) return
         const result = await refreshIssuanceRef.current({ cancelRefetch: false })
         if (issuanceOwnerRef.current !== owner || !sameIdentity(owner, identityRef.current) || result.isError) return
-        if (issuanceDeadlineRef.current && Date.now() >= issuanceDeadlineRef.current) {
+        const stillCreating =
+            !!issuanceDeadlineRef.current &&
+            Date.now() >= issuanceDeadlineRef.current &&
             finishIssuanceWait(result.data)
-        }
         setIssuanceReadError(false)
-        setIssuanceStillCreating(false)
+        setIssuanceStillCreating(stillCreating)
     }, [finishIssuanceWait])
 
     // The user picked their residence country on the confirmation screen.
@@ -785,15 +793,9 @@ export function useCardFlow() {
                     with_session_key: !!serializedApproval,
                 })
                 try {
-                    // Consent-ledger echo: on acceptance, send the exact documents
-                    // CardTermsScreen displayed for this region (version + hash).
-                    const acceptedDocuments = termsAccepted
-                        ? cardConsentDocuments(pendingTerms?.isUsResident ?? false)
-                        : undefined
                     if (!(await activation.activate()) || changed() || addressBlockedRef.current) return undefined
                     const res = await rainApi.applyForCard({
                         termsAccepted,
-                        acceptedDocuments,
                         ...(serializedApproval ? { serializedApproval } : {}),
                     })
                     if (changed()) return undefined
@@ -838,7 +840,6 @@ export function useCardFlow() {
             advanceFromApplyResponse,
             residenceAddressStep,
             startFlowAction,
-            pendingTerms,
             needsFundingBeforeApply,
             userId,
             connectedAddress,
