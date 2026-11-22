@@ -24,7 +24,7 @@ import {
 } from '@/services/sendLinks'
 import { getInitialsFromName, isStableCoin, getChainName, getTokenLogo, getChainLogo } from '@/utils/general.utils'
 import { getTokenDetails } from '@/utils/token.utils'
-import { useCapabilities } from '@/hooks/useCapabilities'
+import { useVerification } from '@/hooks/useVerification'
 import { getUserById } from '@/app/actions/users'
 import * as Sentry from '@sentry/nextjs'
 import { useQuery } from '@tanstack/react-query'
@@ -80,8 +80,8 @@ export const useClaimFlow = () => {
     const [userId, setUserId] = useState<string | undefined>(undefined)
     const { address } = useWallet()
     const { user, isFetchingUser } = useAuth()
-    // current-user KYC gate — capability model (any enabled rail = identity cleared)
-    const { isKycApproved } = useCapabilities()
+    // a user with an enabled rail goes straight to the bank country list
+    const { hasAnyEnabledRail } = useVerification()
     const [isLinkCancelling, setisLinkCancelling] = useState(false)
     const senderId = claimLinkData?.sender?.userId
     const { interactions } = useUserInteractions(senderId ? [senderId] : [])
@@ -443,10 +443,10 @@ export const useClaimFlow = () => {
 
     // redirect to bank flow if user is KYC approved and step is bank
     useEffect(() => {
-        if (isKycApproved && stepFromURL === 'bank') {
+        if (hasAnyEnabledRail && stepFromURL === 'bank') {
             setClaimBankFlowStep(ClaimBankFlowStep.BankCountryList)
         }
-    }, [isKycApproved])
+    }, [hasAnyEnabledRail])
 
     return {
         user,

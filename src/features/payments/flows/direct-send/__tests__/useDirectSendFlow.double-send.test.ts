@@ -165,6 +165,7 @@ jest.mock('@/utils/userop-outcome', () => ({
 
 import { useDirectSendFlow } from '../useDirectSendFlow'
 import { markSpendMayHaveBroadcast } from '@/hooks/wallet/spendBroadcast'
+import { writePendingChargeSend } from '@/features/payments/shared/utils/pending-charge-send'
 
 const MARKER_KEY = 'peanut:pendingChargeSend:u1:direct-send:0x1111111111111111111111111111111111111111'
 const OP = { userOpHash: `0x${'ab'.repeat(32)}`, nonce: '7' }
@@ -196,6 +197,17 @@ async function advance(ms: number, done?: Promise<unknown>) {
     })
 }
 const errorShown = () => jest.mocked(ctx.setError).mock.calls.some(([e]) => (e as { showError: boolean }).showError)
+const lastError = () =>
+    (jest.mocked(ctx.setError).mock.calls.at(-1)?.[0] as { errorMessage: string } | undefined)?.errorMessage
+// payment.errors.externalPaymentNotConfirmed and payment.errors.paymentNotSent (en)
+const NOT_CONFIRMED = 'This payment could not be confirmed. If money left your wallet, contact support.'
+const NOT_SENT = 'This payment did not go through, and no money left your wallet. You can try again.'
+const DAY_AGO = () => Date.now() - 25 * 3600_000
+const marker = (fields: object) =>
+    window.localStorage.setItem(
+        MARKER_KEY,
+        JSON.stringify({ chargeId: 'charge-1', startedAt: Date.now(), userOps: [], backendBroadcast: false, ...fields })
+    )
 
 beforeEach(() => {
     jest.useFakeTimers()
@@ -220,6 +232,8 @@ afterEach(async () => {
     })
     jest.clearAllTimers()
     jest.useRealTimers()
+    // a marker storage refused lives in page memory, which outlives a test
+    writePendingChargeSend(MARKER_KEY, null)
 })
 
 it('trace 1: a 5xx on recording after a mined send goes to recovery, never to Send again', async () => {
@@ -320,7 +334,7 @@ it('offers Send again only once the chain proves nothing moved', async () => {
             throw markSpendMayHaveBroadcast(new Error('fetch failed'))
         }
     )
-    mockReadUserOpOutcome.mockResolvedValue('replaced')
+    mockReadUserOpOutcome.mockResolvedValue('reverted')
     const rendered = render()
     const { done } = await tap(rendered)
     await advance(0, done)
@@ -392,7 +406,7 @@ it('after a day, a marker is still read: an op that executed is found, never off
     expect(errorShown()).toBe(false)
 })
 
-it('after a day, an op still nowhere on chain counts as dropped and Send comes back', async () => {
+it('after a day, an op every read found nowhere may still run: Send comes back with the warning, never as "not sent"', async () => {
     window.localStorage.setItem(
         MARKER_KEY,
         JSON.stringify({
@@ -402,12 +416,24 @@ it('after a day, an op still nowhere on chain counts as dropped and Send comes b
             backendBroadcast: false,
         })
     )
+    mockReadUserOpOutcome.mockResolvedValue('not-found')
     const rendered = render()
     await advance(0)
     expect(mockReadUserOpOutcome).toHaveBeenCalled()
     expect(ctx.setCurrentView).toHaveBeenLastCalledWith('INITIAL')
+    expect(lastError()).toBe(NOT_CONFIRMED)
     expect(window.localStorage.getItem(MARKER_KEY)).toBeNull()
     expect(rendered.result.current.isLoading).toBe(false)
+})
+
+it('within a day, an op every read found nowhere keeps Send off: it may still run', async () => {
+    marker({ userOps: [OP] })
+    mockReadUserOpOutcome.mockResolvedValue('not-found')
+    const rendered = render()
+    await advance(65_000)
+    expect(ctx.setCurrentView).not.toHaveBeenCalledWith('INITIAL')
+    expect(window.localStorage.getItem(MARKER_KEY)).not.toBeNull()
+    expect(rendered.result.current.isLoading).toBe(true)
 })
 
 it('after a reload, the resume waits for the wallet before reading the chain', async () => {
@@ -430,8 +456,9 @@ it('after a reload, the resume waits for the wallet before reading the chain', a
     expect(ctx.setIsSuccess).toHaveBeenLastCalledWith(true)
 })
 
-it('two taps in one tick start one payment: one charge, one send', async () => {
-    mockSendMoney.mockImplementation(() => new Promise(() => {}))
+it('two taps in one tick start one payment: one charge, one send (BuggySameTick)', async () => {
+    let refuse!: (error: Error) => void
+    mockSendMoney.mockImplementation(() => new Promise((_resolve, reject) => (refuse = reject)))
     const rendered = render()
     act(() => {
         void rendered.result.current.executePayment()
@@ -440,4 +467,175 @@ it('two taps in one tick start one payment: one charge, one send', async () => {
     await advance(0)
     expect(mockCreateCharge).toHaveBeenCalledTimes(1)
     expect(mockSendMoney).toHaveBeenCalledTimes(1)
+    // end the attempt cleanly, so no send stays running for the next case
+    refuse(new Error('AA21 did not pay prefund'))
+    await advance(0)
+})
+
+/*
+ * Chip's review of ui#4198: four paths that offered Send again before it was
+ * proven the first transfer cannot land twice. Each replays one Buggy config
+ * of mono engineering/api/state-machines/ChargeSendFlow.tla.
+ */
+const quotaExceeded = () => {
+    throw new DOMException('quota exceeded', 'QuotaExceededError')
+}
+
+it('Chip #1 (BuggySentDeadline): money moved and recording keeps failing: the marker outlives the window, and the next visit books the hash', async () => {
+    mockRecordPayment.mockRejectedValue(new Error('Internal Server Error'))
+    const rendered = render()
+    const { done } = await tap(rendered)
+    await advance(65_000, done)
+    expect(ctx.setCurrentView).toHaveBeenLastCalledWith('STATUS')
+    expect(ctx.setIsSuccess).not.toHaveBeenCalledWith(true)
+    expect(JSON.parse(window.localStorage.getItem(MARKER_KEY) ?? 'null')?.txHash).toBe('0xmined')
+    expect(rendered.result.current.isLoading).toBe(true)
+    await act(async () => {
+        await rendered.result.current.executePayment()
+    })
+    expect(mockSendMoney).toHaveBeenCalledTimes(1)
+
+    // the next visit resumes and books the same hash
+    act(() => mounted.pop()?.())
+    mockRecordPayment.mockReset().mockResolvedValue({ uuid: 'p3' })
+    mockGetCharge.mockReset().mockResolvedValueOnce(charge('PENDING')).mockResolvedValue(charge('COMPLETED'))
+    render()
+    await advance(0)
+    expect(mockRecordPayment).toHaveBeenCalledWith(expect.objectContaining({ txHash: '0xmined' }))
+    expect(ctx.setIsSuccess).toHaveBeenLastCalledWith(true)
+    expect(window.localStorage.getItem(MARKER_KEY)).toBeNull()
+    expect(mockSendMoney).toHaveBeenCalledTimes(1)
+})
+
+/*
+ * Audit of wave 1 (ChargeSendFlow.tla, _BuggyPermanentHold): a hold no proof
+ * ends lasted for good. It now lasts one day: within it Send stays off, after
+ * it the next visit offers Send again with the "could not be confirmed"
+ * warning. A failed read still proves nothing (Chip #2, _BuggyUnknownByAge):
+ * the release after a day never says "not sent".
+ */
+it.each([
+    ['an op whose reads fail', { userOps: [OP] }, 'unknown'],
+    ['an op whose nonce is spent with no receipt for it or a sibling', { userOps: [OP] }, 'nonce-spent'],
+    ['a card-balance broadcast on an open charge', { backendBroadcast: true }, 'unknown'],
+    ['an op whose hash was never known', { untrackedBroadcast: true }, 'unknown'],
+    ['money that moved into a charge that closed unbooked', { txHash: '0xmined' }, 'unknown'],
+    ['money that moved while recording keeps failing', { txHash: '0xmined' }, 'unknown'],
+])('%s: Send stays off within a day', async (label, fields, outcome) => {
+    marker(fields)
+    mockReadUserOpOutcome.mockResolvedValue(outcome)
+    if (label.includes('closed')) mockGetCharge.mockResolvedValue(charge('CANCELLED'))
+    if (label.includes('recording')) mockRecordPayment.mockRejectedValue(new Error('Internal Server Error'))
+    const rendered = render()
+    await advance(65_000)
+    expect(ctx.setCurrentView).not.toHaveBeenCalledWith('INITIAL')
+    expect(window.localStorage.getItem(MARKER_KEY)).not.toBeNull()
+    expect(rendered.result.current.isLoading).toBe(true)
+})
+
+it.each([
+    ['an op whose reads fail', { userOps: [OP] }, 'unknown'],
+    ['an op whose nonce is spent with no receipt for it or a sibling', { userOps: [OP] }, 'nonce-spent'],
+    ['a card-balance broadcast on an open charge', { backendBroadcast: true }, 'unknown'],
+    ['an op whose hash was never known', { untrackedBroadcast: true }, 'unknown'],
+    ['money that moved into a charge that closed unbooked', { txHash: '0xmined' }, 'unknown'],
+    ['money that moved while recording keeps failing', { txHash: '0xmined' }, 'unknown'],
+])('%s: after a day, Send comes back with the warning (BuggyPermanentHold)', async (label, fields, outcome) => {
+    marker({ startedAt: DAY_AGO(), ...fields })
+    mockReadUserOpOutcome.mockResolvedValue(outcome)
+    if (label.includes('reads fail')) mockGetCharge.mockRejectedValue(new TypeError('Failed to fetch'))
+    if (label.includes('closed')) mockGetCharge.mockResolvedValue(charge('CANCELLED'))
+    if (label.includes('recording')) mockRecordPayment.mockRejectedValue(new Error('Internal Server Error'))
+    const rendered = render()
+    await advance(0)
+    expect(ctx.setCurrentView).toHaveBeenLastCalledWith('INITIAL')
+    expect(lastError()).toBe(NOT_CONFIRMED)
+    expect(lastError()).not.toBe(NOT_SENT)
+    expect(window.localStorage.getItem(MARKER_KEY)).toBeNull()
+    expect(rendered.result.current.isLoading).toBe(false)
+    expect(mockSendMoney).not.toHaveBeenCalled()
+})
+
+it('after a day, a charge that booked still ends on success, not on the warning', async () => {
+    marker({ startedAt: DAY_AGO(), txHash: '0xmined' })
+    mockGetCharge.mockResolvedValue(charge('COMPLETED'))
+    render()
+    await advance(0)
+    expect(ctx.setIsSuccess).toHaveBeenLastCalledWith(true)
+    expect(errorShown()).toBe(false)
+})
+
+/*
+ * Audit of wave 1 (ChargeSendFlow.tla, _BuggyRefuseOnStorageFail): when local
+ * storage refused the marker, the payment was refused, so private-mode and
+ * full-storage users could not pay. Now the marker lives in page memory and
+ * the payment goes on as it did before the guard.
+ */
+it('storage refuses the marker: the payment goes through as before the guard', async () => {
+    const setItem = jest.spyOn(Storage.prototype, 'setItem').mockImplementation(quotaExceeded)
+    try {
+        const rendered = render()
+        const { done } = await tap(rendered)
+        await advance(0, done)
+        expect(mockSendMoney).toHaveBeenCalledTimes(1)
+        expect(mockRecordPayment).toHaveBeenCalledWith(expect.objectContaining({ txHash: '0xmined' }))
+        expect(ctx.setIsSuccess).toHaveBeenLastCalledWith(true)
+        expect(errorShown()).toBe(false)
+        expect(rendered.result.current.isLoading).toBe(false)
+    } finally {
+        setItem.mockRestore()
+    }
+})
+
+it('storage refuses the marker: after a lost answer the guard still holds on this page', async () => {
+    mockSendMoney.mockImplementation(
+        async (_to: string, _amount: string, opts: { onBroadcast?: (b: unknown) => void }) => {
+            opts.onBroadcast?.({ via: 'wallet', userOp: OP })
+            throw markSpendMayHaveBroadcast(new Error('bundler request timed out'))
+        }
+    )
+    const setItem = jest.spyOn(Storage.prototype, 'setItem').mockImplementation(quotaExceeded)
+    try {
+        const rendered = render()
+        await tap(rendered)
+        expect(mockSendMoney).toHaveBeenCalledTimes(1)
+        expect(window.localStorage.getItem(MARKER_KEY)).toBeNull()
+        expect(rendered.result.current.isLoading).toBe(true)
+        await act(async () => {
+            await rendered.result.current.executePayment()
+        })
+        expect(mockSendMoney).toHaveBeenCalledTimes(1)
+        expect(mockCreateCharge).toHaveBeenCalledTimes(1)
+    } finally {
+        setItem.mockRestore()
+    }
+})
+
+it('Chip #5 (BuggySpentNonce): a spent nonce without the op receipt keeps Send off: the op may be the one that spent it', async () => {
+    window.localStorage.setItem(
+        MARKER_KEY,
+        JSON.stringify({ chargeId: 'charge-1', startedAt: Date.now(), userOps: [OP], backendBroadcast: false })
+    )
+    mockReadUserOpOutcome.mockResolvedValue('nonce-spent')
+    const rendered = render()
+    await advance(65_000)
+    expect(ctx.setCurrentView).not.toHaveBeenCalledWith('INITIAL')
+    expect(window.localStorage.getItem(MARKER_KEY)).not.toBeNull()
+    expect(rendered.result.current.isLoading).toBe(true)
+})
+
+it('a spent nonce is proven taken when another saved op of that nonce reverted: Send comes back', async () => {
+    const sibling = { userOpHash: `0x${'cd'.repeat(32)}`, nonce: OP.nonce }
+    window.localStorage.setItem(
+        MARKER_KEY,
+        JSON.stringify({ chargeId: 'charge-1', startedAt: Date.now(), userOps: [OP, sibling], backendBroadcast: false })
+    )
+    mockReadUserOpOutcome.mockImplementation(async (op: { userOpHash: string }) =>
+        op.userOpHash === OP.userOpHash ? 'nonce-spent' : 'reverted'
+    )
+    const rendered = render()
+    await advance(0)
+    expect(ctx.setCurrentView).toHaveBeenLastCalledWith('INITIAL')
+    expect(window.localStorage.getItem(MARKER_KEY)).toBeNull()
+    expect(rendered.result.current.isLoading).toBe(false)
 })

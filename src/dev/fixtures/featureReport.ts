@@ -515,9 +515,13 @@ export function withFixtureFeatureReport(
     paperwork?: { products?: { product: string; available: boolean; reason?: string }[] }
 ): IUserProfile | null {
     if (!user?.capabilities) return user
-    // An explicit report is the whole answer: merged over the demo report, it would keep the demo's steps.
     const explicit = override?.capabilities?.features
-    if (explicit !== undefined) return { ...user, capabilities: { ...user.capabilities, features: explicit } }
+    if (explicit) {
+        return {
+            ...user,
+            capabilities: { ...user.capabilities, features: withEntries(user.capabilities.features, explicit) },
+        }
+    }
     // The baseline's report describes the demo rails, not this fixture's.
     return {
         ...user,
@@ -537,6 +541,26 @@ export function withFixtureFeatureReport(
             }),
         },
     }
+}
+
+/**
+ * A fixture names only the features and accounts it is about. Each entry it
+ * names replaces the demo's whole, so the demo's steps do not leak into it;
+ * the ones it does not name stay the demo's, so the report stays complete.
+ */
+function withEntries(merged: FeatureReport | undefined, explicit: Partial<FeatureReport>): FeatureReport {
+    const features: Record<string, FeatureReportEntry & { accounts?: Record<string, FeatureReportEntry> }> = {
+        ...merged,
+    }
+    for (const [feature, entry] of Object.entries(explicit) as [string, (typeof features)[string] | undefined][]) {
+        if (!entry) continue
+        const accounts = features[feature]?.accounts || entry.accounts
+        features[feature] = {
+            ...entry,
+            ...(accounts ? { accounts: { ...features[feature]?.accounts, ...entry.accounts } } : {}),
+        }
+    }
+    return features as unknown as FeatureReport
 }
 
 /** Older fixtures used the ISO-2 string before residence became an object. */

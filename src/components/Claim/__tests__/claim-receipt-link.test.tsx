@@ -27,7 +27,7 @@ jest.mock('@/context/authContext', () => ({ useAuth: () => mockUseAuth() }))
 jest.mock('@/hooks/wallet/useWallet', () => ({ useWallet: () => ({ address: '0xWALLET' }) }))
 jest.mock('@/hooks/useUserInteractions', () => ({ useUserInteractions: () => ({ interactions: {} }) }))
 jest.mock('use-haptic', () => ({ useHaptic: () => ({ triggerHaptic: jest.fn() }) }))
-jest.mock('@/hooks/useCapabilities', () => ({ useCapabilities: () => ({ isKycApproved: false }) }))
+jest.mock('@/hooks/useVerification', () => ({ useVerification: () => ({ hasAnyEnabledRail: false }) }))
 jest.mock('@/context/ClaimBankFlowContext', () => ({
     ClaimBankFlowStep: {},
     useClaimBankFlow: () => ({ setFlowStep: jest.fn(), flowStep: null }),

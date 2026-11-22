@@ -2507,7 +2507,9 @@
             "payoutSenderAch": "The payment arrives from Bridge, not from your own name.",
             "payoutSenderSpei": "The payment arrives from Bridge's local bank, not from your own name.",
             "payoutSenderWire": "The payment arrives from Bridge, not from your own name.",
-            "bankAccount": "Bank account"
+            "bankAccount": "Bank account",
+            "transferProcessing": "Transfer processing",
+            "confirmPending": "Your transfer is processing. Funds were sent on-chain successfully. This can take a few minutes to confirm. If you don't see the withdrawal in your activity within 30 minutes, please contact support."
         },
         "manteca": {
             "youJustWithdrew": "Withdrawn",

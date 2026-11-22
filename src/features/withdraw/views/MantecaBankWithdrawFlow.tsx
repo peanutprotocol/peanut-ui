@@ -13,9 +13,14 @@ import {
 } from '@/hooks/wallet/signSpendRetry'
 import { describeSignedUserOp, markSpendMayHaveBroadcast, type SpendBroadcast } from '@/hooks/wallet/spendBroadcast'
 import { usePendingChargeSend } from '@/features/payments/shared/hooks/usePendingChargeSend'
-import type { PendingChargeSend, SendOrderRead } from '@/features/payments/shared/utils/pending-charge-send'
+import {
+    MANTECA_WITHDRAW_INTENT,
+    type PendingChargeSend,
+    type SendOrderRead,
+} from '@/features/payments/shared/utils/pending-charge-send'
 import { PaymentConfirmingView } from '@/features/payments/shared/components/PaymentConfirmingView'
 import { rainApi } from '@/services/rain'
+import { serverFetch } from '@/utils/api-fetch'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import AvatarWithBadge from '@/components/Profile/AvatarWithBadge'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
@@ -66,7 +71,6 @@ import { useQueryClient } from '@tanstack/react-query'
 import { captureNetworkTriagedFailure, isNetworkLayerFailure } from '@/utils/network-triage'
 import { criticalFlowTags } from '@/utils/sentry-critical-flow'
 import { useCapabilities } from '@/hooks/useCapabilities'
-import { useIdentityVerification } from '@/hooks/useIdentityVerification'
 import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
@@ -94,7 +98,7 @@ import { useSumsubActionFlow } from '@/hooks/useSumsubActionFlow'
 import { initiateIncreaseLimits } from '@/app/actions/increase-limits'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
 import { useLimits } from '@/hooks/useLimits'
-import { isVerifiedForCountry } from '@/utils/regions.utils'
+import { useVerification } from '@/hooks/useVerification'
 import { useFlowStepper } from '@/hooks/useFlowStepper'
 import { useWithdrawAmount } from '@/features/withdraw/useWithdrawAmount'
 import { shouldShowAmountError } from '@/features/limits/amount-error-gating'
@@ -136,13 +140,36 @@ function withdrawalBroadcast(artifact: SignedSpendArtifact): SpendBroadcast {
     }
 }
 
+type HistoryRow = { status?: string; extraData?: { provider?: string; kind?: string; isRefund?: boolean } }
+
 /**
- * Where a withdrawal whose answer was lost stands. The backend submits it, so
- * only the chain (the user op, read by the recovery) or the card preparation
- * can say; Manteca books it, so a found transfer ends as `sent`.
+ * The Manteca withdrawal the backend booked after this send began, from the
+ * user's activity. The guard allows one withdrawal per destination at a time,
+ * so only a single match counts; none or several says nothing (`settling`).
+ */
+async function readBookedWithdrawal(send: PendingChargeSend): Promise<SendOrderRead> {
+    const query = new URLSearchParams({ from: new Date(send.startedAt).toISOString(), limit: '20' })
+    const response = await serverFetch(`/users/history?${query.toString()}`, { method: 'GET', cache: 'no-store' })
+    if (!response.ok) throw new Error(`Failed to read the withdrawal: ${response.status}`)
+    const { entries } = (await response.json()) as { entries: HistoryRow[] }
+    const withdrawals = entries.filter(
+        (row) => row.extraData?.provider === 'MANTECA' && row.extraData.kind === 'OFFRAMP' && !row.extraData.isRefund
+    )
+    if (withdrawals.length !== 1) return { state: 'settling' }
+    const { status } = withdrawals[0]
+    if (status === 'COMPLETED') return { state: 'completed' }
+    return status === 'CANCELLED' || status === 'REFUNDED' ? { state: 'closed' } : { state: 'settling' }
+}
+
+/**
+ * Where a withdrawal whose answer was lost stands. The backend submits it
+ * before it creates the Manteca order, so the chain (the user op, read by the
+ * recovery) or the card preparation says whether money moved, and the booked
+ * order says whether it completed.
  */
 async function readWithdrawal(send: PendingChargeSend): Promise<SendOrderRead> {
-    if (!send.backendBroadcast) return { state: 'settling' }
+    const booked = await readBookedWithdrawal(send)
+    if (booked.state !== 'settling' || !send.backendBroadcast) return booked
     const preparation = await rainApi.getWithdrawalStatus(send.chargeId)
     if (preparation.state === 'failed' || preparation.state === 'cancelled') return { state: 'closed' }
     return preparation.state === 'completed' && preparation.txHash
@@ -169,14 +196,19 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
     // USD amount handed over by the shared /withdraw amount step (TASK-21664)
     const [urlAmount] = useWithdrawAmount()
-    // a saved account arrives as its id; the account number stays off the URL (mantecaWithdrawUrl)
+    // A saved account arrives as `destination` + `isSavedAccount=true`, or by its id
+    // (`account`) in links made by the ui#4201 bundle (mantecaWithdrawUrl).
     const { user } = useAuth()
     const savedAccountId = searchParams.get('account')
-    const paramAddress = savedAccountId
+    const savedAccountIdentifier = savedAccountId
         ? (user?.accounts.find((account) => account.id === savedAccountId && account.type === AccountType.MANTECA)
               ?.identifier ?? null)
         : null
-    const isSavedAccount = !!paramAddress && validateCbuCvuAlias(paramAddress).valid
+    const paramAddress = searchParams.get('destination') ?? savedAccountIdentifier
+    const isSavedAccount =
+        (searchParams.get('isSavedAccount') === 'true' || !!savedAccountIdentifier) &&
+        !!paramAddress &&
+        validateCbuCvuAlias(paramAddress).valid
     const [destinationConfirmed, setDestinationConfirmed] = useState(isSavedAccount)
     const [destinationAddress, setDestinationAddress] = useState<string>(paramAddress ?? '')
     const [selectedBank, setSelectedBank] = useState<MantecaBankCode | null>(null)
@@ -259,7 +291,7 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
     // The pool→full upgrade gate reads identityVerification (Sumsub-cleared
     // the human), not rail-approval. Same fix-pattern as Profile/ProfileEdit.
     const { rails, nextActions } = useCapabilities()
-    const { isVerified: isUserIdentityVerified } = useIdentityVerification()
+    const { identityVerified: isUserIdentityVerified, canUse } = useVerification()
     const mantecaRejection = useMemo(() => deriveProviderRejection(rails, 'MANTECA', nextActions), [rails, nextActions])
     const { hasPendingTransactions } = usePendingTransactions()
 
@@ -273,6 +305,15 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
         },
         [stepper]
     )
+    // a recovered withdrawal that completed shows the success its answer would have
+    const showRecoveredSuccess = useCallback(
+        (success: boolean) => {
+            if (!success || !priceLock) return
+            setOutcome('success')
+            void stepper.goTo('success')
+        },
+        [priceLock, stepper]
+    )
     const showRecoveryError = useCallback(
         (error: { errorMessage: string }) => setErrorMessage(error.errorMessage, 'paymentNotSent'),
         [setErrorMessage]
@@ -280,11 +321,12 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
     const pendingSend = usePendingChargeSend({
         intent:
             destinationConfirmed && destinationAddress.trim()
-                ? `withdraw-manteca:${destinationAddress.trim().toLowerCase()}`
+                ? `${MANTECA_WITHDRAW_INTENT}${destinationAddress.trim().toLowerCase()}`
                 : null,
         walletAddress: walletAddress as Address | undefined,
         readOrder: readWithdrawal,
         canResume: step === 'amount' || step === 'review',
+        setIsSuccess: showRecoveredSuccess,
         setIsPaymentStatusUnknown,
         setCurrentView: showRecoveredReview,
         setError: showRecoveryError,
@@ -320,9 +362,7 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
         if (!selectedCountry || !isMantecaSupportedCountryCode(selectedCountry.id)) return undefined
         return MANTECA_COUNTRIES_CONFIG[selectedCountry.id]
     }, [selectedCountry])
-    const isUserMantecaKycApprovedForCountry = selectedCountry
-        ? isVerifiedForCountry(rails, selectedCountry.id, 'withdraw')
-        : false
+    const isUserMantecaKycApprovedForCountry = selectedCountry ? canUse('withdraw', selectedCountry.id) : false
 
     const {
         code: currencyCode,

@@ -1044,6 +1044,29 @@ describe('useBridgeOfframpFlow — a lost answer is read back, never sent again'
         expect(mockSendMoney).toHaveBeenCalledTimes(1)
     })
 
+    // dev showed "Transfer processing … within 30 minutes, please contact support" here; the view keys it on sentTxHash
+    it('a confirm that keeps failing after the deposit keeps the deposit hash for the transfer-processing copy', async () => {
+        jest.useFakeTimers()
+        try {
+            armTransfer()
+            mockSendMoney.mockResolvedValue({ receipt: null, userOpHash: undefined, txHash: '0xtx' })
+            mockConfirmOfframp.mockResolvedValue({ error: 'Internal Server Error' })
+            const view = renderFlow({ amount: '50', step: 'review' })
+            await act(async () => {
+                view.result.current.handleCreateAndInitiateOfframp()
+                await jest.advanceTimersByTimeAsync(65_000)
+            })
+
+            expect(view.result.current.isPaymentStatusUnknown).toBe(true)
+            expect(view.result.current.sentTxHash).toBe('0xtx')
+            expect(window.localStorage.getItem(MARKER_KEY)).not.toBeNull()
+            view.unmount()
+        } finally {
+            jest.clearAllTimers()
+            jest.useRealTimers()
+        }
+    })
+
     it('while the deposit may still land, the withdrawal stays off and the confirming screen shows', async () => {
         jest.useFakeTimers()
         try {

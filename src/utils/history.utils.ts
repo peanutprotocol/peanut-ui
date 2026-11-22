@@ -537,12 +537,11 @@ export async function completeHistoryEntry(entry: HistoryEntry): Promise<History
     let usdAmount: string = ''
     switch (kind) {
         case 'SEND_LINK': {
-            // The device keeps a link's password under the account that made it
-            // and its sendLinkPubKey; the BE writes that key onto the intent
-            // extraData so the lookup works whether the row's `uuid` is the
-            // intent id or the pubKey.
+            // localStorage stores passwords keyed by sendLinkPubKey; the BE
+            // writes that key onto the intent extraData so the lookup
+            // works whether the row's `uuid` is the intent id or the pubKey.
             const lookupKey = extraData.parentSendLinkPubKey ?? entry.uuid
-            const password = readSendLinkPassword(entry.senderAccount?.userId, lookupKey)
+            const password = readSendLinkPassword(lookupKey)
             const { contractVersion, depositIdx } = extraData
             if (password) {
                 link = shareableUrl(`/claim?c=${entry.chainId}&v=${contractVersion}&i=${depositIdx}#p=${password}`)

@@ -2,7 +2,6 @@
 import { PUBLIC_CLIENTS_BY_CHAIN } from '@/app/actions/clients'
 import { BASE_URL } from '@/constants/general.consts'
 import { loadingStateContext } from '@/context/loadingStates.context'
-import { useAuth } from '@/context/authContext'
 import { keepSendLinkPassword, readSendLinkPassword } from '@/utils/send-link-password'
 import { generateKeysFromString, getLinkFromParams } from '@/utils/peanut-link.utils'
 import {
@@ -80,17 +79,15 @@ function sendLinkFromReceipt(
  * lost. The password was kept before signing, under the link's key.
  */
 export async function sendLinkFromFoundDeposit({
-    userId,
     pubKey,
     txHash,
     sender,
 }: {
-    userId: string | undefined
     pubKey: string
     txHash: Hash
     sender: Address
 }): Promise<CreatedSendLink> {
-    const password = readSendLinkPassword(userId, pubKey)
+    const password = readSendLinkPassword(pubKey)
     if (!password) throw new Error('The send link password is not on this device')
     const receipt = await PUBLIC_CLIENTS_BY_CHAIN[PEANUT_WALLET_CHAIN.id].client.getTransactionReceipt({ hash: txHash })
     return sendLinkFromReceipt(receipt, { password, sender })
@@ -98,8 +95,6 @@ export async function sendLinkFromFoundDeposit({
 
 export const useCreateLink = () => {
     const { setLoadingState } = useContext(loadingStateContext)
-    const { user } = useAuth()
-    const userId = user?.user?.userId
     const { address, sendTransactions } = useWallet()
 
     const generatePassword = async () => {
@@ -135,11 +130,11 @@ export const useCreateLink = () => {
             return withCeremonyFlow(
                 'link_create',
                 async () => {
-                    if (!userId || !address) throw new Error('Log in to create a link.')
+                    if (!address) throw new Error('Log in to create a link.')
                     setLoadingState('Generating details')
                     const password = await generatePassword()
                     const generatedKeys = generateKeysFromString(password)
-                    keepSendLinkPassword(userId, generatedKeys.address, password)
+                    keepSendLinkPassword(generatedKeys.address, password)
 
                     const contractVersion = getLatestContractVersion({ chainId, type: 'normal' })
                     const contractAbi = getContractAbi(contractVersion)
@@ -194,7 +189,7 @@ export const useCreateLink = () => {
                 () => ({ strategy })
             )
         },
-        [sendTransactions, setLoadingState, userId, address]
+        [sendTransactions, setLoadingState, address]
     )
 
     return {

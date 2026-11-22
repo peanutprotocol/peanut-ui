@@ -1,6 +1,7 @@
 import type { CardInfoResponse } from '@/services/card'
 import type { RainCardOverview } from '@/services/rain'
 import { computeCardState } from '@/components/Card/cardState.utils'
+import type { ServedCardState } from '@/components/Card/servedCardState'
 import type { RailStatus, RainCardStatus } from '@/constants/api-enums.generated'
 
 const cardInfo = (overrides: Partial<CardInfoResponse> = {}): CardInfoResponse => ({ isEligible: true, ...overrides })
@@ -28,7 +29,8 @@ const withCard = (status: string): RainCardOverview => ({
 })
 const base = { overviewLoading: false, cardInfoLoading: false, overview: emptyOverview, cardInfo: cardInfo() }
 
-describe('public card application state', () => {
+// These fixtures carry no `cardState`: they pin the fallback for an API before peanut-api-ts#2238.
+describe('public card application state (fallback derivation)', () => {
     it('waits for the application and geography queries', () => {
         expect(computeCardState({ ...base, overviewLoading: true })).toBe('loading')
         expect(computeCardState({ ...base, cardInfoLoading: true })).toBe('loading')
@@ -102,5 +104,52 @@ describe('public card application state', () => {
         expect(
             computeCardState({ ...base, overview: withApp(status), cardInfo: cardInfo({ geoProhibited: true }) })
         ).toBe(expected)
+    })
+})
+
+const SERVED_STATES: ServedCardState[] = [
+    'add-card',
+    'creating-card',
+    'pending',
+    'manual-review',
+    'requires-info',
+    'requires-support',
+    'rejected',
+    'active',
+]
+const RAILS = [undefined, 'PENDING', 'ENABLED', 'REQUIRES_INFORMATION', 'REQUIRES_SUPPORT', 'REJECTED', 'FAILED']
+const CARD_ROWS = [[], ['ACTIVE'], ['LOCKED'], ['NOT_ACTIVATED'], ['CANCELED'], ['CANCELED', 'ACTIVE']]
+
+describe('served card state', () => {
+    it('returns the served state over every cohort, laying only geo-blocked over a rail-less add-card', () => {
+        for (const served of SERVED_STATES)
+            for (const railStatus of RAILS)
+                for (const statuses of CARD_ROWS)
+                    for (const geoProhibited of [false, true]) {
+                        const overview: RainCardOverview = {
+                            ...withApp(railStatus ?? ''),
+                            status: { hasApplication: railStatus !== undefined, railStatus },
+                            cards: statuses.map((status) => ({ ...withCard(status).cards[0], status })),
+                            cardState: served,
+                        }
+                        const expected = served === 'add-card' && !railStatus && geoProhibited ? 'geo-blocked' : served
+                        expect(computeCardState({ ...base, overview, cardInfo: cardInfo({ geoProhibited }) })).toBe(
+                            expected
+                        )
+                    }
+    })
+
+    it('reads a first card on its way as creating-card, where the fallback said add-card', () => {
+        const approvedEmpty = withApp('ENABLED', 'approved')
+        expect(computeCardState({ ...base, overview: approvedEmpty })).toBe('add-card')
+        expect(computeCardState({ ...base, overview: { ...approvedEmpty, cardState: 'creating-card' } })).toBe(
+            'creating-card'
+        )
+    })
+
+    it('keeps the loading gate in front of the served state', () => {
+        const overview = { ...emptyOverview, cardState: 'active' as const }
+        expect(computeCardState({ ...base, overview, overviewLoading: true })).toBe('loading')
+        expect(computeCardState({ ...base, overview, cardInfo: undefined })).toBe('loading')
     })
 })

@@ -160,6 +160,11 @@ export interface RainCardOverview {
      */
     balanceUnavailable?: boolean
     cards: RainCardSummary[]
+    /**
+     * The /card state the API decides (peanut-api-ts `rain/card-state.ts`). Read it through
+     * `servedCardState`. Optional only while an API before peanut-api-ts#2238 can answer.
+     */
+    cardState?: paths['/rain/cards']['get']['responses'][200]['content']['application/json']['cardState']
 }
 
 /**

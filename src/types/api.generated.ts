@@ -11222,6 +11222,7 @@ export interface paths {
                                 spendingPower: number;
                             };
                             balanceUnavailable: boolean;
+                            cardState: "add-card" | "creating-card" | "pending" | "manual-review" | "requires-info" | "requires-support" | "rejected" | "active";
                             cards: {
                                 expiryMonth: number;
                                 expiryYear: number;

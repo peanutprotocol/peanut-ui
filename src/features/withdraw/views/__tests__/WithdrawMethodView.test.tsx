@@ -2,8 +2,8 @@
  * WithdrawMethodView — the method-select step that mutates the withdraw
  * flow's shared destination state (Chip review round 7). Pins what the
  * deleted AddWithdrawRouterView test used to cover:
- *  (a) a saved Manteca account forwards its id (account=<id>, never the
- *      account number) into /withdraw/manteca (skipping the shared
+ *  (a) a saved Manteca account forwards destination=<identifier> and
+ *      isSavedAccount=true into /withdraw/manteca (skipping the shared
  *      amount step);
  *  (b) a saved non-Manteca account sets selectedBankAccount and advances to
  *      the amount step WITHOUT navigating;
@@ -308,7 +308,7 @@ beforeEach(() => {
 import { stashScannedDestination, takeScannedDestination } from '@/features/withdraw/destination'
 
 describe('WithdrawMethodView — destination state and routing (Chip review round 7)', () => {
-    it('a saved Manteca account forwards its id, never its account number, into /withdraw/manteca', () => {
+    it('a saved Manteca account forwards destination + isSavedAccount into /withdraw/manteca (dev contract)', () => {
         renderView()
         fireEvent.click(screen.getByTestId(`account-${MANTECA_ACCOUNT.identifier}`))
 
@@ -321,8 +321,8 @@ describe('WithdrawMethodView — destination state and routing (Chip review roun
         const pushed = mockRouterPush.mock.calls.at(-1)?.[0] as string
         expect(pushed).toContain('/withdraw/manteca?')
         expect(pushed).toContain('country=argentina')
-        expect(pushed).toContain('account=acct-manteca')
-        expect(pushed).not.toContain(MANTECA_ACCOUNT.identifier)
+        expect(pushed).toContain(`destination=${MANTECA_ACCOUNT.identifier}`)
+        expect(pushed).toContain('isSavedAccount=true')
         // Manteca collects its amount locally — the shared amount step is skipped
         expect(mockOnMethodChosen).not.toHaveBeenCalled()
     })
@@ -344,9 +344,7 @@ describe('WithdrawMethodView — destination state and routing (Chip review roun
             const pushed = mockRouterPush.mock.calls.at(-1)?.[0] as string
             expect(pushed).toContain('country=brazil')
             expect(pushed).toContain('method=pix')
-            // the key is named by its account id: a Pix key is a CPF, a phone or an email
-            expect(pushed).toContain('account=acct-pix')
-            expect(pushed).not.toContain('maria')
+            expect(pushed).toContain('destination=maria%40silva.com.br')
         })
 
         // the key is a CPF, phone or email: it goes in the account's draft, never the URL
