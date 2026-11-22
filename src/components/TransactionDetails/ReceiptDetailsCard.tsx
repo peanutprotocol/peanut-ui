@@ -78,6 +78,7 @@ export function ReceiptDetailsCard({
     const tCommon = useTranslations('common')
     const tWithdraw = useTranslations('withdraw')
     const tPix = useTranslations('pix.withdraw')
+    const tAccounts = useTranslations('setupRedesign.accounts')
     const router = useRouter()
     const formatDate = useReceiptDateFormatter()
     const { rowVisibilityConfig, isGuestBankClaim, isPeanutWalletToken, country } = vm
@@ -86,6 +87,7 @@ export function ReceiptDetailsCard({
         const key = bankAccountLabelKey(type)
         if (key === 'address') return t('rows.address')
         if (key === 'pixKey') return tWithdraw('pixKey.placeholder')
+        if (key === 'account') return tAccounts('account')
         return BANK_ACCOUNT_SCHEME_LABELS[key] ?? t('rows.accountNumber')
     }
 

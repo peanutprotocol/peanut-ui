@@ -259,6 +259,16 @@ describe('buildReceiptPdfModel — variants', () => {
         expect(labels(model)).not.toContain('IBAN')
     })
 
+    test('an Argentine withdrawal labels its destination Account (TASK-23266)', () => {
+        const model = buildReceiptPdfModel(
+            withOverrides({ bankAccountDetails: { identifier: 'example.alias.mp', type: 'BANK_CBU' } }),
+            t,
+            'en'
+        )
+        expect(labels(model)).toContain('setupRedesign.accounts.account')
+        expect(labels(model)).not.toContain('transaction.rows.accountNumber')
+    })
+
     test('memo renders as the comment row, memoKey preferred over raw memo', () => {
         const withMemo = buildReceiptPdfModel(withOverrides({ memo: 'invoice #42' }), t, 'en')
         expect(row(withMemo, 'common.comment')).toBe('invoice #42')

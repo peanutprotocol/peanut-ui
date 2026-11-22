@@ -24,6 +24,8 @@ export interface DirectSendRecipient {
     address: Address
     userId?: string
     fullName?: string
+    /** The profile's verified flag, the one the contacts list shows (TASK-21376). */
+    isVerified: boolean
     /** The person behind the username, for their avatar (TASK-23756). */
     person: Person
 }

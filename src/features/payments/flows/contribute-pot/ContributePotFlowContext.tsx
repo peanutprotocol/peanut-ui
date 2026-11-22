@@ -23,6 +23,7 @@ import {
 import { collectedTotal, usdRemainingOf } from './collected'
 import { contributedAmount } from '@/utils/request-pot.utils'
 import { personFrom } from '@/lib/person/person'
+import { usePerson } from '@/lib/person/usePerson'
 import type { Person } from '@/lib/person/person.types'
 import { useRequestPot } from './useRequestPot'
 
@@ -35,6 +36,8 @@ export interface PotRecipient {
     address: Address
     userId?: string
     fullName?: string
+    /** The requester's profile flag, the one the contacts list shows (TASK-21376). */
+    isVerified: boolean
     /** The requester (TASK-23756); null when the request names no Peanut user. */
     person: Person | null
 }
@@ -163,6 +166,9 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
     const [isLoading, setIsLoading] = useState(false)
     const [isSuccess, setIsSuccess] = useState(false)
 
+    // the request names the requester without their verified flag; their profile carries it
+    const { profile: requesterProfile } = usePerson(request?.recipientAccount?.user?.username)
+
     // derive recipient from request
     const recipient = useMemo<PotRecipient | null>(() => {
         if (!request?.recipientAccount) return null
@@ -170,9 +176,10 @@ export function ContributePotFlowProvider({ children, initialRequest }: Contribu
             username: request.recipientAccount.user?.username || request.recipientAccount.identifier,
             address: request.recipientAddress as Address,
             userId: request.recipientAccount.userId,
+            isVerified: !!requesterProfile?.isVerified,
             person: personFrom(request.recipientAccount.user),
         }
-    }, [request])
+    }, [request, requesterProfile])
 
     // derive total amount and collected
     const totalAmount = useMemo(() => {
