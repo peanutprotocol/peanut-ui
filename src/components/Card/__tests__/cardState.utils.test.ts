@@ -1,12 +1,14 @@
 import type { CardInfoResponse } from '@/services/card'
 import type { RainCardOverview } from '@/services/rain'
 import { computeCardState } from '@/components/Card/cardState.utils'
+import type { RailStatus, RainCardStatus } from '@/constants/api-enums.generated'
 
 const cardInfo = (overrides: Partial<CardInfoResponse> = {}): CardInfoResponse => ({ isEligible: true, ...overrides })
 const emptyOverview: RainCardOverview = { status: { hasApplication: false }, balance: null, cards: [] }
+// Takes any string: some cases pin how a status the API may add later reads.
 const withApp = (railStatus: string, applicationStatus?: string): RainCardOverview => ({
     ...emptyOverview,
-    status: { hasApplication: true, railStatus, applicationStatus },
+    status: { hasApplication: true, railStatus: railStatus as RailStatus, applicationStatus },
 })
 const withCard = (status: string): RainCardOverview => ({
     ...withApp('ENABLED'),
@@ -17,7 +19,7 @@ const withCard = (status: string): RainCardOverview => ({
             last4: '0420',
             expiryMonth: 6,
             expiryYear: 2069,
-            status,
+            status: status as RainCardStatus,
             network: 'visa',
             issuedAt: '2026-09-09T00:00:00Z',
             hasWithdrawApproval: false,
