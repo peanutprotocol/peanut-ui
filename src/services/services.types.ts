@@ -1,4 +1,9 @@
-import type { BridgeKycStatus, RequestChargeStatus, RequestPaymentStatus } from '@/constants/api-enums.generated'
+import type {
+    BridgeKycStatus,
+    RequestChargeStatus,
+    RequestPaymentStatus,
+    SendLinkStatus,
+} from '@/constants/api-enums.generated'
 import * as peanutInterfaces from '@/interfaces/peanut-sdk-types'
 import type { paths } from '@/types/api.generated'
 
@@ -459,17 +464,6 @@ export interface TCreateOfframpResponse {
     deposit_chain_id: number
     deposit_token_address: string
 }
-
-export enum ESendLinkStatus {
-    creating = 'creating',
-    completed = 'completed',
-    CLAIMING = 'CLAIMING',
-    CLAIMED = 'CLAIMED',
-    CANCELLED = 'CANCELLED',
-    FAILED = 'FAILED',
-}
-
-export type SendLinkStatus = `${ESendLinkStatus}`
 
 export type SendLink = {
     pubKey: string
