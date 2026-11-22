@@ -7,7 +7,7 @@
  * new quote and started a second withdrawal.
  */
 import React from 'react'
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 
 // ---------- module-level mocks ----------
 
@@ -116,6 +116,11 @@ jest.mock('@/services/manteca', () => ({
     },
 }))
 jest.mock('@/services/rain', () => ({ rainApi: { getWithdrawalStatus: jest.fn() } }))
+// the user's activity: the Manteca withdrawals booked since the send began
+const mockHistory = jest.fn()
+jest.mock('@/utils/api-fetch', () => ({
+    serverFetch: async (path: string) => ({ ok: true, json: async () => ({ entries: mockHistory(path) }) }),
+}))
 
 // views: stubs that expose what the flow decides
 const Passthrough = ({ children }: { children?: React.ReactNode }) => <>{children}</>
@@ -233,8 +238,15 @@ beforeEach(() => {
     mockInitiateWithdraw.mockResolvedValue({ data: LOCK })
     mockSignSpend.mockResolvedValue(SIGNED)
     mockReadUserOpOutcome.mockResolvedValue('unknown')
+    mockHistory.mockReturnValue([])
 })
-afterEach(() => {
+afterEach(async () => {
+    // A recovery still reading the order sleeps on a fake timer: leave the screen and let it
+    // wake, so it ends and releases the module-wide guard before the next test taps Pay.
+    cleanup()
+    await act(async () => {
+        await jest.runOnlyPendingTimersAsync()
+    })
     jest.clearAllTimers()
     jest.useRealTimers()
 })
@@ -273,6 +285,49 @@ it('a backend that fails without a reason after it may have submitted is read ba
     expect(mockStepper.step).not.toBe('failure')
 })
 
+it('a submit that answered 500 reaches success once the withdrawal completes', async () => {
+    mockWithdrawWithSignedTx.mockResolvedValue({ error: 'Unexpected error' })
+    mockReadUserOpOutcome.mockResolvedValue({ executed: '0xfound' })
+    const view = await openReview()
+
+    fireEvent.click(withdrawButton())
+    await flush()
+    view.rerender(<MantecaBankWithdrawFlow searchParams={searchParams} />)
+    expect(screen.getByTestId('payment-confirming')).toBeInTheDocument()
+
+    // Manteca pays it out: the next read finds the booked withdrawal completed
+    mockHistory.mockReturnValue([{ status: 'COMPLETED', extraData: { provider: 'MANTECA', kind: 'OFFRAMP' } }])
+    await act(async () => {
+        await jest.advanceTimersByTimeAsync(3_000)
+    })
+    view.rerender(<MantecaBankWithdrawFlow searchParams={searchParams} />)
+
+    expect(mockHistory).toHaveBeenCalledWith(expect.stringContaining('/users/history?from='))
+    expect(mockStepper.step).toBe('success')
+    expect(screen.queryByTestId('payment-confirming')).toBeNull()
+    expect(window.localStorage.getItem(MARKER_KEY)).toBeNull()
+})
+
+it('two Manteca withdrawals since the send began prove nothing: the read keeps waiting', async () => {
+    mockWithdrawWithSignedTx.mockResolvedValue({ error: 'Unexpected error' })
+    mockReadUserOpOutcome.mockResolvedValue({ executed: '0xfound' })
+    const completed = { status: 'COMPLETED', extraData: { provider: 'MANTECA', kind: 'OFFRAMP' } }
+    mockHistory.mockReturnValue([completed, completed])
+    const view = await openReview()
+
+    fireEvent.click(withdrawButton())
+    await flush()
+    view.rerender(<MantecaBankWithdrawFlow searchParams={searchParams} />)
+
+    expect(mockStepper.step).not.toBe('success')
+    expect(screen.getByTestId('payment-confirming')).toBeInTheDocument()
+    expect(window.localStorage.getItem(MARKER_KEY)).not.toBeNull()
+    view.unmount()
+    await act(async () => {
+        await jest.advanceTimersByTimeAsync(5_000)
+    })
+})
+
 it('while the outcome is unknown, a revisit resumes the read and offers no new quote', async () => {
     mockWithdrawWithSignedTx.mockRejectedValue(new TypeError('Failed to fetch'))
     const view = await openReview()
@@ -301,7 +356,7 @@ it('while the outcome is unknown, a revisit resumes the read and offers no new q
 
 it('the review comes back once the chain proves nothing moved', async () => {
     mockWithdrawWithSignedTx.mockRejectedValue(new TypeError('Failed to fetch'))
-    mockReadUserOpOutcome.mockResolvedValue('replaced')
+    mockReadUserOpOutcome.mockResolvedValue('reverted')
     const view = await openReview()
 
     fireEvent.click(withdrawButton())

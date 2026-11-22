@@ -1,5 +1,6 @@
 import type { Hash } from 'viem'
 import type { BroadcastUserOp } from '@/hooks/wallet/spendBroadcast'
+import { storedKeysWithPrefix } from '@/utils/safe-storage'
 
 /**
  * A payment this device started and may have sent. While one exists for an
@@ -8,13 +9,19 @@ import type { BroadcastUserOp } from '@/hooks/wallet/spendBroadcast'
  * engineering/api/state-machines/ChargeSendFlow.tla, the Fixed variant).
  *
  * Local storage, per user and intent, so it survives the app being killed. It
- * holds ids and hashes only, never personal data (mono design/design.md § state).
+ * holds ids and hashes; the one key that names an account goes at sign-out
+ * ({@link forgetPersonalPendingChargeSends}).
  */
 export interface PendingChargeSend {
-    /** The order the send pays: a charge id, or the provider's transfer or preparation id. */
+    /**
+     * The order the send pays: a charge id, or the provider's transfer or
+     * preparation id. Empty while the tap is claimed and the order is not created yet.
+     */
     chargeId: string
     /** The ledger intent of that order, for a flow that reads the order's state there. */
     intentId?: string
+    /** The tab that wrote it ({@link thisTab}); absent on markers written before tabs were told apart. */
+    owner?: string
     /** When the send began (ms). */
     startedAt: number
     /** Every user op this device signed for the charge, saved before it went to the bundler. */
@@ -53,28 +60,85 @@ export function chargeOrderState(status: string | null | undefined): SendOrderSt
 
 const PREFIX = 'peanut:pendingChargeSend:'
 /**
- * A signed op the bundler has not executed in a day left its mempool long ago.
- * Past this, recovery counts an op it still cannot find as dropped: an
- * assumption about the bundler, not a proof (the Drop action in the model).
- * The marker is never dropped unread, so an op that did execute is still found.
+ * How long a hold may last without proof. Past it, recovery that proves
+ * neither a booked charge nor that nothing moved drops the marker and offers
+ * Pay again with the "could not be confirmed" error (`unconfirmed`, the
+ * ReleaseWarned action in the model). Nothing else bounds an op that is still
+ * valid, a card-balance send whose charge stays open, or money that moved
+ * into a charge that never books.
  */
 const WAIT_WINDOW_MS = 24 * 60 * 60 * 1000
 export const isPastWaitWindow = (send: PendingChargeSend) => Date.now() - send.startedAt > WAIT_WINDOW_MS
 const listeners = new Set<() => void>()
-// Where storage is unavailable (private mode, full), the guard still holds for this page.
+// A marker local storage refused (full, blocked, private mode) is kept here
+// and read first: the guard holds for the life of this page, and the payment
+// goes on as it would without the guard.
 const memory = new Map<string, string>()
 
 export const pendingChargeSendKey = (userId: string, intent: string) => `${PREFIX}${userId}:${intent}`
+
+/** A Manteca withdrawal's intent names the bank account or Pix key it pays to: personal data. */
+export const MANTECA_WITHDRAW_INTENT = 'withdraw-manteca:'
+
+/**
+ * Removes this user's markers whose key holds personal data, at sign-out: the
+ * next account on this device must not read them (mono design/design.md § state).
+ */
+export function forgetPersonalPendingChargeSends(userId: string | undefined | null) {
+    if (!userId) return
+    const prefix = pendingChargeSendKey(userId, MANTECA_WITHDRAW_INTENT)
+    const keys = new Set([
+        ...storedKeysWithPrefix(prefix),
+        ...[...memory.keys()].filter((key) => key.startsWith(prefix)),
+    ])
+    keys.forEach((key) => writePendingChargeSend(key, null))
+}
+
+const TAB_KEY = 'peanut:pendingChargeSend:tab'
+let tab: string | undefined
+/** This tab's id. Session storage keeps it across a reload, and another tab has its own. */
+export function thisTab(): string {
+    if (tab) return tab
+    try {
+        tab = window.sessionStorage.getItem(TAB_KEY) ?? undefined
+    } catch {
+        // without session storage, a reload looks like another tab: its marker waits out the lease
+    }
+    if (!tab) {
+        tab = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
+        try {
+            window.sessionStorage.setItem(TAB_KEY, tab)
+        } catch {}
+    }
+    return tab
+}
+
+/**
+ * Another tab's attempt that has sent nothing yet keeps Pay off this long at
+ * most: past it, that tab was closed before its send left the device.
+ */
+export const CLAIM_LEASE_MS = 15 * 60 * 1000
+
+/**
+ * A marker that sent nothing and may be dropped: this tab wrote it before a
+ * reload, or another tab's lease ran out. Another tab's live attempt is never
+ * dropped, so its Pay tap keeps this tab's Pay off.
+ */
+export const isAbandonedClaim = (send: PendingChargeSend) =>
+    !leftDevice(send) &&
+    (send.owner === undefined || send.owner === thisTab() || Date.now() - send.startedAt > CLAIM_LEASE_MS)
 
 /** True once anything left this device: before that, a reload cannot have sent money. */
 export const leftDevice = (send: PendingChargeSend) =>
     send.userOps.length > 0 || send.backendBroadcast || !!send.untrackedBroadcast || !!send.txHash
 
 export function readPendingChargeSendRaw(key: string): string | null {
+    const kept = memory.get(key)
+    if (kept !== undefined) return kept
     try {
         return window.localStorage.getItem(key)
     } catch {
-        return memory.get(key) ?? null
+        return null
     }
 }
 
@@ -92,15 +156,22 @@ export function parsePendingChargeSend(raw: string | null): PendingChargeSend | 
 
 export const readPendingChargeSend = (key: string) => parsePendingChargeSend(readPendingChargeSendRaw(key))
 
+/**
+ * When local storage refuses the write, the marker lives in this page only.
+ * A marker that could not be removed stays in storage, so the guard fails
+ * closed.
+ */
 export function writePendingChargeSend(key: string, send: PendingChargeSend | null) {
     const raw = send ? JSON.stringify(send) : null
+    let persisted = true
     try {
         if (raw) window.localStorage.setItem(key, raw)
         else window.localStorage.removeItem(key)
     } catch {
-        if (raw) memory.set(key, raw)
-        else memory.delete(key)
+        persisted = false
     }
+    if (raw && !persisted) memory.set(key, raw)
+    else memory.delete(key)
     listeners.forEach((listener) => listener())
 }
 

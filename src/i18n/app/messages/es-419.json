@@ -2507,7 +2507,9 @@
             "payoutSenderAch": "El pago llega de Bridge, no a tu nombre.",
             "payoutSenderSpei": "El pago llega del banco local de Bridge, no a tu nombre.",
             "payoutSenderWire": "El pago llega de Bridge, no a tu nombre.",
-            "bankAccount": "Cuenta bancaria"
+            "bankAccount": "Cuenta bancaria",
+            "transferProcessing": "Transferencia en proceso",
+            "confirmPending": "Tu transferencia se está procesando. Los fondos se enviaron on-chain correctamente: la confirmación puede tardar unos minutos. Si no ves el retiro en tu actividad dentro de 30 minutos, contacta a soporte."
         },
         "manteca": {
             "youJustWithdrew": "Retirado",

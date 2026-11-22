@@ -32,6 +32,7 @@ import { providerForRegionIntent } from '@/utils/regions.utils'
  */
 export default function BridgeBankWithdrawView() {
     const tNav = useTranslations('navigation')
+    const t = useTranslations('withdraw')
     // rewinds to home past every entry the flow pushed; a replace kept the
     // earlier entries, so back from home re-entered the flow
     const leaveToHome = useReturnTo('/home')
@@ -69,7 +70,15 @@ export default function BridgeBankWithdrawView() {
     // A recovery could not confirm the withdrawal, or confirmed one this visit
     // did not start (its amounts are not known here): say so, claim nothing.
     if (flow.isPaymentStatusUnknown || (step === 'success' && !successAmounts)) {
-        return <PaymentConfirmingView headerTitle={fromSendFlow ? tNav('send') : tNav('withdraw')} />
+        return (
+            <PaymentConfirmingView
+                headerTitle={fromSendFlow ? tNav('send') : tNav('withdraw')}
+                // the funds left on-chain: the transfer-processing copy, with its 30-minute support line
+                {...(flow.isPaymentStatusUnknown && flow.sentTxHash
+                    ? { title: t('bank.transferProcessing'), description: t('bank.confirmPending') }
+                    : {})}
+            />
+        )
     }
 
     if (step === 'review' && bankAmount && !bankAmount.quote && !flow.isLoading) {

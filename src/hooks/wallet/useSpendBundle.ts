@@ -85,7 +85,8 @@ export interface SpendBundleInput {
     onGrantRequired?: () => void
     /** Fires right before each send leaves this device. A caller saves it
      *  before the send can land, so recovery after a lost answer or a reload
-     *  can look the send up instead of offering it again. */
+     *  can look the send up instead of offering it again. A throw stops the
+     *  send: nothing has left this device yet. */
     onBroadcast?: (broadcast: SpendBroadcast) => void
 }
 
@@ -368,8 +369,9 @@ export const useSpendBundle = () => {
                         const adminSignature = await signRainWithdrawAdmin(signingClient.account!, prep, chainIdNum)
                         abortReplacementIfGone()
 
-                        broadcastAttempted = true
+                        // first: a marker that cannot be saved stops the send here
                         onBroadcast?.({ via: 'backend' })
+                        broadcastAttempted = true
                         const { txHash } = await rainApi.submitWithdrawal(toSubmitWithdrawalInput(prep, adminSignature))
                         posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_SUCCEEDED, { strategy, kind })
                         return { strategy, txHash: txHash as Hex, intentId: prep.preparationId }
@@ -444,8 +446,8 @@ export const useSpendBundle = () => {
                     }
                     const { userOpHash, receipt } = await handleSendUserOpEncoded(calls, chainIdStr, {
                         onBroadcastAttempt: (userOp) => {
-                            broadcastAttempted = true
                             onBroadcast?.({ via: 'wallet', userOp })
+                            broadcastAttempted = true
                         },
                     })
                     posthog.capture(ANALYTICS_EVENTS.CARD_WITHDRAW_SUCCEEDED, { strategy, kind })
@@ -505,10 +507,10 @@ export const useSpendBundle = () => {
                             const patchedSudoValidator = await getPatchedSudoValidator(peanutPublicClient)
                             attempt = await tryMixedEphemeralSpend({
                                 onBroadcastAttempt: (userOp) => {
+                                    onBroadcast?.({ via: 'wallet', userOp })
                                     broadcastAttempted = true
                                     ephemeralCrossed = true
                                     broadcastsAttempted += 1
-                                    onBroadcast?.({ via: 'wallet', userOp })
                                 },
                                 publicClient: peanutPublicClient,
                                 chain: PEANUT_WALLET_CHAIN,
@@ -623,9 +625,9 @@ export const useSpendBundle = () => {
                         ]
                         const { userOpHash, receipt } = await handleSendUserOpEncoded(calls, chainIdStr, {
                             onBroadcastAttempt: (userOp) => {
+                                onBroadcast?.({ via: 'wallet', userOp })
                                 broadcastAttempted = true
                                 broadcastsAttempted += 1
-                                onBroadcast?.({ via: 'wallet', userOp })
                             },
                         })
 
