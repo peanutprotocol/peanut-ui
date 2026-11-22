@@ -1,5 +1,6 @@
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef } from 'react'
+import { isSameRoute } from '@/constants/routes'
 
 /**
  * Opens each page the app navigates to at its top (TASK-23929). The window is
@@ -11,25 +12,24 @@ import { useEffect, useRef } from 'react'
 export function useScrollTopOnNavigation(): void {
     const pathname = usePathname()
     const firstPage = useRef(true)
-    const historyMove = useRef(false)
+    // where the last back or forward landed: only that page keeps its position
+    const poppedTo = useRef<string | null>(null)
 
     useEffect(() => {
         const onPopState = () => {
-            historyMove.current = true
+            poppedTo.current = window.location.pathname
         }
         window.addEventListener('popstate', onPopState)
         return () => window.removeEventListener('popstate', onPopState)
     }, [])
 
     useEffect(() => {
+        const historyMove = isSameRoute(poppedTo.current, pathname)
+        poppedTo.current = null
         if (firstPage.current) {
             firstPage.current = false
             return
         }
-        if (historyMove.current) {
-            historyMove.current = false
-            return
-        }
-        window.scrollTo(0, 0)
+        if (!historyMove) window.scrollTo(0, 0)
     }, [pathname])
 }

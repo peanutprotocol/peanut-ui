@@ -28,11 +28,22 @@ describe('useScrollTopOnNavigation', () => {
 
     it('keeps the position the browser restores on back and forward', () => {
         const { rerender } = renderHook(() => useScrollTopOnNavigation())
+        window.history.replaceState(null, '', '/home')
         window.dispatchEvent(new PopStateEvent('popstate'))
         mockPathname = '/home'
         rerender()
         expect(scrollTo).not.toHaveBeenCalled()
 
+        mockPathname = '/card'
+        rerender()
+        expect(scrollTo).toHaveBeenCalledWith(0, 0)
+    })
+
+    it('still resets on the next link after a Back that changed only the query', () => {
+        const { rerender } = renderHook(() => useScrollTopOnNavigation())
+        window.history.replaceState(null, '', '/profile?step=2')
+        window.dispatchEvent(new PopStateEvent('popstate'))
+        rerender()
         mockPathname = '/card'
         rerender()
         expect(scrollTo).toHaveBeenCalledWith(0, 0)
