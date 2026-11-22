@@ -7,7 +7,7 @@
  * new quote and started a second withdrawal.
  */
 import React from 'react'
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 
 // ---------- module-level mocks ----------
 
@@ -240,7 +240,13 @@ beforeEach(() => {
     mockReadUserOpOutcome.mockResolvedValue('unknown')
     mockHistory.mockReturnValue([])
 })
-afterEach(() => {
+afterEach(async () => {
+    // A recovery still reading the order sleeps on a fake timer: leave the screen and let it
+    // wake, so it ends and releases the module-wide guard before the next test taps Pay.
+    cleanup()
+    await act(async () => {
+        await jest.runOnlyPendingTimersAsync()
+    })
     jest.clearAllTimers()
     jest.useRealTimers()
 })

@@ -22,10 +22,9 @@ function screen() {
         usePendingChargeSend({
             intent: INTENT,
             walletAddress: '0x2222222222222222222222222222222222222222',
-            fetchCharge: jest.fn().mockResolvedValue({ status: 'PENDING' }),
+            readOrder: jest.fn().mockResolvedValue({ state: 'unbooked' }),
             recordPayment: jest.fn(),
             canResume: true,
-            setCharge: jest.fn(),
             setIsSuccess: jest.fn(),
             setCurrentView: jest.fn(),
             setError: jest.fn(),

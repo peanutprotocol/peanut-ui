@@ -70,6 +70,8 @@ it('a second tap in the same tick claims nothing until the first attempt is rele
     expect(second).toBe(false)
     act(() => result.current.release())
     expect(result.current.claim()).toBe(true)
+    // the claim is module-wide (it guards every screen of the tab): end this attempt too
+    act(() => result.current.release())
     unmount()
 })
 
