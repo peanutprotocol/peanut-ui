@@ -3,6 +3,9 @@ import { twMerge } from '@/utils/tw'
 
 export type TooltipPosition = 'top' | 'bottom' | 'left' | 'right'
 
+// the screen edge inset (design.md spacing L/16): a panel never sits closer to the edge
+const EDGE = 16
+
 interface TooltipContentProps {
     content: string | React.ReactNode
     position: TooltipPosition
@@ -25,6 +28,8 @@ export const TooltipContent = ({
     const tooltipRef = useRef<HTMLDivElement>(null)
     const [isPositioned, setIsPositioned] = useState(false)
     const [finalPosition, setFinalPosition] = useState(position)
+    // how far a top or bottom panel slides sideways to stay EDGE inside the screen
+    const [shiftX, setShiftX] = useState(0)
 
     useLayoutEffect(() => {
         const el = tooltipRef.current
@@ -76,7 +81,10 @@ export const TooltipContent = ({
 
             const fits = (p: TooltipPosition) => {
                 const b = boundsFor(p)
-                return b.top >= 0 && b.left >= 0 && b.right <= innerWidth && b.bottom <= innerHeight
+                if (b.top < 0 || b.bottom > innerHeight) return false
+                // top and bottom slide sideways (shiftX), so they only need the width
+                if (p === 'top' || p === 'bottom') return w <= innerWidth - 2 * EDGE
+                return b.left >= EDGE && b.right <= innerWidth - EDGE
             }
 
             const preference: Record<TooltipPosition, TooltipPosition[]> = {
@@ -93,6 +101,13 @@ export const TooltipContent = ({
                 setFinalPosition(bestPosition)
                 updatePosition(bestPosition)
             }
+            // TASK-23929: a panel centred on a trigger near the edge ran off the screen
+            const b = boundsFor(bestPosition)
+            setShiftX(
+                bestPosition === 'top' || bestPosition === 'bottom'
+                    ? Math.max(EDGE - b.left, Math.min(0, innerWidth - EDGE - b.right))
+                    : 0
+            )
 
             setIsPositioned(true)
         }
@@ -115,14 +130,14 @@ export const TooltipContent = ({
                 return {
                     ...baseStyles,
                     top: top - offset,
-                    left: left + width / 2,
+                    left: left + width / 2 + shiftX,
                     transform: 'translate(-50%, -100%)',
                 }
             case 'bottom':
                 return {
                     ...baseStyles,
                     top: top + height + offset,
-                    left: left + width / 2,
+                    left: left + width / 2 + shiftX,
                     transform: 'translateX(-50%)',
                 }
             case 'left':
@@ -142,7 +157,7 @@ export const TooltipContent = ({
             default:
                 return baseStyles
         }
-    }, [coords, finalPosition, isPositioned])
+    }, [coords, finalPosition, isPositioned, shiftX])
 
     const getArrowClasses = useCallback(() => {
         const base = 'absolute h-2 w-2 rotate-45 border-border-default bg-white'
@@ -171,7 +186,15 @@ export const TooltipContent = ({
         <div key={id} ref={tooltipRef} style={getPositionStyles()} className="pointer-events-none fixed z-50">
             <div id={id} role="tooltip" className={tooltipClasses}>
                 {content}
-                <div className={getArrowClasses()} />
+                {/* the arrow stays on the trigger when the panel slides */}
+                <div
+                    className={getArrowClasses()}
+                    style={
+                        shiftX && (finalPosition === 'top' || finalPosition === 'bottom')
+                            ? { left: `calc(50% - ${shiftX}px)` }
+                            : undefined
+                    }
+                />
             </div>
         </div>
     )
