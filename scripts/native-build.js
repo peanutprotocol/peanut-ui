@@ -46,7 +46,7 @@ const ITEMS_TO_DISABLE = [
     { path: 'peanut-card', type: 'dir' }, // star-feature LP (web-only)
     { path: 'request-links', type: 'dir' }, // star-feature LP (web-only)
     { path: 'self-custody', type: 'dir' }, // star-feature LP (web-only)
-    { path: 'maintenance', type: 'dir' }, // maintenance page
+    // maintenance stays: full maintenance sends native users to /maintenance (TASK-24130)
     { path: 'not-found.tsx', type: 'file' }, // custom 404 (not needed in native)
     { path: 'crisp-proxy', type: 'dir' }, // crisp iframe proxy (handled differently in native)
     { path: 'receipt', type: 'dir' }, // receipt pages (server component, not needed in native)

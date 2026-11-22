@@ -14,6 +14,10 @@ const mockBrowserOpen = jest.fn<Promise<void>, [unknown]>().mockResolvedValue(un
 jest.mock('@capacitor/browser', () => ({
     Browser: { open: (options: unknown) => mockBrowserOpen(options), close: () => mockBrowserClose() },
 }))
+const mockAppLauncherOpenUrl = jest.fn<Promise<{ completed: boolean }>, [{ url: string }]>()
+jest.mock('@capacitor/app-launcher', () => ({
+    AppLauncher: { openUrl: (options: { url: string }) => mockAppLauncherOpenUrl(options) },
+}))
 
 describe('capacitor utils', () => {
     const originalEnv = process.env
@@ -514,5 +518,42 @@ describe('isIOSNativeBridge', () => {
         } finally {
             setUserAgent(originalUserAgent)
         }
+    })
+})
+
+describe('openInOsApp', () => {
+    const PLAY_URL = 'https://play.google.com/store/apps/details?id=me.peanut.wallet'
+
+    beforeEach(() => {
+        jest.resetModules()
+        mockBrowserOpen.mockReset().mockResolvedValue(undefined)
+        mockAppLauncherOpenUrl.mockReset()
+        window.Capacitor = { getPlatform: () => 'android', isNativePlatform: () => true }
+    })
+
+    afterEach(() => {
+        delete window.Capacitor
+    })
+
+    it('hands a store link to the OS, so the store app opens without the in-app sheet (TASK-23926)', async () => {
+        mockAppLauncherOpenUrl.mockResolvedValue({ completed: true })
+        const { openInOsApp } = require('../capacitor') as typeof import('../capacitor')
+        await openInOsApp(PLAY_URL)
+        expect(mockAppLauncherOpenUrl).toHaveBeenCalledWith({ url: PLAY_URL })
+        expect(mockBrowserOpen).not.toHaveBeenCalled()
+    })
+
+    it('falls back to the in-app sheet when the OS launch fails', async () => {
+        mockAppLauncherOpenUrl.mockResolvedValue({ completed: false })
+        const { openInOsApp } = require('../capacitor') as typeof import('../capacitor')
+        await openInOsApp(PLAY_URL)
+        expect(mockBrowserOpen).toHaveBeenCalledWith({ url: PLAY_URL })
+    })
+
+    it('falls back to the in-app sheet on a binary without the launcher plugin', async () => {
+        mockAppLauncherOpenUrl.mockRejectedValue(new Error('"AppLauncher" plugin is not implemented on android'))
+        const { openInOsApp } = require('../capacitor') as typeof import('../capacitor')
+        await openInOsApp(PLAY_URL)
+        expect(mockBrowserOpen).toHaveBeenCalledWith({ url: PLAY_URL })
     })
 })

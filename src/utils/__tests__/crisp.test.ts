@@ -26,6 +26,8 @@ const pluginProxy = createPluginProxy({ configure, openMessenger, reset }, 'Capa
 
 jest.mock('@capgo/capacitor-crisp', () => ({ CapacitorCrisp: pluginProxy }))
 jest.mock('@/utils/capacitor', () => ({ isCapacitor: () => true, isAndroidNative: () => false }))
+const mockCurrentAppLocale = jest.fn((): string | null => null)
+jest.mock('@/i18n/app/locale-store', () => ({ currentAppLocale: () => mockCurrentAppLocale() }))
 
 describe('ensureNativeCrispConfigured', () => {
     beforeEach(() => {
@@ -41,6 +43,15 @@ describe('ensureNativeCrispConfigured', () => {
         expect(configure).toHaveBeenCalledWith({ websiteID: expect.any(String) })
         await CapacitorCrisp.openMessenger()
         expect(openMessenger).toHaveBeenCalled()
+    })
+
+    it('opens the native chat in the app language, not the phone language (TASK-23926)', async () => {
+        mockCurrentAppLocale.mockReturnValueOnce('pt-BR')
+        const { ensureNativeCrispConfigured } = await import('@/utils/crisp')
+
+        await expectToSettle(ensureNativeCrispConfigured())
+
+        expect(configure).toHaveBeenCalledWith({ websiteID: expect.any(String), locale: 'pt-br' })
     })
 
     it('configures once across repeated support opens', async () => {
