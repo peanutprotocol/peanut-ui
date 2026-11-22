@@ -9,7 +9,6 @@ import { readUserOpOutcome } from '@/utils/userop-outcome'
 import {
     CLAIM_LEASE_MS,
     isAbandonedClaim,
-    isPastWaitWindow,
     leftDevice,
     parsePendingChargeSend,
     pendingChargeSendKey,
@@ -21,6 +20,7 @@ import {
     type PendingChargeSend,
     type SendOrderRead,
 } from '../utils/pending-charge-send'
+import { decideRecovery, RECOVERY_INTERVAL_MS } from '../utils/decide-recovery'
 
 /**
  * - `completed`: the order is paid; the success screen shows.
@@ -35,7 +35,6 @@ import {
  */
 export type PendingSendOutcome = 'completed' | 'sent' | 'not-sent' | 'in-flight' | 'unconfirmed' | 'cancelled'
 
-const RECOVERY_INTERVAL_MS = 3_000
 const RECOVERY_WINDOW_MS = 60_000
 
 // Per page load, shared by every screen of a flow: an intent with a send
@@ -83,7 +82,8 @@ interface PendingChargeSendOptions {
  *    memory: the guard holds on this page and the payment goes on.
  * 2. A failure after the send left this device (`mayHaveSent`) goes to
  *    `recover`, never back to the amount screen.
- * 3. `recover` reads the order and the chain until the send is final. Pay
+ * 3. `recover` reads the order and the chain until the send is final; each
+ *    round's decision is `decideRecovery`, named after the model's actions. Pay
  *    comes back when it is proven that nothing moved; a failed read proves
  *    nothing. The marker goes then, once the order is booked, or, past the
  *    wait window with no proof, with the "could not be confirmed" error.
@@ -263,72 +263,44 @@ export function usePendingChargeSend({
                 const order = await readOrder(send).catch(() => null)
                 if (hasLeftScreen.current) return 'cancelled'
                 order?.show?.()
-                if (order?.state === 'completed') return finish('completed', send.txHash ?? order.txHash)
-                // the order's owner holds the transfer: the money moved in it
-                if (!send.txHash && order?.txHash) {
-                    send = { ...send, txHash: order.txHash }
-                    writePendingChargeSend(key, send)
-                }
-
-                if (!send.txHash) {
+                const read = { send, order, canRecord: !!recordPayment, recordTried, deadline }
+                let next = decideRecovery({ ...read, now: Date.now() })
+                if (next.action === 'ReadUserOps') {
                     const outcomes = await Promise.all(
                         send.userOps.map((op) => (walletAddress ? readUserOpOutcome(op, walletAddress) : 'unknown'))
                     )
                     if (hasLeftScreen.current) return 'cancelled'
-                    const executed = outcomes.find((outcome) => typeof outcome === 'object')
-                    // A nonce another saved op of this send was mined with (it reverted):
-                    // an op of the same nonce without a receipt can never run.
-                    const ops = send.userOps
-                    const minedNonces = new Set(
-                        ops.filter((_op, i) => outcomes[i] === 'reverted').map((op) => op.nonce)
-                    )
-                    if (executed) {
-                        send = { ...send, txHash: executed.executed }
-                        writePendingChargeSend(key, send)
-                    } else if (
-                        // each op is proven unsent: `not-found` may still run, and
-                        // `unknown` (a read failed) proves nothing
-                        outcomes.every(
-                            (outcome, i) =>
-                                outcome === 'reverted' || (outcome === 'nonce-spent' && minedNonces.has(ops[i].nonce))
-                        ) &&
-                        // an op without a hash cannot be read
-                        !send.untrackedBroadcast &&
-                        // the backend owns its broadcast: only its closed order proves it
-                        (!send.backendBroadcast || order?.state === 'closed')
-                    ) {
-                        return finish('not-sent')
-                    }
+                    next = decideRecovery({ ...read, outcomes, now: Date.now() })
                 }
-                if (send.txHash) {
-                    // Money left the wallet: a closed order cannot book it, and the
-                    // confirming screen sends the payer to support if it never shows.
-                    if (order?.state === 'closed') {
-                        return finish(isPastWaitWindow(send) ? 'unconfirmed' : 'sent', send.txHash)
-                    }
-                    // `unbooked` means no payment was recorded. The owner answers a
-                    // repeated hash idempotently, so every recovery tries once more.
-                    if (recordPayment && order?.state === 'unbooked' && !recordTried) {
+                if (next.foundTxHash) {
+                    send = { ...send, txHash: next.foundTxHash }
+                    writePendingChargeSend(key, send)
+                }
+                switch (next.action) {
+                    case 'Recover':
+                    case 'RecoverTimeout':
+                        return finish(next.outcome, next.txHash)
+                    case 'ReleaseWarned':
+                        return finish('unconfirmed')
+                    case 'RecoverRecord': {
                         recordTried = true
-                        const recorded = await recordPayment(send, send.txHash).then(
+                        // decideRecovery books only when the flow passed recordPayment
+                        const recorded = await recordPayment!(send, next.txHash).then(
                             (show) => ({ show }),
                             () => null
                         )
                         if (hasLeftScreen.current) return 'cancelled'
                         if (recorded) {
                             recorded.show?.()
-                            return finish('completed', send.txHash)
+                            return finish('completed', next.txHash)
                         }
                         continue
                     }
+                    case 'Wait':
+                        await new Promise((resolve) => setTimeout(resolve, RECOVERY_INTERVAL_MS))
+                        if (hasLeftScreen.current) return 'cancelled'
+                        continue
                 }
-                // Nothing proved either way within a day: Pay comes back, with the warning.
-                if (isPastWaitWindow(send)) return finish('unconfirmed')
-                if (Date.now() + RECOVERY_INTERVAL_MS > deadline) {
-                    return send.txHash ? finish('sent', send.txHash) : finish('in-flight')
-                }
-                await new Promise((resolve) => setTimeout(resolve, RECOVERY_INTERVAL_MS))
-                if (hasLeftScreen.current) return 'cancelled'
             }
         } finally {
             recovering.delete(key)
