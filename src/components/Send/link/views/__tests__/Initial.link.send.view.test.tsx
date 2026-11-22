@@ -371,8 +371,8 @@ describe('LinkSendInitialView balance fill', () => {
 })
 
 /**
- * Replays the ChargeSendFlow.tla counterexamples on the send link (mono
- * engineering/api/state-machines/ChargeSendFlow.tla). Before the shared guard,
+ * Replays the ChargeSendFlow.tla counterexamples on the send link
+ * (verification/tla/ChargeSendFlow.tla). Before the shared guard,
  * a failure after the deposit left showed Retry, and Retry deposited again.
  */
 describe('LinkSendInitialView — a lost answer is read back, never deposited again', () => {

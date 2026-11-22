@@ -987,7 +987,7 @@ describe('useBridgeOfframpFlow — USD speed: standard ACH, same-day ACH or wire
 
 /**
  * Replays the ChargeSendFlow.tla counterexamples on the Bridge withdrawal
- * (mono engineering/api/state-machines/ChargeSendFlow.tla). The transfer is
+ * (verification/tla/ChargeSendFlow.tla). The transfer is
  * created before the deposit is sent; each trace ended, before the shared
  * guard, with a second transfer and a second deposit for one withdrawal.
  */

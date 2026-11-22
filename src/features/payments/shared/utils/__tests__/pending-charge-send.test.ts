@@ -1,6 +1,6 @@
 /**
  * Chip on ui#4198: when local storage refuses the marker, the guard must still
- * see it on this page (mono engineering/api/state-machines/ChargeSendFlow.tla,
+ * see it on this page (verification/tla/ChargeSendFlow.tla,
  * StorageFail).
  */
 import {

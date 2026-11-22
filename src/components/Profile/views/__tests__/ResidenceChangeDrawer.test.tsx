@@ -150,7 +150,7 @@ describe('ResidenceChangeDrawer', () => {
     //
     // `declared: null`: the compact /users/me omits `declared` when it equals
     // the verified country (api residence-profile.ts), so the swap must use
-    // the verified country (mono engineering/api/state-machines/ResidenceChange.tla).
+    // the verified country (peanut-api-ts verification/tla/ResidenceChange.tla).
     it('promoting the second document country swaps the pair instead of dropping one', async () => {
         storeSecondResidence('u1', 'FR')
         const { onClose } = render({ declared: null, verified: 'ES' })

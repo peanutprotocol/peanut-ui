@@ -1,4 +1,4 @@
-// Mirrors the recovery actions of mono engineering/api/state-machines/ChargeSendFlow.tla (Fixed = TRUE).
+// Mirrors the recovery actions of verification/tla/ChargeSendFlow.tla (Fixed = TRUE).
 import type { Hash } from 'viem'
 import type { UserOpOutcome } from '@/utils/userop-outcome'
 import { isPastWaitWindow, type PendingChargeSend, type SendOrderRead } from './pending-charge-send'

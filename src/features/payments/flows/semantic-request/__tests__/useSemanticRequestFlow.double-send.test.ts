@@ -1,6 +1,6 @@
 /**
- * Replays the ChargeSendFlow.tla counterexamples (mono
- * engineering/api/state-machines/ChargeSendFlow.tla, Buggy cfgs) against the
+ * Replays the ChargeSendFlow.tla counterexamples
+ * (verification/tla/ChargeSendFlow.tla, Buggy cfgs) against the
  * request pay hook. Before the guard, Pay came back on the SAME charge after a
  * failure that followed the send, and a reload offered it again.
  */

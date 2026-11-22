@@ -1,6 +1,6 @@
 /**
- * Replays the ChargeSendFlow.tla counterexamples (mono
- * engineering/api/state-machines/ChargeSendFlow.tla, Buggy cfgs) against the
+ * Replays the ChargeSendFlow.tla counterexamples
+ * (verification/tla/ChargeSendFlow.tla, Buggy cfgs) against the
  * direct send hook. Each trace ended, before the guard, with Send offered
  * again while the first transfer could still land.
  */
@@ -475,7 +475,7 @@ it('two taps in one tick start one payment: one charge, one send (BuggySameTick)
 /*
  * Chip's review of ui#4198: four paths that offered Send again before it was
  * proven the first transfer cannot land twice. Each replays one Buggy config
- * of mono engineering/api/state-machines/ChargeSendFlow.tla.
+ * of verification/tla/ChargeSendFlow.tla.
  */
 const quotaExceeded = () => {
     throw new DOMException('quota exceeded', 'QuotaExceededError')

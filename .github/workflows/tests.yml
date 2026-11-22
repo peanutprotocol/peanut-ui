@@ -236,6 +236,41 @@ jobs:
             - name: Run ESLint
               run: pnpm lint
 
+    # TLA+ spec of the payment flow's double-send guard (verification/tla). A *_Buggy*.cfg must
+    # still break (the model still reproduces the bug it documents); every other config must hold.
+    # check-all.sh pins tla2tools.jar by sha256. On a pull request, check-model-sync fails when a
+    # file a spec names in its `Models:` line changes without that spec, unless a commit carries
+    # `Model-unchanged: <reason>`. What TLA+ checks and how to add a model: mono
+    # engineering/api/state-machines/README.md.
+    tla:
+        needs: backdoor-scan
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+                  persist-credentials: false
+
+            - name: Specs change with the code they model
+              env:
+                  BASE_REF: ${{ github.base_ref }}
+              run: |
+                  if [[ -n "$BASE_REF" ]]; then
+                      node scripts/check-model-sync.mjs --base-ref "origin/$BASE_REF"
+                  else
+                      node scripts/check-model-sync.mjs
+                  fi
+
+            - name: Cache tla2tools.jar
+              uses: actions/cache@v4
+              with:
+                  path: ~/.local/share/tla/tla2tools.jar
+                  key: tla2tools-v1.7.4-936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88
+
+            - name: Model-check every spec
+              run: java -version && bash verification/tla/check-all.sh
+
     # Typecheck job. Independent of unit tests so type errors surface in
     # parallel.
     typecheck:
@@ -1517,6 +1552,7 @@ jobs:
                 ds-lint,
                 api-contract,
                 eslint,
+                tla,
                 typecheck,
                 native-export,
                 unit,
@@ -1545,6 +1581,7 @@ jobs:
                       echo "  ds-lint:   ${{ needs['ds-lint'].result }}"
                       echo "  api-contract: ${{ needs['api-contract'].result }}"
                       echo "  eslint:    ${{ needs.eslint.result }}"
+                      echo "  tla:       ${{ needs.tla.result }}"
                       echo "  typecheck: ${{ needs.typecheck.result }}"
                       echo "  native-export: ${{ needs['native-export'].result }}"
                       echo "  unit:      ${{ needs.unit.result }}"
