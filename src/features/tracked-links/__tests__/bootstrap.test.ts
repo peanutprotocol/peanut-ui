@@ -107,7 +107,7 @@ it('stashes the creator passively and builds both store handoffs around the new 
 })
 
 it('carries an explicit invite through a tracked handoff to the installed app', async () => {
-    // The visitor accepted a friend's /invite link, then opened a creator's /go link.
+    // The visitor accepted a friend's /invite link, then arrived through a tracked handoff.
     stashInvite('friend', EInviteType.DIRECT)
     const result = await bootstrapTrackedLinkEntry(visit(`/app?tl=${slug}&acq_invite=${slug}`), false)
     expect(readInviteCode()).toBe('friend')

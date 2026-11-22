@@ -1,75 +1,89 @@
 import { getPathMatch } from 'next/dist/shared/lib/router/utils/path-match'
 import redirectRules from '../../../../redirects.json'
-import { GO_REDIRECT_KEY, GO_REDIRECTS, resolveGoRedirect } from '@/features/tracked-links/go-map'
+import { GO_REDIRECTS, goRedirectDestination, resolveGoRedirect } from '@/features/tracked-links/go-map'
+
+// The key rule of go-map.ts's header: lowercase segments of letters, digits, `-` and `_`.
+const KEY = /^[a-z0-9_-]+(\/[a-z0-9_-]+)*$/
 
 // A loop, not it.each, so an empty map still passes.
 it('keeps every GO_REDIRECTS entry on peanut.me and out of /go/', () => {
     for (const [key, target] of Object.entries(GO_REDIRECTS)) {
-        expect(key).toMatch(GO_REDIRECT_KEY)
-        // A bad line fails naming its key. This is the page's own lookup on the live map, which refuses other
-        // sites and /go/ paths.
+        expect(key).toMatch(KEY)
+        // A bad line fails naming its key. This is the route's own lookup on the live map.
         expect([key, resolveGoRedirect(key.split('/'))]).toEqual([key, target])
     }
 })
 
-// next.config.js runs redirects.json before the /go/ page, so a key that one of its rules matches never gets here.
-const takenByRedirectsJson = (key: string) =>
-    redirectRules.some((rule) => !('has' in rule) && getPathMatch(rule.source)(`/go/${key}`))
+// next.config.js runs redirects.json before the /go/ page. A rule whose source matches /go/<key> takes that key.
+const rules = redirectRules.filter((rule) => !('has' in rule))
+const takenAsSource = (key: string) => rules.some((rule) => getPathMatch(rule.source)(`/go/${key}`))
+// A rule that sends /go/<x> on to another /go/ path makes that path a cached 308 alias, so its key is taken too.
+const takenAsDestination = new Set(
+    rules.flatMap((rule) => {
+        if (!rule.source.startsWith('/:locale/') || !rule.destination.startsWith('/:locale/')) return []
+        const key = rule.destination.slice('/:locale/'.length)
+        return getPathMatch(rule.source)(`/go/${rule.source.slice('/:locale/'.length)}`) && !key.includes(':')
+            ? [key]
+            : []
+    })
+)
 
-it('uses no key that a redirects.json rule answers first', () => {
-    expect(takenByRedirectsJson('team')).toBe(true)
+it('uses no key that a redirects.json rule answers or redirects to', () => {
+    expect(takenAsSource('team')).toBe(true)
+    for (const key of ['press', 'content', 'deposit/via-spei']) expect(takenAsDestination.has(key)).toBe(true)
     for (const key of Object.keys(GO_REDIRECTS)) {
-        expect([key, takenByRedirectsJson(key)]).toEqual([key, false])
+        expect([key, takenAsSource(key), takenAsDestination.has(key)]).toEqual([key, false, false])
     }
 })
 
 describe('resolveGoRedirect', () => {
-    const redirects = {
-        flyer: '/en/pricing?utm_source=flyer#fees',
-        'lisbon/print-1': '/app',
-        evil: 'https://evil.com/x',
-        protocol: '//evil.com',
-        backslash: '/\\evil.com',
-        encoded: '/%2F%2Fevil.com',
-        loop: '/go/x',
-        dotloop: '/./go/x',
-        bare: '/go',
-    }
-
-    it('answers the path for an exact key', () => {
-        expect(resolveGoRedirect(['flyer'], redirects)).toBe('/en/pricing?utm_source=flyer#fees')
+    it('answers the live map, ignoring case', () => {
+        expect(resolveGoRedirect(['app'])).toBe('/app')
+        expect(resolveGoRedirect(['APP'])).toBe('/app')
     })
 
-    it('ignores case', () => {
-        expect(resolveGoRedirect(['Lisbon', 'PRINT-1'], redirects)).toBe('/app')
-    })
-
-    it('joins the segments into one key', () => {
-        expect(resolveGoRedirect(['lisbon', 'print-1'], redirects)).toBe('/app')
-        expect(resolveGoRedirect(['lisbon'], redirects)).toBeNull()
-        expect(resolveGoRedirect(['flyer', 'ig'], redirects)).toBeNull()
-    })
-
-    it('misses an unknown key', () => {
-        expect(resolveGoRedirect(['konrad', '1'], redirects)).toBeNull()
+    it('misses an unknown key and extra segments', () => {
+        expect(resolveGoRedirect(['konrad', '1'])).toBeNull()
+        expect(resolveGoRedirect(['app', 'x'])).toBeNull()
     })
 
     it.each(['constructor', '__proto__', 'tostring', 'toString', 'hasOwnProperty'])(
         'never reads %s from the object prototype',
         (key) => {
-            expect(resolveGoRedirect([key], redirects)).toBeNull()
             expect(resolveGoRedirect([key])).toBeNull()
         }
     )
+})
 
-    it('ignores a key the map only inherits', () => {
-        expect(resolveGoRedirect(['flyer'], Object.create({ flyer: '/app' }))).toBeNull()
+describe('goRedirectDestination', () => {
+    it('keeps the path, query and hash', () => {
+        expect(goRedirectDestination('/en/pricing?utm_source=flyer#fees')).toBe('/en/pricing?utm_source=flyer#fees')
     })
 
-    it.each(['evil', 'protocol', 'backslash', 'encoded', 'loop', 'dotloop', 'bare'])(
-        'refuses the %s destination at request time',
-        (key) => {
-            expect(resolveGoRedirect([key], redirects)).toBeNull()
-        }
-    )
+    it.each([
+        ['a relative path', 'app'],
+        ['a full URL, even ours', 'https://peanut.me/app'],
+        ['another site', 'https://evil.com/x'],
+        ['a protocol-relative URL', '//evil.com'],
+        ['userinfo on another host', '//u:p@evil.com/x'],
+        ['a backslash', '/\\evil.com'],
+        ['an encoded slash pair', '/%2F%2Fevil.com'],
+        ['an encoded backslash', '/%5Cevil.com'],
+        ['a /go/ loop', '/go/x'],
+        ['an upper-case /go/ loop', '/GO/x'],
+        ['a dot-segment /go/ loop', '/./go/x'],
+        ['/go itself', '/go'],
+    ])('refuses %s', (_case, target) => {
+        expect(goRedirectDestination(target)).toBeNull()
+    })
+
+    it('answers only the path for userinfo on peanut.me', () => {
+        expect(goRedirectDestination('//u@peanut.me/x')).toBe('/x')
+    })
+
+    // An encoded tab is not stripped like a raw one, so the browser stays on peanut.me.
+    it('keeps an encoded tab on peanut.me', () => {
+        const out = goRedirectDestination('/%09/evil.com')!
+        expect(new URL(out, 'https://peanut.me').origin).toBe('https://peanut.me')
+    })
 })
