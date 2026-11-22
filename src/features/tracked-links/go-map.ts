@@ -8,7 +8,7 @@ import { TRACKED_LINK_ORIGIN } from '@/features/tracked-links/contract'
  * - The key is everything after /go/: lowercase letters, digits, `-` and `_`, segments joined by `/`.
  * - The value is a path on peanut.me that starts with `/`. Query and hash are fine.
  *   Never a full URL or another site, and never a /go/ path. go-map.test.ts fails on a bad line.
- * - A key wins over a creator with the same username: `konrad/1` here would take over Konrad's /go link.
+ * - A path that is not a key answers 404.
  * - The visitor's own query string is dropped.
  * - In production redirects.json answers first, so it takes some keys: today team, blog and four deposit/ and
  *   withdraw/ paths. go-map.test.ts fails on such a key.

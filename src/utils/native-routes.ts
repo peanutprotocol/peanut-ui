@@ -104,21 +104,19 @@ function mapDeepLink(url: string): string | null {
     if (!APP_HOSTS.test(parsed.hostname)) return null
 
     // A tracked handoff opening the app runs the exported /app bootstrap, which checks its fields
-    // exactly as the web page does. /go itself is not an associated path.
+    // exactly as the web page does.
     if (parsed.pathname.replace(/\/$/, '') === '/home' && parsed.searchParams.has('tl')) {
         if (parsed.origin !== TRACKED_LINK_ORIGIN || parsed.username || parsed.password) return null
         const slug = parsed.searchParams.get('tl')
         if (!isAcquisitionSlug(slug) || parsed.searchParams.getAll('tl').length > 1) return null
         const params = new URLSearchParams({ tl: slug })
-        // The /go handoff names its passive inviter; only the browser's own continuation
-        // (tl_seen) also carries the deferred fields. Nothing else but the /go tags reaches /app.
+        // The handoff names its passive inviter; only the browser's own continuation
+        // (tl_seen) also carries the deferred fields. Nothing else reaches /app.
         const continuation = parsed.searchParams.get('tl_seen') === '1'
         if (continuation) params.set('tl_seen', '1')
-        // The tags are labels the bootstrap checks again; they never choose the inviter.
-        const tags = ['tl_s', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'tl_r', 'tl_v', 'tl_e']
         const keys = continuation
-            ? ['acq_invite', 'pnutdl', 'at', 'attribution', 'wid', 'lang', 'invite', ...tags]
-            : ['acq_invite', ...tags]
+            ? ['acq_invite', 'pnutdl', 'at', 'attribution', 'wid', 'lang', 'invite']
+            : ['acq_invite']
         for (const key of keys) {
             if (parsed.searchParams.getAll(key).length === 1) params.set(key, parsed.searchParams.get(key)!)
         }
