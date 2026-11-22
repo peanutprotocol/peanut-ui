@@ -101,30 +101,20 @@ export type FriendlyErrorCode =
     | 'rainInsufficientCollateral'
     | 'rainCooldownRetryShortly'
     | 'cardRateLimited'
-    | 'xchainWithdrawLimit'
-    | 'xchainPaymentLimit'
-    | 'xchainWithdrawDisabled'
-    | 'xchainPaymentDisabled'
     | 'linkTransactionHashFetch'
 
 /**
  * A classified error.
  *  - `code`   → param-less localized copy (`t(code)`).
- *  - `params` → localized copy taking ICU arguments. Deliberately a SEPARATE
- *    variant rather than another member of `FriendlyErrorCode`: next-intl types
- *    the `values` argument of `t(key, values)` as the INTERSECTION of every
- *    union member's ICU args, so folding a parameterized key into the
- *    param-less union would make `{ minutes }` required at every call site and
- *    break `t(result.code)`. Add future parameterized codes as members of THIS
- *    union and switch on `code` so each narrows to a single literal.
  *  - `text`   → backend-authored copy with no key. Shrinking: prefer a wire
  *    code whenever the backend ships one.
+ *
+ * Copy that takes ICU arguments needs its own variant, never a member of
+ * `FriendlyErrorCode`: next-intl types the `values` of `t(key, values)` as the
+ * INTERSECTION of every union member's arguments, so one parameterized key in
+ * the union breaks `t(result.code)` at every call site.
  */
-export type FriendlyError =
-    | { kind: 'code'; code: FriendlyErrorCode }
-    | { kind: 'params'; code: 'xchainWithdrawLimitRetry'; values: { days: number; hours: number; minutes: number } }
-    | { kind: 'params'; code: 'xchainPaymentLimitRetry'; values: { days: number; hours: number; minutes: number } }
-    | { kind: 'text'; text: string }
+export type FriendlyError = { kind: 'code'; code: FriendlyErrorCode } | { kind: 'text'; text: string }
 
 const code = (c: FriendlyErrorCode): FriendlyError => ({ kind: 'code', code: c })
 const passthrough = (text: string): FriendlyError => ({ kind: 'text', text })
@@ -169,16 +159,6 @@ const COOLDOWN_WIRE_CODES: readonly string[] = [
     API_ERROR_CODES.WITHDRAWAL_SIGNATURE_COOLDOWN,
 ]
 
-/** Minutes to display for a cooldown, rounded up and floored at 1 — a 20s wait
- *  must not render as "0 minutes". Returns null when the backend gave us no
- *  usable number, so the caller can fall back to copy without a countdown. */
-const cooldownMinutes = (error: unknown): number | null => {
-    if (!error || typeof error !== 'object') return null
-    const sec = (error as { retryAfterSec?: unknown }).retryAfterSec
-    if (typeof sec !== 'number' || !Number.isFinite(sec) || sec <= 0) return null
-    return Math.max(1, Math.ceil(sec / 60))
-}
-
 /** A backend-authored ApiError message worth showing verbatim: short single-line
  *  prose, not a technical dump (URL, JSON/HTML body, stack) and not one of our
  *  own "Failed to …" fetch fallbacks. */
@@ -206,22 +186,13 @@ const isGenericSupport = (result: FriendlyError): boolean => result.kind === 'co
  *  matchers on ONE level of `.cause` (fetch wrappers rethrow with the real
  *  failure attached there), then surfaces a displayable backend-authored
  *  ApiError message verbatim rather than discarding the actual reason. */
-/**
- * Where the error surfaced, for the few messages whose advice depends on it.
- * The cross-chain cap counts withdrawals and request payments alike; a payer
- * cannot "withdraw on Arbitrum instead", the request fixed the destination.
- */
-export interface FriendlyErrorOptions {
-    crossChainSurface?: 'withdraw' | 'payment'
-}
-
-export const friendlyError = (error: unknown, opts?: FriendlyErrorOptions): FriendlyError => {
-    const classified = classifyError(error, opts)
+export const friendlyError = (error: unknown): FriendlyError => {
+    const classified = classifyError(error)
     if (!isGenericSupport(classified)) return classified
 
     const cause = error && typeof error === 'object' ? (error as { cause?: unknown }).cause : undefined
     if (cause !== undefined && cause !== null) {
-        const fromCause = classifyError(cause, opts)
+        const fromCause = classifyError(cause)
         if (!isGenericSupport(fromCause)) return fromCause
     }
 
@@ -230,7 +201,7 @@ export const friendlyError = (error: unknown, opts?: FriendlyErrorOptions): Frie
     return code('genericSupport')
 }
 
-const classifyError = (error: unknown, opts?: FriendlyErrorOptions): FriendlyError => {
+const classifyError = (error: unknown): FriendlyError => {
     const { text, message, name } = extractErrorParts(error)
 
     // Wire code first: it's locale-independent and immune to backend copy
@@ -247,28 +218,6 @@ const classifyError = (error: unknown, opts?: FriendlyErrorOptions): FriendlyErr
     // rather than collapsing to a generic coded string.
     if (wire === API_ERROR_CODES.BELOW_MIN_BRIDGE_AMOUNT) {
         return message ? passthrough(message) : code('genericSupport')
-    }
-    if (wire === API_ERROR_CODES.XCHAIN_WITHDRAW_LIMIT_REACHED) {
-        // Per-user cross-chain withdraw cap. The wait can be minutes (hour
-        // rung), hours (day rung) or days (30-day rung); the ICU message picks
-        // the coarsest non-zero unit.
-        const payment = opts?.crossChainSurface === 'payment'
-        const minutes = cooldownMinutes(error)
-        if (minutes === null) return code(payment ? 'xchainPaymentLimit' : 'xchainWithdrawLimit')
-        // Round the shown unit UP so the copy never promises a retry before the
-        // cap lifts; a unit is used only once the wait reaches it.
-        const hours = minutes >= 60 ? Math.ceil(minutes / 60) : 0
-        const days = minutes >= 24 * 60 ? Math.ceil(minutes / (24 * 60)) : 0
-        const values = { days, hours, minutes }
-        return payment
-            ? { kind: 'params', code: 'xchainPaymentLimitRetry', values }
-            : { kind: 'params', code: 'xchainWithdrawLimitRetry', values }
-    }
-    if (wire === API_ERROR_CODES.XCHAIN_WITHDRAW_DISABLED) {
-        // A per-account policy turned cross-chain off (support did it, on
-        // purpose). No wait exists, so no countdown — the copy points at
-        // Arbitrum (always available) and support, never at "try again".
-        return code(opts?.crossChainSurface === 'payment' ? 'xchainPaymentDisabled' : 'xchainWithdrawDisabled')
     }
     if (wire) {
         const mapped = WIRE_CODE_MAP[wire as ApiErrorCode]
