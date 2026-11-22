@@ -5205,6 +5205,7 @@
             "heading": "Get paid in {currency}",
             "subheading": "Bank details for receiving payments. Share them with employers, clients or platforms like Deel.",
             "subheadingBusinessPayers": "Bank details for receiving payments. Share them with employers, companies or platforms like Deel.",
+            "subheadingOwnAccounts": "Bank details for receiving payments from accounts in your own name.",
             "conditionTerms": "Who can pay depends on the {currency} rules. They show once the account is open.",
             "statePending": "State rules are confirmed when you open the account.",
             "benefitStable": "Share once, use for every payment",

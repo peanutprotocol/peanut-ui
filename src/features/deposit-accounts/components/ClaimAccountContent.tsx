@@ -96,9 +96,12 @@ export function ClaimAccountContent({
                     size="s"
                     title={t('claim.heading', { currency: rail.currency })}
                     description={t(
-                        // another individual cannot pay EUR, GBP or COP: no "clients" there (TASK-24913)
+                        // who may pay, as the claim terms say (TASK-24913): only the holder (a Texas
+                        // resident's USD), businesses but not individuals (EUR, GBP, COP), or anyone
                         terms?.rules?.thirdPartyIndividual?.policy === 'unavailable'
-                            ? 'claim.subheadingBusinessPayers'
+                            ? terms.rules.thirdPartyBusiness === 'unavailable'
+                                ? 'claim.subheadingOwnAccounts'
+                                : 'claim.subheadingBusinessPayers'
                             : 'claim.subheading'
                     )}
                 />
