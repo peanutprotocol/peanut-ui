@@ -59,10 +59,9 @@ const LinkSendSuccessView = () => {
             <NavHeader
                 icon="cancel"
                 title={tNav('send')}
-                onPrev={() => {
-                    leaveToHome()
-                    resetLinkSendFlow()
-                }}
+                // no reset here: it put the flow back on its create screen, which
+                // flashed before home (TASK-23929); the unmount cleanup resets it
+                onPrev={leaveToHome}
             />
             <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                 {link && (

@@ -14,6 +14,7 @@ const mockPollForClaimConfirmation = jest.fn(async () => true)
 const mockInvalidateQueries = jest.fn(async () => undefined)
 const mockToast = { success: jest.fn(), error: jest.fn(), info: jest.fn(), warning: jest.fn() }
 const mockCaptureException = jest.fn()
+const mockResetLinkSendFlow = jest.fn()
 
 jest.mock('next/navigation', () => ({ useRouter: () => ({ replace: mockReplace }) }))
 jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
@@ -27,7 +28,7 @@ jest.mock('@/context/LinkSendFlowContext', () => ({
         link: 'https://peanut.me/claim#p=pw',
         attachmentOptions: { message: '' },
         tokenValue: '10',
-        resetLinkSendFlow: jest.fn(),
+        resetLinkSendFlow: mockResetLinkSendFlow,
     }),
 }))
 jest.mock('@/hooks/wallet/useWallet', () => ({ useWallet: () => ({ fetchBalance: jest.fn() }) }))
@@ -112,6 +113,16 @@ describe('LinkSendSuccessView — leaving for home', () => {
         await act(() => back)
         expect(window.location.pathname).toBe('/')
         expect(mockReplace).not.toHaveBeenCalled()
+    })
+
+    // TASK-23929 item 1: resetting on close put the flow back on its create
+    // screen, which flashed before home. The unmount cleanup resets it.
+    test('close leaves the success screen in place until it unmounts', () => {
+        const { unmount } = render(<LinkSendSuccessView />)
+        fireEvent.click(screen.getByTestId('nav-back'))
+        expect(mockResetLinkSendFlow).not.toHaveBeenCalled()
+        unmount()
+        expect(mockResetLinkSendFlow).toHaveBeenCalledTimes(1)
     })
 
     test('opened cold (no in-app history), close replaces the page with home', () => {
