@@ -1,6 +1,6 @@
 /**
  * Replays the ChargeSendFlow.tla counterexamples on the Manteca bank
- * withdrawal (mono engineering/api/state-machines/ChargeSendFlow.tla). The
+ * withdrawal (verification/tla/ChargeSendFlow.tla). The
  * backend submits the signed spend before it creates the Manteca order, so a
  * lost answer to the final submit may hide money that moved. Before the shared
  * guard that answer showed "could not complete" with Try again, which took a

@@ -1163,7 +1163,7 @@ describe('crypto withdraw — card re-approval cancelled before the broadcast', 
 
 /**
  * Replays the ChargeSendFlow.tla counterexamples on the crypto withdrawal
- * (mono engineering/api/state-machines/ChargeSendFlow.tla, Buggy cfgs). Each
+ * (verification/tla/ChargeSendFlow.tla, Buggy cfgs). Each
  * trace ended, before the shared guard, with Confirm offered again while the
  * first transfer could still land.
  */

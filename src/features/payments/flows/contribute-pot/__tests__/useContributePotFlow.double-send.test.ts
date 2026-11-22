@@ -1,6 +1,6 @@
 /**
- * Replays the ChargeSendFlow.tla counterexamples (mono
- * engineering/api/state-machines/ChargeSendFlow.tla, Buggy cfgs) against the
+ * Replays the ChargeSendFlow.tla counterexamples
+ * (verification/tla/ChargeSendFlow.tla, Buggy cfgs) against the
  * pot contribution hook: before the guard, each ended with a second
  * contribution on offer while the first could still land.
  */

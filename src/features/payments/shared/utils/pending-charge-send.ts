@@ -5,8 +5,8 @@ import { storedKeysWithPrefix } from '@/utils/safe-storage'
 /**
  * A payment this device started and may have sent. While one exists for an
  * intent, Pay stays off and a reload resumes the recovery, so a lost answer
- * can never turn into a second transfer (mono
- * engineering/api/state-machines/ChargeSendFlow.tla, the Fixed variant).
+ * can never turn into a second transfer
+ * (verification/tla/ChargeSendFlow.tla, the Fixed variant).
  *
  * Local storage, per user and intent, so it survives the app being killed. It
  * holds ids and hashes; the one key that names an account goes at sign-out

@@ -1213,8 +1213,8 @@ describe('useSpendBundle — cached-controller repair', () => {
 })
 
 /**
- * The spend engine's half of the double-send guard (mono
- * engineering/api/state-machines/ChargeSendFlow.tla): every send that leaves
+ * The spend engine's half of the double-send guard
+ * (verification/tla/ChargeSendFlow.tla): every send that leaves
  * this device is reported before it goes, and only a failure that may hide a
  * landed send carries the may-have-broadcast tag.
  */
