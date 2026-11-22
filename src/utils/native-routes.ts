@@ -308,6 +308,8 @@ export const NATIVE_EXPORT_ROOTS: ReadonlySet<string> = new Set([
     'history',
     'home',
     'limits',
+    // full maintenance sends every user here (TASK-24130)
+    'maintenance',
     'pay-request',
     'points',
     'profile',
