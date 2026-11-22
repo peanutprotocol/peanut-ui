@@ -14,6 +14,7 @@ import { type StaticImageData } from 'next/image'
 import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
+import { readReturnTo } from '@/utils/return-to.utils'
 import { rewriteMethodPath } from '@/utils/native-routes'
 import { isCapacitor } from '@/utils/capacitor'
 import EmptyState from '../Global/EmptyStates/EmptyState'
@@ -101,12 +102,14 @@ const AddWithdrawCountriesList = ({ flow }: AddWithdrawCountriesListProps) => {
     // Back from a country returns to the list it was picked from. Rewinding,
     // not pushing: a pushed list kept the country page under it, so browser
     // back from the list reopened the country.
+    // A caller that names its page (Rates & fees) gets the user back there (TASK-23925).
     const leaveForParent = useReturnTo(
-        flow === 'add'
-            ? '/add-money?method=bank'
-            : isBankFromSend
-              ? `/withdraw?showAll=true&method=${methodParam}`
-              : '/withdraw?showAll=true&rail=bank'
+        readReturnTo(searchParams, pathname) ??
+            (flow === 'add'
+                ? '/add-money?method=bank'
+                : isBankFromSend
+                  ? `/withdraw?showAll=true&method=${methodParam}`
+                  : '/withdraw?showAll=true&rail=bank')
     )
 
     // hooks

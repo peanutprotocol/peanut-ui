@@ -932,6 +932,15 @@ describe('bank country back navigation', () => {
         )
         expect(mockSetSelectedMethod).toHaveBeenCalledWith(null)
     })
+
+    // TASK-23925: Rates & fees sends its page as returnTo; back skipped it for the hub.
+    it.each(['add', 'withdraw'] as const)('%s: back returns to the page named in returnTo', (flow) => {
+        const origin = '/profile/exchange-rate?from=ARS&to=USD'
+        mockSearchParams = new URLSearchParams({ returnTo: origin })
+        render(<AddWithdrawCountriesList flow={flow} />)
+        fireEvent.click(screen.getByTestId('nav-header'))
+        expect(mockReturnTo).toHaveBeenCalledWith(origin)
+    })
 })
 
 /**
