@@ -57,7 +57,8 @@ export function AddMoneyOptions() {
     const tProfile = useTranslations('profile.unlockPayments')
     const readyOnly = ready === '1'
     const origin = readReturnTo(new URLSearchParams(returnTo ? { returnTo } : {}), '/add-money/options')
-    const back = useReturnTo(origin ?? (readyOnly ? '/home' : '/add-money'))
+    // the picker always sends a returnTo; only the Home Add drawer sends none (TASK-25079)
+    const back = useReturnTo(origin ?? '/home')
     const readiness = useAddMoneyReadiness(false, method === 'account' || readyOnly)
     const deposit = useDepositAccounts({ enabled: method === 'account' })
     const { isTerminalFailure } = useIdentityVerification()
