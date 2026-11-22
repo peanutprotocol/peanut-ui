@@ -285,10 +285,15 @@ describe('the account provider on the claim screen (TASK-23295)', () => {
 describe('the subheading names the payers the account takes', () => {
     it('names businesses, not clients, where another individual cannot pay', () => {
         // as the API sends EUR today (bridge-adapter, EUR_INDIVIDUAL_VOLUME_AGREED = false)
-        const eur = {
+        const eur: ClaimableCorridor = {
             ...CLAIMABLE_EUR,
-            matching: { sender: 'business-only' as const },
-            rules: { ...CLAIMABLE_EUR.rules, thirdPartyIndividual: { policy: 'unavailable' as const } },
+            matching: { sender: 'business-only' },
+            rules: {
+                ownAccount: { allowed: true },
+                thirdPartyBusiness: 'unlimited',
+                thirdPartyIndividual: { policy: 'unavailable' },
+                min: { amount: '1', currency: 'EUR' },
+            },
         }
         claim({ terms: eur })
         expect(screen.getByText(messages.depositAccounts.claim.subheadingBusinessPayers)).toBeInTheDocument()
