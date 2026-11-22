@@ -415,9 +415,16 @@ jobs:
                   path: /tmp/be-baseline.jsonl
                   retention-days: 1
 
+    # Sharded 2-way: one runner ran the ~1,500 suites in 12-13 min (Nov 2026,
+    # runs 44966518833 and 44945976697) at about 2.4x parallelism, and it was
+    # the longest job after press-contract. jest --shard splits by file.
     unit:
         needs: be-baseline
         runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                shard: [1, 2]
         # No checks: write here even though dorny/test-reporter runs below —
         # in summary mode it needs none, and this job runs PR-authored code
         # before the reporter, so any token it holds is capturable.
@@ -463,32 +470,36 @@ jobs:
                       src/components/TransactionDetails/__tests__/fixtures/be-entries.json
 
             - name: Run unit tests
-              run: pnpm test:unit:ci
+              run: pnpm test:unit:ci --shard=${{ matrix.shard }}/2
 
             - name: Publish unit test report
               uses: dorny/test-reporter@3eeb9fc888e82e8be2fb356bbeec2750231672bc # v1
               if: always()
               with:
-                  name: Unit test report
+                  name: Unit test report (shard ${{ matrix.shard }})
                   path: test-results/junit.xml
                   reporter: jest-junit
                   fail-on-error: false
 
+            # overwrite: v4 artifacts are immutable within a run, so a
+            # "re-run failed jobs" pass would 409 here without it.
             - name: Upload unit coverage
               if: always()
               uses: actions/upload-artifact@v4
               with:
-                  name: coverage-unit
+                  name: coverage-unit-${{ matrix.shard }}
                   path: coverage/coverage-final.json
                   retention-days: 7
+                  overwrite: true
 
             - name: Upload unit JUnit XML
               if: always()
               uses: actions/upload-artifact@v4
               with:
-                  name: junit-unit
+                  name: junit-unit-${{ matrix.shard }}
                   path: test-results/junit.xml
                   retention-days: 7
+                  overwrite: true
 
     # Feeds ds-shots and i18n-overflow. ds-shots skips PRs into dev (dev
     # captures are opt-in via /ds-shots, ds-shots-request.yml); i18n-overflow
@@ -718,6 +729,8 @@ jobs:
                   SCREEN_CAPTURE_BUILD: '1'
                   # Fonts from the repo, not Google Fonts: see scripts/next-font-google/mock.cjs.
                   NEXT_FONT_GOOGLE_MOCKED_RESPONSES: ${{ github.workspace }}/scripts/next-font-google/mock.cjs
+                  # The typecheck job already runs this check; see next.config.js.
+                  NEXT_BUILD_SKIP_TYPECHECK: '1'
               run: pnpm build
 
             # Push runs only (dev/main/DS train land several times a day), so
@@ -985,6 +998,8 @@ jobs:
                   NEXT_PUBLIC_BASE_URL: http://127.0.0.1:3080
                   # Fonts from the repo, not Google Fonts: see scripts/next-font-google/mock.cjs.
                   NEXT_FONT_GOOGLE_MOCKED_RESPONSES: ${{ github.workspace }}/scripts/next-font-google/mock.cjs
+                  # The typecheck job already runs this check; see next.config.js.
+                  NEXT_BUILD_SKIP_TYPECHECK: '1'
               run: pnpm build
 
             - name: i18n overflow gate
@@ -1117,6 +1132,8 @@ jobs:
                   NEXT_PUBLIC_BASE_URL: http://127.0.0.1:3081
                   # Fonts from the repo, not Google Fonts: see scripts/next-font-google/mock.cjs.
                   NEXT_FONT_GOOGLE_MOCKED_RESPONSES: ${{ github.workspace }}/scripts/next-font-google/mock.cjs
+                  # The typecheck job already runs this check; see next.config.js.
+                  NEXT_BUILD_SKIP_TYPECHECK: '1'
               run: pnpm build
 
             - name: Run the press-physics spec
@@ -1201,6 +1218,8 @@ jobs:
                   # Keep the same bounded build heap as the preview browser contract.
                   NODE_OPTIONS: --max-old-space-size=6144
                   NEXT_FONT_GOOGLE_MOCKED_RESPONSES: ${{ github.workspace }}/scripts/next-font-google/mock.cjs
+                  # The typecheck job already runs this check; see next.config.js.
+                  NEXT_BUILD_SKIP_TYPECHECK: '1'
               run: pnpm build
             - name: Check every rendered sitemap URL
               run: pnpm test:seo:rendered
@@ -1236,14 +1255,14 @@ jobs:
               uses: actions/download-artifact@v4
               continue-on-error: true
               with:
-                  name: coverage-unit
+                  pattern: coverage-unit-*
                   path: coverage-raw/unit
 
             - name: Download unit JUnit
               uses: actions/download-artifact@v4
               continue-on-error: true
               with:
-                  name: junit-unit
+                  pattern: junit-unit-*
                   path: junit-raw/unit
 
             - name: Summarize
@@ -1252,7 +1271,14 @@ jobs:
                   set -euo pipefail
                   mkdir -p coverage-merged coverage-input
 
-                  [[ -f coverage-raw/unit/coverage-final.json ]] && cp coverage-raw/unit/coverage-final.json coverage-input/unit.json || echo "no unit coverage"
+                  # One coverage-final.json per shard, each in its own artifact subdir.
+                  found=0
+                  for f in coverage-raw/unit/*/coverage-final.json; do
+                      [[ -f "$f" ]] || continue
+                      found=$((found+1))
+                      cp "$f" "coverage-input/unit-$found.json"
+                  done
+                  [[ $found -gt 0 ]] || echo "no unit coverage"
 
                   if ls coverage-input/*.json >/dev/null 2>&1; then
                       npx --yes nyc@15 merge coverage-input coverage-merged/coverage-final.json
@@ -1289,7 +1315,22 @@ jobs:
                       } catch { return null; }
                   }
 
-                  const unit = parseJunit('junit-raw/unit/junit.xml','unit');
+                  // One junit.xml per shard: sum the counts; wall time is the slowest shard.
+                  let unit = null;
+                  try {
+                      const shards = fs.readdirSync('junit-raw/unit')
+                          .map(d => parseJunit('junit-raw/unit/' + d + '/junit.xml', 'unit'))
+                          .filter(Boolean);
+                      if (shards.length) {
+                          unit = {
+                              tests: shards.reduce((a,s) => a + s.tests, 0),
+                              failures: shards.reduce((a,s) => a + s.failures, 0),
+                              skipped: shards.reduce((a,s) => a + s.skipped, 0),
+                              time: Math.max(...shards.map(s => s.time)),
+                              cases: shards.flatMap(s => s.cases),
+                          };
+                      }
+                  } catch {}
                   const allCases = unit?.cases || [];
                   const failed = allCases.filter(c => c.failed);
                   const slowest = [...allCases].sort((a,b) => b.time - a.time).slice(0, 10);
@@ -1350,7 +1391,7 @@ jobs:
                           '',
                           slowBlock,
                           '',
-                          '<sub>📍 Inline annotations are in the **Unit test report** check above. Coverage artifact: `coverage-unit`. Generated by `.github/workflows/tests.yml`.</sub>',
+                          '<sub>📍 Inline annotations are in the **Unit test report (shard N)** checks above. Coverage artifacts: `coverage-unit-<shard>`. Generated by `.github/workflows/tests.yml`.</sub>',
                       ].filter(Boolean).join('\n');
 
                       const tag = '<!-- ui-test-report -->';
