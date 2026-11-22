@@ -97,7 +97,7 @@ export function ClaimAccountContent({
                     title={t('claim.heading', { currency: rail.currency })}
                     description={t(
                         // another individual cannot pay EUR, GBP or COP: no "clients" there (TASK-24913)
-                        terms?.rules?.thirdPartyIndividual.policy === 'unavailable'
+                        terms?.rules?.thirdPartyIndividual?.policy === 'unavailable'
                             ? 'claim.subheadingBusinessPayers'
                             : 'claim.subheading'
                     )}
