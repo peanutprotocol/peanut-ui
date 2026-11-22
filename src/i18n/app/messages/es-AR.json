@@ -239,8 +239,7 @@
             "providerRejection": {
                 "restartTitle": "Verificate con otro documento",
                 "fixableDescription": "Subí una foto más clara de tu documento para desbloquear esta región.",
-                "restartDescription": "Esta región necesita un documento de un país compatible. Podés verificarte con otro documento.",
-                "unavailableDescription": "Esta región no está disponible para tu cuenta. Contactá soporte para recibir ayuda."
+                "restartDescription": "Esta región necesita un documento de un país compatible. Podés verificarte con otro documento."
             }
         },
         "unlockPayments": {

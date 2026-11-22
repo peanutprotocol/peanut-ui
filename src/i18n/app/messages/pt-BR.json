@@ -457,10 +457,8 @@
             "providerRejection": {
                 "fixableTitle": "Precisamos de um documento atualizado",
                 "restartTitle": "Verifique com outro documento",
-                "unavailableTitle": "Região indisponível",
                 "fixableDescription": "Envie uma foto mais nítida do seu documento para desbloquear esta região.",
                 "restartDescription": "Esta região exige um documento de um país compatível. Você pode verificar com outro documento.",
-                "unavailableDescription": "Esta região não está disponível para a sua conta. Fale com o suporte para receber ajuda.",
                 "uploadDocument": "Enviar documento"
             },
             "initError": {

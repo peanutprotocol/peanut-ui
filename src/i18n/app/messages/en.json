@@ -457,10 +457,8 @@
             "providerRejection": {
                 "fixableTitle": "We need an updated document",
                 "restartTitle": "Verify with a different document",
-                "unavailableTitle": "Region unavailable",
                 "fixableDescription": "Please upload a clearer photo of your ID to unlock this region.",
                 "restartDescription": "This region needs a document from a supported country. You can verify with a different ID.",
-                "unavailableDescription": "This region is not available for your account. Contact support for help.",
                 "uploadDocument": "Upload document"
             },
             "initError": {
