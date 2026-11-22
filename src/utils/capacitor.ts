@@ -249,6 +249,25 @@ export async function openExternalUrl(url: string, signal?: AbortSignal): Promis
     }
 }
 
+/**
+ * Native only: hands `url` to the OS, so the app that owns it opens it (a store
+ * link opens the App Store or Google Play app). The openExternalUrl sheet
+ * follows no app links, so it shows the web store page first. Falls back to
+ * that sheet when the launch fails or the binary predates the plugin.
+ */
+export async function openInOsApp(url: string): Promise<void> {
+    try {
+        const { AppLauncher } = await import('@capacitor/app-launcher')
+        // it reports a failed launch in `completed`, it does not throw — an
+        // unchecked call is a dead tap with no error anywhere
+        const { completed } = await AppLauncher.openUrl({ url })
+        if (completed) return
+    } catch {
+        // plugin missing (a binary predating it) — fall through
+    }
+    await openExternalUrl(url)
+}
+
 // Android convention for back with nothing to go back to; iOS has no minimize.
 export async function minimizeNativeApp(): Promise<void> {
     if (!isNativeBridge()) return
