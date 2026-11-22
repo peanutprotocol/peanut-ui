@@ -437,7 +437,10 @@
                 "invalidEmail": "Please enter a valid email address.",
                 "emailInUse": "This email is already associated with another account.",
                 "invalidCode": "Enter the 6-digit code from your email.",
-                "nameReadOnly": "Your name was not saved. Names are managed through identity verification."
+                "nameReadOnly": "Your name was not saved. Names are managed through identity verification.",
+                "sameEmail": "Enter a different email address.",
+                "codeCooldown": "Wait a moment, then request a new code.",
+                "emailChangeUnavailable": "Email changes are paused for now. Contact support to update your email."
             },
             "verifiedNameHelp": "Your name comes from your identity verification and cannot be edited here. Contact support if it needs correcting.",
             "emailCode": "Verification code",

@@ -437,7 +437,10 @@
                 "invalidEmail": "Ingresa una dirección de correo válida.",
                 "emailInUse": "Este correo ya está asociado a otra cuenta.",
                 "invalidCode": "Ingresa el código de 6 dígitos que recibiste por correo.",
-                "nameReadOnly": "No se guardó tu nombre. Los nombres se administran mediante la verificación de identidad."
+                "nameReadOnly": "No se guardó tu nombre. Los nombres se administran mediante la verificación de identidad.",
+                "sameEmail": "Ingresa una dirección de correo distinta.",
+                "codeCooldown": "Espera un momento y pide un código nuevo.",
+                "emailChangeUnavailable": "Los cambios de correo están pausados por ahora. Contacta a soporte para actualizar tu correo."
             },
             "verifiedNameHelp": "Tu nombre proviene de la verificación de identidad y no se puede editar aquí. Contacta a soporte si necesitas corregirlo.",
             "emailCode": "Código de verificación",

@@ -221,7 +221,10 @@
             "errors": {
                 "nameRequired": "Por favor ingresá tu nombre.",
                 "invalidEmail": "Ingresá una dirección de correo válida.",
-                "invalidCode": "Ingresá el código de 6 dígitos que recibiste por correo."
+                "invalidCode": "Ingresá el código de 6 dígitos que recibiste por correo.",
+                "sameEmail": "Ingresá una dirección de correo distinta.",
+                "codeCooldown": "Esperá un momento y pedí un código nuevo.",
+                "emailChangeUnavailable": "Los cambios de correo están pausados por ahora. Contactá a soporte para actualizar tu correo."
             },
             "verifiedNameHelp": "Tu nombre proviene de la verificación de identidad y no se puede editar acá. Contactá a soporte si necesitás corregirlo.",
             "emailCode": "Código de verificación",
