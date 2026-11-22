@@ -73,7 +73,7 @@ export function SendInputView() {
                         username={recipient.username}
                         fullName={recipient.fullName}
                         recipientType="USERNAME"
-                        isVerified={!!recipient.userId}
+                        isVerified={recipient.isVerified}
                         person={recipient.person}
                     />
                 )}
