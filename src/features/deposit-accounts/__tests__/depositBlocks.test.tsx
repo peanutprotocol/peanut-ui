@@ -121,6 +121,17 @@ describe('what a block does to the gate view', () => {
         })
     })
 
+    // TASK-24969: only a hand-picked list of codes used the app's words; any
+    // other code with catalog copy showed the API's English sentence
+    it('carries any reason code that has app copy, so the drawer uses it', () => {
+        const gate: GateState = {
+            kind: 'blocked-rejection',
+            userMessage: 'Backend English prose',
+            reason: { code: 'requirements_uncollectable', userMessage: 'Backend English prose' },
+        }
+        expect(depositGateView(gate).notice?.reasonCode).toBe('requirements_uncollectable')
+    })
+
     it('lets the capability gate answer first', () => {
         // An unverified user is not told about a cap they are nowhere near.
         expect(depositGateView({ kind: 'needs-identity' }, terms('account-limit')).notice?.action).toBe('verify')
