@@ -173,6 +173,7 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
 }))
 
 import MantecaBankWithdrawFlow from '../MantecaBankWithdrawFlow'
+import { rainApi } from '@/services/rain'
 
 // ---------- helpers ----------
 
@@ -225,6 +226,12 @@ async function openReview() {
     return view
 }
 const withdrawButton = () => screen.getByText('navigation.withdraw')
+/** A Manteca withdrawal in the owner's activity: the API names its destination as sent. */
+const withdrawalTo = (destination: string, status: string) => ({
+    status,
+    recipientAccount: { identifier: destination },
+    extraData: { provider: 'MANTECA', kind: 'OFFRAMP' },
+})
 
 beforeEach(() => {
     jest.useFakeTimers()
@@ -296,7 +303,7 @@ it('a submit that answered 500 reaches success once the withdrawal completes', a
     expect(screen.getByTestId('payment-confirming')).toBeInTheDocument()
 
     // Manteca pays it out: the next read finds the booked withdrawal completed
-    mockHistory.mockReturnValue([{ status: 'COMPLETED', extraData: { provider: 'MANTECA', kind: 'OFFRAMP' } }])
+    mockHistory.mockReturnValue([withdrawalTo(DESTINATION, 'COMPLETED')])
     await act(async () => {
         await jest.advanceTimersByTimeAsync(3_000)
     })
@@ -311,7 +318,7 @@ it('a submit that answered 500 reaches success once the withdrawal completes', a
 it('two Manteca withdrawals since the send began prove nothing: the read keeps waiting', async () => {
     mockWithdrawWithSignedTx.mockResolvedValue({ error: 'Unexpected error' })
     mockReadUserOpOutcome.mockResolvedValue({ executed: '0xfound' })
-    const completed = { status: 'COMPLETED', extraData: { provider: 'MANTECA', kind: 'OFFRAMP' } }
+    const completed = withdrawalTo(DESTINATION, 'COMPLETED')
     mockHistory.mockReturnValue([completed, completed])
     const view = await openReview()
 
@@ -394,4 +401,54 @@ it('a refusal the provider names keeps its message and the review (no regression
     expect(screen.getByRole('alert')).toHaveTextContent('errors.providerRejected')
     expect(screen.queryByTestId('payment-confirming')).toBeNull()
     expect(window.localStorage.getItem(MARKER_KEY)).toBeNull()
+})
+
+it("another account's completed withdrawal is not this send's: the read keeps waiting", async () => {
+    mockWithdrawWithSignedTx.mockResolvedValue({ error: 'Unexpected error' })
+    mockReadUserOpOutcome.mockResolvedValue({ executed: '0xfound' })
+    // the only booked row since this send began pays another account
+    mockHistory.mockReturnValue([withdrawalTo('otra.cuenta.peanut', 'COMPLETED')])
+    const view = await openReview()
+
+    fireEvent.click(withdrawButton())
+    await flush()
+    view.rerender(<MantecaBankWithdrawFlow searchParams={searchParams} />)
+
+    expect(mockStepper.step).not.toBe('success')
+    expect(screen.getByTestId('payment-confirming')).toBeInTheDocument()
+    expect(window.localStorage.getItem(MARKER_KEY)).not.toBeNull()
+
+    // this account's own row, among the other one, completes this send
+    mockHistory.mockReturnValue([
+        withdrawalTo('otra.cuenta.peanut', 'COMPLETED'),
+        withdrawalTo(DESTINATION, 'COMPLETED'),
+    ])
+    await act(async () => {
+        await jest.advanceTimersByTimeAsync(3_000)
+    })
+    view.rerender(<MantecaBankWithdrawFlow searchParams={searchParams} />)
+
+    expect(mockStepper.step).toBe('success')
+    expect(window.localStorage.getItem(MARKER_KEY)).toBeNull()
+})
+
+it("another account's cancelled withdrawal does not prove this card-balance send moved nothing", async () => {
+    // the backend submits a card-balance withdrawal itself: only its own closed order proves nothing moved
+    mockSignSpend.mockResolvedValue({ strategy: 'collateral-only', rainWithdrawal: { preparationId: 'prep-1' } })
+    ;(rainApi.getWithdrawalStatus as jest.Mock).mockResolvedValue({ state: 'pending' })
+    mockWithdrawWithSignedTx.mockRejectedValue(new TypeError('Failed to fetch'))
+    mockHistory.mockReturnValue([withdrawalTo('otra.cuenta.peanut', 'CANCELLED')])
+    const view = await openReview()
+
+    fireEvent.click(withdrawButton())
+    await flush()
+    view.rerender(<MantecaBankWithdrawFlow searchParams={searchParams} />)
+
+    expect(screen.queryByText('payment.errors.paymentNotSent')).toBeNull()
+    expect(screen.getByTestId('payment-confirming')).toBeInTheDocument()
+    expect(window.localStorage.getItem(MARKER_KEY)).not.toBeNull()
+    view.unmount()
+    await act(async () => {
+        await jest.advanceTimersByTimeAsync(5_000)
+    })
 })
