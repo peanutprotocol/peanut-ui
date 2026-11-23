@@ -242,8 +242,7 @@
             "providerRejection": {
                 "restartTitle": "Verificate con otro documento",
                 "fixableDescription": "Subí una foto más clara de tu documento para desbloquear esta región.",
-                "restartDescription": "Esta región necesita un documento de un país compatible. Podés verificarte con otro documento.",
-                "unavailableDescription": "Esta región no está disponible para tu cuenta. Contactá soporte para recibir ayuda."
+                "restartDescription": "Esta región necesita un documento de un país compatible. Podés verificarte con otro documento."
             }
         },
         "unlockPayments": {
@@ -1598,7 +1597,7 @@
             "titleRestartIdentity": "Verificate con otro documento",
             "titleIdentityDocumentMissing": "Completá tu verificación",
             "descriptionError": "{error} Contactá a soporte para recibir ayuda.",
-            "descriptionBlocked": "No pudimos confirmar tu identidad. Contactá a soporte para recibir ayuda.",
+            "descriptionBlocked": "Esto no está disponible para tu cuenta por ahora. Contactá a soporte y lo revisamos.",
             "descriptionRestartIdentity": "Este método necesita un documento de un país compatible. Podés verificarte con otro documento.",
             "descriptionRegionUnavailable": "Por regulaciones del Reino Unido, las transferencias bancarias no están disponibles para residentes del Reino Unido. Tus fondos están seguros: podés retirarlos como cripto en cualquier momento.",
             "descriptionBankUnavailable": "Las transferencias bancarias no están disponibles en tu país, así que verificar tu identidad no las desbloquearía. Tus fondos están seguros y podés seguir enviando y recibiendo dinero con otras personas."
@@ -2375,6 +2374,7 @@
         "claim": {
             "heading": "Recibí pagos en {currency}",
             "subheading": "Datos bancarios para recibir pagos. Compartilos con empleadores, clientes o plataformas como Deel.",
+            "subheadingBusinessPayers": "Datos bancarios para recibir pagos. Compartilos con empleadores, empresas o plataformas como Deel.",
             "termsAgreement": "Al abrir la cuenta, aceptás los <terms>términos de la cuenta en {currency}</terms>.",
             "providerTerms": "Al abrir la cuenta, aceptás los <terms>{termsName}</terms>."
         },

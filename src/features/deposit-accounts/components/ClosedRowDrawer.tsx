@@ -107,6 +107,17 @@ export function ClosedRowDrawer({
                     body: tAccounts(restrictions.card ? 'bankNotAvailableNote' : 'bankOnlyNotAvailableNote'),
                     cta: { label: tCommon('gotIt') },
                 }
+            // the provider's own refusal, worded as the currency refusal screen words it (TASK-24969)
+            case 'refused': {
+                const key = reasonCodeKey(row.reason)
+                return {
+                    title: t('list.badgeNotOffered'),
+                    body: key
+                        ? tIdentity(key)
+                        : tKyc(kycFeatureRefusalCopy(row.reason), { feature: tKyc('documents.bank') }),
+                    cta: { label: tCommon('gotIt') },
+                }
+            }
             // the route's own reason (an outage, the rollout, a pause), as the Pix pages word it; a refusal
             // only support can lift offers support with the reason, as the Pix page does
             case 'pix-route': {

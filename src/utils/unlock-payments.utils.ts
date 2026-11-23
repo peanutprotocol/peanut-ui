@@ -85,9 +85,12 @@ export interface UnlockRow {
      * rail's own country rule, the provider not offering this one account
      * in the user's residence (the paperwork engine), or the BRL row's Pix
      * route refused for its own reason (`pix-route`: an outage, the rollout,
-     * a pause), which the drawer words as the Pix pages do
+     * a pause), which the drawer words as the Pix pages do, or the provider's
+     * own refusal (`refused`), which the drawer words by `refusalReason`
      */
-    unavailableBecause?: 'restricted-country' | 'residence' | 'account-residence' | 'pix-route'
+    unavailableBecause?: 'restricted-country' | 'residence' | 'account-residence' | 'pix-route' | 'refused'
+    /** the report's reason for a `refused` row */
+    refusalReason?: string
 }
 
 /** The two lists beside the bank rows: the always-on Peanut rows and the spending methods. */
@@ -104,6 +107,8 @@ export interface BankRowsInput {
     bankChips: Record<BankRowKey, BankRegionChip>
     /** Per currency, which sentence explains a `notAvailable` row. */
     closedBecause: Partial<Record<BankRowKey, NonNullable<UnlockRow['unavailableBecause']>>>
+    /** Per currency, the report's refusal reason, for a `refused` row's drawer. */
+    refusalReasons?: Partial<Record<BankRowKey, string>>
     /** ISO-2 residence (verified preferred, else declared) for the "Your region" order */
     residenceIso2: string | null
     /** second declared residence (device mirror), so both regions sort first */
@@ -229,7 +234,7 @@ export const BANK_ROW_COUNTRIES: Record<BankRowKey, string> = Object.fromEntries
  * would claim it for Manteca.
  */
 export function buildBankRows(input: BankRowsInput): UnlockRow[] {
-    const { bankChips, closedBecause, residenceIso2, secondResidenceIso2, isEuropeResidence } = input
+    const { bankChips, closedBecause, refusalReasons, residenceIso2, secondResidenceIso2, isEuropeResidence } = input
     const residences = new Set([residenceIso2, secondResidenceIso2].filter(Boolean) as string[])
     const isOwnRegion: Record<(typeof BANK_ROWS)[number]['group'], boolean> = {
         southAmerica: residences.has('BR') || residences.has('AR'),
@@ -239,6 +244,7 @@ export function buildBankRows(input: BankRowsInput): UnlockRow[] {
 
     const bankRow = (spec: (typeof BANK_ROWS)[number]): UnlockRow => {
         const chip = bankChips[spec.key]
+        const why = closedBecause[spec.key] ?? 'restricted-country'
         return {
             id: `${spec.key}-bank`,
             labelKey: spec.key,
@@ -248,7 +254,9 @@ export function buildBankRows(input: BankRowsInput): UnlockRow[] {
             flag: DEPOSIT_RAILS[spec.corridor].flagIso2,
             currency: DEPOSIT_RAILS[spec.corridor].currency,
             corridor: spec.corridor,
-            ...(chip === 'notAvailable' ? { unavailableBecause: closedBecause[spec.key] ?? 'restricted-country' } : {}),
+            ...(chip === 'notAvailable'
+                ? { unavailableBecause: why, ...(why === 'refused' && { refusalReason: refusalReasons?.[spec.key] }) }
+                : {}),
             // active and unavailable rows are facts, not actions
             ...(chip === 'active' || chip === 'notAvailable' ? {} : { regionPath: spec.regionPath }),
         }

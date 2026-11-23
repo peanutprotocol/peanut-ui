@@ -205,6 +205,20 @@ describe('buildBankRows', () => {
         }
     })
 
+    it('a provider refusal carries its reason to the drawer (TASK-24969)', () => {
+        const [usd] = rowsOf(
+            bank({
+                bankChips: { ...UNLOCK_ALL, usd: 'notAvailable' },
+                closedBecause: { usd: 'refused' },
+                refusalReasons: { usd: 'blocklist_check_failed' },
+            }),
+            'usd'
+        )
+        expect(usd).toEqual(
+            expect.objectContaining({ unavailableBecause: 'refused', refusalReason: 'blocklist_check_failed' })
+        )
+    })
+
     it('every bank row carries its own flag, currency code and corridor', () => {
         expect(bank().map((r) => [r.labelKey, r.flag, r.currency, r.corridor])).toEqual([
             ['brl', 'br', 'BRL', 'PIX_BR'],

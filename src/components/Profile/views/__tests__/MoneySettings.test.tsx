@@ -1220,6 +1220,39 @@ describe('MoneySettings', () => {
             expect(mockFixableRejection).not.toHaveBeenCalled()
             expect(mockRestartIdentity).not.toHaveBeenCalled()
         })
+
+        // TASK-24969: a final refusal read "Region unavailable" with the region
+        // body, and dropped the API's message for a code the app has no words for
+        it('names a final refusal without blaming the region, in the API words when the app has none', () => {
+            const words = 'Your information could not be verified.'
+            mockRails = [
+                {
+                    ...parked('some_code_without_app_copy', {
+                        status: 'blocked',
+                        blocking: {
+                            code: 'some_code_without_app_copy',
+                            userMessage: words,
+                            selfHealable: false,
+                            selfHealKind: 'contact-support',
+                        },
+                        nextAction: {
+                            key: 'contact-support',
+                            kind: 'contact-support',
+                            purpose: 'some_code_without_app_copy',
+                        },
+                    }),
+                    reason: { code: 'some_code_without_app_copy', userMessage: words },
+                },
+            ]
+            mockIsKycApproved = true
+            mockIdentity = { status: 'verified' }
+            render()
+            fireEvent.click(screen.getByText('EUR'))
+
+            expect(screen.getByText("We couldn't unlock this")).toBeInTheDocument()
+            expect(screen.getByText(words)).toBeInTheDocument()
+            expect(screen.queryByText('Region unavailable')).not.toBeInTheDocument()
+        })
     })
 
     /**

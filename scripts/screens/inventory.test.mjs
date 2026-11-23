@@ -45,7 +45,7 @@ test('the current catalogue accounts for every app route', () => {
     assert.equal(setupFinish?.status, 'excluded')
     assert.match(setupFinish?.reason ?? '', /05-a-signtesttransaction/)
 
-    const goLink = result.find((entry) => entry.route === '/go/[slug]/[[...rest]]')
+    const goLink = result.find((entry) => entry.route === '/go/[...key]')
     assert.equal(goLink?.status, 'excluded')
-    assert.match(goLink?.reason ?? '', /creator link/i)
+    assert.match(goLink?.reason ?? '', /short link/i)
 })

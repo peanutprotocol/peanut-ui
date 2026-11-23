@@ -453,6 +453,16 @@ describe('closedBankRow', () => {
         })
     })
 
+    // TASK-24969: a provider's refusal read as the residence line, whatever the cause
+    it('keeps a provider refusal apart from the country rule, with its reason', () => {
+        expect(
+            closedBankRow(
+                row({ chip: 'notAvailable', unavailableBecause: 'refused', refusalReason: 'blocklist_check_failed' }),
+                false
+            )
+        ).toEqual({ kind: 'refused', reason: 'blocklist_check_failed' })
+    })
+
     it('names the country rule where bank transfers are closed for every rail', () => {
         expect(closedBankRow(row({ chip: 'notAvailable', unavailableBecause: 'restricted-country' }), false)).toEqual({
             kind: 'restricted-country',

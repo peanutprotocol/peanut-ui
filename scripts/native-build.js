@@ -23,7 +23,7 @@ const APP_DIR = path.join(__dirname, '..', 'src', 'app')
 // everything else (marketing, blog, locale pages) is web-only.
 const ITEMS_TO_DISABLE = [
     { path: 'api', type: 'dir' },
-    { path: 'go', type: 'dir' }, // web resolver; native uses exported /app bootstrap
+    { path: 'go', type: 'dir' }, // web-only redirect map
     { path: 'q', type: 'dir' }, // marketing QR handoff is web-only
     { path: 'sitemap.ts', type: 'file' },
     { path: 'robots.ts', type: 'file' },
@@ -68,9 +68,6 @@ const ITEMS_TO_DISABLE = [
     // Team-only desktop web tool. force-dynamic cannot be statically exported, and
     // pruneExportedAssets() deletes /dev from the export anyway, so building it is waste.
     { path: '(mobile-ui)/dev/payment-graph', type: 'dir' },
-    // Web-only preview of the /go creator pages. A dynamic route without generateStaticParams
-    // cannot be statically exported.
-    { path: 'dev/creator-pages', type: 'dir' },
 ]
 
 module.exports = { ITEMS_TO_DISABLE }

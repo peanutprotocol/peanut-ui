@@ -282,18 +282,13 @@ export function captureSignupAttribution({
     return captureTouch(touch)
 }
 
-/**
- * The touch comes from the tracked-link contract, which checked every value; never raw URL input.
- * Without one, the opening keeps the journey's last touch (a legacy link or a restored handoff).
- */
-export async function captureTrackedLinkJourney(
-    touch?: Omit<SignupAttributionTouch, 'occurredAt' | 'path'>
-): Promise<SignupAttributionContext | null> {
+/** A tracked-link opening joins the journey and keeps its last touch (a legacy link or a restored handoff). */
+export async function captureTrackedLinkJourney(): Promise<SignupAttributionContext | null> {
     if (!trackedLinkAnalyticsAllowed() || !analyticsCollectionAvailable()) return null
     const existing = await boundedNativeContext(readSignupAttributionAsync())
     // An unavailable native store must not replace a prior journey with a new one.
     if (existing === undefined || !trackedLinkAnalyticsAllowed() || !analyticsCollectionAvailable()) return null
-    const context = captureTouch({ ...touch, occurredAt: new Date().toISOString() }, existing)
+    const context = captureTouch({ occurredAt: new Date().toISOString() }, existing)
     if (context) await boundedNativeContext(persistNativeSignupAttribution(context))
     return context
 }
