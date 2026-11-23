@@ -2384,7 +2384,7 @@
             "sendExactAmount": "Envie exatamente este valor!",
             "sendAnyAmount": "Envie qualquer valor. Inclua a referência.",
             "depositReference": "Referência do depósito",
-            "pasteInReferenceField": "Cole no campo de referência do banco",
+            "pasteInReferenceField": "Obrigatória: cole no campo de referência do banco. Sem ela, a transferência não pode ser identificada e pode ser devolvida.",
             "title": "Dados bancários",
             "accountHolderName": "Nome do titular",
             "bankName": "Nome do banco",

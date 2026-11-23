@@ -2384,7 +2384,7 @@
             "sendExactAmount": "Send exactly this amount!",
             "sendAnyAmount": "Send any amount. Include the reference.",
             "depositReference": "Deposit reference",
-            "pasteInReferenceField": "Paste in the bank's reference field",
+            "pasteInReferenceField": "Required: paste it in the bank's reference field. Without it, the transfer can't be matched and may be returned.",
             "title": "Bank details",
             "accountHolderName": "Account holder name",
             "bankName": "Bank name",
