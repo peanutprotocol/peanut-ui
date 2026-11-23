@@ -47,11 +47,24 @@ describe('SetupShell on desktop', () => {
         expect(shell.className).toContain('mx-auto')
     })
 
-    it('keeps the web landing tall stage and its art on desktop, as on a phone', () => {
+    it('marks the web download landing (no footer), whose desktop stage turns compact in globals.css', () => {
         setWidth(1440)
         renderStep('landing', 'tall')
         const shell = document.querySelector<HTMLElement>('[data-setup-shell]')!
+        expect(shell.hasAttribute('data-setup-download')).toBe(true)
         expect(shell.style.getPropertyValue('--sr-stage-tall-base')).toBe('')
-        expect(shell.className).not.toContain('data-setup-art-box')
+    })
+
+    it('does not mark a landing with a footer (native, keep-web) or any other step', () => {
+        const landing = renderInShell(
+            'landing',
+            <SetupScreen ground="sky" stage="tall" footer={{ primary: { label: 'Sign up', onClick: () => {} } }}>
+                <p>panel</p>
+            </SetupScreen>
+        )
+        expect(document.querySelector('[data-setup-shell]')!.hasAttribute('data-setup-download')).toBe(false)
+        landing.unmount()
+        renderStep('residence')
+        expect(document.querySelector('[data-setup-shell]')!.hasAttribute('data-setup-download')).toBe(false)
     })
 })

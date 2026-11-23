@@ -113,6 +113,9 @@ export function SetupShell({ screenId, children, direction = 0, showBackButton, 
                     className="signup-shell relative isolate mx-auto h-[var(--sr-h)] w-full max-w-[480px] overflow-hidden bg-background-default"
                     data-setup-shell
                     data-setup-screen={screenId}
+                    // the web landing (no footer) is the download page: on desktop its QR, store buttons and Log in
+                    // must fit one screen, so it takes the compact stage there (globals.css)
+                    data-setup-download={screenId === 'landing' && screen?.footer === null ? '' : undefined}
                 >
                     {/* the unfolded stage height, for the fold check (useShellFit) */}
                     <div
