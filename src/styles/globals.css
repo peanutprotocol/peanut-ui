@@ -2480,3 +2480,21 @@ html[data-crisp-launcher='hidden'] .crisp-client {
         animation: none;
     }
 }
+
+/* home low-balance Add: the approved sparkle doodle twinkles at its top-right.
+   reduced motion keeps it static. */
+@media (prefers-reduced-motion: no-preference) {
+    .add-cta-sparkle {
+        animation: add-cta-twinkle 1.6s ease-in-out infinite alternate;
+    }
+}
+@keyframes add-cta-twinkle {
+    from {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
+    }
+    to {
+        transform: scale(0.7) rotate(18deg);
+        opacity: 0.6;
+    }
+}
