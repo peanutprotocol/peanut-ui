@@ -959,6 +959,9 @@ export function useQrPayFlowController(
         if (!paymentLock || !qrCode || !currencyAmount || isBrazilPaused || amountEntryRejection) return
         // A refresh already owns the flow (cooldown wait or init in flight).
         if (isQuoteRecovering) return
+        // This tap starts a new attempt, a re-quote included. The error the last attempt left
+        // with Pay usable no longer applies; this attempt sets its own if it fails (TASK-25316).
+        if (!isBlockingError) setErrorMessage(null)
         // The previous re-quote never landed: this tap retries the QUOTE only —
         // signing the old lock is exactly what must not happen. The user then
         // sees the fresh terms and taps again to pay.
@@ -968,8 +971,6 @@ export function useQrPayFlowController(
         }
         // This tap IS the confirmation of whatever quote is on screen.
         setQuoteUpdatedNotice(null)
-        // A cool-down Pay waited out belongs to the last attempt, not this one.
-        if (errorCode === 'rainCooldownRetryShortly') setErrorMessage(null)
 
         // One attempt id per Pay press, minted BEFORE the open-amount init so
         // the lock stage belongs to it. A retry is a new signature and so a
@@ -1400,7 +1401,7 @@ export function useQrPayFlowController(
         handleQuoteRecovery,
         isQuoteRecovering,
         requoteFailed,
-        errorCode,
+        isBlockingError,
         paymentLock,
         signSpend,
         takePreparedSmartSpend,
