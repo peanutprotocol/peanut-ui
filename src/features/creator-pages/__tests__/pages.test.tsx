@@ -1,11 +1,12 @@
-/** @jest-environment node */
+/** @jest-environment jsdom */
 import { createElement } from 'react'
-import { renderToString } from 'react-dom/server'
 import { CREATOR_PAGE_EXPERIMENTS } from '../experiments'
 import { CREATOR_PAGE_COMPONENTS } from '../page-components'
 import { selectCreatorPage } from '../registry'
 import { variantCookieName } from '../variant-cookie'
 import { USER_AGENTS } from './user-agents'
+// The browser server build that jsdom picks needs MessageChannel, which jsdom lacks: use the Node one.
+const { renderToString } = require('react-dom/server.node') as typeof import('react-dom/server')
 
 let mockUserAgent = ''
 let mockCookie: { name: string; value: string } | null = null
@@ -29,13 +30,19 @@ async function serverRender(username: string, variant: string, userAgent: string
     const selection = await selectCreatorPage(username)
     if (selection?.props.variant !== variant) throw new Error(`no page selected for ${variant}`)
     const html = renderToString(createElement(selection.Page, selection.props))
-    const links: RenderedLink[] = [...html.matchAll(/<a\s([^>]*)>(.*?)<\/a>/gs)].map(([, attributes, inner]) => ({
-        href: /\bhref="([^"]*)"/.exec(attributes)?.[1].replaceAll('&amp;', '&') ?? null,
-        hasTarget: /\btarget=/.test(attributes),
-        hasPosition: /\bdata-cta-position=/.test(attributes),
-        hasIcon: inner.includes('<svg'),
-        text: inner.replace(/<svg.*?<\/svg>/gs, '').replace(/<[^>]+>/g, ''),
-    }))
+    // jsdom only parses the server HTML here; nothing is rendered into its document.
+    const parsed = new DOMParser().parseFromString(html, 'text/html')
+    const links: RenderedLink[] = [...parsed.querySelectorAll('a')].map((link) => {
+        const label = link.cloneNode(true) as HTMLAnchorElement
+        label.querySelectorAll('svg').forEach((icon) => icon.remove())
+        return {
+            href: link.getAttribute('href'),
+            hasTarget: link.hasAttribute('target'),
+            hasPosition: link.hasAttribute('data-cta-position'),
+            hasIcon: link.querySelector('svg') !== null,
+            text: label.textContent ?? '',
+        }
+    })
     return { html, links }
 }
 
