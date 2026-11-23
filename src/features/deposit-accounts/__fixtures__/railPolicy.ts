@@ -18,9 +18,9 @@ import type { ClaimableCorridor, DepositCorridor, DepositRules, SenderPolicy } f
  * holder's own transfer; the terms below are about everybody else:
  *   USD — a business unlimited; another person only under $4,000, with a
  *     shared surname exempting family.
- *   EUR — a business unlimited; another person only under 4,000 EUR, with a
- *     shared surname exempting family (assumed parity with the US rail,
- *     pending account-manager confirmation); 1 EUR floor.
+ *   EUR — a business unlimited; another person unavailable until Bridge
+ *     enables individuals (api `EUR_INDIVIDUAL_VOLUME_AGREED`, false on
+ *     origin/dev 2026-11-23); 1 EUR floor.
  *   GBP — Bridge's pooled entity holds the account, a business unlimited,
  *     another person unavailable, 2 GBP floor.
  *   MXN — the holder up to 1,000,000 MXN, a business unlimited, another
@@ -51,15 +51,11 @@ export const DEPOSIT_RAIL_POLICY: Record<DepositCorridor, DepositRailPolicy> = {
         },
     },
     SEPA_EU: {
-        sender: 'anyone',
+        sender: 'business-only',
         rules: {
             ownAccount: { allowed: true },
             thirdPartyBusiness: 'unlimited',
-            thirdPartyIndividual: {
-                policy: 'capped',
-                capBelow: { amount: '4000', currency: 'EUR' },
-                familySameSurnameExempt: true,
-            },
+            thirdPartyIndividual: { policy: 'unavailable' },
             min: { amount: '1', currency: 'EUR' },
         },
     },

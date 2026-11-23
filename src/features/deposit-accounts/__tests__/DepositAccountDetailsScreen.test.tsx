@@ -196,9 +196,7 @@ describe('the details screen, collapsed and open', () => {
     }
     const secondary = [
         messages.depositAccounts.rules.ownOrBusinessAny.line,
-        // a round amount without cents, and no closing period (QA 2026-09-24)
-        'Other people: Under €4,000 per transfer',
-        messages.depositAccounts.rules.individualCapFamily.line,
+        messages.depositAccounts.rules.individualNotYet.line,
         messages.depositAccounts.fees.converted,
         messages.depositAccounts.corridors.SEPA_EU.arrivalDetail,
     ]
@@ -297,6 +295,33 @@ describe('the details screen, collapsed and open', () => {
         expect(screen.getByTestId('deposit-fee-rates')).toBeInTheDocument()
         // an inline link: no expanded hit area reaching into the lines around it (A27)
         expect(screen.getByTestId('deposit-fee-rates').className).not.toMatch(/after:/)
+    })
+
+    // The capped line, as the API words EUR once Bridge enables individuals
+    // (bridge-adapter mirrors the US rail): a round amount without cents, and
+    // no closing period (QA 2026-09-24)
+    it('writes a cap as a round amount without cents', () => {
+        details(
+            {
+                ...eur,
+                rules: {
+                    ...eur.rules!,
+                    thirdPartyIndividual: {
+                        policy: 'capped',
+                        capBelow: { amount: '4000', currency: 'EUR' },
+                        familySameSurnameExempt: true,
+                    },
+                },
+            },
+            () => {},
+            true,
+            () => {},
+            DEPOSIT_RAILS.SEPA_EU
+        )
+        openTerms()
+
+        expect(screen.getByText('Other people: Under €4,000 per transfer')).toBeInTheDocument()
+        expect(screen.getByText(messages.depositAccounts.rules.individualCapFamily.line)).toBeInTheDocument()
     })
 
     it('keeps an own-name-only rule beside the card, where it decides who can use the account', () => {
