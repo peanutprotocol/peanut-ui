@@ -57,8 +57,9 @@ export function SendInputView() {
         }
     }
 
-    // determine button text and state
-    const isButtonDisabled = !canProceed || (isLoggedIn && !hasSufficientBalance) || isLoading
+    // determine button text and state. A known short balance keeps the CTA on:
+    // it reads "Add money to Peanut" and opens Add money (TASK-23929)
+    const isButtonDisabled = !canProceed || (isLoggedIn && !hasSufficientBalance && !isInsufficientBalance) || isLoading
     const isAmountEntered = !!amount && parseFloat(amount) > 0
 
     return (

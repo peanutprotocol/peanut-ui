@@ -27,6 +27,7 @@ import { HARNESS_ENABLED } from '@/constants/harness.consts'
 import { FixtureBanner } from '@/dev/fixtures/FixtureBanner'
 import { usePullToRefresh, useShouldPullToRefresh } from '@/hooks/usePullToRefresh'
 import { useLongPressGuard } from '@/hooks/useLongPressGuard'
+import { useScrollTopOnNavigation } from '@/hooks/useScrollTopOnNavigation'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import { useAccountSetupRedirect } from '@/hooks/useAccountSetupRedirect'
 import { useDeferredSignupTestTransactionRetry } from '@/features/setup/useDeferredSignupTestTransactionRetry'
@@ -91,6 +92,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
     // no OS long-press link preview on app-shell CTAs and menu rows
     useLongPressGuard()
+
+    // a page opens at its top, not at the scroll position of the page before it
+    useScrollTopOnNavigation()
 
     const isRedirecting = useRef(false)
     /*

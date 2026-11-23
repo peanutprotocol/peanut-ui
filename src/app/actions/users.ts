@@ -44,14 +44,22 @@ export const updateUserById = async (payload: Record<string, unknown>): Promise<
 const isRequestFailure = (e: unknown): boolean =>
     e instanceof Error && (e.name === 'ServiceUnavailableError' || e.name === 'ConnectionTimeoutError')
 
-export const requestEmailChange = async (email: string): Promise<{ error?: string }> => {
+export const requestEmailChange = async (
+    email: string
+): Promise<{ error?: string; code?: string; status?: number }> => {
     const response = await serverFetch('/users/email-change', {
         method: 'POST',
         body: JSON.stringify({ email }),
         headers: await withStepUpHeader({}),
     })
     const body = await response.json()
-    return response.ok ? {} : { error: body.error || 'Could not send verification code' }
+    return response.ok
+        ? {}
+        : {
+              error: body.error || 'Could not send verification code',
+              ...(typeof body.code === 'string' && { code: body.code }),
+              status: response.status,
+          }
 }
 
 // shape of the account returned by POST /users/accounts, as consumed by callers
