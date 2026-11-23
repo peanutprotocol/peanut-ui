@@ -10,6 +10,7 @@ import {
 } from '@/features/kyc-features/report'
 import { findPixRoute, pixDepositOffered, pixResidencePaused, withPixRoute } from '@/features/pix/pixRoute.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
+import { residenceAddressEntry } from '@/features/kyc-features/residenceAddressEntry'
 import type { FeatureReport, FeatureReportEntry } from '@/types/capabilities'
 import { readDeclaredResidence, readSecondResidence, storeSecondResidence } from '@/utils/declared-residence.storage'
 import { useHydrationSnapshot } from '@/utils/native-platform'
@@ -36,10 +37,15 @@ const ROW_ACCOUNTS: Readonly<Record<BankRowKey, { feature: 'bank' | 'local'; cur
     sepa: { feature: 'bank', currency: 'EUR' },
 }
 
-/** Which sentence explains a closed row: the residence's rule, the account's own, or the country's. */
+/** The banking residence rule's reasons (api kyc/paperwork/rules.ts); any other is the provider's own refusal. */
+const RESIDENCE_BANK_REASONS: ReadonlySet<string> = new Set(['residence_bank_restricted', 'uk_resident_blocked'])
+
+/** Which sentence explains a closed row: the residence's rule, the account's own, the country's, or the refusal's. */
 function closedBecause(reason: string | undefined): NonNullable<UnlockRow['unavailableBecause']> {
     if (reason === 'account_unavailable_in_residence') return 'account-residence'
     if (isLocalResidenceRefusal(reason)) return 'residence'
+    // a provider's refusal read as the residence rule, whatever the cause (TASK-24969)
+    if (reason && !RESIDENCE_BANK_REASONS.has(reason)) return 'refused'
     return 'restricted-country'
 }
 
@@ -94,7 +100,8 @@ export function useBankRows() {
     // for the route's own reason, never a residence rule, so the refusal has a place; without a route
     // the row keeps the report's rule.
     const pixRoute = findPixRoute(capabilities.routes, 'deposit')
-    const brlLeaves = pixDepositOffered(pixRoute) || pixResidencePaused(pixRoute)
+    const brlAddressStep = residenceAddressEntry(entryFor('brl'), nextActions)
+    const brlLeaves = !brlAddressStep && (pixDepositOffered(pixRoute) || pixResidencePaused(pixRoute))
     const pixRouteRefused = pixRoute?.state === 'refused'
 
     // Server copy first; the localStorage mirror of the signup answer covers
@@ -140,6 +147,7 @@ export function useBankRows() {
                     key === 'brl' && pixRouteRefused ? 'pix-route' : closedBecause(entry.reason),
                 ])
             ),
+            refusalReasons: Object.fromEntries(entries.map(([key, entry]) => [key, entry.reason])),
             residenceIso2,
             secondResidenceIso2,
             isEuropeResidence: isEuropeIso2(residenceIso2) || isEuropeIso2(secondResidenceIso2),

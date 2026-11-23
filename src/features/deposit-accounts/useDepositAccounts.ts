@@ -5,7 +5,8 @@ import { useAuth } from '@/context/authContext'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useSubmissionWindow } from '@/hooks/useSubmissionWindow'
 import { API_ERROR_CODES, apiErrorStatus, wireErrorCode } from '@/services/api-error'
-import { claimDepositAccount, fetchDepositAccounts } from '@/services/deposit-accounts'
+import { claimDepositAccount, DepositClaimReverificationError, fetchDepositAccounts } from '@/services/deposit-accounts'
+import { currentReverificationDestination, featureReverificationPath } from '@/utils/kyc-reverification'
 import type { NextAction } from '@/types/capabilities'
 import type { GateState } from '@/utils/capability-gate'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -139,6 +140,13 @@ export function useDepositAccounts({
     const { userId } = useAuth()
     const claimOwner = useRef(userId)
     claimOwner.current = userId
+    const mounted = useRef(true)
+    useEffect(() => {
+        mounted.current = true
+        return () => {
+            mounted.current = false
+        }
+    }, [])
     const queryClient = useQueryClient()
     const { gateFor, rails, capabilities, isLoading: capabilitiesLoading } = useCapabilities()
     const { isInWindow: justSubmitted } = useSubmissionWindow()
@@ -212,13 +220,13 @@ export function useDepositAccounts({
                 return next
             })
             trackClaimStarted(corridor)
-            return userId
+            return { userId, returnTo: currentReverificationDestination() }
         },
-        onSuccess: (result, method: string, ownerAtClaim) => {
+        onSuccess: (result, method: string, context) => {
             const corridor = method as DepositCorridor
             if (result.outcome === 'opened') trackClaimed(corridor, DEPOSIT_RAILS[corridor].currency)
             if (result.outcome === 'endorsement_pending') trackEndorsementRequested(corridor)
-            if (result.outcome === 'verification_required' && ownerAtClaim === claimOwner.current) {
+            if (result.outcome === 'verification_required' && context?.userId === claimOwner.current) {
                 if (result.nextAction?.kind === 'restart-identity') {
                     // the API's schema still lists `hosted-identity`, which this build no longer handles
                     onVerificationRequired?.(corridor, { ...result.nextAction, kind: result.nextAction.kind })
@@ -227,7 +235,16 @@ export function useDepositAccounts({
                 }
             }
         },
-        onError: (error: Error, method: string) => {
+        onError: (error: Error, method: string, context) => {
+            if (
+                typeof DepositClaimReverificationError === 'function' &&
+                error instanceof DepositClaimReverificationError
+            ) {
+                if (mounted.current && context && context.userId === claimOwner.current) {
+                    window.location.assign(featureReverificationPath(error.reverification.entry, context.returnTo))
+                }
+                return
+            }
             const corridor = method as DepositCorridor
             setClaimError({
                 corridor,

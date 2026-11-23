@@ -99,6 +99,15 @@ describe('the BRL row reads the Pix route', () => {
     }
     const brl = () => renderHook(() => useBankRows()).result.current.rows.find((row) => row.labelKey === 'brl')
 
+    it.each(['residence_unresolved', 'residence_address_in_review'])(
+        'keeps a BRL address blocker visible beside Avenia: %s',
+        (reason) => {
+            mockCapabilities.features!.local = { state: 'setting_up', reason, accounts: {} }
+            mockCapabilities.routes = [pixRoute({ state: 'ready' })]
+            expect(brl()).toMatchObject({ currency: 'BRL', chip: 'processing' })
+        }
+    )
+
     // a refused Pix route keeps the row, closed for its own reason, which its drawer says; never the
     // residence rule. A refused route names no provider, so Home shows no Pix row either.
     it.each(['provider_unavailable', 'rollout_closed', 'provider_setup_failed', 'residence_not_served'])(

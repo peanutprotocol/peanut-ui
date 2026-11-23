@@ -243,15 +243,7 @@ export const useMultiPhaseKycFlow = ({
     // ref for closeVerificationProgressModal (avoids circular dep with completeFlow)
     const closeVerificationModalRef = useRef<() => void>(() => {})
 
-    // rail tracking — sourced from the backend capability model.
-    // MIGRATION-REVIEW: replaces useRailStatusTracking. `allSettled` / `needsTos`
-    // are now derived reactively from `useCapabilities()` (its rails update as the
-    // user query is refetched). useCapabilities AUTO-POLLS the user query every ~4s
-    // while any rail is `pending` (D4) and self-terminates when settled, so the old
-    // explicit startTracking/stopTracking poll-lifecycle is no longer needed — they
-    // are retained as no-ops to keep this hook's internal call sites untouched.
-    // The old WebSocket-driven instant rail refresh is replaced by that 4s poll
-    // (the old hook already had the same 4s poll as a fallback).
+    // useCapabilities polls while any rail is pending and stops when the rails settle.
     const { capabilities } = useCapabilities()
     const {
         allSettled,
@@ -264,9 +256,6 @@ export const useMultiPhaseKycFlow = ({
         () => deriveCapabilityPhaseSignals(capabilities, requestedIntent, requestedCountry),
         [capabilities, requestedIntent, requestedCountry]
     )
-    const startTracking = useCallback(() => {}, [])
-    const stopTracking = useCallback(() => {}, [])
-
     const clearPreparingTimer = useCallback(() => {
         if (preparingTimerRef.current) {
             clearTimeout(preparingTimerRef.current)
@@ -297,11 +286,10 @@ export const useMultiPhaseKycFlow = ({
         setTosError(null)
         setIsLoadingTos(false)
         clearPreparingTimer()
-        stopTracking()
         closeVerificationModalRef.current()
         if (completionNoticeRef.current) onManualClose?.()
         else onKycSuccess?.()
-    }, [onKycSuccess, onManualClose, clearPreparingTimer, stopTracking, regionIntent, acquisitionSource])
+    }, [onKycSuccess, onManualClose, clearPreparingTimer, regionIntent, acquisitionSource])
 
     const showCompletionNotice = useCallback(
         (notice: KycCompletionNotice) => {
@@ -403,10 +391,9 @@ export const useMultiPhaseKycFlow = ({
         }
 
         if (anyPending || (notOpened && isRealtimeFlowRef.current)) {
-            // rails still being set up — show preparing and start tracking
+            // Rails are still being set up.
             setModalPhase('preparing')
             setForceShowModal(true)
-            startTracking()
             return
         }
 
@@ -414,11 +401,9 @@ export const useMultiPhaseKycFlow = ({
         else {
             setModalPhase('preparing')
             setForceShowModal(true)
-            startTracking()
         }
     }, [
         fetchUser,
-        startTracking,
         clearPreparingTimer,
         completeFlow,
         askForSupplement,
@@ -433,10 +418,13 @@ export const useMultiPhaseKycFlow = ({
         errorCooldown,
         dismissErrorCooldown,
         isTerminalError,
+        isQrUnlockBlocked,
+        isQrUnlockRefused,
         showWrapper,
         accessToken,
         liveKycStatus,
         handleInitiateKyc: originalHandleInitiateKyc,
+        handleUnlockQr: originalHandleUnlockQr,
         handleRestartIdentity,
         handleResidenceChange,
         handleSelfHealResubmit,
@@ -630,10 +618,11 @@ export const useMultiPhaseKycFlow = ({
             levelName?: string,
             crossRegion?: boolean,
             targetCountry?: string,
-            corridor?: DepositCorridor
+            corridor?: DepositCorridor,
+            qrPool = false
         ) => {
             if (blockIfFinal()) return false
-            const intent = overrideIntent ?? regionIntent
+            const intent = qrPool ? undefined : (overrideIntent ?? regionIntent)
             flowGenerationRef.current += 1
             finishedRef.current = false
             completionNoticeRef.current = null
@@ -642,7 +631,9 @@ export const useMultiPhaseKycFlow = ({
             setSubmissionAttempt((attempt) => ({ id: attempt.id + 1, intent, residence: false }))
             lastIntentRef.current = intent
             setRequestedIntent(intent)
-            lastInitiateArgsRef.current = { intent, levelName, crossRegion, targetCountry, corridor }
+            lastInitiateArgsRef.current = qrPool
+                ? { feature: 'qr' }
+                : { intent, levelName, crossRegion, targetCountry, corridor }
             posthog.capture(
                 intent === 'LATAM' ? ANALYTICS_EVENTS.MANTECA_KYC_INITIATED : ANALYTICS_EVENTS.KYC_INITIATED,
                 {
@@ -666,6 +657,7 @@ export const useMultiPhaseKycFlow = ({
             isRealtimeFlowRef.current = false
             clearPreparingTimer()
 
+            if (qrPool) return originalHandleUnlockQr(!resumingRef.current)
             return originalHandleInitiateKyc(
                 overrideIntent,
                 levelName,
@@ -676,20 +668,37 @@ export const useMultiPhaseKycFlow = ({
                 !resumingRef.current
             )
         },
-        [originalHandleInitiateKyc, clearPreparingTimer, regionIntent, acquisitionSource, blockIfFinal]
+        [
+            originalHandleInitiateKyc,
+            originalHandleUnlockQr,
+            clearPreparingTimer,
+            regionIntent,
+            acquisitionSource,
+            blockIfFinal,
+        ]
+    )
+    const handleUnlockQr = useCallback(
+        () =>
+            isLoading || isQrUnlockBlocked
+                ? Promise.resolve(false)
+                : handleInitiateKyc(undefined, undefined, undefined, undefined, undefined, true),
+        [handleInitiateKyc, isLoading, isQrUnlockBlocked]
     )
 
     useSumsubReloadResume(
         showWrapper ? lastInitiateArgsRef.current : null,
         async (state) => {
             resumingRef.current = true
-            const opened = await handleInitiateKyc(
-                state.intent,
-                state.levelName,
-                state.crossRegion,
-                state.targetCountry,
-                state.corridor
-            )
+            const opened =
+                state.feature === 'qr'
+                    ? await handleUnlockQr()
+                    : await handleInitiateKyc(
+                          state.intent,
+                          state.levelName,
+                          state.crossRegion,
+                          state.targetCountry,
+                          state.corridor
+                      )
             resumingRef.current = false
             return !!opened
         },
@@ -807,7 +816,6 @@ export const useMultiPhaseKycFlow = ({
             }
             if (allBlocked) {
                 clearPreparingTimer()
-                stopTracking()
                 setForceShowModal(false)
                 closeVerificationProgressModal()
                 return
@@ -818,13 +826,11 @@ export const useMultiPhaseKycFlow = ({
             } else if (allSettled) {
                 setModalPhase('complete')
                 clearPreparingTimer()
-                stopTracking()
             }
         } else if (modalPhase === 'bridge_tos') {
             // after ToS accepted, rails transition to ENABLED
             if (allSettled && !needsTos) {
                 setModalPhase('complete')
-                stopTracking()
             }
         }
     }, [
@@ -837,7 +843,6 @@ export const useMultiPhaseKycFlow = ({
         completeFlow,
         askForSupplement,
         clearPreparingTimer,
-        stopTracking,
         verificationSession,
         closeVerificationProgressModal,
         nextNotice,
@@ -951,12 +956,8 @@ export const useMultiPhaseKycFlow = ({
         isRealtimeFlowRef.current = false
         setForceShowModal(false)
         clearPreparingTimer()
-        stopTracking()
         closeVerificationProgressModal()
-    }, [clearPreparingTimer, stopTracking, closeVerificationProgressModal, regionIntent, modalPhase, completeFlow])
-
-    // Deferring terms is a dismissal, never successful deposit readiness.
-    const handleSkipTerms = handleModalClose
+    }, [clearPreparingTimer, closeVerificationProgressModal, regionIntent, modalPhase, completeFlow])
 
     // The proof of address opens on the supplement action the parked rail names.
     const handleStartSupplement = useCallback(async () => {
@@ -978,9 +979,8 @@ export const useMultiPhaseKycFlow = ({
         return () => {
             flowGenerationRef.current += 1
             clearPreparingTimer()
-            stopTracking()
         }
-    }, [clearPreparingTimer, stopTracking])
+    }, [clearPreparingTimer])
 
     const isModalOpen = isVerificationProgressModalOpen || forceShowModal
 
@@ -997,6 +997,7 @@ export const useMultiPhaseKycFlow = ({
     return {
         // initiation
         handleInitiateKyc,
+        handleUnlockQr,
         blockIfFinal,
         showVerificationReview,
         dismissVerificationReview,
@@ -1014,6 +1015,8 @@ export const useMultiPhaseKycFlow = ({
         // terminal = the user has no action that changes the outcome; consumers
         // must suppress their retry CTA on it (TASK-21882)
         isTerminalError: isTerminalError || depositBlocked,
+        isQrUnlockBlocked,
+        isQrUnlockRefused,
         liveKycStatus,
 
         documentConfig,
@@ -1039,7 +1042,6 @@ export const useMultiPhaseKycFlow = ({
         modalPhase,
         handleModalClose,
         handleAcceptTerms,
-        handleSkipTerms,
         handleStartSupplement,
         handleSkipSupplement,
         completeFlow,

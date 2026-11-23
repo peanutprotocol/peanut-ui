@@ -6,18 +6,9 @@ import {
     QR_IDENTITY_RESTART_PENDING_CODE,
     QrKycState,
 } from '@/constants/kyc.consts'
-import type { KYCRegionIntent } from '@/app/actions/types/sumsub.types'
 import type { FeatureReport, NextAction, RailCapability } from '@/types/capabilities'
 import { entryAction, VERIFY_ACTION } from '@/features/kyc-features/report'
 import { deriveGate, type GateState } from '@/utils/capability-gate'
-
-/**
- * The verification QR pay starts. Any verified user gets the QR pool rails,
- * whatever their residence, so this is also the ID check for a user whose
- * residence rules out bank rails and the card (Home's Verify row, the
- * "Unlock QR payments" slide).
- */
-export const QR_IDENTITY_CHECK_INTENT: KYCRegionIntent = 'LATAM'
 
 export interface QrKycGate {
     kycGateState: QrKycState

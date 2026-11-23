@@ -24,6 +24,7 @@ import type {
 export interface PaperworkVerificationTrackingContext {
     flow: 'paperwork_verification' | 'add_later'
     residence: string | null
+    purpose?: 'reverify_for_feature' | 'initial'
     features?: Partial<Record<PaperworkVerificationFeature, boolean>>
     /** add-later: the feature being added */
     feature?: PaperworkVerificationFeature
@@ -104,6 +105,12 @@ const baseProperties = (ctx: PaperworkVerificationTrackingContext | null) =>
     ctx
         ? {
               flow: ctx.flow,
+              ...(ctx.flow === 'paperwork_verification' &&
+                  !ctx.restart && {
+                      kyc_flow: 'verify-once',
+                      verification_purpose:
+                          ctx.purpose === 'reverify_for_feature' ? 'feature_reverification' : 'initial',
+                  }),
               residence: ctx.residence,
               ...(ctx.feature && { feature: ctx.feature }),
               ...(ctx.step && { step: ctx.step }),

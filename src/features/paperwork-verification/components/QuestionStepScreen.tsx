@@ -163,6 +163,7 @@ export function QuestionStepScreen({
     onConflict,
     onContinueWithoutLocal,
     onChangeResidence,
+    useDraft,
 }: {
     steps: PaperworkVerificationStep[]
     residence: string | null
@@ -189,9 +190,10 @@ export function QuestionStepScreen({
     onContinueWithoutLocal?: () => Promise<void>
     /** The locked country row's "Change your country of residence". */
     onChangeResidence?: () => void
+    useDraft?: boolean
 }) {
     const t = useTranslations('kyc.paperworkVerification')
-    const form = useAnswerForm(steps, feature, residence, returned)
+    const form = useAnswerForm(steps, feature, residence, returned, useDraft)
     const parentTracking = usePaperworkVerificationTrackingContext()
     const leadStep = steps[0]?.id
     const tracking = useMemo(

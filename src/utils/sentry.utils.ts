@@ -51,7 +51,7 @@ const SKIP_REPORTING: Array<{ pattern: string | RegExp; statuses: number[]; erro
     // runs three — and bury the backend signal that can actually be acted on.
     { pattern: /\/fx\/rate(?:\?|$)/, statuses: [400, 404, 429, 503] },
     // The backend publishes no card comparison for this currency; useCardMarkupRate
-    // falls back to the static table and still renders the row (PEANUT-UI-T2E).
+    // returns null on this 404 and the caller renders no row (PEANUT-UI-T2E).
     { pattern: /\/fx\/card-markup(?:\?|$)/, statuses: [404], errorCodes: ['FX_CARD_MARKUP_UNAVAILABLE'] },
     // qr-payment/init: 400 = open QR awaiting merchant amount; 422 = a QR the
     // provider can't decode (bad/expired/unsupported) — both are user-input

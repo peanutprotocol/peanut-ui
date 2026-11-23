@@ -30,10 +30,6 @@ jest.mock('@/services/consent', () => ({
         getStatus: (...args: unknown[]) => mockGetStatus(...args),
         accept: (...args: unknown[]) => mockAccept(...args),
     },
-    acceptedLegalDocument: (doc: string | { slug: string }) => {
-        const slug = typeof doc === 'string' ? doc : doc.slug
-        return { slug, version: `version-of-${slug}`, hash: 'a'.repeat(64) }
-    },
 }))
 
 let mockUser: { user: { userId: string; username: string }; showEarlyUserModal?: boolean } | null = null
@@ -145,7 +141,6 @@ jest.mock('@/components/Global/DocsLink', () => ({
     __esModule: true,
     default: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
 }))
-jest.mock('@/components/Global/PeanutMascot/PeanutMascotScene', () => ({ PeanutMascotScene: () => null }))
 jest.mock('@/components/0_Bruddle/IconBubble', () => ({ IconBubble: () => null }))
 jest.mock('@/components/Global/Icons/Icon', () => ({ Icon: () => null }))
 jest.mock('@/components/Global/ShareButton', () => ({

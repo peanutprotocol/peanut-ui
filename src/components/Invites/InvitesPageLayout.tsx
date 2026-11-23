@@ -9,7 +9,7 @@ import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { twMerge } from '@/utils/tw'
 import CloudsBackground from '../0_Bruddle/CloudsBackground'
-import starImage from '@/assets/icons/star.png'
+import starImage from '@/assets/illustrations/star.svg'
 
 // Same dynamic-import + kill-switch pattern as the 404. With the switch off the
 // chunk + p2-es never ship and the static illustration stays. See
@@ -52,12 +52,12 @@ const InvitesPageLayout = ({ pose, children, showRagdoll = false }: InvitesPageL
                     {STAR_POSITIONS.map((positions, index) => (
                         <Image
                             key={`star-${index}`}
-                            src={starImage.src}
+                            src={starImage}
                             alt=""
                             aria-hidden
                             width={56}
                             height={56}
-                            className={twMerge(positions, 'absolute z-10')}
+                            className={twMerge(positions, 'absolute z-10 object-contain')}
                             priority={index === 0}
                         />
                     ))}

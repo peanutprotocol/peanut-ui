@@ -108,16 +108,16 @@ describe('action functions Content-Type headers', () => {
         const { initiateSumsubKyc } = require('@/app/actions/sumsub')
         await initiateSumsubKyc()
         expect(getLastCallUrl()).toBe('https://api.test.com/users/identity')
-        expect(getLastCallHeaders()['x-kyc-client']).toBe('2')
+        expect(getLastCallHeaders()['x-kyc-client']).toBe('3')
 
         await initiateSumsubKyc({ regionIntent: 'LATAM', crossRegion: true, targetCountry: 'AR' })
-        expect(getLastCallHeaders()['x-kyc-client']).toBe('2')
+        expect(getLastCallHeaders()['x-kyc-client']).toBe('3')
         expect(getLastCallHeaders()['Authorization']).toBe('Bearer test-token')
     })
 
     it.each(['getBridgeTosLink', 'confirmBridgeTos'])('marks %s as KYC client v2', async (action) => {
         await require('@/app/actions/users')[action]()
-        expect(getLastCallHeaders()['x-kyc-client']).toBe('2')
+        expect(getLastCallHeaders()['x-kyc-client']).toBe('3')
     })
 
     it('should include Content-Type in updateUserById', async () => {

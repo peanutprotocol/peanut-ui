@@ -17,7 +17,7 @@ const mockClaimAndSettlePendingBadgeCampaigns = jest.fn()
 const mockIsConfirmedBadgeCampaignClaim = jest.fn()
 const mockIsUnavailableBadgeCampaignClaim = jest.fn()
 const mockPersistRegistrationBadgeCampaignDestination = jest.fn()
-const mockSettleShhhhhCampaignContinuation = jest.fn()
+const mockSettleCardCampaignContinuation = jest.fn()
 const mockEnsureSignupAttributionForRegistration = jest.fn()
 const mockMarkSignupAttributionPending = jest.fn()
 const mockAttachSignupAttribution = jest.fn()
@@ -97,8 +97,8 @@ jest.mock('@/services/invites', () => ({
 jest.mock('@/services/invite-acquisition', () => ({
     settleAcceptedInviteAcquisition: (...args: unknown[]) => mockSettleAcceptedInviteAcquisition(...args),
 }))
-jest.mock('@/app/shhhhh/shhhhh-acquisition', () => ({
-    settleShhhhhCampaignContinuation: (...args: unknown[]) => mockSettleShhhhhCampaignContinuation(...args),
+jest.mock('@/features/card/card-campaign-acquisition', () => ({
+    settleCardCampaignContinuation: (...args: unknown[]) => mockSettleCardCampaignContinuation(...args),
 }))
 jest.mock('@/components/Invites/badge-campaign-context', () => ({
     getPendingBadgeCampaigns: () => mockPendingBadgeCampaigns,
@@ -146,7 +146,7 @@ describe('useZeroDev registration invite boundary', () => {
         mockAndroidNative = false
         mockToWebAuthnKey.mockResolvedValue({ id: 'new-passkey' })
         mockSettleAcceptedInviteAcquisition.mockReturnValue({ destination: '/home', pending: [] })
-        mockSettleShhhhhCampaignContinuation.mockReturnValue(undefined)
+        mockSettleCardCampaignContinuation.mockReturnValue(undefined)
         mockEnsureSignupAttributionForRegistration.mockResolvedValue({ journeyId: 'signup-journey' })
         mockMarkSignupAttributionPending.mockResolvedValue(undefined)
         mockAttachSignupAttribution.mockResolvedValue(undefined)
@@ -259,13 +259,13 @@ describe('useZeroDev registration invite boundary', () => {
             pending: [],
             transport: 'canonical',
         })
-        mockSettleShhhhhCampaignContinuation.mockReturnValue('/card')
+        mockSettleCardCampaignContinuation.mockReturnValue('/card')
         const { result } = renderHook(() => useZeroDev())
 
         await act(async () => result.current.handleRegister('new-user'))
 
         expect(mockClaimAndSettlePendingBadgeCampaigns).toHaveBeenCalledWith(['skip'])
-        expect(mockSettleShhhhhCampaignContinuation).toHaveBeenCalledWith()
+        expect(mockSettleCardCampaignContinuation).toHaveBeenCalledWith()
         expect(mockPersistRegistrationBadgeCampaignDestination).not.toHaveBeenCalled()
         expect(mockSetWebAuthnKey).toHaveBeenCalledWith({ id: 'new-passkey' })
     })

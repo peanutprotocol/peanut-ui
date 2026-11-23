@@ -1,8 +1,6 @@
 const supportedLocales = new Set(['en', 'es-419', 'es-AR', 'pt-BR'])
 const reviewableStatuses = new Set(['unchanged', 'changed', 'added', 'new', 'removed', 'excluded', 'absent'])
 const settledCaptureStatuses = new Set(['captured', 'excluded', 'absent'])
-const missingComponentHarnessReason =
-    'This revision has no compatible scenario harness for this component; no newer product code was copied'
 const visualSource = /^(?:src\/|public\/|(?:tailwind|postcss)\.config\.)/
 const testSource =
     /^(?:src\/dev\/)|(?:^|\/)(?:__tests__|__mocks__|test-utils)\/|\.(?:test|spec)\.[cm]?[jt]sx?$|\.d\.ts$/
@@ -16,7 +14,7 @@ const hasExceptionReason = (body) => {
     })
 }
 
-/** A newly registered state may lack a baseline without making the review partial. */
+/** Full evidence for the advisory visual coverage summary. */
 export function reviewableComparison(comparison) {
     const { before, after, screens } = comparison ?? {}
     const scoped = comparison?.scope?.mode === 'targeted'
@@ -32,25 +30,10 @@ export function reviewableComparison(comparison) {
     if (!before.inventory.every((entry) => ['catalogued', 'excluded'].includes(entry.status))) return false
     if (!Array.isArray(before.screens) || !before.screens.length) return false
 
-    const comparedById = new Map(screens.map((screen) => [screen.id, screen]))
-    const hasCapturedBaseline = before.screens.some((screen) => screen.status === 'captured')
-    let hasNewHarnessGap = false
-    const onlyKnownGaps = before.screens.every((screen) => {
-        if (settledCaptureStatuses.has(screen.status)) return true
-        const current = comparedById.get(screen.id)
-        const newHarnessGap =
-            screen.kind === 'component' &&
-            screen.status === 'unavailable' &&
-            screen.reason === missingComponentHarnessReason &&
-            current?.status === 'new' &&
-            (current.after?.status === undefined || current.after.status === 'captured')
-        hasNewHarnessGap ||= newHarnessGap
-        return newHarnessGap
-    })
     return (
-        hasCapturedBaseline &&
-        onlyKnownGaps &&
-        (before.complete === true || before.scopeComplete === true || hasNewHarnessGap)
+        (scoped ? before.scopeComplete === true : before.complete === true) &&
+        before.screens.some((screen) => screen.status === 'captured') &&
+        before.screens.every((screen) => settledCaptureStatuses.has(screen.status))
     )
 }
 

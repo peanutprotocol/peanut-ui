@@ -84,7 +84,7 @@ test('translation-only and visual asset changes require coverage', () => {
     }
 })
 
-test('newly registered states are reviewable but failed captures are not', () => {
+test('known uncaptured baseline rows remain gaps in the coverage summary', () => {
     const comparison = {
         before: {
             inventory: [{ route: '/home', status: 'catalogued', screens: ['home'] }],
@@ -105,7 +105,7 @@ test('newly registered states are reviewable but failed captures are not', () =>
             { id: 'new-component', status: 'new' },
         ],
     }
-    assert.equal(reviewableComparison(comparison), true)
+    assert.equal(reviewableComparison(comparison), false)
     assert.equal(reviewableComparison({ ...comparison, after: { complete: false } }), false)
     for (const status of ['failed', 'unavailable'])
         assert.equal(reviewableComparison({ ...comparison, screens: [{ status }] }), false)
@@ -151,7 +151,7 @@ test('a missing baseline route is never reviewable, regardless of current captur
     }
 })
 
-test('only newly registered component harness gaps may be absent from an otherwise complete baseline', () => {
+test('a specific historical harness message cannot certify complete coverage', () => {
     const comparison = {
         before: {
             complete: false,
@@ -173,7 +173,7 @@ test('only newly registered component harness gaps may be absent from an otherwi
         ],
     }
 
-    assert.equal(reviewableComparison(comparison), true)
+    assert.equal(reviewableComparison(comparison), false)
     assert.equal(reviewableComparison({ ...comparison, after: { complete: false } }), false)
     assert.equal(
         reviewableComparison({

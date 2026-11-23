@@ -1,6 +1,37 @@
-import { existsSync, readFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
+// The only migration applied to a legacy base runner is its process exit policy.
+// Exact bytes avoid accidentally changing a newer or otherwise unsupported runner.
+const statusPath = 'scripts/screens/capture-status.mjs'
+const legacyPolicy = `export function captureExitCode(results) {
+    return results.some((result) => result.status === 'failed') ? 1 : 0
+}
+`
+const partialPolicy = legacyPolicy.replace("=== 'failed') ? 1 : 0", "=== 'captured') ? 0 : 1")
+const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex')
+
+export function prepareBaseExitPolicy(directory) {
+    const path = join(directory, statusPath)
+    if (!existsSync(path) || readFileSync(path, 'utf8') !== legacyPolicy) return
+    const recordPath = join(directory, '.screen-capture-adapter.json')
+    const record = existsSync(recordPath) ? JSON.parse(readFileSync(recordPath, 'utf8')) : { version: 1, changed: [] }
+    record.changed.push({ path: statusPath, before: sha256(legacyPolicy), after: sha256(partialPolicy) })
+    writeFileSync(recordPath, JSON.stringify(record))
+    writeFileSync(path, partialPolicy)
+}
+
+export function verifyBaseExitPolicy(capture) {
+    const overlays = (capture.adapterFiles ?? []).filter(({ path }) => path === statusPath)
+    if (
+        overlays.length &&
+        (overlays.length !== 1 ||
+            overlays[0].before !== sha256(legacyPolicy) ||
+            overlays[0].after !== sha256(partialPolicy))
+    )
+        throw new Error('Unrecognized base harness exit policy overlay')
+}
 export const BASE_HARNESS_NOTE =
     "Before was captured with the base branch's own synthetic API because this PR changes it; differences can include synthetic-data changes."
 

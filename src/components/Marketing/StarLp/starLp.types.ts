@@ -115,12 +115,48 @@ export interface PhoneFrameProps {
     /** Ground of the screen; cream by default. */
     screen?: 'cream' | 'white'
     className?: string
+    /** Merged onto the screen: its own ground, padding or layout. */
+    screenClassName?: string
     /** Short description for screen readers (role="img"). Omit and the drawn
         screen is hidden from them, since its text is illustrative. */
     label?: string
-    /** The screen holds a real link: the frame is a labelled group, not an
-        image, so assistive tech still exposes the link. Needs `label`. */
+    /** The screen holds a real link or button: with `label` the frame is a
+        labelled group, not an image; without one it carries no role and is
+        not hidden, so assistive tech still reaches the control. */
     interactive?: boolean
+}
+
+export interface ShopLockScreenProps {
+    /** The lock-screen clock, e.g. "13:42". */
+    time: string
+    /** BCP 47 tag of the notice, e.g. "es-AR". */
+    lang: string
+    /** The notice's bold first line, e.g. "Pago recibido". */
+    title: string
+    /** The notice's second line. */
+    children: ReactNode
+    /** Merged onto the phone outline. */
+    className?: string
+    /** Merged onto the dark screen: its height steps and where the notice sits. */
+    screenClassName?: string
+    /** Merged onto the notice card: its size steps. */
+    noticeClassName?: string
+    /** Merged onto the notice's first line. */
+    titleClassName?: string
+    /** Wraps the notice card in the page's own entrance motion. */
+    wrapNotice?: (notice: ReactNode) => ReactNode
+}
+
+export interface ScanLineProps {
+    className?: string
+}
+
+export interface ScanFrameProps {
+    children: ReactNode
+    /** false keeps the frame still round its content: no scan line and no "detected" pulse, only the corners locking in. Default true. */
+    scanLine?: boolean
+    /** Merged onto the frame, e.g. a wider width to frame two stickers. */
+    className?: string
 }
 
 export type ChatSide = 'them' | 'me'
@@ -324,8 +360,6 @@ export interface StarLpPersona {
     name: string
     /** Chat-bubble and greeting form, e.g. "Fulano". */
     short: string
-    /** Avatar initials. */
-    initials: string
     /** peanut.me username. Checked unregistered on prod (20 Oct 2026). */
     username: string
 }

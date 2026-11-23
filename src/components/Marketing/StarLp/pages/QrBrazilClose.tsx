@@ -1,10 +1,10 @@
 import { Band } from '@/components/Marketing/StarLp/Band'
 import { DropIn } from '@/components/Marketing/StarLp/DropIn'
 import { KnerdTitle } from '@/components/Marketing/StarLp/KnerdTitle'
+import { ScanFrame } from '@/components/Marketing/StarLp/ScanFrame'
 import { StarLpCta } from '@/components/Marketing/StarLp/StarLpCta'
 import { QrBrazilAppLink } from './QrBrazilAppLink'
 import { QrBrazilPixSticker } from './QrBrazilPixSticker'
-import { QrBrazilScanFrame } from './QrBrazilScanFrame'
 
 /**
  * The closing fold: PIX IT over the counter sticker inside the scanner's
@@ -18,13 +18,14 @@ export function QrBrazilClose() {
             <h2>
                 <KnerdTitle text="Pix it" size="hero" />
             </h2>
-            <QrBrazilScanFrame className="mx-auto mt-12 w-52 md:w-60">
+            {/* the sticker keeps its old width and spacing: the frame's 16px padding is taken back out of its margins */}
+            <ScanFrame scanLine={false} className="mt-8 -mb-4 w-60 md:w-68">
                 <DropIn fromTilt={-18} tilt={-5}>
                     <QrBrazilAppLink>
                         <QrBrazilPixSticker slot="close-sticker" />
                     </QrBrazilAppLink>
                 </DropIn>
-            </QrBrazilScanFrame>
+            </ScanFrame>
             <p className="mx-auto mt-14 max-w-xl text-body-l">Verify with your passport before you land.</p>
             <div className="mx-auto mt-8 w-fit">
                 <StarLpCta qrPlacement="close" ground="pink">

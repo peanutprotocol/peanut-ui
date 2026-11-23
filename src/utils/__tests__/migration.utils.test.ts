@@ -10,6 +10,7 @@ let mockIsCapacitor = false
 jest.mock('@/utils/capacitor', () => ({
     isCapacitor: () => mockIsCapacitor,
     openExternalUrl: jest.fn(),
+    openInOsApp: jest.fn(),
 }))
 
 // getters, so the TEST_WEB_SIGNUP cases that re-require the constants can move them
@@ -40,11 +41,12 @@ jest.mock('@/utils/deferred-link', () => ({
 }))
 
 import { MIGRATION_SURFACES, STORE_URL } from '@/constants/migration.consts'
-import { openExternalUrl } from '@/utils/capacitor'
+import { openExternalUrl, openInOsApp } from '@/utils/capacitor'
 import { onStoreAnchorClick, openStore, storeAnchorHref, storeForDevice, storeIcon } from '@/utils/migration.utils'
 import { DeviceType } from '@/hooks/useGetDeviceType'
 
 const mockOpenExternalUrl = openExternalUrl as jest.MockedFunction<typeof openExternalUrl>
+const mockOpenInOsApp = openInOsApp as jest.MockedFunction<typeof openInOsApp>
 
 beforeEach(() => {
     localStorage.clear()
@@ -132,7 +134,14 @@ describe('openStore deferred hand-off', () => {
         openStore('ios', MIGRATION_SURFACES.GUEST_FLOW)
         expect(mockBuildPayload).not.toHaveBeenCalled()
         expect(mockCopyIOSHandoff).not.toHaveBeenCalled()
-        expect(mockOpenExternalUrl).toHaveBeenCalledWith(STORE_URL.ios)
+        expect(mockOpenInOsApp).toHaveBeenCalledWith(STORE_URL.ios)
+    })
+
+    it('the native app opens the store app, not the web store page in the in-app sheet (TASK-23926)', () => {
+        mockIsCapacitor = true
+        openStore('android', MIGRATION_SURFACES.ATTENTION_UPDATE)
+        expect(mockOpenInOsApp).toHaveBeenCalledWith(STORE_URL.android)
+        expect(mockOpenExternalUrl).not.toHaveBeenCalled()
     })
 
     // the denominator for DEFERRED_LINK_RESTORED: one event per hand-off

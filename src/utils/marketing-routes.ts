@@ -13,11 +13,6 @@ const ROOT_MARKETING_PATHS: ReadonlySet<string> = new Set([
     ...Object.values(STAR_LP_ROUTES).filter((route) => route !== STAR_LP_ROUTES.peanutCard),
 ])
 
-/** The dev preview of the creator pages. The real page renders at /go on the marketing
- *  tree (the `/go/` rule below), so its preview must not mount the wallet providers or the app's
- *  globals either. proxy.ts answers 404 for /dev/* on peanut.me. */
-const CREATOR_PAGES_PREVIEW_PATH = '/dev/creator-pages'
-
 /**
  * True for the marketing site — the landing page and the localized marketing
  * pages — which render server-side content and never touch the wallet.
@@ -47,9 +42,6 @@ export function isMarketingRoute(pathname: string | null | undefined): boolean {
     if (process.env.NEXT_PUBLIC_CAPACITOR_BUILD === 'true') return false
     if (!pathname) return false
     if (ROOT_MARKETING_PATHS.has(pathname.replace(/\/$/, ''))) return true
-    // Creator pages under /go/ are web-only and never touch the wallet.
-    if (pathname.startsWith('/go/')) return true
-    if (pathname === CREATOR_PAGES_PREVIEW_PATH || pathname.startsWith(`${CREATOR_PAGES_PREVIEW_PATH}/`)) return true
 
     const segments = pathname.split('/').filter(Boolean)
     if (segments.length === 0) return true // '/' — the landing page

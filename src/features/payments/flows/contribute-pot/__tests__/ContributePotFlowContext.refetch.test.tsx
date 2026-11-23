@@ -27,6 +27,8 @@ jest.mock('@/hooks/wallet/useWallet', () => ({
 }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: null }) }))
 jest.mock('@/hooks/useFriendlyError', () => ({ useFriendlyError: () => String }))
+let mockRequesterProfile: { isVerified: boolean } | null = null
+jest.mock('@/lib/person/usePerson', () => ({ usePerson: () => ({ profile: mockRequesterProfile }) }))
 
 import { ContributePotFlowProvider } from '../ContributePotFlowContext'
 import { useContributePotFlow } from '../useContributePotFlow'
@@ -127,4 +129,16 @@ test('a revisit shows the contributors the page just read, not the cached ones',
     await waitFor(() => expect(secondVisit.result.current.contributors.map((c) => c.amount)).toEqual(['40.65']))
     // the wrapper's read is fresh: no extra request read on the way
     expect(mockGet).not.toHaveBeenCalled()
+})
+
+// TASK-21376: the card ticked every requester with a Peanut account (!!userId);
+// the contacts list shows the profile's verified flag
+test.each([
+    [false, { isVerified: false }],
+    [true, { isVerified: true }],
+])('the requester reads verified=%s, as their profile says', (expected, profile) => {
+    mockRequesterProfile = profile
+    const { result } = renderFlow()
+    expect(result.current.recipient?.userId).toBe('requester')
+    expect(result.current.recipient?.isVerified).toBe(expected)
 })

@@ -14,28 +14,28 @@ describe('PaymentDetailsCard', () => {
     it('shows the rate, the savings against a card, the sponsored Peanut fee, the provider fee, the exact payout and total, and the provider', () => {
         renderWithIntl(
             <PaymentDetailsCard
-                rate={{ price: 5.4, code: 'BRL' }}
-                savings={{ usd: '0.93', currencyCode: 'BRL' }}
-                providerFee="R$0.75"
-                payout="R$503"
+                rate={{ price: 1480, code: 'ARS' }}
+                savings={{ usd: '0.93' }}
+                providerFee="ARS 750"
+                payout="ARS 136,900"
                 total="$92.50"
-                providerId="manteca-br"
+                providerId="manteca-ar"
             />
         )
         expect(screen.getByText(en.qrPay.info.exchangeRate)).toBeInTheDocument()
-        expect(screen.getByText('1 USD = 5.40 BRL')).toBeInTheDocument()
+        expect(screen.getByText('1 USD = 1,480.00 ARS')).toBeInTheDocument()
         expect(screen.getByText(en.qrPay.info.saveVsCard)).toBeInTheDocument()
         expect(screen.getByText('~$0.93')).toBeInTheDocument()
         expect(screen.getByText(en.common.peanutFee)).toBeInTheDocument()
         expect(screen.getByText(en.common.sponsoredByPeanut)).toBeInTheDocument()
         expect(screen.getByText(en.pix.withdraw.fee)).toBeInTheDocument()
-        expect(screen.getByText('R$0.75')).toBeInTheDocument()
+        expect(screen.getByText('ARS 750')).toBeInTheDocument()
         expect(screen.getByText(en.withdraw.bank.bankReceives)).toBeInTheDocument()
-        expect(screen.getByText('R$503')).toBeInTheDocument()
+        expect(screen.getByText('ARS 136,900')).toBeInTheDocument()
         expect(screen.getByText(en.withdraw.confirm.youPay)).toBeInTheDocument()
         expect(screen.getByText('$92.50')).toBeInTheDocument()
         expect(screen.getByText(en.provider.label.provider)).toBeInTheDocument()
-        expect(screen.getByText(PROVIDERS['manteca-br'].brand)).toBeInTheDocument()
+        expect(screen.getByText(PROVIDERS['manteca-ar'].brand)).toBeInTheDocument()
     })
 
     // the savings row is the payment's; the provider fee row only when the quote carries one; no provider, no row

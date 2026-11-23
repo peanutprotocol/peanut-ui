@@ -6,7 +6,7 @@ import { withFixtureFeatureReport, withFixtureRoutes } from '../../src/dev/fixtu
 import type { IUserProfile } from '../../src/interfaces/interfaces'
 import openapi from '../../src/types/api.openapi.json'
 import { exampleFor } from './openapi-example'
-export const ADAPTER_VERSION = 'synthetic-api-v6'
+export const ADAPTER_VERSION = 'synthetic-api-v7'
 export function merge(base: unknown, patch: unknown): unknown {
     if (
         !base ||
@@ -21,17 +21,39 @@ export function merge(base: unknown, patch: unknown): unknown {
     for (const [key, value] of Object.entries(patch)) result[key] = merge(result[key], value)
     return result
 }
-/** Demo handlers first; a route they do not map gets its documented example, or stays unmapped. */
-async function synthetic(path: string, method: string, body: string | undefined, spec: unknown): Promise<Response> {
+function reply(method: string, status: number, data?: unknown): Response {
+    return method === 'HEAD' || status === 204 || status === 205 || status === 304
+        ? new Response(null, { status })
+        : Response.json(data, { status })
+}
+
+const unmapped = (error: unknown) => error instanceof Error && error.message.startsWith('Unmapped capture API:')
+
+async function mappedDemo(path: string, method: string, body?: string): Promise<Response | undefined> {
     try {
         return await demoRespond(path, { method, body }, { offline: true, strict: true })
     } catch (error) {
-        const unmapped = error instanceof Error && error.message.startsWith('Unmapped capture API:')
-        const example = unmapped ? exampleFor(spec, method, path) : undefined
-        if (!example) throw error
-        return Response.json(example.data, { status: example.status })
+        if (!unmapped(error)) throw error
+        return undefined
     }
 }
+
+/** Preserve partial fixture overlays on a mapped demo read and complete fixture answers on other reads. */
+async function synthetic(
+    path: string,
+    method: string,
+    body: string | undefined,
+    spec: unknown,
+    override?: unknown
+): Promise<Response> {
+    const demo = await mappedDemo(path, method, body)
+    if (demo) return demo
+    if (override !== undefined) return reply(method, 200, override)
+    const example = exampleFor(spec, method, path)
+    if (example) return reply(method, example.status, example.data)
+    throw new Error(`Unmapped capture API: ${method} ${path.split('?')[0].replace(/\/+$/, '')}`)
+}
+
 export async function answer(
     fixture: string,
     path: string,
@@ -41,60 +63,45 @@ export async function answer(
 ): Promise<Response> {
     const state = FIXTURES[fixture]
     if (!state) throw new Error(`Unknown fixture ${fixture}`)
+    method = method.toUpperCase()
     const key = `${method} ${path.split('?')[0].replace(/\/+$/, '')}`
-    if (state.fails?.includes(key)) return Response.json({ error: 'Synthetic failure' }, { status: 500 })
+    if (state.fails?.includes(key)) return reply(method, 500, { error: 'Synthetic failure' })
     const rejection = state.rejects?.[key]
-    if (rejection) return Response.json(rejection.body, { status: rejection.status })
-    if (
-        (key === 'POST /users/username/reservations' || key.startsWith('HEAD /users/username/')) &&
-        state.responses?.[key] !== undefined
-    )
-        return Response.json(state.responses?.[key])
-    const activationFixtureRoute =
-        /^POST \/users\/kyc\/features\/(qr|bank|local|card)\/activate$/.test(key) ||
-        key === 'GET /users/kyc/questions' ||
-        key === 'GET /users/kyc/plan' ||
-        key === 'GET /users/kyc/profile' ||
-        key === 'POST /users/kyc/start-action'
-    if (activationFixtureRoute && fixture.startsWith('feature-activation-') && state.responses?.[key] !== undefined)
-        return Response.json(state.responses[key])
+    if (rejection) return reply(method, rejection.status, rejection.body)
+    const override = state.responses?.[key]
+    if (override !== undefined && (method === 'HEAD' || state.completeResponses?.includes(key)))
+        return reply(method, 200, override)
+    if (method === 'HEAD') {
+        const demo = await mappedDemo(path, method)
+        if (demo) return reply(method, demo.status)
+        // HEAD uses the same fixture or demo resource as GET, including an absent username.
+        // Consult explicit contract examples only after those sources have no answer.
+        try {
+            return reply(method, (await answer(fixture, path, 'GET', undefined, {})).status)
+        } catch (error) {
+            if (!unmapped(error)) throw error
+        }
+        const documented = exampleFor(spec, method, path) ?? exampleFor(spec, 'GET', path)
+        if (documented) return reply(method, documented.status)
+        throw new Error(`Unmapped capture API: ${key}`)
+    }
     // The KYC reads that follow from the user, read off this fixture's own /users/me.
     const userRead = KYC_USER_READS[key]
     if (userRead) {
-        const user = (await (await answer(fixture, '/users/me', 'GET')).json()) as IUserProfile | null
-        const override = state.responses?.[key]
+        const user = (await (await answer(fixture, '/users/me', 'GET', undefined, spec)).json()) as IUserProfile | null
         return Response.json(override === undefined ? userRead(user) : merge(userRead(user), override))
     }
-    if (key === 'GET /notifications') return Response.json({ items: [], nextCursor: null })
-    if (key === 'POST /invites/validate')
-        return Response.json({ success: true, attributionResolved: true, onboardingResolved: true, username: 'demo' })
-    if (key === 'GET /qr/synthetic-invalid') return Response.json({ claimed: false, available: false })
-    if (key === 'GET /qr/synthetic-success')
-        return Response.json({ claimed: true, available: false, claimedAt: '2026-09-01T12:00:00Z' })
-    if (key === 'GET /bridge/onramp/quote') {
-        const query = new URL(path, 'http://capture.invalid').searchParams
-        const from = query.get('accountType')?.includes('iban') ? 'EUR' : 'USD'
-        return Response.json({
-            from,
-            to: 'USD',
-            grossRate: '1',
-            netRate: '1',
-            peanutFee: '0.0000',
-            updatedAt: '2026-09-01T12:00:00Z',
-            ...(query.has('sourceAmount') ? { netAmount: query.get('sourceAmount') } : {}),
-        })
-    }
-    const base = await synthetic(path, method, body, spec)
+    const base = await synthetic(path, method, body, spec, override)
+    if (!base.body) return base
     let data = await base.json()
     if (key === 'GET /users/me') data = merge(data, { user: { activationCelebratedAt: '2026-01-01T00:00:00Z' } })
-    const override = state.responses?.[key]
     let merged = override === undefined ? data : merge(data, override)
     if (key === 'GET /users/me') {
         // Paperwork metadata is optional on older/minimal capture specs. Its
         // absence must not break a mapped users/me read.
         const paperworkBase = await synthetic('/users/kyc/paperwork', 'GET', undefined, spec).catch(
             (error: unknown) => {
-                if (error instanceof Error && error.message.startsWith('Unmapped capture API:')) return null
+                if (unmapped(error)) return null
                 throw error
             }
         )

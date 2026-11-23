@@ -8,7 +8,7 @@ import {
     type StoreKind,
 } from '@/constants/migration.consts'
 import { DeviceType } from '@/hooks/useGetDeviceType'
-import { isCapacitor, openExternalUrl } from '@/utils/capacitor'
+import { isCapacitor, openExternalUrl, openInOsApp } from '@/utils/capacitor'
 import { getFromCookie } from '@/utils/general.utils'
 import {
     buildDeferredPayload,
@@ -62,7 +62,8 @@ export function openStore(store: StoreKind, surface: MigrationSurface, handoff?:
     // a native guest is already in the app — nothing to hand off
     if (isCapacitor()) {
         trackStoreClick(store, surface)
-        void openExternalUrl(STORE_URL[store])
+        // the in-app sheet opened the web store page before the store app (TASK-23926)
+        void openInOsApp(STORE_URL[store])
         return
     }
 

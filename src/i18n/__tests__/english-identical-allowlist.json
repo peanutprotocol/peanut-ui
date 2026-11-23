@@ -10,10 +10,6 @@
         }
     },
     "app": {
-        "shhhhh.hero.wordmark": {
-            "locales": ["es-419", "es-AR", "pt-BR"],
-            "reason": "Peanut Card is the product name in every language (TASK-24037)"
-        },
         "profile.backup.changePhoneModal.iphoneToIphoneTitle": {
             "locales": ["es-419", "es-AR", "pt-BR"],
             "reason": "iPhone platform name in a short title, no words to translate"
@@ -62,10 +58,6 @@
             "locales": ["es-419", "es-AR"],
             "reason": "en already holds the Argentine field name \"Razón Social\", which is correct Spanish for es-419 and es-AR; pt-BR has \"Razão Social\""
         },
-        "shhhhh.marquee.peanutCard": {
-            "locales": ["es-419", "es-AR", "pt-BR"],
-            "reason": "brand name (PEANUT CARD), kept in English on every locale"
-        },
         "profile.unlockPayments.rows.brl": {
             "locales": ["es-419", "es-AR", "pt-BR"],
             "reason": "currency code and payment rail name (BRL · Pix), the same in every language"
@@ -89,10 +81,6 @@
         "depositAccounts.corridors.FASTER_PAYMENTS_GB.railName": {
             "locales": ["es-419", "es-AR", "pt-BR"],
             "reason": "UK payment rail name (Faster Payments), a proper noun"
-        },
-        "shhhhh.hero.title": {
-            "locales": ["es-419", "es-AR", "pt-BR"],
-            "reason": "brand line, kept in English (Konrad 24 Sep 2026)"
         },
         "kyc.paperworkVerification.tax.label.cc": {
             "locales": ["es-419", "es-AR", "pt-BR"],

@@ -107,6 +107,20 @@ export function ClosedRowDrawer({
                     body: tAccounts(restrictions.card ? 'bankNotAvailableNote' : 'bankOnlyNotAvailableNote'),
                     cta: { label: tCommon('gotIt') },
                 }
+            // the provider's own refusal, worded as the currency refusal screen words it (TASK-24969)
+            case 'refused': {
+                const key = reasonCodeKey(row.reason)
+                return {
+                    title: t('list.badgeNotOffered'),
+                    body:
+                        row.reason === 'bridge_region_unavailable' && row.currency
+                            ? t('list.regionUnavailableBody', { currency: row.currency })
+                            : key
+                              ? tIdentity(key)
+                              : tKyc(kycFeatureRefusalCopy(row.reason), { feature: tKyc('documents.bank') }),
+                    cta: { label: tCommon('gotIt') },
+                }
+            }
             // the route's own reason (an outage, the rollout, a pause), as the Pix pages word it; a refusal
             // only support can lift offers support with the reason, as the Pix page does
             case 'pix-route': {
@@ -236,7 +250,7 @@ export function ClosedRowDrawer({
                     <div className="flex flex-col items-center text-center">
                         <IconBubble icon="globe-lock" color="gray" className="mb-4" />
                         <DrawerHeader className="w-full gap-2 p-0 text-center sm:text-center">
-                            <DrawerTitle>{content.title}</DrawerTitle>
+                            <DrawerTitle data-testid="closed-row-title">{content.title}</DrawerTitle>
                             <DrawerDescription>{content.body}</DrawerDescription>
                         </DrawerHeader>
                         <div className="mt-6 flex w-full flex-col items-center gap-6">

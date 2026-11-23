@@ -87,8 +87,9 @@ test('index backfills card metadata and shares comparison counts with its full d
     )
 })
 
-test('latest ignores newer PR entries and incomplete dev entries', () => {
+test('latest ignores PR and legacy unfinished entries but accepts finished dev libraries with gaps', () => {
     assert.equal(selectLatest(entries).path, entries[2].path)
+    assert.equal(selectLatest([entries[0], { ...entries[1], finished: true }, entries[2]]).path, entries[1].path)
 })
 
 test('latest prefers the English locale when the dev catalogue has a locale matrix', () => {

@@ -437,7 +437,10 @@
                 "invalidEmail": "Please enter a valid email address.",
                 "emailInUse": "This email is already associated with another account.",
                 "invalidCode": "Enter the 6-digit code from your email.",
-                "nameReadOnly": "Your name was not saved. Names are managed through identity verification."
+                "nameReadOnly": "Your name was not saved. Names are managed through identity verification.",
+                "sameEmail": "Enter a different email address.",
+                "codeCooldown": "Wait a moment, then request a new code.",
+                "emailChangeUnavailable": "Email changes are paused for now. Contact support to update your email."
             },
             "verifiedNameHelp": "Your name comes from your identity verification and cannot be edited here. Contact support if it needs correcting.",
             "emailCode": "Verification code",
@@ -457,10 +460,8 @@
             "providerRejection": {
                 "fixableTitle": "We need an updated document",
                 "restartTitle": "Verify with a different document",
-                "unavailableTitle": "Region unavailable",
                 "fixableDescription": "Please upload a clearer photo of your ID to unlock this region.",
                 "restartDescription": "This region needs a document from a supported country. You can verify with a different ID.",
-                "unavailableDescription": "This region is not available for your account. Contact support for help.",
                 "uploadDocument": "Upload document"
             },
             "initError": {
@@ -998,16 +999,6 @@
                     "applyCard": "Apply after verifying your identity."
                 }
             },
-            "restricted": {
-                "title": "Heads up",
-                "description": "Due to regulations, bank transfers and card issuing aren't available for you. You can still hold digital dollars, send to any @username, and withdraw your balance anytime.",
-                "continueAnyway": "Continue anyway",
-                "notifyMe": "Notify me when it is available",
-                "emailPlaceholder": "you@example.com",
-                "notifySubmit": "Notify me",
-                "notifyDone": "Got it. We'll email you when it's available.",
-                "changeCountry": "Choose a different country"
-            },
             "compare": {
                 "selectCountry": "Select {country}",
                 "items": {
@@ -1424,8 +1415,6 @@
         "sayingHola": "Saying hola",
         "dodgingFees": "Dodging fees",
         "outrunningYourBank": "Outrunning your bank",
-        "skippingTheLine": "Skipping the line",
-        "cuttingTheLine": "Cutting the line",
         "ditchingWires": "Ditching wires",
         "bypassingBorders": "Bypassing borders",
         "sneakingPast": "Sneaking past",
@@ -1820,10 +1809,10 @@
             "notNow": "Not now",
             "fixableTitle": "We need an updated document",
             "restartTitle": "Verify with a different document",
-            "blockedTitle": "QR payments are not available",
+            "blockedTitle": "QR payments unavailable",
             "fixableDescription": "We need an updated document to enable QR payments. Please upload a clearer photo of your ID.",
             "restartDescription": "QR payments need a document from a supported country. You can verify with a different ID.",
-            "blockedDescription": "QR payments are not available for your account. Contact support for help.",
+            "blockedDescription": "QR payments are unavailable for your account. Contact support.",
             "uploadDocument": "Upload document",
             "verifyAgain": {
                 "documentMissing": {
@@ -1846,7 +1835,6 @@
         "info": {
             "exchangeRate": "Exchange Rate",
             "saveVsCard": "Save vs card",
-            "saveVsCardTooltipBrl": "With Peanut, your payment goes through Pix at the current market rate. Foreign cards may add around 3.5% in Brazilian tax (IOF) and around 3% in currency conversion fees.",
             "saveVsCardTooltipArs": "With Peanut, your payment goes through Mercado Pago at the current market rate. Foreign cards may use the official rate and add around 3% in issuer fees."
         },
         "success": {
@@ -1960,8 +1948,8 @@
                 "description": "Check Activity for the payment and any refund before trying again."
             },
             "processing": {
-                "title": "Payment is processing",
-                "description": "The payment has not been confirmed yet. Check Activity before trying again."
+                "title": "Payment pending",
+                "description": "This is taking longer than expected. We are waiting for our payment partner to confirm it."
             }
         },
         "pixKeyOwnerTaxId": "{taxIdKind} {taxId}",
@@ -2142,21 +2130,6 @@
             "solicitation": "I acknowledge that applying for the {partner} Spend Card does not constitute unauthorized solicitation.",
             "accountOpeningPrivacy": "I accept the <link>Account Opening Privacy Notice</link>"
         },
-        "physical": {
-            "navTitle": "Physical card",
-            "onListTitle": "You're on the waiting list",
-            "onListBody": "We'll tell you as soon as you can order it.",
-            "comingSoonTitle": "The physical card is on its way",
-            "comingSoonBody": "You can't order it yet. Here's how it will work:",
-            "joinCta": "Join the waiting list",
-            "joinFailed": "Failed to join waitlist",
-            "stepJoin": "Join the waiting list today",
-            "stepNotify": "We'll tell you when ordering opens",
-            "stepShip": "Order it and we'll ship it to you",
-            "notAvailableBadge": "Not available yet",
-            "positionBadge": "You're #{position} on the list",
-            "onListBadge": "You're on the list"
-        },
         "yourCard": {
             "navTitle": "Card",
             "completeVerification": "Complete verification",
@@ -2187,7 +2160,6 @@
             "managementTitle": "Card management",
             "pin": "PIN",
             "spendingLimit": "Spending limit",
-            "physicalCard": "Physical card",
             "redZone": "Red zone",
             "lockCard": "Freeze",
             "unlockCard": "Unfreeze",
@@ -2257,8 +2229,6 @@
             "rateLimited": "Card details are temporarily unavailable. Please try again later."
         },
         "eligibility": {
-            "navTitle": "The door",
-            "titleWithUsername": "Let's see, @{username}…",
             "title": "Let's see if you qualify",
             "description": "Press and hold the button. We're looking you up.",
             "holdAriaLabel": "Press and hold to check eligibility",
@@ -2414,7 +2384,7 @@
             "sendExactAmount": "Send exactly this amount!",
             "sendAnyAmount": "Send any amount. Include the reference.",
             "depositReference": "Deposit reference",
-            "pasteInReferenceField": "Paste in the bank's reference field",
+            "pasteInReferenceField": "Required: paste it in the bank's reference field. Without it, the transfer can't be matched and may be returned.",
             "title": "Bank details",
             "accountHolderName": "Account holder name",
             "bankName": "Bank name",
@@ -2969,6 +2939,7 @@
         "nudge": {
             "localRailTitle": "Pay like a local next time",
             "localRailDescription": "In {country}, paying with {rail} costs around {percent}% less than using your card.",
+            "localRailAvailableDescription": "In {country}, you can also pay with {rail} from Peanut.",
             "usdAbroadTitle": "Pay in local currency next time",
             "usdAbroadDescription": "You were charged in US dollars. When a terminal offers to bill in dollars, choose the local currency instead. Peanut's exchange rate is usually better."
         },
@@ -3205,7 +3176,7 @@
             },
             "CARD_PIONEER": {
                 "name": "Card Pioneer",
-                "description": "You reserved your spot for the Peanut Card. Pioneer perks await!"
+                "description": "You backed the Peanut Card from the start."
             },
             "FOUNDING_PIONEER": {
                 "name": "Founding Pioneer",
@@ -3228,8 +3199,8 @@
                 "description": "You are a real OG. You were with Peanut before it was cool."
             },
             "CARD_CLOSED_BETA": {
-                "name": "Closed Beta",
-                "description": "IYKYK. They were testing the card before you knew it existed."
+                "name": "Card Early Tester",
+                "description": "IYKYK. You were testing the card before anyone knew it existed."
             },
             "CARD_ALPHA": {
                 "name": "Closed Alpha Tester",
@@ -3340,8 +3311,8 @@
                 "description": "High Roller or Master Beggar? You created the pot with the highest number of contributors."
             },
             "WAITLIST_SKIP": {
-                "name": "Skip Pass",
-                "description": "You skipped the waitlist. A friend handed you the key and you walked right in."
+                "name": "Early Pass",
+                "description": "You joined Peanut with an early pass."
             }
         },
         "toastAvatars": "{count, plural, one {# new avatar unlocked} other {# new avatars unlocked}}",
@@ -3372,7 +3343,6 @@
         "identityVerification": "Identity verification",
         "doesntStoreDocuments": "Peanut doesn't store any of your documents",
         "doesntStoreDocumentsPeriod": "Peanut doesn't store any of your documents.",
-        "countryRegion": "Country/Region",
         "verified": "Verified",
         "actionNeeded": "Action needed",
         "statusProcessing": "Processing",
@@ -3401,7 +3371,7 @@
         "processingUnfinishedDescription": "This is taking longer than usual. If you left the verification unfinished, continue it now. If you already finished it, contact support and we'll check.",
         "processingReviewDescription": "This is taking longer than usual. Our payment partner is still reviewing your details. Contact support and we'll check on it.",
         "continueVerification": "Continue verification",
-        "unsupportedRegionError": "Bank deposits aren't available in your region yet. We'll let you know as soon as they go live.",
+        "unsupportedRegionError": "Bank deposits aren't available in your region yet.",
         "railsUnavailableError": "Your ID is verified, but we can't set up payments for your region right now. Contact support and we'll sort it out.",
         "sessionBlockedSubmissionError": "We could not finish setting up these payments. That is on our side: contact support and we will finish it.",
         "sessionBlockedDecisionError": "We cannot set up these payments for this account. Contact support if you think this is a mistake.",
@@ -3423,7 +3393,7 @@
             "titleIdentityDocumentMissing": "Complete your verification",
             "titleRegionUnavailable": "Not available for UK residents",
             "descriptionError": "{error} Please contact support for assistance.",
-            "descriptionBlocked": "We couldn't confirm your ID. Please contact support for assistance.",
+            "descriptionBlocked": "This isn't available for your account right now. Contact support and we'll look into it.",
             "descriptionRestartIdentity": "This payment method needs a document from a supported country. You can verify with a different ID.",
             "descriptionProviderRejection": "We need more information from you to continue.",
             "descriptionRegionUnavailable": "Due to UK regulations, bank transfers aren't available for UK residents. Your funds are safe. You can withdraw them as crypto anytime.",
@@ -3901,6 +3871,19 @@
             "servedElsewhere": "Pix deposits, withdrawals, transfers and QR payments are available where you live."
         },
         "paperworkVerification": {
+            "reverify": {
+                "inviteTitle": "Verify your identity again",
+                "inviteCard": "Required to set up your card.",
+                "inviteBank": "Required to open your bank account.",
+                "inviteLocal": "Required to open your local account.",
+                "documentMismatch": "Your ID is from another country. Choose a document to retry.",
+                "pendingTitle": "We’re reviewing your identity",
+                "pendingDescription": "Your existing accounts stay available.",
+                "refusalTitle": "We couldn’t verify your identity again",
+                "refusalCard": "Card setup failed. Your existing accounts stay available.",
+                "refusalBank": "Bank account setup failed. Your existing accounts stay available.",
+                "refusalLocal": "Local account setup failed. Your existing accounts stay available."
+            },
             "back": "Go back",
             "progress": "Step {current} of {total}",
             "continue": "Continue",
@@ -4428,7 +4411,7 @@
             "identity_verification_received": "We received your selfie and ID and are passing them to our card partner.",
             "bridge_tos_required": "Accept our payment partner's terms to continue.",
             "bridge_tos_v2_required": "Accept the bank transfer provider's updated Terms of Service to enable euro and British pound bank transfers.",
-            "bridge_processing": "Our payment partner is finishing your verification. This usually takes a few minutes.",
+            "bridge_processing": "Our payment partner is finishing your verification. This usually takes a few minutes, but in some cases it can take longer.",
             "verification_blocked": "Verification issue. Contact support for help.",
             "invalid_bank_postal_code": "We couldn’t use the postal code on your verified address.",
             "terminal_rejection": "Verification issue. Contact support for help.",
@@ -4456,7 +4439,8 @@
             "local_tax_id_missing": "Needs a tax ID: CPF in Brazil, CUIT, CUIL or DNI in Argentina",
             "under_minimum_age": "Only from age 18",
             "bridge_processing_slow": "This is taking longer than usual. Our payment partner is still reviewing your details. Contact support and we'll check on it.",
-            "questions_missing": "Answer one more question to finish setting this up."
+            "questions_missing": "Answer one more question to finish setting this up.",
+            "bridge_region_unavailable": "Our payment partner doesn't offer this account where you live. Your other accounts and your funds on Peanut are not affected."
         }
     },
     "recoverFunds": {
@@ -4482,11 +4466,11 @@
     "global": {
         "countryWaitlist": {
             "title": "Bank transfers in {country}",
-            "body": "Bank transfers are not available here yet. Join the list and we’ll let you know when they are.",
-            "join": "Notify me",
-            "joinedTitle": "On the list",
-            "joinedBody": "We’ll let you know when bank transfers are available in {country}.",
-            "error": "Could not update the waitlist. Please try again."
+            "body": "Bank transfers are not available here yet. Tap below to tell us you want them.",
+            "join": "I want this",
+            "joinedTitle": "Thanks",
+            "joinedBody": "We noted that you want bank transfers in {country}.",
+            "error": "Could not save your request. Please try again."
         },
         "amountInput": {
             "balance": "Balance:",
@@ -4560,9 +4544,6 @@
         },
         "qrScannerOverlay": {
             "notSupportedWorking": "We're working on an integration.",
-            "notSupportedGetNotified": "Get notified when it goes live!",
-            "getNotifiedCta": "Get notified!",
-            "willBeNotified": "We'll let you know as soon as {qrName} is supported.",
             "okay": "Okay",
             "externalUrlIntro": "Peanut doesn't support this QR but you can open it with your browser.",
             "externalUrlTrust": "Make sure you trust this website!",
@@ -4576,7 +4557,6 @@
             "titlePixRecurring": "PIX Automático not supported",
             "titleArgentinaAlias": "Can't pay an alias",
             "titleNotSupported": "{qrName} not supported yet.",
-            "titleWillBeNotified": "You're on the list!",
             "titleExternalUrl": "This is an external link!",
             "eip681ParseError": "Error parsing EIP-681 URL",
             "notPeanutUrl": "QR not recognized as Peanut URL",
@@ -4882,7 +4862,7 @@
         "rainCooldownPill": "Card cool-down",
         "easterEggImageAlt": "Easter egg illustration",
         "reConsent": {
-            "whatChanged": "The main changes: we added Avenia as a payment partner for Pix in Brazil, and the Privacy Policy now describes session recordings and names more of the service providers we use.",
+            "whatChanged": "We added Avenia as our Pix partner in Brazil. Read more in the documents below.",
             "title": "A small update to our terms",
             "acceptLabel": "I accept the updated documents",
             "acceptCta": "Accept & continue",
@@ -5010,49 +4990,6 @@
         }
     },
     "shhhhh": {
-        "hero": {
-            "wordmark": "Peanut Card",
-            "tagline": "Your money. Ready to spend.",
-            "cta": "Get card",
-            "disclaimer": "Verification and approval required. No monthly or annual fees. Standard fees and limits apply under the cardholder terms.",
-            "title": "Go Pink.",
-            "pitch": "One balance. 150 million places to spend it.",
-            "lead": "A virtual Visa card that spends your Peanut balance. Online, and in store with Apple Pay or Google Pay where supported."
-        },
-        "whatItDoes": {
-            "titleLine1": "It's a card.",
-            "titleLine2": "That's the whole trick.",
-            "body": "Top up the way you already move money: bank transfer, exchange withdrawal, or stablecoins. Then spend it wherever Visa is accepted.",
-            "statMerchants": "Visa-accepting merchants",
-            "statBalance": "balance",
-            "statMonthlyFees": "monthly fees",
-            "statAnnualFees": "annual fees"
-        },
-        "whoItsFor": {
-            "title": "Built for money that doesn't stay put.",
-            "body": "Nomads, expats, remote workers, frequent travellers. One balance, spendable wherever Visa is accepted."
-        },
-        "notForYou": {
-            "title": "Probably not for you.",
-            "body1": "If your money lives in one country and one currency, your bank card already works. Keep it.",
-            "body2": "If your money lives elsewhere, across borders, in dollars, in more than one place, the Peanut Card was built for you."
-        },
-        "howToApply": {
-            "title": "How to get it.",
-            "signInTitle": "Sign in.",
-            "signInBody": "Or create your account. Takes a minute.",
-            "verifyTitle": "Verify.",
-            "verifyBody": "One identity check, plus the cardholder terms.",
-            "spendTitle": "Spend.",
-            "spendBody": "Have $10 in your balance, apply, and pay."
-        },
-        "marquee": {
-            "peanutCard": "PEANUT CARD",
-            "contactless": "CONTACTLESS",
-            "available": "GET YOUR CARD",
-            "online": "ONLINE PAYMENTS",
-            "noMonthlyFee": "NO MONTHLY FEE"
-        },
         "faq": {
             "title": "FAQ.",
             "q1": {
@@ -5081,13 +5018,8 @@
             },
             "q8": {
                 "question": "Is a physical card available?",
-                "answer": "Peanut Card is virtual. You can register your interest in a physical card from the app."
+                "answer": "Peanut Card is virtual. A physical card is not available."
             }
-        },
-        "ready": {
-            "title": "Ready?",
-            "subtitle": "Sign in, verify, spend.",
-            "disclaimer": "Subject to eligibility. Identity verification required."
         }
     },
     "unsupportedWebView": {
@@ -5156,7 +5088,7 @@
                 "shush": "Secret Shush"
             },
             "WAITLIST_SKIP": {
-                "key": "Waitlist Key"
+                "key": "Early Pass Key"
             }
         },
         "cast": {
@@ -5250,6 +5182,7 @@
             "notOfferedBody": "We cannot open {currency} accounts for you. Support can check why.",
             "notOfferedHereBody": "This account may be unavailable where you live. Support can check.",
             "residenceRestrictedBody": "{currency} accounts are not available for residents of your country.",
+            "regionUnavailableBody": "Our payment partner doesn't offer {currency} accounts where you live. Your other accounts and your funds on Peanut are not affected.",
             "notOpenBody": "{currency} accounts are not open for you yet.",
             "residenceMissingBody": "{currency} accounts depend on where you live. Set a residence to check.",
             "uncheckedTitle": "We could not check the {currency} account",
@@ -5276,6 +5209,8 @@
         "claim": {
             "heading": "Get paid in {currency}",
             "subheading": "Bank details for receiving payments. Share them with employers, clients or platforms like Deel.",
+            "subheadingBusinessPayers": "Bank details for receiving payments. Share them with employers, companies or platforms like Deel.",
+            "subheadingOwnAccounts": "Bank details for receiving payments from accounts in your own name.",
             "conditionTerms": "Who can pay depends on the {currency} rules. They show once the account is open.",
             "statePending": "State rules are confirmed when you open the account.",
             "benefitStable": "Share once, use for every payment",
@@ -5411,7 +5346,7 @@
             "limitTitle": "{count, plural, one {# account} other {# accounts}} already open",
             "limitBody": "That is your current limit. If you need another, support can turn one on for you.",
             "reviewTitle": "We're creating the {currency} account",
-            "reviewBody": "This usually takes a few minutes. We'll let you know when it's ready.",
+            "reviewBody": "This usually takes a few minutes, but in some cases it can take longer. We'll let you know when it's ready.",
             "reviewCta": "Back to Add money",
             "blockedBody": "We could not open this account, and nothing in the app can fix it. Contact support and we will look into it.",
             "finishReviewTitle": "One more check for the {currency} account",
@@ -5556,41 +5491,49 @@
             "legalName": "Legal name",
             "registeredOffice": "Registered office",
             "registration": "Registration",
-            "regulator": "Regulator and licence",
+            "regulator": "Regulator and license",
             "terms": "Terms",
             "privacy": "Privacy",
             "view": "View",
             "taxId": "Tax ID",
             "role": "Role",
             "programManager": "Program manager",
-            "execution": "How this executes",
+            "execution": "How it works",
             "peanutRole": "Peanut's role",
             "support": "Support",
             "viewTerms": "View terms",
             "viewPrivacy": "View privacy policy"
         },
         "role": {
-            "bridge": "Fiat on-ramp, off-ramp and account provider",
-            "rhino": "Cross-chain deposit addresses and bridge liquidity. Peanut is Rhino's customer; you hold no Rhino account.",
-            "thirdNational": "Card issuer, a Rain subsidiary",
-            "bridgeEea": "Fiat on-ramp, off-ramp and virtual IBAN provider",
+            "bridge": "Provides bank details and bank transfers",
+            "rhino": "Moves your crypto between networks. Peanut is Rhino's customer; you do not have a Rhino account.",
+            "thirdNational": "Card issuer",
+            "bridgeEea": "Provides your IBAN and bank transfers",
             "mantecaAr": "Deposits, withdrawals and QR payments in Argentina",
             "mantecaBr": "Pix payments and transfers for users who do not live in Brazil",
             "aveniaBr": "Pix deposits for Brazil residents, and Pix withdrawals, transfers and QR payments for users anywhere"
         },
         "about": "About {brand}",
         "execution": {
-            "bridge": "Signed by you, {brand} pays out",
-            "bridgeEea": "Signed by you, {brand} pays out",
-            "mantecaAr": "Settled by {brand}",
-            "mantecaBr": "Settled by {brand}",
-            "rhino": "Signed by you, {brand} bridges",
+            "bridge": "{brand} handles the bank transfer; you control your Peanut wallet",
+            "bridgeEea": "{brand} handles the bank transfer; you control your Peanut wallet",
+            "mantecaAr": "{brand} handles the local payment and the currency conversion",
+            "mantecaBr": "{brand} handles the local payment and the currency conversion",
+            "rhino": "{brand} moves your crypto between networks",
             "thirdNational": "Third National issues and settles",
-            "aveniaBr": "Settled by {brand}"
+            "aveniaBr": "{brand} handles the local payment and the currency conversion"
         },
-        "peanutRole": "Self-custodial wallet software provider; not a party to provider trades",
+        "peanutRole": "Peanut provides the self-custodial wallet software, not the transfer service.",
         "cardRelationship": "You have a direct relationship with Third National under the card terms.",
-        "cardRelationshipProspective": "When you accept the card terms, your relationship is directly with Third National."
+        "cardRelationshipProspective": "When you accept the card terms, your relationship is directly with Third National.",
+        "peanutRoleCard": "Peanut makes the wallet app. It is not the card issuer or a lender.",
+        "termsName": {
+            "bridgeUs": "Bridge US terms",
+            "bridgeEea": "Bridge EEA user terms",
+            "bridgeRow": "Bridge user terms",
+            "bridge": "Bridge terms",
+            "aveniaBr": "Avenia terms and conditions"
+        }
     },
     "brazilPause": {
         "title": "Brazil services paused",

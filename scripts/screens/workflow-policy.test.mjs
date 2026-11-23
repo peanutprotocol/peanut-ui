@@ -73,7 +73,7 @@ test('publisher freshness checks bind every main review to its verified head bra
     }
 })
 
-test('main updates capture both full catalogues and retain the original push boundary in trusted publishing', () => {
+test('main updates attempt both catalogues and retain the original push boundary in trusted publishing', () => {
     assert.match(screenLibrary, /push:\n\s+branches: \[dev, main\]/)
     assert.match(screenLibrary, /PUSH_BEFORE: \$\{\{ github\.event\.before \}\}/)
     assert.match(screenLibrary, /node scripts\/screens\/capture-revisions\.mjs >> "\$GITHUB_OUTPUT"/)
@@ -86,9 +86,10 @@ test('main updates capture both full catalogues and retain the original push bou
         screenLibrary.indexOf('    capture_before:'),
         screenLibrary.indexOf('\n    gallery:')
     )
-    assert.equal((after.match(fullCatalogue) ?? []).length, 1)
+    assert.equal((after.match(fullCatalogue) ?? []).length, 0)
     // The previous main lacks the states a release adds, so its gaps must not fail the run.
     assert.equal((before.match(fullCatalogue) ?? []).length, 0)
+    assert.doesNotMatch(readFileSync('.github/workflows/screen-library-baseline.yml', 'utf8'), /--full-catalogue/)
     assert.match(publisher, /PUSH_BEFORE: \$\{\{ github\.event\.before \}\}/)
     for (const field of ['before', 'after'])
         assert.match(
@@ -140,6 +141,7 @@ test('fresh base capture retains provenance on a partial failure without suppres
     assert.ok(capture)
     assert.ok(receipt)
     assert.match(capture, /id: capture_base/)
+    assert.match(capture, /write-before-harness\.mjs --prepare-exit-policy \./)
     assert.doesNotMatch(capture, /continue-on-error|\|\|/)
     assert.match(
         receipt,

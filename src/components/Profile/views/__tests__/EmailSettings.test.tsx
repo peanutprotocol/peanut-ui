@@ -128,7 +128,8 @@ test('shows server failures and retains edits without navigating', async () => {
     await change('Email for notifications', 'new@example.com')
     save()
     await verify()
-    expect(await screen.findByText('Could not save your profile')).toBeVisible()
+    // the server text stays out of the screen (TASK-25079): it is English for every locale
+    expect(await screen.findByText('Something went wrong. Please try again or contact support.')).toBeVisible()
     expect(screen.getByLabelText('Email for notifications')).toHaveValue('new@example.com')
     expect(mockSaved).not.toHaveBeenCalled()
 })
@@ -225,4 +226,47 @@ test.each(APP_LOCALES)('PROFILE_NAME_READ_ONLY is localized in the resolved %s c
     expect(screen.queryByText('PROFILE_NAME_READ_ONLY')).not.toBeInTheDocument()
     if (locale !== 'en') expect(screen.queryByText(serverCopy)).not.toBeInTheDocument()
     expect(mockSaved).not.toHaveBeenCalled()
+})
+
+// TASK-25079: the email change showed the API's English text to every locale
+describe('email change errors are app copy, not the server text', () => {
+    test.each([
+        [{ error: 'Enter a different email address', status: 400 }, 'Enter a different email address.'],
+        [
+            { error: 'Please wait before requesting another code', status: 429 },
+            'Wait a moment, then request a new code.',
+        ],
+        [
+            {
+                error: 'Email changes are temporarily unavailable. Contact support to update your email.',
+                code: 'EMAIL_CHANGE_UNAVAILABLE',
+                status: 503,
+            },
+            'Email changes are paused for now. Contact support to update your email.',
+        ],
+        [{ error: 'Invalid email format', status: 400 }, 'Please enter a valid email address.'],
+        [
+            { error: 'Something the app has no copy for', status: 500 },
+            'Something went wrong. Please try again or contact support.',
+        ],
+    ])('sending the code: %o', async (result, shown) => {
+        jest.mocked(requestEmailChange).mockResolvedValueOnce(result)
+        renderWithIntl(<EmailSettings onSaved={mockSaved} />)
+        await change('Email for notifications', 'new@example.com')
+        save()
+        expect(await screen.findByText(shown)).toBeVisible()
+        expect(screen.queryByText(result.error)).not.toBeInTheDocument()
+    })
+
+    test('a wrong code asks for the code from the email', async () => {
+        jest.mocked(updateUserById).mockResolvedValueOnce({
+            error: 'Verify the new email address with a valid code before saving',
+            code: 'EMAIL_VERIFICATION_REQUIRED',
+        })
+        renderWithIntl(<EmailSettings onSaved={mockSaved} />)
+        await change('Email for notifications', 'new@example.com')
+        save()
+        await verify()
+        expect(await screen.findByText('Enter the 6-digit code from your email.')).toBeVisible()
+    })
 })

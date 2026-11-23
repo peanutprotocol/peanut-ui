@@ -12,7 +12,7 @@ import { useRouter } from 'next/navigation'
 import { IconBubble, type IconBubbleColor } from '@/components/0_Bruddle/IconBubble'
 import { useModalsContext } from '@/context/ModalsContext'
 import Card from '../Global/Card'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -28,6 +28,9 @@ import { useProviderRejection } from '@/hooks/useProviderRejection'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { useIdentityCheckStart } from '@/features/paperwork-verification/useIdentityCheckStart'
 import { paperworkVerificationFeaturePath } from '@/features/paperwork-verification/paperworkVerificationEntry'
+import { findKycDocumentPlan } from '@/app/actions/kyc-workflow'
+import type { PaperworkVerificationFeature } from '@/app/actions/types/kyc-paperwork-verification.types'
+import { currentReverificationDestination, featureReverificationPath } from '@/utils/kyc-reverification'
 
 interface ActivationCTAsProps {
     onboarding: OnboardingState
@@ -120,6 +123,22 @@ export default function ActivationCTAs({
 
     // Each onboarding step is reported once per session, not on every Home visit.
     const userId = user?.user?.userId
+    const featureProbe = useRef<AbortController | null>(null)
+    useEffect(() => () => featureProbe.current?.abort(), [userId])
+
+    const openFeatureQuestions = async (feature: PaperworkVerificationFeature) => {
+        let href = paperworkVerificationFeaturePath(feature)
+        if (user?.identityVerification?.status === 'verified' && !user.identityVerification.oneShot) {
+            featureProbe.current?.abort()
+            const probe = new AbortController()
+            featureProbe.current = probe
+            const returnTo = currentReverificationDestination()
+            const plan = await findKycDocumentPlan('home', probe.signal, feature).catch(() => null)
+            if (probe.signal.aborted) return
+            if (plan?.entry) href = featureReverificationPath(plan.entry, returnTo)
+        }
+        router.push(href)
+    }
     useEffect(() => {
         setShowPostalCorrection(false)
     }, [userId])
@@ -341,7 +360,7 @@ export default function ActivationCTAs({
                             fixableAction?.kind === 'questions' &&
                             fixableAction.feature
                         ) {
-                            router.push(paperworkVerificationFeaturePath(fixableAction.feature))
+                            void openFeatureQuestions(fixableAction.feature)
                         } else if (hasProviderRejection && hasFixableRejection && fixableProvider) {
                             void kycFlow.handleFixableRejection({
                                 provider: fixableProvider,

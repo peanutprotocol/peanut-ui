@@ -9,7 +9,7 @@ export type AppLocale = (typeof APP_LOCALES)[number]
 export const DEFAULT_APP_LOCALE: AppLocale = 'en'
 
 /** Marketing routes are keyed by lowercase tags, so the app's `pt-BR` is `pt-br` there. */
-const MARKETING_SEGMENT: Record<AppLocale, MarketingLocale> = {
+export const MARKETING_SEGMENT: Record<AppLocale, MarketingLocale> = {
     en: 'en',
     'es-419': 'es-419',
     // es-ar is a real marketing route (src/i18n/es-ar.json, /es-ar landing,

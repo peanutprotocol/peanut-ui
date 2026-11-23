@@ -21,7 +21,7 @@ const API_ROUTE_PATTERNS: readonly ApiRoutePattern[] = [
     [/^\/bridge\/transfers\/[^/]+\/confirm$/, '/bridge/transfers/:transferId/confirm'],
     [/^\/manteca\/deposit\/[^/]+\/(status|cancel)$/, (match) => `/manteca/deposit/:depositId/${match[1]}`],
     [
-        /^\/rain\/cards\/[^/]+\/(activate|lock|cancel|details|provisioning-data|provisioning-authorization|limits|pin|physical-waitlist)$/,
+        /^\/rain\/cards\/[^/]+\/(activate|lock|cancel|details|provisioning-data|provisioning-authorization|limits|pin)$/,
         (match) => `/rain/cards/:cardId/${match[1]}`,
     ],
     [/^\/rain\/cards\/[^/]+$/, '/rain/cards/:cardId'],

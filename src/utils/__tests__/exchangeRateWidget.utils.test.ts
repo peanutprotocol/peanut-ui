@@ -56,6 +56,13 @@ describe('getExchangeRateWidgetRedirectRoute', () => {
             expect(getExchangeRateWidgetRedirectRoute('BRL', 'USD', 0, ['latam'])).toBe('/add-money/brazil')
         })
 
+        // TASK-23925: the Colombia page reads bank transfer "Soon" while the hub opens a COP account
+        it('sends COP to the hub COP account screen, not the Colombia page', () => {
+            const hubCop = '/add-money?method=bank&corridor=BANK_TRANSFER_CO&step=details'
+            expect(getExchangeRateWidgetRedirectRoute('COP', 'USD', 100, ['latam'])).toBe(hubCop)
+            expect(getExchangeRateWidgetRedirectRoute('USD', 'COP', 0, ['latam'])).toBe(hubCop)
+        })
+
         it('resolves a multi-country currency (EUR) to its region representative', () => {
             expect(getExchangeRateWidgetRedirectRoute('USD', 'EUR', 0, ['europe'])).toBe('/add-money/germany')
         })

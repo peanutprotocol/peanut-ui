@@ -14,9 +14,7 @@ import { useTranslations } from 'next-intl'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 import type { useAddMoneyReadiness } from '@/features/add-money/useAddMoneyReadiness'
 import { readReturnTo, RETURN_TO_PARAM, withReturnTo } from '@/utils/return-to.utils'
-import PIX from '@/assets/payment-apps/pix.svg'
 import { PIX_ADD_MONEY_PATH } from '@/features/pix/pix.routes'
-import Image from 'next/image'
 
 /**
  * home IA bottom drawers (figma boards 17831:79186 / 17830:76839): the Add and
@@ -71,7 +69,7 @@ export function HomeActionDrawers({
                               : tMethods('moreWays'),
                   leading:
                       method === 'pix' ? (
-                          <Image src={PIX} alt="" width={32} height={32} />
+                          <IconBubble {...CONCEPT_ICONS.pix} size="s" />
                       ) : method === 'account' ? (
                           <IconBubble {...CONCEPT_ICONS.bankAccount} size="s" />
                       ) : (

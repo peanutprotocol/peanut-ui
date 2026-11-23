@@ -43,6 +43,20 @@ export function EmailSettings({ onSaved }: { onSaved: () => void }) {
 
     const disabled = !user || isSubmitting || isSendingCode
 
+    // The API answers in English; the screen says it in the app language and
+    // keeps the server text for Sentry only (TASK-25079).
+    const emailChangeError = (result: { error?: string; code?: string; status?: number }) => {
+        if (result.code === 'EMAIL_CHANGE_UNAVAILABLE') return t('errors.emailChangeUnavailable')
+        if (result.code === 'EMAIL_VERIFICATION_REQUIRED') return t('errors.invalidCode')
+        if (result.status === 429) return t('errors.codeCooldown')
+        if (result.error === 'Enter a different email address') return t('errors.sameEmail')
+        if (result.error === 'Invalid email format' || result.error === 'Email cannot be empty') {
+            return t('errors.invalidEmail')
+        }
+        Sentry.captureMessage(`Email change refused: ${result.error}`)
+        return tCommon('genericError')
+    }
+
     const emailValue = watch('email').trim()
     const needsEmailCode = !!currentEmail && emailDirty
     const hasCode = needsEmailCode && codeSentTo === emailValue
@@ -56,7 +70,7 @@ export function EmailSettings({ onSaved }: { onSaved: () => void }) {
                 if (result.error) {
                     if (result.error === 'This email is already associated with another account') {
                         setError('email', { type: 'server', message: t('errors.emailInUse') }, { shouldFocus: true })
-                    } else setErrorMessage(result.error)
+                    } else setErrorMessage(emailChangeError(result))
                 } else {
                     resetField('code')
                     setCodeSentTo(values.email.trim())
@@ -79,7 +93,7 @@ export function EmailSettings({ onSaved }: { onSaved: () => void }) {
                     setError('email', { type: 'server', message: t('errors.emailInUse') }, { shouldFocus: true })
                     return
                 }
-                setErrorMessage(result.error)
+                setErrorMessage(emailChangeError(result))
                 return
             }
             if (hasCode) {
@@ -154,7 +168,7 @@ export function EmailSettings({ onSaved }: { onSaved: () => void }) {
                             setErrorMessage('')
                             try {
                                 const result = await requestEmailChange(emailValue)
-                                if (result.error) setErrorMessage(result.error)
+                                if (result.error) setErrorMessage(emailChangeError(result))
                                 else resetField('code')
                             } catch {
                                 setErrorMessage(tCommon('genericError'))

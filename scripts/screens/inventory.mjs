@@ -30,10 +30,7 @@ const ROUTE_EXCLUSIONS = new Map([
         '/withdraw/new-pix-key',
         'Routing alias for the Pix withdrawal outcome on /withdraw/pix, which is catalogued separately',
     ],
-    [
-        '/go/[slug]/[[...rest]]',
-        'Creator link: a redirect to /app, or a creator-owned marketing page outside app-owned mobile UI',
-    ],
+    ['/go/[...key]', 'Short link: a redirect from the /go/ map, or a 404'],
 ])
 
 // The star-feature landing pages (StarLp/starLp.consts.ts STAR_LP_ROUTES): marketing, not app UI.
@@ -59,7 +56,7 @@ export function inventory(root, catalogue) {
         const screens = byRoute.get(route) ?? []
         const reason =
             ROUTE_EXCLUSIONS.get(route) ??
-            (route.startsWith('/dev') || route === '/shhhhh'
+            (route.startsWith('/dev')
                 ? 'Developer tooling, outside the app catalogue'
                 : route.startsWith('/quests') ||
                     route.startsWith('/[locale]') ||

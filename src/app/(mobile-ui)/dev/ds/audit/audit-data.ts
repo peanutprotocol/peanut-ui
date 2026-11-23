@@ -1690,7 +1690,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         usages: 14,
         status: 'variant',
         source: 'src/styles/globals.css:374 @theme --text-heading (3.75rem/2.875rem)',
-        notes: 'lineHeight 2.875rem on a 3.75rem size is tighter than the cap-height — still fragile. Marketing-only (Shhhhh, LandingPage, FAQs, MerchantLanding). The new --text-display is the same 3.75rem and should absorb it.',
+        notes: 'lineHeight 2.875rem on a 3.75rem size is tighter than the cap-height — still fragile. Marketing-only (LandingPage, FAQs, MerchantLanding). The new --text-display is the same 3.75rem and should absorb it.',
     },
     {
         name: 'text-sm',
@@ -2140,7 +2140,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         role: 'Hand-rolled 4px black shadow',
         usages: 15,
         status: 'duplicate',
-        source: 'quests/*, MerchantLandingPage, ShhhhhLandingPage, CardRejectionScreen',
+        source: 'quests/*, MerchantLandingPage, CardRejectionScreen',
         notes: 'Unchanged at 15. EXACT dup of shadow-4 spelled by hand — and the longest spelling of the four. Replace with shadow-4.',
     },
     {
@@ -2162,7 +2162,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         role: 'Hand-rolled 4px black shadow',
         usages: 12,
         status: 'duplicate',
-        source: 'src/styles/globals.css (10: @utility shadow-4, .btn-purple, .btn-stroke, .btn-shadow, .shadow-primary-4, .btn-shadow-primary-4 and their dark: pairs) + CardRejectionScreen, ShhhhhFold',
+        source: 'src/styles/globals.css (10: @utility shadow-4, .btn-purple, .btn-stroke, .btn-shadow, .shadow-primary-4, .btn-shadow-primary-4 and their dark: pairs) + CardRejectionScreen',
         notes: 'This is now the CANONICAL spelling inside globals.css — every 4px shadow class expands to it, and .btn-purple/.btn-stroke use the var() form shadow-[0.25rem_0.25rem_0_var(--color-shadow-primary)]. Only 2 of the 12 are hand-rolled in JSX. Counting the arbitrary spellings together: 22 hand-rolled 4px sites across the app.',
     },
     {
@@ -3757,7 +3757,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         role: 'text',
         usages: 11,
         status: 'adhoc',
-        source: 'src/app/not-found.tsx; src/app/shhhhh/ShhhhhLandingPage.tsx:359,491; src/app/(mobile-ui)/qr-pay/page.tsx:1518; src/components/Settings/DeleteAccountButton.tsx:97; src/components/Home/ActivationCTAs.tsx; src/components/Home/PerkClaimDrawer.tsx; src/components/TransactionDetails/provider-rows/BridgeDepositInstructions.tsx:58; src/components/Global/InvitesGraph/index.tsx; src/components/Global/QRScanner/index.tsx:123',
+        source: 'src/app/not-found.tsx; src/app/(mobile-ui)/qr-pay/page.tsx:1518; src/components/Settings/DeleteAccountButton.tsx:97; src/components/Home/ActivationCTAs.tsx; src/components/Home/PerkClaimDrawer.tsx; src/components/TransactionDetails/provider-rows/BridgeDepositInstructions.tsx:58; src/components/Global/InvitesGraph/index.tsx; src/components/Global/QRScanner/index.tsx:123',
         notes: "Still 11, but the excuse is gone: LinkButton now EXISTS (20 sites) and is exactly this component. These 11 disagree on color (text-black / text-grey-1 / text-foreground-error / text-white / text-purple-900), size and underline-offset. Migrate to <LinkButton>. Counted by hand — the tag and its className land on different lines, so no single-line ERE can express it; recipe: grep -rEn --include='*.tsx' -A4 '<button' src, drop /dev/ and tests, keep lines containing 'underline'.",
     },
     {
@@ -4085,10 +4085,10 @@ export const AUDIT_ITEMS: AuditItem[] = [
         catLabel: 'Alerts / toasts / banners',
         layer: 'components',
         role: "One-off inline error text written by hand instead of <Notification priority='error'>.",
-        usages: 10,
+        usages: 9,
         status: 'adhoc',
-        source: 'src/components/Kyc/KycStatusDrawer.tsx:91, Kyc/SumsubKycFlow.tsx:23, Kyc/SumsubSdkErrorView.tsx:18, Kyc/ProvideEmailStep.tsx:102, Global/ReConsentModal/index.tsx:162, Home/PendingVerificationTasks.tsx:334, app/shhhhh/ShhhhhLandingPage.tsx:366,618',
-        notes: 'Survived the ErrorAlert deletion — nobody migrated these. 7 use the text-error token, 3 still use raw text-red-500 (off-palette). Replace with <Notification priority="error">. The Kyc/* cluster (3 of the 10) is the densest.',
+        source: 'src/components/Kyc/KycStatusDrawer.tsx:91, Kyc/SumsubSdkErrorView.tsx:18, Kyc/ProvideEmailStep.tsx:102, Global/ReConsentModal/index.tsx:162, Home/PendingVerificationTasks.tsx:334',
+        notes: 'Seven use the text-error token and two still use raw text-red-500. Replace with <Notification priority="error">.',
     },
     {
         name: 'BackendErrorScreen (Global/BackendErrorScreen/index.tsx)',
@@ -4839,7 +4839,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         notes: 'NEW primitive from the figma accordion board (17802:61540). Extracted from the old inline BridgeLimitsView accordion, which now consumes it. The only @radix-ui/react-accordion importer in src.',
     },
     {
-        name: 'Accordion — native <details>/group-open (Global/FAQs, shhhhh landing)',
+        name: 'Accordion — native <details>/group-open (Global/FAQs)',
         cat: 'tooltips-tabs',
         catLabel: 'Tooltip / tabs / stepper',
         layer: 'components',
@@ -4847,7 +4847,7 @@ export const AUDIT_ITEMS: AuditItem[] = [
         usages: 2,
         status: 'variant',
         source: 'src/components/Global/FAQs/index.tsx',
-        notes: "Second accordion mental-model, both instances marketing/landing (Global/FAQs and the shhhhh landing page, which is a copy of it). Native <details> is defensible for SEO'd FAQ markup — decide explicitly and document, or fold into the new Accordion.",
+        notes: "Second accordion mental-model, used on marketing pages through Global/FAQs. Native <details> is defensible for SEO'd FAQ markup — decide explicitly and document, or fold into the new Accordion.",
     },
     {
         name: 'CarouselDots (0_Bruddle/CarouselDots.tsx)',
@@ -6236,17 +6236,15 @@ export const AUDIT_CLUSTERS: AuditCluster[] = [
         layer: 'components',
         cat: 'alerts',
         catLabel: 'Alerts / toasts / banners',
-        name: 'Migrate the 10 remaining hand-written error spans to <Notification priority="error">',
-        from: 10,
-        rec: 'ErrorAlert and InfoCard are deleted and Notification took both over (99 sites), but 10 hand-written error spans were never migrated: 7 on the text-error token and 3 still on raw text-red-500. Three of them sit in Kyc/* alone. Small, mechanical, and it closes the inline-message consolidation that the DS pass started.',
+        name: 'Migrate the remaining hand-written error spans to <Notification priority="error">',
+        from: 9,
+        rec: 'Seven use the text-error token and two still use raw text-red-500.',
         collapses: [
             'Kyc/KycStatusDrawer.tsx:91 (text-red-500)',
-            'Kyc/SumsubKycFlow.tsx:23 (text-red-500)',
             'Kyc/SumsubSdkErrorView.tsx:18 (text-red-500)',
             'Kyc/ProvideEmailStep.tsx:102 (text-error)',
             'Global/ReConsentModal/index.tsx:162 (text-error)',
             'Home/PendingVerificationTasks.tsx:334 (text-error)',
-            'app/shhhhh/ShhhhhLandingPage.tsx:366,618 (text-error)',
         ],
     },
     {
@@ -6431,11 +6429,8 @@ export const AUDIT_CLUSTERS: AuditCluster[] = [
         catLabel: 'Tooltip / tabs / stepper',
         name: 'Accordion (one canonical)',
         from: 2,
-        rec: "Half DONE: the Radix accordion was extracted into 0_Bruddle/Accordion (compound Root/Item/Trigger/Content, chevron rotate, animate-accordion keyframes) and BridgeLimitsView consumes it. Still open: decide explicitly whether Global/FAQs' native <details> stays as the marketing/SEO variant or folds in — right now the app has two accordion mental-models and the <details> one is copy-pasted into the shhhhh landing page.",
-        collapses: [
-            '0_Bruddle/Accordion.tsx (canonical)',
-            'src/components/Global/FAQs/index.tsx (native <details>, copied into ShhhhhLandingPage)',
-        ],
+        rec: "Half DONE: the Radix accordion was extracted into 0_Bruddle/Accordion (compound Root/Item/Trigger/Content, chevron rotate, animate-accordion keyframes) and BridgeLimitsView consumes it. Still open: decide explicitly whether Global/FAQs' native <details> stays as the marketing/SEO variant or folds in — right now the app has two accordion mental-models and the <details> one.",
+        collapses: ['0_Bruddle/Accordion.tsx (canonical)', 'src/components/Global/FAQs/index.tsx (native <details>)'],
     },
     {
         layer: 'components',

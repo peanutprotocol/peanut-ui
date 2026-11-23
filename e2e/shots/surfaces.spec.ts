@@ -101,7 +101,7 @@ for (const [id, surface] of Object.entries(SURFACE_META)) {
                 ? page.getByTestId(surface.shotClickTestId)
                 : page.getByRole('button', { name: surface.shotClick })
             await trigger.click()
-            await expect(page.locator('[role="dialog"]:not([aria-modal="false"])').first()).toBeInViewport()
+            if (surface.expectSelector) await expect(page.locator(surface.expectSelector).first()).toBeInViewport()
         }
 
         // Radix/vaul mount their portals a frame after open; the freeze stylesheet

@@ -1267,8 +1267,23 @@
         "permanent": true
     },
     {
+        "source": "/shhhhh",
+        "destination": "/peanut-card",
+        "permanent": true
+    },
+    {
+        "source": "/shhhhh/:path*",
+        "destination": "/peanut-card",
+        "permanent": true
+    },
+    {
+        "source": "/card/physical",
+        "destination": "/card",
+        "permanent": false
+    },
+    {
         "source": "/lp/card",
-        "destination": "/shhhhh",
+        "destination": "/peanut-card",
         "permanent": true
     },
     {
@@ -1278,12 +1293,12 @@
     },
     {
         "source": "/sh",
-        "destination": "/shhhhh",
+        "destination": "/peanut-card",
         "permanent": true
     },
     {
         "source": "/sh/:path*",
-        "destination": "/shhhhh",
+        "destination": "/peanut-card",
         "permanent": true
     },
     {
@@ -1359,6 +1374,11 @@
     {
         "source": "/:locale/team",
         "destination": "/:locale/press",
+        "permanent": true
+    },
+    {
+        "source": "/press/assets/mascots/peanut-angry.webp",
+        "destination": "/press/assets/mascots/peanut-worried.webp",
         "permanent": true
     },
     {

@@ -1,8 +1,12 @@
+import { UserAvatar } from '@/components/Avatar/UserAvatar'
+import { personFrom } from '@/lib/person/person'
 import { twMerge } from '@/utils/tw'
 import { RequestLinksAppLink } from './RequestLinksAppLink'
-import { RequestLinksAvatar } from './RequestLinksAvatar'
 import { REQUEST_LINKS_STORY } from './requestLinks.consts'
 import type { RequestLinksLinkCardProps } from './requestLinks.types'
+
+/** The requester as the app shows them: no pick yet, so the letter sticker of the handle. */
+const REQUESTER = personFrom({ username: REQUEST_LINKS_STORY.username })
 
 /**
  * The request link as it lands in a message: yellow preview card, amount, note, the link.
@@ -18,7 +22,7 @@ export function RequestLinksLinkCard({ tilt = 0, className, to }: RequestLinksLi
                 )}
                 style={tilt ? { transform: `rotate(${tilt}deg)` } : undefined}
             >
-                <RequestLinksAvatar />
+                <UserAvatar person={REQUESTER} decorative />
                 <span className="min-w-0">
                     <span className="block text-heading-xs">{REQUEST_LINKS_STORY.amount}</span>
                     <span className="block text-body-xs">{REQUEST_LINKS_STORY.note}</span>

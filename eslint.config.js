@@ -486,7 +486,6 @@ module.exports = [
             'src/app/(mobile-ui)/qr-pay/page.tsx',
             'src/app/(mobile-ui)/withdraw/page.tsx',
             'src/app/lp/card/CardLandingPage.tsx',
-            'src/app/shhhhh/ShhhhhLandingPage.tsx',
             'src/components/AddWithdraw/AddWithdrawCountriesList.tsx',
             'src/components/AddWithdraw/AddWithdrawRouterView.tsx',
             'src/components/Claim/Link/SendLinkActionList.tsx',
@@ -532,9 +531,9 @@ module.exports = [
         rules: { '@next/next/no-img-element': 'off' },
     },
     {
-        // Rasterized to PNG by html-to-image (see share-asset/captureShareAsset.ts).
-        // next/image's lazy loading and wrapper markup break the capture — the same
-        // class of bug as the runtime <canvas> that file already documents.
+        // PixelatedCardFace was built for html-to-image capture, which next/image
+        // broke, and still uses plain <img>. The capture path left with the share
+        // builder, so a move to next/image is open.
         files: ['src/components/Card/share-asset/**'],
         rules: { '@next/next/no-img-element': 'off' },
     },
@@ -548,9 +547,8 @@ module.exports = [
             'src/app/(mobile-ui)/**/*.tsx',
             'src/app/(setup)/**/*.tsx',
             // Top-level app routes sit outside the route groups above; without
-            // them listed the guard cannot see their copy (/shhhhh shipped
-            // English-only to every locale because of exactly that gap).
-            'src/app/shhhhh/**/*.tsx',
+            // them listed the guard cannot see their copy (the old /shhhhh page
+            // shipped English-only to every locale because of exactly that gap).
             'src/app/kyc/**/*.tsx',
             'src/app/invite/**/*.tsx',
             'src/components/{Home,Send,Request,Profile,Setup,Settings,Card,AddMoney,AddWithdraw,Withdraw,Claim,Payment,Points,Badges,Notifications,Invites,TransactionDetails,Kyc,IdentityVerification,ExchangeRate,Common,ForceIOSPWAInstall,User,Migration}/**/*.tsx',

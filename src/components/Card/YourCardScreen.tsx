@@ -1,7 +1,7 @@
 'use client'
 
 import { formatFiniteDisplay } from '@/utils/currency'
-import { type FC, type ReactNode, useCallback, useState } from 'react'
+import { type FC, type ReactNode, useCallback, useRef, useState } from 'react'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { Section } from '@/components/0_Bruddle/Section'
@@ -95,6 +95,10 @@ const YourCardScreen: FC<Props> = ({
     const router = useRouter()
     const [autoRenewDismissed, setAutoRenewDismissed] = useState(false)
     const [action, setAction] = useState<CardAction | null>(null)
+    // the lock sheet keeps its last mode through its close transition: read from
+    // `action`, an unfreeze turned into "Block card?" as it closed (TASK-23923)
+    const lockModeRef = useRef<'lock' | 'unlock'>('lock')
+    if (action === 'lock' || action === 'unlock') lockModeRef.current = action
     const { revealed, isLoading: isRevealing, error: revealError, toggle } = useCardReveal({ cardId: card.id })
     const walletPlatform = useWalletPlatform()
     const walletLabel =
@@ -289,12 +293,6 @@ const YourCardScreen: FC<Props> = ({
                         chevron
                         onClick={() => router.push('/card/limit')}
                     />
-                    <ListItem
-                        title={t('physicalCard')}
-                        leading={<Icon name="credit-card" size={24} />}
-                        chevron
-                        onClick={() => router.push('/card/physical')}
-                    />
                     {/* Offer manual instructions when push provisioning is unavailable. */}
                     {showWalletControls && walletLabel && !walletButton && (
                         <ListItem
@@ -329,7 +327,7 @@ const YourCardScreen: FC<Props> = ({
 
             <LockCardModal
                 cardId={card.id}
-                mode={action === 'unlock' ? 'unlock' : 'lock'}
+                mode={lockModeRef.current}
                 isOpen={action === 'lock' || action === 'unlock'}
                 onClose={closeAction}
                 onStopAttempt={onStopAttempt}

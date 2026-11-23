@@ -2,6 +2,7 @@
 
 import { useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/0_Bruddle/Button'
 import Card from '@/components/Global/Card'
 import { SumsubKycWrapper } from '@/components/Kyc/SumsubKycWrapper'
@@ -14,6 +15,7 @@ import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { getUserPreferences, updateUserPreferences } from '@/utils/general.utils'
 import { selectMantecaCapNudge } from '@/utils/capability-gate'
 import { CapNudgeCtaContext } from '../cap-nudge-cta-context'
+import { currentReverificationDestination, featureReverificationPath } from '@/utils/kyc-reverification'
 
 /**
  * How long a local submission suppresses the CTA on its own.
@@ -61,6 +63,7 @@ const REARM_INTERVAL_MS = 20_000
 export default function CapNudgeCard() {
     const t = useTranslations('limits.capNudge')
     const tKyc = useTranslations('kyc')
+    const router = useRouter()
     const { rails, nextActions } = useCapabilities()
     const { user, fetchUser } = useAuth()
     const { refetch: refetchLimits } = useLimits()
@@ -73,6 +76,8 @@ export default function CapNudgeCard() {
     const startingRef = useRef(false)
 
     const userId = user?.user?.userId
+    const owner = useRef(userId)
+    owner.current = userId
     const nudge = selectMantecaCapNudge(rails, nextActions)
     const actionKey = nudge?.state === 'raise' ? nudge.actionKey : null
 
@@ -142,8 +147,14 @@ export default function CapNudgeCard() {
         startingRef.current = true
         setIsStarting(true)
         setError(null)
+        const returnTo = currentReverificationDestination()
         try {
             const response = await startKycAction(actionKey)
+            if (owner.current !== userId) return
+            if (response.code === 'feature_reverification_required' && response.entry) {
+                router.push(featureReverificationPath(response.entry, returnTo))
+                return
+            }
             if (response.error || !response.data?.token) {
                 // Inline, not silent: a dead primary CTA on a limits screen reads
                 // as "the raise isn't available to me".
@@ -155,14 +166,20 @@ export default function CapNudgeCard() {
             startingRef.current = false
             setIsStarting(false)
         }
-    }, [actionKey, tKyc])
+    }, [actionKey, tKyc, router, userId])
 
     const refreshToken = useCallback(async (): Promise<string> => {
         if (!actionKey) throw new Error('No cap-nudge action to refresh')
+        const returnTo = currentReverificationDestination()
         const response = await startKycAction(actionKey)
+        if (owner.current !== userId) throw new Error('Verification session changed')
+        if (response.code === 'feature_reverification_required' && response.entry) {
+            setToken(null)
+            router.push(featureReverificationPath(response.entry, returnTo))
+        }
         if (!response.data?.token) throw new Error(response.error ?? 'Failed to refresh token')
         return response.data.token
-    }, [actionKey])
+    }, [actionKey, router, userId])
 
     const onSubmit = useCallback(() => {
         setToken(null)

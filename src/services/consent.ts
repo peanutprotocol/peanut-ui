@@ -2,10 +2,12 @@ import { apiFetch } from '@/utils/api-fetch'
 import { LEGAL_DOCUMENT_VERSIONS, type LegalDocumentSlug } from '@/constants/legal-versions.generated'
 
 /**
- * Consent ledger (tos-v1 phase 2). Every acceptance surface echoes the
- * documents it actually displayed — slug + version (frontmatter last_updated)
- * + sha256 of the en.md — so peanut-api's append-only `consent_records` table
- * stores what the user was shown, not what either side assumes.
+ * Consent ledger (tos-v1 phase 2). Signup and the card agreement render a
+ * bundled copy of their documents, so they echo what that copy says — slug +
+ * version (frontmatter last_updated) + sha256 of the en.md — and peanut-api's
+ * append-only `consent_records` table stores what the user was shown.
+ * Re-consent links to the live pages instead, so the API records its own
+ * published version there (TASK-25073).
  */
 
 export interface AcceptedLegalDocument {
@@ -27,7 +29,7 @@ export interface ConsentStatusResponse {
     needsReConsent: boolean
 }
 
-export const acceptedLegalDocument = (slug: LegalDocumentSlug): AcceptedLegalDocument => ({
+const acceptedLegalDocument = (slug: LegalDocumentSlug): AcceptedLegalDocument => ({
     slug,
     version: LEGAL_DOCUMENT_VERSIONS[slug].version,
     hash: LEGAL_DOCUMENT_VERSIONS[slug].hash,
@@ -57,7 +59,9 @@ export const consentApi = {
         return await response.json()
     },
 
-    accept: async (documents: AcceptedLegalDocument[]): Promise<{ recorded: number }> => {
+    /** Re-consent. The API ignores `version` and records its published one; the
+     *  field stays for APIs from before TASK-25073, which still require it. */
+    accept: async (documents: Array<{ slug: string; version: string }>): Promise<{ recorded: number }> => {
         const response = await apiFetch('/users/consent/accept', {
             method: 'POST',
             body: JSON.stringify({ documents }),

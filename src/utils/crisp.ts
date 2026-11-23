@@ -1,6 +1,7 @@
 import { type CrispUserData } from '@/hooks/useCrispUserData'
 import { isCapacitor } from '@/utils/capacitor'
-import { CRISP_WEBSITE_ID } from '@/constants/crisp'
+import { CRISP_LOCALE_BY_APP_LOCALE, CRISP_WEBSITE_ID } from '@/constants/crisp'
+import { currentAppLocale } from '@/i18n/app/locale-store'
 
 type CrispInstance = Window['$crisp']
 
@@ -23,7 +24,12 @@ let nativeCrispReady: Promise<{ CapacitorCrisp: NativeCrisp }> | null = null
 export function ensureNativeCrispConfigured(): Promise<{ CapacitorCrisp: NativeCrisp }> {
     if (!nativeCrispReady) {
         nativeCrispReady = import('@capgo/capacitor-crisp').then(async ({ CapacitorCrisp }) => {
-            await CapacitorCrisp.configure({ websiteID: CRISP_WEBSITE_ID })
+            // without a locale the chat follows the phone language, not the app's
+            // (TASK-23926). Only Android applies it: the iOS SDK keeps the phone's
+            // language for the app. A language change applies after the next app start.
+            const appLocale = currentAppLocale()
+            const locale = appLocale ? CRISP_LOCALE_BY_APP_LOCALE[appLocale] : undefined
+            await CapacitorCrisp.configure({ websiteID: CRISP_WEBSITE_ID, ...(locale ? { locale } : {}) })
             return { CapacitorCrisp }
         })
         // allow a retry on next open if configure fails

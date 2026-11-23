@@ -1,7 +1,9 @@
 import { chromium, devices, expect, type Request } from '@playwright/test'
 import { hasInvalidNumericUi } from './numeric-ui.mjs'
-import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs'
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, renameSync } from 'node:fs'
 import { resolve, join } from 'node:path'
+import { createRequire } from 'node:module'
+import { stripVTControlCharacters } from 'node:util'
 import { release } from 'node:os'
 import { execFileSync } from 'node:child_process'
 import sharp from 'sharp'
@@ -11,7 +13,7 @@ import { answer, ADAPTER_VERSION } from './adapter'
 import { answerRpc, isChainRpc, isRhinoTokenConfigs } from './rpc'
 import { freezeDate } from './freeze-date.mjs'
 import { FLAG_READERS, FLAG_RECORDER_MARKER, installFlagRecorder } from './flag-recorder.mjs'
-import { hash, storeAsset, validateCapture, materializeCatalogue } from './core.mjs'
+import { hash, storeAsset, validateCapture } from './core.mjs'
 import { canonicalScope, scopeCapture } from './capture-scope.mjs'
 import { fixtureIdentityFiles, fixtureRootFiles } from './capture-impact.mjs'
 import { harnessIdentityFiles, fileIdentity } from './capture-identity.mjs'
@@ -31,7 +33,9 @@ import {
 
 import { routePatterns, routePatternFor } from './routes.mjs'
 import { inventory } from './inventory.mjs'
-import { waitForFixtureReady } from './fixture-readiness.mjs'
+import { waitForFixtureReady, revealCheckpoint } from './fixture-readiness.mjs'
+
+class ScreenUnavailable extends Error {}
 
 async function main() {
     const arg = (name: string, fallback = '') =>
@@ -74,14 +78,21 @@ async function main() {
     const commit = git('rev-parse', 'HEAD'),
         expected = arg('sha', commit)
     if (commit !== expected) throw new Error('Checkout does not match requested SHA')
-    const buildResponse = await fetch(new URL('/screen-capture-build.json', target))
-    const buildIdentity = await buildResponse.json()
-    if (
-        !buildResponse.ok ||
-        buildIdentity.commit !== commit ||
-        buildIdentity.publicBase !== 'https://staging.peanut.me'
-    )
-        throw new Error('Running server does not identify the requested build')
+    const readBuildIdentity = async () => {
+        const response = await fetch(new URL('/screen-capture-build.json', target), {
+            signal: AbortSignal.timeout(5000),
+        })
+        if (!response.ok) throw new Error(`Capture server identity returned HTTP ${response.status}`)
+        const identity = await response.json()
+        if (identity.commit !== commit || identity.publicBase !== 'https://staging.peanut.me')
+            throw new Error('Running server does not identify the requested build')
+        return identity
+    }
+    const buildIdentity = await readBuildIdentity()
+    const verifyLiveBuild = async () => {
+        if ((await readBuildIdentity()).nonce !== buildIdentity.nonce)
+            throw new Error('Capture server build changed during capture')
+    }
     const historical = arg('historical') === 'true'
     const intlCore = join(source, 'src/i18n/app/IntlCore.tsx')
     const copyRecording =
@@ -99,23 +110,6 @@ async function main() {
             e.isDirectory() ? walk(join(p, e.name)) : [join(p, e.name)]
         )
     const identity = fileIdentity
-    let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined
-    let launchError: unknown
-    for (let attempt = 1; attempt <= 3; attempt++) {
-        try {
-            browser = await chromium.launch({
-                headless: true,
-                channel: 'chromium',
-                timeout: 60000,
-                ...(arg('executable') ? { executablePath: arg('executable') } : {}),
-            })
-            break
-        } catch (error) {
-            launchError = error
-            if (attempt < 3) await new Promise((done) => setTimeout(done, attempt * 1000))
-        }
-    }
-    if (!browser) throw launchError
     const browserProfile = devices[profile.browserProfile]
     if (!browserProfile) throw new Error(`Unsupported browser profile: ${profile.browserProfile}`)
     const contextOptions = {
@@ -133,53 +127,66 @@ async function main() {
     }
     const currentRoutes = routePatterns(resolve('.')),
         targetRoutes = new Set(routePatterns(source))
-    const surfaceList = join(source, 'src/dev/surfaces/list.ts')
-    const knownSurfaces = existsSync(surfaceList) ? readFileSync(surfaceList, 'utf8') : ''
+    // Membership comes from the revision being photographed. Shared states use the same
+    // harness recipe on both sides; a base-only state keeps its own definition.
+    const cataloguePath = join(source, 'src/dev/screens/catalogue.ts')
+    const headById = new Map(SCREENS.map((screen) => [screen.id, screen]))
+    const targetScreens: typeof SCREENS =
+        source !== resolve('.') && existsSync(cataloguePath)
+            ? JSON.parse(
+                  execFileSync(
+                      process.execPath,
+                      [
+                          '--import',
+                          createRequire(import.meta.url).resolve('tsx'),
+                          '-e',
+                          "process.stdout.write(JSON.stringify(require('./src/dev/screens/catalogue.ts').SCREENS))",
+                      ],
+                      { cwd: source, encoding: 'utf8', timeout: 30000, maxBuffer: 8 * 1024 * 1024 }
+                  )
+              )
+            : SCREENS
+    const catalogue = targetScreens.map((screen) => headById.get(screen.id) ?? screen)
     const stillImages = new Map<string, Buffer>()
     const staticResponses = new Map<string, { status: number; headers: Record<string, string>; body: Buffer }>()
     const results: Record<string, unknown>[] = []
     const selected = arg('only').split(',').filter(Boolean)
     const requireFullCatalogue = arg('full-catalogue') === 'true'
+    const targetIds = new Set(catalogue.map((screen) => screen.id))
+    // A targeted pair can explicitly name a state added since its base.
+    for (const id of selected) {
+        if (targetIds.has(id)) continue
+        const screen = headById.get(id)
+        if (!screen) throw new Error(`Unknown selected screen: ${id}`)
+        catalogue.push(screen)
+    }
     const scope =
         arg('scope') === 'targeted'
-            ? canonicalScope({ mode: 'targeted', screenIds: selected }, new Set(SCREENS.map((screen) => screen.id)))
+            ? canonicalScope({ mode: 'targeted', screenIds: selected }, new Set(catalogue.map((screen) => screen.id)))
             : undefined
     if (requireFullCatalogue && selected.length) throw new Error('Full catalogue capture cannot use --only')
-    const environment = `${process.platform}-${process.arch}-${release()};node=${process.version};chromium=${browser.version()};dpr=1;locale=${captureLocale};device=${profile.device.platform};browser=${profile.browserProfile};safe-area=${Object.values(profile.device.safeArea).join(',')};UTC;light;reduced-motion`
     const harness = identity(harnessIdentityFiles())
     const fixtures = identity(fixtureIdentityFiles(fixtureRootFiles(walk('src/dev/fixtures'))))
-    const manifest = () => {
-        const capture = {
-            schema: 1,
-            type: 'capture',
-            commit,
-            locale: captureLocale,
-            contentCommit: git('rev-parse', 'HEAD:src/content'),
-            publicBase: buildIdentity.publicBase,
-            harness,
-            fixtures,
-            environment,
-            adapter: ADAPTER_VERSION,
-            capturedAt: new Date().toISOString(),
-            reconstruction: historical,
-            copyRecording,
-            profile: `${captureLocale}-${profile.name}`,
-            width: profile.width,
-            height: profile.height,
-            device: profile.device,
-            screens: materializeCatalogue(SCREENS, results),
-            inventory: inventory(source, SCREENS),
-            adapterFiles: [
-                ...(existsSync(join(source, '.screen-capture-adapter.json'))
-                    ? JSON.parse(readFileSync(join(source, '.screen-capture-adapter.json'), 'utf8')).changed
-                    : []),
-                ...assetOverlays.map(({ file, before, after }) => ({ path: file, before, after })),
-            ],
+    let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined
+    let launchError: unknown
+    for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+            browser = await chromium.launch({
+                headless: true,
+                channel: 'chromium',
+                timeout: 60000,
+                ...(arg('executable') ? { executablePath: arg('executable') } : {}),
+            })
+            break
+        } catch (error) {
+            launchError = error
+            if (attempt < 3) await new Promise((done) => setTimeout(done, attempt * 1000))
         }
-        return validateCapture(scope ? scopeCapture(capture, scope) : capture)
     }
+    if (!browser) throw launchError
+    const environment = `${process.platform}-${process.arch}-${release()};node=${process.version};chromium=${browser.version()};dpr=1;locale=${captureLocale};device=${profile.device.platform};browser=${profile.browserProfile};safe-area=${Object.values(profile.device.safeArea).join(',')};UTC;light;reduced-motion`
     try {
-        for (const screen of SCREENS) {
+        for (const screen of catalogue) {
             const metadata = {
                 id: screen.id,
                 name: screen.name,
@@ -189,8 +196,16 @@ async function main() {
                 order: screen.order,
                 ...(screen.journey ? { journey: screen.journey } : {}),
             }
+            if (!targetIds.has(screen.id)) {
+                results.push({
+                    ...metadata,
+                    status: 'absent',
+                    reason: 'State is absent from this revision’s catalogue',
+                })
+                continue
+            }
             const expectedText = screen.expectText ? captureText(screen.expectText) : undefined
-            const clicks = screen.clicks.map(captureText)
+            const clicks = screen.clicks?.map(captureText) ?? []
             const clickTestIds = screen.clickTestIds ?? []
             const actions = screen.actions?.map((action) =>
                 'click' in action
@@ -203,8 +218,6 @@ async function main() {
                 (screen.requiresSource && !existsSync(join(source, screen.requiresSource))) ||
                 screen.exclusion ||
                 screen.unavailable ||
-                (screen.route.startsWith('/dev/surfaces') &&
-                    !knownSurfaces.includes(new URL(screen.route, base).searchParams.get('s') ?? screen.id)) ||
                 (selected.length && !selected.includes(screen.id)) ||
                 (historical && screen.kind === 'component') ||
                 (screen.flags && !flagsSettable)
@@ -218,10 +231,6 @@ async function main() {
                             : undefined) ??
                         screen.exclusion ??
                         screen.unavailable ??
-                        (screen.route.startsWith('/dev/surfaces') &&
-                        !knownSurfaces.includes(new URL(screen.route, base).searchParams.get('s') ?? screen.id)
-                            ? 'This revision has no compatible scenario harness for this component; no newer product code was copied'
-                            : undefined) ??
                         (screen.flags && !flagsSettable
                             ? 'This revision cannot set PostHog flags in a capture'
                             : undefined) ??
@@ -249,6 +258,28 @@ async function main() {
             page.on('request', (request) => inFlight.set(request, `${request.method()} ${request.url()}`))
             page.on('requestfinished', (request) => inFlight.delete(request))
             page.on('requestfailed', (request) => inFlight.delete(request))
+            const url = new URL(screen.route, base)
+            const redirected = () => {
+                const actual = new URL(page.url())
+                if (actual.protocol === 'about:') return
+                if (
+                    actual.origin !== url.origin ||
+                    actual.pathname !== url.pathname ||
+                    (url.searchParams.has('s') && actual.searchParams.get('s') !== url.searchParams.get('s'))
+                ) {
+                    const surface = actual.searchParams.get('s')
+                    return `Redirected to ${actual.origin === url.origin ? '' : actual.origin}${actual.pathname}${surface ? '?s=' + encodeURIComponent(surface) : ''} (expected ${screen.route})`
+                }
+                return undefined
+            }
+            const pageErrors = new Set<string>()
+            page.on('pageerror', (error) => pageErrors.add(error.message))
+            let crashed = false
+            page.on('crash', () => {
+                crashed = true
+            })
+            let transportError: unknown
+            let step = 'open route'
             try {
                 await page.addInitScript('window.__name = (target) => target')
                 await page.addInitScript(installCaptureSafeArea, profile.device)
@@ -399,15 +430,30 @@ async function main() {
                                 )
                                 await route.fulfill({
                                     status: response.status,
-                                    contentType: 'application/json',
-                                    body: await response.text(),
+                                    ...(response.body === null || request.method() === 'HEAD'
+                                        ? {}
+                                        : {
+                                              contentType: response.headers.get('content-type') ?? 'application/json',
+                                              body: await response.text(),
+                                          }),
                                 })
-                            } catch {
+                            } catch (error) {
+                                if (
+                                    !(
+                                        error instanceof Error &&
+                                        /^(Unmapped capture API:|Unknown fixture )/.test(error.message)
+                                    )
+                                )
+                                    transportError = error
                                 unknown.add(`${request.method()} ${url.pathname}`)
                                 await route.fulfill({
                                     status: 501,
-                                    contentType: 'application/json',
-                                    body: '{"error":"Unmapped synthetic API"}',
+                                    ...(request.method() === 'HEAD'
+                                        ? {}
+                                        : {
+                                              contentType: 'application/json',
+                                              body: '{"error":"Unmapped synthetic API"}',
+                                          }),
                                 })
                             }
                             return
@@ -479,8 +525,6 @@ async function main() {
                         await route.abort().catch(() => undefined)
                     }
                 })
-                const url = new URL(screen.route, base)
-                if (!historical) url.searchParams.set('__fixture', screen.fixture)
                 if (screen.sessionStorage)
                     await page.addInitScript((values) => {
                         for (const [key, value] of Object.entries(values)) sessionStorage.setItem(key, value)
@@ -492,24 +536,28 @@ async function main() {
                 const entry = new URL(screen.entryRoute ?? screen.route, base)
                 if (!historical) entry.searchParams.set('__fixture', screen.fixture)
                 const response = await page.goto(entry.href, { waitUntil: 'domcontentloaded', timeout: 30000 })
-                if (!response || ![screen.expectedHttpStatus].flat().includes(response.status()))
-                    throw new Error(
-                        `HTTP ${response?.status()} for requested route (expected ${screen.expectedHttpStatus})`
+                if (!response || ![screen.expectedHttpStatus ?? 200].flat().includes(response.status()))
+                    throw new ScreenUnavailable(
+                        `HTTP ${response?.status()} for requested route (expected ${screen.expectedHttpStatus ?? 200})`
                     )
+                step = 'wait for expected content'
                 if (expectedText)
                     await page
                         .getByText(expectedText, { exact: false })
                         .first()
                         .waitFor({ state: 'visible', timeout: 15000 })
+                step = 'click declared controls'
                 for (const label of clicks)
                     await page.getByText(label, { exact: false }).first().click({ timeout: 10000 })
-                for (const testId of clickTestIds) {
-                    await page.getByTestId(testId).click({ timeout: 10000 })
-                    await page.getByRole('dialog').waitFor({ state: 'visible', timeout: 10000 })
-                }
+                for (const testId of clickTestIds) await page.getByTestId(testId).click({ timeout: 10000 })
                 for (const action of actions ?? []) {
+                    step = 'fill' in action ? `fill ${action.fill.selector}` : `activate ${Object.values(action)[0]}`
                     if ('click' in action) await page.getByText(action.click, { exact: false }).first().click()
                     else if ('clickSelector' in action) await page.locator(action.clickSelector).first().click()
+                    else if ('reveal' in action) {
+                        step = `reveal ${action.reveal}`
+                        await revealCheckpoint(page, action.reveal)
+                    } else if ('tapSelector' in action) await page.locator(action.tapSelector).tap()
                     else if ('tap' in action) await page.getByText(action.tap, { exact: true }).tap()
                     else {
                         await page.locator(action.fill.selector).fill(action.fill.value)
@@ -520,14 +568,17 @@ async function main() {
                         await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 250)))
                     }
                 }
+                step = 'wait for destination route'
                 if (screen.entryRoute)
                     await page.waitForURL((destination) => destination.pathname === url.pathname, { timeout: 30000 })
+                step = 'wait for network idle'
                 await page.waitForLoadState('networkidle', { timeout: 15000 }).catch((error: Error) => {
                     // a bare timeout names neither the request that never settled nor an unmapped API call
-                    throw new Error(
+                    throw new ScreenUnavailable(
                         `${error.message}\nIn flight: ${[...inFlight.values()].join(', ') || 'none'}\nUnmapped: ${[...unknown].join(', ') || 'none'}`
                     )
                 })
+                step = `wait for ${screen.waitFor ?? screen.expectSelector ?? 'screen'}`
                 await waitForFixtureReady(page, screen.waitFor)
                 if (screen.expectSelector)
                     await expect(page.locator(screen.expectSelector).first()).toBeInViewport({ ratio: 0.5 })
@@ -540,6 +591,7 @@ async function main() {
                     await page.getByRole('dialog').first().waitFor({ state: 'visible', timeout: 10000 })
                 }
                 if (screen.toBottom) await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+                step = 'wait for open overlays'
                 // Playwright visibility ignores opacity. Let Headless UI finish
                 // opening dialogs before disabling CSS transitions for capture.
                 await page.waitForFunction(() =>
@@ -555,6 +607,7 @@ async function main() {
                 await page.addStyleTag({ content: CAPTURE_STATIC_CSS })
                 await page.locator(FIXTURE_BANNER_CANDIDATE_SELECTOR).evaluateAll(hideFixtureBanners)
                 await page.evaluate(() => document.fonts.ready)
+                step = 'wait for video frame'
                 if (screen.videoFrame !== undefined) await page.locator('video').first().waitFor({ state: 'attached' })
                 await page.waitForFunction(() =>
                     [...document.querySelectorAll('video')].every((video) => video.srcObject || video.readyState >= 2)
@@ -583,6 +636,7 @@ async function main() {
                         video.pause()
                     }
                 })
+                step = 'wait for visible images and loading indicators'
                 await page.waitForFunction(
                     (expectsLoading: boolean) => {
                         const visible = (e: Element) => {
@@ -600,23 +654,30 @@ async function main() {
                             (expectsLoading ||
                                 ![...document.querySelectorAll('.animate-spin,.animate-pulse')].some(visible)) &&
                             [...document.images].filter(visible).every((i) => i.complete && i.naturalWidth > 0) &&
-                            document.body.innerText.trim().length > 15
+                            (Boolean(document.body.innerText.trim()) ||
+                                [...document.querySelectorAll('img,svg,video,canvas,input,button')].some(visible))
                         )
                     },
                     screen.expectsLoading ?? false,
                     { timeout: 15000 }
                 )
+                step = 'wait for Lottie'
                 // A Lottie (sign-up hero or mascot) shows frame 0 until it loads, then jumps to its reduced-motion still.
                 await page.waitForFunction(() => !document.querySelector('[data-lottie-ready="false"]'), undefined, {
                     timeout: 15000,
                 })
-                if (new URL(page.url()).pathname !== url.pathname)
-                    throw new Error(`Expected ${url.pathname}, reached ${new URL(page.url()).pathname}`)
+                if (redirected()) throw new ScreenUnavailable(redirected())
                 if (/Not capturable|Unknown surface:|Application error:/.test(await page.locator('body').innerText()))
-                    throw new Error('Harness placeholder or application error')
+                    throw new ScreenUnavailable(
+                        (await page.evaluate(() =>
+                            document
+                                .querySelector('[data-capture-unavailable]')
+                                ?.getAttribute('data-capture-unavailable')
+                        )) ?? 'Harness placeholder or application error'
+                    )
                 if (transportFailures.size)
-                    throw new Error(`Local build transport failed: ${[...transportFailures].join(', ')}`)
-                if (unknown.size) throw new Error(`Missing synthetic responses: ${[...unknown].join(', ')}`)
+                    throw new ScreenUnavailable(`Local build transport failed: ${[...transportFailures].join(', ')}`)
+                if (unknown.size) throw new ScreenUnavailable(`Missing synthetic responses: ${[...unknown].join(', ')}`)
                 // Applies to every registered screen/state and requested locale,
                 // including controls whose value does not appear in innerText.
                 const numericSnapshot = await page.evaluate(() => ({
@@ -628,7 +689,9 @@ async function main() {
                         )
                     ),
                 }))
-                if (hasInvalidNumericUi(numericSnapshot)) throw new Error('Invalid numeric UI in captured state')
+                if (hasInvalidNumericUi(numericSnapshot))
+                    throw new ScreenUnavailable('Invalid numeric UI in captured state')
+                step = 'wait for stable pixels'
                 let previous = await page.screenshot({
                     animations: 'disabled',
                     caret: 'hide',
@@ -652,14 +715,14 @@ async function main() {
                     }
                     previous = next
                 }
-                if (!stable) throw new Error('Screen did not stabilize')
+                if (!stable) throw new ScreenUnavailable('Screen did not stabilize')
                 if (expectedText && !(await page.getByText(expectedText, { exact: false }).first().isVisible()))
-                    throw new Error('Expected screen content disappeared before capture')
+                    throw new ScreenUnavailable('Expected screen content disappeared before capture')
                 if (screen.expectSelector)
                     await expect(page.locator(screen.expectSelector).first()).toBeInViewport({ ratio: 0.5 })
                 if (transportFailures.size)
-                    throw new Error(`Local build transport failed: ${[...transportFailures].join(', ')}`)
-                if (unknown.size) throw new Error(`Missing synthetic responses: ${[...unknown].join(', ')}`)
+                    throw new ScreenUnavailable(`Local build transport failed: ${[...transportFailures].join(', ')}`)
+                if (unknown.size) throw new ScreenUnavailable(`Missing synthetic responses: ${[...unknown].join(', ')}`)
                 const copy =
                     copyRecording === 'recorded' ? shownCopyKeys(await page.evaluate(COPY_EVIDENCE_SCRIPT)) : undefined
                 if (screen.flags) {
@@ -670,8 +733,17 @@ async function main() {
                     )
                     for (const [flag, value] of Object.entries(screen.flags))
                         if (!(flag in read))
-                            throw new Error(`This state never reads ${flag}, so it cannot show ${flag}: ${value}`)
+                            throw new ScreenUnavailable(
+                                `This state never reads ${flag}, so it cannot show ${flag}: ${value}`
+                            )
                 }
+                if (redirected()) throw new ScreenUnavailable(redirected())
+                const unavailable = await page.evaluate(() =>
+                    document.querySelector('[data-capture-unavailable]')?.getAttribute('data-capture-unavailable')
+                )
+                if (unavailable) throw new ScreenUnavailable(unavailable)
+                if (pageErrors.size) throw new ScreenUnavailable(`Application error: ${[...pageErrors].join(', ')}`)
+                if (transportError) throw transportError
                 const image = storeAsset(assets, previous)
                 // Keep the exact PNG as the only CI capture source. The trusted
                 // publisher converts it to a full-resolution WebP after diffing.
@@ -685,49 +757,84 @@ async function main() {
                 })
                 console.log(`CAPTURED ${screen.id}`)
             } catch (e) {
-                mkdirSync(join(out, 'diagnostics'), { recursive: true })
-                writeFileSync(
-                    join(out, 'diagnostics', `${screen.id}.txt`),
-                    await page
-                        .locator('body')
-                        .innerText()
-                        .catch(() => 'Page closed')
+                if (transportError) throw transportError
+                if (!browser.isConnected() || crashed || page.isClosed()) throw e
+                if (transportFailures.size) await verifyLiveBuild()
+                // Browser waits, actions and declared state checks can fail independently.
+                // Filesystem errors, programming errors and browser crashes escape the loop.
+                if (
+                    !(
+                        e instanceof Error &&
+                        (e instanceof ScreenUnavailable ||
+                            e.name === 'TimeoutError' ||
+                            'matcherResult' in e ||
+                            /^(page|locator)\.(goto|click|tap|fill|waitFor|evaluate)/.test(e.message))
+                    )
                 )
-                await page.screenshot({ path: join(out, 'diagnostics', `${screen.id}.png`) }).catch(() => undefined)
-                const reason = String(e instanceof Error ? e.message : e).slice(0, 950)
-                // Expected historical gaps are classified before this harness
-                // runs. An exception here is a real runtime failure on either
-                // revision and must keep the capture job red.
-                results.push({ ...metadata, status: 'failed', reason })
-                console.log(`FAILED ${screen.id}: ${reason.split('\n')[0]}`)
+                    throw e
+                const details = [
+                    redirected(),
+                    transportFailures.size
+                        ? `Local build transport failed: ${[...transportFailures].join(', ')}`
+                        : undefined,
+                    unknown.size ? `Missing synthetic responses: ${[...unknown].join(', ')}` : undefined,
+                    e instanceof ScreenUnavailable ? e.message : `${step}: ${stripVTControlCharacters(e.message)}`,
+                ]
+                const reason = [...new Set(details.filter(Boolean))].join(' · ').slice(0, 950)
+                results.push({ ...metadata, status: 'unavailable', reason })
+                console.log(`NOT CAPTURED ${screen.id}: ${reason.split('\n')[0]}`)
             } finally {
                 await context.close()
             }
-            writeFileSync(join(out, 'capture.json'), JSON.stringify(manifest(), null, 2))
         }
-        const report = manifest()
-        writeFileSync(join(out, 'capture.json'), JSON.stringify(report, null, 2))
-        console.log(
-            JSON.stringify({
-                commit,
-                complete: report.complete,
-                counts: results.reduce((a: Record<string, number>, r) => {
-                    const k = String(r.status)
-                    a[k] = (a[k] ?? 0) + 1
-                    return a
-                }, {}),
-            })
-        )
-        if (requireFullCatalogue && !report.complete) {
-            console.error('Full catalogue capture is incomplete; PR comparisons cannot use this baseline')
-        }
-        // Incomplete captures are valid gallery reports: the manifest records
-        // expected gaps and the publisher can still expose them. Runtime
-        // failures on either revision remain red capture jobs.
-        process.exitCode = Math.max(captureExitCode(results), requireFullCatalogue && !report.complete ? 1 : 0)
     } finally {
         await browser.close()
     }
+    await verifyLiveBuild()
+    if (results.length !== catalogue.length) throw new Error('Capture harness did not finish the selected catalogue')
+    const capture = {
+        finished: true,
+        schema: 1,
+        type: 'capture',
+        commit,
+        locale: captureLocale,
+        contentCommit: git('rev-parse', 'HEAD:src/content'),
+        publicBase: buildIdentity.publicBase,
+        harness,
+        fixtures,
+        environment,
+        adapter: ADAPTER_VERSION,
+        capturedAt: new Date().toISOString(),
+        reconstruction: historical,
+        copyRecording,
+        profile: `${captureLocale}-${profile.name}`,
+        width: profile.width,
+        height: profile.height,
+        device: profile.device,
+        screens: results,
+        inventory: inventory(source, catalogue),
+        adapterFiles: [
+            ...(existsSync(join(source, '.screen-capture-adapter.json'))
+                ? JSON.parse(readFileSync(join(source, '.screen-capture-adapter.json'), 'utf8')).changed
+                : []),
+            ...assetOverlays.map(({ file, before, after }) => ({ path: file, before, after })),
+        ],
+    }
+    const report = validateCapture(scope ? scopeCapture(capture, scope) : capture)
+    writeFileSync(join(out, 'capture.json.tmp'), JSON.stringify(report, null, 2))
+    renameSync(join(out, 'capture.json.tmp'), join(out, 'capture.json'))
+    console.log(
+        JSON.stringify({
+            commit,
+            complete: report.complete,
+            counts: results.reduce((a: Record<string, number>, r) => {
+                const k = String(r.status)
+                a[k] = (a[k] ?? 0) + 1
+                return a
+            }, {}),
+        })
+    )
+    process.exitCode = captureExitCode(results)
 }
 void main().catch((error) => {
     console.error(error)

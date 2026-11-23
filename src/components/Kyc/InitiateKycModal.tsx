@@ -188,7 +188,8 @@ export const InitiateKycModal = ({
     const redirecting = usePaperworkVerificationRedirect(
         visible && isUnlockOffer && !cooldownActive && !isKycDegraded && !isRegionRestricted && !error,
         verifyEntry,
-        source
+        source,
+        presentation === 'page'
     )
 
     const getTitle = () => {

@@ -4,8 +4,10 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { PNG } from 'pngjs'
+import { canReuseBaseline } from './baseline-reuse.mjs'
 import { CAPTURE_PROFILES } from './capture-profiles.mjs'
 import {
+    publicationCapture,
     validateCapture,
     validateJourneys,
     compare,
@@ -127,13 +129,13 @@ test('capture metadata preserves journey order and comparisons use it instead of
 test('failure cannot become a removed or unchanged screen', () => {
     const failed = { id: 'home', name: 'Home', flow: 'Home', kind: 'route', status: 'failed', reason: 'Wrong route' }
     const r = compare(capture([screen('home')]), capture([failed]), dir)
-    assert.equal(r.screens[0].status, 'failed')
+    assert.equal(r.screens[0].status, 'not-comparable')
     assert.equal(r.complete, false)
 })
-test('a captured state with an unavailable baseline is new to review and retains the baseline gap', () => {
+test('a state with an unavailable baseline retains the reason and cannot be compared', () => {
     const old = { ...screen('home'), status: 'unavailable', reason: 'Adapter unavailable' }
     const result = compare(capture([old]), capture([screen('home')]), dir)
-    assert.equal(result.screens[0].status, 'new')
+    assert.equal(result.screens[0].status, 'not-comparable')
     assert.equal(result.screens[0].before.status, 'unavailable')
     assert.equal(result.screens[0].before.reason, 'Adapter unavailable')
     assert.equal(result.screens[0].after.image, a)
@@ -141,9 +143,17 @@ test('a captured state with an unavailable baseline is new to review and retains
     assert.equal(result.complete, false)
     for (const status of ['failed', 'excluded']) {
         const gap = { ...old, status }
-        assert.equal(compare(capture([gap]), capture([screen('home')]), dir).screens[0].status, status)
+        assert.equal(compare(capture([gap]), capture([screen('home')]), dir).screens[0].status, 'not-comparable')
     }
-    assert.equal(compare(capture([screen('home')]), capture([old]), dir).screens[0].status, 'unavailable')
+    assert.equal(compare(capture([screen('home')]), capture([old]), dir).screens[0].status, 'not-comparable')
+    assert.equal(
+        compare(
+            capture([screen('other'), { ...old, status: 'excluded' }]),
+            capture([screen('other'), screen('home')]),
+            dir
+        ).complete,
+        false
+    )
 })
 test('intentional exclusions and absent routes remain distinguishable from failures', () => {
     const excluded = { ...screen('excluded'), status: 'excluded', reason: 'Alias covered elsewhere' }
@@ -154,11 +164,11 @@ test('intentional exclusions and absent routes remain distinguishable from failu
         ['absent', 'excluded']
     )
 })
-test('only complete catalogues prove additions and removals', () => {
+test('catalogue membership identifies additions and removals', () => {
     const r = compare(capture([screen('old')]), capture([screen('new')]), dir)
     assert.deepEqual(
         r.screens.map((s) => s.status),
-        ['added', 'removed']
+        ['new', 'removed']
     )
 })
 test('different harness, fixtures or environment requires recapture', () => {
@@ -349,6 +359,8 @@ test('interrupted capture retains pending catalogue entries and stays incomplete
     const all = materializeCatalogue([screen('home'), screen('card')], [screen('home')])
     assert.equal(all[1].status, 'unavailable')
     assert.equal(validateCapture(capture(all)).complete, false)
+    assert.throws(() => publicationCapture(capture(all)), /interrupted/)
+    assert.throws(() => publicationCapture({ ...capture([screen('home')]), finished: false }), /interrupted/)
 })
 
 test('source-proven absent routes classify actual screen additions and removals', () => {
@@ -357,7 +369,7 @@ test('source-proven absent routes classify actual screen additions and removals'
         compare(capture([screen('home'), absent]), capture([screen('home'), screen('new-route')]), dir).screens.find(
             (s) => s.id === 'new-route'
         ).status,
-        'added'
+        'new'
     )
     assert.equal(
         compare(capture([screen('home'), screen('new-route')]), capture([screen('home'), absent]), dir).screens.find(
@@ -420,4 +432,87 @@ test('visual evidence uses only counted pixels and distinguishes local movement 
     assert.equal(edited.translation, undefined)
     assert.equal(compare(before, frame(2, false, true), dir).screens[0].translation, undefined)
     assert.equal(compare(before, frame(4), dir).screens[0].translation, undefined)
+})
+
+test('partial comparisons retain real captures and describe gaps without invented evidence', () => {
+    const gap = (id, status = 'unavailable') => ({
+        id,
+        name: id,
+        flow: 'Home',
+        kind: 'route',
+        status,
+        reason: `${id} unavailable fixture`,
+    })
+    for (const gapStatus of ['unavailable', 'failed']) {
+        const before = capture([
+            screen('shared'),
+            screen('removed'),
+            screen('current-gap'),
+            gap('baseline-gap', gapStatus),
+            gap('both-gap', gapStatus),
+        ])
+        const after = capture([
+            screen('shared'),
+            screen('added'),
+            gap('current-gap', gapStatus),
+            screen('baseline-gap'),
+            gap('both-gap', gapStatus),
+        ])
+        const result = compare(before, after, dir)
+        const byID = new Map(result.screens.map((row) => [row.id, row]))
+        assert.equal(byID.size, 6)
+        assert.equal(byID.get('shared').status, 'unchanged')
+        assert.equal(byID.get('added').status, 'new')
+        assert.equal(byID.get('removed').status, 'removed')
+        assert.equal(byID.get('baseline-gap').status, 'not-comparable')
+        assert.equal(byID.get('current-gap').status, 'not-comparable')
+        assert.equal(byID.get('both-gap').status, 'not-comparable')
+        assert.equal(result.complete, false)
+        for (const id of ['baseline-gap', 'both-gap']) {
+            assert.equal(byID.get(id).before.reason, `${id} unavailable fixture`)
+            assert.equal(byID.get(id).before.image, undefined)
+        }
+        for (const id of ['current-gap', 'both-gap']) {
+            assert.equal(byID.get(id).after.reason, `${id} unavailable fixture`)
+            assert.equal(byID.get(id).after.image, undefined)
+        }
+        assert.equal(byID.get('added').before?.image, undefined)
+        assert.equal(byID.get('removed').after?.image, undefined)
+        assert.equal(byID.get('added').after.image, a)
+        assert.equal(byID.get('removed').before.image, a)
+        for (const row of result.screens) assert.equal(row.diff, undefined)
+    }
+})
+
+test('partial trusted baseline reuse accepts catalogue drift while enforcing identity', () => {
+    const baselineSHA = 'a'.repeat(40)
+    const gap = {
+        id: 'unavailable',
+        name: 'Unavailable',
+        flow: 'Home',
+        kind: 'route',
+        status: 'unavailable',
+        reason: 'Known unavailable fixture',
+    }
+    const before = capture([screen('shared'), screen('removed'), gap])
+    const after = { ...capture([screen('shared'), screen('added')]), commit: 'e'.repeat(40) }
+    assert.equal(canReuseBaseline(before, after, baselineSHA), true)
+    assert.equal(canReuseBaseline(before, after, 'f'.repeat(40)), false)
+    for (const field of ['harness', 'fixtures', 'environment', 'adapter', 'publicBase']) {
+        const value = ['harness', 'fixtures'].includes(field) ? 'f'.repeat(64) : 'different'
+        assert.equal(canReuseBaseline(before, { ...after, [field]: value }, baselineSHA), false, field)
+    }
+    assert.equal(canReuseBaseline(capture([gap]), after, baselineSHA), false)
+})
+
+test('a targeted review projects a state missing from the unscoped revision', () => {
+    const head = { ...capture([screen('added')]), scope: { mode: 'targeted', screenIds: ['added'] } }
+    const review = compare(capture([screen('old')]), head, dir)
+    assert.deepEqual(
+        review.screens.map(({ id, status }) => [id, status]),
+        [['added', 'new']]
+    )
+    assert.equal(review.screens[0].before.image, undefined)
+    assert.equal(review.screens[0].before.status, 'absent')
+    assert.deepEqual(compare(review.before, review.after, dir).screens, review.screens)
 })

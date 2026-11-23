@@ -296,7 +296,6 @@ export const EXTRA_APP_ROUTES: OverlayTarget[] = [
     { id: 'route-recover-wallet', route: '/recover-wallet' },
     { id: 'route-card', route: '/card' },
     { id: 'route-card-limit', route: '/card/limit' },
-    { id: 'route-card-physical', route: '/card/physical' },
     { id: 'route-card-add-to-wallet', route: '/card/add-to-wallet' },
     { id: 'route-card-recovery', route: '/card-recovery' },
     // /points renamed to /rewards — the sweep's redirect skip caught it
@@ -310,7 +309,6 @@ export const EXTRA_APP_ROUTES: OverlayTarget[] = [
     // and add-money fixtures cover those screens' entry states
     { id: 'route-limits-bridge', route: '/limits/bridge' },
     { id: 'route-kyc-success', route: '/kyc/success' },
-    { id: 'route-shhhhh', route: '/shhhhh' },
 ]
 
 /** the four landing pages live outside [locale] */

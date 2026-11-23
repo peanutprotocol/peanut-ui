@@ -57,9 +57,9 @@ export const BRIDGE_DEVELOPER_FEE_RATE = 0
 
 /**
  * Static fallback for the card-vs-local-rail markup. The model itself lives in
- * the backend at `GET /fx/card-markup` (see peanut-api-ts `docs/FX.md`), which
- * computes ARS live against the official rate and serves BRL from its own
- * dated table. This map is the client's last resort when that call fails, AND
+ * the backend at `GET /fx/card-markup` (see mono `engineering/api/fx.md`), which
+ * computes ARS live against the official rate. This map is the client's last
+ * resort when that call fails, AND
  * the eligibility gate (`hasCardMarkupComparison`) — only currencies here
  * render the "vs card" surfaces at all.
  *
@@ -67,8 +67,11 @@ export const BRIDGE_DEVELOPER_FEE_RATE = 0
  *
  * - ARS: 9.13% — historical empirical figure for the official-vs-local-rail
  *        rate spread + issuer markup.
- * - BRL: 7% — IOF on foreign card purchases (3.5% as of 2026, phasing to 0
- *        by 2028) + typical issuer FX markup ~3%.
+ *
+ * BRL has no entry, on purpose. A foreign card that pays in BRL in Brazil
+ * pays no IOF, and Peanut's own data shows a BRL purchase costs about the
+ * same on the Peanut Card and on Pix. No percentage and no card comparison
+ * may be shown for Brazil (mono `product/pricing.md`, row B-4).
  *
  * Only currencies with a real card-vs-local-rail gap belong here. USD / EUR /
  * GBP / MXN spend doesn't show a meaningful enough delta to be a marketing
@@ -76,7 +79,6 @@ export const BRIDGE_DEVELOPER_FEE_RATE = 0
  */
 export const CARD_FX_MARKUP_BY_CURRENCY: Record<string, number> = {
     ARS: 0.0913,
-    BRL: 0.07,
 }
 
 /**

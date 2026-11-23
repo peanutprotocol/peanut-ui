@@ -226,6 +226,7 @@ jest.mock('@/context/ModalsContext', () => ({
 }))
 
 const mockInitiateKyc = jest.fn()
+const mockUnlockQr = jest.fn()
 const mockRestartIdentity = jest.fn()
 const mockResidenceChange = jest.fn()
 const mockDismissCooldown = jest.fn()
@@ -236,6 +237,7 @@ const mockFixableRejection = jest.fn()
 jest.mock('@/hooks/useMultiPhaseKycFlow', () => ({
     useMultiPhaseKycFlow: () => ({
         handleInitiateKyc: mockInitiateKyc,
+        handleUnlockQr: mockUnlockQr,
         handleSelfHealResubmit: mockSelfHealResubmit,
         handleFixableRejection: mockFixableRejection,
         handleRestartIdentity: mockRestartIdentity,
@@ -1218,6 +1220,39 @@ describe('MoneySettings', () => {
             expect(mockFixableRejection).not.toHaveBeenCalled()
             expect(mockRestartIdentity).not.toHaveBeenCalled()
         })
+
+        // TASK-24969: a final refusal read "Region unavailable" with the region
+        // body, and dropped the API's message for a code the app has no words for
+        it('names a final refusal without blaming the region, in the API words when the app has none', () => {
+            const words = 'Your information could not be verified.'
+            mockRails = [
+                {
+                    ...parked('some_code_without_app_copy', {
+                        status: 'blocked',
+                        blocking: {
+                            code: 'some_code_without_app_copy',
+                            userMessage: words,
+                            selfHealable: false,
+                            selfHealKind: 'contact-support',
+                        },
+                        nextAction: {
+                            key: 'contact-support',
+                            kind: 'contact-support',
+                            purpose: 'some_code_without_app_copy',
+                        },
+                    }),
+                    reason: { code: 'some_code_without_app_copy', userMessage: words },
+                },
+            ]
+            mockIsKycApproved = true
+            mockIdentity = { status: 'verified' }
+            render()
+            fireEvent.click(screen.getByText('EUR'))
+
+            expect(screen.getByText("We couldn't unlock this")).toBeInTheDocument()
+            expect(screen.getByText(words)).toBeInTheDocument()
+            expect(screen.queryByText('Region unavailable')).not.toBeInTheDocument()
+        })
     })
 
     /**
@@ -1443,10 +1478,12 @@ describe('MoneySettings', () => {
             // lines at 375px; the description names it in one (Slava, 2026-09-25)
             expect(screen.getByText('Brazil and Argentina')).toBeInTheDocument()
 
-            // no Manteca rail yet: the row is the same unlock offer the bank
-            // row is, and the tap opens the same region intent
             fireEvent.click(screen.getByText('QR payments'))
             expect(screen.getByText('unlock-modal-open:no-provider:questions')).toBeInTheDocument()
+            expect(mockVerifyRedirect).toHaveBeenLastCalledWith(true, { feature: 'qr' })
+            fireEvent.click(screen.getByText('unlock now'))
+            expect(mockUnlockQr).toHaveBeenCalledWith()
+            expect(mockInitiateKyc).not.toHaveBeenCalled()
             expect(mockPush).not.toHaveBeenCalled()
         })
 
@@ -2315,5 +2352,82 @@ describe('ARS Accounts and Payments use the scoped bank-account report', () => {
 
         expect(screen.getByText(/processing-modal-open/)).toBeInTheDocument()
         expect(screen.getByTestId('processing-continue-verification')).toBeInTheDocument()
+    })
+})
+
+// Spec-only entry regression: the shared gate owns address recovery and status.
+jest.mock('@/features/kyc-features/LocalResidenceAddressGate', () => ({
+    LocalResidenceAddressGate: ({ currency, onBack }: { currency: string; onBack: () => void }) => (
+        <div data-testid="local-residence-gate" data-currency={currency}>
+            <button onClick={onBack}>Back from address</button>
+        </div>
+    ),
+}))
+
+describe('local bank rows enter the shared residence address gate', () => {
+    const states: Array<{
+        name: string
+        entry: import('@/types/capabilities').FeatureReportEntry
+        purpose?: string
+    }> = [
+        {
+            name: 'address required',
+            entry: { state: 'action_required', reason: 'residence_unresolved', action: 'sumsub:address_of_residence' },
+            purpose: 'residence_address_required',
+        },
+        {
+            name: 'address rejected',
+            entry: { state: 'action_required', reason: 'residence_unresolved', action: 'sumsub:address_of_residence' },
+            purpose: 'residence_address_rejected',
+        },
+        { name: 'unresolved setup', entry: { state: 'setting_up', reason: 'residence_unresolved' } },
+        { name: 'address review', entry: { state: 'setting_up', reason: 'residence_address_in_review' } },
+        {
+            name: 'address descriptor unavailable',
+            entry: { state: 'action_required', reason: 'residence_unresolved', action: 'sumsub:address_of_residence' },
+        },
+    ]
+
+    describe.each(['ARS', 'BRL'] as const)('%s', (currency) => {
+        describe.each(['account', 'fallback'] as const)('%s report', (source) => {
+            it.each(states)('opens the local gate for $name without region verification', ({ entry, purpose }) => {
+                mockUser = {
+                    residence: normalizeResidence({ declared: 'AR', verified: 'AR' }),
+                    user: { userId: 'address-entry-user' },
+                }
+                mockIsKycApproved = true
+                mockIdentity = { status: 'verified' }
+                mockSendsToVerify = true
+                mockApiLocal =
+                    source === 'account'
+                        ? { state: 'ready', accounts: { [currency]: entry } }
+                        : { ...entry, accounts: {} }
+                mockNextActions = purpose
+                    ? [
+                          {
+                              key: 'sumsub:address_of_residence',
+                              kind: 'sumsub',
+                              levelKey: 'address_of_residence',
+                              purpose,
+                          },
+                      ]
+                    : []
+                render('accounts')
+                fireEvent.click(screen.getByText(currency))
+
+                expect(screen.getByTestId('local-residence-gate')).toHaveAttribute('data-currency', currency)
+                expect(mockInitiateKyc).not.toHaveBeenCalled()
+                expect(mockRestartIdentity).not.toHaveBeenCalled()
+                expect(mockResidenceChange).not.toHaveBeenCalled()
+                expect(mockPush).not.toHaveBeenCalled()
+                expect(screen.queryByText(/unlock-modal-open|processing-modal-open/)).not.toBeInTheDocument()
+                expect(mockVerifyRedirect.mock.calls.some(([active]) => active)).toBe(false)
+
+                fireEvent.click(screen.getByRole('button', { name: 'Back from address' }))
+                expect(screen.queryByTestId('local-residence-gate')).not.toBeInTheDocument()
+                expect(screen.getByText(currency)).toBeInTheDocument()
+                expect(mockInitiateKyc).not.toHaveBeenCalled()
+            })
+        })
     })
 })

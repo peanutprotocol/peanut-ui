@@ -3,8 +3,10 @@
 import Image from 'next/image'
 import { Card } from '@/components/0_Bruddle/Card'
 import { BadgeImage } from '@/components/Badges/BadgeImage'
+import { Icon } from '@/components/Global/Icons/Icon'
 import PeanutMascot from '@/components/Global/PeanutMascot'
 import { AVATAR_SIZE_CLASSES, type AvatarSize } from '@/components/Profile/avatar-size.consts'
+import OnboardingAnimation from '@/components/Setup/redesign/shell/OnboardingAnimation'
 import { CodeBlock } from '../../_components/CodeBlock'
 import { DesignNote } from '../../_components/DesignNote'
 import { DocHeader } from '../../_components/DocHeader'
@@ -12,21 +14,33 @@ import { DocPage } from '../../_components/DocPage'
 import { DocSection } from '../../_components/DocSection'
 import { COLOR_TOKENS } from '../../foundations/tokens.generated'
 import {
+    APP_ICON_ENTRIES,
+    APP_ICON_RULE,
     AVATAR_BADGE_ENTRIES,
     AVATAR_BADGE_RULE,
     AVATAR_BASIC_ENTRIES,
     AVATAR_LETTER_ENTRIES,
     AVATAR_SIZE_RULE,
     BADGE_ENTRIES,
+    BADGE_VARIANT_ENTRIES,
+    COIN_ENTRIES,
+    COIN_RULE,
     DOODLE_ENTRIES,
     EASTER_EGG_ENTRIES,
     EASTER_EGG_RULE,
     GLOVE_ENTRIES,
     HERO_ART_ENTRIES,
+    INVITE_HEART_ENTRY,
     LANDING_ILLUSTRATION_ENTRIES,
     LOGO_ENTRIES,
     MASCOT_ENTRIES,
     MASCOT_STILL_ENTRIES,
+    NATIVE_ART_EXCEPTION_ENTRIES,
+    NATIVE_ART_EXCEPTION_RULE,
+    OBJECT_CHARACTER_ENTRIES,
+    OG_DOODLE_ENTRIES,
+    OG_DOODLE_RULE,
+    PRESS_STILL_ENTRIES,
     RESIDENCE_STICKER_ENTRIES,
     RESIDENCE_STICKER_RULE,
     TIER_BADGE_ENTRIES,
@@ -36,7 +50,7 @@ import {
 
 const tokenValue = (name: string) => COLOR_TOKENS.find((t) => t.name === name)?.value ?? '—'
 
-function ArtGrid({ entries }: { entries: ArtEntry[] }) {
+function ArtGrid({ entries, children }: { entries: ArtEntry[]; children?: React.ReactNode }) {
     return (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {entries.map((entry) => (
@@ -49,6 +63,7 @@ function ArtGrid({ entries }: { entries: ArtEntry[] }) {
                     <p className="text-body-xs text-foreground-secondary">{entry.usedIn}</p>
                 </Card>
             ))}
+            {children}
         </div>
     )
 }
@@ -102,7 +117,7 @@ export default function MarketingAssetsPage() {
         <DocPage>
             <DocHeader
                 title="Assets"
-                description="The art you may put on a marketing surface: mascot, doodles, gloves, logo set, easter eggs, avatars, badges. Not on this page = not approved."
+                description="The art you may put on a marketing surface: mascot, coin characters, doodles, gloves, logo set, link-preview doodles, app icons, easter eggs, avatars, badges. Not on this page = not approved."
             />
 
             <DesignNote type="warning">
@@ -131,6 +146,8 @@ export default function MarketingAssetsPage() {
                     </p>
                     <p className="text-label-m">Stills — the two approved rasters</p>
                     <ArtGrid entries={MASCOT_STILL_ENTRIES} />
+                    <p className="text-label-m">Press kit stills — one render per pose, press downloads only</p>
+                    <PublicArtGrid entries={PRESS_STILL_ENTRIES} tile="h-12" />
                 </DocSection.Content>
                 <DocSection.Code>
                     <CodeBlock
@@ -138,6 +155,30 @@ export default function MarketingAssetsPage() {
                         code={`import PeanutMascot from '@/components/Global/PeanutMascot'\n\n<PeanutMascot pose="waving-chill" className="h-32" />`}
                     />
                 </DocSection.Code>
+            </DocSection>
+
+            <DocSection title="Coin characters" description="The $ and € coin faces of sign-up.">
+                <DesignNote type="info">{COIN_RULE}</DesignNote>
+                <ArtGrid entries={COIN_ENTRIES} />
+                <p className="text-label-m">Accounts loop — the source of the moving coins</p>
+                <Card className="flex w-fit flex-col gap-2 p-3">
+                    <div className="flex h-48 items-center justify-center overflow-hidden rounded-sm bg-background-page">
+                        <div className="h-40">
+                            <OnboardingAnimation name="accounts" />
+                        </div>
+                    </div>
+                    <p className="font-mono text-label-m">accounts</p>
+                    <p className="font-mono text-body-xs break-all text-foreground-secondary">
+                        assets/onboarding/accounts.json
+                    </p>
+                    <p className="text-body-xs text-foreground-secondary">
+                        Sign-up Accounts step, desktop side panel; CoinCharacter cuts its coins from it
+                    </p>
+                </Card>
+            </DocSection>
+
+            <DocSection title="Object characters" description="A thing with a face and a white glove. One use each.">
+                <ArtGrid entries={OBJECT_CHARACTER_ENTRIES} />
             </DocSection>
 
             <DocSection
@@ -178,6 +219,46 @@ export default function MarketingAssetsPage() {
                         code={`import { WORDMARK } from '@/assets/brand'\n\n<Image src={WORDMARK} alt="Peanut" className="h-3 w-auto" />`}
                     />
                 </DocSection.Code>
+            </DocSection>
+
+            <DocSection
+                title="Link-preview doodles"
+                description="The scribble loop and arrows on the cards shown when a Peanut link is pasted in a chat."
+            >
+                <DesignNote type="warning">{OG_DOODLE_RULE}</DesignNote>
+                <PublicArtGrid entries={OG_DOODLE_ENTRIES} />
+            </DocSection>
+
+            <DocSection title="App icons" description="Picture icons with one job each: points, regions, invites.">
+                <DesignNote type="info">{APP_ICON_RULE}</DesignNote>
+                <ArtGrid entries={APP_ICON_ENTRIES}>
+                    <Card className="flex h-full flex-col gap-2 p-3">
+                        <div className="flex h-16 items-center justify-center rounded-sm bg-background-page p-2">
+                            <Icon name="invite-heart" size={40} />
+                        </div>
+                        <p className="font-mono text-label-m">{INVITE_HEART_ENTRY.label}</p>
+                        <p className="font-mono text-body-xs break-all text-foreground-secondary">
+                            {INVITE_HEART_ENTRY.path}
+                        </p>
+                        <p className="text-body-xs text-foreground-secondary">{INVITE_HEART_ENTRY.usedIn}</p>
+                    </Card>
+                </ArtGrid>
+            </DocSection>
+
+            <DocSection
+                title="Native app art"
+                description="Pictures the iPhone app draws itself, outside the web app. Approved exceptions."
+            >
+                <DesignNote type="info">{NATIVE_ART_EXCEPTION_RULE}</DesignNote>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {NATIVE_ART_EXCEPTION_ENTRIES.map((entry) => (
+                        <Card key={entry.label} className="flex h-full flex-col gap-2 p-3">
+                            <p className="font-mono text-label-m">{entry.label}</p>
+                            <p className="font-mono text-body-xs break-all text-foreground-secondary">{entry.path}</p>
+                            <p className="text-body-xs text-foreground-secondary">{entry.usedIn}</p>
+                        </Card>
+                    ))}
+                </div>
             </DocSection>
 
             <DocSection title="Easter eggs" description="Hidden. Eight no-banking territories in EasterEggDrawer.">
@@ -252,6 +333,8 @@ export default function MarketingAssetsPage() {
                     <p className="font-mono text-body-xs text-foreground-secondary">
                         public/badges/&lt;file&gt; — hover a tile for its code(s)
                     </p>
+                    <p className="text-label-m">Badge variants — one named use each</p>
+                    <ArtGrid entries={BADGE_VARIANT_ENTRIES} />
                     <p className="text-label-m">Points tiers</p>
                     <ArtGrid entries={TIER_BADGE_ENTRIES} />
                 </DocSection.Content>

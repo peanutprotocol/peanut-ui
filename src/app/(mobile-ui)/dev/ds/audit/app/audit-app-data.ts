@@ -377,7 +377,6 @@ export const APP_DIVERGENCE_CATEGORIES: UsageCategory[] = [
                     'app/[...recipient]/error.tsx',
                     'app/(mobile-ui)/card/pin/page.tsx',
                     'app/(mobile-ui)/card/limit/page.tsx',
-                    'app/shhhhh/ShhhhhLandingPage.tsx',
                 ],
             },
             {
@@ -541,7 +540,7 @@ export const APP_DIVERGENCE_CATEGORIES: UsageCategory[] = [
                 status: 'adhoc',
                 source: 'inline lowercase <button> JSX in product files',
                 divergence:
-                    '65 inline <button> elements in product files, of which 10 carry their own bg-/rounded- styling in the opening tag (a multi-line scan; the probe here counts all <button>, so the bg-/rounded- subset is not in the number). The styled offenders are concentrated: InvitesGraph 3, QRScanner 3, then one each in marketing/error.tsx, ShhhhhLandingPage, ExchangeRateWidget and — notably — 0_Bruddle/Notification.tsx itself, where the primitive hand-rolls its own dismiss button rather than using Button. Down from the June picture: the off-DS radii and hover:bg-gray-* colors mostly survive only inside InvitesGraph.',
+                    '65 inline <button> elements in product files, of which 9 carry their own bg-/rounded- styling in the opening tag (a multi-line scan; the probe here counts all <button>, so the bg-/rounded- subset is not in the number). The styled offenders are concentrated: InvitesGraph 3, QRScanner 3, then one each in marketing/error.tsx, ExchangeRateWidget and — notably — 0_Bruddle/Notification.tsx itself, where the primitive hand-rolls its own dismiss button rather than using Button. Down from the June picture: the off-DS radii and hover:bg-gray-* colors mostly survive only inside InvitesGraph.',
                 usedIn: [
                     'components/Global/InvitesGraph/index.tsx',
                     'components/Global/QRScanner/index.tsx',
@@ -707,7 +706,6 @@ export const APP_DIVERGENCE_CATEGORIES: UsageCategory[] = [
                     'app/(mobile-ui)/card/pin/page.tsx',
                     'app/(mobile-ui)/recover-funds/page.tsx',
                     'app/(mobile-ui)/rewards/invites/page.tsx',
-                    'app/(mobile-ui)/card/physical/page.tsx',
                 ],
                 verified: true,
             },
@@ -787,7 +785,6 @@ export const APP_DIVERGENCE_CATEGORIES: UsageCategory[] = [
                 divergence:
                     'Canonical brand pink, up from 60 to 87 product call-sites. It is hex-identical to the semantic --color-action-primary (29 call-sites) and --color-background-brand (0). action-primary is the migration target.',
                 usedIn: [
-                    'app/shhhhh/ShhhhhLandingPage.tsx',
                     'app/m/[slug]/MerchantLandingPage.tsx',
                     'components/Home/ActivationCTAs.tsx',
                     'components/Home/WelcomeUnlockDrawer/index.tsx',
@@ -887,7 +884,6 @@ export const APP_DIVERGENCE_CATEGORIES: UsageCategory[] = [
                     'app/(mobile-ui)/qr-pay/page.tsx',
                     'app/(mobile-ui)/rewards/page.tsx',
                     'app/m/[slug]/MerchantLandingPage.tsx',
-                    'app/shhhhh/ShhhhhLandingPage.tsx',
                     'components/Home/PendingVerificationTasks.tsx',
                 ],
                 verified: true,
@@ -967,7 +963,6 @@ export const APP_DIVERGENCE_CATEGORIES: UsageCategory[] = [
                 divergence:
                     'NEW ROW. Seven slots, two live: the bare `error` (#b3261e) and error-4. error-1, error-2, error-3, error-5 and error-6 have zero product call-sites — every one of their matches is a /dev showcase or audit page. The semantic replacements (--color-foreground-error 20 call-sites, --color-background-badge-error 5, --color-border-error 1) already carry the error surface.',
                 usedIn: [
-                    'app/shhhhh/ShhhhhLandingPage.tsx',
                     'components/Kyc/ProvideEmailStep.tsx',
                     'components/Home/PendingVerificationTasks.tsx',
                     'components/0_Bruddle/BaseSelect.tsx',

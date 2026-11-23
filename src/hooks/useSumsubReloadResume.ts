@@ -7,6 +7,7 @@ import type { DepositCorridor } from '@/features/deposit-accounts/types'
 const REGION_INTENTS: readonly KYCRegionIntent[] = ['LATAM', 'ROW', 'EU', 'NA', 'STANDARD']
 
 export type KycResumeState = {
+    feature?: 'qr'
     intent?: KYCRegionIntent
     levelName?: string
     crossRegion?: boolean
@@ -16,6 +17,7 @@ export type KycResumeState = {
 
 const parseKycResumeState = (value: unknown): KycResumeState | null => {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) return null
+    if ('feature' in value && value.feature === 'qr') return { feature: 'qr' }
     const { intent, levelName, crossRegion, targetCountry, corridor } = value as Record<string, unknown>
     const asString = (v: unknown) => (typeof v === 'string' ? v : undefined)
     const asIntent = (v: unknown) =>

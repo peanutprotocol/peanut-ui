@@ -1,4 +1,4 @@
-import COIN_ICON from '@/assets/icons/coin.svg'
+import stackCoin from '@/assets/illustrations/stack-coin.svg'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import React from 'react'
@@ -89,7 +89,7 @@ const PotProgress: React.FC<PotProgressProps> = ({ goal, progress, isClosed }) =
         if (!isClosed) return null
         return (
             <div className="flex items-center gap-1 text-body-m">
-                <Image src={COIN_ICON} alt="coin" width={18} height={18} />
+                <Image src={stackCoin} alt="" width={18} height={18} />
                 <p>{getStatusText()}</p>
             </div>
         )

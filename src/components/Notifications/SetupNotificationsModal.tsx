@@ -6,7 +6,9 @@ import { AskShell } from '@/features/attention/AskShell'
 import posthog from 'posthog-js'
 import { useTranslations } from 'next-intl'
 import { ANALYTICS_EVENTS, MODAL_TYPES } from '@/constants/analytics.consts'
-import { PeanutMascotScene } from '@/components/Global/PeanutMascot/PeanutMascotScene'
+import { motion, useReducedMotion } from 'framer-motion'
+import Image from 'next/image'
+import phoneBuddy from '@/assets/illustrations/phone-buddy.webp'
 import { PUSH_PROMPT_TRIGGERS, type PushPromptTrigger } from '@/constants/push-prompt.consts'
 import { notificationsApi, toPushPermission } from '@/services/notifications'
 import { useSessionFence } from '@/hooks/useSessionFence'
@@ -21,6 +23,11 @@ const MOMENT_COPY = {
     [PUSH_PROMPT_TRIGGERS.QR_FIRST_SCAN]: { title: 'qrFirstScanTitle', description: 'qrFirstScanDescription' },
     [PUSH_PROMPT_TRIGGERS.FIRST_DEPOSIT]: { title: 'firstDepositTitle', description: 'firstDepositDescription' },
 } as const
+
+// one short buzz of the phone buddy (Konrad's pick, 2026-11-20) once the panel
+// has entered (duration-moderate, 300 ms); the art is never redrawn, only moved
+const BUZZ = { rotate: [0, -8, 8, -8, 8, -4, 0] }
+const BUZZ_TRANSITION = { duration: 0.45, delay: 0.3, ease: 'easeInOut' } as const
 
 export default function SetupNotificationsModal() {
     const captureSession = useSessionFence()
@@ -115,6 +122,7 @@ export function SetupNotificationsPrompt({
 }) {
     const t = useTranslations('notifications')
     const momentCopy = trigger && trigger !== PUSH_PROMPT_TRIGGERS.HOME_FALLBACK ? MOMENT_COPY[trigger] : null
+    const reducedMotion = useReducedMotion()
     return (
         <>
             <AskShell
@@ -125,7 +133,15 @@ export function SetupNotificationsPrompt({
                 description={momentCopy ? t(momentCopy.description) : t('migrationSetupDescription')}
                 body={
                     <>
-                        <PeanutMascotScene scene="paper-planes" className="h-40 max-w-48" />
+                        {/* the modal mounts its content on open, so the buzz plays once per opening */}
+                        <motion.div
+                            className="size-40"
+                            aria-hidden="true"
+                            animate={reducedMotion ? undefined : BUZZ}
+                            transition={BUZZ_TRANSITION}
+                        >
+                            <Image src={phoneBuddy} alt="" className="size-full" />
+                        </motion.div>
                         {error && <p role="alert">{error}</p>}
                     </>
                 }

@@ -1,7 +1,9 @@
 'use client'
 
 import { apiErrorStatus, wireErrorCode } from '@/services/api-error'
-import { claimDepositAccount } from '@/services/deposit-accounts'
+import { claimDepositAccount, DepositClaimReverificationError } from '@/services/deposit-accounts'
+import { useAuth } from '@/context/authContext'
+import { currentReverificationDestination, featureReverificationPath } from '@/utils/kyc-reverification'
 import { IN_APP_BROWSER_CLOSED_EVENT, isNativeBridge, openExternalUrl } from '@/utils/capacitor'
 import { reserveDetachedTab } from '@/utils/reserved-tab'
 import { useQueryClient } from '@tanstack/react-query'
@@ -50,6 +52,16 @@ export interface EndorsementReview {
  * that link's server action.
  */
 export function useEndorsementReview(): EndorsementReview {
+    const { userId } = useAuth()
+    const owner = useRef(userId)
+    owner.current = userId
+    const mounted = useRef(true)
+    useEffect(() => {
+        mounted.current = true
+        return () => {
+            mounted.current = false
+        }
+    }, [])
     const queryClient = useQueryClient()
     const [startingCorridor, setStartingCorridor] = useState<DepositCorridor>()
     const [failedCorridor, setFailedCorridor] = useState<DepositCorridor>()
@@ -66,7 +78,8 @@ export function useEndorsementReview(): EndorsementReview {
 
     const start = useCallback(
         async (corridor: DepositCorridor) => {
-            if (startingRef.current) return
+            if (startingRef.current || owner.current !== userId) return
+            const returnTo = currentReverificationDestination()
             startingRef.current = true
             const native = isNativeBridge()
             const reservedTab = native ? null : reserveDetachedTab()
@@ -78,6 +91,10 @@ export function useEndorsementReview(): EndorsementReview {
             trackClaimStarted(corridor)
             try {
                 const result = await claimDepositAccount(corridor)
+                if (!mounted.current || owner.current !== userId) {
+                    reservedTab?.close()
+                    return
+                }
                 if (result.outcome === 'opened') trackClaimed(corridor, DEPOSIT_RAILS[corridor].currency)
                 if (result.outcome === 'endorsement_pending') trackEndorsementRequested(corridor)
                 const url =
@@ -106,6 +123,14 @@ export function useEndorsementReview(): EndorsementReview {
                 setAwaitingReturn(true)
             } catch (error) {
                 reservedTab?.close()
+                if (!mounted.current || owner.current !== userId) return
+                if (
+                    typeof DepositClaimReverificationError === 'function' &&
+                    error instanceof DepositClaimReverificationError
+                ) {
+                    window.location.assign(featureReverificationPath(error.reverification.entry, returnTo))
+                    return
+                }
                 console.error('[deposit-accounts] could not start the corridor review', error)
                 trackClaimFailed(corridor, error instanceof Error ? error.message : String(error))
                 // The refusal is classified the way the claim screen classifies
@@ -125,7 +150,7 @@ export function useEndorsementReview(): EndorsementReview {
                 startingRef.current = false
             }
         },
-        [refresh]
+        [refresh, userId]
     )
 
     // Nothing polls a review that waits on the user, so the answer is read when

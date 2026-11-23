@@ -7,8 +7,7 @@ import { AskShell } from '@/features/attention/AskShell'
 import DocsLink from '@/components/Global/DocsLink'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { legalPolicyForSlug } from '@/constants/legal-policies'
-import { acceptedLegalDocument, consentApi } from '@/services/consent'
-import { type LegalDocumentSlug } from '@/constants/legal-versions.generated'
+import { consentApi } from '@/services/consent'
 import { CONSENT_STATUS_QUERY_KEY } from '@/features/attention/journeyState'
 import type { AskSurfaceProps } from '@/features/attention/types'
 import { nextPromptAt } from './utils'
@@ -26,7 +25,10 @@ export interface ReConsentDocument {
  * Re-consent click-through (tos-v1 phase 2, ToS §17): when a legal document's
  * published version moves past what the user last provably accepted, this modal
  * lists the updated documents and appends fresh consent-ledger rows on
- * acceptance (POST /users/consent/accept). Whether it shows is the attention
+ * acceptance (POST /users/consent/accept). The links open the live legal
+ * pages, so the API records its own published version of each document
+ * (TASK-25073); the `version` sent is the status endpoint's `currentVersion`,
+ * which APIs from before that change record as is. Whether it shows is the attention
  * manager's call (the `legal-reconsent` ask reads GET /users/consent/status);
  * this component only renders and answers.
  *
@@ -55,7 +57,7 @@ const ReConsentModal = ({
         setSubmitting(true)
         setError(null)
         try {
-            await consentApi.accept(documents.map((d) => acceptedLegalDocument(d.slug as LegalDocumentSlug)))
+            await consentApi.accept(documents.map((d) => ({ slug: d.slug, version: d.currentVersion })))
             onAccepted?.()
             await queryClient.invalidateQueries({ queryKey: [CONSENT_STATUS_QUERY_KEY] })
             const status = await consentApi.getStatus()
@@ -93,14 +95,14 @@ const ReConsentModal = ({
             tone="info"
             title={t('reConsent.title')}
             description={
-                /* The what-changed line describes the update published in November 2026
-                 * (Pix through Avenia, session recordings, more named service
-                 * providers) — revisit it when a future version bump shows this modal
-                 * for a different change. */
+                /* The what-changed line describes the update published on 20 November
+                 * 2026 (Avenia as the Pix partner in Brazil) and points to the linked
+                 * documents for the rest. Revisit it when a future version bump shows
+                 * this modal for a different change. */
                 t('reConsent.whatChanged')
             }
             body={
-                <div className="space-y-3 w-full">
+                <div data-testid="reconsent-documents" className="space-y-3 w-full">
                     {/* the updated documents on one centered line, separator-joined
                         (wraps when it must) — inline-link treatment per the Signup
                         consent line; DocsLink handles browser and native targets */}

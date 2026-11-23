@@ -202,10 +202,6 @@ export const ANALYTICS_EVENTS = {
     // is the iOS stash loss of Oct 2026 — it used to leave no trace at all.
     INVITE_ATTRIBUTION_SETTLED: 'invite_attribution_settled',
 
-    // ── Creator pages (/go/<username>) ──
-    // The view count is the engine's tracked_link_visit. Read-out: mono engineering/ui/creator-pages.md
-    CREATOR_PAGE_CTA_CLICKED: 'creator_page_cta_clicked',
-
     // ── Points / Rewards ──
     POINTS_PAGE_VIEWED: 'points_page_viewed',
     POINTS_EARNED: 'points_earned',
@@ -275,7 +271,6 @@ export const ANALYTICS_EVENTS = {
     // ── QR ──
     QR_SCANNED: 'qr_scanned',
     PIX_QR_INIT_RESULT: 'pix_qr_init_result',
-    QR_NOTIFY_ME_CLICKED: 'qr_notify_me_clicked',
     QR_DECODING_ERROR_SHOWN: 'qr_decoding_error_shown',
     QR_SENDER_REJECTED_SHOWN: 'qr_sender_rejected_shown',
     QR_MERCHANT_CHARGE_EXPIRED_SHOWN: 'qr_merchant_charge_expired_shown',
@@ -341,8 +336,6 @@ export const ANALYTICS_EVENTS = {
     KYC_PV_RESIDENCE_CHANGE_OPENED: 'kyc_paperwork_residence_change_opened',
     KYC_PV_DOCUMENT_COUNTRY_MISMATCH: 'kyc_paperwork_document_country_mismatch',
     KYC_PV_DOCUMENT_COUNTRY_CHOSEN: 'kyc_paperwork_document_country_chosen',
-    KYC_PV_LOCAL_REFUSED: 'kyc_paperwork_local_refused',
-    KYC_PV_CONTINUE_WITHOUT_LOCAL: 'kyc_paperwork_continue_without_local',
     KYC_PV_ID_VIEWED: 'kyc_paperwork_id_viewed',
     KYC_PV_ID_SUBMITTED: 'kyc_paperwork_id_submitted',
     // outcome: opened | document-required | questions-missing | failed
@@ -438,8 +431,6 @@ export const ANALYTICS_EVENTS = {
     CARD_CANCEL_OPENED: 'card_cancel_opened',
     CARD_CANCEL_CONFIRMED: 'card_cancel_confirmed',
     CARD_CANCEL_FAILED: 'card_cancel_failed',
-    CARD_PHYSICAL_WAITLIST_VIEWED: 'card_physical_waitlist_viewed',
-    CARD_PHYSICAL_WAITLIST_JOINED: 'card_physical_waitlist_joined',
     CARD_ADD_TO_WALLET_VIEWED: 'card_add_to_wallet_viewed',
     // Native push provisioning (MeaWallet MPP). Server-side card_tokenized /
     // card_tokenization_declined (Rain webhooks) close this funnel.
@@ -581,9 +572,7 @@ export const MODAL_TYPES = {
     NOTIFICATIONS: 'notifications',
     EARLY_USER: 'early_user',
     POST_SIGNUP: 'post_signup',
-    POST_VERIFICATION_ACTION: 'post_verification_action',
     BALANCE_WARNING: 'balance_warning',
-    KYC_COMPLETED: 'kyc_completed',
     INVITE: 'invite',
     MIGRATION_DOWNLOAD: 'migration_download',
     RE_CONSENT: 're_consent',
