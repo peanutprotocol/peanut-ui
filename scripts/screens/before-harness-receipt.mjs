@@ -12,11 +12,22 @@ const legacyPolicy = `export function captureExitCode(results) {
 const partialPolicy = legacyPolicy.replace("=== 'failed') ? 1 : 0", "=== 'captured') ? 0 : 1")
 const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex')
 
+// read instead of exists-then-read, so nothing can change between the check and the write
+function readIfPresent(path) {
+    try {
+        return readFileSync(path, 'utf8')
+    } catch (error) {
+        if (error.code === 'ENOENT') return undefined
+        throw error
+    }
+}
+
 export function prepareBaseExitPolicy(directory) {
     const path = join(directory, statusPath)
-    if (!existsSync(path) || readFileSync(path, 'utf8') !== legacyPolicy) return
+    if (readIfPresent(path) !== legacyPolicy) return
     const recordPath = join(directory, '.screen-capture-adapter.json')
-    const record = existsSync(recordPath) ? JSON.parse(readFileSync(recordPath, 'utf8')) : { version: 1, changed: [] }
+    const recorded = readIfPresent(recordPath)
+    const record = recorded === undefined ? { version: 1, changed: [] } : JSON.parse(recorded)
     record.changed.push({ path: statusPath, before: sha256(legacyPolicy), after: sha256(partialPolicy) })
     writeFileSync(recordPath, JSON.stringify(record))
     writeFileSync(path, partialPolicy)

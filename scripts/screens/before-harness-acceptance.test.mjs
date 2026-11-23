@@ -302,6 +302,9 @@ test('recognized legacy base exit policy records both digests and keeps zero cap
     const { prepareBaseExitPolicy, verifyBaseExitPolicy } = await import('./before-harness-receipt.mjs')
     const directory = await mkdtemp(path.join(os.tmpdir(), 'legacy-base-policy-'))
     t.after(() => rm(directory, { recursive: true, force: true }))
+    // a base without the runner is left alone
+    prepareBaseExitPolicy(directory)
+    await assert.rejects(readFile(path.join(directory, '.screen-capture-adapter.json')), { code: 'ENOENT' })
     await mkdir(path.join(directory, 'scripts/screens'), { recursive: true })
     const file = path.join(directory, 'scripts/screens/capture-status.mjs')
     const legacy = `export function captureExitCode(results) {
