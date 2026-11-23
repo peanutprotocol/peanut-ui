@@ -1948,8 +1948,8 @@
                 "description": "Check Activity for the payment and any refund before trying again."
             },
             "processing": {
-                "title": "Payment is processing",
-                "description": "The payment has not been confirmed yet. Check Activity before trying again."
+                "title": "Payment pending",
+                "description": "This is taking longer than expected. We are waiting for our payment partner to confirm it."
             }
         },
         "pixKeyOwnerTaxId": "{taxIdKind} {taxId}",

@@ -1173,7 +1173,7 @@ describe('GROUP 2: Payment Form States', () => {
             fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
         })
 
-        await waitFor(() => expect(screen.getByText('Payment is processing')).toBeInTheDocument())
+        await waitFor(() => expect(screen.getByText('Payment pending')).toBeInTheDocument())
         expect(mockMantecaApi.savePixKey).not.toHaveBeenCalled()
     })
 
@@ -1224,7 +1224,7 @@ describe('GROUP 2: Payment Form States', () => {
             fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
         })
 
-        await waitFor(() => expect(screen.getByText('Payment is processing')).toBeInTheDocument())
+        await waitFor(() => expect(screen.getByText('Payment pending')).toBeInTheDocument())
         expect(mockMantecaApi.savePixKey).toHaveBeenCalledWith(pixKey, 'MARIA DA SILVA')
     })
 
@@ -1408,12 +1408,12 @@ describe('GROUP 2: Payment Form States', () => {
         await act(async () => {
             fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
         })
-        await waitFor(() => expect(screen.getByText('Payment is processing')).toBeInTheDocument())
+        await waitFor(() => expect(screen.getByText('Payment pending')).toBeInTheDocument())
 
         try {
             act(() => setBrazilPaused(true))
 
-            expect(screen.getByText('Payment is processing')).toBeInTheDocument()
+            expect(screen.getByText('Payment pending')).toBeInTheDocument()
             expect(screen.queryByText(en.brazilPause.title)).not.toBeInTheDocument()
             expect(screen.queryByText('Service Temporarily Unavailable')).not.toBeInTheDocument()
         } finally {
@@ -1605,8 +1605,8 @@ describe('GROUP 4: Success States', () => {
         ['CANCELLED', 'Payment cancelled', 'cancelled'],
         ['REFUNDED', 'Payment refunded', 'refunded'],
         ['FAILED', 'Payment did not complete', 'failed'],
-        ['ACTIVE', 'Payment is processing', 'processing'],
-        ['UNRECOGNIZED', 'Payment is processing', 'processing'],
+        ['ACTIVE', 'Payment pending', 'processing'],
+        ['UNRECOGNIZED', 'Payment pending', 'processing'],
     ])('a 200 %s result cannot show payment success', async (status, title, receiptStatus) => {
         await completeMantecaPayment({ status, perk: { eligible: true, amountSponsored: 5 } })
         await waitFor(() => expect(screen.getByText(title)).toBeInTheDocument())
