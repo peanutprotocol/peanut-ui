@@ -69,6 +69,7 @@ function makeRepo() {
     const goMap = commit(dir, 'go map line')
     setFile(dir, 'src/app/c/[username]/page.tsx', 'v1')
     setFile(dir, 'src/features/creator-pages/variants.ts', 'v1')
+    setFile(dir, 'public/creator-pages/nita.webp', 'v1')
     setContentPointer(dir, '2')
     const webOnly = commit(dir, 'creator page and content publish')
     setCode(dir, 'v2')

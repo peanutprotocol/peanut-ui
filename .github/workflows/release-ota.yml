@@ -29,18 +29,23 @@ on:
         # only these reaches users through Vercel and needs no OTA and no store
         # build. Each such run used a version number and replaced the release
         # candidate (Release 164). A push that also changes any other file still
-        # runs. scripts/release-web-only-paths.json holds the same list for the
+        # runs. GitHub reads only the first 3,000 changed files of a push for
+        # path filters; a release merge is far below that.
+        # scripts/release-web-only-paths.json holds the same list for the
         # main-tip guards below, which let a running release continue past such
         # a push; release-source-guard.test.js keeps the two equal.
         # - src/content: content publishes (content-publish-automerge.yml).
         # - /go/ redirect map and creator landing pages (/c/): the native build
-        #   removes their routes, and ESLint keeps app code from importing them.
+        #   removes their routes and the exported public/creator-pages images
+        #   (scripts/native-build.js). ESLint and release-web-only-paths.test.js
+        #   keep app code from referencing the feature folders.
         paths-ignore:
             - 'src/content'
             - 'src/app/go/**'
             - 'src/features/go-links/**'
             - 'src/app/c/**'
             - 'src/features/creator-pages/**'
+            - 'public/creator-pages/**'
     # Retry a failed OTA without a new main push. The run publishes the current
     # main tip only; the SHA input makes the operator name it.
     workflow_dispatch:

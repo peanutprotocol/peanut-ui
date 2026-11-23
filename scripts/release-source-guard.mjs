@@ -18,8 +18,9 @@
 //   merges content publishes to main with no human step; the app gets the new
 //   content with the next code release.
 // - the /go/ redirect map and the creator landing pages (/c/): the native build
-//   removes their routes (scripts/native-build.js), and ESLint stops other code
-//   from importing their feature folders, so no app bundle contains them.
+//   removes their routes and images (scripts/native-build.js), and ESLint and
+//   release-web-only-paths.test.js stop other code from referencing their
+//   feature folders, so no app bundle contains them.
 
 import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
