@@ -1948,8 +1948,8 @@
                 "description": "Antes de volver a intentarlo, revisa el pago y cualquier reembolso en Actividad."
             },
             "processing": {
-                "title": "Pago en proceso",
-                "description": "El pago todavía no se ha confirmado. Revisa Actividad antes de volver a intentarlo."
+                "title": "Pago pendiente",
+                "description": "Está tardando más de lo esperado. Estamos esperando la confirmación de nuestro socio de pagos."
             }
         },
         "pixKeyOwnerTaxId": "{taxIdKind} {taxId}",

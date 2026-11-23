@@ -1948,8 +1948,8 @@
                 "description": "Antes de tentar novamente, confira o pagamento e qualquer reembolso em Atividade."
             },
             "processing": {
-                "title": "Pagamento em processamento",
-                "description": "O pagamento ainda não foi confirmado. Confira Atividade antes de tentar novamente."
+                "title": "Pagamento pendente",
+                "description": "Está demorando mais que o esperado. Estamos aguardando a confirmação do nosso parceiro de pagamentos."
             }
         },
         "pixKeyOwnerTaxId": "{taxIdKind} {taxId}",

@@ -1149,10 +1149,6 @@
             "failed": {
                 "title": "El pago no se completó",
                 "description": "Antes de volver a intentarlo, revisá el pago y cualquier reembolso en Actividad."
-            },
-            "processing": {
-                "title": "Pago en proceso",
-                "description": "El pago todavía no se confirmó. Revisá Actividad antes de volver a intentarlo."
             }
         }
     },
