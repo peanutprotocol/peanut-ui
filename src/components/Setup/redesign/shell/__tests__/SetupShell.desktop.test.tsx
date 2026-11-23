@@ -6,16 +6,6 @@ import { renderInShell } from '@/components/Setup/redesign/Landing/__tests__/red
 
 jest.mock('@/components/Setup/components/SetupLanguageSwitcher', () => ({ SetupLanguageSwitcher: () => null }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
-jest.mock('@/components/Setup/redesign/shell/OnboardingAnimation', () => ({
-    __esModule: true,
-    default: ({ name }: { name: string }) => <div data-onboarding-animation={name} />,
-}))
-jest.mock('@/components/Global/PeanutMascot', () => ({
-    __esModule: true,
-    default: ({ pose }: { pose: string }) => <div data-mascot-pose={pose} />,
-}))
-jest.mock('@/components/Setup/components/ResidenceHero', () => ({ ResidenceHero: () => <div data-residence-hero /> }))
-jest.mock('@/components/0_Bruddle/CloudsBackground', () => ({ __esModule: true, default: () => <div data-clouds /> }))
 
 const originalMatchMedia = window.matchMedia
 const setWidth = (width: number) => {
@@ -42,63 +32,41 @@ const renderStep = (screenId: ScreenId, stage: SetupStageSize = 'std') =>
         </SetupScreen>
     )
 
-const hero = () => document.querySelector('[data-setup-hero]')
-
 afterEach(() => {
     window.matchMedia = originalMatchMedia
 })
 
-/** R1-02: desktop keeps dev's split, dev's side hero beside the phone column; phones get the column alone. */
+/** no side hero at any width: the shell is full width below lg and the centred phone column from lg. */
 describe('SetupShell on desktop', () => {
-    it('puts dev side hero with the step art left of the shell column from 768 px', () => {
-        setWidth(1440)
-        renderStep('advantage-fees')
-        const frame = document.querySelector('[data-setup-desktop-frame]')!
-        expect(hero()).not.toBeNull()
-        expect(frame.firstElementChild).toBe(hero())
-        expect(hero()!.querySelector('[data-onboarding-animation="accounts"]')).not.toBeNull()
-        expect(frame.querySelector('[data-setup-shell]')).not.toBeNull()
+    it.each([1440, 767])('renders only the phone column at %i px', (width) => {
+        setWidth(width)
+        const { container } = renderStep('advantage-fees')
+        const shell = container.querySelector('[data-setup-shell]')!
+        expect(container.firstElementChild).toBe(shell)
+        // full width below lg (phones, tablets, phone landscape); the centred 480 px column only from lg
+        expect(shell.className.split(' ')).toContain('lg:max-w-[480px]')
+        expect(shell.className.split(' ')).not.toContain('max-w-[480px]')
+        expect(shell.className).toContain('mx-auto')
     })
 
-    it('shows the landing mascot over the clouds, as dev', () => {
-        setWidth(1024)
-        renderStep('landing', 'tall')
-        expect(hero()!.querySelector('[data-mascot-pose="waving-chill"]')).not.toBeNull()
-        expect(hero()!.querySelector('[data-clouds]')).not.toBeNull()
-    })
-
-    it('gives the web download landing (no footer) the compact stage and leaves its art to the side hero', () => {
+    it('marks the web download landing (no footer), whose desktop stage turns compact in globals.css', () => {
         setWidth(1440)
         renderStep('landing', 'tall')
         const shell = document.querySelector<HTMLElement>('[data-setup-shell]')!
-        expect(shell.style.getPropertyValue('--sr-stage-tall-base')).toBe('var(--sr-stage-compact-base)')
+        expect(shell.hasAttribute('data-setup-download')).toBe(true)
+        expect(shell.style.getPropertyValue('--sr-stage-tall-base')).toBe('')
     })
 
-    it('keeps the tall stage for a landing with a footer (native, keep-web)', () => {
-        setWidth(1440)
-        renderInShell(
+    it('does not mark a landing with a footer (native, keep-web) or any other step', () => {
+        const landing = renderInShell(
             'landing',
             <SetupScreen ground="sky" stage="tall" footer={{ primary: { label: 'Sign up', onClick: () => {} } }}>
                 <p>panel</p>
             </SetupScreen>
         )
-        const shell = document.querySelector<HTMLElement>('[data-setup-shell]')!
-        expect(shell.style.getPropertyValue('--sr-stage-tall-base')).toBe('')
-    })
-
-    it('mounts no hero on a phone', () => {
-        setWidth(767)
-        renderStep('advantage-fees')
-        expect(hero()).toBeNull()
-        expect(document.querySelector('[data-onboarding-animation]')).toBeNull()
-    })
-
-    it('drops the hero where dev went full page: the celebration and the residence comparison', () => {
-        setWidth(1440)
-        const celebration = renderStep('advantage-control', 'full')
-        expect(hero()).toBeNull()
-        celebration.unmount()
-        renderStep('residence', 'compact')
-        expect(hero()).toBeNull()
+        expect(document.querySelector('[data-setup-shell]')!.hasAttribute('data-setup-download')).toBe(false)
+        landing.unmount()
+        renderStep('residence')
+        expect(document.querySelector('[data-setup-shell]')!.hasAttribute('data-setup-download')).toBe(false)
     })
 })

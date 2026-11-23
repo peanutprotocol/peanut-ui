@@ -2,7 +2,6 @@
 
 import { AnimatePresence, useReducedMotion } from 'framer-motion'
 import {
-    type CSSProperties,
     type ReactNode,
     useCallback,
     useEffect,
@@ -15,8 +14,6 @@ import {
 import { SignupScreenContext } from '@/features/setup/useSignupControl'
 import type { ScreenId } from '@/components/Setup/Setup.types'
 import { isCapacitor } from '@/utils/capacitor'
-import { twMerge } from '@/utils/tw'
-import { DESKTOP_QUERY } from './desktopHero.consts'
 import { GROUND_VAR, STAGE_HEIGHT_VAR } from './shell.consts'
 import { SEAM_S, STEP_S } from './shell.motion'
 import type { SetupGround, SetupStageSize } from './shell.types'
@@ -25,17 +22,8 @@ import { createShellStore } from './shellStore'
 import { ShellFooter } from './ShellFooter'
 import { ShellSlide } from './ShellSlide'
 import { ShellTopBar } from './ShellTopBar'
-import { SetupDesktopHero } from './SetupDesktopHero'
 import { useNavLock } from './useNavLock'
 import { useShellFit } from './useShellFit'
-
-const subscribeDesktop = (onChange: () => void) => {
-    const media = window.matchMedia(DESKTOP_QUERY)
-    media.addEventListener('change', onChange)
-    return () => media.removeEventListener('change', onChange)
-}
-const isDesktop = () => window.matchMedia(DESKTOP_QUERY).matches
-const serverIsDesktop = () => false
 
 const STAGE_RANK: Record<SetupStageSize, number> = { compact: 0, std: 1, tall: 2, full: 3 }
 
@@ -112,103 +100,70 @@ export function SetupShell({ screenId, children, direction = 0, showBackButton, 
         }
     }, [ground])
 
-    // Desktop keeps dev's split: dev's side hero beside the phone column. It mounts only on desktop, so phones never
-    // load its art. Dev's full-page steps had no hero: the celebration (full stage) and the residence comparison.
-    const desktop = useSyncExternalStore(subscribeDesktop, isDesktop, serverIsDesktop)
-    const desktopHero = desktop && stage !== 'full' && !(screenId === 'residence' && stage === 'compact')
-    // Dev's desktop download landing showed the headline, the store QR, both store buttons and Log in at once, with the
-    // mascot in the side hero. Under the tall stage the QR block falls below the fold, so on desktop the web landing
-    // (no footer) takes the compact stage and leaves its art to the side hero.
-    const desktopDownload = desktop && screenId === 'landing' && screen?.footer === null
-
     const chrome = screen?.chrome ?? {}
     return (
         <SetupShellContext.Provider value={context}>
             <SignupScreenContext.Provider value={screenId}>
+                {/* phones, tablets and phone landscape show the shell full width; from lg (1024 px) it is the phone
+                    column centred on the page, as the rest of the app does on desktop (design.md: no per-page desktop
+                    layouts). w-full: a flex parent (the surfaces gallery) must not shrink it to nothing.
+                    isolate: the shell's layers (the footer is z-40) stack inside it, never over a full-screen overlay
+                    such as the ID-check intro (z-30) opened from a sign-up step (TASK-25063) */}
                 <div
-                    // w-full: a flex parent (the surfaces gallery) must not shrink the frame, and with it the shell, to nothing
-                    className="w-full md:flex md:h-[calc(100dvh_-_var(--safe-top)_-_var(--safe-bottom))] md:flex-row"
-                    data-setup-desktop-frame
+                    ref={shellRef}
+                    className="signup-shell relative isolate mx-auto h-[var(--sr-h)] w-full overflow-hidden bg-background-default lg:max-w-[480px]"
+                    data-setup-shell
+                    data-setup-screen={screenId}
+                    // the web landing (no footer) is the download page: on a wide, short screen its QR, store buttons
+                    // and Log in must fit one screen, so it takes the compact stage there (globals.css)
+                    data-setup-download={screenId === 'landing' && screen?.footer === null ? '' : undefined}
                 >
-                    {desktopHero && (
-                        <SetupDesktopHero screenId={screenId} direction={direction} reduced={reducedMotion} />
-                    )}
-                    <div className="w-full md:min-w-0 md:flex-1 md:bg-background-default">
-                        {/* isolate: the shell's layers (the footer is z-40) stack inside it, never over a full-screen
-                            overlay such as the ID-check intro (z-30) opened from a sign-up step (TASK-25063) */}
-                        <div
-                            ref={shellRef}
-                            className={twMerge(
-                                'signup-shell relative isolate mx-auto h-[var(--sr-h)] w-full max-w-[480px] overflow-hidden bg-background-default',
-                                desktopDownload && '[&_[data-setup-art-box]]:hidden'
-                            )}
-                            style={
-                                desktopDownload
-                                    ? ({ '--sr-stage-tall-base': 'var(--sr-stage-compact-base)' } as CSSProperties)
-                                    : undefined
-                            }
-                            data-setup-shell
-                            data-setup-screen={screenId}
-                        >
-                            {/* the unfolded stage height, for the fold check (useShellFit) */}
-                            <div
-                                ref={probeRef}
-                                aria-hidden="true"
-                                className="pointer-events-none invisible absolute top-0 left-0 w-0"
-                                style={{ height: `var(--sr-stage-${stage}-base)` }}
-                            />
-                            <div className="absolute inset-0" data-setup-track>
-                                {/* presenceAffectsLayout off: on, every shell render hands the screen a new presence value (framer-motion
+                    {/* the unfolded stage height, for the fold check (useShellFit) */}
+                    <div
+                        ref={probeRef}
+                        aria-hidden="true"
+                        className="pointer-events-none invisible absolute top-0 left-0 w-0"
+                        style={{ height: `var(--sr-stage-${stage}-base)` }}
+                    />
+                    <div className="absolute inset-0" data-setup-track>
+                        {/* presenceAffectsLayout off: on, every shell render hands the screen a new presence value (framer-motion
                             11 memoizes it on Math.random()), the screen re-renders and writes the store, and the shell renders again. */}
-                                <AnimatePresence
-                                    initial={false}
-                                    custom={direction}
-                                    mode="sync"
-                                    presenceAffectsLayout={false}
-                                >
-                                    <ShellSlide key={screenId} slideKey={screenId} direction={direction}>
-                                        {children}
-                                    </ShellSlide>
-                                </AnimatePresence>
-                                {/* One white sheet is the panel ground for both screens; it covers the stages below the seam. */}
-                                <div
-                                    aria-hidden="true"
-                                    className="pointer-events-none absolute inset-x-0 bottom-0 z-[3] bg-background-default"
-                                    style={{
-                                        top: STAGE_HEIGHT_VAR[stage],
-                                        transition: reducedMotion
-                                            ? 'none'
-                                            : `top ${SEAM_S}s var(--sr-ease-step) ${seamDelay}s`,
-                                    }}
-                                    data-setup-seam
-                                />
-                            </div>
-                            <ShellTopBar
-                                showBack={!!showBackButton && chrome.back !== false}
-                                onBack={back}
-                                progress={chrome.dots === false ? null : (progress ?? null)}
-                                showLanguage={chrome.lang !== false}
-                                reduced={reducedMotion}
-                            />
-                            <ShellFooter
-                                spec={screen?.footer ?? null}
-                                latest={store.latestFooter}
-                                reduced={reducedMotion}
-                                guard={guard}
-                                onTop={onFooterTop}
-                            />
-                        </div>
+                        <AnimatePresence initial={false} custom={direction} mode="sync" presenceAffectsLayout={false}>
+                            <ShellSlide key={screenId} slideKey={screenId} direction={direction}>
+                                {children}
+                            </ShellSlide>
+                        </AnimatePresence>
+                        {/* One white sheet is the panel ground for both screens; it covers the stages below the seam. */}
+                        <div
+                            aria-hidden="true"
+                            className="pointer-events-none absolute inset-x-0 bottom-0 z-[3] bg-background-default"
+                            style={{
+                                top: STAGE_HEIGHT_VAR[stage],
+                                transition: reducedMotion ? 'none' : `top ${SEAM_S}s var(--sr-ease-step) ${seamDelay}s`,
+                            }}
+                            data-setup-seam
+                        />
                     </div>
+                    <ShellTopBar
+                        showBack={!!showBackButton && chrome.back !== false}
+                        onBack={back}
+                        progress={chrome.dots === false ? null : (progress ?? null)}
+                        showLanguage={chrome.lang !== false}
+                        reduced={reducedMotion}
+                    />
+                    <ShellFooter
+                        spec={screen?.footer ?? null}
+                        latest={store.latestFooter}
+                        reduced={reducedMotion}
+                        guard={guard}
+                        onTop={onFooterTop}
+                    />
                 </div>
                 {/* The home-bar inset under the shell continues what sits above it, as in the mock: the white panel, or the
                     ground on a full stage. Above AppShell's own inset cover (z-40), which follows the platform, not the screen. */}
                 <div
                     aria-hidden="true"
-                    className={twMerge(
-                        'pointer-events-none fixed inset-x-0 bottom-0 z-[41] mx-auto h-safe-bottom max-w-[480px]',
-                        // under the column, right of the hero's 7/12
-                        desktopHero && 'left-[calc(100%*7/12)]'
-                    )}
+                    className="pointer-events-none fixed inset-x-0 bottom-0 z-[41] mx-auto h-safe-bottom lg:max-w-[480px]"
                     style={{
                         background: stage === 'full' && ground ? GROUND_VAR[ground] : 'var(--color-background-default)',
                     }}
