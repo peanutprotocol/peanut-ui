@@ -7,13 +7,15 @@ import { coversPageBottom, deviceOs } from '@/features/creator-pages/environment
 import { creatorPageExperiment } from '@/features/creator-pages/experiments'
 import { creatorPageComponent } from '@/features/creator-pages/page-components'
 import { creatorPageFixture } from '@/features/creator-pages/preview-fixture'
+import { creatorUsernameFromSegment } from '@/features/creator-pages/route-username'
 
 export const dynamic = 'force-dynamic'
 
 type PreviewRouteProps = { params: Promise<{ username: string; variant: string }> }
 
 export async function generateMetadata({ params }: PreviewRouteProps): Promise<Metadata> {
-    const title = creatorPageExperiment((await params).username.toLowerCase())?.title
+    const username = creatorUsernameFromSegment((await params).username)
+    const title = username ? creatorPageExperiment(username)?.title : undefined
     return { ...(title ? { title } : {}), robots: { index: false, follow: false } }
 }
 
@@ -24,8 +26,9 @@ export async function generateMetadata({ params }: PreviewRouteProps): Promise<M
  */
 export default async function CreatorPagePreviewRoute({ params }: PreviewRouteProps) {
     if (!DEV_ROUTES_ENABLED) notFound()
-    const [{ username: rawUsername, variant }, requestHeaders] = await Promise.all([params, headers()])
-    const username = rawUsername.toLowerCase()
+    const [{ username: segment, variant }, requestHeaders] = await Promise.all([params, headers()])
+    const username = creatorUsernameFromSegment(segment)
+    if (!username) notFound()
     const Page = creatorPageComponent(username, variant)
     if (!Page) notFound()
     const userAgent = requestHeaders.get('user-agent') ?? ''

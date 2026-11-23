@@ -37,17 +37,32 @@ describe('/c/<username>', () => {
         expect(element.props).toMatchObject({ username: 'juanacervio', variant: 'e1' })
     })
 
-    it.each(['someoneelse', 'constructor'])('answers a 307 to the invite of %s, who has no page', async (username) => {
+    it.each(['nobody', 'someoneelse', 'constructor'])(
+        'answers a 307 to the invite of %s, who has no page',
+        async (username) => {
+            const { default: CreatorPageRoute } = await import('@/app/c/[username]/page')
+            expect(await answerOf(() => CreatorPageRoute(params(username)))).toBe(
+                `NEXT_REDIRECT;replace;/invite?code=${username};307;`
+            )
+        }
+    )
+
+    // The segment arrives percent-encoded, as the router hands it over.
+    it.each([
+        ['encoded control characters', 'a%0d%0ab'],
+        ['an encoded right-to-left override', '%E2%80%AEevil'],
+        ['a query in the segment', 'a%26b%3Dc'],
+        ['broken percent-encoding', 'abc%'],
+        ['a name too short for a username', 'ab'],
+    ])('is a 404 for %s, never a redirect', async (_case, segment) => {
         const { default: CreatorPageRoute } = await import('@/app/c/[username]/page')
-        expect(await answerOf(() => CreatorPageRoute(params(username)))).toBe(
-            `NEXT_REDIRECT;replace;/invite?code=${username};307;`
-        )
+        expect(await answerOf(() => CreatorPageRoute(params(segment)))).toBe('NEXT_HTTP_ERROR_FALLBACK;404')
     })
 
-    it('encodes a username it cannot know into the redirect', async () => {
+    it('decodes the segment once before the redirect', async () => {
         const { default: CreatorPageRoute } = await import('@/app/c/[username]/page')
-        expect(await answerOf(() => CreatorPageRoute(params('a&b=c')))).toBe(
-            'NEXT_REDIRECT;replace;/invite?code=a%26b%3Dc;307;'
+        expect(await answerOf(() => CreatorPageRoute(params('N%6Fbody')))).toBe(
+            'NEXT_REDIRECT;replace;/invite?code=nobody;307;'
         )
     })
 
