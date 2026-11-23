@@ -140,20 +140,31 @@ function withdrawalBroadcast(artifact: SignedSpendArtifact): SpendBroadcast {
     }
 }
 
-type HistoryRow = { status?: string; extraData?: { provider?: string; kind?: string; isRefund?: boolean } }
+type HistoryRow = {
+    status?: string
+    recipientAccount?: { identifier?: string }
+    extraData?: { provider?: string; kind?: string; isRefund?: boolean }
+}
 
 /**
- * The Manteca withdrawal the backend booked after this send began, from the
- * user's activity. The guard allows one withdrawal per destination at a time,
- * so only a single match counts; none or several says nothing (`settling`).
+ * The Manteca withdrawal to `destination` the backend booked after this send
+ * began, from the user's activity. The guard allows one withdrawal per
+ * destination at a time, so only a single match counts; none or several says
+ * nothing (`settling`). A withdrawal to another account is not this send's.
+ * The owner's history names the destination as the withdrawal sent it
+ * (metadata.destinationAddress); the row carries no hash or price lock to match.
  */
-async function readBookedWithdrawal(send: PendingChargeSend): Promise<SendOrderRead> {
+async function readBookedWithdrawal(send: PendingChargeSend, destination: string | null): Promise<SendOrderRead> {
     const query = new URLSearchParams({ from: new Date(send.startedAt).toISOString(), limit: '20' })
     const response = await serverFetch(`/users/history?${query.toString()}`, { method: 'GET', cache: 'no-store' })
     if (!response.ok) throw new Error(`Failed to read the withdrawal: ${response.status}`)
     const { entries } = (await response.json()) as { entries: HistoryRow[] }
     const withdrawals = entries.filter(
-        (row) => row.extraData?.provider === 'MANTECA' && row.extraData.kind === 'OFFRAMP' && !row.extraData.isRefund
+        (row) =>
+            row.extraData?.provider === 'MANTECA' &&
+            row.extraData.kind === 'OFFRAMP' &&
+            !row.extraData.isRefund &&
+            row.recipientAccount?.identifier?.toLowerCase() === destination
     )
     if (withdrawals.length !== 1) return { state: 'settling' }
     const { status } = withdrawals[0]
@@ -167,8 +178,8 @@ async function readBookedWithdrawal(send: PendingChargeSend): Promise<SendOrderR
  * recovery) or the card preparation says whether money moved, and the booked
  * order says whether it completed.
  */
-async function readWithdrawal(send: PendingChargeSend): Promise<SendOrderRead> {
-    const booked = await readBookedWithdrawal(send)
+async function readWithdrawal(send: PendingChargeSend, destination: string | null): Promise<SendOrderRead> {
+    const booked = await readBookedWithdrawal(send, destination)
     if (booked.state !== 'settling' || !send.backendBroadcast) return booked
     const preparation = await rainApi.getWithdrawalStatus(send.chargeId)
     if (preparation.state === 'failed' || preparation.state === 'cancelled') return { state: 'closed' }
@@ -318,13 +329,17 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
         (error: { errorMessage: string }) => setErrorMessage(error.errorMessage, 'paymentNotSent'),
         [setErrorMessage]
     )
+    // The guard and its read both name the destination the way the withdrawal sends it.
+    const pendingDestination =
+        destinationConfirmed && destinationAddress.trim() ? destinationAddress.trim().toLowerCase() : null
+    const readThisWithdrawal = useCallback(
+        (send: PendingChargeSend) => readWithdrawal(send, pendingDestination),
+        [pendingDestination]
+    )
     const pendingSend = usePendingChargeSend({
-        intent:
-            destinationConfirmed && destinationAddress.trim()
-                ? `${MANTECA_WITHDRAW_INTENT}${destinationAddress.trim().toLowerCase()}`
-                : null,
+        intent: pendingDestination ? `${MANTECA_WITHDRAW_INTENT}${pendingDestination}` : null,
         walletAddress: walletAddress as Address | undefined,
-        readOrder: readWithdrawal,
+        readOrder: readThisWithdrawal,
         canResume: step === 'amount' || step === 'review',
         setIsSuccess: showRecoveredSuccess,
         setIsPaymentStatusUnknown,
