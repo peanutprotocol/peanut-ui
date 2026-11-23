@@ -5498,34 +5498,42 @@
             "taxId": "ID fiscal",
             "role": "Função",
             "programManager": "Gestor do programa",
-            "execution": "Como é executado",
+            "execution": "Como funciona",
             "peanutRole": "Função do Peanut",
             "support": "Suporte",
             "viewTerms": "Ver termos",
             "viewPrivacy": "Ver política de privacidade"
         },
         "role": {
-            "bridge": "Provedor de depósitos, saques e contas em moeda fiduciária",
-            "rhino": "Endereços de depósito entre redes e liquidez de ponte. O Peanut é cliente da Rhino; você não tem conta na Rhino.",
-            "thirdNational": "Emissor do cartão, subsidiária da Rain",
-            "bridgeEea": "Provedor de depósitos, saques e IBANs virtuais em moeda fiduciária",
+            "bridge": "Fornece dados bancários e transferências bancárias",
+            "rhino": "Move sua cripto entre redes. O Peanut é cliente da Rhino; você não tem conta na Rhino.",
+            "thirdNational": "Emissor do cartão",
+            "bridgeEea": "Fornece seu IBAN e transferências bancárias",
             "mantecaAr": "Depósitos, saques e pagamentos por QR na Argentina",
             "mantecaBr": "Pagamentos e transferências por Pix para quem não mora no Brasil",
             "aveniaBr": "Depósitos por Pix para residentes no Brasil, e saques, transferências e pagamentos por QR via Pix para usuários de qualquer país"
         },
         "about": "Sobre a {brand}",
         "execution": {
-            "bridge": "Você assina, a {brand} paga",
-            "bridgeEea": "Você assina, a {brand} paga",
-            "mantecaAr": "Liquidado pela {brand}",
-            "mantecaBr": "Liquidado pela {brand}",
-            "rhino": "Você assina, a {brand} faz a ponte",
+            "bridge": "A {brand} cuida da transferência bancária; você controla sua carteira Peanut",
+            "bridgeEea": "A {brand} cuida da transferência bancária; você controla sua carteira Peanut",
+            "mantecaAr": "A {brand} cuida do pagamento local e da conversão de moeda",
+            "mantecaBr": "A {brand} cuida do pagamento local e da conversão de moeda",
+            "rhino": "A {brand} move sua cripto entre redes",
             "thirdNational": "A Third National emite e liquida",
-            "aveniaBr": "Liquidado pela {brand}"
+            "aveniaBr": "A {brand} cuida do pagamento local e da conversão de moeda"
         },
-        "peanutRole": "Provedor de software de carteira autocustodial; não é parte das operações do provedor",
+        "peanutRole": "O Peanut fornece o software de carteira autocustodial, não o serviço de transferência.",
         "cardRelationship": "Você tem uma relação direta com a Third National, nos termos do cartão.",
-        "cardRelationshipProspective": "Ao aceitar os termos do cartão, sua relação passa a ser diretamente com a Third National."
+        "cardRelationshipProspective": "Ao aceitar os termos do cartão, sua relação passa a ser diretamente com a Third National.",
+        "peanutRoleCard": "O Peanut desenvolve o app de carteira. Ele não é o emissor do cartão nem um credor.",
+        "termsName": {
+            "bridgeUs": "Termos da Bridge para os EUA",
+            "bridgeEea": "Termos de usuário da Bridge para o EEE",
+            "bridgeRow": "Termos de usuário da Bridge",
+            "bridge": "Termos da Bridge",
+            "aveniaBr": "Termos e condições da Avenia"
+        }
     },
     "brazilPause": {
         "title": "Serviços no Brasil pausados",
