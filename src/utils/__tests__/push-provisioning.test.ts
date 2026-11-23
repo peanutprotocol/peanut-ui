@@ -141,6 +141,15 @@ describe('addCardToWallet', () => {
         expect(addCard).toHaveBeenCalled()
     })
 
+    it('preserves a Capacitor reject code with the error message', async () => {
+        addCard.mockRejectedValue(Object.assign(new Error('SDK unavailable'), { code: 'UNAVAILABLE' }))
+        await expect(addCardToWallet({ cardId: 'c', cardSecret: 's' })).resolves.toEqual({
+            added: false,
+            error: 'SDK unavailable',
+            code: 'UNAVAILABLE',
+        })
+    })
+
     it('is unavailable on web without touching the plugin', async () => {
         mockIsAndroidNative.mockReturnValue(false)
 

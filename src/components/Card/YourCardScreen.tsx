@@ -111,7 +111,7 @@ const YourCardScreen: FC<Props> = ({
               : null
     const { triggerHaptic } = useAppHaptic()
     const toast = useToast()
-    const { nativeAvailable, alreadyInWallet, isChecking, isAdding, addToWallet } = usePushProvisioning({
+    const { nativeAvailable, pushDisabled, alreadyInWallet, isChecking, isAdding, addToWallet } = usePushProvisioning({
         id: card.id,
         last4: card.last4,
     })
@@ -123,20 +123,22 @@ const YourCardScreen: FC<Props> = ({
     const handleAddToWallet = useCallback(async () => {
         if (isAdding) return
         const result = await addToWallet()
+        if (result.canceled) return
         if (result.added || result.alreadyInWallet) {
             triggerHaptic()
             toast.success(walletAddedLabel ?? t('walletAddSuccess'))
-        } else if (!result.canceled) {
+        } else {
             toast.error(t('walletAddFailed'))
         }
     }, [isAdding, addToWallet, triggerHaptic, toast, t, walletAddedLabel])
 
-    // The official button replaces the manual row only where it starts the native add.
-    const walletButton = !nativeAvailable ? null : walletPlatform === 'android' ? (
-        <GoogleWalletButton isAdding={isAdding} onClick={() => void handleAddToWallet()} />
-    ) : walletPlatform === 'ios' ? (
-        <AppleWalletRow isAdding={isAdding} onClick={() => void handleAddToWallet()} />
-    ) : null
+    const showWalletControls = !isChecking && !alreadyInWallet
+    const walletButton =
+        !showWalletControls || !nativeAvailable || pushDisabled ? null : walletPlatform === 'android' ? (
+            <GoogleWalletButton isAdding={isAdding} onClick={() => void handleAddToWallet()} />
+        ) : walletPlatform === 'ios' ? (
+            <AppleWalletRow isAdding={isAdding} onClick={() => void handleAddToWallet()} />
+        ) : null
 
     const isLocked = card.status === 'LOCKED'
     // the limits page's own query: the row shows what that page will open on
@@ -291,8 +293,8 @@ const YourCardScreen: FC<Props> = ({
                         chevron
                         onClick={() => router.push('/card/limit')}
                     />
-                    {/* manual steps until the platform flag and native SDK show the wallet control below */}
-                    {walletLabel && !isChecking && !alreadyInWallet && !walletButton && (
+                    {/* Offer manual instructions when push provisioning is unavailable. */}
+                    {showWalletControls && walletLabel && !walletButton && (
                         <ListItem
                             title={walletLabel}
                             leading={<Icon name="wallet" size={24} />}
@@ -303,7 +305,7 @@ const YourCardScreen: FC<Props> = ({
                 </ListGroup>
             </Section>
 
-            {!alreadyInWallet && walletButton}
+            {walletButton}
 
             <Callout priority="info" title={t('payAsCreditTitle')}>
                 {t('payAsCreditBody')}
