@@ -79,8 +79,10 @@ export const Tooltip = ({
                 data-testid={triggerTestId}
                 ref={triggerRef}
                 className={twMerge('inline-block cursor-pointer', className)}
-                onMouseEnter={showTooltip}
-                onMouseLeave={hideTooltip}
+                // hover only for a mouse: a tap's compatibility mouseenter opened the
+                // tooltip and its click closed it again (TASK-23929); a tap toggles below
+                onPointerEnter={(e) => e.pointerType === 'mouse' && showTooltip()}
+                onPointerLeave={(e) => e.pointerType === 'mouse' && hideTooltip()}
                 onFocus={showTooltip}
                 onBlur={hideTooltip}
                 onKeyDown={(event) => {
