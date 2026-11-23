@@ -54,6 +54,14 @@ describe('useSumsubWebSdk', () => {
         delete (window as unknown as { snsWebSdk?: unknown }).snsWebSdk
     })
 
+    it('uses the one Peanut appearance set, whatever the level picks', () => {
+        const { result } = renderHookWithIntl(() => useSumsubWebSdk(baseArgs()))
+        act(() => result.current.setSdkContainer(document.createElement('div')))
+        expect(configure).toHaveBeenCalledWith(
+            expect.objectContaining({ theme: 'light', customizationName: 'Peanut_DS_20261123' })
+        )
+    })
+
     it('launches the SDK once the container attaches', () => {
         const { result } = renderHookWithIntl(() => useSumsubWebSdk(baseArgs()))
         expect(launch).not.toHaveBeenCalled()

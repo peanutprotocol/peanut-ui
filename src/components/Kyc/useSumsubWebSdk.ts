@@ -20,6 +20,13 @@ import type { SumsubSdkProps } from './sumsubSdk.types'
 const SUMSUB_SDK_URL = 'https://static.sumsub.com/idensic/static/sns-websdk-builder.js'
 
 /**
+ * The Sumsub appearance set (dashboard: SDK customization → SDK appearance) for every web launch.
+ * It overrides the set each verification level picks, so the theme lives in one place. The name
+ * must match the dashboard exactly, so rename both together (TASK-25323).
+ */
+const SUMSUB_APPEARANCE_SET = 'Peanut_DS_20261123'
+
+/**
  * How long the modal may sit open without the SDK launching before we stop
  * pretending it's loading and show the error UI. The Jul-16/17 outage spun
  * forever because nothing was watching: a never-launched SDK throws nothing,
@@ -280,6 +287,7 @@ export function useSumsubWebSdk({
                 .withConf({
                     lang: sumsubLocaleRef.current,
                     theme: 'light',
+                    customizationName: SUMSUB_APPEARANCE_SET,
                     ...documentConfigRef.current,
                     ...(emailRef.current ? { email: emailRef.current } : {}),
                 })
