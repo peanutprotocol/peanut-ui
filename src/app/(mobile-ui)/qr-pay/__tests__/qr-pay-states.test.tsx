@@ -398,7 +398,15 @@ jest.mock('@/features/kill-switches/kill-switches-store', () => {
 const mockToastError = jest.fn()
 jest.mock('@/components/0_Bruddle/Toast', () => ({
     ...jest.requireActual('@/components/0_Bruddle/Toast'),
-    useToast: () => ({ error: mockToastError, success: jest.fn(), info: jest.fn(), attention: jest.fn() }),
+    useToast: () => ({
+        error: mockToastError,
+        success: jest.fn(),
+        info: jest.fn(),
+        attention: jest.fn(),
+        // the card cool-down pill (RainCooldownProvider)
+        toast: jest.fn(),
+        dismiss: jest.fn(),
+    }),
 }))
 
 jest.mock('@/context/ModalsContext', () => ({
@@ -542,6 +550,7 @@ jest.mock('@/services/services.types', () => ({
 // ---------- import component under test AFTER all mocks ----------
 import QRPayPage from '../page'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
+import { RainCooldownProvider } from '@/context/RainCooldownContext'
 
 // ---------- helpers ----------
 
@@ -680,7 +689,10 @@ function renderQrPay(params: Record<string, string> = {}) {
             <IntlWrapper>
                 <QueryClientProvider client={queryClient}>
                     <LoadingProvider>
-                        <QRPayPage />
+                        {/* the app mounts it above every route: it runs the card cool-down clock */}
+                        <RainCooldownProvider>
+                            <QRPayPage />
+                        </RainCooldownProvider>
                     </LoadingProvider>
                 </QueryClientProvider>
             </IntlWrapper>
@@ -3217,4 +3229,107 @@ test('cooldown replaces the QR provider prompt and dismissal leaves the flow', (
     fireEvent.click(screen.getByText("I'll try later"))
     expect(mockRouterReplace).toHaveBeenCalledWith('/home')
     expect(mockDismissCooldown).toHaveBeenCalledTimes(1)
+})
+
+/*
+ * Rain allows one collateral withdrawal signature at a time, so a second spend soon after the first
+ * gets a 425 (TASK-25316). Pay waits while the cool-down clock runs and works again once it ends, as
+ * on the other spend screens. Before, Pay stayed disabled and only a new scan got the user out.
+ */
+describe('card cool-down on Pay (TASK-25316)', () => {
+    beforeEach(() => jest.useFakeTimers({ advanceTimers: true }))
+    afterEach(() => jest.useRealTimers())
+
+    /** What `rainRequest` does on that 425: it starts the shared clock when Rain names the wait, then throws. */
+    function failNextSignWithCooldown(retryAfterSec: number | null) {
+        mockSignSpend.mockImplementationOnce(async () => {
+            if (retryAfterSec !== null) {
+                window.dispatchEvent(
+                    new CustomEvent('rain:cooldown', { detail: { retryAfterSec, message: 'cooling down' } })
+                )
+            }
+            throw Object.assign(new Error('A previous withdrawal is still active for this card. Try again shortly.'), {
+                name: 'RainCooldownError',
+                code: 'WITHDRAWAL_COOLDOWN_ACTIVE',
+                retryAfterSec,
+            })
+        })
+    }
+
+    async function tapPay() {
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+        })
+    }
+
+    async function payIntoCooldown(retryAfterSec: number | null) {
+        failNextSignWithCooldown(retryAfterSec)
+        renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+        await tapPay()
+        await waitFor(() => expect(screen.getByTestId('error-alert')).toBeInTheDocument())
+    }
+
+    async function waitOutCooldown() {
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(31_000)
+        })
+    }
+
+    test('Pay stays disabled while the clock runs, under the live countdown', async () => {
+        await payIntoCooldown(30)
+        expect(screen.getByTestId('error-alert')).toHaveTextContent('Try again in 0:30.')
+        expect(screen.getByRole('button', { name: 'Pay' })).toBeDisabled()
+
+        await act(async () => {
+            await jest.advanceTimersByTimeAsync(10_000)
+        })
+        expect(screen.getByTestId('error-alert')).toHaveTextContent('Try again in 0:20.')
+        expect(screen.getByRole('button', { name: 'Pay' })).toBeDisabled()
+        expect(mockSignSpend).toHaveBeenCalledTimes(1)
+    })
+
+    test('once the clock ends Pay works, and the tap is a new attempt without the old error', async () => {
+        await payIntoCooldown(30)
+        await waitOutCooldown()
+        expect(screen.getByTestId('error-alert')).toHaveTextContent(en.errors.rainCooldownRetryNow)
+        expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled()
+
+        // read the screen while the new attempt still waits for its signature
+        mockSignSpend.mockImplementationOnce(() => new Promise(() => {}))
+        await tapPay()
+        await waitFor(() => expect(mockSignSpend).toHaveBeenCalledTimes(2))
+        expect(screen.queryByTestId('error-alert')).not.toBeInTheDocument()
+        // the lock is still live: it is signed again, not re-quoted
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(1)
+    })
+
+    test('a quote that expired during the cool-down is re-quoted on the tap, never signed', async () => {
+        mockMantecaApi.initiateQrPayment.mockResolvedValueOnce({ ...reconnectLock, expiresInMs: 20_000 })
+        await payIntoCooldown(30)
+        await waitOutCooldown()
+        expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled()
+
+        mockMantecaApi.initiateQrPayment.mockResolvedValueOnce({ ...reconnectLock, code: 'LOCK-FRESH' })
+        await tapPay()
+
+        await waitFor(() =>
+            expect(screen.getByTestId('quote-updated-notice')).toHaveTextContent(en.qrPay.reviewUpdatedQuote)
+        )
+        expect(mockMantecaApi.initiateQrPayment).toHaveBeenCalledTimes(2)
+        expect(mockSignSpend).toHaveBeenCalledTimes(1)
+        expect(mockMantecaApi.completeQrPaymentWithSignedTx).not.toHaveBeenCalled()
+        expect(screen.queryByTestId('error-alert')).not.toBeInTheDocument()
+        // the user confirms the new terms with one more tap
+        await waitFor(() => expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled())
+    })
+
+    test('a cool-down that names no wait leaves Pay usable at once', async () => {
+        await payIntoCooldown(null)
+        expect(screen.getByTestId('error-alert')).toHaveTextContent(en.errors.rainCooldownRetryShortly)
+        expect(screen.getByRole('button', { name: 'Pay' })).toBeEnabled()
+
+        await tapPay()
+        await waitFor(() => expect(mockSignSpend).toHaveBeenCalledTimes(2))
+    })
 })

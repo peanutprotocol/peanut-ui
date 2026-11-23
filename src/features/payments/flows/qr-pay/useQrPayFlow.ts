@@ -40,6 +40,7 @@ import {
 import { friendlyError } from '@/utils/friendly-error.utils'
 import { isPasskeyBusyError, isPasskeyCleanupPendingError } from '@/utils/webauthn.utils'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
+import { useCooldownRemaining } from '@/hooks/useCooldownRemaining'
 import { useRainCardOverview } from '@/hooks/useRainCardOverview'
 import { rainCentsToUsdcUnits, isAmountWithinBalance } from '@/utils/balance.utils'
 import { qrInitIdempotencyKey } from '@/utils/qr-payment.utils'
@@ -491,12 +492,17 @@ export function useQrPayFlowController(
         }
     }, [isPixPay, pixPayOpened, pixPayPrice, setCurrency, rateAttempt])
 
+    // the card cool-down clock the error banner counts down (`CooldownErrorText`)
+    const cooldownRemaining = useCooldownRemaining()
     const isBlockingError = useMemo(() => {
         // The settling failure says "try again in a few seconds" — keep the Pay
         // button enabled so the user can retry, don't dead-end it like a hard error.
         // A failed replacement quote is the same shape: the payment did not
         // fail, the re-quote did, and tapping Pay tries the whole thing again.
         if (requoteFailed) return false
+        // Nothing was signed or sent. Pay waits only while the clock runs: once it ends, or when
+        // Rain named no wait and no clock started, a tap is a new attempt (TASK-25316).
+        if (errorCode === 'rainCooldownRetryShortly') return cooldownRemaining !== null
         return (
             !!errorMessage &&
             errorCode !== 'confirmTransaction' &&
@@ -506,7 +512,7 @@ export function useQrPayFlowController(
             // Nothing was signed or sent; tapping Pay again is safe.
             errorCode !== 'signRetryable'
         )
-    }, [errorMessage, errorCode, requoteFailed])
+    }, [errorMessage, errorCode, requoteFailed, cooldownRemaining])
 
     const usdAmount = useMemo(() => {
         // what leaves the wallet: the paid entry's, else what this session signed, else the review's figure
@@ -956,6 +962,8 @@ export function useQrPayFlowController(
         }
         // This tap IS the confirmation of whatever quote is on screen.
         setQuoteUpdatedNotice(null)
+        // A cool-down Pay waited out belongs to the last attempt, not this one.
+        if (errorCode === 'rainCooldownRetryShortly') setErrorMessage(null)
 
         // One attempt id per Pay press, minted BEFORE the open-amount init so
         // the lock stage belongs to it. A retry is a new signature and so a
@@ -1386,6 +1394,7 @@ export function useQrPayFlowController(
         handleQuoteRecovery,
         isQuoteRecovering,
         requoteFailed,
+        errorCode,
         paymentLock,
         signSpend,
         takePreparedSmartSpend,
