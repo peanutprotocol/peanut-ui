@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LINK_BUTTON_CLASSES } from '@/components/0_Bruddle/LinkButton'
 import Loading from '@/components/Global/Loading'
 import MigrationHero from '@/components/Migration/MigrationHero'
 import StoreButtons from '@/components/Migration/StoreButtons'
@@ -186,9 +187,13 @@ export default function SmartStoreRedirect() {
                     {creatorEntry ? (
                         <>
                             <StoreButtons surface={MIGRATION_SURFACES.SMART_LINK} handoff={creatorEntry.handoff} />
-                            <Button variant="ghost" href={creatorEntry.openAppHref} plainAnchor className="w-full">
+                            {/* a plain anchor: the app link must be a full-page navigation */}
+                            <a
+                                href={creatorEntry.openAppHref}
+                                className={twMerge(LINK_BUTTON_CLASSES, 'mt-2 self-center')}
+                            >
                                 {t('smartLink.openApp')}
-                            </Button>
+                            </a>
                         </>
                     ) : mounted && entryReady ? (
                         stores.map((s, i) => (
