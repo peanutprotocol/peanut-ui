@@ -50,6 +50,11 @@
                           and this tab sent with no marker. A tab broadcasts only while its own
                           marker is there. (Two tabs read and write storage in separate steps; the
                           model makes each check-and-write atomic.)
+     SignOutForgets       sign-out removed the Manteca withdraw marker, because its key named the
+                          bank account or Pix key; the same user signed in again and Pay was back
+                          with no proof. The key names the saved account by its id (one hold per user
+                          for an unsaved destination), so sign-out keeps the marker and signing
+                          in again is a Reload.
 
    Properties: AtMostOneTransfer and NoSilentDoubleSend (one intent moves money once, unless the
    warning showed or storage refused the marker), NoRetryWhileMoneyMayExist,
@@ -87,7 +92,8 @@ TypeOK == /\ view \in Views
           /\ {pending, booked, memOnly, aged, warned, degraded, refused, bLease} \subseteq BOOLEAN
           /\ claimB \in {"none", "claimed"}
           /\ Gaps \subseteq {"SentDeadline", "UnknownByAge", "StorageFail", "SubmitTimeout", "SpentNonce",
-                             "CrossTab", "PermanentHold", "RefuseOnStorageFail", "LeaseSteal"}
+                             "CrossTab", "PermanentHold", "RefuseOnStorageFail", "LeaseSteal",
+                             "SignOutForgets"}
 
 Init == /\ view = "input" /\ op = "none" /\ orphans = 0
         /\ chainTxs = 0 /\ pending = FALSE /\ taps = 0
@@ -267,6 +273,12 @@ Reload == /\ view /= "status"
                      view' = "input" /\ ClearMarker /\ Abandon /\ UNCHANGED degraded
           /\ UNCHANGED <<chainTxs, taps, booked, warned, refused, claimB>>
 
+\* SignOutForgets: sign-out, then the same user signs in again. The fix keeps
+\* the marker, so this is a Reload; the gap removed it with the screen's state.
+SignOutForget == /\ Gap("SignOutForgets") /\ pending /\ view /= "status"
+                 /\ view' = "input" /\ ClearMarker /\ Abandon
+                 /\ UNCHANGED <<chainTxs, taps, booked, Hist>>
+
 \* --- another tab of the same user, with `claim` (Fixed, not CrossTab) ---
 \* It taps Pay while this tab shows no attempt: its claim is the marker.
 OtherTabClaim == /\ Fixed /\ ~Gap("CrossTab") /\ claimB = "none" /\ ~pending
@@ -298,7 +310,7 @@ Next == \/ Tap \/ TapSameTick \/ TapOtherTab \/ TapOtherTabUnseen \/ CreateOk \/
         \/ SendFailClean \/ SendOk \/ SendFailAfterSubmit \/ SubmitAnswerAsRefusal
         \/ RecordOk \/ RecordTimeout \/ RecordHttpFail
         \/ Recover \/ RecoverRecord \/ RecoverUnreadable \/ RecoverNonceSpent \/ Reload
-        \/ RecoverTimeout \/ LeaveConfirming \/ Age \/ ReleaseWarned
+        \/ RecoverTimeout \/ LeaveConfirming \/ Age \/ ReleaseWarned \/ SignOutForget
         \/ OtherTabClaim \/ OtherTabSend \/ OtherTabRefuse \/ OtherTabRelease \/ OtherTabDies \/ LeaseExpire
 
 Spec == Init /\ [][Next]_vars

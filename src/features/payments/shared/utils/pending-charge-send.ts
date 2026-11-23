@@ -8,9 +8,9 @@ import { storedKeysWithPrefix } from '@/utils/safe-storage'
  * can never turn into a second transfer
  * (verification/tla/ChargeSendFlow.tla, the Fixed variant).
  *
- * Local storage, per user and intent, so it survives the app being killed. It
- * holds ids and hashes; the one key that names an account goes at sign-out
- * ({@link forgetPersonalPendingChargeSends}).
+ * Local storage, per user and intent, so it survives the app being killed and
+ * sign-out. It holds ids and hashes; no key names a bank account, Pix key or
+ * anything derived from one ({@link mantecaWithdrawIntent}).
  */
 export interface PendingChargeSend {
     /**
@@ -77,21 +77,62 @@ const memory = new Map<string, string>()
 
 export const pendingChargeSendKey = (userId: string, intent: string) => `${PREFIX}${userId}:${intent}`
 
-/** A Manteca withdrawal's intent names the bank account or Pix key it pays to: personal data. */
-export const MANTECA_WITHDRAW_INTENT = 'withdraw-manteca:'
+const MANTECA_WITHDRAW = 'withdraw-manteca:'
+const MANTECA_WITHDRAW_ACCOUNT = `${MANTECA_WITHDRAW}account:`
+const MANTECA_WITHDRAW_NEW = `${MANTECA_WITHDRAW}new`
 
 /**
- * Removes this user's markers whose key holds personal data, at sign-out: the
- * next account on this device must not read them (mono design/design.md § state).
+ * A Manteca withdrawal's intent. The destination (a CBU, alias or Pix key) is
+ * personal data, and even a hash of a Pix key gives it back (a CPF has about
+ * 10^9 values), so the key names the saved account by its id, and a
+ * destination the user has not saved by nothing (`new`). One bank account can
+ * be reached under several intents (typed again, by alias, saved by the
+ * backend with the withdrawal), so one Manteca hold holds every Manteca
+ * withdrawal of the user ({@link heldMantecaWithdrawIntent}).
  */
-export function forgetPersonalPendingChargeSends(userId: string | undefined | null) {
-    if (!userId) return
-    const prefix = pendingChargeSendKey(userId, MANTECA_WITHDRAW_INTENT)
+export const mantecaWithdrawIntent = (savedAccountId: string | null) =>
+    savedAccountId ? `${MANTECA_WITHDRAW_ACCOUNT}${savedAccountId}` : MANTECA_WITHDRAW_NEW
+
+/** The saved account a Manteca intent names; null for `new`. */
+export const mantecaWithdrawAccountId = (intent: string) =>
+    intent.startsWith(MANTECA_WITHDRAW_ACCOUNT) ? intent.slice(MANTECA_WITHDRAW_ACCOUNT.length) : null
+
+const isCurrentMantecaIntent = (intent: string) =>
+    intent === MANTECA_WITHDRAW_NEW || intent.startsWith(MANTECA_WITHDRAW_ACCOUNT)
+
+/** This user's Manteca intents that have a marker, in storage or in page memory only. */
+function mantecaIntentsWithMarker(userId: string): string[] {
+    const userPrefix = pendingChargeSendKey(userId, '')
+    const prefix = pendingChargeSendKey(userId, MANTECA_WITHDRAW)
     const keys = new Set([
         ...storedKeysWithPrefix(prefix),
         ...[...memory.keys()].filter((key) => key.startsWith(prefix)),
     ])
-    keys.forEach((key) => writePendingChargeSend(key, null))
+    return [...keys].map((key) => key.slice(userPrefix.length)).sort()
+}
+
+/** The intent of this user's Manteca hold, if one exists. */
+export function heldMantecaWithdrawIntent(userId: string | undefined | null): string | null {
+    if (!userId) return null
+    return (
+        mantecaIntentsWithMarker(userId).find(
+            (intent) =>
+                isCurrentMantecaIntent(intent) &&
+                readPendingChargeSendRaw(pendingChargeSendKey(userId, intent)) !== null
+        ) ?? null
+    )
+}
+
+/**
+ * Removes this user's Manteca markers in an older key format: the raw CBU or
+ * Pix key, or a hash of it. Only branch builds wrote them. Runs at sign-out and
+ * when the withdraw flow opens.
+ */
+export function forgetLegacyMantecaWithdrawMarkers(userId: string | undefined | null) {
+    if (!userId) return
+    mantecaIntentsWithMarker(userId)
+        .filter((intent) => !isCurrentMantecaIntent(intent))
+        .forEach((intent) => writePendingChargeSend(pendingChargeSendKey(userId, intent), null))
 }
 
 const TAB_KEY = 'peanut:pendingChargeSend:tab'
