@@ -2384,7 +2384,7 @@
             "sendExactAmount": "¡Envía exactamente este monto!",
             "sendAnyAmount": "Envía cualquier monto. Incluye la referencia.",
             "depositReference": "Referencia del depósito",
-            "pasteInReferenceField": "Pégala en el campo de referencia del banco",
+            "pasteInReferenceField": "Obligatoria: pégala en el campo de referencia del banco. Sin ella, la transferencia no se puede asociar y podría devolverse.",
             "title": "Datos bancarios",
             "accountHolderName": "Nombre del titular",
             "bankName": "Nombre del banco",
@@ -4439,7 +4439,8 @@
             "local_tax_id_missing": "Necesita un número fiscal: CPF en Brasil, CUIT, CUIL o DNI en Argentina",
             "under_minimum_age": "Solo a partir de los 18 años",
             "bridge_processing_slow": "Está tardando más de lo normal. Nuestro socio de pagos todavía está revisando tus datos. Contacta a soporte y lo revisamos.",
-            "questions_missing": "Responde una pregunta más para terminar de configurarlo."
+            "questions_missing": "Responde una pregunta más para terminar de configurarlo.",
+            "bridge_region_unavailable": "Nuestro socio de pagos no ofrece esta cuenta donde vives. Tus otras cuentas y tus fondos en Peanut no se ven afectados."
         }
     },
     "recoverFunds": {
@@ -5181,6 +5182,7 @@
             "notOfferedBody": "No podemos abrirte cuentas en {currency}. Soporte puede revisar por qué.",
             "notOfferedHereBody": "Es posible que esta cuenta no esté disponible donde vives. Soporte puede revisarlo.",
             "residenceRestrictedBody": "Las cuentas en {currency} no están disponibles para residentes de tu país.",
+            "regionUnavailableBody": "Nuestro socio de pagos no ofrece cuentas en {currency} donde vives. Tus otras cuentas y tus fondos en Peanut no se ven afectados.",
             "notOpenBody": "Las cuentas en {currency} todavía no están abiertas para ti.",
             "residenceMissingBody": "Las cuentas en {currency} dependen de dónde vives. Indica tu residencia para comprobarlo.",
             "uncheckedTitle": "No pudimos revisar la cuenta en {currency}",

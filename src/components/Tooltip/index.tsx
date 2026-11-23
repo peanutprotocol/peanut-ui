@@ -29,6 +29,9 @@ export const Tooltip = ({
     const [visible, setVisible] = useState(false)
     const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, height: 0 })
     const triggerRef = useRef<HTMLDivElement>(null)
+    // set between a press and its click: focus from a tap or click must not open
+    // the tooltip, or the click that follows closes it again
+    const pressingRef = useRef(false)
     const [isMounted, setIsMounted] = useState(false)
     const [dynamicPosition, setDynamicPosition] = useState(position)
 
@@ -79,15 +82,25 @@ export const Tooltip = ({
                 data-testid={triggerTestId}
                 ref={triggerRef}
                 className={twMerge('inline-block cursor-pointer', className)}
-                onMouseEnter={showTooltip}
-                onMouseLeave={hideTooltip}
-                onFocus={showTooltip}
+                // hover only for a mouse: a tap's compatibility mouseenter opened the
+                // tooltip and its click closed it again (TASK-23929); a tap toggles below
+                onPointerEnter={(e) => e.pointerType === 'mouse' && showTooltip()}
+                onPointerLeave={(e) => e.pointerType === 'mouse' && hideTooltip()}
+                onPointerDown={() => {
+                    pressingRef.current = true
+                }}
+                onPointerCancel={() => {
+                    pressingRef.current = false
+                }}
+                // keyboard focus only; a press toggles through the click
+                onFocus={() => !pressingRef.current && showTooltip()}
                 onBlur={hideTooltip}
                 onKeyDown={(event) => {
                     if (event.key === 'Escape') hideTooltip()
                 }}
                 onClick={(e) => {
                     e.stopPropagation()
+                    pressingRef.current = false
                     if (visible) {
                         hideTooltip()
                     } else {

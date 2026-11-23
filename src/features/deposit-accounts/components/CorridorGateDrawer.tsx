@@ -165,7 +165,11 @@ export function CorridorGateDrawer({
         ? notice.ukResidence
             ? tIdentity('reasons.uk_resident_blocked')
             : t('list.residenceRestrictedBody', { currency: rail.currency })
-        : ((reasonKey ? tIdentity(reasonKey) : notice.message) ??
+        : ((notice.reasonCode === 'bridge_region_unavailable'
+              ? t('list.regionUnavailableBody', { currency: rail.currency })
+              : reasonKey
+                ? tIdentity(reasonKey)
+                : notice.message) ??
           (topUpLeads ? t('gate.limitBodyTopUp') : bodyKey ? t(bodyKey, { currency: rail.currency }) : undefined))
     const title =
         notice.action === 'residence-restricted'

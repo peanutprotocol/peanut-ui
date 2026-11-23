@@ -1354,7 +1354,7 @@
         "bankDetails": {
             "sendExactAmount": "¡Enviá exactamente este monto!",
             "sendAnyAmount": "Enviá cualquier monto. Incluí la referencia.",
-            "pasteInReferenceField": "Pegala en el campo de referencia del banco",
+            "pasteInReferenceField": "Obligatoria: pegala en el campo de referencia del banco. Sin ella, la transferencia no se puede asociar y podría devolverse.",
             "doubleCheckTitle": "Revisá bien antes de enviar:",
             "shareOutro": "Usá estos datos para completar tu transferencia bancaria.",
             "doubleCheckSenderName": "Remitente: usá una cuenta bancaria a tu propio nombre (si el nombre no coincide, la transferencia rebota)",
@@ -2059,7 +2059,8 @@
             "residence_bank_restricted": "Las transferencias bancarias no están disponibles para residentes de tu país. Tus fondos están seguros: podés retirarlos como cripto en cualquier momento.",
             "identity_region_restricted": "Nuestro proveedor de verificación no acepta documentos emitidos en tu país. Volver a subirlos no va a cambiar el resultado.",
             "pep_documentation": "Como vos o alguien cercano a vos ocupa un cargo público, necesitamos una declaración jurada de tus bienes e ingresos, o un documento que muestre el origen de tu dinero.",
-            "questions_missing": "Respondé una pregunta más para terminar de configurarlo."
+            "questions_missing": "Respondé una pregunta más para terminar de configurarlo.",
+            "bridge_region_unavailable": "Nuestro socio de pagos no ofrece esta cuenta donde vivís. Tus otras cuentas y tus fondos en Peanut no se ven afectados."
         }
     },
     "recoverFunds": {
@@ -2369,7 +2370,8 @@
             "uncheckedBody": "Volvé a intentarlo en un momento.",
             "residenceMissingBody": "Las cuentas en {currency} dependen de dónde vivís. Indicá tu residencia para comprobarlo.",
             "notOfferedHereBody": "Es posible que esta cuenta no esté disponible donde vivís. Soporte puede revisarlo.",
-            "notOpenBody": "Las cuentas en {currency} todavía no están abiertas para vos."
+            "notOpenBody": "Las cuentas en {currency} todavía no están abiertas para vos.",
+            "regionUnavailableBody": "Nuestro socio de pagos no ofrece cuentas en {currency} donde vivís. Tus otras cuentas y tus fondos en Peanut no se ven afectados."
         },
         "claim": {
             "heading": "Recibí pagos en {currency}",
