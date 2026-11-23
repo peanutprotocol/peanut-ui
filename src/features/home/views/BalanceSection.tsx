@@ -163,7 +163,15 @@ export function BalanceSection({
                                     />
                                 )}
                             </span>
-                            <span className="text-button-m whitespace-nowrap text-foreground-primary">
+                            {/* a long label wraps rather than covering Send and Request:
+                                80px keeps a 5px gap to both at 320px, 96px from 375px up
+                                (pt-BR "Adicionar dinheiro" wraps; "Add money" fits from 375px) */}
+                            <span
+                                className={twMerge(
+                                    'text-button-m text-foreground-primary',
+                                    isPinkAdd && 'w-max max-w-20 text-center min-[375px]:max-w-24'
+                                )}
+                            >
                                 {isPinkAdd
                                     ? t(hasFundedBefore ? 'addMoneyPill.topUp' : 'addMoneyPill.addMoney')
                                     : tNav(action.key)}
@@ -171,7 +179,10 @@ export function BalanceSection({
                         </>
                     )
                     const shared = {
-                        className: twMerge('flex w-14 cursor-pointer flex-col items-center gap-2', action.slot),
+                        className: twMerge(
+                            'flex w-14 cursor-pointer flex-col items-center gap-2 focus-visible:outline-[3px] focus-visible:outline-action-focus',
+                            action.slot
+                        ),
                         'data-testid': `home-submenu-${action.key}`,
                     }
                     return directHref ? (
