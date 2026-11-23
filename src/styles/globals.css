@@ -892,10 +892,22 @@
         }
     }
     /*
-     * The desktop download landing fits its QR, both store buttons and Log in above the fold (SetupShell): the compact
-     * stage holds the headline only, so the art hides, or it would run over the headline.
+     * Tablets and phone landscape (481 px up to lg) show the shell full width, so the stage colour and the panel run
+     * edge to edge. The content keeps the phone column's measure: the gutter grows so title, text and buttons stay
+     * 432 px wide (the 480 px column less two 24 px gutters), centred. From lg the shell itself is that column.
      */
-    @media (min-width: 48rem) {
+    @media (min-width: 30.0625rem) and (max-width: 63.9375rem) {
+        .signup-shell {
+            --sr-gutter: max(24px, calc((100vw - 432px) / 2));
+        }
+    }
+    /*
+     * The download landing on a wide, short screen (desktop, phone landscape) fits its QR, both store buttons and Log in
+     * above the fold (SetupShell). Under the tall stage (capped at 473 px) Log in ends near 982 px, so from 1000 px of
+     * height the tall stage and its art stay. The compact stage holds the headline only, so the art hides there, or it
+     * would run over the headline.
+     */
+    @media (min-width: 48rem) and (max-height: 62.5rem) {
         .signup-shell[data-setup-download] {
             --sr-stage-tall-base: var(--sr-stage-compact-base);
         }

@@ -36,14 +36,16 @@ afterEach(() => {
     window.matchMedia = originalMatchMedia
 })
 
-/** desktop shows the same centred phone column as a phone: no side hero, no desktop-only stage. */
+/** no side hero at any width: the shell is full width below lg and the centred phone column from lg. */
 describe('SetupShell on desktop', () => {
     it.each([1440, 767])('renders only the phone column at %i px', (width) => {
         setWidth(width)
         const { container } = renderStep('advantage-fees')
         const shell = container.querySelector('[data-setup-shell]')!
         expect(container.firstElementChild).toBe(shell)
-        expect(shell.className).toContain('max-w-[480px]')
+        // full width below lg (phones, tablets, phone landscape); the centred 480 px column only from lg
+        expect(shell.className.split(' ')).toContain('lg:max-w-[480px]')
+        expect(shell.className.split(' ')).not.toContain('max-w-[480px]')
         expect(shell.className).toContain('mx-auto')
     })
 

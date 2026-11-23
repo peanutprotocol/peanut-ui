@@ -104,17 +104,18 @@ export function SetupShell({ screenId, children, direction = 0, showBackButton, 
     return (
         <SetupShellContext.Provider value={context}>
             <SignupScreenContext.Provider value={screenId}>
-                {/* desktop shows this same phone column centred on the page, as the rest of the app does (design.md: no
-                    per-page desktop layouts). w-full: a flex parent (the surfaces gallery) must not shrink it to nothing.
+                {/* phones, tablets and phone landscape show the shell full width; from lg (1024 px) it is the phone
+                    column centred on the page, as the rest of the app does on desktop (design.md: no per-page desktop
+                    layouts). w-full: a flex parent (the surfaces gallery) must not shrink it to nothing.
                     isolate: the shell's layers (the footer is z-40) stack inside it, never over a full-screen overlay
                     such as the ID-check intro (z-30) opened from a sign-up step (TASK-25063) */}
                 <div
                     ref={shellRef}
-                    className="signup-shell relative isolate mx-auto h-[var(--sr-h)] w-full max-w-[480px] overflow-hidden bg-background-default"
+                    className="signup-shell relative isolate mx-auto h-[var(--sr-h)] w-full overflow-hidden bg-background-default lg:max-w-[480px]"
                     data-setup-shell
                     data-setup-screen={screenId}
-                    // the web landing (no footer) is the download page: on desktop its QR, store buttons and Log in
-                    // must fit one screen, so it takes the compact stage there (globals.css)
+                    // the web landing (no footer) is the download page: on a wide, short screen its QR, store buttons
+                    // and Log in must fit one screen, so it takes the compact stage there (globals.css)
                     data-setup-download={screenId === 'landing' && screen?.footer === null ? '' : undefined}
                 >
                     {/* the unfolded stage height, for the fold check (useShellFit) */}
@@ -162,7 +163,7 @@ export function SetupShell({ screenId, children, direction = 0, showBackButton, 
                     ground on a full stage. Above AppShell's own inset cover (z-40), which follows the platform, not the screen. */}
                 <div
                     aria-hidden="true"
-                    className="pointer-events-none fixed inset-x-0 bottom-0 z-[41] mx-auto h-safe-bottom max-w-[480px]"
+                    className="pointer-events-none fixed inset-x-0 bottom-0 z-[41] mx-auto h-safe-bottom lg:max-w-[480px]"
                     style={{
                         background: stage === 'full' && ground ? GROUND_VAR[ground] : 'var(--color-background-default)',
                     }}
