@@ -12,6 +12,7 @@ import { isAndroidNativeBridge } from '@/utils/capacitor'
 import { SumsubSdkErrorView } from './SumsubSdkErrorView'
 import { clearActiveSumsubInstance, setActiveSumsubInstance } from './sumsubNativeSession.utils'
 import { captureNativeSdkClosed, createSumsubSdkTracker, nativeErrorProperties } from './sumsubSdkAnalytics.utils'
+import { SUMSUB_NATIVE_THEME } from './sumsubNativeTheme.consts'
 import type { SumsubSdkProps } from './sumsubSdk.types'
 
 /**
@@ -214,6 +215,8 @@ export const SumsubNativeSdk = ({
                 .withLocale(sumsubLocaleRef.current)
                 .withApplicantConf(emailRef.current ? { email: emailRef.current } : {})
                 .withDebug(process.env.NODE_ENV === 'development')
+            // Dashboard appearance sets reach only the WebSDK; the native look comes from here.
+            if (typeof builder.withTheme === 'function') builder = builder.withTheme(SUMSUB_NATIVE_THEME)
             // Sumsub's intro calls every ID "Identity document"; name the one the user picked.
             if (identityStepTitleRef.current && typeof builder.withStrings === 'function')
                 builder = builder.withStrings({ sns_step_IDENTITY_title: identityStepTitleRef.current })

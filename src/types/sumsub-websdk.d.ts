@@ -11,6 +11,7 @@ declare global {
         withConf(conf: {
             lang?: string
             theme?: string
+            customizationName?: string
             email?: string
             documentDefinitions?: { IDENTITY: { country: string; idDocType: string } }
             autoSelectDocumentDefinitions?: boolean
