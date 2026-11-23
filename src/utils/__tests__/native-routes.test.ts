@@ -745,7 +745,7 @@ describe('native-routes', () => {
             ).toBe('/app?tl=alice&tl_seen=1&acq_invite=alice&pnutdl=1&at=t&wid=w')
         })
 
-        it('runs the /go handoff with its passive inviter and drops every other field', () => {
+        it('runs a direct handoff with its passive inviter and drops every other field', () => {
             expect(
                 deepLinkToNativePath(
                     'https://peanut.me/home?app_entry=1&tl=alice&acq_invite=alice&invite=mallory&pnutdl=1&dest=%2Fsend'
@@ -753,12 +753,12 @@ describe('native-routes', () => {
             ).toBe('/app?tl=alice&acq_invite=alice')
         })
 
-        it('keeps the /go tags on a direct handoff', () => {
+        it('drops the former /go tags', () => {
             expect(
                 deepLinkToNativePath(
                     'https://peanut.me/home?tl=a&acq_invite=a&tl_s=ig&utm_campaign=x&tl_r=h.com&tl_v=a1&tl_e=n1&utm_term=t'
                 )
-            ).toBe('/app?tl=a&acq_invite=a&tl_s=ig&utm_campaign=x&tl_r=h.com&tl_v=a1&tl_e=n1')
+            ).toBe('/app?tl=a&acq_invite=a')
         })
 
         it('keeps every badge campaign on a continuation', () => {
