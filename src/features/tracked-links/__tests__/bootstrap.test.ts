@@ -2,7 +2,7 @@
 import posthog from 'posthog-js'
 import { Preferences } from '@capacitor/preferences'
 import { EInviteType } from '@/services/services.types'
-import { applyDeferredPayload, parseDeferredPayload } from '@/utils/deferred-link'
+import { applyDeferredPayload, buildDeferredPayload, parseDeferredPayload } from '@/utils/deferred-link'
 import { bindInviteToUser, readInviteCode, readInviteIntent, readInviteUserId, stashInvite } from '@/utils/invite-stash'
 import { deepLinkToNativePath } from '@/utils/native-routes'
 import {
@@ -12,7 +12,7 @@ import {
     readSignupAttributionAsync,
 } from '@/utils/signup-attribution'
 import { parseDeferredPayload as parseLegacyPayload } from '@/utils/__tests__/fixtures/legacy-native-attribution'
-import { bootstrapTrackedLinkEntry, EMPTY_TRACKED_LINK_BOOTSTRAP } from '../bootstrap'
+import { bootstrapTrackedLinkEntry, type TrackedLinkBootstrap } from '../bootstrap'
 
 const WEB_ID = '44444444-4444-4444-8444-444444444444'
 const mockNative = new Map<string, string>()
@@ -49,6 +49,10 @@ jest.mock('posthog-js', () => ({
         capture: jest.fn(),
     },
 }))
+
+// The payload the shared store button builds from the entry's handoff.
+const storePayload = (entry: TrackedLinkBootstrap | null, store: 'android' | 'ios' = 'android') =>
+    buildDeferredPayload(entry!.handoff.dest, entry!.handoff.invite, store, { trackedLink: entry!.handoff.trackedLink })
 
 const fetchMock = jest.fn(async (_url: string, _init?: RequestInit) => new Response(null, { status: 204 }))
 const slug = 'creator'
@@ -92,13 +96,13 @@ it('stashes the creator passively and builds both store handoffs around the new 
     expect(readInviteIntent()).toBe('acquisition')
     const journeyId = readSignupAttribution()?.journeyId
     expect(journeyId).toBeDefined()
-    for (const raw of [result.payload!, result.iosPayload!]) {
+    for (const raw of [storePayload(result), storePayload(result, 'ios')]) {
         expect(parseDeferredPayload(raw)).toMatchObject({ acquisitionInvite: slug, trackedLink: slug, dest: '/home' })
         expect(parseDeferredPayload(raw)?.invite).toBeUndefined()
         expect(parseLegacyPayload(raw)?.invite).toBeUndefined()
         expect(parseDeferredPayload(raw)?.attribution?.journeyId).toBe(journeyId)
     }
-    const openApp = new URL(result.openAppHref!)
+    const openApp = new URL(result!.openAppHref)
     expect(openApp.origin + openApp.pathname).toBe('https://peanut.me/home')
     expect(openApp.searchParams.get('app_entry')).toBe('1')
     expect(openApp.searchParams.get('tl_seen')).toBe('1')
@@ -111,10 +115,10 @@ it('carries an explicit invite through a tracked handoff to the installed app', 
     stashInvite('friend', EInviteType.DIRECT)
     const result = await bootstrapTrackedLinkEntry(visit(`/app?tl=${slug}&acq_invite=${slug}`), false)
     expect(readInviteCode()).toBe('friend')
-    const payload = parseDeferredPayload(result.payload!)!
+    const payload = parseDeferredPayload(storePayload(result))!
     expect(payload.invite).toBe('friend')
     expect(payload.acquisitionInvite).toBeUndefined()
-    expect(new URL(result.openAppHref!).searchParams.get('invite')).toBe('friend')
+    expect(new URL(result!.openAppHref).searchParams.get('invite')).toBe('friend')
 
     clearDevice()
     applyDeferredPayload(payload)
@@ -133,9 +137,9 @@ it.each(['dnt', 'gpc', 'declined', 'prerender'] as const)(
             Object.defineProperty(document, 'prerendering', { configurable: true, value: true })
         const result = await bootstrapTrackedLinkEntry(visit(`/app?tl=${slug}&acq_invite=${slug}`), false)
         expect(readInviteIntent()).toBe('acquisition')
-        expect(parseDeferredPayload(result.payload!)?.acquisitionInvite).toBe(slug)
-        expect(parseDeferredPayload(result.payload!)?.attribution).toBeUndefined()
-        expect(parseDeferredPayload(result.payload!)?.webDistinctId).toBeUndefined()
+        expect(parseDeferredPayload(storePayload(result))?.acquisitionInvite).toBe(slug)
+        expect(parseDeferredPayload(storePayload(result))?.attribution).toBeUndefined()
+        expect(parseDeferredPayload(storePayload(result))?.webDistinctId).toBeUndefined()
         expect(readSignupAttribution()).toBeNull()
     }
 )
@@ -143,10 +147,10 @@ it.each(['dnt', 'gpc', 'declined', 'prerender'] as const)(
 it('continues the browser journey in the app and joins the web visitor id', async () => {
     const browser = await bootstrapTrackedLinkEntry(visit(`/app?tl=${slug}&acq_invite=${slug}`), false)
     const journeyId = readSignupAttribution()!.journeyId
-    expect(new URL(browser.openAppHref!).searchParams.get('wid')).toBe(WEB_ID)
+    expect(new URL(browser!.openAppHref).searchParams.get('wid')).toBe(WEB_ID)
     clearDevice()
 
-    expect(await bootstrapTrackedLinkEntry(openInApp(browser.openAppHref!), true)).toEqual(EMPTY_TRACKED_LINK_BOOTSTRAP)
+    expect(await bootstrapTrackedLinkEntry(openInApp(browser!.openAppHref), true)).toBeNull()
     expect(readInviteCode()).toBe(slug)
     expect(readInviteIntent()).toBe('acquisition')
     expect(readSignupAttribution()?.journeyId).toBe(journeyId)
@@ -158,7 +162,7 @@ it("keeps the app's own pending retry when a passive browser handoff arrives", a
     clearDevice()
     stashInvite('carol', EInviteType.DIRECT)
     bindInviteToUser('account-a')
-    await bootstrapTrackedLinkEntry(openInApp(browser.openAppHref!), true)
+    await bootstrapTrackedLinkEntry(openInApp(browser!.openAppHref), true)
     expect(readInviteCode()).toBe('carol')
     expect(readInviteIntent()).toBe('explicit')
     expect(readInviteUserId()).toBe('account-a')
@@ -168,7 +172,10 @@ it('upgrades a distributed legacy /app?code= link', async () => {
     const result = await bootstrapTrackedLinkEntry(visit('/app?code=Alice'), false)
     expect(readInviteCode()).toBe('alice')
     expect(readInviteIntent()).toBe('acquisition')
-    expect(parseDeferredPayload(result.payload!)).toMatchObject({ acquisitionInvite: 'alice', trackedLink: 'alice' })
+    expect(parseDeferredPayload(storePayload(result))).toMatchObject({
+        acquisitionInvite: 'alice',
+        trackedLink: 'alice',
+    })
 })
 
 it('never assigns an inviter other than the tracked creator', async () => {

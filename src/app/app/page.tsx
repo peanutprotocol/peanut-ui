@@ -9,6 +9,7 @@ import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import Loading from '@/components/Global/Loading'
 import MigrationHero from '@/components/Migration/MigrationHero'
+import StoreButtons from '@/components/Migration/StoreButtons'
 import { MIGRATION_SURFACES, STORE_NAME, STORE_URL, type StoreKind } from '@/constants/migration.consts'
 import { useDeviceType } from '@/hooks/useGetDeviceType'
 import { isNativeBridge } from '@/utils/capacitor'
@@ -26,7 +27,7 @@ import { storeForDevice, storeIcon, trackStoreClick } from '@/utils/migration.ut
 import { captureSignupAttribution, hasMarketingTouch } from '@/utils/signup-attribution'
 import { parseMarketingQrHandoff } from '@/features/marketing-qr/contract'
 import { marketingQrAnalyticsAllowed } from '@/features/marketing-qr/consent'
-import { bootstrapTrackedLinkEntry, EMPTY_TRACKED_LINK_BOOTSTRAP } from '@/features/tracked-links/bootstrap'
+import { bootstrapTrackedLinkEntry, type TrackedLinkBootstrap } from '@/features/tracked-links/bootstrap'
 import { isTrackedLinkEntry } from '@/features/tracked-links/eligibility'
 
 // '/' sends no destination, so a new install opens to its normal first screen.
@@ -44,7 +45,8 @@ export default function SmartStoreRedirect() {
     const [payload, setPayload] = useState<string | null>(null)
     const [iosPayload, setIosPayload] = useState<string | null>(null)
     const [entryReady, setEntryReady] = useState(false)
-    const [openAppHref, setOpenAppHref] = useState<string | null>(null)
+    // A creator's link: the shared store button carries its handoff, so this page builds none.
+    const [creatorEntry, setCreatorEntry] = useState<TrackedLinkBootstrap | null>(null)
     useEffect(() => {
         setMounted(true)
         const search = window.location.search
@@ -55,16 +57,14 @@ export default function SmartStoreRedirect() {
             // The bootstrap is bounded by its own native-storage timeouts and never waits on the network.
             const start = () =>
                 void bootstrapTrackedLinkEntry(new URLSearchParams(search), native)
-                    .catch(() => EMPTY_TRACKED_LINK_BOOTSTRAP)
+                    .catch(() => null)
                     .then((entry) => {
                         if (disposed) return
                         if (native) return router.replace('/home')
-                        setPayload(entry.payload)
-                        setIosPayload(entry.iosPayload)
-                        setOpenAppHref(entry.openAppHref ?? null)
+                        setCreatorEntry(entry)
                         setEntryReady(true)
                     })
-            // A prerendered page has no visitor yet: measure and leave for the store once it is shown.
+            // A prerendered page has no visitor yet: measure once it is shown.
             if (doc.prerendering) doc.addEventListener('prerenderingchange', start, { once: true })
             else start()
             return () => {
@@ -131,7 +131,6 @@ export default function SmartStoreRedirect() {
     // Count the automatic redirect and any fallback taps as one handoff per visit.
     const handoffCounted = useRef(false)
     const countHandoff = useCallback((platform: StoreKind) => {
-        if (isTrackedLinkEntry(window.location) && !marketingQrAnalyticsAllowed()) return
         if (handoffCounted.current) return
         handoffCounted.current = true
         trackDeferredHandoffCreated(platform)
@@ -139,8 +138,7 @@ export default function SmartStoreRedirect() {
 
     // Start the clipboard write inside the tap handler to preserve the browser's user gesture.
     const onStoreTap = (store: StoreKind) => {
-        if (!isTrackedLinkEntry(window.location) || marketingQrAnalyticsAllowed())
-            trackStoreClick(store, MIGRATION_SURFACES.SMART_LINK, !!payload)
+        trackStoreClick(store, MIGRATION_SURFACES.SMART_LINK, !!payload)
         const handoff = store === 'ios' ? (iosPayload ?? payload) : payload
         if (!handoff) return
         if (store === 'android') {
@@ -154,7 +152,8 @@ export default function SmartStoreRedirect() {
 
     const [redirecting, setRedirecting] = useState(false)
     useEffect(() => {
-        if (!entryReady || inNativeApp || !targetStore) return
+        // A creator entry waits for the tap on its store button.
+        if (!entryReady || inNativeApp || !targetStore || creatorEntry) return
         // iOS payloads need a clipboard write on tap. Android carries its payload in the URL.
         if (payload && targetStore === 'ios') return
         if (payload && targetStore === 'android') countHandoff('android')
@@ -163,7 +162,7 @@ export default function SmartStoreRedirect() {
         // Restore clickable buttons if the store does not open.
         const fallback = setTimeout(() => setRedirecting(false), 4000)
         return () => clearTimeout(fallback)
-    }, [entryReady, inNativeApp, targetStore, payload, storeHref, countHandoff])
+    }, [entryReady, inNativeApp, targetStore, creatorEntry, payload, storeHref, countHandoff])
 
     if (inNativeApp) return <Loading variant="mascot" coverFullScreen />
 
@@ -184,12 +183,14 @@ export default function SmartStoreRedirect() {
                     )}
                 </div>
                 <div className="mx-auto flex w-full max-w-md flex-col gap-4 md:max-w-xs">
-                    {entryReady && openAppHref && !redirecting && (
-                        <Button variant="secondary" href={openAppHref} plainAnchor className="w-full">
-                            {t('smartLink.openApp')}
-                        </Button>
-                    )}
-                    {mounted && entryReady ? (
+                    {creatorEntry ? (
+                        <>
+                            <StoreButtons surface={MIGRATION_SURFACES.SMART_LINK} handoff={creatorEntry.handoff} />
+                            <Button variant="ghost" href={creatorEntry.openAppHref} plainAnchor className="w-full">
+                                {t('smartLink.openApp')}
+                            </Button>
+                        </>
+                    ) : mounted && entryReady ? (
                         stores.map((s, i) => (
                             <Button
                                 key={s}

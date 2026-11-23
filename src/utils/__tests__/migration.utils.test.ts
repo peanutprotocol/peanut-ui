@@ -111,14 +111,21 @@ describe('openStore deferred hand-off', () => {
 
     it('ios copies the hand-off then opens the plain store url', () => {
         openStore('ios', MIGRATION_SURFACES.GUEST_FLOW)
-        expect(mockBuildPayload).toHaveBeenCalledWith(undefined, undefined, 'ios')
+        expect(mockBuildPayload).toHaveBeenCalledWith(undefined, undefined, 'ios', { trackedLink: undefined })
         expect(mockCopyIOSHandoff).toHaveBeenCalledWith('pnutdl=1&dest=%2Fclaim%2FXYZ')
         expect(mockOpenExternalUrl).toHaveBeenCalledWith(STORE_URL.ios)
     })
 
     it('passes surface-known invite + dest through to the payload builder', () => {
         openStore('android', MIGRATION_SURFACES.GUEST_FLOW, { invite: 'sender', dest: '/claim/ABC?t=1' })
-        expect(mockBuildPayload).toHaveBeenCalledWith('/claim/ABC?t=1', 'sender', 'android')
+        expect(mockBuildPayload).toHaveBeenCalledWith('/claim/ABC?t=1', 'sender', 'android', {
+            trackedLink: undefined,
+        })
+    })
+
+    it("passes a tracked entry's creator through to the payload builder", () => {
+        openStore('ios', MIGRATION_SURFACES.SMART_LINK, { dest: '/home', trackedLink: 'alice' })
+        expect(mockBuildPayload).toHaveBeenCalledWith('/home', undefined, 'ios', { trackedLink: 'alice' })
     })
 
     it('a payload failure never blocks the store bounce', () => {

@@ -13,6 +13,7 @@ import { buildDeferredPayload } from '@/utils/deferred-link'
 import type { StoreHandoff } from '@/utils/migration.utils'
 import type { MarketingQrContext } from '@/features/marketing-qr/contract'
 import { useMarketingQrUrl } from '@/features/marketing-qr/useMarketingQrUrl'
+import { trackedEntryTelemetryAllowed } from '@/features/tracked-links/eligibility'
 
 /**
  * QR scans enter through /home, which is claimed by the already-released
@@ -40,8 +41,9 @@ export default function DownloadQR({
             return
         }
         try {
-            setPayload(buildDeferredPayload(handoff.dest, handoff.invite))
-            setIosPayload(buildDeferredPayload(handoff.dest, handoff.invite, 'ios'))
+            const options = { trackedLink: handoff.trackedLink }
+            setPayload(buildDeferredPayload(handoff.dest, handoff.invite, 'android', options))
+            setIosPayload(buildDeferredPayload(handoff.dest, handoff.invite, 'ios', options))
         } catch {
             // An unusable handoff must not hide the QR or store links.
             setPayload(undefined)
@@ -50,7 +52,7 @@ export default function DownloadQR({
     }, [handoff])
 
     useEffect(() => {
-        posthog.capture(ANALYTICS_EVENTS.MIGRATION_QR_SHOWN, { surface })
+        if (trackedEntryTelemetryAllowed()) posthog.capture(ANALYTICS_EVENTS.MIGRATION_QR_SHOWN, { surface })
     }, [surface])
 
     // Keep preview and LAN scans on the same server as the displayed QR.

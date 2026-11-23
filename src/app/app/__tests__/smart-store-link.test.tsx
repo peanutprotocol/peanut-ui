@@ -12,6 +12,7 @@ jest.mock('@/utils/native-platform', () => require('@/test-utils/native-platform
  */
 import React from 'react'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import posthog from 'posthog-js'
 import { IntlWrapper } from '@/test-utils/intl'
 import { STORE_URL } from '@/constants/migration.consts'
 import { parseDeferredPayload } from '@/utils/deferred-link'
@@ -40,7 +41,9 @@ jest.mock('next/navigation', () => ({
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 
 let mockNative = false
+const mockOpenExternalUrl = jest.fn().mockResolvedValue(undefined)
 jest.mock('@/utils/capacitor', () => ({
+    openExternalUrl: (...args: unknown[]) => mockOpenExternalUrl(...args),
     isNativeBridge: () => mockNative,
     isCapacitor: () => false,
     isAndroidNative: () => false,
@@ -48,8 +51,7 @@ jest.mock('@/utils/capacitor', () => ({
 }))
 
 jest.mock('@/utils/migration.utils', () => ({
-    storeForDevice: jest.requireActual('@/utils/migration.utils').storeForDevice,
-    storeIcon: jest.requireActual('@/utils/migration.utils').storeIcon,
+    ...jest.requireActual('@/utils/migration.utils'),
     trackStoreClick: jest.fn(),
 }))
 
@@ -378,12 +380,15 @@ describe('tracked-link entry', () => {
     afterEach(() => {
         Reflect.deleteProperty(document, 'prerendering')
     })
-    it('sends Android to the store with the passive inviter on the install referrer', async () => {
+    it('waits for the Android tap, then opens the store with the passive inviter on the install referrer', async () => {
         mockDeviceType = 'android'
         visit('?tl=alice&acq_invite=alice')
         renderPage()
-        await waitFor(() => expect(locationReplace).toHaveBeenCalledTimes(1))
-        const payload = new URL(locationReplace.mock.calls[0][0]).searchParams.get('referrer')!
+        fireEvent.click(await screen.findByRole('button', { name: /google play/i }))
+        expect(locationReplace).not.toHaveBeenCalled()
+        expect(screen.queryByRole('button', { name: /app store/i })).toBeNull()
+        const payload = new URL(mockOpenExternalUrl.mock.calls[0][0]).searchParams.get('referrer')!
+        expect(parseDeferredPayload(payload)?.trackedLink).toBe('alice')
         expect(parseDeferredPayload(payload)?.acquisitionInvite).toBe('alice')
         expect(parseDeferredPayload(payload)?.invite).toBeUndefined()
         expect(readInviteIntent()).toBe('acquisition')
@@ -400,8 +405,10 @@ describe('tracked-link entry', () => {
         expect(openApp.searchParams.get('tl_seen')).toBe('1')
         fireEvent.click(storeButton(/app store/i))
         expect(parseDeferredPayload(mockCopyIOSHandoff.mock.calls[0][0])?.acquisitionInvite).toBe('alice')
+        expect(posthog.capture).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ store: 'ios' }))
+        expect(screen.queryByRole('button', { name: /google play/i })).toBeNull()
     })
-    it('keeps the handoff functional while sending no store or handoff telemetry without consent', async () => {
+    it('keeps the handoff functional while sending no store telemetry without consent', async () => {
         mockAnalyticsAllowed = false
         mockDeviceType = 'ios'
         visit('?tl=alice&acq_invite=alice')
@@ -410,10 +417,9 @@ describe('tracked-link entry', () => {
         fireEvent.click(storeButton(/app store/i))
         await act(async () => {})
         expect(parseDeferredPayload(mockCopyIOSHandoff.mock.calls[0][0])?.acquisitionInvite).toBe('alice')
-        expect(trackStoreClick).not.toHaveBeenCalled()
-        expect(mockTrackHandoffCreated).not.toHaveBeenCalled()
+        expect(posthog.capture).not.toHaveBeenCalled()
     })
-    it('waits for a prerendered page to be shown before bootstrap or store navigation', async () => {
+    it('waits for a prerendered page to be shown before bootstrap', async () => {
         Object.defineProperty(document, 'prerendering', { configurable: true, value: true })
         mockDeviceType = 'android'
         visit('?tl=alice&acq_invite=alice')
@@ -425,7 +431,7 @@ describe('tracked-link entry', () => {
             Object.defineProperty(document, 'prerendering', { configurable: true, value: false })
             document.dispatchEvent(new Event('prerenderingchange'))
         })
-        await waitFor(() => expect(locationReplace).toHaveBeenCalledTimes(1))
+        await screen.findByRole('button', { name: /google play/i })
         expect(readInviteCode()).toBe('alice')
     })
     it('stashes the inviter in the installed app and opens home', async () => {

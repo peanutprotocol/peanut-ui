@@ -10,6 +10,7 @@ import {
 import { DeviceType } from '@/hooks/useGetDeviceType'
 import { isCapacitor, openExternalUrl, openInOsApp } from '@/utils/capacitor'
 import { getFromCookie } from '@/utils/general.utils'
+import { trackedEntryTelemetryAllowed } from '@/features/tracked-links/eligibility'
 import {
     buildDeferredPayload,
     copyIOSHandoff,
@@ -43,6 +44,7 @@ export function storeIcon(store: StoreKind | null): 'apple-logo' | 'google-play'
 
 /** Track a store CTA click without navigating (for anchors that navigate themselves). */
 export function trackStoreClick(store: StoreKind, surface: MigrationSurface, handoff = false) {
+    if (!trackedEntryTelemetryAllowed()) return
     posthog.capture(ANALYTICS_EVENTS.MIGRATION_STORE_CTA_CLICKED, { surface, store, handoff })
 }
 
@@ -50,6 +52,8 @@ export function trackStoreClick(store: StoreKind, surface: MigrationSurface, han
 export interface StoreHandoff {
     invite?: string
     dest?: string
+    /** The creator a tracked entry belongs to; it rides as `tl`. */
+    trackedLink?: string
 }
 
 /**
@@ -69,7 +73,7 @@ export function openStore(store: StoreKind, surface: MigrationSurface, handoff?:
 
     let payload = ''
     try {
-        payload = buildDeferredPayload(handoff?.dest, handoff?.invite, store)
+        payload = buildDeferredPayload(handoff?.dest, handoff?.invite, store, { trackedLink: handoff?.trackedLink })
     } catch {
         // a payload failure must never block the store bounce itself
     }

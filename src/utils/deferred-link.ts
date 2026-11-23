@@ -15,7 +15,7 @@ import { toInviteCode } from './invite-code.utils'
 import { deepLinkToNativePath } from './native-routes'
 import { readInviteCode, readInviteIntent, stashInvite, stashAcquisitionInvite } from '@/utils/invite-stash'
 import { isGoCodeContent } from '@/features/tracked-links/contract'
-import { trackedLinkAnalyticsAllowed } from '@/features/tracked-links/eligibility'
+import { trackedEntryTelemetryAllowed, trackedLinkAnalyticsAllowed } from '@/features/tracked-links/eligibility'
 import { EInviteType } from '@/services/services.types'
 import {
     BADGE_CAMPAIGN_QUERY_PARAM,
@@ -575,6 +575,7 @@ function captureRestore(
  */
 export function trackDeferredHandoffCreated(store: 'ios' | 'android'): void {
     try {
+        if (!trackedEntryTelemetryAllowed()) return
         // `store`, not `platform`: the `platform` super property is the device
         // the event came from, and an event must not overwrite it.
         posthog.capture(ANALYTICS_EVENTS.DEFERRED_LINK_HANDOFF_CREATED, { store })

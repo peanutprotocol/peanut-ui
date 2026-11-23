@@ -11,6 +11,11 @@ export function isTrackedLinkEntry({ pathname, search }: { pathname: string; sea
     return params.has('tl') || isAcquisitionSlug(params.get('code')?.toLowerCase())
 }
 
+/** A tracked entry sends store and handoff telemetry only with the visitor's analytics consent. */
+export function trackedEntryTelemetryAllowed(): boolean {
+    return !isTrackedLinkEntry(window.location) || marketingQrAnalyticsAllowed()
+}
+
 export function trackedLinkAnalyticsAllowed(): boolean {
     return (
         typeof document !== 'undefined' &&
