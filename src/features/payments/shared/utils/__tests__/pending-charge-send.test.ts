@@ -3,7 +3,9 @@
  * see it on this page (verification/tla/ChargeSendFlow.tla,
  * StorageFail).
  */
+import { keccak256, stringToBytes } from 'viem'
 import {
+    forgetLegacyMantecaWithdrawMarkers,
     mantecaWithdrawIntent,
     pendingChargeSendKey,
     readPendingChargeSend,
@@ -45,14 +47,31 @@ it('a saved write lands in storage and clearing removes both copies', () => {
     expect(readPendingChargeSend(KEY)).toBeNull()
 })
 
-// TASK-25248: the key outlives sign-out, so it must not name the bank account or Pix key.
-it("a Manteca withdrawal's key names its destination only by a hash, per user", () => {
+// TASK-25248: the key outlives sign-out, so it names no bank account, Pix key or hash of one.
+it("a Manteca withdrawal's key names a saved account by its id, and an unsaved destination not at all", () => {
+    expect(pendingChargeSendKey('u1', mantecaWithdrawIntent('acct-1'))).toBe(
+        'peanut:pendingChargeSend:u1:withdraw-manteca:account:acct-1'
+    )
+    expect(pendingChargeSendKey('u1', mantecaWithdrawIntent(null))).toBe(
+        'peanut:pendingChargeSend:u1:withdraw-manteca:new'
+    )
+})
+
+it("drops this user's Manteca markers in an older key format and keeps the current ones", () => {
     const cbu = '0000003100010000000001'
-    const key = pendingChargeSendKey('u1', mantecaWithdrawIntent('u1', cbu))
-    expect(key).not.toContain(cbu)
-    expect(key).toMatch(/^peanut:pendingChargeSend:u1:withdraw-manteca:0x[0-9a-f]{64}$/)
-    // the same withdrawal finds the same marker; another user's or another destination's does not
-    expect(mantecaWithdrawIntent('u1', cbu)).toBe(mantecaWithdrawIntent('u1', cbu))
-    expect(mantecaWithdrawIntent('u2', cbu)).not.toBe(mantecaWithdrawIntent('u1', cbu))
-    expect(mantecaWithdrawIntent('u1', 'pix@example.com')).not.toBe(mantecaWithdrawIntent('u1', cbu))
+    const raw = pendingChargeSendKey('u1', `withdraw-manteca:${cbu}`)
+    const hashed = pendingChargeSendKey('u1', `withdraw-manteca:${keccak256(stringToBytes(`u1:${cbu}`))}`)
+    const saved = pendingChargeSendKey('u1', mantecaWithdrawIntent('acct-1'))
+    const unsaved = pendingChargeSendKey('u1', mantecaWithdrawIntent(null))
+    const otherUser = pendingChargeSendKey('u2', `withdraw-manteca:${cbu}`)
+    for (const key of [raw, hashed, saved, unsaved, otherUser, KEY]) writePendingChargeSend(key, SEND)
+
+    forgetLegacyMantecaWithdrawMarkers('u1')
+
+    expect(window.localStorage.getItem(raw)).toBeNull()
+    expect(window.localStorage.getItem(hashed)).toBeNull()
+    expect(readPendingChargeSend(saved)).toEqual(SEND)
+    expect(readPendingChargeSend(unsaved)).toEqual(SEND)
+    expect(window.localStorage.getItem(otherUser)).not.toBeNull()
+    expect(readPendingChargeSend(KEY)).toEqual(SEND)
 })

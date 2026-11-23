@@ -15,7 +15,8 @@ jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn(), prefetch: jest.fn() }),
 }))
 jest.mock('next-intl', () => ({
-    useTranslations: (ns: string) => (key: string) => `${ns}.${key}`,
+    useTranslations: (ns: string) => (key: string, params?: Record<string, unknown>) =>
+        params ? `${ns}.${key} ${JSON.stringify(params)}` : `${ns}.${key}`,
 }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 jest.mock('@tanstack/react-query', () => ({ useQueryClient: () => ({ invalidateQueries: jest.fn() }) }))
@@ -181,12 +182,26 @@ import MantecaBankWithdrawFlow from '../MantecaBankWithdrawFlow'
 import { rainApi } from '@/services/rain'
 import { formatBankAmount } from '@/utils/currency'
 import { formatCurrency } from '@/utils/general.utils'
-import { mantecaWithdrawIntent, pendingChargeSendKey } from '@/features/payments/shared/utils/pending-charge-send'
+import { keccak256, stringToBytes } from 'viem'
+import {
+    forgetLegacyMantecaWithdrawMarkers,
+    mantecaWithdrawIntent,
+    pendingChargeSendKey,
+} from '@/features/payments/shared/utils/pending-charge-send'
 
 // ---------- helpers ----------
 
 const DESTINATION = 'mi.alias.peanut'
-const MARKER_KEY = pendingChargeSendKey('u1', mantecaWithdrawIntent('u1', DESTINATION))
+const MARKER_KEY = pendingChargeSendKey('u1', mantecaWithdrawIntent('acct-1'))
+const NEW_DESTINATION_KEY = pendingChargeSendKey('u1', mantecaWithdrawIntent(null))
+/** Everything local storage holds, keys and values, as one string per entry. */
+const rawStorage = () =>
+    Object.keys(window.localStorage).map((key) => `${key}=${window.localStorage.getItem(key) ?? ''}`.toLowerCase())
+/** True when storage names `destination`, or holds a hash of it (alone or with a user id). */
+const storageNames = (destination: string) =>
+    [destination, keccak256(stringToBytes(destination)), keccak256(stringToBytes(`u1:${destination}`))].some((needle) =>
+        rawStorage().some((entry) => entry.includes(needle.toLowerCase()))
+    )
 const searchParams = new URLSearchParams({ country: 'argentina', account: 'acct-1' })
 const LOCK = {
     priceLockCode: 'lock-1',
@@ -223,14 +238,14 @@ const flush = async () => {
 }
 
 /** Locks the quote from the amount step, then shows the review. */
-async function openReview() {
-    const view = render(<MantecaBankWithdrawFlow searchParams={searchParams} />)
+async function openReview(params: URLSearchParams = searchParams) {
+    const view = render(<MantecaBankWithdrawFlow searchParams={params} />)
     await flush()
     fireEvent.click(screen.getByText('common.continue'))
     await flush()
     expect(mockInitiateWithdraw).toHaveBeenCalledTimes(1)
     mockStepper.step = 'review'
-    view.rerender(<MantecaBankWithdrawFlow searchParams={searchParams} />)
+    view.rerender(<MantecaBankWithdrawFlow searchParams={params} />)
     return view
 }
 const withdrawButton = () => screen.getByText('navigation.withdraw')
@@ -464,28 +479,30 @@ it("another account's cancelled withdrawal does not prove this card-balance send
 })
 
 /** A lost answer whose recovery ran out of time: the confirming screen, the marker kept. Then the screen goes. */
-async function loseTheAnswerAndLeave() {
+async function loseTheAnswerAndLeave(params: URLSearchParams = searchParams, markerKey = MARKER_KEY) {
     mockWithdrawWithSignedTx.mockRejectedValue(new TypeError('Failed to fetch'))
-    const view = await openReview()
+    const view = await openReview(params)
     fireEvent.click(withdrawButton())
     await act(async () => {
         await jest.advanceTimersByTimeAsync(65_000)
     })
-    expect(window.localStorage.getItem(MARKER_KEY)).not.toBeNull()
+    expect(window.localStorage.getItem(markerKey)).not.toBeNull()
     view.unmount()
     mockStepper.step = 'amount'
 }
 
 // TASK-25248 (ui#4198 review): sign-out used to delete this marker, because its key named the account.
-// Logout itself is not rendered here: it no longer touches the marker, and this pins why it need not.
-it('the marker names no bank account, so sign-out has nothing to remove: the same user is still held on the next visit', async () => {
+// Sign-out runs forgetLegacyMantecaWithdrawMarkers (authContext logout); the marker must outlive it.
+it('the marker names the saved account by its id, so it outlives sign-out: the same user is still held', async () => {
     await loseTheAnswerAndLeave()
 
-    // nothing in storage names the destination, so sign-out has nothing personal to remove
-    const stored = Object.keys(window.localStorage).map((key) => key + (window.localStorage.getItem(key) ?? ''))
-    expect(stored.some((entry) => entry.toLowerCase().includes(DESTINATION))).toBe(false)
+    // the raw storage holds no CBU, alias or Pix key, and no hash of one
+    expect(storageNames(DESTINATION)).toBe(false)
+    expect(window.localStorage.getItem(MARKER_KEY)).not.toBeNull()
 
-    // the same user's next visit: the read resumes, and no new quote is offered
+    // sign-out, then the same user signs in again: the read resumes, and no new quote is offered
+    forgetLegacyMantecaWithdrawMarkers('u1')
+    expect(window.localStorage.getItem(MARKER_KEY)).not.toBeNull()
     const again = render(<MantecaBankWithdrawFlow searchParams={searchParams} />)
     await flush()
     expect(screen.getByTestId('payment-confirming')).toBeInTheDocument()
@@ -543,4 +560,97 @@ it('a recovered success shows no amount the booked row does not carry', async ()
     expect(screen.getByText('withdraw.manteca.youJustWithdrew')).toBeInTheDocument()
     // neither the URL's amount nor a zero is shown as what was withdrawn
     expect(screen.queryByText(/\$|USD|ARS/)).toBeNull()
+})
+
+it('an unsaved destination is held under no name, and a later visit through a saved account is held too', async () => {
+    // typed once, not saved: the flow has no saved-account id for it
+    const typed = new URLSearchParams({
+        country: 'argentina',
+        destination: 'otra.cuenta.peanut',
+        isSavedAccount: 'true',
+    })
+    await loseTheAnswerAndLeave(typed, NEW_DESTINATION_KEY)
+    expect(window.localStorage.getItem(MARKER_KEY)).toBeNull()
+    expect(storageNames('otra.cuenta.peanut')).toBe(false)
+
+    // the backend saves the typed account with the withdrawal: a visit through a saved account is held too
+    forgetLegacyMantecaWithdrawMarkers('u1')
+    const again = render(<MantecaBankWithdrawFlow searchParams={searchParams} />)
+    await flush()
+    expect(screen.getByTestId('payment-confirming')).toBeInTheDocument()
+    expect(screen.queryByText('common.continue')).toBeNull()
+    expect(mockInitiateWithdraw).toHaveBeenCalledTimes(1)
+    again.unmount()
+    await act(async () => {
+        await jest.advanceTimersByTimeAsync(5_000)
+    })
+})
+
+it('the hold for an unsaved destination completes on the one Manteca withdrawal booked since it began', async () => {
+    const typed = new URLSearchParams({
+        country: 'argentina',
+        destination: 'otra.cuenta.peanut',
+        isSavedAccount: 'true',
+    })
+    await loseTheAnswerAndLeave(typed, NEW_DESTINATION_KEY)
+
+    mockHistory.mockReturnValue([
+        withdrawalTo('otra.cuenta.peanut', 'COMPLETED', { amount: '50', currency: { amount: '50000', code: 'ARS' } }),
+    ])
+    const reloaded = render(<MantecaBankWithdrawFlow searchParams={searchParams} />)
+    await flush()
+    reloaded.rerender(<MantecaBankWithdrawFlow searchParams={searchParams} />)
+
+    expect(mockStepper.step).toBe('success')
+    // the visit came through the saved account; the success names where the booked withdrawal went
+    expect(
+        screen.getByText(`withdraw.manteca.toDestination ${JSON.stringify({ destination: 'otra.cuenta.peanut' })}`)
+    ).toBeInTheDocument()
+    expect(window.localStorage.getItem(NEW_DESTINATION_KEY)).toBeNull()
+})
+
+// Reviewer's case: with one hold per destination, a typed account started while a saved account's
+// answer was lost, and the saved account's late booking then released the typed one's hold.
+it("a saved account's hold also holds a withdrawal to a destination typed afterwards", async () => {
+    await loseTheAnswerAndLeave()
+
+    const typed = new URLSearchParams({
+        country: 'argentina',
+        destination: 'otra.cuenta.peanut',
+        isSavedAccount: 'true',
+    })
+    const view = render(<MantecaBankWithdrawFlow searchParams={typed} />)
+    await flush()
+    expect(screen.getByTestId('payment-confirming')).toBeInTheDocument()
+    expect(screen.queryByText('common.continue')).toBeNull()
+    expect(mockInitiateWithdraw).toHaveBeenCalledTimes(1)
+    expect(window.localStorage.getItem(NEW_DESTINATION_KEY)).toBeNull()
+
+    // the typed account's booked row is not the held account's send: the read keeps waiting
+    mockHistory.mockReturnValue([withdrawalTo('otra.cuenta.peanut', 'COMPLETED')])
+    await act(async () => {
+        await jest.advanceTimersByTimeAsync(3_000)
+    })
+    view.rerender(<MantecaBankWithdrawFlow searchParams={typed} />)
+    expect(mockStepper.step).not.toBe('success')
+    expect(window.localStorage.getItem(MARKER_KEY)).not.toBeNull()
+    view.unmount()
+    await act(async () => {
+        await jest.advanceTimersByTimeAsync(5_000)
+    })
+})
+
+it('opening the flow drops a marker stored under an older key format, which named the account', async () => {
+    const SEND = JSON.stringify({ chargeId: 'lock-0', startedAt: Date.now(), userOps: [], backendBroadcast: true })
+    const raw = pendingChargeSendKey('u1', `withdraw-manteca:${DESTINATION}`)
+    const hashed = pendingChargeSendKey('u1', `withdraw-manteca:${keccak256(stringToBytes(`u1:${DESTINATION}`))}`)
+    window.localStorage.setItem(raw, SEND)
+    window.localStorage.setItem(hashed, SEND)
+
+    render(<MantecaBankWithdrawFlow searchParams={searchParams} />)
+    await flush()
+
+    expect(window.localStorage.getItem(raw)).toBeNull()
+    expect(window.localStorage.getItem(hashed)).toBeNull()
+    expect(storageNames(DESTINATION)).toBe(false)
 })

@@ -52,8 +52,9 @@
                           model makes each check-and-write atomic.)
      SignOutForgets       sign-out removed the Manteca withdraw marker, because its key named the
                           bank account or Pix key; the same user signed in again and Pay was back
-                          with no proof. The key holds a hash of it, so sign-out keeps the marker
-                          and signing in again is a Reload.
+                          with no proof. The key names the saved account by its id (one hold per user
+                          for an unsaved destination), so sign-out keeps the marker and signing
+                          in again is a Reload.
 
    Properties: AtMostOneTransfer and NoSilentDoubleSend (one intent moves money once, unless the
    warning showed or storage refused the marker), NoRetryWhileMoneyMayExist,

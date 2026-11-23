@@ -1,5 +1,6 @@
-import { keccak256, stringToBytes, type Hash } from 'viem'
+import type { Hash } from 'viem'
 import type { BroadcastUserOp } from '@/hooks/wallet/spendBroadcast'
+import { storedKeysWithPrefix } from '@/utils/safe-storage'
 
 /**
  * A payment this device started and may have sent. While one exists for an
@@ -8,8 +9,8 @@ import type { BroadcastUserOp } from '@/hooks/wallet/spendBroadcast'
  * (verification/tla/ChargeSendFlow.tla, the Fixed variant).
  *
  * Local storage, per user and intent, so it survives the app being killed and
- * sign-out. It holds ids and hashes; no key holds an account in plain text
- * ({@link mantecaWithdrawIntent}).
+ * sign-out. It holds ids and hashes; no key names a bank account, Pix key or
+ * anything derived from one ({@link mantecaWithdrawIntent}).
  */
 export interface PendingChargeSend {
     /**
@@ -76,16 +77,63 @@ const memory = new Map<string, string>()
 
 export const pendingChargeSendKey = (userId: string, intent: string) => `${PREFIX}${userId}:${intent}`
 
+const MANTECA_WITHDRAW = 'withdraw-manteca:'
+const MANTECA_WITHDRAW_ACCOUNT = `${MANTECA_WITHDRAW}account:`
+const MANTECA_WITHDRAW_NEW = `${MANTECA_WITHDRAW}new`
+
 /**
- * A Manteca withdrawal's intent: one withdrawal per destination at a time. The
- * destination (a CBU, alias or Pix key) is personal data, so the key holds only
- * a hash of it with the user id. The marker then stays at sign-out, and a lost
- * answer still holds the same user's withdraw after they sign in again. The
- * user id is in the key too, so a guessable Pix key (CPF, phone) can be found
- * from the hash by brute force: the hash hides, it does not protect.
+ * A Manteca withdrawal's intent. The destination (a CBU, alias or Pix key) is
+ * personal data, and even a hash of a Pix key gives it back (a CPF has about
+ * 10^9 values), so the key names the saved account by its id, and a
+ * destination the user has not saved by nothing (`new`). One bank account can
+ * be reached under several intents (typed again, by alias, saved by the
+ * backend with the withdrawal), so one Manteca hold holds every Manteca
+ * withdrawal of the user ({@link heldMantecaWithdrawIntent}).
  */
-export const mantecaWithdrawIntent = (userId: string, destination: string) =>
-    `withdraw-manteca:${keccak256(stringToBytes(`${userId}:${destination}`))}`
+export const mantecaWithdrawIntent = (savedAccountId: string | null) =>
+    savedAccountId ? `${MANTECA_WITHDRAW_ACCOUNT}${savedAccountId}` : MANTECA_WITHDRAW_NEW
+
+/** The saved account a Manteca intent names; null for `new`. */
+export const mantecaWithdrawAccountId = (intent: string) =>
+    intent.startsWith(MANTECA_WITHDRAW_ACCOUNT) ? intent.slice(MANTECA_WITHDRAW_ACCOUNT.length) : null
+
+const isCurrentMantecaIntent = (intent: string) =>
+    intent === MANTECA_WITHDRAW_NEW || intent.startsWith(MANTECA_WITHDRAW_ACCOUNT)
+
+/** This user's Manteca intents that have a marker, in storage or in page memory only. */
+function mantecaIntentsWithMarker(userId: string): string[] {
+    const userPrefix = pendingChargeSendKey(userId, '')
+    const prefix = pendingChargeSendKey(userId, MANTECA_WITHDRAW)
+    const keys = new Set([
+        ...storedKeysWithPrefix(prefix),
+        ...[...memory.keys()].filter((key) => key.startsWith(prefix)),
+    ])
+    return [...keys].map((key) => key.slice(userPrefix.length)).sort()
+}
+
+/** The intent of this user's Manteca hold, if one exists. */
+export function heldMantecaWithdrawIntent(userId: string | undefined | null): string | null {
+    if (!userId) return null
+    return (
+        mantecaIntentsWithMarker(userId).find(
+            (intent) =>
+                isCurrentMantecaIntent(intent) &&
+                readPendingChargeSendRaw(pendingChargeSendKey(userId, intent)) !== null
+        ) ?? null
+    )
+}
+
+/**
+ * Removes this user's Manteca markers in an older key format: the raw CBU or
+ * Pix key, or a hash of it. Only branch builds wrote them. Runs at sign-out and
+ * when the withdraw flow opens.
+ */
+export function forgetLegacyMantecaWithdrawMarkers(userId: string | undefined | null) {
+    if (!userId) return
+    mantecaIntentsWithMarker(userId)
+        .filter((intent) => !isCurrentMantecaIntent(intent))
+        .forEach((intent) => writePendingChargeSend(pendingChargeSendKey(userId, intent), null))
+}
 
 const TAB_KEY = 'peanut:pendingChargeSend:tab'
 let tab: string | undefined
