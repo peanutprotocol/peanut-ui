@@ -1,6 +1,5 @@
-import type { Hash } from 'viem'
+import { keccak256, stringToBytes, type Hash } from 'viem'
 import type { BroadcastUserOp } from '@/hooks/wallet/spendBroadcast'
-import { storedKeysWithPrefix } from '@/utils/safe-storage'
 
 /**
  * A payment this device started and may have sent. While one exists for an
@@ -8,9 +7,9 @@ import { storedKeysWithPrefix } from '@/utils/safe-storage'
  * can never turn into a second transfer
  * (verification/tla/ChargeSendFlow.tla, the Fixed variant).
  *
- * Local storage, per user and intent, so it survives the app being killed. It
- * holds ids and hashes; the one key that names an account goes at sign-out
- * ({@link forgetPersonalPendingChargeSends}).
+ * Local storage, per user and intent, so it survives the app being killed and
+ * sign-out. It holds ids and hashes; no key holds an account in plain text
+ * ({@link mantecaWithdrawIntent}).
  */
 export interface PendingChargeSend {
     /**
@@ -77,22 +76,16 @@ const memory = new Map<string, string>()
 
 export const pendingChargeSendKey = (userId: string, intent: string) => `${PREFIX}${userId}:${intent}`
 
-/** A Manteca withdrawal's intent names the bank account or Pix key it pays to: personal data. */
-export const MANTECA_WITHDRAW_INTENT = 'withdraw-manteca:'
-
 /**
- * Removes this user's markers whose key holds personal data, at sign-out: the
- * next account on this device must not read them (mono design/design.md § state).
+ * A Manteca withdrawal's intent: one withdrawal per destination at a time. The
+ * destination (a CBU, alias or Pix key) is personal data, so the key holds only
+ * a hash of it with the user id. The marker then stays at sign-out, and a lost
+ * answer still holds the same user's withdraw after they sign in again. The
+ * user id is in the key too, so a guessable Pix key (CPF, phone) can be found
+ * from the hash by brute force: the hash hides, it does not protect.
  */
-export function forgetPersonalPendingChargeSends(userId: string | undefined | null) {
-    if (!userId) return
-    const prefix = pendingChargeSendKey(userId, MANTECA_WITHDRAW_INTENT)
-    const keys = new Set([
-        ...storedKeysWithPrefix(prefix),
-        ...[...memory.keys()].filter((key) => key.startsWith(prefix)),
-    ])
-    keys.forEach((key) => writePendingChargeSend(key, null))
-}
+export const mantecaWithdrawIntent = (userId: string, destination: string) =>
+    `withdraw-manteca:${keccak256(stringToBytes(`${userId}:${destination}`))}`
 
 const TAB_KEY = 'peanut:pendingChargeSend:tab'
 let tab: string | undefined

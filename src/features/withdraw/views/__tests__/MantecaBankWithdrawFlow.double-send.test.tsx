@@ -19,9 +19,14 @@ jest.mock('next-intl', () => ({
 }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 jest.mock('@tanstack/react-query', () => ({ useQueryClient: () => ({ invalidateQueries: jest.fn() }) }))
+// the signed-in user; a test signs in as another account on the same device
+let mockUserId = 'u1'
 jest.mock('@/context/authContext', () => ({
     useAuth: () => ({
-        user: { user: { userId: 'u1' }, accounts: [{ id: 'acct-1', type: 'manteca', identifier: 'mi.alias.peanut' }] },
+        user: {
+            user: { userId: mockUserId },
+            accounts: [{ id: 'acct-1', type: 'manteca', identifier: 'mi.alias.peanut' }],
+        },
     }),
 }))
 
@@ -174,11 +179,14 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
 
 import MantecaBankWithdrawFlow from '../MantecaBankWithdrawFlow'
 import { rainApi } from '@/services/rain'
+import { formatBankAmount } from '@/utils/currency'
+import { formatCurrency } from '@/utils/general.utils'
+import { mantecaWithdrawIntent, pendingChargeSendKey } from '@/features/payments/shared/utils/pending-charge-send'
 
 // ---------- helpers ----------
 
 const DESTINATION = 'mi.alias.peanut'
-const MARKER_KEY = `peanut:pendingChargeSend:u1:withdraw-manteca:${DESTINATION}`
+const MARKER_KEY = pendingChargeSendKey('u1', mantecaWithdrawIntent('u1', DESTINATION))
 const searchParams = new URLSearchParams({ country: 'argentina', account: 'acct-1' })
 const LOCK = {
     priceLockCode: 'lock-1',
@@ -227,8 +235,9 @@ async function openReview() {
 }
 const withdrawButton = () => screen.getByText('navigation.withdraw')
 /** A Manteca withdrawal in the owner's activity: the API names its destination as sent. */
-const withdrawalTo = (destination: string, status: string) => ({
+const withdrawalTo = (destination: string, status: string, amounts: object = {}) => ({
     status,
+    ...amounts,
     recipientAccount: { identifier: destination },
     extraData: { provider: 'MANTECA', kind: 'OFFRAMP' },
 })
@@ -237,6 +246,7 @@ beforeEach(() => {
     jest.useFakeTimers()
     jest.clearAllMocks()
     window.localStorage.clear()
+    mockUserId = 'u1'
     mockStepper.step = 'amount'
     mockStepper.goTo.mockImplementation((step: string) => {
         mockStepper.step = step
@@ -451,4 +461,86 @@ it("another account's cancelled withdrawal does not prove this card-balance send
     await act(async () => {
         await jest.advanceTimersByTimeAsync(5_000)
     })
+})
+
+/** A lost answer whose recovery ran out of time: the confirming screen, the marker kept. Then the screen goes. */
+async function loseTheAnswerAndLeave() {
+    mockWithdrawWithSignedTx.mockRejectedValue(new TypeError('Failed to fetch'))
+    const view = await openReview()
+    fireEvent.click(withdrawButton())
+    await act(async () => {
+        await jest.advanceTimersByTimeAsync(65_000)
+    })
+    expect(window.localStorage.getItem(MARKER_KEY)).not.toBeNull()
+    view.unmount()
+    mockStepper.step = 'amount'
+}
+
+// TASK-25248 (ui#4198 review): sign-out used to delete this marker, because its key named the account.
+// Logout itself is not rendered here: it no longer touches the marker, and this pins why it need not.
+it('the marker names no bank account, so sign-out has nothing to remove: the same user is still held on the next visit', async () => {
+    await loseTheAnswerAndLeave()
+
+    // nothing in storage names the destination, so sign-out has nothing personal to remove
+    const stored = Object.keys(window.localStorage).map((key) => key + (window.localStorage.getItem(key) ?? ''))
+    expect(stored.some((entry) => entry.toLowerCase().includes(DESTINATION))).toBe(false)
+
+    // the same user's next visit: the read resumes, and no new quote is offered
+    const again = render(<MantecaBankWithdrawFlow searchParams={searchParams} />)
+    await flush()
+    expect(screen.getByTestId('payment-confirming')).toBeInTheDocument()
+    expect(screen.queryByText('common.continue')).toBeNull()
+    expect(mockInitiateWithdraw).toHaveBeenCalledTimes(1)
+    again.unmount()
+    await act(async () => {
+        await jest.advanceTimersByTimeAsync(5_000)
+    })
+})
+
+it('another account on the same device is not held by that marker', async () => {
+    await loseTheAnswerAndLeave()
+
+    mockUserId = 'u2'
+    render(<MantecaBankWithdrawFlow searchParams={searchParams} />)
+    await flush()
+    expect(screen.queryByTestId('payment-confirming')).toBeNull()
+    fireEvent.click(screen.getByText('common.continue'))
+    await flush()
+    expect(mockInitiateWithdraw).toHaveBeenCalledTimes(2)
+    expect(window.localStorage.getItem(MARKER_KEY)).not.toBeNull()
+})
+
+it('after a reload, a withdrawal the read finds completed shows success with its booked amounts', async () => {
+    await loseTheAnswerAndLeave()
+
+    // the reloaded screen has no quote; the booked row says what was paid
+    mockHistory.mockReturnValue([
+        withdrawalTo(DESTINATION, 'COMPLETED', { amount: '50', currency: { amount: '50000', code: 'ARS' } }),
+    ])
+    const reloaded = render(<MantecaBankWithdrawFlow searchParams={searchParams} />)
+    await flush()
+    reloaded.rerender(<MantecaBankWithdrawFlow searchParams={searchParams} />)
+
+    expect(mockStepper.step).toBe('success')
+    expect(screen.getByText('withdraw.manteca.youJustWithdrew')).toBeInTheDocument()
+    expect(screen.getByText(`ARS ${formatCurrency('50000')}`)).toBeInTheDocument()
+    expect(screen.getByText(formatBankAmount('50', 'USD'))).toBeInTheDocument()
+    expect(screen.queryByTestId('payment-confirming')).toBeNull()
+    expect(window.localStorage.getItem(MARKER_KEY)).toBeNull()
+    expect(mockInitiateWithdraw).toHaveBeenCalledTimes(1)
+})
+
+it('a recovered success shows no amount the booked row does not carry', async () => {
+    await loseTheAnswerAndLeave()
+
+    // the ledger has no leg yet: the row's amount is '0' and it has no local currency
+    mockHistory.mockReturnValue([withdrawalTo(DESTINATION, 'COMPLETED', { amount: '0' })])
+    const reloaded = render(<MantecaBankWithdrawFlow searchParams={searchParams} />)
+    await flush()
+    reloaded.rerender(<MantecaBankWithdrawFlow searchParams={searchParams} />)
+
+    expect(mockStepper.step).toBe('success')
+    expect(screen.getByText('withdraw.manteca.youJustWithdrew')).toBeInTheDocument()
+    // neither the URL's amount nor a zero is shown as what was withdrawn
+    expect(screen.queryByText(/\$|USD|ARS/)).toBeNull()
 })

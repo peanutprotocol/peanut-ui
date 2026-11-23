@@ -14,7 +14,7 @@ import {
 import { describeSignedUserOp, markSpendMayHaveBroadcast, type SpendBroadcast } from '@/hooks/wallet/spendBroadcast'
 import { usePendingChargeSend } from '@/features/payments/shared/hooks/usePendingChargeSend'
 import {
-    MANTECA_WITHDRAW_INTENT,
+    mantecaWithdrawIntent,
     type PendingChargeSend,
     type SendOrderRead,
 } from '@/features/payments/shared/utils/pending-charge-send'
@@ -142,9 +142,15 @@ function withdrawalBroadcast(artifact: SignedSpendArtifact): SpendBroadcast {
 
 type HistoryRow = {
     status?: string
+    /** USD, as the withdrawal debited it; '0' when the ledger has no leg yet. */
+    amount?: string
+    currency?: { amount?: string; code?: string }
     recipientAccount?: { identifier?: string }
     extraData?: { provider?: string; kind?: string; isRefund?: boolean }
 }
+
+/** What the booked withdrawal says it paid. A recovered success has no quote, so it shows these. */
+type BookedAmounts = Pick<HistoryRow, 'amount' | 'currency'>
 
 /**
  * The Manteca withdrawal to `destination` the backend booked after this send
@@ -154,7 +160,11 @@ type HistoryRow = {
  * The owner's history names the destination as the withdrawal sent it
  * (metadata.destinationAddress); the row carries no hash or price lock to match.
  */
-async function readBookedWithdrawal(send: PendingChargeSend, destination: string | null): Promise<SendOrderRead> {
+async function readBookedWithdrawal(
+    send: PendingChargeSend,
+    destination: string | null,
+    showBooked: (amounts: BookedAmounts) => void
+): Promise<SendOrderRead> {
     const query = new URLSearchParams({ from: new Date(send.startedAt).toISOString(), limit: '20' })
     const response = await serverFetch(`/users/history?${query.toString()}`, { method: 'GET', cache: 'no-store' })
     if (!response.ok) throw new Error(`Failed to read the withdrawal: ${response.status}`)
@@ -167,8 +177,8 @@ async function readBookedWithdrawal(send: PendingChargeSend, destination: string
             row.recipientAccount?.identifier?.toLowerCase() === destination
     )
     if (withdrawals.length !== 1) return { state: 'settling' }
-    const { status } = withdrawals[0]
-    if (status === 'COMPLETED') return { state: 'completed' }
+    const { status, amount, currency } = withdrawals[0]
+    if (status === 'COMPLETED') return { state: 'completed', show: () => showBooked({ amount, currency }) }
     return status === 'CANCELLED' || status === 'REFUNDED' ? { state: 'closed' } : { state: 'settling' }
 }
 
@@ -178,8 +188,12 @@ async function readBookedWithdrawal(send: PendingChargeSend, destination: string
  * recovery) or the card preparation says whether money moved, and the booked
  * order says whether it completed.
  */
-async function readWithdrawal(send: PendingChargeSend, destination: string | null): Promise<SendOrderRead> {
-    const booked = await readBookedWithdrawal(send, destination)
+async function readWithdrawal(
+    send: PendingChargeSend,
+    destination: string | null,
+    showBooked: (amounts: BookedAmounts) => void
+): Promise<SendOrderRead> {
+    const booked = await readBookedWithdrawal(send, destination, showBooked)
     if (booked.state !== 'settling' || !send.backendBroadcast) return booked
     const preparation = await rainApi.getWithdrawalStatus(send.chargeId)
     if (preparation.state === 'failed' || preparation.state === 'cancelled') return { state: 'closed' }
@@ -316,14 +330,17 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
         },
         [stepper]
     )
-    // a recovered withdrawal that completed shows the success its answer would have
+    // A recovered withdrawal that completed shows the success its answer would
+    // have. After a reload there is no quote: the success shows what the booked
+    // withdrawal says it paid.
+    const [bookedAmounts, setBookedAmounts] = useState<BookedAmounts | null>(null)
     const showRecoveredSuccess = useCallback(
         (success: boolean) => {
-            if (!success || !priceLock) return
+            if (!success) return
             setOutcome('success')
             void stepper.goTo('success')
         },
-        [priceLock, stepper]
+        [stepper]
     )
     const showRecoveryError = useCallback(
         (error: { errorMessage: string }) => setErrorMessage(error.errorMessage, 'paymentNotSent'),
@@ -333,11 +350,12 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
     const pendingDestination =
         destinationConfirmed && destinationAddress.trim() ? destinationAddress.trim().toLowerCase() : null
     const readThisWithdrawal = useCallback(
-        (send: PendingChargeSend) => readWithdrawal(send, pendingDestination),
+        (send: PendingChargeSend) => readWithdrawal(send, pendingDestination, setBookedAmounts),
         [pendingDestination]
     )
+    const userId = user?.user.userId
     const pendingSend = usePendingChargeSend({
-        intent: pendingDestination ? `${MANTECA_WITHDRAW_INTENT}${pendingDestination}` : null,
+        intent: userId && pendingDestination ? mantecaWithdrawIntent(userId, pendingDestination) : null,
         walletAddress: walletAddress as Address | undefined,
         readOrder: readThisWithdrawal,
         canResume: step === 'amount' || step === 'review',
@@ -1064,6 +1082,7 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
         setIsDestinationAddressChanging(false)
         setBalanceErrorMessage(null)
         setPriceLock(null)
+        setBookedAmounts(null)
         setIsLockingPrice(false)
     }
 
@@ -1182,6 +1201,19 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
         priceLock ? lockedUsdDisplayAmount(priceLock.usdAmount) : (usdAmount ?? '0'),
         'USD'
     )}`
+    // A success recovered after a reload has no quote: it shows the booked
+    // withdrawal's own amounts, and leaves out any the row does not carry yet.
+    const bookedLocalLine =
+        bookedAmounts?.currency?.code && Number(bookedAmounts.currency.amount) > 0
+            ? `${bookedAmounts.currency.code.toUpperCase()} ${formatCurrency(bookedAmounts.currency.amount)}`
+            : null
+    const bookedUsdLine =
+        bookedAmounts?.amount && Number(bookedAmounts.amount) > 0 ? formatBankAmount(bookedAmounts.amount, 'USD') : null
+    const [successAmount, successSubAmount] = priceLock
+        ? isAmountTypedInUsd
+            ? [usdLine, localLine]
+            : [localLine, usdLine]
+        : [bookedLocalLine ?? bookedUsdLine, bookedLocalLine ? bookedUsdLine : null]
 
     // A submission whose answer was lost and whose outcome the recovery could
     // not read: say so, claim nothing, and offer no new quote.
@@ -1204,12 +1236,12 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
                                 {t('manteca.youJustWithdrew')}
                             </h1>
                             {/* exact: the order ran at the locked price, fiat = USD × price */}
-                            <div className="text-heading-s text-foreground-primary">
-                                {isAmountTypedInUsd ? usdLine : localLine}
-                            </div>
-                            <p className="text-body-s text-foreground-secondary">
-                                {isAmountTypedInUsd ? localLine : usdLine}
-                            </p>
+                            {successAmount && (
+                                <div className="text-heading-s text-foreground-primary">{successAmount}</div>
+                            )}
+                            {successSubAmount && (
+                                <p className="text-body-s text-foreground-secondary">{successSubAmount}</p>
+                            )}
                             <h1 className="text-body-s font-normal text-foreground-secondary">
                                 {t('manteca.toDestination', { destination: destinationAddress })}
                             </h1>
