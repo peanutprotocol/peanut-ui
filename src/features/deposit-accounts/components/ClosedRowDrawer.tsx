@@ -112,9 +112,12 @@ export function ClosedRowDrawer({
                 const key = reasonCodeKey(row.reason)
                 return {
                     title: t('list.badgeNotOffered'),
-                    body: key
-                        ? tIdentity(key)
-                        : tKyc(kycFeatureRefusalCopy(row.reason), { feature: tKyc('documents.bank') }),
+                    body:
+                        row.reason === 'bridge_region_unavailable' && row.currency
+                            ? t('list.regionUnavailableBody', { currency: row.currency })
+                            : key
+                              ? tIdentity(key)
+                              : tKyc(kycFeatureRefusalCopy(row.reason), { feature: tKyc('documents.bank') }),
                     cta: { label: tCommon('gotIt') },
                 }
             }

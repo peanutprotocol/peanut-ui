@@ -4439,7 +4439,8 @@
             "local_tax_id_missing": "Precisa de um número fiscal: CPF no Brasil, CUIT, CUIL ou DNI na Argentina",
             "under_minimum_age": "Somente a partir de 18 anos",
             "bridge_processing_slow": "Está demorando mais que o normal. Nosso parceiro de pagamentos ainda está analisando seus dados. Fale com o suporte e a gente confere.",
-            "questions_missing": "Responda mais uma pergunta para terminar de configurar."
+            "questions_missing": "Responda mais uma pergunta para terminar de configurar.",
+            "bridge_region_unavailable": "Nosso parceiro de pagamentos não oferece esta conta onde você mora. Suas outras contas e seus fundos no Peanut não são afetados."
         }
     },
     "recoverFunds": {
@@ -5181,6 +5182,7 @@
             "notOfferedBody": "Não conseguimos abrir contas em {currency} para você. O suporte pode verificar o motivo.",
             "notOfferedHereBody": "Esta conta talvez não esteja disponível onde você mora. O suporte pode verificar.",
             "residenceRestrictedBody": "As contas em {currency} não estão disponíveis para residentes do seu país.",
+            "regionUnavailableBody": "Nosso parceiro de pagamentos não oferece contas em {currency} onde você mora. Suas outras contas e seus fundos no Peanut não são afetados.",
             "notOpenBody": "As contas em {currency} ainda não estão abertas para você.",
             "residenceMissingBody": "As contas em {currency} dependem de onde você mora. Informe sua residência para verificar.",
             "uncheckedTitle": "Não conseguimos verificar a conta em {currency}",

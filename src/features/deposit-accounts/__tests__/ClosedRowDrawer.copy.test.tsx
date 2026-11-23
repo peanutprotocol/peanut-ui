@@ -5,6 +5,8 @@ import type { IUserProfile } from '@/interfaces/interfaces'
 import { loadMessages } from '@/i18n/app/messages'
 import type { AppLocale } from '@/i18n/app/config'
 import { ClosedRowDrawer } from '../components/ClosedRowDrawer'
+import { closedBankRow } from '../hubRows'
+import { buildBankRows } from '@/utils/unlock-payments.utils'
 
 let mockResidence: IUserProfile['residence']
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { residence: mockResidence } }) }))
@@ -82,4 +84,29 @@ it('words a provider refusal by its reason, never as the residence rule', async 
     expect(dialog).toHaveTextContent(
         messages.kyc.supplement.unavailable.replace('{feature}', messages.kyc.documents.bank)
     )
+})
+
+// TASK-24969: Bridge refuses one account type per region (bridge_region_unavailable).
+// The EUR row names EUR only; the same user's USD row stays usable.
+it('names only the refused account when Bridge does not offer it in the region', async () => {
+    const rows = buildBankRows({
+        bankChips: { brl: 'unlock', ars: 'unlock', usd: 'unlock', mxn: 'unlock', sepa: 'notAvailable' },
+        closedBecause: { sepa: 'refused' },
+        refusalReasons: { sepa: 'bridge_region_unavailable' },
+        residenceIso2: 'PT',
+        isEuropeResidence: true,
+    })
+    const eur = rows.find((row) => row.labelKey === 'sepa')!
+    const usd = rows.find((row) => row.labelKey === 'usd')!
+    expect(closedBankRow(usd, false)).toBeNull()
+
+    const messages = await loadMessages('en')
+    render(
+        <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
+            <ClosedRowDrawer closed={closedBankRow(eur, false)} onClose={() => {}} onChangeResidence={() => {}} />
+        </NextIntlClientProvider>
+    )
+    const dialog = await screen.findByRole('dialog')
+    expect(dialog).toHaveTextContent(messages.depositAccounts.list.regionUnavailableBody.replace('{currency}', 'EUR'))
+    expect(dialog).not.toHaveTextContent(messages.profile.unlockPayments.bankOnlyNotAvailableNote)
 })
