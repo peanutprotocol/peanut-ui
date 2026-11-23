@@ -31,6 +31,8 @@ const ROUTE_EXCLUSIONS = new Map([
         'Routing alias for the Pix withdrawal outcome on /withdraw/pix, which is catalogued separately',
     ],
     ['/go/[...key]', 'Short link: a redirect from the /go/ map, or a 404'],
+    ['/c/[username]', 'Creator landing page: marketing outside app-owned mobile UI, or a redirect to /invite'],
+    ['/c/[username]/preview/[variant]', 'Preview of a creator landing page; not on peanut.me'],
 ])
 
 // The star-feature landing pages (StarLp/starLp.consts.ts STAR_LP_ROUTES): marketing, not app UI.

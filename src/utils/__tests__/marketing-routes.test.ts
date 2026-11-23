@@ -79,6 +79,11 @@ describe('isMarketingRoute', () => {
         }
     })
 
+    it('renders creator pages under /c/ without the wallet tree, and only under /c/', () => {
+        for (const route of ['/c/juanacervio', '/c/juanacervio/preview/g2']) expect(isMarketingRoute(route)).toBe(true)
+        for (const route of ['/c', '/card', '/claim', '/cards/x']) expect(isMarketingRoute(route)).toBe(false)
+    })
+
     it('keeps app routes on the full provider tree', () => {
         for (const route of ['/home', '/setup', '/qr-pay', '/add-money', '/card', '/history', '/claim']) {
             expect(isMarketingRoute(route)).toBe(false)
