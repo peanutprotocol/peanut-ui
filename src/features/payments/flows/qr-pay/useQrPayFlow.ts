@@ -718,15 +718,6 @@ export function useQrPayFlowController(
         if (scanOutcome.kind === 'awaiting-merchant-amount') setWaitingForMerchantAmount(true)
         else if (scanOutcome.kind !== 'pending' && scanOutcome.kind !== 'idle') setWaitingForMerchantAmount(false)
 
-        /*
-         * `idle` deliberately touches nothing. A disabled query — invalid QR,
-         * KYC-blocked user, provider maintenance — must not drive the app-wide
-         * loading context, which survives navigation away from this route.
-         */
-        if (scanOutcome.kind === 'pending') setLoadingState('Fetching details')
-        else if (scanOutcome.kind === 'retrying') setLoadingState('Still fetching details')
-        else if (scanOutcome.kind !== 'idle') setLoadingState('Idle')
-
         if (scanOutcome.kind === 'failed') {
             if (scanOutcome.reason === QR_INIT_CODE.DECODE) {
                 posthog.capture(ANALYTICS_EVENTS.QR_DECODING_ERROR_SHOWN, { qr_type: qrType })
@@ -743,10 +734,25 @@ export function useQrPayFlowController(
         paymentLock,
         paymentProcessor,
         qrType,
-        setLoadingState,
         setPaymentLock,
         setWaitingForMerchantAmount,
     ])
+
+    /*
+     * `idle` deliberately touches nothing. A disabled query — invalid QR,
+     * KYC-blocked user, provider maintenance — must not drive the app-wide
+     * loading context, which survives navigation away from this route.
+     * Keyed on the kind alone: a Pay tap stores its own lock while the scan
+     * stays `ready`, and a re-run here set that tap's loading state back to
+     * Idle until the passkey opened (TASK-25316).
+     */
+    const scanKind = scanOutcome.kind
+    useEffect(() => {
+        if (paymentProcessor !== 'MANTECA') return
+        if (scanKind === 'pending') setLoadingState('Fetching details')
+        else if (scanKind === 'retrying') setLoadingState('Still fetching details')
+        else if (scanKind !== 'idle') setLoadingState('Idle')
+    }, [paymentProcessor, scanKind, setLoadingState])
 
     /*
      * The loading context is app-wide and outlives this route, so leaving it set

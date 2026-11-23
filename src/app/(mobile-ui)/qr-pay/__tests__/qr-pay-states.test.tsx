@@ -3333,3 +3333,29 @@ describe('card cool-down on Pay (TASK-25316)', () => {
         await waitFor(() => expect(mockSignSpend).toHaveBeenCalledTimes(2))
     })
 })
+
+/*
+ * A typed amount gets its own lock on the Pay tap. Storing that lock re-ran the scan effect, which set
+ * the loading state back to Idle: Pay looked active for 1.6 to 3 s while the first tap was still
+ * preparing the signature (TASK-25316).
+ */
+test('a typed amount keeps Pay loading from its quote until the signature', async () => {
+    mockMantecaApi.initiateQrPayment.mockResolvedValueOnce({ ...reconnectLock, code: '' })
+    renderQrPay({ qrCode: 'mercadopago://pay?id=123', type: 'MERCADO_PAGO', t: '1' })
+    await waitFor(() => expect(screen.getByText(reconnectLock.paymentRecipientName)).toBeInTheDocument())
+    await act(async () => {
+        fireEvent.change(screen.getByTestId('amount-field'), { target: { value: '5' } })
+    })
+
+    // the tap's own quote arrives, and the signature is still being prepared
+    mockMantecaApi.initiateQrPayment.mockResolvedValueOnce({ ...reconnectLock, code: 'LOCK-TYPED' })
+    mockSignSpend.mockImplementationOnce(() => new Promise(() => {}))
+    await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Pay' }))
+    })
+    await waitFor(() => expect(mockSignSpend).toHaveBeenCalledTimes(1))
+
+    const pay = screen.getByTestId('qr-pay-confirm')
+    expect(pay).toHaveTextContent(en.loadingStates.preparingTransaction)
+    expect(pay).toBeDisabled()
+})
