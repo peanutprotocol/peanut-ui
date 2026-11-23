@@ -1,10 +1,11 @@
 name: App Release OTA
 
 # Every compatible main push publishes an OTA from that exact main commit,
-# independently of the native store build. A push that only moves the
-# src/content pointer starts no release. A changed native contract stops at
-# the floor guard; completion still triggers the native build, while the later
-# OTA cutover waits until the new binaries are available.
+# independently of the native store build. A push that changes only web-only
+# paths (src/content pointer, /go/ map, creator pages) starts no release. A
+# changed native contract stops at the floor guard; completion still triggers
+# the native build, while the later OTA cutover waits until the new binaries
+# are available.
 # Only the first run from a main push may publish a production OTA.
 # The source must contain the newest attested native release and pass native
 # compatibility checks. It uploads
@@ -24,12 +25,22 @@ name: App Release OTA
 on:
     push:
         branches: [main]
-        # A content publish (content-publish-automerge.yml) only moves this
-        # submodule pointer. It reaches the web through Vercel and needs no OTA
-        # and no store build: each one used a version number and replaced the
-        # release candidate (Release 164). The main-tip guards below let a
-        # running release continue past such a push.
-        paths-ignore: ['src/content']
+        # Web-only paths: no app bundle contains them, so a push that changes
+        # only these reaches users through Vercel and needs no OTA and no store
+        # build. Each such run used a version number and replaced the release
+        # candidate (Release 164). A push that also changes any other file still
+        # runs. scripts/release-web-only-paths.json holds the same list for the
+        # main-tip guards below, which let a running release continue past such
+        # a push; release-source-guard.test.js keeps the two equal.
+        # - src/content: content publishes (content-publish-automerge.yml).
+        # - /go/ redirect map and creator landing pages (/c/): the native build
+        #   removes their routes, and ESLint keeps app code from importing them.
+        paths-ignore:
+            - 'src/content'
+            - 'src/app/go/**'
+            - 'src/features/go-links/**'
+            - 'src/app/c/**'
+            - 'src/features/creator-pages/**'
     # Retry a failed OTA without a new main push. The run publishes the current
     # main tip only; the SHA input makes the operator name it.
     workflow_dispatch:

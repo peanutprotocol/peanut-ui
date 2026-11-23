@@ -1,24 +1,32 @@
 #!/usr/bin/env node
 // Decides whether a release may keep building its source commit after `main`
-// moved. Exits 0 when <main-tip> is <source> or a descendant of it whose only
-// change is the src/content submodule pointer. Exits 1 in every other case,
-// including any git error, so a caller under `set -e` stops the release.
+// moved. Exits 0 when <main-tip> is <source> or a descendant of it that changes
+// only web-only paths (release-web-only-paths.json). Exits 1 in every other
+// case, including any git error, so a caller under `set -e` stops the release.
 //
 // Usage: node scripts/release-source-guard.mjs <source-sha> <main-tip-sha>
 // Run it inside the app checkout. When <main-tip> is not in the checkout (a
 // shallow clone, or a commit pushed after the checkout), it is fetched from
 // `origin` first.
 //
-// Why content is the exception: content-publish-automerge.yml merges content
-// publishes to main with no human step, and those pushes do not start a release
-// (paths-ignore in release-ota.yml). A release that stopped on such a push would
-// therefore never ship, and no later run would replace it. The release keeps
-// shipping its source commit; the new content reaches the web through Vercel and
-// the app with the next code release.
+// Why web-only paths are the exception: a push that changes only them starts no
+// release (release-ota.yml `paths-ignore` holds the same list, and a test keeps
+// the two equal). A release that stopped on such a push would therefore never
+// ship, and no later run would replace it. The release keeps shipping its source
+// commit; the change reaches the web through Vercel. The list:
+// - src/content: the content submodule pointer. content-publish-automerge.yml
+//   merges content publishes to main with no human step; the app gets the new
+//   content with the next code release.
+// - the /go/ redirect map and the creator landing pages (/c/): the native build
+//   removes their routes (scripts/native-build.js), and ESLint stops other code
+//   from importing their feature folders, so no app bundle contains them.
 
 import { execFileSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 
-const CONTENT_SUBMODULE = 'src/content'
+// A pattern is an exact path, or `<dir>/**` for every file under <dir>. Any
+// other glob throws, so a list entry this guard cannot read stops the release.
+const WEB_ONLY_PATHS = JSON.parse(readFileSync(new URL('./release-web-only-paths.json', import.meta.url), 'utf8'))
 
 const SHA = /^[0-9a-f]{40}$/
 
@@ -37,18 +45,26 @@ try {
         throw new Error(`main tip ${tip.slice(0, 7)} does not contain ${source.slice(0, 7)}`)
     }
     const changed = git('diff', '--name-only', '--no-renames', source, tip).split('\n').filter(Boolean)
-    const beyondContent = changed.filter((file) => file !== CONTENT_SUBMODULE)
-    if (beyondContent.length > 0) {
+    const beyondWebOnly = changed.filter((file) => !WEB_ONLY_PATHS.some((pattern) => matches(pattern, file)))
+    if (beyondWebOnly.length > 0) {
         throw new Error(
-            `main moved from ${source.slice(0, 7)} to ${tip.slice(0, 7)} with changes beyond ${CONTENT_SUBMODULE}: ${beyondContent.slice(0, 10).join(', ')}`
+            `main moved from ${source.slice(0, 7)} to ${tip.slice(0, 7)} with changes beyond the web-only paths: ${beyondWebOnly.slice(0, 10).join(', ')}`
         )
     }
     console.log(
-        `main moved from ${source.slice(0, 7)} to ${tip.slice(0, 7)} by ${CONTENT_SUBMODULE} only; the release keeps ${source.slice(0, 7)}`
+        `main moved from ${source.slice(0, 7)} to ${tip.slice(0, 7)} by web-only paths only; the release keeps ${source.slice(0, 7)}`
     )
 } catch (err) {
     console.error(`✗ release-source-guard: ${err.message}`)
     process.exit(1)
+}
+
+function matches(pattern, file) {
+    if (pattern.endsWith('/**') && !/[*?[\]!+]/.test(pattern.slice(0, -3))) {
+        return file.startsWith(pattern.slice(0, -2))
+    }
+    if (/[*?[\]!+]/.test(pattern)) throw new Error(`cannot read the web-only path pattern "${pattern}"`)
+    return file === pattern
 }
 
 function git(...args) {

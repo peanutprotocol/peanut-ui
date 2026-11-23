@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
-import { resolveGoRedirect } from '@/features/tracked-links/go-map'
+import { resolveGoRedirect } from '@/features/go-links/go-map'
 
 // No loading.tsx or Suspense above the redirect: either would turn the 307 and 404 answers into soft 200s.
 export const dynamic = 'force-dynamic'
