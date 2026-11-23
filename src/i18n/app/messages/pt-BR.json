@@ -457,10 +457,8 @@
             "providerRejection": {
                 "fixableTitle": "Precisamos de um documento atualizado",
                 "restartTitle": "Verifique com outro documento",
-                "unavailableTitle": "Região indisponível",
                 "fixableDescription": "Envie uma foto mais nítida do seu documento para desbloquear esta região.",
                 "restartDescription": "Esta região exige um documento de um país compatível. Você pode verificar com outro documento.",
-                "unavailableDescription": "Esta região não está disponível para a sua conta. Fale com o suporte para receber ajuda.",
                 "uploadDocument": "Enviar documento"
             },
             "initError": {
@@ -3392,7 +3390,7 @@
             "titleIdentityDocumentMissing": "Conclua sua verificação",
             "titleRegionUnavailable": "Indisponível para residentes do Reino Unido",
             "descriptionError": "{error} Fale com o suporte para receber ajuda.",
-            "descriptionBlocked": "Não conseguimos confirmar seu documento. Fale com o suporte para receber ajuda.",
+            "descriptionBlocked": "Isso não está disponível para a sua conta no momento. Fale com o suporte e a gente verifica.",
             "descriptionRestartIdentity": "Este método exige um documento de um país compatível. Você pode verificar com outro documento.",
             "descriptionProviderRejection": "Precisamos de mais informações suas para continuar.",
             "descriptionRegionUnavailable": "Devido às regulamentações do Reino Unido, transferências bancárias não estão disponíveis para residentes do Reino Unido. Seu dinheiro está seguro. Você pode sacá-lo como cripto a qualquer momento.",
@@ -5206,6 +5204,8 @@
         "claim": {
             "heading": "Receba pagamentos em {currency}",
             "subheading": "Dados bancários para receber pagamentos. Compartilhe com empregadores, clientes ou plataformas como a Deel.",
+            "subheadingBusinessPayers": "Dados bancários para receber pagamentos. Compartilhe com empregadores, empresas ou plataformas como a Deel.",
+            "subheadingOwnAccounts": "Dados bancários para receber pagamentos de contas no seu nome.",
             "conditionTerms": "Quem pode pagar depende das regras de {currency}. Elas aparecem quando a conta for aberta.",
             "statePending": "As regras do seu estado são confirmadas quando você abre a conta.",
             "benefitStable": "Compartilhe uma vez e use em todos os pagamentos",

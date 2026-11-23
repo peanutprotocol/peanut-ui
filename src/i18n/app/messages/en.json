@@ -457,10 +457,8 @@
             "providerRejection": {
                 "fixableTitle": "We need an updated document",
                 "restartTitle": "Verify with a different document",
-                "unavailableTitle": "Region unavailable",
                 "fixableDescription": "Please upload a clearer photo of your ID to unlock this region.",
                 "restartDescription": "This region needs a document from a supported country. You can verify with a different ID.",
-                "unavailableDescription": "This region is not available for your account. Contact support for help.",
                 "uploadDocument": "Upload document"
             },
             "initError": {
@@ -3392,7 +3390,7 @@
             "titleIdentityDocumentMissing": "Complete your verification",
             "titleRegionUnavailable": "Not available for UK residents",
             "descriptionError": "{error} Please contact support for assistance.",
-            "descriptionBlocked": "We couldn't confirm your ID. Please contact support for assistance.",
+            "descriptionBlocked": "This isn't available for your account right now. Contact support and we'll look into it.",
             "descriptionRestartIdentity": "This payment method needs a document from a supported country. You can verify with a different ID.",
             "descriptionProviderRejection": "We need more information from you to continue.",
             "descriptionRegionUnavailable": "Due to UK regulations, bank transfers aren't available for UK residents. Your funds are safe. You can withdraw them as crypto anytime.",
@@ -5206,6 +5204,8 @@
         "claim": {
             "heading": "Get paid in {currency}",
             "subheading": "Bank details for receiving payments. Share them with employers, clients or platforms like Deel.",
+            "subheadingBusinessPayers": "Bank details for receiving payments. Share them with employers, companies or platforms like Deel.",
+            "subheadingOwnAccounts": "Bank details for receiving payments from accounts in your own name.",
             "conditionTerms": "Who can pay depends on the {currency} rules. They show once the account is open.",
             "statePending": "State rules are confirmed when you open the account.",
             "benefitStable": "Share once, use for every payment",

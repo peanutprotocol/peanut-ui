@@ -95,7 +95,15 @@ export function ClaimAccountContent({
                 <TitleBlock
                     size="s"
                     title={t('claim.heading', { currency: rail.currency })}
-                    description={t('claim.subheading')}
+                    description={t(
+                        // who may pay, as the claim terms say (TASK-24913): only the holder (a Texas
+                        // resident's USD), businesses but not individuals (EUR, GBP, COP), or anyone
+                        terms?.rules?.thirdPartyIndividual?.policy === 'unavailable'
+                            ? terms.rules.thirdPartyBusiness === 'unavailable'
+                                ? 'claim.subheadingOwnAccounts'
+                                : 'claim.subheadingBusinessPayers'
+                            : 'claim.subheading'
+                    )}
                 />
 
                 <ListGroup>

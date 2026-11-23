@@ -1,12 +1,6 @@
+import { reasonCodeKey } from '@/constants/capability-reason-labels.consts'
 import { gateSupportCase, getGateReasonCode, type GateState } from '@/utils/capability-gate'
 import type { UnavailableCause, ClaimableCorridor } from './types'
-
-/** Reasons the drawer words itself (the backend sentence is English): a postal code and Bridge's final refusals. */
-const APP_WORDED_REASONS: ReadonlySet<string> = new Set([
-    'invalid_bank_postal_code',
-    'bridge_terminal_rejection',
-    'duplicate_customer_detected',
-])
 
 /**
  * What the corridor list does with the app's capability gate.
@@ -228,7 +222,8 @@ export function depositGateView(gate: GateState, claimable?: ClaimableCorridor):
         notice: {
             kind: gate.kind,
             message: 'userMessage' in gate ? (gate.userMessage ?? null) : null,
-            ...(supplementInReview || gateSupportCase(gate) || APP_WORDED_REASONS.has(getGateReasonCode(gate) ?? '')
+            // a code with app copy is worded by the drawer: the backend sentence is English (TASK-24969)
+            ...(supplementInReview || gateSupportCase(gate) || reasonCodeKey(getGateReasonCode(gate))
                 ? { reasonCode: getGateReasonCode(gate) }
                 : {}),
             action: ACTION_BY_KIND[gate.kind],

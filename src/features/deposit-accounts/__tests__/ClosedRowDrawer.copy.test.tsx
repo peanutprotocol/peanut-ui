@@ -63,3 +63,23 @@ it('uses country copy for a pending move outside the US instead of the state-onl
     expect(await screen.findByRole('dialog')).toHaveTextContent(messages.profile.unlockPayments.cardNotAvailableNote)
     expect(screen.queryByText(messages.profile.unlockPayments.cardNotAvailableStateNote)).not.toBeInTheDocument()
 })
+
+// TASK-24969: a bank row the provider refused read "Bank transfers aren't available
+// for residents of your country", which is false for most refusals
+it('words a provider refusal by its reason, never as the residence rule', async () => {
+    const messages = await loadMessages('en')
+    render(
+        <NextIntlClientProvider locale="en" messages={messages} timeZone="UTC">
+            <ClosedRowDrawer
+                closed={{ kind: 'refused', reason: 'some_code_without_app_copy' }}
+                onClose={() => {}}
+                onChangeResidence={() => {}}
+            />
+        </NextIntlClientProvider>
+    )
+    const dialog = await screen.findByRole('dialog')
+    expect(dialog).not.toHaveTextContent(messages.profile.unlockPayments.bankOnlyNotAvailableNote)
+    expect(dialog).toHaveTextContent(
+        messages.kyc.supplement.unavailable.replace('{feature}', messages.kyc.documents.bank)
+    )
+})
