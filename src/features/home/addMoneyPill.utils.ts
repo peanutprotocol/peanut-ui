@@ -2,7 +2,7 @@ import { parseUnits } from 'viem'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/wallet-token.consts'
 
 // 93% of verified users' first money comes through Add, so a low balance
-// turns Add into the labelled pill (TASK-25076). No cooldown, by decision.
+// moves Add to the centre as the pink button (TASK-25076). No cooldown, by decision.
 const PILL_BELOW = parseUnits('10', PEANUT_WALLET_TOKEN_DECIMALS)
 const ONE_DOLLAR = parseUnits('1', PEANUT_WALLET_TOKEN_DECIMALS)
 

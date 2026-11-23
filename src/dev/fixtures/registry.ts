@@ -2580,11 +2580,11 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: { 'GET /users/me': null },
     },
     home: { route: '/home', about: 'Home: balance, activity and CTAs for a verified user.' },
-    // TASK-25076: a verified balance under $10 turns Add into the labelled pill.
+    // TASK-25076: a verified balance under $10 moves Add to the centre as the pink button.
     'home-low-balance-top-up': {
         route: '/home',
         balance: '4.20',
-        about: 'Verified user who has been paid before, $4.20 left: Add is the pink Top up pill, Send centred, Request at the end.',
+        about: 'Verified user who has been paid before, $4.20 left: Send first, the pink Top up button centred, Request at the end.',
     },
     'full-maintenance': {
         route: '/maintenance',
