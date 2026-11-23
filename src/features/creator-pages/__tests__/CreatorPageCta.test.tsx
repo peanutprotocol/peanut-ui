@@ -150,6 +150,17 @@ describe('CreatorPageCta', () => {
         ])
     })
 
+    it('counts the impression and the store tap under the creator_page surface, not guest_flow', () => {
+        renderCta('android')
+        clickLink()
+        expect(capture.mock.calls).toContainEqual(['migration_guest_cta_shown', { surface: 'creator_page' }])
+        expect(capture.mock.calls).toContainEqual([
+            'migration_store_cta_clicked',
+            { surface: 'creator_page', store: 'android', handoff: true },
+        ])
+        expect(JSON.stringify(capture.mock.calls)).not.toContain('guest_flow')
+    })
+
     it('sends no creator event when analytics are not allowed, and still hands off', () => {
         ;(creatorPageAnalyticsAllowed as jest.Mock).mockReturnValue(false)
         renderCta('android')
@@ -168,6 +179,7 @@ describe('CreatorPageCta', () => {
             </CreatorPagePreview>
         )
         expect(clickLink()).toBe(false)
+        // No creator event and no store impression either.
         expect(capture).not.toHaveBeenCalled()
         expect(openUrl).not.toHaveBeenCalled()
         expect(readInviteCode()).toBe('')

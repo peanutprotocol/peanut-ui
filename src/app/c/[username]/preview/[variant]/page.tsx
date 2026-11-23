@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic'
 type PreviewRouteProps = { params: Promise<{ username: string; variant: string }> }
 
 export async function generateMetadata({ params }: PreviewRouteProps): Promise<Metadata> {
-    const title = creatorPageExperiment((await params).username)?.title
+    const title = creatorPageExperiment((await params).username.toLowerCase())?.title
     return { ...(title ? { title } : {}), robots: { index: false, follow: false } }
 }
 
@@ -24,7 +24,8 @@ export async function generateMetadata({ params }: PreviewRouteProps): Promise<M
  */
 export default async function CreatorPagePreviewRoute({ params }: PreviewRouteProps) {
     if (!DEV_ROUTES_ENABLED) notFound()
-    const [{ username, variant }, requestHeaders] = await Promise.all([params, headers()])
+    const [{ username: rawUsername, variant }, requestHeaders] = await Promise.all([params, headers()])
+    const username = rawUsername.toLowerCase()
     const Page = creatorPageComponent(username, variant)
     if (!Page) notFound()
     const userAgent = requestHeaders.get('user-agent') ?? ''

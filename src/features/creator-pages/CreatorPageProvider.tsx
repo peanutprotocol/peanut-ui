@@ -1,6 +1,7 @@
 'use client'
 
 import { useContext, useEffect, useRef, type ReactNode } from 'react'
+import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import { captureCreatorPageView } from './capture-creator-page-events'
 import { creatorPageAnalyticsAllowed } from './consent'
@@ -24,8 +25,12 @@ export function CreatorPageProvider({
 }) {
     const preview = useContext(CreatorPagePreviewContext)
     // The same hand-off as a guest on /invite: a phone goes to its store with the inviter in the
-    // deferred payload, a desktop gets the QR modal.
-    const { interceptGuestCta, storeHandoffModal } = useGuestStoreHandoff()
+    // deferred payload, a desktop gets the QR modal. Its own surface, with an impression, keeps
+    // creator-page taps out of the guest_flow click-through rate.
+    const { interceptGuestCta, storeHandoffModal } = useGuestStoreHandoff({
+        surface: MIGRATION_SURFACES.CREATOR_PAGE,
+        trackImpressionWhenGuest: !preview,
+    })
     // A new value on each render: this renders again only when the QR modal opens or closes.
     const context = { page, preview, deviceOs, interceptGuestCta }
 

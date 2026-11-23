@@ -3,6 +3,7 @@
 import { useParams } from 'next/navigation'
 import { useEffect } from 'react'
 import { creatorInvitePath } from '@/features/creator-pages/invite-path'
+import { captureException } from '@/utils/sentry-lazy'
 
 /** A creator page that fails to render still reaches the creator's invite, as if they had no page. */
 export default function CreatorPageError({ error }: { error: Error }) {
@@ -11,6 +12,7 @@ export default function CreatorPageError({ error }: { error: Error }) {
 
     useEffect(() => {
         console.error('creator page fell back to the invite', error)
+        captureException(error)
         window.location.replace(href)
     }, [error, href])
 

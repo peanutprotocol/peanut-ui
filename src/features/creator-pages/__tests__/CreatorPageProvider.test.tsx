@@ -15,6 +15,9 @@ const page = creatorPageFixture('juanacervio', 'g2')
 const STICKY = 'cpv_juanacervio=nita-2026-11-a.g2; Max-Age=2592000; Path=/c; SameSite=Lax; Secure'
 // jsdom drops a Secure cookie on its http origin, so the assignment itself is what the test reads.
 const cookieWrites: string[] = []
+// The store hand-off sends its own impression; these tests read the creator events only.
+const creatorEvents = () =>
+    (posthog.capture as jest.Mock).mock.calls.filter(([event]) => String(event).startsWith('creator_page_'))
 
 beforeEach(() => {
     ;(posthog.capture as jest.Mock).mockClear()
@@ -44,7 +47,7 @@ describe('CreatorPageProvider', () => {
         )
         expect(screen.getByText('hola')).toBeInTheDocument()
         expect(new Set(cookieWrites)).toEqual(new Set([STICKY]))
-        expect((posthog.capture as jest.Mock).mock.calls).toEqual([
+        expect(creatorEvents()).toEqual([
             [
                 'creator_page_viewed',
                 {
@@ -62,7 +65,7 @@ describe('CreatorPageProvider', () => {
         ;(creatorPageAnalyticsAllowed as jest.Mock).mockReturnValue(false)
         renderProvider()
         expect(screen.getByText('hola')).toBeInTheDocument()
-        expect(posthog.capture).not.toHaveBeenCalled()
+        expect(creatorEvents()).toEqual([])
         // Same scope as the write: a browser removes a cookie only under the path it was set with.
         expect(cookieWrites).toEqual(['cpv_juanacervio=; Max-Age=0; Path=/c; SameSite=Lax; Secure'])
     })
