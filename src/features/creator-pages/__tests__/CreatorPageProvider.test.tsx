@@ -94,6 +94,24 @@ describe('CreatorPageProvider', () => {
         }
     })
 
+    it('counts the store-CTA impression only once a prerendered page is shown', () => {
+        const impressions = () =>
+            (posthog.capture as jest.Mock).mock.calls.filter(([event]) => event === 'migration_guest_cta_shown')
+        Object.defineProperty(document, 'prerendering', { configurable: true, value: true })
+        try {
+            renderProvider()
+            expect(impressions()).toEqual([])
+
+            Object.defineProperty(document, 'prerendering', { configurable: true, value: false })
+            act(() => {
+                document.dispatchEvent(new Event('prerenderingchange'))
+            })
+            expect(impressions()).toEqual([['migration_guest_cta_shown', { surface: 'creator_page' }]])
+        } finally {
+            delete (document as { prerendering?: boolean }).prerendering
+        }
+    })
+
     it('removes the activation listener when the page leaves during a prerender', () => {
         Object.defineProperty(document, 'prerendering', { configurable: true, value: true })
         try {

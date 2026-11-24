@@ -1,6 +1,6 @@
 'use client'
 
-import { useContext, useEffect, useRef, type ReactNode } from 'react'
+import { useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
 import { captureCreatorPageView } from './capture-creator-page-events'
@@ -24,12 +24,15 @@ export function CreatorPageProvider({
     children: ReactNode
 }) {
     const preview = useContext(CreatorPagePreviewContext)
+    // True once the visitor sees the page: after hydration, or after a prerender is activated.
+    const [shown, setShown] = useState(false)
     // The same hand-off as a guest on /invite: a phone goes to its store with the inviter in the
     // deferred payload, a desktop gets the QR modal. Its own surface, with an impression, keeps
-    // creator-page taps out of the guest_flow click-through rate.
+    // creator-page taps out of the guest_flow click-through rate. The impression waits for `shown`,
+    // so a prerender nobody opens counts no CTA.
     const { interceptGuestCta, storeHandoffModal } = useGuestStoreHandoff({
         surface: MIGRATION_SURFACES.CREATOR_PAGE,
-        trackImpressionWhenGuest: !preview,
+        trackImpressionWhenGuest: !preview && shown,
     })
     // A new value on each render: this renders again only when the QR modal opens or closes.
     const context = { page, preview, deviceOs, interceptGuestCta }
@@ -40,6 +43,7 @@ export function CreatorPageProvider({
         if (preview) return undefined
         const doc = document as Document & { prerendering?: boolean }
         const activate = () => {
+            setShown(true)
             // A page render cannot set cookies, so the variant becomes sticky here. It follows the
             // consent rule of the events: no consent, no event, no cookie, and a fresh pick per visit.
             if (creatorPageAnalyticsAllowed()) {
