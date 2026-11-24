@@ -2,7 +2,7 @@ import { corridorHasTopUp } from './countryRoutes'
 import { DEPOSIT_RAIL_ORDER, DEPOSIT_RAILS, isClaimable } from '@/features/deposit-accounts/rails'
 import { residenceAllows } from '@/features/deposit-accounts/residenceGate'
 
-export type AddMoneyMethod = 'account' | 'transfer' | 'pix' | 'mercadoPago' | 'crypto' | 'more'
+export type AddMoneyMethod = 'account' | 'transfer' | 'pix' | 'ars' | 'crypto' | 'more'
 
 /**
  * Where the Pix row stands on both Add lists, Home's drawer and the Add picker, read from the API's Pix
@@ -26,18 +26,14 @@ function pixRowPlace(input: {
 }
 
 /**
- * Whether both Add lists lead with Mercado Pago (the owner, 24 Nov), as Pix leads on Avenia. The API
+ * Whether both Add lists lead with the ARS row (the owner, 24 Nov), as Pix leads on Avenia. The API
  * sends no route for the peso top-up, so its own gate decides: a ready top-up, or a resident of
  * Argentina whose gate the provider has not refused. A step still open (verification, set-up, review)
  * keeps the row, because the flow takes the user through it. A Manteca outage keeps it too: the page
  * shows the outage. Nobody outside Argentina gets the row.
  */
-function mercadoPagoRowShown(input: {
-    arsTopUpOpen?: boolean
-    residenceIso2s: readonly string[]
-    mercadoPagoReady: boolean
-}): boolean {
-    if (input.mercadoPagoReady) return true
+function arsRowShown(input: { arsTopUpOpen?: boolean; residenceIso2s: readonly string[]; arsReady: boolean }): boolean {
+    if (input.arsReady) return true
     return !!input.arsTopUpOpen && residenceAllows('BANK_TRANSFER_AR', [...input.residenceIso2s])
 }
 
@@ -60,7 +56,7 @@ export function resolveAddMoneyMethods(input: {
         account: [] as string[],
         transfer: [] as string[],
         pix: [] as string[],
-        mercadoPago: [] as string[],
+        ars: [] as string[],
     }
     for (const corridor of DEPOSIT_RAIL_ORDER) {
         const rail = DEPOSIT_RAILS[corridor]
@@ -69,22 +65,22 @@ export function resolveAddMoneyMethods(input: {
         if (!residenceAllows(corridor, [...input.residenceIso2s])) continue
         if (corridor === 'PIX_BR') {
             if (!input.brazilPaused) ready.pix.push(rail.currency)
-        } else if (corridor === 'BANK_TRANSFER_AR') ready.mercadoPago.push(rail.currency)
+        } else if (corridor === 'BANK_TRANSFER_AR') ready.ars.push(rail.currency)
         else ready.transfer.push(rail.currency)
     }
     // An offered Avenia route is also offered to a user who has not verified yet, so it never makes them
     // returning; nor does an open peso gate.
     const returning =
         !!input.firstPaymentAt ||
-        !!(ready.account.length || ready.transfer.length || ready.pix.length || ready.mercadoPago.length)
+        !!(ready.account.length || ready.transfer.length || ready.pix.length || ready.ars.length)
     if (input.pixDepositOffered && !input.brazilPaused && !ready.pix.includes('BRL')) ready.pix.push('BRL')
     const pixRow = pixRowPlace({ ...input, pixReady: ready.pix.length > 0 })
-    const mercadoPagoRow = mercadoPagoRowShown({ ...input, mercadoPagoReady: ready.mercadoPago.length > 0 })
+    const arsRow = arsRowShown({ ...input, arsReady: ready.ars.length > 0 })
     const drawerMethods: AddMoneyMethod[] = []
     // Bank accounts show wherever the user can hold or open one (the owner, 15 Nov), as on the picker:
     // the row alone never moves a user to the drawer, which still needs something ready or a payment.
     const accountsOffered = input.standingEnabled || ready.account.length > 0
-    if (mercadoPagoRow) drawerMethods.push('mercadoPago')
+    if (arsRow) drawerMethods.push('ars')
     if (pixRow === 'first') drawerMethods.push('pix')
     if (accountsOffered) drawerMethods.push('account')
     // A one-time bank transfer is never a drawer row (the owner, 15 Nov): it lives on the picker,
@@ -94,7 +90,7 @@ export function resolveAddMoneyMethods(input: {
     const usable = drawerMethods.length > 0
     if (usable && returning) drawerMethods.push('more')
     const pickerMethods: AddMoneyMethod[] = []
-    if (mercadoPagoRow) pickerMethods.push('mercadoPago')
+    if (arsRow) pickerMethods.push('ars')
     if (pixRow === 'first') pickerMethods.push('pix')
     if (accountsOffered) pickerMethods.push('account')
     pickerMethods.push('transfer')

@@ -148,7 +148,7 @@ describe('HomeActionDrawers', () => {
     })
 
     // The owner, 24 Nov (TASK-25350). Which peso gates offer the row: useAddMoneyReadiness.test.ts
-    describe('the Mercado Pago row', () => {
+    describe('the ARS row', () => {
         const argentina = resolveAddMoneyMethods({
             cryptoReady: true,
             standingEnabled: true,
@@ -158,19 +158,21 @@ describe('HomeActionDrawers', () => {
             readyTopUps: ['ARS'],
         })
 
-        it('leads the drawer with the Mercado Pago mark and opens the peso top-up directly', async () => {
+        it('leads the drawer with the AR flag and opens the peso top-up directly', async () => {
             const urlUpdates: UrlUpdateEvent[] = []
             renderWithUrl('?drawer=add', (event) => urlUpdates.push(event), argentina)
 
             const rows = screen.getAllByTestId(/^home-drawer-add-/)
             expect(rows.map((row) => row.getAttribute('data-testid'))).toEqual([
-                'home-drawer-add-mercadoPago',
+                'home-drawer-add-ars',
                 'home-drawer-add-account',
                 'home-drawer-add-crypto',
                 'home-drawer-add-more',
             ])
-            expect(rows[0]).toHaveTextContent('mercadoPago')
-            expect(rows[0].querySelector('img')).toBeInTheDocument()
+            expect(rows[0]).toHaveTextContent('ARS')
+            expect(decodeURIComponent(rows[0].querySelector('img')?.getAttribute('src') ?? '')).toContain(
+                '/flags/ar.svg'
+            )
 
             fireEvent.click(rows[0])
             // one currency: no chooser of one ARS row in between
@@ -181,7 +183,7 @@ describe('HomeActionDrawers', () => {
         it('carries returnTo onto the peso top-up', async () => {
             const origin = '/profile/exchange-rate?from=USD&to=ARS'
             renderWithUrl(`?drawer=add&returnTo=${encodeURIComponent(origin)}`, undefined, argentina)
-            fireEvent.click(screen.getByTestId('home-drawer-add-mercadoPago'))
+            fireEvent.click(screen.getByTestId('home-drawer-add-ars'))
             await waitFor(() =>
                 expect(mockPush).toHaveBeenCalledWith(
                     `/add-money/argentina/manteca?returnTo=${encodeURIComponent(origin)}`
@@ -192,7 +194,7 @@ describe('HomeActionDrawers', () => {
         it('opens the native form of the top-up in the app, which has no country route', async () => {
             jest.mocked(isCapacitor).mockReturnValue(true)
             renderWithUrl('?drawer=add', undefined, argentina)
-            fireEvent.click(screen.getByTestId('home-drawer-add-mercadoPago'))
+            fireEvent.click(screen.getByTestId('home-drawer-add-ars'))
             await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money?country=argentina&view=manteca'))
         })
     })
