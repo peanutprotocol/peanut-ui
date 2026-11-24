@@ -24,7 +24,7 @@ describe('resolveAddMoneyMethods', () => {
     it('shows Crypto and More ways after a successful outgoing payment', () => {
         expect(resolve({ firstPaymentAt: '2026-01-01T00:00:00Z' })).toEqual({
             entry: 'drawer',
-            ready: { account: [], transfer: [], pix: [], mercadoPago: [] },
+            ready: { account: [], transfer: [], pix: [], ars: [] },
             drawerMethods: ['account', 'crypto', 'more'],
             pickerMethods: ['account', 'transfer', 'crypto'],
         })
@@ -193,32 +193,32 @@ describe('resolveAddMoneyMethods', () => {
         })
     })
 
-    // The owner, 24 Nov (TASK-25350): Mercado Pago leads both lists for a resident of Argentina, as Pix
+    // The owner, 24 Nov (TASK-25350): ARS leads both lists for a resident of Argentina, as Pix
     // leads on Avenia, and the peso top-up leaves the one-time bank transfer
-    describe('the Mercado Pago row, on the picker and the drawer alike', () => {
+    describe('the ARS row, on the picker and the drawer alike', () => {
         const returning = { firstPaymentAt: '2026-01-01T00:00:00Z' }
 
-        it('a ready peso top-up is Mercado Pago, first on both lists, not a one-time transfer', () => {
+        it('a ready peso top-up is the ARS row, first on both lists, not a one-time transfer', () => {
             const result = resolve({ residenceIso2s: ['AR'], readyTopUps: ['ARS'] })
-            expect(result.ready).toEqual({ account: [], transfer: [], pix: [], mercadoPago: ['ARS'] })
-            expect(result.drawerMethods).toEqual(['mercadoPago', 'account', 'crypto', 'more'])
-            expect(result.pickerMethods).toEqual(['mercadoPago', 'account', 'transfer', 'crypto'])
+            expect(result.ready).toEqual({ account: [], transfer: [], pix: [], ars: ['ARS'] })
+            expect(result.drawerMethods).toEqual(['ars', 'account', 'crypto', 'more'])
+            expect(result.pickerMethods).toEqual(['ars', 'account', 'transfer', 'crypto'])
             // a ready top-up still makes the user returning, so the Add button opens the drawer
             expect(result.entry).toBe('drawer')
         })
 
         it('a resident with an open gate gets the row before verifying, and still lands on the picker', () => {
             const result = resolve({ residenceIso2s: ['AR'], arsTopUpOpen: true, firstPaymentAt: null })
-            expect(result.pickerMethods).toEqual(['mercadoPago', 'account', 'transfer', 'crypto'])
-            expect(result.drawerMethods[0]).toBe('mercadoPago')
+            expect(result.pickerMethods).toEqual(['ars', 'account', 'transfer', 'crypto'])
+            expect(result.drawerMethods[0]).toBe('ars')
             // the row starts the top-up; it does not make it ready, nor the user returning
-            expect(result.ready.mercadoPago).toEqual([])
+            expect(result.ready.ars).toEqual([])
             expect(result.entry).toBe('picker')
         })
 
         it('a returning resident with an open gate gets the row first on the drawer', () => {
             expect(resolve({ ...returning, residenceIso2s: ['AR'], arsTopUpOpen: true }).drawerMethods).toEqual([
-                'mercadoPago',
+                'ars',
                 'account',
                 'crypto',
                 'more',
@@ -227,16 +227,16 @@ describe('resolveAddMoneyMethods', () => {
 
         it('a refused gate gets no row: the peso top-up stays under the one-time bank transfer', () => {
             const result = resolve({ ...returning, residenceIso2s: ['AR'], arsTopUpOpen: false })
-            expect(result.pickerMethods).not.toContain('mercadoPago')
-            expect(result.drawerMethods).not.toContain('mercadoPago')
+            expect(result.pickerMethods).not.toContain('ars')
+            expect(result.drawerMethods).not.toContain('ars')
             expect(result.pickerMethods).toContain('transfer')
         })
 
         it.each([[['DE']], [['BR']], [[]]])('a user with residence %j gets no row', (residenceIso2s) => {
             const result = resolve({ ...returning, residenceIso2s, arsTopUpOpen: true, readyTopUps: ['ARS'] })
-            expect(result.ready.mercadoPago).toEqual([])
-            expect(result.pickerMethods).not.toContain('mercadoPago')
-            expect(result.drawerMethods).not.toContain('mercadoPago')
+            expect(result.ready.ars).toEqual([])
+            expect(result.pickerMethods).not.toContain('ars')
+            expect(result.drawerMethods).not.toContain('ars')
         })
     })
 

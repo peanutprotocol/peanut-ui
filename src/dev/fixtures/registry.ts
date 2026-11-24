@@ -1731,8 +1731,8 @@ const MANTECA_AR_CAPABILITIES = {
     restrictions: [],
 }
 
-/** A verified resident of Argentina whose peso top-up is ready: the Mercado Pago row on both Add lists. */
-const MERCADO_PAGO_RESIDENT = {
+/** A verified resident of Argentina whose peso top-up is ready: the ARS row on both Add lists. */
+const ARS_TOP_UP_RESIDENT = {
     residence: {
         verified: { country: 'AR', status: 'VERIFIED', updatedAt: null },
         declared: null,
@@ -5703,22 +5703,22 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         },
     },
-    // The owner, 24 Nov (TASK-25350): Mercado Pago leads both Add lists for a resident of Argentina.
-    'add-money-picker-mercado-pago': {
-        capture: { expectSelector: '[data-testid="add-money-method-mercadoPago"]' },
+    // The owner, 24 Nov (TASK-25350): ARS leads both Add lists for a resident of Argentina.
+    'add-money-picker-ars': {
+        capture: { expectSelector: '[data-testid="add-money-method-ars"]' },
         route: '/add-money',
         geoCountry: 'AR',
-        about: 'The Add picker for a resident of Argentina: Mercado Pago leads and opens the peso top-up directly (the owner, 24 Nov).',
-        responses: { 'GET /users/me': { ...MERCADO_PAGO_RESIDENT, user: { fullName: 'Lucía Gómez' } } },
+        about: 'The Add picker for a resident of Argentina: ARS leads and opens the peso top-up directly (the owner, 24 Nov).',
+        responses: { 'GET /users/me': { ...ARS_TOP_UP_RESIDENT, user: { fullName: 'Lucía Gómez' } } },
     },
-    'home-add-drawer-mercado-pago': {
-        capture: { expectSelector: '[role="dialog"][data-state="open"] [data-testid="home-drawer-add-mercadoPago"]' },
+    'home-add-drawer-ars': {
+        capture: { expectSelector: '[role="dialog"][data-state="open"] [data-testid="home-drawer-add-ars"]' },
         route: '/home?drawer=add',
         geoCountry: 'AR',
-        about: 'The Add drawer for a returning resident of Argentina: Mercado Pago leads, bank accounts next, then crypto and more ways (the owner, 24 Nov).',
+        about: 'The Add drawer for a returning resident of Argentina: ARS leads, bank accounts next, then crypto and more ways (the owner, 24 Nov).',
         responses: {
             'GET /users/me': {
-                ...MERCADO_PAGO_RESIDENT,
+                ...ARS_TOP_UP_RESIDENT,
                 user: { fullName: 'Lucía Gómez', firstPaymentAt: '2026-09-15T00:00:00Z' },
             },
         },

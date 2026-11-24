@@ -39,10 +39,10 @@ const showTransferList = (residence: string[], pickerMethods: string[]) => {
 }
 const countryList = () => within(screen.getByTestId('add-money-options-list'))
 
-// The owner, 24 Nov (TASK-25350): the peso top-up has its own Mercado Pago row, so the one-time bank
+// The owner, 24 Nov (TASK-25350): the peso top-up has its own ARS row on the picker, so the one-time bank
 // transfer does not offer it a second time
-it('drops the ARS row and Argentina for a resident who has the Mercado Pago row', () => {
-    showTransferList(['AR'], ['mercadoPago', 'account', 'transfer', 'crypto'])
+it('drops the ARS row and Argentina for a resident who has the ARS row on the picker', () => {
+    showTransferList(['AR'], ['ars', 'account', 'transfer', 'crypto'])
     expect(screen.queryByTestId('add-money-option-ARS')).not.toBeInTheDocument()
     expect(countryList().queryByRole('button', { name: /Argentina/ })).not.toBeInTheDocument()
     // bank transfers in other currencies stay
@@ -50,7 +50,7 @@ it('drops the ARS row and Argentina for a resident who has the Mercado Pago row'
     expect(countryList().getByRole('button', { name: /Germany/ })).toBeInTheDocument()
 })
 
-it('keeps the ARS row and Argentina where there is no Mercado Pago row', () => {
+it('keeps the ARS row and Argentina where the picker has no ARS row', () => {
     showTransferList(['AR'], ['account', 'transfer', 'crypto'])
     expect(screen.getByTestId('add-money-option-ARS')).toBeInTheDocument()
     expect(countryList().getByRole('button', { name: /Argentina/ })).toBeInTheDocument()

@@ -37,7 +37,7 @@ import { trackAddMoney } from './analytics'
 import { corridorTopUpHref } from './countryRoutes'
 import { useAddMoneyReadiness } from './useAddMoneyReadiness'
 
-// Pix and Mercado Pago are not methods here: each has one currency, so its rows open the deposit directly
+// Pix and ARS are not methods here: each has one currency, so its rows open the deposit directly
 const FIAT_METHODS = ['account', 'transfer'] as const
 const TRANSFER_COUNTRIES = countryData.flatMap((country) => {
     if (country.type !== 'country' || country.path === 'brazil') return []
@@ -71,8 +71,8 @@ export function AddMoneyOptions() {
     const [accountClosed, setAccountClosed] = useState<ClosedRow | null>(null)
     const [restricted, setRestricted] = useState<'BANK_TRANSFER_AR' | null>(null)
 
-    // the peso top-up has its own Mercado Pago row on the picker, so this list does not repeat it
-    const mercadoPagoRow = readiness.pickerMethods.includes('mercadoPago')
+    // the peso top-up has its own ARS row on the picker, so this list does not repeat it
+    const arsRow = readiness.pickerMethods.includes('ars')
     const fallback =
         origin?.split(/[?#]/)[0] === '/add-money' ? origin : origin ? withReturnTo('/add-money', origin) : '/add-money'
     const selected = method ? readiness.ready[method] : []
@@ -122,7 +122,7 @@ export function AddMoneyOptions() {
             : DEPOSIT_RAIL_ORDER.flatMap((corridor) => {
                   const rail = DEPOSIT_RAILS[corridor]
                   if (corridor === 'PIX_BR') return []
-                  if (corridor === 'BANK_TRANSFER_AR' && mercadoPagoRow) return []
+                  if (corridor === 'BANK_TRANSFER_AR' && arsRow) return []
                   if (readyOnly && !selected.includes(rail.currency)) return []
                   const href = corridorTopUpHref(corridor, residenceIso2s)
                   return href ? [{ corridor, rail, href }] : []
@@ -277,7 +277,7 @@ export function AddMoneyOptions() {
                                     />
                                     <ListGroup>
                                         {TRANSFER_COUNTRIES.filter(
-                                            ({ country }) => !(mercadoPagoRow && country.path === 'argentina')
+                                            ({ country }) => !(arsRow && country.path === 'argentina')
                                         )
                                             .map(({ country, href }) => ({
                                                 country,
