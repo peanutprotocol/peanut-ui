@@ -104,17 +104,23 @@ const CardFace: FC<Props> = ({
             )}
         >
             <div aria-hidden className="col-start-1 row-start-1 aspect-[1.586/1] w-full" />
-            {/* issued artwork uses 90% of the card height */}
-            <Image
-                src={PEANUT_CARD_HAND}
-                alt=""
-                aria-hidden
-                className={twMerge(
-                    'pointer-events-none absolute right-0 bottom-0 h-[90%] w-auto transition-transform duration-slow select-none',
-                    detailsShown && 'translate-x-full translate-y-full'
-                )}
-                priority
-            />
+            {/* The hand needs its own absolute layer. On iOS 16/17 WebKit, a
+             * percentage-height absolute child of this grid stretches the content
+             * column to the screen height, so the number and the eye fall below
+             * the card edge and get clipped (TASK-25347). */}
+            <div aria-hidden className="pointer-events-none absolute inset-0">
+                {/* issued artwork uses 90% of the card height */}
+                <Image
+                    src={PEANUT_CARD_HAND}
+                    alt=""
+                    aria-hidden
+                    className={twMerge(
+                        'pointer-events-none absolute right-0 bottom-0 h-[90%] w-auto transition-transform duration-slow select-none',
+                        detailsShown && 'translate-x-full translate-y-full'
+                    )}
+                    priority
+                />
+            </div>
 
             <div className="relative col-start-1 row-start-1 flex w-full flex-col p-4">
                 {/* Top row: peanut mascot + wordmark (left) + Visa Platinum (right).
