@@ -2,6 +2,9 @@ import type { RailCapability } from '@/types/capabilities'
 import { PIX_ADD_MONEY_PATH } from '@/features/pix/pix.routes'
 import type { DepositAccountView, DepositCorridor, DepositInstructions, DepositRail, SenderPolicy } from './types'
 
+/** The peso top-up: one CVU per deposit, paid from the user's own Mercado Pago or bank account. */
+export const ARS_ADD_MONEY_PATH = '/add-money/argentina/manteca'
+
 /**
  * How each corridor PRESENTS: flag, currency, arrival, row count. It never
  * decides which corridors a user sees — `corridorsFromRails` does, from the
@@ -75,7 +78,7 @@ export const DEPOSIT_RAILS: Record<DepositCorridor, DepositRail> = {
         detailRowCount: 5,
         claimable: false,
         residenceIso2: 'AR',
-        topUpHref: '/add-money/argentina/manteca',
+        topUpHref: ARS_ADD_MONEY_PATH,
     },
 }
 

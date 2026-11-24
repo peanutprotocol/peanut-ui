@@ -7,6 +7,8 @@ import { PageStack } from '@/components/0_Bruddle/PageStack'
 import NavHeader from '@/components/Global/NavHeader'
 import { useAddMoneyReadiness } from './useAddMoneyReadiness'
 import { PIX_ADD_MONEY_PATH } from '@/features/pix/pix.routes'
+import { ARS_ADD_MONEY_PATH } from '@/features/deposit-accounts/rails'
+import { rewriteMethodPath } from '@/utils/native-routes'
 import { withReturnTo } from '@/utils/return-to.utils'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
@@ -27,8 +29,14 @@ export function AddMoneyPicker({ onBack, origin }: { onBack: () => void; origin:
         viewed.current = true
         trackAddMoney(ANALYTICS_EVENTS.ADD_MONEY_VIEWED)
     }, [])
-    // the rows in the order the methods resolve: Pix leads where the route offers it on Avenia
+    // the rows in the order the methods resolve: Mercado Pago leads for a resident of Argentina, and Pix
+    // where the route offers it on Avenia
     const rowFor: Record<string, { title: string; description: string; icon: ReactNode }> = {
+        mercadoPago: {
+            title: t('mercadoPago'),
+            description: t('mercadoPagoDetails'),
+            icon: <IconBubble {...CONCEPT_ICONS.mercadoPago} size="s" />,
+        },
         account: {
             title: t('openAccount'),
             description: t('accountDetails'),
@@ -73,12 +81,15 @@ export function AddMoneyPicker({ onBack, origin }: { onBack: () => void; origin:
                         onClick={() =>
                             router.push(
                                 withReturnTo(
-                                    // Pix has one currency, so it opens the Pix deposit, not a chooser of one row
+                                    // Pix and Mercado Pago have one currency each, so they open the deposit,
+                                    // not a chooser of one row
                                     row.key === 'crypto'
                                         ? '/add-money/crypto'
                                         : row.key === 'pix'
                                           ? PIX_ADD_MONEY_PATH
-                                          : `/add-money/options?method=${row.key}`,
+                                          : row.key === 'mercadoPago'
+                                            ? rewriteMethodPath(ARS_ADD_MONEY_PATH)
+                                            : `/add-money/options?method=${row.key}`,
                                     picker
                                 )
                             )

@@ -248,3 +248,49 @@ it.each<[string, string[], Partial<CapabilityRoute>, boolean]>([
     const { result } = renderHook(() => useAddMoneyReadiness(false))
     expect(result.current.pickerMethods.includes('pix')).toBe(offered)
 })
+
+// The owner, 24 Nov (TASK-25350): the API sends no peso route, so the Mercado Pago row reads the ARS top-up's gate
+const arsGate = (gate: { kind: string }) =>
+    mockGateFor.mockImplementation((_: string, scope: { railId: string }) =>
+        scope.railId === 'manteca.bank_transfer_ar' ? gate : { kind: 'not-offered' }
+    )
+
+it('leads with Mercado Pago on a ready peso top-up, and the user is returning', () => {
+    mockResidence = ['AR']
+    arsGate({ kind: 'ready' })
+    const { result } = renderHook(() => useAddMoneyReadiness(true))
+    expect(result.current.ready.mercadoPago).toEqual(['ARS'])
+    expect(result.current.ready.transfer).toEqual([])
+    expect(result.current.drawerMethods[0]).toBe('mercadoPago')
+    expect(result.current.entry).toBe('drawer')
+})
+
+it.each(['needs-identity', 'needs-enrollment', 'accept-tos', 'pending', 'waiting-on-provider', 'fixable-rejection'])(
+    'offers Mercado Pago to a resident whose peso gate is %s: the flow takes them through the step',
+    (kind) => {
+        mockResidence = ['AR']
+        arsGate({ kind })
+        const { result } = renderHook(() => useAddMoneyReadiness(false))
+        expect(result.current.pickerMethods[0]).toBe('mercadoPago')
+        expect(result.current.ready.mercadoPago).toEqual([])
+        expect(result.current.entry).toBe('picker')
+    }
+)
+
+it.each(['loading', 'blocked-rejection', 'restart-identity'])(
+    'offers no Mercado Pago row while the peso gate is %s',
+    (kind) => {
+        mockResidence = ['AR']
+        arsGate({ kind })
+        const { result } = renderHook(() => useAddMoneyReadiness(false))
+        expect(result.current.pickerMethods).not.toContain('mercadoPago')
+    }
+)
+
+it('offers no Mercado Pago row to a resident of another country, whatever the gate says', () => {
+    mockResidence = ['BR']
+    arsGate({ kind: 'ready' })
+    const { result } = renderHook(() => useAddMoneyReadiness(false))
+    expect(result.current.pickerMethods).not.toContain('mercadoPago')
+    expect(result.current.ready.mercadoPago).toEqual([])
+})
