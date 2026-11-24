@@ -14,7 +14,10 @@ jest.mock('next/headers', () => ({
     headers: async () => new Headers({ 'user-agent': mockUserAgent }),
     cookies: async () => ({ get: (name: string) => (mockCookie?.name === name ? mockCookie : undefined) }),
 }))
-jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
+jest.mock('posthog-js', () => ({
+    __esModule: true,
+    default: { capture: jest.fn(), set_config: jest.fn(), config: {} },
+}))
 jest.mock('../consent', () => ({ creatorPageAnalyticsAllowed: () => false }))
 
 type RenderedLink = { href: string | null; hasTarget: boolean; hasPosition: boolean; hasIcon: boolean; text: string }

@@ -6,7 +6,10 @@ import { CreatorPageShell } from '../CreatorPageShell'
 import type { DeviceOs } from '../environment'
 import { creatorPageFixture } from '../preview-fixture'
 
-jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
+jest.mock('posthog-js', () => ({
+    __esModule: true,
+    default: { capture: jest.fn(), set_config: jest.fn(), config: {} },
+}))
 jest.mock('../consent', () => ({ creatorPageAnalyticsAllowed: () => false }))
 
 const labels = { ios: 'Abrir en el App Store', android: 'Abrir en Google Play', other: 'Bajar Peanut' }

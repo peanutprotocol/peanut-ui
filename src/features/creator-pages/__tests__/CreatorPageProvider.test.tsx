@@ -8,7 +8,10 @@ import { CreatorPagePreviewContext } from '../CreatorPageContext'
 import { CreatorPageProvider } from '../CreatorPageProvider'
 import { USER_AGENTS } from './user-agents'
 
-jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
+jest.mock('posthog-js', () => ({
+    __esModule: true,
+    default: { capture: jest.fn(), set_config: jest.fn(), config: {} },
+}))
 jest.mock('../consent', () => ({ creatorPageAnalyticsAllowed: jest.fn() }))
 
 const page = creatorPageFixture('juanacervio', 'g2')

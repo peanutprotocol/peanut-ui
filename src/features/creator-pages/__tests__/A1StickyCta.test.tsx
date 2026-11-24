@@ -3,7 +3,10 @@ import { act, render } from '@testing-library/react'
 import { NitaA1 } from '../pages/juanacervio/NitaA1'
 import { creatorPageFixture } from '../preview-fixture'
 
-jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
+jest.mock('posthog-js', () => ({
+    __esModule: true,
+    default: { capture: jest.fn(), set_config: jest.fn(), config: {} },
+}))
 jest.mock('../consent', () => ({ creatorPageAnalyticsAllowed: () => false }))
 
 /** Stands in for the browser's observer: the test says how much of each button is on screen (0 to 1). */

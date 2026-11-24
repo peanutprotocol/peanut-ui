@@ -1,5 +1,6 @@
 'use client'
 
+import posthog from 'posthog-js'
 import { useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { MIGRATION_SURFACES } from '@/constants/migration.consts'
 import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
@@ -24,18 +25,31 @@ export function CreatorPageProvider({
     children: ReactNode
 }) {
     const preview = useContext(CreatorPagePreviewContext)
-    // True once the visitor sees the page: after hydration, or after a prerender is activated.
-    const [shown, setShown] = useState(false)
+    // True once the visitor sees the page (after hydration, or after a prerender is activated) and
+    // analytics are allowed.
+    const [countImpression, setCountImpression] = useState(false)
     // The same hand-off as a guest on /invite: a phone goes to its store with the inviter in the
     // deferred payload, a desktop gets the QR modal. Its own surface, with an impression, keeps
-    // creator-page taps out of the guest_flow click-through rate. The impression waits for `shown`,
-    // so a prerender nobody opens counts no CTA.
+    // creator-page taps out of the guest_flow click-through rate. The impression waits until the
+    // page is shown with consent, so a prerender nobody opens, or a refusal, counts no CTA.
     const { interceptGuestCta, storeHandoffModal } = useGuestStoreHandoff({
         surface: MIGRATION_SURFACES.CREATOR_PAGE,
-        trackImpressionWhenGuest: !preview && shown,
+        trackImpressionWhenGuest: !preview && countImpression,
     })
     // A new value on each render: this renders again only when the QR modal opens or closes.
     const context = { page, preview, deviceOs, interceptGuestCta }
+
+    // The store hand-off (shared with /invite) captures its own events on a tap: the store click,
+    // the deferred hand-off and, on a desktop, the QR modal. While this page is mounted PostHog
+    // drops every event under Do Not Track or Global Privacy Control, so none of them bypasses the
+    // consent rule of the creator events. A PostHog opt-out and a build without a key already send
+    // nothing. Navigation and the invite payload do not depend on capture.
+    useEffect(() => {
+        if (preview) return undefined
+        const previous = posthog.config?.respect_dnt ?? false
+        posthog.set_config({ respect_dnt: true })
+        return () => posthog.set_config({ respect_dnt: previous })
+    }, [preview])
 
     const viewSent = useRef(false)
     const { username, experimentId, variant } = page
@@ -43,10 +57,10 @@ export function CreatorPageProvider({
         if (preview) return undefined
         const doc = document as Document & { prerendering?: boolean }
         const activate = () => {
-            setShown(true)
             // A page render cannot set cookies, so the variant becomes sticky here. It follows the
             // consent rule of the events: no consent, no event, no cookie, and a fresh pick per visit.
             if (creatorPageAnalyticsAllowed()) {
+                setCountImpression(true)
                 if (!viewSent.current) {
                     viewSent.current = true
                     captureCreatorPageView(page)

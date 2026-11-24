@@ -11,7 +11,10 @@ import { CreatorPageProvider } from '../CreatorPageProvider'
 import type { DeviceOs } from '../environment'
 import { USER_AGENTS } from './user-agents'
 
-jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
+jest.mock('posthog-js', () => ({
+    __esModule: true,
+    default: { capture: jest.fn(), set_config: jest.fn(), config: {} },
+}))
 jest.mock('../consent', () => ({ creatorPageAnalyticsAllowed: jest.fn() }))
 // The browser edge of the store hand-off: everything up to the store URL is the real code.
 jest.mock('@/utils/capacitor', () => ({
