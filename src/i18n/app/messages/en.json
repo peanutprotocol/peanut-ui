@@ -110,8 +110,7 @@
     "home": {
         "rewards": "Points",
         "addMoneyPill": {
-            "addMoney": "Add money",
-            "topUp": "Top up"
+            "addMoney": "Add money"
         },
         "activation": {
             "addEmail": {

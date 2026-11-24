@@ -2584,7 +2584,7 @@ export const FIXTURES: Record<string, Fixture> = {
     'home-low-balance-top-up': {
         route: '/home',
         balance: '4.20',
-        about: 'Verified user who has been paid before, $4.20 left: Send first, the pink Top up button centred, Request at the end.',
+        about: 'Verified user who has been paid before, $4.20 left: Send first, the pink Add money button centred, Request at the end.',
     },
     'full-maintenance': {
         route: '/maintenance',

@@ -187,6 +187,8 @@ export function createVerificationOpeningHarness({
 }: {
     request: (request: Request) => Promise<{ status: number }>
 }) {
+    // each harness is a new tab: the verify start screen mark from an earlier test must not skip it
+    window.sessionStorage.clear()
     let view: ReturnType<typeof renderWithIntl> | undefined
     const errors: unknown[] = []
     const onError = (event: ErrorEvent) => {
@@ -352,7 +354,9 @@ export function createVerificationOpeningHarness({
                 await Promise.resolve()
             })
         },
-        verificationUsable: () => !!view?.container.querySelector('[data-testid="verify-steps-continue"]'),
+        // usable = a continue the person can press: Verify start, or the open step once start was seen this session
+        verificationUsable: () =>
+            !!view?.container.querySelector('[data-testid="verify-steps-continue"], [data-testid="verify-continue"]'),
         unhandledErrors: () => errors,
     }
 }

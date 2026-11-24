@@ -231,7 +231,7 @@ export function useUsernameField() {
         inputRef.current?.focus({ preventScroll: true })
     }
 
-    const onRoll = async () => {
+    const onRoll = async (fromClaim = false) => {
         if (kind === 'rolling') return
         // Blur first: its handler may refill an emptied field, and the roll's state below must land after it.
         inputRef.current?.blur()
@@ -239,6 +239,7 @@ export function useUsernameField() {
         track('username_die', 'tap')
         impactHaptic()
         const previous = value
+        const previousKind = kind
         setRollFrom(value || suggestion)
         setRolls((count) => count + 1)
         setKind('rolling')
@@ -249,9 +250,15 @@ export function useUsernameField() {
         if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait))
         if (token.current !== at) return
         if (!found) {
+            // the die offers only checked names; when none checked free, the field goes back as it was, without
+            // an error line, so the die can be tapped again
             setValue(previous)
-            setKind('check-failed')
             track('username_die', 'error', 'network')
+            // a name the claim just refused must not come back claimable
+            if (fromClaim) return showTaken(previous, at)
+            setKind(previousKind)
+            // the roll cancelled a typed name's pending check, so run it again
+            if (previousKind === 'checking') void runCheck(previous, 'typed', at)
             return
         }
         returning.current = ''
@@ -281,6 +288,9 @@ export function useUsernameField() {
 
     /** Claim's reservation said the name is taken or refused (contract § 4.2). */
     const onClaimRefused = (result: 'taken' | 'refused' | 'invalid') => {
+        // the availability check cannot see another device's hold, so a rolled name can still lose at claim;
+        // roll again instead of showing a name we offered as taken
+        if (result === 'taken' && kind === 'rolled') return void onRoll(true)
         const at = nextToken()
         if (result === 'taken') showTaken(value, at)
         else {

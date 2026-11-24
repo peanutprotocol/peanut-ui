@@ -20,7 +20,8 @@ describe('language flags', () => {
         }
     )
 
-    it('es-419 flies Mexico', () => {
-        expect(LOCALE_META[MARKETING_SEGMENT['es-419']].flag).toBe('/flags/mx.svg')
+    // TASK-25341: Kush chose Spain over Mexico for Español
+    it('es-419 flies Spain', () => {
+        expect(LOCALE_META[MARKETING_SEGMENT['es-419']].flag).toBe('/flags/es.svg')
     })
 })

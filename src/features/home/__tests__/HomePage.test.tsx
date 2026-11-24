@@ -11,7 +11,6 @@ let mockFlow: {
     isActivated: boolean
     isPageLoading?: boolean
     isIdentityVerified?: boolean
-    onboarding?: { addMoneyDone: boolean }
 }
 jest.mock('../useHomeFlow', () => ({
     useHomeFlow: () => ({
@@ -21,7 +20,6 @@ jest.mock('../useHomeFlow', () => ({
         isFetchingSpendableBalance: false,
         isSpendableBalanceStale: false,
         isIdentityVerified: false,
-        onboarding: { addMoneyDone: false },
         isBalanceHidden: false,
         toggleBalanceVisibility: jest.fn(),
         ...mockFlow,
@@ -83,15 +81,12 @@ it('shows the loader while the user loads', () => {
     expect(screen.queryByText('attention-zone')).not.toBeInTheDocument()
 })
 
-it('hands identity verification and the funded-before signal to the balance section', () => {
+it('hands identity verification to the balance section', () => {
     mockFlow = {
         isOnboardingComplete: false,
         isActivated: true,
         isIdentityVerified: true,
-        onboarding: { addMoneyDone: true },
     }
     render(<HomePage />)
-    expect(mockBalanceSection).toHaveBeenCalledWith(
-        expect.objectContaining({ isVerified: true, hasFundedBefore: true, balance: 0n })
-    )
+    expect(mockBalanceSection).toHaveBeenCalledWith(expect.objectContaining({ isVerified: true, balance: 0n }))
 })
