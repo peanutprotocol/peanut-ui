@@ -133,7 +133,12 @@ jest.mock('../Payment/Views/Error.validation.view', () => ({
 }))
 jest.mock('../Global/UnsupportedBrowserModal', () => ({
     __esModule: true,
-    default: () => null,
+    default: () => <div role="dialog">Open in your browser</div>,
+}))
+let mockIsWebview = false
+jest.mock('@/components/Setup/Setup.utils', () => ({
+    ...jest.requireActual('@/components/Setup/Setup.utils'),
+    isLikelyWebview: () => mockIsWebview,
 }))
 
 const awardedBatch = {
@@ -626,6 +631,35 @@ describe('invite and badge campaign routing boundaries', () => {
         expect(mockQueuePendingBadgeCampaigns).toHaveBeenCalledWith(['offramp'], 30)
         expect(mockSaveRedirectUrl).toHaveBeenCalledTimes(1)
         expect(mockLogin).toHaveBeenCalledTimes(1)
+    })
+
+    it('keeps the store button reachable in a social in-app browser and asks for a browser only on login', async () => {
+        mockIsWebview = true
+        mockAuth.user = null
+        mockSearch = 'code=alice'
+        mockQueryResult.data = {
+            success: true,
+            attributionResolved: true,
+            onboardingResolved: true,
+            username: 'alice',
+        }
+        mockInterceptGuestCta.mockReturnValue(true)
+
+        try {
+            render(<InvitesPage />)
+            const claim = await screen.findByRole('button', { name: 'Create your wallet' })
+            expect(screen.queryByRole('dialog')).toBeNull()
+
+            fireEvent.click(claim)
+            expect(mockInterceptGuestCta).toHaveBeenCalledWith({ invite: 'alice', dest: undefined })
+            expect(screen.queryByRole('dialog')).toBeNull()
+
+            fireEvent.click(screen.getByRole('button', { name: /already have an account/i }))
+            expect(mockLogin).not.toHaveBeenCalled()
+            expect(screen.getByRole('dialog')).toBeTruthy()
+        } finally {
+            mockIsWebview = false
+        }
     })
 
     it('hands a guest wallet signup off to the stores during the migration window', async () => {

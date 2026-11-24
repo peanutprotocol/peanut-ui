@@ -17,6 +17,7 @@ import { useLoginRecovery } from '@/hooks/useLoginRecovery'
 import { LoginRecoveryDrawer } from '@/components/Setup/Views/LoginRecoveryDrawer'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import UnsupportedBrowserModal from '../Global/UnsupportedBrowserModal'
+import { isLikelyWebview } from '@/components/Setup/Setup.utils'
 import posthog from 'posthog-js'
 import { useTranslations } from 'next-intl'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -62,6 +63,7 @@ function InvitePageContent() {
         onSignUp: () => handleClaim(),
     })
     const [isClaimingBadgeCampaigns, setIsClaimingBadgeCampaigns] = useState(false)
+    const [showsBrowserNotice, setShowsBrowserNotice] = useState(false)
     const hasStartedBadgeClaimingRef = useRef(false)
 
     // Track if we should show content (prevents flash)
@@ -278,6 +280,9 @@ function InvitePageContent() {
     }
 
     const handleLoginWithBadgeCampaign = () => {
+        // Passkeys fail in social in-app browsers, so logging in needs a real browser. The
+        // claim button only opens the store, which works there, so it stays reachable.
+        if (isLikelyWebview()) return setShowsBrowserNotice(true)
         // Existing-user login does not call `/invites/accept`, so queue both
         // explicit and backend-resolved compatibility acquisition for the
         // authenticated recovery flow.
@@ -358,7 +363,7 @@ function InvitePageContent() {
             </div>
             {storeHandoffModal}
             <LoginRecoveryDrawer {...recoveryDrawer} />
-            <UnsupportedBrowserModal allowClose={false} />
+            {showsBrowserNotice && <UnsupportedBrowserModal visible onDismiss={() => setShowsBrowserNotice(false)} />}
         </InvitesPageLayout>
     )
 }
