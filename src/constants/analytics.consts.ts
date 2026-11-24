@@ -154,6 +154,9 @@ export const ANALYTICS_EVENTS = {
     DEPOSIT_FAILED: 'deposit_failed',
     // Continue on an amount that stops before the deposit call: `reason` says what the user saw instead
     DEPOSIT_SUBMIT_BLOCKED: 'deposit_submit_blocked',
+    // the progress screen while a local (ARS) account opens: `wait_ms` and `outcome` on the end
+    LOCAL_ACCOUNT_WAIT_STARTED: 'local_account_wait_started',
+    LOCAL_ACCOUNT_WAIT_ENDED: 'local_account_wait_ended',
 
     // ── Limits ──
     // The warning-card route check is intentionally separate from the payment

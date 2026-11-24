@@ -10,6 +10,7 @@ import type { ReportScope } from '@/features/kyc-features/report'
 import { CurrencyRefusalScreen } from '@/features/add-money/CurrencyRefusalScreen'
 import { KycFeatureActivationStatus } from './KycFeatureActivationStatus'
 import { useKycFeatureActivation } from './useKycFeatureActivation'
+import { useLocalAccountWaitTracking } from './useLocalAccountWaitTracking'
 
 export function KycFeatureActivationGate({
     feature,
@@ -33,6 +34,7 @@ export function KycFeatureActivationGate({
         selectedCurrency,
         startOnArrival,
     })
+    useLocalAccountWaitTracking(activation, selectedCurrency)
     const onBack = useSafeBack('/home')
     if (activation.allowed) return <>{children}</>
     if (degraded) return <VerificationOutage onBack={onBack} />
