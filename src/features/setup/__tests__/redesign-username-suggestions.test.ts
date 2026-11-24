@@ -76,12 +76,12 @@ describe('02 Username suggestions (C.md § 4.3)', () => {
             const en = take(suggestionCandidates('en', start), 30)
             en.forEach((name, k) => {
                 const i = start + k
-                expect(name).toBe(EN_ADJS[i % 10] + EN_NOUNS[(i * 3) % 10])
+                expect(name).toBe(EN_ADJS[i % 10] + EN_NOUNS[Math.floor(i / 10) % 10])
             })
             for (const locale of ['es-AR', 'es-419']) {
                 take(suggestionCandidates(locale, start), 30).forEach((name, k) => {
                     const i = start + k
-                    expect(name).toBe(ES_NOUNS[i % 14] + ES_ADJS[(i * 3) % 10])
+                    expect(name).toBe(ES_NOUNS[i % 14] + ES_ADJS[Math.floor(i / 14) % 10])
                 })
             }
             // pt-BR uses the en list until L supplies a checked pt list (§ 12 C10)
@@ -95,6 +95,13 @@ describe('02 Username suggestions (C.md § 4.3)', () => {
                 expect(isReservedSignupUsername(name)).toBe(false)
             }
         }
+    })
+
+    it('TASK-25341 one lap of the list offers every word pair once (en 100, es 140), not 10 names', () => {
+        const { suggestionCandidates } = load()
+        // the old index math gave en only 10 names, all of them registered on prod, so every roll failed
+        expect(new Set(take(suggestionCandidates('en', 37), 100)).size).toBe(100)
+        expect(new Set(take(suggestionCandidates('es-AR', 37), 140)).size).toBe(140)
     })
 
     it('C-02 firstFreeName returns the first free candidate, skips taken/invalid/error, and stops after maxTries', async () => {

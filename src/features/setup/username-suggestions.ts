@@ -41,12 +41,16 @@ const usable = (name: string) => USERNAME_PATTERN.test(name) && !isReservedSignu
 /** Where a mount starts in the idea list, so two people rarely see the same first name. Tests mock it. */
 export const randomSuggestionStart = () => Math.floor(Math.random() * 140)
 
-/** Endless ideas from index `start` on: en adjective + noun, es noun + adjective. */
+/**
+ * Endless ideas from index `start` on: en adjective + noun, es noun + adjective. Each pair shows once per lap of
+ * the list: the old `(i * 3) % 10` noun index tied the noun to the adjective, so en had only 10 names and all 10
+ * were registered, which made every roll fail (TASK-25341).
+ */
 export function* suggestionCandidates(locale: string, start: number): Generator<string> {
     for (let i = start; ; i++) {
         const name = isSpanish(locale)
-            ? ES_NOUNS[i % 14] + ES_ADJS[(i * 3) % 10]
-            : EN_ADJS[i % 10] + EN_NOUNS[(i * 3) % 10]
+            ? ES_NOUNS[i % 14] + ES_ADJS[Math.floor(i / 14) % 10]
+            : EN_ADJS[i % 10] + EN_NOUNS[Math.floor(i / 10) % 10]
         if (usable(name)) yield name
     }
 }
