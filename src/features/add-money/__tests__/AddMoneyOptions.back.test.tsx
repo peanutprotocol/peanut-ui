@@ -17,6 +17,7 @@ const loading = new Proxy({}, { get: () => ({ kind: 'loading' }) })
 jest.mock('../useAddMoneyReadiness', () => ({
     useAddMoneyReadiness: () => ({
         ready: { account: [], transfer: [] },
+        pickerMethods: [],
         isLoading: false,
         residenceIso2s: [],
         standingEnabled: true,

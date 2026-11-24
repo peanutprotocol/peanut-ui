@@ -69,6 +69,7 @@ export function useAddMoneyReadiness(cryptoReady: boolean, readAccounts = true) 
     const pixDepositRoute = findPixRoute(capabilities.routes, 'deposit')
     // the Brazil pause by its reason: an outage of the provider keeps Pix, and the Pix page shows it
     const brazilPaused = pixResidencePaused(pixDepositRoute)
+    const arsGate = topUpGates.BANK_TRANSFER_AR.kind
     const resolved = resolveAddMoneyMethods({
         cryptoReady,
         standingEnabled,
@@ -79,6 +80,8 @@ export function useAddMoneyReadiness(cryptoReady: boolean, readAccounts = true) 
         firstPaymentAt: user?.user?.firstPaymentAt,
         pixDepositOffered: pixDepositOffered(pixDepositRoute),
         pixDepositRouteOpen: pixRouteOpen(pixDepositRoute) && pixDepositRoute?.state !== 'paused',
+        // a refusal, or an identity check to start over, is support's or the identity flow's to answer
+        arsTopUpOpen: arsGate !== 'loading' && arsGate !== 'blocked-rejection' && arsGate !== 'restart-identity',
     })
     const isLoading = !userId || capabilitiesLoading || (readAccounts && standingEnabled && query.isLoading)
     return {

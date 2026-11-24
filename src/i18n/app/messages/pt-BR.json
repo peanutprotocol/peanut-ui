@@ -2270,6 +2270,7 @@
             "accountDetails": "Dados bancários reutilizáveis",
             "oneTimeDetails": "Dados temporários para transferência",
             "pixDetails": "Escaneie ou copie o código",
+            "arsDetails": "Da sua conta do Mercado Pago ou do seu banco",
             "cryptoDetails": "De carteiras ou corretoras",
             "openAccount": "Abrir uma conta bancária",
             "oneTimeTransfer": "Transferência bancária única",
