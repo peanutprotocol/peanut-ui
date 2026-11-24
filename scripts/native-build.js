@@ -24,6 +24,7 @@ const APP_DIR = path.join(__dirname, '..', 'src', 'app')
 const ITEMS_TO_DISABLE = [
     { path: 'api', type: 'dir' },
     { path: 'go', type: 'dir' }, // web-only redirect map
+    { path: 'c', type: 'dir' }, // web-only creator landing pages
     { path: 'q', type: 'dir' }, // marketing QR handoff is web-only
     { path: 'sitemap.ts', type: 'file' },
     { path: 'robots.ts', type: 'file' },
@@ -751,6 +752,8 @@ function pruneExportedAssets() {
     // public/ is copied wholesale, so the press kit rides along (~14 MB of team
     // photos, brand PDF and EPS) even though /[locale]/press is disabled here.
     targets.push(path.join(outDir, 'press'))
+    // The images of the web-only /c creator pages.
+    targets.push(path.join(outDir, 'creator-pages'))
 
     for (const target of targets) {
         if (fs.existsSync(target)) {

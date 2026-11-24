@@ -294,7 +294,8 @@ describe('release-ota.yml publishes main source', () => {
         const workflow = fs.readFileSync(path.join(workflowsDir, 'release-ota.yml'), 'utf8')
         expect(workflow).toMatch(/push:\n\s+branches: \[main\]/)
         // A content publish moves only the submodule pointer and starts no release.
-        expect(workflow).toMatch(/branches: \[main\]\n(?:\s+#.*\n)*\s+paths-ignore: \['src\/content'\]\n/)
+        // release-source-guard.test.js checks the rest of the list.
+        expect(workflow).toMatch(/branches: \[main\]\n(?:\s+#.*\n)*\s+paths-ignore:\n\s+- 'src\/content'\n/)
         const gitmodules = fs.readFileSync(path.join(__dirname, '..', '..', '.gitmodules'), 'utf8')
         expect(gitmodules).toContain('path = src/content\n')
         expect(workflow).toMatch(/workflow_dispatch:\n\s+inputs:\n\s+sha:/)

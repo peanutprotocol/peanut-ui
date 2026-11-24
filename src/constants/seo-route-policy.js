@@ -24,6 +24,7 @@ const NOINDEX_ROUTE_PREFIXES = Object.freeze([
     '/points',
     '/rewards',
     '/invite',
+    '/c',
     '/kyc',
     '/maintenance',
     '/receipt',
