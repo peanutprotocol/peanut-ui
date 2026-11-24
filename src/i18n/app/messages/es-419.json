@@ -4311,6 +4311,7 @@
             "activation": {
                 "settingUpAccount": "Estamos configurando tu cuenta en {currency}",
                 "settingUpWait": "Deja esta pantalla abierta.",
+                "settingUpTitle": "Configurando la cuenta en {currency}",
                 "title": {
                     "bank": "Configura tus cuentas bancarias",
                     "card": "Configura tu Peanut Card",

@@ -17,7 +17,8 @@ jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => mockBack }))
 jest.mock('@/components/Global/PeanutMascot', () => ({ __esModule: true, default: () => null }))
 
 const activation = messages.kyc.paperworkVerification.activation
-const settingUpTitle = activation.settingUpAccount.replace('{currency}', 'ARS')
+const progressTitle = activation.settingUpTitle.replace('{currency}', 'ARS')
+const laterTitle = activation.settingUpAccount.replace('{currency}', 'ARS')
 
 function state({
     result,
@@ -53,7 +54,7 @@ beforeEach(() => jest.clearAllMocks())
 it('while the start request runs: progress, not the set-up screen', () => {
     state({ result: null, settling: true, isLoading: true })
     renderGate()
-    expect(screen.getByText(settingUpTitle)).toBeInTheDocument()
+    expect(screen.getByText(progressTitle)).toBeInTheDocument()
     expect(screen.getByText(activation.settingUpWait)).toBeInTheDocument()
     expect(screen.queryByText(activation.description)).toBeNull()
     expect(screen.queryByRole('button', { name: activation.cta.local })).toBeNull()
@@ -78,7 +79,7 @@ it('the header back still leaves while the account opens, and starts nothing aga
 it('after the wait: the "we\'ll let you know" screen and its button', () => {
     state({ result: { kind: 'report', report: { state: 'pending' } }, settling: false })
     renderGate()
-    expect(screen.getByText(settingUpTitle)).toBeInTheDocument()
+    expect(screen.getByText(laterTitle)).toBeInTheDocument()
     expect(screen.queryByText(activation.settingUpWait)).toBeNull()
     expect(screen.getByRole('button', { name: messages.common.gotIt })).toBeInTheDocument()
 })

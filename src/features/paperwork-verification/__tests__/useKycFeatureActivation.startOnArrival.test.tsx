@@ -136,12 +136,26 @@ it('an identity that is not approved goes to verification, as after a tap', asyn
     expect(mockPush).toHaveBeenCalledWith('/verify')
 })
 
-it('an account already being set up is not asked for again', async () => {
+it('an account already being set up waits on progress again, read every 5 s, with no second request', async () => {
+    auth({ state: 'pending' })
+    const { result, rerender } = renderHook(ars(true))
+    expect(result.current.settling).toBe(true)
+    await advance(KYC_ACTIVATION_SETTLE_POLL_MS)
+    expect(fetchUser).toHaveBeenCalledTimes(1)
+    expect(activateKycFeature).not.toHaveBeenCalled()
+    auth({ state: 'on' })
+    rerender()
+    expect(result.current.allowed).toBe(true)
+})
+
+it('an account still being set up after the wait shows the exit, and the wait does not start again', async () => {
     auth({ state: 'pending' })
     const { result } = renderHook(ars(true))
-    await advance(0)
-    expect(activateKycFeature).not.toHaveBeenCalled()
+    await advance(KYC_ACTIVATION_SETTLE_MS)
     expect(result.current.settling).toBe(false)
+    await advance(KYC_ACTIVATION_SETTLE_MS)
+    expect(result.current.settling).toBe(false)
+    expect(activateKycFeature).not.toHaveBeenCalled()
 })
 
 it('without startOnArrival the account still waits for the tap', async () => {

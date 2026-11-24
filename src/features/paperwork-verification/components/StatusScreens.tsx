@@ -183,7 +183,7 @@ export function FeatureSettingUpScreen({ currency, onBack }: { currency: string;
         <PageStack data-testid="feature-setting-up">
             <NavHeader onPrev={onBack} />
             <ProcessingScreen
-                title={t('activation.settingUpAccount', { currency })}
+                title={t('activation.settingUpTitle', { currency })}
                 description={t('activation.settingUpWait')}
             />
         </PageStack>

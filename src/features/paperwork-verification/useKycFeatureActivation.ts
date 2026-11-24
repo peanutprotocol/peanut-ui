@@ -155,7 +155,7 @@ export function useKycFeatureActivation(
     const [loadingScope, setLoadingScope] = useState<string | null>(null)
     // only where the caller knows the account opens in seconds; the wait reads the user, so it needs the currency
     const settles = startOnArrival && !!selectedCurrency
-    const [settleWindow, setSettleWindow] = useState(false)
+    const [settleSpent, setSettleSpent] = useState(false)
     const result: KycFeatureActivationResult | null = arsProvisioning
         ? { kind: 'report', report: { state: ars.state } }
         : saved?.scope === scope
@@ -262,12 +262,6 @@ export function useKycFeatureActivation(
                         return false
                 }
                 setSaved({ scope, result: next })
-                if (
-                    settles &&
-                    next.kind === 'report' &&
-                    (next.report.state === 'pending' || next.report.state === 'setting_up')
-                )
-                    setSettleWindow(true)
                 if (next.kind === 'conflict' && next.code === 'feature_reverification_required') {
                     recovery.current.waiting = false
                     if (!automatic) {
@@ -323,7 +317,6 @@ export function useKycFeatureActivation(
             identityStatus,
             automatic,
             reverification,
-            settles,
         ]
     )
 
@@ -338,12 +331,6 @@ export function useKycFeatureActivation(
     }, [startsNow, enabled, userId, scope, activate])
 
     useEffect(() => {
-        if (!settleWindow) return
-        const timer = setTimeout(() => setSettleWindow(false), KYC_ACTIVATION_SETTLE_MS)
-        return () => clearTimeout(timer)
-    }, [settleWindow])
-
-    useEffect(() => {
         if (enabled && identityStatus === 'verified' && recovery.current.waiting) {
             recovery.current.waiting = false
             void activate()
@@ -353,6 +340,14 @@ export function useKycFeatureActivation(
     const waiting = selectedStatus
         ? selectedStatus.state === 'setting_up'
         : result?.kind === 'report' && (result.report.state === 'setting_up' || result.report.state === 'pending')
+    // One wait per visit, whether this visit asked for the account or found it already being set up: a user
+    // who left the first wait and came back sees the progress again, not the exit (TASK-25059).
+    const settleWindow = settles && waiting && !settleSpent
+    useEffect(() => {
+        if (!settleWindow) return
+        const timer = setTimeout(() => setSettleSpent(true), KYC_ACTIVATION_SETTLE_MS)
+        return () => clearTimeout(timer)
+    }, [settleWindow])
     // The automatic activation says the account is open, yet its caller still shows: the route it
     // reads lags behind, so the user is read again until it catches up.
     const openedAhead = automatic && canContinue(feature, result)
