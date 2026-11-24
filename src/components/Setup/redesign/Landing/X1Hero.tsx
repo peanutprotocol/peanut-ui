@@ -10,7 +10,6 @@ import star from '@/assets/illustrations/star.svg'
 import { ArtPiece } from '@/components/Setup/redesign/shell/ArtPiece'
 import { useSetupShell } from '@/components/Setup/redesign/shell/SetupShellContext'
 import { useShellDevice } from '@/components/Setup/redesign/shell/useShellDevice'
-import { MoneyCard } from './MoneyCard'
 import { useX1Walk } from './useX1Walk'
 import { WalkingRig } from './WalkingRig'
 import { COIN_TOP, COIN_W, coinRow, minBodyTop, RIG_H, RIG_W, rigFrame, SEAM, world, X1_LAYOUT } from './x1-walk'
@@ -29,8 +28,8 @@ function popIn(animate: boolean, delay: number): HTMLMotionProps<'div'> {
 
 /**
  * The 01 landing hero, X1 "coin bridge" (mock scaffold screens/01-landing): the walking peanut on a scrolling row of
- * USD and EUR coin faces, under the "Money received!" card, with a sparkle and a star. The walk is the one ruled motion
- * exception (MOTION.md 5a); everything else enters once and holds still. Reduced motion holds world frame 4.
+ * USD and EUR coin faces, with a sparkle and a star. The walk is the one ruled motion exception (MOTION.md 5a);
+ * everything else enters once and holds still. Reduced motion holds world frame 4.
  */
 export function X1Hero() {
     const { reducedMotion } = useSetupShell()
@@ -40,7 +39,6 @@ export function X1Hero() {
     const wf = useX1Walk(!reducedMotion && isPresent)
     const { coins, body } = world(device, wf)
 
-    const [cardX, cardY, cardScale] = layout.card
     const [bandX, bandW] = layout.band
     const [coinBandX, coinBandW] = layout.coinBand
     const bandTop = Math.floor(COIN_TOP) - 4
@@ -95,17 +93,6 @@ export function X1Hero() {
                     <WalkingRig frame={rigFrame(wf)} />
                 </div>
             </div>
-            <ArtPiece
-                left={cardX}
-                top={cardY}
-                width={236}
-                height={60}
-                rotate={2}
-                zIndex={6}
-                style={cardScale === 1 ? undefined : { scale: cardScale, transformOrigin: '0 0' }}
-            >
-                <MoneyCard animate={animate} />
-            </ArtPiece>
             <ArtPiece left={344} top={158} width={30} rotate={-20} zIndex={4} smHide>
                 <motion.div {...popIn(animate, 0.56)}>
                     <Image src={sparkle} alt="" className="block h-auto w-full" />

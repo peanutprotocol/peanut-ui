@@ -50,14 +50,13 @@ export const X1_LAYOUT: Record<
     ShellDevice,
     {
         left: number
-        card: readonly [number, number, number]
         band: readonly [number, number]
         coinBand: readonly [number, number]
         shift: number
     }
 > = {
-    std: { left: 208, card: [24, 194, 1], band: [0, 390], coinBand: [-200, 790], shift: 0 },
-    sm: { left: 250, card: [-31, 239, 1.15], band: [-100, 600], coinBand: [-100, 600], shift: 70 },
+    std: { left: 208, band: [0, 390], coinBand: [-200, 790], shift: 0 },
+    sm: { left: 250, band: [-100, 600], coinBand: [-100, 600], shift: 70 },
 }
 
 const mod = (a: number, n: number) => ((a % n) + n) % n
