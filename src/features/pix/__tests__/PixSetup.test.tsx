@@ -1,5 +1,5 @@
 /** @jest-environment jsdom */
-import { fireEvent, screen } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
 import type { CapabilityRoute } from '@/types/capabilities'
@@ -7,7 +7,39 @@ import type { CapabilityRoute } from '@/types/capabilities'
 const mockPush = jest.fn()
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
-jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: 'u1' } } }) }))
+const mockFetchUser = jest.fn()
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({ user: { user: { userId: 'u1' } }, fetchUser: mockFetchUser }),
+}))
+const mockUpdateUser = jest.fn()
+jest.mock('@/app/actions/users', () => ({
+    updateUserById: (...args: unknown[]) => mockUpdateUser(...args),
+}))
+jest.mock('@/components/Global/ActionModal', () => ({
+    __esModule: true,
+    default: ({
+        visible,
+        content,
+        ctas,
+        tertiaryCta,
+    }: {
+        visible: boolean
+        content: React.ReactNode
+        ctas: { text: string; onClick: () => void }[]
+        tertiaryCta: { text: string; onClick: () => void }
+    }) =>
+        visible ? (
+            <div>
+                {content}
+                {ctas.map((cta) => (
+                    <button key={cta.text} onClick={cta.onClick}>
+                        {cta.text}
+                    </button>
+                ))}
+                <button onClick={tertiaryCta.onClick}>{tertiaryCta.text}</button>
+            </div>
+        ) : null,
+}))
 const mockOpenSupport = jest.fn()
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({ openSupportWithMessage: mockOpenSupport }),
@@ -65,6 +97,28 @@ describe('PixSetup', () => {
         renderSetup(route({ state: 'pending', reason: { code: 'provider_reviewing', userMessage: '' } }))
         expect(screen.getByText(en.pix.setup.reviewing)).toBeInTheDocument()
         expect(screen.queryByRole('button')).toBeNull()
+    })
+
+    // TASK-25335: an Avenia account parked on a missing email asks for the email, not for support
+    it('asks a user with no email for one, and saving it retries the setup', async () => {
+        mockUpdateUser.mockResolvedValue({ data: {} })
+        renderSetup(route({ action: 'provide-email', reason: { code: 'email_required', userMessage: '' } }))
+        expect(screen.getByTestId('provide-email-form')).toBeInTheDocument()
+        expect(screen.queryByText(en.pix.setup.notAvailable)).toBeNull()
+
+        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'ana@example.com' } })
+        fireEvent.click(screen.getByRole('button', { name: en.kyc.provideEmail.save }))
+        await waitFor(() => expect(mockFetchUser).toHaveBeenCalled())
+        expect(mockUpdateUser).toHaveBeenCalledWith({ userId: 'u1', email: 'ana@example.com' })
+    })
+
+    it('leaves the flow when the user does not add an email now', () => {
+        const onBack = jest.fn()
+        renderWithIntl(
+            <PixSetup title="Pay" onBack={onBack} route={route({ operation: 'pay', action: 'provide-email' })} />
+        )
+        fireEvent.click(screen.getByRole('button', { name: en.kyc.provideEmail.notNow }))
+        expect(onBack).toHaveBeenCalled()
     })
 
     // a terms step this build no longer shows, or any step it does not know, is support's to finish
