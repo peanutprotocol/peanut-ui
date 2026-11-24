@@ -1142,8 +1142,6 @@
         "landing": {
             "title": "Get paid from the US and Europe.",
             "sub": "Receive from abroad. Pay by QR in Argentina and Brazil, or anywhere Visa is accepted.",
-            "cardReceived": "Money received!",
-            "cardAmount": "USD 1,200",
             "cta": "Sign up",
             "loginBtn": "Log in",
             "recover": "Need to recover a Peanut account?",
