@@ -1,18 +1,17 @@
 import { Fragment, type ReactNode } from 'react'
 import { Card } from '@/components/0_Bruddle/Card'
-import { NITA_A1_COPY as copy } from '../nita-a1.copy'
+import type { NitaA1Copy } from '../nita-a1.copy'
 import styles from '../NitaA1.module.css'
 import { A1_AVATAR_SRC } from './a1-avatar.consts'
 import { A1Mark } from './A1Mark'
 import { A1XGlyph } from './A1XGlyph'
 
 /**
- * Nita's X post, redrawn as a card. `children` is the store button, inside the post.
+ * Nita's X post, redrawn as a card. Her words stay as she wrote them; the date line is Peanut's. `children` is the store button, inside the post.
  * Under 360px wide the card is tighter, so the button stays on the first screen of a 320×568 phone
  * before the pinned bar can show (no script yet).
  */
-export function A1Post({ children }: { children: ReactNode }) {
-    const { post } = copy
+export function A1Post({ post, children }: { post: NitaA1Copy['post']; children: ReactNode }) {
     return (
         <Card shadowSize="4" className={styles.post}>
             <div>
@@ -24,7 +23,8 @@ export function A1Post({ children }: { children: ReactNode }) {
                 </div>
             </div>
 
-            <p>
+            {/* Her words, in Spanish on every locale's page. */}
+            <p lang="es-AR">
                 {post.segments.map((segment, index) => {
                     if (segment.highlight)
                         return (

@@ -6,7 +6,7 @@ import { CreatorPageShell } from '../../CreatorPageShell'
 import type { CreatorPageVariantProps } from '../../variant-props'
 import { E1Lettering } from './e1/E1Lettering'
 import tears from './e1/torn-edges.module.css'
-import { NITA_E1_COPY as copy } from './nita-e1.copy'
+import { NITA_E1_COPY, NITA_E1_LETTERING } from './nita-e1.copy'
 import styles from './NitaE1.module.css'
 
 const ASSETS = '/creator-pages/juanacervio'
@@ -14,6 +14,7 @@ const STEP_TEARS = [tears.tornStep, tears.tornStep2, tears.tornStep3]
 
 /** Nita's page, variant E1: a poster in her own collage style, with her real post taped on it. */
 export function NitaE1(props: CreatorPageVariantProps) {
+    const copy = NITA_E1_COPY[props.locale]
     // Rendered twice: in the pinned strip, and unseen in the poster, which keeps the strip's place free.
     const dockNote = (
         <div className={styles.note}>
@@ -23,13 +24,13 @@ export function NitaE1(props: CreatorPageVariantProps) {
     )
 
     return (
-        <CreatorPageShell page={props} lang="es-AR" className={styles.page}>
+        <CreatorPageShell page={props} className={styles.page}>
             <div className={styles.column}>
                 <section className={styles.poster}>
                     <p className={`${styles.mono} ${styles.chip}`}>{copy.chip}</p>
                     <h1 className={styles.h1}>
-                        <span className="sr-only">{copy.headline.join(' ')}</span>
-                        <E1Lettering lines={copy.headline} accentLine={1} />
+                        <span className="sr-only">{copy.headline}</span>
+                        <E1Lettering lines={NITA_E1_LETTERING} accentLine={1} />
                     </h1>
 
                     <Image
@@ -51,7 +52,8 @@ export function NitaE1(props: CreatorPageVariantProps) {
                                 <i>{copy.post.meta}</i>
                             </span>
                         </figcaption>
-                        <blockquote>
+                        {/* Her words, in Spanish on every locale's page. */}
+                        <blockquote lang="es-AR">
                             {copy.post.runs.map(({ text, style }, index) =>
                                 style === 'mark' ? (
                                     <mark key={index}>{text}</mark>

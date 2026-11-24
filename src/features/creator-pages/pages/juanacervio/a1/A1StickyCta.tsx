@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import type { NitaA1Copy } from '../nita-a1.copy'
 import styles from '../NitaA1.module.css'
 import { A1Cta } from './A1Cta'
 import { A1InviteLine } from './A1InviteLine'
@@ -25,7 +26,15 @@ const ON_SCREEN_MARGIN = '0px 0px -100px 0px'
  * It starts hidden for the first HTML; on a short screen, where the post's button sits low,
  * it shows as soon as the script runs.
  */
-export function A1StickyCta() {
+export function A1StickyCta({
+    labels,
+    inviteLead,
+    inviteName,
+}: {
+    labels: NitaA1Copy['cta']
+    inviteLead: string
+    inviteName: string
+}) {
     const bar = useRef<HTMLDivElement>(null)
     const [shown, setShown] = useState(false)
 
@@ -52,8 +61,8 @@ export function A1StickyCta() {
 
     return (
         <div ref={bar} data-state={shown ? 'shown' : 'hidden'} className={styles.sticky}>
-            <A1Cta position="sticky" />
-            <A1InviteLine />
+            <A1Cta labels={labels} position="sticky" />
+            <A1InviteLine lead={inviteLead} name={inviteName} />
         </div>
     )
 }

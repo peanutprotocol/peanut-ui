@@ -2,8 +2,9 @@
 import { isValidElement } from 'react'
 
 let mockCookie: { name: string; value: string } | null = null
+let mockHeaders = new Headers({ 'user-agent': '' })
 jest.mock('next/headers', () => ({
-    headers: async () => new Headers({ 'user-agent': '' }),
+    headers: async () => mockHeaders,
     cookies: async () => ({ get: (name: string) => (mockCookie?.name === name ? mockCookie : undefined) }),
 }))
 
@@ -22,6 +23,7 @@ async function answerOf(run: () => Promise<unknown>): Promise<string> {
 
 beforeEach(() => {
     mockCookie = null
+    mockHeaders = new Headers({ 'user-agent': '' })
 })
 afterAll(() => {
     process.env.NEXT_PUBLIC_BASE_URL = ORIGINAL_BASE_URL
@@ -68,11 +70,35 @@ describe('/c/<username>', () => {
 
     it('is noindex, nofollow with the creator title, and noindex without a page', async () => {
         const { generateMetadata } = await import('@/app/c/[username]/page')
+        mockHeaders = new Headers({
+            'user-agent': 'Mozilla/5.0',
+            'accept-language': 'es-419',
+            'x-vercel-ip-country': 'AR',
+        })
         expect(await generateMetadata(params('juanacervio'))).toEqual({
             title: 'Invitación de Nita',
             robots: { index: false, follow: false },
         })
         expect(await generateMetadata(params('someoneelse'))).toEqual({ robots: { index: false, follow: false } })
+    })
+
+    it('titles the tab in the page language, English for crawlers and unsupported languages', async () => {
+        const { generateMetadata } = await import('@/app/c/[username]/page')
+        const title = async (headers: Record<string, string>) => {
+            mockHeaders = new Headers(headers)
+            return (await generateMetadata(params('juanacervio'))).title
+        }
+        expect(await title({ 'user-agent': 'Mozilla/5.0', 'accept-language': 'pt-BR' })).toBe('Convite da Nita')
+        expect(await title({ 'user-agent': 'Mozilla/5.0', 'accept-language': 'en-US' })).toBe('Nita’s invite')
+        expect(await title({ 'user-agent': 'Mozilla/5.0', 'accept-language': 'de-DE' })).toBe('Nita’s invite')
+        expect(await title({ 'user-agent': 'WhatsApp/2.23', 'accept-language': 'es-AR' })).toBe('Nita’s invite')
+    })
+
+    it('hands the page the language of the landing-page rule', async () => {
+        const { default: CreatorPageRoute } = await import('@/app/c/[username]/page')
+        mockCookie = { name: 'cpv_juanacervio', value: 'nita-2026-11-a.g2' }
+        mockHeaders = new Headers({ 'user-agent': 'Mozilla/5.0', 'accept-language': 'es-MX,es;q=0.9' })
+        expect((await CreatorPageRoute(params('juanacervio'))).props.locale).toBe('es-419')
     })
 })
 

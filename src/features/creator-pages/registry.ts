@@ -3,6 +3,7 @@ import { cookies, headers } from 'next/headers'
 import type { ComponentType } from 'react'
 import { coversPageBottom, deviceOs } from './environment'
 import { creatorPageExperiment } from './experiments'
+import { creatorPageLocale } from './locale'
 import { creatorPageComponent } from './page-components'
 import { pickVariant } from './pick-variant'
 import { variantCookieName } from './variant-cookie'
@@ -46,6 +47,7 @@ export async function selectCreatorPage(username: string): Promise<CreatorPageSe
             variant,
             deviceOs: deviceOs(userAgent),
             liftCta: coversPageBottom(userAgent),
+            locale: creatorPageLocale(cookieStore, requestHeaders),
         },
     }
 }

@@ -1,4 +1,4 @@
-import { NITA_E1_COPY } from '../pages/juanacervio/nita-e1.copy'
+import { NITA_E1_LETTERING } from '../pages/juanacervio/nita-e1.copy'
 import { E1_LETTERING_CAP_HEIGHT, E1_LETTERING_OUTLINES } from '../pages/juanacervio/e1/lettering-outlines'
 
 /**
@@ -59,7 +59,7 @@ function inkArea(d: string): number {
 
 describe('E1 headline lettering', () => {
     it('has a drawing for every headline line in the copy, and no stale ones', () => {
-        expect(Object.keys(E1_LETTERING_OUTLINES).sort()).toEqual([...NITA_E1_COPY.headline].sort())
+        expect(Object.keys(E1_LETTERING_OUTLINES).sort()).toEqual([...NITA_E1_LETTERING].sort())
     })
 
     // The first drawings were Roboto Flex at its default weight 400 while their header said 1000: the

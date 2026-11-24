@@ -16,7 +16,7 @@ import { A1Proof } from './a1/A1Proof'
 import { A1SampleBubble } from './a1/A1SampleBubble'
 import { A1SampleRow } from './a1/A1SampleRow'
 import { A1StickyCta } from './a1/A1StickyCta'
-import { NITA_A1_COPY as copy } from './nita-a1.copy'
+import { NITA_A1_COPY } from './nita-a1.copy'
 import styles from './NitaA1.module.css'
 
 /**
@@ -26,11 +26,12 @@ import styles from './NitaA1.module.css'
  * NitaA1.module.css). Keep the order of elements in step with it.
  */
 export function NitaA1(props: CreatorPageVariantProps) {
+    const copy = NITA_A1_COPY[props.locale]
     const { proof, sample, steps, close } = copy
     const [accounts, clients, spend] = proof.items
 
     return (
-        <CreatorPageShell page={props} lang="es-AR" className={styles.a1}>
+        <CreatorPageShell page={props} className={styles.a1}>
             <section className={styles.hero}>
                 <div>
                     <Image src={LOGO_LOCKUP} alt={copy.logoAlt} loading="eager" className="h-6 w-auto" />
@@ -53,9 +54,9 @@ export function NitaA1(props: CreatorPageVariantProps) {
                         <Image src={PEANUT_SITTING} alt="" priority sizes="72px" />
                     </div>
                 </div>
-                <A1Post>
-                    <A1Cta position="hero" />
-                    <A1InviteLine />
+                <A1Post post={copy.post}>
+                    <A1Cta labels={copy.cta} position="hero" />
+                    <A1InviteLine lead={copy.inviteLead} name={copy.inviteName} />
                 </A1Post>
 
                 <div>
@@ -69,7 +70,7 @@ export function NitaA1(props: CreatorPageVariantProps) {
                 <p>{proof.kicker}</p>
                 <h2>{proof.title}</h2>
 
-                <A1Proof item={accounts} number={1}>
+                <A1Proof item={accounts} source={proof.source} number={1}>
                     <A1SampleRow
                         leading={<A1SampleBubble fill="green">{sample.usdCode}</A1SampleBubble>}
                         title={sample.usd}
@@ -82,7 +83,7 @@ export function NitaA1(props: CreatorPageVariantProps) {
                     />
                 </A1Proof>
 
-                <A1Proof item={clients} number={2}>
+                <A1Proof item={clients} source={proof.source} number={2}>
                     <A1SampleRow
                         leading={
                             <A1SampleBubble fill="green">
@@ -95,7 +96,7 @@ export function NitaA1(props: CreatorPageVariantProps) {
                     />
                 </A1Proof>
 
-                <A1Proof item={spend} number={3}>
+                <A1Proof item={spend} source={proof.source} number={3}>
                     <A1SampleRow
                         leading={
                             <A1SampleBubble fill="yellow">
@@ -131,18 +132,19 @@ export function NitaA1(props: CreatorPageVariantProps) {
             </section>
 
             <section className={styles.close}>
-                <p>{close.quote}</p>
+                {/* Her words, in Spanish on every locale's page. */}
+                <p lang="es-AR">{close.quote}</p>
                 <p>{close.by}</p>
                 <CreatorPageMascot className={styles.mascot} />
-                <A1Cta position="footer" />
-                <A1InviteLine />
+                <A1Cta labels={copy.cta} position="footer" />
+                <A1InviteLine lead={copy.inviteLead} name={copy.inviteName} />
                 <div className={styles.legal}>
                     <p>{close.legal}</p>
                     <p>{copy.notABank}</p>
                 </div>
             </section>
 
-            <A1StickyCta />
+            <A1StickyCta labels={copy.cta} inviteLead={copy.inviteLead} inviteName={copy.inviteName} />
         </CreatorPageShell>
     )
 }
