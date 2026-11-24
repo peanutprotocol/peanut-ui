@@ -366,7 +366,7 @@ function InvitePageContent() {
 
                         {!user?.user &&
                             (opensStore ? (
-                                <div className="text-center">
+                                <div className="mt-2 text-center md:mt-0">
                                     <LinkButton onClick={handleLoginWithBadgeCampaign} disabled={isLoggingIn}>
                                         {tMigration('qr.logIn')}
                                     </LinkButton>
