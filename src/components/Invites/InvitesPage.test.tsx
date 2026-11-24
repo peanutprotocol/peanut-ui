@@ -67,10 +67,12 @@ jest.mock('@/components/Setup/Views/LoginRecoveryDrawer', () => ({
             </div>
         ) : null,
 }))
+// false models the native app, where the claim button opens signup in place
+let mockHandoffActive = false
 jest.mock('@/hooks/useGuestStoreHandoff', () => ({
     useGuestStoreHandoff: (opts: { trackImpressionWhenGuest?: boolean }) => {
         mockUseGuestStoreHandoff(opts)
-        return { interceptGuestCta: mockInterceptGuestCta, storeHandoffModal: null }
+        return { interceptGuestCta: mockInterceptGuestCta, storeHandoffModal: null, handoffActive: mockHandoffActive }
     },
 }))
 jest.mock('@/services/badge-campaigns', () => ({
@@ -635,6 +637,7 @@ describe('invite and badge campaign routing boundaries', () => {
 
     it('keeps the store button reachable in a social in-app browser and asks for a browser only on login', async () => {
         mockIsWebview = true
+        mockHandoffActive = true
         mockAuth.user = null
         mockSearch = 'code=alice'
         mockQueryResult.data = {
@@ -647,7 +650,8 @@ describe('invite and badge campaign routing boundaries', () => {
 
         try {
             render(<InvitesPage />)
-            const claim = await screen.findByRole('button', { name: 'Create your wallet' })
+            const claim = await screen.findByRole('button', { name: 'Download Peanut' })
+            expect(screen.queryByRole('button', { name: 'Create your wallet' })).toBeNull()
             expect(screen.queryByRole('dialog')).toBeNull()
 
             fireEvent.click(claim)
@@ -659,6 +663,7 @@ describe('invite and badge campaign routing boundaries', () => {
             expect(screen.getByRole('dialog')).toBeTruthy()
         } finally {
             mockIsWebview = false
+            mockHandoffActive = false
         }
     })
 

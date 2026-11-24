@@ -43,6 +43,7 @@ function InvitePageContent() {
     )
     const t = useTranslations('invites')
     const tSetup = useTranslations('setup')
+    const tMigration = useTranslations('migration')
     const toast = useToast()
     const searchParams = useSearchParams()
     // trim trailing '?' from invite code to handle qr codes with ? at the end
@@ -106,7 +107,7 @@ function InvitePageContent() {
     // entry points (claim/request/pay). impression fires only when the CTA
     // actually renders — never on the pre-auth flash, the invalid-invite error
     // view, or the dead-bare-link redirect.
-    const { interceptGuestCta, storeHandoffModal } = useGuestStoreHandoff({
+    const { interceptGuestCta, storeHandoffModal, handoffActive } = useGuestStoreHandoff({
         trackImpressionWhenGuest: shouldShowContent && !user?.user && !isDeadBareLink && !showsInvalidInvite,
     })
 
@@ -333,7 +334,9 @@ function InvitePageContent() {
         ? t('vanityTitle')
         : t('inviterTitle', { username: inviteCodeData?.username ?? '' })
     const description = isBadgeCampaignOnly ? t('vanityDescription') : t('inviterDescription')
-    const ctaLabel = isBadgeCampaignOnly ? t('vanityCta') : t('inviterCta')
+    // A web guest's tap opens the store, so the button says so, like every other guest CTA.
+    const opensStore = handoffActive && !user?.user
+    const ctaLabel = opensStore ? tMigration('downloadPeanut') : isBadgeCampaignOnly ? t('vanityCta') : t('inviterCta')
     const loginLabel = isBadgeCampaignOnly ? t('logIn') : t('alreadyHaveAccount')
 
     return (
@@ -351,9 +354,8 @@ function InvitePageContent() {
                             <Button
                                 disabled={isLoggingIn}
                                 loading={isLoggingIn}
-                                variant="secondary"
+                                variant="ghost"
                                 onClick={handleLoginWithBadgeCampaign}
-                                shadowSize="4"
                             >
                                 {loginLabel}
                             </Button>
