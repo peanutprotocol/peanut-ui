@@ -42,6 +42,9 @@ describe('retired creator links', () => {
     it.each([
         ['/app?code=alice', '/invite?code=alice'],
         ['/app?code=Alice', '/invite?code=alice'],
+        ['/app/?code=alice', '/invite?code=alice'],
+        ['/app/?tl=alice&acq_invite=alice', '/invite?code=alice'],
+        ['/home?app_entry=1&code=alice', '/invite?code=alice'],
         ['/app?tl=alice&acq_invite=alice', '/invite?code=alice'],
         // What the removed "Open Peanut" button reloaded in a browser.
         [

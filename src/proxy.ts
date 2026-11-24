@@ -36,7 +36,7 @@ export function proxy(request: NextRequest) {
     // Retired creator links had their own store screen on /app. A browser now gets the
     // creator's invite page; the installed app never asks the server and reads them itself.
     const isAppEntry = pathname === '/home' && request.nextUrl.searchParams.get(APP_ENTRY_QUERY_PARAM) === '1'
-    if (isAppEntry || pathname === '/app') {
+    if (isAppEntry || pathname === '/app' || pathname === '/app/') {
         const invitePath = legacyCreatorInvitePath(request.nextUrl.searchParams)
         if (invitePath) return NextResponse.redirect(new URL(invitePath, request.url), 307)
     }
