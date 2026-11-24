@@ -43,9 +43,10 @@ export function useKycFeatureActivation(
         selectedCurrency,
     }: {
         /**
-         * Activate on arrival instead of asking for the tap, with the same redirects a tap has: the
-         * user already asked for this account by picking it (ARS Add money, TASK-25059). A waiting
-         * answer then holds the user on a progress screen and reads them fast for a while.
+         * Activate on arrival instead of asking for the tap: the user already asked for this account
+         * by picking it (ARS Add money, TASK-25059). A waiting answer holds the user on a progress
+         * screen and reads them fast for a while. A conflict does not redirect; it stays in `result`
+         * and the screen asks for the tap, whose redirect then works as before.
          */
         startOnArrival?: boolean
         /**
@@ -219,13 +220,16 @@ export function useKycFeatureActivation(
     }, [])
 
     // beforeRedirect runs before a redirect to /verify, so a caller's own URL write cannot supersede it.
+    // A start on arrival never redirects: Back from the page it would open lands on this screen, which
+    // would start and redirect again. Its answer stays in `result`, and the screen asks for the tap.
     const activate = useCallback(
-        (options?: { beforeRedirect?: () => Promise<void> }): Promise<boolean> => {
+        (options?: { beforeRedirect?: () => Promise<void>; onArrival?: boolean }): Promise<boolean> => {
+            const redirects = !automatic && !options?.onArrival
             if (!mounted.current || currentScope.current !== scope || !userId || !enabled) return Promise.resolve(false)
             if (arsProvisioning || hasSelectedStatus) return Promise.resolve(false)
             const returnTo = currentReverificationDestination()
             if (reverification) {
-                if (!automatic)
+                if (redirects)
                     return Promise.resolve(options?.beforeRedirect?.()).then(() => {
                         if (mounted.current && currentScope.current === scope)
                             routerRef.current.push(featureReverificationPath(reverification, returnTo))
@@ -264,7 +268,7 @@ export function useKycFeatureActivation(
                 setSaved({ scope, result: next })
                 if (next.kind === 'conflict' && next.code === 'feature_reverification_required') {
                     recovery.current.waiting = false
-                    if (!automatic) {
+                    if (redirects) {
                         await options?.beforeRedirect?.()
                         if (mounted.current && currentScope.current === scope)
                             routerRef.current.push(featureReverificationPath(next.entry, returnTo))
@@ -274,7 +278,7 @@ export function useKycFeatureActivation(
                 if (next.kind === 'conflict' && next.code === 'identity_not_approved') {
                     // /verify is the identity's status screen; a failed check is decided, so nothing waits on it.
                     recovery.current.waiting = identityStatus !== 'failed'
-                    if (!automatic) {
+                    if (redirects) {
                         await options?.beforeRedirect?.()
                         if (mounted.current && currentScope.current === scope) {
                             markVerifySource('unlock_payments')
@@ -289,7 +293,7 @@ export function useKycFeatureActivation(
                     next.code === 'questions_missing' &&
                     feature !== 'qr' &&
                     feature !== 'pix' &&
-                    !automatic
+                    redirects
                 ) {
                     await options?.beforeRedirect?.()
                     if (mounted.current && currentScope.current === scope)
@@ -327,7 +331,7 @@ export function useKycFeatureActivation(
     useEffect(() => {
         if (!startsNow || !enabled || !userId || autoStarted.current === scope) return
         autoStarted.current = scope
-        void activate()
+        void activate({ onArrival: true })
     }, [startsNow, enabled, userId, scope, activate])
 
     useEffect(() => {
@@ -387,7 +391,8 @@ export function useKycFeatureActivation(
         arsProvisioning,
         isLoading,
         /** The account was just asked for and usually opens in seconds: the user waits on screen. */
-        settling: settles && (settleWindow || (isLoading && !result)),
+        // startsNow covers the first frame, before the start's effect has set isLoading
+        settling: settleWindow || (settles && (startsNow || (isLoading && !result))),
         activate,
     }
 }

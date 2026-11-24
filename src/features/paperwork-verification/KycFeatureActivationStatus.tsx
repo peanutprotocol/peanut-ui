@@ -78,13 +78,15 @@ export function KycFeatureActivationStatus({
         return <FeatureAction action={report.action} onBack={onBack} onDone={onRetry} />
     }
     const identityRequired = !accountStatus && result?.kind === 'conflict' && result.code === 'identity_not_approved'
-    const consent = (!accountStatus && !result) || identityRequired
+    // a start on arrival keeps this answer instead of redirecting: the set-up tap opens the questions
+    const questionsRequired = !accountStatus && result?.kind === 'conflict' && result.code === 'questions_missing'
+    const consent = (!accountStatus && !result) || identityRequired || questionsRequired
     const failed = !accountStatus && result?.kind === 'failed'
     const needsReplacement = report?.state === 'refused' && report.reason === 'identity_document_insufficient'
     const refused =
         report?.state === 'refused' ||
         report?.state === 'not_requested' ||
-        (!accountStatus && result?.kind === 'conflict' && !identityRequired)
+        (!accountStatus && result?.kind === 'conflict' && !identityRequired && !questionsRequired)
     // a tap would have shown the set-up screen here; on arrival the activation is already running
     if (settling && accountCurrency && !failed && !refused)
         return <FeatureSettingUpScreen currency={accountCurrency} onBack={onBack} />

@@ -92,3 +92,14 @@ it('a failed start shows its retry, not the progress screen', () => {
         screen.getByRole('button', { name: messages.kyc.paperworkVerification.loadFailed.retry })
     ).toBeInTheDocument()
 })
+
+it.each([
+    ['identity_not_approved', activation.identityRequired],
+    ['questions_missing', activation.description],
+] as const)('a start on arrival answered %s shows the set-up tap, not a refusal', (code, description) => {
+    state({ result: { kind: 'conflict', code } as KycFeatureActivationResult, settling: false })
+    renderGate()
+    expect(screen.getByText(description)).toBeInTheDocument()
+    fireEvent.click(screen.getByTestId('kyc-activation-continue'))
+    expect(jest.mocked(useKycFeatureActivation).mock.results[0].value.activate).toHaveBeenCalledTimes(1)
+})

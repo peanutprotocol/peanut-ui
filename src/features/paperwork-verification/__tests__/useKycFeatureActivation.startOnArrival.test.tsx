@@ -129,11 +129,36 @@ it('a failed start stays on its retry screen instead of starting again', async (
     expect(result.current.settling).toBe(false)
 })
 
-it('an identity that is not approved goes to verification, as after a tap', async () => {
-    jest.mocked(activateKycFeature).mockResolvedValue({ kind: 'conflict', code: 'identity_not_approved' } as Reply)
-    renderHook(ars(true))
-    await advance(0)
-    expect(mockPush).toHaveBeenCalledWith('/verify')
+it.each([
+    ['identity_not_approved', '/verify'],
+    ['questions_missing', '/verify?feature=local'],
+] as const)(
+    'a start on arrival answered %s does not redirect, so Back cannot loop; the tap still redirects',
+    async (code, path) => {
+        jest.mocked(activateKycFeature).mockResolvedValue({ kind: 'conflict', code } as Reply)
+        const first = renderHook(ars(true))
+        await advance(0)
+        expect(mockPush).not.toHaveBeenCalled()
+        expect(first.result.current.result).toEqual({ kind: 'conflict', code })
+        expect(first.result.current.settling).toBe(false)
+        // Back from the page lands here again: a fresh mount starts again and still does not redirect
+        first.unmount()
+        const second = renderHook(ars(true))
+        await advance(0)
+        expect(activateKycFeature).toHaveBeenCalledTimes(2)
+        expect(mockPush).not.toHaveBeenCalled()
+        // the screen's tap is a consent: it redirects as before
+        await act(async () => {
+            await second.result.current.activate()
+        })
+        expect(mockPush).toHaveBeenCalledWith(path)
+    }
+)
+
+it('the first frame of a start on arrival already shows progress', () => {
+    jest.mocked(activateKycFeature).mockReturnValue(new Promise<Reply>(() => {}))
+    const { result } = renderHook(ars(true))
+    expect(result.current.settling).toBe(true)
 })
 
 it('an account already being set up waits on progress again, read every 5 s, with no second request', async () => {
