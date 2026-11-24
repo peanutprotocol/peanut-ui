@@ -69,6 +69,11 @@ jest.mock('@/components/Setup/Views/LoginRecoveryDrawer', () => ({
 }))
 // false models the native app, where the claim button opens signup in place
 let mockHandoffActive = false
+let mockDeviceType = 'web'
+jest.mock('@/hooks/useGetDeviceType', () => ({
+    ...jest.requireActual('@/hooks/useGetDeviceType'),
+    useDeviceType: () => ({ deviceType: mockDeviceType }),
+}))
 jest.mock('@/hooks/useGuestStoreHandoff', () => ({
     useGuestStoreHandoff: (opts: { trackImpressionWhenGuest?: boolean }) => {
         mockUseGuestStoreHandoff(opts)
@@ -638,6 +643,7 @@ describe('invite and badge campaign routing boundaries', () => {
     it('keeps the store button reachable in a social in-app browser and asks for a browser only on login', async () => {
         mockIsWebview = true
         mockHandoffActive = true
+        mockDeviceType = 'ios'
         mockAuth.user = null
         mockSearch = 'code=alice'
         mockQueryResult.data = {
@@ -650,7 +656,7 @@ describe('invite and badge campaign routing boundaries', () => {
 
         try {
             render(<InvitesPage />)
-            const claim = await screen.findByRole('button', { name: 'Download Peanut' })
+            const claim = await screen.findByRole('button', { name: 'App Store' })
             expect(screen.queryByRole('button', { name: 'Create your wallet' })).toBeNull()
             expect(screen.queryByRole('dialog')).toBeNull()
 
@@ -658,12 +664,13 @@ describe('invite and badge campaign routing boundaries', () => {
             expect(mockInterceptGuestCta).toHaveBeenCalledWith({ invite: 'alice', dest: undefined })
             expect(screen.queryByRole('dialog')).toBeNull()
 
-            fireEvent.click(screen.getByRole('button', { name: /already have an account/i }))
+            fireEvent.click(screen.getByRole('button', { name: 'Log in on web instead' }))
             expect(mockLogin).not.toHaveBeenCalled()
             expect(screen.getByRole('dialog')).toBeTruthy()
         } finally {
             mockIsWebview = false
             mockHandoffActive = false
+            mockDeviceType = 'web'
         }
     })
 

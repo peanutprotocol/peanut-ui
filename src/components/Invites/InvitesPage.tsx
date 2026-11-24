@@ -5,6 +5,7 @@ import Loading from '../Global/Loading'
 import ValidationErrorView from '../Payment/Views/Error.validation.view'
 import InvitesPageLayout from './InvitesPageLayout'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { invitesApi } from '@/services/invites'
 import { useQuery } from '@tanstack/react-query'
@@ -12,6 +13,9 @@ import { useAuth } from '@/context/authContext'
 import { EInviteType } from '@/services/services.types'
 import { getValidRedirectUrl, saveRedirectUrl } from '@/utils/general.utils'
 import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
+import { useDeviceType } from '@/hooks/useGetDeviceType'
+import { STORE_NAME } from '@/constants/migration.consts'
+import { storeForDevice, storeIcon } from '@/utils/migration.utils'
 import { useLogin } from '@/hooks/useLogin'
 import { useLoginRecovery } from '@/hooks/useLoginRecovery'
 import { LoginRecoveryDrawer } from '@/components/Setup/Views/LoginRecoveryDrawer'
@@ -59,6 +63,7 @@ function InvitePageContent() {
 
     const router = useRouter()
     const { handleLoginClick, isLoggingIn } = useLogin()
+    const { deviceType } = useDeviceType()
     const { offersRecovery, openRecovery, recoveryDrawer } = useLoginRecovery({
         onRetry: () => handleLoginWithBadgeCampaign(),
         onSignUp: () => handleClaim(),
@@ -334,9 +339,17 @@ function InvitePageContent() {
         ? t('vanityTitle')
         : t('inviterTitle', { username: inviteCodeData?.username ?? '' })
     const description = isBadgeCampaignOnly ? t('vanityDescription') : t('inviterDescription')
-    // A web guest's tap opens the store, so the button says so, like every other guest CTA.
+    // A web guest's tap opens the store, so the buttons match the web landing: the phone's
+    // store leads and Log in is a text link. A computer gets the QR modal behind Download.
     const opensStore = handoffActive && !user?.user
-    const ctaLabel = opensStore ? tMigration('downloadPeanut') : isBadgeCampaignOnly ? t('vanityCta') : t('inviterCta')
+    const store = opensStore ? storeForDevice(deviceType) : null
+    const ctaLabel = store
+        ? STORE_NAME[store]
+        : opensStore
+          ? tMigration('downloadPeanut')
+          : isBadgeCampaignOnly
+            ? t('vanityCta')
+            : t('inviterCta')
     const loginLabel = isBadgeCampaignOnly ? t('logIn') : t('alreadyHaveAccount')
 
     return (
@@ -346,20 +359,27 @@ function InvitePageContent() {
                     <div className="flex h-full flex-col justify-between gap-4 md:gap-6 md:pt-6">
                         <h1 className="text-heading-xs break-words text-foreground-primary">{title}</h1>
                         <p className="text-body-m">{description}</p>
-                        <Button onClick={handleClaim} shadowSize="4">
+                        <Button onClick={handleClaim} shadowSize="4" icon={store ? storeIcon(store) : undefined}>
                             {ctaLabel}
                         </Button>
 
-                        {!user?.user && (
-                            <Button
-                                disabled={isLoggingIn}
-                                loading={isLoggingIn}
-                                variant="ghost"
-                                onClick={handleLoginWithBadgeCampaign}
-                            >
-                                {loginLabel}
-                            </Button>
-                        )}
+                        {!user?.user &&
+                            (opensStore ? (
+                                <div className="text-center">
+                                    <LinkButton onClick={handleLoginWithBadgeCampaign} disabled={isLoggingIn}>
+                                        {tMigration('qr.logIn')}
+                                    </LinkButton>
+                                </div>
+                            ) : (
+                                <Button
+                                    disabled={isLoggingIn}
+                                    loading={isLoggingIn}
+                                    variant="ghost"
+                                    onClick={handleLoginWithBadgeCampaign}
+                                >
+                                    {loginLabel}
+                                </Button>
+                            ))}
                     </div>
                 </div>
             </div>
