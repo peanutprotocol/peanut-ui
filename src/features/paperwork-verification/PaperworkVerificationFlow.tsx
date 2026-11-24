@@ -131,6 +131,28 @@ function candidateSubmissionPending(key: string) {
     }
 }
 
+// sign-up and the legacy start push /verify again, which remounts the flow and empties its refs, so the
+// "start screen seen" mark lives in session storage, per account (TASK-25326)
+const introSeenKey = (userId: string) => `peanut:verify-intro-seen:${userId}`
+
+function introSeen(userId: string | undefined) {
+    if (!userId) return false
+    try {
+        return sessionStorage.getItem(introSeenKey(userId)) === '1'
+    } catch {
+        return false
+    }
+}
+
+function markIntroSeen(userId: string | undefined) {
+    if (!userId) return
+    try {
+        sessionStorage.setItem(introSeenKey(userId), '1')
+    } catch {
+        // storage unavailable: the start screen may show again on the next mount
+    }
+}
+
 type Loaded = {
     questions: PaperworkVerificationQuestions
     plan: KycDocumentPlan | null
@@ -661,7 +683,9 @@ function PaperworkVerificationSteps({
 
     // A visit that still has questions or the ID ahead opens on Verify start, the one verify intro, in front
     // of the open step; a deep link to a step skips it.
-    const [intro, setIntro] = useState(() => !candidate && asking && !introShown.current && !stepParam)
+    const [intro, setIntro] = useState(
+        () => !candidate && asking && !introShown.current && !introSeen(user?.user.userId) && !stepParam
+    )
     const showIntro = intro && asking
     // While asking, the clean URL keeps meaning the step this visit opened on, so moving on to
     // a step that has since become the entry (the ID, once every answer is in) still writes it.
@@ -686,8 +710,10 @@ function PaperworkVerificationSteps({
     const step = stepper.step
     const goToStep = stepper.goTo
     useEffect(() => {
-        if (showIntro) introShown.current = true
-    }, [showIntro, introShown])
+        if (!showIntro) return
+        introShown.current = true
+        markIntroSeen(user?.user.userId)
+    }, [showIntro, introShown, user?.user.userId])
 
     const stepRef = useRef(step)
     stepRef.current = step
