@@ -1,9 +1,9 @@
 /**
- * TASK-25059: while the peso account is being opened, the gate shows a progress screen with no button that
- * leaves the flow; the set-up screen ("Set up local transfers", "Our partner will review…") never shows.
+ * TASK-25059: while the peso account is being opened, the gate shows a progress screen whose only exit is the
+ * header back; the set-up screen ("Set up local transfers", "Our partner will review…") never shows.
  * Only after the wait does the "we'll let you know" screen with its button come back.
  */
-import { screen } from '@testing-library/react'
+import { fireEvent, screen } from '@testing-library/react'
 import { renderWithIntl } from '@/test-utils/intl'
 import messages from '@/i18n/app/messages/en.json'
 import type { KycFeatureActivationResult } from '@/app/actions/kyc-feature-activation'
@@ -12,7 +12,8 @@ import { KycFeatureActivationGate } from '../KycFeatureActivationGate'
 
 jest.mock('../useKycFeatureActivation', () => ({ useKycFeatureActivation: jest.fn() }))
 jest.mock('@/hooks/useKycDegraded', () => ({ useKycDegraded: () => false }))
-jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => jest.fn() }))
+const mockBack = jest.fn()
+jest.mock('@/hooks/useSafeBack', () => ({ useSafeBack: () => mockBack }))
 jest.mock('@/components/Global/PeanutMascot', () => ({ __esModule: true, default: () => null }))
 
 const activation = messages.kyc.paperworkVerification.activation
@@ -64,6 +65,14 @@ it('while the account is pending inside the wait: progress, with no button that 
     expect(screen.getByText(activation.settingUpWait)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: messages.common.gotIt })).toBeNull()
     expect(screen.queryByText('amount screen')).toBeNull()
+})
+
+it('the header back still leaves while the account opens, and starts nothing again', () => {
+    state({ result: { kind: 'report', report: { state: 'pending' } }, settling: true })
+    renderGate()
+    fireEvent.click(screen.getByTestId('nav-back'))
+    expect(mockBack).toHaveBeenCalledTimes(1)
+    expect(jest.mocked(useKycFeatureActivation).mock.results[0].value.activate).not.toHaveBeenCalled()
 })
 
 it('after the wait: the "we\'ll let you know" screen and its button', () => {
