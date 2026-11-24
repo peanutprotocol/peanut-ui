@@ -103,8 +103,7 @@ function mapDeepLink(url: string): string | null {
     const parsed = new URL(url, 'https://peanut.me')
     if (!APP_HOSTS.test(parsed.hostname)) return null
 
-    // A tracked handoff opening the app runs the exported /app bootstrap, which checks its fields
-    // exactly as the web page does.
+    // A tracked handoff opening the app runs the exported /app bootstrap, which checks its fields.
     if (parsed.pathname.replace(/\/$/, '') === '/home' && parsed.searchParams.has('tl')) {
         if (parsed.origin !== TRACKED_LINK_ORIGIN || parsed.username || parsed.password) return null
         const slug = parsed.searchParams.get('tl')

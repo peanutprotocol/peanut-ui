@@ -5,6 +5,7 @@ import Loading from '../Global/Loading'
 import ValidationErrorView from '../Payment/Views/Error.validation.view'
 import InvitesPageLayout from './InvitesPageLayout'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { invitesApi } from '@/services/invites'
 import { useQuery } from '@tanstack/react-query'
@@ -12,11 +13,15 @@ import { useAuth } from '@/context/authContext'
 import { EInviteType } from '@/services/services.types'
 import { getValidRedirectUrl, saveRedirectUrl } from '@/utils/general.utils'
 import { useGuestStoreHandoff } from '@/hooks/useGuestStoreHandoff'
+import { useDeviceType } from '@/hooks/useGetDeviceType'
+import { STORE_NAME } from '@/constants/migration.consts'
+import { storeForDevice, storeIcon } from '@/utils/migration.utils'
 import { useLogin } from '@/hooks/useLogin'
 import { useLoginRecovery } from '@/hooks/useLoginRecovery'
 import { LoginRecoveryDrawer } from '@/components/Setup/Views/LoginRecoveryDrawer'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import UnsupportedBrowserModal from '../Global/UnsupportedBrowserModal'
+import { isLikelyWebview } from '@/components/Setup/Setup.utils'
 import posthog from 'posthog-js'
 import { useTranslations } from 'next-intl'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
@@ -40,8 +45,10 @@ function InvitePageContent() {
         () => window.location.origin,
         () => null
     )
+    const isInAppBrowser = useHydrationSnapshot(isLikelyWebview, () => true)
     const t = useTranslations('invites')
     const tSetup = useTranslations('setup')
+    const tMigration = useTranslations('migration')
     const toast = useToast()
     const searchParams = useSearchParams()
     // trim trailing '?' from invite code to handle qr codes with ? at the end
@@ -57,11 +64,13 @@ function InvitePageContent() {
 
     const router = useRouter()
     const { handleLoginClick, isLoggingIn } = useLogin()
+    const { deviceType } = useDeviceType()
     const { offersRecovery, openRecovery, recoveryDrawer } = useLoginRecovery({
         onRetry: () => handleLoginWithBadgeCampaign(),
         onSignUp: () => handleClaim(),
     })
     const [isClaimingBadgeCampaigns, setIsClaimingBadgeCampaigns] = useState(false)
+    const [showsBrowserNotice, setShowsBrowserNotice] = useState(false)
     const hasStartedBadgeClaimingRef = useRef(false)
 
     // Track if we should show content (prevents flash)
@@ -104,7 +113,7 @@ function InvitePageContent() {
     // entry points (claim/request/pay). impression fires only when the CTA
     // actually renders — never on the pre-auth flash, the invalid-invite error
     // view, or the dead-bare-link redirect.
-    const { interceptGuestCta, storeHandoffModal } = useGuestStoreHandoff({
+    const { interceptGuestCta, storeHandoffModal, handoffActive } = useGuestStoreHandoff({
         trackImpressionWhenGuest: shouldShowContent && !user?.user && !isDeadBareLink && !showsInvalidInvite,
     })
 
@@ -278,6 +287,9 @@ function InvitePageContent() {
     }
 
     const handleLoginWithBadgeCampaign = () => {
+        // Passkeys fail in social in-app browsers, so logging in needs a real browser. The
+        // claim button only opens the store, which works there, so it stays reachable.
+        if (isLikelyWebview()) return setShowsBrowserNotice(true)
         // Existing-user login does not call `/invites/accept`, so queue both
         // explicit and backend-resolved compatibility acquisition for the
         // authenticated recovery flow.
@@ -328,7 +340,17 @@ function InvitePageContent() {
         ? t('vanityTitle')
         : t('inviterTitle', { username: inviteCodeData?.username ?? '' })
     const description = isBadgeCampaignOnly ? t('vanityDescription') : t('inviterDescription')
-    const ctaLabel = isBadgeCampaignOnly ? t('vanityCta') : t('inviterCta')
+    // A web guest's tap opens the store, so the buttons match the web landing: the phone's
+    // store leads and Log in is a text link. A computer gets the QR modal behind Download.
+    const opensStore = handoffActive && !user?.user
+    const store = opensStore ? storeForDevice(deviceType) : null
+    const ctaLabel = store
+        ? STORE_NAME[store]
+        : opensStore
+          ? tMigration('downloadPeanut')
+          : isBadgeCampaignOnly
+            ? t('vanityCta')
+            : t('inviterCta')
     const loginLabel = isBadgeCampaignOnly ? t('logIn') : t('alreadyHaveAccount')
 
     return (
@@ -338,27 +360,37 @@ function InvitePageContent() {
                     <div className="flex h-full flex-col justify-between gap-4 md:gap-6 md:pt-6">
                         <h1 className="text-heading-xs break-words text-foreground-primary">{title}</h1>
                         <p className="text-body-m">{description}</p>
-                        <Button onClick={handleClaim} shadowSize="4">
+                        <Button onClick={handleClaim} shadowSize="4" icon={store ? storeIcon(store) : undefined}>
                             {ctaLabel}
                         </Button>
 
-                        {!user?.user && (
-                            <Button
-                                disabled={isLoggingIn}
-                                loading={isLoggingIn}
-                                variant="secondary"
-                                onClick={handleLoginWithBadgeCampaign}
-                                shadowSize="4"
-                            >
-                                {loginLabel}
-                            </Button>
-                        )}
+                        {!user?.user &&
+                            (opensStore ? (
+                                <div className="mt-2 text-center md:mt-0">
+                                    <LinkButton onClick={handleLoginWithBadgeCampaign} disabled={isLoggingIn}>
+                                        {tMigration('qr.logIn')}
+                                    </LinkButton>
+                                </div>
+                            ) : (
+                                <Button
+                                    disabled={isLoggingIn}
+                                    loading={isLoggingIn}
+                                    variant="secondary"
+                                    shadowSize="4"
+                                    onClick={handleLoginWithBadgeCampaign}
+                                >
+                                    {loginLabel}
+                                </Button>
+                            ))}
                     </div>
                 </div>
             </div>
             {storeHandoffModal}
             <LoginRecoveryDrawer {...recoveryDrawer} />
-            <UnsupportedBrowserModal allowClose={false} />
+            {/* Outside in-app browsers the modal still raises its own no-passkey notice, as before. */}
+            {(showsBrowserNotice || !isInAppBrowser) && (
+                <UnsupportedBrowserModal visible={showsBrowserNotice} onDismiss={() => setShowsBrowserNotice(false)} />
+            )}
         </InvitesPageLayout>
     )
 }
