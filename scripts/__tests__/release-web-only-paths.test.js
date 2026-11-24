@@ -29,16 +29,13 @@ function filesUnder(dir) {
     })
 }
 
-it('keeps every web-only src/app route out of the native build while it exists', () => {
+it('keeps every web-only src/app route out of the native build', () => {
     const routes = WEB_ONLY_PATHS.filter((pattern) => /^src\/app\/[^/]+\/\*\*$/.test(pattern))
     expect(routes.length).toBeGreaterThan(0)
     for (const pattern of routes) {
         const route = pattern.slice('src/app/'.length, -'/**'.length)
         const disabled = ITEMS_TO_DISABLE.some((item) => item.path === route && item.type === 'dir')
-        // A listed route that does not exist yet cannot reach the bundle. Once its
-        // folder lands, the native build must strip it in the same change.
-        const exists = fs.existsSync(path.join(ROOT, 'src', 'app', route))
-        expect([pattern, disabled || !exists]).toEqual([pattern, true])
+        expect([pattern, disabled]).toEqual([pattern, true])
     }
 })
 
