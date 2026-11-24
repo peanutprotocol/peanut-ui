@@ -440,6 +440,21 @@ const AVENIA_BR_USER = {
         secondaryDeclaredCountry: null,
     },
 }
+/** The Pix route's step when Avenia's setup parked on a missing email (api capabilities/resolver.ts). */
+const AVENIA_EMAIL_STEP = {
+    state: 'action_required',
+    action: 'provide-email',
+    reason: {
+        code: 'email_required',
+        userMessage:
+            "We need an email address to finish setting up this account. Add one to your profile and we'll retry automatically.",
+    },
+}
+/** The same responses for an account with no email saved, so the email step opens empty. */
+const aveniaEmailMissing = <T extends { 'GET /users/me': { user: object } }>(responses: T): T => ({
+    ...responses,
+    'GET /users/me': { ...responses['GET /users/me'], user: { ...responses['GET /users/me'].user, email: null } },
+})
 const aveniaRouteResponses = (
     step: { state: string; action?: string; reason: { code: string; userMessage: string }; provider?: null },
     rails: unknown[] = [],
@@ -3397,6 +3412,12 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         }),
     },
+    'pix-setup-email-missing': {
+        route: '/add-money/pix',
+        about: "Avenia's account setup parked on a missing email (TASK-25335): the Pix step asks for the email, not for support.",
+        waitFor: '[data-testid="provide-email-form"]',
+        responses: aveniaEmailMissing(aveniaRouteResponses(AVENIA_EMAIL_STEP)),
+    },
     'pix-route-rejected': {
         route: '/add-money/pix',
         about: "A refused Pix route: the verification was not accepted, in the user's language, with support.",
@@ -3821,6 +3842,12 @@ export const FIXTURES: Record<string, Fixture> = {
             },
             { [ACTIVATE_PIX]: { state: 'setting_up' } }
         ),
+    },
+    'qr-pay-avenia-email-missing': {
+        route: qrPayRoute(PIX_QR_FIXED_AMOUNT),
+        about: 'A scanned Pix code for a user with no email (TASK-25335): the QR page asks for the email, not for support.',
+        waitFor: '[data-testid="provide-email-form"]',
+        responses: aveniaEmailMissing(aveniaQrResponses(AVENIA_EMAIL_STEP)),
     },
     'qr-pay-avenia-receipt': {
         route: `/history?tx=${AVENIA_QR_PAYMENT_ID}`,
