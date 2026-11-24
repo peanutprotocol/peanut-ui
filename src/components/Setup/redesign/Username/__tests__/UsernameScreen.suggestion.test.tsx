@@ -254,6 +254,36 @@ describe('02 Username — first suggestion and default (C.md § 3.1, § 4.3)', (
     })
 })
 
+describe('02 Username — claim refused, no replacement (TASK-25341)', () => {
+    it('a rolled name refused as taken at claim, with every replacement taken or failing, shows taken and stays unclaimable', async () => {
+        renderUsername()
+        await suggestionLanded()
+        fireEvent.click(die())
+        await waitFor(() => expect(setupState()).toBe('rolled'), WAIT)
+        const lost = (field() as HTMLInputElement).value
+        mockReserve.mockResolvedValueOnce('taken')
+        let replacement = 0
+        mockApiFetch.mockImplementation(async (path: string) => {
+            const name = path.split('/').pop() as string
+            // the re-roll's candidates all fail; the chips for the lost name may answer free
+            if (name.startsWith(lost) || name.endsWith(lost)) return availabilityStub({}, 404)(path)
+            replacement += 1
+            return availabilityStub({}, replacement % 2 ? 200 : 503)(path)
+        })
+
+        fireEvent.click(primary())
+        await waitFor(() => expect(mockReserve).toHaveBeenCalledWith(lost), WAIT)
+        await waitFor(() => expect(setupState()).toBe('taken'), WAIT)
+        expect(replacement).toBeGreaterThan(0)
+        expect((field() as HTMLInputElement).value).toBe(lost)
+        expect(helpText()).toContain(loose(U('taken', { name: lost })))
+        expect(primary()).toBeDisabled()
+        fireEvent.click(primary())
+        expect(mockReserve).toHaveBeenCalledTimes(1)
+        expect(mockHandleNext).not.toHaveBeenCalled()
+    })
+})
+
 describe('02 Username — reduced motion (C.md § 2 Motion)', () => {
     it('C-31 under reduced motion a roll scrambles no letters and animates nothing; the new name shows after its check', async () => {
         setReducedMotion(true)

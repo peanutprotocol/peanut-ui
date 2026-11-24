@@ -231,7 +231,7 @@ export function useUsernameField() {
         inputRef.current?.focus({ preventScroll: true })
     }
 
-    const onRoll = async () => {
+    const onRoll = async (fromClaim = false) => {
         if (kind === 'rolling') return
         // Blur first: its handler may refill an emptied field, and the roll's state below must land after it.
         inputRef.current?.blur()
@@ -253,10 +253,12 @@ export function useUsernameField() {
             // the die offers only checked names; when none checked free, the field goes back as it was, without
             // an error line, so the die can be tapped again
             setValue(previous)
+            track('username_die', 'error', 'network')
+            // a name the claim just refused must not come back claimable
+            if (fromClaim) return showTaken(previous, at)
             setKind(previousKind)
             // the roll cancelled a typed name's pending check, so run it again
             if (previousKind === 'checking') void runCheck(previous, 'typed', at)
-            track('username_die', 'error', 'network')
             return
         }
         returning.current = ''
@@ -288,7 +290,7 @@ export function useUsernameField() {
     const onClaimRefused = (result: 'taken' | 'refused' | 'invalid') => {
         // the availability check cannot see another device's hold, so a rolled name can still lose at claim;
         // roll again instead of showing a name we offered as taken
-        if (result === 'taken' && kind === 'rolled') return void onRoll()
+        if (result === 'taken' && kind === 'rolled') return void onRoll(true)
         const at = nextToken()
         if (result === 'taken') showTaken(value, at)
         else {
