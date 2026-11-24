@@ -180,7 +180,7 @@ export function ReviewScreen({
 export function FeatureSettingUpScreen({ currency, onBack }: { currency: string; onBack: () => void }) {
     const t = useTranslations('kyc.paperworkVerification')
     return (
-        <PageStack>
+        <PageStack data-testid="feature-setting-up">
             <NavHeader onPrev={onBack} />
             <ProcessingScreen
                 title={t('activation.settingUpAccount', { currency })}

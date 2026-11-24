@@ -1983,7 +1983,7 @@
             },
             "activation": {
                 "settingUpAccount": "Estamos configurando tu cuenta en {currency}",
-                "settingUpWait": "Quedate en esta pantalla. Vas a poder agregar dinero apenas esté lista.",
+                "settingUpWait": "Dejá esta pantalla abierta.",
                 "title": {
                     "bank": "Configurá tus cuentas bancarias",
                     "card": "Configurá tu Peanut Card",

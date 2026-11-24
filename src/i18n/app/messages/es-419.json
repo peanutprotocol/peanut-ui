@@ -4310,7 +4310,7 @@
             },
             "activation": {
                 "settingUpAccount": "Estamos configurando tu cuenta en {currency}",
-                "settingUpWait": "Quédate en esta pantalla. Podrás agregar dinero apenas esté lista.",
+                "settingUpWait": "Deja esta pantalla abierta.",
                 "title": {
                     "bank": "Configura tus cuentas bancarias",
                     "card": "Configura tu Peanut Card",
