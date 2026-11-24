@@ -4309,6 +4309,8 @@
             },
             "activation": {
                 "settingUpAccount": "We’re setting up your {currency} account",
+                "settingUpWait": "Keep this screen open.",
+                "settingUpTitle": "Setting up {currency} account",
                 "title": {
                     "bank": "Set up bank accounts",
                     "card": "Set up your Peanut Card",

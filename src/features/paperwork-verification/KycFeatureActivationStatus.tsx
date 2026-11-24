@@ -7,7 +7,7 @@ import { kycFeatureRefusalCopy } from '@/utils/kyc-feature-outcome.utils'
 import { FeatureAction } from './FeatureAction'
 import { ReplacementDocumentAction } from './ReplacementDocumentAction'
 import { VerifyFooter, VerifyHeroLayout } from './components/VerifyLayout'
-import { FeatureReadyScreen } from './components/StatusScreens'
+import { FeatureReadyScreen, FeatureSettingUpScreen } from './components/StatusScreens'
 import { useKycControl } from './analytics'
 import type { FeatureReportEntry } from '@/types/capabilities'
 import type { FeatureReverificationEntry } from '@/app/actions/types/kyc-reverification.types'
@@ -20,6 +20,7 @@ export function KycFeatureActivationStatus({
     accountCurrency,
     accountStatus,
     isLoading,
+    settling = false,
     onRetry,
     onBack,
     reverification,
@@ -30,6 +31,8 @@ export function KycFeatureActivationStatus({
     accountCurrency?: string
     accountStatus?: FeatureReportEntry
     isLoading: boolean
+    /** The account was just asked for and usually opens in seconds: a progress screen, not a farewell. */
+    settling?: boolean
     onRetry: () => void
     onBack: () => void
     reverification?: FeatureReverificationEntry | null
@@ -75,13 +78,18 @@ export function KycFeatureActivationStatus({
         return <FeatureAction action={report.action} onBack={onBack} onDone={onRetry} />
     }
     const identityRequired = !accountStatus && result?.kind === 'conflict' && result.code === 'identity_not_approved'
-    const consent = (!accountStatus && !result) || identityRequired
+    // a start on arrival keeps this answer instead of redirecting: the set-up tap opens the questions
+    const questionsRequired = !accountStatus && result?.kind === 'conflict' && result.code === 'questions_missing'
+    const consent = (!accountStatus && !result) || identityRequired || questionsRequired
     const failed = !accountStatus && result?.kind === 'failed'
     const needsReplacement = report?.state === 'refused' && report.reason === 'identity_document_insufficient'
     const refused =
         report?.state === 'refused' ||
         report?.state === 'not_requested' ||
-        (!accountStatus && result?.kind === 'conflict' && !identityRequired)
+        (!accountStatus && result?.kind === 'conflict' && !identityRequired && !questionsRequired)
+    // a tap would have shown the set-up screen here; on arrival the activation is already running
+    if (settling && accountCurrency && !failed && !refused)
+        return <FeatureSettingUpScreen currency={accountCurrency} onBack={onBack} />
     if (!consent && !failed && !refused && feature !== 'qr')
         return (
             <FeatureReadyScreen

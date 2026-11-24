@@ -100,11 +100,12 @@ describe('KYC review screen captures', () => {
     })
 
     it.each([
-        ['bank', 'EUR'],
-        ['local', 'ARS'],
+        ['bank', 'EUR', true],
+        // ARS Add money starts the peso account on arrival, so there is nothing to tap (TASK-25059)
+        ['local', 'ARS', false],
     ])(
-        'shows %s consent untapped, passes an account already on, and taps for every other answer',
-        (feature, currency) => {
+        'shows %s consent untapped, passes an account already on, and taps for every other answer when it asks',
+        (feature, currency, asks) => {
             const tap = [{ clickSelector: '[data-testid="kyc-activation-continue"]' }]
             for (const state of [
                 'ready',
@@ -122,7 +123,7 @@ describe('KYC review screen captures', () => {
                 expect(report.state).toBe(expected)
                 expect(report.accounts[currency].state).toBe(expected)
                 expect(SCREENS.find((screen) => screen.fixture === id)?.actions).toEqual(
-                    state === 'ready' || state === 'on' ? undefined : tap
+                    !asks || state === 'ready' || state === 'on' ? undefined : tap
                 )
             }
         }
