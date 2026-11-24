@@ -1,6 +1,6 @@
 /** @jest-environment jsdom */
 import { StrictMode } from 'react'
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import posthog from 'posthog-js'
 import { creatorPageAnalyticsAllowed } from '../consent'
 import { creatorPageFixture } from '../preview-fixture'
@@ -70,11 +70,39 @@ describe('CreatorPageProvider', () => {
         expect(cookieWrites).toEqual(['cpv_juanacervio=; Max-Age=0; Path=/c; SameSite=Lax; Secure'])
     })
 
-    it('leaves the cookie alone during a prerender, which is not a refusal', () => {
-        ;(creatorPageAnalyticsAllowed as jest.Mock).mockReturnValue(false)
+    it('waits for a prerendered page to be shown, then sends one view and writes the cookie', () => {
         Object.defineProperty(document, 'prerendering', { configurable: true, value: true })
         try {
             renderProvider()
+            expect(creatorEvents()).toEqual([])
+            expect(cookieWrites).toEqual([])
+
+            Object.defineProperty(document, 'prerendering', { configurable: true, value: false })
+            act(() => {
+                document.dispatchEvent(new Event('prerenderingchange'))
+            })
+            expect(creatorEvents().map(([event]) => event)).toEqual(['creator_page_viewed'])
+            expect(cookieWrites).toEqual([STICKY])
+
+            // The listener ran once: a second activation event sends nothing more.
+            act(() => {
+                document.dispatchEvent(new Event('prerenderingchange'))
+            })
+            expect(creatorEvents()).toHaveLength(1)
+        } finally {
+            delete (document as { prerendering?: boolean }).prerendering
+        }
+    })
+
+    it('removes the activation listener when the page leaves during a prerender', () => {
+        Object.defineProperty(document, 'prerendering', { configurable: true, value: true })
+        try {
+            renderProvider().unmount()
+            Object.defineProperty(document, 'prerendering', { configurable: true, value: false })
+            act(() => {
+                document.dispatchEvent(new Event('prerenderingchange'))
+            })
+            expect(creatorEvents()).toEqual([])
             expect(cookieWrites).toEqual([])
         } finally {
             delete (document as { prerendering?: boolean }).prerendering
