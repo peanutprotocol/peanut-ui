@@ -16,15 +16,23 @@ export function KycFeatureActivationGate({
     children,
     scope,
     selectedCurrency,
+    startOnArrival,
 }: {
     /** `pix` opens with no gate in front: the Pix screens open it themselves (`PixAccountOpening`). */
     feature: Exclude<KycActivationFeature, 'pix'>
     children: ReactNode
     scope?: ReportScope
     selectedCurrency?: string
+    /** Open the account without the set-up screen: the user picked it on the screen before. */
+    startOnArrival?: boolean
 }) {
     const degraded = useKycDegraded()
-    const activation = useKycFeatureActivation(feature, { scope, enabled: !degraded, selectedCurrency })
+    const activation = useKycFeatureActivation(feature, {
+        scope,
+        enabled: !degraded,
+        selectedCurrency,
+        startOnArrival,
+    })
     const onBack = useSafeBack('/home')
     if (activation.allowed) return <>{children}</>
     if (degraded) return <VerificationOutage onBack={onBack} />
@@ -48,6 +56,7 @@ export function KycFeatureActivationGate({
             accountCurrency={selectedCurrency ?? (activation.arsProvisioning ? 'ARS' : undefined)}
             accountStatus={activation.selectedStatus}
             isLoading={activation.isLoading}
+            settling={activation.settling}
             onRetry={() => void activation.activate()}
             onBack={onBack}
         />

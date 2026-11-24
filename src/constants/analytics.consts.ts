@@ -152,6 +152,8 @@ export const ANALYTICS_EVENTS = {
     DEPOSIT_CONFIRMED: 'deposit_confirmed',
     DEPOSIT_COMPLETED: 'deposit_completed',
     DEPOSIT_FAILED: 'deposit_failed',
+    // Continue on an amount that stops before the deposit call: `reason` says what the user saw instead
+    DEPOSIT_SUBMIT_BLOCKED: 'deposit_submit_blocked',
 
     // ── Limits ──
     // The warning-card route check is intentionally separate from the payment

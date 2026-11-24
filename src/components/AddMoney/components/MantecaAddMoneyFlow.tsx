@@ -265,12 +265,26 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
         if (showKycModal && sumsubFlow.isModalOpen) closeKycModal()
     }, [showKycModal, sumsubFlow.isModalOpen, closeKycModal])
 
+    // the refreshed report then shows MantecaAccountUnavailable in place of the amount
+    const captureAccountRejected = useCallback(() => {
+        posthog.capture(ANALYTICS_EVENTS.DEPOSIT_SUBMIT_BLOCKED, {
+            method_type: 'manteca',
+            country: selectedCountryPath,
+            reason: 'account_rejected',
+        })
+    }, [selectedCountryPath])
+
     const handleAmountSubmit = useCallback(async () => {
         if (!selectedCountry?.currency) return
         if (isCreatingDeposit) return
         if (accountRejected) return
 
         if (!isUserMantecaKycApprovedForCountry) {
+            posthog.capture(ANALYTICS_EVENTS.DEPOSIT_SUBMIT_BLOCKED, {
+                method_type: 'manteca',
+                country: selectedCountryPath,
+                reason: 'verification_required',
+            })
             setShowKycModal(true)
             return
         }
@@ -296,6 +310,7 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
             })
             if (depositData.error) {
                 if (depositData.code === API_ERROR_CODES.MANTECA_ACCOUNT_REJECTED) {
+                    captureAccountRejected()
                     setShowKycModal(false)
                     // The API's report now carries the closure; re-read it so this and every later visit say so.
                     await fetchUser()
@@ -322,6 +337,7 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
             setUrlState({ step: 'depositDetails' })
         } catch (error) {
             if (wireErrorCode(error) === API_ERROR_CODES.MANTECA_ACCOUNT_REJECTED) {
+                captureAccountRejected()
                 setShowKycModal(false)
                 await fetchUser()
                 return
@@ -348,6 +364,7 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
         selectedCountryPath,
         tErrors,
         fetchUser,
+        captureAccountRejected,
     ])
 
     // Redirect to inputAmount if depositDetails is accessed without required data (deep link / back navigation)

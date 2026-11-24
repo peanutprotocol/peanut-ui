@@ -7,7 +7,7 @@ import { kycFeatureRefusalCopy } from '@/utils/kyc-feature-outcome.utils'
 import { FeatureAction } from './FeatureAction'
 import { ReplacementDocumentAction } from './ReplacementDocumentAction'
 import { VerifyFooter, VerifyHeroLayout } from './components/VerifyLayout'
-import { FeatureReadyScreen } from './components/StatusScreens'
+import { FeatureReadyScreen, FeatureSettingUpScreen } from './components/StatusScreens'
 import { useKycControl } from './analytics'
 import type { FeatureReportEntry } from '@/types/capabilities'
 import type { FeatureReverificationEntry } from '@/app/actions/types/kyc-reverification.types'
@@ -20,6 +20,7 @@ export function KycFeatureActivationStatus({
     accountCurrency,
     accountStatus,
     isLoading,
+    settling = false,
     onRetry,
     onBack,
     reverification,
@@ -30,6 +31,8 @@ export function KycFeatureActivationStatus({
     accountCurrency?: string
     accountStatus?: FeatureReportEntry
     isLoading: boolean
+    /** The account was just asked for and usually opens in seconds: a progress screen, not a farewell. */
+    settling?: boolean
     onRetry: () => void
     onBack: () => void
     reverification?: FeatureReverificationEntry | null
@@ -82,6 +85,9 @@ export function KycFeatureActivationStatus({
         report?.state === 'refused' ||
         report?.state === 'not_requested' ||
         (!accountStatus && result?.kind === 'conflict' && !identityRequired)
+    // a tap would have shown the set-up screen here; on arrival the activation is already running
+    if (settling && accountCurrency && !failed && !refused)
+        return <FeatureSettingUpScreen currency={accountCurrency} onBack={onBack} />
     if (!consent && !failed && !refused && feature !== 'qr')
         return (
             <FeatureReadyScreen

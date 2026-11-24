@@ -19,6 +19,10 @@ import type { FeatureReverificationEntry } from '@/app/actions/types/kyc-reverif
 import { currentReverificationDestination, featureReverificationPath } from '@/utils/kyc-reverification'
 
 export const KYC_ACTIVATION_POLL_MS = 15_000
+// Manteca often opens a peso account seconds after the request (TASK-25059 replays: 4 s and 17 s after the
+// user had left), so the user waits on screen and is read again fast until it opens.
+export const KYC_ACTIVATION_SETTLE_POLL_MS = 5_000
+export const KYC_ACTIVATION_SETTLE_MS = 120_000
 
 function canContinue(feature: KycActivationFeature, result: KycFeatureActivationResult | null): boolean {
     if (result?.kind !== 'report') return false
@@ -35,8 +39,15 @@ export function useKycFeatureActivation(
         scope: reportScope,
         enabled = true,
         automatic = false,
+        startOnArrival = false,
         selectedCurrency,
     }: {
+        /**
+         * Activate on arrival instead of asking for the tap, with the same redirects a tap has: the
+         * user already asked for this account by picking it (ARS Add money, TASK-25059). A waiting
+         * answer then holds the user on a progress screen and reads them fast for a while.
+         */
+        startOnArrival?: boolean
         /**
          * Activate on mount, with no tap: a provider whose use needs no consent of the user's (Avenia,
          * Aleks 2026-11-14). A missing answer or an identity not approved then stays in `result` for
@@ -142,6 +153,9 @@ export function useKycFeatureActivation(
     const [saved, setSaved] = useState<{ scope: string; result: KycFeatureActivationResult } | null>(null)
     const [planEntry, setPlanEntry] = useState<{ scope: string; entry: FeatureReverificationEntry } | null>(null)
     const [loadingScope, setLoadingScope] = useState<string | null>(null)
+    // only where the caller knows the account opens in seconds; the wait reads the user, so it needs the currency
+    const settles = startOnArrival && !!selectedCurrency
+    const [settleWindow, setSettleWindow] = useState(false)
     const result: KycFeatureActivationResult | null = arsProvisioning
         ? { kind: 'report', report: { state: ars.state } }
         : saved?.scope === scope
@@ -248,6 +262,12 @@ export function useKycFeatureActivation(
                         return false
                 }
                 setSaved({ scope, result: next })
+                if (
+                    settles &&
+                    next.kind === 'report' &&
+                    (next.report.state === 'pending' || next.report.state === 'setting_up')
+                )
+                    setSettleWindow(true)
                 if (next.kind === 'conflict' && next.code === 'feature_reverification_required') {
                     recovery.current.waiting = false
                     if (!automatic) {
@@ -303,16 +323,25 @@ export function useKycFeatureActivation(
             identityStatus,
             automatic,
             reverification,
+            settles,
         ]
     )
 
+    // A start on arrival waits for the screen the tap would have come from: nothing answered yet.
+    const startsNow = automatic || (startOnArrival && !allowed && !result && !hasSelectedStatus && !reverification)
     // once per scope: a failure or a missing answer stays on screen until the user acts
     const autoStarted = useRef<string | null>(null)
     useEffect(() => {
-        if (!automatic || !enabled || !userId || autoStarted.current === scope) return
+        if (!startsNow || !enabled || !userId || autoStarted.current === scope) return
         autoStarted.current = scope
         void activate()
-    }, [automatic, enabled, userId, scope, activate])
+    }, [startsNow, enabled, userId, scope, activate])
+
+    useEffect(() => {
+        if (!settleWindow) return
+        const timer = setTimeout(() => setSettleWindow(false), KYC_ACTIVATION_SETTLE_MS)
+        return () => clearTimeout(timer)
+    }, [settleWindow])
 
     useEffect(() => {
         if (enabled && identityStatus === 'verified' && recovery.current.waiting) {
@@ -345,14 +374,15 @@ export function useKycFeatureActivation(
                 refreshing.current = false
             }
         }
-        const timer = setInterval(poll, KYC_ACTIVATION_POLL_MS)
+        const timer = setInterval(poll, settleWindow ? KYC_ACTIVATION_SETTLE_POLL_MS : KYC_ACTIVATION_POLL_MS)
         window.addEventListener('focus', poll)
         return () => {
             clearInterval(timer)
             window.removeEventListener('focus', poll)
         }
-    }, [waiting, openedAhead, alreadyOn, arsProvisioning, enabled, activate, selectedCurrency, scope])
+    }, [waiting, openedAhead, alreadyOn, arsProvisioning, enabled, activate, selectedCurrency, scope, settleWindow])
 
+    const isLoading = loadingScope === scope
     return {
         allowed,
         userReady: !!userId,
@@ -360,7 +390,9 @@ export function useKycFeatureActivation(
         reverification,
         selectedStatus,
         arsProvisioning,
-        isLoading: loadingScope === scope,
+        isLoading,
+        /** The account was just asked for and usually opens in seconds: the user waits on screen. */
+        settling: settles && (settleWindow || (isLoading && !result)),
         activate,
     }
 }
