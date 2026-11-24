@@ -155,7 +155,9 @@ function runFloors(bridgeActive, androidBridgeActive = false) {
     const script = `
         node() {
             case "$*" in
-                *native-floor*) printf '1.6.0\\n';;
+                # the newest tag is never the delivery floor (TASK-25355)
+                *native-floor*) return 1;;
+                *--shared*) printf '1.6.0\\n';;
                 *'--platform android'*) printf '1.6.0\\n';;
                 *'--platform ios'*) printf '1.5.0\\n';;
                 *) return 1;;

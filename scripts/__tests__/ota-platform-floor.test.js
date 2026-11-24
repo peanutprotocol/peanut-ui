@@ -390,3 +390,75 @@ describe('major boundary', () => {
         expect(lowest(acrossMajors().dir)).toBe('2.1.0')
     })
 })
+
+/*
+ * The release-ota "Resolve per-platform OTA floors" step, run as written.
+ * release-native tags a store version after every OTA, even when nothing native
+ * changed and the tag never reaches a store (v1.40.0, TASK-25355). The floor
+ * must stay at the last native change, or the OTA reaches no installed app.
+ */
+describe('release-ota floor step', () => {
+    const workflow = fs.readFileSync(path.join(REPO_ROOT, '.github', 'workflows', 'release-ota.yml'), 'utf8')
+    const step = workflow.slice(workflow.indexOf('- name: Resolve per-platform OTA floors'))
+    const shell = step
+        .match(/run: \|\n([\s\S]*?)\n\s+- name:/)[1]
+        .split('\n')
+        .map((line) => line.replace(/^ {18}/, ''))
+        .join('\n')
+        // the tests copy the scripts into the app repo instead of a second checkout
+        .replaceAll('../release-tooling/scripts/', 'scripts/')
+
+    function runStep(dir) {
+        const output = path.join(dir, 'github-output')
+        const res = require('child_process').spawnSync('bash', ['-euo', 'pipefail', '-c', shell], {
+            cwd: dir,
+            env: {
+                ...process.env,
+                BRIDGE_ACTIVE: 'inactive',
+                ANDROID_BRIDGE_ACTIVE: 'inactive',
+                MIGRATION_CUTOVER: 'false',
+                GITHUB_OUTPUT: output,
+            },
+            encoding: 'utf8',
+        })
+        const outputs = fs.existsSync(output) ? fs.readFileSync(output, 'utf8') : ''
+        return { status: res.status, stderr: res.stderr, outputs }
+    }
+
+    // ios alone would reach back to 1.38.0; the shared floor takes the stricter one
+    it('keeps one shared floor at the last native change when a newer tag changed nothing native', () => {
+        const repo = makeRepo()
+        release(repo, 'v1.38.0')
+        write(repo.dir, 'android/app/src/main/AndroidManifest.xml', 'android v2\n')
+        release(repo, 'v1.39.0')
+        write(repo.dir, 'src/page.ts', 'export const page = 1\n')
+        release(repo, 'v1.40.0')
+
+        expect(runStep(repo.dir)).toMatchObject({ status: 0, outputs: 'android=1.39.0\nios=1.39.0\n' })
+    })
+
+    it('raises the floor to the release that changed the native surface', () => {
+        const repo = makeRepo()
+        release(repo, 'v1.39.0')
+        write(repo.dir, 'capacitor.config.ts', 'shared v2\n')
+        release(repo, 'v1.40.0')
+
+        expect(runStep(repo.dir)).toMatchObject({ status: 0, outputs: 'android=1.40.0\nios=1.40.0\n' })
+    })
+
+    // the earlier preflight step hands this case to the store build; this step
+    // refuses as well rather than publish a floor no binary satisfies.
+    it('refuses a native change made after the newest tag', () => {
+        const repo = makeRepo()
+        release(repo, 'v1.39.0')
+        release(repo, 'v1.40.0')
+        write(repo.dir, 'capacitor.config.ts', 'shared v2\n')
+        repo.git('add', '-A')
+        repo.git('commit', '-q', '-m', 'native change after v1.40.0')
+
+        const result = runStep(repo.dir)
+        expect(result.status).not.toBe(0)
+        expect(result.stderr).toContain("no shipped android binary carries this tree's native contract")
+        expect(result.outputs).toBe('')
+    })
+})

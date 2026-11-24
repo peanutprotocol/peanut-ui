@@ -317,10 +317,12 @@ jobs:
             - name: Resolve per-platform OTA floors
               id: ota_floors
               run: |
-                  # Before each bridge, installed old clients use a numeric
-                  # gate; do not claim delivery to them from a newer lane.
+                  # with no bridge, one shared floor at the last native change,
+                  # not the newest tag: release-native tags a store version
+                  # after every OTA, even one that never reaches the stores
+                  # (TASK-25355).
                   if [ "$BRIDGE_ACTIVE" != active ] && [ "$ANDROID_BRIDGE_ACTIVE" != active ]; then
-                    ANDROID="$(node ../release-tooling/scripts/release-version.mjs native-floor --root "$PWD")"
+                    ANDROID="$(node ../release-tooling/scripts/ota-platform-floor.mjs --shared --root "$PWD")"
                     IOS="$ANDROID"
                   else
                     ANDROID="$(node ../release-tooling/scripts/ota-platform-floor.mjs --platform android --root "$PWD")"
