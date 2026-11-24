@@ -140,7 +140,7 @@ jest.mock('../Payment/Views/Error.validation.view', () => ({
 }))
 jest.mock('../Global/UnsupportedBrowserModal', () => ({
     __esModule: true,
-    default: () => <div role="dialog">Open in your browser</div>,
+    default: ({ visible }: { visible?: boolean }) => (visible ? <div role="dialog">Open in your browser</div> : null),
 }))
 let mockIsWebview = false
 jest.mock('@/components/Setup/Setup.utils', () => ({

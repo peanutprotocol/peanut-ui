@@ -22,7 +22,7 @@
         "app/(mobile-ui)/withdraw/manteca/page.tsx": 574,
         "app/(mobile-ui)/withdraw/pix/page.tsx": 159,
         "app/[...recipient]/page.tsx": 177,
-        "app/invite/page.tsx": 91,
+        "app/invite/page.tsx": 98,
         "app/receipt/[entryId]/OwnerReceiptView.tsx": 847,
         "app/receipt/[entryId]/page.tsx": 711,
         "app/recover-wallet/page.tsx": 63,

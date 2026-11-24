@@ -45,6 +45,7 @@ function InvitePageContent() {
         () => window.location.origin,
         () => null
     )
+    const isInAppBrowser = useHydrationSnapshot(isLikelyWebview, () => true)
     const t = useTranslations('invites')
     const tSetup = useTranslations('setup')
     const tMigration = useTranslations('migration')
@@ -374,7 +375,8 @@ function InvitePageContent() {
                                 <Button
                                     disabled={isLoggingIn}
                                     loading={isLoggingIn}
-                                    variant="ghost"
+                                    variant="secondary"
+                                    shadowSize="4"
                                     onClick={handleLoginWithBadgeCampaign}
                                 >
                                     {loginLabel}
@@ -385,7 +387,10 @@ function InvitePageContent() {
             </div>
             {storeHandoffModal}
             <LoginRecoveryDrawer {...recoveryDrawer} />
-            {showsBrowserNotice && <UnsupportedBrowserModal visible onDismiss={() => setShowsBrowserNotice(false)} />}
+            {/* Outside in-app browsers the modal still raises its own no-passkey notice, as before. */}
+            {(showsBrowserNotice || !isInAppBrowser) && (
+                <UnsupportedBrowserModal visible={showsBrowserNotice} onDismiss={() => setShowsBrowserNotice(false)} />
+            )}
         </InvitesPageLayout>
     )
 }
