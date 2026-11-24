@@ -20,7 +20,6 @@ jest.mock('@/features/deposit-accounts/useDepositAccountsEnabled', () => ({
 
 type PillProps = {
     isVerified?: boolean
-    hasFundedBefore?: boolean
     balance?: bigint
     isHidden?: boolean
     isStale?: boolean
@@ -122,13 +121,13 @@ describe('BalanceSection low-balance Add button', () => {
         })
     })
 
-    it('reads "Top up" once money came in before', () => {
-        renderSection(undefined, 'picker', { ...verified, hasFundedBefore: true, balance: 3_000_000n })
-        expect(screen.getByTestId('home-submenu-add')).toHaveTextContent('addMoneyPill.topUp')
+    it('reads "Add money" for a user who funded before and has $3 left', () => {
+        renderSection(undefined, 'picker', { ...verified, balance: 3_000_000n })
+        expect(screen.getByTestId('home-submenu-add')).toHaveTextContent('addMoneyPill.addMoney')
         expect(actionOrder()).toEqual(['send', 'add', 'request'])
         expect(mockedCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.HOME_ADD_CTA_SHOWN, {
             balance_bucket: '1-10',
-            label: 'top_up',
+            label: 'add_money',
         })
     })
 

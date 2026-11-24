@@ -21,10 +21,9 @@ import sparkle from '@/assets/illustrations/sparkle.svg'
 
 interface BalanceSectionProps {
     addMoneyEntry?: 'picker' | 'drawer'
-    /** identity verified: with a balance under $10, Add moves to the centre as the pink button */
+    /** identity verified: with a balance under $10, Add moves to the centre as the pink button.
+     *  it reads "Add money" for returning users too: one label, no "Top up" (TASK-25341) */
     isVerified?: boolean
-    /** money came in before: the pink button reads "Top up" */
-    hasFundedBefore?: boolean
     balance: bigint | undefined
     isFetching: boolean
     /** balance is the persisted last-known-good while the live sum is still
@@ -57,7 +56,6 @@ const ADD_CENTRED_ACTIONS = [SUBMENU_ACTIONS[1], SUBMENU_ACTIONS[0], SUBMENU_ACT
 export function BalanceSection({
     addMoneyEntry = 'picker',
     isVerified = false,
-    hasFundedBefore = false,
     balance,
     isFetching,
     isStale,
@@ -79,7 +77,7 @@ export function BalanceSection({
         if (!showPill || balance === undefined) return
         posthog.capture(ANALYTICS_EVENTS.HOME_ADD_CTA_SHOWN, {
             balance_bucket: balanceBucket(balance),
-            label: hasFundedBefore ? 'top_up' : 'add_money',
+            label: 'add_money',
         })
         // once each time the pink button appears, not on every balance tick
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -172,9 +170,7 @@ export function BalanceSection({
                                     isPinkAdd && 'w-max max-w-20 text-center min-[375px]:max-w-24'
                                 )}
                             >
-                                {isPinkAdd
-                                    ? t(hasFundedBefore ? 'addMoneyPill.topUp' : 'addMoneyPill.addMoney')
-                                    : tNav(action.key)}
+                                {isPinkAdd ? t('addMoneyPill.addMoney') : tNav(action.key)}
                             </span>
                         </>
                     )
