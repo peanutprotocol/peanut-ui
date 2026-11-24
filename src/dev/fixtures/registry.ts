@@ -98,8 +98,9 @@ const KYC_FEATURE_ACTIVATION_FIXTURES: Record<string, Fixture> = Object.fromEntr
                 `feature-activation-${feature}-${state.replaceAll('_', '-')}`,
                 {
                     route,
+                    // ARS Add money starts the peso account on arrival (TASK-25059): only bank waits for the tap
                     capture:
-                        ['bank', 'local'].includes(feature) && !['ready', 'on'].includes(state)
+                        feature === 'bank' && !['ready', 'on'].includes(state)
                             ? { actions: [{ clickSelector: '[data-testid="kyc-activation-continue"]' }] }
                             : undefined,
                     about: `First use ${feature}: ${state}; approved workflow identity, synthetic provider responses only.`,
