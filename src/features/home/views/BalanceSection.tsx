@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import Loading from '@/components/Global/Loading'
 import { printableUsdc } from '@/utils/balance.utils'
@@ -15,14 +15,13 @@ import { homeDrawerOptions } from '../home-drawer-options'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import posthog from 'posthog-js'
-import { balanceBucket, showsAddMoneyPill } from '../addMoneyPill.utils'
+import { balanceBucket } from '../addMoneyPill.utils'
 import Image from 'next/image'
 import sparkle from '@/assets/illustrations/sparkle.svg'
 
 interface BalanceSectionProps {
     addMoneyEntry?: 'picker' | 'drawer'
-    /** identity verified: with a balance under $10, Add moves to the centre as the pink button.
-     *  it reads "Add money" for returning users too: one label, no "Top up" (TASK-25341) */
+    /** analytics only: the pink Add shows for everyone, verified or not */
     isVerified?: boolean
     balance: bigint | undefined
     isFetching: boolean
@@ -36,17 +35,13 @@ interface BalanceSectionProps {
 // home IA (figma section 17609:2334): add, send and request each open a bottom
 // drawer. request offers two ways to be paid — share a request link, or share
 // standing bank details. while only the link is offered it skips the drawer.
-// the grid keeps Send centred and Request at the end whatever width Add takes
+// Add sits in the centre as the pink button for everyone, no conditions (Kush, 24 Nov).
+// the grid keeps Send at the start and Request at the end whatever width Add takes
 const SUBMENU_ACTIONS: Array<{ key: HomeDrawer; icon: IconName; slot: string }> = [
-    { key: 'add', icon: 'plus', slot: 'justify-self-start' },
-    { key: 'send', icon: 'arrow-up-right', slot: 'justify-self-center' },
+    { key: 'send', icon: 'arrow-up-right', slot: 'justify-self-start' },
+    { key: 'add', icon: 'plus', slot: 'justify-self-center' },
     { key: 'request', icon: 'arrow-down-left', slot: 'justify-self-end' },
 ]
-// low balance: Add takes the centre, between Send and Request
-const ADD_CENTRED_ACTIONS = [SUBMENU_ACTIONS[1], SUBMENU_ACTIONS[0], SUBMENU_ACTIONS[2]].map((action, i) => ({
-    ...action,
-    slot: SUBMENU_ACTIONS[i].slot,
-}))
 
 /**
  * balance block (figma home board 17830:75689): centered usd balance with
@@ -68,20 +63,19 @@ export function BalanceSection({
     const [openDrawer, setOpenDrawer] = useHomeDrawer()
     const depositAccounts = useDepositAccountsEnabled()
 
-    // a hidden balance keeps the plain Add, so the pink button does not reveal it is under $10
-    const showPill = !isHidden && showsAddMoneyPill({ isVerified, balance, isFetching, isStale })
-    const trackTap = (action: HomeDrawer) =>
-        posthog.capture(ANALYTICS_EVENTS.HOME_SUBMENU_TAPPED, { action, add_cta_active: showPill })
+    const trackTap = (action: HomeDrawer) => posthog.capture(ANALYTICS_EVENTS.HOME_SUBMENU_TAPPED, { action })
 
+    // once per mount, when a live balance first loads, so the bucket is real
+    const addShownTracked = useRef(false)
     useEffect(() => {
-        if (!showPill || balance === undefined) return
+        if (addShownTracked.current || isFetching || isStale || balance === undefined) return
+        addShownTracked.current = true
         posthog.capture(ANALYTICS_EVENTS.HOME_ADD_CTA_SHOWN, {
             balance_bucket: balanceBucket(balance),
             label: 'add_money',
+            is_verified: isVerified,
         })
-        // once each time the pink button appears, not on every balance tick
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [showPill])
+    }, [balance, isFetching, isStale, isVerified])
 
     const openActionDrawer = (drawer: HomeDrawer) => {
         trackTap(drawer)
@@ -120,7 +114,7 @@ export function BalanceSection({
                 )}
             </div>
             <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start px-10">
-                {(showPill ? ADD_CENTRED_ACTIONS : SUBMENU_ACTIONS).map((action) => {
+                {SUBMENU_ACTIONS.map((action) => {
                     // a drawer with one row is a pointless extra tap: link to
                     // that row's destination instead (request, while standing
                     // bank details are not offered)
@@ -132,7 +126,7 @@ export function BalanceSection({
                               ? options[0].href
                               : undefined
                     // pink fill, DS 4px shadow, press drops into it
-                    const isPinkAdd = action.key === 'add' && showPill
+                    const isPinkAdd = action.key === 'add'
                     const inner = (
                         <>
                             <span

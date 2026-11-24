@@ -23,19 +23,21 @@ type PillProps = {
     balance?: bigint
     isHidden?: boolean
     isStale?: boolean
+    isFetching?: boolean
 }
 
 const renderSection = (
     onUrlUpdate?: (e: UrlUpdateEvent) => void,
     addMoneyEntry: 'picker' | 'drawer' = 'picker',
-    { balance = 0n, isHidden = false, ...pill }: PillProps = {}
-) =>
-    render(
+    props: PillProps = {}
+) => {
+    const { balance, isHidden = false, isFetching = false, ...pill } = { balance: 0n, ...props }
+    return render(
         <BalanceSection
             addMoneyEntry={addMoneyEntry}
             {...pill}
             balance={balance}
-            isFetching={false}
+            isFetching={isFetching}
             isHidden={isHidden}
             onToggleVisibility={() => {}}
         />,
@@ -43,6 +45,7 @@ const renderSection = (
             wrapper: withNuqsTestingAdapter({ searchParams: '', onUrlUpdate }),
         }
     )
+}
 
 const actionOrder = () =>
     screen.getAllByTestId(/^home-submenu-/).map((el) => el.dataset.testid?.replace('home-submenu-', ''))
@@ -87,65 +90,79 @@ describe('BalanceSection submenu', () => {
     })
 })
 
-describe('BalanceSection low-balance Add button', () => {
+describe('BalanceSection pink Add button', () => {
     beforeEach(() => mockedCapture.mockClear())
-    const verified = { isVerified: true }
 
-    it('keeps the plain Add first and tracks taps without the pink button', () => {
-        renderSection()
-        expect(screen.getByTestId('home-submenu-add')).toHaveTextContent('add')
-        expect(actionOrder()).toEqual(['add', 'send', 'request'])
-        fireEvent.click(screen.getByTestId('home-submenu-send'))
-        expect(mockedCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.HOME_SUBMENU_TAPPED, {
-            action: 'send',
-            add_cta_active: false,
-        })
-        expect(mockedCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.HOME_ADD_CTA_SHOWN, expect.anything())
+    // decision 24 Nov (Kush): no gate on verification, balance, visibility or loading
+    it.each<[string, PillProps]>([
+        ['a verified user under $10', { isVerified: true }],
+        ['an unverified user', { isVerified: false }],
+        ['a balance of $10 or more', { isVerified: true, balance: 16_000_000n }],
+        ['a hidden balance', { isVerified: true, isHidden: true }],
+        ['a stale balance', { isVerified: true, isStale: true }],
+        ['a balance still loading', { isVerified: true, balance: undefined, isFetching: true }],
+    ])('puts the pink Add money in the centre for %s', (_, props) => {
+        renderSection(undefined, 'picker', props)
+        const add = screen.getByTestId('home-submenu-add')
+        expect(add).toHaveTextContent('addMoneyPill.addMoney')
+        expect(add).toHaveAttribute('href', '/add-money')
+        expect(actionOrder()).toEqual(['send', 'add', 'request'])
     })
 
-    it('moves Add to the centre with its label, same picker link, and tracks it', () => {
-        renderSection(undefined, 'picker', verified)
-        const add = screen.getByTestId('home-submenu-add')
-        expect(add).toHaveAttribute('href', '/add-money')
-        expect(add).toHaveTextContent('addMoneyPill.addMoney')
-        expect(actionOrder()).toEqual(['send', 'add', 'request'])
+    it('tracks taps without the old add_cta_active flag', () => {
+        renderSection()
+        fireEvent.click(screen.getByTestId('home-submenu-send'))
+        expect(mockedCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.HOME_SUBMENU_TAPPED, { action: 'send' })
+        fireEvent.click(screen.getByTestId('home-submenu-add'))
+        expect(mockedCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.HOME_SUBMENU_TAPPED, { action: 'add' })
+    })
+
+    it.each<[string, PillProps, string]>([
+        ['an empty balance', { isVerified: true, balance: 0n }, '0'],
+        ['$3', { isVerified: true, balance: 3_000_000n }, '1-10'],
+        ['$16, unverified', { isVerified: false, balance: 16_000_000n }, '10-100'],
+        ['$250, hidden', { isVerified: true, balance: 250_000_000n, isHidden: true }, '100-1000'],
+        ['$1500', { isVerified: true, balance: 1_500_000_000n }, '1000+'],
+    ])('tracks the Add as shown once for %s', (_, props, bucket) => {
+        renderSection(undefined, 'picker', props)
         expect(mockedCapture).toHaveBeenCalledTimes(1)
         expect(mockedCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.HOME_ADD_CTA_SHOWN, {
-            balance_bucket: '0',
+            balance_bucket: bucket,
             label: 'add_money',
-        })
-        fireEvent.click(add)
-        expect(mockedCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.HOME_SUBMENU_TAPPED, {
-            action: 'add',
-            add_cta_active: true,
+            is_verified: !!props.isVerified,
         })
     })
 
-    it('reads "Add money" for a user who funded before and has $3 left', () => {
-        renderSection(undefined, 'picker', { ...verified, balance: 3_000_000n })
-        expect(screen.getByTestId('home-submenu-add')).toHaveTextContent('addMoneyPill.addMoney')
-        expect(actionOrder()).toEqual(['send', 'add', 'request'])
+    it('waits for a live balance before tracking the Add as shown, then tracks it once', () => {
+        const { rerender } = renderSection(undefined, 'picker', { balance: undefined, isFetching: true })
+        expect(mockedCapture).not.toHaveBeenCalled()
+        rerender(
+            <BalanceSection
+                balance={5_000_000n}
+                isFetching={false}
+                isStale
+                isHidden={false}
+                onToggleVisibility={() => {}}
+            />
+        )
+        expect(mockedCapture).not.toHaveBeenCalled()
+        rerender(
+            <BalanceSection balance={5_000_000n} isFetching={false} isHidden={false} onToggleVisibility={() => {}} />
+        )
+        rerender(
+            <BalanceSection balance={20_000_000n} isFetching={false} isHidden={false} onToggleVisibility={() => {}} />
+        )
+        expect(mockedCapture).toHaveBeenCalledTimes(1)
         expect(mockedCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.HOME_ADD_CTA_SHOWN, {
             balance_bucket: '1-10',
             label: 'add_money',
+            is_verified: false,
         })
-    })
-
-    it.each<[string, PillProps]>([
-        ['the balance is $10 or more', { ...verified, balance: 10_000_000n }],
-        ['the balance is hidden', { ...verified, isHidden: true }],
-        ['the balance is stale', { ...verified, isStale: true }],
-        ['the user is not verified', { isVerified: false }],
-    ])('keeps the plain Add first while %s', (_, props) => {
-        renderSection(undefined, 'picker', props)
-        expect(screen.getByTestId('home-submenu-add')).toHaveTextContent(/^add$/)
-        expect(actionOrder()).toEqual(['add', 'send', 'request'])
-        expect(mockedCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.HOME_ADD_CTA_SHOWN, expect.anything())
     })
 
     it('opens the Add drawer from the pink button for a returning user', async () => {
         const urlUpdates: UrlUpdateEvent[] = []
-        renderSection((event) => urlUpdates.push(event), 'drawer', verified)
+        renderSection((event) => urlUpdates.push(event), 'drawer')
         const add = screen.getByTestId('home-submenu-add')
         expect(add.tagName).toBe('BUTTON')
         fireEvent.click(add)
