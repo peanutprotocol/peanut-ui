@@ -1,6 +1,6 @@
 import { getPathMatch } from 'next/dist/shared/lib/router/utils/path-match'
 import redirectRules from '../../../../redirects.json'
-import { GO_REDIRECTS, goRedirectDestination, resolveGoRedirect } from '@/features/tracked-links/go-map'
+import { GO_REDIRECTS, goRedirectDestination, resolveGoRedirect } from '@/features/go-links/go-map'
 
 // The key rule of go-map.ts's header: lowercase segments of letters, digits, `-` and `_`.
 const KEY = /^[a-z0-9_-]+(\/[a-z0-9_-]+)*$/

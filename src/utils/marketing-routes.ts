@@ -42,6 +42,8 @@ export function isMarketingRoute(pathname: string | null | undefined): boolean {
     if (process.env.NEXT_PUBLIC_CAPACITOR_BUILD === 'true') return false
     if (!pathname) return false
     if (ROOT_MARKETING_PATHS.has(pathname.replace(/\/$/, ''))) return true
+    // Creator landing pages (and their previews) are web-only and never touch the wallet.
+    if (pathname.startsWith('/c/')) return true
 
     const segments = pathname.split('/').filter(Boolean)
     if (segments.length === 0) return true // '/' — the landing page

@@ -62,7 +62,7 @@ jobs:
         steps:
             # The app tree in every job must be the exact main commit selected here.
             # In a workflow_run, GITHUB_SHA is the main tip when the OTA finished,
-            # which a later content publish can move; the OTA's own commit is the
+            # which a later web-only push can move; the OTA's own commit is the
             # one to build.
             - name: Guard release ref
               id: guard
@@ -120,9 +120,10 @@ jobs:
               with:
                   node-version: '22'
 
-            # Stop when main moved by more than the src/content pointer: a later
-            # main-push OTA starts the next release. A content publish starts no
-            # release, so stopping on one would drop this release for good.
+            # Stop when main moved by more than web-only paths
+            # (scripts/release-web-only-paths.json): a later main-push OTA starts
+            # the next release. A web-only push starts no release, so stopping on
+            # one would drop this release for good.
             - name: Guard current main
               env:
                   SOURCE_SHA: ${{ steps.guard.outputs.sha }}
