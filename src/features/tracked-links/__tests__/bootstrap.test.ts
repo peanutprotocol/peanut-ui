@@ -2,8 +2,15 @@
 import posthog from 'posthog-js'
 import { Preferences } from '@capacitor/preferences'
 import { EInviteType } from '@/services/services.types'
-import { applyDeferredPayload, parseDeferredPayload } from '@/utils/deferred-link'
-import { bindInviteToUser, readInviteCode, readInviteIntent, readInviteUserId, stashInvite } from '@/utils/invite-stash'
+import { applyDeferredPayload, buildDeferredPayload, parseDeferredPayload } from '@/utils/deferred-link'
+import {
+    bindInviteToUser,
+    readInviteCode,
+    readInviteIntent,
+    readInviteUserId,
+    stashAcquisitionInvite,
+    stashInvite,
+} from '@/utils/invite-stash'
 import { deepLinkToNativePath } from '@/utils/native-routes'
 import {
     captureSignupAttribution,
@@ -11,8 +18,7 @@ import {
     readSignupAttribution,
     readSignupAttributionAsync,
 } from '@/utils/signup-attribution'
-import { parseDeferredPayload as parseLegacyPayload } from '@/utils/__tests__/fixtures/legacy-native-attribution'
-import { bootstrapTrackedLinkEntry, EMPTY_TRACKED_LINK_BOOTSTRAP } from '../bootstrap'
+import { bootstrapTrackedLinkEntry } from '../bootstrap'
 
 const WEB_ID = '44444444-4444-4444-8444-444444444444'
 const mockNative = new Map<string, string>()
@@ -86,38 +92,37 @@ afterEach(() => {
     else process.env.NEXT_PUBLIC_POSTHOG_KEY = savedKey
 })
 
-it('stashes the creator passively and builds both store handoffs around the new journey', async () => {
-    const result = await bootstrapTrackedLinkEntry(visit(`/app?tl=${slug}&acq_invite=${slug}`), false)
+/** The "Open Peanut" URL a released web page built for this browser, before that button was removed. */
+async function releasedBrowserContinuation() {
+    visit(`/app?tl=${slug}&acq_invite=${slug}`)
+    stashAcquisitionInvite(slug)
+    await captureTrackedLinkJourney()
+    const openApp = new URL('https://peanut.me/home?app_entry=1')
+    new URLSearchParams(buildDeferredPayload('/home', undefined, 'ios', { trackedLink: slug })).forEach(
+        (value, key) => {
+            if (key !== 'dest') openApp.searchParams.append(key, value)
+        }
+    )
+    openApp.searchParams.set('tl_seen', '1')
+    return openApp.href
+}
+
+it('stashes the creator passively and joins the journey when the app opens a tracked link', async () => {
+    await bootstrapTrackedLinkEntry(openInApp(`https://peanut.me/home?tl=${slug}&acq_invite=${slug}`))
     expect(readInviteCode()).toBe(slug)
     expect(readInviteIntent()).toBe('acquisition')
-    const journeyId = readSignupAttribution()?.journeyId
-    expect(journeyId).toBeDefined()
-    for (const raw of [result.payload!, result.iosPayload!]) {
-        expect(parseDeferredPayload(raw)).toMatchObject({ acquisitionInvite: slug, trackedLink: slug, dest: '/home' })
-        expect(parseDeferredPayload(raw)?.invite).toBeUndefined()
-        expect(parseLegacyPayload(raw)?.invite).toBeUndefined()
-        expect(parseDeferredPayload(raw)?.attribution?.journeyId).toBe(journeyId)
-    }
-    const openApp = new URL(result.openAppHref!)
-    expect(openApp.origin + openApp.pathname).toBe('https://peanut.me/home')
-    expect(openApp.searchParams.get('app_entry')).toBe('1')
-    expect(openApp.searchParams.get('tl_seen')).toBe('1')
-    expect(openApp.searchParams.has('dest')).toBe(false)
+    expect(readSignupAttribution()?.journeyId).toBeDefined()
     expect(fetchMock).not.toHaveBeenCalled()
 })
 
-it('carries an explicit invite through a tracked handoff to the installed app', async () => {
+it('carries an explicit invite through a released browser continuation to the installed app', async () => {
     // The visitor accepted a friend's /invite link, then arrived through a tracked handoff.
     stashInvite('friend', EInviteType.DIRECT)
-    const result = await bootstrapTrackedLinkEntry(visit(`/app?tl=${slug}&acq_invite=${slug}`), false)
-    expect(readInviteCode()).toBe('friend')
-    const payload = parseDeferredPayload(result.payload!)!
-    expect(payload.invite).toBe('friend')
-    expect(payload.acquisitionInvite).toBeUndefined()
-    expect(new URL(result.openAppHref!).searchParams.get('invite')).toBe('friend')
-
+    const continuation = await releasedBrowserContinuation()
+    expect(new URL(continuation).searchParams.get('invite')).toBe('friend')
     clearDevice()
-    applyDeferredPayload(payload)
+
+    await bootstrapTrackedLinkEntry(openInApp(continuation))
     expect(readInviteCode()).toBe('friend')
     expect(readInviteIntent()).toBe('explicit')
 })
@@ -131,22 +136,19 @@ it.each(['dnt', 'gpc', 'declined', 'prerender'] as const)(
         if (condition === 'declined') localStorage.setItem('__ph_opt_in_out_phc_tracked_test', '0')
         if (condition === 'prerender')
             Object.defineProperty(document, 'prerendering', { configurable: true, value: true })
-        const result = await bootstrapTrackedLinkEntry(visit(`/app?tl=${slug}&acq_invite=${slug}`), false)
+        await bootstrapTrackedLinkEntry(visit(`/app?tl=${slug}&acq_invite=${slug}`))
         expect(readInviteIntent()).toBe('acquisition')
-        expect(parseDeferredPayload(result.payload!)?.acquisitionInvite).toBe(slug)
-        expect(parseDeferredPayload(result.payload!)?.attribution).toBeUndefined()
-        expect(parseDeferredPayload(result.payload!)?.webDistinctId).toBeUndefined()
         expect(readSignupAttribution()).toBeNull()
     }
 )
 
 it('continues the browser journey in the app and joins the web visitor id', async () => {
-    const browser = await bootstrapTrackedLinkEntry(visit(`/app?tl=${slug}&acq_invite=${slug}`), false)
+    const continuation = await releasedBrowserContinuation()
     const journeyId = readSignupAttribution()!.journeyId
-    expect(new URL(browser.openAppHref!).searchParams.get('wid')).toBe(WEB_ID)
+    expect(new URL(continuation).searchParams.get('wid')).toBe(WEB_ID)
     clearDevice()
 
-    expect(await bootstrapTrackedLinkEntry(openInApp(browser.openAppHref!), true)).toEqual(EMPTY_TRACKED_LINK_BOOTSTRAP)
+    await bootstrapTrackedLinkEntry(openInApp(continuation))
     expect(readInviteCode()).toBe(slug)
     expect(readInviteIntent()).toBe('acquisition')
     expect(readSignupAttribution()?.journeyId).toBe(journeyId)
@@ -154,29 +156,28 @@ it('continues the browser journey in the app and joins the web visitor id', asyn
 })
 
 it("keeps the app's own pending retry when a passive browser handoff arrives", async () => {
-    const browser = await bootstrapTrackedLinkEntry(visit(`/app?tl=${slug}&acq_invite=${slug}`), false)
+    const continuation = await releasedBrowserContinuation()
     clearDevice()
     stashInvite('carol', EInviteType.DIRECT)
     bindInviteToUser('account-a')
-    await bootstrapTrackedLinkEntry(openInApp(browser.openAppHref!), true)
+    await bootstrapTrackedLinkEntry(openInApp(continuation))
     expect(readInviteCode()).toBe('carol')
     expect(readInviteIntent()).toBe('explicit')
     expect(readInviteUserId()).toBe('account-a')
 })
 
-it('upgrades a distributed legacy /app?code= link', async () => {
-    const result = await bootstrapTrackedLinkEntry(visit('/app?code=Alice'), false)
+it('stashes the creator of a legacy /app?code= link', async () => {
+    await bootstrapTrackedLinkEntry(visit('/app?code=Alice'))
     expect(readInviteCode()).toBe('alice')
     expect(readInviteIntent()).toBe('acquisition')
-    expect(parseDeferredPayload(result.payload!)).toMatchObject({ acquisitionInvite: 'alice', trackedLink: 'alice' })
 })
 
 it('never assigns an inviter other than the tracked creator', async () => {
-    await bootstrapTrackedLinkEntry(visit('/app?tl=alice&acq_invite=bob'), false)
+    await bootstrapTrackedLinkEntry(visit('/app?tl=alice&acq_invite=bob'))
     expect(readInviteCode()).toBe('')
     // A direct associated URL, mapped the way the app maps it.
     const path = deepLinkToNativePath('https://peanut.me/home?app_entry=1&tl=alice&acq_invite=bob')!
-    await bootstrapTrackedLinkEntry(new URL(path, 'https://peanut.me').searchParams, true)
+    await bootstrapTrackedLinkEntry(new URL(path, 'https://peanut.me').searchParams)
     expect(readInviteCode()).toBe('')
     // A deferred store payload.
     applyDeferredPayload(parseDeferredPayload('pnutdl=1&tl=alice&acq_invite=bob')!)
@@ -188,7 +189,7 @@ it('never assigns an inviter other than the tracked creator', async () => {
 it.each(['/app?tl=al-ice&acq_invite=alice', '/app?code=al%2Fice', '/app?tl=alice&acq_invite=Mallory%20'])(
     'stashes nothing that is not a username: %s',
     async (path) => {
-        await bootstrapTrackedLinkEntry(visit(path), false)
+        await bootstrapTrackedLinkEntry(visit(path))
         expect(readInviteCode()).toBe('')
     }
 )
@@ -206,14 +207,14 @@ it.each(['/app?tl=alice', '/app/?tl=alice', '/app?code=alice', '/app/?code=Alice
 it('keeps the last touch for a legacy /app?code= link', async () => {
     visit('/?utm_source=google&utm_medium=cpc&utm_campaign=earlier')
     const earlier = captureSignupAttribution()!
-    await bootstrapTrackedLinkEntry(visit('/app?code=alice&utm_campaign=forged'), false)
+    await bootstrapTrackedLinkEntry(visit('/app?code=alice&utm_campaign=forged'))
     expect(readSignupAttribution()?.lastTouch).toEqual(earlier.lastTouch)
 })
 
 it('keeps an earlier genuine first touch in the same journey', async () => {
     visit('/?utm_source=google&utm_medium=cpc&utm_campaign=earlier')
     const first = captureSignupAttribution()!
-    await bootstrapTrackedLinkEntry(visit(`/app?tl=${slug}&acq_invite=${slug}`), false)
+    await bootstrapTrackedLinkEntry(visit(`/app?tl=${slug}&acq_invite=${slug}`))
     expect(readSignupAttribution()?.journeyId).toBe(first.journeyId)
     expect(readSignupAttribution()?.firstTouch).toEqual(first.firstTouch)
 })

@@ -26,7 +26,7 @@ import { storeForDevice, storeIcon, trackStoreClick } from '@/utils/migration.ut
 import { captureSignupAttribution, hasMarketingTouch } from '@/utils/signup-attribution'
 import { parseMarketingQrHandoff } from '@/features/marketing-qr/contract'
 import { marketingQrAnalyticsAllowed } from '@/features/marketing-qr/consent'
-import { bootstrapTrackedLinkEntry, EMPTY_TRACKED_LINK_BOOTSTRAP } from '@/features/tracked-links/bootstrap'
+import { bootstrapTrackedLinkEntry } from '@/features/tracked-links/bootstrap'
 import { isTrackedLinkEntry } from '@/features/tracked-links/eligibility'
 
 // '/' sends no destination, so a new install opens to its normal first screen.
@@ -44,32 +44,20 @@ export default function SmartStoreRedirect() {
     const [payload, setPayload] = useState<string | null>(null)
     const [iosPayload, setIosPayload] = useState<string | null>(null)
     const [entryReady, setEntryReady] = useState(false)
-    const [openAppHref, setOpenAppHref] = useState<string | null>(null)
     useEffect(() => {
         setMounted(true)
         const search = window.location.search
-        if (isTrackedLinkEntry(window.location)) {
+        // Only the installed app reads a retired creator link here: the proxy sends a browser to the invite page.
+        if (isNativeBridge() && isTrackedLinkEntry(window.location)) {
             let disposed = false
-            const native = isNativeBridge()
-            const doc = document as Document & { prerendering?: boolean }
             // The bootstrap is bounded by its own native-storage timeouts and never waits on the network.
-            const start = () =>
-                void bootstrapTrackedLinkEntry(new URLSearchParams(search), native)
-                    .catch(() => EMPTY_TRACKED_LINK_BOOTSTRAP)
-                    .then((entry) => {
-                        if (disposed) return
-                        if (native) return router.replace('/home')
-                        setPayload(entry.payload)
-                        setIosPayload(entry.iosPayload)
-                        setOpenAppHref(entry.openAppHref ?? null)
-                        setEntryReady(true)
-                    })
-            // A prerendered page has no visitor yet: measure and leave for the store once it is shown.
-            if (doc.prerendering) doc.addEventListener('prerenderingchange', start, { once: true })
-            else start()
+            void bootstrapTrackedLinkEntry(new URLSearchParams(search))
+                .catch(() => {})
+                .then(() => {
+                    if (!disposed) router.replace('/home')
+                })
             return () => {
                 disposed = true
-                doc.removeEventListener('prerenderingchange', start)
             }
         }
         setEntryReady(true)
@@ -184,11 +172,6 @@ export default function SmartStoreRedirect() {
                     )}
                 </div>
                 <div className="mx-auto flex w-full max-w-md flex-col gap-4 md:max-w-xs">
-                    {entryReady && openAppHref && !redirecting && (
-                        <Button variant="secondary" href={openAppHref} plainAnchor className="w-full">
-                            {t('smartLink.openApp')}
-                        </Button>
-                    )}
                     {mounted && entryReady ? (
                         stores.map((s, i) => (
                             <Button
