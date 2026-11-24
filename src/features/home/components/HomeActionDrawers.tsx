@@ -15,6 +15,8 @@ import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDeposi
 import type { useAddMoneyReadiness } from '@/features/add-money/useAddMoneyReadiness'
 import { readReturnTo, RETURN_TO_PARAM, withReturnTo } from '@/utils/return-to.utils'
 import { PIX_ADD_MONEY_PATH } from '@/features/pix/pix.routes'
+import { ARS_ADD_MONEY_PATH } from '@/features/deposit-accounts/rails'
+import { rewriteMethodPath } from '@/utils/native-routes'
 
 /**
  * home IA bottom drawers (figma boards 17831:79186 / 17830:76839): the Add and
@@ -64,12 +66,16 @@ export function HomeActionDrawers({
                           ? tSaved('bankSectionTitle')
                           : method === 'pix'
                             ? tMethods('pix')
-                            : method === 'crypto'
-                              ? tMethods('crypto')
-                              : tMethods('moreWays'),
+                            : method === 'mercadoPago'
+                              ? tMethods('mercadoPago')
+                              : method === 'crypto'
+                                ? tMethods('crypto')
+                                : tMethods('moreWays'),
                   leading:
                       method === 'pix' ? (
                           <IconBubble {...CONCEPT_ICONS.pix} size="s" />
+                      ) : method === 'mercadoPago' ? (
+                          <IconBubble {...CONCEPT_ICONS.mercadoPago} size="s" />
                       ) : method === 'account' ? (
                           <IconBubble {...CONCEPT_ICONS.bankAccount} size="s" />
                       ) : (
@@ -80,11 +86,13 @@ export function HomeActionDrawers({
                           ? '/add-money'
                           : method === 'crypto'
                             ? '/add-money/crypto'
-                            : // Pix has one currency, so it opens the Pix deposit, not a chooser of one row
+                            : // Pix and Mercado Pago have one currency each, so they open the deposit, not a chooser of one row
                               method === 'pix'
                               ? PIX_ADD_MONEY_PATH
-                              : // only the ready ones where some are
-                                `/add-money/options?method=${method}${addMoney.ready[method as keyof typeof addMoney.ready].length ? '&ready=1' : ''}`,
+                              : method === 'mercadoPago'
+                                ? rewriteMethodPath(ARS_ADD_MONEY_PATH)
+                                : // only the ready ones where some are
+                                  `/add-money/options?method=${method}${addMoney.ready[method as keyof typeof addMoney.ready].length ? '&ready=1' : ''}`,
               }))
             : (content ? homeDrawerOptions(content, depositAccounts) : []).map((option) => ({
                   key: option.key,

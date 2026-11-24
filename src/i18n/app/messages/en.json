@@ -2270,6 +2270,7 @@
             "accountDetails": "Get reusable bank details",
             "oneTimeDetails": "Get temporary transfer details",
             "pixDetails": "Scan or copy code",
+            "mercadoPagoDetails": "From your Mercado Pago or bank account",
             "cryptoDetails": "From wallets or exchanges",
             "openAccount": "Open a bank account",
             "oneTimeTransfer": "One-time bank transfer",

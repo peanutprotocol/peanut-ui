@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { withNuqsTestingAdapter, type UrlUpdateEvent } from 'nuqs/adapters/testing'
 import { resolveAddMoneyMethods } from '@/features/add-money/addMoneyMethods'
+import { isCapacitor } from '@/utils/capacitor'
 import { HomeActionDrawers } from '../components/HomeActionDrawers'
 import { resetBottomNavVisibilityForTests, useBottomNavHidden } from '@/utils/bottom-nav-visibility'
 
@@ -18,6 +19,11 @@ jest.mock('next/navigation', () => ({
 
 jest.mock('next-intl', () => ({
     useTranslations: () => (key: string) => key,
+}))
+
+jest.mock('@/utils/capacitor', () => ({
+    ...jest.requireActual('@/utils/capacitor'),
+    isCapacitor: jest.fn(() => false),
 }))
 
 jest.mock('@/hooks/useAppHaptic', () => ({
@@ -57,6 +63,7 @@ beforeEach(() => {
     jest.clearAllMocks()
     resetBottomNavVisibilityForTests()
     depositAccountsEnabled = true
+    jest.mocked(isCapacitor).mockReturnValue(false)
 })
 
 const returning = resolveAddMoneyMethods({
@@ -138,6 +145,56 @@ describe('HomeActionDrawers', () => {
         fireEvent.click(pix)
         // Pix has one currency: no chooser of one BRL row in between (TASK-25033)
         await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/pix'))
+    })
+
+    // The owner, 24 Nov (TASK-25350). Which peso gates offer the row: useAddMoneyReadiness.test.ts
+    describe('the Mercado Pago row', () => {
+        const argentina = resolveAddMoneyMethods({
+            cryptoReady: true,
+            standingEnabled: true,
+            brazilPaused: false,
+            residenceIso2s: ['AR'],
+            activeAccounts: [],
+            readyTopUps: ['ARS'],
+        })
+
+        it('leads the drawer with the Mercado Pago mark and opens the peso top-up directly', async () => {
+            const urlUpdates: UrlUpdateEvent[] = []
+            renderWithUrl('?drawer=add', (event) => urlUpdates.push(event), argentina)
+
+            const rows = screen.getAllByTestId(/^home-drawer-add-/)
+            expect(rows.map((row) => row.getAttribute('data-testid'))).toEqual([
+                'home-drawer-add-mercadoPago',
+                'home-drawer-add-account',
+                'home-drawer-add-crypto',
+                'home-drawer-add-more',
+            ])
+            expect(rows[0]).toHaveTextContent('mercadoPago')
+            expect(rows[0].querySelector('img')).toBeInTheDocument()
+
+            fireEvent.click(rows[0])
+            // one currency: no chooser of one ARS row in between
+            await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money/argentina/manteca'))
+            expect(urlUpdates.at(-1)?.searchParams.get('drawer')).toBeNull()
+        })
+
+        it('carries returnTo onto the peso top-up', async () => {
+            const origin = '/profile/exchange-rate?from=USD&to=ARS'
+            renderWithUrl(`?drawer=add&returnTo=${encodeURIComponent(origin)}`, undefined, argentina)
+            fireEvent.click(screen.getByTestId('home-drawer-add-mercadoPago'))
+            await waitFor(() =>
+                expect(mockPush).toHaveBeenCalledWith(
+                    `/add-money/argentina/manteca?returnTo=${encodeURIComponent(origin)}`
+                )
+            )
+        })
+
+        it('opens the native form of the top-up in the app, which has no country route', async () => {
+            jest.mocked(isCapacitor).mockReturnValue(true)
+            renderWithUrl('?drawer=add', undefined, argentina)
+            fireEvent.click(screen.getByTestId('home-drawer-add-mercadoPago'))
+            await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/add-money?country=argentina&view=manteca'))
+        })
     })
 
     it('opens the full method picker from More ways and clears the drawer', async () => {
