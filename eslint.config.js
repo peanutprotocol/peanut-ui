@@ -52,6 +52,25 @@ const REGISTER_PLUGIN_IMPORT_RESTRICTION = {
         "Don't call registerPlugin directly — declare the plugin with nativeCapability() from '@/utils/native-capability' and reach it through .call(method, options, onUnavailable). This JS ships over the air onto binaries built months earlier, where the plugin simply does not exist and Capacitor answers a missing native method with a rejected promise, not a compile error: a forgotten try/catch is a crash on a user's device that no type and no test sees. The wrapper also gates on platform and keeps the proxy inside the closure, so it can never be returned across an await (the .then trap that shipped in 1.0.44 and 1.0.45–1.0.47).",
 }
 
+// release-ota.yml starts no OTA and no store build for a main push that changes
+// only these folders (scripts/release-web-only-paths.json). That is safe only
+// while no app code imports them: the native build removes their routes
+// (src/app/go, src/app/c), but not an import from elsewhere. Only those routes
+// and the folders themselves are exempt (WEB_ONLY_FEATURE_FILES below).
+const WEB_ONLY_FEATURE_IMPORT_RESTRICTION = {
+    // `**/` also catches relative imports such as '../go-links/go-map'.
+    group: ['**/go-links', '**/go-links/**', '**/creator-pages', '**/creator-pages/**'],
+    message:
+        'Only src/app/go, src/app/c and the two feature folders may import the /go/ map and creator pages. Their changes skip the OTA and store build (scripts/release-web-only-paths.json), so app code that imports them would never reach installed apps.',
+}
+
+const WEB_ONLY_FEATURE_FILES = [
+    'src/app/go/**',
+    'src/app/c/**',
+    'src/features/go-links/**',
+    'src/features/creator-pages/**',
+]
+
 // Every import restriction in one list, plus a way to drop exactly one.
 //
 // Overrides used to write `'no-restricted-imports': 'off'`, which disables the
@@ -66,9 +85,14 @@ const BASE_IMPORT_RESTRICTIONS = [
     REGISTER_PLUGIN_IMPORT_RESTRICTION,
 ]
 
+const BASE_IMPORT_PATTERNS = [WEB_ONLY_FEATURE_IMPORT_RESTRICTION]
+
 const restrictedImportsExcept = (...lifted) => [
     'error',
-    { paths: BASE_IMPORT_RESTRICTIONS.filter((restriction) => !lifted.includes(restriction)) },
+    {
+        paths: BASE_IMPORT_RESTRICTIONS.filter((restriction) => !lifted.includes(restriction)),
+        patterns: BASE_IMPORT_PATTERNS.filter((restriction) => !lifted.includes(restriction)),
+    },
 ]
 
 // The setup registry imports screen components, and those components use the
@@ -88,6 +112,7 @@ const SETUP_FLOW_RESTRICTED_IMPORTS = [
             },
         ],
         patterns: [
+            ...BASE_IMPORT_PATTERNS,
             {
                 group: ['@/components/Setup/Views', '@/components/Setup/Views/**'],
                 message:
@@ -318,6 +343,10 @@ module.exports = [
             // toast literals) + hand-built query-string pushes (DS 10, TASK-21450).
             'no-restricted-syntax': ['error', ...RESTRICTED_SYNTAX_BASE, ...QUERY_STRING_PUSH_RESTRICTIONS],
         },
+    },
+    {
+        files: WEB_ONLY_FEATURE_FILES,
+        rules: { 'no-restricted-imports': restrictedImportsExcept(WEB_ONLY_FEATURE_IMPORT_RESTRICTION) },
     },
     {
         // Dependency direction: registry -> views -> hook -> context. The
