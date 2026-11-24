@@ -1,7 +1,6 @@
 import { type CrispUserData } from '@/hooks/useCrispUserData'
 import { isCapacitor } from '@/utils/capacitor'
-import { CRISP_LOCALE_BY_APP_LOCALE, CRISP_WEBSITE_ID } from '@/constants/crisp'
-import { currentAppLocale } from '@/i18n/app/locale-store'
+import { CRISP_WEBSITE_ID } from '@/constants/crisp'
 
 type CrispInstance = Window['$crisp']
 
@@ -24,12 +23,12 @@ let nativeCrispReady: Promise<{ CapacitorCrisp: NativeCrisp }> | null = null
 export function ensureNativeCrispConfigured(): Promise<{ CapacitorCrisp: NativeCrisp }> {
     if (!nativeCrispReady) {
         nativeCrispReady = import('@capgo/capacitor-crisp').then(async ({ CapacitorCrisp }) => {
-            // without a locale the chat follows the phone language, not the app's
-            // (TASK-23926). Only Android applies it: the iOS SDK keeps the phone's
-            // language for the app. A language change applies after the next app start.
-            const appLocale = currentAppLocale()
-            const locale = appLocale ? CRISP_LOCALE_BY_APP_LOCALE[appLocale] : undefined
-            await CapacitorCrisp.configure({ websiteID: CRISP_WEBSITE_ID, ...(locale ? { locale } : {}) })
+            // No locale, on purpose. With a locale, @capgo/capacitor-crisp 8.2.3 on
+            // Android starts the chat from a configuration context instead of the
+            // Activity, without FLAG_ACTIVITY_NEW_TASK, and openMessenger() kills the
+            // app (PEANUT-UI-V0N). So the native chat follows the phone language
+            // (TASK-23926) until the plugin's openMessenger is patched.
+            await CapacitorCrisp.configure({ websiteID: CRISP_WEBSITE_ID })
             return { CapacitorCrisp }
         })
         // allow a retry on next open if configure fails
