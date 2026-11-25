@@ -26,11 +26,9 @@ export const ANALYTICS_EVENTS = {
     HOME_CHECKLIST_VIEWED: 'home_checklist_viewed',
     HOME_CHECKLIST_ITEM_CLICKED: 'home_checklist_item_clicked',
     HOME_BLOCKED_CARD_HIDDEN: 'home_blocked_card_hidden',
-    // `action`: add | send | request (`add_cta_active` until TASK-25341: the pink Add now shows for everyone)
+    // `action`: add | send | request; `add_cta_active`: Add showed as the low-balance pill
     HOME_SUBMENU_TAPPED: 'home_submenu_tapped',
-    // once per home mount, when the balance loads: `balance_bucket` (0 | <1 | 1-10 | 10-100 | 100-1000 | 1000+),
-    // `is_verified`, `label` (always add_money; top_up before TASK-25341). before TASK-25341 it fired only for
-    // verified users under $10
+    // once per pill mount: `balance_bucket` (0 | <1 | 1-10), `label` (always add_money; top_up before TASK-25341)
     HOME_ADD_CTA_SHOWN: 'home_add_cta_shown',
     KYC_DEGRADED_NOTIFY_REQUESTED: 'kyc_degraded_notify_requested',
     SIGNUP_CLICKED: 'signup_signup_clicked',

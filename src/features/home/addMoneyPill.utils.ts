@@ -1,15 +1,23 @@
 import { parseUnits } from 'viem'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/wallet-token.consts'
 
-const usd = (amount: string) => parseUnits(amount, PEANUT_WALLET_TOKEN_DECIMALS)
+// 93% of verified users' first money comes through Add, so a low balance
+// moves Add to the centre as the pink button (TASK-25076). No cooldown, by decision.
+const PILL_BELOW = parseUnits('10', PEANUT_WALLET_TOKEN_DECIMALS)
+const ONE_DOLLAR = parseUnits('1', PEANUT_WALLET_TOKEN_DECIMALS)
 
-/** spendable balance (USDC base units) bucketed for analytics.
- *  '<1' and '1-10' keep their names from the under-$10 gate (TASK-25076), so old data still compares */
-export function balanceBucket(balance: bigint): '0' | '<1' | '1-10' | '10-100' | '100-1000' | '1000+' {
+export function showsAddMoneyPill(input: {
+    isVerified: boolean
+    /** spendable balance (wallet + card collateral), USDC base units */
+    balance: bigint | undefined
+    isFetching: boolean
+    isStale: boolean | undefined
+}): boolean {
+    const { isVerified, balance, isFetching, isStale } = input
+    return isVerified && !isFetching && !isStale && balance !== undefined && balance < PILL_BELOW
+}
+
+export function balanceBucket(balance: bigint): '0' | '<1' | '1-10' {
     if (balance <= 0n) return '0'
-    if (balance < usd('1')) return '<1'
-    if (balance < usd('10')) return '1-10'
-    if (balance < usd('100')) return '10-100'
-    if (balance < usd('1000')) return '100-1000'
-    return '1000+'
+    return balance < ONE_DOLLAR ? '<1' : '1-10'
 }
