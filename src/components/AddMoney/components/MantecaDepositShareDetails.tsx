@@ -143,8 +143,9 @@ const MantecaDepositShareDetails = ({
                             <p className="text-heading-s text-foreground-primary">
                                 {currencySymbol} {formatAmountNumber(depositAmount, 2, 2, locale)}
                             </p>
+                            {/* no "≈": the order locked this price when it was created */}
                             <div className="text-heading-card text-foreground-primary">
-                                ≈ {formatAmountNumber(usdAmount, 2, 2, locale)} USD
+                                {formatAmountNumber(usdAmount, 2, 2, locale)} USD
                             </div>
                         </div>
                     </div>
