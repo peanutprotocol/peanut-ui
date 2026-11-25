@@ -1,7 +1,12 @@
-import { DEPOSIT_RAIL_ORDER, DEPOSIT_RAILS } from '@/features/deposit-accounts/rails'
+import { corridorTopUpHref } from '@/features/add-money/countryRoutes'
+import { ARS_ADD_MONEY_PATH, DEPOSIT_RAIL_ORDER, DEPOSIT_RAILS } from '@/features/deposit-accounts/rails'
 import { residenceAllows } from '@/features/deposit-accounts/residenceGate'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
+import { PIX_ADD_MONEY_PATH } from '@/features/pix/pix.routes'
+import type { IdentityVerificationStatus } from '@/types/capabilities'
 import type { GateState } from '@/utils/capability-gate'
+import { rewriteMethodPath } from '@/utils/native-routes'
+import { withReturnTo } from '@/utils/return-to.utils'
 
 /**
  * The card's add-money drawer decisions (TASK-25169), kept pure so every state the drawer shows is
@@ -64,6 +69,8 @@ export function cardBankPlan(input: {
     residenceIso2s: readonly string[]
     ready: { account: readonly string[]; transfer: readonly string[]; pix: readonly string[]; ars: readonly string[] }
     topUpGates: Record<DepositCorridor, GateState>
+    /** `identityVerification.status`: a check in review reads `needs-identity` on the rails until it ends */
+    identityStatus?: IdentityVerificationStatus
 }): CardBankPlan {
     if (input.isLoading) return { kind: 'loading' }
     const rows: CardBankRow[] = []
@@ -81,8 +88,33 @@ export function cardBankPlan(input: {
     if (kinds.includes('loading')) return { kind: 'loading' }
     const settingUp = relevant.find((c) => input.topUpGates[c].kind === 'pending')
     if (settingUp) return { kind: 'setting-up', corridor: settingUp }
-    if (kinds.includes('waiting-on-provider')) return { kind: 'under-review' }
+    if (kinds.includes('waiting-on-provider') || input.identityStatus === 'processing') return { kind: 'under-review' }
     if (kinds.includes('needs-identity')) return { kind: 'not-verified' }
     if (kinds.some((kind) => FINISH_SETUP_KINDS.has(kind))) return { kind: 'finish-setup' }
     return { kind: 'not-offered' }
+}
+
+/** Every page the drawer opens comes back to the funding step. */
+export const CARD_FUNDING_RETURN_TO = '/card?card_step=funding'
+
+/**
+ * The page a bank row opens, with the gap prefilled where the page reads a dollar amount: the ARS
+ * flow takes `currency=USD`; a Bridge top-up takes its amount in the rail's own currency, so only a
+ * dollar rail gets it; the Pix page reads no amount.
+ */
+export function cardBankPageHref(
+    corridor: DepositCorridor,
+    gapUsd: number | undefined,
+    residenceIso2s: readonly string[]
+): string {
+    const amount = gapUsd ? gapUsd.toFixed(2) : undefined
+    if (corridor === 'BANK_TRANSFER_AR') {
+        const prefill = amount ? `step=inputAmount&amount=${amount}&currency=USD` : undefined
+        return withReturnTo(rewriteMethodPath(ARS_ADD_MONEY_PATH, prefill), CARD_FUNDING_RETURN_TO)
+    }
+    if (corridor === 'PIX_BR') return withReturnTo(PIX_ADD_MONEY_PATH, CARD_FUNDING_RETURN_TO)
+    const href = corridorTopUpHref(corridor, residenceIso2s)
+    if (!href) return withReturnTo('/add-money?method=bank', CARD_FUNDING_RETURN_TO)
+    const prefill = amount && DEPOSIT_RAILS[corridor].currency === 'USD' ? `amount=${amount}` : undefined
+    return withReturnTo(rewriteMethodPath(href, prefill), CARD_FUNDING_RETURN_TO)
 }

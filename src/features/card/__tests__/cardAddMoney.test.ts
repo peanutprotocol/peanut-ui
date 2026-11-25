@@ -1,4 +1,4 @@
-import { cardBankPlan, cardCryptoAskUsd, cardGapUsd, CARD_MIN_BALANCE_USD } from '../cardAddMoney'
+import { cardBankPageHref, cardBankPlan, cardCryptoAskUsd, cardGapUsd, CARD_MIN_BALANCE_USD } from '../cardAddMoney'
 import type { GateState } from '@/utils/capability-gate'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
 import { DEPOSIT_RAIL_ORDER } from '@/features/deposit-accounts/rails'
@@ -96,6 +96,10 @@ describe('cardBankPlan', () => {
         ).toEqual({ kind: 'under-review' })
     })
 
+    it('says under review, never "verify again", while the identity check is in review', () => {
+        expect(cardBankPlan({ ...base, identityStatus: 'processing' })).toEqual({ kind: 'under-review' })
+    })
+
     it('offers verification to a user who is not verified', () => {
         expect(cardBankPlan(base)).toEqual({ kind: 'not-verified' })
     })
@@ -132,5 +136,30 @@ describe('cardBankPlan', () => {
         expect(cardBankPlan({ ...base, topUpGates: gates('needs-identity', { ACH_US: { kind: 'pending' } }) })).toEqual(
             { kind: 'setting-up', corridor: 'ACH_US' }
         )
+    })
+})
+
+describe('cardBankPageHref', () => {
+    const back = 'returnTo=%2Fcard%3Fcard_step%3Dfunding'
+
+    it('prefills the ARS flow with the dollar gap', () => {
+        expect(cardBankPageHref('BANK_TRANSFER_AR', 7.5, ['AR'])).toBe(
+            `/add-money/argentina/manteca?step=inputAmount&amount=7.50&currency=USD&${back}`
+        )
+    })
+
+    it('opens Pix, which reads no amount, with only the way back', () => {
+        expect(cardBankPageHref('PIX_BR', 7.5, ['BR'])).toBe(`/add-money/pix?${back}`)
+    })
+
+    it('prefills a dollar top-up, never a top-up that takes another currency', () => {
+        expect(cardBankPageHref('ACH_US', 7.5, ['US'])).toMatch(
+            new RegExp(`^/add-money/[a-z-]+/bank\\?amount=7\\.50&${back}$`)
+        )
+        expect(cardBankPageHref('SEPA_EU', 7.5, ['DE'])).toBe(`/add-money/germany/bank?${back}`)
+    })
+
+    it('prefills nothing while the gap is unknown', () => {
+        expect(cardBankPageHref('BANK_TRANSFER_AR', undefined, ['AR'])).toBe(`/add-money/argentina/manteca?${back}`)
     })
 })
