@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
@@ -49,6 +49,7 @@ export function PixQrDeposit({
     onComplete: () => void
 }) {
     const t = useTranslations('addMoney')
+    const locale = useLocale()
     const tDeposit = useTranslations('pix.deposit')
     const tShared = useTranslations('pix')
     const tCommon = useTranslations('common')
@@ -129,7 +130,7 @@ export function PixQrDeposit({
                     <IconBubble icon="clock" size="l" color="yellow" />
                     <TitleBlock
                         align="center"
-                        title={deposit.amountBrl ? formatBankAmount(deposit.amountBrl, 'BRL') : t('title')}
+                        title={deposit.amountBrl ? formatBankAmount(deposit.amountBrl, 'BRL', locale) : t('title')}
                         description={t('pix.qrExpired')}
                     />
                     <Button variant="primary" className="w-full" onClick={onNewDeposit}>
@@ -147,13 +148,13 @@ export function PixQrDeposit({
                 <div className="text-center">
                     {deposit.amountBrl && (
                         <p className="text-heading-s text-foreground-primary">
-                            {formatBankAmount(deposit.amountBrl, 'BRL')}
+                            {formatBankAmount(deposit.amountBrl, 'BRL', locale)}
                         </p>
                     )}
                     {/* the provider's fees are already out of the quote: this is what the balance receives */}
                     {deposit.usdcAmount && (
                         <p className="text-body-s text-foreground-secondary">
-                            {tDeposit('youGet', { amount: formatBankAmount(deposit.usdcAmount, 'USD') })}
+                            {tDeposit('youGet', { amount: formatBankAmount(deposit.usdcAmount, 'USD', locale) })}
                         </p>
                     )}
                 </div>

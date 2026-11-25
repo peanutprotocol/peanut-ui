@@ -8,7 +8,7 @@ import MantecaDepositShareDetails from '@/components/AddMoney/components/Manteca
 import { useMantecaDepositPolling } from '@/components/AddMoney/hooks/useMantecaDepositPolling'
 import { useOpenMantecaDeposit } from '@/components/AddMoney/hooks/useOpenMantecaDeposit'
 import { Callout } from '@/components/0_Bruddle/Callout'
-import { formatCurrency } from '@/utils/general.utils'
+import { formatAmountNumber } from '@/utils/currency'
 import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
 import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import { useParams } from 'next/navigation'
@@ -34,7 +34,7 @@ import { useQueryStates, parseAsString, parseAsStringEnum } from 'nuqs'
 import { useLimitsValidation } from '@/features/limits/hooks/useLimitsValidation'
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { useBankEntryFor } from '@/hooks/useBankRows'
 import { entryAction, isLocalResidenceRefusal, isMantecaAccountClosed, refusalOf } from '@/features/kyc-features/report'
 import { useAuth } from '@/context/authContext'
@@ -58,6 +58,7 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     const params = useParams()
     const queryClient = useQueryClient()
     const t = useTranslations('addMoney')
+    const locale = useLocale()
     const tErrors = useTranslations('errors')
     const tKyc = useTranslations('kyc')
     const tIdentity = useTranslations('identity')
@@ -541,7 +542,12 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
                                 >
                                     {t('manteca.openTransferDescription', {
                                         currency: openDeposit.stages['1'].asset,
-                                        amount: formatCurrency(openDeposit.stages['1'].thresholdAmount),
+                                        amount: formatAmountNumber(
+                                            openDeposit.stages['1'].thresholdAmount,
+                                            2,
+                                            2,
+                                            locale
+                                        ),
                                     })}
                                 </Callout>
                             )

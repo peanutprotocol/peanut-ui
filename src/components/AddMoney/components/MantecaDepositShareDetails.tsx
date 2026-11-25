@@ -19,8 +19,8 @@ import {
     MANTECA_ARG_DEPOSIT_NAME,
     MANTECA_COUNTRIES_CONFIG,
 } from '@/constants/manteca.consts'
-import { shortenStringLong, formatCurrency } from '@/utils/general.utils'
-import { formatFiatRate } from '@/utils/currency'
+import { shortenStringLong } from '@/utils/general.utils'
+import { formatAmountNumber, formatFiatRate } from '@/utils/currency'
 import { useLocale, useTranslations } from 'next-intl'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { ProviderHelp } from '@/components/Provider/ProviderHelp'
@@ -82,10 +82,11 @@ const MantecaDepositShareDetails = ({
     const exchangeRate = depositDetails.details.price
     let networkFees = depositDetails.details.withdrawCostInAsset
     usdAmount = (Number(usdAmount) - Number(networkFees)).toString()
+    // Argentines read "1,746.62" as 1.74: every number on this screen uses the app locale
     if (Number(networkFees) < 0.01) {
-        networkFees = '< 0.01 USD'
+        networkFees = `< ${formatAmountNumber(0.01, 2, 2, locale)} USD`
     } else {
-        networkFees = `${formatCurrency(networkFees)} USD`
+        networkFees = `${formatAmountNumber(networkFees, 2, 2, locale)} USD`
     }
 
     const generateShareText = () => {
@@ -140,10 +141,10 @@ const MantecaDepositShareDetails = ({
                                 <Icon name="arrow-down" size={10} /> {t('manteca.youreAdding')}
                             </p>
                             <p className="text-heading-s text-foreground-primary">
-                                {currencySymbol} {formatCurrency(depositAmount)}
+                                {currencySymbol} {formatAmountNumber(depositAmount, 2, 2, locale)}
                             </p>
                             <div className="text-heading-card text-foreground-primary">
-                                ≈ {formatCurrency(usdAmount)} USD
+                                ≈ {formatAmountNumber(usdAmount, 2, 2, locale)} USD
                             </div>
                         </div>
                     </div>
@@ -180,7 +181,7 @@ const MantecaDepositShareDetails = ({
                     )}
                     <PaymentInfoRow
                         label={t('manteca.exchangeRate')}
-                        value={`1 USD = ${formatFiatRate(exchangeRate)} ${currencySymbol}`}
+                        value={`1 USD = ${formatFiatRate(exchangeRate, locale)} ${currencySymbol}`}
                     />
                     <PaymentInfoRow
                         label={t('manteca.providerFees')}
