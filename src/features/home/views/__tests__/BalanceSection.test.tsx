@@ -91,10 +91,10 @@ describe('BalanceSection low-balance Add button', () => {
     beforeEach(() => mockedCapture.mockClear())
     const verified = { isVerified: true }
 
-    it('keeps the plain Add first and tracks taps without the pink button', () => {
+    it('keeps the plain Add in the centre and tracks taps without the pink button', () => {
         renderSection()
         expect(screen.getByTestId('home-submenu-add')).toHaveTextContent('add')
-        expect(actionOrder()).toEqual(['add', 'send', 'request'])
+        expect(actionOrder()).toEqual(['send', 'add', 'request'])
         fireEvent.click(screen.getByTestId('home-submenu-send'))
         expect(mockedCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.HOME_SUBMENU_TAPPED, {
             action: 'send',
@@ -103,7 +103,7 @@ describe('BalanceSection low-balance Add button', () => {
         expect(mockedCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.HOME_ADD_CTA_SHOWN, expect.anything())
     })
 
-    it('moves Add to the centre with its label, same picker link, and tracks it', () => {
+    it('turns the centre Add pink with its label, same picker link, and tracks it', () => {
         renderSection(undefined, 'picker', verified)
         const add = screen.getByTestId('home-submenu-add')
         expect(add).toHaveAttribute('href', '/add-money')
@@ -136,10 +136,10 @@ describe('BalanceSection low-balance Add button', () => {
         ['the balance is hidden', { ...verified, isHidden: true }],
         ['the balance is stale', { ...verified, isStale: true }],
         ['the user is not verified', { isVerified: false }],
-    ])('keeps the plain Add first while %s', (_, props) => {
+    ])('keeps the plain Add in the centre while %s', (_, props) => {
         renderSection(undefined, 'picker', props)
         expect(screen.getByTestId('home-submenu-add')).toHaveTextContent(/^add$/)
-        expect(actionOrder()).toEqual(['add', 'send', 'request'])
+        expect(actionOrder()).toEqual(['send', 'add', 'request'])
         expect(mockedCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.HOME_ADD_CTA_SHOWN, expect.anything())
     })
 
