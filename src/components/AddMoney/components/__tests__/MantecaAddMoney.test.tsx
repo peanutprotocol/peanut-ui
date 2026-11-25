@@ -214,6 +214,8 @@ type InputStepProps = {
     onSubmit: () => Promise<void>
     error?: string | null
     providerFinePrint?: React.ReactElement<{ providerId: string }>
+    nextStepHint?: string
+    submitLabel?: string
 }
 let lastInputStepProps: InputStepProps | null = null
 jest.mock('@/components/AddMoney/components/InputAmountStep', () => ({
@@ -278,6 +280,38 @@ describe('provider fine print', () => {
         render(<MantecaAddMoney />)
 
         expect(lastInputStepProps!.providerFinePrint?.props.providerId).toBe('manteca-ar')
+    })
+})
+
+// TASK-25101: replays showed Argentines leaving the amount screen without knowing that
+// the CBU and alias come next. They are minted per order, so the screen names the next step.
+describe('ARS amount screen names the transfer details that come next', () => {
+    test('Argentina explains the next step and labels the button with it', () => {
+        setCountry('argentina')
+        render(<MantecaAddMoney />)
+
+        expect(lastInputStepProps!.nextStepHint).toBe(en.addMoney.manteca.transferDetailsNextStep)
+        expect(lastInputStepProps!.submitLabel).toBe(en.addMoney.manteca.seeTransferDetails)
+    })
+
+    test('the button still creates the order for the typed amount before any details show', async () => {
+        setCountry('argentina')
+        mockQueryState.amount = '10000'
+        mockDeposit.mockResolvedValue({ data: { id: 'ars-order' } })
+        render(<MantecaAddMoney />)
+
+        await act(() => lastInputStepProps!.onSubmit())
+
+        expect(mockDeposit).toHaveBeenCalledWith({ amount: '10000', isUsdDenominated: false, currency: 'ARS' })
+        expect(mockSetQueryState).toHaveBeenCalledWith({ step: 'depositDetails' })
+    })
+
+    test('Brazil keeps the plain Continue', () => {
+        setCountry('brazil')
+        render(<MantecaAddMoney />)
+
+        expect(lastInputStepProps!.nextStepHint).toBeUndefined()
+        expect(lastInputStepProps!.submitLabel).toBeUndefined()
     })
 })
 

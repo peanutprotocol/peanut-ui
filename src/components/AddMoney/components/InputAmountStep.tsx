@@ -43,6 +43,10 @@ interface InputAmountStepProps {
     details?: React.ReactNode
     // a dynamic Pix code carries the amount, so the "must match" helper does not apply
     amountFixedByCode?: boolean
+    // what the next step shows, under the amount label, for flows whose payment details come after the amount
+    nextStepHint?: string
+    // replaces "Continue" where the next step is worth naming
+    submitLabel?: string
 }
 
 const InputAmountStep = ({
@@ -64,6 +68,8 @@ const InputAmountStep = ({
     providerFinePrint,
     details,
     amountFixedByCode = false,
+    nextStepHint,
+    submitLabel,
 }: InputAmountStepProps) => {
     const t = useTranslations('addMoney')
     const tCommon = useTranslations('common')
@@ -100,7 +106,10 @@ const InputAmountStep = ({
             <NavHeader title={t('title')} onPrev={onBack} />
             <div className="my-auto flex flex-grow flex-col justify-center gap-4 md:my-0">
                 {maintenanceBanner}
-                <div className="text-label-l">{t('howMuchToAdd')}</div>
+                <div className="flex flex-col gap-1">
+                    <div className="text-label-l">{t('howMuchToAdd')}</div>
+                    {nextStepHint && <p className="text-body-s text-foreground-secondary">{nextStepHint}</p>}
+                </div>
 
                 {/* only show the field error if limits blocking card is not displayed (warnings can coexist) */}
                 {/* with no rate there is no amount to show: the field would fall back to $0.00 in USD,
@@ -156,7 +165,7 @@ const InputAmountStep = ({
                     className="w-full"
                     loading={isLoading}
                 >
-                    {tCommon('continue')}
+                    {submitLabel ?? tCommon('continue')}
                 </Button>
                 {/* fine print sits under the CTA, never between the amount and the button */}
                 {providerFinePrint}
