@@ -173,6 +173,7 @@ export function CardAcquisitionScreen({
     if (shownStep === 'funding') {
         return (
             <CardFundingStep
+                userId={userId}
                 funded={funded}
                 balanceKnown={balanceKnown}
                 spendableUsd={spendableUsd}

@@ -2242,7 +2242,7 @@
             "issuedTitle": "Meet your Peanut card.",
             "issuedBody": "It’s ready for online and contactless payments.",
             "viewCard": "View card",
-            "fundingBodyGap": "Your card needs $10 in your balance. You have {balance}, so add {gap}. The money stays yours."
+            "fundingBodyGap": "Your card needs {minimum} in your balance. You have {balance}, so add {gap}. The money stays yours."
         },
         "addressStep": {
             "required": "To continue your card application, add your home address.",

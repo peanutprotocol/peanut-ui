@@ -22,6 +22,8 @@ import { useWallet } from '@/hooks/wallet/useWallet'
 import { rhinoApi } from '@/services/rhino'
 import type { RhinoChainType } from '@/services/services.types'
 import { formatBankAmount } from '@/utils/currency'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 const usd = (amount: number) => formatBankAmount(amount, 'USD')
 
@@ -62,11 +64,18 @@ export function CardCryptoDepositView({ network, gapUsd }: { network: RhinoChain
         (amount: number) => {
             void queryClient.invalidateQueries({ queryKey: ['balance'] })
             void queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] })
+            // the same event the add-money crypto page sends, so deposit charts keep the card's deposits
+            posthog.capture(ANALYTICS_EVENTS.DEPOSIT_COMPLETED, {
+                amount,
+                chain_type: network,
+                method_type: 'crypto',
+                acquisition_source: user?.invitedBy ? 'referred' : 'organic',
+            })
             const asked = askRef.current
             if (asked !== undefined && amount < asked) setShortDeposit({ received: amount, asked })
             else setCreditedAtGap(gapRef.current ?? 0)
         },
-        [queryClient]
+        [queryClient, network, user?.invitedBy]
     )
     // a full deposit that still leaves a gap (a fee taken on the way) is a short one: the step names
     // the new gap instead of waiting on a close that never comes
@@ -77,6 +86,19 @@ export function CardCryptoDepositView({ network, gapUsd }: { network: RhinoChain
     }, [creditedAtGap, gapUsd])
     const credited = creditedAtGap !== undefined
     const { status, resetStatus, isResetting } = useCryptoDepositPolling(data?.depositAddress, handleSuccess)
+
+    // The API keeps an address's last status for hours, so a deposit made earlier (on the add-money
+    // page, or a previous visit) would read as this one and freeze the view. Clear it once when the
+    // address arrives, before the first poll; a transfer already on its way still books on the backend.
+    const clearedFor = useRef<string>()
+    useEffect(() => {
+        const depositAddress = data?.depositAddress
+        if (!depositAddress || clearedFor.current === depositAddress) return
+        clearedFor.current = depositAddress
+        resetStatus().catch(() => {
+            // the clear failed: the balance poll still closes the drawer once the money is in
+        })
+    }, [data?.depositAddress, resetStatus])
 
     // Rhino reports one deposit per address until the status is cleared: after a short deposit the
     // clear re-arms the poll for the rest, as RhinoDepositView does

@@ -20,7 +20,8 @@ import {
     type CardAddMoneyView,
     type CardFundingMethod,
 } from '@/features/card/card-gate-analytics'
-import { cardBankPageHref, cardBankPlan, cardGapUsd } from '@/features/card/cardAddMoney'
+import { CARD_MIN_BALANCE_USD, cardBankPageHref, cardBankPlan, cardGapUsd } from '@/features/card/cardAddMoney'
+import { readStoredValue, writeStoredValue } from '@/utils/safe-storage'
 import { formatBankAmount } from '@/utils/currency'
 import { CardAddMoneyDrawer } from './CardAddMoneyDrawer'
 
@@ -29,12 +30,14 @@ import { CardAddMoneyDrawer } from './CardAddMoneyDrawer'
  * unmounts while the user adds money, and the drawer closes itself once the balance covers it.
  */
 export function CardFundingStep({
+    userId,
     funded,
     balanceKnown,
     spendableUsd,
     onPrev,
     onContinue,
 }: {
+    userId: string
     funded: boolean
     balanceKnown: boolean
     /** the spendable balance in dollars; undefined while it loads */
@@ -60,8 +63,11 @@ export function CardFundingStep({
         shown.current = { method, view }
     }, [])
 
+    // the drawer closes on funding only when it opened short; a funded user who opens it stays in it
+    const openedShort = useRef(false)
     const pickMethod = (method: CardFundingMethod) => {
         captureCardGateAddFundsTapped('funding', funded, method)
+        openedShort.current = !funded
         // one bank way, and it is a page: a drawer with one row would only add a tap
         if (method === 'bank' && plan.kind === 'rows' && plan.rows.length === 1 && plan.rows[0].kind === 'page') {
             const { corridor } = plan.rows[0]
@@ -80,21 +86,21 @@ export function CardFundingStep({
     }
 
     // Before/after for the drawer: the balance reached the minimum after this step showed it short.
-    const sawShort = useRef(false)
-    const reportedFunded = useRef(false)
+    // Session storage, so a user who funds on another page (a bank page, Home) and comes back counts too.
+    const shortKey = `card_gate_saw_short_v1:${userId}`
     useEffect(() => {
         if (!balanceKnown) return
         if (!funded) {
-            sawShort.current = true
+            writeStoredValue(shortKey, '1', 'sessionStorage')
             return
         }
-        if (!sawShort.current || reportedFunded.current) return
-        reportedFunded.current = true
+        if (readStoredValue(shortKey, 'sessionStorage') !== '1') return
+        writeStoredValue(shortKey, 'reported', 'sessionStorage')
         captureCardGateCameBackFunded(open, shown.current?.method ?? drawer?.method ?? null)
-    }, [funded, balanceKnown, open, drawer])
+    }, [shortKey, funded, balanceKnown, open, drawer])
 
     useEffect(() => {
-        if (!funded || !open) return
+        if (!funded || !open || !openedShort.current) return
         setOpen(false)
         onContinue()
     }, [funded, open, onContinue])
@@ -107,8 +113,9 @@ export function CardFundingStep({
             <p className="text-body-m text-foreground-secondary">
                 {gapUsd && spendableUsd !== undefined
                     ? t('fundingBodyGap', {
-                          // a spendable balance rounds down, so it never shows more than can be spent
-                          balance: formatBankAmount(Math.floor(spendableUsd * 100) / 100, 'USD'),
+                          minimum: formatBankAmount(CARD_MIN_BALANCE_USD, 'USD'),
+                          // a spendable balance rounds down (in whole units first: 0.29 * 100 is 28.999…)
+                          balance: formatBankAmount(Math.floor(Math.round(spendableUsd * 1e6) / 1e4) / 100, 'USD'),
                           gap: formatBankAmount(gapUsd, 'USD'),
                       })
                     : t('fundingBody')}

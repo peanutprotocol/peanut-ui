@@ -171,9 +171,14 @@ const drawerEvents = () =>
 describe('funding step', () => {
     it('names the gap when the balance is known, and keeps the plain body while it loads', () => {
         const { rerenderWith } = renderFunding()
-        expect(screen.getByText('fundingBodyGap($2.50|$7.50)')).toBeInTheDocument()
+        expect(screen.getByText('fundingBodyGap($10|$2.50|$7.50)')).toBeInTheDocument()
         rerenderWith({ spendableUsd: undefined })
         expect(screen.getByText('fundingBody')).toBeInTheDocument()
+    })
+
+    it('shows a balance and a gap that add up to the minimum (0.29 * 100 is 28.999…)', () => {
+        renderFunding({ spendableUsd: 0.29 })
+        expect(screen.getByText('fundingBodyGap($10|$0.29|$9.71)')).toBeInTheDocument()
     })
 
     it.each([
@@ -396,6 +401,20 @@ describe('crypto views', () => {
         expect(within(drawer()).getByTestId('card-add-money-ask')).toHaveTextContent('sendAsk($5)')
     })
 
+    it('clears a status left by an earlier deposit before the first poll can read it as this one', async () => {
+        await openAddress('tron')
+        await waitFor(() => expect(mockResetStatus).toHaveBeenCalledTimes(1))
+    })
+
+    it('sends the deposit event the add-money crypto page sends', async () => {
+        await openAddress('tron')
+        await act(async () => pollOnSuccess?.(7.5))
+        expect(mockCapture).toHaveBeenCalledWith(
+            ANALYTICS_EVENTS.DEPOSIT_COMPLETED,
+            expect.objectContaining({ amount: 7.5, chain_type: 'TRON', method_type: 'crypto' })
+        )
+    })
+
     it('lists the EVM chains the address works on', async () => {
         await openAddress('evm')
         expect(within(drawer()).getByText('supportedEvmNetworks')).toBeInTheDocument()
@@ -454,6 +473,19 @@ describe('funded while the drawer is open', () => {
         rerenderWith({ funded: true, spendableUsd: 13 })
         expect(urlUpdates).toEqual([])
         expect(drawerEvents()).toEqual([['card_gate_came_back_funded', { in_drawer: false, method: null }]])
+    })
+
+    it('keeps a funded user in the drawer they opened', () => {
+        renderFunding({ funded: true, spendableUsd: 12 })
+        fireEvent.click(screen.getByTestId('card-add-money-crypto'))
+        expect(drawer()).toBeInTheDocument()
+    })
+
+    it('reports a funding that came another way after the step remounts', () => {
+        const first = renderFunding()
+        first.unmount()
+        renderFunding({ funded: true, spendableUsd: 12 })
+        expect(drawerEvents()).toContainEqual(['card_gate_came_back_funded', { in_drawer: false, method: null }])
     })
 
     it('reports a dismissed drawer with the view it showed', () => {

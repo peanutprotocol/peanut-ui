@@ -2242,7 +2242,7 @@
             "issuedTitle": "Conheça seu Peanut Card.",
             "issuedBody": "Ele está pronto para pagamentos online e por aproximação.",
             "viewCard": "Ver cartão",
-            "fundingBodyGap": "Seu cartão precisa de USD 10 no saldo. Você tem {balance}, então adicione {gap}. O dinheiro continua seu."
+            "fundingBodyGap": "Seu cartão precisa de {minimum} no saldo. Você tem {balance}, então adicione {gap}. O dinheiro continua seu."
         },
         "addressStep": {
             "required": "Para continuar a solicitação do seu cartão, adicione seu endereço residencial.",

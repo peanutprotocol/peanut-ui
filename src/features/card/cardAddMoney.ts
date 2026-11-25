@@ -30,9 +30,9 @@ export function cardGapUsd(spendableUsd: number | undefined): number | undefined
  * stays in the balance.
  */
 export function cardCryptoAskUsd(gapUsd: number, minDepositUsd: number): { askUsd: number; raisedToMinimum: boolean } {
-    return gapUsd < minDepositUsd
-        ? { askUsd: minDepositUsd, raisedToMinimum: true }
-        : { askUsd: gapUsd, raisedToMinimum: false }
+    // up to the cent: a minimum of $4.004 shown as "$4" invites a deposit that strands
+    const minimum = Math.ceil(Math.round(minDepositUsd * 1e6) / 1e4) / 100
+    return gapUsd < minimum ? { askUsd: minimum, raisedToMinimum: true } : { askUsd: gapUsd, raisedToMinimum: false }
 }
 
 /** A bank option ready now: a held account shows its details in the drawer; the rest open their page. */
@@ -59,7 +59,8 @@ const FINISH_SETUP_KINDS: ReadonlySet<GateState['kind']> = new Set([
 
 /**
  * What the drawer's bank view shows, from `useAddMoneyReadiness`. Ready options come first, in the
- * order Add money uses (ARS and Pix lead for their residents, then the rail order). With nothing
+ * order Add money's picker uses: ARS, Pix when the route offers it on Avenia, held accounts, one-time
+ * transfers, then any other ready Pix; each group in the rail order. With nothing
  * ready, one status answers, the most hopeful first: a rail being set up, then a review, then the
  * user's own verification, then a step left on the bank page. A rail the residence rules out says
  * nothing about this user.
@@ -71,16 +72,25 @@ export function cardBankPlan(input: {
     topUpGates: Record<DepositCorridor, GateState>
     /** `identityVerification.status`: a check in review reads `needs-identity` on the rails until it ends */
     identityStatus?: IdentityVerificationStatus
+    /** `resolveAddMoneyMethods`' picker order: Pix before `transfer` means Pix leads */
+    pickerMethods?: readonly string[]
 }): CardBankPlan {
     if (input.isLoading) return { kind: 'loading' }
     const rows: CardBankRow[] = []
+    const picker = input.pickerMethods ?? []
+    const pixLeads = picker.includes('pix') && picker.indexOf('pix') < picker.indexOf('transfer')
+    const pix: CardBankRow[] = input.ready.pix.length ? [{ kind: 'page', corridor: 'PIX_BR' }] : []
+    const inRailOrder = (currencies: readonly string[]) =>
+        DEPOSIT_RAIL_ORDER.filter((c) => currencies.includes(DEPOSIT_RAILS[c].currency))
+    const held = inRailOrder(input.ready.account)
     if (input.ready.ars.length) rows.push({ kind: 'page', corridor: 'BANK_TRANSFER_AR' })
-    if (input.ready.pix.length) rows.push({ kind: 'page', corridor: 'PIX_BR' })
-    for (const corridor of DEPOSIT_RAIL_ORDER) {
-        const currency = DEPOSIT_RAILS[corridor].currency
-        if (input.ready.account.includes(currency)) rows.push({ kind: 'account', corridor })
-        else if (input.ready.transfer.includes(currency)) rows.push({ kind: 'page', corridor })
+    if (pixLeads) rows.push(...pix)
+    rows.push(...held.map((corridor) => ({ kind: 'account' as const, corridor })))
+    for (const corridor of inRailOrder(input.ready.transfer)) {
+        // a held account already takes this currency's transfers
+        if (!held.includes(corridor)) rows.push({ kind: 'page', corridor })
     }
+    if (!pixLeads) rows.push(...pix)
     if (rows.length) return { kind: 'rows', rows }
 
     const relevant = DEPOSIT_RAIL_ORDER.filter((c) => residenceAllows(c, [...input.residenceIso2s]))

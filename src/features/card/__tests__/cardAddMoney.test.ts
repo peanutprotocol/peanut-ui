@@ -37,6 +37,10 @@ describe('cardCryptoAskUsd', () => {
         expect(cardCryptoAskUsd(6.8, 10)).toEqual({ askUsd: 10, raisedToMinimum: true })
     })
 
+    it('rounds a fractional minimum up to the cent, so the ask shown is never below it', () => {
+        expect(cardCryptoAskUsd(2, 4.004)).toEqual({ askUsd: 4.01, raisedToMinimum: true })
+    })
+
     it('treats an equal gap and minimum as the gap', () => {
         expect(cardCryptoAskUsd(10, 10)).toEqual({ askUsd: 10, raisedToMinimum: false })
     })
@@ -56,14 +60,10 @@ describe('cardBankPlan', () => {
         ).toEqual({ kind: 'rows', rows: [{ kind: 'account', corridor: 'ACH_US' }] })
     })
 
-    it('puts ARS and Pix first, then accounts and one-time transfers in the rail order, without a duplicate', () => {
-        const plan = cardBankPlan({
-            ...base,
-            residenceIso2s: ['AR'],
-            ready: { account: ['USD', 'EUR'], transfer: ['EUR', 'MXN'], pix: ['BRL'], ars: ['ARS'] },
-            topUpGates: gates('ready'),
-        })
-        expect(plan).toEqual({
+    it('follows the Add money picker: ARS, leading Pix, accounts, transfers, then other Pix', () => {
+        const ready = { account: ['USD', 'EUR'], transfer: ['EUR', 'MXN'], pix: ['BRL'], ars: ['ARS'] }
+        const input = { ...base, residenceIso2s: ['AR'], ready, topUpGates: gates('ready') }
+        expect(cardBankPlan({ ...input, pickerMethods: ['ars', 'pix', 'account', 'transfer', 'crypto'] })).toEqual({
             kind: 'rows',
             rows: [
                 { kind: 'page', corridor: 'BANK_TRANSFER_AR' },
@@ -71,6 +71,32 @@ describe('cardBankPlan', () => {
                 { kind: 'account', corridor: 'SEPA_EU' },
                 { kind: 'account', corridor: 'ACH_US' },
                 { kind: 'page', corridor: 'SPEI_MX' },
+            ],
+        })
+        expect(cardBankPlan({ ...input, pickerMethods: ['ars', 'account', 'transfer', 'pix', 'crypto'] })).toEqual({
+            kind: 'rows',
+            rows: [
+                { kind: 'page', corridor: 'BANK_TRANSFER_AR' },
+                { kind: 'account', corridor: 'SEPA_EU' },
+                { kind: 'account', corridor: 'ACH_US' },
+                { kind: 'page', corridor: 'SPEI_MX' },
+                { kind: 'page', corridor: 'PIX_BR' },
+            ],
+        })
+    })
+
+    it('lists a held account before a one-time transfer of an earlier rail', () => {
+        expect(
+            cardBankPlan({
+                ...base,
+                ready: { ...noneReady, account: ['USD'], transfer: ['EUR'] },
+                topUpGates: gates('ready'),
+            })
+        ).toEqual({
+            kind: 'rows',
+            rows: [
+                { kind: 'account', corridor: 'ACH_US' },
+                { kind: 'page', corridor: 'SEPA_EU' },
             ],
         })
     })
