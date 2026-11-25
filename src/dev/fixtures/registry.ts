@@ -2529,6 +2529,175 @@ const SETUP_REDESIGN_FIXTURES: Record<string, Fixture> = {
     }),
 }
 
+/**
+ * TASK-25169: the card $10 step's add-money drawer, one state per fixture.
+ *
+ * Every state opens on the funding step with $3.20 spendable, so the card is
+ * $6.80 short. `balance: null` on the card overview keeps Rain collateral out of
+ * that sum. Each user brings its own capability block, so the demo user's
+ * Brazilian Pix routes never add a Pix row.
+ */
+const CARD_ADD_MONEY_ROUTE = '/card?card_step=funding'
+const CARD_ADD_MONEY_BALANCE = '3.20'
+const RHINO_STATUS = `GET /rhino/status/${DEMO_ADDRESS}`
+const RHINO_RESET = `POST /rhino/reset-status/${DEMO_ADDRESS}`
+const verifiedResidence = (country: string) => ({
+    verified: { country, status: 'VERIFIED', updatedAt: null },
+    declared: null,
+    secondaryDeclaredCountry: null,
+})
+const US_ACH_RAILS = BRIDGE_BANK_RAILS.filter((rail) => rail.id === 'bridge.ach_us').map((rail) => ({
+    ...rail,
+    status: 'enabled',
+}))
+const BRIDGE_CO_RAIL = BRIDGE_CO_CAPABILITIES.rails[0]
+const UK_BANK_REFUSAL = {
+    code: 'uk_resident_blocked',
+    userMessage: 'Bank accounts are not available for UK residents yet.',
+}
+
+const cardAddMoney = (
+    about: string,
+    user: Record<string, unknown>,
+    depositAccounts: Record<string, unknown>,
+    extra: Partial<Fixture> = {}
+): Fixture => ({
+    route: CARD_ADD_MONEY_ROUTE,
+    about,
+    balance: CARD_ADD_MONEY_BALANCE,
+    ...extra,
+    responses: {
+        'GET /card': { isEligible: true, geoProhibited: false },
+        'GET /rain/cards': { status: { hasApplication: false }, cards: [], balance: null },
+        'POST /rain/cards': { status: 'terms-required', isUsResident: false },
+        'GET /users/me': {
+            identityVerification: { status: 'verified' },
+            depositAccounts: { enabled: true },
+            ...user,
+        },
+        'GET /users/deposit-accounts': { depositAccounts: [], claimable: [], unavailable: [], ...depositAccounts },
+        ...extra.responses,
+    },
+})
+
+/** A verified US resident with the ACH rail on and no account held yet. */
+const CARD_US_USER = {
+    residence: verifiedResidence('US'),
+    capabilities: { rails: US_ACH_RAILS, nextActions: [], restrictions: [] },
+}
+
+const CARD_ADD_MONEY_FIXTURES: Record<string, Fixture> = {
+    'card-add-money-crypto': cardAddMoney(
+        'Card $10 step, add money in place: crypto, for the EVM, Solana and Tron address views ($3.20 spendable).',
+        CARD_US_USER,
+        {}
+    ),
+    'card-add-money-crypto-min': cardAddMoney(
+        'Card $10 step, crypto: the $6.80 gap is under the $10 network minimum, so the ask is raised to $10.',
+        CARD_US_USER,
+        {},
+        { responses: { 'POST /rhino/deposit': { minDepositLimitUsd: 10 } } }
+    ),
+    'card-add-money-crypto-gap-above-min': cardAddMoney(
+        'Card $10 step, crypto: $0 spendable and a $5 network minimum, so the ask is the full $10 gap.',
+        CARD_US_USER,
+        {},
+        { balance: '0', responses: { 'POST /rhino/deposit': { minDepositLimitUsd: 5 } } }
+    ),
+    'card-add-money-crypto-short': cardAddMoney(
+        'Card $10 step, crypto: a $4 deposit arrives below the $10 ask; the balance reads $7.20 after it (wait ~15 s).',
+        CARD_US_USER,
+        {},
+        {
+            balanceAfterDeposit: '7.20',
+            responses: { [RHINO_STATUS]: { status: 'completed', amount: 4 } },
+            // the status always answers completed, so a successful clear would read the same deposit again
+            fails: [RHINO_RESET],
+        }
+    ),
+    'card-add-money-funded': cardAddMoney(
+        'Card $10 step, crypto: a $10 deposit arrives and the balance reads $13.20, so the step is funded (wait ~15 s).',
+        CARD_US_USER,
+        {},
+        {
+            balanceAfterDeposit: '13.20',
+            responses: { [RHINO_STATUS]: { status: 'completed', amount: 10 } },
+            fails: [RHINO_RESET],
+        }
+    ),
+    'card-add-money-bank-one': cardAddMoney(
+        'Card $10 step, bank: one held USD account (ACH, active, complete details) shows in the drawer.',
+        CARD_US_USER,
+        { depositAccounts: [DEPOSIT_ACCOUNT_USD] }
+    ),
+    'card-add-money-bank-two': cardAddMoney(
+        'Card $10 step, bank: held EUR and USD accounts, a list of two before the details.',
+        {
+            ...CARD_US_USER,
+            capabilities: {
+                ...CARD_US_USER.capabilities,
+                rails: VA_READY_CAPABILITIES.rails.filter((rail) => ['USD', 'EUR'].includes(rail.currency)),
+            },
+        },
+        { depositAccounts: [DEPOSIT_ACCOUNT_USD, DEPOSIT_ACCOUNT_EUR] }
+    ),
+    'card-add-money-bank-ars': cardAddMoney(
+        'Card $10 step, bank: a resident of Argentina whose peso top-up is ready (ARS row).',
+        ARS_TOP_UP_RESIDENT,
+        {}
+    ),
+    'card-add-money-bank-setting-up': cardAddMoney(
+        'Card $10 step, bank: a resident of Argentina whose peso rail is still being set up.',
+        {
+            residence: verifiedResidence('AR'),
+            capabilities: {
+                ...MANTECA_AR_CAPABILITIES,
+                rails: [{ ...MANTECA_AR_CAPABILITIES.rails[0], status: 'pending', resolved: { status: 'pending' } }],
+            },
+        },
+        {}
+    ),
+    'card-add-money-not-verified': cardAddMoney(
+        'Card $10 step, bank: identity not verified, every bank rail waits on it (Verify identity, or use crypto).',
+        {
+            identityVerification: { status: 'not_started' },
+            residence: { verified: null, declared: { country: 'US', status: 'UNVERIFIED', updatedAt: null } },
+            capabilities: BLOCKED_BANK_CAPABILITIES,
+        },
+        {}
+    ),
+    'card-add-money-under-review': cardAddMoney(
+        'Card $10 step, bank: verified, and the payment partner is reviewing every bank account (under review).',
+        {
+            residence: verifiedResidence('US'),
+            capabilities: BRIDGE_REVIEW_RESPONSE['GET /users/me'].capabilities,
+        },
+        {}
+    ),
+    'card-add-money-bank-not-offered': cardAddMoney(
+        'Card $10 step: a UK resident, every bank account refused, so only the crypto row shows.',
+        {
+            residence: verifiedResidence('GB'),
+            capabilities: {
+                rails: [...BRIDGE_BANK_RAILS, BRIDGE_CO_RAIL].map((rail) => ({
+                    ...rail,
+                    status: 'blocked',
+                    reason: UK_BANK_REFUSAL,
+                    resolved: { status: 'blocked', blocking: { ...UK_BANK_REFUSAL, selfHealable: false } },
+                })),
+                nextActions: [],
+                restrictions: [
+                    {
+                        ...UK_BANK_REFUSAL,
+                        affectedRailIds: [...BRIDGE_BANK_RAILS, BRIDGE_CO_RAIL].map((rail) => rail.id),
+                    },
+                ],
+            },
+        },
+        {}
+    ),
+}
+
 export const FIXTURES: Record<string, Fixture> = {
     ...SETUP_REDESIGN_FIXTURES,
     'setup-signup-reserved': {
@@ -4196,6 +4365,7 @@ export const FIXTURES: Record<string, Fixture> = {
             'POST /rain/cards': { status: 'terms-required', isUsResident: false },
         },
     },
+    ...CARD_ADD_MONEY_FIXTURES,
     'card-holder': {
         route: '/card',
         about: 'Existing holder keeps card management even when new issuance is prohibited for their residence.',

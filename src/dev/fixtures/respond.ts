@@ -16,6 +16,8 @@ import { withFixtureFeatureReport, withFixtureRoutes } from './featureReport'
 const JSON_HEADERS = { 'content-type': 'application/json' }
 
 let warned = false
+/** Fixtures whose watched deposit has landed: their balance is `balanceAfterDeposit` for the rest of the tab. */
+const creditedFixtures = new Set<string>()
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -42,7 +44,8 @@ export async function fixtureRespond(path: string, options?: RequestInit): Promi
         return demoRespond(path, options, { offline: true })
     }
 
-    if (fixture.balance !== undefined) setFixtureBalanceUnits(parseUnits(fixture.balance, PEANUT_WALLET_TOKEN_DECIMALS))
+    const balance = creditedFixtures.has(name!) ? fixture.balanceAfterDeposit : fixture.balance
+    if (balance !== undefined) setFixtureBalanceUnits(parseUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
 
     const method = (options?.method ?? 'GET').toUpperCase()
     const key = `${method} ${path.split('?')[0].replace(/\/+$/, '')}`
@@ -90,6 +93,14 @@ export async function fixtureRespond(path: string, options?: RequestInit): Promi
             ),
             override as Partial<IUserProfile> | null | undefined
         )
+    }
+    if (
+        fixture.balanceAfterDeposit !== undefined &&
+        key.startsWith('GET /rhino/status/') &&
+        (merged as { status?: string } | null)?.status === 'completed'
+    ) {
+        creditedFixtures.add(name!)
+        setFixtureBalanceUnits(parseUnits(fixture.balanceAfterDeposit, PEANUT_WALLET_TOKEN_DECIMALS))
     }
     return new Response(JSON.stringify(stress ? stressResponse(merged) : merged), {
         status: base.status,
