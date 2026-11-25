@@ -2,7 +2,7 @@ import { corridorHasTopUp } from './countryRoutes'
 import { DEPOSIT_RAIL_ORDER, DEPOSIT_RAILS, isClaimable } from '@/features/deposit-accounts/rails'
 import { residenceAllows } from '@/features/deposit-accounts/residenceGate'
 
-export type AddMoneyMethod = 'account' | 'transfer' | 'pix' | 'ars' | 'crypto' | 'more'
+export type AddMoneyMethod = 'account' | 'bank' | 'pix' | 'ars' | 'crypto' | 'more'
 
 /**
  * Where the Pix row stands on both Add lists, Home's drawer and the Add picker, read from the API's Pix
@@ -83,8 +83,8 @@ export function resolveAddMoneyMethods(input: {
     if (arsRow) drawerMethods.push('ars')
     if (pixRow === 'first') drawerMethods.push('pix')
     if (accountsOffered) drawerMethods.push('account')
-    // A one-time bank transfer is never a drawer row (the owner, 15 Nov): it lives on the picker,
-    // behind "More ways to add money". A ready one still makes the user returning.
+    // A one-time bank transfer is never a drawer row (the owner, 15 Nov): the picker's bank row, behind
+    // "More ways to add money", reaches it. A ready one still makes the user returning.
     if (pixRow === 'after-bank') drawerMethods.push('pix')
     if (input.cryptoReady) drawerMethods.push('crypto')
     const usable = drawerMethods.length > 0
@@ -92,8 +92,10 @@ export function resolveAddMoneyMethods(input: {
     const pickerMethods: AddMoneyMethod[] = []
     if (arsRow) pickerMethods.push('ars')
     if (pixRow === 'first') pickerMethods.push('pix')
-    if (accountsOffered) pickerMethods.push('account')
-    pickerMethods.push('transfer')
+    // One bank row for everybody (the owner, 25 Nov, Release 170.2): it opens the bank hub, where a
+    // country leads to the reusable account when the user holds or can open one, else to the one-time
+    // transfer (`useDepositCountryRouting`). The user never chooses between the two by name.
+    pickerMethods.push('bank')
     if (pixRow === 'after-bank') pickerMethods.push('pix')
     pickerMethods.push('crypto')
     return {
