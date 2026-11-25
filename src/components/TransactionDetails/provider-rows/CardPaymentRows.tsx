@@ -43,6 +43,7 @@ const DECLINE_REASON_KEYS = {
     insufficientBalance: 'decline.insufficientBalance',
     spendingLimitReached: 'decline.spendingLimitReached',
     blockedMerchant: 'decline.blockedMerchant',
+    cashLikeMerchant: 'decline.cashLikeMerchant',
     cardLocked: 'decline.cardLocked',
     invalidPin: 'decline.invalidPin',
     generic: 'decline.generic',
@@ -191,7 +192,9 @@ export function CardPaymentRows({
         subRows.push({
             key: 'declineReason',
             label: t('cardRows.declineReason'),
-            value: t(DECLINE_REASON_KEYS[declineReasonCode(declineReasonClean, card.declineCategory)]),
+            value: t(
+                DECLINE_REASON_KEYS[declineReasonCode(declineReasonClean, card.declineCategory, card.merchantMcc)]
+            ),
         })
     }
 

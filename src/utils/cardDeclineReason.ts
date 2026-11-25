@@ -26,6 +26,7 @@ export type DeclineReasonCode =
     | 'insufficientBalance'
     | 'spendingLimitReached'
     | 'blockedMerchant'
+    | 'cashLikeMerchant'
     | 'cardLocked'
     | 'invalidPin'
     | 'generic'
@@ -57,11 +58,32 @@ const CODES: Record<string, DeclineReasonCode> = {
     // Per-tx cardLimit breached (user's configured per-authorization cap)
     card_spending_limit_exceeded: 'spendingLimitReached',
     spending_limit_exceeded: 'spendingLimitReached',
-    blocked_merchant: 'blockedMerchant',
-    blocked_mcc: 'blockedMerchant',
     card_locked: 'cardLocked',
     invalid_pin: 'invalidPin',
 }
+
+/**
+ * Visa MCCs for money transfers, cash and stored-value loads: 4829 money
+ * transfer, 6010 manual cash disbursement, 6011 ATM cash, 6012 financial
+ * institution merchandise and services, 6050 quasi-cash (member financial
+ * institution), 6051 quasi-cash (non-financial merchant), 6540 stored-value
+ * purchase or load (wallet top-ups). Rain blocks these MCCs. Same set as
+ * `categorizeCardDecline` in peanut-api-ts src/notifications/card.ts.
+ */
+const CASH_LIKE_MCCS = new Set(['4829', '6010', '6011', '6012', '6050', '6051', '6540'])
+
+/** Rain's reasons for a merchant or MCC block, as seen in prod (2026-11), in
+ *  normalized form. They include "blocked mcc", "block transaction from
+ *  high-risk merchant category codes [v3", "triggers for transactions from mcc
+ *  6050 and 6051" and "block transactions from specified high-risk e-commerce
+ *  merch…". */
+const MERCHANT_BLOCK_MARKERS = [
+    'blocked_mcc',
+    'blocked_merchant',
+    'merchant_categor',
+    'mcc_6050',
+    'high_risk_e_commerce',
+]
 
 /** Collapse Rain's three flavours (snake_case, SCREAMING_CASE, prose) into a
  *  single lookup key. lower-case + replace runs of non-alphanumerics with one
@@ -75,11 +97,16 @@ function normalizeDeclineCode(code: string): string {
 
 export function declineReasonCode(
     code: string | null | undefined,
-    category?: DeclineCategory | null
+    category?: DeclineCategory | null,
+    mcc?: string | null
 ): DeclineReasonCode {
     // Prefer the BE-computed category — it disambiguates the
     // INSUFFICIENT_FUNDS/limit-too-low collision Rain leaves on the wire.
     if (category && CATEGORY_CODES[category]) return CATEGORY_CODES[category]
     if (!code) return 'generic'
-    return CODES[normalizeDeclineCode(code)] ?? 'generic'
+    const normalized = normalizeDeclineCode(code)
+    if (MERCHANT_BLOCK_MARKERS.some((marker) => normalized.includes(marker))) {
+        return mcc && CASH_LIKE_MCCS.has(mcc.trim()) ? 'cashLikeMerchant' : 'blockedMerchant'
+    }
+    return CODES[normalized] ?? 'generic'
 }

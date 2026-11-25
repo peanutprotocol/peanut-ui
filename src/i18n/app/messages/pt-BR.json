@@ -2931,6 +2931,7 @@
             "insufficientBalance": "Saldo insuficiente",
             "spendingLimitReached": "Limite de gastos atingido",
             "blockedMerchant": "Este estabelecimento não é aceito",
+            "cashLikeMerchant": "Este cartão não pode ser usado para transferências de dinheiro, recargas de carteiras ou compras equivalentes a dinheiro.",
             "cardLocked": "Cartão bloqueado",
             "invalidPin": "PIN incorreto",
             "generic": "Transação recusada"
