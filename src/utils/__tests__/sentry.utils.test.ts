@@ -378,6 +378,26 @@ describe('fetchWithSentry — a failing read reports once per window', () => {
         await fetchWithSentry('https://api.peanut.me/fx/card-markup?currency=ARS')
         expect(Sentry.captureMessage).toHaveBeenCalledTimes(1)
     })
+
+    it('does not report a card whose collateral contract Rain has not deployed yet', async () => {
+        global.fetch = jest
+            .fn()
+            .mockResolvedValue(
+                failing(409, { error: 'Your card account is still being set up', code: 'collateral_not_deployed' })
+            )
+        await fetchWithSentry('https://api.peanut.me/rain/cards/funding')
+        expect(Sentry.captureMessage).not.toHaveBeenCalled()
+    })
+
+    it('still reports any other card funding 409', async () => {
+        global.fetch = jest
+            .fn()
+            .mockResolvedValue(
+                failing(409, { error: 'Card collateral is unavailable', code: 'collateral_unavailable' })
+            )
+        await fetchWithSentry('https://api.peanut.me/rain/cards/funding')
+        expect(Sentry.captureMessage).toHaveBeenCalledTimes(1)
+    })
 })
 
 describe('sanitizeRequestBody', () => {
