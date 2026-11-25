@@ -43,7 +43,7 @@ on:
         #   (ITEMS_TO_DISABLE): a landing-page edit cut a new OTA, version and
         #   store build for an unchanged app (7 tester builds 23-25 Nov). Only
         #   the route folders are listed; components they share with the app
-        #   still release. [locale] stays out: the guard reads no brackets.
+        #   still release. [locale] is escaped (\[locale\]): a bare bracket is a glob class.
         paths-ignore:
             - 'src/content'
             - 'src/app/go/**'
@@ -66,6 +66,7 @@ on:
             - 'src/app/peanut-card/**'
             - 'src/app/request-links/**'
             - 'src/app/self-custody/**'
+            - 'src/app/\[locale\]/**'
     # Retry a failed OTA without a new main push. The run publishes the current
     # main tip only; the SHA input makes the operator name it.
     workflow_dispatch:

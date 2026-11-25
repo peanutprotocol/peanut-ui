@@ -19,5 +19,6 @@
     "src/app/qr-payments/**",
     "src/app/peanut-card/**",
     "src/app/request-links/**",
-    "src/app/self-custody/**"
+    "src/app/self-custody/**",
+    "src/app/\\[locale\\]/**"
 ]
