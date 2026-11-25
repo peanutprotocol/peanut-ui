@@ -373,8 +373,11 @@ describe('crypto views', () => {
         await act(async () => pollOnSuccess?.(4))
         const short = within(drawer()).getByTestId('card-add-money-short')
         expect(short).toHaveTextContent('partialContribution.title($4|$7.50)')
-        // $3.50 is left, but the network takes at least $5: a smaller transfer would strand
-        expect(short).toHaveTextContent('partialContribution.description($5)')
+        // $3.50 is still missing, but the network takes at least $5: the ask says so, never a smaller send
+        expect(short).toHaveTextContent('partialContribution.description($3.50)')
+        const ask = within(drawer()).getByTestId('card-add-money-ask')
+        expect(ask).toHaveTextContent('sendAsk($5)')
+        expect(ask).toHaveTextContent('raisedToMinimum(Tron|$5|$1.50)')
         // the address stays to send the rest to
         expect(within(drawer()).getByTestId('qr')).toBeInTheDocument()
         expect(mockResetStatus).toHaveBeenCalled()

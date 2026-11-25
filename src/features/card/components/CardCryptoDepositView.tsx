@@ -51,11 +51,14 @@ export function CardCryptoDepositView({ network, gapUsd }: { network: RhinoChain
         enabled: !!userId && !!address,
         staleTime: 1000 * 60 * 60 * 24,
     })
-    const ask = data && gapUsd ? cardCryptoAskUsd(gapUsd, data.minDepositLimitUsd) : undefined
+    const [shortDeposit, setShortDeposit] = useState<{ received: number; asked: number }>()
+    // what is still missing: after a short deposit the smaller of the refreshed gap and the unpaid
+    // part of the ask, so it is right before the balance read lands and after it
+    const shortRest = shortDeposit ? Math.max(shortDeposit.asked - shortDeposit.received, 0.01) : undefined
+    const needUsd = shortRest !== undefined ? Math.min(gapUsd ?? shortRest, shortRest) : gapUsd
+    const ask = data && needUsd ? cardCryptoAskUsd(needUsd, data.minDepositLimitUsd) : undefined
     const askRef = useRef(ask?.askUsd)
     askRef.current = ask?.askUsd
-
-    const [shortDeposit, setShortDeposit] = useState<{ received: number; asked: number }>()
     // the gap when a full deposit was reported: processing lasts until the balance read moves past it
     const [creditedAtGap, setCreditedAtGap] = useState<number>()
     const gapRef = useRef(gapUsd)
@@ -183,18 +186,28 @@ export function CardCryptoDepositView({ network, gapUsd }: { network: RhinoChain
                             })}
                         </h2>
                         <p className="text-body-s text-foreground-secondary">
-                            {tPayment('partialContribution.description', {
-                                // never below the network minimum: Rhino would not bridge a smaller rest
-                                remaining: usd(
-                                    cardCryptoAskUsd(
-                                        Math.max(shortDeposit.asked - shortDeposit.received, 0.01),
-                                        data.minDepositLimitUsd
-                                    ).askUsd
-                                ),
-                            })}
+                            {tPayment('partialContribution.description', { remaining: usd(needUsd ?? 0) })}
                         </p>
                     </div>
                 </Card>
+            )}
+            {/* the amount first: at 375px the QR and the warning push anything below out of sight */}
+            {ask && (
+                <div className="flex w-full flex-col gap-1" data-testid="card-add-money-ask">
+                    <p className="text-body-m-semibold text-foreground-primary">
+                        {t('sendAsk', { amount: usd(ask.askUsd) })}
+                    </p>
+                    {ask.raisedToMinimum && needUsd && (
+                        <p className="text-body-s text-foreground-secondary">
+                            {t('raisedToMinimum', {
+                                network: networkLabel,
+                                minimum: usd(ask.askUsd),
+                                extra: usd(ask.askUsd - needUsd),
+                            })}
+                        </p>
+                    )}
+                    <p className="text-body-s text-foreground-secondary">{tCrypto('sendExtraForFees')}</p>
+                </div>
             )}
             <p className="text-body-m text-foreground-primary">{t('depositAddress', { network: networkLabel })}</p>
             <QRCodeWrapper url={data.depositAddress} />
@@ -219,23 +232,6 @@ export function CardCryptoDepositView({ network, gapUsd }: { network: RhinoChain
                         ))}
                     </div>
                 </Card>
-            )}
-            {ask && (
-                <div className="flex w-full flex-col gap-1" data-testid="card-add-money-ask">
-                    <p className="text-body-m-semibold text-foreground-primary">
-                        {t('sendAsk', { amount: usd(ask.askUsd) })}
-                    </p>
-                    {ask.raisedToMinimum && gapUsd && (
-                        <p className="text-body-s text-foreground-secondary">
-                            {t('raisedToMinimum', {
-                                network: networkLabel,
-                                minimum: usd(ask.askUsd),
-                                extra: usd(ask.askUsd - gapUsd),
-                            })}
-                        </p>
-                    )}
-                    <p className="text-body-s text-foreground-secondary">{tCrypto('sendExtraForFees')}</p>
-                </div>
             )}
             <div className="flex items-center gap-2 text-body-s text-foreground-secondary">
                 <Loading />
