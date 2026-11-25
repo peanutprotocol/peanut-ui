@@ -42,7 +42,16 @@ describe('resolveGoRedirect', () => {
         expect(resolveGoRedirect(['APP'])).toBe('/app')
     })
 
+    // These keys are printed on the Palermo posters (TASK-24170), so they must keep resolving.
+    it.each(['1', '2', '3'])('keeps printed key palermo/%s', (n) => {
+        const destination = `/invite?code=squirrel&utm_source=poster&utm_medium=cpm&utm_campaign=palermo-posters-2026-11&utm_content=p${n}`
+        expect(resolveGoRedirect(['palermo', n])).toBe(destination)
+        expect(resolveGoRedirect(['PALERMO', n])).toBe(destination)
+    })
+
     it('misses an unknown key and extra segments', () => {
+        expect(resolveGoRedirect(['palermo'])).toBeNull()
+        expect(resolveGoRedirect(['palermo', '4'])).toBeNull()
         expect(resolveGoRedirect(['konrad', '1'])).toBeNull()
         expect(resolveGoRedirect(['app', 'x'])).toBeNull()
     })
