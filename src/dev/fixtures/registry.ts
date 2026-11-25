@@ -2576,6 +2576,9 @@ const cardAddMoney = (
             ...user,
         },
         'GET /users/deposit-accounts': { depositAccounts: [], claimable: [], unavailable: [], ...depositAccounts },
+        // demo mode answers `pending` (a deposit on its way); the drawer reads the status at open, so
+        // nothing sent yet is `not_started` here
+        [RHINO_STATUS]: { status: 'not_started' },
         ...extra.responses,
     },
 })

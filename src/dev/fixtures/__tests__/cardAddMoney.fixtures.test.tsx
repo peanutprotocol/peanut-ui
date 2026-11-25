@@ -133,6 +133,9 @@ describe('card add-money drawer fixtures', () => {
         activate(name)
         await read('/users/me')
         expect(spendableUsd()).toBe(3.2)
+        // the read at open sees nothing sent yet, so the drawer shows the address first
+        expect(await read(`/rhino/status/${DEMO_ADDRESS}`)).toEqual({ status: 'not_started' })
+        expect(spendableUsd()).toBe(3.2)
         expect(await read(`/rhino/status/${DEMO_ADDRESS}`)).toEqual({ status: 'completed', amount })
         expect(spendableUsd()).toBe(after)
         // and it stays credited on every later answer
@@ -141,9 +144,9 @@ describe('card add-money drawer fixtures', () => {
         expect((await fixtureRespond(`/rhino/reset-status/${DEMO_ADDRESS}`, { method: 'POST' })).status).toBe(500)
     })
 
-    it('a pending deposit leaves the balance as it was', async () => {
+    it('with nothing sent, the status reads not_started and the balance stays as it was', async () => {
         activate('card-add-money-crypto')
-        expect(await read(`/rhino/status/${DEMO_ADDRESS}`)).toEqual({ status: 'pending' })
+        expect(await read(`/rhino/status/${DEMO_ADDRESS}`)).toEqual({ status: 'not_started' })
         expect(spendableUsd()).toBe(3.2)
     })
 })
