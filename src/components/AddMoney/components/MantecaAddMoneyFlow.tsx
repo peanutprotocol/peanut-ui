@@ -26,6 +26,7 @@ import { deriveProviderRejection } from '@/utils/provider-rejection.utils'
 import { useMultiPhaseKycFlow } from '@/hooks/useMultiPhaseKycFlow'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { InitiateKycModal } from '@/components/Kyc/InitiateKycModal'
+import ProvideEmailStep from '@/components/Kyc/ProvideEmailStep'
 import { MIN_MANTECA_DEPOSIT_AMOUNT } from '@/constants/payment.consts'
 import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { TRANSACTIONS } from '@/constants/query.consts'
@@ -35,7 +36,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useTranslations } from 'next-intl'
 import { useBankEntryFor } from '@/hooks/useBankRows'
-import { isLocalResidenceRefusal, isMantecaAccountClosed, refusalOf } from '@/features/kyc-features/report'
+import { entryAction, isLocalResidenceRefusal, isMantecaAccountClosed, refusalOf } from '@/features/kyc-features/report'
 import { useAuth } from '@/context/authContext'
 import { ResidenceRequiredScreen } from '@/features/deposit-accounts/components/ResidenceRequiredScreen'
 import { withReturnTo, readReturnTo } from '@/utils/return-to.utils'
@@ -142,6 +143,10 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
             ),
         [rails, residenceGatedCountry, nextActions]
     )
+    // Manteca parked the account for a missing email (api resolver `email_required`): saving one
+    // resubmits it, so the drawer asks for the email instead of sending the user to support (TASK-25345).
+    const emailRequired =
+        localAccount?.state === 'action_required' && entryAction(localAccount, nextActions)?.kind === 'provide-email'
     const currencyData = useCurrency(selectedCountry?.currency ?? 'ARS')
     // inline sumsub kyc flow for manteca users who need LATAM verification
     // regionIntent is NOT passed here to avoid creating a backend record on mount.
@@ -449,9 +454,12 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     if (step === 'inputAmount') {
         // A document Manteca asks for takes the page, as on the bank Add money screen: nothing on
         // the amount step works until it is uploaded, so a drawer over it would sit on a dead screen.
-        const documentRequest = showKycModal && mantecaRejection.state === 'fixable'
+        const documentRequest = showKycModal && !emailRequired && mantecaRejection.state === 'fixable'
         return (
             <>
+                {emailRequired && (
+                    <ProvideEmailStep visible={showKycModal} onComplete={closeKycModal} onSkip={closeKycModal} />
+                )}
                 <InitiateKycModal
                     presentation={documentRequest ? 'page' : 'modal'}
                     navTitle={documentRequest ? t('title') : undefined}
@@ -460,7 +468,7 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
                     cooldownActive={!!sumsubFlow.errorCooldown}
                     prepPath="extended"
                     taxIdCountry={residenceGatedCountry ?? undefined}
-                    visible={showKycModal}
+                    visible={showKycModal && !emailRequired}
                     onClose={closeKycModal}
                     onVerify={async () => {
                         if (mantecaRejection.state === 'blocked') {
