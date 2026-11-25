@@ -270,7 +270,7 @@
     padding: 2rem 1rem 2.5rem;
 }
 .proofs > p,
-.proof > div:first-child span {
+.proof > div:first-child span:first-child {
     color: var(--color-foreground-secondary);
     font-size: var(--text-label-m);
     font-weight: var(--text-label-m--font-weight);
@@ -298,7 +298,8 @@
     height: 2rem;
     margin-top: 0.125rem;
 }
-.proof > div:first-child span {
+/* The label over the phrase; the span after it holds her words. */
+.proof > div:first-child span:first-child {
     display: block;
 }
 /* A closing quotation mark follows the phrase, so the stroke has no padding after it. */
