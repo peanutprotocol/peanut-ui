@@ -12,7 +12,7 @@ import { getExchangeRateWidgetRedirectRoute } from '@/utils/exchangeRateWidget.u
 import { withReturnTo } from '@/utils/return-to.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { deriveRegionAccess } from '@/utils/regions.utils'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { parseAsString, useQueryStates } from 'nuqs'
 import { useRouter } from 'next/navigation'
 import { useSafeBack } from '@/hooks/useSafeBack'
@@ -21,6 +21,7 @@ import { useMemo } from 'react'
 export default function ExchangeRatePage() {
     const native = useNativePlatform()
     const t = useTranslations('exchangeRate')
+    const locale = useLocale()
     const tCommon = useTranslations('common')
     const router = useRouter()
     const onBack = useSafeBack('/settings', { replace: true })
@@ -106,6 +107,7 @@ export default function ExchangeRatePage() {
                         ctaDisabled={balancePending}
                         restrictToRoutable
                         shadow={false}
+                        locale={locale}
                         labels={{
                             youSend: t('widget.youSend'),
                             recipientGets: t('widget.recipientGets'),
