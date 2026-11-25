@@ -89,24 +89,31 @@ export function CardFundingStep({
         setOpen(false)
     }
 
-    // "I've sent the transfer": the step says the money is on its way until the balance covers the
-    // minimum. Session storage keeps it through a refresh; saving the step server-side is bank resume.
-    const sentKey = `card_gate_bank_sent_v1:${userId}`
-    const [sentUsd, setSentUsd] = useState(() => {
-        const stored = Number(readStoredValue(sentKey, 'sessionStorage'))
-        return stored > 0 ? stored : undefined
+    // "I've sent the transfer": the step says the money is on its way until the balance rises past
+    // where it was (it landed, even short) or covers the minimum. Session storage keeps it through a
+    // refresh; saving the step server-side is bank resume. A non-dollar transfer is not named in dollars.
+    const sentKey = `card_gate_bank_sent_v2:${userId}`
+    const [sent, setSent] = useState<{ usd: number | null; from: number } | undefined>(() => {
+        try {
+            const stored = JSON.parse(readStoredValue(sentKey, 'sessionStorage') ?? 'null')
+            return typeof stored?.from === 'number' ? stored : undefined
+        } catch {
+            return undefined
+        }
     })
-    const bankSent = () => {
+    const bankSent = (inDollars: boolean) => {
         dismiss()
-        if (!gapUsd) return
-        setSentUsd(gapUsd)
-        writeStoredValue(sentKey, String(gapUsd), 'sessionStorage')
+        if (spendableUsd === undefined) return
+        const next = { usd: inDollars && gapUsd ? gapUsd : null, from: spendableUsd }
+        setSent(next)
+        writeStoredValue(sentKey, JSON.stringify(next), 'sessionStorage')
     }
+    const sentLanded = !!sent && (funded || (spendableUsd !== undefined && spendableUsd > sent.from + 0.005))
     useEffect(() => {
-        if (!funded) return
-        setSentUsd(undefined)
+        if (!sentLanded) return
+        setSent(undefined)
         removeStoredValue(sentKey, 'sessionStorage')
-    }, [funded, sentKey])
+    }, [sentLanded, sentKey])
 
     // Before/after for the drawer: the balance reached the minimum after this step showed it short.
     // Session storage, so a user who funds on another page (a bank page, Home) and comes back counts too.
@@ -157,9 +164,11 @@ export function CardFundingStep({
                       })
                     : t('fundingBody')}
             </p>
-            {sentUsd !== undefined && !funded && (
+            {sent && !sentLanded && (
                 <Callout priority="info" data-testid="card-add-money-bank-sent">
-                    {tCard('bankSentPending', { amount: formatBankAmount(sentUsd, 'USD') })}
+                    {sent.usd
+                        ? tCard('bankSentPending', { amount: formatBankAmount(sent.usd, 'USD') })
+                        : tCard('bankSentPendingNoAmount')}
                 </Callout>
             )}
             <ListGroup>

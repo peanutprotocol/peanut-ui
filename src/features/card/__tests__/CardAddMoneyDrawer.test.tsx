@@ -279,7 +279,7 @@ describe('bank views', () => {
         depositAccounts = { SEPA_EU: SEPA_ACCOUNT }
         const details = openOnlyAccount('EUR')
         // $7.50 at 0.92 is €6.90, rounded up to a whole euro so a moving rate does not land short
-        expect(within(details).getByText('sendAbout(€7)')).toBeInTheDocument()
+        expect(within(details).getByText('sendAbout(€8)')).toBeInTheDocument()
         expect(within(details).getByText('DE89370400440532013000')).toBeInTheDocument()
     })
 
@@ -440,9 +440,12 @@ describe('crypto views', () => {
     })
 
     it('shows what is still missing after a short deposit and watches for the rest', async () => {
-        const { queryClient } = await openAddress('tron')
+        const { queryClient, rerenderWith } = await openAddress('tron')
         queryClient.setQueryData(['balance', '0xwallet'], 1)
         await act(async () => pollOnSuccess?.(4))
+        // processing until the balance read shows the $4
+        expect(within(drawer()).getByTestId('card-add-money-processing')).toBeInTheDocument()
+        await act(async () => rerenderWith({ spendableUsd: 6.5 }))
         const short = within(drawer()).getByTestId('card-add-money-short')
         expect(short).toHaveTextContent('partialContribution.title($4|$7.50)')
         // $3.50 is still missing, but the network takes at least $5: the ask is the one send amount
@@ -458,8 +461,9 @@ describe('crypto views', () => {
 
     it('asks for the exact rest after a short deposit when the network minimum is lower', async () => {
         mockCreateDepositAddress.mockResolvedValue({ depositAddress: 'Tdeposit', minDepositLimitUsd: 1 })
-        await openAddress('tron')
+        const { rerenderWith } = await openAddress('tron')
         await act(async () => pollOnSuccess?.(4))
+        await act(async () => rerenderWith({ spendableUsd: 6.5 }))
         expect(within(drawer()).getByTestId('card-add-money-ask')).toHaveTextContent('sendAsk($3.50)')
     })
 
@@ -660,5 +664,15 @@ describe('one amount, one heading, no dead ends', () => {
         expect(await screen.findByText('bankSentPending($7.50)')).toBeInTheDocument()
         rerenderWith({ funded: true, spendableUsd: 10 })
         await waitFor(() => expect(screen.queryByText('bankSentPending($7.50)')).not.toBeInTheDocument())
+    })
+
+    it('drops the pending line once the transfer lands, even short of the minimum', async () => {
+        readiness = { ...readiness, ready: { ...noneReady, account: ['USD'] } }
+        const { rerenderWith } = renderFunding()
+        fireEvent.click(screen.getByTestId('card-add-money-bank'))
+        fireEvent.click(within(drawer()).getByText('sentTransfer'))
+        expect(await screen.findByText('bankSentPending($7.50)')).toBeInTheDocument()
+        rerenderWith({ spendableUsd: 9.5 })
+        await waitFor(() => expect(screen.queryByTestId('card-add-money-bank-sent')).not.toBeInTheDocument())
     })
 })

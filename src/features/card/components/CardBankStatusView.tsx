@@ -6,6 +6,7 @@ import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
+import { useAuth } from '@/context/authContext'
 import { useModalsContext } from '@/context/ModalsContext'
 import { DEPOSIT_RAILS } from '@/features/deposit-accounts/rails'
 import type { CardBankPlan } from '@/features/card/cardAddMoney'
@@ -42,6 +43,7 @@ export function CardBankStatusView({
     const tCommon = useTranslations('common')
     const restrictions = useResidenceRestrictions()
     const { openSupportWithMessage } = useModalsContext()
+    const userId = useAuth().user?.user?.userId
 
     const cryptoPrimary = (
         <Button variant="primary" className="w-full" onClick={onUseCrypto} data-testid="card-add-money-use-crypto">
@@ -118,8 +120,18 @@ export function CardBankStatusView({
                             {cryptoPrimary}
                             {!restrictions.banking &&
                                 tertiary(tCommon('contactSupport'), () =>
-                                    // English on purpose: it is for the support agent, not the user
-                                    openSupportWithMessage('Bank transfer not offered on the card $10 step')
+                                    // the user's own words, then a context block in English for the agent
+                                    openSupportWithMessage(
+                                        [
+                                            t('notOfferedSupportMessage'),
+                                            '',
+                                            '— context for support —',
+                                            'context: card $10 step, bank transfer not offered',
+                                            userId ? `user: ${userId}` : '',
+                                        ]
+                                            .filter((line, i) => i < 2 || line)
+                                            .join('\n')
+                                    )
                                 )}
                         </>
                     ),

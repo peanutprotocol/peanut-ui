@@ -2271,9 +2271,11 @@
             "useCrypto": "Agregar {amount} con cripto",
             "useCryptoNoAmount": "Agregar dinero con cripto",
             "useCryptoInstead": "Mejor agregar dinero con cripto",
-            "notOfferedTitle": "La transferencia bancaria no está disponible para ti",
+            "notOfferedTitle": "La transferencia bancaria no está disponible",
+            "notOfferedSupportMessage": "¡Hola! No puedo agregar dinero por transferencia bancaria para mi tarjeta. ¿Pueden revisar por qué?",
             "notOfferedBody": "No podemos ofrecerte transferencias bancarias. Soporte puede revisar por qué.",
-            "bankSentPending": "Tu transferencia de {amount} está en camino. Te avisamos cuando llegue."
+            "bankSentPending": "Tu transferencia de {amount} está en camino. Te avisamos cuando llegue.",
+            "bankSentPendingNoAmount": "Tu transferencia está en camino. Te avisamos cuando llegue."
         }
     },
     "addMoney": {

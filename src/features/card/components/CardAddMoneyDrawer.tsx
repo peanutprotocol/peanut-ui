@@ -96,7 +96,7 @@ export function CardAddMoneyDrawer({
     /** the user closed the drawer: swipe, overlay or back */
     onDismiss: () => void
     /** "I've sent the transfer": the step shows the transfer on its way */
-    onBankSent: () => void
+    onBankSent: (inDollars: boolean) => void
 }) {
     const t = useTranslations('card.addMoney')
     const tAdd = useTranslations('addMoney')

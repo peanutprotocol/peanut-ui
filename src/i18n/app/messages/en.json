@@ -2271,9 +2271,11 @@
             "useCrypto": "Add {amount} with crypto",
             "useCryptoNoAmount": "Add money with crypto",
             "useCryptoInstead": "Add money with crypto instead",
-            "notOfferedTitle": "Bank transfer isn't available for you",
+            "notOfferedTitle": "Bank transfer isn't available",
+            "notOfferedSupportMessage": "Hi! I can't add money to my card balance by bank transfer. Could you check why?",
             "notOfferedBody": "We can't offer you bank transfers. Support can check why.",
-            "bankSentPending": "Your {amount} transfer is on the way. We'll let you know when it lands."
+            "bankSentPending": "Your {amount} transfer is on the way. We'll let you know when it lands.",
+            "bankSentPendingNoAmount": "Your transfer is on the way. We'll let you know when it lands."
         }
     },
     "addMoney": {

@@ -2270,10 +2270,12 @@
             "finishSetupBody": "Termine na página do banco.",
             "useCrypto": "Adicionar {amount} com cripto",
             "useCryptoNoAmount": "Adicionar dinheiro com cripto",
-            "useCryptoInstead": "Adicionar dinheiro com cripto, em vez disso",
-            "notOfferedTitle": "Transferência bancária não disponível para você",
+            "useCryptoInstead": "Prefiro adicionar dinheiro com cripto",
+            "notOfferedTitle": "Transferência bancária não disponível",
+            "notOfferedSupportMessage": "Oi! Não consigo adicionar dinheiro por transferência bancária para o meu cartão. Vocês podem verificar o motivo?",
             "notOfferedBody": "Não podemos oferecer transferências bancárias para você. O suporte pode verificar o motivo.",
-            "bankSentPending": "Sua transferência de {amount} está a caminho. Avisamos quando chegar."
+            "bankSentPending": "Sua transferência de {amount} está a caminho. Avisamos quando chegar.",
+            "bankSentPendingNoAmount": "Sua transferência está a caminho. Avisamos quando chegar."
         }
     },
     "addMoney": {

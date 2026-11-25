@@ -31,7 +31,8 @@ export function CardBankDetailsView({
 }: {
     corridor: DepositCorridor
     gapUsd: number | undefined
-    onSent: () => void
+    /** "I've sent the transfer"; `inDollars`: the transfer was the dollar gap, so the step may name it */
+    onSent: (inDollars: boolean) => void
 }) {
     const t = useTranslations('card.addMoney')
     const tMethods = useTranslations('addMoney.methods')
@@ -103,14 +104,19 @@ export function CardBankDetailsView({
     }
 
     // The drawer title names the dollar gap, so a dollar account needs no amount line. Another
-    // currency names the gap in that currency, rounded up to a whole unit so a moving rate and the
-    // conversion fee do not leave the user short; with no rate it promises no amount.
+    // currency names the gap in that currency with a 2% margin for a moving rate and the conversion
+    // fee, rounded up to a whole unit, and never under the account's own minimum; with no rate it
+    // promises no amount.
     let amountLine: string | undefined
     if (nonUsd && gapUsd && !isRateLoading) {
+        const minimum = account.rules?.min?.currency === rail.currency ? Number(account.rules.min.amount) || 0 : 0
         amountLine =
             exchangeRate > 0
                 ? t('sendAbout', {
-                      amount: formatBankAmount(roundUpToDecimals(gapUsd * exchangeRate, 0), rail.currency),
+                      amount: formatBankAmount(
+                          Math.max(roundUpToDecimals(gapUsd * exchangeRate * 1.02, 0), minimum),
+                          rail.currency
+                      ),
                   })
                 : t('sendInCurrency', { currency: rail.currency })
     }
@@ -124,7 +130,7 @@ export function CardBankDetailsView({
                 userName={user?.user.fullName || user?.user.username || ''}
             />
             {usable && (
-                <Button variant="primary" className="w-full" onClick={onSent}>
+                <Button variant="primary" className="w-full" onClick={() => onSent(!nonUsd)}>
                     {tBank('sentTransfer')}
                 </Button>
             )}

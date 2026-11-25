@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { ToastProvider } from '@/components/0_Bruddle/Toast'
@@ -148,9 +148,10 @@ describe('the first status read', () => {
 
 describe('a short deposit', () => {
     it('says what was received and asks one amount: the new ask, raised to the minimum', async () => {
-        renderView()
+        const { rerenderWith } = renderView()
         await screen.findByTestId('card-add-money-address')
         await act(async () => pollOnSuccess?.(4))
+        await act(async () => rerenderWith({ spendableUsd: 6.5, gapUsd: 3.5 }))
         expect(screen.getByTestId('card-add-money-short')).toHaveTextContent('partialContribution.title($4|$7.50)')
         const ask = screen.getByTestId('card-add-money-ask')
         // $3.50 is the rest, below the $5 minimum: the ask is $5 and the note says the extra stays
@@ -164,9 +165,10 @@ describe('a short deposit', () => {
 
     it('asks for the exact rest when the minimum is lower', async () => {
         mockCreateDepositAddress.mockResolvedValue({ depositAddress: ADDRESS, minDepositLimitUsd: 1 })
-        renderView()
+        const { rerenderWith } = renderView()
         await screen.findByTestId('card-add-money-address')
         await act(async () => pollOnSuccess?.(4))
+        await act(async () => rerenderWith({ spendableUsd: 6.5, gapUsd: 3.5 }))
         expect(screen.getByTestId('card-add-money-ask')).toHaveTextContent('sendAsk($3.50)')
         expect(screen.queryByText(/raisedToMinimum/)).not.toBeInTheDocument()
     })
@@ -242,5 +244,46 @@ describe('the address field', () => {
         expect(field.value.length).toBeLessThan(ADDRESS.length)
         await act(async () => fireEvent.click(screen.getByText('copyField.copy')))
         expect(mockCopy).toHaveBeenCalledWith(ADDRESS)
+    })
+})
+
+describe('deposits and balance reads in either order (review of fix round 1)', () => {
+    it('waits for the rest of a short deposit to land instead of offering the address again', async () => {
+        mockCreateDepositAddress.mockResolvedValue({ depositAddress: ADDRESS, minDepositLimitUsd: 1 })
+        const { rerenderWith } = renderView({ gapUsd: 6.8, spendableUsd: 3.2 })
+        await screen.findByTestId('card-add-money-address')
+        await act(async () => pollOnSuccess?.(4))
+        expect(screen.getByTestId('card-add-money-processing')).toBeInTheDocument()
+        await act(async () => rerenderWith({ spendableUsd: 7.2, gapUsd: 2.8 }))
+        expect(screen.getByText('partialContribution.title($4|$6.80)')).toBeInTheDocument()
+        expect(screen.getByText('sendAsk($2.80)')).toBeInTheDocument()
+        // the rest is reported before its balance read: processing, not the address and a stale notice
+        await act(async () => pollOnSuccess?.(2.8))
+        expect(screen.getByTestId('card-add-money-processing')).toBeInTheDocument()
+        expect(screen.queryByTestId('qr')).not.toBeInTheDocument()
+        await act(async () => rerenderWith({ spendableUsd: 10, gapUsd: 0 }))
+        expect(screen.getByTestId('card-add-money-done')).toBeInTheDocument()
+    })
+
+    it('resolves a deposit already on its way at open after one fresh balance read', async () => {
+        pollStatus = 'loading'
+        const { rerenderWith } = renderView({ gapUsd: 2.8, spendableUsd: 7.2 })
+        await screen.findByTestId('card-add-money-processing')
+        pollStatus = 'not_started'
+        await act(async () => pollOnSuccess?.(6))
+        await act(async () => rerenderWith({}))
+        // the money was already in the balance: the live gap names the rest, no stuck processing
+        await waitFor(() => expect(screen.queryByTestId('card-add-money-processing')).not.toBeInTheDocument())
+        expect(screen.getByText('sendAsk($5)')).toBeInTheDocument()
+    })
+
+    it('offers a retry when an old outcome cannot be cleared, instead of an address no poll watches', async () => {
+        pollStatus = 'completed'
+        mockResetStatus.mockRejectedValueOnce(new Error('down'))
+        renderView()
+        expect(await screen.findByTestId('card-add-money-clear-failed')).toBeInTheDocument()
+        expect(screen.queryByTestId('qr')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByText('retry'))
+        await screen.findByTestId('card-add-money-address')
     })
 })
