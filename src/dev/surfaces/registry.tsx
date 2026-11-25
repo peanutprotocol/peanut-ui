@@ -1,6 +1,5 @@
 'use client'
 
-import { NotificationsSwitchesScreen } from '@/components/Setup/redesign/Notifications/NotificationsSwitchesScreen'
 import { FinalStep } from '@/components/Setup/redesign/FinalConfirm/FinalStep'
 import { VerifyStartIntro } from '@/components/Setup/redesign/VerifyStart/VerifyStartIntro'
 import { TestBuildRibbonView } from '@/components/Global/TestBuildRibbon'
@@ -855,22 +854,6 @@ export const SURFACES: Record<string, Surface> = {
     '07-d-notification-settings': {
         ...SURFACE_META['07-d-notification-settings'],
         render: () => <SetupScreen screenId="notification-permission" />,
-    },
-    '07-d-notification-switches': {
-        ...SURFACE_META['07-d-notification-switches'],
-        render: () => (
-            <SetupScreen screenId="notification-permission">
-                <NotificationsSwitchesScreen variant="switches" />
-            </SetupScreen>
-        ),
-    },
-    '07-d-notification-defaults-on': {
-        ...SURFACE_META['07-d-notification-defaults-on'],
-        render: () => (
-            <SetupScreen screenId="notification-permission">
-                <NotificationsSwitchesScreen variant="defaults_on" />
-            </SetupScreen>
-        ),
     },
     '07-e-setup-celebration': {
         ...SURFACE_META['07-e-setup-celebration'],
