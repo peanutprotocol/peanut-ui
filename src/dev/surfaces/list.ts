@@ -676,6 +676,11 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         shotFixture: 'pix-withdraw-unconfirmed',
         expectSelector: '[data-testid="app-page-surface-content"] button',
     },
+    '95-a-force-update-screen': {
+        name: 'Force update — native build below the remote floor',
+        path: 'Global/ForceUpdateScreen/index.tsx',
+        captureState: ['platform=android', 'installed < force-app-update-floor <= store offer'],
+    },
     '70-d-activationctas-outbound': {
         name: 'First-payment chooser',
         path: 'Home/FirstPaymentChooser.tsx',
