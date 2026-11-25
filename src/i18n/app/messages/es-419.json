@@ -1121,12 +1121,6 @@
         },
         "notifications": {
             "saveFailed": "No pudimos guardar tu configuración. Inténtalo de nuevo.",
-            "importantLabel": "Alertas importantes",
-            "importantDescription": "Pagos, cuenta y seguridad",
-            "offersLabel": "Ofertas y beneficios",
-            "offersDescription": "Prueba las novedades antes que nadie",
-            "emailLabel": "Novedades por correo",
-            "emailDescription": "Novedades útiles en tu correo",
             "changeAnytime": "Puedes cambiar cualquiera de estas opciones cuando quieras en tu perfil."
         }
     },

@@ -2506,14 +2506,6 @@ const SETUP_REDESIGN_FIXTURES: Record<string, Fixture> = {
     'setup-redesign-notifications-default': setupRedesign('notifications', '10 Notifications: Turn on, or Not now.'),
     'setup-redesign-notifications-prompt': setupRedesign('notifications', '10 Notifications: the OS prompt is open.'),
     'setup-redesign-notifications-denied': setupRedesign('notifications', '10 Notifications: the OS said no.'),
-    'setup-redesign-notifications-switches': setupRedesign('notifications', '10 Notifications: the switches arm.'),
-    'setup-redesign-notifications-switches-save-failed': setupRedesign(
-        'notifications',
-        '10 Notifications: switches, save failed.',
-        {
-            fails: ['POST /notifications/preferences'],
-        }
-    ),
 
     'setup-redesign-final-default': setupRedesign('final', '11 Final confirm: Confirm and finish.'),
     'setup-redesign-final-loading-user': setupRedesign('final', '11 Final confirm: the account is still loading.', {

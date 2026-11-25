@@ -245,9 +245,7 @@ export const ANALYTICS_EVENTS = {
     NOTIFICATION_SUBSCRIBED: 'notification_subscribed',
     NOTIFICATION_CLICKED: 'notification_clicked',
     NOTIFICATION_SUBSCRIPTION_SNAPSHOT: 'notification_subscription_snapshot',
-    /** Sign-up notifications step saved: outcome = OS answer, not_asked or skipped. */
-    NOTIFICATION_CHOICES_SAVED: 'notification_choices_saved',
-    /** The OS answer to the prompt the sign-up notifications step opened; the experiment's goal. */
+    /** The OS answer to the prompt the sign-up notifications step opened. */
     SIGNUP_PUSH_PERMISSION_ANSWERED: 'signup_push_permission_answered',
 
     // ── App store review ──
