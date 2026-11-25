@@ -38,6 +38,7 @@ import { residenceAddressEntry } from '@/features/kyc-features/residenceAddressE
 import { API_ERROR_CODES, ApiError, wireErrorCode } from '@/services/api-error'
 import { markVerifySource } from '@/features/paperwork-verification/verifySource'
 import { currentReverificationDestination, featureReverificationPath } from '@/utils/kyc-reverification'
+import { CARD_MIN_BALANCE_USD } from '@/features/card/cardAddMoney'
 
 const CARD_ISSUANCE_WAIT_MS = 12_000
 const CARD_ISSUANCE_POLL_MS = 2_000
@@ -52,8 +53,8 @@ export function useCardFlow() {
     const { user, fetchUser } = useAuth()
     const userId = user?.user?.userId
     const activation = useKycFeatureActivation('card', { automatic: false })
-    const { balance, hasSufficientSpendableBalance } = useWallet()
-    const isCardFunded = hasSufficientSpendableBalance(10)
+    const { balance, spendableBalanceDecimal, hasSufficientSpendableBalance } = useWallet()
+    const isCardFunded = hasSufficientSpendableBalance(CARD_MIN_BALANCE_USD)
     const [fundingRequired, setFundingRequired] = useState(false)
     useEffect(() => {
         if (isCardFunded) setFundingRequired(false)
@@ -1113,6 +1114,8 @@ export function useCardFlow() {
         user,
         isCardFunded,
         isBalanceKnown,
+        /** the spendable dollars the funding step names the gap from; undefined until the balance is known */
+        spendableUsd: isBalanceKnown ? spendableBalanceDecimal : undefined,
         needsFundingBeforeApply,
         /** Which card terms to show: `managed` | `legacy`, undefined while unknown. */
         termsFundingPath: fundingAccess.setupPath,

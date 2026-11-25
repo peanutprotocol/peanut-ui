@@ -1279,13 +1279,21 @@
             "addFunds": "Agregar dinero",
             "issuedTitle": "Conocé tu Peanut Card.",
             "issuedBody": "Está lista para pagos en línea y sin contacto.",
-            "viewCard": "Ver tarjeta"
+            "viewCard": "Ver tarjeta",
+            "fundingBodyGap": "Necesitás al menos USD 10 en tu saldo de Peanut para obtener tu tarjeta. Tenés {balance}, así que agregá {gap}. La tarjeta es gratis y el dinero sigue siendo tuyo para gastarlo con ella."
         },
         "addressStep": {
             "required": "Para continuar con la solicitud de tu tarjeta, agregá tu dirección de residencia.",
             "rejected": "Revisá tu dirección de residencia y enviala de nuevo para continuar con la solicitud de tu tarjeta.",
             "in_review": "Estamos revisando tu dirección. Podrás continuar con la solicitud de tu tarjeta cuando sea aceptada.",
             "unavailable": "No pudimos cargar el paso de dirección. Intentá de nuevo."
+        },
+        "addMoney": {
+            "pickNetwork": "Elegí la red desde la que enviás. Si enviás desde un exchange, elegí la red en la que retirás ahí.",
+            "sendAsk": "Enviá {amount}",
+            "amountToSendConverted": "Enviá el equivalente a {amount} en {currency}. Sumá un poco más por las comisiones del banco.",
+            "notVerifiedBody": "Verificá tu identidad una sola vez para obtener los datos bancarios.",
+            "finishSetupBody": "Terminalo en la página del banco. Después volvés acá."
         }
     },
     "addMoney": {

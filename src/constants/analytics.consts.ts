@@ -372,6 +372,19 @@ export const ANALYTICS_EVENTS = {
     // when a deposit method was picked, else null. The deposit itself is the
     // server-side `deposit_completion` (peanut-api-ts, every rail).
     CARD_GATE_ADD_FUNDS_TAPPED: 'card_gate_add_funds_tapped',
+    // The add-money drawer on the funding step (TASK-25169). Codes only, no amount.
+    // `method` ∈ bank|crypto; `view` ∈ networks|address|rows|details|setting_up|
+    // under_review|not_verified|finish_setup|loading. Closed = dismissed without funding.
+    CARD_GATE_ADD_MONEY_DRAWER_OPENED: 'card_gate_add_money_drawer_opened',
+    CARD_GATE_ADD_MONEY_DRAWER_CLOSED: 'card_gate_add_money_drawer_closed',
+    // `network` ∈ EVM|SOL|TRON
+    CARD_GATE_ADD_MONEY_NETWORK_PICKED: 'card_gate_add_money_network_picked',
+    // `corridor` a DepositCorridor; `kind` ∈ account|page
+    CARD_GATE_ADD_MONEY_RAIL_PICKED: 'card_gate_add_money_rail_picked',
+    CARD_GATE_ADD_MONEY_VERIFY_TAPPED: 'card_gate_add_money_verify_tapped',
+    // The balance reached the minimum while the funding step showed. `in_drawer` = the
+    // drawer was open; `method` = its method, or the last one opened, else null.
+    CARD_GATE_CAME_BACK_FUNDED: 'card_gate_came_back_funded',
     // POST /rain/cards lifecycle. `outcome` ∈
     // pending|terms-required|incomplete|main-kyc-required|enabled|error|already-applied.
     CARD_APPLY_ATTEMPTED: 'card_apply_attempted',

@@ -2241,13 +2241,34 @@
             "addFunds": "Adicionar dinheiro",
             "issuedTitle": "Conheça seu Peanut Card.",
             "issuedBody": "Ele está pronto para pagamentos online e por aproximação.",
-            "viewCard": "Ver cartão"
+            "viewCard": "Ver cartão",
+            "fundingBodyGap": "Você precisa de pelo menos USD 10 no seu saldo do Peanut para ter seu cartão. Você tem {balance}, então adicione {gap}. O cartão é grátis, e o dinheiro continua sendo seu para gastar com ele."
         },
         "addressStep": {
             "required": "Para continuar a solicitação do seu cartão, adicione seu endereço residencial.",
             "rejected": "Confira seu endereço residencial e envie novamente para continuar a solicitação do cartão.",
             "in_review": "Estamos analisando seu endereço. Você poderá continuar a solicitação do cartão quando ele for aceito.",
             "unavailable": "Não foi possível carregar a etapa de endereço. Tente novamente."
+        },
+        "addMoney": {
+            "title": "Adicionar {amount}",
+            "pickNetwork": "Escolha a rede de onde você envia. Se enviar de uma exchange, escolha a rede em que você saca lá.",
+            "depositAddress": "Endereço de depósito em {network}",
+            "networkOnlyTitle": "Enviar só em {network}",
+            "sendAsk": "Envie {amount}",
+            "raisedToMinimum": "O mínimo em {network} é {minimum}. Os {extra} a mais ficam no seu saldo.",
+            "waiting": "Aguardando o depósito…",
+            "amountToSend": "Valor a enviar: {amount}",
+            "amountToSendConverted": "Envie o equivalente a {amount} em {currency}. Adicione um pouco a mais para as taxas do banco.",
+            "settingUpBody": "Avisamos quando estiver pronta.",
+            "underReviewTitle": "Verificação de identidade em análise",
+            "underReviewBody": "Avisamos quando terminar. Cripto já funciona.",
+            "notVerifiedTitle": "Nenhuma conta bancária pronta ainda",
+            "notVerifiedBody": "Verifique sua identidade uma vez para receber os dados bancários.",
+            "finishSetupTitle": "Falta um passo para a transferência bancária",
+            "finishSetupBody": "Termine na página do banco. Depois você volta para cá.",
+            "useCrypto": "Adicionar {amount} com cripto",
+            "useCryptoNoAmount": "Adicionar dinheiro com cripto"
         }
     },
     "addMoney": {

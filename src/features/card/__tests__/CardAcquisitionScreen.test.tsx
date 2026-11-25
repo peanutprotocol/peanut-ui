@@ -12,7 +12,20 @@ jest.mock('posthog-js', () => ({
 const mockPush = jest.fn()
 const mockApply = jest.fn()
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }) }))
-jest.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }))
+jest.mock('next-intl', () => ({
+    useTranslations: () => (key: string) => key,
+    useFormatter: () => ({ list: (items: string[]) => items.join(' or ') }),
+}))
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: null }) }))
+// the bank plan is still loading: the Bank row shows and its drawer waits
+jest.mock('@/features/add-money/useAddMoneyReadiness', () => ({
+    useAddMoneyReadiness: () => ({
+        isLoading: true,
+        residenceIso2s: [],
+        ready: { account: [], transfer: [], pix: [], ars: [] },
+        topUpGates: {},
+    }),
+}))
 jest.mock('framer-motion', () => ({ useReducedMotion: () => false }))
 jest.mock('@/hooks/useAppHaptic', () => ({ useAppHaptic: () => ({ triggerHaptic: mockHaptic }) }))
 jest.mock('@/utils/confetti', () => ({ shootDoubleStarConfetti: jest.fn() }))
@@ -83,15 +96,13 @@ it('runs hold, anticipation, availability and funding before exposing the applic
     expect(mockApply).toHaveBeenCalledTimes(1)
 })
 
-it.each([
-    ['methods.bankTransfer', '/add-money?method=bank&returnTo=%2Fcard%3Fcard_step%3Dfunding'],
-    ['methods.crypto', '/add-money/crypto?returnTo=%2Fcard%3Fcard_step%3Dfunding'],
-])('carries the card return path through %s', (label, href) => {
+it.each(['methods.bankTransfer', 'methods.crypto'])('adds money through %s in a drawer, on the card page', (label) => {
     render(<CardAcquisitionScreen {...props} />, {
         wrapper: withNuqsTestingAdapter({ searchParams: '?card_step=funding' }),
     })
     fireEvent.click(screen.getByText(label))
-    expect(mockPush).toHaveBeenCalledWith(href)
+    expect(screen.getByTestId('card-add-money-drawer')).toBeInTheDocument()
+    expect(mockPush).not.toHaveBeenCalled()
     expect(mockApply).not.toHaveBeenCalled()
 })
 

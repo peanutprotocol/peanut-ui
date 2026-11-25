@@ -1,18 +1,13 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useQueryState, parseAsStringEnum } from 'nuqs'
 import { useReducedMotion } from 'framer-motion'
 import { useTranslations } from 'next-intl'
-import { useRouter } from 'next/navigation'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import { Button } from '@/components/0_Bruddle/Button'
-import { ListGroup } from '@/components/0_Bruddle/ListGroup'
-import { ListItem } from '@/components/0_Bruddle/ListItem'
 import NavHeader from '@/components/Global/NavHeader'
-import { IconBubble } from '@/components/0_Bruddle/IconBubble'
-import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { HoldToClaimButton } from '@/components/Global/HoldToClaimButton'
 import { ScaledPixelatedCardFace } from '@/components/Card/share-asset/ScaledPixelatedCardFace'
 import AddCardEntryScreen from '@/components/Card/AddCardEntryScreen'
@@ -21,12 +16,12 @@ import type { ShakeIntensity } from '@/hooks/useHoldToClaim'
 import { getShakeClass } from '@/utils/perk.utils'
 import { readStoredValue, writeStoredValue } from '@/utils/safe-storage'
 import { shootDoubleStarConfetti } from '@/utils/confetti'
-import { withReturnTo } from '@/utils/return-to.utils'
 import {
     captureCardGateAddFundsTapped,
     captureCardGateStepViewed,
     type CardGateStep,
 } from '@/features/card/card-gate-analytics'
+import { CardFundingStep } from './CardFundingStep'
 
 const STEPS = ['eligibility', 'looking-up', 'available', 'funding', 'entry'] as const
 
@@ -97,6 +92,7 @@ export function CardAcquisitionScreen({
     fundingRequired,
     needsFundingBeforeApply = false,
     balanceKnown = true,
+    spendableUsd,
     onApply,
     onPrev,
     applyError,
@@ -108,14 +104,13 @@ export function CardAcquisitionScreen({
     needsFundingBeforeApply?: boolean
     /** False while the first balance read is in flight: `funded` is not yet true or false. */
     balanceKnown?: boolean
+    /** The spendable balance in dollars, undefined while unknown: the funding step names the gap from it. */
+    spendableUsd?: number
     onApply: () => void | Promise<void>
     onPrev: () => void
     applyError?: string | null
 }) {
     const t = useTranslations('card')
-    const tAdd = useTranslations('addMoney')
-    const tCommon = useTranslations('common')
-    const router = useRouter()
     const [step, setStep] = useQueryState('card_step', parseAsStringEnum([...STEPS]))
     const seenKey = `card_anticipation_completed_v1:${userId}`
     const [seen] = useState(() => readStoredValue(seenKey) === '1')
@@ -124,6 +119,7 @@ export function CardAcquisitionScreen({
     const [revealing, setRevealing] = useState(false)
     const reducedMotion = useReducedMotion()
     const { triggerHaptic } = useAppHaptic()
+    const continueToEntry = useCallback(() => void setStep('entry', { history: 'replace' }), [setStep])
 
     useEffect(() => {
         if (currentStep !== 'looking-up') return
@@ -176,43 +172,13 @@ export function CardAcquisitionScreen({
 
     if (shownStep === 'funding') {
         return (
-            <PageStack>
-                <NavHeader title={t('onboarding.navTitle')} onPrev={onPrev} />
-                <h1 className="text-heading-s text-foreground-primary">{tAdd('title')}</h1>
-                <p className="text-body-m text-foreground-secondary">{t('onboarding.fundingBody')}</p>
-                <ListGroup>
-                    <ListItem
-                        title={tAdd('methods.bankTransfer')}
-                        body={tAdd('methods.bankTransferDescription')}
-                        leading={<IconBubble {...CONCEPT_ICONS.bank} size="s" />}
-                        chevron
-                        onClick={() => {
-                            captureCardGateAddFundsTapped('funding', funded, 'bank')
-                            router.push(withReturnTo('/add-money?method=bank', '/card?card_step=funding'))
-                        }}
-                    />
-                    <ListItem
-                        title={tAdd('methods.crypto')}
-                        body={tAdd('methods.cryptoDescription')}
-                        leading={<IconBubble {...CONCEPT_ICONS.crypto} size="s" />}
-                        chevron
-                        onClick={() => {
-                            captureCardGateAddFundsTapped('funding', funded, 'crypto')
-                            router.push(withReturnTo('/add-money/crypto', '/card?card_step=funding'))
-                        }}
-                    />
-                </ListGroup>
-                <PageStack.Footer>
-                    <Button
-                        variant="primary"
-                        className="w-full"
-                        disabled={!funded}
-                        onClick={() => void setStep('entry', { history: 'replace' })}
-                    >
-                        {tCommon('continue')}
-                    </Button>
-                </PageStack.Footer>
-            </PageStack>
+            <CardFundingStep
+                funded={funded}
+                balanceKnown={balanceKnown}
+                spendableUsd={spendableUsd}
+                onPrev={onPrev}
+                onContinue={continueToEntry}
+            />
         )
     }
 
