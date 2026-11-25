@@ -523,8 +523,7 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
                         }
                         providerFinePrint={residenceGatedCountry && <ProviderFinePrint providerId="manteca-ar" />}
                         // The CBU and alias are minted per order and expire, so none can show before the amount.
-                        // Say what the button leads to: replays showed users leaving here, not knowing (TASK-25101).
-                        nextStepHint={residenceGatedCountry ? t('manteca.transferDetailsNextStep') : undefined}
+                        // The button names what it leads to: replays showed users leaving here, not knowing (TASK-25101).
                         submitLabel={residenceGatedCountry ? t('manteca.seeTransferDetails') : undefined}
                     />
                 )}

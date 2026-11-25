@@ -211,7 +211,6 @@ type InputStepProps = {
     onSubmit: () => Promise<void>
     error?: string | null
     providerFinePrint?: React.ReactElement<{ providerId: string }>
-    nextStepHint?: string
     submitLabel?: string
 }
 let lastInputStepProps: InputStepProps | null = null
@@ -282,12 +281,11 @@ describe('provider fine print', () => {
 
 // TASK-25101: replays showed Argentines leaving the amount screen without knowing that
 // the CBU and alias come next. They are minted per order, so the screen names the next step.
-describe('ARS amount screen names the transfer details that come next', () => {
-    test('Argentina explains the next step and labels the button with it', () => {
+describe('ARS amount screen button names the transfer details that come next', () => {
+    test('Argentina labels the button with the next step', () => {
         setCountry('argentina')
         render(<MantecaAddMoney />)
 
-        expect(lastInputStepProps!.nextStepHint).toBe(en.addMoney.manteca.transferDetailsNextStep)
         expect(lastInputStepProps!.submitLabel).toBe(en.addMoney.manteca.seeTransferDetails)
     })
 
@@ -307,7 +305,6 @@ describe('ARS amount screen names the transfer details that come next', () => {
         setCountry('brazil')
         render(<MantecaAddMoney />)
 
-        expect(lastInputStepProps!.nextStepHint).toBeUndefined()
         expect(lastInputStepProps!.submitLabel).toBeUndefined()
     })
 })

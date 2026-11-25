@@ -2364,8 +2364,7 @@
             "shareOwnAccountOnly": "Envie somente de uma conta bancária no meu nome. Transferências de contas de terceiros não podem ser creditadas.",
             "minDepositAmount": "O valor do depósito precisa ser de pelo menos ${amount}",
             "etaInstant": "Normalmente em minutos",
-            "transferDetailsNextStep": "No próximo passo você vê o CBU e o alias para transferir do Mercado Pago ou de qualquer banco.",
-            "seeTransferDetails": "Ver dados bancários"
+            "seeTransferDetails": "Ver detalhes"
         },
         "processingDepositTitle": "Processando o depósito",
         "processingDepositBody": "Estamos confirmando seu depósito.",

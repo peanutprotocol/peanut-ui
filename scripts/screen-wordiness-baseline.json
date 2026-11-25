@@ -1,7 +1,7 @@
 {
     "budget": 60,
     "screens": {
-        "app/(mobile-ui)/add-money/[country]/[regional-method]/page.tsx": 519,
+        "app/(mobile-ui)/add-money/[country]/[regional-method]/page.tsx": 502,
         "app/(mobile-ui)/add-money/[country]/bank/page.tsx": 209,
         "app/(mobile-ui)/add-money/[country]/page.tsx": 425,
         "app/(mobile-ui)/add-money/pix/page.tsx": 186,
@@ -15,7 +15,7 @@
         "app/(mobile-ui)/receipt/page.tsx": 876,
         "app/(mobile-ui)/recover-funds/page.tsx": 99,
         "app/(mobile-ui)/rewards/page.tsx": 80,
-        "app/(mobile-ui)/verify/page.tsx": 429,
+        "app/(mobile-ui)/verify/page.tsx": 427,
         "app/(mobile-ui)/withdraw/[country]/bank/page.tsx": 209,
         "app/(mobile-ui)/withdraw/[country]/page.tsx": 425,
         "app/(mobile-ui)/withdraw/crypto/page.tsx": 145,
@@ -58,7 +58,7 @@
         "components/Setup/redesign/Email/EmailScreen.tsx": 88,
         "components/Setup/redesign/FinalConfirm/FinalConfirmScreen.tsx": 76,
         "components/Setup/redesign/FinalConfirm/PasskeyInfoSheet.tsx": 63,
-        "components/Setup/redesign/Landing/LandingScreen.tsx": 90,
+        "components/Setup/redesign/Landing/LandingScreen.tsx": 86,
         "components/Setup/redesign/Notifications/NotificationsControlScreen.tsx": 70,
         "components/Setup/redesign/Notifications/NotificationsSwitchesScreen.tsx": 70,
         "components/Setup/redesign/Passkey/PasskeyScreenView.tsx": 121,
