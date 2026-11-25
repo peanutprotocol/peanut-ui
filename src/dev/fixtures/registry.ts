@@ -2745,6 +2745,18 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         ])
     ),
+    // TASK-25101: the amount step says the CBU and alias come next, and its button leads to them.
+    'add-money-argentina-amount': {
+        route: '/add-money/argentina/manteca?step=inputAmount&amount=10000&currency=ARS',
+        geoCountry: 'AR',
+        about: 'ARS amount step for a ready account: the hint and button that lead to the CBU and alias.',
+        responses: {
+            'GET /users/me': {
+                residence: { declared: 'AR', verified: 'AR', pending: null, declaredSecond: null },
+                capabilities: MANTECA_AR_CAPABILITIES,
+            },
+        },
+    },
     // A new order makes Manteca cancel the open one, so the amount step offers the open order back.
     'add-money-argentina-deposit-open': {
         route: '/add-money/argentina/manteca?step=inputAmount&currency=ARS',

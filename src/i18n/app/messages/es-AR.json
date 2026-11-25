@@ -1336,7 +1336,9 @@
             "transferExpiredDescription": "¿Ya enviaste plata? Contactá a soporte.",
             "startNewDeposit": "Iniciar un nuevo depósito",
             "shareOwnAccountOnly": "Envialo solo desde una cuenta bancaria a mi nombre. Las transferencias desde cuentas de terceros no se pueden acreditar.",
-            "etaInstant": "Normalmente en minutos"
+            "etaInstant": "Normalmente en minutos",
+            "transferDetailsNextStep": "En el próximo paso ves el CBU y el alias para transferir desde Mercado Pago o cualquier banco.",
+            "seeTransferDetails": "Ver datos bancarios"
         },
         "pix": {
             "scanWithBankApp": "Escaneá con la app de tu banco o copiá el código Pix."
