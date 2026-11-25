@@ -2931,6 +2931,7 @@
             "insufficientBalance": "Insufficient balance",
             "spendingLimitReached": "Spending limit reached",
             "blockedMerchant": "This merchant isn't supported",
+            "cashLikeMerchant": "This card can't pay for money transfers, wallet top-ups or cash-like purchases.",
             "cardLocked": "Card locked",
             "invalidPin": "Incorrect PIN",
             "generic": "Transaction declined"
