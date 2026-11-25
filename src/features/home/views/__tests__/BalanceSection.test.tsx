@@ -107,7 +107,7 @@ describe('BalanceSection low-balance Add button', () => {
         renderSection(undefined, 'picker', verified)
         const add = screen.getByTestId('home-submenu-add')
         expect(add).toHaveAttribute('href', '/add-money')
-        expect(add).toHaveTextContent('addMoneyPill.addMoney')
+        expect(add).toHaveTextContent('add')
         expect(actionOrder()).toEqual(['send', 'add', 'request'])
         expect(mockedCapture).toHaveBeenCalledTimes(1)
         expect(mockedCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.HOME_ADD_CTA_SHOWN, {
@@ -123,7 +123,7 @@ describe('BalanceSection low-balance Add button', () => {
 
     it('reads "Add money" for a user who funded before and has $3 left', () => {
         renderSection(undefined, 'picker', { ...verified, balance: 3_000_000n })
-        expect(screen.getByTestId('home-submenu-add')).toHaveTextContent('addMoneyPill.addMoney')
+        expect(screen.getByTestId('home-submenu-add')).toHaveTextContent('add')
         expect(actionOrder()).toEqual(['send', 'add', 'request'])
         expect(mockedCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.HOME_ADD_CTA_SHOWN, {
             balance_bucket: '1-10',
