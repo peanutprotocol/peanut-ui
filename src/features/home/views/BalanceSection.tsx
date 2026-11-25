@@ -119,7 +119,7 @@ export function BalanceSection({
                     </button>
                 )}
             </div>
-            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start px-10">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-x-3 px-6">
                 {(showPill ? ADD_CENTRED_ACTIONS : SUBMENU_ACTIONS).map((action) => {
                     // a drawer with one row is a pointless extra tap: link to
                     // that row's destination instead (request, while standing
@@ -167,7 +167,7 @@ export function BalanceSection({
                     )
                     const shared = {
                         className: twMerge(
-                            'flex w-14 cursor-pointer flex-col items-center gap-2 focus-visible:outline-[3px] focus-visible:outline-action-focus',
+                            'flex min-w-14 cursor-pointer flex-col items-center gap-2 focus-visible:outline-[3px] focus-visible:outline-action-focus',
                             action.slot
                         ),
                         'data-testid': `home-submenu-${action.key}`,
