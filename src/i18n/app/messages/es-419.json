@@ -2242,7 +2242,7 @@
             "issuedTitle": "Conoce tu Peanut Card.",
             "issuedBody": "Está lista para pagos en línea y sin contacto.",
             "viewCard": "Ver tarjeta",
-            "fundingBodyGap": "Necesitas al menos USD 10 en tu saldo de Peanut para obtener tu tarjeta. Tienes {balance}, así que agrega {gap}. La tarjeta es gratis y el dinero sigue siendo tuyo para gastarlo con ella."
+            "fundingBodyGap": "Tu tarjeta necesita USD 10 en tu saldo. Tienes {balance}, así que agrega {gap}. El dinero sigue siendo tuyo."
         },
         "addressStep": {
             "required": "Para continuar con la solicitud de tu tarjeta, agrega tu dirección de residencia.",
@@ -2256,17 +2256,17 @@
             "depositAddress": "Dirección de depósito en {network}",
             "networkOnlyTitle": "Enviar solo en {network}",
             "sendAsk": "Envía {amount}",
-            "raisedToMinimum": "El mínimo en {network} es {minimum}. Los {extra} de más quedan en tu saldo.",
+            "raisedToMinimum": "{network} pide al menos {minimum}. Los {extra} de más quedan en tu saldo.",
             "waiting": "Esperando el depósito…",
             "amountToSend": "Monto a enviar: {amount}",
             "amountToSendConverted": "Envía el equivalente a {amount} en {currency}. Suma un poco más por las comisiones del banco.",
             "settingUpBody": "Te avisamos cuando esté lista.",
             "underReviewTitle": "Verificación de identidad en revisión",
-            "underReviewBody": "Te avisamos cuando termine. Cripto ya funciona.",
+            "underReviewBody": "Te avisamos cuando termine.",
             "notVerifiedTitle": "Todavía no hay una cuenta bancaria lista",
             "notVerifiedBody": "Verifica tu identidad una sola vez para obtener los datos bancarios.",
             "finishSetupTitle": "Falta un paso para la transferencia bancaria",
-            "finishSetupBody": "Termínalo en la página del banco. Después vuelves aquí.",
+            "finishSetupBody": "Termínalo en la página del banco.",
             "useCrypto": "Agregar {amount} con cripto",
             "useCryptoNoAmount": "Agregar dinero con cripto"
         }

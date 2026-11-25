@@ -368,11 +368,37 @@ describe('crypto views', () => {
         await act(async () => pollOnSuccess?.(4))
         const short = within(drawer()).getByTestId('card-add-money-short')
         expect(short).toHaveTextContent('partialContribution.title($4|$7.50)')
-        expect(short).toHaveTextContent('partialContribution.description($3.50)')
+        // $3.50 is left, but the network takes at least $5: a smaller transfer would strand
+        expect(short).toHaveTextContent('partialContribution.description($5)')
         // the address stays to send the rest to
         expect(within(drawer()).getByTestId('qr')).toBeInTheDocument()
         expect(mockResetStatus).toHaveBeenCalled()
         expect(queryClient.getQueryState(['balance', '0xwallet'])?.isInvalidated).toBe(true)
+    })
+
+    it('asks for the exact rest after a short deposit when the network minimum is lower', async () => {
+        mockCreateDepositAddress.mockResolvedValue({ depositAddress: 'Tdeposit', minDepositLimitUsd: 1 })
+        await openAddress('tron')
+        await act(async () => pollOnSuccess?.(4))
+        expect(within(drawer()).getByTestId('card-add-money-short')).toHaveTextContent(
+            'partialContribution.description($3.50)'
+        )
+    })
+
+    it('turns a full deposit into a short one when the refreshed balance still leaves a gap', async () => {
+        const { rerenderWith } = await openAddress('tron')
+        await act(async () => pollOnSuccess?.(7.5))
+        expect(within(drawer()).getByTestId('card-add-money-processing')).toBeInTheDocument()
+        // a fee was taken on the way: the balance read lands $1 short of the minimum
+        await act(async () => rerenderWith({ spendableUsd: 9 }))
+        const short = within(drawer()).getByTestId('card-add-money-short')
+        expect(short).toHaveTextContent('partialContribution.title($6.50|$7.50)')
+        expect(within(drawer()).getByTestId('card-add-money-ask')).toHaveTextContent('sendAsk($5)')
+    })
+
+    it('lists the EVM chains the address works on', async () => {
+        await openAddress('evm')
+        expect(within(drawer()).getByText('supportedEvmNetworks')).toBeInTheDocument()
     })
 
     it('shows the processing state after a full deposit and refreshes the balance and card reads', async () => {

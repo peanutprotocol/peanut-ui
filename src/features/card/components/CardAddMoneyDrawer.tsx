@@ -94,7 +94,8 @@ export function CardAddMoneyDrawer({
 
     const reportedOpen = useRef(false)
     useEffect(() => {
-        if (reportedOpen.current) return
+        // the first real view: readiness still loading says nothing about what the user saw
+        if (reportedOpen.current || code === 'loading') return
         reportedOpen.current = true
         captureCardAddMoneyDrawerOpened(method, code)
     }, [method, code])

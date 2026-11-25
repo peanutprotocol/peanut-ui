@@ -1280,7 +1280,7 @@
             "issuedTitle": "Conocé tu Peanut Card.",
             "issuedBody": "Está lista para pagos en línea y sin contacto.",
             "viewCard": "Ver tarjeta",
-            "fundingBodyGap": "Necesitás al menos USD 10 en tu saldo de Peanut para obtener tu tarjeta. Tenés {balance}, así que agregá {gap}. La tarjeta es gratis y el dinero sigue siendo tuyo para gastarlo con ella."
+            "fundingBodyGap": "Tu tarjeta necesita USD 10 en tu saldo. Tenés {balance}, así que agregá {gap}. El dinero sigue siendo tuyo."
         },
         "addressStep": {
             "required": "Para continuar con la solicitud de tu tarjeta, agregá tu dirección de residencia.",
@@ -1293,7 +1293,7 @@
             "sendAsk": "Enviá {amount}",
             "amountToSendConverted": "Enviá el equivalente a {amount} en {currency}. Sumá un poco más por las comisiones del banco.",
             "notVerifiedBody": "Verificá tu identidad una sola vez para obtener los datos bancarios.",
-            "finishSetupBody": "Terminalo en la página del banco. Después volvés acá."
+            "finishSetupBody": "Terminalo en la página del banco."
         }
     },
     "addMoney": {

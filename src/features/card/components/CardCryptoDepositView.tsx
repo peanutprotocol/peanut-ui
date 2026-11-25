@@ -14,7 +14,7 @@ import CopyField from '@/components/Global/CopyField'
 import Loading from '@/components/Global/Loading'
 import ProcessingScreen from '@/components/Global/ProcessingScreen'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
-import { NETWORK_LABELS, getSupportedTokens } from '@/constants/rhino.consts'
+import { CHAIN_LOGOS, NETWORK_LABELS, SUPPORTED_EVM_CHAINS, getSupportedTokens } from '@/constants/rhino.consts'
 import { useAuth } from '@/context/authContext'
 import { cardCryptoAskUsd } from '@/features/card/cardAddMoney'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
@@ -54,17 +54,28 @@ export function CardCryptoDepositView({ network, gapUsd }: { network: RhinoChain
     askRef.current = ask?.askUsd
 
     const [shortDeposit, setShortDeposit] = useState<{ received: number; asked: number }>()
-    const [credited, setCredited] = useState(false)
+    // the gap when a full deposit was reported: processing lasts until the balance read moves past it
+    const [creditedAtGap, setCreditedAtGap] = useState<number>()
+    const gapRef = useRef(gapUsd)
+    gapRef.current = gapUsd
     const handleSuccess = useCallback(
         (amount: number) => {
             void queryClient.invalidateQueries({ queryKey: ['balance'] })
             void queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] })
             const asked = askRef.current
             if (asked !== undefined && amount < asked) setShortDeposit({ received: amount, asked })
-            else setCredited(true)
+            else setCreditedAtGap(gapRef.current ?? 0)
         },
         [queryClient]
     )
+    // a full deposit that still leaves a gap (a fee taken on the way) is a short one: the step names
+    // the new gap instead of waiting on a close that never comes
+    useEffect(() => {
+        if (creditedAtGap === undefined || gapUsd === undefined || gapUsd === creditedAtGap || gapUsd <= 0) return
+        setShortDeposit({ received: creditedAtGap - gapUsd, asked: creditedAtGap })
+        setCreditedAtGap(undefined)
+    }, [creditedAtGap, gapUsd])
+    const credited = creditedAtGap !== undefined
     const { status, resetStatus, isResetting } = useCryptoDepositPolling(data?.depositAddress, handleSuccess)
 
     // Rhino reports one deposit per address until the status is cleared: after a short deposit the
@@ -151,7 +162,13 @@ export function CardCryptoDepositView({ network, gapUsd }: { network: RhinoChain
                         </h2>
                         <p className="text-body-s text-foreground-secondary">
                             {tPayment('partialContribution.description', {
-                                remaining: usd(Math.max(shortDeposit.asked - shortDeposit.received, 0)),
+                                // never below the network minimum: Rhino would not bridge a smaller rest
+                                remaining: usd(
+                                    cardCryptoAskUsd(
+                                        Math.max(shortDeposit.asked - shortDeposit.received, 0.01),
+                                        data.minDepositLimitUsd
+                                    ).askUsd
+                                ),
                             })}
                         </p>
                     </div>
@@ -171,6 +188,16 @@ export function CardCryptoDepositView({ network, gapUsd }: { network: RhinoChain
                     </div>
                 </div>
             </Callout>
+            {network === 'EVM' && (
+                <Card className="flex flex-col gap-2 p-4">
+                    <h3 className="text-label-l text-foreground-primary">{tCrypto('supportedEvmNetworks')}</h3>
+                    <div className="flex flex-wrap gap-2">
+                        {SUPPORTED_EVM_CHAINS.map((chain) => (
+                            <ChainChip key={chain} chainName={chain} chainSymbol={CHAIN_LOGOS[chain]} />
+                        ))}
+                    </div>
+                </Card>
+            )}
             {ask && (
                 <div className="flex w-full flex-col gap-1" data-testid="card-add-money-ask">
                     <p className="text-body-m-semibold text-foreground-primary">

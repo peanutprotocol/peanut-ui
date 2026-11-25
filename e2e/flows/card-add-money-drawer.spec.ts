@@ -72,7 +72,7 @@ test.describe('card $10 step: add money in place', () => {
         await expect(drawer(page).getByTestId('card-add-money-bank-details')).toBeVisible()
         await expect(euro).toBeHidden()
 
-        await drawer(page).getByRole('button', { name: /back/i }).click()
+        await drawer(page).getByTestId('nav-back').click()
         await expect(drawer(page).getByTestId('card-add-money-bank-details')).toBeHidden()
         await expect(euro).toBeVisible()
         await expect(dollar).toBeVisible()

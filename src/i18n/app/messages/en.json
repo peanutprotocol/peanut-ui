@@ -2242,7 +2242,7 @@
             "issuedTitle": "Meet your Peanut card.",
             "issuedBody": "It’s ready for online and contactless payments.",
             "viewCard": "View card",
-            "fundingBodyGap": "You need at least $10 in your Peanut balance to get your card. You have {balance}, so add {gap}. The card is free, and the money stays yours to spend with it."
+            "fundingBodyGap": "Your card needs $10 in your balance. You have {balance}, so add {gap}. The money stays yours."
         },
         "addressStep": {
             "required": "To continue your card application, add your home address.",
@@ -2256,17 +2256,17 @@
             "depositAddress": "{network} deposit address",
             "networkOnlyTitle": "Send on {network} only",
             "sendAsk": "Send {amount}",
-            "raisedToMinimum": "The minimum on {network} is {minimum}. The extra {extra} stays in your balance.",
+            "raisedToMinimum": "{network} takes at least {minimum}. The extra {extra} stays in your balance.",
             "waiting": "Waiting for the deposit…",
             "amountToSend": "Amount to send: {amount}",
             "amountToSendConverted": "Send the value of {amount} in {currency}. Add a little for bank fees.",
             "settingUpBody": "We tell you when it is ready.",
             "underReviewTitle": "Identity check under review",
-            "underReviewBody": "We tell you when it is done. Crypto works now.",
+            "underReviewBody": "We tell you when it is done.",
             "notVerifiedTitle": "No bank account ready yet",
             "notVerifiedBody": "Verify your identity once to get bank details.",
             "finishSetupTitle": "Bank transfer needs one more step",
-            "finishSetupBody": "Finish it on the bank page. You come back here after.",
+            "finishSetupBody": "Finish it on the bank page.",
             "useCrypto": "Add {amount} with crypto",
             "useCryptoNoAmount": "Add money with crypto"
         }
