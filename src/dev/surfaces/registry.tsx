@@ -81,6 +81,7 @@ import { SuccessViewDetailsCard } from '@/components/Global/SuccessViewComponent
 import OfflineScreen from '@/components/Global/OfflineScreen'
 import BackendErrorScreen from '@/components/Global/BackendErrorScreen'
 import { UnsupportedWebViewScreen } from '@/components/Global/UnsupportedWebViewScreen'
+import ForceUpdateScreen from '@/components/Global/ForceUpdateScreen'
 import EmptyState from '@/components/Global/EmptyStates/EmptyState'
 import NoDataEmptyState from '@/components/Global/EmptyStates/NoDataEmptyState'
 import { FAQsPanel } from '@/components/Global/FAQs'
@@ -1692,6 +1693,10 @@ export const SURFACES: Record<string, Surface> = {
     '94-n-pix-withdraw-past-arrival-unnamed': {
         ...SURFACE_META['94-n-pix-withdraw-past-arrival-unnamed'],
         render: () => <PixWithdrawOutcomeSurface unnamed pastArrival />,
+    },
+    '95-a-force-update-screen': {
+        ...SURFACE_META['95-a-force-update-screen'],
+        render: () => <ForceUpdateScreen platform="android" />,
     },
     '70-d-activationctas-outbound': {
         // the first-payment chooser opens on the row tap — the shot spec (or a
