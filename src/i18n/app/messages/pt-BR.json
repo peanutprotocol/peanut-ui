@@ -1143,8 +1143,6 @@
         "landing": {
             "title": "Receba dos EUA e da Europa.",
             "sub": "Receba do exterior. Pague com QR na Argentina e no Brasil, ou onde a Visa é aceita.",
-            "cardReceived": "Dinheiro recebido!",
-            "cardAmount": "USD 1.200",
             "cta": "Criar conta",
             "loginBtn": "Entrar",
             "recover": "Precisa recuperar uma conta Peanut?",

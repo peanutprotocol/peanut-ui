@@ -1143,8 +1143,6 @@
         "landing": {
             "title": "Cobra desde EE. UU. y Europa.",
             "sub": "Recibe desde el exterior. Paga con QR en Argentina y Brasil, o donde se acepte Visa.",
-            "cardReceived": "¡Dinero recibido!",
-            "cardAmount": "USD 1.200",
             "cta": "Regístrate",
             "loginBtn": "Iniciar sesión",
             "recover": "¿Necesitas recuperar una cuenta de Peanut?",

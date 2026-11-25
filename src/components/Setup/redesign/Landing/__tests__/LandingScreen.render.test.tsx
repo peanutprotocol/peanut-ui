@@ -52,14 +52,15 @@ beforeEach(() => {
 afterEach(() => jest.useRealTimers())
 
 describe('01 Landing — render and copy', () => {
-    it('P1-01 native app, fresh mount: X1 headline, sub line, money card, Sign up before Log in, no link, state default', () => {
+    it('P1-01 native app, fresh mount: X1 headline, sub line, no money card, Sign up before Log in, no link, state default', () => {
         renderInShell('landing', <LandingScreen />)
 
         expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(loose(msg('setupRedesign.landing.title')))
         expect(within(panel()).getByText(textOf(msg('setupRedesign.landing.sub')))).toBeInTheDocument()
-        const card = screen.getByTestId('landing-money-card')
-        expect(card).toHaveTextContent(loose(msg('setupRedesign.landing.cardReceived')))
-        expect(card).toHaveTextContent(loose(msg('setupRedesign.landing.cardAmount')))
+        // The "Money received! USD 1,200" card is gone: on an invite link it read as money waiting for the visitor.
+        expect(screen.getByTestId('landing-hero')).toBeInTheDocument()
+        expect(screen.queryByTestId('landing-money-card')).not.toBeInTheDocument()
+        expect(document.body.textContent).not.toMatch(/Money received|USD 1,200/)
 
         const signUp = signUpButton()
         const logIn = logInButton()
@@ -102,14 +103,12 @@ describe('01 Landing — render and copy', () => {
         for (const string of strings) expect(text).not.toContain(loose(string))
     })
 
-    it('P1-04 en and es-AR hold the 7 landing keys with the exact strings; es-419 and pt-BR hold the same keys', () => {
+    it('P1-04 en and es-AR hold the 5 landing keys with the exact strings; es-419 and pt-BR hold the same keys', () => {
         // F's catalog names: `cta` is the mock's landing.cta (Sign up), `loginBtn` its landing.loginBtn (Log in).
         const expected: Record<'en' | 'es-AR', Record<string, string>> = {
             en: {
                 title: 'Get paid from the US and Europe.',
                 sub: 'Receive from abroad. Pay by QR in Argentina and Brazil, or anywhere Visa is accepted.',
-                cardReceived: 'Money received!',
-                cardAmount: 'USD 1,200',
                 cta: 'Sign up',
                 loginBtn: 'Log in',
                 recover: 'Need to recover a Peanut account?',
@@ -117,8 +116,6 @@ describe('01 Landing — render and copy', () => {
             'es-AR': {
                 title: 'Cobrá desde EE. UU. y Europa.',
                 sub: 'Recibí desde el exterior. Pagá con QR en Argentina y Brasil, o donde acepten Visa.',
-                cardReceived: '¡Dinero recibido!',
-                cardAmount: 'USD 1.200',
                 cta: 'Registrate',
                 loginBtn: 'Iniciá sesión',
                 recover: '¿Necesitás recuperar la cuenta de Peanut?',
@@ -133,6 +130,10 @@ describe('01 Landing — render and copy', () => {
                 expect({ locale, key, type: typeof value }).toEqual({ locale, key, type: 'string' })
                 expect((value as string).trim()).not.toBe('')
             }
+        }
+        for (const locale of Object.keys(CATALOGS) as TestLocale[]) {
+            expect(rawMessage('setupRedesign.landing.cardReceived', locale)).toBeUndefined()
+            expect(rawMessage('setupRedesign.landing.cardAmount', locale)).toBeUndefined()
         }
         expect(Object.keys(CATALOGS)).toHaveLength(4)
     })
