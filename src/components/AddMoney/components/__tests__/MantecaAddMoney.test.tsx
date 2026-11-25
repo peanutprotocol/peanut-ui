@@ -29,6 +29,7 @@ import { MantecaAccountUnavailable } from '@/components/Common/MantecaAccountUna
 import { LOCAL_SERVED_ELSEWHERE_REASON } from '@/features/kyc-features/report'
 // jest.mock calls are hoisted above this import, so the mocks below apply to it
 import MantecaAddMoney from '../MantecaAddMoney'
+import posthog from 'posthog-js'
 
 const render = (ui: React.ReactElement, options?: Omit<Parameters<typeof rtlRender>[1], 'wrapper'>) =>
     rtlRender(ui, { wrapper: IntlWrapper, ...options })
@@ -788,6 +789,76 @@ describe('provider refusal', () => {
         await act(() => lastInputStepProps!.onSubmit())
 
         expect(lastInputStepProps!.error).toBe('Failed to create on-ramp transfer for guest.')
+    })
+})
+
+/**
+ * TASK-25059: every Continue that reaches the submit leaves one deposit event, so a tap that shows no bank
+ * details can be counted. The guards that return without one cannot be reached from the screen: no country
+ * renders nothing, a rejected account renders MantecaAccountUnavailable, and a request in flight disables Continue.
+ */
+describe('Continue leaves one deposit event per outcome', () => {
+    const events = () =>
+        jest
+            .mocked(posthog.capture)
+            .mock.calls.filter(([name]) => name.startsWith('deposit_'))
+            .map(([name, props]) => [name, props?.reason])
+    beforeEach(() => jest.mocked(posthog.capture).mockClear())
+
+    test('a user not verified for the country: deposit_submit_blocked, verification_required', async () => {
+        setCountry('argentina')
+        mockIsVerifiedForCountry = false
+        mockQueryState.amount = '100'
+        render(<MantecaAddMoney />)
+        await act(() => lastInputStepProps!.onSubmit())
+        expect(events()).toEqual([['deposit_submit_blocked', 'verification_required']])
+        expect(mockDeposit).not.toHaveBeenCalled()
+    })
+
+    test.each([
+        ['an error body', () => mockDeposit.mockResolvedValue({ error: 'closed', code: 'MANTECA_ACCOUNT_REJECTED' })],
+        [
+            'a thrown error',
+            () =>
+                mockDeposit.mockRejectedValue(
+                    Object.assign(new Error('closed'), { code: 'MANTECA_ACCOUNT_REJECTED', status: 403 })
+                ),
+        ],
+    ])('Manteca closed the account (%s): deposit_submit_blocked, account_rejected', async (_, answer) => {
+        setCountry('argentina')
+        mockQueryState.amount = '100'
+        answer()
+        render(<MantecaAddMoney />)
+        await act(() => lastInputStepProps!.onSubmit())
+        expect(events()).toEqual([
+            ['deposit_amount_entered', undefined],
+            ['deposit_submit_blocked', 'account_rejected'],
+        ])
+    })
+
+    test('a failed deposit: deposit_failed', async () => {
+        setCountry('argentina')
+        mockQueryState.amount = '100'
+        mockDeposit.mockResolvedValue({ error: 'Unexpected error', code: 'PROVIDER_REJECTED' })
+        render(<MantecaAddMoney />)
+        await act(() => lastInputStepProps!.onSubmit())
+        expect(events()).toEqual([
+            ['deposit_amount_entered', undefined],
+            ['deposit_failed', undefined],
+        ])
+    })
+
+    test('a created deposit: deposit_confirmed and the bank details step', async () => {
+        setCountry('argentina')
+        mockQueryState.amount = '100'
+        mockDeposit.mockResolvedValue({ data: { id: 'dep-1', details: {}, stages: {} } })
+        render(<MantecaAddMoney />)
+        await act(() => lastInputStepProps!.onSubmit())
+        expect(events()).toEqual([
+            ['deposit_amount_entered', undefined],
+            ['deposit_confirmed', undefined],
+        ])
+        expect(mockSetQueryState).toHaveBeenCalledWith({ step: 'depositDetails' })
     })
 })
 

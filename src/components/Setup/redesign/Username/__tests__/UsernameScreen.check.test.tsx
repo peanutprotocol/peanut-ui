@@ -16,6 +16,7 @@ import {
     card,
     checkedNames,
     checksFor,
+    deferred,
     field,
     helpText,
     named,
@@ -173,6 +174,25 @@ describe('02 Username — availability answers (C.md § 4.1)', () => {
         await expectPrimaryLabel(loose(U('ctaNamed', { name: 'mellowfox' })))
         expect(card()).toHaveTextContent('@mellowfox')
         expect(validated()).toEqual([expect.objectContaining({ is_valid: true, source: 'typed' })])
+    })
+
+    it('TASK-25341 a late 404 for an older name never marks the name now in the field available', async () => {
+        const late = deferred<number>()
+        mockApiFetch.mockImplementation(availabilityStub({ mellowfox: late.promise, tiger: 200 }, 404))
+        await mount()
+        await type('mellowfox')
+        await advance(800)
+        await type('tiger')
+        await advance(800)
+        expect(setupState()).toBe('taken')
+
+        await act(async () => late.resolve(404))
+        await advance(100)
+        expect((field() as HTMLInputElement).value).toBe('tiger')
+        expect(setupState()).toBe('taken')
+        expect(helpText()).toContain(loose(U('taken', { name: 'tiger' })))
+        expect(helpText()).not.toContain(loose(U('available')))
+        expect(primary()).toBeDisabled()
     })
 
     it('C-20 check 400 shows the reserved line and reports error_type invalid', async () => {

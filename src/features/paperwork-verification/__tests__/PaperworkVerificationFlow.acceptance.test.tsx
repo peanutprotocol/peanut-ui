@@ -229,6 +229,7 @@ const continueButton = () => screen.getByTestId('verify-continue')
 const mockStartAction = jest.fn()
 
 beforeEach(() => {
+    window.sessionStorage.clear()
     mockIdentityReason = undefined
     mockIdentity = {}
     jest.clearAllMocks()

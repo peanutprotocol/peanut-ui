@@ -98,10 +98,15 @@ const KYC_FEATURE_ACTIVATION_FIXTURES: Record<string, Fixture> = Object.fromEntr
                 `feature-activation-${feature}-${state.replaceAll('_', '-')}`,
                 {
                     route,
+                    // ARS Add money starts the peso account on arrival (TASK-25059): only bank waits for the tap
                     capture:
-                        ['bank', 'local'].includes(feature) && !['ready', 'on'].includes(state)
+                        feature === 'bank' && !['ready', 'on'].includes(state)
                             ? { actions: [{ clickSelector: '[data-testid="kyc-activation-continue"]' }] }
                             : undefined,
+                    // ARS waits on its progress screen, so the shot is of the loader (TASK-25059)
+                    ...(feature === 'local' && (state === 'pending' || state === 'setting_up')
+                        ? { isLoadingState: true as const, waitFor: '[data-testid="feature-setting-up"]' }
+                        : {}),
                     about: `First use ${feature}: ${state}; approved workflow identity, synthetic provider responses only.`,
                     completeResponses: [
                         key,
@@ -2609,7 +2614,7 @@ export const FIXTURES: Record<string, Fixture> = {
     'home-low-balance-top-up': {
         route: '/home',
         balance: '4.20',
-        about: 'Verified user who has been paid before, $4.20 left: Send first, the pink Top up button centred, Request at the end.',
+        about: 'Verified user who has been paid before, $4.20 left: Send first, the pink Add money button centred, Request at the end.',
     },
     'full-maintenance': {
         route: '/maintenance',

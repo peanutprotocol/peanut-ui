@@ -10,7 +10,7 @@ export const LANGUAGE_OPTIONS: SelectOption<AppLocale>[] = APP_LOCALES.map((loca
     lang: locale,
     leading: (
         <Image
-            // one flag per language, the one the Help Center switcher flies (es-419: Mexico, TASK-23929)
+            // one flag per language, the one the Help Center switcher flies (es-419: Spain, TASK-25341)
             src={LOCALE_META[MARKETING_SEGMENT[locale]].flag}
             alt=""
             width={80}

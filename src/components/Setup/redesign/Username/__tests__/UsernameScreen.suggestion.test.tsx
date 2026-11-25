@@ -160,17 +160,58 @@ describe('02 Username — first suggestion and default (C.md § 3.1, § 4.3)', (
         expect(validated()).toEqual([expect.objectContaining({ is_valid: true, source: 'die' })])
     })
 
-    it('C-08 a roll whose candidates all fail brings the previous name back with the check-failed line', async () => {
+    it('C-08 a roll whose candidates all fail brings the previous name back without the check-failed line (TASK-25341)', async () => {
         renderUsername()
         const before = await suggestionLanded()
-        mockApiFetch.mockImplementation(availabilityStub({}, 500))
+        mockApiFetch.mockImplementation(availabilityStub({}, 200))
 
         fireEvent.click(die())
-        await waitFor(() => expect(setupState()).toBe('check-failed'), WAIT)
+        await waitFor(() => expect(setupState()).toBe('rolling'), WAIT)
+        await waitFor(() => expect(setupState()).toBe('default'), WAIT)
         expect((field() as HTMLInputElement).value).toBe(before)
-        expect(helpText()).toBe(loose(U('checkFailed')))
+        expect(helpText()).not.toContain(loose(U('checkFailed')))
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+        expect(die()).toBeEnabled()
         expect(controlsOf(capture())).toContain('username_die:error:network')
         expect(validated()).toEqual([])
+    })
+
+    it('TASK-25341 a roll skips candidates that fail, abort or are taken, and lands the first free one with no error', async () => {
+        renderUsername()
+        await suggestionLanded()
+        const asked: string[] = []
+        mockApiFetch.mockImplementation(async (path: string) => {
+            const name = path.split('/').pop() as string
+            asked.push(name)
+            const answer =
+                [Object.assign(new Error('aborted'), { name: 'AbortError' }), 503, 200][asked.length - 1] ?? 404
+            return availabilityStub({ [name]: answer })(path)
+        })
+
+        fireEvent.click(die())
+        await waitFor(() => expect(setupState()).toBe('rolled'), WAIT)
+        expect(asked).toHaveLength(4)
+        expect((field() as HTMLInputElement).value).toBe(asked[3])
+        expect(helpText()).toContain(loose(U('available')))
+        expect(helpText()).not.toContain(loose(U('checkFailed')))
+    })
+
+    it('TASK-25341 a rolled name lost to another hold at claim rolls again instead of showing it taken', async () => {
+        renderUsername()
+        await suggestionLanded()
+        fireEvent.click(die())
+        await waitFor(() => expect(setupState()).toBe('rolled'), WAIT)
+        const lost = (field() as HTMLInputElement).value
+        mockReserve.mockResolvedValueOnce('taken')
+
+        fireEvent.click(primary())
+        await waitFor(() => expect(mockReserve).toHaveBeenCalledWith(lost), WAIT)
+        await waitFor(() => expect((field() as HTMLInputElement).value).not.toBe(lost), WAIT)
+        await waitFor(() => expect(setupState()).toBe('rolled'), WAIT)
+        expect(helpText()).not.toContain(loose(U('taken', { name: lost })))
+        expect(helpText()).toContain(loose(U('available')))
+        expect(primary()).toBeEnabled()
+        expect(mockHandleNext).not.toHaveBeenCalled()
     })
 
     it('C-09 in default the button stays disabled although the suggestion was checked; a landed roll enables it', async () => {
@@ -210,6 +251,36 @@ describe('02 Username — first suggestion and default (C.md § 3.1, § 4.3)', (
         await waitFor(() => expect((field() as HTMLInputElement).value).toBe(suggestion), WAIT)
         expect(setupState()).toBe('default')
         expect(helpText()).toBe('')
+    })
+})
+
+describe('02 Username — claim refused, no replacement (TASK-25341)', () => {
+    it('a rolled name refused as taken at claim, with every replacement taken or failing, shows taken and stays unclaimable', async () => {
+        renderUsername()
+        await suggestionLanded()
+        fireEvent.click(die())
+        await waitFor(() => expect(setupState()).toBe('rolled'), WAIT)
+        const lost = (field() as HTMLInputElement).value
+        mockReserve.mockResolvedValueOnce('taken')
+        let replacement = 0
+        mockApiFetch.mockImplementation(async (path: string) => {
+            const name = path.split('/').pop() as string
+            // the re-roll's candidates all fail; the chips for the lost name may answer free
+            if (name.startsWith(lost) || name.endsWith(lost)) return availabilityStub({}, 404)(path)
+            replacement += 1
+            return availabilityStub({}, replacement % 2 ? 200 : 503)(path)
+        })
+
+        fireEvent.click(primary())
+        await waitFor(() => expect(mockReserve).toHaveBeenCalledWith(lost), WAIT)
+        await waitFor(() => expect(setupState()).toBe('taken'), WAIT)
+        expect(replacement).toBeGreaterThan(0)
+        expect((field() as HTMLInputElement).value).toBe(lost)
+        expect(helpText()).toContain(loose(U('taken', { name: lost })))
+        expect(primary()).toBeDisabled()
+        fireEvent.click(primary())
+        expect(mockReserve).toHaveBeenCalledTimes(1)
+        expect(mockHandleNext).not.toHaveBeenCalled()
     })
 })
 

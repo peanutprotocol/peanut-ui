@@ -110,8 +110,7 @@
     "home": {
         "rewards": "Points",
         "addMoneyPill": {
-            "addMoney": "Add money",
-            "topUp": "Top up"
+            "addMoney": "Add money"
         },
         "activation": {
             "addEmail": {
@@ -4309,6 +4308,8 @@
             },
             "activation": {
                 "settingUpAccount": "We’re setting up your {currency} account",
+                "settingUpWait": "Keep this screen open.",
+                "settingUpTitle": "Setting up {currency} account",
                 "title": {
                     "bank": "Set up bank accounts",
                     "card": "Set up your Peanut Card",
@@ -4983,7 +4984,6 @@
         },
         "downloadNow": "Download now",
         "smartLink": {
-            "openApp": "Open Peanut",
             "redirecting": "Opening the store…",
             "pickStore": "Global cash, local feel. Pick your store to download."
         }

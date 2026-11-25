@@ -1981,6 +1981,8 @@
             },
             "activation": {
                 "settingUpAccount": "Estamos configurando tu cuenta en {currency}",
+                "settingUpWait": "Dejá esta pantalla abierta.",
+                "settingUpTitle": "Configurando la cuenta en {currency}",
                 "title": {
                     "bank": "Configurá tus cuentas bancarias",
                     "card": "Configurá tu Peanut Card",
@@ -2307,7 +2309,6 @@
             "logIn": "Iniciá sesión en la web"
         },
         "smartLink": {
-            "openApp": "Abrir Peanut",
             "pickStore": "Elegí tu tienda y descargá la app."
         }
     },

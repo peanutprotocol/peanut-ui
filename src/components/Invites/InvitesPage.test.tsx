@@ -67,10 +67,17 @@ jest.mock('@/components/Setup/Views/LoginRecoveryDrawer', () => ({
             </div>
         ) : null,
 }))
+// false models the native app, where the claim button opens signup in place
+let mockHandoffActive = false
+let mockDeviceType = 'web'
+jest.mock('@/hooks/useGetDeviceType', () => ({
+    ...jest.requireActual('@/hooks/useGetDeviceType'),
+    useDeviceType: () => ({ deviceType: mockDeviceType }),
+}))
 jest.mock('@/hooks/useGuestStoreHandoff', () => ({
     useGuestStoreHandoff: (opts: { trackImpressionWhenGuest?: boolean }) => {
         mockUseGuestStoreHandoff(opts)
-        return { interceptGuestCta: mockInterceptGuestCta, storeHandoffModal: null }
+        return { interceptGuestCta: mockInterceptGuestCta, storeHandoffModal: null, handoffActive: mockHandoffActive }
     },
 }))
 jest.mock('@/services/badge-campaigns', () => ({
@@ -133,7 +140,12 @@ jest.mock('../Payment/Views/Error.validation.view', () => ({
 }))
 jest.mock('../Global/UnsupportedBrowserModal', () => ({
     __esModule: true,
-    default: () => null,
+    default: ({ visible }: { visible?: boolean }) => (visible ? <div role="dialog">Open in your browser</div> : null),
+}))
+let mockIsWebview = false
+jest.mock('@/components/Setup/Setup.utils', () => ({
+    ...jest.requireActual('@/components/Setup/Setup.utils'),
+    isLikelyWebview: () => mockIsWebview,
 }))
 
 const awardedBatch = {
@@ -626,6 +638,40 @@ describe('invite and badge campaign routing boundaries', () => {
         expect(mockQueuePendingBadgeCampaigns).toHaveBeenCalledWith(['offramp'], 30)
         expect(mockSaveRedirectUrl).toHaveBeenCalledTimes(1)
         expect(mockLogin).toHaveBeenCalledTimes(1)
+    })
+
+    it('keeps the store button reachable in a social in-app browser and asks for a browser only on login', async () => {
+        mockIsWebview = true
+        mockHandoffActive = true
+        mockDeviceType = 'ios'
+        mockAuth.user = null
+        mockSearch = 'code=alice'
+        mockQueryResult.data = {
+            success: true,
+            attributionResolved: true,
+            onboardingResolved: true,
+            username: 'alice',
+        }
+        mockInterceptGuestCta.mockReturnValue(true)
+
+        try {
+            render(<InvitesPage />)
+            const claim = await screen.findByRole('button', { name: 'App Store' })
+            expect(screen.queryByRole('button', { name: 'Create your wallet' })).toBeNull()
+            expect(screen.queryByRole('dialog')).toBeNull()
+
+            fireEvent.click(claim)
+            expect(mockInterceptGuestCta).toHaveBeenCalledWith({ invite: 'alice', dest: undefined })
+            expect(screen.queryByRole('dialog')).toBeNull()
+
+            fireEvent.click(screen.getByRole('button', { name: 'Log in on web instead' }))
+            expect(mockLogin).not.toHaveBeenCalled()
+            expect(screen.getByRole('dialog')).toBeTruthy()
+        } finally {
+            mockIsWebview = false
+            mockHandoffActive = false
+            mockDeviceType = 'web'
+        }
     })
 
     it('hands a guest wallet signup off to the stores during the migration window', async () => {

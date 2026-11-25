@@ -7,6 +7,15 @@ export function isAcquisitionSlug(value: unknown): value is string {
     return typeof value === 'string' && /^[a-z0-9]{1,64}$/.test(value)
 }
 
+/**
+ * The invite page for a retired creator link (`/app?tl=<username>` or the older `/app?code=<username>`),
+ * or null when the query names no username.
+ */
+export function legacyCreatorInvitePath(params: URLSearchParams): string | null {
+    const slug = params.get('tl') ?? params.get('code')?.toLowerCase()
+    return isAcquisitionSlug(slug) ? `/invite?code=${slug}` : null
+}
+
 /** True for the `c<code>` utmContent that /go codes wrote; journeys from before their removal can still hold one. */
 export function isGoCodeContent(value: string | null | undefined): boolean {
     return !!value && value.startsWith('c') && GO_CODE_PATTERN.test(value.slice(1))
