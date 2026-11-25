@@ -73,16 +73,17 @@ export function useKycFeatureActivation(
             : undefined
     const selectedAction = selected && entryAction(selected, user?.capabilities?.nextActions ?? [])
     const selectedActionKind = selectedAction?.kind
-    // Keep the deposit screens' existing scoped actions and local-account refusal UI.
+    // Keep the deposit screens' existing scoped actions and local-account refusal UI. Both deposit
+    // flows ask for a missing email (TASK-25345).
     const handledByDepositFlow =
         selectedActionKind === 'restart-identity' ||
         (feature === 'local' && selected?.state === 'refused') ||
         (selected?.state === 'action_required' &&
             (selectedActionKind === 'sumsub' ||
+                selectedActionKind === 'provide-email' ||
                 (feature === 'bank' &&
                     (selectedActionKind === 'bridge-hosted' ||
                         selectedActionKind === 'questions' ||
-                        selectedActionKind === 'provide-email' ||
                         selectedActionKind === 'accept-tos'))))
     const selectedWaiting =
         selected?.state === 'pending' || selected?.state === 'setting_up' || selectedActionKind === 'wait'

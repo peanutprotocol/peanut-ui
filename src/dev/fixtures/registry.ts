@@ -1789,6 +1789,38 @@ const mantecaArStepCapabilities = (code: 'manteca_action_incomplete' | 'manteca_
     }
 }
 
+/**
+ * TASK-25345: Manteca parked the ARS bank rail for a missing email (`REQUIRES_SUPPORT` / `NO_EMAIL`),
+ * as the API reports it for a user with no email on file (capabilities/resolver.ts, feature-report.ts).
+ */
+const MANTECA_AR_EMAIL_REQUIRED_CAPABILITIES = (() => {
+    const reason = {
+        code: 'email_required',
+        userMessage:
+            "We need an email address to finish setting up this account. Add one to your profile and we'll retry automatically.",
+    }
+    const nextAction = { key: 'provide-email', kind: 'provide-email', purpose: 'submission-failed-no-email' }
+    const entry = { state: 'action_required', reason: reason.code, message: reason.userMessage, action: nextAction.key }
+    return {
+        rails: [
+            {
+                ...MANTECA_AR_CAPABILITIES.rails[0],
+                status: 'blocked',
+                blockingActions: [nextAction.key],
+                reason,
+                resolved: {
+                    status: 'fixable',
+                    blocking: { ...reason, selfHealable: true, selfHealKind: 'provide-email' },
+                    nextAction,
+                },
+            },
+        ],
+        nextActions: [nextAction],
+        restrictions: [],
+        features: { local: { ...entry, accounts: { ARS: entry } } },
+    }
+})()
+
 /** A Colombian user: one Bre-B corridor and nothing else. */
 const BRIDGE_CO_CAPABILITIES = {
     rails: [
@@ -2785,6 +2817,19 @@ export const FIXTURES: Record<string, Fixture> = {
             'GET /users/me': {
                 residence: { declared: 'AR', verified: 'AR', pending: null, declaredSecond: null },
                 capabilities: mantecaArStepCapabilities('manteca_action_expired'),
+            },
+        },
+    },
+    // TASK-25345: the account Manteca parked for a missing email asks for the email, not support.
+    'add-money-argentina-email-required': {
+        route: '/add-money/argentina/manteca?step=inputAmount&currency=ARS',
+        geoCountry: 'AR',
+        about: 'ARS deposit while Manteca waits on a missing email: the page asks for the email.',
+        responses: {
+            'GET /users/me': {
+                user: { email: null },
+                residence: { declared: 'AR', verified: 'AR', pending: null, declaredSecond: null },
+                capabilities: MANTECA_AR_EMAIL_REQUIRED_CAPABILITIES,
             },
         },
     },

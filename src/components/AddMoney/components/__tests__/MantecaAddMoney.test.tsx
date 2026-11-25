@@ -22,7 +22,7 @@ jest.mock('@/context/authContext', () => ({
 import React from 'react'
 import { withFeatureReport } from '@/test-utils/featureReport.fixture'
 import type { FeatureReportEntry, NextAction, RailCapability } from '@/types/capabilities'
-import { act, fireEvent, render as rtlRender, screen, within } from '@testing-library/react'
+import { act, fireEvent, render as rtlRender, screen, waitFor, within } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import en from '@/i18n/app/messages/en.json'
 import { MantecaAccountUnavailable } from '@/components/Common/MantecaAccountUnavailable'
@@ -164,6 +164,8 @@ jest.mock('@/context/ModalsContext', () => ({
     useModalsContextOptional: () => null,
 }))
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
+const mockUpdateUserById = jest.fn()
+jest.mock('@/app/actions/users', () => ({ updateUserById: (...args: unknown[]) => mockUpdateUserById(...args) }))
 
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({
     SumsubKycModals: ({ flow }: { flow: { isModalOpen: boolean; showWrapper: boolean } }) => (
@@ -873,6 +875,80 @@ describe('refused local accounts retain their own reason and remedy', () => {
             expect(screen.queryByTestId('input-amount-step')).not.toBeInTheDocument()
         }
     )
+})
+
+// TASK-25345: Manteca parked the account for a missing email. "Contact support" was the only button
+// and did nothing; saving an email resubmits the account (api update-user).
+describe('ARS account parked for a missing email', () => {
+    const parkForEmail = () => {
+        setCountry('argentina')
+        mockResidence = 'AR'
+        mockIsVerifiedForCountry = false
+        mockApiArs = { state: 'action_required', reason: 'email_required', action: 'provide-email' }
+        mockNextActions = [
+            { key: 'provide-email', kind: 'provide-email', purpose: 'submission-failed-no-email' } as NextAction,
+        ]
+        // deriveProviderRejection reads a provide-email verdict as blocked
+        mockRejection = { state: 'blocked', reasonCode: 'email_required' }
+    }
+
+    test('opens the email step instead of the support drawer', () => {
+        parkForEmail()
+        render(<MantecaAddMoney />)
+
+        expect(screen.getByTestId('provide-email-form')).toBeInTheDocument()
+        expect(lastKycModalProps!.visible).toBe(false)
+        expect(screen.getByTestId('input-amount-step')).toBeInTheDocument()
+    })
+
+    test('saving the email refreshes the account and closes the step', async () => {
+        parkForEmail()
+        mockUpdateUserById.mockResolvedValue({})
+        mockFetchUser.mockImplementationOnce(async () => {
+            mockApiArs = { state: 'setting_up' }
+            mockNextActions = []
+            mockCapabilityRevision += 1
+            mockCapabilityListeners.forEach((listener) => listener())
+            return { capabilities: mockCapabilityBlock() }
+        })
+        render(<MantecaAddMoney />)
+
+        fireEvent.change(within(screen.getByTestId('provide-email-form')).getByRole('textbox'), {
+            target: { value: 'ana@example.com' },
+        })
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', { name: en.kyc.provideEmail.save }))
+        })
+
+        expect(mockUpdateUserById).toHaveBeenCalledWith({ userId: 'legacy-user', email: 'ana@example.com' })
+        expect(mockFetchUser).toHaveBeenCalled()
+        expect(screen.queryByTestId('provide-email-form')).not.toBeInTheDocument()
+        expect(mockSetIsSupportModalOpen).not.toHaveBeenCalled()
+    })
+
+    test('Continue reopens the email step after "Not now"', async () => {
+        parkForEmail()
+        render(<MantecaAddMoney />)
+
+        fireEvent.click(screen.getByRole('button', { name: en.kyc.provideEmail.notNow }))
+        await waitFor(() => expect(screen.queryByTestId('provide-email-form')).not.toBeInTheDocument())
+
+        await act(() => lastInputStepProps!.onSubmit())
+
+        expect(screen.getByTestId('provide-email-form')).toBeInTheDocument()
+        expect(mockDeposit).not.toHaveBeenCalled()
+    })
+
+    test('any other blocked account keeps the support drawer', () => {
+        setCountry('argentina')
+        mockResidence = 'AR'
+        mockIsVerifiedForCountry = false
+        mockRejection = { state: 'blocked', reasonCode: 'submission_failed' }
+        render(<MantecaAddMoney />)
+
+        expect(screen.queryByTestId('provide-email-form')).not.toBeInTheDocument()
+        expect(lastKycModalProps).toMatchObject({ visible: true, variant: 'blocked' })
+    })
 })
 
 describe('no-token verification status handoff', () => {
