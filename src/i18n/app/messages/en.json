@@ -2356,8 +2356,7 @@
             "shareOwnAccountOnly": "Send it only from a bank account in my name. Transfers from someone else's account can't be credited.",
             "minDepositAmount": "Deposit amount must be at least ${amount}",
             "etaInstant": "Usually within minutes",
-            "transferDetailsNextStep": "The next step shows the CBU and alias to transfer from Mercado Pago or any bank.",
-            "seeTransferDetails": "See bank details"
+            "seeTransferDetails": "See details"
         },
         "processingDepositTitle": "Processing deposit",
         "processingDepositBody": "We're confirming your deposit.",
