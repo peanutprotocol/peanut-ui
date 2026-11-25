@@ -18,8 +18,8 @@ const JSON_HEADERS = { 'content-type': 'application/json' }
 let warned = false
 /** Fixtures whose watched deposit has landed: their balance is `balanceAfterDeposit` for the rest of the tab. */
 const creditedFixtures = new Set<string>()
-/** fixtures whose first Rhino status read was answered: the deposit shows on the reads after it */
-const statusReadFixtures = new Set<string>()
+/** Rhino status reads answered per fixture: the deposit is not sent, then on its way, then landed */
+const statusReads = new Map<string, number>()
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -96,15 +96,15 @@ export async function fixtureRespond(path: string, options?: RequestInit): Promi
             override as Partial<IUserProfile> | null | undefined
         )
     }
-    // A watched deposit arrives after the first status read, as a user's own transfer would: the
-    // first read at open answers "nothing sent yet", so the drawer shows the address before it lands.
-    if (
-        fixture.balanceAfterDeposit !== undefined &&
-        key.startsWith('GET /rhino/status/') &&
-        !statusReadFixtures.has(name!)
-    ) {
-        statusReadFixtures.add(name!)
-        return new Response(JSON.stringify({ status: 'not_started' }), { status: 200, headers: JSON_HEADERS })
+    // A watched deposit arrives as a user's own transfer would: the read at open answers "nothing
+    // sent yet" (the address shows), the next one "on its way" (processing shows), then it lands.
+    if (fixture.balanceAfterDeposit !== undefined && key.startsWith('GET /rhino/status/')) {
+        const reads = statusReads.get(name!) ?? 0
+        if (reads < 2) {
+            statusReads.set(name!, reads + 1)
+            const status = reads === 0 ? 'not_started' : 'pending'
+            return new Response(JSON.stringify({ status }), { status: 200, headers: JSON_HEADERS })
+        }
     }
     if (
         fixture.balanceAfterDeposit !== undefined &&

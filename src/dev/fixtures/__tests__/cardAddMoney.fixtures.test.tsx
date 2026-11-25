@@ -135,6 +135,8 @@ describe('card add-money drawer fixtures', () => {
         expect(spendableUsd()).toBe(3.2)
         // the read at open sees nothing sent yet, so the drawer shows the address first
         expect(await read(`/rhino/status/${DEMO_ADDRESS}`)).toEqual({ status: 'not_started' })
+        // then it is on its way, so the processing view shows
+        expect(await read(`/rhino/status/${DEMO_ADDRESS}`)).toEqual({ status: 'pending' })
         expect(spendableUsd()).toBe(3.2)
         expect(await read(`/rhino/status/${DEMO_ADDRESS}`)).toEqual({ status: 'completed', amount })
         expect(spendableUsd()).toBe(after)
