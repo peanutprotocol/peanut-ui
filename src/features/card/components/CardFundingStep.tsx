@@ -4,11 +4,13 @@ import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import { PageStack } from '@/components/0_Bruddle/PageStack'
+import Badge from '@/components/Global/Badges/Badge'
 import NavHeader from '@/components/Global/NavHeader'
 import { useAuth } from '@/context/authContext'
 import { useAddMoneyReadiness } from '@/features/add-money/useAddMoneyReadiness'
@@ -21,7 +23,7 @@ import {
     type CardFundingMethod,
 } from '@/features/card/card-gate-analytics'
 import { CARD_MIN_BALANCE_USD, cardBankPageHref, cardBankPlan, cardGapUsd } from '@/features/card/cardAddMoney'
-import { readStoredValue, writeStoredValue } from '@/utils/safe-storage'
+import { readStoredValue, removeStoredValue, writeStoredValue } from '@/utils/safe-storage'
 import { formatBankAmount } from '@/utils/currency'
 import { CardAddMoneyDrawer } from './CardAddMoneyDrawer'
 
@@ -49,6 +51,8 @@ export function CardFundingStep({
     const t = useTranslations('card.onboarding')
     const tAdd = useTranslations('addMoney')
     const tCommon = useTranslations('common')
+    const tCard = useTranslations('card.addMoney')
+    const tAccounts = useTranslations('depositAccounts')
     const router = useRouter()
     const readiness = useAddMoneyReadiness(false)
     const { user } = useAuth()
@@ -85,6 +89,25 @@ export function CardFundingStep({
         setOpen(false)
     }
 
+    // "I've sent the transfer": the step says the money is on its way until the balance covers the
+    // minimum. Session storage keeps it through a refresh; saving the step server-side is bank resume.
+    const sentKey = `card_gate_bank_sent_v1:${userId}`
+    const [sentUsd, setSentUsd] = useState(() => {
+        const stored = Number(readStoredValue(sentKey, 'sessionStorage'))
+        return stored > 0 ? stored : undefined
+    })
+    const bankSent = () => {
+        dismiss()
+        if (!gapUsd) return
+        setSentUsd(gapUsd)
+        writeStoredValue(sentKey, String(gapUsd), 'sessionStorage')
+    }
+    useEffect(() => {
+        if (!funded) return
+        setSentUsd(undefined)
+        removeStoredValue(sentKey, 'sessionStorage')
+    }, [funded, sentKey])
+
     // Before/after for the drawer: the balance reached the minimum after this step showed it short.
     // Session storage, so a user who funds on another page (a bank page, Home) and comes back counts too.
     const shortKey = `card_gate_saw_short_v1:${userId}`
@@ -105,7 +128,21 @@ export function CardFundingStep({
         onContinue()
     }, [funded, open, onContinue])
 
-    const bankShown = plan.kind !== 'not-offered'
+    // a bank way not offered stays, last, and its tap says why (design.md "rows the user cannot act on")
+    const bankOffered = plan.kind !== 'not-offered'
+    const bankRow = (
+        <ListItem
+            title={tAdd('methods.bankTransfer')}
+            body={tAdd('methods.bankTransferDescription')}
+            leading={<IconBubble {...CONCEPT_ICONS.bank} size="s" />}
+            trailing={
+                bankOffered ? undefined : <Badge status="neutral" customText={tAccounts('list.badgeNotOffered')} />
+            }
+            chevron
+            onClick={() => pickMethod('bank')}
+            data-testid="card-add-money-bank"
+        />
+    )
     return (
         <PageStack>
             <NavHeader title={t('navTitle')} onPrev={onPrev} />
@@ -120,17 +157,13 @@ export function CardFundingStep({
                       })
                     : t('fundingBody')}
             </p>
+            {sentUsd !== undefined && !funded && (
+                <Callout priority="info" data-testid="card-add-money-bank-sent">
+                    {tCard('bankSentPending', { amount: formatBankAmount(sentUsd, 'USD') })}
+                </Callout>
+            )}
             <ListGroup>
-                {bankShown && (
-                    <ListItem
-                        title={tAdd('methods.bankTransfer')}
-                        body={tAdd('methods.bankTransferDescription')}
-                        leading={<IconBubble {...CONCEPT_ICONS.bank} size="s" />}
-                        chevron
-                        onClick={() => pickMethod('bank')}
-                        data-testid="card-add-money-bank"
-                    />
-                )}
+                {bankOffered && bankRow}
                 <ListItem
                     title={tAdd('methods.crypto')}
                     body={tAdd('methods.cryptoDescription')}
@@ -139,6 +172,7 @@ export function CardFundingStep({
                     onClick={() => pickMethod('crypto')}
                     data-testid="card-add-money-crypto"
                 />
+                {!bankOffered && bankRow}
             </ListGroup>
             {drawer && (
                 <CardAddMoneyDrawer
@@ -146,10 +180,12 @@ export function CardFundingStep({
                     open={open}
                     method={drawer.method}
                     gapUsd={gapUsd}
+                    spendableUsd={spendableUsd}
                     plan={plan}
                     residenceIso2s={readiness.residenceIso2s}
                     onShow={onShow}
                     onDismiss={dismiss}
+                    onBankSent={bankSent}
                 />
             )}
             <PageStack.Footer>

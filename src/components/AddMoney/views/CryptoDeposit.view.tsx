@@ -11,7 +11,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import Loading from '@/components/Global/Loading'
-import ProcessingScreen from '@/components/Global/ProcessingScreen'
+import DepositProcessingScreen from '../components/DepositProcessingScreen'
 import ChainChip from '../components/ChainChip'
 import HowToDepositDrawer from '../components/HowToDepositDrawer'
 import SupportedNetworksDrawer from '../components/SupportedNetworksDrawer'
@@ -109,10 +109,7 @@ const CryptoDepositView = ({
         return (
             <div className="flex min-h-inherit w-full flex-col gap-8 pb-4 md:pb-0">
                 <NavHeader title={t('title')} onPrev={onBack} />
-                <ProcessingScreen
-                    title={tAddMoney('processingDepositTitle')}
-                    description={tAddMoney('processingDepositBody')}
-                />
+                <DepositProcessingScreen />
             </div>
         )
     }

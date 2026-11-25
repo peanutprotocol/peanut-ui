@@ -88,12 +88,16 @@ test.describe('card $10 step: add money in place', () => {
         expectStayedOnFundingStep(page, visited)
     })
 
-    test('no bank offered: only the crypto row shows', async ({ page }) => {
+    test('no bank offered: the bank row sorts last and its tap says why', async ({ page }) => {
         const visited = await openFundingStep(page, 'card-add-money-bank-not-offered')
         await expect(page.getByTestId('card-add-money-crypto')).toBeVisible({ timeout: 60_000 })
-        // the bank decision waits on the capability and account reads; absence only counts once they settle
+        // the bank decision waits on the capability and account reads; the order only counts once they settle
         await settle(page)
-        await expect(page.getByTestId('card-add-money-bank')).toHaveCount(0)
+        const rows = page.getByTestId(/^card-add-money-(bank|crypto)$/)
+        await expect(rows.last()).toHaveAttribute('data-testid', 'card-add-money-bank')
+        await page.getByTestId('card-add-money-bank').click()
+        await expect(drawer(page).getByTestId('card-add-money-status-not-offered')).toBeVisible()
+        await expect(drawer(page).getByTestId('card-add-money-use-crypto')).toBeVisible()
         expectStayedOnFundingStep(page, visited)
     })
 })

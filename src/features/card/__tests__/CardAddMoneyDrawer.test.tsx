@@ -58,7 +58,7 @@ const mockResetStatus = jest.fn(() => Promise.resolve())
 jest.mock('@/components/AddMoney/hooks/useCryptoDepositPolling', () => ({
     useCryptoDepositPolling: (_address: string | undefined, onSuccess: (amount: number) => void) => {
         pollOnSuccess = onSuccess
-        return { status: pollStatus, resetStatus: mockResetStatus, isResetting: false }
+        return { status: pollStatus, resetStatus: mockResetStatus, isResetting: false, isStatusRead: true }
     },
 }))
 
@@ -78,6 +78,7 @@ jest.mock('@/features/add-money/useAddMoneyReadiness', () => ({ useAddMoneyReadi
 const ACH_ACCOUNT = {
     railId: 'bridge:usd:ach',
     status: 'active',
+    matching: { nameOnAccount: 'user', sender: 'anyone' },
     instructions: {
         bankName: 'Lead Bank',
         accountNumber: '900123456789',
@@ -86,9 +87,15 @@ const ACH_ACCOUNT = {
     },
 }
 let depositAccounts: Record<string, unknown> = { ACH_US: ACH_ACCOUNT }
+const mockClaim = jest.fn()
 jest.mock('@/features/deposit-accounts/useDepositAccounts', () => ({
     DEPOSIT_ACCOUNTS_QUERY_KEY: ['deposit-accounts'],
-    useDepositAccounts: () => ({ accounts: depositAccounts, isLoading: false, isError: false }),
+    useDepositAccounts: () => ({ accounts: depositAccounts, isLoading: false, isError: false, claim: mockClaim }),
+}))
+// account-currency units per dollar from the client rate feed; 0 is the hook's "no rate"
+let usdRate = 0.92
+jest.mock('@/hooks/useExchangeRate', () => ({
+    useExchangeRate: () => ({ exchangeRate: usdRate, isLoading: false, isError: usdRate === 0 }),
 }))
 
 beforeAll(() => {
@@ -116,6 +123,7 @@ beforeEach(() => {
     pollOnSuccess = undefined
     readiness = { isLoading: false, residenceIso2s: ['US'], ready: noneReady, topUpGates: gates('blocked-rejection') }
     depositAccounts = { ACH_US: ACH_ACCOUNT }
+    usdRate = 0.92
     mockCreateDepositAddress.mockResolvedValue({
         depositAddress: '0xdeposit',
         minDepositLimitUsd: 5,
@@ -199,12 +207,6 @@ describe('funding step', () => {
         expect(drawerEvents()).toEqual([['card_gate_add_money_drawer_opened', { method, view }]])
     })
 
-    it('hides the bank row when no bank way is offered to this user', () => {
-        renderFunding()
-        expect(screen.queryByTestId('card-add-money-bank')).not.toBeInTheDocument()
-        expect(screen.getByTestId('card-add-money-crypto')).toBeInTheDocument()
-    })
-
     it('goes straight to the one bank page with the gap and the way back', () => {
         readiness = { ...readiness, residenceIso2s: ['AR'], ready: { ...noneReady, ars: ['ARS'] } }
         renderFunding()
@@ -225,9 +227,14 @@ describe('bank views', () => {
         renderFunding()
         fireEvent.click(screen.getByTestId('card-add-money-bank'))
         const details = within(drawer()).getByTestId('card-add-money-bank-details')
-        expect(within(details).getByText('amountToSend($7.50)')).toBeInTheDocument()
+        // the drawer title already names the dollar gap, so a dollar account repeats no amount
+        expect(within(details).queryByText(/amountToSend|sendAbout|sendInCurrency/)).not.toBeInTheDocument()
         expect(within(details).getByText('900123456789')).toBeInTheDocument()
         expect(within(details).getByText('101019644')).toBeInTheDocument()
+        // arrival and fee read once, behind the same toggle as on the details screen
+        expect(within(details).queryByText('fees.noFee')).not.toBeInTheDocument()
+        fireEvent.click(within(details).getByText('details.termsToggle'))
+        expect(within(details).getByText('fees.noFee')).toBeInTheDocument()
         expect(within(details).getByText('corridors.ACH_US.arrivalDetail')).toBeInTheDocument()
         // the details are the root: no way back to a list of one
         expect(within(drawer()).queryByText('back')).not.toBeInTheDocument()
@@ -254,19 +261,84 @@ describe('bank views', () => {
         ])
     })
 
-    it('asks for the value in the rail currency on a non-dollar account, with no invented rate', () => {
-        readiness = { ...readiness, residenceIso2s: ['DE'], ready: { ...noneReady, account: ['EUR'] } }
-        depositAccounts = {
-            SEPA_EU: {
-                railId: 'bridge:eur:sepa',
-                status: 'active',
-                instructions: { iban: 'DE89370400440532013000', bic: 'COBADEFFXXX', paymentRails: ['sepa'] },
-            },
-        }
+    const SEPA_ACCOUNT = {
+        railId: 'bridge:eur:sepa',
+        status: 'active',
+        matching: { nameOnAccount: 'user', sender: 'anyone' },
+        instructions: { iban: 'DE89370400440532013000', bic: 'COBADEFFXXX', paymentRails: ['sepa'] },
+    }
+    const openOnlyAccount = (currency: string) => {
+        readiness = { ...readiness, ready: { ...noneReady, account: [currency] } }
         renderFunding()
         fireEvent.click(screen.getByTestId('card-add-money-bank'))
-        expect(within(drawer()).getByText('amountToSendConverted($7.50|EUR)')).toBeInTheDocument()
-        expect(within(drawer()).getByText('DE89370400440532013000')).toBeInTheDocument()
+        return within(drawer()).getByTestId('card-add-money-bank-details')
+    }
+
+    it('asks for about the gap in euros on a euro account, rounded up, at the client rate', () => {
+        readiness = { ...readiness, residenceIso2s: ['DE'] }
+        depositAccounts = { SEPA_EU: SEPA_ACCOUNT }
+        const details = openOnlyAccount('EUR')
+        // $7.50 at 0.92 is €6.90, rounded up to a whole euro so a moving rate does not land short
+        expect(within(details).getByText('sendAbout(€7)')).toBeInTheDocument()
+        expect(within(details).getByText('DE89370400440532013000')).toBeInTheDocument()
+    })
+
+    it('names no euro amount when there is no rate', () => {
+        usdRate = 0
+        readiness = { ...readiness, residenceIso2s: ['DE'] }
+        depositAccounts = { SEPA_EU: SEPA_ACCOUNT }
+        const details = openOnlyAccount('EUR')
+        expect(within(details).getByText('sendInCurrency(EUR)')).toBeInTheDocument()
+        expect(within(details).queryByText(/\$7\.50|€/)).not.toBeInTheDocument()
+    })
+
+    it('keeps an own-name-only rule beside the numbers', () => {
+        depositAccounts = {
+            ACH_US: { ...ACH_ACCOUNT, matching: { nameOnAccount: 'user', sender: 'own-name-only' } },
+        }
+        const details = openOnlyAccount('USD')
+        expect(within(details).getByText(/^rules\.ownName\.line/)).toBeInTheDocument()
+    })
+
+    it('shows the skeleton while the account opens, with no "sent" to tap yet', () => {
+        depositAccounts = { ACH_US: { ...ACH_ACCOUNT, status: 'provisioning', instructions: undefined } }
+        const details = openOnlyAccount('USD')
+        expect(within(details).getByTestId('deposit-details-skeleton')).toBeInTheDocument()
+        expect(within(details).getByText('details.provisioning')).toBeInTheDocument()
+        expect(within(details).queryByText('sentTransfer')).not.toBeInTheDocument()
+        expect(within(details).getByText('moreWays')).toBeInTheDocument()
+    })
+
+    it('says revoked details no longer work, and offers only the other ways', () => {
+        depositAccounts = { ACH_US: { ...ACH_ACCOUNT, status: 'revoked' } }
+        const details = openOnlyAccount('USD')
+        expect(within(details).getByText('details.revokedTitle(USD)')).toBeInTheDocument()
+        expect(within(details).getByText('details.revokedBody')).toBeInTheDocument()
+        expect(within(details).queryByText('900123456789')).not.toBeInTheDocument()
+        expect(within(details).queryByText('sentTransfer')).not.toBeInTheDocument()
+        fireEvent.click(within(details).getByText('moreWays'))
+        expect(mockPush).toHaveBeenCalledWith('/add-money?method=bank&returnTo=%2Fcard%3Fcard_step%3Dfunding')
+    })
+
+    it('says the account could not open after the wait, and retries the claim', () => {
+        depositAccounts = {
+            ACH_US: { ...ACH_ACCOUNT, status: 'provisioning', instructions: undefined, timedOut: true },
+        }
+        const details = openOnlyAccount('USD')
+        expect(within(details).getByText('details.timedOutTitle(USD)')).toBeInTheDocument()
+        expect(within(details).getByText('details.timedOutBody')).toBeInTheDocument()
+        expect(within(details).queryByTestId('deposit-details-skeleton')).not.toBeInTheDocument()
+        fireEvent.click(within(details).getByText('details.timedOutRetry'))
+        expect(mockClaim).toHaveBeenCalledWith('ACH_US')
+        expect(within(details).getByText('moreWays')).toBeInTheDocument()
+    })
+
+    it('says the details are not ready when the account is missing, not a blank card', () => {
+        depositAccounts = {}
+        const details = openOnlyAccount('USD')
+        expect(within(details).getByText('details.unavailableTitle(USD)')).toBeInTheDocument()
+        expect(within(details).queryByText('sentTransfer')).not.toBeInTheDocument()
+        expect(within(details).getByText('moreWays')).toBeInTheDocument()
     })
 
     it('says the account is being set up and offers crypto now', () => {
@@ -358,9 +430,7 @@ describe('crypto views', () => {
         await openAddress('evm', { spendableUsd: 8 })
         const ask = within(drawer()).getByTestId('card-add-money-ask')
         expect(ask).toHaveTextContent('sendAsk($5)')
-        expect(ask).toHaveTextContent('raisedToMinimum(EVM|$5|$3)')
-        // the title names what to send, not the smaller gap
-        expect(within(drawer()).getAllByText('title($5)').length).toBeGreaterThan(0)
+        expect(ask).toHaveTextContent('raisedToMinimum(evmNetworks|$5|$3)')
     })
 
     it('goes back from the address to the network list', async () => {
@@ -375,8 +445,8 @@ describe('crypto views', () => {
         await act(async () => pollOnSuccess?.(4))
         const short = within(drawer()).getByTestId('card-add-money-short')
         expect(short).toHaveTextContent('partialContribution.title($4|$7.50)')
-        // $3.50 is still missing, but the network takes at least $5: the ask says so, never a smaller send
-        expect(short).toHaveTextContent('partialContribution.description($3.50)')
+        // $3.50 is still missing, but the network takes at least $5: the ask is the one send amount
+        expect(within(drawer()).queryByText(/partialContribution\.description/)).not.toBeInTheDocument()
         const ask = within(drawer()).getByTestId('card-add-money-ask')
         expect(ask).toHaveTextContent('sendAsk($5)')
         expect(ask).toHaveTextContent('raisedToMinimum(Tron|$5|$1.50)')
@@ -390,9 +460,7 @@ describe('crypto views', () => {
         mockCreateDepositAddress.mockResolvedValue({ depositAddress: 'Tdeposit', minDepositLimitUsd: 1 })
         await openAddress('tron')
         await act(async () => pollOnSuccess?.(4))
-        expect(within(drawer()).getByTestId('card-add-money-short')).toHaveTextContent(
-            'partialContribution.description($3.50)'
-        )
+        expect(within(drawer()).getByTestId('card-add-money-ask')).toHaveTextContent('sendAsk($3.50)')
     })
 
     it('turns a full deposit into a short one when the refreshed balance still leaves a gap', async () => {
@@ -406,9 +474,20 @@ describe('crypto views', () => {
         expect(within(drawer()).getByTestId('card-add-money-ask')).toHaveTextContent('sendAsk($5)')
     })
 
-    it('clears a status left by an earlier deposit before the first poll can read it as this one', async () => {
+    it('clears only an outcome an earlier deposit left, read at once when the address arrives', async () => {
+        pollStatus = 'completed'
         await openAddress('tron')
         await waitFor(() => expect(mockResetStatus).toHaveBeenCalledTimes(1))
+    })
+
+    it('keeps a deposit already on its way and shows it processing', async () => {
+        pollStatus = 'loading'
+        renderFunding()
+        fireEvent.click(screen.getByTestId('card-add-money-crypto'))
+        fireEvent.click(within(drawer()).getByTestId('choose-network-tron'))
+        await waitFor(() => expect(within(drawer()).getByTestId('card-add-money-processing')).toBeInTheDocument())
+        expect(within(drawer()).queryByTestId('qr')).not.toBeInTheDocument()
+        expect(mockResetStatus).not.toHaveBeenCalled()
     })
 
     it('sends the deposit event the add-money crypto page sends', async () => {
@@ -436,13 +515,10 @@ describe('crypto views', () => {
     })
 
     it('offers a retry when the market moved', async () => {
+        const { rerenderWith } = await openAddress('evm')
         pollStatus = 'failed'
-        await act(async () => {
-            renderFunding()
-        })
-        fireEvent.click(screen.getByTestId('card-add-money-crypto'))
-        fireEvent.click(within(drawer()).getByTestId('choose-network-evm'))
-        await waitFor(() => expect(within(drawer()).getByText('marketMovedTitle')).toBeInTheDocument())
+        rerenderWith({})
+        expect(within(drawer()).getByText('marketMovedTitle')).toBeInTheDocument()
         fireEvent.click(within(drawer()).getByText('tryAgain'))
         expect(mockResetStatus).toHaveBeenCalled()
     })
@@ -501,5 +577,88 @@ describe('funded while the drawer is open', () => {
             ['card_gate_add_money_drawer_opened', { method: 'crypto', view: 'networks' }],
             ['card_gate_add_money_drawer_closed', { method: 'crypto', view: 'networks' }],
         ])
+    })
+})
+
+// fix round 1 (laptop verification of #4279): one amount, one heading, no dead ends
+let mockBankingRestricted = false
+const mockOpenSupport = jest.fn()
+jest.mock('@/hooks/useResidenceRestrictions', () => ({
+    useResidenceRestrictions: () => ({ banking: mockBankingRestricted, card: false }),
+}))
+jest.mock('@/context/ModalsContext', () => ({
+    ...jest.requireActual('@/context/ModalsContext'),
+    useModalsContext: () => ({ openSupportWithMessage: mockOpenSupport }),
+}))
+
+describe('one amount, one heading, no dead ends', () => {
+    beforeEach(() => {
+        mockBankingRestricted = false
+    })
+
+    it('keeps the drawer title on the gap when the network minimum raises the ask', async () => {
+        mockCreateDepositAddress.mockResolvedValue({
+            depositAddress: '0xdeposit',
+            minDepositLimitUsd: 10,
+            maxDepositLimitUsd: 10000,
+        })
+        renderFunding()
+        fireEvent.click(screen.getByTestId('card-add-money-crypto'))
+        fireEvent.click(within(drawer()).getByTestId('choose-network-evm'))
+        await within(drawer()).findByTestId('card-add-money-address')
+        expect(within(drawer()).getAllByText('title($7.50)').length).toBeGreaterThan(0)
+        expect(within(drawer()).queryByText('title($10)')).not.toBeInTheDocument()
+    })
+
+    it('shows one heading on a status view: the status, not the drawer title too', () => {
+        readiness = { ...readiness, topUpGates: gates('blocked-rejection', { ACH_US: { kind: 'needs-identity' } }) }
+        renderFunding()
+        fireEvent.click(screen.getByTestId('card-add-money-bank'))
+        within(drawer()).getByTestId('card-add-money-status-not-verified')
+        for (const el of within(drawer()).queryAllByText('title($7.50)')) expect(el).toHaveClass('sr-only')
+    })
+
+    it('offers crypto as the tertiary link beside Verify identity, and comes back to the status', () => {
+        readiness = { ...readiness, topUpGates: gates('blocked-rejection', { ACH_US: { kind: 'needs-identity' } }) }
+        renderFunding()
+        fireEvent.click(screen.getByTestId('card-add-money-bank'))
+        const crypto = within(drawer()).getByTestId('card-add-money-use-crypto')
+        expect(crypto).toHaveTextContent('useCryptoInstead')
+        fireEvent.click(crypto)
+        expect(within(drawer()).getByTestId('choose-network-evm')).toBeInTheDocument()
+        fireEvent.click(within(drawer()).getByText('back'))
+        expect(within(drawer()).getByTestId('card-add-money-status-not-verified')).toBeInTheDocument()
+    })
+
+    it('keeps a bank row that is not offered, last, and says why on tap', () => {
+        mockBankingRestricted = true
+        renderFunding()
+        const rows = screen.getAllByTestId(/^card-add-money-(bank|crypto)$/)
+        expect(rows.map((row) => row.dataset.testid)).toEqual(['card-add-money-crypto', 'card-add-money-bank'])
+        expect(within(screen.getByTestId('card-add-money-bank')).getByText('list.badgeNotOffered')).toBeInTheDocument()
+        fireEvent.click(screen.getByTestId('card-add-money-bank'))
+        const status = within(drawer()).getByTestId('card-add-money-status-not-offered')
+        expect(within(status).getByText('bankOnlyNotAvailableNote')).toBeInTheDocument()
+        fireEvent.click(within(status).getByTestId('card-add-money-use-crypto'))
+        expect(within(drawer()).getByTestId('choose-network-evm')).toBeInTheDocument()
+    })
+
+    it('offers support when bank is refused for a reason other than the residence', () => {
+        renderFunding()
+        fireEvent.click(screen.getByTestId('card-add-money-bank'))
+        const status = within(drawer()).getByTestId('card-add-money-status-not-offered')
+        expect(within(status).getByText('notOfferedBody')).toBeInTheDocument()
+        fireEvent.click(within(status).getByText('contactSupport'))
+        expect(mockOpenSupport).toHaveBeenCalled()
+    })
+
+    it('shows the transfer as on its way after "I\'ve sent the transfer"', async () => {
+        readiness = { ...readiness, ready: { ...noneReady, account: ['USD'] } }
+        const { rerenderWith } = renderFunding()
+        fireEvent.click(screen.getByTestId('card-add-money-bank'))
+        fireEvent.click(within(drawer()).getByText('sentTransfer'))
+        expect(await screen.findByText('bankSentPending($7.50)')).toBeInTheDocument()
+        rerenderWith({ funded: true, spendableUsd: 10 })
+        await waitFor(() => expect(screen.queryByText('bankSentPending($7.50)')).not.toBeInTheDocument())
     })
 })

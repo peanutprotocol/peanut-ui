@@ -1291,7 +1291,8 @@
         "addMoney": {
             "pickNetwork": "Elegí la red desde la que enviás. Si enviás desde un exchange, elegí la red en la que retirás ahí.",
             "sendAsk": "Enviá {amount}",
-            "amountToSendConverted": "Enviá el equivalente a {amount} en {currency}. Sumá un poco más por las comisiones del banco.",
+            "sendAbout": "Enviá unos {amount}. El monto exacto depende del tipo de cambio.",
+            "sendInCurrency": "Enviá {currency} desde tu banco. Llega en dólares.",
             "notVerifiedBody": "Verificá tu identidad una sola vez para obtener los datos bancarios.",
             "finishSetupBody": "Terminalo en la página del banco."
         }

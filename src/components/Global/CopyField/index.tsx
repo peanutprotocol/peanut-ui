@@ -9,6 +9,8 @@ import { twMerge } from '@/utils/tw'
 
 interface CopyFieldProps {
     text: string
+    /** What the field shows when it differs from what it copies, e.g. an address shortened in the middle */
+    displayText?: string
     variant?: ButtonVariant
     shadowSize?: ShadowSize
     disabled?: boolean
@@ -17,7 +19,7 @@ interface CopyFieldProps {
 
 const timeoutDuration = 3000
 
-const CopyField = ({ text, variant, shadowSize, disabled, onDisabledClick }: CopyFieldProps) => {
+const CopyField = ({ text, displayText, variant, shadowSize, disabled, onDisabledClick }: CopyFieldProps) => {
     const t = useTranslations('global')
     const toast = useToast()
     const [isCopied, setIsCopied] = useState(false)
@@ -38,7 +40,7 @@ const CopyField = ({ text, variant, shadowSize, disabled, onDisabledClick }: Cop
 
     return (
         <div className="flex w-full flex-row items-stretch justify-between gap-2">
-            <BaseInput disabled value={text} className="h-10" />
+            <BaseInput disabled value={displayText ?? text} className="h-10" />
             <Button
                 disabled={disabled && !onDisabledClick}
                 variant={variant ? variant : 'secondary'}

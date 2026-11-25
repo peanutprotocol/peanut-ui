@@ -39,6 +39,7 @@ export type CardAddMoneyView =
     | 'under_review'
     | 'not_verified'
     | 'finish_setup'
+    | 'not_offered'
     | 'loading'
 
 export function captureCardAddMoneyDrawerOpened(method: CardFundingMethod, view: CardAddMoneyView): void {

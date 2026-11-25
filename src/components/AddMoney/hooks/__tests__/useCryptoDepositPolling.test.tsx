@@ -103,3 +103,21 @@ test.each([
     })
     expect(mockFetch).toHaveBeenCalledWith(url, expect.objectContaining({ method: 'POST' }))
 })
+
+// TASK-25169: the card drawer opens on an address the user may already have sent to, so it reads
+// the status at once; the add-money pages keep the 15s delay.
+test.each([
+    ['by default', undefined, false],
+    ['with readNow', { readNow: true }, true],
+])('reads the status at once only with readNow: %s', async (_label, options, readsAtOnce) => {
+    mockFetch.mockResolvedValue(response(200, { status: 'pending' }))
+    const { result } = renderHook(() => useCryptoDepositPolling('sda-test', jest.fn(), undefined, options), {
+        wrapper,
+    })
+    await act(async () => {
+        await jest.advanceTimersByTimeAsync(100)
+    })
+    expect(result.current.isStatusRead).toBe(readsAtOnce)
+    expect(result.current.status).toBe(readsAtOnce ? 'loading' : 'not_started')
+    expect(mockFetch).toHaveBeenCalledTimes(readsAtOnce ? 1 : 0)
+})

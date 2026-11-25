@@ -13,22 +13,28 @@ export function useCryptoDepositPolling(
     depositAddress: string | undefined,
     onSuccess: (amount: number, statusData?: DepositAddressStatusResponse) => void,
     /** The charge a request-payment address was opened for; needed to clear its status. */
-    chargeId?: string
+    chargeId?: string,
+    /**
+     * Read the status at once instead of after the delay: a caller that opens on an address the user
+     * may already have sent to must see a deposit in flight before it shows the address again.
+     */
+    { readNow = false }: { readNow?: boolean } = {}
 ) {
-    const [isDelayComplete, setIsDelayComplete] = useState(false)
+    const [isDelayComplete, setIsDelayComplete] = useState(readNow)
     const [isResetting, setIsResetting] = useState(false)
     const hasCalledSuccess = useRef(false)
     const isResettingRef = useRef(false)
     const queryClient = useQueryClient()
 
     useEffect(() => {
+        if (readNow) return
         const timer = setTimeout(() => setIsDelayComplete(true), POLLING_DELAY)
         return () => clearTimeout(timer)
-    }, [])
+    }, [readNow])
 
     const queryKey = useMemo(() => ['rhino-deposit-address-status', depositAddress], [depositAddress])
 
-    const { data: statusData } = useQuery({
+    const { data: statusData, isFetched } = useQuery({
         queryKey,
         queryFn: () => {
             if (!depositAddress) {
@@ -81,5 +87,6 @@ export function useCryptoDepositPolling(
         }
     }, [depositAddress, chargeId, queryKey, queryClient])
 
-    return { status, resetStatus, isResetting }
+    /** `isStatusRead`: the status was read at least once (or the read failed), so `status` is not a guess */
+    return { status, resetStatus, isResetting, isStatusRead: isFetched }
 }

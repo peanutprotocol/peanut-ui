@@ -1,118 +1,139 @@
 'use client'
 
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
-import ChainChip from '@/components/AddMoney/components/ChainChip'
+import DepositProcessingScreen from '@/components/AddMoney/components/DepositProcessingScreen'
+import SupportedEvmNetworksCard from '@/components/AddMoney/components/SupportedEvmNetworksCard'
+import SupportedTokensRow from '@/components/AddMoney/components/SupportedTokensRow'
 import { useCryptoDepositPolling } from '@/components/AddMoney/hooks/useCryptoDepositPolling'
-import Card from '@/components/Global/Card'
 import CopyField from '@/components/Global/CopyField'
 import Loading from '@/components/Global/Loading'
-import ProcessingScreen from '@/components/Global/ProcessingScreen'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
-import { CHAIN_LOGOS, NETWORK_LABELS, SUPPORTED_EVM_CHAINS, getSupportedTokens } from '@/constants/rhino.consts'
+import { NETWORK_LABELS } from '@/constants/rhino.consts'
 import { useAuth } from '@/context/authContext'
+import { captureCryptoDepositCompleted } from '@/features/add-money/captureCryptoDepositCompleted'
+import { useRhinoDepositAddress } from '@/features/add-money/useRhinoDepositAddress'
 import { cardCryptoAskUsd } from '@/features/card/cardAddMoney'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
-import { useWallet } from '@/hooks/wallet/useWallet'
-import { rhinoApi } from '@/services/rhino'
 import type { RhinoChainType } from '@/services/services.types'
 import { formatBankAmount } from '@/utils/currency'
-import posthog from 'posthog-js'
-import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import { middleEllipsisAccount } from '@/utils/general.utils'
 
 const usd = (amount: number) => formatBankAmount(amount, 'USD')
+const cents = (amount: number) => Math.round(amount * 100) / 100
+/** the copy field fits about this many characters at 375px; the last 4 stay visible */
+const ADDRESS_DISPLAY_CHARS = 24
 
 /**
  * The deposit address for one network, asking for the card gap (RhinoDepositView's states, sized for
- * the drawer). A deposit refreshes the balance and the card overview at once, so the funding step
- * sees the minimum reached and closes the drawer.
+ * the drawer). A deposit refreshes the balance and the card overview at once; processing lasts until
+ * the balance read moves, then the step closes the drawer, names what is still missing, or says done.
  */
 export function CardCryptoDepositView({
     network,
     gapUsd,
-    onAsk,
+    spendableUsd,
+    onDone,
 }: {
     network: RhinoChainType
     gapUsd: number | undefined
-    /** the amount this address asks for, so the drawer title names what to send */
-    onAsk: (askUsd: number | undefined) => void
+    spendableUsd: number | undefined
+    onDone: () => void
 }) {
     const t = useTranslations('card.addMoney')
     const tCrypto = useTranslations('addMoney.crypto')
-    const tAddMoney = useTranslations('addMoney')
     const tPayment = useTranslations('payment')
     const tCommon = useTranslations('common')
     const queryClient = useQueryClient()
     const { user } = useAuth()
-    const userId = user?.user.userId
-    const { address } = useWallet()
     const networkLabel = NETWORK_LABELS[network]
+    const familyLabel = network === 'EVM' ? tCrypto('evmNetworks') : networkLabel
 
-    // the same query the add-money crypto page reads, so the address is fetched once per network
-    const { data, isLoading, isError, refetch } = useQuery({
-        queryKey: ['rhino-deposit-address', userId, address, network],
-        queryFn: () => rhinoApi.createDepositAddress(address as string, network, userId as string),
-        enabled: !!userId && !!address,
-        staleTime: 1000 * 60 * 60 * 24,
-    })
+    const { data, isLoading, isError, refetch } = useRhinoDepositAddress(network, true)
+    const depositAddress = data?.depositAddress
+    const depositAddressRef = useRef(depositAddress)
+    depositAddressRef.current = depositAddress
+    const spendableRef = useRef(spendableUsd)
+    spendableRef.current = spendableUsd
+
+    // the balance this round of asking started from: a credited deposit is in once the read moves off it
+    const [round, setRound] = useState<{ spendable: number }>()
+    useEffect(() => {
+        if (!round && spendableUsd !== undefined) setRound({ spendable: spendableUsd })
+    }, [round, spendableUsd])
+
     const [shortDeposit, setShortDeposit] = useState<{ received: number; asked: number }>()
-    // what is still missing: after a short deposit the smaller of the refreshed gap and the unpaid
-    // part of the ask, so it is right before the balance read lands and after it
-    const shortRest = shortDeposit ? Math.max(shortDeposit.asked - shortDeposit.received, 0.01) : undefined
+    // after a short deposit, what is missing: the smaller of the refreshed gap and the unpaid part of
+    // the ask, so it is right before the balance read lands and after it
+    const shortRest = shortDeposit ? Math.max(cents(shortDeposit.asked - shortDeposit.received), 0.01) : undefined
     const needUsd = shortRest !== undefined ? Math.min(gapUsd ?? shortRest, shortRest) : gapUsd
     const ask = data && needUsd ? cardCryptoAskUsd(needUsd, data.minDepositLimitUsd) : undefined
     const askRef = useRef(ask?.askUsd)
     askRef.current = ask?.askUsd
-    const askUsd = ask?.askUsd
-    useEffect(() => onAsk(askUsd), [onAsk, askUsd])
-    // the gap when a full deposit was reported: processing lasts until the balance read moves past it
-    const [creditedAtGap, setCreditedAtGap] = useState<number>()
-    const gapRef = useRef(gapUsd)
-    gapRef.current = gapUsd
+
+    // a full deposit reported, with what it was asked for: processing until the balance read moves
+    const [credited, setCredited] = useState<{ asked: number | undefined }>()
+    const [done, setDone] = useState(false)
+
+    // The API keeps an address's last outcome for hours. The first read, at once when the address
+    // arrives, decides: a deposit still on its way stays and shows processing, so no second send is
+    // invited; a completed or failed outcome is an earlier deposit's and is cleared.
+    const [checkedFor, setCheckedFor] = useState<string>()
+    const checkedForRef = useRef<string>()
+    const [clearingStale, setClearingStale] = useState(false)
+
     const handleSuccess = useCallback(
         (amount: number) => {
+            // the first read's outcome belongs to an earlier deposit, which the check below clears
+            if (!depositAddressRef.current || checkedForRef.current !== depositAddressRef.current) return
             void queryClient.invalidateQueries({ queryKey: ['balance'] })
             void queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] })
-            // the same event the add-money crypto page sends, so deposit charts keep the card's deposits
-            posthog.capture(ANALYTICS_EVENTS.DEPOSIT_COMPLETED, {
-                amount,
-                chain_type: network,
-                method_type: 'crypto',
-                acquisition_source: user?.invitedBy ? 'referred' : 'organic',
-            })
+            captureCryptoDepositCompleted(amount, network, user?.invitedBy)
             const asked = askRef.current
-            if (asked !== undefined && amount < asked) setShortDeposit({ received: amount, asked })
-            else setCreditedAtGap(gapRef.current ?? 0)
+            if (asked !== undefined && amount < asked - 0.005) {
+                setShortDeposit({ received: amount, asked })
+                // the next round starts here, so the next deposit is in once the read moves off this
+                const spendable = spendableRef.current
+                if (spendable !== undefined) setRound({ spendable })
+            } else setCredited({ asked })
         },
         [queryClient, network, user?.invitedBy]
     )
-    // a full deposit that still leaves a gap (a fee taken on the way) is a short one: the step names
-    // the new gap instead of waiting on a close that never comes
-    useEffect(() => {
-        if (creditedAtGap === undefined || gapUsd === undefined || gapUsd === creditedAtGap || gapUsd <= 0) return
-        setShortDeposit({ received: creditedAtGap - gapUsd, asked: creditedAtGap })
-        setCreditedAtGap(undefined)
-    }, [creditedAtGap, gapUsd])
-    const credited = creditedAtGap !== undefined
-    const { status, resetStatus, isResetting } = useCryptoDepositPolling(data?.depositAddress, handleSuccess)
+    const { status, resetStatus, isResetting, isStatusRead } = useCryptoDepositPolling(
+        depositAddress,
+        handleSuccess,
+        undefined,
+        { readNow: true }
+    )
 
-    // The API keeps an address's last status for hours, so a deposit made earlier (on the add-money
-    // page, or a previous visit) would read as this one and freeze the view. Clear it once when the
-    // address arrives, before the first poll; a transfer already on its way still books on the backend.
-    const clearedFor = useRef<string>()
     useEffect(() => {
-        const depositAddress = data?.depositAddress
-        if (!depositAddress || clearedFor.current === depositAddress) return
-        clearedFor.current = depositAddress
-        resetStatus().catch(() => {
-            // the clear failed: the balance poll still closes the drawer once the money is in
-        })
-    }, [data?.depositAddress, resetStatus])
+        if (!depositAddress || !isStatusRead || checkedForRef.current === depositAddress) return
+        checkedForRef.current = depositAddress
+        setCheckedFor(depositAddress)
+        if (status !== 'completed' && status !== 'failed') return
+        setClearingStale(true)
+        resetStatus()
+            .catch(() => {
+                // the clear failed: the balance read still moves the step once the money is in
+            })
+            .finally(() => setClearingStale(false))
+    }, [depositAddress, isStatusRead, status, resetStatus])
+
+    // the balance read moved after a credited deposit: the gap is closed, or a fee left part of it
+    useEffect(() => {
+        if (!credited || !round || spendableUsd === undefined || gapUsd === undefined) return
+        if (spendableUsd === round.spendable) return
+        setCredited(undefined)
+        setRound({ spendable: spendableUsd })
+        if (gapUsd <= 0) setDone(true)
+        else if (credited.asked !== undefined)
+            setShortDeposit({ received: cents(spendableUsd - round.spendable), asked: credited.asked })
+    }, [credited, round, spendableUsd, gapUsd])
 
     // Rhino reports one deposit per address until the status is cleared: after a short deposit the
     // clear re-arms the poll for the rest, as RhinoDepositView does
@@ -123,43 +144,7 @@ export function CardCryptoDepositView({
         })
     }, [shortDeposit, resetStatus])
 
-    if (status === 'failed') {
-        return (
-            <div className="flex flex-col items-center gap-4">
-                <Card>
-                    <div className="flex w-full flex-col items-center gap-2 text-center">
-                        <IconBubble icon="alert" size="s" color="yellow" />
-                        <h2 className="text-heading-card text-foreground-primary">{tCrypto('marketMovedTitle')}</h2>
-                        <p className="text-body-s text-foreground-secondary">{tCrypto('marketMovedDescription')}</p>
-                        <p className="text-label-l text-foreground-secondary">{tCrypto('marketMovedNote')}</p>
-                    </div>
-                </Card>
-                <Button
-                    variant="primary"
-                    className="w-full"
-                    onClick={() => void resetStatus()}
-                    loading={isResetting}
-                    disabled={isResetting}
-                >
-                    {tCommon('tryAgain')}
-                </Button>
-            </div>
-        )
-    }
-
-    // detected and settling, or credited while the balance read catches up: no second deposit invited
-    if (status === 'loading' || credited) {
-        return (
-            <div className="py-6" data-testid="card-add-money-processing">
-                <ProcessingScreen
-                    title={tAddMoney('processingDepositTitle')}
-                    description={tAddMoney('processingDepositBody')}
-                />
-            </div>
-        )
-    }
-
-    if (isLoading) {
+    if (isLoading || (data && (checkedFor !== data.depositAddress || clearingStale))) {
         return (
             <div className="flex justify-center py-10">
                 <Loading variant="mascot" />
@@ -184,23 +169,59 @@ export function CardCryptoDepositView({
         )
     }
 
+    if (status === 'failed') {
+        return (
+            <div className="flex flex-col gap-4">
+                {/* the drawer keeps what the user needs: the money comes back, and they can try again */}
+                <Callout priority="attention" title={tCrypto('marketMovedTitle')}>
+                    {tCrypto('marketMovedNote')}
+                </Callout>
+                <Button
+                    variant="primary"
+                    className="w-full"
+                    onClick={() => void resetStatus()}
+                    loading={isResetting}
+                    disabled={isResetting}
+                >
+                    {tCommon('tryAgain')}
+                </Button>
+            </div>
+        )
+    }
+
+    // detected and settling, or credited while the balance read catches up: no second deposit invited
+    if (status === 'loading' || credited) {
+        return (
+            <div className="py-6" data-testid="card-add-money-processing">
+                <DepositProcessingScreen />
+            </div>
+        )
+    }
+
+    if (done) {
+        return (
+            <div className="flex flex-col items-center gap-4 text-center" data-testid="card-add-money-done">
+                <IconBubble icon="check" color="green" />
+                <TitleBlock align="center" size="s" title={t('doneTitle')} />
+                <Button variant="primary" className="w-full" onClick={onDone}>
+                    {tCommon('done')}
+                </Button>
+            </div>
+        )
+    }
+
     return (
         <div className="flex flex-col items-center gap-4" data-testid="card-add-money-address">
             {shortDeposit && (
-                <Card data-testid="card-add-money-short">
-                    <div className="flex w-full flex-col items-center gap-2 text-center">
-                        <IconBubble icon="alert" size="s" color="yellow" />
-                        <h2 className="text-heading-card text-foreground-primary">
-                            {tPayment('partialContribution.title', {
-                                received: usd(shortDeposit.received),
-                                asked: usd(shortDeposit.asked),
-                            })}
-                        </h2>
-                        <p className="text-body-s text-foreground-secondary">
-                            {tPayment('partialContribution.description', { remaining: usd(needUsd ?? 0) })}
-                        </p>
-                    </div>
-                </Card>
+                <Callout
+                    priority="attention"
+                    className="w-full"
+                    data-testid="card-add-money-short"
+                    title={tPayment('partialContribution.title', {
+                        received: usd(shortDeposit.received),
+                        asked: usd(shortDeposit.asked),
+                    })}
+                />
             )}
             {/* the amount first: at 375px the QR and the warning push anything below out of sight */}
             {ask && (
@@ -211,9 +232,9 @@ export function CardCryptoDepositView({
                     {ask.raisedToMinimum && needUsd && (
                         <p className="text-body-s text-foreground-secondary">
                             {t('raisedToMinimum', {
-                                network: networkLabel,
+                                network: familyLabel,
                                 minimum: usd(ask.askUsd),
-                                extra: usd(ask.askUsd - needUsd),
+                                extra: usd(cents(ask.askUsd - needUsd)),
                             })}
                         </p>
                     )}
@@ -222,28 +243,17 @@ export function CardCryptoDepositView({
             )}
             <p className="text-body-m text-foreground-primary">{t('depositAddress', { network: networkLabel })}</p>
             <QRCodeWrapper url={data.depositAddress} />
-            <CopyField text={data.depositAddress} />
+            <CopyField
+                text={data.depositAddress}
+                displayText={middleEllipsisAccount(data.depositAddress, ADDRESS_DISPLAY_CHARS)}
+            />
             <Callout priority="attention" title={t('networkOnlyTitle', { network: networkLabel })}>
                 <div className="flex flex-col gap-2">
                     <p>{tCrypto('warningDescription')}</p>
-                    <div className="flex flex-wrap items-center gap-2">
-                        <p>{tCrypto('supportedTokensInline')}</p>
-                        {getSupportedTokens(network).map((token) => (
-                            <ChainChip key={token.name} chainName={token.name} chainSymbol={token.logoUrl} />
-                        ))}
-                    </div>
+                    <SupportedTokensRow network={network} className="flex-wrap" />
                 </div>
             </Callout>
-            {network === 'EVM' && (
-                <Card className="flex flex-col gap-2 p-4">
-                    <h3 className="text-label-l text-foreground-primary">{tCrypto('supportedEvmNetworks')}</h3>
-                    <div className="flex flex-wrap gap-2">
-                        {SUPPORTED_EVM_CHAINS.map((chain) => (
-                            <ChainChip key={chain} chainName={chain} chainSymbol={CHAIN_LOGOS[chain]} />
-                        ))}
-                    </div>
-                </Card>
-            )}
+            {network === 'EVM' && <SupportedEvmNetworksCard />}
             <div className="flex items-center gap-2 text-body-s text-foreground-secondary">
                 <Loading />
                 <span>{t('waiting')}</span>

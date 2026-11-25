@@ -4,8 +4,10 @@ import { useIsFetching, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import posthog from 'posthog-js'
+import { formatUnits } from 'viem'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { USER } from '@/constants/query.consts'
+import { PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants/zerodev.consts'
 import { PUSH_PROMPT_TRIGGERS } from '@/constants/push-prompt.consts'
 import { cardApi, type CardInfoResponse } from '@/services/card'
 import { useAuth } from '@/context/authContext'
@@ -53,7 +55,7 @@ export function useCardFlow() {
     const { user, fetchUser } = useAuth()
     const userId = user?.user?.userId
     const activation = useKycFeatureActivation('card', { automatic: false })
-    const { balance, spendableBalanceDecimal, hasSufficientSpendableBalance } = useWallet()
+    const { balance, availableSpendableBalance, hasSufficientSpendableBalance } = useWallet()
     const isCardFunded = hasSufficientSpendableBalance(CARD_MIN_BALANCE_USD)
     const [fundingRequired, setFundingRequired] = useState(false)
     useEffect(() => {
@@ -1114,8 +1116,14 @@ export function useCardFlow() {
         user,
         isCardFunded,
         isBalanceKnown,
-        /** the spendable dollars the funding step names the gap from; undefined until the balance is known */
-        spendableUsd: isBalanceKnown ? spendableBalanceDecimal : undefined,
+        /**
+         * The spendable dollars the funding step names the gap from: the same live total `isCardFunded`
+         * gates on, so the gap reaches 0 exactly when the step counts as funded. Undefined until known.
+         */
+        spendableUsd:
+            isBalanceKnown && availableSpendableBalance !== undefined
+                ? Number(formatUnits(availableSpendableBalance, PEANUT_WALLET_TOKEN_DECIMALS))
+                : undefined,
         needsFundingBeforeApply,
         /** Which card terms to show: `managed` | `legacy`, undefined while unknown. */
         termsFundingPath: fundingAccess.setupPath,
