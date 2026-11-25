@@ -382,9 +382,7 @@
     },
     "appUpdateAttention": {
         "title": "Actualiza Peanut",
-        "description": "Obtén la última versión para disfrutar de una mejor experiencia.",
-        "requiredDescription": "Esta versión está desactualizada. Actualiza para seguir usando Peanut.",
-        "updateNow": "Actualizar ahora"
+        "description": "Obtén la última versión para disfrutar de una mejor experiencia."
     },
     "profile": {
         "showFullNameConfirm": {

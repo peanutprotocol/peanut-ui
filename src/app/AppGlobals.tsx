@@ -5,8 +5,6 @@ import StaleCardApprovalReEnableModal from '@/components/Global/StaleCardApprova
 import StaleDeploymentReload from '@/components/Global/StaleDeploymentReload'
 import BadgeEarnToast from '@/components/Badges/BadgeEarnToast'
 import { AppLockGate } from '@/components/Global/AppLock'
-import ForceUpdateScreen from '@/components/Global/ForceUpdateScreen'
-import { useForcedUpdatePlatform } from '@/features/app-update/useForcedUpdatePlatform'
 import { PeanutDebug } from '@/context/PeanutDebug'
 import { useOptionalAuth } from '@/context/authContext'
 import { LocaleSync } from '@/i18n/app/LocaleSync'
@@ -29,7 +27,6 @@ export function AppGlobals({ children }: { children: React.ReactNode }) {
     useWalletProvisioningLifecycle()
     // app routes only: the marketing site has no kill switches to honour
     useKillSwitchesSync()
-    const forcedUpdatePlatform = useForcedUpdatePlatform()
 
     // App routes want Sentry; the marketing site does not pay for it. Doing it
     // here rather than in sentry.client.config means a client-side navigation
@@ -79,15 +76,9 @@ export function AppGlobals({ children }: { children: React.ReactNode }) {
                 client and loading-state context to know when a reload
                 is safe. */}
             <StaleDeploymentReload />
-            {/* A build below the remote update floor renders no page at all, so
-                nothing behind the update screen can be reached. */}
-            {forcedUpdatePlatform ? (
-                <ForceUpdateScreen platform={forcedUpdatePlatform} />
-            ) : (
-                /* Wraps rather than sits beside the page: while the native app is
-                   locked, nothing protected renders. */
-                <AppLockGate>{children}</AppLockGate>
-            )}
+            {/* Wraps rather than sits beside the page: while the native app is
+                locked, nothing protected renders. */}
+            <AppLockGate>{children}</AppLockGate>
         </>
     )
 }

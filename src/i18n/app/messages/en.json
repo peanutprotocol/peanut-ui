@@ -382,9 +382,7 @@
     },
     "appUpdateAttention": {
         "title": "Update Peanut",
-        "description": "Get the latest version for a better experience.",
-        "requiredDescription": "This version is out of date. Update to keep using Peanut.",
-        "updateNow": "Update now"
+        "description": "Get the latest version for a better experience."
     },
     "profile": {
         "showFullNameConfirm": {
