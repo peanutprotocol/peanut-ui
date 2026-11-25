@@ -110,8 +110,7 @@
     "home": {
         "rewards": "Puntos",
         "addMoneyPill": {
-            "addMoney": "Agregar dinero",
-            "topUp": "Recargar"
+            "addMoney": "Agregar dinero"
         },
         "activation": {
             "addEmail": {
@@ -4309,6 +4308,8 @@
             },
             "activation": {
                 "settingUpAccount": "Estamos configurando tu cuenta en {currency}",
+                "settingUpWait": "Deja esta pantalla abierta.",
+                "settingUpTitle": "Configurando la cuenta en {currency}",
                 "title": {
                     "bank": "Configura tus cuentas bancarias",
                     "card": "Configura tu Peanut Card",
@@ -4983,7 +4984,6 @@
         },
         "downloadNow": "Descargar ahora",
         "smartLink": {
-            "openApp": "Abrir Peanut",
             "redirecting": "Abriendo la tienda…",
             "pickStore": "Elige tu tienda y descarga la app."
         }

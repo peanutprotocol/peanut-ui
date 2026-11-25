@@ -420,6 +420,27 @@ describe('PaperworkVerificationFlow: the steps overview', () => {
         expect(mockExit).toHaveBeenCalled()
     })
 
+    // TASK-25326: sign-up and the legacy start push /verify again; a new mount must not show the start screen twice
+    it('shows the start screen once per session, not again when /verify mounts again', async () => {
+        const first = renderFlow()
+        await screen.findByTestId('setup-redesign-verify-steps')
+        first.unmount()
+
+        renderFlow()
+        expect(await screen.findByRole('group', { name: 'Step 2 of 4' })).toBeInTheDocument()
+        expect(screen.queryByTestId('setup-redesign-verify-steps')).not.toBeInTheDocument()
+    })
+
+    it('still shows the start screen to another account in the same session', async () => {
+        const first = renderFlow()
+        await screen.findByTestId('setup-redesign-verify-steps')
+        first.unmount()
+
+        mockAuthUserId = 'user-b'
+        renderFlow()
+        expect(await screen.findByTestId('setup-redesign-verify-steps')).toBeInTheDocument()
+    })
+
     it('a deep link to a step skips the overview', async () => {
         renderFlow('?step=tax')
         expect(await screen.findByText('What’s your Social Security number?')).toBeInTheDocument()

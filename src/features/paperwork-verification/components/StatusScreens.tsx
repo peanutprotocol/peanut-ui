@@ -8,6 +8,9 @@ import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { ListGroup } from '@/components/0_Bruddle/ListGroup'
 import { ListItem } from '@/components/0_Bruddle/ListItem'
 import SetupTitleBlock from '@/components/Setup/components/SetupTitleBlock'
+import { PageStack } from '@/components/0_Bruddle/PageStack'
+import NavHeader from '@/components/Global/NavHeader'
+import ProcessingScreen from '@/components/Global/ProcessingScreen'
 import { RejectLabelsList } from '@/components/Kyc/RejectLabelsList'
 import type { IdentityRejection } from '@/utils/identity-rejection.utils'
 import type {
@@ -170,6 +173,20 @@ export function ReviewScreen({
                 </div>
             )}
         </VerifyCelebrationLayout>
+    )
+}
+
+/** The account was just asked for and usually opens in seconds: the gate opens the flow under it when it does. */
+export function FeatureSettingUpScreen({ currency, onBack }: { currency: string; onBack: () => void }) {
+    const t = useTranslations('kyc.paperworkVerification')
+    return (
+        <PageStack data-testid="feature-setting-up">
+            <NavHeader onPrev={onBack} />
+            <ProcessingScreen
+                title={t('activation.settingUpTitle', { currency })}
+                description={t('activation.settingUpWait')}
+            />
+        </PageStack>
     )
 }
 
