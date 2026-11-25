@@ -110,6 +110,8 @@ const ROW_GROUP: Record<string, CardPaymentRowGroup> = {
     initialHold: 'money',
     settlementAdjustment: 'money',
 }
+/** Sub-rows whose value is a sentence: it goes under the label, full width, so it does not wrap to 8 lines in the value column. */
+const STACKED_ROWS = new Set(['declineReason'])
 
 export function CardPaymentRows({
     transaction,
@@ -280,7 +282,7 @@ export function CardPaymentRows({
     return (
         <>
             {rows.map((row) => (
-                <DataRow key={row.key} label={row.label} value={row.value} />
+                <DataRow key={row.key} label={row.label} value={row.value} stacked={STACKED_ROWS.has(row.key)} />
             ))}
         </>
     )
