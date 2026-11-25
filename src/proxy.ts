@@ -7,6 +7,7 @@ import { shouldBlockDevRoute } from '@/constants/dev-tools.consts'
 import { isGoneMarketingPath } from '@/constants/gone-routes.consts'
 import { APP_ENTRY_QUERY_PARAM } from '@/constants/migration.consts'
 import { marketingQrHandoffUrl } from '@/features/marketing-qr/contract'
+import { legacyCreatorInvitePath } from '@/features/tracked-links/contract'
 import { LOCALE_COOKIE, toAppLocale, toMarketingLocale, withCountry } from '@/i18n/localeBridge'
 import { DEFAULT_LOCALE, type Locale } from '@/i18n/types'
 
@@ -32,11 +33,19 @@ export function proxy(request: NextRequest) {
     const marketingQrHandoff = marketingQrHandoffUrl(new URL(request.url))
     if (marketingQrHandoff) return NextResponse.redirect(marketingQrHandoff, 307)
 
+    // Retired creator links had their own store screen on /app. A browser now gets the
+    // creator's invite page; the installed app never asks the server and reads them itself.
+    const isAppEntry = pathname === '/home' && request.nextUrl.searchParams.get(APP_ENTRY_QUERY_PARAM) === '1'
+    if (isAppEntry || pathname === '/app' || pathname === '/app/') {
+        const invitePath = legacyCreatorInvitePath(request.nextUrl.searchParams)
+        if (invitePath) return NextResponse.redirect(new URL(invitePath, request.url), 307)
+    }
+
     // QR downloads enter through /home because that path is already claimed by
     // every released native shell. A browser has no App Link interception, so
     // route it to the web-only smart-store page while preserving the deferred
     // handoff. Remove the routing marker so /app can never loop back here.
-    if (pathname === '/home' && request.nextUrl.searchParams.get(APP_ENTRY_QUERY_PARAM) === '1') {
+    if (isAppEntry) {
         const target = request.nextUrl.clone()
         target.pathname = '/app'
         target.searchParams.delete(APP_ENTRY_QUERY_PARAM)
@@ -180,6 +189,7 @@ export const config = {
     matcher: [
         '/',
         '/home',
+        '/app',
         '/claim/:path*',
         '/api/:path*',
         '/home/:path*',

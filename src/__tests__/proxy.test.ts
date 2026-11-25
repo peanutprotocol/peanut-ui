@@ -38,6 +38,49 @@ describe('app-entry gateway', () => {
     })
 })
 
+describe('retired creator links', () => {
+    it.each([
+        ['/app?code=alice', '/invite?code=alice'],
+        ['/app?code=Alice', '/invite?code=alice'],
+        ['/app/?code=alice', '/invite?code=alice'],
+        ['/app/?tl=alice&acq_invite=alice', '/invite?code=alice'],
+        ['/home?app_entry=1&code=alice', '/invite?code=alice'],
+        ['/app?tl=alice&acq_invite=alice', '/invite?code=alice'],
+        // What the removed "Open Peanut" button reloaded in a browser.
+        [
+            '/home?app_entry=1&pnutdl=1&acq_invite=alice&badge_campaign=nita&tl=alice&at=x&tl_seen=1',
+            '/invite?code=alice',
+        ],
+        ['/app?pnutdl=1&acq_invite=alice&tl=alice&tl_seen=1', '/invite?code=alice'],
+    ])('sends a browser from %s to the creator invite page', (path, target) => {
+        const response = runProxy(path)
+
+        expect(response.status).toBe(307)
+        expect(response.headers.get('location')).toBe(`https://peanut.me${target}`)
+    })
+
+    it.each([
+        '/app',
+        '/app?pnutdl=1&invite=ABC123&dest=%2Fsend',
+        '/app?utm_source=x&utm_campaign=launch',
+        '/app?code=al%2Fice',
+        '/app?tl=al-ice&acq_invite=alice',
+        '/app?code=https%3A%2F%2Fevil.example',
+    ])('leaves the store page alone for %s', (path) => {
+        const response = runProxy(path)
+
+        expect(response.status).toBe(200)
+        expect(response.headers.get('location')).toBeNull()
+    })
+
+    it('leaves a /home visit without the app-entry marker alone', () => {
+        const response = runProxy('/home?tl=alice&acq_invite=alice')
+
+        expect(response.status).toBe(200)
+        expect(response.headers.get('location')).toBeNull()
+    })
+})
+
 describe('API cache policy', () => {
     it('lets the exact exchange-rate route preserve its route-owned cache headers', () => {
         const response = runProxy('/api/exchange-rate?from=PLN&to=EUR')

@@ -375,58 +375,24 @@ describe('ad landing link (/app with campaign parameters)', () => {
 })
 
 describe('tracked-link entry', () => {
-    afterEach(() => {
-        Reflect.deleteProperty(document, 'prerendering')
-    })
-    it('sends Android to the store with the passive inviter on the install referrer', async () => {
-        mockDeviceType = 'android'
-        visit('?tl=alice&acq_invite=alice')
-        renderPage()
-        await waitFor(() => expect(locationReplace).toHaveBeenCalledTimes(1))
-        const payload = new URL(locationReplace.mock.calls[0][0]).searchParams.get('referrer')!
-        expect(parseDeferredPayload(payload)?.acquisitionInvite).toBe('alice')
-        expect(parseDeferredPayload(payload)?.invite).toBeUndefined()
-        expect(readInviteIntent()).toBe('acquisition')
-    })
-    it('holds iOS for the clipboard gesture, and offers the existing app association', async () => {
+    it('offers no way back into the app from the store page', async () => {
+        // The proxy sends a browser to the invite page; a visit that still renders here is a plain store page.
         mockDeviceType = 'ios'
-        visit('?tl=alice&acq_invite=alice')
+        visit('?tl=alice&acq_invite=alice&pnutdl=1')
         renderPage()
-        const openAppLink = await screen.findByRole('link', { name: 'Open Peanut' })
-        expect(locationReplace).not.toHaveBeenCalled()
-        expect(mockCopyIOSHandoff).not.toHaveBeenCalled()
-        const openApp = new URL(openAppLink.getAttribute('href')!)
-        expect(openApp.origin + openApp.pathname).toBe('https://peanut.me/home')
-        expect(openApp.searchParams.get('tl_seen')).toBe('1')
-        fireEvent.click(storeButton(/app store/i))
-        expect(parseDeferredPayload(mockCopyIOSHandoff.mock.calls[0][0])?.acquisitionInvite).toBe('alice')
+        await screen.findByRole('button', { name: /app store/i })
+        expect(screen.queryByRole('link', { name: 'Open Peanut' })).toBeNull()
+        expect(readInviteCode()).toBe('')
     })
-    it('keeps the handoff functional while sending no store or handoff telemetry without consent', async () => {
+    it('still sends no store or handoff telemetry without consent', async () => {
         mockAnalyticsAllowed = false
         mockDeviceType = 'ios'
-        visit('?tl=alice&acq_invite=alice')
+        visit('?tl=alice&acq_invite=alice&pnutdl=1')
         renderPage()
-        await screen.findByRole('link', { name: 'Open Peanut' })
-        fireEvent.click(storeButton(/app store/i))
+        fireEvent.click(await screen.findByRole('button', { name: /app store/i }))
         await act(async () => {})
-        expect(parseDeferredPayload(mockCopyIOSHandoff.mock.calls[0][0])?.acquisitionInvite).toBe('alice')
         expect(trackStoreClick).not.toHaveBeenCalled()
         expect(mockTrackHandoffCreated).not.toHaveBeenCalled()
-    })
-    it('waits for a prerendered page to be shown before bootstrap or store navigation', async () => {
-        Object.defineProperty(document, 'prerendering', { configurable: true, value: true })
-        mockDeviceType = 'android'
-        visit('?tl=alice&acq_invite=alice')
-        renderPage()
-        await act(async () => {})
-        expect(readInviteCode()).toBe('')
-        expect(locationReplace).not.toHaveBeenCalled()
-        await act(async () => {
-            Object.defineProperty(document, 'prerendering', { configurable: true, value: false })
-            document.dispatchEvent(new Event('prerenderingchange'))
-        })
-        await waitFor(() => expect(locationReplace).toHaveBeenCalledTimes(1))
-        expect(readInviteCode()).toBe('alice')
     })
     it('stashes the inviter in the installed app and opens home', async () => {
         mockNative = true

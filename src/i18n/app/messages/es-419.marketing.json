@@ -162,7 +162,6 @@
         },
         "downloadNow": "Descargar ahora",
         "smartLink": {
-            "openApp": "Abrir Peanut",
             "redirecting": "Abriendo la tienda…",
             "pickStore": "Elige tu tienda y descarga la app."
         }
