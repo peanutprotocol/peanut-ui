@@ -11,6 +11,7 @@ import CardTermsScreen from '@/components/Card/CardTermsScreen'
 import CardCountryConfirmScreen from '@/components/Card/CardCountryConfirmScreen'
 import YourCardScreen from '@/components/Card/YourCardScreen'
 import CardStopBanner from '@/components/Card/CardStopBanner'
+import FundingSetupPrompt from '@/components/Home/FundingSetupPrompt'
 import Loading from '@/components/Global/Loading'
 import { Button } from '@/components/0_Bruddle/Button'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
@@ -29,6 +30,7 @@ import { KycControlFlowProvider } from '@/features/paperwork-verification/analyt
 import { useCardVerificationContinuation } from './useCardVerificationContinuation'
 
 const PROOF_OF_ADDRESS_RECEIVED = 'proof_of_address_received'
+const noop = () => {}
 
 export const CardPage: FC = () => {
     const t = useTranslations('card')
@@ -505,6 +507,20 @@ export const CardPage: FC = () => {
                 {screen?.type !== YourCardScreen && stopBanner}
                 {screen}
             </div>
+            {/* An active card without the funding permission cannot pay. The
+                permission needs the collateral Rain deploys after approval, so
+                it cannot ride the apply tap: ask here with the Home prompt,
+                which shows only while the backend says it is missing. Its
+                skip lasts for this visit; Home keeps its own schedule. */}
+            {state === 'active' && !showIssuedCelebration && (
+                <FundingSetupPrompt
+                    presentation="modal"
+                    askId="finish-card-funding"
+                    onActed={noop}
+                    onDismissed={noop}
+                    onSnoozed={noop}
+                />
+            )}
             <KycControlFlowProvider value="kyc_provider_request">
                 <SumsubKycWrapper
                     visible={poaToken !== null}
