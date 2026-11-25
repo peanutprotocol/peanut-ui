@@ -67,6 +67,9 @@ export function CardCryptoDepositView({
     const ask = data && gapUsd ? cardCryptoAskUsd(gapUsd, data.minDepositLimitUsd) : undefined
     const askRef = useRef(ask?.askUsd)
     askRef.current = ask?.askUsd
+    // the ask the user sent against, frozen when the deposit is first seen: the balance poll can show
+    // the money before the status says completed, and the live ask then already counts it
+    const askedRef = useRef<number>()
 
     /**
      * A deposit Rhino reported, until it resolves. `from`: the landed balance it must rise above;
@@ -99,7 +102,8 @@ export function CardCryptoDepositView({
             captureCryptoDepositCompleted(amount, network, user?.invitedBy)
             const from = inFlightAtOpen.current ? undefined : landedRef.current
             inFlightAtOpen.current = false
-            setPending({ amount, asked: askRef.current, from, refreshed: false })
+            setPending({ amount, asked: askedRef.current ?? askRef.current, from, refreshed: false })
+            askedRef.current = undefined
             void Promise.all([
                 queryClient.invalidateQueries({ queryKey: ['balance'] }),
                 queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] }),
@@ -114,20 +118,38 @@ export function CardCryptoDepositView({
         { readNow: true }
     )
 
-    const clearStale = useCallback(() => {
-        setClearingStale(true)
-        setClearFailed(false)
-        resetStatus()
-            // a status left uncleared stops the poll, and no new deposit would ever show
-            .catch(() => setClearFailed(true))
-            .finally(() => setClearingStale(false))
-    }, [resetStatus])
+    useEffect(() => {
+        if (status === 'loading' && askedRef.current === undefined && checkedForRef.current)
+            askedRef.current = askRef.current
+    }, [status])
+
+    // A completed outcome may be a deposit made seconds ago on /add-money/crypto: the address shows only
+    // after a fresh balance read, so the ask never invites a second send for money already in.
+    const clearStale = useCallback(
+        (refreshBalance: boolean) => {
+            setClearingStale(true)
+            setClearFailed(false)
+            Promise.all([
+                // a status left uncleared stops the poll, and no new deposit would ever show
+                resetStatus().catch(() => setClearFailed(true)),
+                refreshBalance &&
+                    Promise.allSettled([
+                        queryClient.invalidateQueries({ queryKey: ['balance'] }),
+                        queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] }),
+                    ]),
+            ]).finally(() => {
+                landedRef.current = undefined
+                setClearingStale(false)
+            })
+        },
+        [resetStatus, queryClient]
+    )
     useEffect(() => {
         if (!depositAddress || !isStatusRead || checkedForRef.current === depositAddress) return
         checkedForRef.current = depositAddress
         setCheckedFor(depositAddress)
         if (status === 'loading') inFlightAtOpen.current = true
-        if (status === 'completed' || status === 'failed') clearStale()
+        if (status === 'completed' || status === 'failed') clearStale(status === 'completed')
     }, [depositAddress, isStatusRead, status, clearStale])
 
     // a reported deposit lands: the live gap says done (the step closes a drawer opened short), or
@@ -144,7 +166,8 @@ export function CardCryptoDepositView({
         }
         // what reached the balance, when its start is known: a fee taken on the way shows here
         const received = pending.from === undefined ? pending.amount : cents(spendableUsd - pending.from)
-        setShortDeposit({ received, asked: pending.asked ?? cents(received + gapUsd) })
+        // never less than what came in plus what is still needed
+        setShortDeposit({ received, asked: Math.max(pending.asked ?? 0, cents(received + gapUsd)) })
     }, [pending, spendableUsd, gapUsd])
 
     // Rhino reports one deposit per address until the status is cleared: after a short deposit the
@@ -171,7 +194,7 @@ export function CardCryptoDepositView({
                 <Callout priority="error" title={tCrypto('addressErrorTitle')}>
                     {tCrypto('addressErrorDescription')}
                 </Callout>
-                <Button variant="primary" className="w-full" onClick={clearStale}>
+                <Button variant="primary" className="w-full" onClick={() => clearStale(false)}>
                     {tCommon('retry')}
                 </Button>
             </div>

@@ -277,6 +277,39 @@ describe('deposits and balance reads in either order (review of fix round 1)', (
         expect(screen.getByText('sendAsk($5)')).toBeInTheDocument()
     })
 
+    it('keeps the ask the user sent against when the balance shows the money before the status completes', async () => {
+        mockCreateDepositAddress.mockResolvedValue({ depositAddress: ADDRESS, minDepositLimitUsd: 1 })
+        const { rerenderWith } = renderView({ gapUsd: 6.8, spendableUsd: 3.2 })
+        await screen.findByTestId('card-add-money-address')
+        pollStatus = 'loading'
+        rerenderWith({})
+        // the 30s balance poll sees the $5 first; the live ask is now $1.80
+        await act(async () => rerenderWith({ spendableUsd: 8.2, gapUsd: 1.8 }))
+        pollStatus = 'completed'
+        await act(async () => pollOnSuccess?.(5))
+        await act(async () => rerenderWith({}))
+        expect(screen.getByTestId('card-add-money-short')).toHaveTextContent('partialContribution.title($5|$6.80)')
+        expect(screen.getByText('sendAsk($1.80)')).toBeInTheDocument()
+    })
+
+    it('shows the address after a completed outcome only once the balance is read again', async () => {
+        pollStatus = 'completed'
+        const pendingReads: Array<() => void> = []
+        const refresh = jest
+            .spyOn(QueryClient.prototype, 'invalidateQueries')
+            .mockImplementation(() => new Promise<void>((resolve) => pendingReads.push(resolve)))
+        try {
+            renderView()
+            await waitFor(() => expect(refresh).toHaveBeenCalledWith({ queryKey: ['balance'] }))
+            // a deposit finished seconds ago on /add-money/crypto: no ask before its balance is in
+            expect(screen.queryByTestId('qr')).not.toBeInTheDocument()
+            await act(async () => pendingReads.forEach((resolve) => resolve()))
+            expect(await screen.findByTestId('card-add-money-address')).toBeInTheDocument()
+        } finally {
+            refresh.mockRestore()
+        }
+    })
+
     it('offers a retry when an old outcome cannot be cleared, instead of an address no poll watches', async () => {
         pollStatus = 'completed'
         mockResetStatus.mockRejectedValueOnce(new Error('down'))
