@@ -101,7 +101,10 @@ export function CardAddMoneyDrawer({
     }, [method, code])
     useEffect(() => onShow(method, code), [onShow, method, code])
 
-    const title = gapUsd ? t('title', { amount: formatBankAmount(gapUsd, 'USD') }) : tAdd('title')
+    // the address view names what to send: the network minimum can raise it above the gap
+    const [askUsd, setAskUsd] = useState<number>()
+    const titleUsd = view.kind === 'address' ? (askUsd ?? gapUsd) : gapUsd
+    const title = titleUsd ? t('title', { amount: formatBankAmount(titleUsd, 'USD') }) : tAdd('title')
     const toNetworks = () => setView({ kind: 'networks' })
     const pickRow = (row: CardBankRow) => {
         captureCardAddMoneyRailPicked(row.corridor, row.kind)
@@ -110,7 +113,8 @@ export function CardAddMoneyDrawer({
     }
 
     const body = () => {
-        if (view.kind === 'address') return <CardCryptoDepositView network={view.network} gapUsd={gapUsd} />
+        if (view.kind === 'address')
+            return <CardCryptoDepositView network={view.network} gapUsd={gapUsd} onAsk={setAskUsd} />
         if (view.kind === 'details')
             return <CardBankDetailsView corridor={view.corridor} gapUsd={gapUsd} onSent={onDismiss} />
         if (code === 'networks') {

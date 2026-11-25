@@ -32,7 +32,16 @@ const usd = (amount: number) => formatBankAmount(amount, 'USD')
  * the drawer). A deposit refreshes the balance and the card overview at once, so the funding step
  * sees the minimum reached and closes the drawer.
  */
-export function CardCryptoDepositView({ network, gapUsd }: { network: RhinoChainType; gapUsd: number | undefined }) {
+export function CardCryptoDepositView({
+    network,
+    gapUsd,
+    onAsk,
+}: {
+    network: RhinoChainType
+    gapUsd: number | undefined
+    /** the amount this address asks for, so the drawer title names what to send */
+    onAsk: (askUsd: number | undefined) => void
+}) {
     const t = useTranslations('card.addMoney')
     const tCrypto = useTranslations('addMoney.crypto')
     const tAddMoney = useTranslations('addMoney')
@@ -59,6 +68,8 @@ export function CardCryptoDepositView({ network, gapUsd }: { network: RhinoChain
     const ask = data && needUsd ? cardCryptoAskUsd(needUsd, data.minDepositLimitUsd) : undefined
     const askRef = useRef(ask?.askUsd)
     askRef.current = ask?.askUsd
+    const askUsd = ask?.askUsd
+    useEffect(() => onAsk(askUsd), [onAsk, askUsd])
     // the gap when a full deposit was reported: processing lasts until the balance read moves past it
     const [creditedAtGap, setCreditedAtGap] = useState<number>()
     const gapRef = useRef(gapUsd)

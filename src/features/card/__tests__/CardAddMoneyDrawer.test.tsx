@@ -359,6 +359,8 @@ describe('crypto views', () => {
         const ask = within(drawer()).getByTestId('card-add-money-ask')
         expect(ask).toHaveTextContent('sendAsk($5)')
         expect(ask).toHaveTextContent('raisedToMinimum(EVM|$5|$3)')
+        // the title names what to send, not the smaller gap
+        expect(within(drawer()).getAllByText('title($5)').length).toBeGreaterThan(0)
     })
 
     it('goes back from the address to the network list', async () => {
