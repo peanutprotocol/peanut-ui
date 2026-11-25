@@ -4,5 +4,20 @@
     "src/features/go-links/**",
     "src/app/c/**",
     "src/features/creator-pages/**",
-    "public/creator-pages/**"
+    "public/creator-pages/**",
+    "src/app/q/**",
+    "src/app/es-419/**",
+    "src/app/es-ar/**",
+    "src/app/pt-br/**",
+    "src/app/invite/**",
+    "src/app/exchange/**",
+    "src/app/privacy/**",
+    "src/app/terms/**",
+    "src/app/careers/**",
+    "src/app/lp/**",
+    "src/app/us-europe-accounts/**",
+    "src/app/qr-payments/**",
+    "src/app/peanut-card/**",
+    "src/app/request-links/**",
+    "src/app/self-custody/**"
 ]

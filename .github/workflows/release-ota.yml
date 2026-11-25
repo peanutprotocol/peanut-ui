@@ -39,6 +39,11 @@ on:
         #   removes their routes and the exported public/creator-pages images
         #   (scripts/native-build.js). ESLint and release-web-only-paths.test.js
         #   keep app code from referencing the feature folders.
+        # - Marketing, legal and landing routes the native build removes
+        #   (ITEMS_TO_DISABLE): a landing-page edit cut a new OTA, version and
+        #   store build for an unchanged app (7 tester builds 23-25 Nov). Only
+        #   the route folders are listed; components they share with the app
+        #   still release. [locale] stays out: the guard reads no brackets.
         paths-ignore:
             - 'src/content'
             - 'src/app/go/**'
@@ -46,6 +51,21 @@ on:
             - 'src/app/c/**'
             - 'src/features/creator-pages/**'
             - 'public/creator-pages/**'
+            - 'src/app/q/**'
+            - 'src/app/es-419/**'
+            - 'src/app/es-ar/**'
+            - 'src/app/pt-br/**'
+            - 'src/app/invite/**'
+            - 'src/app/exchange/**'
+            - 'src/app/privacy/**'
+            - 'src/app/terms/**'
+            - 'src/app/careers/**'
+            - 'src/app/lp/**'
+            - 'src/app/us-europe-accounts/**'
+            - 'src/app/qr-payments/**'
+            - 'src/app/peanut-card/**'
+            - 'src/app/request-links/**'
+            - 'src/app/self-custody/**'
     # Retry a failed OTA without a new main push. The run publishes the current
     # main tip only; the SHA input makes the operator name it.
     workflow_dispatch:
