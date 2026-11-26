@@ -60,6 +60,9 @@ export const cardApi = {
     markFundingPending: async (): Promise<void> => {
         await assertAuthenticated()
         const response = await apiFetch('/card/funding-pending', { method: 'POST' })
+        // 404: the API that keeps the marker is not deployed yet (peanut-api-ts#2314 ships first). The
+        // push then stays the plain receipt, which is no error worth reporting.
+        if (response.status === 404) return
         if (!response.ok) throw new Error(`Failed to mark card funding pending: ${response.status}`)
     },
 }
