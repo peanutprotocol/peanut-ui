@@ -312,74 +312,25 @@ for (const viewport of VIEWPORTS) {
     })
 }
 
-// Contract P4 § 3: the control arm draws "Turn on notifications" + "Not now" (no switch); the switch arms keep
-// dev's three switch rows, Continue and Not now.
-const NOTIFICATION_VARIANTS = ['settings', 'switches', 'defaults-on'] as const
-
+// Contract P4 § 3: the step draws "Turn on notifications" + "Not now" (no switch).
 for (const viewport of VIEWPORTS) {
-    for (const variant of NOTIFICATION_VARIANTS) {
-        test(`notification ${variant} keeps every choice and action reachable at ${viewport.width}x${viewport.height}`, async ({
-            page,
-        }) => {
-            await page.setViewportSize(viewport)
-            await prepareSetupSurface(page)
-            await openSetupSurface(page, `07-d-notification-${variant}`)
-            const control = variant === 'settings'
-            const switches = page.getByRole('switch')
-            await expect(switches).toHaveCount(control ? 0 : 3)
-            const footer = page.locator('[data-setup-footer]')
-            const next = footer.getByRole('button', {
-                name: control ? 'Turn on notifications' : 'Continue',
-                exact: true,
-            })
-            const skip = footer.getByRole('button', { name: 'Not now', exact: true })
-            if (variant === 'switches') {
-                await expect(next).toBeDisabled()
-                await switches.first().click()
-            }
-            if (!control) {
-                const email = page.getByRole('switch', { name: 'Email updates' })
-                const checked = await email.getAttribute('aria-checked')
-                await email.click()
-                await expect(email).toHaveAttribute('aria-checked', checked === 'true' ? 'false' : 'true')
-            }
-            for (const action of [next, skip]) {
-                await action.scrollIntoViewIfNeeded()
-                await expect(action).toBeEnabled()
-                await expect(action).toBeInViewport({ ratio: 1 })
-                await action.click({ trial: true })
-            }
-            for (const toggle of await switches.all()) {
-                await toggle.scrollIntoViewIfNeeded()
-                await expect(toggle).toBeInViewport({ ratio: 1 })
-                await toggle.click({ trial: true })
-            }
-            expect(await page.evaluate(() => document.scrollingElement!.scrollHeight > innerHeight)).toBe(false)
-        })
-    }
-}
-
-for (const variant of ['switches', 'defaults-on'] as const) {
-    test(`notification ${variant} scrolls its choices inside the panel with large text, the top bar and footer stay`, async ({
+    test(`notification settings keeps every action reachable at ${viewport.width}x${viewport.height}`, async ({
         page,
     }) => {
-        await page.setViewportSize({ width: 360, height: 480 })
+        await page.setViewportSize(viewport)
         await prepareSetupSurface(page)
-        await openSetupSurface(page, `07-d-notification-${variant}`)
-        await page.addStyleTag({ content: 'html { font-size: 150% !important; }' })
-        const topBar = page.locator('[data-setup-top-bar]')
+        await openSetupSurface(page, '07-d-notification-settings')
+        await expect(page.getByRole('switch')).toHaveCount(0)
         const footer = page.locator('[data-setup-footer]')
-        const lastSwitch = page.getByRole('switch').last()
-        const initialTopBar = await topBar.boundingBox()
-        // the larger text lifts the footer until it ends on screen (ShellFooter fit, a 500 ms glide): read it at rest
-        const initialFooter = await restingBox(footer)
-
-        await lastSwitch.scrollIntoViewIfNeeded()
-        await expect(lastSwitch).toBeInViewport({ ratio: 1 })
-        await lastSwitch.click({ trial: true })
-        expect(await topBar.boundingBox()).toEqual(initialTopBar)
-        expect(await footer.boundingBox()).toEqual(initialFooter)
-        expect(await page.evaluate(() => window.scrollY)).toBe(0)
+        const next = footer.getByRole('button', { name: 'Turn on notifications', exact: true })
+        const skip = footer.getByRole('button', { name: 'Not now', exact: true })
+        for (const action of [next, skip]) {
+            await action.scrollIntoViewIfNeeded()
+            await expect(action).toBeEnabled()
+            await expect(action).toBeInViewport({ ratio: 1 })
+            await action.click({ trial: true })
+        }
+        expect(await page.evaluate(() => document.scrollingElement!.scrollHeight > innerHeight)).toBe(false)
     })
 }
 

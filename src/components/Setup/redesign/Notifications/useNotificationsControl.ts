@@ -1,8 +1,9 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import posthog from 'posthog-js'
+import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
-import { trackPromptAnswer } from '@/features/setup/notificationsExperiment'
 import { useSignupControl } from '@/features/setup/useSignupControl'
 import { useNotifications } from '@/hooks/useNotifications'
 import { type SessionFence, useSessionFence } from '@/hooks/useSessionFence'
@@ -12,11 +13,14 @@ import { openAppSettings } from '@/utils/native-settings'
 
 export type NotificationsControlState = 'default' | 'prompt' | 'denied'
 
+const trackPromptAnswer = (answer: PushPermission) =>
+    posthog.capture(ANALYTICS_EVENTS.SIGNUP_PUSH_PERMISSION_ANSWERED, { answer })
+
 /**
- * The notifications experiment's control arm in the drawn one-button form, with dev's outcomes
+ * The sign-up notifications step in the drawn one-button form, with dev's outcomes
  * (`Views/NotificationsControl.tsx`): "Turn on" is dev's toggle-on and its granted save in one tap, "Not now" is
  * dev's explicit opt-out (on, then off, then Continue: saves `push: false` and blocks on a failed save), and an OS
- * refusal stays on the step (`denied`). Push only: control never writes `marketingPush` or `emailUpdates` (App
+ * refusal stays on the step (`denied`). Push only: the step never writes `marketingPush` or `emailUpdates` (App
  * Store Review Guideline 4.5.4).
  */
 export function useNotificationsControl() {
@@ -60,12 +64,12 @@ export function useNotificationsControl() {
                 if (!session.current()) return
             } catch {
                 if (!session.current()) return
-                trackPromptAnswer('control', 'dismissed')
+                trackPromptAnswer('dismissed')
                 trackError('push_permission', 'dismissed')
                 setNotificationChoices({ ...notificationChoices, push: false })
                 return
             }
-            trackPromptAnswer('control', permission)
+            trackPromptAnswer(permission)
             trackError('push_permission', permission === 'granted' ? null : permission)
             if (permission !== 'granted') {
                 setNotificationChoices({ ...notificationChoices, push: false })
