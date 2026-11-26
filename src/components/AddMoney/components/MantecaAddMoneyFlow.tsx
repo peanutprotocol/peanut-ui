@@ -86,7 +86,6 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
 
     // Local UI state for tracking both amounts (needed for API call and validation)
     const [usdAmount, setUsdAmount] = useState<string>('')
-    const [localCurrencyAmount, setLocalCurrencyAmount] = useState<string>('')
 
     // Other local UI state (not URL-appropriate - transient or API responses)
     const [isCreatingDeposit, setIsCreatingDeposit] = useState(false)
@@ -167,7 +166,6 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     const showOpenDeposit = useCallback(() => {
         if (!openDeposit) return
         setDepositDetails(openDeposit)
-        setLocalCurrencyAmount('')
         void setUrlState({ step: 'depositDetails', amount: null })
     }, [openDeposit, setUrlState])
 
@@ -239,11 +237,6 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
         },
         [setUrlState]
     )
-
-    // Handle local currency amount change (primary in AmountInput)
-    const handleLocalCurrencyAmountChange = useCallback((value: string | undefined) => {
-        setLocalCurrencyAmount(value ?? '')
-    }, [])
 
     // Handle USD amount change (secondary in AmountInput)
     const handleUsdAmountChange = useCallback((value: string) => {
@@ -525,7 +518,6 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
                         error={error || sumsubFlow.error}
                         validationError={validationError}
                         currencyData={currencyData}
-                        setCurrencyAmount={handleLocalCurrencyAmountChange}
                         setCurrentDenomination={handleDenominationChange}
                         initialDenomination={currentDenomination}
                         setDisplayedAmount={handleDisplayedAmountChange}
@@ -570,7 +562,6 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
         return (
             <MantecaDepositShareDetails
                 depositDetails={depositDetails}
-                currencyAmount={localCurrencyAmount || undefined}
                 arsStatus={arsDeposit ? arsDepositStatus : undefined}
                 onStartOver={() => {
                     setDepositDetails(undefined)
