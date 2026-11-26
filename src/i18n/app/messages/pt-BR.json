@@ -109,9 +109,6 @@
     },
     "home": {
         "rewards": "Pontos",
-        "addMoneyPill": {
-            "addMoney": "Adicionar dinheiro"
-        },
         "activation": {
             "addEmail": {
                 "title": "Adicionar e-mail",
@@ -1122,12 +1119,6 @@
         },
         "notifications": {
             "saveFailed": "Não foi possível salvar suas configurações. Tente novamente.",
-            "importantLabel": "Alertas importantes",
-            "importantDescription": "Pagamentos, conta e segurança",
-            "offersLabel": "Ofertas e vantagens",
-            "offersDescription": "Teste as novidades antes de todo mundo",
-            "emailLabel": "Novidades por e-mail",
-            "emailDescription": "Novidades úteis no seu e-mail",
             "changeAnytime": "Você pode mudar qualquer uma dessas opções quando quiser no seu perfil."
         }
     },
@@ -1308,7 +1299,6 @@
             "note": "Você pode desativar novidades e ofertas quando quiser.",
             "invalid": "Digite um e-mail válido.",
             "taken": "Esse e-mail já tem uma conta no Peanut.",
-            "deferred": "Informe este e-mail de novo quando verificar sua identidade.",
             "suggest": "Você quis dizer {a}?",
             "logIn": "Entrar nessa conta",
             "recover": "Recuperar minha conta",
@@ -2264,15 +2254,14 @@
         "chainTokenOnly": "{chain} · somente {tokens}",
         "methods": {
             "moreWays": "Mais formas de adicionar dinheiro",
-            "accountDetails": "Dados bancários reutilizáveis",
-            "oneTimeDetails": "Dados temporários para transferência",
             "pixDetails": "Escaneie ou copie o código",
+            "arsDetails": "Da sua conta do Mercado Pago ou do seu banco",
             "cryptoDetails": "De carteiras ou corretoras",
             "openAccount": "Abrir uma conta bancária",
-            "oneTimeTransfer": "Transferência bancária única",
             "crypto": "Cripto",
             "cryptoDescription": "Deposite de uma carteira ou corretora",
             "bankTransfer": "Transferência bancária",
+            "bankDetails": "Da sua conta bancária",
             "kycRequired": "Precisa de verificação",
             "bankTransferDescription": "Dados bancários reutilizáveis para receber",
             "mercadoPagoOrBank": "Mercado Pago ou Banco",
@@ -2361,7 +2350,8 @@
             "shareAlias": "Alias: {alias}",
             "shareOwnAccountOnly": "Envie somente de uma conta bancária no meu nome. Transferências de contas de terceiros não podem ser creditadas.",
             "minDepositAmount": "O valor do depósito precisa ser de pelo menos ${amount}",
-            "etaInstant": "Normalmente em minutos"
+            "etaInstant": "Normalmente em minutos",
+            "seeTransferDetails": "Ver detalhes"
         },
         "processingDepositTitle": "Processando o depósito",
         "processingDepositBody": "Estamos confirmando seu depósito.",
@@ -2929,6 +2919,7 @@
             "insufficientBalance": "Saldo insuficiente",
             "spendingLimitReached": "Limite de gastos atingido",
             "blockedMerchant": "Este estabelecimento não é aceito",
+            "cashLikeMerchant": "Este cartão não pode ser usado para transferências de dinheiro, recargas de carteiras ou compras equivalentes a dinheiro.",
             "cardLocked": "Cartão bloqueado",
             "invalidPin": "PIN incorreto",
             "generic": "Transação recusada"

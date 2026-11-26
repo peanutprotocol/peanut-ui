@@ -109,9 +109,6 @@
     },
     "home": {
         "rewards": "Points",
-        "addMoneyPill": {
-            "addMoney": "Add money"
-        },
         "activation": {
             "addEmail": {
                 "title": "Add email",
@@ -1122,12 +1119,6 @@
         },
         "notifications": {
             "saveFailed": "We couldn’t save your settings. Please try again.",
-            "importantLabel": "Important alerts",
-            "importantDescription": "Payments, account and security",
-            "offersLabel": "Offers and perks",
-            "offersDescription": "Be first to try new features",
-            "emailLabel": "Email updates",
-            "emailDescription": "Helpful updates in your inbox",
             "changeAnytime": "You can change any of these anytime in your profile."
         }
     },
@@ -1308,7 +1299,6 @@
             "note": "You can turn off news and offers anytime.",
             "invalid": "Enter a valid email address.",
             "taken": "This email already has a Peanut account.",
-            "deferred": "Add this email again when you verify your identity.",
             "suggest": "Did you mean {a}?",
             "logIn": "Log in to that account",
             "recover": "Recover my account",
@@ -2264,15 +2254,14 @@
         "chainTokenOnly": "{chain} · {tokens} only",
         "methods": {
             "moreWays": "More ways to add money",
-            "accountDetails": "Get reusable bank details",
-            "oneTimeDetails": "Get temporary transfer details",
             "pixDetails": "Scan or copy code",
+            "arsDetails": "From your Mercado Pago or bank account",
             "cryptoDetails": "From wallets or exchanges",
             "openAccount": "Open a bank account",
-            "oneTimeTransfer": "One-time bank transfer",
             "crypto": "Crypto",
             "cryptoDescription": "Deposit from a wallet or exchange",
             "bankTransfer": "Bank transfer",
+            "bankDetails": "From your bank account",
             "kycRequired": "Verification required",
             "bankTransferDescription": "Reusable bank details to get paid",
             "mercadoPagoOrBank": "Mercado Pago or Bank",
@@ -2361,7 +2350,8 @@
             "shareAlias": "Alias: {alias}",
             "shareOwnAccountOnly": "Send it only from a bank account in my name. Transfers from someone else's account can't be credited.",
             "minDepositAmount": "Deposit amount must be at least ${amount}",
-            "etaInstant": "Usually within minutes"
+            "etaInstant": "Usually within minutes",
+            "seeTransferDetails": "See details"
         },
         "processingDepositTitle": "Processing deposit",
         "processingDepositBody": "We're confirming your deposit.",
@@ -2929,6 +2919,7 @@
             "insufficientBalance": "Insufficient balance",
             "spendingLimitReached": "Spending limit reached",
             "blockedMerchant": "This merchant isn't supported",
+            "cashLikeMerchant": "This card can't pay for money transfers, wallet top-ups or cash-like purchases.",
             "cardLocked": "Card locked",
             "invalidPin": "Incorrect PIN",
             "generic": "Transaction declined"

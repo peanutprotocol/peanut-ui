@@ -24,18 +24,23 @@ import { IntlWrapper } from '@/test-utils/intl'
 
 const mockRouterReplace = jest.fn()
 let mockCountry = 'argentina'
+let mockReturnToParam: string | null = null
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: jest.fn(), replace: mockRouterReplace, back: jest.fn(), prefetch: jest.fn() }),
     useParams: () => ({ country: mockCountry }),
-    useSearchParams: () => ({ get: () => null }),
+    useSearchParams: () => ({ get: (key: string) => (key === 'returnTo' ? mockReturnToParam : null) }),
 }))
 
 // The flow's outermost exit (used by the amount step and now the CVU details
 // screen). A shared spy makes "the settled screen left the flow" observable.
 const mockSafeBack = jest.fn()
+const mockSafeBackFallback = jest.fn()
 const mockReturnTo = jest.fn()
 jest.mock('@/hooks/useSafeBack', () => ({
-    useSafeBack: () => mockSafeBack,
+    useSafeBack: (fallback: string) => {
+        mockSafeBackFallback(fallback)
+        return mockSafeBack
+    },
     useReturnTo: (origin: string) => () => mockReturnTo(origin),
 }))
 
@@ -105,6 +110,7 @@ const submitAmount = () => fireEvent.click(screen.getByText('submit-amount'))
 beforeEach(() => {
     jest.clearAllMocks()
     mockCountry = 'argentina'
+    mockReturnToParam = null
     mockResidence = 'AR'
     Object.keys(queryState).forEach((k) => delete queryState[k])
     Object.assign(queryState, { amount: '250', currency: 'ARS' })
@@ -121,5 +127,19 @@ describe('MantecaAddMoney — ARS/CVU exit', () => {
 
         expect(mockSafeBack).toHaveBeenCalled()
         expect(setQueryState).not.toHaveBeenCalledWith({ step: 'inputAmount' })
+    })
+})
+
+// TASK-25350: Home's Add drawer and the Add picker open this flow directly, with where to come back to
+describe('MantecaAddMoney — where Back goes', () => {
+    it('goes back to the screen that opened the flow', () => {
+        mockReturnToParam = '/add-money'
+        renderFlow()
+        expect(mockSafeBackFallback).toHaveBeenLastCalledWith('/add-money')
+    })
+
+    it('falls back to Add money when nothing opened it', () => {
+        renderFlow()
+        expect(mockSafeBackFallback).toHaveBeenLastCalledWith('/add-money?method=bank')
     })
 })

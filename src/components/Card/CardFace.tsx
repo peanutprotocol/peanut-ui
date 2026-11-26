@@ -104,17 +104,23 @@ const CardFace: FC<Props> = ({
             )}
         >
             <div aria-hidden className="col-start-1 row-start-1 aspect-[1.586/1] w-full" />
-            {/* issued artwork uses 90% of the card height */}
-            <Image
-                src={PEANUT_CARD_HAND}
-                alt=""
-                aria-hidden
-                className={twMerge(
-                    'pointer-events-none absolute right-0 bottom-0 h-[90%] w-auto transition-transform duration-slow select-none',
-                    detailsShown && 'translate-x-full translate-y-full'
-                )}
-                priority
-            />
+            {/* The hand needs its own absolute layer. On iOS 16/17 WebKit, a
+             * percentage-height absolute child of this grid stretches the content
+             * column to the screen height, so the number and the eye fall below
+             * the card edge and get clipped (TASK-25347). */}
+            <div aria-hidden className="pointer-events-none absolute inset-0">
+                {/* issued artwork uses 90% of the card height */}
+                <Image
+                    src={PEANUT_CARD_HAND}
+                    alt=""
+                    aria-hidden
+                    className={twMerge(
+                        'pointer-events-none absolute right-0 bottom-0 h-[90%] w-auto transition-transform duration-slow select-none',
+                        detailsShown && 'translate-x-full translate-y-full'
+                    )}
+                    priority
+                />
+            </div>
 
             <div className="relative col-start-1 row-start-1 flex w-full flex-col p-4">
                 {/* Top row: peanut mascot + wordmark (left) + Visa Platinum (right).
@@ -247,28 +253,26 @@ const CardFace: FC<Props> = ({
                         </>
                     ) : (
                         <>
-                            {/* Eye sits inline with the number — the bottom-right corner
-                             * is where the hand's arm rests when masked, so the reveal
-                             * toggle lives in the hand-free left zone instead. */}
-                            <div className="flex items-center gap-3">
-                                <span className="text-heading-s tracking-wider">•••• {last4}</span>
-                                {onToggleReveal && (
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="small"
-                                        shape="square"
-                                        aria-label={t('showDetails')}
-                                        onClick={onToggleReveal}
-                                        icon="eye"
-                                        iconSize={20}
-                                        className="w-10 shrink-0"
-                                    />
-                                )}
-                            </div>
-                            {isVirtual && (
-                                <div className="mt-1">
-                                    <Badge status="neutral" customText={t('virtual')} />
+                            <span className="text-heading-s tracking-wider">•••• {last4}</span>
+                            {/* The eye sits on the bottom row, beside the Virtual pill: the hand covers the
+                             * card's right side and, on a phone-width card, reaches the end of the number,
+                             * so an eye after the number vanished into the glove (Hugo, 25 Nov). */}
+                            {(isVirtual || onToggleReveal) && (
+                                <div className="mt-1 flex items-center gap-2">
+                                    {isVirtual && <Badge status="neutral" customText={t('virtual')} />}
+                                    {onToggleReveal && (
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="small"
+                                            shape="square"
+                                            aria-label={t('showDetails')}
+                                            onClick={onToggleReveal}
+                                            icon="eye"
+                                            iconSize={20}
+                                            className="w-10 shrink-0"
+                                        />
+                                    )}
                                 </div>
                             )}
                         </>

@@ -70,17 +70,9 @@ async function sendDiscordNotification(healthData: HealthReport) {
             .filter(([_, service]) => service.status === 'degraded')
             .map(([name, service]) => `• ${name}: ${service.error || 'degraded'}`)
 
-        // Only @mention the role in production
-        const isProduction = process.env.NODE_ENV === 'production'
-        const isPeanutDomain =
-            (process.env.NEXT_PUBLIC_BASE_URL?.includes('peanut.me') &&
-                !process.env.NEXT_PUBLIC_BASE_URL?.includes('staging.peanut.me')) ||
-            (process.env.VERCEL_URL?.includes('peanut.me') && !process.env.VERCEL_URL?.includes('staging.peanut.me'))
-        const shouldMentionRole = isProduction || isPeanutDomain
-
-        const roleMention = shouldMentionRole ? '<@&1187109195389083739> ' : ''
-
-        let message = `${roleMention}🚨 **Peanut Health Alert** 🚨
+        // No role mention: one 8 s check timeout pinged @dev from each Vercel instance (2026-11-24 19:16, healthy
+        // again by 19:23). prod-watch pages real outages from its own probes (mono ops/schedulers/prod-watch).
+        let message = `🚨 **Peanut Health Alert** 🚨
 
 System Status: **${healthData.status.toUpperCase()}**
 Health Score: ${healthData.healthScore}%

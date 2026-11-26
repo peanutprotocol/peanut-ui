@@ -440,6 +440,21 @@ const AVENIA_BR_USER = {
         secondaryDeclaredCountry: null,
     },
 }
+/** The Pix route's step when Avenia's setup parked on a missing email (api capabilities/resolver.ts). */
+const AVENIA_EMAIL_STEP = {
+    state: 'action_required',
+    action: 'provide-email',
+    reason: {
+        code: 'email_required',
+        userMessage:
+            "We need an email address to finish setting up this account. Add one to your profile and we'll retry automatically.",
+    },
+}
+/** The same responses for an account with no email saved, so the email step opens empty. */
+const aveniaEmailMissing = <T extends { 'GET /users/me': { user: object } }>(responses: T): T => ({
+    ...responses,
+    'GET /users/me': { ...responses['GET /users/me'], user: { ...responses['GET /users/me'].user, email: null } },
+})
 const aveniaRouteResponses = (
     step: { state: string; action?: string; reason: { code: string; userMessage: string }; provider?: null },
     rails: unknown[] = [],
@@ -1736,6 +1751,16 @@ const MANTECA_AR_CAPABILITIES = {
     restrictions: [],
 }
 
+/** A verified resident of Argentina whose peso top-up is ready: the ARS row on both Add lists. */
+const ARS_TOP_UP_RESIDENT = {
+    residence: {
+        verified: { country: 'AR', status: 'VERIFIED', updatedAt: null },
+        declared: null,
+        secondaryDeclaredCountry: null,
+    },
+    capabilities: MANTECA_AR_CAPABILITIES,
+}
+
 /** The ARS bank rail waits on the person's Manteca step (questionnaire and phone check), as the API reports it. */
 const mantecaArStepCapabilities = (code: 'manteca_action_incomplete' | 'manteca_action_expired') => {
     const userMessage =
@@ -1768,6 +1793,38 @@ const mantecaArStepCapabilities = (code: 'manteca_action_incomplete' | 'manteca_
         },
     }
 }
+
+/**
+ * TASK-25345: Manteca parked the ARS bank rail for a missing email (`REQUIRES_SUPPORT` / `NO_EMAIL`),
+ * as the API reports it for a user with no email on file (capabilities/resolver.ts, feature-report.ts).
+ */
+const MANTECA_AR_EMAIL_REQUIRED_CAPABILITIES = (() => {
+    const reason = {
+        code: 'email_required',
+        userMessage:
+            "We need an email address to finish setting up this account. Add one to your profile and we'll retry automatically.",
+    }
+    const nextAction = { key: 'provide-email', kind: 'provide-email', purpose: 'submission-failed-no-email' }
+    const entry = { state: 'action_required', reason: reason.code, message: reason.userMessage, action: nextAction.key }
+    return {
+        rails: [
+            {
+                ...MANTECA_AR_CAPABILITIES.rails[0],
+                status: 'blocked',
+                blockingActions: [nextAction.key],
+                reason,
+                resolved: {
+                    status: 'fixable',
+                    blocking: { ...reason, selfHealable: true, selfHealKind: 'provide-email' },
+                    nextAction,
+                },
+            },
+        ],
+        nextActions: [nextAction],
+        restrictions: [],
+        features: { local: { ...entry, accounts: { ARS: entry } } },
+    }
+})()
 
 /** A Colombian user: one Bre-B corridor and nothing else. */
 const BRIDGE_CO_CAPABILITIES = {
@@ -2427,18 +2484,6 @@ const SETUP_REDESIGN_FIXTURES: Record<string, Fixture> = {
             },
         }
     ),
-    'setup-redesign-email-deferred': setupRedesign(
-        'email-filled',
-        '09 Email: an account that is not established has the address; added again at verification.',
-        {
-            rejects: {
-                'POST /update-user': {
-                    status: 409,
-                    body: { code: 'EMAIL_ON_DORMANT_ACCOUNT', message: 'Email already in use' },
-                },
-            },
-        }
-    ),
     'setup-redesign-email-save-failed': setupRedesign('email-filled', '09 Email: the save failed, Continue retries.', {
         fails: ['POST /update-user'],
     }),
@@ -2449,14 +2494,6 @@ const SETUP_REDESIGN_FIXTURES: Record<string, Fixture> = {
     'setup-redesign-notifications-default': setupRedesign('notifications', '10 Notifications: Turn on, or Not now.'),
     'setup-redesign-notifications-prompt': setupRedesign('notifications', '10 Notifications: the OS prompt is open.'),
     'setup-redesign-notifications-denied': setupRedesign('notifications', '10 Notifications: the OS said no.'),
-    'setup-redesign-notifications-switches': setupRedesign('notifications', '10 Notifications: the switches arm.'),
-    'setup-redesign-notifications-switches-save-failed': setupRedesign(
-        'notifications',
-        '10 Notifications: switches, save failed.',
-        {
-            fails: ['POST /notifications/preferences'],
-        }
-    ),
 
     'setup-redesign-final-default': setupRedesign('final', '11 Final confirm: Confirm and finish.'),
     'setup-redesign-final-loading-user': setupRedesign('final', '11 Final confirm: the account is still loading.', {
@@ -2725,6 +2762,18 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         ])
     ),
+    // TASK-25101: the amount step says the CBU and alias come next, and its button leads to them.
+    'add-money-argentina-amount': {
+        route: '/add-money/argentina/manteca?step=inputAmount&amount=10000&currency=ARS',
+        geoCountry: 'AR',
+        about: 'ARS amount step for a ready account: the hint and button that lead to the CBU and alias.',
+        responses: {
+            'GET /users/me': {
+                residence: { declared: 'AR', verified: 'AR', pending: null, declaredSecond: null },
+                capabilities: MANTECA_AR_CAPABILITIES,
+            },
+        },
+    },
     // A new order makes Manteca cancel the open one, so the amount step offers the open order back.
     'add-money-argentina-deposit-open': {
         route: '/add-money/argentina/manteca?step=inputAmount&currency=ARS',
@@ -2765,6 +2814,19 @@ export const FIXTURES: Record<string, Fixture> = {
             'GET /users/me': {
                 residence: { declared: 'AR', verified: 'AR', pending: null, declaredSecond: null },
                 capabilities: mantecaArStepCapabilities('manteca_action_expired'),
+            },
+        },
+    },
+    // TASK-25345: the account Manteca parked for a missing email asks for the email, not support.
+    'add-money-argentina-email-required': {
+        route: '/add-money/argentina/manteca?step=inputAmount&currency=ARS',
+        geoCountry: 'AR',
+        about: 'ARS deposit while Manteca waits on a missing email: the page asks for the email.',
+        responses: {
+            'GET /users/me': {
+                user: { email: null },
+                residence: { declared: 'AR', verified: 'AR', pending: null, declaredSecond: null },
+                capabilities: MANTECA_AR_EMAIL_REQUIRED_CAPABILITIES,
             },
         },
     },
@@ -3387,6 +3449,12 @@ export const FIXTURES: Record<string, Fixture> = {
             },
         }),
     },
+    'pix-setup-email-missing': {
+        route: '/add-money/pix',
+        about: "Avenia's account setup parked on a missing email (TASK-25335): the Pix step asks for the email, not for support.",
+        waitFor: '[data-testid="provide-email-form"]',
+        responses: aveniaEmailMissing(aveniaRouteResponses(AVENIA_EMAIL_STEP)),
+    },
     'pix-route-rejected': {
         route: '/add-money/pix',
         about: "A refused Pix route: the verification was not accepted, in the user's language, with support.",
@@ -3811,6 +3879,12 @@ export const FIXTURES: Record<string, Fixture> = {
             },
             { [ACTIVATE_PIX]: { state: 'setting_up' } }
         ),
+    },
+    'qr-pay-avenia-email-missing': {
+        route: qrPayRoute(PIX_QR_FIXED_AMOUNT),
+        about: 'A scanned Pix code for a user with no email (TASK-25335): the QR page asks for the email, not for support.',
+        waitFor: '[data-testid="provide-email-form"]',
+        responses: aveniaEmailMissing(aveniaQrResponses(AVENIA_EMAIL_STEP)),
     },
     'qr-pay-avenia-receipt': {
         route: `/history?tx=${AVENIA_QR_PAYMENT_ID}`,
@@ -5695,6 +5769,26 @@ export const FIXTURES: Record<string, Fixture> = {
             'GET /users/me': {
                 ...aveniaResponses('enabled')['GET /users/me'],
                 user: { fullName: 'Ana Souza', firstPaymentAt: '2026-09-15T00:00:00Z' },
+            },
+        },
+    },
+    // The owner, 24 Nov (TASK-25350): ARS leads both Add lists for a resident of Argentina.
+    'add-money-picker-ars': {
+        capture: { expectSelector: '[data-testid="add-money-method-ars"]' },
+        route: '/add-money',
+        geoCountry: 'AR',
+        about: 'The Add picker for a resident of Argentina: ARS leads and opens the peso top-up directly (the owner, 24 Nov).',
+        responses: { 'GET /users/me': { ...ARS_TOP_UP_RESIDENT, user: { fullName: 'Lucía Gómez' } } },
+    },
+    'home-add-drawer-ars': {
+        capture: { expectSelector: '[role="dialog"][data-state="open"] [data-testid="home-drawer-add-ars"]' },
+        route: '/home?drawer=add',
+        geoCountry: 'AR',
+        about: 'The Add drawer for a returning resident of Argentina: ARS leads, bank accounts next, then crypto and more ways (the owner, 24 Nov).',
+        responses: {
+            'GET /users/me': {
+                ...ARS_TOP_UP_RESIDENT,
+                user: { fullName: 'Lucía Gómez', firstPaymentAt: '2026-09-15T00:00:00Z' },
             },
         },
     },

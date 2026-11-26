@@ -62,6 +62,9 @@ interface IExchangeRateWidgetProps {
     // that page's brutalist button styling); the in-app /profile/exchange-rate
     // screen drops it — not used on any other in-app card (TASK-22121).
     shadow?: boolean
+    // Separators of the rate line. The in-app screen passes the app locale, since
+    // Argentines read "1,746.62" as 1.74; marketing callers keep US format.
+    locale?: string
 }
 
 const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
@@ -72,6 +75,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
     labels,
     restrictToRoutable = false,
     shadow = true,
+    locale = 'en-US',
 }) => {
     const l = { ...DEFAULT_LABELS, ...labels }
     // shallow + history:'replace' uses window.history.replaceState — bypasses
@@ -397,7 +401,7 @@ const ExchangeRateWidget: FC<IExchangeRateWidgetProps> = ({
                     ) : (
                         <>
                             1 {sourceCurrency} ={' '}
-                            {formatFiniteDisplay(exchangeRate, 'en-US', {
+                            {formatFiniteDisplay(exchangeRate, locale, {
                                 useGrouping: false,
                                 minimumFractionDigits: 4,
                                 maximumFractionDigits: 4,

@@ -33,7 +33,7 @@ it('keeps every web-only src/app route out of the native build', () => {
     const routes = WEB_ONLY_PATHS.filter((pattern) => /^src\/app\/[^/]+\/\*\*$/.test(pattern))
     expect(routes.length).toBeGreaterThan(0)
     for (const pattern of routes) {
-        const route = pattern.slice('src/app/'.length, -'/**'.length)
+        const route = pattern.slice('src/app/'.length, -'/**'.length).replace(/\\([[\]])/g, '$1')
         const disabled = ITEMS_TO_DISABLE.some((item) => item.path === route && item.type === 'dir')
         expect([pattern, disabled]).toEqual([pattern, true])
     }
