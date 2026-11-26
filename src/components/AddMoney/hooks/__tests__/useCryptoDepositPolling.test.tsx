@@ -155,3 +155,28 @@ test("after a reset, the clear's own not_started is not a read: only the API's n
     expect(result.current.isStatusRead).toBe(true)
     expect(result.current.statusError).toBe(false)
 })
+
+test('a poll that fails after a real answer says so, so a deposit it cannot see never hides behind the address', async () => {
+    let readsFail = false
+    mockFetch.mockImplementation(async () =>
+        readsFail ? response(500, { error: 'down' }) : response(200, { status: 'not_started' })
+    )
+    const { result } = renderHook(() => useCryptoDepositPolling('sda-test', jest.fn(), undefined, { readNow: true }), {
+        wrapper,
+    })
+    await waitFor(() => expect(result.current.isStatusRead).toBe(true))
+    expect(result.current.statusFailing).toBe(false)
+    readsFail = true
+    await act(async () => {
+        await jest.advanceTimersByTimeAsync(5_100)
+    })
+    await waitFor(() => expect(result.current.statusFailing).toBe(true))
+    // the earlier answer is kept, but it is no longer current
+    expect(result.current.status).toBe('not_started')
+    readsFail = false
+    await act(async () => {
+        await result.current.refetchStatus()
+        await jest.advanceTimersByTimeAsync(100)
+    })
+    await waitFor(() => expect(result.current.statusFailing).toBe(false))
+})

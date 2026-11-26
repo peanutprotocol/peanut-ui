@@ -30,6 +30,8 @@ export function cardDepositView(state: {
     statusRead: boolean
     /** the status read failed and no answer of the API's is known */
     statusError: boolean
+    /** the latest status read failed: an answer from before may be out of date */
+    statusFailing: boolean
     status: DepositStatus
     /** the first answer for this address was taken in, against a fresh balance read */
     checked: boolean
@@ -49,7 +51,8 @@ export function cardDepositView(state: {
     if (state.addressError) return 'address-error'
     if (state.statusRead && state.status === 'failed') return 'failed'
     if (state.holding || (state.statusRead && state.status === 'loading')) return 'processing'
-    if (state.clearFailed || state.balanceReadFailed) return 'check-failed'
+    // a poll that fails cannot see a deposit arrive: no address while it does
+    if (state.clearFailed || state.balanceReadFailed || state.statusFailing) return 'check-failed'
     if (!state.statusRead) return state.statusError ? 'check-failed' : 'loading'
     if (state.done) return 'done'
     if (!state.checked || state.clearing || !state.balanceFresh) return 'loading'

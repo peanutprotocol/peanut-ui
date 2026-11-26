@@ -48,6 +48,8 @@ jest.mock('@/features/card/readLiveSpendableUsd', () => ({ readLiveSpendableUsd:
 let pollStatus: 'not_started' | 'loading' | 'failed' | 'completed' = 'not_started'
 let pollRead = true
 let pollError = false
+// the latest poll failed after an earlier answer
+let pollFailing = false
 const mockRefetchStatus = jest.fn()
 let pollOptions: unknown
 let pollOnSuccess: ((amount: number) => void) | undefined
@@ -78,6 +80,7 @@ jest.mock('@/components/AddMoney/hooks/useCryptoDepositPolling', () => ({
             isResetting: false,
             isStatusRead: pollRead,
             statusError: pollError,
+            statusFailing: pollFailing,
             refetchStatus: mockRefetchStatus,
         }
     },
@@ -93,6 +96,7 @@ beforeEach(() => {
     pollStatus = 'not_started'
     pollRead = true
     pollError = false
+    pollFailing = false
     pollOptions = undefined
     pollOnSuccess = undefined
     pollCompletedAmount = undefined
@@ -180,6 +184,21 @@ describe('the address shows only on the API\'s own "not started" and a fresh bal
         expect(await screen.findByTestId('card-add-money-address')).toBeInTheDocument()
     })
 
+    it('hides the address behind a retry while the status poll fails, and shows it again once it reads', async () => {
+        const view = renderView()
+        await screen.findByTestId('card-add-money-address')
+        // a deposit on its way could not be seen while polls fail
+        pollFailing = true
+        view.rerender()
+        expect(await screen.findByTestId('card-add-money-check-failed')).toBeInTheDocument()
+        expect(screen.queryByTestId('qr')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByText('retry'))
+        expect(mockRefetchStatus).toHaveBeenCalled()
+        pollFailing = false
+        view.rerender()
+        expect(await screen.findByTestId('card-add-money-address')).toBeInTheDocument()
+    })
+
     it('clears a failed outcome against a fresh read, then shows the address', async () => {
         pollStatus = 'failed'
         renderView()
@@ -223,7 +242,14 @@ describe('a completed outcome found at open', () => {
         await nextRead()
         await nextRead()
         expect(screen.queryByTestId('qr')).not.toBeInTheDocument()
+        // a minute of flat reads: still no address on its own, only the choice to send more
         await aMinuteOfReads()
+        const processing = screen.getByTestId('card-add-money-processing')
+        expect(processing).toHaveTextContent('stillLandingBody')
+        expect(screen.queryByTestId('qr')).not.toBeInTheDocument()
+        await aMinuteOfReads()
+        expect(screen.queryByTestId('qr')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByTestId('card-add-money-send-more'))
         expect(await screen.findByTestId('card-add-money-address')).toBeInTheDocument()
         expect(screen.queryByTestId('card-add-money-short')).not.toBeInTheDocument()
         expect(deposits()).toHaveLength(1)
@@ -233,6 +259,20 @@ describe('a completed outcome found at open', () => {
         renderView()
         await waitFor(() => expect(mockResetStatus).toHaveBeenCalledTimes(2))
         expect(deposits()).toHaveLength(1)
+    })
+
+    it('resolves on its own when the deposit lands after the wait, with no tap', async () => {
+        jest.useFakeTimers()
+        pollStatus = 'completed'
+        pollCompletedAmount = 4
+        renderView()
+        await waitFor(() => expect(mockResetStatus).toHaveBeenCalled())
+        await aMinuteOfReads()
+        expect(screen.getByTestId('card-add-money-send-more')).toBeInTheDocument()
+        live = 6.5
+        await nextRead()
+        await nextRead()
+        expect(await screen.findByTestId('card-add-money-short')).toHaveTextContent('shortReceived($4)')
     })
 
     it('waits for the deposit when the read at open does not include it yet', async () => {
@@ -256,13 +296,15 @@ describe('a completed outcome found at open', () => {
         renderView()
         await waitFor(() => expect(mockResetStatus).toHaveBeenCalled())
         await aMinuteOfReads()
+        // the user chooses to send more: the old outcome must be cleared first, and that fails
+        fireEvent.click(screen.getByTestId('card-add-money-send-more'))
         expect(await screen.findByTestId('card-add-money-check-failed')).toBeInTheDocument()
         expect(screen.queryByTestId('qr')).not.toBeInTheDocument()
         resetFails = false
         fireEvent.click(screen.getByText('retry'))
         expect(await screen.findByTestId('card-add-money-address')).toBeInTheDocument()
-        // at open, again when the old outcome is released, and on the retry
-        expect(mockResetStatus.mock.calls.length).toBeGreaterThanOrEqual(3)
+        // at open, on the choice to send more, and on the retry
+        expect(mockResetStatus).toHaveBeenCalledTimes(3)
     })
 })
 
@@ -304,12 +346,15 @@ describe('a completed outcome found at open, edge paths (review of round 4)', ()
         renderView()
         await waitFor(() => expect(mockResetStatus).toHaveBeenCalledTimes(1))
         await aMinuteOfReads()
+        fireEvent.click(screen.getByTestId('card-add-money-send-more'))
         await screen.findByTestId('card-add-money-address')
         // the backend writes the same completed outcome back
         pollStatus = 'completed'
         await act(async () => pollOnSuccess?.(7.5))
         expect(screen.getByTestId('card-add-money-processing')).toBeInTheDocument()
         await aMinuteOfReads()
+        expect(screen.queryByTestId('qr')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByTestId('card-add-money-send-more'))
         expect(await screen.findByTestId('card-add-money-address')).toBeInTheDocument()
         expect(deposits()).toHaveLength(1)
     })

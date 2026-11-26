@@ -7,6 +7,7 @@ import type { Address } from 'viem'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import SupportedEvmNetworksCard from '@/components/AddMoney/components/SupportedEvmNetworksCard'
 import SupportedTokensRow from '@/components/AddMoney/components/SupportedTokensRow'
 import { useCryptoDepositPolling } from '@/components/AddMoney/hooks/useCryptoDepositPolling'
@@ -47,8 +48,13 @@ type Hold = {
     alreadyIn: boolean
     /** reads so far, failed ones too: they pace the next read */
     reads: number
-    /** successful reads that did not rise: only these release an `alreadyIn` hold */
+    /** successful reads that did not rise: only these count toward `waited` */
     flat: number
+    /**
+     * an `alreadyIn` hold read flat for about a minute: the deposit is probably in, but the drawer never
+     * guesses. It says the deposit may still be landing and shows the address only on an explicit tap.
+     */
+    waited: boolean
 }
 
 /**
@@ -139,11 +145,14 @@ export function CardCryptoDepositView({
                     return
                 }
             }
-            setHold((current) => current ?? { from: landedRef.current!, alreadyIn: repeatOfOpen, reads: 0, flat: 0 })
+            setHold(
+                (current) =>
+                    current ?? { from: landedRef.current!, alreadyIn: repeatOfOpen, reads: 0, flat: 0, waited: false }
+            )
         },
         [network, user?.invitedBy]
     )
-    const { status, resetStatus, isStatusRead, statusError, refetchStatus } = useCryptoDepositPolling(
+    const { status, resetStatus, isStatusRead, statusError, statusFailing, refetchStatus } = useCryptoDepositPolling(
         depositAddress,
         handleSuccess,
         undefined,
@@ -195,7 +204,13 @@ export function CardCryptoDepositView({
             const now = statusRef.current === 'not_started' ? first : statusRef.current
             if (now === 'loading' || now === 'completed')
                 // only an outcome already completed at the first answer may be in the balance read at open
-                setHold({ from: baseline, alreadyIn: now === 'completed' && first !== 'loading', reads: 0, flat: 0 })
+                setHold({
+                    from: baseline,
+                    alreadyIn: now === 'completed' && first !== 'loading',
+                    reads: 0,
+                    flat: 0,
+                    waited: false,
+                })
             if (now === 'completed' || now === 'failed') void clear()
             else setBalanceFresh(true)
         },
@@ -213,7 +228,9 @@ export function CardCryptoDepositView({
         if (status !== 'loading' || !depositAddress || checkedFor !== depositAddress) return
         if (landedBeforeCompleted.current !== null) return
         setClearFailed(false)
-        setHold((current) => current ?? { from: landedRef.current!, alreadyIn: false, reads: 0, flat: 0 })
+        setHold(
+            (current) => current ?? { from: landedRef.current!, alreadyIn: false, reads: 0, flat: 0, waited: false }
+        )
     }, [status, depositAddress, checkedFor])
 
     // Each held deposit is read fresh until the balance rises above where it started (or the gap is
@@ -242,14 +259,16 @@ export function CardCryptoDepositView({
                 setShortDeposit((last) => ({ received: cents(value - hold.from), n: (last?.n ?? 0) + 1 }))
                 return
             }
-            if (hold.alreadyIn && hold.flat + 1 >= ALREADY_IN_READS) {
-                landedRef.current = value
-                setHold(undefined)
-                // a completed status left in place stops the poll: clear it before any address
-                if (statusRef.current === 'completed') void clearRef.current()
-                return
-            }
-            setHold((current) => current && { ...current, reads: current.reads + 1, flat: current.flat + 1 })
+            // flat for about a minute: keep reading, and let the user choose to send more
+            setHold(
+                (current) =>
+                    current && {
+                        ...current,
+                        reads: current.reads + 1,
+                        flat: current.flat + 1,
+                        waited: current.waited || (current.alreadyIn && current.flat + 1 >= ALREADY_IN_READS),
+                    }
+            )
         }, holdReadDelay(hold.reads))
         return () => clearTimeout(timer)
     }, [hold, readLive])
@@ -268,6 +287,7 @@ export function CardCryptoDepositView({
         addressError: isError || (!isLoading && !data),
         statusRead: isStatusRead,
         statusError,
+        statusFailing,
         status,
         checked: !!data && checkedFor === data.depositAddress,
         balanceFresh,
@@ -279,6 +299,19 @@ export function CardCryptoDepositView({
     })
     const processing = view === 'processing'
     useEffect(() => onProcessingChange(processing), [processing, onProcessingChange])
+
+    /** "Send more instead": the user chose to see the address while a deposit may still be landing */
+    const sendMore = () => {
+        if (live !== undefined) landedRef.current = live
+        setHold(undefined)
+        // a completed status left in place stops the poll: clear it; either way the ask waits for a fresh read
+        if (statusRef.current === 'completed') return void clear()
+        setBalanceFresh(false)
+        readLive().then(
+            () => setBalanceFresh(true),
+            () => setBalanceReadFailed(true)
+        )
+    }
 
     const retry = () => {
         if (clearFailed) return void clear()
@@ -362,9 +395,17 @@ export function CardCryptoDepositView({
                 <CardDrawerStatus
                     icon={<Loading variant="mascot" />}
                     name={tAdd('processingDepositTitle')}
-                    body={tAdd('processingDepositBody')}
+                    body={hold?.waited ? t('stillLandingBody') : tAdd('processingDepositBody')}
                     testId="card-add-money-processing"
-                />
+                >
+                    {hold?.waited && (
+                        <div className="mt-2 flex justify-center">
+                            <LinkButton onClick={sendMore} data-testid="card-add-money-send-more">
+                                {t('sendMoreInstead')}
+                            </LinkButton>
+                        </div>
+                    )}
+                </CardDrawerStatus>
             </div>
         )
     }

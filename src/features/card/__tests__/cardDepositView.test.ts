@@ -7,6 +7,7 @@ const SAFE = {
     addressError: false,
     statusRead: true,
     statusError: false,
+    statusFailing: false,
     status: 'not_started' as const,
     checked: true,
     balanceFresh: true,
@@ -25,6 +26,7 @@ describe('cardDepositView: the address only when no deposit can be on its way an
     it.each([
         ['the status is not read yet (or only a clear wrote "not started")', { statusRead: false }, 'loading'],
         ['the status read failed', { statusRead: false, statusError: true }, 'check-failed'],
+        ['the latest poll failed after an earlier answer', { statusFailing: true }, 'check-failed'],
         ['the first answer is not taken in yet', { checked: false }, 'loading'],
         ['no fresh balance read came back since the last clear', { balanceFresh: false }, 'loading'],
         ['the fresh balance read failed', { balanceReadFailed: true }, 'check-failed'],

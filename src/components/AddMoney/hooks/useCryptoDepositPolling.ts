@@ -111,6 +111,8 @@ export function useCryptoDepositPolling(
         isResetting,
         isStatusRead: statusData !== undefined && !synthetic,
         statusError: isError && (statusData === undefined || synthetic),
+        /** the latest read failed, so even a known status may be out of date (the poll keeps trying) */
+        statusFailing: isError,
         refetchStatus: refetch,
     }
 }
