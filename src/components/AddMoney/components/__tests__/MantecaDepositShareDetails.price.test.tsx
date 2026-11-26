@@ -6,6 +6,7 @@ import { renderWithIntl } from '@/test-utils/intl'
 import InputAmountStep from '../InputAmountStep'
 import MantecaDepositShareDetails from '../MantecaDepositShareDetails'
 import type { MantecaDepositResponseData } from '@/types/manteca.types'
+import type { AppLocale } from '@/i18n/app/config'
 
 jest.mock('next/navigation', () => ({
     useParams: () => ({ country: 'argentina' }),
@@ -27,7 +28,7 @@ const order = {
     stages: { '1': { thresholdAmount: '100000', asset: 'ARS' }, '3': { amount: '57.256' } },
 } as unknown as MantecaDepositResponseData
 
-const renderIn = (locale: string) =>
+const renderIn = (locale: AppLocale) =>
     render(
         <NextIntlClientProvider locale={locale} messages={en} timeZone="UTC">
             <MantecaDepositShareDetails depositDetails={order} onBack={jest.fn()} />

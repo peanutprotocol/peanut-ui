@@ -1095,7 +1095,8 @@ describe('a signup interrupted after registration', () => {
         const email: ISetupStep = { ...landing, screenId: 'notification-email', component: () => <div>Email step</div> }
         mockStore.steps = [landing, residence, email]
         mockAuth.user = {
-            user: { ...unfinished.user, email: '', createdAt: '2026-11-20T10:00:00.000Z' },
+            // createdAt is on the API user, not on this mock's narrowed type
+            user: { ...unfinished.user, email: '', createdAt: '2026-11-20T10:00:00.000Z' } as typeof unfinished.user,
             accounts: WALLET,
         }
         renderWithIntl(<SetupPage />)
