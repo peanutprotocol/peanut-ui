@@ -1,12 +1,17 @@
 import type { IUserProfile } from '@/interfaces/interfaces'
 import { unfinishedSignupRoute } from '../unfinished-signup'
 
-const profile = (user: { username?: string | null; email?: string }, accounts: { type: string }[] = []) =>
-    ({ user, accounts }) as unknown as IUserProfile
+const RECENT = '2026-11-20T10:00:00.000Z'
+const WALLET = [{ type: 'peanut-wallet' }]
+
+const profile = (
+    user: { username?: string | null; email?: string; createdAt?: string },
+    accounts: { type: string }[] = []
+) => ({ user: { createdAt: RECENT, ...user }, accounts }) as unknown as IUserProfile
 
 describe('unfinishedSignupRoute', () => {
-    it('is null once the last step created the wallet', () => {
-        expect(unfinishedSignupRoute(profile({ username: 'alice' }, [{ type: 'peanut-wallet' }]))).toBeNull()
+    it('is null once the last step created the wallet and the email is saved', () => {
+        expect(unfinishedSignupRoute(profile({ username: 'alice', email: 'alice@example.com' }, WALLET))).toBeNull()
     })
 
     it('walks the steps again when the email was never given', () => {
@@ -24,5 +29,29 @@ describe('unfinishedSignupRoute', () => {
 
     it('ignores accounts that are not the Peanut wallet', () => {
         expect(unfinishedSignupRoute(profile({ username: 'alice', email: '' }, [{ type: 'iban' }]))).toBe('/setup')
+    })
+
+    // TASK-25379: the email step once let a dormant holder's address through unsaved.
+    it.each([
+        ['an empty email', ''],
+        ['a blank email', '   '],
+        ['no email field', undefined],
+    ])('sends a wallet with %s back to /setup', (_label, email) => {
+        expect(unfinishedSignupRoute(profile({ username: 'alice', email }, WALLET))).toBe('/setup')
+    })
+
+    it('counts an account made the moment the email step became required', () => {
+        const createdAt = '2026-10-07T11:16:09.000Z'
+        expect(unfinishedSignupRoute(profile({ username: 'alice', email: '', createdAt }, WALLET))).toBe('/setup')
+    })
+
+    it('leaves a wallet without an email alone when the account is older than the required email step', () => {
+        const createdAt = '2026-10-07T11:16:08.000Z'
+        expect(unfinishedSignupRoute(profile({ username: 'alice', email: '', createdAt }, WALLET))).toBeNull()
+    })
+
+    // /setup/finish only creates a wallet; sending a wallet holder there would bounce it home and back.
+    it('leaves a wallet without a username or an email alone', () => {
+        expect(unfinishedSignupRoute(profile({ username: null, email: '' }, WALLET))).toBeNull()
     })
 })

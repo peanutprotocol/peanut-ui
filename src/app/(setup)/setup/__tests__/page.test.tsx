@@ -1090,6 +1090,22 @@ describe('a signup interrupted after registration', () => {
         expect(mockRouter.replace).toHaveBeenCalledWith('/home')
     })
 
+    // TASK-25379: the email step once let a dormant holder's address through unsaved.
+    it('sends a wallet saved without an email to the email step, not through the earlier answers', async () => {
+        const email: ISetupStep = { ...landing, screenId: 'notification-email', component: () => <div>Email step</div> }
+        mockStore.steps = [landing, residence, email]
+        mockAuth.user = {
+            user: { ...unfinished.user, email: '', createdAt: '2026-11-20T10:00:00.000Z' },
+            accounts: WALLET,
+        }
+        renderWithIntl(<SetupPage />)
+        await advance(100)
+        expect(mockRouter.replace).not.toHaveBeenCalled()
+        expect(mockFlow.setScreenId).toHaveBeenCalledWith('notification-email', { history: 'replace' })
+        expect(mockFlow.setScreenId).not.toHaveBeenCalledWith('residence', expect.anything())
+        expect(mockSetNoBackLock).toHaveBeenCalledWith('notification-email')
+    })
+
     // A saved email marks nothing after it: the payment choices and notification step were never sent.
     it('resumes after a reload that followed the email step', async () => {
         mockAuth.user = { ...unfinished, user: { ...unfinished.user, email: 'test044@example.com' } }
