@@ -78,7 +78,7 @@ export function AppGlobals({ children }: { children: React.ReactNode }) {
                 is safe. */}
             <StaleDeploymentReload />
             {/* Every app route, so an email click is counted wherever its link lands. Suspense: nuqs reads
-                useSearchParams. */}
+                the URL search params. */}
             <Suspense fallback={null}>
                 <EmailClickCapture />
             </Suspense>
