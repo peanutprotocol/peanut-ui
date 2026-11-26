@@ -635,11 +635,12 @@ describe('a deposit made while the address shows', () => {
 })
 
 describe('the address view', () => {
-    it('shows and copies the whole address, in the copy field /add-money/crypto uses', async () => {
-        renderView()
+    it('shows and copies the whole address, in the address card /add-money/crypto uses', async () => {
+        renderView('EVM')
         await screen.findByTestId('card-add-money-address')
-        expect(screen.getByDisplayValue(ADDRESS)).toBeInTheDocument()
-        await act(async () => fireEvent.click(screen.getByText('copyField.copy')))
+        expect(screen.getByTestId('card-add-money-deposit-address')).toHaveTextContent(ADDRESS)
+        expect(screen.getByText('universalDepositAddress')).toBeInTheDocument()
+        await act(async () => fireEvent.click(screen.getByLabelText('copyField.copy')))
         expect(mockCopy).toHaveBeenCalledWith(ADDRESS)
     })
 

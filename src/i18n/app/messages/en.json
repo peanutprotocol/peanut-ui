@@ -2242,7 +2242,6 @@
         },
         "addMoney": {
             "pickNetwork": "Pick the network you send from. From an exchange, pick the network you withdraw on there.",
-            "depositAddress": "{network} deposit address",
             "networkOnlyTitle": "Send on {network} only",
             "sendAsk": "Send {amount}",
             "raisedToMinimum": "The minimum per transfer on {network} is {minimum}. The extra {extra} is added to your balance.",

@@ -424,11 +424,18 @@ describe('crypto views', () => {
     }
 
     it('shows the address for the picked network and asks for the gap', async () => {
-        mockCreateDepositAddress.mockResolvedValue({ depositAddress: 'Tdeposit', minDepositLimitUsd: 1 })
+        mockCreateDepositAddress.mockResolvedValue({
+            depositAddress: 'TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE',
+            minDepositLimitUsd: 1,
+        })
         await openAddress('tron')
         const address = within(drawer()).getByTestId('card-add-money-address')
-        expect(within(address).getByText('depositAddress(Tron)')).toBeInTheDocument()
-        expect(within(address).getByTestId('qr')).toHaveTextContent('Tdeposit')
+        // the address card /add-money/crypto shows: Tron's own label, the whole address
+        expect(within(address).getByText('depositAddress')).toBeInTheDocument()
+        expect(within(address).getByTestId('card-add-money-deposit-address')).toHaveTextContent(
+            'TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE'
+        )
+        expect(within(address).getByTestId('qr')).toHaveTextContent('TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE')
         expect(within(address).getByTestId('card-add-money-ask')).toHaveTextContent('sendAsk($7.50)')
         expect(within(address).queryByText(/raisedToMinimum/)).not.toBeInTheDocument()
         expect(within(address).getByText('waiting')).toBeInTheDocument()

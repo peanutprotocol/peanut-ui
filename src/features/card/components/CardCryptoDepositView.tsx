@@ -6,15 +6,18 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Address } from 'viem'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
+import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import SupportedEvmNetworksCard from '@/components/AddMoney/components/SupportedEvmNetworksCard'
 import SupportedTokensRow from '@/components/AddMoney/components/SupportedTokensRow'
 import { useCryptoDepositPolling } from '@/components/AddMoney/hooks/useCryptoDepositPolling'
-import CopyField from '@/components/Global/CopyField'
+import CopyToClipboard from '@/components/Global/CopyToClipboard'
+import { Icon } from '@/components/Global/Icons/Icon'
 import Loading from '@/components/Global/Loading'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
-import { NETWORK_LABELS } from '@/constants/rhino.consts'
+import { NETWORK_LABELS, NETWORK_LOGOS, SUPPORTED_EVM_CHAINS } from '@/constants/rhino.consts'
+import { Tooltip } from '@/components/Tooltip'
 import { useAuth } from '@/context/authContext'
 import { useModalsContext } from '@/context/ModalsContext'
 import { captureCryptoDepositCompleted } from '@/features/add-money/captureCryptoDepositCompleted'
@@ -88,6 +91,12 @@ export function CardCryptoDepositView({
     const userId = user?.user?.userId
     const networkLabel = NETWORK_LABELS[network]
     const familyLabel = network === 'EVM' ? tCrypto('evmNetworks') : networkLabel
+    const addressTooltip =
+        network === 'EVM'
+            ? tCrypto('tooltipEvm', { count: SUPPORTED_EVM_CHAINS.length })
+            : network === 'SOL'
+              ? tCrypto('tooltipSol')
+              : tCrypto('tooltipTron')
 
     const { data, isLoading, isError, refetch } = useRhinoDepositAddress(network, true)
     const depositAddress = data?.depositAddress
@@ -482,7 +491,7 @@ export function CardCryptoDepositView({
                 >
                     {hold?.waited && (
                         // two tertiary links, centred and stacked: neither is a third button
-                        <div className="mt-2 flex flex-col items-center">
+                        <div className="mt-2 flex flex-col items-center gap-3">
                             <LinkButton onClick={sendMore} data-testid="card-add-money-send-more">
                                 {t('sendMoreInstead')}
                             </LinkButton>
@@ -547,12 +556,32 @@ export function CardCryptoDepositView({
                     <p className="text-body-s text-foreground-secondary">{tCrypto('sendExtraForFees')}</p>
                 </div>
             )}
-            <p className="text-body-m text-foreground-primary">{t('depositAddress', { network: networkLabel })}</p>
-            {/* the address and its copy as /add-money/crypto shows them (RhinoDeposit.view) */}
+            {/* the QR and the address card exactly as /add-money/crypto shows them (CryptoDeposit.view) */}
             <div className="flex items-center justify-center">
-                <QRCodeWrapper url={data.depositAddress} />
+                <QRCodeWrapper url={data.depositAddress} centerImage={NETWORK_LOGOS[network]} />
             </div>
-            <CopyField text={data.depositAddress} />
+            <div className={`flex w-full flex-col overflow-hidden ${CARD_SURFACE}`}>
+                <div className="flex flex-col gap-2 p-4">
+                    <div className="flex items-center gap-1">
+                        <Tooltip content={addressTooltip} position="bottom">
+                            <span className="flex items-center gap-1">
+                                <span className="text-label-l">
+                                    {network === 'EVM' ? tCrypto('universalDepositAddress') : tCrypto('depositAddress')}
+                                </span>
+                                <Icon name="info" size={16} className="text-foreground-secondary" />
+                            </span>
+                        </Tooltip>
+                    </div>
+                    <div className="flex items-start justify-between gap-2">
+                        <p className="text-body-s break-all" data-testid="card-add-money-deposit-address">
+                            <span className="font-semibold">{data.depositAddress.slice(0, 6)}</span>
+                            {data.depositAddress.slice(6, -6)}
+                            <span className="font-semibold">{data.depositAddress.slice(-6)}</span>
+                        </p>
+                        <CopyToClipboard textToCopy={data.depositAddress} iconSize="4" className="flex-shrink-0" />
+                    </div>
+                </div>
+            </div>
             <Callout priority="attention" title={t('networkOnlyTitle', { network: networkLabel })}>
                 <div className="flex flex-col gap-2">
                     <p>{tCrypto('warningDescription')}</p>
