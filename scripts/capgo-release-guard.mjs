@@ -387,6 +387,22 @@ export async function run(mode, { env = process.env, fetchImpl = fetch } = {}) {
                 name
             )
         }
+        // The commit whose bundle the platform channel serves, from the bundle
+        // record's link, so release-ota.yml can skip an unchanged bundle.
+        case 'live-source': {
+            const name = PRODUCTION_CHANNELS[platform(env)]
+            const version = channelVersion(
+                (await policies()).find((row) => row.name === name),
+                name
+            )
+            const matches = (await bundles()).filter((row) => row?.name === version)
+            if (matches.length !== 1) throw new Error(`${name} serves ${version}, which has no unique bundle record`)
+            const sha = /^https:\/\/github\.com\/peanutprotocol\/peanut-ui\/commit\/([0-9a-f]{40})$/.exec(
+                matches[0].link ?? ''
+            )?.[1]
+            if (!sha) throw new Error(`bundle ${version} names no source commit`)
+            return sha
+        }
         case 'current-release':
             return highestRelease(await releaseNames())
         case 'reserved-release':

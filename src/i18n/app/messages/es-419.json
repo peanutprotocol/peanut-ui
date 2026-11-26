@@ -109,9 +109,6 @@
     },
     "home": {
         "rewards": "Puntos",
-        "addMoneyPill": {
-            "addMoney": "Agregar dinero"
-        },
         "activation": {
             "addEmail": {
                 "title": "Agregar email",
@@ -1122,12 +1119,6 @@
         },
         "notifications": {
             "saveFailed": "No pudimos guardar tu configuración. Inténtalo de nuevo.",
-            "importantLabel": "Alertas importantes",
-            "importantDescription": "Pagos, cuenta y seguridad",
-            "offersLabel": "Ofertas y beneficios",
-            "offersDescription": "Prueba las novedades antes que nadie",
-            "emailLabel": "Novedades por correo",
-            "emailDescription": "Novedades útiles en tu correo",
             "changeAnytime": "Puedes cambiar cualquiera de estas opciones cuando quieras en tu perfil."
         }
     },
@@ -1308,7 +1299,6 @@
             "note": "Puedes desactivar novedades y ofertas cuando quieras.",
             "invalid": "Ingresa un correo válido.",
             "taken": "Este correo ya tiene una cuenta de Peanut.",
-            "deferred": "Vuelve a ingresar este correo cuando verifiques tu identidad.",
             "suggest": "¿Quisiste decir {a}?",
             "logIn": "Iniciar sesión en esa cuenta",
             "recover": "Recuperar mi cuenta",
@@ -2264,16 +2254,14 @@
         "chainTokenOnly": "{chain} · solo {tokens}",
         "methods": {
             "moreWays": "Más formas de agregar dinero",
-            "accountDetails": "Datos bancarios reutilizables",
-            "oneTimeDetails": "Datos para una transferencia",
             "pixDetails": "Escanea o copia el código",
             "arsDetails": "Desde tu cuenta de Mercado Pago o de tu banco",
             "cryptoDetails": "Desde billeteras o exchanges",
             "openAccount": "Abrir una cuenta bancaria",
-            "oneTimeTransfer": "Transferencia bancaria única",
             "crypto": "Cripto",
             "cryptoDescription": "Deposita desde una billetera o exchange",
             "bankTransfer": "Transferencia bancaria",
+            "bankDetails": "Desde tu cuenta bancaria",
             "kycRequired": "Requiere verificación",
             "bankTransferDescription": "Datos bancarios reutilizables para cobrar",
             "mercadoPagoOrBank": "Mercado Pago o Banco",
@@ -2362,7 +2350,8 @@
             "shareAlias": "Alias: {alias}",
             "shareOwnAccountOnly": "Envíalo solo desde una cuenta bancaria a mi nombre. Las transferencias desde cuentas de terceros no se pueden acreditar.",
             "minDepositAmount": "El monto del depósito debe ser de al menos ${amount}",
-            "etaInstant": "Normalmente en minutos"
+            "etaInstant": "Normalmente en minutos",
+            "seeTransferDetails": "Ver detalles"
         },
         "processingDepositTitle": "Procesando el depósito",
         "processingDepositBody": "Estamos confirmando tu depósito.",
@@ -2930,6 +2919,7 @@
             "insufficientBalance": "Saldo insuficiente",
             "spendingLimitReached": "Límite de gasto alcanzado",
             "blockedMerchant": "Este comercio no es compatible",
+            "cashLikeMerchant": "Esta tarjeta no se puede usar para transferencias de dinero, recargas de billeteras ni compras equivalentes a efectivo.",
             "cardLocked": "Tarjeta bloqueada",
             "invalidPin": "PIN incorrecto",
             "generic": "Transacción rechazada"

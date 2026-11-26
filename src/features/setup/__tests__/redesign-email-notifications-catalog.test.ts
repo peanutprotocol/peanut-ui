@@ -29,7 +29,6 @@ const KEYS = {
         'invalid',
         'taken',
         'logIn',
-        'deferred',
         'suggest',
         'recover',
         'saveFailed',
@@ -38,17 +37,7 @@ const KEYS = {
     notif: ['title', 'desc', 'cta', 'push1Title', 'push1Body', 'push2Title', 'push2Body', 'denied', 'openSettings'],
 }
 const REDESIGN_KEYS = Object.entries(KEYS).flatMap(([group, keys]) => keys.map((k) => `setupRedesign.${group}.${k}`))
-const DEV_KEYS = [
-    'setup.email.notReady',
-    'setup.notifications.changeAnytime',
-    'setup.notifications.saveFailed',
-    'setup.notifications.importantLabel',
-    'setup.notifications.importantDescription',
-    'setup.notifications.offersLabel',
-    'setup.notifications.offersDescription',
-    'setup.notifications.emailLabel',
-    'setup.notifications.emailDescription',
-]
+const DEV_KEYS = ['setup.email.notReady', 'setup.notifications.changeAnytime', 'setup.notifications.saveFailed']
 
 const at = (catalog: unknown, key: string) =>
     key.split('.').reduce<unknown>((node, part) => (node as Record<string, unknown> | undefined)?.[part], catalog)

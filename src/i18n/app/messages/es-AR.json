@@ -657,7 +657,6 @@
         },
         "notifications": {
             "saveFailed": "No pudimos guardar tu configuración. Probá de nuevo.",
-            "offersDescription": "Probá las novedades antes que nadie",
             "changeAnytime": "Podés cambiar cualquiera de estas opciones cuando quieras en tu perfil."
         }
     },
@@ -838,7 +837,6 @@
             "note": "Podés desactivar novedades y ofertas cuando quieras.",
             "invalid": "Ingresá un email válido.",
             "taken": "Este email ya tiene una cuenta de Peanut.",
-            "deferred": "Volvé a ingresar este email cuando verifiques tu identidad.",
             "suggest": "¿Quisiste decir {a}?",
             "logIn": "Iniciar sesión en esa cuenta",
             "recover": "Recuperar mi cuenta",
@@ -1294,12 +1292,9 @@
         "mustMatchBankTransfer": "Esto debe coincidir exactamente con lo que enviás desde tu banco",
         "methods": {
             "moreWays": "Más formas de agregar dinero",
-            "accountDetails": "Datos bancarios reutilizables",
-            "oneTimeDetails": "Datos para una transferencia",
             "pixDetails": "Escaneá o copiá el código",
             "cryptoDetails": "Desde billeteras o exchanges",
             "openAccount": "Abrir una cuenta bancaria",
-            "oneTimeTransfer": "Transferencia bancaria única",
             "cryptoDescription": "Depositá desde una billetera o exchange",
             "bankTransferDescription": "Datos bancarios reutilizables para cobrar",
             "pix": "Pix",
@@ -1336,7 +1331,8 @@
             "transferExpiredDescription": "¿Ya enviaste plata? Contactá a soporte.",
             "startNewDeposit": "Iniciar un nuevo depósito",
             "shareOwnAccountOnly": "Envialo solo desde una cuenta bancaria a mi nombre. Las transferencias desde cuentas de terceros no se pueden acreditar.",
-            "etaInstant": "Normalmente en minutos"
+            "etaInstant": "Normalmente en minutos",
+            "seeTransferDetails": "Ver detalles"
         },
         "pix": {
             "scanWithBankApp": "Escaneá con la app de tu banco o copiá el código Pix."

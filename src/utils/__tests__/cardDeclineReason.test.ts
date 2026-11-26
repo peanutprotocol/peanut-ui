@@ -91,4 +91,35 @@ describe('declineReasonCode', () => {
             expect(declineReasonCode('insufficient-funds')).toBe('insufficientBalance')
         })
     })
+
+    // Reason strings and MCCs from prod card declines (TASK-25099, 2026-11).
+    describe('merchant and MCC blocks', () => {
+        test.each([
+            ['blocked mcc', '6540'],
+            ['block transaction from high-risk merchant category codes [v3', '4829'],
+            ['blocked mcc', '6012'],
+            ['blocked mcc', '6011'],
+            ['triggers for transactions from mcc 6050 and 6051', '6051'],
+        ])('%s at MCC %s → cashLikeMerchant', (reason, mcc) => {
+            expect(declineReasonCode(reason, 'other', mcc)).toBe('cashLikeMerchant')
+        })
+
+        test.each([
+            ['blocked mcc', '5993'],
+            ['blocked merchant', '5816'],
+            ['block transactions from specified high-risk e-commerce merch', '5818'],
+            ['block transaction from high-risk merchant category codes [v3', '5967'],
+            ['triggers for transactions from mcc 6050 and 6051', null],
+        ])('%s at MCC %s → blockedMerchant', (reason, mcc) => {
+            expect(declineReasonCode(reason, 'other', mcc)).toBe('blockedMerchant')
+        })
+
+        test('a cash-like MCC without a block reason keeps its own code', () => {
+            expect(declineReasonCode('card locked', 'other', '4829')).toBe('cardLocked')
+        })
+
+        test('the BE category still wins', () => {
+            expect(declineReasonCode('blocked mcc', 'insufficient_balance', '6540')).toBe('insufficientBalance')
+        })
+    })
 })

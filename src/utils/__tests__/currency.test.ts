@@ -79,3 +79,34 @@ describe('formatFiatRate', () => {
         expect(formatFiatRate('not a rate')).toBe('—')
     })
 })
+
+// Argentines read "1,746.62" as 1.74 (FX-trust research, TASK-25349): a screen with pesos or reais
+// passes the app locale. The default stays US format for every other caller.
+describe('app locale separators', () => {
+    it.each([
+        ['en', '1,746.62', '100,000', '0.50'],
+        ['es-AR', '1.746,62', '100.000', '0,50'],
+        ['pt-BR', '1.746,62', '100.000', '0,50'],
+    ])('%s: rate %s, round amount %s, cents %s', (locale, rate, round, cents) => {
+        expect(formatFiatRate(1746.615, locale)).toBe(rate)
+        expect(formatAmountNumber(100000, 2, 2, locale)).toBe(round)
+        expect(formatAmountNumber(0.5, 2, 2, locale)).toBe(cents)
+    })
+
+    it('drops only a zero fraction, never a group of thousands', () => {
+        // the US-only ".0+$" strip would have read "1.000" in es-AR as a zero fraction
+        expect(formatAmountNumber(1000, 0, 0, 'es-AR')).toBe('1.000')
+        expect(formatAmountNumber('1782.5', 2, 2, 'es-AR')).toBe('1.782,50')
+    })
+
+    it('formats a bank amount with the locale and keeps the symbol', () => {
+        expect(formatBankAmount(13500, 'ARS', 'es-AR')).toBe('ARS 13.500')
+        expect(formatBankAmount('1782.5', 'BRL', 'pt-BR')).toBe('R$1.782,50')
+    })
+
+    it('keeps US format when no locale is given', () => {
+        expect(formatFiatRate(1746.62)).toBe('1,746.62')
+        expect(formatAmountNumber(1746.62)).toBe('1,746.62')
+        expect(formatBankAmount(13500, 'ARS')).toBe('ARS 13,500')
+    })
+})

@@ -6,7 +6,12 @@ import {
 } from '@/constants/rain.consts'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { apiErrorStatus, wireErrorCode } from '@/services/api-error'
-import type { RainCardFunding, RainFundingAccess, RainFundingManagementStatus } from '@/services/rain'
+import type {
+    RainCardApplicationStatus,
+    RainCardFunding,
+    RainFundingAccess,
+    RainFundingManagementStatus,
+} from '@/services/rain'
 
 /**
  * Which card funding setup this account is offered, from the server's
@@ -79,6 +84,14 @@ export interface RainFundingConsent {
     /** The authorization statement exactly as it was shown. */
     authorizationText: string
 }
+
+/**
+ * The funding permission's spender is the card's collateral contract, which
+ * Rain deploys only after it approves the application. Before that the
+ * funding read answers 409 `collateral_not_deployed`, so nothing is granted.
+ */
+export const isCollateralReady = (status: RainCardApplicationStatus | undefined): boolean =>
+    status?.railStatus === 'ENABLED' && !!status.contractAddress
 
 /**
  * Managed funding needs a grant only in these two states. Anything else —

@@ -536,6 +536,19 @@ it('keeps bridge bundle numbers separate from the next public OTA number', () =>
         invoke('next-android-bridge', [...policyResponses(bridgeChannels), { body: releases }], bridgeEnv).result
     ).toBe('1.6.1002-android')
 })
+it('reads the source commit of the bundle a production channel serves, and nothing else', () => {
+    const rows = [channelPolicy('ios', '1.6.3-ios'), channels[1]]
+    const result = invoke('live-source', [...policyResponses(rows), { body: [goodBundle] }])
+    expect(result).toMatchObject({ status: 0, result: SHA })
+    expect(result.requests.every((request) => request.method === 'GET')).toBe(true)
+    // builtin, a missing or duplicated record, and a foreign or absent link all fail.
+    expect(invoke('live-source', [...policyResponses(), { body: [goodBundle] }]).status).toBe(1)
+    expect(invoke('live-source', [...policyResponses(rows), { body: [] }]).status).toBe(1)
+    expect(invoke('live-source', [...policyResponses(rows), { body: [goodBundle, goodBundle] }]).status).toBe(1)
+    for (const link of [undefined, `https://github.com/someone/peanut-ui/commit/${SHA}`, `${goodBundle.link}x`]) {
+        expect(invoke('live-source', [...policyResponses(rows), { body: [{ ...goodBundle, link }] }]).status).toBe(1)
+    }
+})
 it('verifies the selected production artifact after promotion', () => {
     const rows = [channelPolicy('ios', env.VERSION), channels[1]]
     expect(invoke('verify-production', [...policyResponses(rows), { body: [goodBundle] }]).status).toBe(0)
