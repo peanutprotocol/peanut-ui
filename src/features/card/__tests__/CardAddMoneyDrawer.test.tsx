@@ -457,14 +457,14 @@ describe('crypto views', () => {
         expect(within(drawer()).getByTestId('choose-network-sol')).toBeInTheDocument()
     })
 
-    it('clears only an outcome an earlier deposit left, read at once when the address arrives', async () => {
+    it('holds a completed outcome found at open, and does not clear it before it lands', async () => {
         pollStatus = 'completed'
         renderFunding()
         fireEvent.click(screen.getByTestId('card-add-money-crypto'))
         fireEvent.click(within(drawer()).getByTestId('choose-network-tron'))
-        await waitFor(() => expect(mockResetStatus).toHaveBeenCalledTimes(1))
-        // the address waits for fresh reads to show that deposit is in the balance
+        await waitFor(() => expect(within(drawer()).getByTestId('card-add-money-processing')).toBeInTheDocument())
         expect(within(drawer()).queryByTestId('qr')).not.toBeInTheDocument()
+        expect(mockResetStatus).not.toHaveBeenCalled()
     })
 
     it('keeps a deposit already on its way and shows it processing', async () => {

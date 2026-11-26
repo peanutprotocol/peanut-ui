@@ -20,6 +20,7 @@ import { captureCryptoDepositCompleted } from '@/features/add-money/captureCrypt
 import { useRhinoDepositAddress } from '@/features/add-money/useRhinoDepositAddress'
 import { cardCryptoAskUsd, cardGapUsd } from '@/features/card/cardAddMoney'
 import { cardDepositView, type DepositStatus } from '@/features/card/cardDepositView'
+import { forgetDepositLanding, readDepositLanding, rememberDepositLanding } from '@/features/card/depositLanding'
 import { readLiveSpendableUsd } from '@/features/card/readLiveSpendableUsd'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import type { DepositAddressStatusResponse, RhinoChainType } from '@/services/services.types'
@@ -204,19 +205,27 @@ export function CardCryptoDepositView({
             setCheckedFor(address)
             // the status may have moved while the balance was read: act on the one now
             const now = statusRef.current === 'not_started' ? first : statusRef.current
-            if (now === 'loading' || now === 'completed')
-                // only an outcome already completed at the first answer may be in the balance read at open
+            // A deposit an earlier opening saw and never saw land is held again from its own baseline, even
+            // when the status now reads not started (the API can overwrite it on a cold open).
+            const landing = now === 'failed' ? null : readDepositLanding(userId, address)
+            if (now === 'loading' || now === 'completed' || landing) {
                 setHold({
-                    from: baseline,
-                    alreadyIn: now === 'completed' && first !== 'loading',
+                    from: landing ? Math.min(landing.from, baseline) : baseline,
+                    // only an outcome already completed at the first answer may be in the balance read at open
+                    alreadyIn: now !== 'loading' && first !== 'loading',
                     reads: 0,
                     flat: 0,
                     waited: false,
                 })
-            if (now === 'completed' || now === 'failed') void clear()
-            else setBalanceFresh(true)
+            }
+            // A completed outcome is never cleared before it lands (or the user chooses to send more): the
+            // server status is what a reopen holds on. A failed one is the provider's refund: clear it.
+            if (now === 'failed') {
+                forgetDepositLanding(userId, address)
+                void clear()
+            } else setBalanceFresh(true)
         },
-        [readLive, clear]
+        [readLive, clear, userId]
     )
     const openedFor = useRef<string>()
     useEffect(() => {
@@ -235,6 +244,11 @@ export function CardCryptoDepositView({
         )
     }, [status, depositAddress, checkedFor])
 
+    // every held deposit outlives the drawer: a reopen holds it again from the same baseline
+    useEffect(() => {
+        if (hold && depositAddress) rememberDepositLanding(userId, depositAddress, { from: hold.from, amount: null })
+    }, [hold, depositAddress, userId])
+
     // Each held deposit is read fresh until the balance rises above where it started (or the gap is
     // covered); a completed outcome found at open counts as already in after reads that never rise.
     // A deposit on its way has no cap: the drawer can be closed, and its address never shows meanwhile.
@@ -251,10 +265,13 @@ export function CardCryptoDepositView({
             }
             const gap = cardGapUsd(value) ?? 0
             if (roseAbove(hold.from, value) || gap <= 0) {
+                if (depositAddressRef.current) forgetDepositLanding(userId, depositAddressRef.current)
                 landedRef.current = value
                 setHold(undefined)
                 if (gap <= 0) {
                     setDone(true)
+                    // the outcome is spent: clear it, so the address starts clean next time
+                    if (statusRef.current === 'completed') void clearRef.current()
                     return
                 }
                 // what reached the balance: a fee taken on the way shows here
@@ -273,7 +290,7 @@ export function CardCryptoDepositView({
             )
         }, holdReadDelay(hold.reads))
         return () => clearTimeout(timer)
-    }, [hold, readLive])
+    }, [hold, readLive, userId])
 
     // Rhino reports one deposit per address until the status is cleared: after a short deposit the
     // clear re-arms the poll for the rest, and the address waits for its fresh read. A deposit that
@@ -310,6 +327,7 @@ export function CardCryptoDepositView({
     const sendMore = () => {
         setHold(undefined)
         setSentMore(true)
+        if (depositAddress) forgetDepositLanding(userId, depositAddress)
         // a completed status left in place stops the poll: clear it; either way the ask waits for a fresh
         // read, which is also the baseline for the next deposit
         if (statusRef.current === 'completed')
