@@ -188,7 +188,7 @@ export function ClosedRowDrawer({
             // nothing about the user, so nothing for them or support to do
             case 'not-open':
                 return {
-                    title: t('gate.notYetTitle'),
+                    title: t('list.notOpenTitle'),
                     body: t('list.notOpenBody', { currency: DEPOSIT_RAILS[row.corridor].currency }),
                     cta: { label: tCommon('gotIt') },
                 }
