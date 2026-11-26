@@ -1,6 +1,6 @@
 import { renderHook } from '@testing-library/react'
 import type { CapabilityRoute, FeatureReport } from '@/types/capabilities'
-import { useAddMoneyReadiness } from '../useAddMoneyReadiness'
+import { useAddMoneyReadiness, useArsLeadsAddMoney } from '../useAddMoneyReadiness'
 
 const mockGateFor = jest.fn()
 const mockQuery = jest.fn()
@@ -290,4 +290,33 @@ it('offers no ARS row to a resident of another country, whatever the gate says',
     const { result } = renderHook(() => useAddMoneyReadiness(false))
     expect(result.current.pickerMethods).not.toContain('ars')
     expect(result.current.ready.ars).toEqual([])
+})
+
+// The owner, 25 Nov (Release 170.2): the bank hub leaves pesos out where ARS already leads the Add list, so
+// its answer must be the picker's, for every gate and residence, without reading the accounts
+describe('useArsLeadsAddMoney', () => {
+    it.each([
+        ['AR', 'ready'],
+        ['AR', 'needs-identity'],
+        ['AR', 'pending'],
+        ['AR', 'loading'],
+        ['AR', 'blocked-rejection'],
+        ['AR', 'restart-identity'],
+        ['BR', 'ready'],
+        ['PT', 'needs-identity'],
+    ])('answers as the picker does for a resident of %s whose peso gate is %s', (residence, kind) => {
+        mockResidence = [residence]
+        arsGate({ kind })
+        const picker = renderHook(() => useAddMoneyReadiness(false)).result.current.pickerMethods[0] === 'ars'
+        mockQuery.mockClear()
+        const { result } = renderHook(() => useArsLeadsAddMoney())
+        expect(result.current).toBe(picker)
+        expect(mockQuery).not.toHaveBeenCalled()
+    })
+
+    it('says yes for a resident of Argentina with an open peso gate', () => {
+        mockResidence = ['AR']
+        arsGate({ kind: 'needs-identity' })
+        expect(renderHook(() => useArsLeadsAddMoney()).result.current).toBe(true)
+    })
 })
