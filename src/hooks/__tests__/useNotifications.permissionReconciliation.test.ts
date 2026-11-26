@@ -285,3 +285,24 @@ it('reconciles native permission once after transient initialization recovers on
     expect(mockGetPreferences).toHaveBeenCalledTimes(1)
     expect(mockSavePreferences).toHaveBeenCalledTimes(1)
 })
+
+// TASK-22683: the server saw null for most users who refused push.
+it.each([null, 'dismissed'])('reports a browser denial when the server holds %s', async (recorded) => {
+    setBrowserPermission('denied')
+    mockGetPreferences.mockResolvedValue(serverPreferences(recorded as string))
+    mount()
+    await waitFor(() => expect(mockSavePreferences).toHaveBeenCalledTimes(1))
+    expect(mockSavePreferences).toHaveBeenCalledWith({ pushPermission: 'denied' })
+})
+
+it('records which message a push tap opened (TASK-22683)', async () => {
+    const view = mount()
+    await waitFor(() => expect(view.result.current.oneSignalInitialized).toBe(true))
+    const posthog = require('posthog-js') as { capture: jest.Mock }
+    const onClick = (mockAdapter.onNotificationClick.mock.calls as unknown as [(info: unknown) => void][])[0][0]
+    onClick({ deepLink: 'https://peanut.me/home?msg=lifecycle.welcome', additionalData: {} })
+    onClick({ deepLink: undefined, additionalData: { deepLink: '/card?msg=kyc.approved' } })
+    onClick({ deepLink: 'https://peanut.me/home', additionalData: {} })
+    const clicks = posthog.capture.mock.calls.filter(([event]) => event === 'notification_clicked')
+    expect(clicks.map(([, props]) => props.msg)).toEqual(['lifecycle.welcome', 'kyc.approved', undefined])
+})

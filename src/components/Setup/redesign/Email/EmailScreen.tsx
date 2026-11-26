@@ -119,13 +119,7 @@ export function EmailScreen(_props: StepComponentProps) {
                     valid={step.valid}
                     disabled={step.saving}
                     message={message}
-                    status={
-                        step.keepCurrentEmail
-                            ? tSetup('notifications.changeAnytime')
-                            : step.mode === 'deferred'
-                              ? t('email.deferred')
-                              : undefined
-                    }
+                    status={step.keepCurrentEmail ? tSetup('notifications.changeAnytime') : undefined}
                     onChange={step.change}
                     onBlur={step.blur}
                     hint={

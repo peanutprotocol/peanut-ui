@@ -1035,7 +1035,7 @@ describe('GROUP 1: Landing', () => {
     test('bare /add-money renders the method picker without redirecting', () => {
         renderWithProviders(<AddMoneyPage />)
         expect(screen.getByTestId('add-money-method-crypto')).toBeInTheDocument()
-        expect(screen.getByTestId('add-money-method-transfer')).toBeInTheDocument()
+        expect(screen.getByTestId('add-money-method-bank')).toBeInTheDocument()
         expect(mockRouterReplace).not.toHaveBeenCalled()
         expect(mockRouterPush).not.toHaveBeenCalled()
     })

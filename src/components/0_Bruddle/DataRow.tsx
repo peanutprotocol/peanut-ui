@@ -15,6 +15,8 @@ interface DataRowProps {
     trailing?: React.ReactNode
     /** A long label (the Profile details rows) wraps instead of pushing the value out. */
     wrapLabel?: boolean
+    /** A sentence value (a card decline reason) sits under the label, full width and left-aligned, instead of a narrow right column. */
+    stacked?: boolean
 }
 
 /**
@@ -35,10 +37,12 @@ export const DataRow = ({
     onClick,
     trailing,
     wrapLabel = false,
+    stacked = false,
 }: DataRowProps) => (
     <div
         className={twMerge(
             'ds-data-row flex w-full items-center justify-between gap-3 py-3',
+            stacked && 'flex-col items-start gap-1',
             onClick &&
                 'cursor-pointer transition-colors duration-instant focus-visible:outline-[3px] focus-visible:outline-action-focus active:bg-background-disabled'
         )}
@@ -73,7 +77,8 @@ export const DataRow = ({
             <div
                 className={twMerge(
                     'ds-data-row-value flex min-w-0 items-center justify-end gap-2 text-right text-label-l text-foreground-primary',
-                    wrapLabel && 'shrink-0'
+                    wrapLabel && 'shrink-0',
+                    stacked && 'w-full justify-start text-left'
                 )}
             >
                 {/* min-w-0 + break-words: a single unbreakable token (wallet

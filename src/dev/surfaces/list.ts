@@ -207,14 +207,6 @@ export const SURFACE_META: Record<string, SurfaceMeta> = {
         name: 'Setup — notification settings',
         path: 'Setup/redesign/Notifications/NotificationsScreen.tsx',
     },
-    '07-d-notification-switches': {
-        name: 'Setup — notification switches',
-        path: 'Setup/redesign/Notifications/NotificationsSwitchesScreen.tsx',
-    },
-    '07-d-notification-defaults-on': {
-        name: 'Setup — notification defaults on',
-        path: 'Setup/redesign/Notifications/NotificationsSwitchesScreen.tsx',
-    },
     '07-e-setup-celebration': {
         expectSelector: '[data-testid="setup-redesign-celebration"]',
         name: 'Setup — full-screen account celebration',

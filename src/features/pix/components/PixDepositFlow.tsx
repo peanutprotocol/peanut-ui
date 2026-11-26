@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { parseAsString, parseAsStringEnum, useQueryStates } from 'nuqs'
 import posthog from 'posthog-js'
 import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
@@ -47,6 +47,7 @@ const ADD_MONEY_HUBS = ['/add-money'] as const
  */
 export function PixDepositFlow({ route }: { route: CapabilityRoute }) {
     const t = useTranslations('addMoney')
+    const locale = useLocale()
     const tDeposit = useTranslations('pix.deposit')
     const tShared = useTranslations('pix')
     const tErrors = useTranslations('errors')
@@ -82,7 +83,7 @@ export function PixDepositFlow({ route }: { route: CapabilityRoute }) {
     // Only the amount step quotes: the setup and the code screen do not.
     const minimumBrl = pixMinimumBrl(route)
     const currencyData = usePixQuoteCurrency('deposit', brlAmount, minimumBrl, ready && !intentId)
-    const minimumLine = minimumBrl ? tDeposit('minimum', { amount: formatBankAmount(minimumBrl, 'BRL') }) : null
+    const minimumLine = minimumBrl ? tDeposit('minimum', { amount: formatBankAmount(minimumBrl, 'BRL', locale) }) : null
     const validationError = isUnderPixMinimum(brlAmount, minimumBrl) ? minimumLine : null
     // Avenia's own rate (the minimum's quote before an amount), and the fee once the amount on screen is quoted;
     // neither row when the quote sends neither
