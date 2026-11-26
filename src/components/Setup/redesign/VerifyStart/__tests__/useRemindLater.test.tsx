@@ -44,7 +44,7 @@ describe('tomorrowMorning', () => {
 })
 
 describe('useRemindLater', () => {
-    it('writes the verify reminder for tomorrow 09:00 and says when it comes', async () => {
+    it('writes the verify reminder for tomorrow 09:00 and promises no reminder before then', async () => {
         update.mockResolvedValue({ data: {} })
         const remindLater = remind()
         let saved: boolean | undefined
@@ -67,7 +67,7 @@ describe('useRemindLater', () => {
         // the checklist ask is not snoozed: Home keeps showing it
         expect(update.mock.calls[0][0].attentionLedger).not.toHaveProperty('checklist')
         expect(mockToast.success).toHaveBeenCalledWith(
-            expect.stringMatching(/^We’ll remind you tomorrow at 9:00\sAM\.$/u)
+            expect.stringMatching(/^Got it\. No reminders before tomorrow at 9:00\sAM\.$/u)
         )
         expect(mockToast.error).not.toHaveBeenCalled()
     })
@@ -78,7 +78,7 @@ describe('useRemindLater', () => {
         await act(async () => {
             await remindLater()
         })
-        expect(mockToast.success).toHaveBeenCalledWith('Vamos te lembrar amanhã às 09:00.')
+        expect(mockToast.success).toHaveBeenCalledWith('Certo. Nenhum lembrete antes de amanhã às 09:00.')
     })
 
     it('promises no reminder when the API refuses the write, and reports the refusal', async () => {

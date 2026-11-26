@@ -1360,7 +1360,7 @@
             "verifyNow": "Verificar ahora · 3 min",
             "verifyNowIdOnly": "Verificar ahora · 2 min",
             "remindLater": "Recordármelo más tarde",
-            "remindSet": "Te lo recordaremos mañana a las {at, time, short}.",
+            "remindSet": "Listo. No te enviaremos recordatorios antes de mañana a las {at, time, short}.",
             "remindFailed": "No pudimos programar el recordatorio. Puedes verificar cuando quieras desde Inicio."
         }
     },
