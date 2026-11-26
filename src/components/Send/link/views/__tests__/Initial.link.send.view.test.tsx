@@ -103,6 +103,7 @@ jest.mock('@/components/0_Bruddle/Button', () => ({
 // Callout with data-testid="error-alert" / "info-card"
 import LinkSendInitialView from '../Initial.link.send.view'
 import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
+import { LinkDepositUnconfirmedError } from '@/utils/send-link-deposit.utils'
 
 // ---------- helpers ----------
 
@@ -401,5 +402,23 @@ describe('LinkSendInitialView link creation', () => {
             tokenAddress: '0x',
         })
         await waitFor(() => expect(screen.getByTestId('view')).toHaveTextContent('SUCCESS'))
+    })
+})
+
+// TASK-24270: the op may still land, so the copy asks the user to check their
+// balance, and the balance on screen must be fresh when they do.
+describe('LinkSendInitialView unconfirmed deposit', () => {
+    test('shows the check-your-balance copy and refreshes the balance', async () => {
+        const wallet = walletState(100)
+        mockUseWallet.mockReturnValue(wallet)
+        mockCreateLink.mockRejectedValue(
+            new LinkDepositUnconfirmedError('0x899B65fd3660F09D1504392A705a9f003316edDe', `0x${'ab'.repeat(32)}`)
+        )
+
+        renderView('20')
+        fireEvent.click(screen.getByText('Create link'))
+
+        await waitFor(() => expect(screen.getByTestId('error-alert')).toHaveTextContent(en.errors.sendLinkUnconfirmed))
+        expect(wallet.fetchBalance).toHaveBeenCalled()
     })
 })

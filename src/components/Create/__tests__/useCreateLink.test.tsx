@@ -12,7 +12,6 @@ import { PEANUT_WALLET_CHAIN } from '@/constants/zerodev.consts'
 import { getContractAddress, getLatestContractVersion, peanutVaultAbi } from '@/utils/peanut-claim.utils'
 import { generateKeysFromString, getParamsFromLink } from '@/utils/peanut-link.utils'
 import { LinkDepositUnconfirmedError } from '@/utils/send-link-deposit.utils'
-import { createChainBundlerClient } from '@/utils/bundler-client.utils'
 import { captureNetworkTriagedFailure } from '@/utils/network-triage'
 import { sendLinksApi } from '@/services/sendLinks'
 import { SENDER, TX_HASH, USEROP_HASH, depositLog, receiptWith } from '@/utils/__tests__/send-link-deposit.fixtures'
@@ -33,7 +32,11 @@ jest.mock('@/hooks/wallet/useWallet', () => ({ useWallet: () => ({ sendTransacti
 let mockKernelAddress: string | undefined
 jest.mock('@/hooks/useZeroDev', () => ({ useZeroDev: () => ({ address: mockKernelAddress }) }))
 jest.mock('@/services/sendLinks', () => ({ sendLinksApi: { persist: jest.fn() } }))
-jest.mock('@/utils/bundler-client.utils', () => ({ createChainBundlerClient: jest.fn() }))
+const mockWaitForReceipt = jest.fn()
+const mockGetClientForChain = jest.fn((_chainId: string) => ({ waitForUserOperationReceipt: mockWaitForReceipt }))
+jest.mock('@/context/kernelClient.context', () => ({
+    useKernelClient: () => ({ getClientForChain: mockGetClientForChain }),
+}))
 jest.mock('@/utils/network-triage', () => ({ captureNetworkTriagedFailure: jest.fn() }))
 jest.mock('@/utils/webauthn-ceremony-telemetry', () => ({
     withCeremonyFlow: (_name: string, fn: () => Promise<unknown>) => fn(),
@@ -44,7 +47,6 @@ jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn()
 import { useCreateLink } from '../useCreateLink'
 
 const mockPersist = sendLinksApi.persist as jest.MockedFunction<typeof sendLinksApi.persist>
-const mockBundler = createChainBundlerClient as jest.MockedFunction<typeof createChainBundlerClient>
 const mockCapture = captureNetworkTriagedFailure as jest.MockedFunction<typeof captureNetworkTriagedFailure>
 
 const CHAIN_ID = PEANUT_WALLET_CHAIN.id.toString()
@@ -60,12 +62,13 @@ function depositedPubKey(): Address {
 }
 
 function bundlerAnswering(receipt: ReturnType<typeof receiptWith> | null) {
-    mockBundler.mockReturnValue({
-        waitForUserOperationReceipt: jest.fn(async () => {
-            if (!receipt) throw new Error('Timed out while waiting for User Operation')
-            return { success: true, receipt }
-        }),
-    } as unknown as ReturnType<typeof createChainBundlerClient>)
+    mockWaitForReceipt.mockImplementation(async () => {
+        if (!receipt)
+            throw Object.assign(new Error('Timed out while waiting for User Operation'), {
+                name: 'WaitForUserOperationReceiptTimeoutError',
+            })
+        return { success: true, receipt }
+    })
 }
 
 const createLink = (details?: Parameters<ReturnType<typeof useCreateLink>['createLink']>[1]) =>
@@ -108,6 +111,8 @@ describe('useCreateLink', () => {
         const { link } = await createLink()
 
         expect(getParamsFromLink(link).depositIdx).toBe(589)
+        expect(mockGetClientForChain).toHaveBeenCalledWith(CHAIN_ID)
+        expect(mockWaitForReceipt).toHaveBeenCalledWith(expect.objectContaining({ hash: USEROP_HASH }))
         expect(mockPersist.mock.calls[0][0]).toMatchObject({ depositIdx: 589, txHash: TX_HASH })
         // the screen stays busy through the extra wait, so no second link starts
         expect(mockSetLoadingState).toHaveBeenCalledWith('Executing transaction')
@@ -135,7 +140,7 @@ describe('useCreateLink', () => {
             expect.any(Error),
             expect.objectContaining({
                 tags: expect.objectContaining({ send_link_step: 'persist' }),
-                extra: expect.objectContaining({ depositIdx: 589, txHash: TX_HASH }),
+                extra: expect.objectContaining({ depositIdx: 589, txHash: TX_HASH, pubKey: depositedPubKey() }),
             })
         )
     })

@@ -33,8 +33,10 @@ export interface UserOpReceiptWaiter {
  * makes send flows fall back to recording the userOp hash, which backend
  * validation can never resolve (TASK-21147).
  *
- * Retries the wait once, wall-clock capped, UNLESS the original failure was
- * a genuinely exhausted timeout (more polling has ~zero rescue odds).
+ * Waits again, wall-clock capped (see `waitForUserOpReceiptOrNull`), UNLESS
+ * the original failure was a genuinely exhausted timeout. Payment flows can
+ * fall back to the userOp hash, so they skip that case; send links cannot
+ * and wait anyway (TASK-24270).
  *
  * Returns the FULL userOp receipt (`success` flag included) or null. The
  * caller decides what a rescued-but-REVERTED op means for its flow — a
@@ -52,12 +54,18 @@ export async function rescueUserOpReceipt(
     return waitForUserOpReceiptOrNull(client, userOpHash, context, { timeoutMs })
 }
 
+/** Pause before asking again after an RPC error that was not a timeout. */
+const RECEIPT_RETRY_PAUSE_MS = 1_000
+
 /**
  * One more wall-clock-capped wait for a userOp receipt, with the same rescue
- * telemetry. Unlike `rescueUserOpReceipt` it also runs after a genuine
- * timeout: for a flow that cannot finish without the receipt (a send link
- * needs the vault's deposit index), so a late op is worth the wait. Seen on
- * 2026-10-31: an op landed 7 s after the 120 s wait gave up (TASK-24270).
+ * telemetry. viem's wait rejects on the FIRST RPC error that is not "receipt
+ * not found", so this asks again after such an error until the deadline; only
+ * the deadline itself ends it. Unlike `rescueUserOpReceipt` it also runs after
+ * a genuine timeout: for a flow that cannot finish without the receipt (a
+ * send link needs the vault's deposit index), a late op is worth the wait.
+ * Seen on 2026-10-31: an op landed 7 s after the 120 s wait gave up
+ * (TASK-24270).
  */
 export async function waitForUserOpReceiptOrNull(
     client: UserOpReceiptWaiter,
@@ -66,7 +74,16 @@ export async function waitForUserOpReceiptOrNull(
     { timeoutMs }: { timeoutMs: number }
 ): Promise<{ success: boolean; receipt: TransactionReceipt } | null> {
     const start = Date.now()
-    const rescued = await client.waitForUserOperationReceipt({ hash: userOpHash, timeout: timeoutMs }).catch(() => null)
+    const deadline = start + timeoutMs
+    let rescued: { success: boolean; receipt: TransactionReceipt } | null = null
+    while (!rescued && Date.now() < deadline) {
+        try {
+            rescued = await client.waitForUserOperationReceipt({ hash: userOpHash, timeout: deadline - Date.now() })
+        } catch (error) {
+            if ((error as Error)?.name === 'WaitForUserOperationReceiptTimeoutError') break
+            await new Promise((resolve) => setTimeout(resolve, RECEIPT_RETRY_PAUSE_MS))
+        }
+    }
     if (rescued) {
         try {
             if (!isDemoMode()) {

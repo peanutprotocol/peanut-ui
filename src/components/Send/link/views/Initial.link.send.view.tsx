@@ -16,6 +16,7 @@ import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { isAmountWithinBalance, isValidSendAmount } from '@/utils/balance.utils'
 import { captureNetworkTriagedFailure } from '@/utils/network-triage'
 import { criticalFlowTags } from '@/utils/sentry-critical-flow'
+import { LinkDepositUnconfirmedError } from '@/utils/send-link-deposit.utils'
 import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useContext, useEffect, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
@@ -130,6 +131,13 @@ const LinkSendInitialView = () => {
             // deposit was prepared or signed — no link exists and nothing was
             // spent. Control flow, not a failed link creation.
             if (error instanceof SpendRecoveryAbortedError) return
+
+            // The deposit may have landed after all: show the real balance and
+            // activity before the user decides whether to retry.
+            if (error instanceof LinkDepositUnconfirmedError) {
+                fetchBalance()
+                queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+            }
 
             // handle errors
             const errorString = toFriendlyError(error)

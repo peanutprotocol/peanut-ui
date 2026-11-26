@@ -13,6 +13,7 @@ import { useCallback, useContext } from 'react'
 import type { Address } from 'viem'
 import { encodeFunctionData, parseAbi } from 'viem'
 
+import { useKernelClient } from '@/context/kernelClient.context'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
 import { useWallet } from '@/hooks/wallet/useWallet'
@@ -23,7 +24,7 @@ import { resolveLinkDeposit } from '@/utils/send-link-deposit.utils'
 import { withCeremonyFlow } from '@/utils/webauthn-ceremony-telemetry'
 
 /** What the sender attaches to a link. */
-export interface SendLinkDetails {
+interface SendLinkDetails {
     message?: string
     attachment?: File
 }
@@ -33,6 +34,7 @@ export const useCreateLink = () => {
     const { sendTransactions } = useWallet()
     // The kernel account: the vault records it as the deposit's sender.
     const sender = useZeroDev().address as Address | undefined
+    const { getClientForChain } = useKernelClient()
 
     const generatePassword = async () => {
         try {
@@ -52,12 +54,12 @@ export const useCreateLink = () => {
      */
     const createLink = useCallback(
         async (amount: bigint, { message, attachment }: SendLinkDetails = {}) => {
-            // Checked before any signing: the deposit is matched to its sender.
-            if (!sender) throw new Error('Wallet is not ready')
             let strategy: string | undefined
             const funded = await withCeremonyFlow(
                 'link_create',
                 async () => {
+                    // Checked before any signing: the deposit is matched to its sender.
+                    if (!sender) throw new Error('Wallet is not ready')
                     setLoadingState('Generating details')
                     const password = await generatePassword()
                     const { address: pubKey } = generateKeysFromString(password)
@@ -103,7 +105,8 @@ export const useCreateLink = () => {
                     const { depositIdx, txHash } = await resolveLinkDeposit({
                         receipt,
                         userOpHash,
-                        chainId: PEANUT_WALLET_CHAIN.id,
+                        // The bundler finds any op by hash, the session-key one included.
+                        receiptWaiter: () => getClientForChain(chainId),
                         vault,
                         sender,
                         pubKey,
@@ -139,17 +142,20 @@ export const useCreateLink = () => {
                 })
             } catch (error) {
                 // The money is in the vault and the link still claims: the API
-                // rebuilds a missing row from chain when the link is opened. Only
-                // the sender's history misses it, so show the link and report.
+                // rebuilds a missing row from chain when the link is opened.
+                // Hiding the link would hide the only claim URL, so show it and
+                // report: the sender's history misses it until support restores it.
                 console.error(error)
                 void captureNetworkTriagedFailure(error, {
                     tags: { ...criticalFlowTags('send-link'), send_link_step: 'persist' },
-                    extra: { pubKey: deposit.pubKey, depositIdx: deposit.depositIdx, txHash: deposit.txHash },
+                    // Everything support needs to restore the row, preparationId
+                    // included: without it a mixed link's Rain intent is not adopted.
+                    extra: deposit,
                 })
             }
             return { link, chainId: funded.chainId, tokenAddress: funded.tokenAddress }
         },
-        [sendTransactions, sender, setLoadingState]
+        [getClientForChain, sendTransactions, sender, setLoadingState]
     )
 
     return {

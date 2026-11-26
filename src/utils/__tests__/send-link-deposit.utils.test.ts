@@ -6,8 +6,12 @@
  */
 import type { UserOpReceiptWaiter } from '@/utils/userop-rescue.utils'
 import { isUserOpRevertedError } from '@/utils/userop-rescue.utils'
-import { LinkDepositUnconfirmedError, parseLinkDeposit, resolveLinkDeposit } from '@/utils/send-link-deposit.utils'
-import { createChainBundlerClient } from '@/utils/bundler-client.utils'
+import {
+    LINK_DEPOSIT_LATE_RECEIPT_TIMEOUT_MS,
+    LinkDepositUnconfirmedError,
+    parseLinkDeposit,
+    resolveLinkDeposit,
+} from '@/utils/send-link-deposit.utils'
 import { isDemoMode } from '@/utils/demo'
 import {
     OTHER_SENDER,
@@ -21,24 +25,29 @@ import {
 
 jest.mock('posthog-js', () => ({ capture: jest.fn() }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: jest.fn(() => false) }))
-jest.mock('@/utils/bundler-client.utils', () => ({ createChainBundlerClient: jest.fn() }))
 
-const mockBundler = createChainBundlerClient as jest.MockedFunction<typeof createChainBundlerClient>
 const mockDemo = isDemoMode as jest.MockedFunction<typeof isDemoMode>
 
 const PUB_KEY = '0x899B65fd3660F09D1504392A705a9f003316edDe' as const
-const base = { chainId: 42161, vault: VAULT, sender: SENDER, pubKey: PUB_KEY, userOpHash: USEROP_HASH }
+type LateReceipt = Awaited<ReturnType<UserOpReceiptWaiter['waitForUserOperationReceipt']>>
 
-function bundlerAnswering(result: Awaited<ReturnType<UserOpReceiptWaiter['waitForUserOperationReceipt']>> | null) {
-    const waitForUserOperationReceipt = jest.fn(async () => {
-        if (!result) throw new Error('Timed out while waiting for User Operation')
-        return result
+/** viem's own error when the wait runs out. */
+const receiptTimeout = () =>
+    Object.assign(new Error('Timed out while waiting for User Operation'), {
+        name: 'WaitForUserOperationReceiptTimeoutError',
     })
-    mockBundler.mockReturnValue({ waitForUserOperationReceipt } as unknown as ReturnType<
-        typeof createChainBundlerClient
-    >)
-    return waitForUserOperationReceipt
+
+/** A bundler that answers each wait in turn: a receipt, or an error to throw. */
+function bundler(...answers: (LateReceipt | Error)[]) {
+    const waitForUserOperationReceipt = jest.fn(async () => {
+        const answer = answers.shift() ?? receiptTimeout()
+        if (answer instanceof Error) throw answer
+        return answer
+    })
+    return { waitForUserOperationReceipt }
 }
+
+const base = { vault: VAULT, sender: SENDER, pubKey: PUB_KEY, userOpHash: USEROP_HASH }
 
 beforeEach(() => {
     jest.clearAllMocks()
@@ -69,36 +78,62 @@ describe('parseLinkDeposit', () => {
 
 describe('resolveLinkDeposit', () => {
     test('reads the deposit from the send receipt without a second wait', async () => {
-        const deposit = await resolveLinkDeposit({ ...base, receipt: receiptWith([depositLog({ index: 589n })]) })
+        const waiter = bundler()
+        const deposit = await resolveLinkDeposit({
+            ...base,
+            receipt: receiptWith([depositLog({ index: 589n })]),
+            receiptWaiter: () => waiter,
+        })
         expect(deposit).toEqual({ depositIdx: 589, txHash: TX_HASH })
-        expect(mockBundler).not.toHaveBeenCalled()
+        expect(waiter.waitForUserOperationReceipt).not.toHaveBeenCalled()
     })
 
     test('after a receipt timeout, waits on the userOp hash and reads the late receipt', async () => {
-        const wait = bundlerAnswering({ success: true, receipt: receiptWith([depositLog({ index: 589n })]) })
-        const deposit = await resolveLinkDeposit({ ...base, receipt: null })
+        const waiter = bundler({ success: true, receipt: receiptWith([depositLog({ index: 589n })]) })
+        const deposit = await resolveLinkDeposit({ ...base, receipt: null, receiptWaiter: () => waiter })
         expect(deposit).toEqual({ depositIdx: 589, txHash: TX_HASH })
-        expect(mockBundler).toHaveBeenCalledWith(42161)
-        expect(wait).toHaveBeenCalledWith(expect.objectContaining({ hash: USEROP_HASH, timeout: 120_000 }))
+        expect(waiter.waitForUserOperationReceipt).toHaveBeenCalledWith({
+            hash: USEROP_HASH,
+            timeout: expect.any(Number),
+        })
+        const [{ timeout }] = waiter.waitForUserOperationReceipt.mock.calls[0] as unknown as [{ timeout: number }]
+        expect(timeout).toBeLessThanOrEqual(LINK_DEPOSIT_LATE_RECEIPT_TIMEOUT_MS)
+    })
+
+    test('a transient RPC error does not end the extra wait', async () => {
+        jest.useFakeTimers()
+        const waiter = bundler(new Error('HTTP request failed. Status: 502'), {
+            success: true,
+            receipt: receiptWith([depositLog({ index: 589n })]),
+        })
+        const pending = resolveLinkDeposit({ ...base, receipt: null, receiptWaiter: () => waiter })
+        await jest.advanceTimersByTimeAsync(1_000)
+        await expect(pending).resolves.toEqual({ depositIdx: 589, txHash: TX_HASH })
+        expect(waiter.waitForUserOperationReceipt).toHaveBeenCalledTimes(2)
+        jest.useRealTimers()
     })
 
     test('no late receipt: fails with the ids support needs, never a guessed index', async () => {
-        bundlerAnswering(null)
-        const error = await resolveLinkDeposit({ ...base, receipt: null }).catch((e: unknown) => e)
+        const error = await resolveLinkDeposit({ ...base, receipt: null, receiptWaiter: () => bundler() }).catch(
+            (e: unknown) => e
+        )
         expect(error).toBeInstanceOf(LinkDepositUnconfirmedError)
         expect(error).toMatchObject({ name: 'LinkDepositUnconfirmedError', pubKey: PUB_KEY, userOpHash: USEROP_HASH })
     })
 
     test('a late receipt of a reverted op fails as a revert: no money moved', async () => {
-        bundlerAnswering({ success: false, receipt: receiptWith([]) })
-        const error = await resolveLinkDeposit({ ...base, receipt: null }).catch((e: unknown) => e)
+        const waiter = bundler({ success: false, receipt: receiptWith([]) })
+        const error = await resolveLinkDeposit({ ...base, receipt: null, receiptWaiter: () => waiter }).catch(
+            (e: unknown) => e
+        )
         expect(isUserOpRevertedError(error)).toBe(true)
     })
 
     test('demo mode never waits on a chain', async () => {
         mockDemo.mockReturnValue(true)
-        const deposit = await resolveLinkDeposit({ ...base, receipt: null })
+        const receiptWaiter = jest.fn(() => bundler())
+        const deposit = await resolveLinkDeposit({ ...base, receipt: null, receiptWaiter })
         expect(deposit.depositIdx).toBe(0)
-        expect(mockBundler).not.toHaveBeenCalled()
+        expect(receiptWaiter).not.toHaveBeenCalled()
     })
 })

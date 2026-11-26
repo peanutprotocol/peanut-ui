@@ -1,12 +1,15 @@
 import type { Address, Hash, TransactionReceipt } from 'viem'
 import { isAddressEqual, parseEventLogs } from 'viem'
-import { createChainBundlerClient } from '@/utils/bundler-client.utils'
 import { isDemoMode } from '@/utils/demo'
 import { peanutVaultAbi } from '@/utils/peanut-claim.utils'
-import { userOpRevertedError, waitForUserOpReceiptOrNull } from '@/utils/userop-rescue.utils'
+import { userOpRevertedError, waitForUserOpReceiptOrNull, type UserOpReceiptWaiter } from '@/utils/userop-rescue.utils'
 
-/** Extra wait for a link's userOp after the send gave up on its receipt. */
-export const LINK_DEPOSIT_LATE_RECEIPT_TIMEOUT_MS = 120_000
+/**
+ * Extra wait for a link's userOp after the send's own 120 s wait gave up.
+ * Kept short: the screen is busy the whole time, and a person who closes the
+ * app then leaves a funded link nobody recorded.
+ */
+export const LINK_DEPOSIT_LATE_RECEIPT_TIMEOUT_MS = 60_000
 
 /** The vault slot that holds a send link's money. */
 export interface LinkDeposit {
@@ -58,14 +61,16 @@ export function parseLinkDeposit(
 export async function resolveLinkDeposit({
     receipt,
     userOpHash,
-    chainId,
+    receiptWaiter,
     vault,
     sender,
     pubKey,
 }: {
     receipt: TransactionReceipt | null | undefined
     userOpHash: Hash | undefined
-    chainId: number
+    /** A bundler client for the chain; any one finds the op by its hash.
+     *  Read only when the receipt is missing. */
+    receiptWaiter: () => UserOpReceiptWaiter
     vault: Address
     sender: Address
     pubKey: Address
@@ -73,10 +78,9 @@ export async function resolveLinkDeposit({
     if (receipt) return parseLinkDeposit(receipt, { vault, sender })
     // Demo sends never touch the chain; the demo API serves slot 0.
     if (isDemoMode()) return { depositIdx: 0, txHash: userOpHash ?? `0x${'de'.repeat(32)}` }
+    if (!userOpHash) throw new LinkDepositUnconfirmedError(pubKey, userOpHash)
 
-    const bundler = createChainBundlerClient(chainId)
-    if (!userOpHash || !bundler) throw new LinkDepositUnconfirmedError(pubKey, userOpHash)
-    const late = await waitForUserOpReceiptOrNull(bundler, userOpHash, 'link-create', {
+    const late = await waitForUserOpReceiptOrNull(receiptWaiter(), userOpHash, 'link-create', {
         timeoutMs: LINK_DEPOSIT_LATE_RECEIPT_TIMEOUT_MS,
     })
     if (!late) throw new LinkDepositUnconfirmedError(pubKey, userOpHash)

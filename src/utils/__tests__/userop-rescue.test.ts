@@ -59,15 +59,18 @@ describe('rescueUserOpReceipt', () => {
         expect(posthog.capture).not.toHaveBeenCalled()
     })
 
-    it('returns null (no telemetry) when the rescue attempt also fails', async () => {
-        const rescued = await rescueUserOpReceipt(
+    it('returns null (no telemetry) when the bundler stays down until the cap', async () => {
+        jest.useFakeTimers()
+        const pending = rescueUserOpReceipt(
             waiter(new Error('still down')),
             USEROP_HASH,
             new Error('blip'),
             'zerodev-send'
         )
-        expect(rescued).toBeNull()
+        await jest.advanceTimersByTimeAsync(15_000)
+        expect(await pending).toBeNull()
         expect(posthog.capture).not.toHaveBeenCalled()
+        jest.useRealTimers()
     })
 })
 
@@ -81,18 +84,41 @@ describe('waitForUserOpReceiptOrNull', () => {
         const spy = jest.spyOn(client, 'waitForUserOperationReceipt')
         const rescued = await waitForUserOpReceiptOrNull(client, USEROP_HASH, 'link-create', { timeoutMs: 120_000 })
         expect(rescued).toEqual({ success: true, receipt: RECEIPT })
-        expect(spy).toHaveBeenCalledWith({ hash: USEROP_HASH, timeout: 120_000 })
+        expect(spy).toHaveBeenCalledWith({ hash: USEROP_HASH, timeout: expect.any(Number) })
         expect(posthog.capture).toHaveBeenCalledWith(
             'send_receipt_rescued',
             expect.objectContaining({ context: 'link-create' })
         )
     })
 
-    it('returns null when the op still has no receipt', async () => {
-        const rescued = await waitForUserOpReceiptOrNull(waiter(new Error('timed out')), USEROP_HASH, 'link-create', {
+    it('returns null when the wait runs out', async () => {
+        const timeout = Object.assign(new Error('timed out'), { name: 'WaitForUserOperationReceiptTimeoutError' })
+        const rescued = await waitForUserOpReceiptOrNull(waiter(timeout), USEROP_HASH, 'link-create', {
             timeoutMs: 120_000,
         })
         expect(rescued).toBeNull()
         expect(posthog.capture).not.toHaveBeenCalled()
+    })
+
+    // viem's wait rejects on the first RPC error that is not "receipt not
+    // found"; one 502 must not end a wait that still has time left.
+    it('asks again after a transient RPC error until the receipt arrives', async () => {
+        jest.useFakeTimers()
+        const answers: (Error | { success: boolean; receipt: TransactionReceipt })[] = [
+            new Error('HTTP request failed. Status: 502'),
+            { success: true, receipt: RECEIPT },
+        ]
+        const client: UserOpReceiptWaiter = {
+            waitForUserOperationReceipt: jest.fn(async () => {
+                const answer = answers.shift()!
+                if (answer instanceof Error) throw answer
+                return answer
+            }),
+        }
+        const pending = waitForUserOpReceiptOrNull(client, USEROP_HASH, 'link-create', { timeoutMs: 60_000 })
+        await jest.advanceTimersByTimeAsync(1_000)
+        expect(await pending).toEqual({ success: true, receipt: RECEIPT })
+        expect(client.waitForUserOperationReceipt).toHaveBeenCalledTimes(2)
+        jest.useRealTimers()
     })
 })
