@@ -199,6 +199,24 @@ describe('the address shows only on the API\'s own "not started" and a fresh bal
         expect(await screen.findByTestId('card-add-money-address')).toBeInTheDocument()
     })
 
+    it('takes the next deposit from the read a balance retry brings, not the read at open', async () => {
+        jest.useFakeTimers()
+        pollStatus = 'failed'
+        // the read at open works, the read after the clear fails
+        mockReadLive.mockResolvedValueOnce(2.5).mockRejectedValueOnce(new Error('read failed'))
+        renderView()
+        expect(await screen.findByTestId('card-add-money-check-failed')).toBeInTheDocument()
+        live = 4
+        fireEvent.click(screen.getByText('retry'))
+        await screen.findByTestId('card-add-money-address')
+        pollStatus = 'completed'
+        await act(async () => pollOnSuccess?.(3))
+        live = 7
+        await nextRead()
+        // $3 over the $4 the retry read, not $4.50 over the $2.50 read at open
+        expect(await screen.findByTestId('card-add-money-short')).toHaveTextContent('shortReceived($3)')
+    })
+
     it('clears a failed outcome against a fresh read, then shows the address', async () => {
         pollStatus = 'failed'
         renderView()
@@ -274,6 +292,21 @@ describe('a completed outcome found at open', () => {
         live = 6.5
         await act(async () => void jest.advanceTimersByTime(15_000))
         await waitFor(() => expect(screen.getByTestId('card-add-money-ask')).toHaveTextContent('sendAsk($3.50)'))
+    })
+
+    it('after "Send more instead", says done when a fresh read shows the gap covered', async () => {
+        jest.useFakeTimers()
+        pollStatus = 'completed'
+        renderView()
+        await waitFor(() => expect(mockResetStatus).toHaveBeenCalled())
+        await aMinuteOfReads()
+        fireEvent.click(screen.getByTestId('card-add-money-send-more'))
+        await screen.findByTestId('card-add-money-address')
+        // the earlier deposit lands and covers the gap
+        live = 10
+        await act(async () => void jest.advanceTimersByTime(15_000))
+        expect(await screen.findByTestId('card-add-money-done')).toBeInTheDocument()
+        expect(screen.queryByTestId('qr')).not.toBeInTheDocument()
     })
 
     it('resolves on its own when the deposit lands after the wait, with no tap', async () => {

@@ -51,10 +51,11 @@ export function cardDepositView(state: {
     if (state.addressError) return 'address-error'
     if (state.statusRead && state.status === 'failed') return 'failed'
     if (state.holding || (state.statusRead && state.status === 'loading')) return 'processing'
+    // the gap is covered: nothing a later failing read says can undo that
+    if (state.done) return 'done'
     // a poll that fails cannot see a deposit arrive: no address while it does
     if (state.clearFailed || state.balanceReadFailed || state.statusFailing) return 'check-failed'
     if (!state.statusRead) return state.statusError ? 'check-failed' : 'loading'
-    if (state.done) return 'done'
     if (!state.checked || state.clearing || !state.balanceFresh) return 'loading'
     // a completed outcome not yet resolved or cleared: the poll stops on it, so no address yet
     if (state.status === 'completed') return 'loading'

@@ -46,6 +46,11 @@ describe('cardDepositView: the address only when no deposit can be on its way an
         expect(cardDepositView({ ...SAFE, holding: true, balanceReadFailed: true })).toBe('processing')
     })
 
+    it('stays done when a later poll or read fails: the gap is covered either way', () => {
+        expect(cardDepositView({ ...SAFE, done: true, statusFailing: true })).toBe('done')
+        expect(cardDepositView({ ...SAFE, done: true, balanceReadFailed: true })).toBe('done')
+    })
+
     it('says done once the gap is covered, over the completed outcome the poll stops on', () => {
         expect(cardDepositView({ ...SAFE, status: 'completed', done: true })).toBe('done')
     })

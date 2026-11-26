@@ -91,8 +91,6 @@ export function CardCryptoDepositView({
 
     // The last fresh spendable read, and whether one came back since the last clear.
     const [live, setLive] = useState<number>()
-    const liveRef = useRef<number>()
-    liveRef.current = live
     const [balanceFresh, setBalanceFresh] = useState(false)
     const [balanceReadFailed, setBalanceReadFailed] = useState(false)
     const readLive = useCallback(async () => {
@@ -120,7 +118,7 @@ export function CardCryptoDepositView({
     const checkedForRef = useRef<string>()
     const [clearing, setClearing] = useState(false)
     const [clearFailed, setClearFailed] = useState(false)
-    const clearRef = useRef<() => Promise<void>>(async () => {})
+    const clearRef = useRef<() => Promise<number | undefined>>(async () => undefined)
 
     const handleSuccess = useCallback(
         (amount: number, statusData?: DepositAddressStatusResponse) => {
@@ -161,8 +159,8 @@ export function CardCryptoDepositView({
         { readNow: true }
     )
 
-    /** clears the address's outcome, then reads the balance fresh; the address waits for both */
-    const clear = useCallback(async () => {
+    /** clears the address's outcome, then reads the balance fresh (returned); the address waits for both */
+    const clear = useCallback(async (): Promise<number | undefined> => {
         setClearing(true)
         setClearFailed(false)
         setBalanceReadFailed(false)
@@ -173,15 +171,17 @@ export function CardCryptoDepositView({
             // a status left uncleared stops the poll, so no new deposit would show
             setClearFailed(true)
             setClearing(false)
-            return
+            return undefined
         }
+        let value: number | undefined
         try {
-            await readLive()
+            value = await readLive()
             setBalanceFresh(true)
         } catch {
             setBalanceReadFailed(true)
         }
         setClearing(false)
+        return value
     }, [resetStatus, readLive])
     clearRef.current = clear
 
@@ -313,8 +313,8 @@ export function CardCryptoDepositView({
         // a completed status left in place stops the poll: clear it; either way the ask waits for a fresh
         // read, which is also the baseline for the next deposit
         if (statusRef.current === 'completed')
-            return void clear().then(() => {
-                if (liveRef.current !== undefined) landedRef.current = liveRef.current
+            return void clear().then((value) => {
+                if (value !== undefined) landedRef.current = value
             })
         setBalanceFresh(false)
         readLive().then(
@@ -327,7 +327,15 @@ export function CardCryptoDepositView({
     }
     useEffect(() => {
         if (!sentMore || view !== 'address') return
-        const timer = setInterval(() => void readLive().catch(() => undefined), 15_000)
+        const timer = setInterval(
+            () =>
+                void readLive().then(
+                    // the earlier deposit covered the gap: done, as on the main path
+                    (value) => (cardGapUsd(value) ?? 1) <= 0 && setDone(true),
+                    () => undefined
+                ),
+            15_000
+        )
         return () => clearInterval(timer)
     }, [sentMore, view, readLive])
 
@@ -340,7 +348,11 @@ export function CardCryptoDepositView({
         if (balanceReadFailed) {
             setBalanceReadFailed(false)
             return void readLive().then(
-                () => setBalanceFresh(true),
+                (value) => {
+                    // nothing is held here, so this read is where the next deposit starts
+                    landedRef.current = value
+                    setBalanceFresh(true)
+                },
                 () => setBalanceReadFailed(true)
             )
         }
