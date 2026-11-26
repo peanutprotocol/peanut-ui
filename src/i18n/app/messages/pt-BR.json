@@ -5177,7 +5177,7 @@
             "notOpenTitle": "Indisponível no momento",
             "notOpenBody": "Não estamos abrindo contas em {currency} no momento.",
             "copPausedTitle": "Abertura de contas em COP pausada",
-            "copPausedBody": "A Bridge, nossa parceira de pagamentos, pausou as transferências em COP por enquanto.",
+            "copPausedBody": "A Bridge, nossa parceira de pagamentos, pausou novas transferências em COP por enquanto.",
             "residenceMissingBody": "As contas em {currency} dependem de onde você mora. Informe sua residência para verificar.",
             "uncheckedTitle": "Não conseguimos verificar a conta em {currency}",
             "uncheckedBody": "Tente de novo em instantes.",
