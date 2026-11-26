@@ -453,7 +453,7 @@ describe('crypto views', () => {
         const short = within(drawer()).getByTestId('card-add-money-short')
         // what came in, and what is still missing
         expect(short).toHaveTextContent('shortReceived($4)')
-        expect(short).toHaveTextContent('partialContribution.description($3.50)')
+        expect(short).toHaveTextContent('shortStillNeeded($3.50)')
         // the network takes at least $5, so the ask says so and that the extra stays in the balance
         const ask = within(drawer()).getByTestId('card-add-money-ask')
         expect(ask).toHaveTextContent('sendAsk($5)')
@@ -480,7 +480,7 @@ describe('crypto views', () => {
         await act(async () => rerenderWith({ spendableUsd: 9 }))
         const short = within(drawer()).getByTestId('card-add-money-short')
         expect(short).toHaveTextContent('shortReceived($6.50)')
-        expect(short).toHaveTextContent('partialContribution.description($1)')
+        expect(short).toHaveTextContent('shortStillNeeded($1)')
         expect(within(drawer()).getByTestId('card-add-money-ask')).toHaveTextContent('sendAsk($5)')
     })
 
@@ -681,7 +681,7 @@ describe('one amount, one heading, no dead ends', () => {
         // another $1 lands meanwhile: the $7.50 transfer is still on its way
         rerenderWith({ spendableUsd: 3.5 })
         expect(screen.getByTestId('card-add-money-bank-sent')).toBeInTheDocument()
-        rerenderWith({ spendableUsd: 10 })
+        rerenderWith({ funded: true, spendableUsd: 10 })
         await waitFor(() => expect(screen.queryByTestId('card-add-money-bank-sent')).not.toBeInTheDocument())
     })
 })
@@ -746,7 +746,8 @@ describe('round 2: badges, one heading on details, the residence fix, no back wh
         renderFunding()
         fireEvent.click(screen.getByTestId('card-add-money-bank'))
         expect(within(drawer()).queryByText(/\$7\.50/)).not.toBeInTheDocument()
-        expect(within(drawer()).getByTestId('card-add-money-bank-amount')).toHaveTextContent('sendAbout(…)')
+        expect(within(drawer()).getByTestId('card-add-money-bank-amount-loading')).toBeInTheDocument()
+        expect(within(drawer()).queryByTestId('card-add-money-bank-amount')).not.toBeInTheDocument()
     })
 
     it('hides the back while a deposit settles', async () => {

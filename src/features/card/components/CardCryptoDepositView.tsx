@@ -56,7 +56,6 @@ export function CardCryptoDepositView({
 }) {
     const t = useTranslations('card.addMoney')
     const tCrypto = useTranslations('addMoney.crypto')
-    const tPayment = useTranslations('payment')
     const tCommon = useTranslations('common')
     const queryClient = useQueryClient()
     const { user } = useAuth()
@@ -90,7 +89,8 @@ export function CardCryptoDepositView({
         assumedIn: boolean
     }>()
     // the notice after a deposit that left a gap: what came in; the live gap is what is still needed
-    const [shortReceived, setShortReceived] = useState<number>()
+    // `n` counts short deposits, so a second one of the same amount still re-arms the poll
+    const [shortDeposit, setShortDeposit] = useState<{ received: number; n: number }>()
     const [done, setDone] = useState(false)
 
     // The API keeps an address's last outcome for hours. The first read, at once when the address
@@ -174,12 +174,14 @@ export function CardCryptoDepositView({
             return
         }
         // what reached the balance when it rose: a fee taken on the way shows here
-        setShortReceived(rose ? cents(spendableUsd - pending.from!) : pending.amount)
+        const received = rose ? cents(spendableUsd - pending.from!) : pending.amount
+        setShortDeposit((last) => ({ received, n: (last?.n ?? 0) + 1 }))
     }, [pending, spendableUsd, gapUsd])
 
     // A deposit in flight at open whose fresh read did not rise: the read may be stale, or the money was
-    // already in at open. Read again; only after that does it count as already in, so a stale read never
-    // offers the address for money on its way.
+    // already in at open. Each re-read is a real refetch; after ~30 s of reads that never rise it counts as
+    // already in, so the drawer cannot hang in processing. A deposit reported after open has no cap: its
+    // start is known, so it waits for the rise.
     useEffect(() => {
         if (!pending?.inFlight || !pending.refreshed || pending.assumedIn || roseAbove(pending.from, spendableUsd))
             return
@@ -198,11 +200,11 @@ export function CardCryptoDepositView({
     // Rhino reports one deposit per address until the status is cleared: after a short deposit the
     // clear re-arms the poll for the rest, as RhinoDepositView does
     useEffect(() => {
-        if (shortReceived === undefined) return
+        if (!shortDeposit) return
         resetStatus().catch(() => {
             // the next transfer still books on the backend; the balance poll shows it
         })
-    }, [shortReceived, resetStatus])
+    }, [shortDeposit, resetStatus])
 
     const processing = status === 'loading' || !!pending
     useEffect(() => onProcessingChange(processing), [processing, onProcessingChange])
@@ -289,14 +291,15 @@ export function CardCryptoDepositView({
 
     return (
         <div className="flex flex-col items-center gap-4" data-testid="card-add-money-address">
-            {shortReceived !== undefined && gapUsd ? (
+            {/* what is missing, never what to send: the ask below names that, raised to the minimum */}
+            {shortDeposit && gapUsd ? (
                 <Callout
                     priority="attention"
                     className="w-full"
                     data-testid="card-add-money-short"
-                    title={t('shortReceived', { received: usd(shortReceived) })}
+                    title={t('shortReceived', { received: usd(shortDeposit.received) })}
                 >
-                    {tPayment('partialContribution.description', { remaining: usd(gapUsd) })}
+                    {t('shortStillNeeded', { remaining: usd(gapUsd) })}
                 </Callout>
             ) : null}
             {/* the amount first: at 375px the QR and the warning push anything below out of sight */}

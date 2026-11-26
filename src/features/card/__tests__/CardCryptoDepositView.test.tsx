@@ -157,12 +157,34 @@ describe('a short deposit', () => {
         await act(async () => rerenderWith({ spendableUsd: 6.5, gapUsd: 3.5 }))
         const short = screen.getByTestId('card-add-money-short')
         expect(short).toHaveTextContent('shortReceived($4)')
-        expect(short).toHaveTextContent('partialContribution.description($3.50)')
+        expect(short).toHaveTextContent('shortStillNeeded($3.50)')
         // $3.50 is the rest, below the $5 minimum: the ask is $5 and the note says the extra stays
         const ask = screen.getByTestId('card-add-money-ask')
         expect(ask).toHaveTextContent('sendAsk($5)')
         expect(ask).toHaveTextContent('raisedToMinimum(Tron|$5|$1.50)')
         expect(mockResetStatus).toHaveBeenCalled()
+    })
+
+    it('names what is missing without telling the user to send less than the minimum', async () => {
+        const { rerenderWith } = renderView()
+        await screen.findByTestId('card-add-money-address')
+        await act(async () => pollOnSuccess?.(4))
+        await act(async () => rerenderWith({ spendableUsd: 6.5, gapUsd: 3.5 }))
+        // the ask below says $5; the callout never says "send $3.50"
+        expect(screen.getByTestId('card-add-money-short')).not.toHaveTextContent(/send/i)
+    })
+
+    it('re-arms the poll after a second short deposit of the same amount', async () => {
+        mockCreateDepositAddress.mockResolvedValue({ depositAddress: ADDRESS, minDepositLimitUsd: 1 })
+        const { rerenderWith } = renderView({ gapUsd: 9, spendableUsd: 1 })
+        await screen.findByTestId('card-add-money-address')
+        await act(async () => pollOnSuccess?.(4))
+        await act(async () => rerenderWith({ spendableUsd: 5, gapUsd: 5 }))
+        expect(mockResetStatus).toHaveBeenCalledTimes(1)
+        await act(async () => pollOnSuccess?.(4))
+        await act(async () => rerenderWith({ spendableUsd: 9, gapUsd: 1 }))
+        expect(screen.getByTestId('card-add-money-short')).toHaveTextContent('shortReceived($4)')
+        expect(mockResetStatus).toHaveBeenCalledTimes(2)
     })
 
     it('asks for the exact rest when the minimum is lower', async () => {
@@ -212,7 +234,7 @@ describe('after a full deposit', () => {
         // a fee was taken on the way: the balance read lands $1 short of the minimum
         await act(async () => rerenderWith({ spendableUsd: 9, gapUsd: 1 }))
         expect(screen.getByTestId('card-add-money-short')).toHaveTextContent('shortReceived($6.50)')
-        expect(screen.getByTestId('card-add-money-short')).toHaveTextContent('partialContribution.description($1)')
+        expect(screen.getByTestId('card-add-money-short')).toHaveTextContent('shortStillNeeded($1)')
         expect(screen.getByTestId('card-add-money-ask')).toHaveTextContent('sendAsk($5)')
     })
 
@@ -283,7 +305,7 @@ describe('deposits and balance reads in either order (review of fix round 1)', (
             // a later read shows the $10: the rest is named against the balance at open
             await act(async () => rerenderWith({ spendableUsd: 10, gapUsd: 10 }))
             expect(screen.getByTestId('card-add-money-short')).toHaveTextContent('shortReceived($10)')
-            expect(screen.getByTestId('card-add-money-short')).toHaveTextContent('partialContribution.description($10)')
+            expect(screen.getByTestId('card-add-money-short')).toHaveTextContent('shortStillNeeded($10)')
         } finally {
             jest.useRealTimers()
         }
@@ -329,7 +351,7 @@ describe('deposits and balance reads in either order (review of fix round 1)', (
         await act(async () => pollOnSuccess?.(5))
         await act(async () => rerenderWith({}))
         expect(screen.getByTestId('card-add-money-short')).toHaveTextContent('shortReceived($5)')
-        expect(screen.getByTestId('card-add-money-short')).toHaveTextContent('partialContribution.description($1.80)')
+        expect(screen.getByTestId('card-add-money-short')).toHaveTextContent('shortStillNeeded($1.80)')
         expect(screen.getByText('sendAsk($1.80)')).toBeInTheDocument()
     })
 

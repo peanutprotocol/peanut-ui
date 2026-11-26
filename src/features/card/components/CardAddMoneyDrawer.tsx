@@ -123,14 +123,15 @@ export function CardAddMoneyDrawer({
     // One heading per view. Crypto and the lists: the gap (a network minimum above it is said in the
     // address body). One account's details: the account, named as the bank list names it, and the
     // amount in the currency sent is said in the body.
-    const { accounts } = useDepositAccounts()
-    const { t: tAccounts, accountRailName } = useDepositAccountCopy()
     const detailsCorridor =
         view.kind === 'details'
             ? view.corridor
             : code === 'details' && plan.kind === 'rows'
               ? plan.rows[0].corridor
               : null
+    // read only for a details view (the cached read the details body also uses)
+    const { accounts } = useDepositAccounts({ enabled: !!detailsCorridor })
+    const { t: tAccounts, accountRailName } = useDepositAccountCopy()
     const title = detailsCorridor
         ? tAccounts('details.heading', {
               currency: DEPOSIT_RAILS[detailsCorridor].currency,

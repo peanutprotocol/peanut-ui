@@ -106,11 +106,11 @@ export function CardBankDetailsView({
     // The drawer title names the account, so the amount is said here, in the currency the user sends.
     // Another currency is the gap at the client rate with a 2% margin for a moving rate and the
     // conversion fee, rounded up to a whole unit and never under the account's own minimum; while the
-    // rate loads the line holds its place, and with no rate it promises no amount.
+    // rate loads a skeleton of the same two lines holds its place, and with no rate it promises no amount.
     let amountLine: string | undefined
+    const rateLoading = !!gapUsd && nonUsd && isRateLoading
     if (gapUsd && !nonUsd) amountLine = t('sendAsk', { amount: formatBankAmount(gapUsd, 'USD') })
-    else if (gapUsd && isRateLoading) amountLine = t('sendAbout', { amount: '…' })
-    else if (gapUsd) {
+    else if (gapUsd && !rateLoading) {
         const minimum = account.rules?.min?.currency === rail.currency ? Number(account.rules.min.amount) || 0 : 0
         amountLine =
             exchangeRate > 0
@@ -125,6 +125,16 @@ export function CardBankDetailsView({
 
     return shell(
         <>
+            {rateLoading && (
+                <div
+                    className="flex flex-col gap-1 py-0.5"
+                    aria-hidden
+                    data-testid="card-add-money-bank-amount-loading"
+                >
+                    <div className="h-4 w-full animate-pulse rounded bg-background-skeleton" />
+                    <div className="h-4 w-1/2 animate-pulse rounded bg-background-skeleton" />
+                </div>
+            )}
             {amountLine && (
                 <p className="text-body-m-semibold text-foreground-primary" data-testid="card-add-money-bank-amount">
                     {amountLine}

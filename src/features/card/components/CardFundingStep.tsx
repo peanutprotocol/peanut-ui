@@ -89,28 +89,27 @@ export function CardFundingStep({
         setOpen(false)
     }
 
-    // "I've sent the transfer": the step says the money is on its way until the balance covers the gap
-    // it was sent for (`need`, over the balance `from` when it was sent), or the step is funded. Another
-    // deposit that lands meanwhile does not clear it. Session storage keeps it through a refresh; saving
-    // the step server-side is bank resume. A non-dollar transfer is not named in dollars.
+    // "I've sent the transfer": the step says the money is on its way until the balance covers the gap,
+    // which is the step being funded; a smaller deposit landing meanwhile does not clear it. Session
+    // storage keeps it through a refresh; saving the step server-side is bank resume. A non-dollar
+    // transfer is not named in dollars.
     const sentKey = `card_gate_bank_sent_v3:${userId}`
-    const [sent, setSent] = useState<{ usd: number | null; from: number; need: number } | undefined>(() => {
+    const [sent, setSent] = useState<{ usd: number | null } | undefined>(() => {
         try {
             const stored = JSON.parse(readStoredValue(sentKey, 'sessionStorage') ?? 'null')
-            return typeof stored?.from === 'number' && typeof stored?.need === 'number' ? stored : undefined
+            return stored && 'usd' in stored ? stored : undefined
         } catch {
             return undefined
         }
     })
     const bankSent = (inDollars: boolean) => {
         dismiss()
-        if (spendableUsd === undefined || !gapUsd) return
-        const next = { usd: inDollars ? gapUsd : null, from: spendableUsd, need: gapUsd }
+        if (!gapUsd) return
+        const next = { usd: inDollars ? gapUsd : null }
         setSent(next)
         writeStoredValue(sentKey, JSON.stringify(next), 'sessionStorage')
     }
-    const sentLanded =
-        !!sent && (funded || (spendableUsd !== undefined && spendableUsd >= sent.from + sent.need - 0.005))
+    const sentLanded = !!sent && funded
     useEffect(() => {
         if (!sentLanded) return
         setSent(undefined)

@@ -2260,6 +2260,7 @@
             "waiting": "Aguardando o depósito…",
             "doneTitle": "Dinheiro adicionado",
             "shortReceived": "Recebemos {received}",
+            "shortStillNeeded": "Ainda faltam {remaining}.",
             "sendAbout": "Envie cerca de {amount}. O valor exato depende da cotação.",
             "sendInCurrency": "Envie {currency} do seu banco. O valor chega em dólares.",
             "settingUpBody": "Avisamos quando estiver pronta.",

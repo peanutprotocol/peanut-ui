@@ -2260,6 +2260,7 @@
             "waiting": "Waiting for the deposit…",
             "doneTitle": "Money added",
             "shortReceived": "{received} received",
+            "shortStillNeeded": "{remaining} is still needed.",
             "sendAbout": "Send about {amount}. The exact amount depends on the rate.",
             "sendInCurrency": "Send {currency} from your bank. It arrives as dollars.",
             "settingUpBody": "We'll let you know when it's ready.",
