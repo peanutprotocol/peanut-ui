@@ -312,7 +312,7 @@ for (const viewport of VIEWPORTS) {
     })
 }
 
-// Contract P4 § 3: the step draws "Turn on notifications" + "Not now" (no switch).
+// 10 Notifications draws "Turn on notifications" + "Not now" and no switch.
 for (const viewport of VIEWPORTS) {
     test(`notification settings keeps every action reachable at ${viewport.width}x${viewport.height}`, async ({
         page,

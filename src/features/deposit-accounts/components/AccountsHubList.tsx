@@ -66,6 +66,7 @@ export function AccountsHubList({
     searchTerm = '',
     extraRows = [],
     footer,
+    topUpAtLimit,
 }: {
     /** absent where the virtual accounts are not read (their rollout flag is off) */
     accounts?: HubAccounts
@@ -86,6 +87,11 @@ export function AccountsHubList({
     extraRows?: ReactElement[]
     /** under the other ways (the countries accordion) */
     footer?: ReactNode
+    /**
+     * Add money only: the one-time transfer on a corridor's rail, where one exists. At the account limit an
+     * account row opens it in place of the limit (the owner, 25 Nov), as Add money's country list does.
+     */
+    topUpAtLimit?: (corridor: DepositCorridor) => (() => void) | undefined
 }) {
     const { t, railName } = useDepositAccountCopy()
     const tRows = useTranslations('profile.unlockPayments')
@@ -170,7 +176,10 @@ export function AccountsHubList({
     const underReviewBadge = <Badge status="pending" customText={t('list.badgeUnderReview')} />
 
     /** Where an account the user could open stands. A fact with no tone is `neutral` (Konrad, 2026-09-23). */
-    const openBadge = ({ corridor, view, openable, unchecked, identityRefused }: OpenAccountRow) => {
+    const openBadge = (row: OpenAccountRow) => {
+        const { corridor, view, openable, unchecked, identityRefused } = row
+        // the tap gives the one-time transfer, which the limit does not touch: nothing to flag
+        if (limitTopUp(row)) return null
         // at the limit the cap is the answer for every row, before any other reason
         if (capFirst(corridor)) return <Badge status="neutral" customText={t('list.badgeLimitReached')} />
         // a refused identity holds every corridor; support can review it, so it is not "Not available"
@@ -253,6 +262,15 @@ export function AccountsHubList({
      */
     const capFirst = (corridor: DepositCorridor) =>
         atLimit && accounts?.claimable?.[corridor]?.blockedBy !== 'account-limit'
+    // Only the limit holds the row, and the top-up rides the same rail: a residence or an identity that
+    // closes the account closes the top-up too, so those rows keep their own reason
+    // (`useDepositCountryRouting` makes the same call for a country).
+    const limitTopUp = (row: OpenAccountRow) =>
+        (atLimit || accounts?.claimable?.[row.corridor]?.blockedBy === 'account-limit') &&
+        !row.identityRefused &&
+        accounts?.unavailable?.[row.corridor]?.cause !== 'residence-restricted'
+            ? topUpAtLimit?.(row.corridor)
+            : undefined
     // the fold sits under the held rows; a search lists every match instead
     const foldOpen = held.length > 0 && !searching
     const counter =
@@ -346,17 +364,19 @@ export function AccountsHubList({
                 accountRow(
                     row.corridor,
                     openBadge(row),
-                    () =>
-                        row.openable && !capFirst(row.corridor)
-                            ? accounts?.onOpen(row.corridor)
-                            : setClosed(
-                                  closedOpenRow(row, {
-                                      reachedLimit: atLimit ? accountLimit : undefined,
-                                      unavailable: accounts?.unavailable?.[row.corridor],
-                                      hasResidence: residenceIso2s.length > 0,
-                                      gate: accounts?.gates[row.corridor],
-                                  })
-                              ),
+                    () => {
+                        const topUp = limitTopUp(row)
+                        if (topUp) return topUp()
+                        if (row.openable && !capFirst(row.corridor)) return accounts?.onOpen(row.corridor)
+                        setClosed(
+                            closedOpenRow(row, {
+                                reachedLimit: atLimit ? accountLimit : undefined,
+                                unavailable: accounts?.unavailable?.[row.corridor],
+                                hasResidence: residenceIso2s.length > 0,
+                                gate: accounts?.gates[row.corridor],
+                            })
+                        )
+                    },
                     inFold ? (index === shownOpen.length - 1 ? 'bottom' : 'middle') : undefined
                 )
             )}

@@ -41,6 +41,20 @@ describe('DataRow', () => {
         expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
     })
 
+    test('a stacked row puts the value under the label, full width and left-aligned', () => {
+        const { container } = render(<DataRow label="Decline reason" value="A long sentence" stacked />)
+        expect(container.querySelector('.ds-data-row')).toHaveClass('flex-col', 'items-start')
+        const value = container.querySelector('.ds-data-row-value')
+        expect(value).toHaveClass('w-full', 'justify-start', 'text-left')
+        expect(value).not.toHaveClass('justify-end', 'text-right')
+    })
+
+    test('a default row keeps the value right-aligned beside the label', () => {
+        const { container } = render(<DataRow label="Fee" value="$0.10" />)
+        expect(container.querySelector('.ds-data-row')).not.toHaveClass('flex-col')
+        expect(container.querySelector('.ds-data-row-value')).toHaveClass('justify-end', 'text-right')
+    })
+
     test('keeps the full copy value when an identifier has an abbreviated display', () => {
         render(
             <DataRow label="Reference" value="FIXTURE…D" allowCopy copyValue="FIXTURE-RECEIPT-IDENTIFIER-FULL-VALUE" />

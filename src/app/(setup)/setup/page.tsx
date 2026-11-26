@@ -48,6 +48,7 @@ import { getDeepLinkGeneration, getDeepLinkTarget, subscribeToDeepLinkGeneration
 import { captureSignupStepViewed, resolveSignupEntryFlow } from '@/features/setup/signup-analytics'
 import { isDemoMode } from '@/utils/demo'
 import { unfinishedSignupRoute } from '@/features/setup/unfinished-signup'
+import { AccountType } from '@/interfaces/interfaces'
 import {
     bindSignupDraft,
     discardSignupDraft,
@@ -157,6 +158,8 @@ function SetupPageContent() {
     currentScreenRef.current = step?.screenId
     const userIdRef = useRef<string | undefined>(undefined)
     userIdRef.current = signedInUserId
+    const userRef = useRef(user)
+    userRef.current = user
     const progressRestored = useRef(false)
     const progressOwned = useRef(false)
     const handledIdentity = useRef(signedInUserId)
@@ -226,6 +229,15 @@ function SetupPageContent() {
      * last step is not walked through residence, plan and email again.
      */
     const resumeTarget = (): ScreenId => {
+        // A finished signup that lacks only its email (unfinishedSignupRoute) gives it, then the steps after it.
+        // The earlier answers are already on the account, so the walk does not ask them again.
+        if (userRef.current?.accounts?.some((account) => account.type === AccountType.PEANUT_WALLET)) {
+            const target = postRegistrationScreen(stepsRef.current.map((entry) => entry.screenId))
+            progressRestored.current = true
+            legacyRecoveryBoundary.current = target
+            setNoBackLockScreenId(target)
+            return target
+        }
         const userId = userIdRef.current
         const ownedDraft = restoredDraft.current?.userId === userId ? restoredDraft.current : null
         const progress =

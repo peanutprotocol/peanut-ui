@@ -285,45 +285,29 @@ describe('09 Email', () => {
         expect(screen.queryByText(/contact support/i)).not.toBeInTheDocument()
     })
 
+    // TASK-25379: a dormant holder is taken too; Continue never moves on without a saved email.
     it.each([
-        ['EMAIL_IN_USE', { status: 409, code: 'EMAIL_IN_USE', error: 'x' }],
-        ['the text alone', { error: 'This email is already associated with another account' }],
-    ])(
-        'an older API (%s) cannot tell holders apart: the taken state, never the deferred one',
-        async (_label, response) => {
-            mockUpdateUser.mockResolvedValue(response)
-            const { container } = render()
-            type('someone@mail.com')
-            fireEvent.click(continueButton(container))
-            expect(await screen.findByRole('alert')).toHaveTextContent(copyRx('setupRedesign.email.taken'))
-            expect(setupState(container)).toBe('already-registered')
-            expect(screen.queryByText(copyRx('setupRedesign.email.deferred'))).not.toBeInTheDocument()
-            expect(controls()).toContain('email:error:already_registered')
-            expect(mockNext).not.toHaveBeenCalled()
-        }
-    )
-
-    it('held by an account that is not established: the deferred note, no error, Continue goes on unsaved', async () => {
-        mockUpdateUser.mockResolvedValue({ status: 409, code: 'EMAIL_ON_DORMANT_ACCOUNT', error: 'x' })
+        ['a dormant holder (EMAIL_ON_DORMANT_ACCOUNT)', { status: 409, code: 'EMAIL_ON_DORMANT_ACCOUNT', error: 'x' }],
+        ['an older API (EMAIL_IN_USE)', { status: 409, code: 'EMAIL_IN_USE', error: 'x' }],
+        ['an older API (the text alone)', { error: 'This email is already associated with another account' }],
+    ])('%s: the taken state, and the step does not advance', async (_label, response) => {
+        mockUpdateUser.mockResolvedValue(response)
         const { container } = render()
-        type('dormant@mail.com')
+        type('someone@mail.com')
         fireEvent.click(continueButton(container))
-        const note = await screen.findByText(copyRx('setupRedesign.email.deferred'))
-        expect(note).toHaveAttribute('role', 'status')
-        // the field names the note as its description
-        expect(describedText()).toMatch(copyRx('setupRedesign.email.deferred'))
-        expect(setupState(container)).toBe('deferred')
-        expect(screen.queryByRole('alert')).not.toBeInTheDocument()
-        expect(field()).not.toHaveAttribute('aria-invalid')
-        expect(validCheck()).toBeInTheDocument()
-        expect(controls()).toContain('email:error:deferred')
+        expect(await screen.findByRole('alert')).toHaveTextContent(copyRx('setupRedesign.email.taken'))
+        expect(setupState(container)).toBe('already-registered')
+        expect(field()).toHaveAttribute('aria-invalid', 'true')
+        const foot = within(footer(container)!)
+        expect(await foot.findByRole('button', { name: copyRx('setupRedesign.email.logIn') })).toBeEnabled()
+        expect(foot.queryByRole('button', { name: copyRx('setupRedesign.common.continue') })).not.toBeInTheDocument()
+        expect(foot.getByText(copyRx('setupRedesign.email.recover'))).toBeInTheDocument()
+        expect(controls()).toContain('email:error:already_registered')
         expect(reportEmailSaveFailure).not.toHaveBeenCalled()
+        // Enter on the same address neither saves again nor moves on
+        fireEvent.submit(field().closest('form') ?? field())
+        await waitFor(() => expect(mockUpdateUser).toHaveBeenCalledTimes(1))
         expect(mockNext).not.toHaveBeenCalled()
-        // Continue now advances without a second save; a double tap advances once
-        fireEvent.click(continueButton(container))
-        fireEvent.click(primary(container))
-        await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
-        expect(mockUpdateUser).toHaveBeenCalledTimes(1)
     })
 
     it('P4-13 a generic failure: save-failed line, no aria-invalid, check kept, Continue retries, one report per attempt', async () => {

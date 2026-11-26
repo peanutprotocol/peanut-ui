@@ -60,12 +60,22 @@ try {
     process.exit(1)
 }
 
+// GitHub path filters read [ and ] as a character class, so a literal bracket
+// folder such as [locale] is written escaped (\[locale\]) in paths-ignore and here.
+function literal(pattern) {
+    return pattern.replace(/\\([[\]])/g, '$1')
+}
+
+function hasGlob(pattern) {
+    return /[*?!+]|(?<!\\)[[\]]/.test(pattern)
+}
+
 function matches(pattern, file) {
-    if (pattern.endsWith('/**') && !/[*?[\]!+]/.test(pattern.slice(0, -3))) {
-        return file.startsWith(pattern.slice(0, -2))
+    if (pattern.endsWith('/**') && !hasGlob(pattern.slice(0, -3))) {
+        return file.startsWith(literal(pattern.slice(0, -2)))
     }
-    if (/[*?[\]!+]/.test(pattern)) throw new Error(`cannot read the web-only path pattern "${pattern}"`)
-    return file === pattern
+    if (hasGlob(pattern)) throw new Error(`cannot read the web-only path pattern "${pattern}"`)
+    return file === literal(pattern)
 }
 
 function git(...args) {

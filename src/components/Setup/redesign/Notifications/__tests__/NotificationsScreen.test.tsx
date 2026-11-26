@@ -1,8 +1,9 @@
 /** @jest-environment jsdom */
 /**
- * 10 Notifications (`notification-permission`), contract P4 § 3: the drawn one-button form ("Turn on
+ * 10 Notifications (`notification-permission`), contract P4 § 3: the one-button push opt-in ("Turn on
  * notifications" + "Not now") with dev's outcomes; "Open settings" shows only where canOpenAppSettings() is true.
- * Ports dev's NotificationSetup.test.tsx and Notifications.analytics.test.tsx.
+ * The step is the control arm of experiment 108262, which stopped on 2026-11-20 with control at 100%. Ports dev's
+ * NotificationSetup.test.tsx and Notifications.analytics.test.tsx.
  */
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -28,6 +29,7 @@ const mockNext = jest.fn()
 const mockSave = jest.fn()
 const mockPermission = jest.fn()
 const mockAfterPermission = jest.fn(async () => {})
+let mockFlag: string | undefined
 jest.mock('framer-motion', () => require('../../Accounts/__tests__/framerMock').framerMotionForShell())
 jest.mock('lottie-web/build/player/lottie_light', () => ({
     __esModule: true,
@@ -44,6 +46,8 @@ jest.mock('posthog-js', () => ({
     default: {
         capture: jest.fn(),
         setPersonProperties: jest.fn(),
+        getFeatureFlag: jest.fn(() => mockFlag),
+        featureFlags: { hasLoadedFlags: true },
     },
 }))
 jest.mock('@/hooks/useNotifications', () => ({
@@ -95,6 +99,7 @@ const otherAccount = () => setAuthToken(`x.${btoa(JSON.stringify({ userId: 'anot
 beforeEach(() => {
     jest.clearAllMocks()
     setAuthToken(`x.${btoa(JSON.stringify({ userId: 'new-user' }))}.y`)
+    mockFlag = undefined
     mockNext.mockReset().mockResolvedValue(undefined)
     mockSave.mockReset().mockResolvedValue(undefined)
     mockPermission.mockReset().mockResolvedValue('granted')
@@ -111,9 +116,18 @@ describe('10 Notifications: shared', () => {
         expect(onBack).toHaveBeenCalledTimes(1)
         expect(controls()).toContain('back:tap')
     })
+
+    it('shows the push opt-in without reading the retired switches flag, and reports nothing before a tap', () => {
+        mockFlag = 'switches'
+        const { container } = render()
+        expect(turnOn(container)).toBeInTheDocument()
+        expect(screen.queryAllByRole('switch')).toHaveLength(0)
+        expect(posthog.getFeatureFlag).not.toHaveBeenCalledWith('signup-notification-switches')
+        expect(controls()).toEqual([])
+    })
 })
 
-describe('10 Notifications: Turn on and Not now', () => {
+describe('10 Notifications: control arm', () => {
     it('P4-18 title, "Turn on notifications", "Not now", and no switch rows', () => {
         const { container } = render()
         expect(screen.getByTestId('setup-redesign-notifications')).toBeInTheDocument()
@@ -148,7 +162,7 @@ describe('10 Notifications: Turn on and Not now', () => {
         expect(mockSave).toHaveBeenCalledTimes(1)
         expect(mockSave.mock.calls[0][0]).toStrictEqual({ push: true, pushPermission: 'granted' })
         expect(mockSave.mock.calls[0][1]).toBe('new-user')
-        expect(answered()).toEqual([{ answer: 'granted' }])
+        expect(answered()).toEqual([{ variant: 'control', answer: 'granted' }])
         expect(view.flow().notificationChoices.push).toBe(true)
         // save first, then navigation
         expect(mockSave.mock.invocationCallOrder[0]).toBeLessThan(mockNext.mock.invocationCallOrder[0])
@@ -180,7 +194,7 @@ describe('10 Notifications: Turn on and Not now', () => {
         mockPermission.mockRejectedValueOnce(new Error('sdk'))
         const view = render()
         fireEvent.click(turnOn(view.container))
-        await waitFor(() => expect(answered()).toEqual([{ answer: 'dismissed' }]))
+        await waitFor(() => expect(answered()).toEqual([{ variant: 'control', answer: 'dismissed' }]))
         await waitFor(() => expect(setupState(view.container)).toBe('default'))
         expect(controls()).toContain('push_permission:error:dismissed')
         expect(deniedNote()).not.toBeInTheDocument()
@@ -193,7 +207,7 @@ describe('10 Notifications: Turn on and Not now', () => {
         mockPermission.mockResolvedValueOnce('default')
         const view = render()
         fireEvent.click(turnOn(view.container))
-        await waitFor(() => expect(answered()).toEqual([{ answer: 'dismissed' }]))
+        await waitFor(() => expect(answered()).toEqual([{ variant: 'control', answer: 'dismissed' }]))
         await waitFor(() => expect(setupState(view.container)).toBe('default'))
         expect(deniedNote()).not.toBeInTheDocument()
         expect(view.flow().notificationChoices.push).toBe(false)
@@ -213,7 +227,7 @@ describe('10 Notifications: Turn on and Not now', () => {
         )
         expect(view.flow().notificationChoices.push).toBe(false)
         expect(controls()).toContain('push_permission:error:denied')
-        expect(answered()).toEqual([{ answer: 'denied' }])
+        expect(answered()).toEqual([{ variant: 'control', answer: 'denied' }])
         fireEvent.click(continueButton(view.container))
         await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
         expect(mockPermission).toHaveBeenCalledTimes(1)
@@ -287,7 +301,7 @@ describe('10 Notifications: control opt-out (dev ports)', () => {
         fireEvent.click(turnOn(view.container))
         expect(mockPermission).toHaveBeenCalledTimes(1)
         await waitFor(() => expect(mockNext).toHaveBeenCalledTimes(1))
-        expect(answered()).toEqual([{ answer: 'granted' }])
+        expect(answered()).toEqual([{ variant: 'control', answer: 'granted' }])
         expect(mockSave.mock.calls).toEqual([[{ push: true, pushPermission: 'granted' }, 'new-user']])
     })
 
@@ -298,7 +312,7 @@ describe('10 Notifications: control opt-out (dev ports)', () => {
         mockPermission.mockResolvedValueOnce(answer)
         const view = render()
         fireEvent.click(turnOn(view.container))
-        await waitFor(() => expect(answered()).toEqual([{ answer: recorded }]))
+        await waitFor(() => expect(answered()).toEqual([{ variant: 'control', answer: recorded }]))
         await waitFor(() => expect(setupState(view.container)).toBe(answer === 'denied' ? 'denied' : 'default'))
         expect(view.flow().notificationChoices.push).toBe(false)
         expect(mockSave).not.toHaveBeenCalled()

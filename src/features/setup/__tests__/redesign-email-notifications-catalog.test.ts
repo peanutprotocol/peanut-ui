@@ -29,7 +29,6 @@ const KEYS = {
         'invalid',
         'taken',
         'logIn',
-        'deferred',
         'suggest',
         'recover',
         'saveFailed',
