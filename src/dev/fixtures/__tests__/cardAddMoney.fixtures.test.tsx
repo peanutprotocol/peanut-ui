@@ -144,7 +144,11 @@ describe('card add-money drawer fixtures', () => {
         // and it stays credited on every later answer
         await read('/users/me')
         expect(spendableUsd()).toBe(after)
-        expect((await fixtureRespond(`/rhino/reset-status/${DEMO_ADDRESS}`, { method: 'POST' })).status).toBe(500)
+        // a clear works as Rhino's does: nothing is on its way after it, and the balance stays credited
+        expect((await fixtureRespond(`/rhino/reset-status/${DEMO_ADDRESS}`, { method: 'POST' })).status).toBe(200)
+        expect(await read(`/rhino/status/${DEMO_ADDRESS}`)).toEqual({ status: 'not_started' })
+        await read('/users/me')
+        expect(spendableUsd()).toBe(after)
     })
 
     it.each(['card-add-money-crypto-short', 'card-add-money-funded'])(

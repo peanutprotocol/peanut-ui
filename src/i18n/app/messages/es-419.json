@@ -5220,7 +5220,7 @@
             "badgeReady": "Lista",
             "badgeActive": "Activo",
             "badgeSetUp": "Configurar",
-            "badgeVerifyId": "Verificar",
+            "badgeVerifyId": "Verificar ID",
             "badgeNotOffered": "No disponible",
             "badgeRevoked": "Revocada",
             "accountCounter": "{used} de {cap} usadas",

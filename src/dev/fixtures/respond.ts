@@ -20,6 +20,8 @@ let warned = false
 const creditedFixtures = new Set<string>()
 /** Rhino status reads answered per fixture: the deposit is not sent, then on its way, then landed */
 const statusReads = new Map<string, number>()
+/** fixtures whose landed deposit was cleared: the address waits for the next one, as Rhino's would */
+const clearedFixtures = new Set<string>()
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -64,6 +66,14 @@ export async function fixtureRespond(path: string, options?: RequestInit): Promi
         return new Response(JSON.stringify(rejection.body), { status: rejection.status, headers: JSON_HEADERS })
     }
 
+    // Clearing a watched deposit's outcome works as Rhino's does: the next reads say nothing is on its way.
+    if (fixture.balanceAfterDeposit !== undefined && key.startsWith('POST /rhino/reset-status/')) {
+        if (creditedFixtures.has(name!)) clearedFixtures.add(name!)
+        return new Response(JSON.stringify({}), { status: 200, headers: JSON_HEADERS })
+    }
+    if (clearedFixtures.has(name!) && key.startsWith('GET /rhino/status/')) {
+        return new Response(JSON.stringify({ status: 'not_started' }), { status: 200, headers: JSON_HEADERS })
+    }
     // demo-api already answers every route the app calls, with a shape-aware
     // fallback for the rest. A fixture only says what differs from that.
     const override = fixture.responses?.[key]

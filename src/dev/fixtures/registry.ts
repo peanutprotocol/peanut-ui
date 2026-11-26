@@ -2540,7 +2540,6 @@ const SETUP_REDESIGN_FIXTURES: Record<string, Fixture> = {
 const CARD_ADD_MONEY_ROUTE = '/card?card_step=funding'
 const CARD_ADD_MONEY_BALANCE = '3.20'
 const RHINO_STATUS = `GET /rhino/status/${DEMO_ADDRESS}`
-const RHINO_RESET = `POST /rhino/reset-status/${DEMO_ADDRESS}`
 const verifiedResidence = (country: string) => ({
     verified: { country, status: 'VERIFIED', updatedAt: null },
     declared: null,
@@ -2617,8 +2616,6 @@ const CARD_ADD_MONEY_FIXTURES: Record<string, Fixture> = {
                 'POST /rhino/deposit': { minDepositLimitUsd: 1 },
                 [RHINO_STATUS]: { status: 'completed', amount: 4 },
             },
-            // the status always answers completed, so a successful clear would read the same deposit again
-            fails: [RHINO_RESET],
         }
     ),
     'card-add-money-funded': cardAddMoney(
@@ -2628,7 +2625,6 @@ const CARD_ADD_MONEY_FIXTURES: Record<string, Fixture> = {
         {
             balanceAfterDeposit: '13.20',
             responses: { [RHINO_STATUS]: { status: 'completed', amount: 10 } },
-            fails: [RHINO_RESET],
         }
     ),
     'card-add-money-bank-one': cardAddMoney(

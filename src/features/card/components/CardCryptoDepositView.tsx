@@ -1,6 +1,6 @@
 'use client'
 
-import { useQueryClient } from '@tanstack/react-query'
+import { isCancelledError, useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
@@ -96,14 +96,18 @@ export function CardCryptoDepositView({
     const clearRefreshesBalance = useRef(false)
 
     /** a fresh balance and card overview; rejects when either read fails */
-    const refreshBalance = useCallback(
-        () =>
-            Promise.all([
-                queryClient.invalidateQueries({ queryKey: ['balance'] }, { throwOnError: true }),
-                queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] }, { throwOnError: true }),
-            ]),
-        [queryClient]
-    )
+    const refreshBalance = useCallback(() => {
+        // another refresh of the same read cancels ours; joining the one in flight is still a fresh read
+        const freshRead = (queryKey: readonly unknown[]) =>
+            queryClient
+                .invalidateQueries({ queryKey }, { throwOnError: true })
+                .catch((error) =>
+                    isCancelledError(error)
+                        ? queryClient.refetchQueries({ queryKey }, { throwOnError: true, cancelRefetch: false })
+                        : Promise.reject(error)
+                )
+        return Promise.all([freshRead(['balance']), freshRead([RAIN_CARD_OVERVIEW_QUERY_KEY])])
+    }, [queryClient])
 
     const handleSuccess = useCallback(
         (amount: number, statusData?: DepositAddressStatusResponse) => {
@@ -170,6 +174,11 @@ export function CardCryptoDepositView({
         const received = rose ? cents(spendableUsd - pending.from!) : pending.amount
         setShortDeposit((last) => ({ received, n: (last?.n ?? 0) + 1 }))
     }, [pending, spendableUsd, gapUsd])
+
+    // a deposit that goes on its way while a retry is offered is processing, not something to clear
+    useEffect(() => {
+        if (status === 'loading') setClearFailed(false)
+    }, [status])
 
     // Rhino reports one deposit per address until the status is cleared: after a short deposit the
     // clear re-arms the poll for the rest, as RhinoDepositView does; a failed clear offers a retry

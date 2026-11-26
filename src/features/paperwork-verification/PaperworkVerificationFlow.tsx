@@ -1250,11 +1250,16 @@ function PaperworkVerificationSteps({
     // that place passed a safe returnTo (the card step does); without one it ends as before. The user is
     // read again first, so that place sees the new verification status.
     const firstTimeReturn = candidate ? null : safeReverificationReturnTo(returnTo)
+    const finishing = useRef(false)
     const finish = () => {
         if (!firstTimeReturn) return goHome()
-        void Promise.resolve(fetchUser())
-            .catch(() => {})
-            .then(() => router.replace(firstTimeReturn))
+        if (finishing.current) return
+        finishing.current = true
+        // the read is a courtesy to the place returned to: a slow one never holds the user here
+        const read = Promise.resolve(fetchUser()).catch(() => {})
+        void Promise.race([read, new Promise((resolve) => setTimeout(resolve, 3000))]).then(() =>
+            router.replace(firstTimeReturn)
+        )
     }
     const residenceName = questions.residence
         ? localizedCountryName(locale, questions.residence, questions.residence)
