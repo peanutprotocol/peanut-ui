@@ -4,9 +4,8 @@ import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import type { ReactNode } from 'react'
 import { Button } from '@/components/0_Bruddle/Button'
-import { IconBubble } from '@/components/0_Bruddle/IconBubble'
+import { Callout } from '@/components/0_Bruddle/Callout'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
-import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import Loading from '@/components/Global/Loading'
 import { useAuth } from '@/context/authContext'
 import { CARD_FUNDING_RETURN_TO } from '@/features/card/cardAddMoney'
@@ -41,7 +40,7 @@ export function CardBankDetailsView({
     const { user } = useAuth()
     // a provisioning account is re-read by the hook itself, so the skeleton turns into details here
     const { accounts, isLoading, claim } = useDepositAccounts()
-    const { t: tAccounts } = useDepositAccountCopy()
+    const { t: tAccounts, accountRailName } = useDepositAccountCopy()
     const rail = DEPOSIT_RAILS[corridor]
     const account = accounts[corridor]
     const nonUsd = rail.currency !== 'USD'
@@ -64,28 +63,25 @@ export function CardBankDetailsView({
             {moreWays}
         </div>
     )
-    const status = (icon: ReactNode, title: string, body: string, action?: ReactNode) =>
+    // an account with no usable details: a callout under the drawer's one title, not a second heading
+    const status = (title: string, body: string, action?: ReactNode) =>
         shell(
-            <div className="flex flex-col items-center gap-4 text-center">
-                {icon}
-                <TitleBlock align="center" size="s" title={title} description={body} />
+            <>
+                <Callout priority="attention" title={title}>
+                    {body}
+                </Callout>
                 {action}
-            </div>
+            </>
         )
 
     if (isLoading) return shell(<Loading />)
 
     if (account?.status === 'revoked') {
-        return status(
-            <IconBubble icon="lock" color="gray" />,
-            tAccounts('details.revokedTitle', { currency: rail.currency }),
-            tAccounts('details.revokedBody')
-        )
+        return status(tAccounts('details.revokedTitle', { currency: rail.currency }), tAccounts('details.revokedBody'))
     }
     // the client's own answer once the provisioning poll spent its budget
     if (account?.timedOut) {
         return status(
-            <IconBubble icon="error" color="red" />,
             tAccounts('details.timedOutTitle', { currency: rail.currency }),
             tAccounts('details.timedOutBody'),
             <Button variant="primary" className="w-full" onClick={() => claim(corridor)}>
@@ -97,13 +93,12 @@ export function CardBankDetailsView({
     const usable = (account?.status === 'active' || account?.status === 'retiring') && !!account.instructions
     if (!account || (!provisioning && !usable)) {
         return status(
-            <IconBubble icon="lock" color="gray" />,
             tAccounts('details.unavailableTitle', { currency: rail.currency }),
             tAccounts('details.unavailableBody')
         )
     }
 
-    // The drawer title names the account, so the amount is said here, in the currency the user sends.
+    // The drawer title carries no amount, so the amount is said here, in the currency the user sends.
     // Another currency is the gap at the client rate with a 2% margin for a moving rate and the
     // conversion fee, rounded up to a whole unit and never under the account's own minimum; while the
     // rate loads a skeleton of the same two lines holds its place, and with no rate it promises no amount.
@@ -140,6 +135,13 @@ export function CardBankDetailsView({
                     {amountLine}
                 </p>
             )}
+            {/* which account, as the bank list names it: a caption, so the drawer keeps one heading */}
+            <p className="text-body-s text-foreground-secondary" data-testid="card-add-money-bank-account">
+                {tAccounts('details.heading', {
+                    currency: rail.currency,
+                    rail: accountRailName(rail.corridor, account.instructions),
+                })}
+            </p>
             <DepositAccountDetailsBody
                 rail={rail}
                 account={account}

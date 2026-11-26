@@ -220,7 +220,12 @@ function withSixDropdowns() {
     } satisfies PaperworkVerificationQuestions
 }
 
-function renderFlow(search = '', client = new QueryClient(), onUrlUpdate?: OnUrlUpdateFunction) {
+function renderFlow(
+    search = '',
+    client = new QueryClient(),
+    onUrlUpdate?: OnUrlUpdateFunction,
+    returnTo?: string | null
+) {
     return renderWithIntl(
         <QueryClientProvider client={client}>
             <NuqsTestingAdapter
@@ -229,7 +234,7 @@ function renderFlow(search = '', client = new QueryClient(), onUrlUpdate?: OnUrl
                 onUrlUpdate={onUrlUpdate}
                 resetUrlUpdateQueueOnMount={!onUrlUpdate}
             >
-                <PaperworkVerificationFlow />
+                <PaperworkVerificationFlow returnTo={returnTo} />
             </NuqsTestingAdapter>
         </QueryClientProvider>
     )
@@ -237,8 +242,8 @@ function renderFlow(search = '', client = new QueryClient(), onUrlUpdate?: OnUrl
 
 /** A visit with questions or the ID ahead opens on Verify start; Verify now goes on to the open step. */
 // The steps overview opens at once as a skeleton; Continue works once the server's read fills it.
-async function startFlow(search = '', client?: QueryClient) {
-    const view = renderFlow(search, client)
+async function startFlow(search = '', client?: QueryClient, returnTo?: string | null) {
+    const view = renderFlow(search, client, undefined, returnTo)
     await screen.findByTestId('setup-redesign-verify-steps')
     fireEvent.click(screen.getByTestId('verify-steps-continue'))
     return view
@@ -1147,6 +1152,37 @@ describe('PaperworkVerificationFlow', () => {
         mockStatus.mockResolvedValue('IN_REVIEW')
         fireEvent.click(continueButton())
         expect(await screen.findByTestId('verify-review-home')).toBeInTheDocument()
+    })
+
+    describe('a first-time check opened with returnTo (the card step, TASK-25169 option B)', () => {
+        const reachReview = async (returnTo?: string | null) => {
+            mockSave.mockResolvedValue({ kind: 'conflict', code: 'identity_submitted' })
+            await startFlow('', undefined, returnTo)
+            await screen.findByTestId('verify-pick-annualSalary')
+            mockStatus.mockResolvedValue('IN_REVIEW')
+            fireEvent.click(continueButton())
+            fireEvent.click(await screen.findByTestId('verify-review-home'))
+        }
+
+        it('ends on the card step it was opened from', async () => {
+            await reachReview('/card?card_step=funding')
+            await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/card?card_step=funding'))
+            expect(mockReplace).not.toHaveBeenCalledWith('/home')
+        })
+
+        it('ends on Home without returnTo, as every other entry (sign-up included) does today', async () => {
+            markVerifySource('signup')
+            await reachReview()
+            expect(mockReplace).toHaveBeenCalledWith('/home')
+        })
+
+        it.each(['//evil.example/x', '/verify', 'https://evil.example/', '/verify/?step=tax'])(
+            'ends on Home for an unsafe returnTo: %s',
+            async (returnTo) => {
+                await reachReview(returnTo)
+                expect(mockReplace).toHaveBeenCalledWith('/home')
+            }
+        )
     })
 
     it('the review asks the API to re-read Sumsub every fourth poll, so a lost webhook cannot hold it', async () => {

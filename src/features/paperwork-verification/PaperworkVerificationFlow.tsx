@@ -1246,6 +1246,16 @@ function PaperworkVerificationSteps({
 
     const goHome = () =>
         candidate ? router.replace('/home') : returnToFeature === '1' ? exit() : router.replace('/home')
+    // First-time completion (submitted or verified) goes back where the check was opened from, when
+    // that place passed a safe returnTo (the card step does); without one it ends as before. The user is
+    // read again first, so that place sees the new verification status.
+    const firstTimeReturn = candidate ? null : safeReverificationReturnTo(returnTo)
+    const finish = () => {
+        if (!firstTimeReturn) return goHome()
+        void Promise.resolve(fetchUser())
+            .catch(() => {})
+            .then(() => router.replace(firstTimeReturn))
+    }
     const residenceName = questions.residence
         ? localizedCountryName(locale, questions.residence, questions.residence)
         : ''
@@ -1373,8 +1383,8 @@ function PaperworkVerificationSteps({
                 title={candidate ? t('reverify.pendingTitle') : undefined}
                 note={candidate ? t('reverify.pendingDescription') : undefined}
                 hasQuestions={questionIds.length > 0}
-                onBack={goHome}
-                onContinue={goHome}
+                onBack={finish}
+                onContinue={finish}
             />
         )
     } else if (step === 'verified') {
@@ -1388,7 +1398,7 @@ function PaperworkVerificationSteps({
                 note={!candidate && followUps[0] ? tRoot(followUps[0].note) : undefined}
                 cta={candidate || followUps[0] ? t('continue') : undefined}
                 aside={!candidate && bankRefusal && <BankRefusalNotice refusal={bankRefusal} />}
-                onBack={goHome}
+                onBack={finish}
                 onContinue={
                     candidate ? completeCandidate : () => router.push(followUps[0]?.href ?? PAYMENT_METHODS_HREF)
                 }

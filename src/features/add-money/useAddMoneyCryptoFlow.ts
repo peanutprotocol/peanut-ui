@@ -76,11 +76,17 @@ export function useAddMoneyCryptoFlow() {
 
     const handleSuccess = useCallback(
         (amount: number, statusData?: DepositAddressStatusResponse) => {
-            captureCryptoDepositCompleted(amount, network, user?.invitedBy)
+            const address = depositAddressData?.depositAddress
+            captureCryptoDepositCompleted(
+                amount,
+                network,
+                user?.invitedBy,
+                address ? { address, txHash: statusData?.txHash } : undefined
+            )
             setDepositResult(statusData ?? { status: 'completed', amount })
             setShowSuccessView(true)
         },
-        [network, user?.invitedBy]
+        [network, user?.invitedBy, depositAddressData?.depositAddress]
     )
 
     // build minimal transaction details for the receipt drawer

@@ -18,7 +18,8 @@ import { useDepositAccounts } from '@/features/deposit-accounts/useDepositAccoun
 export function CardBankRowsView({ rows, onPick }: { rows: CardBankRow[]; onPick: (row: CardBankRow) => void }) {
     const tMethods = useTranslations('addMoney.methods')
     const { accountRailName } = useDepositAccountCopy()
-    const { accounts } = useDepositAccounts()
+    // only a held account's row names its rails from its details
+    const { accounts } = useDepositAccounts({ enabled: rows.some((row) => row.kind === 'account') })
     return (
         <ListGroup>
             {rows.map((row) => {

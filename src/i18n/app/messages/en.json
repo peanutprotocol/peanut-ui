@@ -2251,7 +2251,6 @@
             "unavailable": "We could not load the address step. Try again."
         },
         "addMoney": {
-            "title": "Add {amount}",
             "pickNetwork": "Pick the network you send from. From an exchange, pick the network you withdraw on there.",
             "depositAddress": "{network} deposit address",
             "networkOnlyTitle": "Send on {network} only",
@@ -2274,10 +2273,10 @@
             "useCryptoNoAmount": "Add money with crypto",
             "useCryptoInstead": "Add money with crypto instead",
             "notOfferedTitle": "Bank transfer isn't available",
-            "notOfferedSupportMessage": "Hi! I can't add money to my card balance by bank transfer. Could you check why?",
-            "notOfferedBody": "We can't offer you bank transfers. Support can check why.",
             "bankSentPending": "Your {amount} transfer is on the way. We'll let you know when it lands.",
-            "bankSentPendingNoAmount": "Your transfer is on the way. We'll let you know when it lands."
+            "bankSentPendingNoAmount": "Your transfer is on the way. We'll let you know when it lands.",
+            "statusCheckFailedTitle": "We couldn't check this address",
+            "statusCheckFailedBody": "A deposit may be on its way. Try again before you send."
         }
     },
     "addMoney": {
@@ -5221,7 +5220,7 @@
             "badgeReady": "Ready",
             "badgeActive": "Active",
             "badgeSetUp": "Set up",
-            "badgeVerifyId": "Verify",
+            "badgeVerifyId": "Verify ID",
             "badgeNotOffered": "Not available",
             "badgeRevoked": "Revoked",
             "accountCounter": "{used} of {cap} used",

@@ -23,6 +23,7 @@ import {
     type CardFundingMethod,
 } from '@/features/card/card-gate-analytics'
 import { CARD_MIN_BALANCE_USD, cardBankPageHref, cardBankPlan, cardGapUsd } from '@/features/card/cardAddMoney'
+import { useBankRegionRefusal } from '@/features/card/useBankRegionRefusal'
 import { readStoredValue, removeStoredValue, writeStoredValue } from '@/utils/safe-storage'
 import { formatBankAmount } from '@/utils/currency'
 import { CardAddMoneyDrawer } from './CardAddMoneyDrawer'
@@ -137,22 +138,23 @@ export function CardFundingStep({
     }, [funded, open, onContinue])
 
     // design.md "rows the user cannot act on": a bank way blocked on the user or a reviewer says so in
-    // its badge; one not offered stays, sorts last, and its tap says why
-    const bankOffered = plan.kind !== 'not-offered'
-    const bankBadge =
-        plan.kind === 'not-offered' ? (
-            <Badge status="neutral" customText={tAccounts('list.badgeNotOffered')} />
-        ) : plan.kind === 'not-verified' ? (
-            <Badge status="pending" customText={tAccounts('list.badgeVerifyId')} />
-        ) : plan.kind === 'under-review' ? (
-            <Badge status="pending" customText={tAccounts('list.badgeUnderReview')} />
-        ) : undefined
+    // its badge; one the residence rules out stays, gray, sorts last, and its tap says why. A not-offered
+    // answer with no known residence rule may be "not opened yet", so it stays an ordinary row.
+    const regionRefusal = useBankRegionRefusal()
+    const bankOffered = !(plan.kind === 'not-offered' && regionRefusal)
+    const bankBadge = !bankOffered ? (
+        <Badge status="neutral" customText={tAccounts('list.badgeNotOffered')} />
+    ) : plan.kind === 'not-verified' ? (
+        <Badge status="pending" customText={tAccounts('list.badgeVerifyId')} />
+    ) : plan.kind === 'under-review' ? (
+        <Badge status="pending" customText={tAccounts('list.badgeUnderReview')} />
+    ) : undefined
     const bankRow = (
         <ListItem
             title={tAdd('methods.bankTransfer')}
             body={tAdd('methods.bankTransferDescription')}
             bodyWrap
-            leading={<IconBubble {...CONCEPT_ICONS.bank} size="s" />}
+            leading={<IconBubble {...CONCEPT_ICONS.bank} {...(bankOffered ? {} : { color: 'gray' })} size="s" />}
             trailing={bankBadge}
             chevron
             onClick={() => pickMethod('bank')}

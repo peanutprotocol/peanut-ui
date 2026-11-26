@@ -1294,7 +1294,8 @@
             "sendAbout": "Enviá unos {amount}. El monto exacto depende del tipo de cambio.",
             "sendInCurrency": "Enviá {currency} desde tu banco. Llega en dólares.",
             "notVerifiedBody": "Verificá tu identidad una sola vez para obtener los datos bancarios.",
-            "finishSetupBody": "Terminalo en la página del banco."
+            "finishSetupBody": "Terminalo en la página del banco.",
+            "statusCheckFailedBody": "Puede que haya un depósito en camino. Intentá de nuevo antes de enviar."
         }
     },
     "addMoney": {

@@ -33,7 +33,10 @@ jest.mock('@/services/rhino', () => ({
 
 // the Rhino status poll: the test drives the first read, its status and the success callback
 let pollStatus: 'not_started' | 'loading' | 'failed' | 'completed' = 'not_started'
+// `pollRead`: the API answered with a status; `pollError`: the read failed with none known
 let pollRead = true
+let pollError = false
+const mockRefetchStatus = jest.fn()
 let pollOptions: unknown
 let pollOnSuccess: ((amount: number) => void) | undefined
 let pollCompletedAmount: number | undefined
@@ -55,14 +58,24 @@ jest.mock('@/components/AddMoney/hooks/useCryptoDepositPolling', () => ({
             if (_address && pollRead && pollStatus === 'completed' && pollCompletedAmount !== undefined)
                 onSuccess(pollCompletedAmount)
         }, [_address, onSuccess])
-        return { status: pollStatus, resetStatus: mockResetStatus, isResetting: false, isStatusRead: pollRead }
+        return {
+            status: pollStatus,
+            resetStatus: mockResetStatus,
+            isResetting: false,
+            isStatusRead: pollRead,
+            statusError: pollError,
+            refetchStatus: mockRefetchStatus,
+        }
     },
 }))
 
 beforeEach(() => {
     jest.clearAllMocks()
+    // the deposit event is sent once per deposit across openings; each test starts with none sent
+    localStorage.clear()
     pollStatus = 'not_started'
     pollRead = true
+    pollError = false
     pollOptions = undefined
     pollOnSuccess = undefined
     pollCompletedAmount = undefined
@@ -128,14 +141,36 @@ describe('the first status read', () => {
         expect(screen.queryByText('marketMovedTitle')).not.toBeInTheDocument()
     })
 
-    it('does not count an earlier completed deposit as this one', async () => {
+    it('counts a completed deposit read at open once, and not as a deposit made in this opening', async () => {
         pollStatus = 'completed'
-        // the poll reports the stale outcome on its first read, before the check has run
+        // the poll reports the outcome on its first read, before the check has run
         pollCompletedAmount = 7.5
+        const first = renderView()
+        await screen.findByTestId('card-add-money-address')
+        const deposits = () => mockCapture.mock.calls.filter(([event]) => event === ANALYTICS_EVENTS.DEPOSIT_COMPLETED)
+        expect(deposits()).toHaveLength(1)
+        expect(screen.queryByTestId('card-add-money-processing')).not.toBeInTheDocument()
+        // the same outcome read again on a later opening is not counted twice
+        first.unmount()
+        pollStatus = 'completed'
         renderView()
         await screen.findByTestId('card-add-money-address')
-        expect(mockCapture).not.toHaveBeenCalled()
-        expect(screen.queryByTestId('card-add-money-processing')).not.toBeInTheDocument()
+        expect(deposits()).toHaveLength(1)
+    })
+
+    it('shows a retry, never the address, when the first status read fails', async () => {
+        pollRead = false
+        pollError = true
+        const { rerenderWith } = renderView()
+        expect(await screen.findByTestId('card-add-money-check-failed')).toBeInTheDocument()
+        expect(screen.queryByTestId('qr')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByText('retry'))
+        expect(mockRefetchStatus).toHaveBeenCalled()
+        // a real "not started" answer arrives: now the address
+        pollRead = true
+        pollError = false
+        rerenderWith({})
+        expect(await screen.findByTestId('card-add-money-address')).toBeInTheDocument()
     })
 
     it('offers a retry when this deposit failed after the first read', async () => {
@@ -311,19 +346,18 @@ describe('deposits and balance reads in either order (review of fix round 1)', (
         }
     })
 
-    it('counts a deposit in flight at open as already in once re-reads never see the balance rise', async () => {
+    it('keeps a deposit in flight at open processing for as long as the balance does not rise', async () => {
         jest.useFakeTimers()
         try {
             pollStatus = 'loading'
             renderView({ gapUsd: 2.8, spendableUsd: 7.2 })
             await screen.findByTestId('card-add-money-processing')
-            pollStatus = 'not_started'
+            pollStatus = 'completed'
             await act(async () => pollOnSuccess?.(6))
-            for (let i = 0; i < 8; i++) await act(async () => void jest.advanceTimersByTime(5000))
-            // the money was in the balance before the drawer read it: no stuck processing
-            expect(screen.queryByTestId('card-add-money-processing')).not.toBeInTheDocument()
-            expect(screen.getByTestId('card-add-money-short')).toHaveTextContent('shortReceived($6)')
-            expect(screen.getByText('sendAsk($5)')).toBeInTheDocument()
+            // two minutes of reads that never rise: still processing, never the address
+            for (let i = 0; i < 24; i++) await act(async () => void jest.advanceTimersByTime(5000))
+            expect(screen.getByTestId('card-add-money-processing')).toBeInTheDocument()
+            expect(screen.queryByTestId('qr')).not.toBeInTheDocument()
         } finally {
             jest.useRealTimers()
         }
@@ -363,7 +397,7 @@ describe('deposits and balance reads in either order (review of fix round 1)', (
             .mockImplementation(() => new Promise<void>((resolve) => pendingReads.push(resolve)))
         try {
             renderView()
-            await waitFor(() => expect(refresh).toHaveBeenCalledWith({ queryKey: ['balance'] }))
+            await waitFor(() => expect(refresh).toHaveBeenCalledWith({ queryKey: ['balance'] }, { throwOnError: true }))
             // a deposit finished seconds ago on /add-money/crypto: no ask before its balance is in
             expect(screen.queryByTestId('qr')).not.toBeInTheDocument()
             await act(async () => pendingReads.forEach((resolve) => resolve()))
@@ -377,9 +411,36 @@ describe('deposits and balance reads in either order (review of fix round 1)', (
         pollStatus = 'completed'
         mockResetStatus.mockRejectedValueOnce(new Error('down'))
         renderView()
-        expect(await screen.findByTestId('card-add-money-clear-failed')).toBeInTheDocument()
+        expect(await screen.findByTestId('card-add-money-check-failed')).toBeInTheDocument()
         expect(screen.queryByTestId('qr')).not.toBeInTheDocument()
         fireEvent.click(screen.getByText('retry'))
         await screen.findByTestId('card-add-money-address')
+    })
+
+    it('keeps the address hidden when the balance read after a completed outcome fails, and retries both', async () => {
+        pollStatus = 'completed'
+        let failBalance = true
+        const refresh = jest
+            .spyOn(QueryClient.prototype, 'invalidateQueries')
+            .mockImplementation((filters) =>
+                failBalance && (filters as { queryKey?: unknown[] })?.queryKey?.[0] === 'balance'
+                    ? Promise.reject(new Error('balance down'))
+                    : Promise.resolve()
+            )
+        try {
+            renderView()
+            // the old gap would invite a second send for money that may already be in
+            expect(await screen.findByTestId('card-add-money-check-failed')).toBeInTheDocument()
+            expect(screen.queryByTestId('qr')).not.toBeInTheDocument()
+            failBalance = false
+            fireEvent.click(screen.getByText('retry'))
+            await screen.findByTestId('card-add-money-address')
+            // the retry read the balance again, not only the status
+            expect(
+                refresh.mock.calls.filter(([f]) => (f as { queryKey?: unknown[] })?.queryKey?.[0] === 'balance')
+            ).toHaveLength(2)
+        } finally {
+            refresh.mockRestore()
+        }
     })
 })

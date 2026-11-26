@@ -54,11 +54,21 @@ jest.mock('@/services/rhino', () => ({
 // the Rhino status poll: the test drives its status and the success callback
 let pollStatus: 'not_started' | 'loading' | 'failed' | 'completed' = 'not_started'
 let pollOnSuccess: ((amount: number) => void) | undefined
-const mockResetStatus = jest.fn(() => Promise.resolve())
+// as the real hook: a successful clear leaves the address "not started"
+const mockResetStatus = jest.fn(async () => {
+    pollStatus = 'not_started'
+})
 jest.mock('@/components/AddMoney/hooks/useCryptoDepositPolling', () => ({
     useCryptoDepositPolling: (_address: string | undefined, onSuccess: (amount: number) => void) => {
         pollOnSuccess = onSuccess
-        return { status: pollStatus, resetStatus: mockResetStatus, isResetting: false, isStatusRead: true }
+        return {
+            status: pollStatus,
+            resetStatus: mockResetStatus,
+            isResetting: false,
+            isStatusRead: true,
+            statusError: false,
+            refetchStatus: jest.fn(),
+        }
     },
 }))
 
@@ -199,9 +209,7 @@ describe('funding step', () => {
         fireEvent.click(screen.getByTestId(testId))
         expect(drawer()).toBeInTheDocument()
         // crypto opens on the gap; the one held account opens on its own name, with the amount in the body
-        expect(
-            within(drawer()).getByText(method === 'crypto' ? 'title($7.50)' : /^details\.heading\(USD/)
-        ).toBeInTheDocument()
+        expect(within(drawer()).getByText(method === 'crypto' ? 'title' : /^details\.heading\(USD/)).toBeInTheDocument()
         expect(mockPush).not.toHaveBeenCalled()
         expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_GATE_ADD_FUNDS_TAPPED, {
             step: 'funding',
@@ -377,7 +385,8 @@ describe('bank views', () => {
         expect(within(status).getByTestId('card-add-money-use-crypto')).toBeInTheDocument()
         fireEvent.click(within(status).getByTestId('card-add-money-verify'))
         expect(sessionStorage.getItem('peanut:verify-source-pending')).toBe('card')
-        expect(mockPush).toHaveBeenCalledWith('/verify')
+        // option B: the check ends back on this step
+        expect(mockPush).toHaveBeenCalledWith('/verify?returnTo=%2Fcard%3Fcard_step%3Dfunding')
         expect(drawerEvents()).toEqual([
             ['card_gate_add_money_drawer_opened', { method: 'bank', view: 'not_verified' }],
             ['card_gate_add_money_verify_tapped', {}],
@@ -596,6 +605,11 @@ const mockOpenSupport = jest.fn()
 jest.mock('@/hooks/useResidenceRestrictions', () => ({
     useResidenceRestrictions: () => ({ banking: mockBankingRestricted, card: false }),
 }))
+// whether the residence tier lists loaded: a residence rule is known only then (or from the server)
+let mockSetsSettled = true
+jest.mock('@/hooks/useResidenceRestrictionSets', () => ({
+    useResidenceRestrictionSetsWithStatus: () => ({ sets: null, settled: mockSetsSettled }),
+}))
 jest.mock('@/context/ModalsContext', () => ({
     ...jest.requireActual('@/context/ModalsContext'),
     useModalsContext: () => ({ openSupportWithMessage: mockOpenSupport }),
@@ -604,9 +618,10 @@ jest.mock('@/context/ModalsContext', () => ({
 describe('one amount, one heading, no dead ends', () => {
     beforeEach(() => {
         mockBankingRestricted = false
+        mockSetsSettled = true
     })
 
-    it('keeps the drawer title on the gap when the network minimum raises the ask', async () => {
+    it('keeps one title with no amount, so it never disagrees with a raised ask', async () => {
         mockCreateDepositAddress.mockResolvedValue({
             depositAddress: '0xdeposit',
             minDepositLimitUsd: 10,
@@ -616,8 +631,10 @@ describe('one amount, one heading, no dead ends', () => {
         fireEvent.click(screen.getByTestId('card-add-money-crypto'))
         fireEvent.click(within(drawer()).getByTestId('choose-network-evm'))
         await within(drawer()).findByTestId('card-add-money-address')
-        expect(within(drawer()).getAllByText('title($7.50)').length).toBeGreaterThan(0)
-        expect(within(drawer()).queryByText('title($10)')).not.toBeInTheDocument()
+        // the visible title and its screen-reader twin
+        expect(within(drawer()).getAllByText('title').length).toBeGreaterThan(0)
+        expect(within(drawer()).queryByText(/^title\(/)).not.toBeInTheDocument()
+        expect(within(drawer()).getByTestId('card-add-money-ask')).toHaveTextContent('sendAsk($10)')
     })
 
     it('shows one heading on a status view: the status, not the drawer title too', () => {
@@ -625,7 +642,7 @@ describe('one amount, one heading, no dead ends', () => {
         renderFunding()
         fireEvent.click(screen.getByTestId('card-add-money-bank'))
         within(drawer()).getByTestId('card-add-money-status-not-verified')
-        for (const el of within(drawer()).queryAllByText('title($7.50)')) expect(el).toHaveClass('sr-only')
+        for (const el of within(drawer()).queryAllByText('title')) expect(el).toHaveClass('sr-only')
     })
 
     it('offers crypto as the tertiary link beside Verify identity, and comes back to the status', () => {
@@ -653,13 +670,38 @@ describe('one amount, one heading, no dead ends', () => {
         expect(within(drawer()).getByTestId('choose-network-evm')).toBeInTheDocument()
     })
 
-    it('offers support when bank is refused for a reason other than the residence', () => {
+    it('takes a not-offered answer with no residence rule as one step left, not "not available"', () => {
         renderFunding()
+        // an ordinary row: no Not available badge, not sorted last
+        const rows = screen.getAllByTestId(/^card-add-money-(bank|crypto)$/)
+        expect(rows.map((row) => row.dataset.testid)).toEqual(['card-add-money-bank', 'card-add-money-crypto'])
+        expect(within(rows[0]).queryByText('list.badgeNotOffered')).not.toBeInTheDocument()
         fireEvent.click(screen.getByTestId('card-add-money-bank'))
         const status = within(drawer()).getByTestId('card-add-money-status-not-offered')
-        expect(within(status).getByText('notOfferedBody')).toBeInTheDocument()
-        fireEvent.click(within(status).getByText('contactSupport'))
-        expect(mockOpenSupport).toHaveBeenCalled()
+        expect(within(status).getByText('finishSetupTitle')).toBeInTheDocument()
+        expect(within(status).queryByText('bankOnlyNotAvailableNote')).not.toBeInTheDocument()
+        fireEvent.click(within(status).getByText('continue'))
+        expect(mockPush).toHaveBeenCalledWith('/add-money?method=bank&returnTo=%2Fcard%3Fcard_step%3Dfunding')
+    })
+
+    it('GB: says bank is not available where the user lives only once the residence rule is known', () => {
+        readiness = { ...readiness, residenceIso2s: ['GB'] }
+        mockBankingRestricted = true
+        // the tier lists have not loaded: an unknown residence withholds offers but refuses nothing
+        mockSetsSettled = false
+        const view = renderFunding()
+        fireEvent.click(screen.getByTestId('card-add-money-bank'))
+        expect(within(drawer()).queryByText('bankOnlyNotAvailableNote')).not.toBeInTheDocument()
+        expect(within(drawer()).getByText('finishSetupTitle')).toBeInTheDocument()
+        view.unmount()
+        // the lists loaded and refuse banking for GB: now the residence copy, in gray, with the fix
+        mockSetsSettled = true
+        renderFunding()
+        expect(within(screen.getByTestId('card-add-money-bank')).getByText('list.badgeNotOffered')).toBeInTheDocument()
+        fireEvent.click(screen.getByTestId('card-add-money-bank'))
+        const status = within(drawer()).getByTestId('card-add-money-status-not-offered')
+        expect(within(status).getByText('bankOnlyNotAvailableNote')).toBeInTheDocument()
+        expect(within(status).getByTestId('card-add-money-residence')).toBeInTheDocument()
     })
 
     it('shows the transfer as on its way after "I\'ve sent the transfer"', async () => {

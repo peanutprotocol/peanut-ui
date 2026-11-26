@@ -6,11 +6,9 @@ import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
-import { useAuth } from '@/context/authContext'
-import { useModalsContext } from '@/context/ModalsContext'
 import { DEPOSIT_RAILS } from '@/features/deposit-accounts/rails'
 import type { CardBankPlan } from '@/features/card/cardAddMoney'
-import { useResidenceRestrictions } from '@/hooks/useResidenceRestrictions'
+import { useBankRegionRefusal } from '@/features/card/useBankRegionRefusal'
 import { formatBankAmount } from '@/utils/currency'
 
 export type CardBankStatus = Extract<
@@ -44,9 +42,7 @@ export function CardBankStatusView({
     const tAccounts = useTranslations('profile.unlockPayments')
     const tDeposit = useTranslations('depositAccounts')
     const tCommon = useTranslations('common')
-    const restrictions = useResidenceRestrictions()
-    const { openSupportWithMessage } = useModalsContext()
-    const userId = useAuth().user?.user?.userId
+    const regionRefusal = useBankRegionRefusal()
 
     const cryptoPrimary = (
         <Button variant="primary" className="w-full" onClick={onUseCrypto} data-testid="card-add-money-use-crypto">
@@ -62,6 +58,20 @@ export function CardBankStatusView({
         </div>
     )
     const cryptoTertiary = tertiary(t('useCryptoInstead'), onUseCrypto, 'card-add-money-use-crypto')
+
+    const finishSetup = {
+        icon: <IconBubble icon="alert" color="yellow" />,
+        title: t('finishSetupTitle'),
+        body: t('finishSetupBody'),
+        actions: (
+            <>
+                <Button variant="primary" className="w-full" onClick={onFinishSetup}>
+                    {tCommon('continue')}
+                </Button>
+                {cryptoTertiary}
+            </>
+        ),
+    }
 
     const content = (() => {
         switch (status.kind) {
@@ -99,53 +109,27 @@ export function CardBankStatusView({
                     ),
                 }
             case 'finish-setup':
-                return {
-                    icon: <IconBubble icon="alert" color="yellow" />,
-                    title: t('finishSetupTitle'),
-                    body: t('finishSetupBody'),
-                    actions: (
-                        <>
-                            <Button variant="primary" className="w-full" onClick={onFinishSetup}>
-                                {tCommon('continue')}
-                            </Button>
-                            {cryptoTertiary}
-                        </>
-                    ),
-                }
-            // a residence rule changes only with a move, so the residence is the one fix offered; any
-            // other refusal support can check (design.md "rows the user cannot act on")
+                return finishSetup
+            // A known residence rule: say so, in gray (not available), with the one fix, a move. Anything
+            // else the API calls not offered may be "not opened yet": the bank page has the step left.
             case 'not-offered':
-                return {
-                    icon: <IconBubble {...CONCEPT_ICONS.bank} />,
-                    title: t('notOfferedTitle'),
-                    body: restrictions.banking ? tAccounts('bankOnlyNotAvailableNote') : t('notOfferedBody'),
-                    actions: (
-                        <>
-                            {cryptoPrimary}
-                            {restrictions.banking &&
-                                tertiary(
-                                    tDeposit('details.residenceCta'),
-                                    onChangeResidence,
-                                    'card-add-money-residence'
-                                )}
-                            {!restrictions.banking &&
-                                tertiary(tCommon('contactSupport'), () =>
-                                    // the user's own words, then a context block in English for the agent
-                                    openSupportWithMessage(
-                                        [
-                                            t('notOfferedSupportMessage'),
-                                            '',
-                                            '— context for support —',
-                                            'context: card $10 step, bank transfer not offered',
-                                            userId ? `user: ${userId}` : '',
-                                        ]
-                                            .filter((line, i) => i < 2 || line)
-                                            .join('\n')
-                                    )
-                                )}
-                        </>
-                    ),
-                }
+                return regionRefusal
+                    ? {
+                          icon: <IconBubble {...CONCEPT_ICONS.bank} color="gray" />,
+                          title: t('notOfferedTitle'),
+                          body: tAccounts('bankOnlyNotAvailableNote'),
+                          actions: (
+                              <>
+                                  {cryptoPrimary}
+                                  {tertiary(
+                                      tDeposit('details.residenceCta'),
+                                      onChangeResidence,
+                                      'card-add-money-residence'
+                                  )}
+                              </>
+                          ),
+                      }
+                    : finishSetup
         }
     })()
 

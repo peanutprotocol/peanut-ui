@@ -19,8 +19,9 @@ import { useAuth } from '@/context/authContext'
 import { captureCryptoDepositCompleted } from '@/features/add-money/captureCryptoDepositCompleted'
 import { useRhinoDepositAddress } from '@/features/add-money/useRhinoDepositAddress'
 import { cardCryptoAskUsd } from '@/features/card/cardAddMoney'
+import { cardDepositView } from '@/features/card/cardDepositView'
 import { RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
-import type { RhinoChainType } from '@/services/services.types'
+import type { DepositAddressStatusResponse, RhinoChainType } from '@/services/services.types'
 import { formatBankAmount } from '@/utils/currency'
 import { middleEllipsisAccount } from '@/utils/general.utils'
 
@@ -28,9 +29,6 @@ const usd = (amount: number) => formatBankAmount(amount, 'USD')
 const cents = (amount: number) => Math.round(amount * 100) / 100
 /** the copy field fits about this many characters at 375px; the last 4 stay visible */
 const ADDRESS_DISPLAY_CHARS = 24
-/** a deposit in flight at open whose balance did not rise: re-reads before it counts as already in */
-const IN_FLIGHT_REREADS = 6
-const IN_FLIGHT_REREAD_MS = 5000
 /** the balance rose above where a deposit started, by more than a rounding cent */
 const roseAbove = (from: number | undefined, spendable: number | undefined) =>
     from !== undefined && spendable !== undefined && spendable > from + 0.005
@@ -76,86 +74,82 @@ export function CardCryptoDepositView({
 
     /**
      * A deposit Rhino reported, until it resolves: it has landed once the balance rises above `from`,
-     * the balance every earlier deposit landed on. A deposit already on its way when the drawer opened
-     * (`inFlight`) may have reached the balance before the drawer read it, so a balance that does not
-     * rise is read again a few times before the deposit counts as already in (`assumedIn`).
+     * the balance every earlier deposit landed on. A deposit in flight at open is measured from the
+     * balance at open and waits for the rise with no cap: the drawer can be closed, and the address never
+     * shows for money on its way. `refreshed`: a fresh balance read came back (it decides only when no
+     * balance was known at the report).
      */
-    const [pending, setPending] = useState<{
-        amount: number
-        from: number | undefined
-        inFlight: boolean
-        refreshed: boolean
-        rereads: number
-        assumedIn: boolean
-    }>()
+    const [pending, setPending] = useState<{ amount: number; from: number | undefined; refreshed: boolean }>()
     // the notice after a deposit that left a gap: what came in; the live gap is what is still needed
     // `n` counts short deposits, so a second one of the same amount still re-arms the poll
     const [shortDeposit, setShortDeposit] = useState<{ received: number; n: number }>()
     const [done, setDone] = useState(false)
 
-    // The API keeps an address's last outcome for hours. The first read, at once when the address
-    // arrives, decides: a deposit still on its way stays and shows processing, so no second send is
-    // invited; a completed or failed outcome is an earlier deposit's and is cleared.
+    // The API keeps an address's last outcome for hours. The first answer for the address decides: a
+    // deposit on its way stays and shows processing; a completed or failed outcome is an earlier
+    // deposit's, cleared (a completed one against a fresh balance read) before any address shows.
     const [checkedFor, setCheckedFor] = useState<string>()
     const checkedForRef = useRef<string>()
-    const inFlightAtOpen = useRef(false)
-    const [clearingStale, setClearingStale] = useState(false)
+    const [clearing, setClearing] = useState(false)
     const [clearFailed, setClearFailed] = useState(false)
+    // whether the last clear needed a fresh balance read, so its retry needs one too
+    const clearRefreshesBalance = useRef(false)
+
+    /** a fresh balance and card overview; rejects when either read fails */
+    const refreshBalance = useCallback(
+        () =>
+            Promise.all([
+                queryClient.invalidateQueries({ queryKey: ['balance'] }, { throwOnError: true }),
+                queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] }, { throwOnError: true }),
+            ]),
+        [queryClient]
+    )
 
     const handleSuccess = useCallback(
-        (amount: number) => {
-            // the first read's outcome belongs to an earlier deposit, which the check below clears
-            if (!depositAddressRef.current || checkedForRef.current !== depositAddressRef.current) return
-            captureCryptoDepositCompleted(amount, network, user?.invitedBy)
-            setPending({
-                amount,
-                from: landedRef.current,
-                inFlight: inFlightAtOpen.current,
-                refreshed: false,
-                rereads: 0,
-                assumedIn: false,
-            })
-            inFlightAtOpen.current = false
-            void Promise.all([
-                queryClient.invalidateQueries({ queryKey: ['balance'] }),
-                queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] }),
-            ]).finally(() => setPending((p) => (p ? { ...p, refreshed: true } : p)))
+        (amount: number, statusData?: DepositAddressStatusResponse) => {
+            const address = depositAddressRef.current
+            if (!address) return
+            // sent once per deposit, so an outcome another surface (or an earlier opening) reported is not
+            // counted twice, and one nobody saw complete is counted when the drawer reads it at open
+            captureCryptoDepositCompleted(amount, network, user?.invitedBy, { address, txHash: statusData?.txHash })
+            // an outcome read at open is an earlier deposit's: the check below clears it
+            if (checkedForRef.current !== address) return
+            setPending({ amount, from: landedRef.current, refreshed: false })
+            refreshBalance()
+                .then(() => setPending((p) => (p ? { ...p, refreshed: true } : p)))
+                .catch(() => {
+                    // the balance poll still shows the deposit; processing waits for it
+                })
         },
-        [queryClient, network, user?.invitedBy]
+        [network, user?.invitedBy, refreshBalance]
     )
-    const { status, resetStatus, isResetting, isStatusRead } = useCryptoDepositPolling(
+    const { status, resetStatus, isResetting, isStatusRead, statusError, refetchStatus } = useCryptoDepositPolling(
         depositAddress,
         handleSuccess,
         undefined,
         { readNow: true }
     )
 
-    // A completed outcome may be a deposit made seconds ago on /add-money/crypto: the address shows only
-    // after a fresh balance read, so the ask never invites a second send for money already in.
     const clearStale = useCallback(
-        (refreshBalance: boolean) => {
-            setClearingStale(true)
+        (withBalance: boolean) => {
+            clearRefreshesBalance.current = withBalance
+            setClearing(true)
             setClearFailed(false)
-            Promise.all([
-                // a status left uncleared stops the poll, and no new deposit would ever show
-                resetStatus().catch(() => setClearFailed(true)),
-                refreshBalance &&
-                    Promise.allSettled([
-                        queryClient.invalidateQueries({ queryKey: ['balance'] }),
-                        queryClient.invalidateQueries({ queryKey: [RAIN_CARD_OVERVIEW_QUERY_KEY] }),
-                    ]),
-            ]).finally(() => {
-                landedRef.current = undefined
-                setClearingStale(false)
-            })
+            // a status left uncleared stops the poll, so no new deposit would show; a completed deposit
+            // may be in the balance only after a fresh read, so the ask waits for one
+            Promise.all([resetStatus(), withBalance ? refreshBalance() : undefined])
+                .then(() => {
+                    landedRef.current = undefined
+                })
+                .catch(() => setClearFailed(true))
+                .finally(() => setClearing(false))
         },
-        [resetStatus, queryClient]
+        [resetStatus, refreshBalance]
     )
     useEffect(() => {
         if (!depositAddress || !isStatusRead || checkedForRef.current === depositAddress) return
         checkedForRef.current = depositAddress
         setCheckedFor(depositAddress)
-        if (status === 'loading') inFlightAtOpen.current = true
         if (status === 'completed' || status === 'failed') clearStale(status === 'completed')
     }, [depositAddress, isStatusRead, status, clearStale])
 
@@ -163,10 +157,9 @@ export function CardCryptoDepositView({
     // names the rest; the poll is re-armed for it below
     useEffect(() => {
         if (!pending || spendableUsd === undefined || gapUsd === undefined) return
-        // no balance known at open: the fresh read after the report decides
         const rose = roseAbove(pending.from, spendableUsd)
-        const landed = rose || pending.assumedIn || (pending.from === undefined && pending.refreshed)
-        if (!landed) return
+        // no balance known at the report: the fresh read after it decides
+        if (!rose && !(pending.from === undefined && pending.refreshed)) return
         landedRef.current = spendableUsd
         setPending(undefined)
         if (gapUsd <= 0) {
@@ -178,38 +171,30 @@ export function CardCryptoDepositView({
         setShortDeposit((last) => ({ received, n: (last?.n ?? 0) + 1 }))
     }, [pending, spendableUsd, gapUsd])
 
-    // A deposit in flight at open whose fresh read did not rise: the read may be stale, or the money was
-    // already in at open. Each re-read is a real refetch; after ~30 s of reads that never rise it counts as
-    // already in, so the drawer cannot hang in processing. A deposit reported after open has no cap: its
-    // start is known, so it waits for the rise.
-    useEffect(() => {
-        if (!pending?.inFlight || !pending.refreshed || pending.assumedIn || roseAbove(pending.from, spendableUsd))
-            return
-        const timer = setTimeout(() => {
-            if (pending.rereads >= IN_FLIGHT_REREADS) {
-                setPending((p) => p && { ...p, assumedIn: true })
-                return
-            }
-            void queryClient
-                .invalidateQueries({ queryKey: ['balance'] })
-                .finally(() => setPending((p) => p && { ...p, rereads: p.rereads + 1 }))
-        }, IN_FLIGHT_REREAD_MS)
-        return () => clearTimeout(timer)
-    }, [pending, spendableUsd, queryClient])
-
     // Rhino reports one deposit per address until the status is cleared: after a short deposit the
-    // clear re-arms the poll for the rest, as RhinoDepositView does
+    // clear re-arms the poll for the rest, as RhinoDepositView does; a failed clear offers a retry
     useEffect(() => {
         if (!shortDeposit) return
-        resetStatus().catch(() => {
-            // the next transfer still books on the backend; the balance poll shows it
-        })
+        clearRefreshesBalance.current = false
+        resetStatus().catch(() => setClearFailed(true))
     }, [shortDeposit, resetStatus])
 
-    const processing = status === 'loading' || !!pending
+    const view = cardDepositView({
+        addressLoading: isLoading,
+        addressError: isError || (!isLoading && !data),
+        statusRead: isStatusRead,
+        statusError,
+        status,
+        checked: !!data && checkedFor === data.depositAddress,
+        clearing,
+        clearFailed,
+        pending: !!pending,
+        done,
+    })
+    const processing = view === 'processing'
     useEffect(() => onProcessingChange(processing), [processing, onProcessingChange])
 
-    if (isLoading || (data && (checkedFor !== data.depositAddress || clearingStale))) {
+    if (view === 'loading') {
         return (
             <div className="flex justify-center py-10">
                 <Loading variant="mascot" />
@@ -217,21 +202,25 @@ export function CardCryptoDepositView({
         )
     }
 
-    // the old outcome could not be cleared, so the poll would miss the next deposit: retry before the address
-    if (clearFailed) {
+    // the drawer cannot tell whether a deposit is on its way: no address until it can
+    if (view === 'check-failed') {
         return (
-            <div className="flex flex-col gap-4" data-testid="card-add-money-clear-failed">
-                <Callout priority="error" title={tCrypto('addressErrorTitle')}>
-                    {tCrypto('addressErrorDescription')}
+            <div className="flex flex-col gap-4" data-testid="card-add-money-check-failed">
+                <Callout priority="error" title={t('statusCheckFailedTitle')}>
+                    {t('statusCheckFailedBody')}
                 </Callout>
-                <Button variant="primary" className="w-full" onClick={() => clearStale(false)}>
+                <Button
+                    variant="primary"
+                    className="w-full"
+                    onClick={() => (clearFailed ? clearStale(clearRefreshesBalance.current) : void refetchStatus())}
+                >
                     {tCommon('retry')}
                 </Button>
             </div>
         )
     }
 
-    if (isError || !data) {
+    if (view === 'address-error' || !data) {
         return (
             <div className="flex flex-col items-center gap-4 text-center">
                 <IconBubble icon="alert" color="red" />
@@ -248,7 +237,7 @@ export function CardCryptoDepositView({
         )
     }
 
-    if (status === 'failed') {
+    if (view === 'failed') {
         return (
             <div className="flex flex-col gap-4">
                 {/* the drawer keeps what the user needs: the money comes back, and they can try again */}
@@ -268,7 +257,7 @@ export function CardCryptoDepositView({
         )
     }
 
-    // detected and settling, or reported while the balance read catches up: no second deposit invited
+    // on its way, or reported while the balance read catches up: no second deposit invited
     if (processing) {
         return (
             <div className="py-6" data-testid="card-add-money-processing">
@@ -277,7 +266,7 @@ export function CardCryptoDepositView({
         )
     }
 
-    if (done) {
+    if (view === 'done') {
         return (
             <div className="flex flex-col items-center gap-4 text-center" data-testid="card-add-money-done">
                 <IconBubble icon="check" color="green" />
@@ -330,7 +319,7 @@ export function CardCryptoDepositView({
             <Callout priority="attention" title={t('networkOnlyTitle', { network: networkLabel })}>
                 <div className="flex flex-col gap-2">
                     <p>{tCrypto('warningDescription')}</p>
-                    <SupportedTokensRow network={network} className="flex-wrap" />
+                    <SupportedTokensRow network={network} stacked />
                 </div>
             </Callout>
             {network === 'EVM' && <SupportedEvmNetworksCard />}

@@ -21,13 +21,9 @@ import {
     type CardBankPlan,
     type CardBankRow,
 } from '@/features/card/cardAddMoney'
-import { DEPOSIT_RAILS } from '@/features/deposit-accounts/rails'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
-import { useDepositAccountCopy } from '@/features/deposit-accounts/useDepositAccountCopy'
-import { useDepositAccounts } from '@/features/deposit-accounts/useDepositAccounts'
 import { markVerifySource } from '@/features/paperwork-verification/verifySource'
 import type { RhinoChainType } from '@/services/services.types'
-import { formatBankAmount } from '@/utils/currency'
 import { withReturnTo } from '@/utils/return-to.utils'
 import { CardBankDetailsView } from './CardBankDetailsView'
 import { CardBankRowsView } from './CardBankRowsView'
@@ -120,26 +116,10 @@ export function CardAddMoneyDrawer({
     }, [method, code])
     useEffect(() => onShow(method, code), [onShow, method, code])
 
-    // One heading per view. Crypto and the lists: the gap (a network minimum above it is said in the
-    // address body). One account's details: the account, named as the bank list names it, and the
-    // amount in the currency sent is said in the body.
-    const detailsCorridor =
-        view.kind === 'details'
-            ? view.corridor
-            : code === 'details' && plan.kind === 'rows'
-              ? plan.rows[0].corridor
-              : null
-    // read only for a details view (the cached read the details body also uses)
-    const { accounts } = useDepositAccounts({ enabled: !!detailsCorridor })
-    const { t: tAccounts, accountRailName } = useDepositAccountCopy()
-    const title = detailsCorridor
-        ? tAccounts('details.heading', {
-              currency: DEPOSIT_RAILS[detailsCorridor].currency,
-              rail: accountRailName(detailsCorridor, accounts[detailsCorridor]?.instructions),
-          })
-        : gapUsd
-          ? t('title', { amount: formatBankAmount(gapUsd, 'USD') })
-          : tAdd('title')
+    // One title across every step, with no amount: the body names what to send (the gap, a network
+    // minimum above it, or euros), so the two biggest amounts on screen never disagree. A status view
+    // names itself, so the title is hidden there.
+    const title = tAdd('title')
     const toNetworksFromBank = () => setView({ kind: 'networks', fromBank: true })
     const pickRow = (row: CardBankRow) => {
         captureCardAddMoneyRailPicked(row.corridor, row.kind)
@@ -194,7 +174,8 @@ export function CardAddMoneyDrawer({
                         onVerify={() => {
                             captureCardAddMoneyVerifyTapped()
                             markVerifySource('card')
-                            router.push('/verify')
+                            // option B (Kush): the check ends back on this step
+                            router.push(withReturnTo('/verify', CARD_FUNDING_RETURN_TO))
                         }}
                         onFinishSetup={() =>
                             router.push(withReturnTo('/add-money?method=bank', CARD_FUNDING_RETURN_TO))

@@ -2251,7 +2251,6 @@
             "unavailable": "Não foi possível carregar a etapa de endereço. Tente novamente."
         },
         "addMoney": {
-            "title": "Adicionar {amount}",
             "pickNetwork": "Escolha a rede de onde você envia. Se enviar de uma exchange, escolha a rede em que você saca lá.",
             "depositAddress": "Endereço de depósito em {network}",
             "networkOnlyTitle": "Enviar só em {network}",
@@ -2274,10 +2273,10 @@
             "useCryptoNoAmount": "Adicionar dinheiro com cripto",
             "useCryptoInstead": "Prefiro adicionar dinheiro com cripto",
             "notOfferedTitle": "Transferência bancária não disponível",
-            "notOfferedSupportMessage": "Oi! Não consigo adicionar dinheiro por transferência bancária para o meu cartão. Vocês podem verificar o motivo?",
-            "notOfferedBody": "Não podemos oferecer transferências bancárias para você. O suporte pode verificar o motivo.",
             "bankSentPending": "Sua transferência de {amount} está a caminho. Avisamos quando chegar.",
-            "bankSentPendingNoAmount": "Sua transferência está a caminho. Avisamos quando chegar."
+            "bankSentPendingNoAmount": "Sua transferência está a caminho. Avisamos quando chegar.",
+            "statusCheckFailedTitle": "Não conseguimos verificar este endereço",
+            "statusCheckFailedBody": "Pode haver um depósito a caminho. Tente de novo antes de enviar."
         }
     },
     "addMoney": {
