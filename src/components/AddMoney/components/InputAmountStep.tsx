@@ -26,7 +26,7 @@ interface InputAmountStepProps {
     error: string | null
     // client-side amount validation — renders as the field's own error under the input
     validationError?: string | null
-    setCurrencyAmount: (amount: string | undefined) => void
+    setCurrencyAmount?: (amount: string | undefined) => void
     currencyData?: ICurrency
     setCurrentDenomination?: (denomination: string) => void
     initialDenomination?: string
@@ -117,7 +117,7 @@ const InputAmountStep = ({
                         <AmountInput
                             initialAmount={tokenAmount}
                             initialDenomination={initialDenomination}
-                            setPrimaryAmount={setCurrencyAmount}
+                            setPrimaryAmount={(value) => setCurrencyAmount?.(value)}
                             setSecondaryAmount={setTokenAmount}
                             setDisplayedAmount={setDisplayedAmount}
                             secondaryDenomination={{ symbol: 'USD', price: 1, decimals: 2 }}
