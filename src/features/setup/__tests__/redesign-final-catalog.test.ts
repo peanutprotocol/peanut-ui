@@ -21,7 +21,6 @@ const P4_KEYS: Record<string, string[]> = {
         'invalid',
         'taken',
         'logIn',
-        'deferred',
         'suggest',
         'recover',
         'saveFailed',

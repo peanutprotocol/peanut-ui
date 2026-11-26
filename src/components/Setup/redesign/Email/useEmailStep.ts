@@ -24,17 +24,16 @@ import {
 } from '@/utils/webauthn.utils'
 
 /**
- * What the field shows besides the value: a wrong address, one an established account holds (`taken`), one a
- * not-established account holds (`deferred`: KYC moves it later), a failed save, an account still loading.
+ * What the field shows besides the value: a wrong address, one another account holds (`taken`), a failed save,
+ * an account still loading.
  */
-export type EmailMode = 'edit' | 'invalid' | 'taken' | 'deferred' | 'failed' | 'not-ready'
+export type EmailMode = 'edit' | 'invalid' | 'taken' | 'failed' | 'not-ready'
 
 export type EmailState =
     | 'default'
     | 'filled'
     | 'invalid'
     | 'already-registered'
-    | 'deferred'
     | 'save-failed'
     | 'saving'
     | 'not-ready'
@@ -73,17 +72,15 @@ export function useEmailStep() {
           ? 'kept-current'
           : mode === 'taken'
             ? 'already-registered'
-            : mode === 'deferred'
-              ? 'deferred'
-              : mode === 'failed'
-                ? 'save-failed'
-                : mode === 'invalid'
-                  ? 'invalid'
-                  : mode === 'not-ready'
-                    ? 'not-ready'
-                    : valid
-                      ? 'filled'
-                      : 'default'
+            : mode === 'failed'
+              ? 'save-failed'
+              : mode === 'invalid'
+                ? 'invalid'
+                : mode === 'not-ready'
+                  ? 'not-ready'
+                  : valid
+                    ? 'filled'
+                    : 'default'
 
     const change = (value: string) => {
         trackOnce('email', 'change')
@@ -141,21 +138,6 @@ export function useEmailStep() {
         }
         track('continue', 'tap')
         trackError('email', null)
-        if (mode === 'deferred') {
-            // Not saved: another account holds it. The person enters it again at KYC, where the reclaim moves it
-            // once Sumsub has verified the inbox; nothing carries it there unverified.
-            savingRef.current = true
-            setSaving(true)
-            try {
-                await handleNext()
-            } catch (navigationError) {
-                captureException(navigationError)
-            } finally {
-                savingRef.current = false
-                setSaving(false)
-            }
-            return
-        }
         setMode('edit')
         if (!user?.user.userId) {
             setMode('not-ready')
@@ -179,11 +161,10 @@ export function useEmailStep() {
                 }))
                 if (result.error) {
                     const code = 'code' in result ? result.code : undefined
-                    // Only EMAIL_ON_DORMANT_ACCOUNT lets sign-up go on. EMAIL_IN_USE, or the text alone, is an older API
-                    // that cannot tell holders apart, so it is the taken state: never defer an established holder's email.
-                    const deferrable = code === 'EMAIL_ON_DORMANT_ACCOUNT'
+                    // Every holder is the taken state, a dormant one too: sign-up never finishes without a saved
+                    // email (TASK-25379). EMAIL_IN_USE, or the text alone, is an older API that cannot tell holders apart.
                     const duplicate =
-                        deferrable ||
+                        code === 'EMAIL_ON_DORMANT_ACCOUNT' ||
                         code === 'EMAIL_ON_ACTIVE_ACCOUNT' ||
                         code === 'EMAIL_IN_USE' ||
                         result.error === 'This email is already associated with another account'
@@ -219,8 +200,8 @@ export function useEmailStep() {
                         trackError('email', protectedFailure)
                         return
                     }
-                    setMode(deferrable ? 'deferred' : duplicate ? 'taken' : 'failed')
-                    trackError('email', deferrable ? 'deferred' : duplicate ? 'already_registered' : 'save_failed')
+                    setMode(duplicate ? 'taken' : 'failed')
+                    trackError('email', duplicate ? 'already_registered' : 'save_failed')
                     return
                 }
                 // Profile and KYC read this shared account cache. Reflect the acknowledged write even if the

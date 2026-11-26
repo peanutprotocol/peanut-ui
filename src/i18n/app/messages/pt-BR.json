@@ -1308,7 +1308,6 @@
             "note": "Você pode desativar novidades e ofertas quando quiser.",
             "invalid": "Digite um e-mail válido.",
             "taken": "Esse e-mail já tem uma conta no Peanut.",
-            "deferred": "Informe este e-mail de novo quando verificar sua identidade.",
             "suggest": "Você quis dizer {a}?",
             "logIn": "Entrar nessa conta",
             "recover": "Recuperar minha conta",
