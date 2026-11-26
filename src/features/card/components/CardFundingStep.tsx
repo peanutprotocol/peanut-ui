@@ -173,7 +173,9 @@ export function CardFundingStep({
             title={tAdd('methods.bankTransfer')}
             body={tAdd('methods.bankTransferDescription')}
             bodyWrap
-            leading={<IconBubble {...CONCEPT_ICONS.bank} {...(bankOffered ? {} : { color: 'gray' })} size="s" />}
+            // the bank concept keeps its blue in every state (design.md icon bubble colour: a call site never
+            // overrides a concept's colour); the disabled fill, title colour and badge say the state
+            leading={<IconBubble {...CONCEPT_ICONS.bank} size="s" />}
             trailing={bankBadge}
             chevron={!bankBlocked}
             disabled={bankBlocked}
