@@ -29,17 +29,20 @@ export function CardBankStatusView({
     onUseCrypto,
     onVerify,
     onFinishSetup,
+    onChangeResidence,
 }: {
     status: CardBankStatus
     gapUsd: number | undefined
     onUseCrypto: () => void
     onVerify: () => void
     onFinishSetup: () => void
+    onChangeResidence: () => void
 }) {
     const t = useTranslations('card.addMoney')
     const tKyc = useTranslations('kyc.paperworkVerification')
     const tGate = useTranslations('depositAccounts.gate')
     const tAccounts = useTranslations('profile.unlockPayments')
+    const tDeposit = useTranslations('depositAccounts')
     const tCommon = useTranslations('common')
     const restrictions = useResidenceRestrictions()
     const { openSupportWithMessage } = useModalsContext()
@@ -109,7 +112,8 @@ export function CardBankStatusView({
                         </>
                     ),
                 }
-            // a residence rule is no one's to change here; any other refusal support can check
+            // a residence rule changes only with a move, so the residence is the one fix offered; any
+            // other refusal support can check (design.md "rows the user cannot act on")
             case 'not-offered':
                 return {
                     icon: <IconBubble {...CONCEPT_ICONS.bank} />,
@@ -118,6 +122,12 @@ export function CardBankStatusView({
                     actions: (
                         <>
                             {cryptoPrimary}
+                            {restrictions.banking &&
+                                tertiary(
+                                    tDeposit('details.residenceCta'),
+                                    onChangeResidence,
+                                    'card-add-money-residence'
+                                )}
                             {!restrictions.banking &&
                                 tertiary(tCommon('contactSupport'), () =>
                                     // the user's own words, then a context block in English for the agent

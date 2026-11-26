@@ -2608,12 +2608,15 @@ const CARD_ADD_MONEY_FIXTURES: Record<string, Fixture> = {
         { balance: '0', responses: { 'POST /rhino/deposit': { minDepositLimitUsd: 5 } } }
     ),
     'card-add-money-crypto-short': cardAddMoney(
-        'Card $10 step, crypto: a $4 deposit arrives below the $10 ask; the balance reads $7.20 after it (wait ~15 s).',
+        'Card $10 step, crypto: a $4 deposit arrives below the $6.80 gap ($1 network minimum, so Rhino credits it); the balance reads $7.20 after it (wait ~15 s).',
         CARD_US_USER,
         {},
         {
             balanceAfterDeposit: '7.20',
-            responses: { [RHINO_STATUS]: { status: 'completed', amount: 4 } },
+            responses: {
+                'POST /rhino/deposit': { minDepositLimitUsd: 1 },
+                [RHINO_STATUS]: { status: 'completed', amount: 4 },
+            },
             // the status always answers completed, so a successful clear would read the same deposit again
             fails: [RHINO_RESET],
         }

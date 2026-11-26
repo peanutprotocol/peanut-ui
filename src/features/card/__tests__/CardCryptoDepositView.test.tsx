@@ -75,6 +75,7 @@ beforeEach(() => {
 
 type Props = { network: RhinoChainType; gapUsd: number | undefined; spendableUsd: number | undefined }
 const onDone = jest.fn()
+const onProcessingChange = jest.fn()
 
 function renderView(initial: Partial<Props> = {}) {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -84,12 +85,14 @@ function renderView(initial: Partial<Props> = {}) {
         </QueryClientProvider>
     )
     let props: Props = { network: 'TRON', gapUsd: 7.5, spendableUsd: 2.5, ...initial }
-    const view = render(<CardCryptoDepositView {...props} onDone={onDone} />, { wrapper })
+    const view = render(<CardCryptoDepositView {...props} onDone={onDone} onProcessingChange={onProcessingChange} />, {
+        wrapper,
+    })
     return {
         ...view,
         rerenderWith: (next: Partial<Props>) => {
             props = { ...props, ...next }
-            view.rerender(<CardCryptoDepositView {...props} onDone={onDone} />)
+            view.rerender(<CardCryptoDepositView {...props} onDone={onDone} onProcessingChange={onProcessingChange} />)
         },
     }
 }
@@ -147,19 +150,18 @@ describe('the first status read', () => {
 })
 
 describe('a short deposit', () => {
-    it('says what was received and asks one amount: the new ask, raised to the minimum', async () => {
+    it('says what came in and what is still missing, and that the minimum still applies', async () => {
         const { rerenderWith } = renderView()
         await screen.findByTestId('card-add-money-address')
         await act(async () => pollOnSuccess?.(4))
         await act(async () => rerenderWith({ spendableUsd: 6.5, gapUsd: 3.5 }))
-        expect(screen.getByTestId('card-add-money-short')).toHaveTextContent('partialContribution.title($4|$7.50)')
-        const ask = screen.getByTestId('card-add-money-ask')
+        const short = screen.getByTestId('card-add-money-short')
+        expect(short).toHaveTextContent('shortReceived($4)')
+        expect(short).toHaveTextContent('partialContribution.description($3.50)')
         // $3.50 is the rest, below the $5 minimum: the ask is $5 and the note says the extra stays
+        const ask = screen.getByTestId('card-add-money-ask')
         expect(ask).toHaveTextContent('sendAsk($5)')
         expect(ask).toHaveTextContent('raisedToMinimum(Tron|$5|$1.50)')
-        // no second, different "send" amount anywhere
-        expect(document.body.textContent).not.toContain('$3.50')
-        expect(screen.queryByText(/partialContribution\.description/)).not.toBeInTheDocument()
         expect(mockResetStatus).toHaveBeenCalled()
     })
 
@@ -209,7 +211,8 @@ describe('after a full deposit', () => {
         await act(async () => pollOnSuccess?.(7.5))
         // a fee was taken on the way: the balance read lands $1 short of the minimum
         await act(async () => rerenderWith({ spendableUsd: 9, gapUsd: 1 }))
-        expect(screen.getByTestId('card-add-money-short')).toHaveTextContent('partialContribution.title($6.50|$7.50)')
+        expect(screen.getByTestId('card-add-money-short')).toHaveTextContent('shortReceived($6.50)')
+        expect(screen.getByTestId('card-add-money-short')).toHaveTextContent('partialContribution.description($1)')
         expect(screen.getByTestId('card-add-money-ask')).toHaveTextContent('sendAsk($5)')
     })
 
@@ -255,7 +258,7 @@ describe('deposits and balance reads in either order (review of fix round 1)', (
         await act(async () => pollOnSuccess?.(4))
         expect(screen.getByTestId('card-add-money-processing')).toBeInTheDocument()
         await act(async () => rerenderWith({ spendableUsd: 7.2, gapUsd: 2.8 }))
-        expect(screen.getByText('partialContribution.title($4|$6.80)')).toBeInTheDocument()
+        expect(screen.getByText('shortReceived($4)')).toBeInTheDocument()
         expect(screen.getByText('sendAsk($2.80)')).toBeInTheDocument()
         // the rest is reported before its balance read: processing, not the address and a stale notice
         await act(async () => pollOnSuccess?.(2.8))
@@ -265,19 +268,56 @@ describe('deposits and balance reads in either order (review of fix round 1)', (
         expect(screen.getByTestId('card-add-money-done')).toBeInTheDocument()
     })
 
-    it('resolves a deposit already on its way at open after one fresh balance read', async () => {
-        pollStatus = 'loading'
-        const { rerenderWith } = renderView({ gapUsd: 2.8, spendableUsd: 7.2 })
-        await screen.findByTestId('card-add-money-processing')
-        pollStatus = 'not_started'
-        await act(async () => pollOnSuccess?.(6))
-        await act(async () => rerenderWith({}))
-        // the money was already in the balance: the live gap names the rest, no stuck processing
-        await waitFor(() => expect(screen.queryByTestId('card-add-money-processing')).not.toBeInTheDocument())
-        expect(screen.getByText('sendAsk($5)')).toBeInTheDocument()
+    it('never offers the address for a deposit in flight at open while the balance read is stale', async () => {
+        jest.useFakeTimers()
+        try {
+            pollStatus = 'loading'
+            const { rerenderWith } = renderView({ gapUsd: 20, spendableUsd: 0 })
+            await screen.findByTestId('card-add-money-processing')
+            pollStatus = 'not_started'
+            await act(async () => pollOnSuccess?.(10))
+            // the refresh came back with the old balance: still processing, re-read, no QR
+            for (let i = 0; i < 3; i++) await act(async () => void jest.advanceTimersByTime(5000))
+            expect(screen.getByTestId('card-add-money-processing')).toBeInTheDocument()
+            expect(screen.queryByTestId('qr')).not.toBeInTheDocument()
+            // a later read shows the $10: the rest is named against the balance at open
+            await act(async () => rerenderWith({ spendableUsd: 10, gapUsd: 10 }))
+            expect(screen.getByTestId('card-add-money-short')).toHaveTextContent('shortReceived($10)')
+            expect(screen.getByTestId('card-add-money-short')).toHaveTextContent('partialContribution.description($10)')
+        } finally {
+            jest.useRealTimers()
+        }
     })
 
-    it('keeps the ask the user sent against when the balance shows the money before the status completes', async () => {
+    it('counts a deposit in flight at open as already in once re-reads never see the balance rise', async () => {
+        jest.useFakeTimers()
+        try {
+            pollStatus = 'loading'
+            renderView({ gapUsd: 2.8, spendableUsd: 7.2 })
+            await screen.findByTestId('card-add-money-processing')
+            pollStatus = 'not_started'
+            await act(async () => pollOnSuccess?.(6))
+            for (let i = 0; i < 8; i++) await act(async () => void jest.advanceTimersByTime(5000))
+            // the money was in the balance before the drawer read it: no stuck processing
+            expect(screen.queryByTestId('card-add-money-processing')).not.toBeInTheDocument()
+            expect(screen.getByTestId('card-add-money-short')).toHaveTextContent('shortReceived($6)')
+            expect(screen.getByText('sendAsk($5)')).toBeInTheDocument()
+        } finally {
+            jest.useRealTimers()
+        }
+    })
+
+    it('tells the drawer while a deposit settles, so it can hide its back', async () => {
+        const { rerenderWith } = renderView()
+        await screen.findByTestId('card-add-money-address')
+        expect(onProcessingChange).toHaveBeenLastCalledWith(false)
+        await act(async () => pollOnSuccess?.(7.5))
+        expect(onProcessingChange).toHaveBeenLastCalledWith(true)
+        await act(async () => rerenderWith({ spendableUsd: 10, gapUsd: 0 }))
+        expect(onProcessingChange).toHaveBeenLastCalledWith(false)
+    })
+
+    it('measures a deposit from where the balance stood, even when the balance shows it before the status', async () => {
         mockCreateDepositAddress.mockResolvedValue({ depositAddress: ADDRESS, minDepositLimitUsd: 1 })
         const { rerenderWith } = renderView({ gapUsd: 6.8, spendableUsd: 3.2 })
         await screen.findByTestId('card-add-money-address')
@@ -288,7 +328,8 @@ describe('deposits and balance reads in either order (review of fix round 1)', (
         pollStatus = 'completed'
         await act(async () => pollOnSuccess?.(5))
         await act(async () => rerenderWith({}))
-        expect(screen.getByTestId('card-add-money-short')).toHaveTextContent('partialContribution.title($5|$6.80)')
+        expect(screen.getByTestId('card-add-money-short')).toHaveTextContent('shortReceived($5)')
+        expect(screen.getByTestId('card-add-money-short')).toHaveTextContent('partialContribution.description($1.80)')
         expect(screen.getByText('sendAsk($1.80)')).toBeInTheDocument()
     })
 

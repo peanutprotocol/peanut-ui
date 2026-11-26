@@ -89,26 +89,28 @@ export function CardFundingStep({
         setOpen(false)
     }
 
-    // "I've sent the transfer": the step says the money is on its way until the balance rises past
-    // where it was (it landed, even short) or covers the minimum. Session storage keeps it through a
-    // refresh; saving the step server-side is bank resume. A non-dollar transfer is not named in dollars.
-    const sentKey = `card_gate_bank_sent_v2:${userId}`
-    const [sent, setSent] = useState<{ usd: number | null; from: number } | undefined>(() => {
+    // "I've sent the transfer": the step says the money is on its way until the balance covers the gap
+    // it was sent for (`need`, over the balance `from` when it was sent), or the step is funded. Another
+    // deposit that lands meanwhile does not clear it. Session storage keeps it through a refresh; saving
+    // the step server-side is bank resume. A non-dollar transfer is not named in dollars.
+    const sentKey = `card_gate_bank_sent_v3:${userId}`
+    const [sent, setSent] = useState<{ usd: number | null; from: number; need: number } | undefined>(() => {
         try {
             const stored = JSON.parse(readStoredValue(sentKey, 'sessionStorage') ?? 'null')
-            return typeof stored?.from === 'number' ? stored : undefined
+            return typeof stored?.from === 'number' && typeof stored?.need === 'number' ? stored : undefined
         } catch {
             return undefined
         }
     })
     const bankSent = (inDollars: boolean) => {
         dismiss()
-        if (spendableUsd === undefined) return
-        const next = { usd: inDollars && gapUsd ? gapUsd : null, from: spendableUsd }
+        if (spendableUsd === undefined || !gapUsd) return
+        const next = { usd: inDollars ? gapUsd : null, from: spendableUsd, need: gapUsd }
         setSent(next)
         writeStoredValue(sentKey, JSON.stringify(next), 'sessionStorage')
     }
-    const sentLanded = !!sent && (funded || (spendableUsd !== undefined && spendableUsd > sent.from + 0.005))
+    const sentLanded =
+        !!sent && (funded || (spendableUsd !== undefined && spendableUsd >= sent.from + sent.need - 0.005))
     useEffect(() => {
         if (!sentLanded) return
         setSent(undefined)
@@ -135,16 +137,24 @@ export function CardFundingStep({
         onContinue()
     }, [funded, open, onContinue])
 
-    // a bank way not offered stays, last, and its tap says why (design.md "rows the user cannot act on")
+    // design.md "rows the user cannot act on": a bank way blocked on the user or a reviewer says so in
+    // its badge; one not offered stays, sorts last, and its tap says why
     const bankOffered = plan.kind !== 'not-offered'
+    const bankBadge =
+        plan.kind === 'not-offered' ? (
+            <Badge status="neutral" customText={tAccounts('list.badgeNotOffered')} />
+        ) : plan.kind === 'not-verified' ? (
+            <Badge status="pending" customText={tAccounts('list.badgeVerifyId')} />
+        ) : plan.kind === 'under-review' ? (
+            <Badge status="pending" customText={tAccounts('list.badgeUnderReview')} />
+        ) : undefined
     const bankRow = (
         <ListItem
             title={tAdd('methods.bankTransfer')}
             body={tAdd('methods.bankTransferDescription')}
+            bodyWrap
             leading={<IconBubble {...CONCEPT_ICONS.bank} size="s" />}
-            trailing={
-                bankOffered ? undefined : <Badge status="neutral" customText={tAccounts('list.badgeNotOffered')} />
-            }
+            trailing={bankBadge}
             chevron
             onClick={() => pickMethod('bank')}
             data-testid="card-add-money-bank"

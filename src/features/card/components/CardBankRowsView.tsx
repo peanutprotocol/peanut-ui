@@ -9,11 +9,16 @@ import type { CardBankRow } from '@/features/card/cardAddMoney'
 import { CorridorFlag } from '@/features/deposit-accounts/components/CorridorFlag'
 import { DEPOSIT_RAILS } from '@/features/deposit-accounts/rails'
 import { useDepositAccountCopy } from '@/features/deposit-accounts/useDepositAccountCopy'
+import { useDepositAccounts } from '@/features/deposit-accounts/useDepositAccounts'
 
-/** The bank ways ready now, titled as the Add money picker and options title them. */
+/**
+ * The bank ways ready now, titled as the Add money picker and options title them. A held account
+ * names its own rails, the same name its details title shows.
+ */
 export function CardBankRowsView({ rows, onPick }: { rows: CardBankRow[]; onPick: (row: CardBankRow) => void }) {
     const tMethods = useTranslations('addMoney.methods')
-    const { railName } = useDepositAccountCopy()
+    const { accountRailName } = useDepositAccountCopy()
+    const { accounts } = useDepositAccounts()
     return (
         <ListGroup>
             {rows.map((row) => {
@@ -26,7 +31,7 @@ export function CardBankRowsView({ rows, onPick }: { rows: CardBankRow[]; onPick
                         title={pix ? tMethods('pix') : rail.currency}
                         body={
                             row.kind === 'account'
-                                ? railName(row.corridor)
+                                ? accountRailName(row.corridor, accounts[row.corridor]?.instructions)
                                 : pix
                                   ? tMethods('pixDetails')
                                   : row.corridor === 'BANK_TRANSFER_AR'

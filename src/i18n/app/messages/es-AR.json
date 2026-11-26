@@ -1310,7 +1310,6 @@
             "openAccount": "Abrir una cuenta bancaria",
             "oneTimeTransfer": "Transferencia bancaria única",
             "cryptoDescription": "Depositá desde una billetera o exchange",
-            "bankTransferDescription": "Datos bancarios reutilizables para cobrar",
             "pix": "Pix",
             "pixDescription": "Transferencias instantáneas en reales"
         },

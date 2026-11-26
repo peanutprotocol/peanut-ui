@@ -21,7 +21,10 @@ import {
     type CardBankPlan,
     type CardBankRow,
 } from '@/features/card/cardAddMoney'
+import { DEPOSIT_RAILS } from '@/features/deposit-accounts/rails'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
+import { useDepositAccountCopy } from '@/features/deposit-accounts/useDepositAccountCopy'
+import { useDepositAccounts } from '@/features/deposit-accounts/useDepositAccounts'
 import { markVerifySource } from '@/features/paperwork-verification/verifySource'
 import type { RhinoChainType } from '@/services/services.types'
 import { formatBankAmount } from '@/utils/currency'
@@ -102,6 +105,7 @@ export function CardAddMoneyDrawer({
     const tAdd = useTranslations('addMoney')
     const router = useRouter()
     const [view, setView] = useState<DrawerView>(openedWith === 'crypto' ? { kind: 'networks' } : { kind: 'bank' })
+    const [processing, setProcessing] = useState(false)
 
     const code: CardAddMoneyView =
         view.kind === 'bank' ? bankView(plan) : view.kind === 'details' ? 'details' : view.kind
@@ -116,8 +120,25 @@ export function CardAddMoneyDrawer({
     }, [method, code])
     useEffect(() => onShow(method, code), [onShow, method, code])
 
-    // one amount everywhere: the title is the gap; a network minimum above it is said in the address body
-    const title = gapUsd ? t('title', { amount: formatBankAmount(gapUsd, 'USD') }) : tAdd('title')
+    // One heading per view. Crypto and the lists: the gap (a network minimum above it is said in the
+    // address body). One account's details: the account, named as the bank list names it, and the
+    // amount in the currency sent is said in the body.
+    const { accounts } = useDepositAccounts()
+    const { t: tAccounts, accountRailName } = useDepositAccountCopy()
+    const detailsCorridor =
+        view.kind === 'details'
+            ? view.corridor
+            : code === 'details' && plan.kind === 'rows'
+              ? plan.rows[0].corridor
+              : null
+    const title = detailsCorridor
+        ? tAccounts('details.heading', {
+              currency: DEPOSIT_RAILS[detailsCorridor].currency,
+              rail: accountRailName(detailsCorridor, accounts[detailsCorridor]?.instructions),
+          })
+        : gapUsd
+          ? t('title', { amount: formatBankAmount(gapUsd, 'USD') })
+          : tAdd('title')
     const toNetworksFromBank = () => setView({ kind: 'networks', fromBank: true })
     const pickRow = (row: CardBankRow) => {
         captureCardAddMoneyRailPicked(row.corridor, row.kind)
@@ -133,6 +154,7 @@ export function CardAddMoneyDrawer({
                     gapUsd={gapUsd}
                     spendableUsd={spendableUsd}
                     onDone={onDismiss}
+                    onProcessingChange={setProcessing}
                 />
             )
         if (view.kind === 'details')
@@ -176,6 +198,9 @@ export function CardAddMoneyDrawer({
                         onFinishSetup={() =>
                             router.push(withReturnTo('/add-money?method=bank', CARD_FUNDING_RETURN_TO))
                         }
+                        onChangeResidence={() =>
+                            router.push(withReturnTo('/settings/details?open=residence', CARD_FUNDING_RETURN_TO))
+                        }
                     />
                 )
             default:
@@ -190,8 +215,10 @@ export function CardAddMoneyDrawer({
     // a sub-view drills in from a list, so it gets the back control; a root view gets the title
     const subView = view.kind === 'address' || view.kind === 'details' || (view.kind === 'networks' && !!view.fromBank)
     const back = () => {
-        if (view.kind === 'address') setView({ kind: 'networks', fromBank: view.fromBank })
-        else setView({ kind: 'bank' })
+        if (view.kind === 'address') {
+            setProcessing(false)
+            setView({ kind: 'networks', fromBank: view.fromBank })
+        } else setView({ kind: 'bank' })
     }
     // a status names itself in its own heading: the drawer title above it would be a second one
     const statusView = view.kind === 'bank' && STATUS_VIEWS.has(code)
@@ -204,7 +231,12 @@ export function CardAddMoneyDrawer({
             >
                 <div className="flex flex-col gap-4">
                     {subView ? (
-                        <NavHeader title={title} onPrev={back} hideMaintenanceBanner />
+                        <NavHeader
+                            title={title}
+                            onPrev={back}
+                            hideBackBtn={view.kind === 'address' && processing}
+                            hideMaintenanceBanner
+                        />
                     ) : statusView ? null : (
                         <DrawerTitle className="text-center text-heading-s text-foreground-primary">
                             {title}

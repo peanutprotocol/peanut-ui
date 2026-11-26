@@ -27,10 +27,10 @@ jest.mock('framer-motion', () => ({ useReducedMotion: () => true }))
 jest.mock('@/hooks/useAppHaptic', () => ({ useAppHaptic: () => ({ triggerHaptic: jest.fn() }) }))
 jest.mock('@/components/Global/NavHeader', () => ({
     __esModule: true,
-    default: ({ title, onPrev }: { title?: string; onPrev?: () => void }) => (
+    default: ({ title, onPrev, hideBackBtn }: { title?: string; onPrev?: () => void; hideBackBtn?: boolean }) => (
         <div>
             {title && <span>{title}</span>}
-            {onPrev && <button onClick={onPrev}>back</button>}
+            {onPrev && !hideBackBtn && <button onClick={onPrev}>back</button>}
         </div>
     ),
 }))
@@ -94,8 +94,9 @@ jest.mock('@/features/deposit-accounts/useDepositAccounts', () => ({
 }))
 // account-currency units per dollar from the client rate feed; 0 is the hook's "no rate"
 let usdRate = 0.92
+let rateLoading = false
 jest.mock('@/hooks/useExchangeRate', () => ({
-    useExchangeRate: () => ({ exchangeRate: usdRate, isLoading: false, isError: usdRate === 0 }),
+    useExchangeRate: () => ({ exchangeRate: usdRate, isLoading: rateLoading, isError: usdRate === 0 }),
 }))
 
 beforeAll(() => {
@@ -197,7 +198,10 @@ describe('funding step', () => {
         renderFunding()
         fireEvent.click(screen.getByTestId(testId))
         expect(drawer()).toBeInTheDocument()
-        expect(within(drawer()).getByText('title($7.50)')).toBeInTheDocument()
+        // crypto opens on the gap; the one held account opens on its own name, with the amount in the body
+        expect(
+            within(drawer()).getByText(method === 'crypto' ? 'title($7.50)' : /^details\.heading\(USD/)
+        ).toBeInTheDocument()
         expect(mockPush).not.toHaveBeenCalled()
         expect(mockCapture).toHaveBeenCalledWith(ANALYTICS_EVENTS.CARD_GATE_ADD_FUNDS_TAPPED, {
             step: 'funding',
@@ -447,9 +451,10 @@ describe('crypto views', () => {
         expect(within(drawer()).getByTestId('card-add-money-processing')).toBeInTheDocument()
         await act(async () => rerenderWith({ spendableUsd: 6.5 }))
         const short = within(drawer()).getByTestId('card-add-money-short')
-        expect(short).toHaveTextContent('partialContribution.title($4|$7.50)')
-        // $3.50 is still missing, but the network takes at least $5: the ask is the one send amount
-        expect(within(drawer()).queryByText(/partialContribution\.description/)).not.toBeInTheDocument()
+        // what came in, and what is still missing
+        expect(short).toHaveTextContent('shortReceived($4)')
+        expect(short).toHaveTextContent('partialContribution.description($3.50)')
+        // the network takes at least $5, so the ask says so and that the extra stays in the balance
         const ask = within(drawer()).getByTestId('card-add-money-ask')
         expect(ask).toHaveTextContent('sendAsk($5)')
         expect(ask).toHaveTextContent('raisedToMinimum(Tron|$5|$1.50)')
@@ -474,7 +479,8 @@ describe('crypto views', () => {
         // a fee was taken on the way: the balance read lands $1 short of the minimum
         await act(async () => rerenderWith({ spendableUsd: 9 }))
         const short = within(drawer()).getByTestId('card-add-money-short')
-        expect(short).toHaveTextContent('partialContribution.title($6.50|$7.50)')
+        expect(short).toHaveTextContent('shortReceived($6.50)')
+        expect(short).toHaveTextContent('partialContribution.description($1)')
         expect(within(drawer()).getByTestId('card-add-money-ask')).toHaveTextContent('sendAsk($5)')
     })
 
@@ -666,13 +672,91 @@ describe('one amount, one heading, no dead ends', () => {
         await waitFor(() => expect(screen.queryByText('bankSentPending($7.50)')).not.toBeInTheDocument())
     })
 
-    it('drops the pending line once the transfer lands, even short of the minimum', async () => {
+    it('keeps the pending line through a smaller deposit and drops it once the gap is covered', async () => {
         readiness = { ...readiness, ready: { ...noneReady, account: ['USD'] } }
         const { rerenderWith } = renderFunding()
         fireEvent.click(screen.getByTestId('card-add-money-bank'))
         fireEvent.click(within(drawer()).getByText('sentTransfer'))
         expect(await screen.findByText('bankSentPending($7.50)')).toBeInTheDocument()
-        rerenderWith({ spendableUsd: 9.5 })
+        // another $1 lands meanwhile: the $7.50 transfer is still on its way
+        rerenderWith({ spendableUsd: 3.5 })
+        expect(screen.getByTestId('card-add-money-bank-sent')).toBeInTheDocument()
+        rerenderWith({ spendableUsd: 10 })
         await waitFor(() => expect(screen.queryByTestId('card-add-money-bank-sent')).not.toBeInTheDocument())
+    })
+})
+
+// laptop verification round 2 of #4279
+describe('round 2: badges, one heading on details, the residence fix, no back while settling', () => {
+    beforeEach(() => {
+        mockBankingRestricted = false
+        rateLoading = false
+    })
+
+    it.each([
+        ['needs-identity', 'list.badgeVerifyId'],
+        ['waiting-on-provider', 'list.badgeUnderReview'],
+    ] as const)('badges a bank row blocked by %s', (kind, badge) => {
+        readiness = {
+            ...readiness,
+            topUpGates: gates('blocked-rejection', {
+                ACH_US: kind === 'needs-identity' ? { kind } : { kind, userMessage: null },
+            }),
+        }
+        renderFunding()
+        expect(within(screen.getByTestId('card-add-money-bank')).getByText(badge)).toBeInTheDocument()
+    })
+
+    it('badges nothing on a bank row the user can use', () => {
+        readiness = { ...readiness, ready: { ...noneReady, account: ['USD'] } }
+        renderFunding()
+        expect(within(screen.getByTestId('card-add-money-bank')).queryByText(/^list\.badge/)).not.toBeInTheDocument()
+    })
+
+    it('offers the residence as the fix when a residence rule blocks bank, and support otherwise', () => {
+        mockBankingRestricted = true
+        renderFunding()
+        fireEvent.click(screen.getByTestId('card-add-money-bank'))
+        fireEvent.click(within(drawer()).getByTestId('card-add-money-residence'))
+        expect(mockPush).toHaveBeenCalledWith(expect.stringMatching(/^\/settings\/details\?open=residence&returnTo=/))
+        expect(within(drawer()).queryByText('contactSupport')).not.toBeInTheDocument()
+    })
+
+    it('names the account once on its details and says the dollar amount in the body', () => {
+        depositAccounts = { ACH_US: ACH_ACCOUNT }
+        readiness = { ...readiness, ready: { ...noneReady, account: ['USD'] } }
+        renderFunding()
+        fireEvent.click(screen.getByTestId('card-add-money-bank'))
+        expect(within(drawer()).getAllByText(/^details\.heading\(USD/)).toHaveLength(1)
+        expect(within(drawer()).queryByText('title($7.50)')).not.toBeInTheDocument()
+        expect(within(drawer()).getByTestId('card-add-money-bank-amount')).toHaveTextContent('sendAsk($7.50)')
+    })
+
+    it('puts no dollar amount on a euro transfer and holds the euro line while the rate loads', () => {
+        rateLoading = true
+        depositAccounts = {
+            SEPA_EU: {
+                railId: 'bridge:eur:sepa',
+                status: 'active',
+                matching: { nameOnAccount: 'user', sender: 'anyone' },
+                instructions: { iban: 'DE89370400440532013000', bic: 'COBADEFFXXX', paymentRails: ['sepa'] },
+            },
+        }
+        readiness = { ...readiness, residenceIso2s: ['DE'], ready: { ...noneReady, account: ['EUR'] } }
+        renderFunding()
+        fireEvent.click(screen.getByTestId('card-add-money-bank'))
+        expect(within(drawer()).queryByText(/\$7\.50/)).not.toBeInTheDocument()
+        expect(within(drawer()).getByTestId('card-add-money-bank-amount')).toHaveTextContent('sendAbout(…)')
+    })
+
+    it('hides the back while a deposit settles', async () => {
+        renderFunding()
+        fireEvent.click(screen.getByTestId('card-add-money-crypto'))
+        fireEvent.click(within(drawer()).getByTestId('choose-network-tron'))
+        await within(drawer()).findByTestId('card-add-money-address')
+        expect(within(drawer()).getByText('back')).toBeInTheDocument()
+        await act(async () => pollOnSuccess?.(7.5))
+        expect(within(drawer()).getByTestId('card-add-money-processing')).toBeInTheDocument()
+        expect(within(drawer()).queryByText('back')).not.toBeInTheDocument()
     })
 })

@@ -26,6 +26,11 @@ jest.mock('@/features/add-money/useAddMoneyReadiness', () => ({
         topUpGates: {},
     }),
 }))
+// the drawer names a held account in its title; no account is held here
+jest.mock('@/features/deposit-accounts/useDepositAccounts', () => ({
+    ...jest.requireActual('@/features/deposit-accounts/useDepositAccounts'),
+    useDepositAccounts: () => ({ accounts: {} }),
+}))
 jest.mock('framer-motion', () => ({ useReducedMotion: () => false }))
 jest.mock('@/hooks/useAppHaptic', () => ({ useAppHaptic: () => ({ triggerHaptic: mockHaptic }) }))
 jest.mock('@/utils/confetti', () => ({ shootDoubleStarConfetti: jest.fn() }))

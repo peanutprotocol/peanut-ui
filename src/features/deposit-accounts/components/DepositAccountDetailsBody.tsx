@@ -32,16 +32,19 @@ const GATE_RULE_KEYS: ReadonlySet<DepositRuleKey> = new Set<DepositRuleKey>([
  * whether a transfer lands, and the terms behind a toggle. The details screen
  * and the card's add-money drawer both render it, so the two never disagree.
  * The caller owns the revoked and timed-out states, which have no details.
+ * The drawer names the account in its own title, so it drops the heading here.
  */
 export function DepositAccountDetailsBody({
     rail,
     account,
     userName,
+    withHeading = true,
 }: {
     rail: DepositRail
     account: DepositAccountView
     /** the name a payer reads when the account is NOT in the user's own name */
     userName: string
+    withHeading?: boolean
 }) {
     const { t, rowLabels, railLabels, arrivalDetail, accountRailName, ruleLines } = useDepositAccountCopy()
     const bridgeProviderId = useBridgeProviderId()
@@ -57,14 +60,18 @@ export function DepositAccountDetailsBody({
 
     return (
         <div className="flex flex-col gap-6">
-            <TitleBlock
-                size="s"
-                title={t('details.heading', {
-                    currency: rail.currency,
-                    rail: accountRailName(rail.corridor, account.instructions),
-                })}
-                description={provisioning ? t('details.provisioning') : undefined}
-            />
+            {withHeading ? (
+                <TitleBlock
+                    size="s"
+                    title={t('details.heading', {
+                        currency: rail.currency,
+                        rail: accountRailName(rail.corridor, account.instructions),
+                    })}
+                    description={provisioning ? t('details.provisioning') : undefined}
+                />
+            ) : (
+                provisioning && <p className="text-body-m text-foreground-secondary">{t('details.provisioning')}</p>
+            )}
 
             {provisioning ? (
                 <DepositDetailsSkeleton rows={rail.detailRowCount} />

@@ -64,6 +64,7 @@ function activate(name: string) {
     window.sessionStorage.setItem('peanut_fixture', name)
 }
 
+const RHINO_STATUS_KEY = `GET /rhino/status/${DEMO_ADDRESS}`
 const read = async (path: string, method = 'GET') => (await fixtureRespond(path, { method })).json()
 
 async function bankPlanOf(name: string): Promise<CardBankPlan> {
@@ -145,6 +146,16 @@ describe('card add-money drawer fixtures', () => {
         expect(spendableUsd()).toBe(after)
         expect((await fixtureRespond(`/rhino/reset-status/${DEMO_ADDRESS}`, { method: 'POST' })).status).toBe(500)
     })
+
+    it.each(['card-add-money-crypto-short', 'card-add-money-funded'])(
+        '%s: credits no deposit below the network minimum, as Rhino would not',
+        async (name) => {
+            activate(name)
+            const { minDepositLimitUsd } = await read('/rhino/deposit', 'POST')
+            const { amount } = FIXTURES[name].responses?.[RHINO_STATUS_KEY] as { amount: number }
+            expect(amount).toBeGreaterThanOrEqual(minDepositLimitUsd)
+        }
+    )
 
     it('with nothing sent, the status reads not_started and the balance stays as it was', async () => {
         activate('card-add-money-crypto')

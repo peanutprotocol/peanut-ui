@@ -11,6 +11,11 @@ interface CopyFieldProps {
     text: string
     /** What the field shows when it differs from what it copies, e.g. an address shortened in the middle */
     displayText?: string
+    /**
+     * Show the value as text to copy (default border, fill and text), not as a disabled field. Not
+     * focusable or editable either way; the button copies.
+     */
+    readOnlyValue?: boolean
     variant?: ButtonVariant
     shadowSize?: ShadowSize
     disabled?: boolean
@@ -19,7 +24,15 @@ interface CopyFieldProps {
 
 const timeoutDuration = 3000
 
-const CopyField = ({ text, displayText, variant, shadowSize, disabled, onDisabledClick }: CopyFieldProps) => {
+const CopyField = ({
+    text,
+    displayText,
+    readOnlyValue,
+    variant,
+    shadowSize,
+    disabled,
+    onDisabledClick,
+}: CopyFieldProps) => {
     const t = useTranslations('global')
     const toast = useToast()
     const [isCopied, setIsCopied] = useState(false)
@@ -40,7 +53,17 @@ const CopyField = ({ text, displayText, variant, shadowSize, disabled, onDisable
 
     return (
         <div className="flex w-full flex-row items-stretch justify-between gap-2">
-            <BaseInput disabled value={displayText ?? text} className="h-10" />
+            {readOnlyValue ? (
+                <BaseInput
+                    readOnly
+                    tabIndex={-1}
+                    value={displayText ?? text}
+                    aria-label={text}
+                    className="pointer-events-none h-10"
+                />
+            ) : (
+                <BaseInput disabled value={displayText ?? text} className="h-10" />
+            )}
             <Button
                 disabled={disabled && !onDisabledClick}
                 variant={variant ? variant : 'secondary'}
