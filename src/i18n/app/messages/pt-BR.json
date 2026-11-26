@@ -2249,6 +2249,7 @@
             "doneTitle": "Dinheiro adicionado",
             "stillLandingBody": "Recebemos seu depósito e ele ainda está sendo creditado. Isso pode levar alguns minutos.",
             "sendMoreInstead": "Melhor enviar mais",
+            "stillLandingSupportMessage": "Olá! Enviei um depósito em cripto pela rede {network} para o meu cartão e ele ainda não chegou ao meu saldo. Vocês podem verificar?",
             "shortReceived": "Recebemos {received}",
             "shortStillNeeded": "Ainda faltam {remaining}.",
             "sendAbout": "Envie cerca de {amount}. O valor exato depende da cotação.",
