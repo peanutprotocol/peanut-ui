@@ -2484,18 +2484,6 @@ const SETUP_REDESIGN_FIXTURES: Record<string, Fixture> = {
             },
         }
     ),
-    'setup-redesign-email-deferred': setupRedesign(
-        'email-filled',
-        '09 Email: an account that is not established has the address; added again at verification.',
-        {
-            rejects: {
-                'POST /update-user': {
-                    status: 409,
-                    body: { code: 'EMAIL_ON_DORMANT_ACCOUNT', message: 'Email already in use' },
-                },
-            },
-        }
-    ),
     'setup-redesign-email-save-failed': setupRedesign('email-filled', '09 Email: the save failed, Continue retries.', {
         fails: ['POST /update-user'],
     }),
