@@ -707,7 +707,7 @@ describe('AddWithdrawCountriesList — new-account submit hand-off (Chip round 1
 
 describe('restart cooldown in add and withdraw flows', () => {
     it.each(['add', 'withdraw'] as const)('shows the shared dated cooldown for %s', (flow) => {
-        mockCooldown = { retryAt: '2026-09-08T18:57:00Z' }
+        mockCooldown = { retryAt: '2026-09-08T12:00:00Z' }
         render(<AddWithdrawCountriesList flow={flow} />)
         expect(screen.getByText('Give it a little time')).toBeInTheDocument()
         expect(screen.getByText(/You can try again after/)).toHaveTextContent(/Sep 8/)

@@ -746,7 +746,7 @@ describe('MoneySettings', () => {
 
     it('shows a dated cooldown with one dismiss button', async () => {
         mockFlowError = 'Too many requests'
-        mockFlowCooldown = { retryAt: '2026-09-08T18:57:00Z' }
+        mockFlowCooldown = { retryAt: '2026-09-08T12:00:00Z' }
         render()
         expect(screen.getByText('Give it a little time')).toBeInTheDocument()
         expect(screen.getByText(/You can try again after/)).toHaveTextContent(/Sep 8/)
