@@ -3,7 +3,7 @@
 import { MutationResponseTimeoutError } from '@/utils/connection-timeout-error'
 import { usePaymentStatusRecovery } from '@/features/payments/shared/hooks/usePaymentStatusRecovery'
 import { PaymentConfirmingView } from '@/features/payments/shared/components/PaymentConfirmingView'
-import { formatBankAmount, formatFiniteDisplay } from '@/utils/currency'
+import { formatBankAmount } from '@/utils/currency'
 
 import ActionModal from '@/components/Global/ActionModal'
 import SlideToConfirm from '@/components/0_Bruddle/SlideToConfirm'
@@ -887,8 +887,8 @@ export default function WithdrawCryptoPage() {
     // the user signs. Same-chain USDC transfers have no minimum.
     const belowMinimumMessage = useMemo<string | null>(() => {
         if (!isCrossChainWithdrawal) return null
-        if (isBelowRhinoMinDeposit(payAmount, minDepositLimitUsd)) {
-            return `The minimum withdrawal to this network is $${minDepositLimitUsd}. Enter a larger amount.`
+        if (minDepositLimitUsd != null && isBelowRhinoMinDeposit(payAmount, minDepositLimitUsd)) {
+            return belowMinimumText(minDepositLimitUsd)
         }
         // Rhino's route minimum is about the bridge rejecting a small deposit,
         // not about the fee. A quote whose fee takes the whole amount leaves
@@ -896,10 +896,10 @@ export default function WithdrawCryptoPage() {
         // delivery they will never see. Measured against the amount pinned to
         // the charge — `?amount=` stays editable here and is not what moves.
         if (feeConsumesWithdrawal(networkFee, parseFloat(quoteAmount))) {
-            return `The network fee to ${withdrawData?.chain.networkName ?? 'this network'} is $${formatFiniteDisplay(networkFee, 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false })}, which would leave nothing to deliver. Enter a larger amount or pick a cheaper network.`
+            return t('errors.feeExceedsAmount')
         }
         return null
-    }, [isCrossChainWithdrawal, payAmount, minDepositLimitUsd, networkFee, quoteAmount, withdrawData])
+    }, [isCrossChainWithdrawal, payAmount, minDepositLimitUsd, networkFee, quoteAmount, belowMinimumText, t])
 
     // Funds already moved for this charge, so the only thing Retry can still do
     // is replay the bookkeeping — handleConfirmWithdrawal exempts this state

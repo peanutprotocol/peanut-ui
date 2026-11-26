@@ -124,6 +124,7 @@
         "mantecaAccountRejected": "Deposits and withdrawals in this country aren’t available for your account. You can still pay with QR. Contact support for help.",
         "mantecaAccountRejectedForCountry": "You can’t add or withdraw money in {country}. QR payments still work.",
         "bankAccountNotUsable": "This bank account can't be used anymore. Add it again.",
+        "belowMinBridgeAmount": "This amount is below the minimum for this network. Try a larger amount or another network.",
         "cardRateLimited": "Too many card requests. Please wait a moment and try again.",
         "linkTransactionHashFetch": "We couldn’t load this link’s transaction. Please refresh and try again.",
         "cardApprovalCancelled": "Approval cancelled. You can retry anytime.",
