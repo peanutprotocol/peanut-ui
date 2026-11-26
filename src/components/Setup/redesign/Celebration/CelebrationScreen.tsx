@@ -6,6 +6,7 @@ import { Icon } from '@/components/Global/Icons/Icon'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { SumsubKycModals } from '@/components/Kyc/SumsubKycModals'
 import { SetupScreen } from '@/components/Setup/redesign/shell/SetupScreen'
+import { useRemindLater } from '@/components/Setup/redesign/VerifyStart/useRemindLater'
 import { useAuth } from '@/context/authContext'
 import { useSetupFlowContext } from '@/features/setup/SetupFlowContext'
 import { useSignupControl } from '@/features/setup/useSignupControl'
@@ -22,7 +23,8 @@ import { useVerifyStartEligible } from './useVerifyStartEligible'
  * claim link says it goes back to the link (`claim-link`); the redirect itself is dev's. Contract P4 § 5.
  * A default sign-up may instead get buttons (`buttons`, signup v7, Konrad's counterproposal): the same copy, and in
  * place of the wait a white "Verify now · 3 min" (the pink primary would vanish on pink) that opens the one verify
- * screen (Verify start on /verify, as Home's Verify row does), and a "Remind me later" link to Home.
+ * screen (Verify start on /verify, as Home's Verify row does), and a "Remind me later" link to Home that schedules
+ * tomorrow morning's reminder (useRemindLater).
  */
 export function CelebrationScreen({ quiet = false }: { quiet?: boolean }) {
     const t = useTranslations('setupRedesign.done')
@@ -33,6 +35,7 @@ export function CelebrationScreen({ quiet = false }: { quiet?: boolean }) {
     const { track } = useSignupControl()
     const buttons = useVerifyStartEligible(signupCompleted)
     const verify = useCelebrationVerify()
+    const remindLater = useRemindLater()
     // a quiet exit never shows the buttons, so it never holds the redirect for them
     useCelebrationRedirect(signupCompleted, buttons && !quiet, quiet)
 
@@ -72,6 +75,7 @@ export function CelebrationScreen({ quiet = false }: { quiet?: boolean }) {
                                   <LinkButton
                                       onClick={() => {
                                           track('celebration-remind-later', 'tap')
+                                          void remindLater()
                                           handleRedirect({ isNewAccount: true })
                                       }}
                                   >

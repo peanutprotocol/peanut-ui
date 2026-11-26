@@ -1359,7 +1359,9 @@
             "stepPhoto": "Foto do documento e selfie",
             "verifyNow": "Verificar agora · 3 min",
             "verifyNowIdOnly": "Verificar agora · 2 min",
-            "remindLater": "Lembrar mais tarde"
+            "remindLater": "Lembrar mais tarde",
+            "remindSet": "Vamos te lembrar amanhã às {at, time, short}.",
+            "remindFailed": "Não conseguimos agendar o lembrete. Você pode verificar quando quiser pelo Início."
         }
     },
     "loadingStates": {

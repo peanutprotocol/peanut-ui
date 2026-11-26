@@ -883,7 +883,8 @@
         },
         "verifyStart": {
             "sub": "Así desbloqueás tus datos bancarios.",
-            "subCard": "Luego solicitá una tarjeta."
+            "subCard": "Luego solicitá una tarjeta.",
+            "remindFailed": "No pudimos programar el recordatorio. Podés verificar cuando quieras desde Inicio."
         }
     },
     "loadingStates": {

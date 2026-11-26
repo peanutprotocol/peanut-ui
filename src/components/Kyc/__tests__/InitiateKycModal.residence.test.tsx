@@ -12,6 +12,8 @@ import { IntlWrapper } from '@/test-utils/intl'
 import { InitiateKycModal } from '../InitiateKycModal'
 
 let mockRestrictions = { banking: false, card: false }
+// Remind me later's profile write is useRemindLater's own suite
+jest.mock('@/components/Setup/redesign/VerifyStart/useRemindLater', () => ({ useRemindLater: () => jest.fn() }))
 jest.mock('@/components/Setup/components/SetupLanguageSwitcher', () => ({ SetupLanguageSwitcher: () => null }))
 jest.mock('@/hooks/useResidenceRestrictions', () => ({
     useResidenceRestrictions: () => mockRestrictions,

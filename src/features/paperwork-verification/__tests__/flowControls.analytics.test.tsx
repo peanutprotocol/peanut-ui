@@ -11,6 +11,8 @@ import { VerifyHeroLayout, VerifyQuestionLayout } from '../components/VerifyLayo
 import { KycFeatureActivationStatus } from '../KycFeatureActivationStatus'
 import { FeatureAction } from '../FeatureAction'
 
+// Remind me later's profile write is useRemindLater's own suite
+jest.mock('@/components/Setup/redesign/VerifyStart/useRemindLater', () => ({ useRemindLater: () => jest.fn() }))
 jest.mock('@/components/Setup/components/SetupLanguageSwitcher', () => ({ SetupLanguageSwitcher: () => null }))
 jest.mock('@/hooks/useResidenceRestrictions', () => ({
     useResidenceRestrictions: () => ({ banking: false, card: false }),
