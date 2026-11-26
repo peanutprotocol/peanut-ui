@@ -21,8 +21,6 @@ const kycFlow = (overrides: Record<string, unknown> = {}) => ({
     ...overrides,
 })
 
-// The funding ask on an active card has its own test (CardPage.fundingPrompt).
-jest.mock('@/components/Home/FundingSetupPrompt', () => ({ __esModule: true, default: () => null }))
 jest.mock('../useCardFlow', () => ({ useCardFlow: () => mockFlow }))
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))
 jest.mock('@/components/Kyc/SumsubKycWrapper', () => ({ SumsubKycWrapper: () => null }))

@@ -19,8 +19,6 @@ import { useCardFlow } from '../useCardFlow'
 const WALLET = '0xafbea1a6a6036d7d827e08072cd4315248b77352'
 let mockUserId = 'user-a'
 
-// The funding ask on an active card has its own test (CardPage.fundingPrompt).
-jest.mock('@/components/Home/FundingSetupPrompt', () => ({ __esModule: true, default: () => null }))
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn() }),
     usePathname: () => '/card',
