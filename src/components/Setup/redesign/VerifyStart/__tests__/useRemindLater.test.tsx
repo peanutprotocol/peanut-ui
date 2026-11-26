@@ -1,7 +1,7 @@
 /** @jest-environment jsdom */
 // "Remind me later" schedules the nudge engine's reminder (TASK-22683, api#2307): the verify step's reminder for
 // tomorrow 09:00 on the user's clock, under its own ledger key so Home's checklist stays visible, written to the
-// profile, and one line saying when. A refused write promises nothing.
+// profile, and one line promising it. A refused write promises nothing.
 import type { ReactNode } from 'react'
 import { act, renderHook } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
@@ -44,7 +44,7 @@ describe('tomorrowMorning', () => {
 })
 
 describe('useRemindLater', () => {
-    it('writes the verify reminder for tomorrow 09:00 and promises no reminder before then', async () => {
+    it('writes the verify reminder for tomorrow 09:00 and promises the reminder then', async () => {
         update.mockResolvedValue({ data: {} })
         const remindLater = remind()
         let saved: boolean | undefined
@@ -67,7 +67,7 @@ describe('useRemindLater', () => {
         // the checklist ask is not snoozed: Home keeps showing it
         expect(update.mock.calls[0][0].attentionLedger).not.toHaveProperty('checklist')
         expect(mockToast.success).toHaveBeenCalledWith(
-            expect.stringMatching(/^Got it\. No reminders before tomorrow at 9:00\sAM\.$/u)
+            expect.stringMatching(/^We'll remind you tomorrow at 9:00\sAM\.$/u)
         )
         expect(mockToast.error).not.toHaveBeenCalled()
     })
@@ -78,7 +78,7 @@ describe('useRemindLater', () => {
         await act(async () => {
             await remindLater()
         })
-        expect(mockToast.success).toHaveBeenCalledWith('Certo. Nenhum lembrete antes de amanhã às 09:00.')
+        expect(mockToast.success).toHaveBeenCalledWith('Vamos te lembrar amanhã às 09:00.')
     })
 
     it('promises no reminder when the API refuses the write, and reports the refusal', async () => {

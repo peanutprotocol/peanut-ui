@@ -22,7 +22,8 @@ export function tomorrowMorning(now: Date): Date {
 }
 
 /**
- * "Remind me later" (TASK-22683, api#2307): the nudge engine sends the verify step's next nudge at tomorrow morning.
+ * "Remind me later" (TASK-22683, api#2307): the nudge engine sends its own reminder (`lifecycle.verify_reminder`, one
+ * per tap) tomorrow morning, even when the verify step's nudges are used up.
  * It has its own ledger key, `attentionLedger.reminder` ({ step, remindAt, updatedAt }), and never snoozes the
  * checklist ask, so Home's checklist stays visible. The profile write is awaited, not left to the ledger's debounced
  * device sync, so the toast only promises a reminder the API holds. The caller leaves the screen at once: the toast

@@ -1360,7 +1360,7 @@
             "verifyNow": "Verify now · 3 min",
             "verifyNowIdOnly": "Verify now · 2 min",
             "remindLater": "Remind me later",
-            "remindSet": "Got it. No reminders before tomorrow at {at, time, short}.",
+            "remindSet": "We'll remind you tomorrow at {at, time, short}.",
             "remindFailed": "We couldn’t set the reminder. You can verify from Home any time."
         }
     },

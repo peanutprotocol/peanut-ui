@@ -884,7 +884,7 @@
         "verifyStart": {
             "sub": "Así desbloqueás tus datos bancarios.",
             "subCard": "Luego solicitá una tarjeta.",
-            "remindSet": "Listo. No te vamos a mandar recordatorios antes de mañana a las {at, time, short}.",
+            "remindSet": "Te lo vamos a recordar mañana a las {at, time, short}.",
             "remindFailed": "No pudimos programar el recordatorio. Podés verificar cuando quieras desde Inicio."
         }
     },
