@@ -9,7 +9,8 @@ import { PeanutDebug } from '@/context/PeanutDebug'
 import { useOptionalAuth } from '@/context/authContext'
 import { LocaleSync } from '@/i18n/app/LocaleSync'
 import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { Suspense, useEffect } from 'react'
+import EmailClickCapture from '@/components/Global/EmailClickCapture'
 import { whenIdle } from '@/utils/defer-analytics'
 import { initSentry } from '@/utils/sentry-init'
 import { reportChunkReloadRecovery } from '@/utils/chunk-reload-report'
@@ -76,6 +77,11 @@ export function AppGlobals({ children }: { children: React.ReactNode }) {
                 client and loading-state context to know when a reload
                 is safe. */}
             <StaleDeploymentReload />
+            {/* Every app route, so an email click is counted wherever its link lands. Suspense: nuqs reads
+                useSearchParams. */}
+            <Suspense fallback={null}>
+                <EmailClickCapture />
+            </Suspense>
             {/* Wraps rather than sits beside the page: while the native app is
                 locked, nothing protected renders. */}
             <AppLockGate>{children}</AppLockGate>
