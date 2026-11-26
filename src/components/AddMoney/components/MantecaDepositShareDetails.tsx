@@ -28,13 +28,11 @@ import { PROVIDERS } from '@/constants/providers.consts'
 
 const MantecaDepositShareDetails = ({
     depositDetails,
-    currencyAmount,
     arsStatus,
     onStartOver,
     onBack,
 }: {
     depositDetails: MantecaDepositResponseData
-    currencyAmount?: string | undefined
     arsStatus?: 'pending' | 'processing' | 'completed' | 'failed' | 'expired'
     onStartOver?: () => void
     // Parent owns step navigation — usually a setUrlState({ step: 'inputAmount' }).
@@ -76,7 +74,9 @@ const MantecaDepositShareDetails = ({
     const depositAddress = depositDetails.details.depositAddress ?? ''
     const shortenedAddress = depositAddress.length > 30 ? shortenStringLong(depositAddress, 10) : depositAddress
     const depositAlias = depositDetails.details.depositAlias
-    const depositAmount = currencyAmount ?? depositDetails.stages['1'].thresholdAmount
+    // The order's own amount, at the price it locked. The amount step's figure is an estimate at an earlier
+    // price, so next to the locked rate it looked short (26 Nov: ARS 1.780,39 shown for a 1.777,34 order).
+    const depositAmount = depositDetails.stages['1'].thresholdAmount
     let usdAmount = depositDetails.stages['3'].amount
     const currencySymbol = depositDetails.stages['1'].asset
     const exchangeRate = depositDetails.details.price
