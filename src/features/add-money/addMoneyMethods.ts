@@ -32,7 +32,11 @@ function pixRowPlace(input: {
  * keeps the row, because the flow takes the user through it. A Manteca outage keeps it too: the page
  * shows the outage. Nobody outside Argentina gets the row.
  */
-function arsRowShown(input: { arsTopUpOpen?: boolean; residenceIso2s: readonly string[]; arsReady: boolean }): boolean {
+export function arsRowShown(input: {
+    arsTopUpOpen?: boolean
+    residenceIso2s: readonly string[]
+    arsReady: boolean
+}): boolean {
     if (input.arsReady) return true
     return !!input.arsTopUpOpen && residenceAllows('BANK_TRANSFER_AR', [...input.residenceIso2s])
 }
