@@ -417,7 +417,8 @@ describe('a completed outcome found at open', () => {
         const support = screen.getByTestId('card-add-money-contact-support')
         expect(support).toHaveTextContent('contactSupport')
         fireEvent.click(support)
-        expect(mockOpenSupport).toHaveBeenCalledWith('Card deposit still landing (TRON)')
+        // the user's own words, in their language: the catalog's message with the network named
+        expect(mockOpenSupport).toHaveBeenCalledWith('stillLandingSupportMessage(Tron)')
         // asking support shows no address: the deposit may still land
         expect(screen.queryByTestId('qr')).not.toBeInTheDocument()
     })
@@ -638,7 +639,7 @@ describe('the address view', () => {
     it('shows and copies the whole address, in the address card /add-money/crypto uses', async () => {
         renderView('EVM')
         await screen.findByTestId('card-add-money-address')
-        expect(screen.getByTestId('card-add-money-deposit-address')).toHaveTextContent(ADDRESS)
+        expect(screen.getByTestId('deposit-address')).toHaveTextContent(ADDRESS)
         expect(screen.getByText('universalDepositAddress')).toBeInTheDocument()
         await act(async () => fireEvent.click(screen.getByLabelText('copyField.copy')))
         expect(mockCopy).toHaveBeenCalledWith(ADDRESS)

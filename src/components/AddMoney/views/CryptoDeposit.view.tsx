@@ -5,14 +5,12 @@ import { formatFiniteDisplay } from '@/utils/currency'
 import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import Card from '@/components/Global/Card'
-import { CARD_SURFACE } from '@/components/0_Bruddle/Card'
-import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { Icon } from '@/components/Global/Icons/Icon'
 import NavHeader from '@/components/Global/NavHeader'
-import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import Loading from '@/components/Global/Loading'
 import DepositProcessingScreen from '../components/DepositProcessingScreen'
 import ChainChip from '../components/ChainChip'
+import { DepositAddressCard } from '../components/DepositAddressCard'
 import HowToDepositDrawer from '../components/HowToDepositDrawer'
 import SupportedNetworksDrawer from '../components/SupportedNetworksDrawer'
 import { useCryptoDepositPolling } from '../hooks/useCryptoDepositPolling'
@@ -70,12 +68,6 @@ const CryptoDepositView = ({
     const isEvm = network === 'EVM'
 
     const supportedTokens = getSupportedTokens(network)
-
-    const tooltipText: Record<RhinoChainType, string> = {
-        EVM: t('tooltipEvm', { count: SUPPORTED_EVM_CHAINS.length }),
-        SOL: t('tooltipSol'),
-        TRON: t('tooltipTron'),
-    }
 
     const amountLimitsLabel = isEvm ? t('evmNetworks') : networkLabel
 
@@ -156,46 +148,8 @@ const CryptoDepositView = ({
 
                 {depositAddressData && !isLoading && (
                     <>
-                        {/* qr code */}
-                        <div className="flex items-center justify-center">
-                            <QRCodeWrapper
-                                url={depositAddressData.depositAddress}
-                                centerImage={NETWORK_LOGOS[network]}
-                            />
-                        </div>
-
-                        {/* deposit address + networks + tokens card — white bg */}
-                        <div className={`flex flex-col overflow-hidden ${CARD_SURFACE}`}>
-                            {/* address section */}
-                            <div className="flex flex-col gap-2 p-4">
-                                <div className="flex items-center gap-1">
-                                    <Tooltip content={tooltipText[network]} position="bottom">
-                                        <span className="flex items-center gap-1">
-                                            <span className="text-label-l">
-                                                {isEvm ? t('universalDepositAddress') : t('depositAddress')}
-                                            </span>
-                                            <Icon name="info" size={16} className="text-foreground-secondary" />
-                                        </span>
-                                    </Tooltip>
-                                </div>
-                                <div className="flex items-start justify-between gap-2">
-                                    <p className="text-body-s break-all">
-                                        <span className="font-semibold">
-                                            {depositAddressData.depositAddress.slice(0, 6)}
-                                        </span>
-                                        {depositAddressData.depositAddress.slice(6, -6)}
-                                        <span className="font-semibold">
-                                            {depositAddressData.depositAddress.slice(-6)}
-                                        </span>
-                                    </p>
-                                    <CopyToClipboard
-                                        textToCopy={depositAddressData.depositAddress}
-                                        iconSize="4"
-                                        className="flex-shrink-0"
-                                    />
-                                </div>
-                            </div>
-
+                        {/* QR, then the address card with networks, tokens and provider inside it */}
+                        <DepositAddressCard address={depositAddressData.depositAddress} network={network}>
                             {/* supported networks section */}
                             <div
                                 onClick={() => {
@@ -282,7 +236,7 @@ const CryptoDepositView = ({
                                 </p>
                                 <p className="text-body-s">{PROVIDERS.rhino.brand}</p>
                             </div>
-                        </div>
+                        </DepositAddressCard>
 
                         {/* warning card */}
                         <Callout priority="attention" title={t('warningTitle')}>

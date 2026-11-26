@@ -432,9 +432,7 @@ describe('crypto views', () => {
         const address = within(drawer()).getByTestId('card-add-money-address')
         // the address card /add-money/crypto shows: Tron's own label, the whole address
         expect(within(address).getByText('depositAddress')).toBeInTheDocument()
-        expect(within(address).getByTestId('card-add-money-deposit-address')).toHaveTextContent(
-            'TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE'
-        )
+        expect(within(address).getByTestId('deposit-address')).toHaveTextContent('TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE')
         expect(within(address).getByTestId('qr')).toHaveTextContent('TQn9Y2khEsLJW1ChVWFMSMeRDow5KcbLSE')
         expect(within(address).getByTestId('card-add-money-ask')).toHaveTextContent('sendAsk($7.50)')
         expect(within(address).queryByText(/raisedToMinimum/)).not.toBeInTheDocument()
