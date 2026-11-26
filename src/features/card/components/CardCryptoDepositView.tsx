@@ -30,13 +30,10 @@ import { readLiveSpendableUsd } from '@/features/card/readLiveSpendableUsd'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import type { DepositAddressStatusResponse, RhinoChainType } from '@/services/services.types'
 import { formatBankAmount } from '@/utils/currency'
-import { middleEllipsisAccount } from '@/utils/general.utils'
 import { CardDrawerStatus } from './CardDrawerStatus'
 
 const usd = (amount: number) => formatBankAmount(amount, 'USD')
 const cents = (amount: number) => Math.round(amount * 100) / 100
-/** the copy field fits about this many characters at 375px; the last 4 stay visible */
-const ADDRESS_DISPLAY_CHARS = 24
 /** a held deposit is read fresh at once, every 5 s for half a minute, then every 15 s */
 const holdReadDelay = (reads: number) => (reads === 0 ? 0 : reads < 6 ? 5_000 : 15_000)
 /**
@@ -542,12 +539,11 @@ export function CardCryptoDepositView({
                 </div>
             )}
             <p className="text-body-m text-foreground-primary">{t('depositAddress', { network: networkLabel })}</p>
-            <QRCodeWrapper url={data.depositAddress} />
-            <CopyField
-                text={data.depositAddress}
-                displayText={middleEllipsisAccount(data.depositAddress, ADDRESS_DISPLAY_CHARS)}
-                readOnlyValue
-            />
+            {/* the address and its copy as /add-money/crypto shows them (RhinoDeposit.view) */}
+            <div className="flex items-center justify-center">
+                <QRCodeWrapper url={data.depositAddress} />
+            </div>
+            <CopyField text={data.depositAddress} />
             <Callout priority="attention" title={t('networkOnlyTitle', { network: networkLabel })}>
                 <div className="flex flex-col gap-2">
                     <p>{tCrypto('warningDescription')}</p>

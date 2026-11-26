@@ -614,12 +614,10 @@ describe('a deposit made while the address shows', () => {
 })
 
 describe('the address view', () => {
-    it('shortens the address in the middle, keeps the last 4, and copies all of it', async () => {
+    it('shows and copies the whole address, in the copy field /add-money/crypto uses', async () => {
         renderView()
         await screen.findByTestId('card-add-money-address')
-        const field = screen.getByDisplayValue(/…/) as HTMLInputElement
-        expect(field.value.endsWith('beef')).toBe(true)
-        expect(field.value.startsWith('0x1234')).toBe(true)
+        expect(screen.getByDisplayValue(ADDRESS)).toBeInTheDocument()
         await act(async () => fireEvent.click(screen.getByText('copyField.copy')))
         expect(mockCopy).toHaveBeenCalledWith(ADDRESS)
     })
