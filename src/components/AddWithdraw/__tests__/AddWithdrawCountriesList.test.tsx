@@ -707,10 +707,13 @@ describe('AddWithdrawCountriesList — new-account submit hand-off (Chip round 1
 
 describe('restart cooldown in add and withdraw flows', () => {
     it.each(['add', 'withdraw'] as const)('shows the shared dated cooldown for %s', (flow) => {
-        mockCooldown = { retryAt: '2026-09-08T12:00:00Z' }
+        mockCooldown = { retryAt: '2026-09-08T18:57:00Z' }
         render(<AddWithdrawCountriesList flow={flow} />)
         expect(screen.getByText('Give it a little time')).toBeInTheDocument()
-        expect(screen.getByText(/You can try again after/)).toHaveTextContent(/Sep 8/)
+        expect(screen.getByText(/You can try again after/)).toHaveTextContent(
+            // the modal shows the local date, so derive it the same way or the day shifts by timezone
+            new Date('2026-09-08T18:57:00Z').toLocaleString('en-US', { month: 'short', day: 'numeric' })
+        )
         expect(screen.queryByText('Too many requests')).not.toBeInTheDocument()
         expect(screen.queryByText('Contact support')).not.toBeInTheDocument()
         fireEvent.click(screen.getByText("I'll try later"))
