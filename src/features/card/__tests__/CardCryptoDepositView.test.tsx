@@ -21,6 +21,11 @@ jest.mock('@/components/Global/QRCodeWrapper', () => ({
     default: ({ url }: { url: string }) => <div data-testid="qr">{url}</div>,
 }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: 'u1' } } }) }))
+const mockOpenSupport = jest.fn()
+jest.mock('@/context/ModalsContext', () => ({
+    ...jest.requireActual('@/context/ModalsContext'),
+    useModalsContext: () => ({ openSupportWithMessage: mockOpenSupport }),
+}))
 jest.mock('@/hooks/wallet/useWallet', () => ({ useWallet: () => ({ address: '0xwallet' }) }))
 const mockCopy = jest.fn((_text: string) => Promise.resolve(true))
 jest.mock('@/utils/clipboard.utils', () => ({ copyTextToClipboard: (text: string) => mockCopy(text) }))
@@ -399,6 +404,22 @@ describe('a completed outcome found at open', () => {
         renderView()
         await screen.findByTestId('card-add-money-processing')
         expect(deposits()).toHaveLength(1)
+    })
+
+    it('offers Contact support beside "Send more instead" once the deposit is still landing', async () => {
+        jest.useFakeTimers()
+        pollStatus = 'completed'
+        pollCompletedAmount = 7.5
+        renderView()
+        await openedHolding()
+        expect(screen.queryByTestId('card-add-money-contact-support')).not.toBeInTheDocument()
+        await readsUntil('card-add-money-send-more')
+        const support = screen.getByTestId('card-add-money-contact-support')
+        expect(support).toHaveTextContent('contactSupport')
+        fireEvent.click(support)
+        expect(mockOpenSupport).toHaveBeenCalledWith('Card deposit still landing (TRON)')
+        // asking support shows no address: the deposit may still land
+        expect(screen.queryByTestId('qr')).not.toBeInTheDocument()
     })
 
     it('after "Send more instead", keeps reading, so the ask shrinks if the old deposit lands', async () => {

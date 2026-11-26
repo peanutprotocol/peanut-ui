@@ -16,6 +16,7 @@ import Loading from '@/components/Global/Loading'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import { NETWORK_LABELS } from '@/constants/rhino.consts'
 import { useAuth } from '@/context/authContext'
+import { useModalsContext } from '@/context/ModalsContext'
 import { captureCryptoDepositCompleted } from '@/features/add-money/captureCryptoDepositCompleted'
 import { useRhinoDepositAddress } from '@/features/add-money/useRhinoDepositAddress'
 import { cardCryptoAskUsd, cardGapUsd } from '@/features/card/cardAddMoney'
@@ -81,6 +82,7 @@ export function CardCryptoDepositView({
     const tAdd = useTranslations('addMoney')
     const tCommon = useTranslations('common')
     const queryClient = useQueryClient()
+    const { openSupportWithMessage } = useModalsContext()
     const { user } = useAuth()
     const { address: wallet } = useWallet()
     const userId = user?.user?.userId
@@ -479,9 +481,16 @@ export function CardCryptoDepositView({
                     testId="card-add-money-processing"
                 >
                     {hold?.waited && (
-                        <div className="mt-2 flex justify-center">
+                        // two tertiary links, centred and stacked: neither is a third button
+                        <div className="mt-2 flex flex-col items-center">
                             <LinkButton onClick={sendMore} data-testid="card-add-money-send-more">
                                 {t('sendMoreInstead')}
+                            </LinkButton>
+                            <LinkButton
+                                onClick={() => openSupportWithMessage(`Card deposit still landing (${network})`)}
+                                data-testid="card-add-money-contact-support"
+                            >
+                                {tCommon('contactSupport')}
                             </LinkButton>
                         </div>
                     )}
