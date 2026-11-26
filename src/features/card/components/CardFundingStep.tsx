@@ -145,11 +145,13 @@ export function CardFundingStep({
     // setting up, or ruled out by the residence) is a disabled row with its badge and no drawer, sorted
     // last when it is not offered. This departs from design.md "rows the user cannot act on" (such a
     // row stays tappable and its tap says why), by his decision. Not verified, and a step left, stay
-    // tappable: the user can act on them.
-    const regionRefusal = useBankRegionRefusal()
-    const bankOffered = !(plan.kind === 'not-offered' && regionRefusal)
-    const bankBlocked = !bankOffered || plan.kind === 'under-review' || plan.kind === 'setting-up'
-    const bankBadge = !bankOffered ? (
+    // tappable: the user can act on them. Until the plan, and for "not offered" the residence rule, is
+    // known, the row waits disabled with no badge: a drawer opened on a guess could not be right.
+    const region = useBankRegionRefusal()
+    const bankOffered = !(plan.kind === 'not-offered' && region.refused)
+    const bankUnknown = plan.kind === 'loading' || (plan.kind === 'not-offered' && !region.known)
+    const bankBlocked = bankUnknown || !bankOffered || plan.kind === 'under-review' || plan.kind === 'setting-up'
+    const bankBadge = bankUnknown ? undefined : !bankOffered ? (
         <Badge status="neutral" customText={tAccounts('list.badgeNotOffered')} />
     ) : plan.kind === 'not-verified' ? (
         <Badge status="pending" customText={tAccounts('list.badgeVerifyId')} />
@@ -160,6 +162,12 @@ export function CardFundingStep({
     ) : plan.kind === 'finish-setup' || plan.kind === 'not-offered' ? (
         <Badge status="pending" customText={tAccounts('list.badgeActionNeeded')} />
     ) : undefined
+    // The bank became one the user cannot use while its drawer was open (a review started, readiness
+    // changed): close it rather than leave a view with nothing to do. A crypto view in it stays.
+    useEffect(() => {
+        if (!open || !bankBlocked || bankUnknown || shown.current?.method !== 'bank') return
+        dismiss()
+    }, [open, bankBlocked, bankUnknown])
     const bankRow = (
         <ListItem
             title={tAdd('methods.bankTransfer')}

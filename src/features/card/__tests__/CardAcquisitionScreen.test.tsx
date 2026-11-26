@@ -17,13 +17,21 @@ jest.mock('next-intl', () => ({
     useFormatter: () => ({ list: (items: string[]) => items.join(' or ') }),
 }))
 jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: null }) }))
-// the bank plan is still loading: the Bank row shows and its drawer waits
+// a US resident not verified yet: the Bank row is tappable and its drawer asks for the ID check (a row
+// whose plan is still loading waits disabled)
 jest.mock('@/features/add-money/useAddMoneyReadiness', () => ({
     useAddMoneyReadiness: () => ({
-        isLoading: true,
-        residenceIso2s: [],
+        isLoading: false,
+        residenceIso2s: ['US'],
         ready: { account: [], transfer: [], pix: [], ars: [] },
-        topUpGates: {},
+        topUpGates: Object.fromEntries(
+            jest
+                .requireActual<typeof import('@/features/deposit-accounts/rails')>('@/features/deposit-accounts/rails')
+                .DEPOSIT_RAIL_ORDER.map((corridor) => [
+                    corridor,
+                    { kind: corridor === 'ACH_US' ? 'needs-identity' : 'blocked-rejection' },
+                ])
+        ),
     }),
 }))
 // the drawer names a held account in its title; no account is held here

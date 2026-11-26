@@ -2258,8 +2258,6 @@
             "notVerifiedBody": "Verifique sua identidade uma vez para receber os dados bancários.",
             "finishSetupTitle": "Falta um passo para a transferência bancária",
             "finishSetupBody": "Termine na página do banco.",
-            "useCrypto": "Adicionar {amount} com cripto",
-            "useCryptoNoAmount": "Adicionar dinheiro com cripto",
             "useCryptoInstead": "Prefiro adicionar dinheiro com cripto",
             "bankSentPending": "Sua transferência de {amount} está a caminho. Avisamos quando chegar.",
             "bankSentPendingNoAmount": "Sua transferência está a caminho. Avisamos quando chegar.",

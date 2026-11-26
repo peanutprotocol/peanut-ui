@@ -2258,8 +2258,6 @@
             "notVerifiedBody": "Verify your identity once to get bank details.",
             "finishSetupTitle": "Bank transfer needs one more step",
             "finishSetupBody": "Finish it on the bank page.",
-            "useCrypto": "Add {amount} with crypto",
-            "useCryptoNoAmount": "Add money with crypto",
             "useCryptoInstead": "Add money with crypto instead",
             "bankSentPending": "Your {amount} transfer is on the way. We'll let you know when it lands.",
             "bankSentPendingNoAmount": "Your transfer is on the way. We'll let you know when it lands.",

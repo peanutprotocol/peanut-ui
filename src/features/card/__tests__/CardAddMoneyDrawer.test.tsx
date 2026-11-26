@@ -646,12 +646,15 @@ describe('one amount, one heading, no dead ends', () => {
     it('GB: says bank is not available where the user lives only once the residence rule is known', () => {
         readiness = { ...readiness, residenceIso2s: ['GB'] }
         mockBankingRestricted = true
-        // the tier lists have not loaded: an unknown residence withholds offers but refuses nothing
+        // the tier lists have not loaded: refusal or a step left cannot be told apart yet, so the row
+        // waits disabled with no badge, and no drawer can open on a guess (review of round 9)
         mockSetsSettled = false
         const view = renderFunding()
-        fireEvent.click(screen.getByTestId('card-add-money-bank'))
-        expect(within(drawer()).queryByText('bankOnlyNotAvailableNote')).not.toBeInTheDocument()
-        expect(within(drawer()).getByText('finishSetupTitle')).toBeInTheDocument()
+        const waiting = screen.getByTestId('card-add-money-bank')
+        expect(waiting).toHaveAttribute('aria-disabled', 'true')
+        expect(within(waiting).queryByText(/^list\.badge/)).not.toBeInTheDocument()
+        fireEvent.click(waiting)
+        expect(screen.queryByTestId('card-add-money-drawer')).not.toBeInTheDocument()
         view.unmount()
         // the lists loaded and refuse banking for GB: now Not available, and the row is disabled
         mockSetsSettled = true
@@ -725,6 +728,41 @@ describe('round 2: badges, one heading on details, the residence fix, no back wh
         readiness = { ...readiness, topUpGates: gates('blocked-rejection', { ACH_US: gate }) }
         renderFunding()
         expect(within(screen.getByTestId('card-add-money-bank')).getByText(badge)).toBeInTheDocument()
+    })
+
+    it('keeps the bank row disabled while readiness loads, so no drawer opens on a guess', () => {
+        readiness = { ...readiness, isLoading: true }
+        renderFunding()
+        const row = screen.getByTestId('card-add-money-bank')
+        expect(row).toHaveAttribute('aria-disabled', 'true')
+        fireEvent.click(row)
+        expect(screen.queryByTestId('card-add-money-drawer')).not.toBeInTheDocument()
+    })
+
+    it('closes the bank drawer when the bank becomes one the user cannot use while it is open', async () => {
+        readiness = { ...readiness, topUpGates: gates('blocked-rejection', { ACH_US: { kind: 'needs-enrollment' } }) }
+        const { rerenderWith } = renderFunding()
+        fireEvent.click(screen.getByTestId('card-add-money-bank'))
+        expect(within(drawer()).getByTestId('card-add-money-status-finish-setup')).toBeInTheDocument()
+        readiness = {
+            ...readiness,
+            topUpGates: gates('blocked-rejection', { ACH_US: { kind: 'waiting-on-provider', userMessage: null } }),
+        }
+        rerenderWith({})
+        await waitFor(() => expect(screen.queryByTestId('card-add-money-status-finish-setup')).not.toBeInTheDocument())
+        expect(screen.getByTestId('card-add-money-bank')).toHaveAttribute('aria-disabled', 'true')
+    })
+
+    it('keeps a crypto view open when the bank becomes blocked meanwhile', async () => {
+        readiness = { ...readiness, topUpGates: gates('blocked-rejection', { ACH_US: { kind: 'needs-identity' } }) }
+        const { rerenderWith } = renderFunding()
+        fireEvent.click(screen.getByTestId('card-add-money-bank'))
+        fireEvent.click(within(drawer()).getByTestId('card-add-money-use-crypto'))
+        expect(within(drawer()).getByTestId('choose-network-evm')).toBeInTheDocument()
+        identityStatus = 'processing'
+        rerenderWith({})
+        await new Promise((done) => setTimeout(done, 50))
+        expect(within(drawer()).getByTestId('choose-network-evm')).toBeInTheDocument()
     })
 
     it('keeps a bank row the user can act on tappable, with its chevron', () => {
