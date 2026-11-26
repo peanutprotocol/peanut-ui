@@ -37,7 +37,7 @@ export function CardBankRowsView({ rows, onPick }: { rows: CardBankRow[]; onPick
                                   ? tMethods('pixDetails')
                                   : row.corridor === 'BANK_TRANSFER_AR'
                                     ? tMethods('arsDetails')
-                                    : tMethods('oneTimeTransfer')
+                                    : tMethods('bankDetails')
                         }
                         bodyWrap
                         leading={
