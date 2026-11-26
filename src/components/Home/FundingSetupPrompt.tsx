@@ -152,7 +152,7 @@ export default function FundingSetupPrompt({ onActed, onSnoozed }: AskSurfacePro
         isWithdrawalInFlight,
         finishingReturn,
         offersEnrollment: !!offersEnrollment,
-        authorizationText: funding?.permission.authorizationText,
+        authorizationText: funding?.permission?.authorizationText,
     })
 
     // The owed move lives in this prompt's hook; the verdict keeps the ask open for it.
@@ -189,7 +189,7 @@ export default function FundingSetupPrompt({ onActed, onSnoozed }: AskSurfacePro
     const hardError =
         errorForThisCard && lastError!.kind !== 'user-cancelled' && lastError!.kind !== 'withdrawal-in-flight'
 
-    const authorizationText = funding?.permission.authorizationText ?? ''
+    const authorizationText = funding?.permission?.authorizationText ?? ''
 
     // While the hook polls a pending grant or a card withdrawal still
     // confirming, show the wait as the button's "Working…" state. Check status
