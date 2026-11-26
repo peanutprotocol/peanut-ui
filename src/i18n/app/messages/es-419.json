@@ -2288,7 +2288,7 @@
             "bankTransfer": "Transferencia bancaria",
             "bankDetails": "Desde tu cuenta bancaria",
             "kycRequired": "Requiere verificación",
-            "bankTransferDescription": "Desde una cuenta bancaria",
+            "bankTransferDescription": "Desde tu banco",
             "mercadoPagoOrBank": "Mercado Pago o Banco",
             "mercadoPago": "Mercado Pago",
             "pix": "Pix",
