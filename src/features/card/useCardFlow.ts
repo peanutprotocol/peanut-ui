@@ -20,7 +20,7 @@ import { cardConsentDocuments } from '@/services/consent'
 import { useRainFunding } from '@/hooks/wallet/useRainFunding'
 import { useGrantSessionKey } from '@/hooks/wallet/useGrantSessionKey'
 import { fundingAccessQueryKey, useCardFundingAccess } from '@/hooks/useCardFundingAccess'
-import { fundingSetupPath, sameIdentity, type RainFundingConsent } from '@/utils/rain-funding.utils'
+import { fundingSetupPath, isCollateralReady, sameIdentity, type RainFundingConsent } from '@/utils/rain-funding.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { refusalOf } from '@/features/kyc-features/report'
 import { useHostedVerification } from '@/hooks/useHostedVerification'
@@ -901,17 +901,19 @@ export function useCardFlow() {
                 }
 
                 if (consent) {
+                    // A first-time applicant has no collateral contract yet.
+                    // Read before the apply: the state the person accepted on.
+                    const collateralReady = isCollateralReady(overview?.status)
                     const res = await submitApplication(true)
                     // This consent belongs to the account and wallet it was
                     // given for: after a switch it never starts the next
                     // account's enrollment.
                     if (changed()) return
-                    // The permission needs a card account with a wallet on file,
-                    // so it follows the application. Best effort: a first-time
-                    // applicant has no wallet on file yet, and a cancelled or
-                    // failed tap leaves the card as it is. The Home prompt asks
-                    // again in either case until the backend reports it ready.
-                    if (res && (res.status === 'pending' || res.status === 'ENABLED')) {
+                    // The permission follows the application, and only onto a
+                    // card whose collateral exists. Otherwise, and after a
+                    // cancelled or failed tap, the card screen and the Home
+                    // prompt ask again until the backend reports it ready.
+                    if (collateralReady && res && (res.status === 'pending' || res.status === 'ENABLED')) {
                         await grantFunding(consent, startedFor)
                     }
                     return

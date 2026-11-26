@@ -94,13 +94,6 @@ export const PAGE_CAPTURES: PageCapture[] = [
         fixture: 'add-money-picker-first-time',
         expectSelector: '[data-testid="deposit-account-SEPA_EU"]',
     },
-    {
-        id: 'add-money-transfer-currencies',
-        name: 'Add money — one-time transfer currencies',
-        route: '/add-money/options?method=transfer',
-        fixture: 'add-money-picker-first-time',
-        expectSelector: '[data-testid="add-money-option-GBP"]',
-    },
     { id: 'p18-add-money-crypto', name: 'Add money — crypto', route: '/add-money/crypto' },
     {
         id: 'add-money-crypto-euro-token-network',

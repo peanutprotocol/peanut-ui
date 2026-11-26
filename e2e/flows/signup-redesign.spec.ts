@@ -1141,7 +1141,7 @@ test.describe('sign-up redesign journeys', () => {
             expect(stub.seen('POST', '/passkeys/login/options').at(-1)!.headers['x-username']).toBeUndefined()
         })
 
-        test('an email on an account that is not established: the add-it-again-at-verification note, then on unsaved', async ({
+        test('an email on an account that is not established is taken too: sign-up does not go on without it', async ({
             page,
             context,
             baseURL,
@@ -1155,10 +1155,9 @@ test.describe('sign-up redesign journeys', () => {
             await expectScreen(page, 'notification-email', 'default', 30_000)
             await page.getByRole('textbox', { name: copy('en', 'setupRedesign.email.label') }).fill('dormant@gmail.com')
             await primary(page, copy('en', 'setupRedesign.common.continue')).click()
-            await expectScreen(page, 'notification-email', 'deferred')
-            await expect(page.getByText(copy('en', 'setupRedesign.email.deferred'))).toBeVisible()
-            await primary(page, copy('en', 'setupRedesign.common.continue')).click()
-            await expectScreen(page, 'notification-permission', 'default')
+            await expectScreen(page, 'notification-email', 'already-registered')
+            await expect(primary(page, copy('en', 'setupRedesign.email.logIn'))).toBeEnabled()
+            await expect(footer(page).getByText(copy('en', 'setupRedesign.email.recover'))).toBeVisible()
         })
 
         test('demo reviewer username: no check, no reservation, no passkey; the app opens on the last step', async ({

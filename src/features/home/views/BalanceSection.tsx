@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { Icon, type IconName } from '@/components/Global/Icons/Icon'
 import Loading from '@/components/Global/Loading'
 import { printableUsdc } from '@/utils/balance.utils'
@@ -15,13 +15,14 @@ import { homeDrawerOptions } from '../home-drawer-options'
 import { useDepositAccountsEnabled } from '@/features/deposit-accounts/useDepositAccountsEnabled'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import posthog from 'posthog-js'
-import { balanceBucket } from '../addMoneyPill.utils'
+import { balanceBucket, showsAddMoneyPill } from '../addMoneyPill.utils'
 import Image from 'next/image'
 import sparkle from '@/assets/illustrations/sparkle.svg'
 
 interface BalanceSectionProps {
     addMoneyEntry?: 'picker' | 'drawer'
-    /** analytics only: the pink Add shows for everyone, verified or not */
+    /** identity verified: with a balance under $10, Add (always the centre button) turns pink.
+     *  it reads "Add money" for returning users too: one label, no "Top up" (TASK-25341) */
     isVerified?: boolean
     balance: bigint | undefined
     isFetching: boolean
@@ -35,8 +36,8 @@ interface BalanceSectionProps {
 // home IA (figma section 17609:2334): add, send and request each open a bottom
 // drawer. request offers two ways to be paid — share a request link, or share
 // standing bank details. while only the link is offered it skips the drawer.
-// Add sits in the centre as the pink button for everyone, no conditions (Kush, 24 Nov).
-// the grid keeps Send at the start and Request at the end whatever width Add takes
+// Add is always the centre button, for every balance (Hugo, 25 Nov): under $10
+// it turns pink with a sparkle, but it never moves, so muscle memory holds.
 const SUBMENU_ACTIONS: Array<{ key: HomeDrawer; icon: IconName; slot: string }> = [
     { key: 'send', icon: 'arrow-up-right', slot: 'justify-self-start' },
     { key: 'add', icon: 'plus', slot: 'justify-self-center' },
@@ -63,19 +64,20 @@ export function BalanceSection({
     const [openDrawer, setOpenDrawer] = useHomeDrawer()
     const depositAccounts = useDepositAccountsEnabled()
 
-    const trackTap = (action: HomeDrawer) => posthog.capture(ANALYTICS_EVENTS.HOME_SUBMENU_TAPPED, { action })
+    // a hidden balance keeps the plain Add, so the pink button does not reveal it is under $10
+    const showPill = !isHidden && showsAddMoneyPill({ isVerified, balance, isFetching, isStale })
+    const trackTap = (action: HomeDrawer) =>
+        posthog.capture(ANALYTICS_EVENTS.HOME_SUBMENU_TAPPED, { action, add_cta_active: showPill })
 
-    // once per mount, when a live balance first loads, so the bucket is real
-    const addShownTracked = useRef(false)
     useEffect(() => {
-        if (addShownTracked.current || isFetching || isStale || balance === undefined) return
-        addShownTracked.current = true
+        if (!showPill || balance === undefined) return
         posthog.capture(ANALYTICS_EVENTS.HOME_ADD_CTA_SHOWN, {
             balance_bucket: balanceBucket(balance),
             label: 'add_money',
-            is_verified: isVerified,
         })
-    }, [balance, isFetching, isStale, isVerified])
+        // once each time the pink button appears, not on every balance tick
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [showPill])
 
     const openActionDrawer = (drawer: HomeDrawer) => {
         trackTap(drawer)
@@ -113,7 +115,7 @@ export function BalanceSection({
                     </button>
                 )}
             </div>
-            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start px-10">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-x-3 px-6">
                 {SUBMENU_ACTIONS.map((action) => {
                     // a drawer with one row is a pointless extra tap: link to
                     // that row's destination instead (request, while standing
@@ -126,7 +128,7 @@ export function BalanceSection({
                               ? options[0].href
                               : undefined
                     // pink fill, DS 4px shadow, press drops into it
-                    const isPinkAdd = action.key === 'add'
+                    const isPinkAdd = action.key === 'add' && showPill
                     const inner = (
                         <>
                             <span
@@ -155,22 +157,13 @@ export function BalanceSection({
                                     />
                                 )}
                             </span>
-                            {/* a long label wraps rather than covering Send and Request:
-                                80px keeps a 5px gap to both at 320px, 96px from 375px up
-                                (pt-BR "Adicionar dinheiro" wraps; "Add money" fits from 375px) */}
-                            <span
-                                className={twMerge(
-                                    'text-button-m text-foreground-primary',
-                                    isPinkAdd && 'w-max max-w-20 text-center min-[375px]:max-w-24'
-                                )}
-                            >
-                                {isPinkAdd ? t('addMoneyPill.addMoney') : tNav(action.key)}
-                            </span>
+                            {/* one word in every locale, like Send and Request, so the label never wraps (Hugo, 25 Nov) */}
+                            <span className="text-button-m text-foreground-primary">{tNav(action.key)}</span>
                         </>
                     )
                     const shared = {
                         className: twMerge(
-                            'flex w-14 cursor-pointer flex-col items-center gap-2 focus-visible:outline-[3px] focus-visible:outline-action-focus',
+                            'flex min-w-14 cursor-pointer flex-col items-center gap-2 focus-visible:outline-[3px] focus-visible:outline-action-focus',
                             action.slot
                         ),
                         'data-testid': `home-submenu-${action.key}`,

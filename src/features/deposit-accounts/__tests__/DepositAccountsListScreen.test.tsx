@@ -84,6 +84,10 @@ jest.mock('../useDepositCountryRouting', () => ({
 let residenceIso2s: string[] = []
 jest.mock('../useResidenceIso2s', () => ({ useResidenceIso2s: () => residenceIso2s }))
 
+/** does ARS lead the Add list for this user (the picker's own rule, tested in useAddMoneyReadiness) */
+let mockArsLeads = false
+jest.mock('@/features/add-money/useAddMoneyReadiness', () => ({ useArsLeadsAddMoney: () => mockArsLeads }))
+
 let depositAccountsEnabled = true
 jest.mock('../useDepositAccountsEnabled', () => ({
     useDepositAccountsEnabled: () => depositAccountsEnabled,
@@ -153,6 +157,7 @@ beforeEach(() => {
     jest.clearAllMocks()
     mockIdentity = undefined
     depositAccountsEnabled = true
+    mockArsLeads = false
     residenceIso2s = []
     mockIsCountrySupported.mockReturnValue(true)
     mockBankInput = {
@@ -396,10 +401,12 @@ describe('the accounts still to open fold once one is held', () => {
     })
 
     // nothing behind the fold can be opened at the limit; the counter says why
-    // Hugo, 2026-09-25: the fold stays at the limit, and every row in it says why
+    // Hugo, 2026-09-25: the fold stays at the limit, and every row in it says why. On the Bank account
+    // page only: Add money gives the one-time transfer behind a row the limit holds (below).
     it('keeps the fold at the account limit, and every row in it explains the limit', () => {
         const onOpen = jest.fn()
         const { container } = list(false, {
+            presentation: 'bank-account',
             accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU'), SPEI_MX: heldAccount('SPEI_MX') },
             accountLimit: 2,
             claimable: { ACH_US: offered('ACH_US', 'account-limit') },
@@ -426,6 +433,7 @@ describe('the accounts still to open fold once one is held', () => {
     it('puts the cap first at the limit, before a support or verification block', () => {
         const onOpen = jest.fn()
         const { container } = list(false, {
+            presentation: 'bank-account',
             accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU'), SPEI_MX: heldAccount('SPEI_MX') },
             accountLimit: 2,
             unavailable: {
@@ -604,19 +612,19 @@ describe('an account the user could open', () => {
     })
 
     /*
-     * At the account limit the tap explains the limit and offers support (the
-     * gate drawer behind `onOpen`). The row no longer reads "Available", which
-     * under "Open new account" promised an account the user cannot open.
+     * At the account limit the Bank account page's tap explains the limit and offers support (the gate
+     * drawer behind `onOpen`). The row no longer reads "Available", which under "Open new account"
+     * promised an account the user cannot open.
      */
-    it('says the limit is reached, and leads to the drawer that explains it', () => {
+    it('says the limit is reached on the Bank account page, and leads to the drawer that explains it', () => {
         const onOpen = jest.fn()
         const { container } = list(false, {
+            presentation: 'bank-account',
             accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU'), ACH_US: heldAccount('ACH_US') },
             claimable: { SPEI_MX: offered('SPEI_MX', 'account-limit') },
             onOpen,
         })
-        // at the limit there is no fold; a search still finds the row
-        search('mxn')
+        unfoldOpenAccounts()
 
         expect(inRow(container, 'SPEI_MX').getByText(LIST.badgeLimitReached)).toBeInTheDocument()
         expect(inRow(container, 'SPEI_MX').queryByText('Active')).not.toBeInTheDocument()
@@ -1687,5 +1695,95 @@ describe('an account that waits for the home address', () => {
         })
         expect(inRow(container, 'ACH_US').getByText(LIST.badgeNotOffered)).toBeInTheDocument()
         expect(capture).not.toHaveBeenCalledWith('deposit_account_address_step_viewed', expect.anything())
+    })
+})
+
+/*
+ * The owner, 25 Nov (Release 170.2): behind Add money's one "Bank transfer" row nobody meets a dead
+ * "Limit reached" row where a one-time transfer exists. A row the account limit holds gives that transfer,
+ * as the country list does (`useDepositCountryRouting`). Only a corridor with no transfer at all keeps the
+ * limit and its explanation.
+ */
+describe('Add money at the account limit', () => {
+    const atLimit = (onOpen = jest.fn()) =>
+        list(false, {
+            accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU'), SPEI_MX: heldAccount('SPEI_MX') },
+            accountLimit: 2,
+            claimable: { ACH_US: offered('ACH_US', 'account-limit') },
+            gates: corridorRecord<GateState>((corridor) =>
+                corridor === 'ACH_US' ? READY : { kind: 'needs-enrollment' }
+            ),
+            onOpen,
+        })
+
+    it('gives the one-time transfer for a row the backend holds at the limit, with no limit badge', () => {
+        const onOpen = jest.fn()
+        const { container } = atLimit(onOpen)
+        unfoldOpenAccounts()
+
+        expect(inRow(container, 'ACH_US').queryByText(LIST.badgeLimitReached)).not.toBeInTheDocument()
+        fireEvent.click(rowOf(container, 'ACH_US') as HTMLElement)
+        expect(mockPush).toHaveBeenCalledWith(withReturnTo('/add-money/usa/bank', HUB_RETURN))
+        expect(onOpen).not.toHaveBeenCalled()
+        expect(screen.queryByTestId('closed-row-drawer')).not.toBeInTheDocument()
+    })
+
+    it('gives the one-time transfer where the limit comes first, before another block', () => {
+        const { container } = atLimit()
+        unfoldOpenAccounts()
+
+        expect(inRow(container, 'FASTER_PAYMENTS_GB').queryByText(LIST.badgeLimitReached)).not.toBeInTheDocument()
+        fireEvent.click(rowOf(container, 'FASTER_PAYMENTS_GB') as HTMLElement)
+        expect(mockPush).toHaveBeenCalledWith(expect.stringMatching(/^\/add-money\/[a-z-]+\/bank\?returnTo=/))
+    })
+
+    it('keeps the limit and its explanation where the corridor has no transfer at all', () => {
+        const { container } = atLimit()
+        unfoldOpenAccounts()
+
+        expect(inRow(container, 'BANK_TRANSFER_CO').getByText(LIST.badgeLimitReached)).toBeInTheDocument()
+        fireEvent.click(rowOf(container, 'BANK_TRANSFER_CO') as HTMLElement)
+        expect(mockPush).not.toHaveBeenCalled()
+        expect(drawer().getByText('2 accounts already open')).toBeInTheDocument()
+    })
+
+    // the transfer rides the same rail, so a residence that closes the account closes it too
+    it('never gives the transfer on a rail the residence closes', () => {
+        const { container } = list(false, {
+            accounts: { ...NONE, SEPA_EU: heldAccount('SEPA_EU'), SPEI_MX: heldAccount('SPEI_MX') },
+            accountLimit: 2,
+            unavailable: { ACH_US: withheld('ACH_US', 'not-offered', 'residence-restricted') },
+        })
+        unfoldOpenAccounts()
+
+        fireEvent.click(rowOf(container, 'ACH_US') as HTMLElement)
+        expect(mockPush).not.toHaveBeenCalled()
+    })
+})
+
+/*
+ * The owner, 25 Nov (Release 170.2): ARS leads the Add list for a resident of Argentina, so the bank list
+ * behind its "Bank transfer" row does not offer pesos a second time.
+ */
+describe('the peso row where ARS leads the Add list', () => {
+    it('leaves ARS out of the other ways on Add money, and keeps every other bank row', () => {
+        mockArsLeads = true
+        list(false)
+
+        expect(screen.queryByTestId('bank-row-ars')).not.toBeInTheDocument()
+        expect(bankRow('brl')).toBeInTheDocument()
+    })
+
+    it('keeps ARS where the Add list does not lead with it', () => {
+        list(false)
+
+        expect(bankRow('ars')).toBeInTheDocument()
+    })
+
+    it('keeps ARS on the Bank account page, which lists every way money moves', () => {
+        mockArsLeads = true
+        list(false, { presentation: 'bank-account' })
+
+        expect(bankRow('ars')).toBeInTheDocument()
     })
 })

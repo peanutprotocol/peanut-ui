@@ -14,8 +14,11 @@ jest.mock('@/context/authContext', () => ({ useAuth: () => mockAuth }))
 jest.mock('@/utils/demo', () => ({ isDemoMode: () => mockDemo }))
 jest.mock('@/utils/native-platform', () => ({ useHydrationSnapshot: (get: () => unknown) => get() }))
 
-const account = (user: { username: string | null; email: string }, accounts: { type: string }[] = []) => ({
-    user,
+const account = (
+    user: { username: string | null; email: string; createdAt?: string },
+    accounts: { type: string }[] = []
+) => ({
+    user: { createdAt: '2026-11-20T10:00:00.000Z', ...user },
     accounts,
 })
 
@@ -41,6 +44,14 @@ describe('useAccountSetupRedirect', () => {
         expect(mockPush).toHaveBeenCalledWith('/setup')
     })
 
+    // TASK-25379: a wallet saved without an email goes back to the email step.
+    it('sends a recent account with a wallet and no email back to /setup', () => {
+        mockAuth.user = account({ username: 'alice', email: '' }, [{ type: 'peanut-wallet' }])
+        const { result } = renderHook(() => useAccountSetupRedirect())
+        expect(result.current.needsRedirect).toBe(true)
+        expect(mockPush).toHaveBeenCalledWith('/setup')
+    })
+
     it('sends an account /setup cannot resume, one without a username, to the wallet step', () => {
         mockAuth.user = account({ username: null, email: 'alice@example.com' })
         renderHook(() => useAccountSetupRedirect())
@@ -50,7 +61,17 @@ describe('useAccountSetupRedirect', () => {
     it.each([
         [
             'a finished account',
-            () => (mockAuth.user = account({ username: 'alice', email: '' }, [{ type: 'peanut-wallet' }])),
+            () =>
+                (mockAuth.user = account({ username: 'alice', email: 'alice@example.com' }, [
+                    { type: 'peanut-wallet' },
+                ])),
+        ],
+        [
+            'an account older than the required email step',
+            () =>
+                (mockAuth.user = account({ username: 'alice', email: '', createdAt: '2026-09-01T00:00:00.000Z' }, [
+                    { type: 'peanut-wallet' },
+                ])),
         ],
         ['demo mode', () => ((mockAuth.user = account({ username: 'demo', email: '' })), (mockDemo = true))],
         [

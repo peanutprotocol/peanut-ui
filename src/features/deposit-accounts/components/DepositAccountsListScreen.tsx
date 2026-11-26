@@ -11,6 +11,7 @@ import { SearchInput } from '@/components/SearchInput'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { trackAddMoney } from '@/features/add-money/analytics'
 import { corridorTopUpHref } from '@/features/add-money/countryRoutes'
+import { useArsLeadsAddMoney } from '@/features/add-money/useAddMoneyReadiness'
 import { useBankRows } from '@/hooks/useBankRows'
 import type { GateState } from '@/utils/capability-gate'
 import { rewriteMethodPath } from '@/utils/native-routes'
@@ -95,6 +96,9 @@ export function DepositAccountsListScreen({
     const router = useRouter()
     const { rows: bankRows } = useBankRows()
     const residenceIso2s = useResidenceIso2s()
+    // ARS already leads the Add list for this user, so Add money's other ways do not offer the peso
+    // top-up again (the owner, 25 Nov). Argentina stays among all countries, where a search finds it.
+    const arsLeads = useArsLeadsAddMoney() && !bankAccount
     const { openCountry, isCountrySupported } = useDepositCountryRouting({
         accounts,
         claimable,
@@ -131,6 +135,11 @@ export function DepositAccountsListScreen({
     const openTopUp = (row: UnlockRow) => {
         const href = row.corridor && corridorTopUpHref(row.corridor, residenceIso2s)
         if (href) router.push(withReturnTo(rewriteMethodPath(href), HUB_HREF))
+    }
+    // at the account limit, the same transfer behind an account row the limit holds
+    const topUpAtLimit = (corridor: DepositCorridor) => {
+        const href = corridorTopUpHref(corridor, residenceIso2s)
+        return href ? () => router.push(withReturnTo(rewriteMethodPath(href), HUB_HREF)) : undefined
     }
 
     const cryptoRow =
@@ -248,7 +257,7 @@ export function DepositAccountsListScreen({
                         onOpen,
                     }}
                     claimsEnabled={claimsEnabled}
-                    bankRows={bankRows}
+                    bankRows={arsLeads ? bankRows.filter((row) => row.corridor !== 'BANK_TRANSFER_AR') : bankRows}
                     onBankRowClick={openTopUp}
                     onVerifyPix={
                         bankAccount && gates.PIX_BR?.kind === 'needs-identity' ? () => onOpen('PIX_BR') : undefined
@@ -257,6 +266,7 @@ export function DepositAccountsListScreen({
                     searchTerm={term}
                     extraRows={cryptoRow ? [cryptoRow] : []}
                     footer={bankAccount ? undefined : countries}
+                    topUpAtLimit={bankAccount ? undefined : topUpAtLimit}
                 />
             </div>
             {!bankAccount && showArgentinaRestriction && argentinaUnavailable && (

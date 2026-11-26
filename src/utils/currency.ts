@@ -12,8 +12,9 @@ export const getDisplayCurrencySymbol = (code?: string, fallbackSymbol: string =
 /**
  * A bank amount as people read it: "€2,000" or "€2,000.50" — no ".00" on a
  * round amount (design.md, copy). Rounds to the cent first, so 1999.999 is "€2,000".
+ * `locale` sets the separators (see {@link formatAmountNumber}).
  */
-export const formatBankAmount = (amount: string | number, currencyCode: string): string => {
+export const formatBankAmount = (amount: string | number, currencyCode: string, locale: string = 'en-US'): string => {
     if (!isMoneyUnit(currencyCode)) {
         reportInvalidNumeric('format', 'unit')
         return '—'
@@ -21,7 +22,7 @@ export const formatBankAmount = (amount: string | number, currencyCode: string):
     const symbol = getDisplayCurrencySymbol(currencyCode)
     // A currency with no symbol of its own shows its code, which needs a space: "ARS 1,000", not "ARS1,000".
     const prefix = /^[A-Z]+$/.test(symbol) ? `${symbol} ` : symbol
-    const formatted = formatAmountNumber(amount)
+    const formatted = formatAmountNumber(amount, 2, 2, locale)
     return formatted === '—' ? formatted : `${prefix}${formatted}`
 }
 
@@ -34,11 +35,16 @@ export const formatBankAmount = (amount: string | number, currencyCode: string):
  * when there is a fraction, and no ".00" on a round amount. `formatCurrency`
  * and `formatNumberForDisplay` delegate here. A spendable balance is floored
  * to the cent before it gets here (`formatUsdcBalance`).
+ *
+ * `locale` sets the separators. Argentines and Brazilians read "1,746.62" as
+ * 1.74, so a screen that shows pesos or reais passes the app locale ("1.746,62").
+ * The default keeps every other caller in US format.
  */
 export const formatAmountNumber = (
     amount: string | number,
     maxDecimals: number = 2,
-    minDecimals: number = 2
+    minDecimals: number = 2,
+    locale: string = 'en-US'
 ): string => {
     const value = parseFiniteNumber(amount)
     if (value === null) {
@@ -49,21 +55,28 @@ export const formatAmountNumber = (
         reportInvalidNumeric('format', 'precision')
         return '—'
     }
-    return formatFiniteDisplay(value, 'en-US', {
+    const formatted = formatFiniteDisplay(value, locale, {
         minimumFractionDigits: Math.min(minDecimals, maxDecimals),
         maximumFractionDigits: maxDecimals,
         roundingMode: 'halfExpand',
-    }).replace(/\.0+$/, '')
+    })
+    if (formatted === '—') return formatted
+    // no ".00" on a round amount, with the locale's own decimal mark (",00" in es-AR)
+    return formatted.replace(new RegExp(`\\${decimalSeparator(locale)}0+$`), '')
 }
+
+const decimalSeparator = (locale: string): string =>
+    new Intl.NumberFormat(locale).formatToParts(1.1).find((part) => part.type === 'decimal')?.value ?? '.'
 
 /**
  * The number of a fiat exchange rate, as in "1 USD = 5.40 BRL": half-up to two
  * decimals and always both, so "5.40", never "5.4" or "4.941639". No fiat value
  * shows more than two decimals, and a rate counts (TASK-24947, 2026-11-15).
  * A token rate is not fiat and keeps its own precision.
+ * `locale` sets the separators (see {@link formatAmountNumber}).
  */
-export const formatFiatRate = (rate: string | number): string =>
-    formatFiniteDisplay(rate, 'en-US', {
+export const formatFiatRate = (rate: string | number, locale: string = 'en-US'): string =>
+    formatFiniteDisplay(rate, locale, {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
         roundingMode: 'halfExpand',

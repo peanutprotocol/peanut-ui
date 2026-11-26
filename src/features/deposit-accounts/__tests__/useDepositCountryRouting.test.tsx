@@ -312,4 +312,45 @@ describe('useDepositCountryRouting', () => {
 
         expect(result.current.isCountrySupported(COLOMBIA as any)).toBe(false)
     })
+
+    // The owner, 25 Nov (Release 170.2): the Add picker has one "Bank transfer" row, and this hook is the
+    // choice behind it. The same country gives the reusable account where one can be opened, and the
+    // one-time transfer where it cannot, with nothing for the user to choose.
+    describe("behind the picker's one bank row", () => {
+        it('a user who can open an account gets the reusable account, in place', async () => {
+            mockOfferedCorridors.mockReturnValue(['SEPA_EU'])
+            const updates: UrlUpdateEvent[] = []
+            const { result } = renderRouting((e) => updates.push(e), { claimable: blocked(undefined) })
+
+            let navigated = true
+            act(() => {
+                navigated = result.current.openCountry(GERMANY as any)
+            })
+
+            await waitFor(() => expect(updates.at(-1)?.searchParams.get('corridor')).toBe('SEPA_EU'))
+            expect(updates.at(-1)?.searchParams.get('step')).toBe('details')
+            expect(navigated).toBe(false)
+            expect(mockRouterPush).not.toHaveBeenCalled()
+        })
+
+        it.each([
+            ['at the account limit', { claimable: blocked('account-limit') }, true],
+            ['waiting on a provider review', { claimable: blocked('endorsement-pending') }, true],
+            ['with bank accounts switched off', {}, false],
+        ] as const)('a user %s gets the one-time transfer details', (_, args, accountsEnabled) => {
+            mockOfferedCorridors.mockReturnValue(['SEPA_EU'])
+            mockDepositAccountsEnabled.mockReturnValue(accountsEnabled)
+            const updates: UrlUpdateEvent[] = []
+            const { result } = renderRouting((e) => updates.push(e), args as RoutingArgs)
+
+            let navigated = false
+            act(() => {
+                navigated = result.current.openCountry(GERMANY as any)
+            })
+
+            expect(mockRouterPush).toHaveBeenCalledWith('/add-money/germany/bank')
+            expect(navigated).toBe(true)
+            expect(updates.at(-1)?.searchParams.get('corridor')).not.toBe('SEPA_EU')
+        })
+    })
 })

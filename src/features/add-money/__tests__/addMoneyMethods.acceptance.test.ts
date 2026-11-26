@@ -26,7 +26,7 @@ describe('resolveAddMoneyMethods', () => {
             entry: 'drawer',
             ready: { account: [], transfer: [], pix: [], ars: [] },
             drawerMethods: ['account', 'crypto', 'more'],
-            pickerMethods: ['account', 'transfer', 'crypto'],
+            pickerMethods: ['bank', 'crypto'],
         })
     })
 
@@ -52,16 +52,16 @@ describe('resolveAddMoneyMethods', () => {
         expect(result).toMatchObject({
             entry: 'drawer',
             ready: { account: ['USD', 'COP'], transfer: [], pix: [] },
-            pickerMethods: ['account', 'transfer', 'crypto'],
+            pickerMethods: ['bank', 'crypto'],
         })
         expect(new Set(result.drawerMethods)).toEqual(new Set(['account', 'more']))
         expect(result.drawerMethods).toHaveLength(2)
     })
 
-    it('omits Account from the picker when opening is disabled and no usable account exists', () => {
+    it('keeps the one bank row on the picker when opening is disabled and no usable account exists', () => {
         expect(resolve({ standingEnabled: false, activeAccounts: ['ARS', 'unknown'] })).toMatchObject({
             entry: 'picker',
-            pickerMethods: ['transfer', 'crypto'],
+            pickerMethods: ['bank', 'crypto'],
         })
     })
 
@@ -94,13 +94,33 @@ describe('resolveAddMoneyMethods', () => {
         })
     })
 
+    // The owner, 25 Nov (Release 170.2): the picker has one bank row, never "Open a bank account" next to
+    // "One-time bank transfer". Which of the two the user gets is decided behind it, in the bank hub
+    // (`useDepositCountryRouting`), so the row is the same whether an account can be opened or not.
+    describe('the one bank row on the picker', () => {
+        it.each([
+            ['can open an account', {}],
+            ['holds an account', { standingEnabled: false, activeAccounts: ['USD'] }],
+            ['cannot open one (bank accounts off)', { standingEnabled: false }],
+            [
+                'has only a ready one-time transfer',
+                { standingEnabled: false, residenceIso2s: ['US'], readyTopUps: ['USD'] },
+            ],
+        ] as const)('a user who %s gets exactly one bank row, and no account or transfer row', (_, overrides) => {
+            const { pickerMethods } = resolve(overrides as Partial<Input>)
+            expect(pickerMethods.filter((method) => method === 'bank')).toHaveLength(1)
+            expect(pickerMethods).not.toContain('account')
+            expect(pickerMethods).not.toContain('transfer')
+        })
+    })
+
     // The owner, 15 Nov: one rule for the Pix row on both lists, read from the Pix deposit route
     describe('the Pix row, on the picker and the drawer alike', () => {
         const returning = { firstPaymentAt: '2026-01-01T00:00:00Z' }
 
         it('a verified user outside Brazil, whose Manteca route waits for its first use, gets no Pix row', () => {
             const result = resolve({ ...returning, residenceIso2s: ['DE'], pixDepositRouteOpen: true })
-            expect(result.pickerMethods).toEqual(['account', 'transfer', 'crypto'])
+            expect(result.pickerMethods).toEqual(['bank', 'crypto'])
             expect(result.drawerMethods).not.toContain('pix')
         })
 
@@ -112,19 +132,19 @@ describe('resolveAddMoneyMethods', () => {
                 pixDepositOffered: true,
                 pixDepositRouteOpen: true,
             })
-            expect(result.pickerMethods).toEqual(['pix', 'account', 'transfer', 'crypto'])
+            expect(result.pickerMethods).toEqual(['pix', 'bank', 'crypto'])
             expect(result.drawerMethods).toEqual(['pix', 'account', 'crypto', 'more'])
         })
 
         it('a ready Manteca Pix top-up shows after the bank methods on both lists', () => {
             const result = resolve({ ...returning, residenceIso2s: ['BR', 'US'], readyTopUps: ['BRL', 'USD'] })
-            expect(result.pickerMethods).toEqual(['account', 'transfer', 'pix', 'crypto'])
+            expect(result.pickerMethods).toEqual(['bank', 'pix', 'crypto'])
             expect(result.drawerMethods).toEqual(['account', 'pix', 'crypto', 'more'])
         })
 
         it('a declared resident of Brazil with an open route gets the row, after the bank methods', () => {
             const result = resolve({ ...returning, residenceIso2s: ['BR'], pixDepositRouteOpen: true })
-            expect(result.pickerMethods).toEqual(['account', 'transfer', 'pix', 'crypto'])
+            expect(result.pickerMethods).toEqual(['bank', 'pix', 'crypto'])
             expect(result.drawerMethods).toEqual(['account', 'pix', 'crypto', 'more'])
             // the row starts Pix; it does not make Pix ready
             expect(result.ready.pix).toEqual([])
@@ -167,15 +187,15 @@ describe('resolveAddMoneyMethods', () => {
         expect(result.drawerMethods).toHaveLength(2)
     })
 
-    // The owner, 15 Nov: a one-time bank transfer is never a drawer row, whoever the user is; it stays
-    // on the picker, which "More ways to add money" opens
+    // The owner, 15 Nov: a one-time bank transfer is never a drawer row, whoever the user is; the picker's
+    // bank row, which "More ways to add money" opens, reaches it
     describe('the one-time bank transfer', () => {
-        it('a ready transfer adds no drawer row, the picker still lists it, and the user is still returning', () => {
+        it('a ready transfer adds no drawer row, the picker keeps its bank row, and the user is still returning', () => {
             const result = resolve({ residenceIso2s: ['US'], readyTopUps: ['USD'] })
             expect(result.ready.transfer).toEqual(['USD'])
             expect(result.drawerMethods).not.toContain('transfer')
             expect(result.drawerMethods).toEqual(['account', 'crypto', 'more'])
-            expect(result.pickerMethods).toEqual(['account', 'transfer', 'crypto'])
+            expect(result.pickerMethods).toEqual(['bank', 'crypto'])
             expect(result.entry).toBe('drawer')
         })
 
@@ -189,12 +209,12 @@ describe('resolveAddMoneyMethods', () => {
             expect(result.ready.transfer).toEqual(['USD'])
             expect(result.drawerMethods).toEqual([])
             expect(result.entry).toBe('picker')
-            expect(result.pickerMethods).toContain('transfer')
+            expect(result.pickerMethods).toContain('bank')
         })
     })
 
     // The owner, 24 Nov (TASK-25350): ARS leads both lists for a resident of Argentina, as Pix
-    // leads on Avenia, and the peso top-up leaves the one-time bank transfer
+    // leads on Avenia
     describe('the ARS row, on the picker and the drawer alike', () => {
         const returning = { firstPaymentAt: '2026-01-01T00:00:00Z' }
 
@@ -202,14 +222,14 @@ describe('resolveAddMoneyMethods', () => {
             const result = resolve({ residenceIso2s: ['AR'], readyTopUps: ['ARS'] })
             expect(result.ready).toEqual({ account: [], transfer: [], pix: [], ars: ['ARS'] })
             expect(result.drawerMethods).toEqual(['ars', 'account', 'crypto', 'more'])
-            expect(result.pickerMethods).toEqual(['ars', 'account', 'transfer', 'crypto'])
+            expect(result.pickerMethods).toEqual(['ars', 'bank', 'crypto'])
             // a ready top-up still makes the user returning, so the Add button opens the drawer
             expect(result.entry).toBe('drawer')
         })
 
         it('a resident with an open gate gets the row before verifying, and still lands on the picker', () => {
             const result = resolve({ residenceIso2s: ['AR'], arsTopUpOpen: true, firstPaymentAt: null })
-            expect(result.pickerMethods).toEqual(['ars', 'account', 'transfer', 'crypto'])
+            expect(result.pickerMethods).toEqual(['ars', 'bank', 'crypto'])
             expect(result.drawerMethods[0]).toBe('ars')
             // the row starts the top-up; it does not make it ready, nor the user returning
             expect(result.ready.ars).toEqual([])
@@ -225,11 +245,11 @@ describe('resolveAddMoneyMethods', () => {
             ])
         })
 
-        it('a refused gate gets no row: the peso top-up stays under the one-time bank transfer', () => {
+        it('a refused gate gets no row: the peso top-up stays behind the bank row', () => {
             const result = resolve({ ...returning, residenceIso2s: ['AR'], arsTopUpOpen: false })
             expect(result.pickerMethods).not.toContain('ars')
             expect(result.drawerMethods).not.toContain('ars')
-            expect(result.pickerMethods).toContain('transfer')
+            expect(result.pickerMethods).toContain('bank')
         })
 
         it.each([[['DE']], [['BR']], [[]]])('a user with residence %j gets no row', (residenceIso2s) => {

@@ -12,6 +12,13 @@
  */
 export const GO_REDIRECTS: Readonly<Record<string, string>> = {
     app: '/app',
+    // Palermo posters (TASK-24170). Printed QR codes: never remove a key, only change its value.
+    'palermo/1':
+        '/invite?code=squirrel&utm_source=poster&utm_medium=cpm&utm_campaign=palermo-posters-2026-11&utm_content=p1',
+    'palermo/2':
+        '/invite?code=squirrel&utm_source=poster&utm_medium=cpm&utm_campaign=palermo-posters-2026-11&utm_content=p2',
+    'palermo/3':
+        '/invite?code=squirrel&utm_source=poster&utm_medium=cpm&utm_campaign=palermo-posters-2026-11&utm_content=p3',
 }
 
 const ORIGIN = 'https://peanut.me'

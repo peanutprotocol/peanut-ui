@@ -8,7 +8,7 @@ const mockPush = jest.fn()
 jest.mock('next/navigation', () => ({ useRouter: () => ({ push: mockPush }), usePathname: () => '/add-money' }))
 jest.mock('posthog-js', () => ({ __esModule: true, default: { capture: jest.fn() } }))
 jest.mock('@/hooks/useAppHaptic', () => ({ useAppHaptic: () => ({ triggerHaptic: jest.fn() }) }))
-let mockPickerMethods = ['pix', 'account', 'transfer', 'crypto']
+let mockPickerMethods = ['pix', 'bank', 'crypto']
 jest.mock('../useAddMoneyReadiness', () => ({
     useAddMoneyReadiness: () => ({ pickerMethods: mockPickerMethods }),
 }))
@@ -21,7 +21,7 @@ const tap = (key: string) => fireEvent.click(screen.getByTestId(`add-money-metho
 
 beforeEach(() => {
     mockPush.mockClear()
-    mockPickerMethods = ['pix', 'account', 'transfer', 'crypto']
+    mockPickerMethods = ['pix', 'bank', 'crypto']
     jest.mocked(isCapacitor).mockReturnValue(false)
 })
 
@@ -32,14 +32,40 @@ it('opens the Pix deposit directly, with the picker to come back to', () => {
     expect(mockPush).toHaveBeenCalledWith('/add-money/pix?returnTo=%2Fadd-money')
 })
 
-it.each([
-    ['account', '/add-money/options?method=account&returnTo=%2Fadd-money'],
-    ['transfer', '/add-money/options?method=transfer&returnTo=%2Fadd-money'],
-    ['crypto', '/add-money/crypto?returnTo=%2Fadd-money'],
-])('keeps the %s row on its own screen', (key, href) => {
+it('keeps the crypto row on its own screen', () => {
     renderWithIntl(<AddMoneyPicker onBack={jest.fn()} origin={null} />)
-    tap(key)
-    expect(mockPush).toHaveBeenCalledWith(href)
+    tap('crypto')
+    expect(mockPush).toHaveBeenCalledWith('/add-money/crypto?returnTo=%2Fadd-money')
+})
+
+// The owner, 25 Nov (Release 170.2): one bank row again, never "Open a bank account" beside
+// "One-time bank transfer". The bank hub behind it picks the reusable account or the one-time transfer.
+describe('the bank row', () => {
+    it('is one plain "Bank transfer" row that never offers a temporary or one-time choice', () => {
+        renderWithIntl(<AddMoneyPicker onBack={jest.fn()} origin={null} />)
+        const rows = screen.getAllByTestId(/^add-money-method-/)
+        expect(rows.map((row) => row.getAttribute('data-testid'))).toEqual([
+            'add-money-method-pix',
+            'add-money-method-bank',
+            'add-money-method-crypto',
+        ])
+        expect(screen.getByTestId('add-money-method-bank')).toHaveTextContent('Bank transfer')
+        expect(screen.getByTestId('add-money-method-bank')).toHaveTextContent('From your bank account')
+        expect(document.body).not.toHaveTextContent(/temporary|one-time|open a bank account/i)
+    })
+
+    it('opens the bank hub, which returns to Home when the picker was opened from Home', () => {
+        renderWithIntl(<AddMoneyPicker onBack={jest.fn()} origin={null} />)
+        tap('bank')
+        expect(mockPush).toHaveBeenCalledWith('/add-money?method=bank')
+    })
+
+    // the hub shares the picker's path, so a returnTo naming the picker would be dropped as itself
+    it('carries the origin the picker was opened from to the bank hub', () => {
+        renderWithIntl(<AddMoneyPicker onBack={jest.fn()} origin="/request/abc" />)
+        tap('bank')
+        expect(mockPush).toHaveBeenCalledWith('/add-money?method=bank&returnTo=%2Frequest%2Fabc')
+    })
 })
 
 // TASK-25018: the Pix mark comes from CONCEPT_ICONS through IconBubble, not a raw Image with its own size
@@ -54,7 +80,7 @@ it('draws the Pix mark as the concept logo bubble', () => {
 // top-up directly, with the picker to come back to
 describe('the ARS row', () => {
     beforeEach(() => {
-        mockPickerMethods = ['ars', 'account', 'transfer', 'crypto']
+        mockPickerMethods = ['ars', 'bank', 'crypto']
     })
 
     it('leads the list as ARS with the AR flag, saying it is paid from Mercado Pago or a bank', () => {
@@ -80,7 +106,7 @@ describe('the ARS row', () => {
     })
 
     it('is absent when the methods resolve without it', () => {
-        mockPickerMethods = ['account', 'transfer', 'crypto']
+        mockPickerMethods = ['bank', 'crypto']
         renderWithIntl(<AddMoneyPicker onBack={jest.fn()} origin={null} />)
         expect(screen.queryByTestId('add-money-method-ars')).not.toBeInTheDocument()
     })
