@@ -657,7 +657,6 @@
         },
         "notifications": {
             "saveFailed": "No pudimos guardar tu configuración. Probá de nuevo.",
-            "offersDescription": "Probá las novedades antes que nadie",
             "changeAnytime": "Podés cambiar cualquiera de estas opciones cuando quieras en tu perfil."
         }
     },

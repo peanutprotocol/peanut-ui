@@ -10,7 +10,7 @@ import { NotificationsArt } from './NotificationsArt'
 import { useNotificationsControl } from './useNotificationsControl'
 import { SETUP_LEAD_CLASS } from '@/components/Setup/redesign/shell/shell.consts'
 
-/** 10 Notifications, control arm: "Turn on notifications" and "Not now"; an OS refusal shows `denied`. */
+/** 10 Notifications: "Turn on notifications" and "Not now"; an OS refusal shows `denied`. */
 export function NotificationsControlScreen() {
     const t = useTranslations('setupRedesign')
     const tNotifications = useTranslations('setup.notifications')

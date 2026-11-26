@@ -21,19 +21,6 @@ export function isFeatureFlagEnabled(flagKey: FeatureFlagKey, options: FeatureFl
 }
 `,
     },
-    {
-        path: 'src/features/setup/notificationsExperiment.ts',
-        anchor: 'export function readNotificationsVariant(): NotificationsVariant {',
-        live: 'function readNotificationsVariantLive(): NotificationsVariant {',
-        wrapper: `
-${FLAG_RECORDER_MARKER}
-export function readNotificationsVariant(): NotificationsVariant {
-    const value = readNotificationsVariantLive()
-    const capture = ${HOOK}
-    return capture ? (capture(NOTIFICATIONS_EXPERIMENT_FLAG, value) as NotificationsVariant) : value
-}
-`,
-    },
 ]
 
 /** A revision without the anchor keeps its source; its screens cannot take flag overrides. */

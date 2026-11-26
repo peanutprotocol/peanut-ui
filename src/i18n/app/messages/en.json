@@ -1122,12 +1122,6 @@
         },
         "notifications": {
             "saveFailed": "We couldn’t save your settings. Please try again.",
-            "importantLabel": "Important alerts",
-            "importantDescription": "Payments, account and security",
-            "offersLabel": "Offers and perks",
-            "offersDescription": "Be first to try new features",
-            "emailLabel": "Email updates",
-            "emailDescription": "Helpful updates in your inbox",
             "changeAnytime": "You can change any of these anytime in your profile."
         }
     },
