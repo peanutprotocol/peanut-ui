@@ -85,7 +85,7 @@ describe('card add-money drawer fixtures', () => {
     const names = Object.keys(FIXTURES).filter((name) => name.startsWith('card-add-money-'))
 
     it('all open the funding step with no card collateral in the balance', () => {
-        expect(names.length).toBe(13)
+        expect(names.length).toBe(14)
         for (const name of names) {
             expect(FIXTURES[name].route).toBe('/card?card_step=funding')
             expect((FIXTURES[name].responses?.['GET /rain/cards'] as { balance: unknown }).balance).toBeNull()

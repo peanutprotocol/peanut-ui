@@ -2600,6 +2600,26 @@ const CARD_US_USER = {
     capabilities: { rails: US_ACH_RAILS, nextActions: [], restrictions: [] },
 }
 
+/** A verified UK resident: every bank rail refused for the residence. */
+const CARD_GB_REFUSED_USER = {
+    residence: verifiedResidence('GB'),
+    capabilities: {
+        rails: [...BRIDGE_BANK_RAILS, BRIDGE_CO_RAIL].map((rail) => ({
+            ...rail,
+            status: 'blocked',
+            reason: UK_BANK_REFUSAL,
+            resolved: { status: 'blocked', blocking: { ...UK_BANK_REFUSAL, selfHealable: false } },
+        })),
+        nextActions: [],
+        restrictions: [
+            {
+                ...UK_BANK_REFUSAL,
+                affectedRailIds: [...BRIDGE_BANK_RAILS, BRIDGE_CO_RAIL].map((rail) => rail.id),
+            },
+        ],
+    },
+}
+
 const CARD_ADD_MONEY_FIXTURES: Record<string, Fixture> = {
     'card-add-money-crypto': cardAddMoney(
         'Card $10 step, add money in place: crypto, for the EVM, Solana and Tron address views ($3.20 spendable).',
@@ -2696,25 +2716,14 @@ const CARD_ADD_MONEY_FIXTURES: Record<string, Fixture> = {
     ),
     'card-add-money-bank-not-offered': cardAddMoney(
         'Card $10 step: a UK resident, every bank account refused, so only the crypto row shows.',
-        {
-            residence: verifiedResidence('GB'),
-            capabilities: {
-                rails: [...BRIDGE_BANK_RAILS, BRIDGE_CO_RAIL].map((rail) => ({
-                    ...rail,
-                    status: 'blocked',
-                    reason: UK_BANK_REFUSAL,
-                    resolved: { status: 'blocked', blocking: { ...UK_BANK_REFUSAL, selfHealable: false } },
-                })),
-                nextActions: [],
-                restrictions: [
-                    {
-                        ...UK_BANK_REFUSAL,
-                        affectedRailIds: [...BRIDGE_BANK_RAILS, BRIDGE_CO_RAIL].map((rail) => rail.id),
-                    },
-                ],
-            },
-        },
+        CARD_GB_REFUSED_USER,
         {}
+    ),
+    'card-add-money-bank-waiting': cardAddMoney(
+        'Card $10 step: the same UK resident, but the residence rules never load, so the Bank row waits disabled with no badge (refusal or a step left cannot be told apart).',
+        CARD_GB_REFUSED_USER,
+        {},
+        { fails: ['GET /config/residence-restrictions'] }
     ),
 }
 
