@@ -1404,8 +1404,13 @@ function PaperworkVerificationSteps({
                 cta={candidate || followUps[0] ? t('continue') : undefined}
                 aside={!candidate && bankRefusal && <BankRefusalNotice refusal={bankRefusal} />}
                 onBack={finish}
+                // opened with a returnTo (the card step): back there, which leads to what is still needed
                 onContinue={
-                    candidate ? completeCandidate : () => router.push(followUps[0]?.href ?? PAYMENT_METHODS_HREF)
+                    candidate
+                        ? completeCandidate
+                        : firstTimeReturn
+                          ? finish
+                          : () => router.push(followUps[0]?.href ?? PAYMENT_METHODS_HREF)
                 }
             />
         )

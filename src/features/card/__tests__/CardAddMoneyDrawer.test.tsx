@@ -6,7 +6,6 @@ import { ToastProvider } from '@/components/0_Bruddle/Toast'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { DEPOSIT_RAIL_ORDER } from '@/features/deposit-accounts/rails'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
-import { RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
 import type { GateState } from '@/utils/capability-gate'
 import { CardAcquisitionScreen } from '../components/CardAcquisitionScreen'
 
@@ -102,6 +101,9 @@ jest.mock('@/features/deposit-accounts/useDepositAccounts', () => ({
     DEPOSIT_ACCOUNTS_QUERY_KEY: ['deposit-accounts'],
     useDepositAccounts: () => ({ accounts: depositAccounts, isLoading: false, isError: false, claim: mockClaim }),
 }))
+// the deposit view's fresh balance read (its own tests cover the deposit arithmetic)
+let mockLive = 2.5
+jest.mock('@/features/card/readLiveSpendableUsd', () => ({ readLiveSpendableUsd: async () => mockLive }))
 // account-currency units per dollar from the client rate feed; 0 is the hook's "no rate"
 let usdRate = 0.92
 let rateLoading = false
@@ -126,6 +128,7 @@ beforeAll(() => {
 })
 
 beforeEach(() => {
+    mockLive = 2.5
     jest.clearAllMocks()
     localStorage.clear()
     sessionStorage.clear()
@@ -372,7 +375,8 @@ describe('bank views', () => {
         renderFunding()
         fireEvent.click(screen.getByTestId('card-add-money-bank'))
         const status = within(drawer()).getByTestId('card-add-money-status-under-review')
-        expect(within(status).getByText('underReviewTitle')).toBeInTheDocument()
+        // the bank partner reviews the account, not the user's ID
+        expect(within(status).getByText('bankUnderReviewTitle')).toBeInTheDocument()
         expect(within(status).getByTestId('card-add-money-use-crypto')).toHaveTextContent('useCrypto($7.50)')
     })
 
@@ -415,6 +419,7 @@ describe('bank views', () => {
 
 describe('crypto views', () => {
     async function openAddress(network: 'evm' | 'sol' | 'tron' = 'tron', overrides: Partial<typeof props> = {}) {
+        mockLive = overrides.spendableUsd ?? props.spendableUsd
         const view = renderFunding(overrides)
         fireEvent.click(screen.getByTestId('card-add-money-crypto'))
         expect(within(drawer()).getByText('pickNetwork')).toBeInTheDocument()
@@ -452,51 +457,14 @@ describe('crypto views', () => {
         expect(within(drawer()).getByTestId('choose-network-sol')).toBeInTheDocument()
     })
 
-    it('shows what is still missing after a short deposit and watches for the rest', async () => {
-        const { queryClient, rerenderWith } = await openAddress('tron')
-        queryClient.setQueryData(['balance', '0xwallet'], 1)
-        await act(async () => pollOnSuccess?.(4))
-        // processing until the balance read shows the $4
-        expect(within(drawer()).getByTestId('card-add-money-processing')).toBeInTheDocument()
-        await act(async () => rerenderWith({ spendableUsd: 6.5 }))
-        const short = within(drawer()).getByTestId('card-add-money-short')
-        // what came in, and what is still missing
-        expect(short).toHaveTextContent('shortReceived($4)')
-        expect(short).toHaveTextContent('shortStillNeeded($3.50)')
-        // the network takes at least $5, so the ask says so and that the extra stays in the balance
-        const ask = within(drawer()).getByTestId('card-add-money-ask')
-        expect(ask).toHaveTextContent('sendAsk($5)')
-        expect(ask).toHaveTextContent('raisedToMinimum(Tron|$5|$1.50)')
-        // the address stays to send the rest to
-        expect(within(drawer()).getByTestId('qr')).toBeInTheDocument()
-        expect(mockResetStatus).toHaveBeenCalled()
-        expect(queryClient.getQueryState(['balance', '0xwallet'])?.isInvalidated).toBe(true)
-    })
-
-    it('asks for the exact rest after a short deposit when the network minimum is lower', async () => {
-        mockCreateDepositAddress.mockResolvedValue({ depositAddress: 'Tdeposit', minDepositLimitUsd: 1 })
-        const { rerenderWith } = await openAddress('tron')
-        await act(async () => pollOnSuccess?.(4))
-        await act(async () => rerenderWith({ spendableUsd: 6.5 }))
-        expect(within(drawer()).getByTestId('card-add-money-ask')).toHaveTextContent('sendAsk($3.50)')
-    })
-
-    it('turns a full deposit into a short one when the refreshed balance still leaves a gap', async () => {
-        const { rerenderWith } = await openAddress('tron')
-        await act(async () => pollOnSuccess?.(7.5))
-        expect(within(drawer()).getByTestId('card-add-money-processing')).toBeInTheDocument()
-        // a fee was taken on the way: the balance read lands $1 short of the minimum
-        await act(async () => rerenderWith({ spendableUsd: 9 }))
-        const short = within(drawer()).getByTestId('card-add-money-short')
-        expect(short).toHaveTextContent('shortReceived($6.50)')
-        expect(short).toHaveTextContent('shortStillNeeded($1)')
-        expect(within(drawer()).getByTestId('card-add-money-ask')).toHaveTextContent('sendAsk($5)')
-    })
-
     it('clears only an outcome an earlier deposit left, read at once when the address arrives', async () => {
         pollStatus = 'completed'
-        await openAddress('tron')
+        renderFunding()
+        fireEvent.click(screen.getByTestId('card-add-money-crypto'))
+        fireEvent.click(within(drawer()).getByTestId('choose-network-tron'))
         await waitFor(() => expect(mockResetStatus).toHaveBeenCalledTimes(1))
+        // the address waits for fresh reads to show that deposit is in the balance
+        expect(within(drawer()).queryByTestId('qr')).not.toBeInTheDocument()
     })
 
     it('keeps a deposit already on its way and shows it processing', async () => {
@@ -521,16 +489,6 @@ describe('crypto views', () => {
     it('lists the EVM chains the address works on', async () => {
         await openAddress('evm')
         expect(within(drawer()).getByText('supportedEvmNetworks')).toBeInTheDocument()
-    })
-
-    it('shows the processing state after a full deposit and refreshes the balance and card reads', async () => {
-        const { queryClient } = await openAddress('tron')
-        queryClient.setQueryData(['balance', '0xwallet'], 1)
-        queryClient.setQueryData([RAIN_CARD_OVERVIEW_QUERY_KEY, 'u1'], {})
-        await act(async () => pollOnSuccess?.(7.5))
-        expect(within(drawer()).getByTestId('card-add-money-processing')).toBeInTheDocument()
-        expect(queryClient.getQueryState(['balance', '0xwallet'])?.isInvalidated).toBe(true)
-        expect(queryClient.getQueryState([RAIN_CARD_OVERVIEW_QUERY_KEY, 'u1'])?.isInvalidated).toBe(true)
     })
 
     it('offers a retry when the market moved', async () => {
@@ -637,12 +595,19 @@ describe('one amount, one heading, no dead ends', () => {
         expect(within(drawer()).getByTestId('card-add-money-ask')).toHaveTextContent('sendAsk($10)')
     })
 
-    it('shows one heading on a status view: the status, not the drawer title too', () => {
+    it('keeps the one drawer title over a status view, which names itself in body text', () => {
         readiness = { ...readiness, topUpGates: gates('blocked-rejection', { ACH_US: { kind: 'needs-identity' } }) }
         renderFunding()
         fireEvent.click(screen.getByTestId('card-add-money-bank'))
         within(drawer()).getByTestId('card-add-money-status-not-verified')
-        for (const el of within(drawer()).queryAllByText('title')) expect(el).toHaveClass('sr-only')
+        // the drawer's one title stays; the status is not a second heading
+        expect(
+            within(drawer())
+                .getAllByText('title')
+                .some((el) => !el.classList.contains('sr-only'))
+        ).toBe(true)
+        const status = within(drawer()).getByTestId('card-add-money-status-not-verified')
+        expect(status.querySelector('[class*="text-heading"]')).toBeNull()
     })
 
     it('offers crypto as the tertiary link beside Verify identity, and comes back to the status', () => {
@@ -747,6 +712,27 @@ describe('round 2: badges, one heading on details, the residence fix, no back wh
         }
         renderFunding()
         expect(within(screen.getByTestId('card-add-money-bank')).getByText(badge)).toBeInTheDocument()
+    })
+
+    it.each([
+        ['being set up', { kind: 'pending' as const }, 'list.badgeSettingUp'],
+        ['one step left', { kind: 'accept-tos' as const, userMessage: null }, 'list.badgeActionNeeded'],
+    ])('badges a bank row %s', (_label, gate, badge) => {
+        readiness = { ...readiness, topUpGates: gates('blocked-rejection', { ACH_US: gate }) }
+        renderFunding()
+        expect(within(screen.getByTestId('card-add-money-bank')).getByText(badge)).toBeInTheDocument()
+    })
+
+    it("says the bank partner reviews the account, not the user's ID, on a provider wait", () => {
+        readiness = {
+            ...readiness,
+            topUpGates: gates('blocked-rejection', { ACH_US: { kind: 'waiting-on-provider', userMessage: null } }),
+        }
+        renderFunding()
+        fireEvent.click(screen.getByTestId('card-add-money-bank'))
+        const status = within(drawer()).getByTestId('card-add-money-status-under-review')
+        expect(within(status).getByText('bankUnderReviewTitle')).toBeInTheDocument()
+        expect(within(status).queryByText('underReviewTitle')).not.toBeInTheDocument()
     })
 
     it('badges nothing on a bank row the user can use', () => {

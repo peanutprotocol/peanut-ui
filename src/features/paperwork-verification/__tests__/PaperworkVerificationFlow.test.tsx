@@ -1416,6 +1416,15 @@ describe('PaperworkVerificationFlow', () => {
         expect(screen.getByText(/^Your ID isn’t from/)).toBeInTheDocument()
     })
 
+    it('an approved user opened from the card step goes back there on Continue, not to payments', async () => {
+        mockStatus.mockResolvedValue('APPROVED')
+        mockQuestions.mockResolvedValue(build({ money: true, tax: true }, null))
+        renderFlow('', undefined, undefined, '/card?card_step=funding')
+        fireEvent.click(await screen.findByTestId('verify-verified-payments'))
+        await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/card?card_step=funding'))
+        expect(mockPush).not.toHaveBeenCalledWith('/profile/payments')
+    })
+
     // TASK-24968: Bridge refused the bank accounts for good; the timeline must not read as all unlocked.
     it('a verified user whose bank accounts Bridge refused sees why above the button', async () => {
         const support = {

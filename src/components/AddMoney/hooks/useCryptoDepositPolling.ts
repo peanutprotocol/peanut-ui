@@ -2,6 +2,7 @@
 
 import { rhinoApi } from '@/services/rhino'
 import type { DepositAddressStatusResponse } from '@/services/services.types'
+import { forgetCryptoDepositsAt } from '@/features/add-money/captureCryptoDepositCompleted'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 
@@ -34,8 +35,13 @@ export function useCryptoDepositPolling(
 
     const queryKey = useMemo(() => ['rhino-deposit-address-status', depositAddress], [depositAddress])
 
+    // after a clear the status reads "not started" at once, but that answer is ours, not the API's: it
+    // counts as read only once a real answer lands after it (`dataUpdatedAt` past this mark)
+    const [syntheticAt, setSyntheticAt] = useState<number | null>(null)
+
     const {
         data: statusData,
+        dataUpdatedAt,
         isError,
         refetch,
     } = useQuery({
@@ -81,6 +87,8 @@ export function useCryptoDepositPolling(
             await queryClient.cancelQueries({ queryKey })
             hasCalledSuccess.current = false
             queryClient.setQueryData<DepositAddressStatusResponse>(queryKey, { status: 'not_started' })
+            setSyntheticAt(queryClient.getQueryState(queryKey)?.dataUpdatedAt ?? Date.now())
+            forgetCryptoDepositsAt(depositAddress)
             await queryClient.invalidateQueries({ queryKey })
         } catch (error) {
             console.error('Failed to reset deposit status:', error)
@@ -91,17 +99,18 @@ export function useCryptoDepositPolling(
         }
     }, [depositAddress, chargeId, queryKey, queryClient])
 
+    const synthetic = syntheticAt !== null && dataUpdatedAt <= syntheticAt
     /**
-     * `isStatusRead`: the API answered with a status, so `status` is not a guess. Until then a failed read
-     * (`statusError`) is unknown, never "not started": a deposit may be on its way. The poll keeps
-     * reading; `refetchStatus` reads again at once.
+     * `isStatusRead`: the API answered with a status, so `status` is not a guess. Until then (no answer
+     * yet, or only the "not started" a clear wrote) a failed read (`statusError`) is unknown, never "not
+     * started": a deposit may be on its way. The poll keeps reading; `refetchStatus` reads again at once.
      */
     return {
         status,
         resetStatus,
         isResetting,
-        isStatusRead: statusData !== undefined,
-        statusError: isError && statusData === undefined,
+        isStatusRead: statusData !== undefined && !synthetic,
+        statusError: isError && (statusData === undefined || synthetic),
         refetchStatus: refetch,
     }
 }

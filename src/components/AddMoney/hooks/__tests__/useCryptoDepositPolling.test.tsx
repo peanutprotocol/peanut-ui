@@ -121,3 +121,37 @@ test.each([
     expect(result.current.status).toBe(readsAtOnce ? 'loading' : 'not_started')
     expect(mockFetch).toHaveBeenCalledTimes(readsAtOnce ? 1 : 0)
 })
+
+test("after a reset, the clear's own not_started is not a read: only the API's next answer is", async () => {
+    let status = 'completed'
+    let readsFail = false
+    mockFetch.mockImplementation(async (_url, options) => {
+        if (options?.method === 'POST') {
+            status = 'not_started'
+            return response(200, { message: 'Status reset successfully' })
+        }
+        if (readsFail) return response(500, { error: 'down' })
+        return response(200, { status, amount: status === 'completed' ? 5 : undefined })
+    })
+    const { result } = renderHook(() => useCryptoDepositPolling('sda-test', jest.fn(), undefined, { readNow: true }), {
+        wrapper,
+    })
+    await waitFor(() => expect(result.current.isStatusRead).toBe(true))
+    // the re-read after the clear fails: "not started" is ours, so the status is unknown
+    readsFail = true
+    await act(async () => {
+        await result.current.resetStatus()
+        await jest.advanceTimersByTimeAsync(100)
+    })
+    expect(result.current.status).toBe('not_started')
+    expect(result.current.isStatusRead).toBe(false)
+    expect(result.current.statusError).toBe(true)
+    // the API answers again: now it is a read
+    readsFail = false
+    await act(async () => {
+        await result.current.refetchStatus()
+        await jest.advanceTimersByTimeAsync(100)
+    })
+    expect(result.current.isStatusRead).toBe(true)
+    expect(result.current.statusError).toBe(false)
+})

@@ -5,11 +5,11 @@ import { Button } from '@/components/0_Bruddle/Button'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import { CONCEPT_ICONS } from '@/components/0_Bruddle/conceptIcons'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
-import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
 import { DEPOSIT_RAILS } from '@/features/deposit-accounts/rails'
 import type { CardBankPlan } from '@/features/card/cardAddMoney'
 import { useBankRegionRefusal } from '@/features/card/useBankRegionRefusal'
 import { formatBankAmount } from '@/utils/currency'
+import { CardDrawerStatus } from './CardDrawerStatus'
 
 export type CardBankStatus = Extract<
     CardBankPlan,
@@ -82,11 +82,12 @@ export function CardBankStatusView({
                     body: t('settingUpBody'),
                     actions: cryptoPrimary,
                 }
+            // the user's ID, or the bank partner reviewing the account: two different waits
             case 'under-review':
                 return {
                     icon: <IconBubble icon="clock" color="yellow" />,
-                    title: t('underReviewTitle'),
-                    body: t('underReviewBody'),
+                    title: status.reason === 'identity' ? t('underReviewTitle') : t('bankUnderReviewTitle'),
+                    body: status.reason === 'identity' ? t('underReviewBody') : t('bankUnderReviewBody'),
                     actions: cryptoPrimary,
                 }
             case 'not-verified':
@@ -134,13 +135,13 @@ export function CardBankStatusView({
     })()
 
     return (
-        <div
-            className="flex flex-col items-center gap-4 text-center"
-            data-testid={`card-add-money-status-${status.kind}`}
+        <CardDrawerStatus
+            icon={content.icon}
+            name={content.title}
+            body={content.body}
+            testId={`card-add-money-status-${status.kind}`}
         >
-            {content.icon}
-            <TitleBlock align="center" size="s" title={content.title} description={content.body} />
-            <div className="flex w-full flex-col gap-2">{content.actions}</div>
-        </div>
+            {content.actions}
+        </CardDrawerStatus>
     )
 }

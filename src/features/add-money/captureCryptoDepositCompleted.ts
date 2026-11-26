@@ -7,10 +7,23 @@ import posthog from 'posthog-js'
 const SENT_KEY = 'deposit_completed_sent_v1'
 const SENT_KEEP = 50
 
+const depositKey = (address: string, txHash: string | undefined, amount: number) =>
+    `${address.toLowerCase()}:${txHash?.toLowerCase() ?? `amount:${amount}`}`
+
+const readSent = (): string[] => {
+    try {
+        const stored = JSON.parse(readStoredValue(SENT_KEY) ?? '[]')
+        return Array.isArray(stored) ? stored : []
+    } catch {
+        return []
+    }
+}
+
 /**
  * The deposit event every crypto add-money surface sends, so deposit charts count them all alike. With
- * `deposit` it is sent once per deposit (address and transaction, or the amount without one), across the
- * /add-money/crypto page and the card drawer.
+ * `deposit` it is sent once per deposit across the /add-money/crypto page and the card drawer: by its
+ * transaction, or without one by its amount until the address's status is cleared (then the next deposit
+ * of the same amount is a new one).
  */
 export function captureCryptoDepositCompleted(
     amount: number,
@@ -19,14 +32,8 @@ export function captureCryptoDepositCompleted(
     deposit?: { address: string; txHash?: string }
 ) {
     if (deposit) {
-        const key = `${deposit.address.toLowerCase()}:${deposit.txHash?.toLowerCase() ?? amount}`
-        let sent: string[] = []
-        try {
-            const stored = JSON.parse(readStoredValue(SENT_KEY) ?? '[]')
-            if (Array.isArray(stored)) sent = stored
-        } catch {
-            // unreadable storage: send, as before this check existed
-        }
+        const key = depositKey(deposit.address, deposit.txHash, amount)
+        const sent = readSent()
         if (sent.includes(key)) return
         writeStoredValue(SENT_KEY, JSON.stringify([...sent, key].slice(-SENT_KEEP)))
     }
@@ -36,4 +43,12 @@ export function captureCryptoDepositCompleted(
         method_type: 'crypto',
         acquisition_source: invitedBy ? 'referred' : 'organic',
     })
+}
+
+/** The address's status was cleared: a later deposit of the same amount with no transaction is a new one. */
+export function forgetCryptoDepositsAt(address: string) {
+    const prefix = `${address.toLowerCase()}:amount:`
+    const sent = readSent()
+    const kept = sent.filter((key) => !key.startsWith(prefix))
+    if (kept.length !== sent.length) writeStoredValue(SENT_KEY, JSON.stringify(kept))
 }

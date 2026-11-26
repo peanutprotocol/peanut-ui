@@ -2265,6 +2265,8 @@
             "settingUpBody": "Te avisamos cuando esté lista.",
             "underReviewTitle": "Verificación en revisión",
             "underReviewBody": "Te avisamos cuando termine.",
+            "bankUnderReviewTitle": "Cuenta bancaria en revisión",
+            "bankUnderReviewBody": "Nuestro socio bancario está revisando tu cuenta. Te avisaremos cuando termine.",
             "notVerifiedTitle": "Todavía no hay una cuenta bancaria lista",
             "notVerifiedBody": "Verifica tu identidad una sola vez para obtener los datos bancarios.",
             "finishSetupTitle": "Falta un paso para la transferencia bancaria",

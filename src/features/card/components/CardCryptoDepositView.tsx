@@ -1,13 +1,12 @@
 'use client'
 
-import { isCancelledError, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import type { Address } from 'viem'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Callout } from '@/components/0_Bruddle/Callout'
 import { IconBubble } from '@/components/0_Bruddle/IconBubble'
-import { TitleBlock } from '@/components/0_Bruddle/TitleBlock'
-import DepositProcessingScreen from '@/components/AddMoney/components/DepositProcessingScreen'
 import SupportedEvmNetworksCard from '@/components/AddMoney/components/SupportedEvmNetworksCard'
 import SupportedTokensRow from '@/components/AddMoney/components/SupportedTokensRow'
 import { useCryptoDepositPolling } from '@/components/AddMoney/hooks/useCryptoDepositPolling'
@@ -18,45 +17,58 @@ import { NETWORK_LABELS } from '@/constants/rhino.consts'
 import { useAuth } from '@/context/authContext'
 import { captureCryptoDepositCompleted } from '@/features/add-money/captureCryptoDepositCompleted'
 import { useRhinoDepositAddress } from '@/features/add-money/useRhinoDepositAddress'
-import { cardCryptoAskUsd } from '@/features/card/cardAddMoney'
-import { cardDepositView } from '@/features/card/cardDepositView'
-import { RAIN_CARD_OVERVIEW_QUERY_KEY } from '@/hooks/useRainCardOverview'
+import { cardCryptoAskUsd, cardGapUsd } from '@/features/card/cardAddMoney'
+import { cardDepositView, type DepositStatus } from '@/features/card/cardDepositView'
+import { readLiveSpendableUsd } from '@/features/card/readLiveSpendableUsd'
+import { useWallet } from '@/hooks/wallet/useWallet'
 import type { DepositAddressStatusResponse, RhinoChainType } from '@/services/services.types'
 import { formatBankAmount } from '@/utils/currency'
 import { middleEllipsisAccount } from '@/utils/general.utils'
+import { CardDrawerStatus } from './CardDrawerStatus'
 
 const usd = (amount: number) => formatBankAmount(amount, 'USD')
 const cents = (amount: number) => Math.round(amount * 100) / 100
 /** the copy field fits about this many characters at 375px; the last 4 stay visible */
 const ADDRESS_DISPLAY_CHARS = 24
+/** a held deposit is read fresh at once, every 5 s for half a minute, then every 15 s */
+const holdReadDelay = (reads: number) => (reads === 0 ? 0 : reads < 6 ? 5_000 : 15_000)
+/** fresh reads with no rise that show a completed outcome found at open was already in the balance */
+const ALREADY_IN_READS = 2
 /** the balance rose above where a deposit started, by more than a rounding cent */
-const roseAbove = (from: number | undefined, spendable: number | undefined) =>
-    from !== undefined && spendable !== undefined && spendable > from + 0.005
+const roseAbove = (from: number, spendable: number) => spendable > from + 0.005
+
+type Hold = {
+    /** the fresh read the deposit must rise above */
+    from: number
+    /** a completed outcome found at open: it may already be in the balance read at open */
+    alreadyIn: boolean
+    reads: number
+}
 
 /**
  * The deposit address for one network, asking for the card gap (RhinoDepositView's states, sized for
- * the drawer). A deposit refreshes the balance and the card overview at once; processing lasts until
- * the balance read moves, then the step closes the drawer, names what is still missing, or says done.
+ * the drawer). The address and the ask come only through `cardDepositView`'s rule: the API's own "not
+ * started" and a fresh balance read. Every money decision here reads the balance fresh
+ * (`readLiveSpendableUsd`), never the step's cached value.
  */
 export function CardCryptoDepositView({
     network,
-    gapUsd,
-    spendableUsd,
     onDone,
     onProcessingChange,
 }: {
     network: RhinoChainType
-    gapUsd: number | undefined
-    spendableUsd: number | undefined
     onDone: () => void
     /** a deposit is settling: the drawer hides its back, so a second address is never one tap away */
     onProcessingChange: (processing: boolean) => void
 }) {
     const t = useTranslations('card.addMoney')
     const tCrypto = useTranslations('addMoney.crypto')
+    const tAdd = useTranslations('addMoney')
     const tCommon = useTranslations('common')
     const queryClient = useQueryClient()
     const { user } = useAuth()
+    const { address: wallet } = useWallet()
+    const userId = user?.user?.userId
     const networkLabel = NETWORK_LABELS[network]
     const familyLabel = network === 'EVM' ? tCrypto('evmNetworks') : networkLabel
 
@@ -64,50 +76,33 @@ export function CardCryptoDepositView({
     const depositAddress = data?.depositAddress
     const depositAddressRef = useRef(depositAddress)
     depositAddressRef.current = depositAddress
-    // The balance every reported deposit has already landed on. A reported deposit is processing until
-    // the live read rises above it, so the ask for any rest is computed from a gap that includes it.
+
+    // The last fresh spendable read, and whether one came back since the last clear.
+    const [live, setLive] = useState<number>()
+    const [balanceFresh, setBalanceFresh] = useState(false)
+    const [balanceReadFailed, setBalanceReadFailed] = useState(false)
+    const readLive = useCallback(async () => {
+        const value = await readLiveSpendableUsd(queryClient, { address: wallet as Address | undefined, userId })
+        setLive(value)
+        return value
+    }, [queryClient, wallet, userId])
+    // The balance every resolved deposit landed on: the fresh read at open, then each landing's read.
     const landedRef = useRef<number>()
-    if (landedRef.current === undefined && spendableUsd !== undefined) landedRef.current = spendableUsd
 
-    // what this address asks for: the live gap, or the network minimum when that is higher
-    const ask = data && gapUsd ? cardCryptoAskUsd(gapUsd, data.minDepositLimitUsd) : undefined
-
-    /**
-     * A deposit Rhino reported, until it resolves: it has landed once the balance rises above `from`,
-     * the balance every earlier deposit landed on. A deposit in flight at open is measured from the
-     * balance at open and waits for the rise with no cap: the drawer can be closed, and the address never
-     * shows for money on its way. `refreshed`: a fresh balance read came back (it decides only when no
-     * balance was known at the report).
-     */
-    const [pending, setPending] = useState<{ amount: number; from: number | undefined; refreshed: boolean }>()
-    // the notice after a deposit that left a gap: what came in; the live gap is what is still needed
-    // `n` counts short deposits, so a second one of the same amount still re-arms the poll
+    // A deposit seen on its way or reported, until a fresh read shows the balance above `from`.
+    const [hold, setHold] = useState<Hold>()
+    // the balance rose before the provider said completed: that completion is this deposit's, not a new one
+    const landedBeforeCompleted = useRef(false)
+    // the notice after a deposit that left a gap: what came in; `n` counts them, so a second short
+    // deposit of the same amount still re-arms the poll
     const [shortDeposit, setShortDeposit] = useState<{ received: number; n: number }>()
     const [done, setDone] = useState(false)
 
-    // The API keeps an address's last outcome for hours. The first answer for the address decides: a
-    // deposit on its way stays and shows processing; a completed or failed outcome is an earlier
-    // deposit's, cleared (a completed one against a fresh balance read) before any address shows.
     const [checkedFor, setCheckedFor] = useState<string>()
     const checkedForRef = useRef<string>()
     const [clearing, setClearing] = useState(false)
     const [clearFailed, setClearFailed] = useState(false)
-    // whether the last clear needed a fresh balance read, so its retry needs one too
-    const clearRefreshesBalance = useRef(false)
-
-    /** a fresh balance and card overview; rejects when either read fails */
-    const refreshBalance = useCallback(() => {
-        // another refresh of the same read cancels ours; joining the one in flight is still a fresh read
-        const freshRead = (queryKey: readonly unknown[]) =>
-            queryClient
-                .invalidateQueries({ queryKey }, { throwOnError: true })
-                .catch((error) =>
-                    isCancelledError(error)
-                        ? queryClient.refetchQueries({ queryKey }, { throwOnError: true, cancelRefetch: false })
-                        : Promise.reject(error)
-                )
-        return Promise.all([freshRead(['balance']), freshRead([RAIN_CARD_OVERVIEW_QUERY_KEY])])
-    }, [queryClient])
+    const clearRef = useRef<() => Promise<void>>(async () => {})
 
     const handleSuccess = useCallback(
         (amount: number, statusData?: DepositAddressStatusResponse) => {
@@ -116,77 +111,131 @@ export function CardCryptoDepositView({
             // sent once per deposit, so an outcome another surface (or an earlier opening) reported is not
             // counted twice, and one nobody saw complete is counted when the drawer reads it at open
             captureCryptoDepositCompleted(amount, network, user?.invitedBy, { address, txHash: statusData?.txHash })
-            // an outcome read at open is an earlier deposit's: the check below clears it
+            // an outcome read at open is held by the open check below
             if (checkedForRef.current !== address) return
-            setPending({ amount, from: landedRef.current, refreshed: false })
-            refreshBalance()
-                .then(() => setPending((p) => (p ? { ...p, refreshed: true } : p)))
-                .catch(() => {
-                    // the balance poll still shows the deposit; processing waits for it
-                })
+            if (landedBeforeCompleted.current) {
+                landedBeforeCompleted.current = false
+                void clearRef.current()
+                return
+            }
+            setHold((current) => current ?? { from: landedRef.current!, alreadyIn: false, reads: 0 })
         },
-        [network, user?.invitedBy, refreshBalance]
+        [network, user?.invitedBy]
     )
-    const { status, resetStatus, isResetting, isStatusRead, statusError, refetchStatus } = useCryptoDepositPolling(
+    const { status, resetStatus, isStatusRead, statusError, refetchStatus } = useCryptoDepositPolling(
         depositAddress,
         handleSuccess,
         undefined,
         { readNow: true }
     )
 
-    const clearStale = useCallback(
-        (withBalance: boolean) => {
-            clearRefreshesBalance.current = withBalance
-            setClearing(true)
-            setClearFailed(false)
-            // a status left uncleared stops the poll, so no new deposit would show; a completed deposit
-            // may be in the balance only after a fresh read, so the ask waits for one
-            Promise.all([resetStatus(), withBalance ? refreshBalance() : undefined])
-                .then(() => {
-                    landedRef.current = undefined
-                })
-                .catch(() => setClearFailed(true))
-                .finally(() => setClearing(false))
-        },
-        [resetStatus, refreshBalance]
-    )
-    useEffect(() => {
-        if (!depositAddress || !isStatusRead || checkedForRef.current === depositAddress) return
-        checkedForRef.current = depositAddress
-        setCheckedFor(depositAddress)
-        if (status === 'completed' || status === 'failed') clearStale(status === 'completed')
-    }, [depositAddress, isStatusRead, status, clearStale])
-
-    // a reported deposit lands: the live gap says done (the step closes a drawer opened short), or
-    // names the rest; the poll is re-armed for it below
-    useEffect(() => {
-        if (!pending || spendableUsd === undefined || gapUsd === undefined) return
-        const rose = roseAbove(pending.from, spendableUsd)
-        // no balance known at the report: the fresh read after it decides
-        if (!rose && !(pending.from === undefined && pending.refreshed)) return
-        landedRef.current = spendableUsd
-        setPending(undefined)
-        if (gapUsd <= 0) {
-            setDone(true)
+    /** clears the address's outcome, then reads the balance fresh; the address waits for both */
+    const clear = useCallback(async () => {
+        setClearing(true)
+        setClearFailed(false)
+        setBalanceReadFailed(false)
+        setBalanceFresh(false)
+        try {
+            await resetStatus()
+        } catch {
+            // a status left uncleared stops the poll, so no new deposit would show
+            setClearFailed(true)
+            setClearing(false)
             return
         }
-        // what reached the balance when it rose: a fee taken on the way shows here
-        const received = rose ? cents(spendableUsd - pending.from!) : pending.amount
-        setShortDeposit((last) => ({ received, n: (last?.n ?? 0) + 1 }))
-    }, [pending, spendableUsd, gapUsd])
+        try {
+            await readLive()
+            setBalanceFresh(true)
+        } catch {
+            setBalanceReadFailed(true)
+        }
+        setClearing(false)
+    }, [resetStatus, readLive])
+    clearRef.current = clear
 
-    // a deposit that goes on its way while a retry is offered is processing, not something to clear
+    /** the API's first answer for this address, taken in against a fresh balance read */
+    const open = useCallback(
+        async (address: string, first: DepositStatus) => {
+            setBalanceReadFailed(false)
+            let baseline: number
+            try {
+                baseline = await readLive()
+            } catch {
+                setBalanceReadFailed(true)
+                return
+            }
+            if (depositAddressRef.current !== address) return
+            landedRef.current = baseline
+            checkedForRef.current = address
+            setCheckedFor(address)
+            if (first === 'loading' || first === 'completed')
+                setHold({ from: baseline, alreadyIn: first === 'completed', reads: 0 })
+            if (first === 'completed' || first === 'failed') void clear()
+            else setBalanceFresh(true)
+        },
+        [readLive, clear]
+    )
+    const openedFor = useRef<string>()
     useEffect(() => {
-        if (status === 'loading') setClearFailed(false)
-    }, [status])
+        if (!depositAddress || !isStatusRead || openedFor.current === depositAddress) return
+        openedFor.current = depositAddress
+        void open(depositAddress, status)
+    }, [depositAddress, isStatusRead, status, open])
+
+    // a deposit that goes on its way after open is held from where the balance last landed
+    useEffect(() => {
+        if (status !== 'loading' || !depositAddress || checkedFor !== depositAddress) return
+        if (landedBeforeCompleted.current) return
+        setClearFailed(false)
+        setHold((current) => current ?? { from: landedRef.current!, alreadyIn: false, reads: 0 })
+    }, [status, depositAddress, checkedFor])
+
+    // Each held deposit is read fresh until the balance rises above where it started (or the gap is
+    // covered); a completed outcome found at open counts as already in after reads that never rise.
+    // A deposit on its way has no cap: the drawer can be closed, and its address never shows meanwhile.
+    useEffect(() => {
+        if (!hold) return
+        const timer = setTimeout(async () => {
+            let value: number
+            try {
+                value = await readLive()
+            } catch {
+                // the next read tries again
+                setHold((current) => current && { ...current, reads: current.reads + 1 })
+                return
+            }
+            const gap = cardGapUsd(value) ?? 0
+            if (roseAbove(hold.from, value) || gap <= 0) {
+                landedRef.current = value
+                setHold(undefined)
+                if (gap <= 0) {
+                    setDone(true)
+                    return
+                }
+                // what reached the balance: a fee taken on the way shows here
+                setShortDeposit((last) => ({ received: cents(value - hold.from), n: (last?.n ?? 0) + 1 }))
+                return
+            }
+            if (hold.alreadyIn && hold.reads + 1 >= ALREADY_IN_READS) {
+                landedRef.current = value
+                setHold(undefined)
+                return
+            }
+            setHold((current) => current && { ...current, reads: current.reads + 1 })
+        }, holdReadDelay(hold.reads))
+        return () => clearTimeout(timer)
+    }, [hold, readLive])
 
     // Rhino reports one deposit per address until the status is cleared: after a short deposit the
-    // clear re-arms the poll for the rest, as RhinoDepositView does; a failed clear offers a retry
+    // clear re-arms the poll for the rest, and the address waits for its fresh read. A deposit that
+    // rose before the provider said completed is cleared when that completion arrives.
+    const statusRef = useRef(status)
+    statusRef.current = status
     useEffect(() => {
         if (!shortDeposit) return
-        clearRefreshesBalance.current = false
-        resetStatus().catch(() => setClearFailed(true))
-    }, [shortDeposit, resetStatus])
+        if (statusRef.current === 'completed') void clearRef.current()
+        else if (statusRef.current === 'loading') landedBeforeCompleted.current = true
+    }, [shortDeposit])
 
     const view = cardDepositView({
         addressLoading: isLoading,
@@ -195,13 +244,31 @@ export function CardCryptoDepositView({
         statusError,
         status,
         checked: !!data && checkedFor === data.depositAddress,
+        balanceFresh,
+        balanceReadFailed,
         clearing,
         clearFailed,
-        pending: !!pending,
+        holding: !!hold,
         done,
     })
     const processing = view === 'processing'
     useEffect(() => onProcessingChange(processing), [processing, onProcessingChange])
+
+    const retry = () => {
+        if (clearFailed) return void clear()
+        if (balanceReadFailed && depositAddress && checkedFor !== depositAddress) {
+            openedFor.current = depositAddress
+            return void open(depositAddress, status)
+        }
+        if (balanceReadFailed) {
+            setBalanceReadFailed(false)
+            return void readLive().then(
+                () => setBalanceFresh(true),
+                () => setBalanceReadFailed(true)
+            )
+        }
+        void refetchStatus()
+    }
 
     if (view === 'loading') {
         return (
@@ -211,18 +278,14 @@ export function CardCryptoDepositView({
         )
     }
 
-    // the drawer cannot tell whether a deposit is on its way: no address until it can
+    // the drawer cannot tell whether a deposit is on its way, or what the balance is: no address until it can
     if (view === 'check-failed') {
         return (
             <div className="flex flex-col gap-4" data-testid="card-add-money-check-failed">
                 <Callout priority="error" title={t('statusCheckFailedTitle')}>
                     {t('statusCheckFailedBody')}
                 </Callout>
-                <Button
-                    variant="primary"
-                    className="w-full"
-                    onClick={() => (clearFailed ? clearStale(clearRefreshesBalance.current) : void refetchStatus())}
-                >
+                <Button variant="primary" className="w-full" onClick={retry}>
                     {tCommon('retry')}
                 </Button>
             </div>
@@ -231,18 +294,15 @@ export function CardCryptoDepositView({
 
     if (view === 'address-error' || !data) {
         return (
-            <div className="flex flex-col items-center gap-4 text-center">
-                <IconBubble icon="alert" color="red" />
-                <TitleBlock
-                    align="center"
-                    size="s"
-                    title={tCrypto('addressErrorTitle')}
-                    description={tCrypto('addressErrorDescription')}
-                />
+            <CardDrawerStatus
+                icon={<IconBubble icon="alert" color="red" />}
+                name={tCrypto('addressErrorTitle')}
+                body={tCrypto('addressErrorDescription')}
+            >
                 <Button variant="primary" className="w-full" onClick={() => void refetch()}>
                     {tCommon('retry')}
                 </Button>
-            </div>
+            </CardDrawerStatus>
         )
     }
 
@@ -256,9 +316,12 @@ export function CardCryptoDepositView({
                 <Button
                     variant="primary"
                     className="w-full"
-                    onClick={() => void resetStatus()}
-                    loading={isResetting}
-                    disabled={isResetting}
+                    onClick={() => {
+                        setHold(undefined)
+                        void clear()
+                    }}
+                    loading={clearing}
+                    disabled={clearing}
                 >
                     {tCommon('tryAgain')}
                 </Button>
@@ -266,27 +329,37 @@ export function CardCryptoDepositView({
         )
     }
 
-    // on its way, or reported while the balance read catches up: no second deposit invited
+    // on its way, or reported while a fresh read catches up: no second deposit invited
     if (processing) {
         return (
-            <div className="py-6" data-testid="card-add-money-processing">
-                <DepositProcessingScreen />
+            <div className="py-6">
+                <CardDrawerStatus
+                    icon={<Loading variant="mascot" />}
+                    name={tAdd('processingDepositTitle')}
+                    body={tAdd('processingDepositBody')}
+                    testId="card-add-money-processing"
+                />
             </div>
         )
     }
 
     if (view === 'done') {
         return (
-            <div className="flex flex-col items-center gap-4 text-center" data-testid="card-add-money-done">
-                <IconBubble icon="check" color="green" />
-                <TitleBlock align="center" size="s" title={t('doneTitle')} />
+            <CardDrawerStatus
+                icon={<IconBubble icon="check" color="green" />}
+                name={t('doneTitle')}
+                testId="card-add-money-done"
+            >
                 <Button variant="primary" className="w-full" onClick={onDone}>
                     {tCommon('done')}
                 </Button>
-            </div>
+            </CardDrawerStatus>
         )
     }
 
+    // the ask comes from the fresh read: the live gap, or the network minimum when that is higher
+    const gapUsd = live === undefined ? undefined : cardGapUsd(live)
+    const ask = gapUsd ? cardCryptoAskUsd(gapUsd, data.minDepositLimitUsd) : undefined
     return (
         <div className="flex flex-col items-center gap-4" data-testid="card-add-money-address">
             {/* what is missing, never what to send: the ask below names that, raised to the minimum */}
@@ -301,12 +374,12 @@ export function CardCryptoDepositView({
                 </Callout>
             ) : null}
             {/* the amount first: at 375px the QR and the warning push anything below out of sight */}
-            {ask && (
+            {ask && gapUsd && (
                 <div className="flex w-full flex-col gap-1" data-testid="card-add-money-ask">
                     <p className="text-body-m-semibold text-foreground-primary">
                         {t('sendAsk', { amount: usd(ask.askUsd) })}
                     </p>
-                    {ask.raisedToMinimum && gapUsd && (
+                    {ask.raisedToMinimum && (
                         <p className="text-body-s text-foreground-secondary">
                             {t('raisedToMinimum', {
                                 network: familyLabel,

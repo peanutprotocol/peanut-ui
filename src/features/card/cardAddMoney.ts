@@ -43,7 +43,7 @@ export type CardBankPlan =
     | { kind: 'rows'; rows: CardBankRow[] }
     /** a rail is being opened for the user; the provider gives no time, so the drawer shows none */
     | { kind: 'setting-up'; corridor: DepositCorridor }
-    | { kind: 'under-review' }
+    | { kind: 'under-review'; reason: 'identity' | 'provider' }
     | { kind: 'not-verified' }
     /** verified, with one step of their own left (terms, enrollment, a fix): the existing bank page takes it */
     | { kind: 'finish-setup' }
@@ -98,7 +98,9 @@ export function cardBankPlan(input: {
     if (kinds.includes('loading')) return { kind: 'loading' }
     const settingUp = relevant.find((c) => input.topUpGates[c].kind === 'pending')
     if (settingUp) return { kind: 'setting-up', corridor: settingUp }
-    if (kinds.includes('waiting-on-provider') || input.identityStatus === 'processing') return { kind: 'under-review' }
+    // the user's own ID in review comes first: no bank account can open before it ends
+    if (input.identityStatus === 'processing') return { kind: 'under-review', reason: 'identity' }
+    if (kinds.includes('waiting-on-provider')) return { kind: 'under-review', reason: 'provider' }
     if (kinds.includes('needs-identity')) return { kind: 'not-verified' }
     if (kinds.some((kind) => FINISH_SETUP_KINDS.has(kind))) return { kind: 'finish-setup' }
     return { kind: 'not-offered' }

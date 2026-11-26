@@ -59,14 +59,6 @@ function bankView(plan: CardBankPlan): CardAddMoneyView {
     }
 }
 
-const STATUS_VIEWS: ReadonlySet<CardAddMoneyView> = new Set([
-    'setting_up',
-    'under_review',
-    'not_verified',
-    'finish_setup',
-    'not_offered',
-])
-
 /**
  * Add money without leaving the card's funding step (TASK-25169): crypto by network and address,
  * bank by held details or the page that takes the transfer. Mounted once per opening, so the view
@@ -76,7 +68,6 @@ export function CardAddMoneyDrawer({
     open,
     method: openedWith,
     gapUsd,
-    spendableUsd,
     plan,
     residenceIso2s,
     onShow,
@@ -86,8 +77,6 @@ export function CardAddMoneyDrawer({
     open: boolean
     method: CardFundingMethod
     gapUsd: number | undefined
-    /** the live spendable balance, so a deposit view sees the money land */
-    spendableUsd: number | undefined
     plan: CardBankPlan
     residenceIso2s: readonly string[]
     /** the method and view on screen, for the funded and closed events */
@@ -116,9 +105,9 @@ export function CardAddMoneyDrawer({
     }, [method, code])
     useEffect(() => onShow(method, code), [onShow, method, code])
 
-    // One title across every step, with no amount: the body names what to send (the gap, a network
-    // minimum above it, or euros), so the two biggest amounts on screen never disagree. A status view
-    // names itself, so the title is hidden there.
+    // One title across every step, the status views too (design.md: one title per flow), with no
+    // amount: the body names what to send (the gap, a network minimum above it, or euros), so the two
+    // biggest amounts on screen never disagree. A status names itself in body text under it.
     const title = tAdd('title')
     const toNetworksFromBank = () => setView({ kind: 'networks', fromBank: true })
     const pickRow = (row: CardBankRow) => {
@@ -130,13 +119,7 @@ export function CardAddMoneyDrawer({
     const body = () => {
         if (view.kind === 'address')
             return (
-                <CardCryptoDepositView
-                    network={view.network}
-                    gapUsd={gapUsd}
-                    spendableUsd={spendableUsd}
-                    onDone={onDismiss}
-                    onProcessingChange={setProcessing}
-                />
+                <CardCryptoDepositView network={view.network} onDone={onDismiss} onProcessingChange={setProcessing} />
             )
         if (view.kind === 'details')
             return <CardBankDetailsView corridor={view.corridor} gapUsd={gapUsd} onSent={onBankSent} />
@@ -202,13 +185,11 @@ export function CardAddMoneyDrawer({
             setView({ kind: 'networks', fromBank: view.fromBank })
         } else setView({ kind: 'bank' })
     }
-    // a status names itself in its own heading: the drawer title above it would be a second one
-    const statusView = view.kind === 'bank' && STATUS_VIEWS.has(code)
     return (
         <Drawer open={open} onOpenChange={(isOpen) => !isOpen && onDismiss()}>
             <DrawerContent
                 className="pb-4"
-                accessibleTitle={subView || statusView ? title : undefined}
+                accessibleTitle={subView ? title : undefined}
                 data-testid="card-add-money-drawer"
             >
                 <div className="flex flex-col gap-4">
@@ -219,7 +200,7 @@ export function CardAddMoneyDrawer({
                             hideBackBtn={view.kind === 'address' && processing}
                             hideMaintenanceBanner
                         />
-                    ) : statusView ? null : (
+                    ) : (
                         <DrawerTitle className="text-center text-heading-s text-foreground-primary">
                             {title}
                         </DrawerTitle>

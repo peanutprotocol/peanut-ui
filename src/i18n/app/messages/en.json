@@ -2265,6 +2265,8 @@
             "settingUpBody": "We'll let you know when it's ready.",
             "underReviewTitle": "Verification under review",
             "underReviewBody": "We'll let you know when it's done.",
+            "bankUnderReviewTitle": "Bank account under review",
+            "bankUnderReviewBody": "Our bank partner is reviewing your account. We'll let you know when it's done.",
             "notVerifiedTitle": "No bank account ready yet",
             "notVerifiedBody": "Verify your identity once to get bank details.",
             "finishSetupTitle": "Bank transfer needs one more step",

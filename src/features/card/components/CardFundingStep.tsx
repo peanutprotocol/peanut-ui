@@ -148,6 +148,10 @@ export function CardFundingStep({
         <Badge status="pending" customText={tAccounts('list.badgeVerifyId')} />
     ) : plan.kind === 'under-review' ? (
         <Badge status="pending" customText={tAccounts('list.badgeUnderReview')} />
+    ) : plan.kind === 'setting-up' ? (
+        <Badge status="pending" customText={tAccounts('list.badgeSettingUp')} />
+    ) : plan.kind === 'finish-setup' || plan.kind === 'not-offered' ? (
+        <Badge status="pending" customText={tAccounts('list.badgeActionNeeded')} />
     ) : undefined
     const bankRow = (
         <ListItem
@@ -200,7 +204,6 @@ export function CardFundingStep({
                     open={open}
                     method={drawer.method}
                     gapUsd={gapUsd}
-                    spendableUsd={spendableUsd}
                     plan={plan}
                     residenceIso2s={readiness.residenceIso2s}
                     onShow={onShow}
