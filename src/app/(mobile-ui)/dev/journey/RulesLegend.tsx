@@ -2,7 +2,6 @@
 
 import { Card } from '@/components/0_Bruddle/Card'
 import { Callout } from '@/components/0_Bruddle/Callout'
-import StuckBadge from './StuckBadge'
 import type { SpecRules } from './journeyTypes'
 
 function Rule({ label, children }: { label: string; children: React.ReactNode }) {
@@ -14,24 +13,29 @@ function Rule({ label, children }: { label: string; children: React.ReactNode })
     )
 }
 
-/** Compact legend strip for the email machine's global rules (from spec.rules). */
+const clock = (minuteOfDay: number) =>
+    `${String(Math.floor(minuteOfDay / 60)).padStart(2, '0')}:${String(minuteOfDay % 60).padStart(2, '0')}`
+
+/** Compact legend strip for the nudge engine's global rules (from spec.rules); each step's cadence is on the funnel map. */
 export default function RulesLegend({ rules, specError }: { rules: SpecRules | null; specError: string | null }) {
     if (!rules) {
         return <Callout priority={specError ? 'error' : 'info'}>{specError ?? 'Loading email-machine rules…'}</Callout>
     }
     return (
         <div className="flex flex-wrap gap-2">
-            {/* One nudge rule per ladder step — stages carry 2 or 3 steps in v2. */}
-            {rules.stepAfterDays.map((days, i) => (
-                <Rule key={i} label={`nudge ${i + 1}`}>
-                    <StuckBadge days={days} />
-                </Rule>
-            ))}
-            <Rule label="governor">
-                <span className="text-label-m">≥{rules.governorDays}d between emails</span>
+            <Rule label="gap">
+                <span className="text-label-m">≥{rules.minGapHours}h between nudges of one step</span>
+            </Rule>
+            <Rule label="idle">
+                <span className="text-label-m">{rules.idleMinutes} min after the last request</span>
+            </Rule>
+            <Rule label="quiet hours">
+                <span className="text-label-m">
+                    push waits {clock(rules.quietHours.fromMinute)}–{clock(rules.quietHours.untilMinute)} local
+                </span>
             </Rule>
             <Rule label="freshness">
-                <span className="text-label-m">{rules.freshnessDays}d window</span>
+                <span className="text-label-m">{rules.freshnessDays}d in the step</span>
             </Rule>
             <Rule label="dormancy">
                 <span className="text-label-m">{rules.dormancyDays}d silent → win_back</span>
@@ -40,14 +44,7 @@ export default function RulesLegend({ rules, specError }: { rules: SpecRules | n
                 <span className="text-label-m">{Math.round(rules.holdoutFraction * 100)}% control</span>
             </Rule>
             <Rule label="balance gate">
-                <span className="text-label-m">
-                    fund ≤ $0.10 · spend ≥ $1 (live chain read; ≥ $1 re-routes fund → first_spend)
-                </span>
-            </Rule>
-            <Rule label="send window">
-                <span className="text-label-m">
-                    {rules.sendWindowUtc.startHour}–{rules.sendWindowUtc.endHour}h UTC
-                </span>
+                <span className="text-label-m">add money ≤ $0.10 · first spend ≥ $1 (live chain read)</span>
             </Rule>
             <Rule label="cap">
                 <span className="text-label-m">

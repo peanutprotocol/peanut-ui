@@ -87,15 +87,20 @@ export interface SpecStage {
     steps: SpecEmailStep[]
 }
 
+/** The nudge engine's rules (api `LIFECYCLE_RULES`, jobs/lifecycle-email.ts + jobs/nudge-cadence.ts). */
 export interface SpecRules {
-    /** Per-step delay from the stage anchor, by index (lifecycle v2 — stages have 2 or 3 steps). */
-    stepAfterDays: number[]
-    governorDays: number
+    /** Each funnel step's rungs in order: the event and when it goes after the user entered the step. */
+    cadence: Record<string, { event: string; afterMinutes: number }[]>
+    /** No two nudges of one step closer than this. */
+    minGapHours: number
+    /** A nudge waits this long after the user's last authenticated request. */
+    idleMinutes: number
+    /** Push waits these out in the residence time zone, as minutes of the day (email may go). */
+    quietHours: { fromMinute: number; untilMinute: number }
     freshnessDays: number
     /** Weeks-worth of silence (in days) before a formerly-transacting user is win_back-eligible. */
     dormancyDays: number
     holdoutFraction: number
-    sendWindowUtc: { startHour: number; endHour: number }
     maxSendsPerCycle: number
     maxSendsPerDay: number
 }
@@ -114,7 +119,23 @@ export interface JourneySpec {
     welcome: SpecEmailStep
     stages: SpecStage[]
     pushReminders: SpecPushReminder[]
+    /** The live funnel map (api#2307); absent on an older API. */
+    funnelMap?: FunnelMapEntry[]
     emailPreviewBase: string
+}
+
+/** Where a template sits on the funnel (api `TemplateFunnel`, notifications/registry.ts). */
+export type TemplateFunnel = { lane: string; trigger: 'event' | 'timer' } | 'outside'
+
+/** One registered notification template on the live funnel map (api `funnelMap()`, routes/__dev/journey-spec.ts). */
+export interface FunnelMapEntry {
+    type: string
+    funnel: TemplateFunnel
+    channels: string[]
+    /** the email goes when the push cannot reach the user */
+    emailStandsInForPush: boolean
+    /** an event message: [0], it goes at once; a timer message: its cadence rungs */
+    afterMinutes: number[]
 }
 
 // ---------- copy review (email renders awaiting a product verdict) ----------

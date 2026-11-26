@@ -15,18 +15,24 @@ const step = (type: string, extra: Partial<SpecEmailStep> = {}): SpecEmailStep =
 const spec = (): JourneySpec => ({
     generatedFrom: 'test',
     rules: {
-        stepAfterDays: [2, 6, 12],
-        governorDays: 3,
-        freshnessDays: 30,
+        cadence: {},
+        minGapHours: 20,
+        idleMinutes: 30,
+        quietHours: { fromMinute: 1290, untilMinute: 480 },
+        freshnessDays: 14,
         dormancyDays: 42,
-        holdoutFraction: 0.1,
-        sendWindowUtc: { startHour: 13, endHour: 21 },
-        maxSendsPerCycle: 500,
-        maxSendsPerDay: 500,
+        holdoutFraction: 0,
+        maxSendsPerCycle: 100,
+        maxSendsPerDay: 200,
     },
     welcome: step('lifecycle.welcome'),
     stages: [
-        { stage: 'verify', order: 1, predicate: 'p', steps: [step('lifecycle.verify_1'), step('lifecycle.verify_2')] },
+        {
+            stage: 'start_verify',
+            order: 1,
+            predicate: 'p',
+            steps: [step('lifecycle.verify_1'), step('lifecycle.verify_2')],
+        },
         {
             stage: 'first_spend',
             order: 5,

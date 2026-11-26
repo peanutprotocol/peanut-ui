@@ -43,6 +43,8 @@ import {
 } from '../../Accounts/__tests__/redesignHarness'
 
 // the Celebration's Verify now has its own suite (CelebrationScreen.test)
+// Remind me later's profile write is useRemindLater's own suite
+jest.mock('@/components/Setup/redesign/VerifyStart/useRemindLater', () => ({ useRemindLater: () => jest.fn() }))
 jest.mock('@/components/Setup/redesign/Celebration/useCelebrationVerify', () => ({
     useCelebrationVerify: () => ({ start: jest.fn(), starting: false, kycFlow: {}, modals: null }),
 }))

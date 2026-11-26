@@ -12,6 +12,8 @@ import { CardPage } from '../CardPage'
 const handleSumsubClose = jest.fn()
 let mockFlow: Record<string, unknown> = {}
 
+// Remind me later's profile write is useRemindLater's own suite
+jest.mock('@/components/Setup/redesign/VerifyStart/useRemindLater', () => ({ useRemindLater: () => jest.fn() }))
 jest.mock('@/components/Setup/components/SetupLanguageSwitcher', () => ({ SetupLanguageSwitcher: () => null }))
 jest.mock('../useCardFlow', () => ({ useCardFlow: () => mockFlow }))
 jest.mock('@/components/Kyc/SumsubKycModals', () => ({ SumsubKycModals: () => null }))

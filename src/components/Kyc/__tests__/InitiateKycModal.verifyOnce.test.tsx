@@ -12,6 +12,8 @@ import { InitiateKycModal } from '../InitiateKycModal'
 
 const mockPush = jest.fn()
 const mockReplace = jest.fn()
+// Remind me later's profile write is useRemindLater's own suite
+jest.mock('@/components/Setup/redesign/VerifyStart/useRemindLater', () => ({ useRemindLater: () => jest.fn() }))
 jest.mock('@/components/Setup/components/SetupLanguageSwitcher', () => ({ SetupLanguageSwitcher: () => null }))
 jest.mock('next/navigation', () => ({
     useRouter: () => ({ push: mockPush, replace: mockReplace }),
