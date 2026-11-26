@@ -46,10 +46,6 @@ jest.mock('@/hooks/wallet/usePendingTransactions', () => ({
     usePendingTransactions: () => ({ hasPendingTransactions: false, pendingCount: 0 }),
 }))
 
-jest.mock('@/services/sendLinks', () => ({
-    sendLinksApi: { create: jest.fn().mockResolvedValue({}) },
-}))
-
 jest.mock('posthog-js', () => ({
     __esModule: true,
     default: { capture: jest.fn() },
@@ -354,5 +350,56 @@ describe('LinkSendInitialView balance fill', () => {
 
         const input = await screen.findByTestId('amount-input')
         expect(input).not.toHaveAttribute('data-balance-fill')
+    })
+})
+
+// TASK-24270: the view no longer records the link itself in the background;
+// it hands the note to createLink, which records the link before it resolves.
+describe('LinkSendInitialView link creation', () => {
+    test('passes the note to createLink and shows success only after it resolves', async () => {
+        mockUseWallet.mockReturnValue(walletState(100))
+        let resolveCreate: (value: unknown) => void = () => {}
+        mockCreateLink.mockReturnValue(new Promise((resolve) => (resolveCreate = resolve)))
+        const ViewProbe = () => {
+            const { view, setAttachmentOptions } = useLinkSendFlow()
+            return (
+                <>
+                    <span data-testid="view">{view}</span>
+                    <button
+                        data-testid="set-note"
+                        onClick={() =>
+                            setAttachmentOptions({ message: 'dinner', fileUrl: undefined, rawFile: undefined })
+                        }
+                    />
+                </>
+            )
+        }
+
+        render(
+            <IntlWrapper>
+                <QueryClientProvider client={queryClient}>
+                    <LinkSendFlowProvider>
+                        <SetAmount amount="20" />
+                        <ViewProbe />
+                        <LinkSendInitialView />
+                    </LinkSendFlowProvider>
+                </QueryClientProvider>
+            </IntlWrapper>
+        )
+        fireEvent.click(screen.getByTestId('set-amount'))
+        fireEvent.click(screen.getByTestId('set-note'))
+        fireEvent.click(screen.getByText('Create link'))
+
+        await waitFor(() =>
+            expect(mockCreateLink).toHaveBeenCalledWith(usdc(20), { message: 'dinner', attachment: undefined })
+        )
+        expect(screen.getByTestId('view')).not.toHaveTextContent('SUCCESS')
+
+        resolveCreate({
+            link: 'https://peanut.me/claim?c=42161&v=v4.4&i=589#p=x',
+            chainId: '42161',
+            tokenAddress: '0x',
+        })
+        await waitFor(() => expect(screen.getByTestId('view')).toHaveTextContent('SUCCESS'))
     })
 })

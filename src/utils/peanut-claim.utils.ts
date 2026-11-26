@@ -49,9 +49,10 @@ export async function getRandomString(length = 16): Promise<string> {
     return out
 }
 
-/** Minimal v4.x vault ABI — `makeDeposit`, `getDepositCount`, plus the
- *  `DepositEvent` shape. Both v4.3 and v4.4 share this surface. */
-export const peanutVaultAbi: Abi = [
+/** Minimal v4.x vault ABI — `makeDeposit` plus the `DepositEvent` shape.
+ *  Both v4.3 and v4.4 share this surface. Typed `as const` so viem returns
+ *  the real types (uint256 → bigint) instead of a cast. */
+export const peanutVaultAbi = [
     {
         type: 'function',
         name: 'makeDeposit',
@@ -66,13 +67,6 @@ export const peanutVaultAbi: Abi = [
         stateMutability: 'payable',
     },
     {
-        type: 'function',
-        name: 'getDepositCount',
-        inputs: [],
-        outputs: [{ name: '', type: 'uint256' }],
-        stateMutability: 'view',
-    },
-    {
         type: 'event',
         name: 'DepositEvent',
         inputs: [
@@ -83,13 +77,7 @@ export const peanutVaultAbi: Abi = [
         ],
         anonymous: false,
     },
-]
-
-/** `peanut.getContractAbi(version)` shim — version-agnostic now (only one
- *  shape we use), but keep the parameter for callsite parity. */
-export function getContractAbi(_version: string): Abi {
-    return peanutVaultAbi
-}
+] as const satisfies Abi
 
 /** Mirror of SDK `prepareRequestLinkFulfillmentTransaction`. Builds the
  *  unsigned tx the user signs to fulfil a request — native send or ERC-20

@@ -49,6 +49,22 @@ export async function rescueUserOpReceipt(
     { timeoutMs = 15_000 }: { timeoutMs?: number } = {}
 ): Promise<{ success: boolean; receipt: TransactionReceipt } | null> {
     if ((originalError as Error)?.name === 'WaitForUserOperationReceiptTimeoutError') return null
+    return waitForUserOpReceiptOrNull(client, userOpHash, context, { timeoutMs })
+}
+
+/**
+ * One more wall-clock-capped wait for a userOp receipt, with the same rescue
+ * telemetry. Unlike `rescueUserOpReceipt` it also runs after a genuine
+ * timeout: for a flow that cannot finish without the receipt (a send link
+ * needs the vault's deposit index), so a late op is worth the wait. Seen on
+ * 2026-10-31: an op landed 7 s after the 120 s wait gave up (TASK-24270).
+ */
+export async function waitForUserOpReceiptOrNull(
+    client: UserOpReceiptWaiter,
+    userOpHash: Hash,
+    context: string,
+    { timeoutMs }: { timeoutMs: number }
+): Promise<{ success: boolean; receipt: TransactionReceipt } | null> {
     const start = Date.now()
     const rescued = await client.waitForUserOperationReceipt({ hash: userOpHash, timeout: timeoutMs }).catch(() => null)
     if (rescued) {

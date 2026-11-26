@@ -12,7 +12,6 @@ import { loadingStateContext } from '@/context/loadingStates.context'
 import { useLinkSendFlow } from '@/context/LinkSendFlowContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { SpendRecoveryAbortedError } from '@/hooks/wallet/signSpendRetry'
-import { sendLinksApi } from '@/services/sendLinks'
 import { useFriendlyError } from '@/hooks/useFriendlyError'
 import { isAmountWithinBalance, isValidSendAmount } from '@/utils/balance.utils'
 import { captureNetworkTriagedFailure } from '@/utils/network-triage'
@@ -107,8 +106,11 @@ const LinkSendInitialView = () => {
             // clear any previous errors
             setErrorState({ showError: false, errorMessage: '' })
 
-            const { link, pubKey, chainId, contractVersion, depositIdx, txHash, amount, tokenAddress, preparationId } =
-                await createLink(parseUnits(tokenValue!, PEANUT_WALLET_TOKEN_DECIMALS))
+            // Resolves only once the link is funded and recorded (TASK-24270).
+            const { link, chainId, tokenAddress } = await createLink(
+                parseUnits(tokenValue!, PEANUT_WALLET_TOKEN_DECIMALS),
+                { message: attachmentOptions?.message, attachment: attachmentOptions?.rawFile }
+            )
 
             posthog.capture(ANALYTICS_EVENTS.SEND_LINK_CREATED, {
                 amount: tokenValue,
@@ -123,32 +125,6 @@ const LinkSendInitialView = () => {
             queryClient.invalidateQueries({
                 queryKey: [TRANSACTIONS],
             })
-
-            // we dont need to wait for this to finish in order to proceed
-            setTimeout(async () => {
-                try {
-                    await sendLinksApi.create({
-                        pubKey,
-                        chainId,
-                        txHash,
-                        contractVersion,
-                        depositIdx,
-                        amount,
-                        tokenAddress,
-                        preparationId,
-                        reference: attachmentOptions?.message,
-                        attachment: attachmentOptions?.rawFile,
-                        filename: attachmentOptions?.rawFile?.name,
-                        mimetype: attachmentOptions?.rawFile?.type,
-                    })
-                } catch (error) {
-                    // we want to capture any errors here because we are already in the background
-                    console.error(error)
-                    void captureNetworkTriagedFailure(error, {
-                        tags: { ...criticalFlowTags('send-link'), send_link_step: 'persist' },
-                    })
-                }
-            }, 0)
         } catch (error) {
             // Card re-approval dismissed, or the screen left, before the link's
             // deposit was prepared or signed — no link exists and nothing was

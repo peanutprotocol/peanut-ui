@@ -1,33 +1,38 @@
 'use client'
-import { getNextDepositIndex } from '@/app/actions/claimLinks'
 import { BASE_URL } from '@/constants/general.consts'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { saveToLocalStorage } from '@/utils/general.utils'
 import { generateKeysFromString, getLinkFromParams } from '@/utils/peanut-link.utils'
 import {
-    getContractAbi,
     getContractAddress,
     getLatestContractVersion,
     getRandomString,
+    peanutVaultAbi,
 } from '@/utils/peanut-claim.utils'
 import { useCallback, useContext } from 'react'
-import type { Hash, Address } from 'viem'
-import { bytesToNumber, encodeFunctionData, parseAbi, parseEventLogs, toBytes } from 'viem'
+import type { Address } from 'viem'
+import { encodeFunctionData, parseAbi } from 'viem'
 
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants/zerodev.consts'
-import { tokenSelectorContext } from '@/context/tokenSelector.context'
 import { useWallet } from '@/hooks/wallet/useWallet'
-import { useSignTypedData } from 'wagmi'
+import { sendLinksApi } from '@/services/sendLinks'
+import { captureNetworkTriagedFailure } from '@/utils/network-triage'
+import { criticalFlowTags } from '@/utils/sentry-critical-flow'
+import { resolveLinkDeposit } from '@/utils/send-link-deposit.utils'
 import { withCeremonyFlow } from '@/utils/webauthn-ceremony-telemetry'
+
+/** What the sender attaches to a link. */
+export interface SendLinkDetails {
+    message?: string
+    attachment?: File
+}
 
 export const useCreateLink = () => {
     const { setLoadingState } = useContext(loadingStateContext)
-    const { selectedChainID: _selectedChainID } = useContext(tokenSelectorContext)
-
     const { sendTransactions } = useWallet()
-    const { signTypedDataAsync: _signTypedDataAsync } = useSignTypedData()
-    const { handleSendUserOpEncoded: _handleSendUserOpEncoded } = useZeroDev()
+    // The kernel account: the vault records it as the deposit's sender.
+    const sender = useZeroDev().address as Address | undefined
 
     const generatePassword = async () => {
         try {
@@ -39,98 +44,78 @@ export const useCreateLink = () => {
         }
     }
 
-    // @dev TODO: Fix edge case - balance validation should also check loadingState.isLoading
-    // Current: NOT tracked by usePendingTransactions + validation doesn't check isLoading
-    // Edge case: If user rapidly creates links, insufficient balance error could briefly show
-    // Fix: Add isLoading check to Initial.link.send.view.tsx useEffect (line 98)
-    // Better: Wrap in useMutation with mutationKey: [BALANCE_DECREASE, SEND_LINK]
-    // Priority: Low (rare edge case in less common flow)
+    /**
+     * Funds a link in the vault and records it with the backend before it
+     * returns (TASK-24270). The success screen used to show first, so a failed
+     * record went unseen. The loading state stays busy the whole time, which
+     * is what keeps the view's balance gate and its button quiet.
+     */
     const createLink = useCallback(
-        async (amount: bigint) => {
+        async (amount: bigint, { message, attachment }: SendLinkDetails = {}) => {
+            // Checked before any signing: the deposit is matched to its sender.
+            if (!sender) throw new Error('Wallet is not ready')
             let strategy: string | undefined
-            return withCeremonyFlow(
+            const funded = await withCeremonyFlow(
                 'link_create',
                 async () => {
                     setLoadingState('Generating details')
                     const password = await generatePassword()
-                    const generatedKeys = generateKeysFromString(password)
-                    saveToLocalStorage(`sendLink::password::${generatedKeys.address}`, password)
+                    const { address: pubKey } = generateKeysFromString(password)
+                    saveToLocalStorage(`sendLink::password::${pubKey}`, password)
 
                     const chainId = PEANUT_WALLET_CHAIN.id.toString()
-                    const contractVersion = getLatestContractVersion({
-                        chainId,
-                        type: 'normal',
-                    })
-                    const tokenAddress = PEANUT_WALLET_TOKEN as Hash
-                    const contractAbi = getContractAbi(contractVersion)
-                    const contractAddress: Address = getContractAddress(
-                        PEANUT_WALLET_CHAIN.id.toString(),
-                        contractVersion
-                    ) as Hash
+                    const contractVersion = getLatestContractVersion({ chainId, type: 'normal' })
+                    const tokenAddress = PEANUT_WALLET_TOKEN as Address
+                    const vault = getContractAddress(chainId, contractVersion)
 
                     const approveData = encodeFunctionData({
                         abi: parseAbi(['function approve(address _spender, uint256 _amount) external returns (bool)']),
                         functionName: 'approve',
-                        args: [contractAddress, amount],
+                        args: [vault, amount],
                     })
                     const makeDepositData = encodeFunctionData({
-                        abi: contractAbi,
+                        abi: peanutVaultAbi,
                         functionName: 'makeDeposit',
-                        args: [tokenAddress, 1, amount, 0, generatedKeys.address as Hash],
+                        args: [tokenAddress, 1, amount, 0n, pubKey],
                     })
                     // Route through sendTransactions with `requiredUsdcAmount` so a Rain
                     // collateral withdraw is prepended to the UserOp when the smart
                     // account is short. Covers the mixed (smart + collateral) case.
-                    const [nextIndex, sendResult] = await Promise.all([
-                        getNextDepositIndex(contractVersion),
-                        sendTransactions(
-                            [
-                                { to: tokenAddress, value: 0n, data: approveData },
-                                { to: contractAddress, value: 0n, data: makeDepositData },
-                            ],
-                            {
-                                chainId,
-                                requiredUsdcAmount: amount,
-                                kind: 'LINK_CREATE',
-                                // as soon as routing decides, not when it succeeds — a
-                                // cancelled flow still has to be readable by strategy
-                                onStrategyDecided: (decided) => {
-                                    strategy = decided
-                                },
-                            }
-                        ),
-                    ])
-                    const { receipt, intentId } = sendResult
-                    let depositIdx: number
-                    let txHash: Hash | undefined = undefined
-                    if (receipt !== null) {
-                        const depositEvent = parseEventLogs({
-                            abi: contractAbi,
-                            eventName: 'DepositEvent',
-                            logs: receipt.logs,
-                        })[0]
-                        depositIdx = bytesToNumber(toBytes(depositEvent.topics[1]!))
-                        txHash = depositEvent.transactionHash
-                    } else {
-                        depositIdx = nextIndex
-                    }
-
-                    const link = getLinkFromParams(
-                        chainId,
-                        contractVersion,
-                        depositIdx,
-                        password,
-                        `${BASE_URL}/claim`,
-                        undefined
+                    const { receipt, userOpHash, intentId } = await sendTransactions(
+                        [
+                            { to: tokenAddress, value: 0n, data: approveData },
+                            { to: vault, value: 0n, data: makeDepositData },
+                        ],
+                        {
+                            chainId,
+                            requiredUsdcAmount: amount,
+                            kind: 'LINK_CREATE',
+                            // as soon as routing decides, not when it succeeds — a
+                            // cancelled flow still has to be readable by strategy
+                            onStrategyDecided: (decided) => {
+                                strategy = decided
+                            },
+                        }
                     )
+                    // The send is over but a timed-out receipt means one more
+                    // wait: keep the screen busy so the link cannot be created twice.
+                    setLoadingState('Executing transaction')
+                    const { depositIdx, txHash } = await resolveLinkDeposit({
+                        receipt,
+                        userOpHash,
+                        chainId: PEANUT_WALLET_CHAIN.id,
+                        vault,
+                        sender,
+                        pubKey,
+                    })
+
                     return {
-                        link,
-                        pubKey: generatedKeys.address,
+                        link: getLinkFromParams(chainId, contractVersion, depositIdx, password, `${BASE_URL}/claim`),
+                        pubKey,
                         chainId,
                         contractVersion,
                         depositIdx,
                         txHash,
-                        amount,
                         tokenAddress,
                         // Present only for collateral-funded ("mixed") links — the Rain
                         // prepare intent id, threaded to /send-links so the backend
@@ -140,8 +125,31 @@ export const useCreateLink = () => {
                 },
                 () => ({ strategy })
             )
+
+            setLoadingState('Creating link')
+            const { link, ...deposit } = funded
+            try {
+                await sendLinksApi.persist({
+                    ...deposit,
+                    amount,
+                    reference: message,
+                    attachment,
+                    filename: attachment?.name,
+                    mimetype: attachment?.type,
+                })
+            } catch (error) {
+                // The money is in the vault and the link still claims: the API
+                // rebuilds a missing row from chain when the link is opened. Only
+                // the sender's history misses it, so show the link and report.
+                console.error(error)
+                void captureNetworkTriagedFailure(error, {
+                    tags: { ...criticalFlowTags('send-link'), send_link_step: 'persist' },
+                    extra: { pubKey: deposit.pubKey, depositIdx: deposit.depositIdx, txHash: deposit.txHash },
+                })
+            }
+            return { link, chainId: funded.chainId, tokenAddress: funded.tokenAddress }
         },
-        [sendTransactions, setLoadingState]
+        [sendTransactions, sender, setLoadingState]
     )
 
     return {

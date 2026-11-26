@@ -1,10 +1,8 @@
 'use client'
 
 import { useEffect } from 'react'
-import { http } from 'viem'
-import { createBundlerClient } from 'viem/account-abstraction'
 import { PUBLIC_CLIENTS_BY_CHAIN } from '@/app/actions/clients'
-import { ZERODEV_RPC_TIMEOUT_MS } from '@/constants/zerodev.consts'
+import { createChainBundlerClient } from '@/utils/bundler-client.utils'
 import { useAuth } from '@/context/authContext'
 import { AccountType } from '@/interfaces/interfaces'
 import { isDemoMode } from '@/utils/demo'
@@ -19,12 +17,8 @@ const attempted = new Set<string>()
 
 function bundlerFor(chainId: number): DeferredSignupTestTxBundler | null {
     const config = PUBLIC_CLIENTS_BY_CHAIN[chainId]
-    if (!config?.bundlerUrl) return null
-    const bundler = createBundlerClient({
-        chain: config.chain,
-        transport: http(config.bundlerUrl, { timeout: ZERODEV_RPC_TIMEOUT_MS }),
-        pollingInterval: 1_000,
-    })
+    const bundler = createChainBundlerClient(chainId)
+    if (!config || !bundler) return null
     return {
         send: (record) => sendSignedUserOperation(bundler, record.userOperation, record.entryPoint),
         waitForReceipt: (hash, timeout) => bundler.waitForUserOperationReceipt({ hash, timeout }),

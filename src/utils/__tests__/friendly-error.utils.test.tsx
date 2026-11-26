@@ -94,6 +94,14 @@ describe('friendlyError', () => {
         expect(friendlyError(settling)).toEqual({ kind: 'code', code: 'passkeySettling' })
     })
 
+    // TASK-24270: the deposit can still land, so the copy warns before a retry.
+    test('an unconfirmed send-link deposit gets the check-your-balance copy', () => {
+        const unconfirmed = Object.assign(new Error('Send link deposit not confirmed'), {
+            name: 'LinkDepositUnconfirmedError',
+        })
+        expect(friendlyError(unconfirmed)).toEqual({ kind: 'code', code: 'sendLinkUnconfirmed' })
+    })
+
     test('unknown errors still fall through to the support-fallback code', () => {
         expect(friendlyError(new Error('something nobody mapped'))).toEqual({ kind: 'code', code: 'genericSupport' })
     })
@@ -171,6 +179,7 @@ describe('friendly error copy catalog', () => {
         'passkeyStillOpen',
         'claimLinkFailed',
         'sendLinkAlreadyClaimed',
+        'sendLinkUnconfirmed',
         'lowLiquidity',
         'networkBusyTimeout',
         'connectionLost',

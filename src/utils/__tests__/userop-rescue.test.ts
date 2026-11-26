@@ -1,4 +1,4 @@
-import { rescueUserOpReceipt, type UserOpReceiptWaiter } from '../userop-rescue.utils'
+import { rescueUserOpReceipt, waitForUserOpReceiptOrNull, type UserOpReceiptWaiter } from '../userop-rescue.utils'
 import posthog from 'posthog-js'
 import type { Hash, TransactionReceipt } from 'viem'
 
@@ -66,6 +66,32 @@ describe('rescueUserOpReceipt', () => {
             new Error('blip'),
             'zerodev-send'
         )
+        expect(rescued).toBeNull()
+        expect(posthog.capture).not.toHaveBeenCalled()
+    })
+})
+
+// TASK-24270: a send link cannot finish without its receipt, and an op landed
+// 7 s after the 120 s wait gave up — so this wait runs even after a timeout.
+describe('waitForUserOpReceiptOrNull', () => {
+    beforeEach(() => jest.clearAllMocks())
+
+    it('waits even when the first wait timed out, and captures the rescue', async () => {
+        const client = waiter({ success: true, receipt: RECEIPT })
+        const spy = jest.spyOn(client, 'waitForUserOperationReceipt')
+        const rescued = await waitForUserOpReceiptOrNull(client, USEROP_HASH, 'link-create', { timeoutMs: 120_000 })
+        expect(rescued).toEqual({ success: true, receipt: RECEIPT })
+        expect(spy).toHaveBeenCalledWith({ hash: USEROP_HASH, timeout: 120_000 })
+        expect(posthog.capture).toHaveBeenCalledWith(
+            'send_receipt_rescued',
+            expect.objectContaining({ context: 'link-create' })
+        )
+    })
+
+    it('returns null when the op still has no receipt', async () => {
+        const rescued = await waitForUserOpReceiptOrNull(waiter(new Error('timed out')), USEROP_HASH, 'link-create', {
+            timeoutMs: 120_000,
+        })
         expect(rescued).toBeNull()
         expect(posthog.capture).not.toHaveBeenCalled()
     })

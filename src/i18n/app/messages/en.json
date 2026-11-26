@@ -4911,6 +4911,7 @@
         "passkeyNotCompleted": "Your device didn't complete the passkey confirmation. Try again. If it keeps failing, unlock your password manager (e.g. 1Password) or restart your device.",
         "claimLinkFailed": "Could not claim link, please refresh page. If problem persist confirm link with sender",
         "sendLinkAlreadyClaimed": "Send link already claimed",
+        "sendLinkUnconfirmed": "We couldn’t confirm your link yet. Check your balance before you try again. If your balance went down, contact support.",
         "lowLiquidity": "Low liquidity. Please try a smaller amount or different route.",
         "networkBusyTimeout": "The network is busy and your request timed out. Please try again in a moment.",
         "sessionExpired": "Your session has expired. Please log in again.",
