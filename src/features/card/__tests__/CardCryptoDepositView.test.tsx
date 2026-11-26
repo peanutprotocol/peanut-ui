@@ -301,6 +301,18 @@ describe('a deposit that lands before the provider says completed (Chip review o
         expect(landings()).toHaveLength(0)
     })
 
+    it('reopened while loading after the rest landed too, measures the rest from the stored balance (review)', async () => {
+        await roseWhileLoading()
+        // the rest lands while the drawer is closed: the read at reopen already includes it
+        live = 9.5
+        renderView()
+        expect(await screen.findByTestId('card-add-money-processing')).toBeInTheDocument()
+        pollStatus = 'completed'
+        await act(async () => pollOnSuccess?.(7))
+        // measured from $6.50 (after the early rise), not from the $9.50 read at reopen: never stuck
+        expect(await readsUntil('card-add-money-short')).toHaveTextContent('shortReceived($3)')
+    })
+
     it('reopened after completed reports more than rose, holds for the rest', async () => {
         await roseWhileLoading()
         pollStatus = 'completed'

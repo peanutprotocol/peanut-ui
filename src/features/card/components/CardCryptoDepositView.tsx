@@ -214,17 +214,22 @@ export function CardCryptoDepositView({
             let landing = now === 'failed' ? null : readDepositLanding(userId, address)
             // An earlier opening saw the balance rise while the provider still said loading: that rise is
             // this deposit. Still loading: wait for completed, which clears it. Completed now: reconcile.
-            // Gone (the API overwrote it): it is in the balance already.
+            // Gone (the API overwrote it): the outcome is lost, and the rise is taken as that deposit.
+            // Any rest still held is measured from where the balance stood after the rise, never from the
+            // read at reopen, which may already include it.
             if (landing?.rose != null) {
                 const reportedMore = openAmount.current !== null && openAmount.current > landing.rose + 0.01
-                if (now === 'loading') landedBeforeCompleted.current = landing.rose
-                else forgetDepositLanding(userId, address)
+                landedRef.current = Math.min(landing.from, baseline)
+                if (now === 'loading') {
+                    landedBeforeCompleted.current = landing.rose
+                    landing = null
+                } else forgetDepositLanding(userId, address)
                 if (now === 'completed' && !reportedMore) {
                     checkedForRef.current = address
                     setCheckedFor(address)
                     return void clear()
                 }
-                landing = null
+                if (now !== 'completed') landing = null
             }
             checkedForRef.current = address
             setCheckedFor(address)
