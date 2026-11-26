@@ -261,6 +261,57 @@ describe('a deposit already on its way at open', () => {
     })
 })
 
+describe('a deposit that lands before the provider says completed (Chip review of c2344fb)', () => {
+    const landings = () => Object.keys(sessionStorage).filter((k) => k.startsWith('card_deposit_landing'))
+    /** opens on a deposit on its way, and lets the balance rise $4 while the provider still says loading */
+    const roseWhileLoading = async () => {
+        jest.useFakeTimers()
+        pollStatus = 'loading'
+        const first = renderView()
+        expect(await screen.findByTestId('card-add-money-processing')).toBeInTheDocument()
+        live = 6.5
+        // still loading at the provider: processing stays, and the early landing outlives the drawer
+        const rose = () => JSON.parse(sessionStorage.getItem(landings()[0] ?? '') ?? 'null')?.rose
+        for (let i = 0; i < 60 && rose() !== 4; i++) await nextRead()
+        expect(rose()).toBe(4)
+        expect(screen.getByTestId('card-add-money-processing')).toBeInTheDocument()
+        expect(mockResetStatus).not.toHaveBeenCalled()
+        first.unmount()
+    }
+
+    it('reopened while loading, clears when completed arrives with a flat balance: never stuck', async () => {
+        await roseWhileLoading()
+        renderView()
+        expect(await screen.findByTestId('card-add-money-processing')).toBeInTheDocument()
+        pollStatus = 'completed'
+        await act(async () => pollOnSuccess?.(4))
+        // what rose is this deposit: cleared, and the address asks for the rest from a fresh read
+        await waitFor(() => expect(mockResetStatus).toHaveBeenCalledTimes(1))
+        expect(await screen.findByTestId('card-add-money-ask')).toHaveTextContent('sendAsk($5)')
+        expect(landings()).toHaveLength(0)
+    })
+
+    it('reopened after completed, clears at once against what already rose', async () => {
+        await roseWhileLoading()
+        pollStatus = 'completed'
+        pollCompletedAmount = 4
+        renderView()
+        await waitFor(() => expect(mockResetStatus).toHaveBeenCalledTimes(1))
+        expect(await screen.findByTestId('card-add-money-ask')).toHaveTextContent('sendAsk($5)')
+        expect(landings()).toHaveLength(0)
+    })
+
+    it('reopened after completed reports more than rose, holds for the rest', async () => {
+        await roseWhileLoading()
+        pollStatus = 'completed'
+        pollCompletedAmount = 7
+        renderView()
+        await openedHolding()
+        live = 9.5
+        expect(await readsUntil('card-add-money-short')).toHaveTextContent('shortReceived($3)')
+    })
+})
+
 describe('a completed outcome found at open', () => {
     it('keeps holding across a close and reopen before the balance rises: no QR, nothing cleared (Chip)', async () => {
         jest.useFakeTimers()

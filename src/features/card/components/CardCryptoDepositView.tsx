@@ -20,7 +20,12 @@ import { captureCryptoDepositCompleted } from '@/features/add-money/captureCrypt
 import { useRhinoDepositAddress } from '@/features/add-money/useRhinoDepositAddress'
 import { cardCryptoAskUsd, cardGapUsd } from '@/features/card/cardAddMoney'
 import { cardDepositView, type DepositStatus } from '@/features/card/cardDepositView'
-import { forgetDepositLanding, readDepositLanding, rememberDepositLanding } from '@/features/card/depositLanding'
+import {
+    forgetDepositLanding,
+    readDepositLanding,
+    rememberDepositLanding,
+    rememberEarlyLanding,
+} from '@/features/card/depositLanding'
 import { readLiveSpendableUsd } from '@/features/card/readLiveSpendableUsd'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import type { DepositAddressStatusResponse, RhinoChainType } from '@/services/services.types'
@@ -110,6 +115,7 @@ export function CardCryptoDepositView({
     // the completed outcome found at open (transaction, or amount): the same one written back after a
     // clear is that old deposit again, not a new one
     const openOutcome = useRef<string | null>(null)
+    const openAmount = useRef<number | null>(null)
     // the notice after a deposit that left a gap: what came in; `n` counts them, so a second short
     // deposit of the same amount still re-arms the poll
     const [shortDeposit, setShortDeposit] = useState<{ received: number; n: number }>()
@@ -135,11 +141,13 @@ export function CardCryptoDepositView({
             // an outcome read at open is held by the open check below
             if (atOpen) {
                 openOutcome.current = outcome
+                openAmount.current = amount
                 return
             }
             const rose = landedBeforeCompleted.current
             if (rose !== null) {
                 landedBeforeCompleted.current = null
+                forgetDepositLanding(userId, address)
                 // what rose is this deposit: clear for the next one; more reported than rose: hold the rest
                 if (amount <= rose + 0.01) {
                     void clearRef.current()
@@ -151,7 +159,7 @@ export function CardCryptoDepositView({
                     current ?? { from: landedRef.current!, alreadyIn: repeatOfOpen, reads: 0, flat: 0, waited: false }
             )
         },
-        [network, user?.invitedBy]
+        [network, user?.invitedBy, userId]
     )
     const { status, resetStatus, isStatusRead, statusError, statusFailing, refetchStatus } = useCryptoDepositPolling(
         depositAddress,
@@ -201,14 +209,28 @@ export function CardCryptoDepositView({
             }
             if (depositAddressRef.current !== address) return
             landedRef.current = baseline
-            checkedForRef.current = address
-            setCheckedFor(address)
             // the status may have moved while the balance was read: act on the one now
             const now = statusRef.current === 'not_started' ? first : statusRef.current
+            let landing = now === 'failed' ? null : readDepositLanding(userId, address)
+            // An earlier opening saw the balance rise while the provider still said loading: that rise is
+            // this deposit. Still loading: wait for completed, which clears it. Completed now: reconcile.
+            // Gone (the API overwrote it): it is in the balance already.
+            if (landing?.rose != null) {
+                const reportedMore = openAmount.current !== null && openAmount.current > landing.rose + 0.01
+                if (now === 'loading') landedBeforeCompleted.current = landing.rose
+                else forgetDepositLanding(userId, address)
+                if (now === 'completed' && !reportedMore) {
+                    checkedForRef.current = address
+                    setCheckedFor(address)
+                    return void clear()
+                }
+                landing = null
+            }
+            checkedForRef.current = address
+            setCheckedFor(address)
             // A deposit an earlier opening saw and never saw land is held again from its own baseline, even
             // when the status now reads not started (the API can overwrite it on a cold open).
-            const landing = now === 'failed' ? null : readDepositLanding(userId, address)
-            if (now === 'loading' || now === 'completed' || landing) {
+            if ((now === 'loading' && landedBeforeCompleted.current === null) || now === 'completed' || landing) {
                 setHold({
                     from: landing ? Math.min(landing.from, baseline) : baseline,
                     // only an outcome already completed at the first answer may be in the balance read at open
@@ -246,7 +268,7 @@ export function CardCryptoDepositView({
 
     // every held deposit outlives the drawer: a reopen holds it again from the same baseline
     useEffect(() => {
-        if (hold && depositAddress) rememberDepositLanding(userId, depositAddress, { from: hold.from, amount: null })
+        if (hold && depositAddress) rememberDepositLanding(userId, depositAddress, hold.from)
     }, [hold, depositAddress, userId])
 
     // Each held deposit is read fresh until the balance rises above where it started (or the gap is
@@ -265,7 +287,8 @@ export function CardCryptoDepositView({
             }
             const gap = cardGapUsd(value) ?? 0
             if (roseAbove(hold.from, value) || gap <= 0) {
-                if (depositAddressRef.current) forgetDepositLanding(userId, depositAddressRef.current)
+                // a short landing is forgotten (or kept as an early one) with its notice, below
+                if (gap <= 0 && depositAddressRef.current) forgetDepositLanding(userId, depositAddressRef.current)
                 landedRef.current = value
                 setHold(undefined)
                 if (gap <= 0) {
@@ -296,10 +319,17 @@ export function CardCryptoDepositView({
     // clear re-arms the poll for the rest, and the address waits for its fresh read. A deposit that
     // rose before the provider said completed is cleared when that completion arrives.
     useEffect(() => {
-        if (!shortDeposit) return
+        const address = depositAddressRef.current
+        if (!shortDeposit || !address) return
+        if (statusRef.current === 'loading') {
+            landedBeforeCompleted.current = shortDeposit.received
+            // kept until completed arrives, so a close and reopen in between still reconciles it
+            rememberEarlyLanding(userId, address, { from: landedRef.current!, rose: shortDeposit.received })
+            return
+        }
+        forgetDepositLanding(userId, address)
         if (statusRef.current === 'completed') void clearRef.current()
-        else if (statusRef.current === 'loading') landedBeforeCompleted.current = shortDeposit.received
-    }, [shortDeposit])
+    }, [shortDeposit, userId])
 
     const view = cardDepositView({
         addressLoading: isLoading,
