@@ -186,12 +186,17 @@ export function ClosedRowDrawer({
                     link: { label: t('details.residenceCta'), act: onChangeResidence },
                 }
             // nothing about the user, so nothing for them or support to do
-            case 'not-open':
+            case 'not-open': {
+                // The API currently maps Bridge's COP pause to not-open (TASK-25414).
+                const copPaused = row.corridor === 'BANK_TRANSFER_CO'
                 return {
-                    title: t('list.notOpenTitle'),
-                    body: t('list.notOpenBody', { currency: DEPOSIT_RAILS[row.corridor].currency }),
+                    title: t(copPaused ? 'list.copPausedTitle' : 'list.notOpenTitle'),
+                    body: copPaused
+                        ? t('list.copPausedBody')
+                        : t('list.notOpenBody', { currency: DEPOSIT_RAILS[row.corridor].currency }),
                     cta: { label: tCommon('gotIt') },
                 }
+            }
             case 'residence-missing':
                 return {
                     title: tAccounts('residence.unknown'),

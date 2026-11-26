@@ -5176,6 +5176,8 @@
             "regionUnavailableBody": "Our payment partner doesn't offer {currency} accounts where you live. Your other accounts and your funds on Peanut are not affected.",
             "notOpenTitle": "Unavailable right now",
             "notOpenBody": "We're not opening {currency} accounts right now.",
+            "copPausedTitle": "COP account opening paused",
+            "copPausedBody": "Our payment partner Bridge has paused COP transfers for now.",
             "residenceMissingBody": "{currency} accounts depend on where you live. Set a residence to check.",
             "uncheckedTitle": "We could not check the {currency} account",
             "uncheckedBody": "Try again in a moment.",

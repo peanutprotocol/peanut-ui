@@ -5176,6 +5176,8 @@
             "regionUnavailableBody": "Nuestro socio de pagos no ofrece cuentas en {currency} donde vives. Tus otras cuentas y tus fondos en Peanut no se ven afectados.",
             "notOpenTitle": "No disponible por ahora",
             "notOpenBody": "Por ahora no estamos abriendo cuentas en {currency}.",
+            "copPausedTitle": "Apertura de cuentas en COP pausada",
+            "copPausedBody": "Bridge, nuestro socio de pagos, pausó las transferencias en COP por ahora.",
             "residenceMissingBody": "Las cuentas en {currency} dependen de dónde vives. Indica tu residencia para comprobarlo.",
             "uncheckedTitle": "No pudimos revisar la cuenta en {currency}",
             "uncheckedBody": "Vuelve a intentarlo en un momento.",

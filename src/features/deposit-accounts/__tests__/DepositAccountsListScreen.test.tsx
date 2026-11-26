@@ -825,7 +825,9 @@ describe('a withheld account with the cause the backend names', () => {
         })
 
         fireEvent.click(rowOf(container, 'BANK_TRANSFER_CO') as HTMLElement)
-        expect(drawer().getByText(LIST.notOpenBody.replace('{currency}', 'COP'))).toBeInTheDocument()
+        expect(drawer().getByText(LIST.copPausedTitle)).toBeInTheDocument()
+        expect(drawer().getByText(LIST.copPausedBody)).toBeInTheDocument()
+        expect(drawer().queryByText(LIST.notOpenTitle)).not.toBeInTheDocument()
     })
 })
 
@@ -1617,6 +1619,8 @@ describe('the hub copy exists in every catalog', () => {
         'badgeNotOffered',
         'notOpenTitle',
         'notOpenBody',
+        'copPausedTitle',
+        'copPausedBody',
     ]
 
     it('es-419 and pt-BR carry every key the hub reads', () => {
