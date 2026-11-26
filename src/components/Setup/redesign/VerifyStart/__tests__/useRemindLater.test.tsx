@@ -1,6 +1,7 @@
 /** @jest-environment jsdom */
-// "Remind me later" schedules the nudge engine's reminder (TASK-22683, api#2307): a checklist snooze until tomorrow
-// 09:00 on the user's clock, written to the profile, and one line saying when. A refused write promises nothing.
+// "Remind me later" schedules the nudge engine's reminder (TASK-22683, api#2307): the verify step's reminder for
+// tomorrow 09:00 on the user's clock, under its own ledger key so Home's checklist stays visible, written to the
+// profile, and one line saying when. A refused write promises nothing.
 import type { ReactNode } from 'react'
 import { act, renderHook } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
@@ -43,7 +44,7 @@ describe('tomorrowMorning', () => {
 })
 
 describe('useRemindLater', () => {
-    it('writes the checklist snooze for tomorrow 09:00 and says when the reminder comes', async () => {
+    it('writes the verify reminder for tomorrow 09:00 and says when it comes', async () => {
         update.mockResolvedValue({ data: {} })
         const remindLater = remind()
         let saved: boolean | undefined
@@ -56,12 +57,15 @@ describe('useRemindLater', () => {
         expect(update.mock.calls[0][0]).toEqual({
             userId: 'user-1',
             attentionLedger: {
-                checklist: {
-                    snoozedUntil: new Date(2026, 10, 27, 9, 0).toISOString(),
+                reminder: {
+                    step: 'verify',
+                    remindAt: new Date(2026, 10, 27, 9, 0).toISOString(),
                     updatedAt: NOW.toISOString(),
                 },
             },
         })
+        // the checklist ask is not snoozed: Home keeps showing it
+        expect(update.mock.calls[0][0].attentionLedger).not.toHaveProperty('checklist')
         expect(mockToast.success).toHaveBeenCalledWith(
             expect.stringMatching(/^We’ll remind you tomorrow at 9:00\sAM\.$/u)
         )
@@ -89,7 +93,7 @@ describe('useRemindLater', () => {
         expect(mockToast.success).not.toHaveBeenCalled()
         expect(mockToast.error).toHaveBeenCalledWith(msg('setupRedesign.verifyStart.remindFailed'))
         expect(Sentry.captureMessage).toHaveBeenCalledWith(
-            'remind me later: snooze write failed',
+            'remind me later: reminder write failed',
             expect.objectContaining({ extra: { status: 400, error: 'attentionLedger is not a ledger' } })
         )
     })
