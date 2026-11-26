@@ -32,17 +32,23 @@ const cents = (amount: number) => Math.round(amount * 100) / 100
 const ADDRESS_DISPLAY_CHARS = 24
 /** a held deposit is read fresh at once, every 5 s for half a minute, then every 15 s */
 const holdReadDelay = (reads: number) => (reads === 0 ? 0 : reads < 6 ? 5_000 : 15_000)
-/** fresh reads with no rise that show a completed outcome found at open was already in the balance */
-const ALREADY_IN_READS = 2
+/**
+ * Successful fresh reads with no rise (about a minute: the 5 s phase, then 15 s reads) that show a
+ * completed outcome found at open was already in the balance. A failed read never counts.
+ */
+const ALREADY_IN_READS = 8
 /** the balance rose above where a deposit started, by more than a rounding cent */
 const roseAbove = (from: number, spendable: number) => spendable > from + 0.005
 
 type Hold = {
     /** the fresh read the deposit must rise above */
     from: number
-    /** a completed outcome found at open: it may already be in the balance read at open */
+    /** a completed outcome found at open (or the same one written back after a clear): it may already be in */
     alreadyIn: boolean
+    /** reads so far, failed ones too: they pace the next read */
     reads: number
+    /** successful reads that did not rise: only these release an `alreadyIn` hold */
+    flat: number
 }
 
 /**
@@ -91,8 +97,12 @@ export function CardCryptoDepositView({
 
     // A deposit seen on its way or reported, until a fresh read shows the balance above `from`.
     const [hold, setHold] = useState<Hold>()
-    // the balance rose before the provider said completed: that completion is this deposit's, not a new one
-    const landedBeforeCompleted = useRef(false)
+    // the balance rose before the provider said completed: that completion is this deposit's, not a new
+    // one, unless it reports more than came in (then another inflow landed meanwhile and it is held)
+    const landedBeforeCompleted = useRef<number | null>(null)
+    // the completed outcome found at open (transaction, or amount): the same one written back after a
+    // clear is that old deposit again, not a new one
+    const openOutcome = useRef<string | null>(null)
     // the notice after a deposit that left a gap: what came in; `n` counts them, so a second short
     // deposit of the same amount still re-arms the poll
     const [shortDeposit, setShortDeposit] = useState<{ received: number; n: number }>()
@@ -108,17 +118,28 @@ export function CardCryptoDepositView({
         (amount: number, statusData?: DepositAddressStatusResponse) => {
             const address = depositAddressRef.current
             if (!address) return
+            const outcome = statusData?.txHash?.toLowerCase() ?? `amount:${amount}`
+            const atOpen = checkedForRef.current !== address
+            const repeatOfOpen = !atOpen && outcome === openOutcome.current
             // sent once per deposit, so an outcome another surface (or an earlier opening) reported is not
             // counted twice, and one nobody saw complete is counted when the drawer reads it at open
-            captureCryptoDepositCompleted(amount, network, user?.invitedBy, { address, txHash: statusData?.txHash })
+            if (!repeatOfOpen)
+                captureCryptoDepositCompleted(amount, network, user?.invitedBy, { address, txHash: statusData?.txHash })
             // an outcome read at open is held by the open check below
-            if (checkedForRef.current !== address) return
-            if (landedBeforeCompleted.current) {
-                landedBeforeCompleted.current = false
-                void clearRef.current()
+            if (atOpen) {
+                openOutcome.current = outcome
                 return
             }
-            setHold((current) => current ?? { from: landedRef.current!, alreadyIn: false, reads: 0 })
+            const rose = landedBeforeCompleted.current
+            if (rose !== null) {
+                landedBeforeCompleted.current = null
+                // what rose is this deposit: clear for the next one; more reported than rose: hold the rest
+                if (amount <= rose + 0.01) {
+                    void clearRef.current()
+                    return
+                }
+            }
+            setHold((current) => current ?? { from: landedRef.current!, alreadyIn: repeatOfOpen, reads: 0, flat: 0 })
         },
         [network, user?.invitedBy]
     )
@@ -154,6 +175,8 @@ export function CardCryptoDepositView({
     clearRef.current = clear
 
     /** the API's first answer for this address, taken in against a fresh balance read */
+    const statusRef = useRef(status)
+    statusRef.current = status
     const open = useCallback(
         async (address: string, first: DepositStatus) => {
             setBalanceReadFailed(false)
@@ -168,9 +191,12 @@ export function CardCryptoDepositView({
             landedRef.current = baseline
             checkedForRef.current = address
             setCheckedFor(address)
-            if (first === 'loading' || first === 'completed')
-                setHold({ from: baseline, alreadyIn: first === 'completed', reads: 0 })
-            if (first === 'completed' || first === 'failed') void clear()
+            // the status may have moved while the balance was read: act on the one now
+            const now = statusRef.current === 'not_started' ? first : statusRef.current
+            if (now === 'loading' || now === 'completed')
+                // only an outcome already completed at the first answer may be in the balance read at open
+                setHold({ from: baseline, alreadyIn: now === 'completed' && first !== 'loading', reads: 0, flat: 0 })
+            if (now === 'completed' || now === 'failed') void clear()
             else setBalanceFresh(true)
         },
         [readLive, clear]
@@ -185,9 +211,9 @@ export function CardCryptoDepositView({
     // a deposit that goes on its way after open is held from where the balance last landed
     useEffect(() => {
         if (status !== 'loading' || !depositAddress || checkedFor !== depositAddress) return
-        if (landedBeforeCompleted.current) return
+        if (landedBeforeCompleted.current !== null) return
         setClearFailed(false)
-        setHold((current) => current ?? { from: landedRef.current!, alreadyIn: false, reads: 0 })
+        setHold((current) => current ?? { from: landedRef.current!, alreadyIn: false, reads: 0, flat: 0 })
     }, [status, depositAddress, checkedFor])
 
     // Each held deposit is read fresh until the balance rises above where it started (or the gap is
@@ -216,12 +242,14 @@ export function CardCryptoDepositView({
                 setShortDeposit((last) => ({ received: cents(value - hold.from), n: (last?.n ?? 0) + 1 }))
                 return
             }
-            if (hold.alreadyIn && hold.reads + 1 >= ALREADY_IN_READS) {
+            if (hold.alreadyIn && hold.flat + 1 >= ALREADY_IN_READS) {
                 landedRef.current = value
                 setHold(undefined)
+                // a completed status left in place stops the poll: clear it before any address
+                if (statusRef.current === 'completed') void clearRef.current()
                 return
             }
-            setHold((current) => current && { ...current, reads: current.reads + 1 })
+            setHold((current) => current && { ...current, reads: current.reads + 1, flat: current.flat + 1 })
         }, holdReadDelay(hold.reads))
         return () => clearTimeout(timer)
     }, [hold, readLive])
@@ -229,12 +257,10 @@ export function CardCryptoDepositView({
     // Rhino reports one deposit per address until the status is cleared: after a short deposit the
     // clear re-arms the poll for the rest, and the address waits for its fresh read. A deposit that
     // rose before the provider said completed is cleared when that completion arrives.
-    const statusRef = useRef(status)
-    statusRef.current = status
     useEffect(() => {
         if (!shortDeposit) return
         if (statusRef.current === 'completed') void clearRef.current()
-        else if (statusRef.current === 'loading') landedBeforeCompleted.current = true
+        else if (statusRef.current === 'loading') landedBeforeCompleted.current = shortDeposit.received
     }, [shortDeposit])
 
     const view = cardDepositView({

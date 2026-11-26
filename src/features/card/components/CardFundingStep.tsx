@@ -137,9 +137,10 @@ export function CardFundingStep({
         onContinue()
     }, [funded, open, onContinue])
 
-    // design.md "rows the user cannot act on": a bank way blocked on the user or a reviewer says so in
-    // its badge; one the residence rules out stays, gray, sorts last, and its tap says why. A not-offered
-    // answer with no known residence rule may be "not opened yet", so it stays an ordinary row.
+    // design.md "rows the user cannot act on": the badge names the block (Verify ID, Under review,
+    // Setting up, Action needed). One the residence rules out stays, gray, sorts last, and its tap says
+    // why; a not-offered answer with no known residence rule may be "not opened yet", so it stays in
+    // place with the one step left.
     const regionRefusal = useBankRegionRefusal()
     const bankOffered = !(plan.kind === 'not-offered' && regionRefusal)
     const bankBadge = !bankOffered ? (

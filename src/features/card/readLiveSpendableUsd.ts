@@ -42,7 +42,8 @@ export async function readLiveSpendableUsd(
             })
         ),
     ])
-    if (!isRainBalanceKnown(overview)) throw new Error('card collateral unknown')
+    // a cached collateral figure kept for display is not a live read
+    if (!isRainBalanceKnown(overview) || overview?.balanceUnavailable) throw new Error('card collateral not live')
     return Number(
         formatUnits(computeAvailableSpendable(smart, overview?.balance?.spendingPower), PEANUT_WALLET_TOKEN_DECIMALS)
     )
