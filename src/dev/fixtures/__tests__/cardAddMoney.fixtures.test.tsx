@@ -85,7 +85,7 @@ describe('card add-money drawer fixtures', () => {
     const names = Object.keys(FIXTURES).filter((name) => name.startsWith('card-add-money-'))
 
     it('all open the funding step with no card collateral in the balance', () => {
-        expect(names.length).toBe(12)
+        expect(names.length).toBe(13)
         for (const name of names) {
             expect(FIXTURES[name].route).toBe('/card?card_step=funding')
             expect((FIXTURES[name].responses?.['GET /rain/cards'] as { balance: unknown }).balance).toBeNull()
@@ -160,6 +160,13 @@ describe('card add-money drawer fixtures', () => {
             expect(amount).toBeGreaterThanOrEqual(minDepositLimitUsd)
         }
     )
+
+    it('still landing: the status reads completed at open and the balance does not move', async () => {
+        activate('card-add-money-crypto-still-landing')
+        expect(await read(`/rhino/status/${DEMO_ADDRESS}`)).toMatchObject({ status: 'completed', amount: 6.8 })
+        expect(await read(`/rhino/status/${DEMO_ADDRESS}`)).toMatchObject({ status: 'completed' })
+        expect(spendableUsd()).toBe(3.2)
+    })
 
     it('with nothing sent, the status reads not_started and the balance stays as it was', async () => {
         activate('card-add-money-crypto')

@@ -2630,6 +2630,12 @@ const CARD_ADD_MONEY_FIXTURES: Record<string, Fixture> = {
             },
         }
     ),
+    'card-add-money-crypto-still-landing': cardAddMoney(
+        'Card $10 step, crypto: Rhino already reports a $6.80 deposit completed at open, and the balance stays at $3.20, so after about a minute the drawer says it is still landing, with Send more instead and Contact support.',
+        CARD_US_USER,
+        {},
+        { responses: { [RHINO_STATUS]: { status: 'completed', amount: 6.8 } } }
+    ),
     'card-add-money-funded': cardAddMoney(
         'Card $10 step, crypto: a $10 deposit arrives and the balance reads $13.20, so the step is funded (wait ~15 s).',
         CARD_US_USER,
