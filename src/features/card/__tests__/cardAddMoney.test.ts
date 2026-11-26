@@ -119,14 +119,11 @@ describe('cardBankPlan', () => {
                     ACH_US: { kind: 'waiting-on-provider', userMessage: null },
                 }),
             })
-        ).toEqual({ kind: 'under-review', reason: 'provider' })
+        ).toEqual({ kind: 'under-review' })
     })
 
     it('says under review, never "verify again", while the identity check is in review', () => {
-        expect(cardBankPlan({ ...base, identityStatus: 'processing' })).toEqual({
-            kind: 'under-review',
-            reason: 'identity',
-        })
+        expect(cardBankPlan({ ...base, identityStatus: 'processing' })).toEqual({ kind: 'under-review' })
     })
 
     it('offers verification to a user who is not verified', () => {

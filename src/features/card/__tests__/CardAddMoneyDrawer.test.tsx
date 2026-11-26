@@ -356,28 +356,29 @@ describe('bank views', () => {
         expect(within(details).getByText('moreWays')).toBeInTheDocument()
     })
 
-    it('says the account is being set up and offers crypto now', () => {
-        readiness = { ...readiness, topUpGates: gates('blocked-rejection', { ACH_US: { kind: 'pending' } }) }
+    // Kush (2026-11-26): a bank the user cannot use now is a disabled row with its badge, and no drawer
+    it.each([
+        ['being set up', { kind: 'pending' as const }, undefined, 'list.badgeSettingUp'],
+        [
+            'reviewed by the bank partner',
+            { kind: 'waiting-on-provider' as const, userMessage: null },
+            undefined,
+            'list.badgeUnderReview',
+        ],
+        ['waiting on the identity check', { kind: 'needs-identity' as const }, 'processing', 'list.badgeUnderReview'],
+    ])('disables a bank row %s: badge kept, no chevron, no drawer', (_label, gate, identity, badge) => {
+        if (identity) identityStatus = identity
+        readiness = { ...readiness, topUpGates: gates('blocked-rejection', { ACH_US: gate }) }
         renderFunding()
-        fireEvent.click(screen.getByTestId('card-add-money-bank'))
-        const status = within(drawer()).getByTestId('card-add-money-status-setting-up')
-        expect(within(status).getByText('activation.settingUpTitle(USD)')).toBeInTheDocument()
-        fireEvent.click(within(status).getByTestId('card-add-money-use-crypto'))
-        expect(within(drawer()).getByTestId('choose-network-evm')).toBeInTheDocument()
+        const row = screen.getByTestId('card-add-money-bank')
+        expect(row).toHaveAttribute('aria-disabled', 'true')
+        expect(within(row).getByText(badge)).toBeInTheDocument()
+        expect(row.querySelector('.lucide-chevron-right')).toBeNull()
+        fireEvent.click(row)
+        expect(screen.queryByTestId('card-add-money-drawer')).not.toBeInTheDocument()
         expect(mockPush).not.toHaveBeenCalled()
-    })
-
-    it('says a review runs and offers crypto now', () => {
-        readiness = {
-            ...readiness,
-            topUpGates: gates('blocked-rejection', { ACH_US: { kind: 'waiting-on-provider', userMessage: null } }),
-        }
-        renderFunding()
-        fireEvent.click(screen.getByTestId('card-add-money-bank'))
-        const status = within(drawer()).getByTestId('card-add-money-status-under-review')
-        // the bank partner reviews the account, not the user's ID
-        expect(within(status).getByText('bankUnderReviewTitle')).toBeInTheDocument()
-        expect(within(status).getByTestId('card-add-money-use-crypto')).toHaveTextContent('useCrypto($7.50)')
+        // crypto stays the way to add money now
+        expect(screen.getByTestId('card-add-money-crypto')).not.toHaveAttribute('aria-disabled')
     })
 
     it('sends an unverified user to verify, named as the card entry', () => {
@@ -395,16 +396,6 @@ describe('bank views', () => {
             ['card_gate_add_money_drawer_opened', { method: 'bank', view: 'not_verified' }],
             ['card_gate_add_money_verify_tapped', {}],
         ])
-    })
-
-    it('says the identity check is in review, not "Verify identity", while it processes', () => {
-        identityStatus = 'processing'
-        readiness = { ...readiness, topUpGates: gates('blocked-rejection', { ACH_US: { kind: 'needs-identity' } }) }
-        renderFunding()
-        fireEvent.click(screen.getByTestId('card-add-money-bank'))
-        const status = within(drawer()).getByTestId('card-add-money-status-under-review')
-        expect(within(status).getByText('underReviewTitle')).toBeInTheDocument()
-        expect(within(drawer()).queryByTestId('card-add-money-verify')).not.toBeInTheDocument()
     })
 
     it('sends a user with one step left to the bank page, with the way back', () => {
@@ -622,17 +613,16 @@ describe('one amount, one heading, no dead ends', () => {
         expect(within(drawer()).getByTestId('card-add-money-status-not-verified')).toBeInTheDocument()
     })
 
-    it('keeps a bank row that is not offered, last, and says why on tap', () => {
+    it('keeps a bank row that is not offered, last and disabled, with its badge (Kush)', () => {
         mockBankingRestricted = true
         renderFunding()
         const rows = screen.getAllByTestId(/^card-add-money-(bank|crypto)$/)
         expect(rows.map((row) => row.dataset.testid)).toEqual(['card-add-money-crypto', 'card-add-money-bank'])
-        expect(within(screen.getByTestId('card-add-money-bank')).getByText('list.badgeNotOffered')).toBeInTheDocument()
-        fireEvent.click(screen.getByTestId('card-add-money-bank'))
-        const status = within(drawer()).getByTestId('card-add-money-status-not-offered')
-        expect(within(status).getByText('bankOnlyNotAvailableNote')).toBeInTheDocument()
-        fireEvent.click(within(status).getByTestId('card-add-money-use-crypto'))
-        expect(within(drawer()).getByTestId('choose-network-evm')).toBeInTheDocument()
+        const bank = screen.getByTestId('card-add-money-bank')
+        expect(within(bank).getByText('list.badgeNotOffered')).toBeInTheDocument()
+        expect(bank).toHaveAttribute('aria-disabled', 'true')
+        fireEvent.click(bank)
+        expect(screen.queryByTestId('card-add-money-drawer')).not.toBeInTheDocument()
     })
 
     it('takes a not-offered answer with no residence rule as one step left, not "not available"', () => {
@@ -659,14 +649,12 @@ describe('one amount, one heading, no dead ends', () => {
         expect(within(drawer()).queryByText('bankOnlyNotAvailableNote')).not.toBeInTheDocument()
         expect(within(drawer()).getByText('finishSetupTitle')).toBeInTheDocument()
         view.unmount()
-        // the lists loaded and refuse banking for GB: now the residence copy, in gray, with the fix
+        // the lists loaded and refuse banking for GB: now Not available, and the row is disabled
         mockSetsSettled = true
         renderFunding()
-        expect(within(screen.getByTestId('card-add-money-bank')).getByText('list.badgeNotOffered')).toBeInTheDocument()
-        fireEvent.click(screen.getByTestId('card-add-money-bank'))
-        const status = within(drawer()).getByTestId('card-add-money-status-not-offered')
-        expect(within(status).getByText('bankOnlyNotAvailableNote')).toBeInTheDocument()
-        expect(within(status).getByTestId('card-add-money-residence')).toBeInTheDocument()
+        const bank = screen.getByTestId('card-add-money-bank')
+        expect(within(bank).getByText('list.badgeNotOffered')).toBeInTheDocument()
+        expect(bank).toHaveAttribute('aria-disabled', 'true')
     })
 
     it('shows the transfer as on its way after "I\'ve sent the transfer"', async () => {
@@ -723,31 +711,18 @@ describe('round 2: badges, one heading on details, the residence fix, no back wh
         expect(within(screen.getByTestId('card-add-money-bank')).getByText(badge)).toBeInTheDocument()
     })
 
-    it("says the bank partner reviews the account, not the user's ID, on a provider wait", () => {
-        readiness = {
-            ...readiness,
-            topUpGates: gates('blocked-rejection', { ACH_US: { kind: 'waiting-on-provider', userMessage: null } }),
-        }
+    it('keeps a bank row the user can act on tappable, with its chevron', () => {
+        readiness = { ...readiness, topUpGates: gates('blocked-rejection', { ACH_US: { kind: 'needs-identity' } }) }
         renderFunding()
-        fireEvent.click(screen.getByTestId('card-add-money-bank'))
-        const status = within(drawer()).getByTestId('card-add-money-status-under-review')
-        expect(within(status).getByText('bankUnderReviewTitle')).toBeInTheDocument()
-        expect(within(status).queryByText('underReviewTitle')).not.toBeInTheDocument()
+        const row = screen.getByTestId('card-add-money-bank')
+        expect(row).not.toHaveAttribute('aria-disabled')
+        expect(row.querySelector('.lucide-chevron-right')).not.toBeNull()
     })
 
     it('badges nothing on a bank row the user can use', () => {
         readiness = { ...readiness, ready: { ...noneReady, account: ['USD'] } }
         renderFunding()
         expect(within(screen.getByTestId('card-add-money-bank')).queryByText(/^list\.badge/)).not.toBeInTheDocument()
-    })
-
-    it('offers the residence as the fix when a residence rule blocks bank, and support otherwise', () => {
-        mockBankingRestricted = true
-        renderFunding()
-        fireEvent.click(screen.getByTestId('card-add-money-bank'))
-        fireEvent.click(within(drawer()).getByTestId('card-add-money-residence'))
-        expect(mockPush).toHaveBeenCalledWith(expect.stringMatching(/^\/settings\/details\?open=residence&returnTo=/))
-        expect(within(drawer()).queryByText('contactSupport')).not.toBeInTheDocument()
     })
 
     it('names the account once on its details and says the dollar amount in the body', () => {

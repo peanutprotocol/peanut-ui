@@ -42,14 +42,13 @@ type DrawerView =
 /** What a bank view shows for this plan. */
 function bankView(plan: CardBankPlan): CardAddMoneyView {
     switch (plan.kind) {
+        // the step disables the bank row for a bank being set up or reviewed: no drawer opens on them
         case 'loading':
+        case 'setting-up':
+        case 'under-review':
             return 'loading'
         case 'rows':
             return plan.rows.length === 1 && plan.rows[0].kind === 'account' ? 'details' : 'rows'
-        case 'setting-up':
-            return 'setting_up'
-        case 'under-review':
-            return 'under_review'
         case 'not-verified':
             return 'not_verified'
         case 'finish-setup':
@@ -144,15 +143,12 @@ export function CardAddMoneyDrawer({
                 ) : (
                     <CardBankRowsView rows={plan.rows} onPick={pickRow} />
                 )
-            case 'setting-up':
-            case 'under-review':
             case 'not-verified':
             case 'finish-setup':
             case 'not-offered':
                 return (
                     <CardBankStatusView
                         status={plan}
-                        gapUsd={gapUsd}
                         onUseCrypto={toNetworksFromBank}
                         onVerify={() => {
                             captureCardAddMoneyVerifyTapped()
@@ -162,9 +158,6 @@ export function CardAddMoneyDrawer({
                         }}
                         onFinishSetup={() =>
                             router.push(withReturnTo('/add-money?method=bank', CARD_FUNDING_RETURN_TO))
-                        }
-                        onChangeResidence={() =>
-                            router.push(withReturnTo('/settings/details?open=residence', CARD_FUNDING_RETURN_TO))
                         }
                     />
                 )

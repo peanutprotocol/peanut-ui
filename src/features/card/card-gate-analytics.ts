@@ -35,8 +35,6 @@ export type CardAddMoneyView =
     | 'address'
     | 'rows'
     | 'details'
-    | 'setting_up'
-    | 'under_review'
     | 'not_verified'
     | 'finish_setup'
     | 'not_offered'

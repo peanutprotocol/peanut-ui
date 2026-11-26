@@ -373,8 +373,8 @@ export const ANALYTICS_EVENTS = {
     // server-side `deposit_completion` (peanut-api-ts, every rail).
     CARD_GATE_ADD_FUNDS_TAPPED: 'card_gate_add_funds_tapped',
     // The add-money drawer on the funding step (TASK-25169). Codes only, no amount.
-    // `method` ∈ bank|crypto; `view` ∈ networks|address|rows|details|setting_up|
-    // under_review|not_verified|finish_setup|loading. Closed = dismissed without funding.
+    // `method` ∈ bank|crypto; `view` ∈ networks|address|rows|details|not_verified|
+    // finish_setup|not_offered|loading. Closed = dismissed without funding.
     CARD_GATE_ADD_MONEY_DRAWER_OPENED: 'card_gate_add_money_drawer_opened',
     CARD_GATE_ADD_MONEY_DRAWER_CLOSED: 'card_gate_add_money_drawer_closed',
     // `network` ∈ EVM|SOL|TRON

@@ -137,12 +137,14 @@ export function CardFundingStep({
         onContinue()
     }, [funded, open, onContinue])
 
-    // design.md "rows the user cannot act on": the badge names the block (Verify ID, Under review,
-    // Setting up, Action needed). One the residence rules out stays, gray, sorts last, and its tap says
-    // why; a not-offered answer with no known residence rule may be "not opened yet", so it stays in
-    // place with the one step left.
+    // The badge names the block. Kush (2026-11-26): a bank the user cannot use now (under review,
+    // setting up, or ruled out by the residence) is a disabled row with its badge and no drawer, sorted
+    // last when it is not offered. This departs from design.md "rows the user cannot act on" (such a
+    // row stays tappable and its tap says why), by his decision. Not verified, and a step left, stay
+    // tappable: the user can act on them.
     const regionRefusal = useBankRegionRefusal()
     const bankOffered = !(plan.kind === 'not-offered' && regionRefusal)
+    const bankBlocked = !bankOffered || plan.kind === 'under-review' || plan.kind === 'setting-up'
     const bankBadge = !bankOffered ? (
         <Badge status="neutral" customText={tAccounts('list.badgeNotOffered')} />
     ) : plan.kind === 'not-verified' ? (
@@ -161,7 +163,8 @@ export function CardFundingStep({
             bodyWrap
             leading={<IconBubble {...CONCEPT_ICONS.bank} {...(bankOffered ? {} : { color: 'gray' })} size="s" />}
             trailing={bankBadge}
-            chevron
+            chevron={!bankBlocked}
+            disabled={bankBlocked}
             onClick={() => pickMethod('bank')}
             data-testid="card-add-money-bank"
         />
