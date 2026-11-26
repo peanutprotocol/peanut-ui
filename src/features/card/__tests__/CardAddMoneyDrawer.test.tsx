@@ -46,6 +46,10 @@ jest.mock('@/hooks/wallet/useWallet', () => ({ useWallet: () => ({ address: '0xw
 jest.mock('@/hooks/useBridgeProviderId', () => ({ useBridgeProviderId: () => null }))
 
 const mockCreateDepositAddress = jest.fn()
+const mockMarkFundingPending = jest.fn(async () => undefined)
+jest.mock('@/services/card', () => ({ cardApi: { markFundingPending: () => mockMarkFundingPending() } }))
+const mockSentry = jest.fn()
+jest.mock('@sentry/nextjs', () => ({ captureException: (...args: unknown[]) => mockSentry(...args) }))
 jest.mock('@/services/rhino', () => ({
     rhinoApi: { createDepositAddress: (...args: unknown[]) => mockCreateDepositAddress(...args) },
 }))
@@ -657,14 +661,26 @@ describe('one amount, one heading, no dead ends', () => {
         expect(bank).toHaveAttribute('aria-disabled', 'true')
     })
 
-    it('shows the transfer as on its way after "I\'ve sent the transfer"', async () => {
+    it('shows the transfer as on its way after "I\'ve sent the transfer", and tells the API', async () => {
         readiness = { ...readiness, ready: { ...noneReady, account: ['USD'] } }
         const { rerenderWith } = renderFunding()
         fireEvent.click(screen.getByTestId('card-add-money-bank'))
         fireEvent.click(within(drawer()).getByText('sentTransfer'))
         expect(await screen.findByText('bankSentPending($7.50)')).toBeInTheDocument()
+        // the push for the landing deposit then opens this step
+        expect(mockMarkFundingPending).toHaveBeenCalledTimes(1)
         rerenderWith({ funded: true, spendableUsd: 10 })
         await waitFor(() => expect(screen.queryByText('bankSentPending($7.50)')).not.toBeInTheDocument())
+    })
+
+    it('keeps the step working when the API cannot be told, and reports it', async () => {
+        mockMarkFundingPending.mockRejectedValueOnce(new Error('down'))
+        readiness = { ...readiness, ready: { ...noneReady, account: ['USD'] } }
+        renderFunding()
+        fireEvent.click(screen.getByTestId('card-add-money-bank'))
+        fireEvent.click(within(drawer()).getByText('sentTransfer'))
+        expect(await screen.findByText('bankSentPending($7.50)')).toBeInTheDocument()
+        await waitFor(() => expect(mockSentry).toHaveBeenCalled())
     })
 
     it('keeps the pending line through a smaller deposit and drops it once the gap is covered', async () => {

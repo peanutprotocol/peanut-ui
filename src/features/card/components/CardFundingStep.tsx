@@ -1,5 +1,6 @@
 'use client'
 
+import * as Sentry from '@sentry/nextjs'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -24,6 +25,7 @@ import {
 } from '@/features/card/card-gate-analytics'
 import { CARD_MIN_BALANCE_USD, cardBankPageHref, cardBankPlan, cardGapUsd } from '@/features/card/cardAddMoney'
 import { useBankRegionRefusal } from '@/features/card/useBankRegionRefusal'
+import { cardApi } from '@/services/card'
 import { readStoredValue, removeStoredValue, writeStoredValue } from '@/utils/safe-storage'
 import { formatBankAmount } from '@/utils/currency'
 import { CardAddMoneyDrawer } from './CardAddMoneyDrawer'
@@ -109,6 +111,8 @@ export function CardFundingStep({
         const next = { usd: inDollars ? gapUsd : null }
         setSent(next)
         writeStoredValue(sentKey, JSON.stringify(next), 'sessionStorage')
+        // the push for the landing deposit then opens this step; without it the plain receipt push goes
+        cardApi.markFundingPending().catch((error) => Sentry.captureException(error))
     }
     const sentLanded = !!sent && funded
     useEffect(() => {
