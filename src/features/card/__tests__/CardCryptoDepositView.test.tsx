@@ -261,6 +261,21 @@ describe('a completed outcome found at open', () => {
         expect(deposits()).toHaveLength(1)
     })
 
+    it('after "Send more instead", keeps reading, so the ask shrinks if the old deposit lands', async () => {
+        jest.useFakeTimers()
+        mockCreateDepositAddress.mockResolvedValue({ depositAddress: ADDRESS, minDepositLimitUsd: 1 })
+        pollStatus = 'completed'
+        renderView()
+        await waitFor(() => expect(mockResetStatus).toHaveBeenCalled())
+        await aMinuteOfReads()
+        fireEvent.click(screen.getByTestId('card-add-money-send-more'))
+        expect(await screen.findByTestId('card-add-money-ask')).toHaveTextContent('sendAsk($7.50)')
+        // the old deposit lands while the address is up
+        live = 6.5
+        await act(async () => void jest.advanceTimersByTime(15_000))
+        await waitFor(() => expect(screen.getByTestId('card-add-money-ask')).toHaveTextContent('sendAsk($3.50)'))
+    })
+
     it('resolves on its own when the deposit lands after the wait, with no tap', async () => {
         jest.useFakeTimers()
         pollStatus = 'completed'

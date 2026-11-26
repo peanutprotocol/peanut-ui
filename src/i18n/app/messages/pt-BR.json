@@ -2259,7 +2259,7 @@
             "waiting": "Aguardando o depósito…",
             "doneTitle": "Dinheiro adicionado",
             "stillLandingBody": "Recebemos seu depósito e ele ainda está sendo creditado. Isso pode levar alguns minutos.",
-            "sendMoreInstead": "Prefiro enviar mais",
+            "sendMoreInstead": "Melhor enviar mais",
             "shortReceived": "Recebemos {received}",
             "shortStillNeeded": "Ainda faltam {remaining}.",
             "sendAbout": "Envie cerca de {amount}. O valor exato depende da cotação.",

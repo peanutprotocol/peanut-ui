@@ -2258,7 +2258,7 @@
             "raisedToMinimum": "The minimum per transfer on {network} is {minimum}. The extra {extra} is added to your balance.",
             "waiting": "Waiting for the deposit…",
             "doneTitle": "Money added",
-            "stillLandingBody": "Your deposit was received and is still landing. This can take a few minutes.",
+            "stillLandingBody": "We received your deposit. It can take a few minutes to reach your balance.",
             "sendMoreInstead": "Send more instead",
             "shortReceived": "{received} received",
             "shortStillNeeded": "{remaining} is still needed.",

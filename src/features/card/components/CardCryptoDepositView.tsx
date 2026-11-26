@@ -91,6 +91,8 @@ export function CardCryptoDepositView({
 
     // The last fresh spendable read, and whether one came back since the last clear.
     const [live, setLive] = useState<number>()
+    const liveRef = useRef<number>()
+    liveRef.current = live
     const [balanceFresh, setBalanceFresh] = useState(false)
     const [balanceReadFailed, setBalanceReadFailed] = useState(false)
     const readLive = useCallback(async () => {
@@ -300,18 +302,34 @@ export function CardCryptoDepositView({
     const processing = view === 'processing'
     useEffect(() => onProcessingChange(processing), [processing, onProcessingChange])
 
-    /** "Send more instead": the user chose to see the address while a deposit may still be landing */
+    /**
+     * "Send more instead": the user chose to see the address while a deposit may still be landing. The
+     * address view then keeps reading the balance, so the ask shrinks if that deposit lands meanwhile.
+     */
+    const [sentMore, setSentMore] = useState(false)
     const sendMore = () => {
-        if (live !== undefined) landedRef.current = live
         setHold(undefined)
-        // a completed status left in place stops the poll: clear it; either way the ask waits for a fresh read
-        if (statusRef.current === 'completed') return void clear()
+        setSentMore(true)
+        // a completed status left in place stops the poll: clear it; either way the ask waits for a fresh
+        // read, which is also the baseline for the next deposit
+        if (statusRef.current === 'completed')
+            return void clear().then(() => {
+                if (liveRef.current !== undefined) landedRef.current = liveRef.current
+            })
         setBalanceFresh(false)
         readLive().then(
-            () => setBalanceFresh(true),
+            (value) => {
+                landedRef.current = value
+                setBalanceFresh(true)
+            },
             () => setBalanceReadFailed(true)
         )
     }
+    useEffect(() => {
+        if (!sentMore || view !== 'address') return
+        const timer = setInterval(() => void readLive().catch(() => undefined), 15_000)
+        return () => clearInterval(timer)
+    }, [sentMore, view, readLive])
 
     const retry = () => {
         if (clearFailed) return void clear()
