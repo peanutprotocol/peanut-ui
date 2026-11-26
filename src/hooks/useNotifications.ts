@@ -22,7 +22,8 @@ import {
     type PushPromptTrigger,
 } from '@/constants/push-prompt.consts'
 import { UTM_SOURCES, UTM_MEDIUMS } from '@/utils/utm.utils'
-import { notificationsApi, toPushPermission } from '@/services/notifications'
+import { messageTypeOfLink } from '@/utils/notification-message'
+import { notificationsApi, toPushPermission, type NotificationPreferences } from '@/services/notifications'
 import { isAttentionInterruptOpen } from '@/features/attention/interruptState'
 import { ledgerActions } from '@/features/attention/ledger'
 import { countSession } from '@/features/attention/sessionCount'
@@ -153,6 +154,25 @@ function reportPermissionAnswer(
 ) {
     reportedPermission = answer
     posthog.capture(PERMISSION_ANSWER_EVENTS[answer], { trigger, via, previous_permission: previous })
+    if (answer === 'denied' && currentExternalId) void reportDeniedPermission(currentExternalId)
+}
+
+/*
+ * The server saw `null` for most users who refused push, because only grants were reported (TASK-22683). A denial
+ * fills that gap but never replaces a grant or a denial already recorded: another device may hold the grant.
+ */
+function deniedFillsGap(recorded: NotificationPreferences['pushPermission']): boolean {
+    return recorded !== 'granted' && recorded !== 'denied'
+}
+
+async function reportDeniedPermission(userId: string) {
+    try {
+        const preferences = await notificationsApi.getPreferences()
+        if (currentExternalId !== userId || !deniedFillsGap(preferences.pushPermission)) return
+        await notificationsApi.savePreferences({ pushPermission: 'denied' }, userId)
+    } catch {
+        // Best effort: the next app load reports it again.
+    }
 }
 let initializationPromise: Promise<void> | null = null
 const MAX_INIT_ATTEMPTS = 3
@@ -395,6 +415,10 @@ async function initializeNotifications() {
         adapter.onNotificationClick(({ deepLink, additionalData }) => {
             const campaign = typeof additionalData.campaign === 'string' ? additionalData.campaign : undefined
             const props: Record<string, unknown> = { deep_link: deepLink }
+            const msg =
+                messageTypeOfLink(deepLink) ??
+                (typeof additionalData.deepLink === 'string' ? messageTypeOfLink(additionalData.deepLink) : undefined)
+            if (msg) props.msg = msg
             if (campaign) {
                 props.utm_source = UTM_SOURCES.ONESIGNAL
                 props.utm_medium = UTM_MEDIUMS.PUSH
@@ -482,6 +506,8 @@ async function reportStartupPermission(userId: string, isCurrent: () => boolean)
         const pushPermission = toPushPermission(permission)
         // Upward only: a device without a grant must not overwrite another device's grant.
         if (pushPermission === 'granted' && preferences.pushPermission !== 'granted') {
+            await notificationsApi.savePreferences({ pushPermission })
+        } else if (pushPermission === 'denied' && deniedFillsGap(preferences.pushPermission)) {
             await notificationsApi.savePreferences({ pushPermission })
         }
     } catch {
