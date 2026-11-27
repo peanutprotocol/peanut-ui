@@ -2797,7 +2797,7 @@ const SEND_ADD_MONEY_FIXTURES: Record<string, Fixture> = {
         }
     ),
     'send-add-money-bank-sent': sendAddMoney(
-        'Send $10 with $3.20 spendable: after "I\'ve sent the transfer" from the held USD account, the drawer closes and Send names the $6.80 transfer on its way.',
+        'Send $10 with $3.20 spendable: after "I\'ve sent the transfer" from the held USD account, the drawer closes; the error and Add $6.80 give way to the $6.80 transfer on its way, Add money another way, and Send waiting off.',
         CARD_US_USER,
         { depositAccounts: [DEPOSIT_ACCOUNT_USD] },
         {

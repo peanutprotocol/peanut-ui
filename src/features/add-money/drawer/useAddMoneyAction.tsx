@@ -24,8 +24,14 @@ export function useAddMoneyAction({
     place,
     targetUsd,
     spendableUsd,
+    step,
 }: {
     place: AddMoneyPlace
+    /**
+     * The step's identity, from what its route already holds (Send: recipient and amount): a transfer
+     * sent for one step is not shown on another. Never personal data beyond the route.
+     */
+    step: string
     /** the spendable balance the place needs, in dollars */
     targetUsd: number
     /** the place's spendable balance in dollars; undefined while it loads */
@@ -76,15 +82,32 @@ export function useAddMoneyAction({
     }, [funded, open])
 
     // "I've sent the transfer": back to the step with the transfer named on it until the balance covers
-    // the target. No backend call and no push outside the card (Kush, TASK-25467 decision 2).
+    // the target. No backend call and no push outside the card (Kush, TASK-25467 decision 2). Session
+    // storage keeps it for the app session, like the card's hold (Kush, 2026-11-27): it survives a
+    // refresh and coming back to the same step, and a changed step or a funded one drops it.
+    const sentKey = `${place}_add_money_bank_sent_v1:${userId ?? ''}`
     const [bankSent, setBankSent] = useState<{ usd: number | null }>()
     const onBankSent = (inDollars: boolean) => {
         dismiss()
-        if (gapUsd) setBankSent({ usd: inDollars ? gapUsd : null })
+        if (!gapUsd) return
+        const next = { usd: inDollars ? gapUsd : null }
+        setBankSent(next)
+        writeStoredValue(sentKey, JSON.stringify({ step, ...next }), 'sessionStorage')
     }
     useEffect(() => {
-        if (funded) setBankSent(undefined)
-    }, [funded])
+        let stored: { step?: string; usd?: number | null } | null = null
+        try {
+            stored = JSON.parse(readStoredValue(sentKey, 'sessionStorage') ?? 'null')
+        } catch {
+            // a broken entry is no transfer
+        }
+        if (stored && stored.step === step && !funded) {
+            setBankSent({ usd: stored.usd ?? null })
+            return
+        }
+        setBankSent(undefined)
+        if (stored) removeStoredValue(sentKey, 'sessionStorage')
+    }, [sentKey, step, funded])
 
     const drawer =
         n > 0 ? (

@@ -135,17 +135,25 @@ it('counts a user who funds elsewhere and comes back, but not one who only lower
     })
 })
 
-it('"I\'ve sent the transfer" closes the drawer and names the transfer on the step until it lands', () => {
+it('"I\'ve sent the transfer": the note and a waiting Send replace the error and "Add $X" until it lands', () => {
     mockFlow = flow({})
     const { rerender } = renderView()
     fireEvent.click(screen.getByRole('button', { name: 'Add $40' }))
     act(() => drawerProps!.onBankSent(true))
     expect(screen.queryByTestId('drawer')).not.toBeInTheDocument()
     expect(screen.getByTestId('send-add-money-bank-sent')).toHaveTextContent('$40 transfer')
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('send-add-money')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'send' })).toBeDisabled()
+
+    // another way reopens the drawer on this step
+    fireEvent.click(screen.getByRole('button', { name: 'Add money another way' }))
+    expect(screen.getByTestId('drawer')).toBeInTheDocument()
 
     mockFlow = flow(funded)
     rerender()
     expect(screen.queryByTestId('send-add-money-bank-sent')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'send' })).toBeEnabled()
 })
 
 it('stays disabled while the balance is still being read', () => {

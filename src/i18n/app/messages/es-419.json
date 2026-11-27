@@ -2272,6 +2272,7 @@
     "addMoney": {
         "title": "Agregar dinero",
         "addAmount": "Agregar {amount}",
+        "anotherWay": "Agregar dinero de otra forma",
         "transferDetails": "Datos de la transferencia",
         "selectYourCountry": "Selecciona el país",
         "addMoneyVia": "Agregar dinero con",

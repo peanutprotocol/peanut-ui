@@ -28,6 +28,7 @@ import SendWithPeanutCta from '@/features/payments/shared/components/SendWithPea
 import { PaymentMethodActionList } from '@/features/payments/shared/components/PaymentMethodActionList'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/0_Bruddle/Button'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
 import { useAddMoneyAction } from '@/features/add-money/drawer/useAddMoneyAction'
 import { formatBankAmount } from '@/utils/currency'
 
@@ -60,6 +61,7 @@ export function SendInputView() {
         place: 'send',
         targetUsd: parseFloat(amount) || 0,
         spendableUsd: balanceFillAmount,
+        step: `${recipient?.username ?? ''}:${amount}`,
     })
 
     // handle submit - directly execute payment
@@ -102,7 +104,9 @@ export function SendInputView() {
                         hideBalance={!isLoggedIn}
                         hideCurrencyToggle={true}
                     />
-                    {isInsufficientBalance && <FieldError>{t('errors.insufficientPayment')}</FieldError>}
+                    {isInsufficientBalance && !addMoney.bankSent && (
+                        <FieldError>{t('errors.insufficientPayment')}</FieldError>
+                    )}
                 </div>
 
                 {/* message input */}
@@ -122,13 +126,21 @@ export function SendInputView() {
                 {/* button and error */}
                 <div className="space-y-4">
                     {addMoney.bankSent && (
-                        <Callout priority="info" data-testid="send-add-money-bank-sent">
-                            {addMoney.bankSent.usd
-                                ? tCard('bankSentPending', { amount: formatBankAmount(addMoney.bankSent.usd, 'USD') })
-                                : tCard('bankSentPendingNoAmount')}
-                        </Callout>
+                        <div className="flex flex-col items-center gap-2">
+                            <Callout priority="info" className="w-full" data-testid="send-add-money-bank-sent">
+                                {addMoney.bankSent.usd
+                                    ? tCard('bankSentPending', {
+                                          amount: formatBankAmount(addMoney.bankSent.usd, 'USD'),
+                                      })
+                                    : tCard('bankSentPendingNoAmount')}
+                            </Callout>
+                            <LinkButton onClick={addMoney.openAddMoney} data-testid="send-add-money-another-way">
+                                {tAdd('anotherWay')}
+                            </LinkButton>
+                        </div>
                     )}
-                    {isInsufficientBalance ? (
+                    {/* a transfer on its way: Send waits, off, and turns on once the balance covers it */}
+                    {isInsufficientBalance && !addMoney.bankSent ? (
                         <Button
                             variant="primary"
                             shadowSize="4"
@@ -143,7 +155,11 @@ export function SendInputView() {
                                 : tAdd('title')}
                         </Button>
                     ) : (
-                        <SendWithPeanutCta onClick={handleSubmit} disabled={isButtonDisabled} loading={isLoading} />
+                        <SendWithPeanutCta
+                            onClick={handleSubmit}
+                            disabled={isButtonDisabled || (isLoggedIn && !hasSufficientBalance)}
+                            loading={isLoading}
+                        />
                     )}
                     {addMoney.drawer}
                     {error.showError && (

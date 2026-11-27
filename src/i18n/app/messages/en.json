@@ -2272,6 +2272,7 @@
     "addMoney": {
         "title": "Add money",
         "addAmount": "Add {amount}",
+        "anotherWay": "Add money another way",
         "transferDetails": "Transfer details",
         "selectYourCountry": "Select country",
         "addMoneyVia": "Add money via",
