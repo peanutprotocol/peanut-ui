@@ -25,7 +25,7 @@ const EVENTS = {
 export type AddMoneyPlace = keyof typeof EVENTS
 
 /** The two ways the drawer opens with. */
-export type AddMoneyMethod = Extract<AddMoneyPickerMethod, 'bank' | 'crypto'>
+export type DrawerMethod = Extract<AddMoneyPickerMethod, 'bank' | 'crypto'>
 
 /** The picker method a bank rail stands for: ARS and Pix keep their own values (TASK-25444), the rest are bank. */
 export function pickerMethodOf(corridor: DepositCorridor): AddMoneyPickerMethod {
@@ -43,12 +43,12 @@ export type AddMoneyDrawerView =
     | 'not_offered'
     | 'loading'
 
-export function captureAddMoneyDrawerOpened(place: AddMoneyPlace, method: AddMoneyMethod, view: AddMoneyDrawerView) {
+export function captureAddMoneyDrawerOpened(place: AddMoneyPlace, method: DrawerMethod, view: AddMoneyDrawerView) {
     posthog.capture(EVENTS[place].opened, { method, view })
 }
 
 /** The drawer was dismissed without the balance reaching the target. */
-export function captureAddMoneyDrawerClosed(place: AddMoneyPlace, method: AddMoneyMethod, view: AddMoneyDrawerView) {
+export function captureAddMoneyDrawerClosed(place: AddMoneyPlace, method: DrawerMethod, view: AddMoneyDrawerView) {
     posthog.capture(EVENTS[place].closed, { method, view })
 }
 

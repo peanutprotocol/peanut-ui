@@ -21,7 +21,7 @@ import {
     captureAddMoneyRailPicked,
     pickerMethodOf,
     type AddMoneyDrawerView,
-    type AddMoneyMethod,
+    type DrawerMethod,
 } from '@/features/add-money/drawer/drawerAnalytics'
 import { useAddMoneyReadiness } from '@/features/add-money/useAddMoneyReadiness'
 import { captureCardGateAddFundsTapped, captureCardGateCameBackFunded } from '@/features/card/card-gate-analytics'
@@ -64,16 +64,16 @@ export function CardFundingStep({
     const gapUsd = addMoneyGapUsd(CARD_MIN_BALANCE_USD, spendableUsd)
 
     // one drawer per opening (`n` remounts it), kept mounted closed through vaul's exit animation
-    const [drawer, setDrawer] = useState<{ method: AddMoneyMethod; n: number }>()
+    const [drawer, setDrawer] = useState<{ method: DrawerMethod; n: number }>()
     const [open, setOpen] = useState(false)
-    const shown = useRef<{ method: AddMoneyMethod; view: AddMoneyDrawerView } | null>(null)
-    const onShow = useCallback((method: AddMoneyMethod, view: AddMoneyDrawerView) => {
+    const shown = useRef<{ method: DrawerMethod; view: AddMoneyDrawerView } | null>(null)
+    const onShow = useCallback((method: DrawerMethod, view: AddMoneyDrawerView) => {
         shown.current = { method, view }
     }, [])
 
     // the drawer closes on funding only when it opened short; a funded user who opens it stays in it
     const openedShort = useRef(false)
-    const pickMethod = (method: AddMoneyMethod) => {
+    const pickMethod = (method: DrawerMethod) => {
         openedShort.current = !funded
         // one bank way, and it is a page: a drawer with one row would only add a tap
         const onlyPage =

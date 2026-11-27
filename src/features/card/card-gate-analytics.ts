@@ -1,7 +1,7 @@
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import type { AddMoneyPickerMethod } from '@/features/add-money/addMoneyMethods'
-import type { AddMoneyMethod } from '@/features/add-money/drawer/drawerAnalytics'
+import type { DrawerMethod } from '@/features/add-money/drawer/drawerAnalytics'
 
 /*
  * The card gate funnel: card_state_viewed (state add-card) → card_gate_step_viewed
@@ -28,6 +28,6 @@ export function captureCardGateAddFundsTapped(
 }
 
 /** Before/after for the drawer: did the user fund inside it or on another path? */
-export function captureCardGateCameBackFunded(inDrawer: boolean, method: AddMoneyMethod | null): void {
+export function captureCardGateCameBackFunded(inDrawer: boolean, method: DrawerMethod | null): void {
     posthog.capture(ANALYTICS_EVENTS.CARD_GATE_CAME_BACK_FUNDED, { in_drawer: inDrawer, method })
 }

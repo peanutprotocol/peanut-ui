@@ -24,7 +24,7 @@ import {
     captureAddMoneyVerifyTapped,
     pickerMethodOf,
     type AddMoneyDrawerView,
-    type AddMoneyMethod,
+    type DrawerMethod,
     type AddMoneyPlace,
 } from './drawerAnalytics'
 
@@ -76,7 +76,7 @@ export function AddMoneyDrawer({
     onBankSent,
 }: {
     open: boolean
-    method: AddMoneyMethod
+    method: DrawerMethod
     /** the place's funded state, for the add-funds event a rail picked here sends */
     funded: boolean
     /** the spendable balance the place needs: each view reads the balance fresh and asks for the gap to it */
@@ -90,7 +90,7 @@ export function AddMoneyDrawer({
     /** names the analytics events and the verify source */
     place: AddMoneyPlace
     /** the method and view on screen, for the funded and closed events */
-    onShow: (method: AddMoneyMethod, view: AddMoneyDrawerView) => void
+    onShow: (method: DrawerMethod, view: AddMoneyDrawerView) => void
     /** the user closed the drawer: swipe, overlay or back */
     onDismiss: () => void
     /** "I've sent the transfer": the place shows the transfer on its way */
@@ -104,7 +104,7 @@ export function AddMoneyDrawer({
 
     const code: AddMoneyDrawerView =
         view.kind === 'bank' ? bankView(plan) : view.kind === 'details' ? 'details' : view.kind
-    const method: AddMoneyMethod = code === 'networks' || code === 'address' ? 'crypto' : 'bank'
+    const method: DrawerMethod = code === 'networks' || code === 'address' ? 'crypto' : 'bank'
 
     const reportedOpen = useRef(false)
     useEffect(() => {
