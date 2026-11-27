@@ -33,6 +33,7 @@ export const FUNNEL_STATES: FunnelState[] = [
         // finish_verify's nudge is kyc.reminder, listed under the push reminders
         specStages: ['start_verify', 'finish_verify'],
         includesWelcome: true,
+        includesReminder: true,
         includesPushReminder: true,
     },
     {

@@ -8,6 +8,7 @@ import NetworkList from '@/components/AddMoney/components/NetworkList'
 import { Drawer, DrawerContent, DrawerTitle } from '@/components/Global/Drawer'
 import Loading from '@/components/Global/Loading'
 import NavHeader from '@/components/Global/NavHeader'
+import type { AddMoneyPickerMethod } from '@/features/add-money/addMoneyMethods'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
 import { markVerifySource } from '@/features/paperwork-verification/verifySource'
 import type { RhinoChainType } from '@/services/services.types'
@@ -21,11 +22,13 @@ import { DrawerBankStatusView } from './DrawerBankStatusView'
 import { DrawerCryptoDepositView } from './DrawerCryptoDepositView'
 import {
     captureAddMoneyDrawerOpened,
+    captureAddMoneyMethodPicked,
     captureAddMoneyNetworkPicked,
     captureAddMoneyRailPicked,
     captureAddMoneyVerifyTapped,
+    pickerMethodOf,
     type AddMoneyDrawerView,
-    type AddMoneyMethod,
+    type DrawerMethod,
     type AddMoneyPlace,
 } from './drawerAnalytics'
 import { useBankMethodState } from './useBankMethodState'
@@ -73,6 +76,7 @@ export function AddMoneyDrawer({
     open,
     method: openedWith,
     targetUsd,
+    funded,
     gapUsd,
     plan,
     residenceIso2s,
@@ -84,7 +88,9 @@ export function AddMoneyDrawer({
 }: {
     open: boolean
     /** the method the place picked; without one the drawer opens on the choice of methods */
-    method?: AddMoneyMethod
+    method?: DrawerMethod
+    /** the place's funded state, for the add-funds event a rail picked here sends */
+    funded: boolean
     /** the spendable balance the place needs: each view reads the balance fresh and asks for the gap to it */
     targetUsd: number
     /** the place's cached gap, only to prefill a bank page's amount field */
@@ -96,7 +102,7 @@ export function AddMoneyDrawer({
     /** names the analytics events and the verify source */
     place: AddMoneyPlace
     /** the method and view on screen, for the funded and closed events */
-    onShow: (method: AddMoneyMethod | null, view: AddMoneyDrawerView) => void
+    onShow: (method: DrawerMethod | null, view: AddMoneyDrawerView) => void
     /** the user closed the drawer: swipe, overlay or back */
     onDismiss: () => void
     /** "I've sent the transfer": the place shows the transfer on its way */
@@ -122,7 +128,7 @@ export function AddMoneyDrawer({
             : view.kind === 'bank'
               ? bankView(plan)
               : view.kind
-    const method: AddMoneyMethod | null =
+    const method: DrawerMethod | null =
         code === 'networks' || code === 'address' ? 'crypto' : code === 'methods' ? null : 'bank'
 
     const reportedOpen = useRef(false)
@@ -138,8 +144,14 @@ export function AddMoneyDrawer({
     // amount: the body names what to send (the gap, a network minimum above it, or euros), so the two
     // biggest amounts on screen never disagree. A status names itself in body text under it.
     const title = tAdd('title')
+    const countPick = (picked: AddMoneyPickerMethod) => {
+        if (!openedWith || picked !== 'bank') captureAddMoneyMethodPicked(place, funded, picked)
+    }
     const pickRow = (row: DrawerBankRow) => {
         captureAddMoneyRailPicked(place, row.corridor, row.kind)
+        // the place's tap counted its method (the card's Bank counts as bank), so ARS and Pix count here
+        // (TASK-25444); in the choice the opening tap counted nothing, so every pick counts here
+        countPick(pickerMethodOf(row.corridor))
         if (row.kind === 'account') setView({ kind: 'details', corridor: row.corridor, prev: view })
         else router.push(bankPageHref(row.corridor, gapUsd, residenceIso2s, returnTo))
     }
@@ -176,11 +188,22 @@ export function AddMoneyDrawer({
             )
         }
         if (code === 'methods') {
-            const crypto = <CryptoMethodRow onClick={toNetworks} testId="add-money-method-crypto" />
+            const crypto = (
+                <CryptoMethodRow
+                    onClick={() => {
+                        countPick('crypto')
+                        toNetworks()
+                    }}
+                    testId="add-money-method-crypto"
+                />
+            )
             const bankRow = (
                 <BankMethodRow
                     bank={bank}
-                    onClick={() => setView({ kind: 'bank', prev: view })}
+                    onClick={() => {
+                        countPick('bank')
+                        setView({ kind: 'bank', prev: view })
+                    }}
                     testId="add-money-method-bank"
                 />
             )

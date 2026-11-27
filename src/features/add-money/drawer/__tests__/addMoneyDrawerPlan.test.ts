@@ -1,6 +1,7 @@
 import { CARD_FUNDING_RETURN_TO, CARD_MIN_BALANCE_USD } from '@/features/card/cardAddMoney'
 import { addMoneyGapUsd, bankPageHref, cryptoAskUsd, drawerBankPlan } from '../addMoneyDrawerPlan'
 import type { GateState } from '@/utils/capability-gate'
+import type { AddMoneyPickerMethod } from '@/features/add-money/addMoneyMethods'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
 import { DEPOSIT_RAIL_ORDER } from '@/features/deposit-accounts/rails'
 
@@ -51,7 +52,13 @@ describe('cryptoAskUsd', () => {
 })
 
 describe('drawerBankPlan', () => {
-    const base = { isLoading: false, residenceIso2s: ['US'], ready: noneReady, topUpGates: gates('needs-identity') }
+    const base = {
+        isLoading: false,
+        residenceIso2s: ['US'],
+        ready: noneReady,
+        topUpGates: gates('needs-identity'),
+        pickerMethods: ['bank', 'crypto'] as AddMoneyPickerMethod[],
+    }
 
     it('waits while readiness loads', () => {
         expect(drawerBankPlan({ ...base, isLoading: true })).toEqual({ kind: 'loading' })
@@ -67,7 +74,7 @@ describe('drawerBankPlan', () => {
     it('follows the Add money picker: ARS, leading Pix, accounts, transfers, then other Pix', () => {
         const ready = { account: ['USD', 'EUR'], transfer: ['EUR', 'MXN'], pix: ['BRL'], ars: ['ARS'] }
         const input = { ...base, residenceIso2s: ['AR'], ready, topUpGates: gates('ready') }
-        expect(drawerBankPlan({ ...input, pickerMethods: ['ars', 'pix', 'account', 'transfer', 'crypto'] })).toEqual({
+        expect(drawerBankPlan({ ...input, pickerMethods: ['ars', 'pix', 'bank', 'crypto'] })).toEqual({
             kind: 'rows',
             rows: [
                 { kind: 'page', corridor: 'BANK_TRANSFER_AR' },
@@ -77,7 +84,7 @@ describe('drawerBankPlan', () => {
                 { kind: 'page', corridor: 'SPEI_MX' },
             ],
         })
-        expect(drawerBankPlan({ ...input, pickerMethods: ['ars', 'account', 'transfer', 'pix', 'crypto'] })).toEqual({
+        expect(drawerBankPlan({ ...input, pickerMethods: ['ars', 'bank', 'pix', 'crypto'] })).toEqual({
             kind: 'rows',
             rows: [
                 { kind: 'page', corridor: 'BANK_TRANSFER_AR' },
@@ -85,6 +92,33 @@ describe('drawerBankPlan', () => {
                 { kind: 'account', corridor: 'ACH_US' },
                 { kind: 'page', corridor: 'SPEI_MX' },
                 { kind: 'page', corridor: 'PIX_BR' },
+            ],
+        })
+    })
+
+    // TASK-25444: the picker shows ARS to a resident of Argentina, and Pix where the route offers it, before
+    // a top-up is ready (their page takes the user through the step left), so the drawer does too
+    it('lists ARS and Pix wherever the picker shows them, ready or not', () => {
+        expect(drawerBankPlan({ ...base, residenceIso2s: ['AR'], pickerMethods: ['ars', 'bank', 'crypto'] })).toEqual({
+            kind: 'rows',
+            rows: [{ kind: 'page', corridor: 'BANK_TRANSFER_AR' }],
+        })
+        expect(drawerBankPlan({ ...base, residenceIso2s: ['BR'], pickerMethods: ['pix', 'bank', 'crypto'] })).toEqual({
+            kind: 'rows',
+            rows: [{ kind: 'page', corridor: 'PIX_BR' }],
+        })
+    })
+
+    // the picker's bank row is `bank` (one row since Release 170.2): Pix before it leads the drawer too
+    it('leads with Pix when it leads the picker', () => {
+        const ready = { ...noneReady, transfer: ['USD'], pix: ['BRL'] }
+        expect(
+            drawerBankPlan({ ...base, ready, topUpGates: gates('ready'), pickerMethods: ['pix', 'bank', 'crypto'] })
+        ).toEqual({
+            kind: 'rows',
+            rows: [
+                { kind: 'page', corridor: 'PIX_BR' },
+                { kind: 'page', corridor: 'ACH_US' },
             ],
         })
     })

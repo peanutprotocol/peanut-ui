@@ -12,9 +12,11 @@ import { useSendFlowOrigin } from '@/hooks/useSendFlowOrigin'
 import { MantecaTransfersMaintenanceView } from '@/components/Global/Banner/MantecaTransfersMaintenanceView'
 import PixKeySendView from '@/features/withdraw/views/PixKeySendView'
 import MantecaBankWithdrawFlow from '@/features/withdraw/views/MantecaBankWithdrawFlow'
+import { useSavedAccountParam } from '@/features/withdraw/useSavedAccountParam'
 
 export default function MantecaWithdrawFlow() {
     const searchParams = useSearchParams()
+    const savedAccount = useSavedAccountParam(searchParams)
     const { disabledMantecaCurrencies } = useKillSwitches()
     const pixKeySend = usePixKeySend()
     // `method` names the rail on this page (pix, bank-transfer), so only `sendMethod` marks a Send origin
@@ -34,7 +36,7 @@ export default function MantecaWithdrawFlow() {
         if (pixKeySend.via === 'withdraw' || (pixKeySend.block === 'residence' && !isFromSendFlow))
             return <RouteAlias to={PIX_WITHDRAW_PATH} />
         if (pixKeySend.block) return <BrazilPausedScreen block={pixKeySend.block} />
-        return <PixKeySendView destinationParam={searchParams.get('destination')} />
+        return <PixKeySendView savedPixKey={savedAccount?.identifier} />
     }
     // A BRL withdrawal to the user's own account lives on /withdraw/pix, where the backend's route
     // picks the provider; an old link or bookmark lands there rather than on a blank page.

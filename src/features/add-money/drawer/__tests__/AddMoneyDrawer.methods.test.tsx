@@ -51,6 +51,7 @@ beforeEach(() => {
 function renderDrawer(plan: DrawerBankPlan) {
     const props = {
         open: true,
+        funded: false,
         targetUsd: 50,
         gapUsd: 40,
         residenceIso2s: ['US'],
@@ -162,4 +163,22 @@ it('waits on the plan instead of showing a choice it may take back', () => {
     expect(opened()).toEqual([])
     rerender({ kind: 'finish-setup' })
     expect(screen.getByTestId('add-money-method-bank')).toHaveTextContent('list.badgeActionNeeded')
+})
+
+it('counts every pick in the choice as the method picked: crypto, the bank row, a rail', () => {
+    const picked = () =>
+        mockCapture.mock.calls.filter(([name]) => name === ANALYTICS_EVENTS.SEND_ADD_MONEY_METHOD_PICKED)
+    const first = renderDrawer({ kind: 'not-verified' })
+    fireEvent.click(screen.getByTestId('add-money-method-bank'))
+    first.unmount()
+    const second = renderDrawer({ kind: 'rows', rows: [{ kind: 'page', corridor: 'PIX_BR' }] })
+    fireEvent.click(screen.getByTestId('card-add-money-rail-pix_br'))
+    second.unmount()
+    renderDrawer({ kind: 'not-verified' })
+    fireEvent.click(screen.getByTestId('add-money-method-crypto'))
+    expect(picked()).toEqual([
+        [ANALYTICS_EVENTS.SEND_ADD_MONEY_METHOD_PICKED, { method: 'bank', funded: false }],
+        [ANALYTICS_EVENTS.SEND_ADD_MONEY_METHOD_PICKED, { method: 'pix', funded: false }],
+        [ANALYTICS_EVENTS.SEND_ADD_MONEY_METHOD_PICKED, { method: 'crypto', funded: false }],
+    ])
 })

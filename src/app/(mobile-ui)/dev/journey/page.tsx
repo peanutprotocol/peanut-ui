@@ -89,9 +89,7 @@ export default function JourneyExplorerPage() {
                 <ReviewProgressStrip checked={checkedCount} total={renders.length} onReset={reset} />
                 <p className="text-body-xs leading-snug text-foreground-secondary">
                     Every email card with an amber dashed border still needs a product verdict. Click one to read the
-                    real render, then tick <span className="text-body-s-semibold">Mark reviewed</span>. Two of them also
-                    carry a <span className="text-body-s-semibold">decide:</span> label — those need a keep-or-kill
-                    call, not only a copy read.
+                    real render, then tick <span className="text-body-s-semibold">Mark reviewed</span>.
                 </p>
                 <JourneyBoard
                     spec={spec}

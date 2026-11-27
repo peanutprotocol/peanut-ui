@@ -11,7 +11,7 @@ import { longestLabel, useSentenceFit } from './useSentenceFit'
 type Sheet = 'open' | 'no-results' | null
 
 /**
- * The 07 sentence in the white panel: "My residence is in [residence], my nationality is [nationality]." with two country pills,
+ * The 07 sentence in the white panel: "My residence is in [residence], my nationality is [nationality]" with two country pills,
  * and the refused-passport callout under it. No hint line.
  */
 export function ResidenceSentence({

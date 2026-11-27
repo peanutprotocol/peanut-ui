@@ -49,11 +49,21 @@ export default function UserInspector() {
     const dueLabel = (() => {
         if (!result) return null
         if (!result.due) return 'none due (graduated, not in audience, or up to date)'
-        if (result.due.skip === 'holdout') return `${result.due.type} — HELD (holdout control group)`
-        if (result.due.skip === 'governor') return `${result.due.type} — HELD (governor: too soon after last email)`
-        if (result.due.skip === 'balance')
-            return `${result.due.type} — HELD (balance gate: live balance contradicts the copy)`
-        return `${result.due.type} — due now${result.due.hasPendingRewards ? ' (rewards variant)' : ''}`
+        if (result.due.skip) {
+            const skipNotes: Record<string, string> = {
+                holdout: 'holdout control group',
+                priority: 'priority: too soon after a priority notice',
+                balance: 'balance gate: live balance contradicts the copy',
+                attention: result.due.blockedBy
+                    ? `attention gate: blocked by ${result.due.blockedBy}`
+                    : 'attention gate',
+                method: 'method gate: no open deposit method',
+                no_offer: 'no offer available for this user',
+                switched_off: 'kill switch / config off',
+            }
+            return `${result.due.type} — HELD (${skipNotes[result.due.skip] ?? result.due.skip})`
+        }
+        return `${result.due.type} — due now`
     })()
 
     return (
@@ -86,10 +96,7 @@ export default function UserInspector() {
                         {result.user.userId}
                     </p>
                     <p className="mt-0.5 text-body-xs text-foreground-secondary">
-                        signed up {new Date(result.user.createdAt).toLocaleDateString()} · card access{' '}
-                        {result.user.cardAccessGrantedAt
-                            ? new Date(result.user.cardAccessGrantedAt).toLocaleDateString()
-                            : 'not granted'}
+                        signed up {new Date(result.user.createdAt).toLocaleDateString()}
                     </p>
                     <Callout priority="info" className="mt-2" title="Current nudge">
                         <span className="font-mono text-body-xs">{dueLabel}</span>
