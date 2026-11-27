@@ -50,6 +50,28 @@ it('keeps US separators for an English user', () => {
     expect(screen.getByText(/57.26 USD/)).toBeInTheDocument()
 })
 
+// 26 Nov: the header showed the amount step's estimate (ARS 1.780,39) next to the order's locked
+// 1.777,34, so 0,99 USD looked short. The header now shows the order's own amount.
+it('shows the amount the order locked, next to the price it locked', () => {
+    const lockedOrder = {
+        details: {
+            depositAddress: '0000003100000000000001',
+            depositAlias: 'peanut.alias',
+            price: '1777.34',
+            withdrawCostInAsset: '0.006015',
+        },
+        stages: { '1': { thresholdAmount: '1777.34', asset: 'ARS' }, '3': { amount: '1' } },
+    } as unknown as MantecaDepositResponseData
+    render(
+        <NextIntlClientProvider locale="es-AR" messages={en} timeZone="UTC">
+            <MantecaDepositShareDetails depositDetails={lockedOrder} onBack={jest.fn()} />
+        </NextIntlClientProvider>
+    )
+    expect(screen.getByText('ARS 1.777,34')).toBeInTheDocument()
+    expect(screen.getByText('1 USD = 1.777,34 ARS')).toBeInTheDocument()
+    expect(screen.getByText(/0,99 USD/)).toBeInTheDocument()
+})
+
 // "≈" marks an estimate. After "Continue" the order has locked its price, and a "≈" next to it
 // invites the doubt the user came to settle (TASK-25349).
 describe('estimate versus locked price', () => {

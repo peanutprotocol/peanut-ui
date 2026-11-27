@@ -6,6 +6,7 @@ import { Section } from '@/components/0_Bruddle/Section'
 import DevPageShell from '../_components/DevPageShell'
 import EmailPreviewPanel from './EmailPreviewPanel'
 import FindingsStrip from './FindingsStrip'
+import FunnelMapBoard from './FunnelMapBoard'
 import JourneyBoard from './JourneyBoard'
 import KindLegend from './KindLegend'
 import ReviewProgressStrip from './ReviewProgressStrip'
@@ -72,7 +73,11 @@ export default function JourneyExplorerPage() {
             description="Every surface a user meets on the way to their first payment — what the app shows them, and what the lifecycle machine sends them — one column per funnel state."
             actions={<ViewModeToggle value={view} onChange={(next) => void setView(next)} />}
         >
-            <Section title="Email-machine rules">
+            <Section title="Funnel map (live)">
+                <FunnelMapBoard entries={spec?.funnelMap} specError={loading ? 'Loading spec…' : error} />
+            </Section>
+
+            <Section title="Nudge engine rules">
                 <RulesLegend rules={spec?.rules ?? null} specError={loading ? null : error} />
             </Section>
 

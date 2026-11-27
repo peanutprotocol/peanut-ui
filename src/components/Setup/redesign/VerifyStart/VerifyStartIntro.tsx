@@ -7,11 +7,13 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { type KycControlFlow, useKycControl } from '@/features/paperwork-verification/analytics'
 import { restoreNativeStatusBar } from '@/features/paperwork-verification/useInsetColor'
 import { startVerifySource, type VerifySource } from '@/features/paperwork-verification/verifySource'
+import { useRemindLater } from './useRemindLater'
 import { VerifyStartScreen, type VerifyStartScreenProps } from './VerifyStartScreen'
 
 /**
  * Verify start outside sign-up, in a shell of its own: /verify's intro and the intro in front of today's ID check.
- * There "Remind me later" goes back to where the person came from.
+ * There "Remind me later" schedules tomorrow morning's reminder (useRemindLater) and goes back to where the person
+ * came from.
  *
  * It opens the verification funnel (TASK-25063): `signup_verify_start_shown` once per view, and
  * `signup_verify_start_tapped` with `choice` verify or later, both with `entry` (where the person came from) and
@@ -32,6 +34,7 @@ export function VerifyStartIntro({
     source?: VerifySource
 }) {
     const control = useKycControl(controlScreen, controlFlow)
+    const remindLater = useRemindLater()
     const entry = useRef<VerifySource | null>(null)
     const stepsLeft = view.questions ? 2 : 1
     useEffect(() => {
@@ -62,6 +65,7 @@ export function VerifyStartIntro({
                 onLater={() => {
                     tapped('later')
                     control.track('later', 'tap')
+                    void remindLater()
                     onLater()
                 }}
             />

@@ -73,7 +73,7 @@
     },
     "errors": {
         "balanceSettling": "Tu saldo aún no está totalmente disponible. Inténtalo de nuevo en unos segundos.",
-        "notEnoughBalanceAddFunds": "Saldo insuficiente. Agrega fondos para continuar.",
+        "notEnoughBalanceAddFunds": "Saldo insuficiente. Agrega dinero para continuar.",
         "balanceShortBy": "A tu saldo le faltan ${amount}. Agrega dinero para continuar.",
         "insufficientFunds": "No tienes fondos suficientes.",
         "userRejectedTransaction": "Confirma la transacción en tu billetera.",

@@ -45,8 +45,15 @@ describe('journeyData', () => {
 
     it('maps each lifecycle spec stage to exactly one column', () => {
         const mapped = FUNNEL_STATES.flatMap((s) => s.specStages)
-        // the machine's five v2 stages, each mapped once (finish_setup deleted; win_back added)
-        expect([...mapped].sort()).toEqual(['create_card', 'first_spend', 'fund', 'verify', 'win_back'])
+        // the nudge engine's six steps (api#2307), each mapped once
+        expect([...mapped].sort()).toEqual([
+            'add_money',
+            'finish_verify',
+            'first_spend',
+            'no_method',
+            'start_verify',
+            'win_back',
+        ])
     })
 
     it('keeps remaining inventory findings source-file-annotated', () => {

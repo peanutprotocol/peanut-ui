@@ -880,12 +880,12 @@
         "warningCard": {
             "blockingTitle": "This amount exceeds the limit",
             "attentionTitle": "Close to the limit",
-            "addUpTo": "You can add up to {amount}",
-            "addUpToPerTransaction": "You can add up to {amount} per transaction",
-            "withdrawUpTo": "You can withdraw up to {amount}",
-            "withdrawUpToPerTransaction": "You can withdraw up to {amount} per transaction",
-            "payUpTo": "You can pay up to {amount}",
-            "payUpToPerTransaction": "You can pay up to {amount} per transaction",
+            "addUpTo": "You can add up to {amount}.",
+            "addUpToPerTransaction": "You can add up to {amount} per transaction.",
+            "withdrawUpTo": "You can withdraw up to {amount}.",
+            "withdrawUpToPerTransaction": "You can withdraw up to {amount} per transaction.",
+            "payUpTo": "You can pay up to {amount}.",
+            "payUpToPerTransaction": "You can pay up to {amount} per transaction.",
             "resetsInDays": "Limit resets in {days, plural, one {# day} other {# days}}.",
             "checkLimits": "Check limits"
         }
@@ -1349,7 +1349,9 @@
             "stepPhoto": "ID photo and selfie",
             "verifyNow": "Verify now · 3 min",
             "verifyNowIdOnly": "Verify now · 2 min",
-            "remindLater": "Remind me later"
+            "remindLater": "Remind me later",
+            "remindSet": "We'll remind you tomorrow at {at, time, short}.",
+            "remindFailed": "We couldn’t set the reminder. You can verify from Home any time."
         }
     },
     "loadingStates": {
@@ -1771,6 +1773,7 @@
     },
     "qrPay": {
         "youArePaying": "Paying",
+        "addMoney": "Add money",
         "reviewUpdatedQuote": "Review the updated quote to continue.",
         "paymentMethodAlt": "Payment method",
         "peanutManAlt": "Peanut Man",
@@ -4903,7 +4906,7 @@
     },
     "errors": {
         "balanceSettling": "Your balance isn't fully available yet. Please try again in a few seconds.",
-        "notEnoughBalanceAddFunds": "Not enough balance. Add funds to continue.",
+        "notEnoughBalanceAddFunds": "Not enough balance. Add money to continue.",
         "balanceShortBy": "Your balance is ${amount} short. Add money to continue.",
         "insufficientFunds": "You don't have enough funds.",
         "userRejectedTransaction": "Please confirm the transaction in your wallet.",

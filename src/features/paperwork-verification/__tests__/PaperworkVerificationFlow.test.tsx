@@ -1,4 +1,6 @@
 const mockToastError = jest.fn()
+// Remind me later's profile write is useRemindLater's own suite
+jest.mock('@/components/Setup/redesign/VerifyStart/useRemindLater', () => ({ useRemindLater: () => jest.fn() }))
 jest.mock('@/components/0_Bruddle/Toast', () => ({ useToast: () => ({ error: mockToastError }) }))
 jest.mock('@/constants/dev-tools.consts', () => ({ DEV_TOOLS_ENABLED: true }))
 import { setAuthToken } from '@/utils/auth-token'
