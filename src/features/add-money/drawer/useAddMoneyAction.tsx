@@ -20,6 +20,12 @@ import {
  * its own error and button; once the balance covers the target the drawer closes and the place's
  * button turns on. Nothing here ever submits a payment.
  */
+/**
+ * Where a bank page or /verify sends the user back to: the place's URL with its step state, read as
+ * that route opens, not at the tap, so an amount edited after opening the drawer comes back too.
+ */
+const currentUrl = () => window.location.pathname + window.location.search
+
 export function useAddMoneyAction({
     place,
     targetUsd,
@@ -46,8 +52,6 @@ export function useAddMoneyAction({
 
     // one drawer per opening (`n` remounts it), kept mounted closed through vaul's exit animation
     const [n, setN] = useState(0)
-    // where a bank page or /verify sends the user back to: the place's URL at the tap, step state in it
-    const [returnTo, setReturnTo] = useState('')
     const [open, setOpen] = useState(false)
     const shown = useRef<{ method: DrawerMethod | null; view: AddMoneyDrawerView } | null>(null)
     const onShow = useCallback((method: DrawerMethod | null, view: AddMoneyDrawerView) => {
@@ -65,7 +69,6 @@ export function useAddMoneyAction({
     const openAddMoney = () => {
         writeStoredValue(shortKey, String(targetUsd), 'sessionStorage')
         shown.current = null
-        setReturnTo(window.location.pathname + window.location.search)
         setN((last) => last + 1)
         setOpen(true)
     }
@@ -119,7 +122,7 @@ export function useAddMoneyAction({
                 gapUsd={gapUsd}
                 plan={plan}
                 residenceIso2s={readiness.residenceIso2s}
-                returnTo={returnTo}
+                returnTo={currentUrl}
                 place={place}
                 onShow={onShow}
                 onDismiss={dismiss}

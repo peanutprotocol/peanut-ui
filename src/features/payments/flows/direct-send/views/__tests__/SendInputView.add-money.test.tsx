@@ -35,7 +35,7 @@ type DrawerProps = {
     open: boolean
     targetUsd: number
     gapUsd?: number
-    returnTo: string
+    returnTo: () => string
     onShow: (method: 'bank' | 'crypto' | null, view: string) => void
     onBankSent: (inDollars: boolean) => void
 }
@@ -59,6 +59,7 @@ const flow = (overrides: Record<string, unknown>) => ({
     error: { showError: false, errorMessage: '' },
     formattedBalance: '10',
     balanceFillAmount: 10,
+    liveSpendableUsd: 10,
     canProceed: true,
     hasSufficientBalance: false,
     isInsufficientBalance: true,
@@ -69,7 +70,7 @@ const flow = (overrides: Record<string, unknown>) => ({
     executePayment: jest.fn(),
     ...overrides,
 })
-const funded = { balanceFillAmount: 60, hasSufficientBalance: true, isInsufficientBalance: false }
+const funded = { balanceFillAmount: 60, liveSpendableUsd: 60, hasSufficientBalance: true, isInsufficientBalance: false }
 
 const renderView = () => {
     const view = render(<SendInputView />, { wrapper: IntlWrapper as (p: { children: ReactNode }) => JSX.Element })
@@ -89,11 +90,12 @@ it('a short balance offers "Add $X" for the gap, and the drawer opens on this st
     expect(screen.queryByRole('button', { name: 'send' })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Add $40' }))
     expect(screen.getByTestId('drawer')).toBeInTheDocument()
-    expect(drawerProps).toMatchObject({ targetUsd: 50, gapUsd: 40, returnTo: '/send/ana?amount=50' })
+    expect(drawerProps).toMatchObject({ targetUsd: 50, gapUsd: 40 })
+    expect(drawerProps!.returnTo()).toBe('/send/ana?amount=50')
 })
 
 it('rounds the gap up to the cent', () => {
-    mockFlow = flow({ amount: '10', balanceFillAmount: 3.205 })
+    mockFlow = flow({ amount: '10', liveSpendableUsd: 3.205 })
     renderView()
     expect(screen.getByRole('button', { name: 'Add $6.80' })).toBeInTheDocument()
 })
@@ -123,7 +125,7 @@ it('counts a user who funds elsewhere and comes back, but not one who only lower
     first.unmount()
 
     // back on Send with a lower amount, the balance still short of the $50 tapped for
-    mockFlow = flow({ amount: '5', ...funded, balanceFillAmount: 10 })
+    mockFlow = flow({ amount: '5', ...funded, liveSpendableUsd: 10 })
     const second = renderView()
     expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.SEND_ADD_MONEY_CAME_BACK_FUNDED, expect.anything())
 
@@ -154,6 +156,33 @@ it('"I\'ve sent the transfer": the note and a waiting Send replace the error and
     rerender()
     expect(screen.queryByTestId('send-add-money-bank-sent')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'send' })).toBeEnabled()
+})
+
+// Chip on ui#4316: the display cache can read high while the live total the gate uses is short
+it('a cached balance that covers the amount never reads as funded while the live one is short', () => {
+    mockFlow = flow({})
+    const { rerender } = renderView()
+    fireEvent.click(screen.getByRole('button', { name: 'Add $40' }))
+
+    mockFlow = flow({ balanceFillAmount: 100 })
+    rerender()
+    expect(screen.getByTestId('drawer')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Add $40' })).toBeInTheDocument()
+    // and while the live total is not read yet, nothing reads as funded either
+    mockFlow = flow({ balanceFillAmount: 100, liveSpendableUsd: undefined })
+    rerender()
+    expect(screen.getByTestId('drawer')).toBeInTheDocument()
+    expect(mockCapture).not.toHaveBeenCalledWith(ANALYTICS_EVENTS.SEND_ADD_MONEY_CAME_BACK_FUNDED, expect.anything())
+})
+
+it('keeps the "on its way" note while only the cached balance covers the amount', () => {
+    mockFlow = flow({})
+    const { rerender } = renderView()
+    fireEvent.click(screen.getByRole('button', { name: 'Add $40' }))
+    act(() => drawerProps!.onBankSent(true))
+    mockFlow = flow({ balanceFillAmount: 100 })
+    rerender()
+    expect(screen.getByTestId('send-add-money-bank-sent')).toBeInTheDocument()
 })
 
 it('stays disabled while the balance is still being read', () => {

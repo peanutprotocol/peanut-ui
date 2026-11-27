@@ -13,7 +13,7 @@
  */
 
 import { useCallback, useContext, useMemo } from 'react'
-import { type Address } from 'viem'
+import { formatUnits, type Address } from 'viem'
 import { loadingStateContext } from '@/context/loadingStates.context'
 import { useDirectSendFlowContext } from './DirectSendFlowContext'
 import { MutationResponseTimeoutError } from '@/utils/connection-timeout-error'
@@ -87,7 +87,19 @@ export function useDirectSendFlow() {
         spendableBalanceDecimal,
         hasSufficientSpendableBalance: hasSufficientBalance,
         isFetchingSpendableBalance,
+        availableSpendableBalance,
+        isSpendableBalanceReady,
     } = useWallet()
+
+    // the live spendable total the affordability gate runs on, in dollars; undefined until both terms
+    // read, so a cached display balance never reads as funded (TASK-25467)
+    const liveSpendableUsd = useMemo(
+        () =>
+            isSpendableBalanceReady && availableSpendableBalance !== undefined
+                ? Number(formatUnits(availableSpendableBalance, PEANUT_WALLET_TOKEN_DECIMALS))
+                : undefined,
+        [isSpendableBalanceReady, availableSpendableBalance]
+    )
 
     const isLoggedIn = !!user?.user?.userId
 
@@ -311,6 +323,7 @@ export function useDirectSendFlow() {
         walletAddress,
         formattedBalance: formattedSpendableBalance,
         balanceFillAmount: spendableBalanceDecimal,
+        liveSpendableUsd,
 
         // actions
         setAmount: handleSetAmount,

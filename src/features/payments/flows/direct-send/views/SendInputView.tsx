@@ -46,6 +46,7 @@ export function SendInputView() {
         error,
         formattedBalance,
         balanceFillAmount,
+        liveSpendableUsd,
         canProceed,
         hasSufficientBalance,
         isInsufficientBalance,
@@ -60,7 +61,7 @@ export function SendInputView() {
     const addMoney = useAddMoneyAction({
         place: 'send',
         targetUsd: parseFloat(amount) || 0,
-        spendableUsd: balanceFillAmount,
+        spendableUsd: liveSpendableUsd,
         step: `${recipient?.username ?? ''}:${amount}`,
     })
 
