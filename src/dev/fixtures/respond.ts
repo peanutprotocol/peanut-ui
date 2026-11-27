@@ -5,7 +5,7 @@
 
 import { demoRespond } from '@/utils/demo-api'
 import { FIXTURES } from './registry'
-import { ensureActiveFixture } from './active'
+import { ensureActiveFixture, nextSequenceTurn } from './active'
 import { isStressActive, stressResponse } from './stress'
 import { setFixtureBalanceUnits } from '@/utils/demo-balance'
 import { parseUnits } from 'viem'
@@ -16,8 +16,6 @@ import { withFixtureFeatureReport, withFixtureRoutes } from './featureReport'
 const JSON_HEADERS = { 'content-type': 'application/json' }
 
 let warned = false
-// calls served per sequence, so a poll sees its answers in turn
-const sequenceCalls = new Map<string, number>()
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -63,8 +61,7 @@ export async function fixtureRespond(path: string, options?: RequestInit): Promi
 
     const sequence = fixture.sequences?.[key]
     if (sequence?.length) {
-        const turn = sequenceCalls.get(`${name} ${key}`) ?? 0
-        sequenceCalls.set(`${name} ${key}`, turn + 1)
+        const turn = nextSequenceTurn(`${name} ${key}`)
         const answer = sequence[Math.min(turn, sequence.length - 1)]
         return new Response(JSON.stringify(answer), { status: 200, headers: JSON_HEADERS })
     }

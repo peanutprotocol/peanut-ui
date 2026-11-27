@@ -333,4 +333,18 @@ describe('fixtureRespond sequences', () => {
         for (let turn = 0; turn < 3; turn++) statuses.push((await (await fixtureRespond(path)).json()).status)
         expect(statuses).toEqual(['PROCESSING', 'COMPLETED', 'COMPLETED'])
     })
+
+    it('plays the sequence from the start again when the fixture is turned off and reopened', async () => {
+        const name = 'add-money-argentina-deposit-received'
+        const path = '/manteca/deposit/fixture-ars-deposit/status'
+        const status = async () => (await (await fixtureRespond(path)).json()).status
+        window.history.replaceState({}, '', `/add-money?__fixture=${name}`)
+        await status()
+        expect(await status()).toBe('COMPLETED')
+
+        window.history.replaceState({}, '', '/add-money?__fixture=off')
+        await fixtureRespond('/users/me')
+        window.history.replaceState({}, '', `/add-money?__fixture=${name}`)
+        expect(await status()).toBe('PROCESSING')
+    })
 })

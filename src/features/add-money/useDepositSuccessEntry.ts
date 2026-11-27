@@ -34,8 +34,14 @@ export function useDepositSuccessEntry(
     // completed render already knows the deposit was seen open
     if (entryId && phase === 'open' && openSeenFor !== entryId) setOpenSeenFor(entryId)
 
+    // once shown, the success holds even if the entry later reads returned or
+    // refunded: that demotion is told by the notification and Activity, never
+    // by reopening the bank instructions under the user
+    const [shown, setShown] = useState<{ id: string; entry: HistoryEntry }>()
     const completedWhileOpen = !!entryId && phase === 'completed' && openSeenFor === entryId
-    return completedWhileOpen ? (entry ?? null) : null
+    if (completedWhileOpen && entry && shown?.id !== entryId) setShown({ id: entryId, entry })
+
+    return shown && shown.id === entryId ? shown.entry : null
 }
 
 /**

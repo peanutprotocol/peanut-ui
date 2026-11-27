@@ -83,6 +83,20 @@ it('turns into the success screen when the transfer lands while the details are 
     expect(success()).toBeInTheDocument()
 })
 
+it('keeps the success screen when the transfer is returned after it completed', () => {
+    mockEntry = transfer('AWAITING_FUNDS')
+    const { rerender } = renderWithIntl(<AddMoneyBankDetails onBack={jest.fn()} />)
+    mockEntry = transfer('PAYMENT_PROCESSED')
+    rerender(<AddMoneyBankDetails onBack={jest.fn()} />)
+    expect(success()).toBeInTheDocument()
+
+    // the success screen refreshes the entry, and Bridge may demote it later
+    mockEntry = transfer('RETURNED')
+    rerender(<AddMoneyBankDetails onBack={jest.fn()} />)
+    expect(success()).toBeInTheDocument()
+    expect(details()).toBeNull()
+})
+
 it('keeps the details for a transfer that was already complete when the screen opened', () => {
     mockEntry = transfer('PAYMENT_PROCESSED')
     const { rerender } = renderWithIntl(<AddMoneyBankDetails onBack={jest.fn()} />)
