@@ -10,7 +10,7 @@ import {
     captureAddMoneyCameBackFunded,
     captureAddMoneyDrawerClosed,
     type AddMoneyDrawerView,
-    type AddMoneyMethod,
+    type DrawerMethod,
     type AddMoneyPlace,
 } from './drawerAnalytics'
 
@@ -49,8 +49,8 @@ export function useAddMoneyAction({
     // where a bank page or /verify sends the user back to: the place's URL at the tap, step state in it
     const [returnTo, setReturnTo] = useState('')
     const [open, setOpen] = useState(false)
-    const shown = useRef<{ method: AddMoneyMethod | null; view: AddMoneyDrawerView } | null>(null)
-    const onShow = useCallback((method: AddMoneyMethod | null, view: AddMoneyDrawerView) => {
+    const shown = useRef<{ method: DrawerMethod | null; view: AddMoneyDrawerView } | null>(null)
+    const onShow = useCallback((method: DrawerMethod | null, view: AddMoneyDrawerView) => {
         shown.current = { method, view }
     }, [])
     const dismiss = useCallback(() => {
@@ -115,6 +115,7 @@ export function useAddMoneyAction({
                 key={n}
                 open={open}
                 targetUsd={targetUsd}
+                funded={funded}
                 gapUsd={gapUsd}
                 plan={plan}
                 residenceIso2s={readiness.residenceIso2s}

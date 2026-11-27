@@ -1,5 +1,6 @@
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import type { AddMoneyPickerMethod } from '@/features/add-money/addMoneyMethods'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
 import type { RhinoChainType } from '@/services/services.types'
 import type { DrawerBankRow } from './addMoneyDrawerPlan'
@@ -16,6 +17,8 @@ const EVENTS = {
         railPicked: ANALYTICS_EVENTS.CARD_GATE_ADD_MONEY_RAIL_PICKED,
         verifyTapped: ANALYTICS_EVENTS.CARD_GATE_ADD_MONEY_VERIFY_TAPPED,
         cameBackFunded: ANALYTICS_EVENTS.CARD_GATE_CAME_BACK_FUNDED,
+        /** the place's own add-funds event: a rail picked in the drawer counts as its method there */
+        methodPicked: ANALYTICS_EVENTS.CARD_GATE_ADD_FUNDS_TAPPED,
     },
     send: {
         opened: ANALYTICS_EVENTS.SEND_ADD_MONEY_DRAWER_OPENED,
@@ -24,13 +27,20 @@ const EVENTS = {
         railPicked: ANALYTICS_EVENTS.SEND_ADD_MONEY_RAIL_PICKED,
         verifyTapped: ANALYTICS_EVENTS.SEND_ADD_MONEY_VERIFY_TAPPED,
         cameBackFunded: ANALYTICS_EVENTS.SEND_ADD_MONEY_CAME_BACK_FUNDED,
+        methodPicked: ANALYTICS_EVENTS.SEND_ADD_MONEY_METHOD_PICKED,
     },
 } as const
 
 /** The place that opened the drawer; also its verify source. */
 export type AddMoneyPlace = keyof typeof EVENTS
 
-export type AddMoneyMethod = 'bank' | 'crypto'
+/** The two ways the drawer opens with. */
+export type DrawerMethod = Extract<AddMoneyPickerMethod, 'bank' | 'crypto'>
+
+/** The picker method a bank rail stands for: ARS and Pix keep their own values (TASK-25444), the rest are bank. */
+export function pickerMethodOf(corridor: DepositCorridor): AddMoneyPickerMethod {
+    return corridor === 'BANK_TRANSFER_AR' ? 'ars' : corridor === 'PIX_BR' ? 'pix' : 'bank'
+}
 
 /** What the add-money drawer shows (TASK-25169). */
 export type AddMoneyDrawerView =
@@ -48,7 +58,7 @@ export type AddMoneyDrawerView =
 /** `method` is null on the choice view, before the user picked one. */
 export function captureAddMoneyDrawerOpened(
     place: AddMoneyPlace,
-    method: AddMoneyMethod | null,
+    method: DrawerMethod | null,
     view: AddMoneyDrawerView
 ) {
     posthog.capture(EVENTS[place].opened, { method, view })
@@ -57,7 +67,7 @@ export function captureAddMoneyDrawerOpened(
 /** The drawer was dismissed without the balance reaching the target. */
 export function captureAddMoneyDrawerClosed(
     place: AddMoneyPlace,
-    method: AddMoneyMethod | null,
+    method: DrawerMethod | null,
     view: AddMoneyDrawerView
 ) {
     posthog.capture(EVENTS[place].closed, { method, view })
@@ -80,6 +90,14 @@ export function captureAddMoneyVerifyTapped(place: AddMoneyPlace) {
 }
 
 /** Before/after for the drawer: the balance reached what the place needed; the card's own event has this shape. */
-export function captureAddMoneyCameBackFunded(place: AddMoneyPlace, inDrawer: boolean, method: AddMoneyMethod | null) {
+export function captureAddMoneyCameBackFunded(place: AddMoneyPlace, inDrawer: boolean, method: DrawerMethod | null) {
     posthog.capture(EVENTS[place].cameBackFunded, { in_drawer: inDrawer, method })
+}
+
+/**
+ * A method picked in the drawer that the opening tap did not count: ARS and Pix after the card's Bank
+ * tap, any pick in the choice view. The card's event keeps its add-funds properties, `step` included.
+ */
+export function captureAddMoneyMethodPicked(place: AddMoneyPlace, funded: boolean, method: AddMoneyPickerMethod) {
+    posthog.capture(EVENTS[place].methodPicked, { ...(place === 'card' && { step: 'funding' }), method, funded })
 }

@@ -79,18 +79,35 @@ const DirectSendFlowContext = createContext<DirectSendFlowContextType | undefine
 interface SendFlowProviderProps {
     children: ReactNode
     initialRecipient?: DirectSendRecipient
+    /** A past send's amount (USD) and note, offered by "Send again" as an editable suggestion. */
+    initialDraft?: { amount: string; message?: string }
 }
 
-export const DirectSendFlowProvider: React.FC<SendFlowProviderProps> = ({ children, initialRecipient }) => {
+export const DirectSendFlowProvider: React.FC<SendFlowProviderProps> = ({
+    children,
+    initialRecipient,
+    initialDraft,
+}) => {
     // the amount rides in the URL, so a bank page or /verify opened to add money comes back to it
-    // (TASK-25467). Never the message: it is free text and may hold personal data. `usdAmount` stays
-    // in memory, so the receipt keeps it after a sent payment clears the URL.
-    const [{ amount }, setQuery] = useQueryStates({ amount: parseAsString.withDefault('') })
-    const setAmount = useCallback((value: string) => void setQuery({ amount: value || null }), [setQuery])
+    // (TASK-25467). Never the message: it is free text and may hold personal data. A "Send again"
+    // draft is only a suggestion until the user types: the URL's own amount wins over it. `usdAmount`
+    // stays in memory, so the receipt keeps it after a sent payment clears the URL.
+    const [{ amount: urlAmount }, setQuery] = useQueryStates({ amount: parseAsString })
+    const [draftAmount, setDraftAmount] = useState<string>(initialDraft?.amount ?? '')
+    const amount = urlAmount ?? draftAmount
+    const setAmount = useCallback(
+        (value: string) => {
+            setDraftAmount('')
+            void setQuery({ amount: value || null })
+        },
+        [setQuery]
+    )
     const [usdAmount, setUsdAmount] = useState<string>(amount)
     const [currentView, setCurrentView] = useState<DirectSendFlowView>('INITIAL')
     const [recipient, setRecipient] = useState<DirectSendRecipient | null>(initialRecipient ?? null)
-    const [attachment, setAttachment] = useState<DirectSendAttachment>({})
+    const [attachment, setAttachment] = useState<DirectSendAttachment>(
+        initialDraft?.message ? { message: initialDraft.message } : {}
+    )
     const [charge, setCharge] = useState<TRequestChargeResponse | null>(null)
     const [payment, setPayment] = useState<PaymentCreationResponse | null>(null)
     const [txHash, setTxHash] = useState<Hash | null>(null)

@@ -15,9 +15,14 @@ jest.mock('@/features/pix/usePixQuoteCurrency', () => ({
 }))
 jest.mock('@/components/Provider/ProviderFinePrint', () => ({ ProviderFinePrint: () => null }))
 jest.mock('@/components/AddMoney/components/InputAmountStep', () => ({ __esModule: true, default: () => null }))
-// the success screen of a paid code: its Done button is the flow's onDone
+// the success screen of a paid code: its Done button is the flow's onDone, and the poll's completion its onComplete
 jest.mock('@/features/pix/components/PixQrDeposit', () => ({
-    PixQrDeposit: ({ onDone }: { onDone: () => void }) => <button onClick={onDone}>Done</button>,
+    PixQrDeposit: ({ onDone, onComplete }: { onDone: () => void; onComplete: () => void }) => (
+        <>
+            <button onClick={onDone}>Done</button>
+            <button onClick={onComplete}>Complete</button>
+        </>
+    ),
 }))
 
 import { PixDepositFlow } from '../components/PixDepositFlow'
@@ -75,4 +80,20 @@ describe('Done after a completed Pix deposit', () => {
         expect(mockRouter.replace).not.toHaveBeenCalled()
         go.mockRestore()
     })
+})
+
+// TASK-25444: the success view says the balance has the money, so the cached wallet balance must refetch
+it('marks the wallet balance stale when the deposit completes', () => {
+    const queryClient = new QueryClient()
+    queryClient.setQueryData(['balance', '0xwallet'], BigInt(0))
+    renderWithIntl(
+        <QueryClientProvider client={queryClient}>
+            <NuqsTestingAdapter searchParams="?step=showQR&intentId=d1">
+                <PixDepositFlow route={route} />
+            </NuqsTestingAdapter>
+        </QueryClientProvider>
+    )
+    expect(queryClient.getQueryState(['balance', '0xwallet'])?.isInvalidated).toBe(false)
+    fireEvent.click(screen.getByRole('button', { name: 'Complete' }))
+    expect(queryClient.getQueryState(['balance', '0xwallet'])?.isInvalidated).toBe(true)
 })

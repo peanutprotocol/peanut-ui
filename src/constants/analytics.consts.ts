@@ -390,6 +390,8 @@ export const ANALYTICS_EVENTS = {
     SEND_ADD_MONEY_RAIL_PICKED: 'send_add_money_rail_picked',
     SEND_ADD_MONEY_VERIFY_TAPPED: 'send_add_money_verify_tapped',
     SEND_ADD_MONEY_CAME_BACK_FUNDED: 'send_add_money_came_back_funded',
+    // A method picked in Send's choice view: `method` ∈ bank|crypto|ars|pix; `funded` as the card's.
+    SEND_ADD_MONEY_METHOD_PICKED: 'send_add_money_method_picked',
     // POST /rain/cards lifecycle. `outcome` ∈
     // pending|terms-required|incomplete|main-kyc-required|enabled|error|already-applied.
     CARD_APPLY_ATTEMPTED: 'card_apply_attempted',

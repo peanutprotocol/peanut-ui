@@ -2,8 +2,8 @@
  * WithdrawMethodView — the method-select step that mutates the withdraw
  * flow's shared destination state (Chip review round 7). Pins what the
  * deleted AddWithdrawRouterView test used to cover:
- *  (a) a saved Manteca account forwards destination=<identifier> and
- *      isSavedAccount=true into /withdraw/manteca (skipping the shared
+ *  (a) a saved Manteca account forwards its id (account=<id>), never its
+ *      CBU, alias or key, into /withdraw/manteca (skipping the shared
  *      amount step);
  *  (b) a saved non-Manteca account sets selectedBankAccount and advances to
  *      the amount step WITHOUT navigating;
@@ -228,6 +228,7 @@ jest.mock('@/utils/native-routes', () => ({
 }))
 
 const MANTECA_ACCOUNT = {
+    id: 'ar-saved-1',
     type: 'manteca',
     identifier: 'cbu-12345678901234567890',
     details: { countryName: 'argentina' },
@@ -238,10 +239,7 @@ const IBAN_ACCOUNT = {
     details: { countryName: 'germany' },
 } as unknown as Account
 
-const BANK_ACCOUNTS = [
-    { type: 'manteca', identifier: 'cbu-12345678901234567890', details: { countryName: 'argentina' } },
-    { type: 'iban', identifier: 'DE89370400440532013000', details: { countryName: 'germany' } },
-]
+const BANK_ACCOUNTS = [MANTECA_ACCOUNT, IBAN_ACCOUNT]
 let mockUserAccounts: unknown[] = BANK_ACCOUNTS
 // the user's routes, for whether a Pix-key send goes through the withdraw route (`usePixKeySend`)
 let mockRoutes: unknown[] | undefined
@@ -302,7 +300,7 @@ beforeEach(() => {
 import { stashScannedDestination, takeScannedDestination } from '@/features/withdraw/destination'
 
 describe('WithdrawMethodView — destination state and routing (Chip review round 7)', () => {
-    it('a saved Manteca account forwards destination + isSavedAccount into /withdraw/manteca', () => {
+    it('a saved Manteca account forwards its id, not its CBU, into /withdraw/manteca', () => {
         renderView()
         fireEvent.click(screen.getByTestId(`account-${MANTECA_ACCOUNT.identifier}`))
 
@@ -315,14 +313,19 @@ describe('WithdrawMethodView — destination state and routing (Chip review roun
         const pushed = mockRouterPush.mock.calls.at(-1)?.[0] as string
         expect(pushed).toContain('/withdraw/manteca?')
         expect(pushed).toContain('country=argentina')
-        expect(pushed).toContain(`destination=${MANTECA_ACCOUNT.identifier}`)
-        expect(pushed).toContain('isSavedAccount=true')
+        expect(pushed).toContain(`account=${MANTECA_ACCOUNT.id}`)
+        expect(pushed).not.toContain(MANTECA_ACCOUNT.identifier)
         // Manteca collects its amount locally — the shared amount step is skipped
         expect(mockOnMethodChosen).not.toHaveBeenCalled()
     })
 
     describe('a saved Brazil PIX key', () => {
-        const BR_PIX_ACCOUNT = { type: 'manteca', identifier: 'maria@silva.com.br', details: { countryName: 'brazil' } }
+        const BR_PIX_ACCOUNT = {
+            id: 'br-pix-1',
+            type: 'manteca',
+            identifier: 'maria@silva.com.br',
+            details: { countryName: 'brazil' },
+        }
 
         it('in Send, opens the PIX key screen with the key filled in', () => {
             mockIsBankFromSend = true
@@ -333,7 +336,8 @@ describe('WithdrawMethodView — destination state and routing (Chip review roun
             const pushed = mockRouterPush.mock.calls.at(-1)?.[0] as string
             expect(pushed).toContain('country=brazil')
             expect(pushed).toContain('method=pix')
-            expect(pushed).toContain('destination=maria%40silva.com.br')
+            expect(pushed).toContain('account=br-pix-1')
+            expect(pushed).not.toContain('maria')
         })
 
         // the key is a CPF, phone or email: it goes in the account's draft, never the URL

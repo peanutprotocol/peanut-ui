@@ -2,7 +2,7 @@ import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 
 /** What the user tapped on a receipt. */
-export type ReceiptAction = 'share_link' | 'share_pdf' | 'download_pdf' | 'split'
+export type ReceiptAction = 'share_link' | 'share_pdf' | 'download_pdf' | 'split' | 'send_again' | 'withdraw_again'
 
 /** Where the control sat: the one primary button, a More actions row, or the QR payment success screen. */
 export type ReceiptActionPlacement = 'primary' | 'more_actions' | 'qr_success'

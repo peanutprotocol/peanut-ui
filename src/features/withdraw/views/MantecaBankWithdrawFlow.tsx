@@ -33,6 +33,7 @@ import { sleepUnlessCancelled } from '@/utils/cancellable-wait'
 import { useRouter } from 'next/navigation'
 import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
 import { WITHDRAW_BACK_FALLBACK_URL } from '@/features/withdraw/routes'
+import { useSavedAccountParam } from '@/features/withdraw/useSavedAccountParam'
 import { Button } from '@/components/0_Bruddle/Button'
 import { Card } from '@/components/0_Bruddle/Card'
 import { LinkButton } from '@/components/0_Bruddle/LinkButton'
@@ -124,9 +125,9 @@ export default function MantecaBankWithdrawFlow({ searchParams }: { searchParams
     const [balanceErrorMessage, setBalanceErrorMessage] = useState<string | null>(null)
     // USD amount handed over by the shared /withdraw amount step (TASK-21664)
     const [urlAmount] = useWithdrawAmount()
-    const paramAddress = searchParams.get('destination')
-    const isSavedAccount =
-        searchParams.get('isSavedAccount') === 'true' && !!paramAddress && validateCbuCvuAlias(paramAddress).valid
+    // a saved account arrives by id (`SAVED_ACCOUNT_PARAM`); its CBU or alias never rides in the URL
+    const paramAddress = useSavedAccountParam(searchParams)?.identifier ?? null
+    const isSavedAccount = !!paramAddress && validateCbuCvuAlias(paramAddress).valid
     const [destinationConfirmed, setDestinationConfirmed] = useState(isSavedAccount)
     const [destinationAddress, setDestinationAddress] = useState<string>(paramAddress ?? '')
     const [selectedBank, setSelectedBank] = useState<MantecaBankCode | null>(null)

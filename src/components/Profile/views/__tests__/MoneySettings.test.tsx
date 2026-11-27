@@ -749,7 +749,10 @@ describe('MoneySettings', () => {
         mockFlowCooldown = { retryAt: '2026-09-08T18:57:00Z' }
         render()
         expect(screen.getByText('Give it a little time')).toBeInTheDocument()
-        expect(screen.getByText(/You can try again after/)).toHaveTextContent(/Sep 8/)
+        expect(screen.getByText(/You can try again after/)).toHaveTextContent(
+            // the modal shows the local date, so derive it the same way or the day shifts by timezone
+            new Date('2026-09-08T18:57:00Z').toLocaleString('en-US', { month: 'short', day: 'numeric' })
+        )
         expect(screen.queryByText('Try again')).not.toBeInTheDocument()
         expect(screen.queryByText('Contact support')).not.toBeInTheDocument()
         expect(screen.queryByText('Too many requests')).not.toBeInTheDocument()

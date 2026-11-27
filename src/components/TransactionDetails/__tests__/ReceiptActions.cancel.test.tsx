@@ -55,6 +55,7 @@ jest.mock('@/components/Global/ShareButton', () => ({ __esModule: true, default:
 jest.mock('@/components/Setup/components/PasskeyDocsLink', () => ({ PasskeyDocsLink: () => null }))
 jest.mock('../provider-actions/CancelDepositActions', () => ({ CancelDepositActions: () => null }))
 jest.mock('../useReceiptReferralAction', () => ({ useReceiptReferralAction: () => null }))
+jest.mock('../useRepeatPayment', () => ({ useRepeatPayment: () => null }))
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }),
 }))
