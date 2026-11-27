@@ -12,7 +12,7 @@ import { formatAmountNumber } from '@/utils/currency'
 import InputAmountStep from '@/components/AddMoney/components/InputAmountStep'
 import { ProviderFinePrint } from '@/components/Provider/ProviderFinePrint'
 import { useParams } from 'next/navigation'
-import { useSafeBack } from '@/hooks/useSafeBack'
+import { useReturnTo, useSafeBack } from '@/hooks/useSafeBack'
 import { countryData } from '@/components/AddMoney/consts'
 import { type MantecaDepositResponseData } from '@/types/manteca.types'
 import { useCurrency } from '@/hooks/useCurrency'
@@ -109,6 +109,8 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     // otherwise to the hub itself — not the bare `/add-money/argentina` amount
     // route the user never knowingly opened.
     const onBack = useSafeBack(readReturnTo(searchParams) ?? '/add-money?method=bank')
+    // "I've sent the transfer" leaves like Bridge's bank details: back to the origin, else home
+    const leaveAfterSent = useReturnTo(readReturnTo(searchParams) ?? '/home')
     // Argentina's Manteca top-up mints a CVU per deposit, and Manteca rejects a
     // non-resident only after amount + KYC. The API's answer for this country's
     // account comes first: a closure by Manteca, or an account the residence
@@ -544,6 +546,10 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
                                 </Callout>
                             )
                         }
+                        // the order behind the bank details lives 30 minutes: say so before the amount is typed
+                        details={
+                            residenceGatedCountry && <Callout priority="info">{t('manteca.detailsComeNext')}</Callout>
+                        }
                         providerFinePrint={residenceGatedCountry && <ProviderFinePrint providerId="manteca-ar" />}
                         // The CBU and alias are minted per order and expire, so none can show before the amount.
                         // The button names what it leads to: replays showed users leaving here, not knowing (TASK-25101).
@@ -571,6 +577,8 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
                 // way the input step does, not back to `inputAmount` (which would let
                 // the user start a second deposit).
                 onBack={onBack}
+                onSent={leaveAfterSent}
+                onContactSupport={() => setIsSupportModalOpen(true)}
             />
         )
     }

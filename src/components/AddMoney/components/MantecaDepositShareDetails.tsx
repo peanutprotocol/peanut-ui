@@ -4,6 +4,10 @@ import { IconBubble } from '@/components/0_Bruddle/IconBubble'
 import NavHeader from '@/components/Global/NavHeader'
 import { useParams } from 'next/navigation'
 import { useMemo } from 'react'
+import { Accordion } from '@/components/0_Bruddle/Accordion'
+import { LinkButton } from '@/components/0_Bruddle/LinkButton'
+import Badge from '@/components/Global/Badges/Badge'
+import { useExpiryCountdown } from '@/hooks/useExpiryCountdown'
 import { countryData } from '@/components/AddMoney/consts'
 import { getFlagUrl } from '@/constants/countryCurrencyMapping'
 import ShareButton from '@/components/Global/ShareButton'
@@ -31,12 +35,18 @@ const MantecaDepositShareDetails = ({
     arsStatus,
     onStartOver,
     onBack,
+    onSent,
+    onContactSupport,
 }: {
     depositDetails: MantecaDepositResponseData
     arsStatus?: 'pending' | 'processing' | 'completed' | 'failed' | 'expired'
     onStartOver?: () => void
     // Parent owns step navigation — usually a setUrlState({ step: 'inputAmount' }).
     onBack: () => void
+    // "I've sent the transfer": leaves the flow, as on Bridge's bank details
+    onSent?: () => void
+    // an expired order may still get a late transfer: support reconciles it by hand
+    onContactSupport?: () => void
 }) => {
     const params = useParams()
     const t = useTranslations('addMoney')
@@ -106,22 +116,44 @@ const MantecaDepositShareDetails = ({
         return textParts.join('\n')
     }
 
-    if (arsStatus === 'expired')
+    // the countdown runs only while the order waits for the transfer. once the clock passes
+    // expireAt the details stop working, so the screen says so before the poll catches up.
+    const expiresAtMs = useMemo(() => {
+        if (arsStatus !== 'pending') return null
+        const ms = Date.parse(depositDetails.stages?.['1']?.expireAt ?? '')
+        return Number.isFinite(ms) ? ms : null
+    }, [arsStatus, depositDetails])
+    const countdown = useExpiryCountdown(expiresAtMs, arsStatus === 'pending')
+    const isExpired = arsStatus === 'expired' || (arsStatus === 'pending' && countdown.isExpired)
+
+    if (isExpired)
         return (
-            <div className="flex h-full w-full flex-col gap-6">
+            <div className="flex h-full w-full flex-col gap-8">
                 <NavHeader title={t('title')} onPrev={onBack} />
-                <Callout priority="attention" title={t('manteca.transferExpiredTitle')}>
-                    {t('manteca.transferExpiredDescription')}
-                </Callout>
-                {onStartOver && (
-                    <Button variant="primary" shadowSize="4" className="w-full" onClick={onStartOver}>
-                        {t('manteca.startNewDeposit')}
-                    </Button>
-                )}
+                <div className="my-auto flex flex-col gap-6">
+                    <Card className="flex flex-col items-center gap-4 p-6 text-center">
+                        <IconBubble icon="clock" size="l" color="yellow" />
+                        <div className="flex flex-col gap-1">
+                            <p className="text-heading-s text-foreground-primary">
+                                {currencySymbol} {formatAmountNumber(depositAmount, 2, 2, locale)}
+                            </p>
+                            <p className="text-body-s text-foreground-secondary">
+                                {t('manteca.transferExpiredDescription')}
+                            </p>
+                        </div>
+                        {onContactSupport && (
+                            <LinkButton onClick={onContactSupport}>{tCommon('contactSupport')}</LinkButton>
+                        )}
+                    </Card>
+                    {onStartOver && (
+                        <Button variant="primary" className="w-full" onClick={onStartOver}>
+                            {t('manteca.startNewDeposit')}
+                        </Button>
+                    )}
+                </div>
             </div>
         )
 
-    const transferDeadline = arsStatus === 'pending' ? Date.parse(depositDetails.stages?.['1']?.expireAt ?? '') : NaN
     return (
         <div className="flex h-full w-full flex-col justify-start gap-8 self-start">
             <NavHeader title={t('title')} onPrev={onBack} />
@@ -150,21 +182,8 @@ const MantecaDepositShareDetails = ({
                         </div>
                     </div>
                 </Card>
-                <Callout priority="attention" title={t('manteca.sendOnlyOwnAccountTitle')}>
-                    {t('manteca.sendOnlyOwnAccountDescription')}
-                </Callout>
-                {Number.isFinite(transferDeadline) && (
-                    <Callout priority="attention">
-                        {t('manteca.transferDeadline', {
-                            time: new Date(transferDeadline).toLocaleTimeString(locale, {
-                                hour: 'numeric',
-                                minute: '2-digit',
-                            }),
-                        })}
-                    </Callout>
-                )}
-                <h2 className="font-bold">{t('manteca.accountDetails')}</h2>
-                <Card className="space-y-0 rounded-sm px-4">
+                <h2 className="text-label-l text-foreground-primary">{t('manteca.sendTo')}</h2>
+                <Card className="space-y-0 px-4">
                     {depositAddress && (
                         <PaymentInfoRow
                             label={depositAddressLabel}
@@ -177,31 +196,55 @@ const MantecaDepositShareDetails = ({
                     {currentCountryDetails?.id === 'AR' && (
                         <>
                             <PaymentInfoRow label={t('manteca.razonSocial')} value={MANTECA_ARG_DEPOSIT_NAME} />
-                            <PaymentInfoRow label={t('manteca.cuit')} value={MANTECA_ARG_DEPOSIT_CUIT} />
+                            <PaymentInfoRow
+                                label={t('manteca.cuit')}
+                                value={MANTECA_ARG_DEPOSIT_CUIT}
+                                hideBottomBorder={!countdown.timeLeft}
+                            />
                         </>
                     )}
-                    <PaymentInfoRow
-                        label={t('manteca.exchangeRate')}
-                        value={`1 USD = ${formatFiatRate(exchangeRate, locale)} ${currencySymbol}`}
-                    />
-                    <PaymentInfoRow
-                        label={t('manteca.providerFees')}
-                        value={networkFees}
-                        moreInfoText={t('manteca.providerFeesInfo')}
-                    />
-                    <PaymentInfoRow label={tCommon('peanutFee')} value={tCommon('sponsoredByPeanut')} />
-                    <PaymentInfoRow label={tWithdraw('bank.arrives')} value={t('manteca.etaInstant')} />
-                    <PaymentInfoRow
-                        hideBottomBorder
-                        label={
-                            <span className="flex items-center gap-1">
-                                {tProvider('label.provider')}
-                                <ProviderHelp providerId={providerId} />
-                            </span>
-                        }
-                        value={PROVIDERS[providerId].brand}
-                    />
+                    {/* something waits on the user: the pending badge, as on the Pix code */}
+                    {countdown.timeLeft && (
+                        <PaymentInfoRow
+                            hideBottomBorder
+                            label={t('manteca.validFor')}
+                            value={<Badge status="pending" customText={countdown.timeLeft} />}
+                        />
+                    )}
                 </Card>
+                {/* rate, fees and arrival keep today's values, folded so the details lead */}
+                <Accordion type="single" collapsible>
+                    <Accordion.Item value="rate-fees">
+                        <Accordion.Trigger title={t('manteca.rateFeesArrival')} />
+                        <Accordion.Content className="py-0">
+                            <PaymentInfoRow
+                                label={t('manteca.exchangeRate')}
+                                value={`1 USD = ${formatFiatRate(exchangeRate, locale)} ${currencySymbol}`}
+                            />
+                            <PaymentInfoRow
+                                label={t('manteca.providerFees')}
+                                value={networkFees}
+                                moreInfoText={t('manteca.providerFeesInfo')}
+                            />
+                            <PaymentInfoRow label={tCommon('peanutFee')} value={tCommon('sponsoredByPeanut')} />
+                            <PaymentInfoRow label={tWithdraw('bank.arrives')} value={t('manteca.etaInstant')} />
+                            <PaymentInfoRow
+                                hideBottomBorder
+                                label={
+                                    <span className="flex items-center gap-1">
+                                        {tProvider('label.provider')}
+                                        <ProviderHelp providerId={providerId} />
+                                    </span>
+                                }
+                                value={PROVIDERS[providerId].brand}
+                            />
+                        </Accordion.Content>
+                    </Accordion.Item>
+                </Accordion>
+                {/* the one warning, next to the button where the user acts */}
+                <Callout priority="attention" title={t('manteca.sendOnlyOwnAccountTitle')}>
+                    {t('manteca.sendOnlyOwnAccountDescription')}
+                </Callout>
             </div>
 
             <ShareButton
@@ -212,6 +255,11 @@ const MantecaDepositShareDetails = ({
             >
                 {t('manteca.shareDetails')}
             </ShareButton>
+            {onSent && (
+                <Button variant="secondary" className="w-full" onClick={onSent}>
+                    {t('bankDetails.sentTransfer')}
+                </Button>
+            )}
         </div>
     )
 }

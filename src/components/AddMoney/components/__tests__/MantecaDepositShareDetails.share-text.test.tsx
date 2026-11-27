@@ -54,7 +54,7 @@ it('shows the expired order without sharing the old account details', () => {
             onStartOver={onStartOver}
         />
     )
-    expect(screen.getByText('Deposit order expired')).toBeInTheDocument()
+    expect(screen.getByText('This deposit order expired. Already sent money? Contact support.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Share' })).not.toBeInTheDocument()
     expect(onStartOver).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: 'Start a new deposit' }))
