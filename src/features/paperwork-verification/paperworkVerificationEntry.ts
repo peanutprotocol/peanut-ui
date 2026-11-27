@@ -44,7 +44,7 @@ export function entryFeature({
  * Where a Verify tap goes for a Smart Paperwork Verification user: /verify before approval,
  * the add-later screen for a feature the API's report says is not opened yet or
  * refused (it asks what the feature still misses, or explains the refusal), or
- * null for today's flow or a feature already underway.
+ * null for today's flow, a feature already underway, or a status that cannot be read.
  */
 export async function paperworkVerificationRoute(
     plan: KycDocumentPlan | null,
@@ -55,8 +55,14 @@ export async function paperworkVerificationRoute(
     if (plan?.entry?.kind === 'reverify_for_feature')
         return featureReverificationPath(plan.entry, currentReverificationDestination())
     if (plan?.flow !== PAPERWORK_VERIFICATION_FLOW) return null
-    const status = await getKycDocumentStatus(signal).catch(() => undefined)
+    const readStatus = () => getKycDocumentStatus(signal)
+    // a failed read is unknown, not unverified: retry once, then keep today's start,
+    // which the API refuses with paperwork_verification_required if /verify is still due
+    const status = await readStatus()
+        .catch(() => (signal?.aborted ? null : readStatus()))
+        .catch(() => null)
     if (signal?.aborted) throw signal.reason
+    if (status === null) return null
     if (!status || !APPROVED_STATUSES.has(status)) return '/verify'
     if (!feature) return null
     const state = report?.[feature].state

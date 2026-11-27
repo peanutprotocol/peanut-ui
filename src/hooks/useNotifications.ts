@@ -414,7 +414,7 @@ async function initializeNotifications() {
         // fires. Marketing sends set `data.campaign`; transactional taps have none.
         adapter.onNotificationClick(({ deepLink, additionalData }) => {
             const campaign = typeof additionalData.campaign === 'string' ? additionalData.campaign : undefined
-            const props: Record<string, unknown> = { deep_link: deepLink }
+            const props: Record<string, unknown> = { deep_link: deepLink, channel: UTM_MEDIUMS.PUSH }
             const msg =
                 messageTypeOfLink(deepLink) ??
                 (typeof additionalData.deepLink === 'string' ? messageTypeOfLink(additionalData.deepLink) : undefined)

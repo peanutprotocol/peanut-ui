@@ -1,7 +1,7 @@
 import { isAddressStepGate } from '@/features/deposit-accounts/addressStep'
 import { supportRefusal } from '@/features/kyc-features/report'
 import type { VerifySource } from '@/features/paperwork-verification/verifySource'
-import type { FeatureReportEntry } from '@/types/capabilities'
+import type { FeatureReportEntry, IdentityVerificationStatus } from '@/types/capabilities'
 import { gateFromEntry, type CapabilityState, type GateState } from '@/utils/capability-gate'
 
 /**
@@ -78,3 +78,17 @@ export const anyBankReady = (states: readonly BankRowState[]) => states.includes
 /** crypto says it works now when no bank row can take money yet and none is still loading */
 export const cryptoWorksNow = (states: readonly BankRowState[]) =>
     !states.some((state) => state === 'ready' || state === 'open' || state === 'loading')
+
+/**
+ * Whether the page may say "verified": only to a verified identity. A check still processing waits, because the
+ * page opens on approval before the user read catches up; anyone else, or a check still processing once the wait is
+ * over, leaves for Home. `undefined`: the user is not read yet.
+ */
+export function verifiedPageAccess(
+    status: IdentityVerificationStatus | undefined,
+    settled: boolean
+): 'show' | 'wait' | 'leave' {
+    if (status === 'verified') return 'show'
+    if (status === undefined || (status === 'processing' && !settled)) return 'wait'
+    return 'leave'
+}

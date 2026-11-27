@@ -16,6 +16,12 @@ import { withFixtureFeatureReport, withFixtureRoutes } from './featureReport'
 const JSON_HEADERS = { 'content-type': 'application/json' }
 
 let warned = false
+/** Fixtures whose watched deposit has landed: their balance is `balanceAfterDeposit` for the rest of the tab. */
+const creditedFixtures = new Set<string>()
+/** Rhino status reads answered per fixture: the deposit is not sent, then on its way, then landed */
+const statusReads = new Map<string, number>()
+/** fixtures whose landed deposit was cleared: the address waits for the next one, as Rhino's would */
+const clearedFixtures = new Set<string>()
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -42,7 +48,8 @@ export async function fixtureRespond(path: string, options?: RequestInit): Promi
         return demoRespond(path, options, { offline: true })
     }
 
-    if (fixture.balance !== undefined) setFixtureBalanceUnits(parseUnits(fixture.balance, PEANUT_WALLET_TOKEN_DECIMALS))
+    const balance = creditedFixtures.has(name!) ? fixture.balanceAfterDeposit : fixture.balance
+    if (balance !== undefined) setFixtureBalanceUnits(parseUnits(balance, PEANUT_WALLET_TOKEN_DECIMALS))
 
     const method = (options?.method ?? 'GET').toUpperCase()
     const key = `${method} ${path.split('?')[0].replace(/\/+$/, '')}`
@@ -59,6 +66,14 @@ export async function fixtureRespond(path: string, options?: RequestInit): Promi
         return new Response(JSON.stringify(rejection.body), { status: rejection.status, headers: JSON_HEADERS })
     }
 
+    // Clearing a watched deposit's outcome works as Rhino's does: the next reads say nothing is on its way.
+    if (fixture.balanceAfterDeposit !== undefined && key.startsWith('POST /rhino/reset-status/')) {
+        if (creditedFixtures.has(name!)) clearedFixtures.add(name!)
+        return new Response(JSON.stringify({}), { status: 200, headers: JSON_HEADERS })
+    }
+    if (clearedFixtures.has(name!) && key.startsWith('GET /rhino/status/')) {
+        return new Response(JSON.stringify({ status: 'not_started' }), { status: 200, headers: JSON_HEADERS })
+    }
     // demo-api already answers every route the app calls, with a shape-aware
     // fallback for the rest. A fixture only says what differs from that.
     const override = fixture.responses?.[key]
@@ -90,6 +105,24 @@ export async function fixtureRespond(path: string, options?: RequestInit): Promi
             ),
             override as Partial<IUserProfile> | null | undefined
         )
+    }
+    // A watched deposit arrives as a user's own transfer would: the read at open answers "nothing
+    // sent yet" (the address shows), the next one "on its way" (processing shows), then it lands.
+    if (fixture.balanceAfterDeposit !== undefined && key.startsWith('GET /rhino/status/')) {
+        const reads = statusReads.get(name!) ?? 0
+        if (reads < 2) {
+            statusReads.set(name!, reads + 1)
+            const status = reads === 0 ? 'not_started' : 'pending'
+            return new Response(JSON.stringify({ status }), { status: 200, headers: JSON_HEADERS })
+        }
+    }
+    if (
+        fixture.balanceAfterDeposit !== undefined &&
+        key.startsWith('GET /rhino/status/') &&
+        (merged as { status?: string } | null)?.status === 'completed'
+    ) {
+        creditedFixtures.add(name!)
+        setFixtureBalanceUnits(parseUnits(fixture.balanceAfterDeposit, PEANUT_WALLET_TOKEN_DECIMALS))
     }
     return new Response(JSON.stringify(stress ? stressResponse(merged) : merged), {
         status: base.status,
