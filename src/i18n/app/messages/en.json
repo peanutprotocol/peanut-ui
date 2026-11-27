@@ -2334,6 +2334,8 @@
             "transferExpiredTitle": "Deposit order expired",
             "transferExpiredDescription": "Already sent money? Contact support.",
             "startNewDeposit": "Start a new deposit",
+            "paymentReceivedTitle": "Payment received",
+            "paymentReceivedDescription": "We're adding it to your balance.",
             "openTransferTitle": "Your transfer is still open",
             "openTransferDescription": "{currency} {amount} is waiting for your bank transfer. A new amount replaces it.",
             "openTransferCta": "See transfer details",
@@ -2358,9 +2360,9 @@
         },
         "processingDepositTitle": "Processing deposit",
         "processingDepositBody": "We're confirming your deposit.",
+        "depositReceived": "Deposit received!",
+        "balanceUpdated": "Your balance has been updated.",
         "pix": {
-            "depositReceived": "Deposit received!",
-            "balanceUpdated": "Your balance has been updated.",
             "qrExpired": "This QR code has expired.",
             "scanWithBankApp": "Scan with your bank app, or copy the Pix code."
         },

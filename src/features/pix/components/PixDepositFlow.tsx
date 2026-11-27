@@ -176,7 +176,11 @@ export function PixDepositFlow({ route }: { route: CapabilityRoute }) {
                 onBack={onBack}
                 onDone={leaveToHome}
                 onNewDeposit={startNewDeposit}
-                onComplete={() => void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })}
+                onComplete={() => {
+                    void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+                    // the success view says the balance has it; the cached balanceOf would lag up to 30 s
+                    void queryClient.invalidateQueries({ queryKey: ['balance'] })
+                }}
             />
         )
     }
