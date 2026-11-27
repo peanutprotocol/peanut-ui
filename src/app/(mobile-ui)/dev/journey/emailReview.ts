@@ -58,11 +58,11 @@ export function buildEmailRenderList(spec: JourneySpec | null): EmailRenderRef[]
 
     for (const state of FUNNEL_STATES) {
         if (state.includesWelcome) add(spec.welcome)
+        if (state.includesReminder && spec.reminder) add(spec.reminder)
         for (const stageName of state.specStages) {
             spec.stages.find((stage) => stage.stage === stageName)?.steps.forEach(add)
         }
     }
-    if (spec.reminder) add(spec.reminder)
     for (const stage of spec.stages) stage.steps.forEach(add)
 
     return steps.flatMap((step) =>

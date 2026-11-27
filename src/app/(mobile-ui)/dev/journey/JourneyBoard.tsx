@@ -45,7 +45,8 @@ export default function JourneyBoard({
                             const stages = spec ? spec.stages.filter((st) => state.specStages.includes(st.stage)) : []
                             const emailCount =
                                 stages.reduce((total, stage) => total + stage.steps.length, 0) +
-                                (spec && state.includesWelcome ? 1 : 0)
+                                (spec && state.includesWelcome ? 1 : 0) +
+                                (spec?.reminder && state.includesReminder ? 1 : 0)
                             const pushCount = spec && state.includesPushReminder ? spec.pushReminders.length : 0
 
                             return (
@@ -87,6 +88,19 @@ export default function JourneyBoard({
                                                 </p>
                                                 <EmailCard
                                                     step={spec.welcome}
+                                                    showDev={showDev}
+                                                    isReviewed={isReviewed}
+                                                    onOpen={onOpenEmail}
+                                                />
+                                            </>
+                                        )}
+                                        {spec?.reminder && state.includesReminder && (
+                                            <>
+                                                <p className="text-body-xs leading-snug text-foreground-secondary italic">
+                                                    At the time the user picked (Remind me later):
+                                                </p>
+                                                <EmailCard
+                                                    step={spec.reminder}
                                                     showDev={showDev}
                                                     isReviewed={isReviewed}
                                                     onOpen={onOpenEmail}

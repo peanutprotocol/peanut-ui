@@ -62,9 +62,9 @@ describe('emailReview', () => {
         const renders = buildEmailRenderList(spec())
         expect(renders.map((render) => render.id)).toEqual([
             renderId('lifecycle.welcome', 0),
+            renderId('lifecycle.verify_reminder', 0),
             renderId('lifecycle.verify_1', 0),
             renderId('lifecycle.first_spend_1', 0),
-            renderId('lifecycle.verify_reminder', 0),
         ])
     })
 

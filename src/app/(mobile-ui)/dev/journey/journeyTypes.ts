@@ -60,6 +60,8 @@ export interface FunnelState {
     specStages: string[]
     /** The signup welcome email fires on entry to this column. */
     includesWelcome?: boolean
+    /** The user's own "Remind me later" reminder (spec.reminder) lands in this column. */
+    includesReminder?: boolean
     /** The kyc.reminder push (spec.pushReminders) applies in this column. */
     includesPushReminder?: boolean
     /** Why the email machine is silent here, when specStages is empty. */
