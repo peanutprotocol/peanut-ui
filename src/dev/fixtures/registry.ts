@@ -4910,7 +4910,8 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: {
             'GET /users/history': { entries: [PUBLIC_RECEIPT_SEND_ENTRY], hasMore: false },
             'GET /history/fixture-public-receipt-send': PUBLIC_RECEIPT_SEND_ENTRY,
-            // the send screen Send again opens (TASK-25462)
+            // the send screen Send again opens (TASK-25462): the handle check, then the profile
+            'HEAD /users/username/ana': USERNAME_TAKEN_ANSWER,
             'GET /users/username/ana': {
                 userId: 'fixture-ana',
                 username: 'ana',
