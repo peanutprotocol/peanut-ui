@@ -2869,6 +2869,7 @@
             "rejectRequest": "Reject request",
             "moreActions": "More actions",
             "sendAgain": "Send again",
+            "withdrawAgain": "Withdraw again",
             "splitBill": "Split this bill",
             "shareReceipt": "Share receipt",
             "sharePdf": "Share receipt (PDF)",

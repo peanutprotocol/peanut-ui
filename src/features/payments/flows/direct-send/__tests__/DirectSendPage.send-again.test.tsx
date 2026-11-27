@@ -2,7 +2,7 @@ import React from 'react'
 import { render, screen } from '@testing-library/react'
 import type { Address } from 'viem'
 import { useDirectSendFlowContext, type DirectSendRecipient } from '../DirectSendFlowContext'
-import { clearSendAgainDraft, offerSendAgainDraft, peekSendAgainDraft } from '../send-again-draft'
+import { clearRepeatDraft, offerRepeatDraft, peekRepeatDraft } from '@/features/payments/shared/repeat-draft'
 
 // the input view's own deps (wallet, balance, charges) are not under test:
 // it only has to show what the flow context was seeded with
@@ -28,10 +28,10 @@ const recipient = {
 } as DirectSendRecipient
 
 describe('DirectSendPage with a Send again draft (TASK-25462)', () => {
-    beforeEach(() => clearSendAgainDraft())
+    beforeEach(() => clearRepeatDraft())
 
     test('seeds the amount and note for the same recipient, then forgets the draft', () => {
-        offerSendAgainDraft({ username: 'Hugo', amount: '20.5', message: 'Lunch' })
+        offerRepeatDraft({ to: 'user', username: 'Hugo', amount: '20.5', message: 'Lunch' })
 
         render(<DirectSendPage recipient={recipient} />)
 
@@ -39,17 +39,17 @@ describe('DirectSendPage with a Send again draft (TASK-25462)', () => {
         expect(screen.getByTestId('usd-amount')).toHaveTextContent('20.5')
         expect(screen.getByTestId('message')).toHaveTextContent('Lunch')
         // a later send to the same person opens empty
-        expect(peekSendAgainDraft('hugo')).toBeNull()
+        expect(peekRepeatDraft('user')).toBeNull()
     })
 
     test('a draft for someone else is not used and stays for them', () => {
-        offerSendAgainDraft({ username: 'konrad', amount: '12' })
+        offerRepeatDraft({ to: 'user', username: 'konrad', amount: '12' })
 
         render(<DirectSendPage recipient={recipient} />)
 
         expect(screen.getByTestId('amount')).toBeEmptyDOMElement()
         expect(screen.getByTestId('message')).toBeEmptyDOMElement()
-        expect(peekSendAgainDraft('konrad')).not.toBeNull()
+        expect(peekRepeatDraft('user')?.username).toBe('konrad')
     })
 
     test('without a draft the screen opens empty', () => {

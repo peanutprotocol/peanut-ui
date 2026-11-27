@@ -12,7 +12,7 @@
 
 import { useEffect, useState } from 'react'
 import { DirectSendFlowProvider, useDirectSendFlowContext, type DirectSendRecipient } from './DirectSendFlowContext'
-import { clearSendAgainDraft, peekSendAgainDraft } from './send-again-draft'
+import { clearRepeatDraft, peekRepeatDraft } from '@/features/payments/shared/repeat-draft'
 import { SendInputView } from './views/SendInputView'
 import { SendSuccessView } from './views/SendSuccessView'
 
@@ -38,9 +38,12 @@ interface DirectSendPageProps {
 export function DirectSendPage({ recipient }: DirectSendPageProps) {
     // read in the initializer, cleared after mount: a strict-mode double
     // initializer must see the draft both times
-    const [draft] = useState(() => peekSendAgainDraft(recipient.username))
+    const [draft] = useState(() => {
+        const offered = peekRepeatDraft('user')
+        return offered && offered.username.toLowerCase() === recipient.username.toLowerCase() ? offered : null
+    })
     useEffect(() => {
-        if (draft) clearSendAgainDraft()
+        if (draft) clearRepeatDraft()
     }, [draft])
 
     return (

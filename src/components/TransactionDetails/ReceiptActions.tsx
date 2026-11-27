@@ -32,14 +32,14 @@ import {
     isRequestEntry,
     isSendLinkEntry,
     isSplittable,
-    sendAgainUsername,
+    canRepeatPayment,
 } from './transaction-predicates'
+import { RepeatPaymentButton } from './RepeatPaymentButton'
 import { buildSplitBillRequestUrl } from './splitBill.utils'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { openExternalUrl } from '@/utils/capacitor'
 import { getReceiptUrl, isTestTransaction } from '@/utils/history.utils'
-import { resolveInAppNavigation, sendUrl } from '@/utils/native-routes'
-import { offerSendAgainDraft } from '@/features/payments/flows/direct-send/send-again-draft'
+import { resolveInAppNavigation } from '@/utils/native-routes'
 import { formatBankAmount } from '@/utils/currency'
 
 type CancelLinkState = 'idle' | 'cancelling' | 'cancelled'
@@ -55,7 +55,7 @@ type ReceiptPrimaryAction = 'share-link' | 'split' | 'share-pdf'
 
 /**
  * The receipt's CTA stack, three at most: one state-aware primary, one
- * secondary (Send again on a completed direct send, TASK-25462), then the More
+ * secondary (Send again or Withdraw again on a completed payment, TASK-25462), then the More
  * actions link as the tertiary. Anything else goes inside More actions
  * (TASK-22452 hierarchy, TASK-24141 link sharing).
  *  - An entry with a public receipt: Share receipt sends its link. Split this
@@ -124,7 +124,8 @@ export function ReceiptActions({
     const canSharePdf = vm.shouldShowShareReceipt && vm.shouldShowDownloadPdf && !!kind
     const canDownloadPdf = vm.shouldShowDownloadPdf && !!kind
     const canSplit = !isPublic && isSplittable(transaction)
-    const sendAgainTo = isPublic ? null : sendAgainUsername(transaction)
+    // the account-reading half mounts only here (RepeatPaymentButton)
+    const canRepeat = !isPublic && canRepeatPayment(transaction)
     // one primary per state, never two: the link, else split, else the pdf
     const primaryAction: ReceiptPrimaryAction | null = canShareLink
         ? 'share-link'
@@ -223,18 +224,6 @@ export function ReceiptActions({
     const handleSplitBill = (placement: ReceiptActionPlacement) => {
         trackReceiptAction('split', placement, kind)
         router.push(buildSplitBillRequestUrl(transaction.amount, transaction.userName))
-    }
-    // the past amount and note go to the send screen as an editable
-    // suggestion; nothing is sent until the user confirms there
-    const handleSendAgain = () => {
-        if (!sendAgainTo) return
-        trackReceiptAction('send_again', 'secondary', kind)
-        offerSendAgainDraft({
-            username: sendAgainTo,
-            amount: String(Math.round(Number(transaction.amount) * 100) / 100),
-            message: transaction.memo || undefined,
-        })
-        router.push(sendUrl(sendAgainTo, native.isCapacitor))
     }
     const handleSharePdf = (placement: ReceiptActionPlacement) => {
         trackReceiptAction('share_pdf', placement, kind)
@@ -450,7 +439,7 @@ export function ReceiptActions({
 
             {/* the final-state cta group (S/8 inside one action area): the one
                 primary, the one secondary, then the overflow link */}
-            {(primaryAction || sendAgainTo || showMoreActionsButton) && (
+            {(primaryAction || canRepeat || showMoreActionsButton) && (
                 <div className="flex flex-col gap-2 print:hidden">
                     {primaryAction === 'share-link' && receiptPageUrl && (
                         <ShareButton
@@ -483,18 +472,7 @@ export function ReceiptActions({
                         </Button>
                     )}
 
-                    {sendAgainTo && (
-                        <Button
-                            variant="secondary"
-                            shadowSize="4"
-                            className="w-full"
-                            icon="retry"
-                            onClick={handleSendAgain}
-                            data-testid="send-again"
-                        >
-                            {t('actions.sendAgain')}
-                        </Button>
-                    )}
+                    {canRepeat && <RepeatPaymentButton transaction={transaction} />}
 
                     {/* the tertiary: mt-4 on the gap-2 column keeps 24px under
                         the button shadows (design.md tertiary cta) */}

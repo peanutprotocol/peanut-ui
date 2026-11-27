@@ -79,6 +79,8 @@ jest.mock('../receipt-pdf-link.utils', () => ({
 jest.mock('@/context/ModalsContext', () => ({
     useModalsContext: () => ({ setIsSupportModalOpen: jest.fn() }),
 }))
+jest.mock('@/context/authContext', () => ({ useAuth: () => ({ user: { user: { userId: 'u1' }, accounts: [] } }) }))
+jest.mock('@/features/pix/usePixKeySend', () => ({ usePixKeySend: () => ({ via: 'pay', block: null }) }))
 jest.mock('../useReceiptReferralAction', () => ({ useReceiptReferralAction: () => null }))
 jest.mock('@/components/Setup/components/PasskeyDocsLink', () => ({ PasskeyDocsLink: () => null }))
 jest.mock('../provider-actions/CancelDepositActions', () => ({
@@ -107,7 +109,7 @@ jest.mock('../ReceiptMoreActionsDrawer', () => ({
 }))
 
 import { ReceiptActions } from '../ReceiptActions'
-import { clearSendAgainDraft, peekSendAgainDraft } from '@/features/payments/flows/direct-send/send-again-draft'
+import { clearRepeatDraft, peekRepeatDraft } from '@/features/payments/shared/repeat-draft'
 
 const vm = (overrides: Partial<ReceiptViewModel> = {}) =>
     ({
@@ -463,7 +465,7 @@ describe('receipt action events (TASK-24141)', () => {
 describe('Send again (TASK-25462)', () => {
     beforeEach(() => {
         jest.clearAllMocks()
-        clearSendAgainDraft()
+        clearRepeatDraft()
         ;(isCapacitor as jest.Mock).mockReturnValue(false)
     })
 
@@ -482,19 +484,19 @@ describe('Send again (TASK-25462)', () => {
 
         expect(receiptButtons().map((b) => b.getAttribute('data-testid'))).toEqual([
             'link-share',
-            'send-again',
+            'repeat-payment',
             'more-actions-trigger',
         ])
-        expect(screen.getByTestId('send-again')).toHaveTextContent('actions.sendAgain')
+        expect(screen.getByTestId('repeat-payment')).toHaveTextContent('actions.sendAgain')
     })
 
     test('the tap opens the send screen with the amount and note as a suggestion', () => {
         renderActions(sentToHugo(), vm())
 
-        fireEvent.click(screen.getByTestId('send-again'))
+        fireEvent.click(screen.getByTestId('repeat-payment'))
 
         expect(mockPush).toHaveBeenCalledWith('/send/hugo')
-        expect(peekSendAgainDraft('hugo')).toEqual({ username: 'hugo', amount: '20.5', message: 'Lunch' })
+        expect(peekRepeatDraft('user')).toEqual({ to: 'user', username: 'hugo', amount: '20.5', message: 'Lunch' })
         expect(mockCapture).toHaveBeenCalledWith('receipt_action_tapped', {
             action: 'send_again',
             placement: 'secondary',
@@ -506,19 +508,19 @@ describe('Send again (TASK-25462)', () => {
         ;(isCapacitor as jest.Mock).mockReturnValue(true)
         renderActions(sentToHugo({ memo: undefined }), vm())
 
-        fireEvent.click(screen.getByTestId('send-again'))
+        fireEvent.click(screen.getByTestId('repeat-payment'))
 
         expect(mockPush).toHaveBeenCalledWith('/send?recipient=hugo')
-        expect(peekSendAgainDraft('hugo')).toEqual({ username: 'hugo', amount: '20.5', message: undefined })
+        expect(peekRepeatDraft('user')).toEqual({ to: 'user', username: 'hugo', amount: '20.5', message: undefined })
     })
 
     test('the public receipt page never offers it', () => {
         renderActions(sentToHugo(), vm(), true)
-        expect(screen.queryByTestId('send-again')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('repeat-payment')).not.toBeInTheDocument()
     })
 
     test('a paid request has no Send again', () => {
         renderActions(sentToHugo({ extraDataForDrawer: { kind: 'P2P_REQUEST_FULFILL', publicReceipt: true } }), vm())
-        expect(screen.queryByTestId('send-again')).not.toBeInTheDocument()
+        expect(screen.queryByTestId('repeat-payment')).not.toBeInTheDocument()
     })
 })
