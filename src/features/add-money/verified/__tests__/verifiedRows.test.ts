@@ -6,6 +6,7 @@ import {
     bankRowState,
     cryptoWorksNow,
     isSelfStartedVerification,
+    verifiedPageAccess,
     verifiedRow,
     type BankRowState,
 } from '../verifiedRows'
@@ -88,5 +89,20 @@ describe('isSelfStartedVerification', () => {
         for (const source of ['card', 'unlock_payments', 'guest_claim'] as const)
             expect(isSelfStartedVerification(source)).toBe(false)
         expect(isSelfStartedVerification(null)).toBe(false)
+    })
+})
+
+describe('verifiedPageAccess', () => {
+    it('shows the page only to a verified identity', () => {
+        expect(verifiedPageAccess('verified', false)).toBe('show')
+    })
+    it('waits for the user read and for a check the read has not caught up with', () => {
+        expect(verifiedPageAccess(undefined, false)).toBe('wait')
+        expect(verifiedPageAccess('processing', false)).toBe('wait')
+    })
+    it('sends anyone else Home, and a check still processing after the wait', () => {
+        for (const status of ['not_started', 'action_required', 'failed'] as const)
+            expect(verifiedPageAccess(status, false)).toBe('leave')
+        expect(verifiedPageAccess('processing', true)).toBe('leave')
     })
 })

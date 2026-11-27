@@ -23,6 +23,7 @@ import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { trackAddMoney } from '../analytics'
 import { addMoneyMethodHref, useAddMoneyMethodRows } from '../useAddMoneyMethodRows'
 import { useAddMoneyReadiness } from '../useAddMoneyReadiness'
+import Loading from '@/components/Global/Loading'
 import { VerifiedArt } from './VerifiedArt'
 import {
     actionStep,
@@ -32,6 +33,7 @@ import {
     VERIFIED_PAGE_PATH,
     VERIFIED_ROWS_SETTLE_MS,
     type VerifiedPageVariant,
+    verifiedPageAccess,
     verifiedRow,
 } from './verifiedRows'
 
@@ -168,6 +170,13 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
     }
 
     const username = user?.user.username
+    // a direct visit must not claim a verification or a bank that is not there (Chip on #4317)
+    const access = verifiedPageAccess(user ? user.identityVerification?.status : undefined, settled)
+    useEffect(() => {
+        if (access === 'leave') router.replace('/home')
+    }, [access, router])
+    if (access !== 'show') return <Loading />
+    const bankReady = variant === 'bank-ready' && anyBankReady(states)
 
     return (
         <>
@@ -183,7 +192,7 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
                     stageCopy={
                         <div className="absolute inset-x-[var(--sr-gutter)] bottom-[calc(100%-var(--sr-stage-std)+1.5rem)] signup-sm:bottom-[calc(100%-var(--sr-stage-std)+1rem)]">
                             <h1 className="text-heading-m text-balance signup-sm:text-heading-s">
-                                {t(variant === 'bank-ready' ? 'titleBankReady' : 'title')}
+                                {t(bankReady ? 'titleBankReady' : 'title')}
                             </h1>
                             {username && (
                                 <NameChip username={username} verified={anyBankReady(states)} className="mt-3" />
@@ -212,8 +221,10 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
                                     />
                                 )
                             const { state } = bank[method]
-                            // a provider decides: the row can't be tapped and never promises a time
-                            const waiting = state === 'review' || state === 'refused'
+                            // a provider review can't be tapped and never promises a time (rule 3); a refusal
+                            // opens the bank hub, which says why and offers support (design.md, rows the user
+                            // cannot act on)
+                            const waiting = state === 'review'
                             const tappable = state !== 'loading' && !waiting
                             return (
                                 <ListItem
