@@ -20,7 +20,6 @@ import { currentVerifySource } from '@/features/paperwork-verification/verifySou
 import { findPixRoute, pixDepositOffered } from '@/features/pix/pixRoute.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
-import { useVerifyShellHold } from '@/utils/verify-shell'
 import { trackAddMoney } from '../analytics'
 import { addMoneyMethodHref, isAddMoneyRowMethod, useAddMoneyMethodRows } from '../useAddMoneyMethodRows'
 import { useAddMoneyReadiness } from '../useAddMoneyReadiness'
@@ -45,7 +44,6 @@ type BankMethod = 'ars' | 'pix' | 'bank'
  * bank account opens (slice 5).
  */
 export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
-    useVerifyShellHold()
     // the shell paints the native status bar pink; a layout cleanup runs before the next screen paints its own
     useLayoutEffect(() => restoreNativeStatusBar, [])
     const t = useTranslations('addMoney.verified')
