@@ -160,19 +160,20 @@ type BookedWithdrawal = Pick<HistoryRow, 'amount' | 'currency' | 'recipientAccou
 
 /**
  * The Manteca withdrawal the backend booked after this send began, from the
- * user's activity: to `destination` (a saved account's hold), or to any
- * destination when `destination` is null (an unsaved destination's hold). A
- * hold keeps every Manteca withdrawal of this user off, so only a single match
- * counts; none or several says nothing (`settling`). A withdrawal to another
- * account is not a saved account's send. The owner's history names the
- * destination as the withdrawal sent it (metadata.destinationAddress); the row
- * carries no hash or price lock to match.
+ * user's activity, matched strictly to `destination` (a saved account's hold).
+ * When `destination` is null (an unsaved destination or a deleted saved
+ * account), we cannot distinguish this device's lost-answer send from a
+ * withdrawal made on another device — keep recovery unsettled (`settling`) so
+ * another device's completed withdrawal never clears this guard or renders as
+ * this submission's success (chain `ReadUserOps` / Rain preparation status
+ * still prove `not-sent` when nothing moved).
  */
 async function readBookedWithdrawal(
     send: PendingChargeSend,
     destination: string | null,
     showBooked: (booked: BookedWithdrawal) => void
 ): Promise<SendOrderRead> {
+    if (destination === null) return { state: 'settling' }
     const query = new URLSearchParams({ from: new Date(send.startedAt).toISOString(), limit: '20' })
     const response = await serverFetch(`/users/history?${query.toString()}`, { method: 'GET', cache: 'no-store' })
     if (!response.ok) throw new Error(`Failed to read the withdrawal: ${response.status}`)
@@ -182,7 +183,7 @@ async function readBookedWithdrawal(
             row.extraData?.provider === 'MANTECA' &&
             row.extraData.kind === 'OFFRAMP' &&
             !row.extraData.isRefund &&
-            (destination === null || row.recipientAccount?.identifier?.toLowerCase() === destination)
+            row.recipientAccount?.identifier?.toLowerCase() === destination
     )
     if (withdrawals.length !== 1) return { state: 'settling' }
     const { status, amount, currency, recipientAccount } = withdrawals[0]

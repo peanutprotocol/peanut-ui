@@ -609,10 +609,12 @@ it('an unsaved destination is held under no name, and a later visit through a sa
     })
 })
 
-it('the hold for an unsaved destination completes on the one Manteca withdrawal booked since it began', async () => {
+it('an unsaved destination hold stays unsettled and does not match an uncorrelated Manteca history row', async () => {
     const typed = new URLSearchParams({ country: 'argentina' })
     await loseTheAnswerAndLeave(typed, NEW_DESTINATION_KEY, 'otra.cuenta.peanut')
 
+    // Another device's completed Manteca withdrawal cannot be correlated without a saved destination
+    // or server-issued opaque id: keep recovery unsettled and retain the guard.
     mockHistory.mockReturnValue([
         withdrawalTo('otra.cuenta.peanut', 'COMPLETED', { amount: '50', currency: { amount: '50000', code: 'ARS' } }),
     ])
@@ -620,12 +622,13 @@ it('the hold for an unsaved destination completes on the one Manteca withdrawal 
     await flush()
     reloaded.rerender(<MantecaBankWithdrawFlow searchParams={searchParams} />)
 
-    expect(mockStepper.step).toBe('success')
-    // the visit came through the saved account; the success names where the booked withdrawal went
-    expect(
-        screen.getByText(`withdraw.manteca.toDestination ${JSON.stringify({ destination: 'otra.cuenta.peanut' })}`)
-    ).toBeInTheDocument()
-    expect(window.localStorage.getItem(NEW_DESTINATION_KEY)).toBeNull()
+    expect(mockStepper.step).not.toBe('success')
+    expect(screen.getByTestId('payment-confirming')).toBeInTheDocument()
+    expect(window.localStorage.getItem(NEW_DESTINATION_KEY)).not.toBeNull()
+    reloaded.unmount()
+    await act(async () => {
+        await jest.advanceTimersByTimeAsync(5_000)
+    })
 })
 
 // Reviewer's case: with one hold per destination, a typed account started while a saved account's
