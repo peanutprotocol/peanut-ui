@@ -1279,13 +1279,23 @@
             "addFunds": "Agregar dinero",
             "issuedTitle": "Conocé tu Peanut Card.",
             "issuedBody": "Está lista para pagos en línea y sin contacto.",
-            "viewCard": "Ver tarjeta"
+            "viewCard": "Ver tarjeta",
+            "fundingBodyGap": "Tu tarjeta necesita {minimum} en tu saldo. Tenés {balance}, así que agregá {gap}. El dinero sigue siendo tuyo."
         },
         "addressStep": {
             "required": "Para continuar con la solicitud de tu tarjeta, agregá tu dirección de residencia.",
             "rejected": "Revisá tu dirección de residencia y enviala de nuevo para continuar con la solicitud de tu tarjeta.",
             "in_review": "Estamos revisando tu dirección. Podrás continuar con la solicitud de tu tarjeta cuando sea aceptada.",
             "unavailable": "No pudimos cargar el paso de dirección. Intentá de nuevo."
+        },
+        "addMoney": {
+            "pickNetwork": "Elegí la red desde la que enviás. Si enviás desde un exchange, elegí la red en la que retirás ahí.",
+            "sendAsk": "Enviá {amount}",
+            "sendAbout": "Enviá unos {amount}. El monto exacto depende del tipo de cambio.",
+            "sendInCurrency": "Enviá {currency} desde tu banco. Llega en dólares.",
+            "notVerifiedBody": "Verificá tu identidad una sola vez para obtener los datos bancarios.",
+            "finishSetupBody": "Terminalo en la página del banco.",
+            "statusCheckFailedBody": "Puede que haya un depósito en camino. Intentá de nuevo antes de enviar."
         }
     },
     "addMoney": {
@@ -1298,7 +1308,6 @@
             "cryptoDetails": "Desde billeteras o exchanges",
             "openAccount": "Abrir una cuenta bancaria",
             "cryptoDescription": "Depositá desde una billetera o exchange",
-            "bankTransferDescription": "Datos bancarios reutilizables para cobrar",
             "pix": "Pix",
             "pixDescription": "Transferencias instantáneas en reales"
         },
@@ -1345,7 +1354,7 @@
         },
         "bankDetails": {
             "sendExactAmount": "¡Enviá exactamente este monto!",
-            "sendAnyAmount": "Enviá cualquier monto. Incluí la referencia.",
+            "sendAnyAmount": "Enviá cualquier monto desde {minimum}. Incluí la referencia.",
             "pasteInReferenceField": "Obligatoria: pegala en el campo de referencia del banco. Sin ella, la transferencia no se puede asociar y podría devolverse.",
             "doubleCheckTitle": "Revisá bien antes de enviar:",
             "shareOutro": "Usá estos datos para completar tu transferencia bancaria.",
@@ -2366,7 +2375,9 @@
             "uncheckedBody": "Volvé a intentarlo en un momento.",
             "residenceMissingBody": "Las cuentas en {currency} dependen de dónde vivís. Indicá tu residencia para comprobarlo.",
             "notOfferedHereBody": "Es posible que esta cuenta no esté disponible donde vivís. Soporte puede revisarlo.",
-            "notOpenBody": "Las cuentas en {currency} todavía no están abiertas para vos.",
+            "notOpenBody": "Por ahora no estamos abriendo cuentas en {currency}.",
+            "copPausedTitle": "Apertura de cuentas en COP pausada",
+            "copPausedBody": "Bridge, nuestro socio de pagos, pausó las nuevas transferencias en COP por ahora.",
             "regionUnavailableBody": "Nuestro socio de pagos no ofrece cuentas en {currency} donde vivís. Tus otras cuentas y tus fondos en Peanut no se ven afectados."
         },
         "claim": {
@@ -2480,5 +2491,9 @@
         },
         "cardRelationship": "Tenés una relación directa con Third National bajo los términos de la tarjeta.",
         "cardRelationshipProspective": "Cuando aceptes los términos de la tarjeta, tu relación va a ser directamente con Third National."
+    },
+    "notifications": {
+        "firstDepositTitle": "Enterate cuando se mueva tu dinero",
+        "migrationSetupTitle": "Recibí alertas de dinero"
     }
 }

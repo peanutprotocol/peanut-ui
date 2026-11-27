@@ -18,6 +18,7 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { IntlWrapper } from '@/test-utils/intl'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { DEPOSIT_ACCOUNTS_QUERY_KEY } from '@/features/deposit-accounts/useDepositAccounts'
 import en from '@/i18n/app/messages/en.json'
 
 // ---------- module-level mocks (must be before imports that depend on them) ----------
@@ -540,7 +541,12 @@ jest.mock('@/components/AddMoney/components/OnrampConfirmationModal', () => ({
 jest.mock('@/components/0_Bruddle/ListItem', () => ({
     ListItem: (props: any) => (
         <div
-            data-testid={props['data-testid'] ?? `action-card-${props.title?.toLowerCase().replace(/\s+/g, '-')}`}
+            data-testid={
+                props['data-testid'] ??
+                (typeof props.title === 'string'
+                    ? `action-card-${props.title.toLowerCase().replace(/\s+/g, '-')}`
+                    : undefined)
+            }
             onClick={props.onClick}
         >
             <span>{props.title}</span>
@@ -934,6 +940,12 @@ function createQueryClient() {
 
 function renderWithProviders(component: React.ReactElement) {
     const queryClient = createQueryClient()
+    // the Add lists hold their rows until the deposit-accounts read resolves: answer it as "no accounts"
+    queryClient.setQueryData([...DEPOSIT_ACCOUNTS_QUERY_KEY, 'user-123'], {
+        accounts: [],
+        claimable: [],
+        unavailable: [],
+    })
     return render(
         <IntlWrapper>
             <QueryClientProvider client={queryClient}>{component}</QueryClientProvider>
@@ -946,6 +958,7 @@ function renderWithProviders(component: React.ReactElement) {
 function applyDefaults() {
     mockUseAuth.mockReturnValue({
         user: { user: { username: 'test-user', userId: 'user-123' } },
+        userId: 'user-123',
         isFetchingUser: false,
         fetchUser: jest.fn(),
     })

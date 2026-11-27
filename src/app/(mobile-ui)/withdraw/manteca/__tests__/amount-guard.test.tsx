@@ -7,9 +7,14 @@ import { parseUnits } from 'viem'
 import MantecaWithdrawFlow from '../page'
 
 const mockPush = jest.fn()
-let mockParams = 'country=argentina&method=bank-transfer&isSavedAccount=true&destination=qa.account'
+let mockParams = 'country=argentina&method=bank-transfer&account=qa-ar-1'
 let mockBalance: bigint | undefined = parseUnits('10', 6)
 // The first-use activation has its own tests; the amount screen behind it is what these cover.
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({
+        user: { user: { userId: 'user-1' }, accounts: [{ id: 'qa-ar-1', type: 'manteca', identifier: 'qa.account' }] },
+    }),
+}))
 jest.mock('@/features/paperwork-verification/KycFeatureActivationGate', () => ({
     KycFeatureActivationGate: ({ children }: { children: React.ReactNode }) => children,
 }))
@@ -77,7 +82,7 @@ jest.mock('@/services/manteca', () => ({ mantecaApi: {} }))
 beforeEach(() => {
     mockPixBlock = null
     mockBalance = parseUnits('10', 6)
-    mockParams = 'country=argentina&method=bank-transfer&isSavedAccount=true&destination=qa.account'
+    mockParams = 'country=argentina&method=bank-transfer&account=qa-ar-1'
 })
 function setup() {
     renderWithIntl(

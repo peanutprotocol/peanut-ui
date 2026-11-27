@@ -21,7 +21,7 @@ import { findPixRoute, pixDepositOffered } from '@/features/pix/pixRoute.utils'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { markSubmitted } from '@/hooks/useSubmissionWindow'
 import { trackAddMoney } from '../analytics'
-import { addMoneyMethodHref, isAddMoneyRowMethod, useAddMoneyMethodRows } from '../useAddMoneyMethodRows'
+import { addMoneyMethodHref, useAddMoneyMethodRows } from '../useAddMoneyMethodRows'
 import { useAddMoneyReadiness } from '../useAddMoneyReadiness'
 import { VerifiedArt } from './VerifiedArt'
 import {
@@ -81,7 +81,7 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
         pix: pixRoute?.provider === 'avenia' ? 'Avenia' : 'Manteca',
         bank: 'Bridge',
     }
-    const methods = readiness.pickerMethods.filter(isAddMoneyRowMethod)
+    const methods = readiness.pickerMethods
     const shownBank = methods.filter((method): method is BankMethod => method !== 'crypto')
     const states = shownBank.map((method) => bank[method].state)
     const stateProps = Object.fromEntries(shownBank.map((method) => [method, bank[method].state]))
