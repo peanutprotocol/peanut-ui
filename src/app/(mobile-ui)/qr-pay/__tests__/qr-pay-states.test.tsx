@@ -352,6 +352,8 @@ jest.mock('@/utils/general.utils', () => ({
     isTxReverted: jest.fn(() => false),
     saveRedirectUrl: jest.fn(),
     formatCurrency: jest.fn((v: any) => v?.toString() ?? ''),
+    // real: Add money builds its returnTo through it
+    sanitizeRedirectURL: jest.requireActual('@/utils/cookie-url.utils').sanitizeRedirectURL,
 }))
 
 jest.mock('@/utils/perk.utils', () => ({
@@ -1269,7 +1271,7 @@ describe('GROUP 2: Payment Form States', () => {
         expect(screen.getByRole('button', { name: 'Pay' })).toBeInTheDocument()
     })
 
-    test('Insufficient balance shows pay button disabled + error', async () => {
+    test('Insufficient balance shows the error and Add money in place of Pay', async () => {
         // Payment needs ~$18.4 but the displayed spendable is only $5, so the gate
         // (hasSufficientSpendableBalance) returns false. Revived from skip once the
         // gate moved onto the shared hook predicate (the original mock-shape drift).
@@ -1294,7 +1296,10 @@ describe('GROUP 2: Payment Form States', () => {
             expect(errorAlert).toBeInTheDocument()
             expect(errorAlert).toHaveTextContent('Your balance is $13.40 short. Add money to continue.')
         })
-        expect(screen.getByRole('button', { name: 'Pay' })).toBeDisabled()
+        // TASK-25444: the balance is the one blocker, so the way on is Add money, back to this scan
+        expect(screen.queryByRole('button', { name: 'Pay' })).toBeNull()
+        fireEvent.click(screen.getByRole('button', { name: 'Add money' }))
+        expect(mockRouterPush).toHaveBeenCalledWith(expect.stringMatching(/^\/add-money\?returnTo=/))
     })
 
     test.skip('Below minimum amount shows ErrorAlert', async () => {
