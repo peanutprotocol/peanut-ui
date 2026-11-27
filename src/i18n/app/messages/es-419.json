@@ -880,12 +880,12 @@
         "warningCard": {
             "blockingTitle": "Este monto supera el límite",
             "attentionTitle": "Cerca del límite",
-            "addUpTo": "Puedes agregar hasta {amount}",
-            "addUpToPerTransaction": "Puedes agregar hasta {amount} por transacción",
-            "withdrawUpTo": "Puedes retirar hasta {amount}",
-            "withdrawUpToPerTransaction": "Puedes retirar hasta {amount} por transacción",
-            "payUpTo": "Puedes pagar hasta {amount}",
-            "payUpToPerTransaction": "Puedes pagar hasta {amount} por transacción",
+            "addUpTo": "Puedes agregar hasta {amount}.",
+            "addUpToPerTransaction": "Puedes agregar hasta {amount} por transacción.",
+            "withdrawUpTo": "Puedes retirar hasta {amount}.",
+            "withdrawUpToPerTransaction": "Puedes retirar hasta {amount} por transacción.",
+            "payUpTo": "Puedes pagar hasta {amount}.",
+            "payUpToPerTransaction": "Puedes pagar hasta {amount} por transacción.",
             "resetsInDays": "Tu límite se restablece en {days, plural, one {# día} other {# días}}.",
             "checkLimits": "Ver límites"
         }
@@ -1773,6 +1773,7 @@
     },
     "qrPay": {
         "youArePaying": "Pagando",
+        "addMoney": "Agregar dinero",
         "reviewUpdatedQuote": "Revisa la cotización actualizada para continuar.",
         "paymentMethodAlt": "Método de pago",
         "peanutManAlt": "Peanut Man",
@@ -4880,7 +4881,7 @@
     },
     "errors": {
         "balanceSettling": "Tu saldo aún no está totalmente disponible. Inténtalo de nuevo en unos segundos.",
-        "notEnoughBalanceAddFunds": "Saldo insuficiente. Agrega fondos para continuar.",
+        "notEnoughBalanceAddFunds": "Saldo insuficiente. Agrega dinero para continuar.",
         "balanceShortBy": "A tu saldo le faltan ${amount}. Agrega dinero para continuar.",
         "insufficientFunds": "No tienes fondos suficientes.",
         "userRejectedTransaction": "Confirma la transacción en tu billetera.",

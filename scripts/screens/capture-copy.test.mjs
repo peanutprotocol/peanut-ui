@@ -52,12 +52,12 @@ test('the contributors drawer opens by its localized label in every app locale',
 
 test('the idle withdrawal balance checkpoint follows the target locale', () => {
     for (const [locale, label] of Object.entries({
-        en: 'Not enough balance. Add funds to continue.',
-        'es-419': 'Saldo insuficiente. Agrega fondos para continuar.',
-        'es-AR': 'Saldo insuficiente. Agregá fondos para continuar.',
-        'pt-BR': 'Saldo insuficiente. Adicione fundos para continuar.',
+        en: 'Not enough balance. Add money to continue.',
+        'es-419': 'Saldo insuficiente. Agrega dinero para continuar.',
+        'es-AR': 'Saldo insuficiente. Agregá dinero para continuar.',
+        'pt-BR': 'Saldo insuficiente. Adicione dinheiro para continuar.',
     }))
-        assert.equal(localizedCaptureText(locale, source)('Not enough balance. Add funds to continue.'), label)
+        assert.equal(localizedCaptureText(locale, source)('Not enough balance. Add money to continue.'), label)
 })
 
 test('capture copy is read from the requested source checkout', () => {

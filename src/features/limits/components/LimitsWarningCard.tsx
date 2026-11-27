@@ -165,31 +165,39 @@ export default function LimitsWarningCard({
         }
     }
 
+    const itemContent = (item: LimitsWarningItem) =>
+        item.isLink && item.href ? (
+            item.kind === 'check-limits' ? (
+                <button
+                    type="button"
+                    onClick={() => handleLimitsNavigation(item.href!)}
+                    className="pointer-events-auto underline underline-offset-2"
+                >
+                    <span>{itemText(item)}</span>
+                    {item.icon && <Icon name={item.icon} className="ml-1 inline align-text-bottom" size={16} />}
+                </button>
+            ) : (
+                <Link href={item.href} className="underline underline-offset-2">
+                    {item.icon && <Icon name={item.icon} className="mr-1" size={16} />}
+                    <span>{itemText(item)}</span>
+                </Link>
+            )
+        ) : (
+            itemText(item)
+        )
+
+    // "Check limits" closes the first bullet rather than standing alone as a bullet of its own
+    const checkLimits = items.length > 1 ? items.find((item) => item.kind === 'check-limits') : undefined
+    const bullets = items.filter((item) => item !== checkLimits)
+
     const heading = titleKind ? t(`warningCard.${titleKind}Title`) : title
     const content = (
         <div className="flex flex-col gap-2">
             <BulletList
-                items={items.map((item, index) => (
+                items={bullets.map((item, index) => (
                     <span key={index}>
-                        {item.isLink && item.href ? (
-                            item.kind === 'check-limits' ? (
-                                <button
-                                    type="button"
-                                    onClick={() => handleLimitsNavigation(item.href!)}
-                                    className="pointer-events-auto underline underline-offset-2"
-                                >
-                                    {item.icon && <Icon name={item.icon} className="mr-1" size={16} />}
-                                    <span>{itemText(item)}</span>
-                                </button>
-                            ) : (
-                                <Link href={item.href} className="underline underline-offset-2">
-                                    {item.icon && <Icon name={item.icon} className="mr-1" size={16} />}
-                                    <span>{itemText(item)}</span>
-                                </Link>
-                            )
-                        ) : (
-                            itemText(item)
-                        )}
+                        {itemContent(item)}
+                        {index === 0 && checkLimits && <> {itemContent(checkLimits)}</>}
                     </span>
                 ))}
             />

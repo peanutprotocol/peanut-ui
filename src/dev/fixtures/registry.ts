@@ -3980,12 +3980,13 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     // A merchant-fixed amount a few cents above the balance (TASK-24621): the
-    // amount cannot be lowered, so the field says how much is missing.
+    // amount cannot be lowered, so the field says how much is missing and
+    // Add money takes the place of Pay (TASK-25444).
     // The Screen Library answers the API outside the page, where a fixture's `balance` never applies:
     // the amount sits a few cents above the demo balance ($1,250.75) instead.
     'qr-pay-fixed-amount-short': {
         route: PIX_QR_ROUTE,
-        about: 'A fixed-amount Pix QR a few cents above the balance: the field error says how much is missing.',
+        about: 'A fixed-amount Pix QR a few cents above the balance: the field error says how much is missing, and Add money takes the place of Pay.',
         waitFor: '[data-testid="error-alert"]',
         responses: {
             'GET /users/me': PIX_ELIGIBLE_USER,

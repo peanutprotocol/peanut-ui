@@ -757,10 +757,10 @@ describe('GROUP 3: Amount Validation', () => {
 
     test('Error state shows the error banner', () => {
         mockWithdrawFlow.selectedMethod = { type: 'bridge', countryPath: 'us' }
-        mockWithdrawFlow.error = { showError: true, errorMessage: 'Not enough balance. Add funds to continue.' }
+        mockWithdrawFlow.error = { showError: true, errorMessage: 'Not enough balance. Add money to continue.' }
         renderWithdraw({ step: 'amount' })
 
-        expect(screen.getByTestId('error-alert')).toHaveTextContent('Not enough balance. Add funds to continue.')
+        expect(screen.getByTestId('error-alert')).toHaveTextContent('Not enough balance. Add money to continue.')
     })
 
     test('Error hidden when limits blocking card is displayed (fiat)', () => {

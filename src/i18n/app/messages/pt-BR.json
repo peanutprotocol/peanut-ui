@@ -880,12 +880,12 @@
         "warningCard": {
             "blockingTitle": "Esse valor ultrapassa o limite",
             "attentionTitle": "Perto do limite",
-            "addUpTo": "Você pode adicionar até {amount}",
-            "addUpToPerTransaction": "Você pode adicionar até {amount} por transação",
-            "withdrawUpTo": "Você pode sacar até {amount}",
-            "withdrawUpToPerTransaction": "Você pode sacar até {amount} por transação",
-            "payUpTo": "Você pode pagar até {amount}",
-            "payUpToPerTransaction": "Você pode pagar até {amount} por transação",
+            "addUpTo": "Você pode adicionar até {amount}.",
+            "addUpToPerTransaction": "Você pode adicionar até {amount} por transação.",
+            "withdrawUpTo": "Você pode sacar até {amount}.",
+            "withdrawUpToPerTransaction": "Você pode sacar até {amount} por transação.",
+            "payUpTo": "Você pode pagar até {amount}.",
+            "payUpToPerTransaction": "Você pode pagar até {amount} por transação.",
             "resetsInDays": "Seu limite será redefinido em {days, plural, one {# dia} other {# dias}}.",
             "checkLimits": "Ver limites"
         }
@@ -1773,6 +1773,7 @@
     },
     "qrPay": {
         "youArePaying": "Pagando",
+        "addMoney": "Adicionar dinheiro",
         "reviewUpdatedQuote": "Revise a cotação atualizada para continuar.",
         "paymentMethodAlt": "Método de pagamento",
         "peanutManAlt": "Peanut Man",
@@ -4880,7 +4881,7 @@
     },
     "errors": {
         "balanceSettling": "Seu saldo ainda não está totalmente disponível. Tente novamente em alguns segundos.",
-        "notEnoughBalanceAddFunds": "Saldo insuficiente. Adicione fundos para continuar.",
+        "notEnoughBalanceAddFunds": "Saldo insuficiente. Adicione dinheiro para continuar.",
         "balanceShortBy": "Faltam ${amount} no seu saldo. Adicione dinheiro para continuar.",
         "insufficientFunds": "Você não tem fundos suficientes.",
         "userRejectedTransaction": "Confirme a transação na sua carteira.",

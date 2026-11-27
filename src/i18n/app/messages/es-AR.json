@@ -494,12 +494,12 @@
         },
         "needHigherLimits": "¿Necesitás límites más altos? Contactá soporte.",
         "warningCard": {
-            "addUpTo": "Podés agregar hasta {amount}",
-            "addUpToPerTransaction": "Podés agregar hasta {amount} por transacción",
-            "withdrawUpTo": "Podés retirar hasta {amount}",
-            "withdrawUpToPerTransaction": "Podés retirar hasta {amount} por transacción",
-            "payUpTo": "Podés pagar hasta {amount}",
-            "payUpToPerTransaction": "Podés pagar hasta {amount} por transacción"
+            "addUpTo": "Podés agregar hasta {amount}.",
+            "addUpToPerTransaction": "Podés agregar hasta {amount} por transacción.",
+            "withdrawUpTo": "Podés retirar hasta {amount}.",
+            "withdrawUpToPerTransaction": "Podés retirar hasta {amount} por transacción.",
+            "payUpTo": "Podés pagar hasta {amount}.",
+            "payUpToPerTransaction": "Podés pagar hasta {amount} por transacción."
         }
     },
     "exchangeRate": {
@@ -2234,7 +2234,7 @@
     "errors": {
         "mantecaAccountRejectedForCountry": "No podés agregar ni retirar dinero en {country}. Podés seguir pagando con QR.",
         "balanceSettling": "Tu saldo aún no está totalmente disponible. Intentalo de nuevo en unos segundos.",
-        "notEnoughBalanceAddFunds": "Saldo insuficiente. Agregá fondos para continuar.",
+        "notEnoughBalanceAddFunds": "Saldo insuficiente. Agregá dinero para continuar.",
         "balanceShortBy": "A tu saldo le faltan ${amount}. Agregá dinero para continuar.",
         "insufficientFunds": "No tenés fondos suficientes.",
         "userRejectedTransaction": "Confirmá la transacción en tu billetera.",
