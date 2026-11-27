@@ -4,10 +4,10 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/authContext'
 import { useAppTranslations } from '@/i18n/app/useAppTranslations'
 import { offerRepeatDraft } from '@/features/payments/shared/repeat-draft'
-import { EMPTY_PIX_WITHDRAW_DRAFT, keepPixWithdrawDraft } from '@/features/pix/pixWithdrawDraft'
+import { EMPTY_PIX_WITHDRAW_DRAFT, keepPixWithdrawDraft, type PixDraftFlow } from '@/features/pix/pixWithdrawDraft'
 import { usePixKeySend } from '@/features/pix/usePixKeySend'
 import { withdrawAmountStepUrl } from '@/features/withdraw/routes'
-import { isOfferedSavedAccount, savedAccountRoute } from '@/features/withdraw/saved-account-route'
+import { isOfferedSavedAccount, pixKeyRoute, savedAccountRoute } from '@/features/withdraw/saved-account-route'
 import { type Account } from '@/interfaces/interfaces'
 import { useNativePlatform } from '@/utils/native-platform'
 import { sendUrl } from '@/utils/native-routes'
@@ -23,12 +23,13 @@ const sameIdentifier = (a: string, b: string) =>
 /**
  * The More actions row that repeats a completed payment (TASK-25462), or
  * null. It is the first row: the receipt keeps one primary and the More
- * actions button (Hugo, 2026-11-27). The tap opens the screen that
- * made it opens with the same recipient and amount (and note, for a send to a
+ * actions button (Hugo, 2026-11-27). The tap opens the screen that made the
+ * payment, with the same recipient and amount (and note, for a send to a
  * Peanut user) as an editable suggestion. Nothing moves until the user
- * confirms there, through that screen's own gates. A payout repeats only to a
- * saved account the withdraw screen would offer, by the same route a tap on
- * that account takes (`savedAccountRoute`).
+ * confirms there, through that screen's own gates. A Pix payout repeats from
+ * the key on its receipt, saved or not (`pixKeyRoute`). A bank payout repeats
+ * only to a saved account the withdraw screen would offer, by the same route a
+ * tap on that account takes (`savedAccountRoute`).
  */
 export function useRepeatPayment(
     transaction: TransactionDetails,
@@ -67,6 +68,32 @@ export function useRepeatPayment(
         sendMethod: payout.isSend ? 'bank' : null,
         amount,
     }
+    const title = t(payout.isSend ? 'actions.sendAgain' : 'actions.withdrawAgain')
+    const track = () => trackReceiptAction(payout.isSend ? 'send_again' : 'withdraw_again', 'more_actions', kind)
+    const openPixForm = (pix: { flow: PixDraftFlow; path: string }, destination: string) => {
+        // the key goes in the account's draft for this flow, never the URL
+        keepPixWithdrawDraft(user?.user?.userId, pix.flow, {
+            ...EMPTY_PIX_WITHDRAW_DRAFT,
+            destination,
+            amountUsd: amount,
+        })
+        router.push(pix.path)
+    }
+
+    // the Pix form takes any key: a Pix payout needs no saved account
+    const pix = transaction.extraDataForDrawer?.isPix ? pixKeyRoute(ctx) : null
+    if (pix) {
+        return {
+            ...row,
+            title,
+            onSelect: () => {
+                onSelect?.()
+                track()
+                openPixForm(pix, payout.identifier)
+            },
+        }
+    }
+
     const account = ((user?.accounts ?? []) as unknown as Account[]).find(
         (acc) => isOfferedSavedAccount(acc, ctx) && sameIdentifier(acc.identifier, payout.identifier)
     )
@@ -74,18 +101,13 @@ export function useRepeatPayment(
 
     return {
         ...row,
-        title: t(payout.isSend ? 'actions.sendAgain' : 'actions.withdrawAgain'),
+        title,
         onSelect: () => {
             onSelect?.()
-            trackReceiptAction(payout.isSend ? 'send_again' : 'withdraw_again', 'more_actions', kind)
+            track()
             const { method, next } = savedAccountRoute(account, undefined, ctx)
             if (next.kind === 'pix') {
-                keepPixWithdrawDraft(user?.user?.userId, next.flow, {
-                    ...EMPTY_PIX_WITHDRAW_DRAFT,
-                    destination: account.identifier,
-                    amountUsd: amount,
-                })
-                router.push(next.path)
+                openPixForm(next, account.identifier)
                 return
             }
             if (next.kind === 'manteca') {

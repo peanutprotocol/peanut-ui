@@ -7,9 +7,14 @@ import { parseUnits } from 'viem'
 import MantecaWithdrawFlow from '../page'
 
 const mockPush = jest.fn()
-let mockParams = 'country=argentina&method=bank-transfer&isSavedAccount=true&destination=qa.account'
+let mockParams = 'country=argentina&method=bank-transfer&account=qa-ar-1'
 let mockBalance: bigint | undefined = parseUnits('10', 6)
 // The first-use activation has its own tests; the amount screen behind it is what these cover.
+jest.mock('@/context/authContext', () => ({
+    useAuth: () => ({
+        user: { user: { userId: 'user-1' }, accounts: [{ id: 'qa-ar-1', type: 'manteca', identifier: 'qa.account' }] },
+    }),
+}))
 jest.mock('@/features/paperwork-verification/KycFeatureActivationGate', () => ({
     KycFeatureActivationGate: ({ children }: { children: React.ReactNode }) => children,
 }))
@@ -72,7 +77,7 @@ jest.mock('@/features/deposit-accounts/useResidenceIso2s', () => ({ useResidence
 jest.mock('@/features/withdraw/views/PixKeySendView', () => ({ __esModule: true, default: () => null }))
 jest.mock('@/services/manteca', () => ({ mantecaApi: {} }))
 
-const ARS_PARAMS = 'country=argentina&method=bank-transfer&isSavedAccount=true&destination=qa.account'
+const ARS_PARAMS = 'country=argentina&method=bank-transfer&account=qa-ar-1'
 const MINIMUM_ERROR = /withdraw amount must be at least/i
 const scrollIntoView = jest.fn()
 const originalScrollIntoView = Element.prototype.scrollIntoView
