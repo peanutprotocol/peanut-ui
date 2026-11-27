@@ -118,7 +118,7 @@ export function RateConverterCard({
                 <label htmlFor="rates-amount-input" className="text-body-s text-foreground-secondary">
                     {isAdd ? t('converter.youSendLocal', { currency }) : t('converter.youSendUsd')}
                 </label>
-                <Card className="flex min-h-12 items-center justify-between gap-2 px-3 focus-within:outline-[3px] focus-within:outline-action-focus">
+                <Card className="flex min-h-12 flex-row items-center justify-between gap-2 px-3 focus-within:outline-[3px] focus-within:outline-action-focus">
                     <input
                         id="rates-amount-input"
                         type="text"

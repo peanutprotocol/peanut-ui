@@ -158,7 +158,7 @@ export function RateHelpTrigger({ currency, lockedRate, lockMode, nested, classN
                     setOpen(true)
                 }}
                 className={twMerge(
-                    'relative -m-1 inline-flex size-6 shrink-0 items-center justify-center rounded-full text-foreground-primary after:absolute after:-inset-2 focus-visible:outline-[3px] focus-visible:outline-offset-1 focus-visible:outline-action-focus',
+                    '-m-3 inline-flex size-11 shrink-0 items-center justify-center rounded-full text-foreground-primary focus-visible:outline-[3px] focus-visible:outline-action-focus',
                     className
                 )}
             >

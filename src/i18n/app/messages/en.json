@@ -984,7 +984,7 @@
                 "cryptoL2Quoted": "Shown in quote"
             },
             "notes": {
-                "bankTransfers": "USD Wire ({wireFee}) and Brazil Pix ({pixFee}) are provider fees. Cross-currency transfers use the live exchange rate.",
+                "bankTransfers": "USD Wire ({wireFee}) is a flat Peanut fee; Brazil Pix ({pixFee}) is a provider fee. Cross-currency transfers use the live exchange rate.",
                 "cardVisa": "Visa may apply its own exchange rate and network fees on cross-currency or international payments.",
                 "cryptoNetworks": "{networks} & more. Other tokens convert at market rate."
             },

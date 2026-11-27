@@ -984,7 +984,7 @@
                 "cryptoL2Quoted": "Según cotización"
             },
             "notes": {
-                "bankTransfers": "USD Wire ({wireFee}) y Pix en Brasil ({pixFee}) son comisiones del proveedor. Las conversiones usan el tipo de cambio en vivo.",
+                "bankTransfers": "USD Wire ({wireFee}) es una comisión fija de Peanut; Pix en Brasil ({pixFee}) es una comisión del proveedor. Las conversiones usan el tipo de cambio en vivo.",
                 "cardVisa": "Visa puede aplicar su tipo de cambio y comisiones de red en pagos internacionales o en otras monedas.",
                 "cryptoNetworks": "{networks} y más. Otros tokens se convierten a tasa de mercado."
             },
