@@ -26,21 +26,19 @@ const spec = (): JourneySpec => ({
         maxSendsPerDay: 200,
     },
     welcome: step('lifecycle.welcome'),
+    reminder: step('lifecycle.verify_reminder'),
     stages: [
         {
             stage: 'start_verify',
             order: 1,
             predicate: 'p',
-            steps: [step('lifecycle.verify_1'), step('lifecycle.verify_2')],
+            steps: [step('lifecycle.verify_1')],
         },
         {
             stage: 'first_spend',
             order: 5,
             predicate: 'p',
-            steps: [
-                step('lifecycle.first_spend_1', { paragraphsWithRewards: ['rewards copy'] }),
-                step('lifecycle.first_spend_2', { paragraphsWithRewards: ['rewards copy'] }),
-            ],
+            steps: [step('lifecycle.first_spend_1')],
         },
     ],
     pushReminders: [],
@@ -65,11 +63,8 @@ describe('emailReview', () => {
         expect(renders.map((render) => render.id)).toEqual([
             renderId('lifecycle.welcome', 0),
             renderId('lifecycle.verify_1', 0),
-            renderId('lifecycle.verify_2', 0),
             renderId('lifecycle.first_spend_1', 0),
-            renderId('lifecycle.first_spend_1', 1),
-            renderId('lifecycle.first_spend_2', 0),
-            renderId('lifecycle.first_spend_2', 1),
+            renderId('lifecycle.verify_reminder', 0),
         ])
     })
 
@@ -84,9 +79,8 @@ describe('emailReview', () => {
         expect(buildEmailRenderList(withUnmapped).map((render) => render.eventType)).toContain('lifecycle.brand_new_1')
     })
 
-    it('flags exactly the open product decisions (finish_setup settled: killed in lifecycle v2)', () => {
-        expect(decisionFlagFor('lifecycle.first_spend_1')?.label).toMatch(/rewards branch/)
-        expect(decisionFlagFor('lifecycle.finish_setup_2')).toBeNull()
+    it('returns null when no structural decision flag is active', () => {
+        expect(decisionFlagFor('lifecycle.first_spend_1')).toBeNull()
         expect(decisionFlagFor('lifecycle.welcome')).toBeNull()
     })
 })

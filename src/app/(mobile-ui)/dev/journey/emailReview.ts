@@ -62,6 +62,7 @@ export function buildEmailRenderList(spec: JourneySpec | null): EmailRenderRef[]
             spec.stages.find((stage) => stage.stage === stageName)?.steps.forEach(add)
         }
     }
+    if (spec.reminder) add(spec.reminder)
     for (const stage of spec.stages) stage.steps.forEach(add)
 
     return steps.flatMap((step) =>
@@ -76,20 +77,10 @@ export function buildEmailRenderList(spec: JourneySpec | null): EmailRenderRef[]
 }
 
 /**
- * The open structural product decisions. Everything else on the board is a
- * yes/no on the copy. (finish_setup's kill-or-keep was settled: killed —
- * lifecycle v2 deleted the stage after 0 sends ever.)
+ * Open structural product decisions attached to specific emails. Empty when all
+ * remaining cards are plain copy verdicts.
  */
-export const EMAIL_DECISION_FLAGS: Record<string, EmailDecisionFlag> = {
-    'lifecycle.first_spend_1': {
-        label: 'decide: rewards branch keep/kill',
-        note: 'Renders a second copy variant when the user has unclaimed rewards. Keep the branch or cut it to one message?',
-    },
-    'lifecycle.first_spend_2': {
-        label: 'decide: rewards branch keep/kill',
-        note: 'Renders a second copy variant when the user has unclaimed rewards. Keep the branch or cut it to one message?',
-    },
-}
+export const EMAIL_DECISION_FLAGS: Record<string, EmailDecisionFlag> = {}
 
 export function decisionFlagFor(eventType: string): EmailDecisionFlag | null {
     return EMAIL_DECISION_FLAGS[eventType] ?? null

@@ -107,6 +107,7 @@ export interface SpecRules {
 
 export interface SpecPushReminder {
     type: string
+    stage?: string
     channels: string[]
     afterMinutes: number
     title: string
@@ -117,6 +118,7 @@ export interface JourneySpec {
     generatedFrom: string
     rules: SpecRules
     welcome: SpecEmailStep
+    reminder?: SpecEmailStep
     stages: SpecStage[]
     pushReminders: SpecPushReminder[]
     /** The live funnel map (api#2307); absent on an older API. */
@@ -170,11 +172,20 @@ export interface EmailDecisionFlag {
 
 // ---------- live user inspector (GET /__dev/journey-inspect?username=…|userId=…) ----------
 
+export type InspectSkipReason =
+    | 'holdout'
+    | 'priority'
+    | 'balance'
+    | 'attention'
+    | 'method'
+    | 'no_offer'
+    | 'switched_off'
+
 export interface InspectDue {
     userId: string
     type: string
-    hasPendingRewards?: boolean
-    skip?: 'holdout' | 'governor' | 'balance'
+    skip?: InspectSkipReason
+    blockedBy?: string
 }
 
 export interface InspectHistoryRow {
@@ -193,7 +204,6 @@ export interface JourneyInspectResponse {
         username: string | null
         email: string | null
         createdAt: string
-        cardAccessGrantedAt: string | null
     }
     due: InspectDue | null
     history: InspectHistoryRow[]

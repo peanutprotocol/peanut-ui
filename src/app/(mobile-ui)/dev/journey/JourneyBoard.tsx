@@ -130,7 +130,11 @@ export default function JourneyBoard({
                                         {spec &&
                                             (state.includesPushReminder ? (
                                                 spec.pushReminders.map((push) => (
-                                                    <PushCard key={push.type} push={push} showDev={showDev} />
+                                                    <PushCard
+                                                        key={`${push.type}:${push.stage ?? push.afterMinutes}`}
+                                                        push={push}
+                                                        showDev={showDev}
+                                                    />
                                                 ))
                                             ) : (
                                                 <p className={EMPTY_NOTE}>No push in this state.</p>
