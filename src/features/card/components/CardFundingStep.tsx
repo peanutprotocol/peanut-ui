@@ -29,6 +29,8 @@ import { cardApi } from '@/services/card'
 import { readStoredValue, removeStoredValue, writeStoredValue } from '@/utils/safe-storage'
 import { formatBankAmount } from '@/utils/currency'
 
+const cardReturnTo = () => CARD_FUNDING_RETURN_TO
+
 /**
  * The card's $10 step. Bank and Crypto open the add-money drawer in place, so the step never
  * unmounts while the user adds money, and the drawer closes itself once the balance covers it.
@@ -188,7 +190,7 @@ export function CardFundingStep({
                     gapUsd={gapUsd}
                     plan={plan}
                     residenceIso2s={readiness.residenceIso2s}
-                    returnTo={CARD_FUNDING_RETURN_TO}
+                    returnTo={cardReturnTo}
                     place="card"
                     onShow={onShow}
                     onDismiss={dismiss}

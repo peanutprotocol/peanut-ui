@@ -43,8 +43,12 @@ jest.mock('@/features/deposit-accounts/useDepositAccountCopy', () => ({
 let region = { refused: false, known: true }
 jest.mock('@/features/card/useBankRegionRefusal', () => ({ useBankRegionRefusal: () => region }))
 
+// the place's URL; a step edited after the drawer opened moves it
+let placeUrl = '/send/ana?amount=50'
+
 beforeEach(() => {
     jest.clearAllMocks()
+    placeUrl = '/send/ana?amount=50'
     region = { refused: false, known: true }
 })
 
@@ -55,7 +59,7 @@ function renderDrawer(plan: DrawerBankPlan) {
         targetUsd: 50,
         gapUsd: 40,
         residenceIso2s: ['US'],
-        returnTo: '/send/ana?amount=50',
+        returnTo: () => placeUrl,
         place: 'send' as const,
         onShow: jest.fn(),
         onDismiss: jest.fn(),
@@ -181,4 +185,12 @@ it('counts every pick in the choice as the method picked: crypto, the bank row, 
         [ANALYTICS_EVENTS.SEND_ADD_MONEY_METHOD_PICKED, { method: 'pix', funded: false }],
         [ANALYTICS_EVENTS.SEND_ADD_MONEY_METHOD_PICKED, { method: 'crypto', funded: false }],
     ])
+})
+
+it('a page way returns to the step as it is when the page opens, not as it was at the tap', () => {
+    renderDrawer({ kind: 'rows', rows: [{ kind: 'page', corridor: 'BANK_TRANSFER_AR' }] })
+    // the amount changed after the drawer opened, before the URL write landed at the tap
+    placeUrl = '/send/ana?amount=80'
+    fireEvent.click(screen.getByTestId('card-add-money-rail-bank_transfer_ar'))
+    expect(mockPush.mock.calls[0][0]).toContain(`returnTo=${encodeURIComponent('/send/ana?amount=80')}`)
 })

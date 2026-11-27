@@ -97,8 +97,11 @@ export function AddMoneyDrawer({
     gapUsd: number | undefined
     plan: DrawerBankPlan
     residenceIso2s: readonly string[]
-    /** where /verify, finish-setup and bank pages send the user back to */
-    returnTo: string
+    /**
+     * Where /verify, finish-setup and bank pages send the user back to, read as the route opens: the
+     * place's step may have changed after the drawer opened, and the return must carry the latest.
+     */
+    returnTo: () => string
     /** names the analytics events and the verify source */
     place: AddMoneyPlace
     /** the method and view on screen, for the funded and closed events */
@@ -153,7 +156,7 @@ export function AddMoneyDrawer({
         // (TASK-25444); in the choice the opening tap counted nothing, so every pick counts here
         countPick(pickerMethodOf(row.corridor))
         if (row.kind === 'account') setView({ kind: 'details', corridor: row.corridor, prev: view })
-        else router.push(bankPageHref(row.corridor, gapUsd, residenceIso2s, returnTo))
+        else router.push(bankPageHref(row.corridor, gapUsd, residenceIso2s, returnTo()))
     }
     const toNetworks = () => setView({ kind: 'networks', prev: view })
 
@@ -246,9 +249,9 @@ export function AddMoneyDrawer({
                             captureAddMoneyVerifyTapped(place)
                             markVerifySource(place)
                             // option B (Kush): the check ends back on the place that opened the drawer
-                            router.push(withReturnTo('/verify', returnTo))
+                            router.push(withReturnTo('/verify', returnTo()))
                         }}
-                        onFinishSetup={() => router.push(withReturnTo('/add-money?method=bank', returnTo))}
+                        onFinishSetup={() => router.push(withReturnTo('/add-money?method=bank', returnTo()))}
                     />
                 )
             default:

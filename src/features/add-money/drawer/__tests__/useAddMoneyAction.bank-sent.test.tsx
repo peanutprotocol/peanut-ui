@@ -7,9 +7,11 @@ jest.mock('@/features/add-money/useAddMoneyReadiness', () => ({
     useAddMoneyReadiness: () => ({ isLoading: true, residenceIso2s: [], ready: {}, topUpGates: {} }),
 }))
 let onBankSent: ((inDollars: boolean) => void) | undefined
+let returnTo: (() => string) | undefined
 jest.mock('../AddMoneyDrawer', () => ({
-    AddMoneyDrawer: (props: { onBankSent: (inDollars: boolean) => void }) => {
+    AddMoneyDrawer: (props: { onBankSent: (inDollars: boolean) => void; returnTo: () => string }) => {
         onBankSent = props.onBankSent
+        returnTo = props.returnTo
         return null
     },
 }))
@@ -63,4 +65,12 @@ it('drops it when the step changes: another amount or recipient', () => {
     // and going back to the first amount does not bring it back
     view.rerender(<Place {...short} />)
     expect(result.bankSent).toBeUndefined()
+})
+
+it('the way back is the URL when a route opens: an amount edited after the tap comes back', () => {
+    window.history.replaceState({}, '', '/send/ana?amount=50')
+    render(<Place {...short} />)
+    act(() => result.openAddMoney())
+    window.history.replaceState({}, '', '/send/ana?amount=80')
+    expect(returnTo!()).toBe('/send/ana?amount=80')
 })
