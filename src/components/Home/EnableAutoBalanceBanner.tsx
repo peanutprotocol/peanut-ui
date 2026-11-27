@@ -97,6 +97,10 @@ export default function EnableAutoBalanceBanner({ onActed, onSnoozed, presentati
     // recoverable message.
     const hardError = errorForThisCard && lastError!.kind !== 'user-cancelled'
 
+    // A spent permission id cannot be fixed by signing again, so the prompt
+    // offers no retry: Skip for now becomes its one primary action.
+    const permissionSpent = errorForThisCard && lastError!.kind === 'permission-spent'
+
     // Loop signal: grant() resolved ok with a FRESH overview, yet the SAME
     // card still lacks the approval. That is the dup-card lockout shape —
     // warn once per card and treat it like a failure so the escape hatch
@@ -168,6 +172,17 @@ export default function EnableAutoBalanceBanner({ onActed, onSnoozed, presentati
                   },
               }
             : undefined
+    const spentCtas: ActionModalButtonProps[] = tertiaryCta
+        ? [
+              {
+                  text: tertiaryCta.text,
+                  disabled: tertiaryCta.disabled,
+                  onClick: tertiaryCta.onClick,
+                  variant: 'primary',
+                  shadowSize: '4',
+              },
+          ]
+        : []
 
     const dismissed = dismissedFor !== null && dismissedFor === (card?.id ?? null)
 
@@ -182,12 +197,14 @@ export default function EnableAutoBalanceBanner({ onActed, onSnoozed, presentati
             description={
                 hardError && lastError!.kind === 'signature-rejected'
                     ? t('descriptionSignatureRejected')
-                    : hardError || stuckAfterSuccess
-                      ? t(isUpdate ? 'descriptionUpdateError' : 'descriptionError')
-                      : t(isUpdate ? 'updateApprove' : 'description')
+                    : permissionSpent
+                      ? t('descriptionPermissionSpent')
+                      : hardError || stuckAfterSuccess
+                        ? t(isUpdate ? 'descriptionUpdateError' : 'descriptionError')
+                        : t(isUpdate ? 'updateApprove' : 'description')
             }
-            ctas={ctas}
-            tertiaryCta={tertiaryCta}
+            ctas={permissionSpent ? spentCtas : ctas}
+            tertiaryCta={permissionSpent ? undefined : tertiaryCta}
         />
     )
 }

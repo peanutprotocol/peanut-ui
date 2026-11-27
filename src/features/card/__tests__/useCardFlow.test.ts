@@ -398,6 +398,20 @@ describe('useCardFlow', () => {
         consoleSpy.mockRestore()
     })
 
+    it('says card setup needs support when the permission id is spent', async () => {
+        const { ApiError } = jest.requireActual('@/services/api-error')
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+        mockApplyForCard.mockRejectedValue(
+            new ApiError('Card permission id already spent', { status: 400, code: 'CARD_PERMISSION_ID_SPENT' })
+        )
+        const { result } = renderHook(() => useCardFlow())
+        await act(async () => {
+            await result.current.handleApply()
+        })
+        expect(result.current.applyError).toBe('page.setupPermissionSpent')
+        consoleSpy.mockRestore()
+    })
+
     it('surfaces an apply failure as applyError', async () => {
         const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
         mockApplyForCard.mockRejectedValue(new Error('boom'))
