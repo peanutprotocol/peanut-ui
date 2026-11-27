@@ -2,16 +2,15 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { useAuth } from '@/context/authContext'
 import { useAttentionOptional } from '@/features/attention/AttentionProvider'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { hasInAppHistory } from '@/hooks/useSafeBack'
-import { trackAddMoney } from '../analytics'
 import {
     BANK_READY_PAGE,
     bankReadyReminder,
     markBankReadyShown,
+    markReshowing,
     readyAccountIds,
     rowAccountIds,
     shownBankReady,
@@ -60,8 +59,8 @@ export function useBankReadyReminder(addedMoney: boolean | undefined, methods: r
         })
         if (!accounts.length) return
         chance = 'spent'
-        markBankReadyShown(userId, accounts)
-        trackAddMoney(ANALYTICS_EVENTS.VERIFIED_PAGE_RESHOWN, { accounts })
+        // the page records the accounts and reports the re-show once it shows
+        markReshowing(accounts)
         router.replace(BANK_READY_PAGE)
         // methods by value: the picker list is a new array on every render
         // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -51,3 +51,16 @@ export function markBankReadyShown(userId: string, ids: readonly string[]): void
     const added = ids.filter((id) => !shown?.includes(id))
     if (!shown || added.length) updateUserPreferences(userId, { bankReadyShown: [...(shown ?? []), ...added] })
 }
+
+// the accounts Home just opened the page for, in this app load. The page reports the re-show and records the
+// accounts only once it shows, as its other events do; a page that leaves before that keeps the reminder.
+let reshowing: string[] | null = null
+export function markReshowing(ids: readonly string[]): void {
+    reshowing = [...ids]
+}
+/** the accounts Home opened the page for, once; null when the page was opened another way */
+export function takeReshowing(): string[] | null {
+    const ids = reshowing
+    reshowing = null
+    return ids
+}

@@ -24,7 +24,7 @@ import { trackAddMoney } from '../analytics'
 import { addMoneyMethodHref, useAddMoneyMethodRows } from '../useAddMoneyMethodRows'
 import { useAddMoneyReadiness } from '../useAddMoneyReadiness'
 import Loading from '@/components/Global/Loading'
-import { markBankReadyShown, readyAccountIds, rowAccountIds } from './bankReadyReminder'
+import { markBankReadyShown, readyAccountIds, rowAccountIds, takeReshowing } from './bankReadyReminder'
 import { VerifiedArt } from './VerifiedArt'
 import {
     actionStep,
@@ -103,6 +103,9 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
         if (shown.current || readiness.isLoading || access !== 'show') return
         shown.current = true
         trackAddMoney(ANALYTICS_EVENTS.VERIFIED_PAGE_SHOWN, { entry: entry.current, variant, ...stateProps })
+        // Home's reminder opened it: the re-show counts only now that the page shows
+        const reshown = takeReshowing()
+        if (reshown) trackAddMoney(ANALYTICS_EVENTS.VERIFIED_PAGE_RESHOWN, { accounts: reshown, variant })
         // once per view, with the rows as they first read
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [readiness.isLoading, access])
@@ -181,7 +184,10 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
 
     const username = user?.user.username
     useEffect(() => {
-        if (access === 'leave') router.replace('/home')
+        if (access !== 'leave') return
+        // the page never showed: no re-show to report, the reminder stays for the next open
+        takeReshowing()
+        router.replace('/home')
     }, [access, router])
     // an account seen ready here, or from the bank_ready push, never opens the reminder again
     useEffect(() => {

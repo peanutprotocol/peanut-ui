@@ -6,6 +6,7 @@ import {
     readyAccountIds,
     rowAccountIds,
     shownBankReady,
+    takeReshowing,
 } from '../bankReadyReminder'
 import { resetBankReadyReminderForTests, useBankReadyReminder } from '../useBankReadyReminder'
 
@@ -89,7 +90,14 @@ describe('useBankReadyReminder', () => {
         methods = ['ars', 'bank', 'crypto']
         // a person who already has a record on this device (a later load, or the verified page seen)
         markBankReadyShown('u1', [])
+        takeReshowing()
     })
+    // what the page does once it shows: take Home's accounts and record them
+    const pageShows = () => {
+        const accounts = takeReshowing()
+        if (accounts) markBankReadyShown('u1', accounts)
+        return accounts
+    }
 
     it('first load since release: accounts ready already are recorded, not shown; a later one shows once', () => {
         localStorage.clear()
@@ -100,6 +108,7 @@ describe('useBankReadyReminder', () => {
         mockReport = report({ USD: on }, { ARS: on })
         renderHook(() => load()(false))
         expect(mockReplace).toHaveBeenCalledTimes(1)
+        expect(pageShows()).toEqual(['local.ARS'])
         expect(shownBankReady('u1')).toEqual(['bank.USD', 'local.ARS'])
     })
 
@@ -117,11 +126,22 @@ describe('useBankReadyReminder', () => {
     it('opens the page once for the first ready account, then never again for it', () => {
         renderHook(() => load()(false))
         expect(mockReplace).toHaveBeenCalledWith('/verified?variant=bank-ready')
-        expect(shownBankReady('u1')).toEqual(['bank.USD'])
+        // home records nothing itself: the page does, once it shows
+        expect(shownBankReady('u1')).toEqual([])
+        expect(pageShows()).toEqual(['bank.USD'])
 
         mockReplace.mockClear()
         renderHook(() => load()(false))
         expect(mockReplace).not.toHaveBeenCalled()
+    })
+
+    it('a page that never showed keeps the reminder for the next open', () => {
+        renderHook(() => load()(false))
+        // the page left before showing (access refused): it drops the hand-off, records nothing
+        takeReshowing()
+        mockReplace.mockClear()
+        renderHook(() => load()(false))
+        expect(mockReplace).toHaveBeenCalledTimes(1)
     })
 
     it('opens it again on the next app open when a second account becomes ready', () => {
@@ -129,7 +149,7 @@ describe('useBankReadyReminder', () => {
         mockReport = report({ USD: on }, { ARS: on })
         renderHook(() => load()(false))
         expect(mockReplace).toHaveBeenCalledTimes(1)
-        expect(shownBankReady('u1')).toEqual(['bank.USD', 'local.ARS'])
+        expect(pageShows()).toEqual(['local.ARS'])
     })
 
     it('waits for the balance and never opens for a person who added money', () => {
@@ -154,7 +174,7 @@ describe('useBankReadyReminder', () => {
         methods = ['pix', 'bank', 'crypto']
         renderHook(() => load()(false))
         expect(mockReplace).toHaveBeenCalledTimes(1)
-        expect(shownBankReady('u1')).toEqual(['local.BRL'])
+        expect(pageShows()).toEqual(['local.BRL'])
     })
 
     it('a cached $0 that turns into a live balance never opens it', () => {
