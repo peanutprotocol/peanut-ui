@@ -40,10 +40,10 @@ import {
 type BankMethod = 'ars' | 'pix' | 'bank'
 
 /**
- * "Your ID is verified" (add-money proposal, rules 1-3): opens at once on a self-started approval, no modal. The
- * pink stage of the sign-up Celebration, then the live Add list. Bank rows load in place while the accounts open,
- * then say where they stand in Aleks's words; crypto always works. `bank-ready` is the same page, re-shown once a
- * bank account opens (slice 5).
+ * "ID verified" (add-money proposal, rules 1-3): opens at once on a self-started approval, no modal. The pink
+ * stage of the sign-up Celebration, then the live Add list. Bank rows load in place while the accounts open, then
+ * say where they stand in Aleks's words; a tap opens the step or the row's own screen. Crypto always works.
+ * `bank-ready` is the same page, re-shown once a bank account opens (slice 5).
  */
 export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
     // the shell paints the native status bar pink; a layout cleanup runs before the next screen paints its own
@@ -126,6 +126,7 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
         .filter(([, account]) => entryAction(account, capabilities.nextActions)?.kind === 'accept-tos')
         .map(([currency]) => currency)
 
+    // the step an action row names, after "Action needed" and a comma (design.md method lists: never "·")
     const actionWhat = (method: BankMethod): string | null => {
         const step = actionStep(bank[method].gate)
         if (step === 'address') return t('actionAddress')
@@ -151,7 +152,7 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
                 return (
                     <span>
                         <span className="underline">{t('actionNeeded')}</span>
-                        {what && ` · ${what}`}
+                        {what && `, ${what}`}
                     </span>
                 )
             }
@@ -221,11 +222,9 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
                                     />
                                 )
                             const { state } = bank[method]
-                            // a provider review can't be tapped and never promises a time (rule 3); a refusal
-                            // opens the bank hub, which says why and offers support (design.md, rows the user
-                            // cannot act on)
-                            const waiting = state === 'review'
-                            const tappable = state !== 'loading' && !waiting
+                            // a review or a refusal stays tappable and opens the bank hub, which says what is
+                            // happening (design.md, rows the user cannot act on; Kush). Only a loading row waits.
+                            const tappable = state !== 'loading'
                             return (
                                 <ListItem
                                     key={method}
@@ -234,7 +233,6 @@ export function VerifiedPage({ variant }: { variant: VerifiedPageVariant }) {
                                     bodyWrap
                                     leading={methodRows[method].icon}
                                     chevron={tappable}
-                                    disabled={waiting}
                                     onClick={tappable ? () => tap(method, state) : undefined}
                                     data-testid={`verified-method-${method}`}
                                     aria-label={state === 'loading' ? methodRows[method].title : undefined}

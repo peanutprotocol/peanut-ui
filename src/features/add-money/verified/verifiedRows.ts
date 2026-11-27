@@ -5,7 +5,7 @@ import type { FeatureReportEntry, IdentityVerificationStatus } from '@/types/cap
 import { gateFromEntry, type CapabilityState, type GateState } from '@/utils/capability-gate'
 
 /**
- * "Your ID is verified": where a self-started verification ends, with the ways to add money (add-money proposal,
+ * "ID verified": where a self-started verification ends, with the ways to add money (add-money proposal,
  * rules 1-3). The bank_ready push and the reminder open it again with `?variant=bank-ready`.
  */
 export const VERIFIED_PAGE_PATH = '/verified'
