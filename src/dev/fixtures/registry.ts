@@ -2741,23 +2741,33 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: { 'GET /users/me': { capabilities: MANTECA_AR_CAPABILITIES } },
     },
     ...Object.fromEntries(
-        (['pending', 'expired'] as const).map((status) => [
-            `add-money-argentina-deposit-${status}`,
+        (
+            [
+                ['pending', 'PROCESSING', 1, 'the transfer deadline'],
+                ['expired', 'CANCELLED', 1, 'the expired order and start-over button'],
+                // TASK-25444: the pesos reached Manteca, then the balance got them
+                ['received', 'PROCESSING', 2, 'payment received while the balance is credited'],
+                ['completed', 'COMPLETED', 3, 'the received deposit and Done'],
+            ] as const
+        ).map(([state, status, stage, shows]) => [
+            `add-money-argentina-deposit-${state}`,
             {
                 capture: { actions: [{ clickSelector: '[data-testid="deposit-amount-continue"]' }] },
                 route: '/add-money/argentina/manteca?step=inputAmount&amount=10000&currency=ARS',
                 geoCountry: 'AR',
-                about: `ARS deposit ${status}: continue to ${status === 'pending' ? 'the transfer deadline' : 'the expired order and start-over button'}.`,
+                about: `ARS deposit ${state}: continue to ${shows}.`,
                 responses: {
                     'GET /users/me': {
                         residence: { declared: 'AR', verified: 'AR', pending: null, declaredSecond: null },
                         capabilities: MANTECA_AR_CAPABILITIES,
                     },
                     'POST /manteca/deposit': ARS_DEPOSIT,
-                    'GET /manteca/deposit/fixture-ars-deposit/status':
-                        status === 'pending'
-                            ? { id: 'fixture-ars-deposit', status: 'PROCESSING', stage: 1, expired: false }
-                            : { id: 'fixture-ars-deposit', status: 'CANCELLED', stage: 1, expired: true },
+                    'GET /manteca/deposit/fixture-ars-deposit/status': {
+                        id: 'fixture-ars-deposit',
+                        status,
+                        stage,
+                        expired: state === 'expired',
+                    },
                 },
             },
         ])
