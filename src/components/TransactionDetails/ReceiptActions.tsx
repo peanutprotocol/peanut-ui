@@ -27,12 +27,19 @@ import { useReceiptReferralAction } from './useReceiptReferralAction'
 import { type ReceiptViewModel } from './useReceiptViewModel'
 import { useReceiptActions } from './useReceiptActions'
 import { type TransactionDetails } from './transactionTransformer'
-import { hasPublicReceipt, isRequestEntry, isSendLinkEntry, isSplittable } from './transaction-predicates'
+import {
+    hasPublicReceipt,
+    isRequestEntry,
+    isSendLinkEntry,
+    isSplittable,
+    sendAgainUsername,
+} from './transaction-predicates'
 import { buildSplitBillRequestUrl } from './splitBill.utils'
 import { EHistoryUserRole } from '@/hooks/useTransactionHistory'
 import { openExternalUrl } from '@/utils/capacitor'
 import { getReceiptUrl, isTestTransaction } from '@/utils/history.utils'
-import { resolveInAppNavigation } from '@/utils/native-routes'
+import { resolveInAppNavigation, sendUrl } from '@/utils/native-routes'
+import { offerSendAgainDraft } from '@/features/payments/flows/direct-send/send-again-draft'
 import { formatBankAmount } from '@/utils/currency'
 
 type CancelLinkState = 'idle' | 'cancelling' | 'cancelled'
@@ -47,8 +54,10 @@ const CANCEL_LINK_KEYS = {
 type ReceiptPrimaryAction = 'share-link' | 'split' | 'share-pdf'
 
 /**
- * The receipt's CTA stack: one state-aware primary, then More actions for
- * the rest (TASK-22452 hierarchy, TASK-24141 link sharing).
+ * The receipt's CTA stack, three at most: one state-aware primary, one
+ * secondary (Send again on a completed direct send, TASK-25462), then the More
+ * actions link as the tertiary. Anything else goes inside More actions
+ * (TASK-22452 hierarchy, TASK-24141 link sharing).
  *  - An entry with a public receipt: Share receipt sends its link. Split this
  *    bill (where the spend is splittable) and the PDF move to More actions.
  *  - No public receipt: Split this bill where splittable, else Share receipt
@@ -115,6 +124,7 @@ export function ReceiptActions({
     const canSharePdf = vm.shouldShowShareReceipt && vm.shouldShowDownloadPdf && !!kind
     const canDownloadPdf = vm.shouldShowDownloadPdf && !!kind
     const canSplit = !isPublic && isSplittable(transaction)
+    const sendAgainTo = isPublic ? null : sendAgainUsername(transaction)
     // one primary per state, never two: the link, else split, else the pdf
     const primaryAction: ReceiptPrimaryAction | null = canShareLink
         ? 'share-link'
@@ -213,6 +223,18 @@ export function ReceiptActions({
     const handleSplitBill = (placement: ReceiptActionPlacement) => {
         trackReceiptAction('split', placement, kind)
         router.push(buildSplitBillRequestUrl(transaction.amount, transaction.userName))
+    }
+    // the past amount and note go to the send screen as an editable
+    // suggestion; nothing is sent until the user confirms there
+    const handleSendAgain = () => {
+        if (!sendAgainTo) return
+        trackReceiptAction('send_again', 'secondary', kind)
+        offerSendAgainDraft({
+            username: sendAgainTo,
+            amount: String(Math.round(Number(transaction.amount) * 100) / 100),
+            message: transaction.memo || undefined,
+        })
+        router.push(sendUrl(sendAgainTo, native.isCapacitor))
     }
     const handleSharePdf = (placement: ReceiptActionPlacement) => {
         trackReceiptAction('share_pdf', placement, kind)
@@ -427,8 +449,8 @@ export function ReceiptActions({
             )}
 
             {/* the final-state cta group (S/8 inside one action area): the one
-                primary, then the overflow trigger */}
-            {(primaryAction || showMoreActionsButton) && (
+                primary, the one secondary, then the overflow link */}
+            {(primaryAction || sendAgainTo || showMoreActionsButton) && (
                 <div className="flex flex-col gap-2 print:hidden">
                     {primaryAction === 'share-link' && receiptPageUrl && (
                         <ShareButton
@@ -461,16 +483,27 @@ export function ReceiptActions({
                         </Button>
                     )}
 
-                    {showMoreActionsButton && (
+                    {sendAgainTo && (
                         <Button
                             variant="secondary"
                             shadowSize="4"
                             className="w-full"
-                            onClick={() => setShowMoreActions(true)}
-                            data-testid="more-actions-trigger"
+                            icon="retry"
+                            onClick={handleSendAgain}
+                            data-testid="send-again"
                         >
-                            {t('actions.moreActions')}
+                            {t('actions.sendAgain')}
                         </Button>
+                    )}
+
+                    {/* the tertiary: mt-4 on the gap-2 column keeps 24px under
+                        the button shadows (design.md tertiary cta) */}
+                    {showMoreActionsButton && (
+                        <div className="mt-4 flex justify-center">
+                            <LinkButton onClick={() => setShowMoreActions(true)} data-testid="more-actions-trigger">
+                                {t('actions.moreActions')}
+                            </LinkButton>
+                        </div>
                     )}
 
                     {/* the cancel's trigger is the more-actions row, so only the

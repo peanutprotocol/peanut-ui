@@ -107,6 +107,7 @@ jest.mock('../ReceiptMoreActionsDrawer', () => ({
 }))
 
 import { ReceiptActions } from '../ReceiptActions'
+import { clearSendAgainDraft, peekSendAgainDraft } from '@/features/payments/flows/direct-send/send-again-draft'
 
 const vm = (overrides: Partial<ReceiptViewModel> = {}) =>
     ({
@@ -456,5 +457,68 @@ describe('receipt action events (TASK-24141)', () => {
         fireEvent.click(screen.getByTestId('pdf-share'))
         tapped('share_pdf', 'primary', 'DIRECT_TRANSFER')
         expect(mockPdfShare).toHaveBeenCalledTimes(1)
+    })
+})
+
+describe('Send again (TASK-25462)', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+        clearSendAgainDraft()
+        ;(isCapacitor as jest.Mock).mockReturnValue(false)
+    })
+
+    const sentToHugo = (overrides: Record<string, unknown> = {}) =>
+        ({
+            ...transaction('DIRECT_TRANSFER', { publicReceipt: true }),
+            amount: 20.5,
+            memo: 'Lunch',
+            isPeerActuallyUser: true,
+            peer: { username: 'hugo' },
+            ...overrides,
+        }) as unknown as TransactionDetails
+
+    test('a completed send to a Peanut user: Share receipt, Send again, then the More actions link — three at most', () => {
+        renderActions(sentToHugo(), vm())
+
+        expect(receiptButtons().map((b) => b.getAttribute('data-testid'))).toEqual([
+            'link-share',
+            'send-again',
+            'more-actions-trigger',
+        ])
+        expect(screen.getByTestId('send-again')).toHaveTextContent('actions.sendAgain')
+    })
+
+    test('the tap opens the send screen with the amount and note as a suggestion', () => {
+        renderActions(sentToHugo(), vm())
+
+        fireEvent.click(screen.getByTestId('send-again'))
+
+        expect(mockPush).toHaveBeenCalledWith('/send/hugo')
+        expect(peekSendAgainDraft('hugo')).toEqual({ username: 'hugo', amount: '20.5', message: 'Lunch' })
+        expect(mockCapture).toHaveBeenCalledWith('receipt_action_tapped', {
+            action: 'send_again',
+            placement: 'secondary',
+            kind: 'DIRECT_TRANSFER',
+        })
+    })
+
+    test('native routes the send through the query, and a send without a note offers none', () => {
+        ;(isCapacitor as jest.Mock).mockReturnValue(true)
+        renderActions(sentToHugo({ memo: undefined }), vm())
+
+        fireEvent.click(screen.getByTestId('send-again'))
+
+        expect(mockPush).toHaveBeenCalledWith('/send?recipient=hugo')
+        expect(peekSendAgainDraft('hugo')).toEqual({ username: 'hugo', amount: '20.5', message: undefined })
+    })
+
+    test('the public receipt page never offers it', () => {
+        renderActions(sentToHugo(), vm(), true)
+        expect(screen.queryByTestId('send-again')).not.toBeInTheDocument()
+    })
+
+    test('a paid request has no Send again', () => {
+        renderActions(sentToHugo({ extraDataForDrawer: { kind: 'P2P_REQUEST_FULFILL', publicReceipt: true } }), vm())
+        expect(screen.queryByTestId('send-again')).not.toBeInTheDocument()
     })
 })

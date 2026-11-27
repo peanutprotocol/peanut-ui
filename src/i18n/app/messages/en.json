@@ -2868,6 +2868,7 @@
             "pay": "Pay",
             "rejectRequest": "Reject request",
             "moreActions": "More actions",
+            "sendAgain": "Send again",
             "splitBill": "Split this bill",
             "shareReceipt": "Share receipt",
             "sharePdf": "Share receipt (PDF)",
