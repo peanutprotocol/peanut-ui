@@ -11,7 +11,11 @@ jest.mock('@/hooks/useAppHaptic', () => ({ useAppHaptic: () => ({ triggerHaptic:
 let mockPickerMethods = ['pix', 'bank', 'crypto']
 let mockMethodsLoading = false
 jest.mock('../useAddMoneyReadiness', () => ({
-    useAddMoneyReadiness: () => ({ pickerMethods: mockPickerMethods, isLoading: mockMethodsLoading }),
+    useAddMoneyReadiness: () => ({
+        pickerMethods: mockPickerMethods,
+        isLoading: mockMethodsLoading,
+        residenceIso2s: [],
+    }),
 }))
 jest.mock('@/utils/capacitor', () => ({
     ...jest.requireActual('@/utils/capacitor'),

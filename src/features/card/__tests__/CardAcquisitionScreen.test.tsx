@@ -17,8 +17,13 @@ jest.mock('framer-motion', () => ({ useReducedMotion: () => false }))
 jest.mock('@/hooks/useAppHaptic', () => ({ useAppHaptic: () => ({ triggerHaptic: mockHaptic }) }))
 let mockPickerMethods = ['bank', 'crypto']
 let mockMethodsLoading = false
+let mockResidence = ['PT']
 jest.mock('@/features/add-money/useAddMoneyReadiness', () => ({
-    useAddMoneyReadiness: () => ({ pickerMethods: mockPickerMethods, isLoading: mockMethodsLoading }),
+    useAddMoneyReadiness: () => ({
+        pickerMethods: mockPickerMethods,
+        isLoading: mockMethodsLoading,
+        residenceIso2s: mockResidence,
+    }),
 }))
 jest.mock('@/utils/confetti', () => ({ shootDoubleStarConfetti: jest.fn() }))
 jest.mock('@/components/Global/NavHeader', () => ({ __esModule: true, default: () => null }))
@@ -51,6 +56,7 @@ beforeEach(() => {
     localStorage.clear()
     mockPickerMethods = ['bank', 'crypto']
     mockMethodsLoading = false
+    mockResidence = ['PT']
 })
 
 const row = (method: string) => screen.getByTestId(`add-money-method-${method}`)
@@ -114,10 +120,12 @@ describe('the funding rows', () => {
     // above them, so a fast tap could open the wrong deposit
     it('hold until the methods resolve, then show them in their final order', () => {
         mockMethodsLoading = true
+        mockResidence = ['AR']
         const { rerender } = render(<CardAcquisitionScreen {...props} />, {
             wrapper: withNuqsTestingAdapter({ searchParams: '?card_step=funding' }),
         })
         expect(screen.getByTestId('add-money-methods-loading')).toHaveAttribute('aria-busy', 'true')
+        expect(screen.getByTestId('add-money-methods-loading').children).toHaveLength(3)
         expect(screen.queryAllByTestId(/^add-money-method-/)).toHaveLength(0)
         mockMethodsLoading = false
         mockPickerMethods = ['ars', 'bank', 'crypto']
@@ -128,6 +136,21 @@ describe('the funding rows', () => {
             'add-money-method-bank',
             'add-money-method-crypto',
         ])
+    })
+
+    // Chip, 27 Nov: three placeholders for a user who resolves to two rows made the list jump
+    it.each([
+        [['AR'], 3],
+        [['BR'], 3],
+        [['PT'], 2],
+        [[], 2],
+    ])('hold as many placeholder rows as a resident of %j gets', (residence, rows) => {
+        mockMethodsLoading = true
+        mockResidence = residence
+        render(<CardAcquisitionScreen {...props} />, {
+            wrapper: withNuqsTestingAdapter({ searchParams: '?card_step=funding' }),
+        })
+        expect(screen.getByTestId('add-money-methods-loading').children).toHaveLength(rows)
     })
 
     it.each([

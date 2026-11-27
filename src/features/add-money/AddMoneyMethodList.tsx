@@ -18,8 +18,6 @@ import type { ReactNode } from 'react'
 const ARS_RAIL = DEPOSIT_RAILS.BANK_TRANSFER_AR
 /** the bank hub: its country list routes to the reusable account or the one-time transfer (`useDepositCountryRouting`) */
 const BANK_HUB_PATH = '/add-money?method=bank'
-/** the rows a resident of Argentina or Brazil gets (ARS or Pix, bank, crypto); anybody else settles on two */
-const LOADING_ROWS = 3
 
 /**
  * The Add picker's rows, in the order the methods resolve: ARS leads for a resident of Argentina, and Pix
@@ -39,13 +37,16 @@ export function AddMoneyMethodList({
 }) {
     const t = useTranslations('addMoney.methods')
     const router = useRouter()
-    const { pickerMethods, isLoading } = useAddMoneyReadiness(false)
+    const { pickerMethods, isLoading, residenceIso2s } = useAddMoneyReadiness(false)
     // Hold the rows until the methods resolve: ARS or Pix would otherwise appear above a row the user may
     // already be tapping (Aleks, 26 Nov, TASK-25444)
     if (isLoading) {
+        // as many placeholders as rows to come (design.md, skeletons): ARS needs a residence in Argentina and
+        // Pix mostly goes to residents of Brazil, so they get three rows and anybody else two
+        const placeholders = residenceIso2s.some((iso2) => iso2 === 'AR' || iso2 === 'BR') ? 3 : 2
         return (
             <ListGroup aria-busy data-testid="add-money-methods-loading">
-                {Array.from({ length: LOADING_ROWS }, (_, index) => (
+                {Array.from({ length: placeholders }, (_, index) => (
                     <ListItem
                         key={index}
                         leading={<div className="size-8 animate-pulse rounded-full bg-background-skeleton" />}
