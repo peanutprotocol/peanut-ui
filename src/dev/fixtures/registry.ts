@@ -2686,13 +2686,19 @@ const CARD_ADD_MONEY_FIXTURES: Record<string, Fixture> = {
         ARS_TOP_UP_RESIDENT,
         {}
     ),
+    // a US resident: the peso rail being set up keeps the ARS row (its page takes the user through), as on
+    // the Add picker (TASK-25444), so the status shows for a rail with no row of its own
     'card-add-money-bank-setting-up': cardAddMoney(
-        'Card $10 step, bank: a resident of Argentina whose peso rail is still being set up.',
+        'Card $10 step, bank: a resident of the US whose ACH rail is still being set up.',
         {
-            residence: verifiedResidence('AR'),
+            ...CARD_US_USER,
             capabilities: {
-                ...MANTECA_AR_CAPABILITIES,
-                rails: [{ ...MANTECA_AR_CAPABILITIES.rails[0], status: 'pending', resolved: { status: 'pending' } }],
+                ...CARD_US_USER.capabilities,
+                rails: CARD_US_USER.capabilities.rails.map((rail) => ({
+                    ...rail,
+                    status: 'pending',
+                    resolved: { status: 'pending' },
+                })),
             },
         },
         {}
@@ -2929,23 +2935,33 @@ export const FIXTURES: Record<string, Fixture> = {
         responses: { 'GET /users/me': { capabilities: MANTECA_AR_CAPABILITIES } },
     },
     ...Object.fromEntries(
-        (['pending', 'expired'] as const).map((status) => [
-            `add-money-argentina-deposit-${status}`,
+        (
+            [
+                ['pending', 'PROCESSING', 1, 'the transfer deadline'],
+                ['expired', 'CANCELLED', 1, 'the expired order and start-over button'],
+                // TASK-25444: the pesos reached Manteca, then the balance got them
+                ['received', 'PROCESSING', 2, 'payment received while the balance is credited'],
+                ['completed', 'COMPLETED', 3, 'the received deposit and Done'],
+            ] as const
+        ).map(([state, status, stage, shows]) => [
+            `add-money-argentina-deposit-${state}`,
             {
                 capture: { actions: [{ clickSelector: '[data-testid="deposit-amount-continue"]' }] },
                 route: '/add-money/argentina/manteca?step=inputAmount&amount=10000&currency=ARS',
                 geoCountry: 'AR',
-                about: `ARS deposit ${status}: continue to ${status === 'pending' ? 'the transfer deadline' : 'the expired order and start-over button'}.`,
+                about: `ARS deposit ${state}: continue to ${shows}.`,
                 responses: {
                     'GET /users/me': {
                         residence: { declared: 'AR', verified: 'AR', pending: null, declaredSecond: null },
                         capabilities: MANTECA_AR_CAPABILITIES,
                     },
                     'POST /manteca/deposit': ARS_DEPOSIT,
-                    'GET /manteca/deposit/fixture-ars-deposit/status':
-                        status === 'pending'
-                            ? { id: 'fixture-ars-deposit', status: 'PROCESSING', stage: 1, expired: false }
-                            : { id: 'fixture-ars-deposit', status: 'CANCELLED', stage: 1, expired: true },
+                    'GET /manteca/deposit/fixture-ars-deposit/status': {
+                        id: 'fixture-ars-deposit',
+                        status,
+                        stage,
+                        expired: state === 'expired',
+                    },
                 },
             },
         ])
@@ -4423,6 +4439,31 @@ export const FIXTURES: Record<string, Fixture> = {
         },
     },
     ...CARD_ADD_MONEY_FIXTURES,
+    // TASK-25444: ARS and Pix lead the funding step's bank rows where they lead the Add picker; the step's
+    // Bank row opens them (TASK-25169)
+    'card-funding-ars': {
+        capture: { expectSelector: '[data-testid="card-add-money-bank"]' },
+        route: '/card?card_step=funding',
+        balance: '0',
+        geoCountry: 'AR',
+        about: 'Card onboarding: funding for a resident of Argentina. Bank opens ARS first, as on the Add picker.',
+        responses: {
+            'GET /users/me': { ...ARS_TOP_UP_RESIDENT, user: { fullName: 'Lucía Gómez' } },
+            'GET /card': { isEligible: true, geoProhibited: false },
+            'GET /rain/cards': { status: { hasApplication: false }, cards: [], balance: null },
+        },
+    },
+    'card-funding-pix': {
+        capture: { expectSelector: '[data-testid="card-add-money-bank"]' },
+        route: '/card?card_step=funding',
+        balance: '0',
+        about: 'Card onboarding: funding for a resident of Brazil on Avenia. Bank opens Pix first, as on the Add picker.',
+        responses: {
+            ...aveniaResponses('enabled'),
+            'GET /card': { isEligible: true, geoProhibited: false },
+            'GET /rain/cards': { status: { hasApplication: false }, cards: [], balance: null },
+        },
+    },
     'card-holder': {
         route: '/card',
         about: 'Existing holder keeps card management even when new issuance is prohibited for their residence.',

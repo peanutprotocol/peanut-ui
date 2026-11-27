@@ -106,7 +106,7 @@ describe('card add-money drawer fixtures', () => {
             },
         ],
         ['card-add-money-bank-ars', { kind: 'rows', rows: [{ kind: 'page', corridor: 'BANK_TRANSFER_AR' }] }],
-        ['card-add-money-bank-setting-up', { kind: 'setting-up', corridor: 'BANK_TRANSFER_AR' }],
+        ['card-add-money-bank-setting-up', { kind: 'setting-up', corridor: 'ACH_US' }],
         ['card-add-money-not-verified', { kind: 'not-verified' }],
         ['card-add-money-under-review', { kind: 'under-review' }],
         ['card-add-money-bank-not-offered', { kind: 'not-offered' }],

@@ -20,6 +20,7 @@ import {
     captureCardAddMoneyRailPicked,
     captureCardGateAddFundsTapped,
     captureCardGateCameBackFunded,
+    cardFundingMethodOf,
     type CardAddMoneyView,
     type CardFundingMethod,
 } from '@/features/card/card-gate-analytics'
@@ -73,13 +74,17 @@ export function CardFundingStep({
     // the drawer closes on funding only when it opened short; a funded user who opens it stays in it
     const openedShort = useRef(false)
     const pickMethod = (method: CardFundingMethod) => {
-        captureCardGateAddFundsTapped('funding', funded, method)
         openedShort.current = !funded
         // one bank way, and it is a page: a drawer with one row would only add a tap
-        if (method === 'bank' && plan.kind === 'rows' && plan.rows.length === 1 && plan.rows[0].kind === 'page') {
-            const { corridor } = plan.rows[0]
-            captureCardAddMoneyRailPicked(corridor, 'page')
-            router.push(cardBankPageHref(corridor, gapUsd, readiness.residenceIso2s))
+        const onlyPage =
+            method === 'bank' && plan.kind === 'rows' && plan.rows.length === 1 && plan.rows[0].kind === 'page'
+                ? plan.rows[0].corridor
+                : undefined
+        // this tap picks that rail itself, so ARS and Pix count as themselves (TASK-25444)
+        captureCardGateAddFundsTapped('funding', funded, onlyPage ? cardFundingMethodOf(onlyPage) : method)
+        if (onlyPage) {
+            captureCardAddMoneyRailPicked(onlyPage, 'page')
+            router.push(cardBankPageHref(onlyPage, gapUsd, readiness.residenceIso2s))
             return
         }
         shown.current = null
@@ -222,6 +227,7 @@ export function CardFundingStep({
                     key={drawer.n}
                     open={open}
                     method={drawer.method}
+                    funded={funded}
                     gapUsd={gapUsd}
                     plan={plan}
                     residenceIso2s={readiness.residenceIso2s}

@@ -1,5 +1,6 @@
 import posthog from 'posthog-js'
 import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
+import type { AddMoneyPickerMethod } from '@/features/add-money/addMoneyMethods'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
 import type { RhinoChainType } from '@/services/services.types'
 import type { CardBankRow } from './cardAddMoney'
@@ -11,7 +12,13 @@ import type { CardBankRow } from './cardAddMoney'
  */
 
 export type CardGateStep = 'eligibility' | 'available' | 'funding' | 'entry'
-export type CardFundingMethod = 'bank' | 'crypto'
+/** The two rows of the card's funding step, each opening the add-money drawer. */
+export type CardFundingMethod = Extract<AddMoneyPickerMethod, 'bank' | 'crypto'>
+
+/** The picker method a bank rail stands for: ARS and Pix keep their own values (TASK-25444), the rest are bank. */
+export function cardFundingMethodOf(corridor: DepositCorridor): AddMoneyPickerMethod {
+    return corridor === 'BANK_TRANSFER_AR' ? 'ars' : corridor === 'PIX_BR' ? 'pix' : 'bank'
+}
 
 export function captureCardGateStepViewed(step: CardGateStep, funded: boolean, minBalanceShown: boolean): void {
     posthog.capture(ANALYTICS_EVENTS.CARD_GATE_STEP_VIEWED, {
@@ -24,7 +31,7 @@ export function captureCardGateStepViewed(step: CardGateStep, funded: boolean, m
 export function captureCardGateAddFundsTapped(
     step: CardGateStep,
     funded: boolean,
-    method: CardFundingMethod | null = null
+    method: AddMoneyPickerMethod | null = null
 ): void {
     posthog.capture(ANALYTICS_EVENTS.CARD_GATE_ADD_FUNDS_TAPPED, { step, method, funded })
 }

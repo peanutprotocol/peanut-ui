@@ -1,3 +1,4 @@
+import type { AddMoneyPickerMethod } from '@/features/add-money/addMoneyMethods'
 import { corridorTopUpHref } from '@/features/add-money/countryRoutes'
 import { ARS_ADD_MONEY_PATH, DEPOSIT_RAIL_ORDER, DEPOSIT_RAILS } from '@/features/deposit-accounts/rails'
 import { residenceAllows } from '@/features/deposit-accounts/residenceGate'
@@ -59,8 +60,10 @@ const FINISH_SETUP_KINDS: ReadonlySet<GateState['kind']> = new Set([
 
 /**
  * What the drawer's bank view shows, from `useAddMoneyReadiness`. Ready options come first, in the
- * order Add money's picker uses: ARS, Pix when the route offers it on Avenia, held accounts, one-time
- * transfers, then any other ready Pix; each group in the rail order. With nothing
+ * order Add money's picker uses: ARS, Pix when it leads the picker, held accounts, one-time transfers,
+ * then Pix when it follows the picker's bank row; each group in the rail order. ARS and Pix show
+ * wherever the picker shows them, as on the step's rows before (TASK-25444): their page takes the
+ * user through a step still open. With nothing
  * ready, one status answers, the most hopeful first: a rail being set up, then a review, then the
  * user's own verification, then a step left on the bank page. A rail the residence rules out says
  * nothing about this user.
@@ -72,18 +75,18 @@ export function cardBankPlan(input: {
     topUpGates: Record<DepositCorridor, GateState>
     /** `identityVerification.status`: a check in review reads `needs-identity` on the rails until it ends */
     identityStatus?: IdentityVerificationStatus
-    /** `resolveAddMoneyMethods`' picker order: Pix before `transfer` means Pix leads */
-    pickerMethods?: readonly string[]
+    /** `resolveAddMoneyMethods`' picker rows: whether ARS and Pix show, and Pix before `bank` means Pix leads */
+    pickerMethods: readonly AddMoneyPickerMethod[]
 }): CardBankPlan {
     if (input.isLoading) return { kind: 'loading' }
     const rows: CardBankRow[] = []
-    const picker = input.pickerMethods ?? []
-    const pixLeads = picker.includes('pix') && picker.indexOf('pix') < picker.indexOf('transfer')
-    const pix: CardBankRow[] = input.ready.pix.length ? [{ kind: 'page', corridor: 'PIX_BR' }] : []
+    const picker = input.pickerMethods
+    const pixLeads = picker.includes('pix') && picker.indexOf('pix') < picker.indexOf('bank')
+    const pix: CardBankRow[] = picker.includes('pix') ? [{ kind: 'page', corridor: 'PIX_BR' }] : []
     const inRailOrder = (currencies: readonly string[]) =>
         DEPOSIT_RAIL_ORDER.filter((c) => currencies.includes(DEPOSIT_RAILS[c].currency))
     const held = inRailOrder(input.ready.account)
-    if (input.ready.ars.length) rows.push({ kind: 'page', corridor: 'BANK_TRANSFER_AR' })
+    if (picker.includes('ars')) rows.push({ kind: 'page', corridor: 'BANK_TRANSFER_AR' })
     if (pixLeads) rows.push(...pix)
     rows.push(...held.map((corridor) => ({ kind: 'account' as const, corridor })))
     for (const corridor of inRailOrder(input.ready.transfer)) {

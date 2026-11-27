@@ -7,6 +7,7 @@ import { ANALYTICS_EVENTS } from '@/constants/analytics.consts'
 import { DEPOSIT_RAIL_ORDER } from '@/features/deposit-accounts/rails'
 import type { DepositCorridor } from '@/features/deposit-accounts/types'
 import type { GateState } from '@/utils/capability-gate'
+import type { AddMoneyPickerMethod } from '@/features/add-money/addMoneyMethods'
 import { CardAcquisitionScreen } from '../components/CardAcquisitionScreen'
 
 const mockCapture = jest.fn()
@@ -87,6 +88,7 @@ let readiness = {
     residenceIso2s: ['US'] as string[],
     ready: noneReady,
     topUpGates: gates('blocked-rejection'),
+    pickerMethods: ['bank', 'crypto'] as AddMoneyPickerMethod[],
 }
 jest.mock('@/features/add-money/useAddMoneyReadiness', () => ({ useAddMoneyReadiness: () => readiness }))
 
@@ -153,7 +155,13 @@ beforeEach(() => {
     pollStatus = 'not_started'
     identityStatus = undefined
     pollOnSuccess = undefined
-    readiness = { isLoading: false, residenceIso2s: ['US'], ready: noneReady, topUpGates: gates('blocked-rejection') }
+    readiness = {
+        isLoading: false,
+        residenceIso2s: ['US'],
+        ready: noneReady,
+        topUpGates: gates('blocked-rejection'),
+        pickerMethods: ['bank', 'crypto'],
+    }
     depositAccounts = { ACH_US: ACH_ACCOUNT }
     usdRate = 0.92
     mockCreateDepositAddress.mockResolvedValue({
@@ -241,7 +249,12 @@ describe('funding step', () => {
     })
 
     it('goes straight to the one bank page with the gap and the way back', () => {
-        readiness = { ...readiness, residenceIso2s: ['AR'], ready: { ...noneReady, ars: ['ARS'] } }
+        readiness = {
+            ...readiness,
+            residenceIso2s: ['AR'],
+            ready: { ...noneReady, ars: ['ARS'] },
+            pickerMethods: ['ars', 'bank', 'crypto'],
+        }
         renderFunding()
         fireEvent.click(screen.getByTestId('card-add-money-bank'))
         expect(screen.queryByTestId('card-add-money-drawer')).not.toBeInTheDocument()

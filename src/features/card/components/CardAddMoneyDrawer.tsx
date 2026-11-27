@@ -12,6 +12,8 @@ import {
     captureCardAddMoneyNetworkPicked,
     captureCardAddMoneyRailPicked,
     captureCardAddMoneyVerifyTapped,
+    captureCardGateAddFundsTapped,
+    cardFundingMethodOf,
     type CardAddMoneyView,
     type CardFundingMethod,
 } from '@/features/card/card-gate-analytics'
@@ -66,6 +68,7 @@ function bankView(plan: CardBankPlan): CardAddMoneyView {
 export function CardAddMoneyDrawer({
     open,
     method: openedWith,
+    funded,
     gapUsd,
     plan,
     residenceIso2s,
@@ -75,6 +78,7 @@ export function CardAddMoneyDrawer({
 }: {
     open: boolean
     method: CardFundingMethod
+    funded: boolean
     gapUsd: number | undefined
     plan: CardBankPlan
     residenceIso2s: readonly string[]
@@ -111,6 +115,9 @@ export function CardAddMoneyDrawer({
     const toNetworksFromBank = () => setView({ kind: 'networks', fromBank: true })
     const pickRow = (row: CardBankRow) => {
         captureCardAddMoneyRailPicked(row.corridor, row.kind)
+        // the step's Bank tap counted as bank; ARS and Pix are picked here, so they count here (TASK-25444)
+        const picked = cardFundingMethodOf(row.corridor)
+        if (picked !== 'bank') captureCardGateAddFundsTapped('funding', funded, picked)
         if (row.kind === 'account') setView({ kind: 'details', corridor: row.corridor })
         else router.push(cardBankPageHref(row.corridor, gapUsd, residenceIso2s))
     }
