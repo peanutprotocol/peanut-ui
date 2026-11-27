@@ -34,7 +34,7 @@ const openRateAndFees = () => fireEvent.click(screen.getByRole('button', { name:
 const renderIn = (locale: AppLocale) => {
     render(
         <NextIntlClientProvider locale={locale} messages={en} timeZone="UTC">
-            <MantecaDepositShareDetails depositDetails={order} onBack={jest.fn()} />
+            <MantecaDepositShareDetails depositDetails={order} onBack={jest.fn()} onDone={jest.fn()} />
         </NextIntlClientProvider>
     )
     openRateAndFees()
@@ -69,7 +69,7 @@ it('shows the amount the order locked, next to the price it locked', () => {
     } as unknown as MantecaDepositResponseData
     render(
         <NextIntlClientProvider locale="es-AR" messages={en} timeZone="UTC">
-            <MantecaDepositShareDetails depositDetails={lockedOrder} onBack={jest.fn()} />
+            <MantecaDepositShareDetails depositDetails={lockedOrder} onBack={jest.fn()} onDone={jest.fn()} />
         </NextIntlClientProvider>
     )
     openRateAndFees()

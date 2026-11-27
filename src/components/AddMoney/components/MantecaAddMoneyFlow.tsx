@@ -39,7 +39,7 @@ import { useBankEntryFor } from '@/hooks/useBankRows'
 import { entryAction, isLocalResidenceRefusal, isMantecaAccountClosed, refusalOf } from '@/features/kyc-features/report'
 import { useAuth } from '@/context/authContext'
 import { ResidenceRequiredScreen } from '@/features/deposit-accounts/components/ResidenceRequiredScreen'
-import { withReturnTo, readReturnTo } from '@/utils/return-to.utils'
+import { withReturnTo, readReturnTo, originPastHubs } from '@/utils/return-to.utils'
 import { API_ERROR_CODES, wireErrorCode } from '@/services/api-error'
 import { MantecaAccountUnavailable } from '@/components/Common/MantecaAccountUnavailable'
 import { useModalsContext } from '@/context/ModalsContext'
@@ -109,8 +109,8 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     // otherwise to the hub itself — not the bare `/add-money/argentina` amount
     // route the user never knowingly opened.
     const onBack = useSafeBack(readReturnTo(searchParams) ?? '/add-money?method=bank')
-    // "I've sent the transfer" leaves like Bridge's bank details: back to the origin, else home
-    const leaveAfterSent = useReturnTo(readReturnTo(searchParams) ?? '/home')
+    // Done after the pesos arrived, and "I've sent the transfer", never reopen a hub: the origin past the Add money hubs, or Home
+    const leaveToOrigin = useReturnTo(originPastHubs(readReturnTo(searchParams), ['/add-money']) ?? '/home')
     // Argentina's Manteca top-up mints a CVU per deposit, and Manteca rejects a
     // non-resident only after amount + KYC. The API's answer for this country's
     // account comes first: a closure by Manteca, or an account the residence
@@ -121,6 +121,8 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
     const arsDeposit = residenceGatedCountry && step === 'depositDetails' ? depositDetails : undefined
     const { status: arsDepositStatus } = useMantecaDepositPolling(arsDeposit?.id, () => {
         void queryClient.invalidateQueries({ queryKey: [TRANSACTIONS] })
+        // COMPLETED means Manteca sent the USDC to the wallet; the success view says the balance has it
+        void queryClient.invalidateQueries({ queryKey: ['balance'] })
     })
     const localAccount = residenceGatedCountry ? bankEntryFor('ars') : null
     const accountRejected = isMantecaAccountClosed(localAccount ?? undefined)
@@ -577,7 +579,8 @@ const MantecaAddMoneyFlow: FC<{ searchParams: Pick<URLSearchParams, 'get'> }> = 
                 // way the input step does, not back to `inputAmount` (which would let
                 // the user start a second deposit).
                 onBack={onBack}
-                onSent={leaveAfterSent}
+                onDone={leaveToOrigin}
+                onSent={leaveToOrigin}
                 onContactSupport={() => setIsSupportModalOpen(true)}
             />
         )

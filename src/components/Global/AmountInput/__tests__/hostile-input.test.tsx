@@ -47,6 +47,19 @@ describe('AmountInput with hostile values', () => {
         expect(parseUsdAmountToUnits(sent()!)).toBe(12_000_000n)
     })
 
+    // TASK-25353: the field showed "00.1" while sending 0.1
+    it.each([
+        ['00.1', '0.1'],
+        ['007', '7'],
+        ['00', '0'],
+        ['0.05', '0.05'],
+    ])('typing %j shows and sends %j, without redundant leading zeros', (value, expected) => {
+        const { input, type, sent } = renderField()
+        type(value)
+        expect(input.value).toBe(expected)
+        expect(sent()).toBe(expected)
+    })
+
     it('cuts a fraction longer than the token supports (USDC, 6 decimals)', () => {
         const { type, sent } = renderField(6)
         type('1.1234567')

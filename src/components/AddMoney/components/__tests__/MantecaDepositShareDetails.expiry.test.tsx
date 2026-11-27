@@ -49,6 +49,7 @@ describe('the order countdown', () => {
                 depositDetails={order}
                 arsStatus="pending"
                 onBack={jest.fn()}
+                onDone={jest.fn()}
                 onStartOver={onStartOver}
                 onContactSupport={onContactSupport}
             />
@@ -76,7 +77,14 @@ describe('the order countdown', () => {
     })
 
     it('never expires an order whose transfer already arrived', () => {
-        renderWithIntl(<MantecaDepositShareDetails depositDetails={order} arsStatus="processing" onBack={jest.fn()} />)
+        renderWithIntl(
+            <MantecaDepositShareDetails
+                depositDetails={order}
+                arsStatus="processing"
+                onBack={jest.fn()}
+                onDone={jest.fn()}
+            />
+        )
         act(() => jest.advanceTimersByTime(120_000))
         expect(screen.queryByText(EXPIRED_COPY)).not.toBeInTheDocument()
         // no live order, no timer
@@ -85,7 +93,9 @@ describe('the order countdown', () => {
 })
 
 it('folds the rate, fees and arrival under one row with unchanged values, and keeps the provider named', () => {
-    renderWithIntl(<MantecaDepositShareDetails depositDetails={order} arsStatus="pending" onBack={jest.fn()} />)
+    renderWithIntl(
+        <MantecaDepositShareDetails depositDetails={order} arsStatus="pending" onBack={jest.fn()} onDone={jest.fn()} />
+    )
     expect(screen.queryByText('Exchange rate')).not.toBeInTheDocument()
     // money goes to the provider from this screen: it stays named outside the fold (Resolution 520)
     expect(screen.getByText('Provider · Manteca')).toBeInTheDocument()
@@ -110,7 +120,13 @@ it('folds the rate, fees and arrival under one row with unchanged values, and ke
 it('"I\'ve sent the transfer" hands control back to the flow', () => {
     const onSent = jest.fn()
     renderWithIntl(
-        <MantecaDepositShareDetails depositDetails={order} arsStatus="pending" onBack={jest.fn()} onSent={onSent} />
+        <MantecaDepositShareDetails
+            depositDetails={order}
+            arsStatus="pending"
+            onBack={jest.fn()}
+            onDone={jest.fn()}
+            onSent={onSent}
+        />
     )
     fireEvent.click(screen.getByRole('button', { name: "I've sent the transfer" }))
     expect(onSent).toHaveBeenCalledTimes(1)

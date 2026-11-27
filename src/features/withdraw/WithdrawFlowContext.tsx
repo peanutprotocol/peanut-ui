@@ -3,7 +3,8 @@
 import { type Account } from '@/interfaces/interfaces'
 import { type TRequestChargeResponse, type PaymentCreationResponse } from '@/services/services.types'
 import type { RecipientState } from '@/components/Global/GeneralRecipientInput/types'
-import React, { createContext, type ReactNode, useContext, useMemo, useState, useCallback } from 'react'
+import React, { createContext, type ReactNode, useContext, useEffect, useMemo, useState, useCallback } from 'react'
+import { clearRepeatDraft, peekRepeatDraft } from '@/features/payments/shared/repeat-draft'
 import type { WithdrawData, WithdrawMethod } from './types'
 import type { FlowErrorState } from '@/interfaces/interfaces'
 import type { WithdrawAddressFamily } from '@/lib/validation/addressFamily'
@@ -101,8 +102,15 @@ export const WithdrawFlowProvider: React.FC<{ children: ReactNode }> = ({ childr
     const [networkUnconfirmed, setNetworkUnconfirmed] = useState<boolean>(false)
     const [scannedRecipient, setScannedRecipient] = useState<ScannedRecipient | null>(null)
     const [error, setError] = useState<FlowErrorState>({ showError: false, errorMessage: '' })
-    const [selectedBankAccount, setSelectedBankAccount] = useState<Account | null>(null)
-    const [selectedMethod, setSelectedMethod] = useState<WithdrawMethod | null>(null)
+    // "Withdraw again" on a receipt (TASK-25462) opens the amount step with its
+    // account picked. Seeded in the initializers, not an effect: the amount
+    // step's guard reads the method on the first render and would bounce.
+    const [bankDraft] = useState(() => peekRepeatDraft('bank'))
+    useEffect(() => {
+        if (bankDraft) clearRepeatDraft()
+    }, [bankDraft])
+    const [selectedBankAccount, setSelectedBankAccount] = useState<Account | null>(bankDraft?.account ?? null)
+    const [selectedMethod, setSelectedMethod] = useState<WithdrawMethod | null>(bankDraft?.method ?? null)
     const [chargeDetails, setChargeDetails] = useState<TRequestChargeResponse | null>(null)
     const [transactionHash, setTransactionHash] = useState<string | null>(null)
     const [paymentDetails, setPaymentDetails] = useState<PaymentCreationResponse | null>(null)

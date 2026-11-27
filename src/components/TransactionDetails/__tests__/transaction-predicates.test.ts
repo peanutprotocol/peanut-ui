@@ -16,6 +16,7 @@ import {
     isRequestEntry,
     isSendLinkEntry,
     isSplittable,
+    sendAgainUsername,
     hasPublicReceipt,
     hasResolvableReceiptDocument,
 } from '../transaction-predicates'
@@ -384,5 +385,36 @@ describe('hasResolvableReceiptDocument', () => {
     it('never withholds a document from any other kind', () => {
         const tx = { id: 'anything', extraDataForDrawer: { kind: 'OFFRAMP' } } as unknown as TransactionDetails
         expect(hasResolvableReceiptDocument(tx)).toBe(true)
+    })
+})
+
+describe('sendAgainUsername (TASK-25462)', () => {
+    const send = (overrides: Record<string, unknown> = {}, kind = 'DIRECT_TRANSFER') =>
+        ({
+            direction: 'send',
+            status: 'completed',
+            isPeerActuallyUser: true,
+            peer: { username: 'hugo' },
+            extraDataForDrawer: { originalType: 'TRANSACTION_INTENT', kind },
+            ...overrides,
+        }) as unknown as TransactionDetails
+
+    test.each(['DIRECT_TRANSFER', 'P2P_SEND'])('a completed %s to a Peanut user names them', (kind) => {
+        expect(sendAgainUsername(send({}, kind))).toBe('hugo')
+    })
+
+    test.each([
+        ['a paid request', send({}, 'P2P_REQUEST_FULFILL')],
+        ['a send link', send({}, 'SEND_LINK')],
+        ['a bank payout', send({}, 'OFFRAMP')],
+        ['a crypto withdrawal', send({}, 'CRYPTO_WITHDRAW')],
+        ['a QR payment', send({}, 'QR_PAY')],
+        ['money received', send({ direction: 'receive' })],
+        ['a pending send', send({ status: 'pending' })],
+        ['a failed send', send({ status: 'failed' })],
+        ['a refunded send', send({ status: 'refunded' })],
+        ['a send to an address', send({ isPeerActuallyUser: false, peer: null })],
+    ])('%s has no Send again', (_, transaction) => {
+        expect(sendAgainUsername(transaction)).toBeNull()
     })
 })
